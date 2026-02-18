@@ -65,18 +65,6 @@ export const createTemplateFromRoles = (roles: RoleId[]): GameTemplate => ({
   roles,
 });
 
-// Check if template has skilled wolves
-export const templateHasSkilledWolf = (template: GameTemplate): boolean => {
-  const skilledWolves: RoleId[] = [
-    'wolfKing',
-    'darkWolfKing',
-    'wolfQueen',
-    'nightmare',
-    'bloodMoon',
-  ];
-  return template.roles.some((role) => skilledWolves.includes(role));
-};
-
 /**
  * Find matching preset name for given roles.
  * Returns the preset name if roles match exactly (sorted), otherwise null.

@@ -4,7 +4,6 @@ import {
   createTemplateFromRoles,
   getTemplateRoomInfo,
   PRESET_TEMPLATES,
-  templateHasSkilledWolf,
 } from '@werewolf/game-engine/models/Template';
 
 /**
@@ -134,43 +133,6 @@ describe('Template - createCustomTemplate', () => {
     expect(actionOrder).toContain('wolf');
     expect(actionOrder).toContain('witch');
     expect(actionOrder).toContain('seer');
-  });
-});
-
-describe('Template - templateHasSkilledWolf', () => {
-  it('should return false for template with only regular wolves', () => {
-    const template = createTemplateFromRoles(['wolf', 'wolf', 'seer', 'witch', 'villager']);
-    expect(templateHasSkilledWolf(template)).toBe(false);
-  });
-
-  it('should return true for template with wolfQueen', () => {
-    const template = createTemplateFromRoles(['wolf', 'wolfQueen', 'seer', 'witch', 'villager']);
-    expect(templateHasSkilledWolf(template)).toBe(true);
-  });
-
-  it('should return true for template with darkWolfKing', () => {
-    const template = createTemplateFromRoles(['wolf', 'darkWolfKing', 'seer', 'witch', 'villager']);
-    expect(templateHasSkilledWolf(template)).toBe(true);
-  });
-
-  it('should return true for template with nightmare', () => {
-    const template = createTemplateFromRoles(['wolf', 'nightmare', 'seer', 'witch', 'villager']);
-    expect(templateHasSkilledWolf(template)).toBe(true);
-  });
-
-  it('should return true for template with bloodMoon', () => {
-    const template = createTemplateFromRoles(['wolf', 'bloodMoon', 'seer', 'witch', 'villager']);
-    expect(templateHasSkilledWolf(template)).toBe(true);
-  });
-
-  it('should return false for template with wolfRobot (not considered skilled)', () => {
-    const template = createTemplateFromRoles(['wolf', 'wolfRobot', 'seer', 'witch', 'villager']);
-    expect(templateHasSkilledWolf(template)).toBe(false);
-  });
-
-  it('should return false for template with gargoyle (not considered skilled)', () => {
-    const template = createTemplateFromRoles(['wolf', 'gargoyle', 'seer', 'witch', 'villager']);
-    expect(templateHasSkilledWolf(template)).toBe(false);
   });
 });
 

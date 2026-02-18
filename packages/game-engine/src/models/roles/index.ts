@@ -49,6 +49,7 @@ export {
 // ============================================================
 // Re-imports from spec/ (for internal use)
 // ============================================================
+import type { RoleSpec } from './spec/spec.types';
 import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec/specs';
 
 // ============================================================
@@ -89,7 +90,7 @@ export function isWolfRole(roleId: string): boolean {
  */
 export function canRoleSeeWolves(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec = getRoleSpec(roleId) as { wolfMeeting?: { canSeeWolves?: boolean } };
+  const spec = getRoleSpec(roleId) as RoleSpec;
   return spec?.wolfMeeting?.canSeeWolves ?? false;
 }
 
@@ -104,7 +105,7 @@ export function canRoleSeeWolves(roleId: string): boolean {
  */
 export function doesRoleParticipateInWolfVote(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec = getRoleSpec(roleId) as { wolfMeeting?: { participatesInWolfVote?: boolean } };
+  const spec = getRoleSpec(roleId) as RoleSpec;
   if (!spec) return false;
 
   // Participation is explicitly configured per role (single source of truth).
@@ -128,7 +129,7 @@ export function getWolfRoleIds(): RoleId[] {
  */
 export function getWolfKillImmuneRoleIds(): RoleId[] {
   return getAllRoleIds().filter((id) => {
-    const spec = ROLE_SPECS[id] as { flags?: { immuneToWolfKill?: boolean } };
+    const spec = ROLE_SPECS[id] as RoleSpec;
     return spec.flags?.immuneToWolfKill === true;
   });
 }
