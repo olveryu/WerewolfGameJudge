@@ -44,6 +44,15 @@ commit message 会被 `commitlint` 自动校验。
 2. PR 标题遵循 Conventional Commits 格式
 3. 简要描述变更内容和动机
 
+## 测试门禁 | Test Gates
+
+提交前请确认以下约束：
+
+- 所有 board UI tests 禁止 `.skip`（All board UI tests forbid `.skip`）
+- `assertCoverage([...])` 必须使用字面量数组（Must use literal arrays）
+- Contract tests 强制 schema/resolver/nightStep 三层对齐（Enforce alignment）
+- Night-1-only 红线检测：禁止跨夜状态（No cross-night state）
+
 ## Reporting Issues
 
 请使用 GitHub Issues，选择对应模板（Bug Report / Feature Request）。

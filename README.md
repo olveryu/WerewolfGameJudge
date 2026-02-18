@@ -10,7 +10,6 @@ _An automated judge app for both in-person and remote Werewolf games_
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![React Native](https://img.shields.io/badge/React%20Native-Expo-purple?style=flat-square&logo=expo)](https://expo.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-Realtime-green?style=flat-square&logo=supabase)](https://supabase.com/)
-[![Tests](https://img.shields.io/badge/Tests-2719%20passed-brightgreen?style=flat-square)](.)
 
 ---
 
@@ -26,7 +25,7 @@ _An automated judge app for both in-person and remote Werewolf games_
 | ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入                     | ⚡ **Instant Play** - Anonymous login, no registration, quick join                     |
 | 🌐 **跨平台** - iOS / Android / Web 全平台支持                              | 🌐 **Cross-platform** - iOS / Android / Web supported                                  |
 | 🎨 **多主题** - 8 种主题风格可选（暗黑/浅色/午夜/血月/紫霞/极简/森林/雪夜） | 🎨 **Themes** - 8 theme styles (Dark/Light/Midnight/Blood/Discord/Minimal/Forest/Snow) |
-| 🧪 **高测试覆盖** - 2719 个单元测试 + UI 测试 + E2E 测试                    | 🧪 **High Test Coverage** - 2719 unit tests + UI tests + E2E tests                     |
+| 🧪 **高测试覆盖** - 完整的单元/集成/E2E 测试                                | 🧪 **High Test Coverage** - Comprehensive unit / integration / E2E tests               |
 
 ---
 
@@ -65,13 +64,6 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 | 🔍 **技能对决** - 查询技能结算顺序和冲突规则 | 🔍 **Skill Conflicts** - Check skill resolution order and conflicts |
 | 💬 **自然对话** - 支持中英文自由提问         | 💬 **Natural Chat** - Ask freely in Chinese or English              |
 
-### 使用示例 | Example Questions
-
-- "女巫的毒药和解药怎么用？" / _"How does the Witch use poison and antidote?"_
-- "守卫和女巫同守一人会怎样？" / _"What happens if Guard and Witch both protect the same player?"_
-- "狼美人的魅惑有什么用？" / _"What's the use of Wolf Queen's charm?"_
-- "第一晚预言家应该查谁？" / _"Who should the Seer check on Night-1?"_
-
 > 💡 点击悬浮按钮打开聊天，可拖动调整位置，聊天记录会自动保存。  
 > _Click the floating button to chat, drag to reposition, chat history auto-saves._
 
@@ -79,49 +71,15 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 
 ## 🎭 支持角色 | Supported Roles (22)
 
-### 好人阵营 | Good Faction (12)
+| 阵营 Faction               | 角色 Roles                                                                                                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **好人 Good** — 村民 (1)   | 普通村民 Villager                                                                                                                                                                  |
+| **好人 Good** — 神职 (11)  | 预言家 Seer · 女巫 Witch · 猎人 Hunter · 守卫 Guard · 白痴 Idiot · 骑士 Knight · 魔术师 Magician · 猎魔人 Witcher · 通灵师 Psychic · 摄梦人 Dreamcatcher · 守墓人 Graveyard Keeper |
+| **狼人 Wolf** (9)          | 狼人 Werewolf · 狼美人 Wolf Queen · 白狼王 Wolf King · 黑狼王 Dark Wolf King · 梦魇 Nightmare · 石像鬼 Gargoyle · 血月使徒 Blood Moon · 机械狼 Wolf Robot · 恶灵骑士 Spirit Knight |
+| **第三方 Third Party** (1) | 混子 Slacker                                                                                                                                                                       |
 
-#### 村民 | Villager (1)
-
-| 中文     | English  | 描述 Description                                |
-| -------- | -------- | ----------------------------------------------- |
-| 普通村民 | Villager | 依靠推理投票<br/>_Rely on deduction and voting_ |
-
-#### 神职 | God (11)
-
-| 中文   | English          | 描述 Description                                                 |
-| ------ | ---------------- | ---------------------------------------------------------------- |
-| 预言家 | Seer             | 每晚查验一名玩家阵营<br/>_Check one player's faction each night_ |
-| 女巫   | Witch            | 一瓶解药一瓶毒药<br/>_One antidote and one poison_               |
-| 猎人   | Hunter           | 被狼杀时可开枪带人<br/>_Shoot when killed by wolves_             |
-| 守卫   | Guard            | 每晚守护一名玩家<br/>_Protect one player each night_             |
-| 白痴   | Idiot            | 被投票时翻牌免死<br/>_Reveal to survive vote exile_              |
-| 骑士   | Knight           | 白天可与人决斗<br/>_Duel during day_                             |
-| 魔术师 | Magician         | 每晚交换两人号码牌<br/>_Swap two seats each night_               |
-| 猎魔人 | Witcher          | 第二晚起可狩猎玩家<br/>_Hunt players from Night-2_               |
-| 通灵师 | Psychic          | 每晚查验具体身份牌<br/>_Check exact role each night_             |
-| 摄梦人 | Dreamcatcher     | 每晚选择梦游者<br/>_Choose a sleepwalker each night_             |
-| 守墓人 | Graveyard Keeper | 得知被放逐者阵营<br/>_Know exiled player's faction_              |
-
-### 狼人阵营 | Wolf Faction (9)
-
-| 中文     | English        | 描述 Description                                                     |
-| -------- | -------------- | -------------------------------------------------------------------- |
-| 狼人     | Werewolf       | 每晚与队友共同猎杀<br/>_Hunt with teammates each night_              |
-| 狼美人   | Wolf Queen     | 狼刀后可魅惑一人<br/>_Charm one player after wolf kill_              |
-| 白狼王   | Wolf King      | 白天可自爆带人<br/>_Self-destruct to take someone_                   |
-| 黑狼王   | Dark Wolf King | 被刀杀时可开枪<br/>_Shoot when knife-killed_                         |
-| 梦魇     | Nightmare      | 每晚恐惧一人使其失能<br/>_Block one player's skill each night_       |
-| 石像鬼   | Gargoyle       | 查验具体身份，不参与狼刀<br/>_Check exact role, no wolf vote_        |
-| 血月使徒 | Blood Moon     | 自爆后封印好人技能<br/>_Seal good skills after self-destruct_        |
-| 机械狼   | Wolf Robot     | 学习一人技能，隐身狼<br/>_Learn one skill, hidden wolf_              |
-| 恶灵骑士 | Spirit Knight  | 免疫夜间伤害，反伤神职<br/>_Immune to night damage, reflect to gods_ |
-
-### 第三方 | Third Party (1)
-
-| 中文 | English | 描述 Description                                                             |
-| ---- | ------- | ---------------------------------------------------------------------------- |
-| 混子 | Slacker | 第一晚选择榜样，与其同阵营<br/>_Choose idol on Night-1, share their faction_ |
+> 详细角色技能说明见 [角色对齐矩阵](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)  
+> _See [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) for detailed role abilities_
 
 ---
 
@@ -182,88 +140,12 @@ NIGHT_STEPS (步骤序列)                Step sequence
 
 ## 🧪 测试覆盖 | Test Coverage
 
-| 类型 Type             | 数量 Count | 说明 Description                                                                                              |
-| --------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| **Unit Tests**        | 2719       | 182 test suites (game-engine 51 + app 131)                                                                    |
-| **UI Board Tests**    | 10 boards  | 覆盖所有预设板子<br/>_Cover all preset boards_                                                                |
-| **Integration Tests** | 25+        | 夜晚流程全链路<br/>_Full night flow chains_                                                                   |
-| **Contract Tests**    | 15+        | Schema/Resolver 对齐<br/>_Schema/Resolver alignment_                                                          |
-| **E2E Tests**         | 30+        | 14 spec files, Playwright 端到端（含断线恢复）<br/>_14 spec files, Playwright end-to-end (incl. DB recovery)_ |
-
----
-
-## 🎬 角色揭示特效 | Role Reveal Effects
-
-查看身份时提供 5 种视觉特效动画，增强游戏体验！  
-_5 visual effect animations when revealing roles, enhancing game experience!_
-
-### 特效类型 | Effect Types
-
-| 类型 Type                  | 描述 Description                                           |
-| -------------------------- | ---------------------------------------------------------- |
-| 🎰 **轮盘** roulette       | 老虎机滚动效果<br/>_Slot machine spinning effect_          |
-| 🃏 **翻牌** flip           | 3D 卡牌翻转动画<br/>_3D card flip animation_               |
-| ✨ **刮刮卡** scratch      | 手指刮开揭示身份<br/>_Scratch to reveal with finger_       |
-| 🔮 **塔罗** tarot          | 转盘抽卡揭示效果<br/>_Tarot card draw reveal effect_       |
-| 🎪 **扭蛋机** gachaMachine | 复古扭蛋机揭示效果<br/>_Retro gacha machine reveal effect_ |
-
-### 特性 | Features
-
-- ✅ **阵营主题** - 狼人红色/神职蓝色/村民绿色视觉主题
-- ✅ **粒子效果** - 揭示时粒子爆发动画
-- ✅ **音效支持** - 可选的揭示音效
-- ✅ **触觉反馈** - iOS/Android 震动反馈
-- ✅ **无障碍** - 自动检测系统减少动态偏好
-- ✅ **跨平台** - iOS/Android/Web 全平台支持
-
-### 平台降级说明 | Platform Degradation
-
-| 功能 Feature        | iOS/Android        | Web                                                                                                         |
-| ------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------- |
-| 🔊 **音效** Sound   | ✅ 完整支持        | ⚠️ 需用户交互解锁（浏览器自动播放限制）<br/>_Requires user interaction to unlock (browser autoplay policy)_ |
-| 📳 **触觉** Haptics | ✅ 完整支持        | ❌ 静默 no-op（Web 无振动 API）<br/>_Silent no-op (no vibration API)_                                       |
-| 🌟 **阴影/发光**    | ✅ 原生阴影        | ⚠️ 使用 CSS box-shadow 模拟，效果略有差异<br/>_Uses CSS box-shadow, slight visual difference_               |
-| 🎬 **动画驱动**     | ✅ useNativeDriver | ⚠️ JS 线程驱动，低端设备可能卡顿<br/>_JS thread driven, may lag on low-end devices_                         |
-
-### Reduced Motion 无障碍模式
-
-当系统开启"减少动态效果"时：
-
-- 粒子效果自动关闭
-- 动画简化为简单淡入
-- 音效和触觉反馈自动禁用
-
-### 使用示例 | Usage Example
-
-```tsx
-import { RoleRevealAnimator, createRoleData } from '@/components/RoleRevealEffects';
-
-function MyScreen() {
-  const [showReveal, setShowReveal] = useState(false);
-
-  const role = createRoleData('wolf', '狼人', 'wolf', '🐺', '每晚与狼队友共同选择一名玩家猎杀');
-
-  return (
-    <RoleRevealAnimator
-      visible={showReveal}
-      effectType="flip" // 'roulette' | 'flip' | 'scratch' | 'tarot' | 'gachaMachine'
-      role={role}
-      onComplete={() => setShowReveal(false)}
-      enableSound={true}
-      enableHaptics={true}
-    />
-  );
-}
-```
-
----
-
-### 测试门禁 | Test Gates
-
-- ✅ 所有 board UI tests 禁止 `.skip` | All board UI tests forbid `.skip`
-- ✅ `assertCoverage([...])` 必须使用字面量数组 | Must use literal arrays
-- ✅ Contract tests 强制 schema/resolver 对齐 | Enforce schema/resolver alignment
-- ✅ Night-1-only 红线检测 | Night-1-only boundary check
+| 类型 Type              | 说明 Description                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Unit / Integration** | game-engine + app，覆盖角色解析、夜晚流程全链路<br/>_game-engine + app, covering resolvers & full night flows_ |
+| **Contract Tests**     | Schema/Resolver/NightStep 三层对齐<br/>_Schema/Resolver/NightStep alignment_                                   |
+| **Board UI Tests**     | 10 种预设板子全覆盖<br/>_All 10 preset boards covered_                                                         |
+| **E2E Tests**          | Playwright 端到端（含断线恢复、重连）<br/>_Playwright end-to-end (incl. DB recovery & rejoin)_                 |
 
 ---
 
@@ -368,6 +250,16 @@ pnpm run release -- minor     # minor / major
 | **State**      | @werewolf/game-engine (monorepo shared pkg)  |
 
 ---
+
+## 🤝 Contributing
+
+欢迎贡献！请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)。  
+_Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md)._
+
+## 🔒 Security
+
+发现安全漏洞？请参阅 [SECURITY.md](SECURITY.md) 了解上报流程。  
+_Found a vulnerability? See [SECURITY.md](SECURITY.md) for reporting guidelines._
 
 ## 📄 License
 
