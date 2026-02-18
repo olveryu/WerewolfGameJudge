@@ -394,9 +394,24 @@ describe('handleViewedRole', () => {
     expect(result.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
   });
 
-  it('should fail when not host (host_only)', () => {
+  it('should succeed when non-host views own seat', () => {
     const state = createAssignedState();
-    const context = createContext(state, { isHost: false });
+    const context = createContext(state, { isHost: false, mySeat: 1, myUid: 'p2' });
+    const intent: ViewedRoleIntent = {
+      type: 'VIEWED_ROLE',
+      payload: { seat: 1 },
+    };
+
+    const result = handleViewedRole(intent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
+  });
+
+  it('should fail when non-host views another seat (not_my_seat)', () => {
+    const state = createAssignedState();
+    const context = createContext(state, { isHost: false, mySeat: 1, myUid: 'p2' });
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 0 },
@@ -405,7 +420,7 @@ describe('handleViewedRole', () => {
     const result = handleViewedRole(intent, context);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
+    expect(result.reason).toBe('not_my_seat');
   });
 
   it('should fail when state is null (no_state)', () => {
