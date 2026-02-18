@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.237] - 2026-02-18
+
+- refactor(client): remove dead exports and unused Button component
+- refactor(services): delete dead code in services and api layers
+- refactor(game-engine): remove dead exports from barrel and source files
+- refactor(game-engine): remove evaluateNightProgression and dead dependencies
+- refactor(game-engine): remove dead client-side progression controller
+- refactor(services): remove unused role param from submitRevealAck
+- refactor(game-engine): remove dead code and improve type assertions
+- chore: low-severity cleanup — conventions, imports, trivial useMemo, security headers
+- fix(services): medium-severity issues — testability, race condition, resource leaks
+- fix(game-engine): high-severity bugs — isHost bypass, memory leak, impure reducer, dead state
+
 ## [1.0.236] - 2026-02-17
 
 - fix(game-engine): use RANDOMIZABLE_ANIMATIONS constant in gameReducer test
