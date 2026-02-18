@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.238] - 2026-02-18
+
+- fix(game-engine): allow non-host players to view their own role
+- chore: add pnpm-lock.yaml to prettierignore
+- chore: format pnpm-lock.yaml
+- fix: resolve CodeQL alerts for clear-text logging and workflow permissions
+- docs: streamline README and move test gates to CONTRIBUTING
+- Merge pull request #2 from olveryu/dependabot/npm_and_yarn/npm_and_yarn-01f5ad5e18
+- chore(deps): bump tar in the npm_and_yarn group across 1 directory
+
 ## [1.0.237] - 2026-02-18
 
 - refactor(client): remove dead exports and unused Button component
