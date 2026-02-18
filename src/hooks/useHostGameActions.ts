@@ -38,7 +38,7 @@ function notifyIfFailed(result: { success: boolean; reason?: string }, actionLab
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface HostGameActionsState {
+interface HostGameActionsState {
   // Host game control
   updateTemplate: (template: GameTemplate) => Promise<void>;
   assignRoles: () => Promise<void>;

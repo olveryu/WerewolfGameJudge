@@ -184,5 +184,3 @@ export const CONFIG = {
     dramaticStyle: 'heavy' as const,
   },
 } as const;
-
-export type Config = typeof CONFIG;

@@ -22,7 +22,7 @@ const timeoutLog = log.extend('Timeout');
  * @param context - 可选上下文信息
  * @returns Error 对象
  */
-export type TimeoutErrorFactory = (ms: number, context?: string) => Error;
+type TimeoutErrorFactory = (ms: number, context?: string) => Error;
 
 /**
  * 默认超时错误工厂（技术消息，仅用于日志/调试）

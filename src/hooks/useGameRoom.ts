@@ -44,7 +44,7 @@ import { useRoomLifecycle } from './useRoomLifecycle';
 // Return type
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface UseGameRoomResult {
+interface UseGameRoomResult {
   // Room info
   roomRecord: RoomRecord | null;
 

@@ -58,7 +58,7 @@ export interface SeatTileStyles {
   botRoleName: TextStyle;
 }
 
-export interface SeatTileProps {
+interface SeatTileProps {
   // Primitive props for stable comparison
   seat: number;
   roomNumber: string;

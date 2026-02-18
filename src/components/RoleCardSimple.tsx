@@ -17,7 +17,7 @@ import {
 } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
-export interface RoleCardSimpleProps {
+interface RoleCardSimpleProps {
   visible: boolean;
   roleId: RoleId | null;
   onClose: () => void;

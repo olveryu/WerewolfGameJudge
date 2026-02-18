@@ -10,7 +10,7 @@
 import { Platform, Share } from 'react-native';
 
 /** Build the room URL from the current origin (web) or production URL (native). */
-export function buildRoomUrl(roomNumber: string): string {
+function buildRoomUrl(roomNumber: string): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     return `${window.location.origin}/room/${roomNumber}`;
   }
@@ -18,7 +18,7 @@ export function buildRoomUrl(roomNumber: string): string {
 }
 
 /** Result of a share/copy attempt. */
-export type ShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
+type ShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
 
 /** Attempt to share or copy the room link. */
 export async function shareOrCopyRoomLink(roomNumber: string): Promise<ShareResult> {

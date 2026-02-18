@@ -21,12 +21,12 @@ declare global {
   }
 }
 
-export type PWAInstallMode = 'prompt' | 'ios-guide' | 'hidden';
+type PWAInstallMode = 'prompt' | 'ios-guide' | 'hidden';
 
 /** iOS 浏览器类型，用于展示对应的引导步骤 */
-export type IOSBrowser = 'safari' | 'chrome' | 'other';
+type IOSBrowser = 'safari' | 'chrome' | 'other';
 
-export interface PWAInstallResult {
+interface PWAInstallResult {
   /** 当前安装模式：prompt（可一键安装）、ios-guide（需引导）、hidden（不显示） */
   mode: PWAInstallMode;
   /** iOS 浏览器类型（仅 ios-guide 模式有意义），用于展示对应引导步骤 */

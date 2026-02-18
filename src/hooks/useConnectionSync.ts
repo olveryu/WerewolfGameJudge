@@ -34,7 +34,7 @@ const STALE_CHECK_INTERVAL_MS = 3_000;
 /** Minimum gap between consecutive auto-heal requests (prevents spam). */
 const AUTO_HEAL_COOLDOWN_MS = 8_000;
 
-export interface ConnectionSyncState {
+interface ConnectionSyncState {
   connectionStatus: ConnectionStatus;
   setConnectionStatus: (status: ConnectionStatus) => void;
   stateRevision: number;
