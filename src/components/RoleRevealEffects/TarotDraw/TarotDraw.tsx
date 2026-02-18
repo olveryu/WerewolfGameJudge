@@ -322,8 +322,8 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                   styles.wheelCard,
                   isSelected && styles.hidden,
                   {
-                    width: cardWidth * 0.55,
-                    height: cardHeight * 0.55,
+                    width: cardWidth * 0.32,
+                    height: cardHeight * 0.32,
                     transform: [{ translateX: x }, { translateY: y }, { rotate: `${rotation}deg` }],
                   },
                 ]}
@@ -333,7 +333,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                   disabled={phase !== 'waiting'}
                   style={styles.pressableFill}
                 >
-                  <CardBackFace width={cardWidth * 0.55} height={cardHeight * 0.55} />
+                  <CardBackFace width={cardWidth * 0.32} height={cardHeight * 0.32} />
                 </Pressable>
               </View>
             );
@@ -343,6 +343,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
       {/* Drawn card (fly to center → flip) */}
       <Animated.View
+        pointerEvents={phase === 'waiting' ? 'none' : 'auto'}
         testID={`${testIDPrefix}-drawn-card`}
         style={[styles.drawnCard, { width: cardWidth, height: cardHeight }, drawnCardStyle]}
       >
