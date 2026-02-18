@@ -22,7 +22,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
  * Input for actor identity calculation.
  * All fields come from useGameRoom.
  */
-export interface ActorIdentityInput {
+interface ActorIdentityInput {
   /** My real seat number (null if not seated) */
   mySeatNumber: number | null;
   /** My real role (null if no role assigned) */
@@ -38,7 +38,7 @@ export interface ActorIdentityInput {
 /**
  * Output: the actor identity to use for UI interactions.
  */
-export interface ActorIdentity {
+interface ActorIdentity {
   /**
    * The seat number to use for all action-related UI decisions.
    * null if no valid actor (should NOOP/ALERT).

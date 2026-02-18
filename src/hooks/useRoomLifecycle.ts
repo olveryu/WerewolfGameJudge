@@ -30,7 +30,7 @@ import type { ConnectionSyncActions } from './useConnectionSync';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface RoomLifecycleState {
+interface RoomLifecycleState {
   loading: boolean;
   error: string | null;
 

@@ -20,7 +20,7 @@ export interface ActionButtonStyles {
   buttonText: TextStyle;
 }
 
-export interface ActionMessageStyles {
+interface ActionMessageStyles {
   actionMessage: TextStyle;
 }
 

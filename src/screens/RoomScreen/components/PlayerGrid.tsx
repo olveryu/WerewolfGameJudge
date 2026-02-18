@@ -16,9 +16,6 @@ import { getUniqueAvatarMap } from '@/utils/avatar';
 
 import { createSeatTileStyles, GRID_COLUMNS, SeatTile } from './SeatTile';
 
-// Re-export GRID_COLUMNS for external use
-export { GRID_COLUMNS } from './SeatTile';
-
 interface PlayerGridProps {
   /** Array of seat view models (pre-computed from game state) */
   seats: SeatViewModel[];

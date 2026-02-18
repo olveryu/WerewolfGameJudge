@@ -26,7 +26,7 @@ export interface User {
   isAnonymous: boolean;
 }
 
-export interface AuthContextValue {
+interface AuthContextValue {
   user: User | null;
   loading: boolean;
   error: string | null;

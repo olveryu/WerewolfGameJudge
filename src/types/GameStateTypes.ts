@@ -18,12 +18,6 @@ import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
 import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types';
 
 // =============================================================================
-// Game Status Enum (canonical definition in src/models/GameStatus.ts)
-// =============================================================================
-
-export { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-
-// =============================================================================
 // Player Types
 // =============================================================================
 

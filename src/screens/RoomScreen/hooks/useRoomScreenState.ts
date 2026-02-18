@@ -67,7 +67,7 @@ const FATAL_ROOM_ERRORS = new Set(['房间不存在', '房间状态已过期，�
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Route params that RoomScreen receives (mirrors RootStackParamList['Room']) */
-export interface RoomScreenRouteParams {
+interface RoomScreenRouteParams {
   roomNumber: string;
   isHost: boolean;
   template?: GameTemplate;
@@ -75,7 +75,7 @@ export interface RoomScreenRouteParams {
 }
 
 /** Navigation type required by useRoomScreenState */
-export type RoomScreenNavigation = NativeStackNavigationProp<RootStackParamList, 'Room'>;
+type RoomScreenNavigation = NativeStackNavigationProp<RootStackParamList, 'Room'>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hook
