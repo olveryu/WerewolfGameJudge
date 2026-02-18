@@ -2,9 +2,8 @@
  * HomeScreen - 主页入口（登录、加入房间、创建房间）
  *
  * 性能优化：styles factory 集中创建一次，通过 props 传入子组件；handlers 用 useCallback 稳定化。
- *
- * ✅ 允许：编排子组件、调用 service/navigation/showAlert
- * ❌ 禁止：硬编码样式值 / console.*
+ * 负责编排子组件、调用 service/navigation/showAlert。
+ * 不使用硬编码样式值，不使用 console.*。
  */
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';

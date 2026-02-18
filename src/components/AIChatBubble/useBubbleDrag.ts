@@ -3,9 +3,7 @@
  *
  * 管理气泡的 touch/drag 交互、边界约束、位置 AsyncStorage 持久化。
  * 短按视为点击（打开聊天），拖动距离超过阈值视为拖拽。
- *
- * ✅ 允许：手势处理、Animated、AsyncStorage 读写
- * ❌ 禁止：游戏业务逻辑
+ * 提供手势处理、Animated 动画和 AsyncStorage 位置持久化。不含游戏业务逻辑。
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';

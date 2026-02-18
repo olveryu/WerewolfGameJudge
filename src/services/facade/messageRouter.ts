@@ -4,13 +4,8 @@
  * 服务端权威架构：所有客户端（Host + Player）平等接收服务端广播的 STATE_UPDATE。
  * 不存在 Host/Player 分叉路径。
  *
- * 职责：
- * - 处理 HostBroadcast（STATE_UPDATE）→ applySnapshot
- *
- * ✅ 允许：applySnapshot + markAsLive
- * ❌ 禁止：业务逻辑/校验规则
- * ❌ 禁止：直接修改 state
- * ❌ 禁止：Host/Player 分叉逻辑
+ * 处理 HostBroadcast（STATE_UPDATE）→ applySnapshot + markAsLive。
+ * 不包含业务逻辑/校验规则，不直接修改 state，不使用 Host/Player 分叉逻辑。
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
@@ -22,8 +17,8 @@ import { facadeLog } from '@/utils/logger';
 /**
  * Message Router 依赖的上下文接口
  *
- * ✅ store / broadcastService / myUid
- * ❌ 无 broadcastCurrentState — 客户端不广播（服务端权威）
+ * 包含 store / broadcastService / myUid。
+ * 不包含 broadcastCurrentState — 客户端不广播（服务端权威）。
  */
 export interface MessageRouterContext {
   readonly store: GameStore;

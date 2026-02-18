@@ -2,17 +2,9 @@
  * Night Action Catch-All API Route Tests — POST /api/game/night/[action]
  *
  * 验证夜晚子路由分派器的参数校验、method 检查、action 路由、各子 handler 委托。
- *
- * ✅ 覆盖：
- *   - 405 / 404 (unknown action) / CORS
- *   - action: 400 / 200 / 400 (failure)
- *   - wolf-vote: 400 / 200
- *   - audio-ack: 400 / 200
- *   - audio-gate: 400 / 200
- *   - end: 400 / 200
- *   - progression: 400 / 200
- *   - reveal-ack: 400 / 200
- *   - wolf-robot-viewed: 400 / 200
+ * 覆盖：405 / 404 (unknown action) / CORS、action (400 / 200 / failure)、
+ * wolf-vote、audio-ack、audio-gate、end、progression、reveal-ack、
+ * wolf-robot-viewed 各子路由的 400 / 200 场景。
  */
 
 import type { GameActionResult } from '../_lib/types';

@@ -27,8 +27,8 @@ import { ConfigPage } from '../pages/ConfigPage';
  * - Magician swap × check role interactions
  * - SpiritKnight seer reflection
  *
- * ✅ Allowed: UI assertions on reveal text
- * ❌ Forbidden: modifying game state directly, importing services/models
+ * Covers UI assertions on reveal text.
+ * Does not modify game state directly or import services/models.
  */
 
 test.describe.configure({ mode: 'serial' });

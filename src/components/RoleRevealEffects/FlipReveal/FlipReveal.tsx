@@ -4,9 +4,7 @@
  * 特点：悬浮 → 翻转气压波纹 → 边缘发光 → 金粒子爆发 → 弹跳落地。
  * 使用 `useSharedValue` + `withTiming`/`withSequence` 驱动，
  * 阶段切换通过 `runOnJS` 回调，无 `setTimeout`。
- *
- * ✅ 允许：渲染动画 + 触觉反馈
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useCallback, useEffect, useRef, useState } from 'react';

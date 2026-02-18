@@ -2,13 +2,13 @@
  * ThemeProvider - 主题提供器
  *
  * 管理主题切换、持久化，并通过 Context 向子组件注入 colors 和 tokens。
+ * 提供 useTheme / useColors hooks 供组件消费。
  *
  * 用法:
  *   const { colors, t } = useTheme();
  *   <View style={{ backgroundColor: colors.background, padding: t.spacing.medium }} />
  *
- * ✅ 允许：主题状态管理、Context 注入、useTheme / useColors hooks
- * ❌ 禁止：业务逻辑、import service
+ * 不包含业务逻辑，不引入 service。
  */
 
 import React, {

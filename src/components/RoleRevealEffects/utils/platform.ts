@@ -2,9 +2,7 @@
  * platform - 揭示动画平台检测工具
  *
  * 提供平台判断、native driver / haptics / audio 能力检测。
- *
- * ✅ 允许：平台检测常量与纯函数
- * ❌ 禁止：import service / 游戏业务逻辑
+ * 导出平台检测常量与纯函数。不 import service，不含游戏业务逻辑。
  */
 import { Platform } from 'react-native';
 

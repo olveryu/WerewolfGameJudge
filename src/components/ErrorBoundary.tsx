@@ -3,9 +3,7 @@
  *
  * 捕获子组件树中未处理的 JS 错误，显示降级 UI 并提供重试。
  * 防止整个 app 因单一渲染错误白屏崩溃。
- *
- * ✅ 允许：渲染降级 UI、记录错误日志
- * ❌ 禁止：import service / 业务逻辑
+ * 渲染降级 UI 并记录错误日志。不 import service，不含业务逻辑。
  *
  * 样式例外：使用硬编码颜色/间距，因为 ErrorBoundary 是 class component，
  * 在 ThemeProvider crash 时无法调用 useColors()，必须自包含 fallback 样式。

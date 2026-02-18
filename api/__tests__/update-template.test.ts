@@ -1,7 +1,7 @@
 /**
  * Update Template API Route Tests — POST /api/game/update-template
  *
- * ✅ 覆盖：405 / 400 / 成功 / 失败
+ * 覆盖 405 / 400 / 成功 / 失败。
  */
 
 import type { GameActionResult } from '../_lib/types';

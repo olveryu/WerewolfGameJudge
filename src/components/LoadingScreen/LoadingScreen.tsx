@@ -2,9 +2,7 @@
  * LoadingScreen - 统一加载界面组件
  *
  * 带有 logo 脉冲动画，与 PWA 启动画面保持一致。
- *
- * ✅ 允许：渲染加载状态 UI、播放动画
- * ❌ 禁止：import service / 业务逻辑
+ * 渲染加载状态 UI 与脉冲动画。不 import service，不含业务逻辑。
  */
 import { useEffect, useRef } from 'react';
 import { Animated, Image, Platform, StyleSheet, Text, View } from 'react-native';

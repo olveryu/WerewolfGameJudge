@@ -2,9 +2,7 @@
  * TypingIndicator - AI 回复中的 ··· 动画气泡
  *
  * 三个圆点依次弹跳，表示 AI 正在思考/生成中。
- *
- * ✅ 允许：纯 UI 动画
- * ❌ 禁止：业务逻辑
+ * 纯 UI 动画组件，不含业务逻辑。
  */
 
 import React, { useEffect, useRef } from 'react';

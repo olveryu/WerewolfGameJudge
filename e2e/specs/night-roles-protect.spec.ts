@@ -26,8 +26,8 @@ import { ConfigPage } from '../pages/ConfigPage';
  * - Dreamcatcher hit/miss/link death
  * - SpiritKnight wolf-kill immunity, poison reflection
  *
- * ✅ Allowed: UI assertions on death/survival text
- * ❌ Forbidden: modifying game state directly, importing services/models
+ * Covers UI assertions on death/survival text.
+ * Does not modify game state directly or import services/models.
  */
 
 test.describe.configure({ mode: 'serial' });

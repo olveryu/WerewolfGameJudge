@@ -3,11 +3,8 @@
  *
  * 所有座位操作（入座/离座）统一通过 HTTP 调用服务端 API。
  * 服务端处理 handler → reducer → DB 写入 → Realtime 广播。
- * Host 和 Player 不再有区别。
- *
- * ✅ 允许：HTTP 调用、结果解析
- * ❌ 禁止：业务逻辑/校验规则（全部在服务端 handler）
- * ❌ 禁止：直接修改 state（全部在服务端 reducer）
+ * Host 和 Player 不再有区别。负责 HTTP 调用和结果解析。
+ * 不包含业务逻辑/校验规则（全部在服务端 handler），不直接修改 state（全部在服务端 reducer）。
  */
 
 import * as Sentry from '@sentry/react-native';

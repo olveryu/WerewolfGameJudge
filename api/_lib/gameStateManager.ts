@@ -9,8 +9,7 @@
  * 5. 用 state_revision 做乐观锁写回 DB
  * 6. 通过 Supabase Realtime 广播新状态
  *
- * ✅ 允许：DB 读写、状态计算、Realtime 广播
- * ❌ 禁止：游戏逻辑校验（由 handler 纯函数负责）
+ * 负责 DB 读写、状态计算与 Realtime 广播，不包含游戏逻辑校验（由 handler 纯函数负责）。
  */
 
 import {

@@ -2,9 +2,7 @@
  * NameSection - 昵称显示/编辑组件（Memoized）
  *
  * 接收父组件 styles，通过回调上报编辑/保存/取消意图。
- *
- * ✅ 允许：渲染 UI + 上报用户 intent
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
 import { memo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';

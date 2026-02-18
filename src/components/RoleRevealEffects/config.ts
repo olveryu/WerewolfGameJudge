@@ -2,9 +2,7 @@
  * RoleRevealEffects/config - 揭示动画集中配置
  *
  * 所有动画参数（时长、尺寸、数量）统一在此调整。
- *
- * ✅ 允许：声明式动画参数常量
- * ❌ 禁止：import service / 运行时副作用
+ * 导出声明式动画参数常量。不 import service，不含运行时副作用。
  */
 
 export const CONFIG = {

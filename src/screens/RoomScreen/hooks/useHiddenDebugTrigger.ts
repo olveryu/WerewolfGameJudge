@@ -1,16 +1,10 @@
 /**
  * useHiddenDebugTrigger.ts - Hidden debug panel trigger (5-tap title)
  *
- * ✅ Allowed:
- *   - Track consecutive tap count on a hidden trigger area
- *   - Toggle mobileDebug panel after threshold taps
- *   - Reset counter after timeout
- *
- * ❌ Do NOT:
- *   - Import services directly
- *   - Contain game logic / policy logic
- *   - Render UI or hold JSX
- *   - Access any game state
+ * Tracks consecutive tap count on a hidden trigger area, toggles mobileDebug
+ * panel after threshold taps, and resets counter after timeout. Does not import
+ * services directly, does not contain game logic / policy logic, does not render
+ * UI or hold JSX, and does not access any game state.
  */
 
 import { useCallback, useRef } from 'react';

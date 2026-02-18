@@ -5,15 +5,10 @@
  * - 动画为 'none' 或无需播放 → 静态 RoleCardSimple
  * - 首次查看 → RoleRevealAnimator（带揭牌动画）
  *
- * ✅ Allowed:
- *   - 渲染 RoleCardSimple 或 RoleRevealAnimator
- *   - 将 RoleId 转换为 RoleData（alignmentMap + createRoleData）
- *   - React.memo 优化
- *
- * ❌ Do NOT:
- *   - import services / showAlert / navigation
- *   - 在 onPress 里做业务 gate
- *   - 使用 StyleSheet.create（样式由父组件传入或使用共享组件）
+ * 渲染 RoleCardSimple 或 RoleRevealAnimator，将 RoleId 转换为 RoleData
+ * （alignmentMap + createRoleData），使用 React.memo 优化。不 import
+ * services / showAlert / navigation，不在 onPress 里做业务 gate，
+ * 不使用 StyleSheet.create（样式由父组件传入或使用共享组件）。
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';

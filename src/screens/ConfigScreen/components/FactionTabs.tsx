@@ -2,9 +2,7 @@
  * FactionTabs - 阵营分段标签栏（Memoized）
  *
  * 显示阵营 icon + 标题 + 计数角标，选中态带色下划线。
- *
- * ✅ 允许：渲染 UI + 上报 onTabChange
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并通过回调上报 onTabChange，不 import service，不包含业务逻辑判断。
  */
 import { memo, type ReactNode, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

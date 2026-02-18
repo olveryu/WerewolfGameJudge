@@ -3,9 +3,7 @@
  *
  * 特点：金属银刮层、刮痕纹理、金属碎片粒子、触觉反馈、进度条。
  * 使用 `Gesture.Pan()` 替代 PanResponder，`useSharedValue` 驱动所有动画。
- *
- * ✅ 允许：渲染动画 + 触觉反馈
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';

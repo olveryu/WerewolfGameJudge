@@ -12,8 +12,8 @@
  *   actorSeatForUi = effectiveSeat, actorRoleForUi = effectiveRole
  *   (with consistency check: effectiveSeat must equal controlledSeat)
  *
- * ❌ Do NOT import: React hooks, services, navigation, any IO
- * ❌ Do NOT provide default values (null means fail-fast at caller)
+ * Does not import React hooks, services, navigation, or any IO.
+ * Does not provide default values (null means fail-fast at caller).
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';

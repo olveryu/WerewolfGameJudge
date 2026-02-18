@@ -8,8 +8,7 @@
  * - NOT_CONNECTED guard（无 roomCode / uid 时）
  * - NETWORK_ERROR 处理
  *
- * ✅ mock `fetch`（HTTP 调用），只验证编排逻辑
- * ❌ 不 mock handler（服务端逻辑不在此处）
+ * 通过 mock fetch（HTTP 调用）只验证编排逻辑，不 mock handler（服务端逻辑不在此处）。
  */
 
 import type { SeatActionsContext } from '@/services/facade/seatActions';

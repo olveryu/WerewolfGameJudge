@@ -2,10 +2,8 @@
  * ServiceContext - Composition root DI for infrastructure & feature services
  *
  * 由 App.tsx 组合根统一创建 service 实例并通过 Context 注入，
- * 消除 getInstance() 单例模式的隐式依赖。
- *
- * ✅ 允许：创建 Context + Provider、useServices hook
- * ❌ 禁止：业务逻辑、创建 service 实例（由 composition root 负责）
+ * 消除 getInstance() 单例模式的隐式依赖。提供 Context + Provider 和 useServices hook。
+ * 不包含业务逻辑，不创建 service 实例（由 composition root 负责）。
  */
 import React, { createContext, use, useMemo } from 'react';
 

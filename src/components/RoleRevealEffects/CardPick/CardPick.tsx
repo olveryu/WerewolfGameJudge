@@ -6,9 +6,7 @@
  *
  * `remainingCards` 决定桌面上展示多少张牌（= 总人数 - 已查看人数），
  * 让后查看的玩家看到更少的牌，营造"越来越少"的紧张感。
- *
- * ✅ 允许：渲染动画 + 触觉反馈
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染抽牌动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';

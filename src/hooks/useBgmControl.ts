@@ -6,8 +6,8 @@
  * - Toggling BGM on/off (persisted to SettingsService)
  * - Auto-stopping BGM when game transitions from ongoing → ended (Host only)
  *
- * ✅ 允许：读写 BGM 设置、监听 game status 变化
- * ❌ 禁止：直接操作游戏状态、调用 Supabase
+ * 读写 BGM 设置、监听 game status 变化。
+ * 不直接操作游戏状态，不调用 Supabase。
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';

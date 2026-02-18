@@ -1,11 +1,9 @@
 /**
  * roomCode - Room code generation utilities
  *
- * 统一的房间号生成入口，确保所有创建房间路径使用相同的生成逻辑
- * 全链路使用安全随机，复用 random.ts 的 secureRng
- *
- * ✅ 允许：生成 4 位房间号
- * ❌ 禁止：import React / service / Math.random() / 自建 crypto 降级逻辑
+ * 统一的房间号生成入口，生成 4 位房间号，确保所有创建房间路径使用相同的生成逻辑。
+ * 全链路使用安全随机，复用 random.ts 的 secureRng。
+ * 不引入 React 或 service，禁止使用 Math.random() 或自建 crypto 降级逻辑。
  */
 
 import { secureRng } from '@werewolf/game-engine/utils/random';

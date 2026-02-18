@@ -10,8 +10,8 @@
  * 3. Pending Gates - Block when reveal ack or other gates are pending
  * 4. Event Routing - Route to appropriate handler based on event type
  *
- * ❌ Do NOT import: services, navigation, showAlert, React
- * ✅ Allowed imports: types only (GameStatus, RoleId, ActionIntent, etc.)
+ * Only imports types (GameStatus, RoleId, ActionIntent, etc.). Does not import
+ * services, navigation, showAlert, or React.
  */
 
 import type { GameStatus } from '@werewolf/game-engine/models/GameStatus';

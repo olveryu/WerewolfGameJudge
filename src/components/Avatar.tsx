@@ -3,9 +3,7 @@
  *
  * 支持自定义头像 URL、uid 随机生成、roomId 稳定分配。
  * Memoized 以避免不必要的重渲染。
- *
- * ✅ 允许：渲染头像图片、通过 props 配置
- * ❌ 禁止：import service / 业务逻辑
+ * 渲染头像图片，通过 props 配置。不 import service，不含业务逻辑。
  */
 import { Image as ExpoImage } from 'expo-image';
 import React, { memo, useMemo } from 'react';

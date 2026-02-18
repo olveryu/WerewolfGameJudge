@@ -2,9 +2,7 @@
  * AvatarSection - 头像显示/编辑组件（Memoized）
  *
  * 显示当前头像 + 上传按钮，通过回调上报操作意图。
- *
- * ✅ 允许：渲染 UI + 上报用户 intent
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
 import { Image as ExpoImage } from 'expo-image';
 import { memo } from 'react';

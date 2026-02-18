@@ -1,12 +1,9 @@
 /**
  * SettingsService - 用户设置持久化服务
  *
- * 职责：
- * - 使用 AsyncStorage 持久化用户偏好设置（主题/昵称/语言等）
- * - 所有设置存储在单个 key 下的 JSON 对象中
- *
- * ✅ 允许：AsyncStorage 读写 + 默认值合并
- * ❌ 禁止：游戏逻辑 / 游戏状态存储
+ * 使用 AsyncStorage 持久化用户偏好设置（主题/昵称/语言等），
+ * 所有设置存储在单个 key 下的 JSON 对象中。涵盖 AsyncStorage 读写和默认值合并。
+ * 不涉及游戏逻辑或游戏状态存储。
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';

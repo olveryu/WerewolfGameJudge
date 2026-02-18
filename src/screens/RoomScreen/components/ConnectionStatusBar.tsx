@@ -2,9 +2,7 @@
  * ConnectionStatusBar - 连接状态指示器（Memoized）
  *
  * 显示连接状态 + 强制同步按钮（非 Host 玩家用）。
- *
- * ✅ 允许：渲染 UI + 上报 onForceSync
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并通过回调上报 onForceSync，不 import service，不包含业务逻辑判断。
  */
 import React, { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

@@ -2,9 +2,7 @@
  * SeatConfirmModal.tsx - Modal for confirming seat enter/leave actions
  *
  * Performance: Memoized with default shallow compare, receives pre-created styles from parent.
- *
- * ❌ Do NOT import: any Service singletons, showAlert
- * ✅ Allowed: types, styles, UI components
+ * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
 import React, { memo } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';

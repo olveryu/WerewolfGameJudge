@@ -6,9 +6,7 @@
  * - Mark All Bots Viewed (标记机器人已查看) - only in assigned phase with debug mode
  *
  * Performance: Memoized, receives pre-created styles from parent.
- *
- * ❌ Do NOT import: any Service singletons, showAlert
- * ✅ Allowed: types, styles, UI components
+ * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
 import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';

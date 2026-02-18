@@ -2,9 +2,7 @@
  * AlertModal - 跨平台自定义 Alert Modal
  *
  * Web 端替代 RN Alert.alert，提供统一的 Modal 弹窗样式。
- *
- * ✅ 允许：渲染 Modal UI、通过 onPress 回调上报
- * ❌ 禁止：import service / 业务逻辑
+ * 渲染 Modal UI，通过 onPress 回调上报用户操作。不 import service，不含业务逻辑。
  */
 import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';

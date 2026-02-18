@@ -2,9 +2,7 @@
  * Dropdown - 下拉选择器（Memoized，带 Modal）
  *
  * 支持 testID 子 ID 约定（trigger / option / overlay）。
- *
- * ✅ 允许：渲染 UI + 上报 onSelect
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并通过回调上报 onSelect，不 import service，不包含业务逻辑判断。
  *
  * ## testID convention (E2E only)
  *

@@ -11,8 +11,8 @@
  * staleness detector automatically reads the latest state from DB.
  * Host and Player use the same recovery path (server-authoritative).
  *
- * ✅ 允许：订阅 BroadcastService 连接状态、派生 staleness
- * ❌ 禁止：直接修改游戏状态、业务校验逻辑
+ * 订阅 BroadcastService 连接状态并派生 staleness。
+ * 不直接修改游戏状态，不包含业务校验逻辑。
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

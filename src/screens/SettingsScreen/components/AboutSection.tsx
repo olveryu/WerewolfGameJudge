@@ -2,9 +2,7 @@
  * AboutSection - 关于与反馈卡片（Memoized）
  *
  * 显示应用版本、GitHub 仓库链接、问题反馈入口。
- *
- * ✅ 允许：渲染 UI + 打开外部链接
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并打开外部链接，不 import service，不包含业务逻辑判断。
  */
 import { Ionicons } from '@expo/vector-icons';
 import { memo, useCallback } from 'react';

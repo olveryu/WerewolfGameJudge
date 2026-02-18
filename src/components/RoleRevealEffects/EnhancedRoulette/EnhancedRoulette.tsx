@@ -4,9 +4,7 @@
  * 特点：金属框架、霓虹灯、转轮滚动、弹跳停止、庆祝粒子。
  * 使用 `useSharedValue` + `withTiming`/`withSequence` 驱动，
  * 无 `setTimeout`（通过 `runOnJS` 回调驱动阶段切换）。
- *
- * ✅ 允许：渲染动画 + 触觉反馈
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';

@@ -2,9 +2,7 @@
  * UserBar - 用户信息栏（Memoized）
  *
  * 显示头像 + 昵称 + 注销按钮，通过回调上报操作意图。
- *
- * ✅ 允许：渲染 UI + 上报用户 intent
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
 import React, { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

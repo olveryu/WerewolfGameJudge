@@ -8,10 +8,9 @@
  * - Gate validation（host_only / no_state / invalid_status / forbidden_while_audio_playing）
  * - 调用 resolveWolfVotes / calculateDeaths（复用，不重写）
  *
- * ✅ 允许：返回 StateAction 列表 + SideEffect（PLAY_AUDIO）
- * ❌ 禁止：IO（网络 / 音频播放 / Alert）— 音频 IO 由 Facade 执行
- * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
- * ❌ 禁止：手动推进 index（`++` 兜底策略禁止）
+ * 返回 StateAction 列表与 SideEffect（PLAY_AUDIO），不包含 IO（网络 / 音频播放 / Alert，
+ * 音频 IO 由 Facade 执行），不直接修改 state（返回 StateAction 列表由 reducer 执行），
+ * 不手动推进 index（`++` 兜底策略禁止）。
  */
 
 import type { WitchAction } from '../../models/actions/WitchAction';

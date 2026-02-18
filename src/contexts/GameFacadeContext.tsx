@@ -2,10 +2,8 @@
  * GameFacadeContext - Dependency injection for GameFacade
  *
  * 由 composition root 创建 facade 实例并通过 Context 注入，
- * 避免全局 holder / 隐式依赖。
- *
- * ✅ 允许：创建 Context + Provider、useGameFacade hook
- * ❌ 禁止：业务逻辑、直接调用 service、创建 facade 实例
+ * 避免全局 holder / 隐式依赖。提供 Context + Provider 和 useGameFacade hook。
+ * 不包含业务逻辑，不直接调用 service，不创建 facade 实例。
  */
 import React, { createContext, use, useMemo } from 'react';
 

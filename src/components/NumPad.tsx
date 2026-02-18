@@ -2,9 +2,7 @@
  * NumPad - 数字键盘组件
  *
  * 用于房间号等 4 位数字输入，支持清除和退格。Memoized。
- *
- * ✅ 允许：渲染数字键盘 + 上报 onValueChange
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染数字键盘并通过 onValueChange 上报输入。不 import service，不含业务逻辑。
  */
 import React, { memo, useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';

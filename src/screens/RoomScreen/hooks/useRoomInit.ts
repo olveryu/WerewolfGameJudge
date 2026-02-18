@@ -1,18 +1,12 @@
 /**
  * useRoomInit.ts - Room initialization hook
  *
- * ✅ Allowed:
- *   - Call useGameRoom init APIs (initializeHostRoom, joinRoom, takeSeat)
- *   - Manage local loading/retry UI state
- *   - Set role reveal animation on room creation (host only)
- *   - Surface gameRoomError for error display
- *
- * ❌ Do NOT:
- *   - Control night phase or push game actions
- *   - Import services or business logic
- *   - Access or modify BroadcastGameState fields
- *   - Contain any night flow / audio / policy logic
- *   - Create room record in DB (that's done in ConfigScreen before navigation)
+ * Calls useGameRoom init APIs (initializeHostRoom, joinRoom, takeSeat), manages local
+ * loading/retry UI state, sets role reveal animation on room creation (host only), and
+ * surfaces gameRoomError for error display. Does not control night phase or push game
+ * actions, does not import services or business logic, does not access or modify
+ * BroadcastGameState fields, does not contain night flow / audio / policy logic, and
+ * does not create room record in DB (that's done in ConfigScreen before navigation).
  */
 
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';

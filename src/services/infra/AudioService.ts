@@ -82,14 +82,9 @@ const BGM_VOLUME = 0.08;
 /**
  * AudioService - 音频播放引擎
  *
- * 职责：
- * - 管理角色语音 TTS 播放（play / stop / 超时兜底）
- * - 管理夜晚 BGM 播放（start / stop / fade）
- * - 提供 playAndWait() 接口供 Facade 编排音频时序
- *
- * ✅ 允许：音频播放 IO（expo-audio API）+ 超时/错误处理
- * ❌ 禁止：决定"何时播什么音频"（由 Handler 声明、Facade 编排）
- * ❌ 禁止：游戏逻辑 / 状态修改
+ * 管理角色语音 TTS 播放（play / stop / 超时兜底）、夜晚 BGM 播放（start / stop / fade），
+ * 提供 playAndWait() 接口供 Facade 编排音频时序。涵盖音频播放 IO（expo-audio API）和超时/错误处理。
+ * 不决定"何时播什么音频"（由 Handler 声明、Facade 编排），不涉及游戏逻辑或状态修改。
  */
 export class AudioService {
   private player: AudioPlayer | null = null;

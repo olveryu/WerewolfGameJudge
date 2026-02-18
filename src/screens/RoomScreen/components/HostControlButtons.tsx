@@ -2,9 +2,7 @@
  * HostControlButtons - Host 专属控制按钮组（Memoized）
  *
  * 仅负责按 visibility flags 渲染按钮，业务逻辑由 RoomScreen 处理。
- *
- * ✅ 允许：渲染 UI + 上报 onPress 回调
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并通过回调上报 onPress，不 import service，不包含业务逻辑判断。
  */
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useMemo } from 'react';

@@ -2,9 +2,7 @@
  * haptics - 揭示动画触觉反馈工具
  *
  * 惰性加载 expo-haptics，Web 端优雅降级。
- *
- * ✅ 允许：触觉反馈 IO
- * ❌ 禁止：import service / 游戏业务逻辑
+ * 提供触觉反馈 IO。不 import service，不含游戏业务逻辑。
  */
 import { canUseHaptics } from './platform';
 

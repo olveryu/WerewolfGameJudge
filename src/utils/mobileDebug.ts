@@ -3,6 +3,7 @@
  *
  * Shows logs on-screen for iOS Safari debugging
  * where console.log is not easily accessible.
+ * 提供 on-screen 日志显示和 transport 接口。
  *
  * Usage:
  *   import { mobileDebug } from '@/utils/mobileDebug';
@@ -10,8 +11,7 @@
  *   mobileDebug.show(); // Show the debug panel
  *   mobileDebug.hide(); // Hide the debug panel
  *
- * ✅ 允许：on-screen 日志显示、transport 接口
- * ❌ 禁止：import React 组件 / service / 游戏状态
+ * 不引入 React 组件、service 或游戏状态。
  */
 
 import { Platform } from 'react-native';

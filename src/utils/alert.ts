@@ -1,11 +1,9 @@
 /**
  * alert - 跨平台 Alert 封装
  *
- * 提供统一的 showAlert API，在 Web 端使用自定义 Modal，
+ * 提供统一的 showAlert / setAlertListener API，在 Web 端使用自定义 Modal，
  * 在 Native 端使用 RN Alert.alert。支持 listener 模式驱动 AlertModal。
- *
- * ✅ 允许：showAlert / setAlertListener
- * ❌ 禁止：import React 组件 / service / 游戏状态
+ * 不引入 React 组件、service 或游戏状态。
  */
 import { Alert, Platform } from 'react-native';
 

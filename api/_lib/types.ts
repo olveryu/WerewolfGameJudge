@@ -2,9 +2,7 @@
  * API Request/Response Types
  *
  * Vercel API Route 的请求体和响应体类型定义。
- *
- * ✅ 允许：类型定义
- * ❌ 禁止：运行时逻辑
+ * 仅包含类型定义，不包含运行时逻辑。
  */
 
 import type { BroadcastGameState, RoleId, SideEffect, StateAction } from '@werewolf/game-engine';

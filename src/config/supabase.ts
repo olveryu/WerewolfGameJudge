@@ -1,11 +1,9 @@
 /**
  * supabase - Supabase client configuration
  *
- * 创建并导出全局 Supabase client 实例。
+ * 创建并导出全局 Supabase client 实例（SupabaseClient / isSupabaseConfigured）。
  * 支持环境变量和硬编码 fallback 两种配置方式。
- *
- * ✅ 允许：创建 SupabaseClient、导出 isSupabaseConfigured
- * ❌ 禁止：业务逻辑、游戏状态操作
+ * 不包含业务逻辑或游戏状态操作。
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 

@@ -6,10 +6,9 @@
  * 数组顺序 = 权威顺序（无 order 字段）
  * step.id 即 schemaId（无需双字段）
  *
- * 策划维护：调顺序只需移动数组元素
- *
- * ✅ 允许：步骤定义（roleId / schemaId / audioKey / audioEndKey）
- * ❌ 禁止：import service / 副作用 / 在 specs 双写 audioKey
+ * 策划维护：调顺序只需移动数组元素。
+ * 导出步骤定义（roleId / schemaId / audioKey / audioEndKey），
+ * 不依赖 service、不含副作用，audioKey 不在 specs 中双写。
  */
 
 import type { StepSpec } from './nightSteps.types';

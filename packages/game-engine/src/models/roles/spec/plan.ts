@@ -8,9 +8,7 @@
  * - This builder derives steps from `NIGHT_STEPS` (array order = authority).
  * - `NightPlanStep.order` is derived from the table index.
  * - RoleSpec no longer carries night-1 ordering or schemaId. Treat `NIGHT_STEPS` as authoritative.
- *
- * ✅ 允许：buildNightPlan 纯函数、fail-fast 校验
- * ❌ 禁止：import service / 副作用 / IO
+ * 导出 buildNightPlan 纯函数并执行 fail-fast 校验，不依赖 service、不含副作用或 IO。
  */
 
 import { NIGHT_STEPS } from './nightSteps';

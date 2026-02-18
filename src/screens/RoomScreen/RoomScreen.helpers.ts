@@ -2,10 +2,8 @@
  * RoomScreen.helpers.ts - Pure functions for RoomScreen
  *
  * These are pure utility functions with no side effects.
- * They only depend on types and the roles registry.
- *
- * ❌ Do NOT import: services, Supabase, navigation, React
- * ✅ Allowed imports: types, roles registry (getRoleSpec, isWolfRole)
+ * They only depend on types and the roles registry (getRoleSpec, isWolfRole).
+ * Does not import services, Supabase, navigation, or React.
  */
 
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';

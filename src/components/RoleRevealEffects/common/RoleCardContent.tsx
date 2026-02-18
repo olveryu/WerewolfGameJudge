@@ -4,9 +4,7 @@
  * 所有角色卡片 UI 的唯一 source of truth。
  * RoleCardSimple（静态模态框）和各动画效果组件均复用此组件。
  * 长描述自动缩小字号以完整显示在卡片内。
- *
- * ✅ 允许：渲染角色卡片内容 UI、通过 children 插槽扩展底部按钮
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染角色卡片内容 UI，通过 children 插槽扩展底部按钮。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';

@@ -11,9 +11,7 @@
  * - 换行
  *
  * 不引入完整 markdown 库（过度）。
- *
- * ✅ 允许：纯 UI 渲染、接收 theme colors
- * ❌ 禁止：import service / 业务逻辑
+ * 纯 UI 渲染，接收 theme colors。不 import service，不含业务逻辑。
  */
 
 import React from 'react';

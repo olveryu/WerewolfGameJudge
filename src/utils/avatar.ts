@@ -2,10 +2,8 @@
  * avatar - Local avatar image registry and selection utilities
  *
  * 29 dark fantasy style character portraits.
- * 提供基于 uid/roomId 的稳定头像分配和去重。
- *
- * ✅ 允许：头像图片映射、uid→avatar hash、去重分配
- * ❌ 禁止：import React / service / 网络请求
+ * 提供头像图片映射、基于 uid/roomId 的稳定 hash 分配和去重。
+ * 不引入 React、service，也不发起网络请求。
  */
 
 // Import all avatar images

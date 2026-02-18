@@ -8,8 +8,8 @@
  * - Reveal ack and wolfRobot hunter status gates
  * - Game state queries: getLastNightInfo, hasWolfVoted
  *
- * ✅ 允许：通过 facade 执行游戏操作、使用 debug/bgm sub-hook state
- * ❌ 禁止：直接修改 BroadcastGameState、绕过 facade
+ * 通过 facade 执行游戏操作，使用 debug/bgm sub-hook state。
+ * 不直接修改 BroadcastGameState，不绕过 facade。
  */
 
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
@@ -26,8 +26,8 @@ import type { DebugModeState } from './useDebugMode';
 /**
  * 公用的 API 失败通知 — 所有重试耗尽后向用户显示提示
  *
- * ✅ 允许：用于 useHostGameActions 内用户发起的操作
- * ❌ 禁止：用于后台/系统操作（audio-ack / progression 等）
+ * 用于 useHostGameActions 内用户发起的操作。
+ * 不用于后台/系统操作（audio-ack / progression 等）。
  */
 function notifyIfFailed(result: { success: boolean; reason?: string }, actionLabel: string): void {
   if (result.success) return;

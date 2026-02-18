@@ -1,10 +1,8 @@
 /**
  * Nightmare Resolver (HOST-ONLY, 纯函数)
  *
- * 职责：校验梦魇阻断行动 + 计算阻断结果（若目标是狼阵营则设置 wolfKillDisabled）
- *
- * ✅ 允许：阻断校验 + wolfKillDisabled 判定
- * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * 职责：校验梦魇阻断行动 + 计算阻断结果（若目标是狼阵营则设置 wolfKillDisabled），
+ * 提供阻断校验与 wolfKillDisabled 判定。不包含 IO（网络 / 音频 / Alert）。
  *
  * RULE: If nightmare blocks ANY wolf (team='wolf'), wolves cannot kill that night.
  *       This includes all wolf-faction roles: wolf, nightmare, wolfQueen, darkWolfKing,

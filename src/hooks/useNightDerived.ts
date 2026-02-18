@@ -3,9 +3,8 @@
  *
  * Extracts all useMemo derivations related to night flow, schema, and audio state
  * from useGameRoom. These are pure computations with no side effects.
- *
- * ✅ 允许：从 gameState 派生 schema/step/audio 相关值（useMemo）
- * ❌ 禁止：副作用、修改状态、调用 service
+ * 从 gameState 派生 schema/step/audio 相关值（useMemo）。
+ * 不包含副作用，不修改状态，不调用 service。
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';

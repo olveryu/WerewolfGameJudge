@@ -3,8 +3,7 @@
  *
  * 验证开始夜晚请求的参数校验、method 检查、handler 委托。
  * 特殊逻辑：PLAY_AUDIO sideEffects → SET_PENDING_AUDIO_EFFECTS action。
- *
- * ✅ 覆盖：405 / 400 / 成功 / 失败 / audio extraction
+ * 覆盖 405 / 400 / 成功 / 失败 / audio extraction。
  */
 
 import type { BroadcastGameState } from '@werewolf/game-engine';

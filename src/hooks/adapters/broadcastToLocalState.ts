@@ -1,15 +1,9 @@
 /**
  * broadcastToLocalState - 将 BroadcastGameState 转换为 UI 期望的 LocalGameState
  *
- * Phase 1: 适配层，让 UI 可以消费 facade 的状态
- *
- * 职责：
- * - 只做数据格式转换（Record → Map，templateRoles → template）
- * - 不做业务逻辑
- * - 缺失字段用合理默认值
- *
- * ✅ 允许：纯数据格式转换、默认值填充
- * ❌ 禁止：业务逻辑、副作用、调用 service
+ * Phase 1 适配层，让 UI 可以消费 facade 的状态。只做纯数据格式转换
+ * （Record → Map，templateRoles → template）和缺失字段默认值填充。
+ * 不包含业务逻辑、副作用或 service 调用。
  */
 
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
@@ -59,7 +53,7 @@ function toGameStatusEnum(status: BroadcastGameState['status']): GameStatus {
  *
  * Passthrough fields are auto-forwarded via object spread.
  * Only fields that need transformation are destructured and re-mapped.
- * ✅ Adding a new BroadcastGameState field: automatically passed through.
+ * Adding a new BroadcastGameState field is automatically passed through.
  */
 export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameState {
   // =========================================================================

@@ -1,14 +1,10 @@
 /**
  * RoomScreen.styles.ts - Styles factory for RoomScreen
  *
- * ✅ Allowed:
- *   - Define all RoomScreen styles via createStyles factory
- *   - Use theme tokens exclusively (colors, spacing, typography, etc.)
- *
- * ❌ Do NOT:
- *   - Import services or game logic
- *   - Use hardcoded style values
- *   - Create per-component StyleSheets (styles are passed via props)
+ * Defines all RoomScreen styles via createStyles factory using theme tokens
+ * exclusively (colors, spacing, typography, etc.). Does not import services
+ * or game logic, does not use hardcoded style values, and does not create
+ * per-component StyleSheets (styles are passed via props).
  */
 
 import { StyleSheet } from 'react-native';

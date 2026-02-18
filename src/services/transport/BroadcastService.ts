@@ -3,16 +3,11 @@
  *
  * 服务端权威架构：所有客户端（Host + Player）平等接收服务端广播的 STATE_UPDATE。
  *
- * 职责：
- * - 管理 Supabase Realtime Channel 生命周期（subscribe/unsubscribe）
- * - 监听服务端广播的 STATE_UPDATE（host event）
- * - 订阅 postgres_changes（DB 备份通道，可靠补偿 broadcast 丢失）
- * - Presence 跟踪
- *
- * ✅ 允许：Realtime channel 管理 + 消息接收 + presence + DB 变更订阅
- * ❌ 禁止：客户端广播（broadcastAsHost / sendToHost 已删除）
- * ❌ 禁止：游戏逻辑（校验/结算/流程推进）
- * ❌ 禁止：持久化游戏状态（DB 写入由服务端负责）
+ * 管理 Supabase Realtime Channel 生命周期（subscribe/unsubscribe），
+ * 监听服务端广播的 STATE_UPDATE（host event），订阅 postgres_changes
+ * （DB 备份通道，可靠补偿 broadcast 丢失），以及 Presence 跟踪。
+ * 不进行客户端广播（broadcastAsHost / sendToHost 已删除），
+ * 不包含游戏逻辑（校验/结算/流程推进），不持久化游戏状态（DB 写入由服务端负责）。
  */
 
 import { RealtimeChannel } from '@supabase/supabase-js';

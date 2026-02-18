@@ -1,10 +1,8 @@
 /**
  * Slacker Resolver (HOST-ONLY, 纯函数)
  *
- * 职责：校验懒汉选择偶像行动 + 计算结果
- *
- * ✅ 允许：目标选择校验 + 结果计算
- * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * 职责：校验懒汉选择偶像行动 + 计算结果，
+ * 提供目标选择校验与结果计算。不包含 IO（网络 / 音频 / Alert）。
  *
  * RULE: canSkip=false — 必须选目标（被 nightmare 阻断时例外，handler 层允许 skip）。
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).

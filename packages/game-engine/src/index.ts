@@ -3,9 +3,7 @@
  *
  * 包含模型定义、游戏引擎（handlers + reducer + store）、
  * resolver、协议类型等，可被客户端和服务端同时 import。
- *
- * ✅ 允许：纯逻辑、类型定义、声明式配置
- * ❌ 禁止：React Native / Expo UI 依赖
+ * 导出纯逻辑、类型定义与声明式配置，不依赖 React Native / Expo UI。
  */
 
 // === Utils (platform-agnostic) ===

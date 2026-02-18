@@ -1,11 +1,9 @@
 /**
  * themes - Theme Colors configuration
  *
- * 定义所有主题的颜色方案（dark / blood / nature / ocean / light）。
+ * 定义所有主题的颜色方案（dark / blood / nature / ocean / light），提供颜色值定义和主题注册。
  * 每个主题实现 ThemeColors 接口，包含 primary / background / surface / text 等语义色。
- *
- * ✅ 允许：颜色值定义、主题注册
- * ❌ 禁止：业务逻辑、import React / service
+ * 不包含业务逻辑，不引入 React 或 service。
  */
 
 // ============================================

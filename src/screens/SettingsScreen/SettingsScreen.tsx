@@ -2,9 +2,8 @@
  * SettingsScreen - 应用设置与账号管理
  *
  * 性能优化同 HomeScreen：styles factory + useCallback + memoized 子组件。
- *
- * ✅ 允许：编排子组件、调用 service/navigation/showAlert
- * ❌ 禁止：硬编码样式值 / console.*
+ * 负责编排子组件、调用 service/navigation/showAlert。
+ * 不使用硬编码样式值，不使用 console.*。
  */
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';

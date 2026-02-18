@@ -5,10 +5,8 @@
  * - 用户手势解锁浏览器 AudioContext（Web autoplay policy 要求）
  * - 触发 BGM 恢复 + 当前步骤音频重播（如果断开时正在播放）
  *
- * 显示条件：isHost + ongoing + needsContinueOverlay（由 useRoomScreenState 管理）
- *
- * ❌ Do NOT import: any Service singletons, showAlert
- * ✅ Allowed: types, styles, UI components
+ * 显示条件：isHost + ongoing + needsContinueOverlay（由 useRoomScreenState 管理）。
+ * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
 import React, { memo } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';

@@ -2,9 +2,8 @@
  * roleDisplayUtils - 角色展示相关共享常量和工具函数
  *
  * 提供角色 emoji 图标映射和阵营名称推导，供多个 RoleCard 组件复用。
- *
- * ✅ 允许：纯数据常量、纯函数（基于 ROLE_SPECS 推导）
- * ❌ 禁止：import service / 副作用 / React hooks / 颜色（颜色由各组件按自身 theme 定义）
+ * 导出纯数据常量与纯函数（基于 ROLE_SPECS 推导）。
+ * 不 import service，不含副作用或 React hooks。颜色由各组件按自身 theme 定义。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';

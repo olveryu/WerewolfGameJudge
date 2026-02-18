@@ -3,9 +3,7 @@
  *
  * 组合 useBubbleDrag / useKeyboardHeight / useChatMessages 三个子 hook，
  * 管理 isOpen 状态和快捷问题刷新，对外暴露统一的 UseAIChatReturn 接口。
- *
- * ✅ 允许：组合子 hook、管理打开/关闭状态
- * ❌ 禁止：直接实现拖动/键盘/消息逻辑（委托给子 hook）
+ * 组合子 hook 并管理打开/关闭状态。不直接实现拖动/键盘/消息逻辑，均委托给子 hook。
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';

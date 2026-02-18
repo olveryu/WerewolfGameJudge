@@ -3,9 +3,7 @@
  *
  * 纯 UI，接收 SeatViewModel[] + 单个回调。
  * Styles 创建一次后传入所有 SeatTile。
- *
- * ✅ 允许：渲染 UI + 上报 onSeatPress
- * ❌ 禁止：import service / showAlert / 业务逻辑判断
+ * 渲染 UI 并通过回调上报 onSeatPress，不 import service / showAlert，不包含业务逻辑判断。
  */
 import React, { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';

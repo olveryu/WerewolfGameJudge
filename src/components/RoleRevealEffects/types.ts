@@ -2,9 +2,7 @@
  * RoleRevealEffects/types - 揭示动画共享类型
  *
  * 所有揭示动画组件的公共接口定义。
- *
- * ✅ 允许：纯类型/接口/枚举定义
- * ❌ 禁止：运行时逻辑 / import service
+ * 导出纯类型、接口和枚举定义。不含运行时逻辑，不 import service。
  */
 
 /**

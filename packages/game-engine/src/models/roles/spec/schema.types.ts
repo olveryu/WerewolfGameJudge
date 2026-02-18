@@ -3,9 +3,8 @@
  *
  * Declarative descriptions of role action inputs.
  * Pure data - no functions, no flow control.
- *
- * ✅ 允许：ActionSchema / CompoundSchema / SchemaUi 等类型定义、BLOCKED_UI_DEFAULTS 常量
- * ❌ 禁止：import service / 副作用 / 流程控制
+ * 导出 ActionSchema / CompoundSchema / SchemaUi 等类型定义及 BLOCKED_UI_DEFAULTS 常量，
+ * 不依赖 service、不含副作用或流程控制。
  */
 
 /**

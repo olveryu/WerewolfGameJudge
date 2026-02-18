@@ -1,10 +1,8 @@
 /**
  * Wolf Queen Resolver (HOST-ONLY, 纯函数)
  *
- * 职责：校验狼王魅惑行动 + 计算魅惑结果
- *
- * ✅ 允许：魅惑目标校验 + 结果计算
- * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * 职责：校验狼王魅惑行动 + 计算魅惑结果，
+ * 提供魅惑目标校验与结果计算。不包含 IO（网络 / 音频 / Alert）。
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */

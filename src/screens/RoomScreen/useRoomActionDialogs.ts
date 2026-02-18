@@ -4,9 +4,8 @@
  * Only responsible for "how to display" dialogs.
  * Does NOT contain business rules or decide "when to display".
  * All onConfirm callbacks are provided by the caller (RoomScreen orchestrator).
- *
- * ❌ Do NOT: import services, contain business rules, hold execution functions
- * ✅ Allowed: call showAlert, format messages, collect user input
+ * Calls showAlert, formats messages, and collects user input. Does not import
+ * services, does not contain business rules, and does not hold execution functions.
  */
 
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';

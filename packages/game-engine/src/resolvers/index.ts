@@ -1,10 +1,8 @@
 /**
  * Resolvers Registry (HOST-ONLY)
  *
- * 职责：注册 SchemaId → ResolverFn 的映射表，供 actionHandler 调用
- *
- * ✅ 允许：注册 resolver 映射
- * ❌ 禁止：被 UI 代码 import（import boundary test 强制）
+ * 职责：注册 SchemaId → ResolverFn 的映射表，供 actionHandler 调用，
+ * 导出 resolver 映射注册。不被 UI 代码 import（import boundary test 强制）。
  *
  * ⚠️ WARNING: This module MUST NOT be imported by UI code.
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.

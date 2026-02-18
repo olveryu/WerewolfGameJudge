@@ -3,9 +3,7 @@
  *
  * 纯函数 + 静态数据，无副作用。
  * 根据游戏上下文和聊天记录动态生成 4 道快捷问题。
- *
- * ✅ 允许：读取 gameState、问题匹配
- * ❌ 禁止：调用 service、修改 state
+ * 读取 gameState 进行问题匹配。不调用 service，不修改 state。
  */
 
 import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';

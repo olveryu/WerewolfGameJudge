@@ -1,11 +1,9 @@
 /**
  * ActionButton - 行动按钮（Memoized）
  *
- * ⚠️ 永不使用 RN `disabled` 阻断 onPress — 始终上报 intent。
- * 视觉禁用仅通过样式表达。
- *
- * ✅ 允许：渲染 UI + 上报 onPress（含 meta）
- * ❌ 禁止：import service / 业务逻辑判断 / disabled={true}
+ * 永不使用 RN `disabled` 阻断 onPress — 始终上报 intent。
+ * 视觉禁用仅通过样式表达。渲染 UI 并通过回调上报 onPress（含 meta），
+ * 不 import service，不包含业务逻辑判断，不使用 disabled={true}。
  */
 import React, { memo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';

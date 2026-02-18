@@ -7,8 +7,8 @@
  * - handleAnonymousLogin（try/catch + onSuccess + 错误处理）
  * - resetForm / toggleSignUp
  *
- * ✅ 允许：管理 form state、调用 AuthContext API、showAlert
- * ❌ 禁止：硬编码样式值 / console.* / import service 层
+ * 管理 form state、调用 AuthContext API 和 showAlert。
+ * 不硬编码样式值，不使用 console.*，不 import service 层。
  */
 import { useCallback, useState } from 'react';
 

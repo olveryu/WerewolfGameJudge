@@ -2,9 +2,7 @@
  * RoleStepper - 角色数量步进器（Memoized）
  *
  * 用于普通狼人/村民等批量角色的 [-] count [+] 控件。
- *
- * ✅ 允许：渲染 UI + 上报 onCountChange
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并通过回调上报 onCountChange，不 import service，不包含业务逻辑判断。
  */
 import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

@@ -6,12 +6,13 @@
  * 2. Semantic (公开 API) - 语义化命名
  * 3. Component (公开 API) - 组件专用尺寸
  *
+ * 导出 spacing / typography / borderRadius / shadows / layout / componentSizes 定义。
+ *
  * 使用方式:
  * - import { spacing, typography, borderRadius, componentSizes } from '@/theme/tokens';
  * - spacing.small, typography.body, borderRadius.medium
  *
- * ✅ 允许：spacing / typography / borderRadius / shadows / layout / componentSizes 定义
- * ❌ 禁止：业务逻辑、import React / service、硬编码颜色（颜色在 themes.ts）
+ * 不包含业务逻辑，不引入 React 或 service。颜色值统一在 themes.ts 中定义，此处禁止硬编码颜色。
  */
 
 import { Dimensions, PixelRatio, Platform, TextStyle, ViewStyle } from 'react-native';

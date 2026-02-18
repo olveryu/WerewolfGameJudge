@@ -3,9 +3,7 @@
  *
  * 特点：圆形透明球体顶部、投币口、旋转手柄、扭蛋滚出 → 打开 → 揭示。
  * 使用 `useSharedValue` 驱动所有动画，`runOnJS` 切换阶段。
- *
- * ✅ 允许：渲染动画 + 触觉反馈
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';

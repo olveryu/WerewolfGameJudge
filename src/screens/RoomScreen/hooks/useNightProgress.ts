@@ -1,16 +1,11 @@
 /**
  * useNightProgress.ts - Night progress indicator + speak order auto-dialog
  *
- * ✅ Allowed:
- *   - Compute nightProgress derived state (current step / total / role name)
- *   - Auto-show speak order dialog when night ends (Host-only, one-shot)
- *   - Reset speak order flag when game restarts
- *
- * ❌ Do NOT:
- *   - Import services directly
- *   - Contain action processing / policy logic
- *   - Render UI or hold JSX
- *   - Own any gate state (gates are in useActionOrchestrator)
+ * Computes nightProgress derived state (current step / total / role name),
+ * auto-shows speak order dialog when night ends (Host-only, one-shot), and resets
+ * speak order flag when game restarts. Does not import services directly, does not
+ * contain action processing / policy logic, does not render UI or hold JSX, and
+ * does not own any gate state (gates are in useActionOrchestrator).
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';

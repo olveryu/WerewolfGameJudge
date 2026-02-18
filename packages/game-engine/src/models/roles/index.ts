@@ -5,9 +5,8 @@
  * All role data comes from ROLE_SPECS.
  *
  * No class hierarchy, no BaseRole - pure declarative data.
- *
- * ✅ 允许：re-export spec 类型/常量、派生查询函数（getRoleSpec / isWolfRole 等）
- * ❌ 禁止：import service / 副作用 / resolver 逻辑
+ * Re-export spec 类型与常量，提供派生查询函数（getRoleSpec / isWolfRole 等），
+ * 不依赖 service、不含副作用或 resolver 逻辑。
  */
 
 import { getEngineLogger } from '../../utils/logger';

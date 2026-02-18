@@ -1,15 +1,15 @@
 /**
  * withTimeout - Promise timeout utilities
  *
- * 统一的超时封装，确保 timer 在 resolve/reject/timeout 后正确清理
+ * 统一的超时封装，支持 Promise 超时封装和 retry with timeout，
+ * 确保 timer 在 resolve/reject/timeout 后正确清理。
  *
  * 契约：
  * - 超时时必须 reject（不 resolve）
  * - finally 必须清理内部 timer
  * - 支持 errorFactory 自定义超时错误
  *
- * ✅ 允许：Promise 超时封装、retry with timeout
- * ❌ 禁止：import React / service / 游戏状态
+ * 不引入 React、service 或游戏状态。
  */
 
 import { log } from './logger';

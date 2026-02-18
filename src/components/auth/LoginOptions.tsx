@@ -2,9 +2,7 @@
  * LoginOptions — 登录方式选择（共享组件）
  *
  * Home 和 Settings 共用。显示邮箱登录 / 匿名登录按钮。
- *
- * ✅ 允许：渲染 UI + 上报选择
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染登录方式 UI 并上报用户选择。不 import service，不含业务逻辑。
  */
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

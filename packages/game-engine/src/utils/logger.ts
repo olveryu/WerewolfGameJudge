@@ -3,9 +3,7 @@
  *
  * 提供最小化的 Logger 接口 + 注入函数。
  * 客户端注入 react-native-logs 实例；服务端注入 console wrapper。
- *
- * ✅ 允许：定义接口、注入、获取 logger
- * ❌ 禁止：import 平台依赖（react-native-logs, console 以外的库）
+ * 不 import 平台依赖（react-native-logs 等），仅定义接口与注入/获取方法。
  */
 
 /**
