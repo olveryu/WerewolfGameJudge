@@ -3,9 +3,7 @@
  *
  * Home 和 Settings 共用。接收 AuthStyles 统一样式接口。
  * 包含 autocomplete / keyboard 增强 / 邮箱域名下拉。
- *
- * ✅ 允许：渲染 UI + 上报用户 intent
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染表单 UI 并上报用户 intent。不 import service，不含业务逻辑。
  */
 import { Ionicons } from '@expo/vector-icons';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';

@@ -3,9 +3,7 @@
  *
  * 支持闪烁次数、持续时间配置。使用 `withRepeat` + `withSequence` 驱动闪烁，
  * 完成后通过 `runOnJS` 回调通知外部。
- *
- * ✅ 允许：渲染动画边框 UI
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染动画边框 UI。不 import service，不含业务逻辑。
  */
 import React, { useEffect } from 'react';
 import { StyleSheet, type ViewStyle } from 'react-native';

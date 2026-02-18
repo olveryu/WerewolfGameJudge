@@ -7,9 +7,8 @@ import type { CapturedRole } from './multi-player';
  *
  * Shared utilities for E2E tests that need to drive specific role actions
  * during the night phase, verify reveal dialogs, and check death outcomes.
- *
- * ✅ Allows: role lookup, seat click, advance buttons, poll loops, wolf vote driving
- * ❌ Forbids: modifying game state directly, importing services/models
+ * Provides role lookup, seat click, advance buttons, poll loops, and wolf vote
+ * driving. Does not modify game state directly or import services/models.
  */
 
 // ---------------------------------------------------------------------------

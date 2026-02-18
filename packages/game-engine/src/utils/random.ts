@@ -2,10 +2,8 @@
  * random - Platform-agnostic secure random utilities for game-engine
  *
  * 使用标准 Web Crypto API（Node 19+ / 所有现代浏览器原生支持）。
- * 不依赖 expo-crypto。
- *
- * ✅ 允许：secureRng / randomIntInclusive / randomBool / randomPick / Rng 类型
- * ❌ 禁止：import 平台依赖（expo-crypto）、Math.random()
+ * 不依赖 expo-crypto。导出 secureRng / randomIntInclusive / randomBool / randomPick / Rng 类型。
+ * 不使用 Math.random()，不 import 平台依赖。
  */
 
 /**

@@ -1,10 +1,7 @@
 /**
  * RoleChip - 角色选择标签（Memoized）
  *
- * 带阵营色选中状态。
- *
- * ✅ 允许：渲染 UI + 上报 onToggle
- * ❌ 禁止：import service / 业务逻辑判断
+ * 带阵营色选中状态。渲染 UI 并通过回调上报 onToggle，不 import service，不包含业务逻辑判断。
  */
 import { memo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';

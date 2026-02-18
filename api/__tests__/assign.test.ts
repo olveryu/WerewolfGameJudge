@@ -2,8 +2,7 @@
  * Assign Roles API Route Tests — POST /api/game/assign
  *
  * 验证分配角色请求的参数校验、method 检查、handler 委托。
- *
- * ✅ 覆盖：405 / 400 / 成功 / 失败 / callback 构建
+ * 覆盖 405 / 400 / 成功 / 失败 / callback 构建。
  */
 
 import type { BroadcastGameState } from '@werewolf/game-engine';

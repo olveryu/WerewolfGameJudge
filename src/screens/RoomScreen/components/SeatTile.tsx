@@ -3,9 +3,7 @@
  *
  * 由 PlayerGrid 创建 styles 并传入，自定义 areEqual 防止不必要重渲染。
  * 入场/离场动画（slide up + bounce / fade out + shrink）。
- *
- * ✅ 允许：渲染 UI + 上报 onPress
- * ❌ 禁止：import service / showAlert / 业务逻辑判断
+ * 渲染 UI 并通过回调上报 onPress，不 import service / showAlert，不包含业务逻辑判断。
  */
 import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import {

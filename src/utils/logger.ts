@@ -1,7 +1,7 @@
 /**
  * logger - Unified logging module using react-native-logs
  *
- * 全项目统一日志入口，提供命名 logger 实例。
+ * 全项目统一日志入口，提供命名 logger 实例，支持创建命名 logger 和配置 transport/severity。
  *
  * Usage:
  *   import { log } from '@/utils/logger';
@@ -11,8 +11,7 @@
  *   const hostLog = log.extend('Host');
  *   hostLog.info('Seat action', { seat: 1 });
  *
- * ✅ 允许：创建命名 logger、配置 transport/severity
- * ❌ 禁止：import React / service / 游戏状态
+ * 不引入 React、service 或游戏状态。
  */
 
 import { consoleTransport, logger } from 'react-native-logs';
@@ -77,8 +76,7 @@ export const chatLog = log.extend('Chat');
 /**
  * Map Supabase/GoTrue error messages to user-friendly Chinese messages.
  *
- * ✅ 允许：纯字符串映射
- * ❌ 禁止：副作用 / 依赖外部状态
+ * 纯字符串映射，不包含副作用，不依赖外部状态。
  */
 export function mapAuthError(message: string): string {
   const lower = message.toLowerCase();

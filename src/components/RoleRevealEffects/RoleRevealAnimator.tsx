@@ -3,9 +3,7 @@
  *
  * 根据 effectType 分发到对应的揭示动画组件（flip/scratch/tarot/gacha/roulette）。
  * 所有效果在动画中直接显示完整 RoleCardContent 样式。
- *
- * ✅ 允许：渲染动画 + 分发 effect 组件
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染动画并按 effectType 分发到对应效果组件。不 import service，不含业务逻辑。
  */
 import React, { useEffect, useState } from 'react';
 import { AccessibilityInfo, Modal, StyleSheet, View } from 'react-native';

@@ -5,16 +5,15 @@
  * - 组合 hostActions / seatActions / messageRouter 子模块
  * - 管理生命周期和身份状态
  * - 对外暴露统一的 public API
+ * - 音频编排（执行 SideEffect: PLAY_AUDIO）
  *
  * 实例化方式：
  * - 由 composition root（App.tsx）通过 `new GameFacade(deps)` 创建
  * - 通过 GameFacadeContext 注入到组件树
+ * - 通过 constructor DI 注入依赖（测试/组合根）
  *
- * ✅ 允许：组合子模块、管理生命周期、音频编排（执行 SideEffect: PLAY_AUDIO）
- * ✅ 允许：通过 constructor DI 注入依赖（测试/组合根）
- * ❌ 禁止：业务逻辑/校验规则（全部在 handler）
- * ❌ 禁止：直接修改 state（全部在 reducer）
- * ❌ 禁止：全局单例（已移除 getInstance/resetInstance）
+ * 不包含业务逻辑/校验规则（全部在 handler），不直接修改 state（全部在 reducer），
+ * 不使用全局单例（已移除 getInstance/resetInstance）。
  *
  * 子模块划分：
  * - hostActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction/submitWolfVote）

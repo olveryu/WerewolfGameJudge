@@ -1,10 +1,8 @@
 /**
  * BottomActionPanel - 底部浮动操作面板（Memoized）
  *
- * 卡片风格，组合 action message + action buttons。纯展示组件。
- *
- * ✅ 允许：渲染 UI（message + 按钮子组件）
- * ❌ 禁止：import service / 业务逻辑判断
+ * 卡片风格，组合 action message + action buttons。纯展示组件，
+ * 渲染 message 与按钮子组件，不 import service，不包含业务逻辑判断。
  */
 import React, { memo } from 'react';
 import { Text, View } from 'react-native';

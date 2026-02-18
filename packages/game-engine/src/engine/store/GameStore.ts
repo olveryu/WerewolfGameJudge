@@ -8,9 +8,8 @@
  * - 玩家端：applySnapshot（版本号检查）
  * - 主机端：setState / updateState
  *
- * ✅ 允许：state CRUD + revision 管理 + listener 通知
- * ❌ 禁止：业务逻辑（校验/结算/流程推进）
- * ❌ 禁止：IO（网络/音频/Alert）
+ * 提供 state CRUD、revision 管理及 listener 通知，不包含业务逻辑（校验/结算/流程推进），
+ * 不包含 IO（网络/音频/Alert）。
  */
 
 import { getEngineLogger } from '../../utils/logger';

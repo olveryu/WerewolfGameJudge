@@ -1,18 +1,13 @@
 /**
  * useRoomScreenState - Composition hook that wires all RoomScreen sub-hooks together
  *
- * ✅ Allowed:
- *   - Call all sub-hooks in dependency order (useGameRoom → useRoomInit → useRoomActions → …)
- *   - Own local UI state (magician seats, modals, countdown, isStartingGame)
- *   - Compute derived data (seatViewModels, roleStats, wolfVotesMap, actorIdentity)
- *   - Own side-effects (countdown timer, seat error alert, restart reset, delegation warning)
- *   - Return a flat bag of values consumed by RoomScreen JSX
- *
- * ❌ Do NOT:
- *   - Render JSX
- *   - Import components
- *   - Own styles (that stays in the component)
- *   - Contain business logic (delegated to sub-hooks)
+ * Calls all sub-hooks in dependency order (useGameRoom → useRoomInit → useRoomActions → …),
+ * owns local UI state (magician seats, modals, countdown, isStartingGame), computes derived
+ * data (seatViewModels, roleStats, wolfVotesMap, actorIdentity), owns side-effects (countdown
+ * timer, seat error alert, restart reset, delegation warning), and returns a flat bag of values
+ * consumed by RoomScreen JSX. Does not render JSX, does not import components, does not own
+ * styles (that stays in the component), and does not contain business logic (delegated to
+ * sub-hooks).
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';

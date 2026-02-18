@@ -1,19 +1,14 @@
 /**
  * useActionOrchestrator.ts - Night action intent handler & auto-trigger orchestrator
  *
- * ✅ Allowed:
- *   - Process ActionIntent (the big switch: reveal, wolfVote, actionConfirm, skip, etc.)
- *   - Manage action submission helpers (proceedWithAction, confirmThenAct, buildWitchStepResults)
- *   - Run auto-trigger effect (idempotent intent auto-fire on step changes)
- *   - Run rejection effect (surface Host ACTION_REJECTED via alert)
- *   - Own pendingRevealDialog / pendingHunterStatusViewed gate state
- *
- * ❌ Do NOT:
- *   - Import services directly (all actions come via params)
- *   - Contain policy / interaction dispatch logic (that's useInteractionDispatcher)
- *   - Render UI or hold JSX
- *   - Own seat tap / interaction context / dispatchInteraction
- *   - Modify BroadcastGameState directly
+ * Processes ActionIntent (the big switch: reveal, wolfVote, actionConfirm, skip, etc.),
+ * manages action submission helpers (proceedWithAction, confirmThenAct, buildWitchStepResults),
+ * runs auto-trigger effect (idempotent intent auto-fire on step changes), surfaces Host
+ * ACTION_REJECTED via alert, and owns pendingRevealDialog / pendingHunterStatusViewed gate state.
+ * Does not import services directly (all actions come via params), does not contain policy /
+ * interaction dispatch logic (that's useInteractionDispatcher), does not render UI or hold JSX,
+ * does not own seat tap / interaction context / dispatchInteraction, and does not modify
+ * BroadcastGameState directly.
  */
 
 import * as Sentry from '@sentry/react-native';

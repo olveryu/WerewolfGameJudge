@@ -6,9 +6,7 @@
  *
  * 使用 postgres.js（轻量级，Serverless 友好，无 native 依赖）。
  * Transaction mode — 每次查询后连接自动归还连接池。
- *
- * ✅ 允许：仅在 Vercel Serverless Functions 中使用
- * ❌ 禁止：客户端代码 import 此模块
+ * 仅在 Vercel Serverless Functions 中使用，客户端代码不得 import 此模块。
  */
 
 import postgres from 'postgres';

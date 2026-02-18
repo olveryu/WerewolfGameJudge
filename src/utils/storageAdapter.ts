@@ -1,13 +1,12 @@
 /**
  * storageAdapter - 跨平台 storage adapter 工厂
  *
- * 根据运行环境返回适合的 auth 持久化方案：
+ * 根据运行环境探测并创建适合的 auth 持久化方案：
  * - Web 浏览器 → localStorage
  * - Native → AsyncStorage
  * - ?newUser=N URL 参数 → 隔离的内存 storage（开发多用户测试）
  *
- * ✅ 允许：环境探测、创建 storage adapter
- * ❌ 禁止：业务逻辑、游戏状态操作、import service
+ * 不包含业务逻辑、游戏状态操作，也不引入 service。
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

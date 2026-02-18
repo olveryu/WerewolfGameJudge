@@ -3,9 +3,7 @@
  *
  * 纯函数，无副作用。将 BroadcastGameState 映射为 GameContext，
  * 只包含该玩家应当知道的信息（不作弊）。
- *
- * ✅ 允许：读取 gameState、ROLE_SPECS
- * ❌ 禁止：修改 state、调用 service
+ * 读取 gameState 与 ROLE_SPECS。不修改 state，不调用 service。
  */
 
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';

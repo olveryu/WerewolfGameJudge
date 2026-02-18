@@ -1,10 +1,8 @@
 /**
  * Hunter Confirm Resolver (HOST-ONLY, 纯函数)
  *
- * 职责：校验猎人确认行动（仅确认身份，无目标选择）
- *
- * ✅ 允许：确认行动校验
- * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * 职责：校验猎人确认行动（仅确认身份，无目标选择），
+ * 导出确认行动校验。不包含 IO（网络 / 音频 / Alert）。
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */

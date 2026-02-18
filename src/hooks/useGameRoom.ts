@@ -10,9 +10,8 @@
  * - useNightDerived: pure night-phase derivations
  *
  * Host device is the Single Source of Truth for all game state.
- *
- * ✅ 允许：组合子 hooks、订阅 facade state、派生 identity/roomStatus
- * ❌ 禁止：直接调用 Supabase、包含业务 callback 逻辑（应在子 hooks 中）
+ * 组合子 hooks、订阅 facade state、派生 identity/roomStatus。
+ * 不直接调用 Supabase，不包含业务 callback 逻辑（应在子 hooks 中）。
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';

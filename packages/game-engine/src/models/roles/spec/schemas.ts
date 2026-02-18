@@ -2,10 +2,8 @@
  * Action Schemas Registry - 行动输入协议表
  *
  * Single source of truth for all action input protocols.
- * 定义每个行动的 constraints / ui / meeting / canSkip 等。
- *
- * ✅ 允许：声明式 schema 定义
- * ❌ 禁止：import service / 副作用 / resolver 逻辑
+ * 定义每个行动的 constraints / ui / meeting / canSkip 等声明式 schema，
+ * 不依赖 service、不含副作用或 resolver 逻辑。
  */
 
 import type { ActionSchema } from './schema.types';

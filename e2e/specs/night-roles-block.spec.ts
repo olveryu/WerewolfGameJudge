@@ -27,8 +27,8 @@ import { ConfigPage } from '../pages/ConfigPage';
  * - Slacker idol choice
  * - Seer & guard voluntary skip (不使用技能)
  *
- * ✅ Allowed: UI assertions on blocked prompts, 平安夜 / death outcomes
- * ❌ Forbidden: modifying game state directly, importing services/models
+ * Covers UI assertions on blocked prompts, 平安夜 / death outcomes.
+ * Does not modify game state directly or import services/models.
  */
 
 test.describe.configure({ mode: 'serial' });

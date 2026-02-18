@@ -1,7 +1,7 @@
 /**
  * Fill With Bots API Route Tests — POST /api/game/fill-bots
  *
- * ✅ 覆盖：405 / 400 / 成功 / 失败
+ * 覆盖 405 / 400 / 成功 / 失败。
  */
 
 import type { GameActionResult } from '../_lib/types';

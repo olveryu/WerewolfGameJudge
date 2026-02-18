@@ -3,9 +3,7 @@
  *
  * 统一 HomeScreen 和 SettingsScreen 的登录/注册组件样式 key。
  * 各 screen 的 styles factory 需实现此接口的子集。
- *
- * ✅ 允许：类型定义
- * ❌ 禁止：运行时逻辑 / 硬编码值
+ * 导出类型定义。不含运行时逻辑，不含硬编码值。
  */
 import { type TextStyle, type ViewStyle } from 'react-native';
 

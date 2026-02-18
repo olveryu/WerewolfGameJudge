@@ -2,10 +2,8 @@
  * usePWAInstall - PWA 安装到主屏幕
  *
  * 封装 `beforeinstallprompt`（Android/桌面 Chrome）与 iOS 浏览器手动引导逻辑。
- * 仅在 Web 平台 + 非 standalone 模式下有效。
- *
- * ✅ 允许：平台检测、localStorage 读写、触发系统安装弹窗
- * ❌ 禁止：import service / 直接操作 DOM
+ * 仅在 Web 平台 + 非 standalone 模式下有效。涵盖平台检测、localStorage 读写、触发系统安装弹窗。
+ * 不 import service，不直接操作 DOM。
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';

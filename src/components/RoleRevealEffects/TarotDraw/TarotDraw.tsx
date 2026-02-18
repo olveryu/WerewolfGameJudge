@@ -3,9 +3,7 @@
  *
  * 动画流程：多张牌围成一圈旋转 → 玩家点选 → 抽出飞向中央 → 翻转揭示。
  * 使用 `useSharedValue` 驱动所有动画，`runOnJS` 切换阶段，无 `setTimeout`。
- *
- * ✅ 允许：渲染动画 + 触觉反馈
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';

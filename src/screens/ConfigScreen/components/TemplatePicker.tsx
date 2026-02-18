@@ -2,9 +2,7 @@
  * TemplatePicker - 模板选择 Modal
  *
  * 全屏滑出 Modal，展示预设模板列表供用户选择。
- *
- * ✅ 允许：渲染 UI + 上报 onSelect
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并通过回调上报 onSelect，不 import service，不包含业务逻辑判断。
  */
 import { Ionicons } from '@expo/vector-icons';
 import { memo, useCallback } from 'react';

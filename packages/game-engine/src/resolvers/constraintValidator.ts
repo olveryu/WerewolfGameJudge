@@ -1,11 +1,9 @@
 /**
  * Constraint Validator (HOST-ONLY, 纯函数)
  *
- * 职责：根据 schema constraints 统一校验 target 合法性（单一真相）
- *
- * ✅ 允许：schema constraint 校验（notSelf 等）
- * ❌ 禁止：resolver 自行硬编码约束检查（必须调用 validateConstraints）
- * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * 职责：根据 schema constraints 统一校验 target 合法性（单一真相），
+ * 提供 schema constraint 校验（notSelf 等）。resolver 不自行硬编码约束检查（必须调用
+ * validateConstraints），不包含 IO（网络 / 音频 / Alert）。
  */
 
 import type { TargetConstraint } from '../models/roles/spec/schema.types';

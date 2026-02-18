@@ -3,9 +3,7 @@
  *
  * Declarative role definitions.
  * Pure data - no functions, no side effects.
- *
- * ✅ 允许：RoleSpec / Night1Config / WolfMeetingConfig 等类型定义
- * ❌ 禁止：import service / 副作用 / 函数实现
+ * 导出 RoleSpec / Night1Config / WolfMeetingConfig 等类型定义，不依赖 service、不含副作用或函数实现。
  */
 
 import type { Faction, Team } from './types';

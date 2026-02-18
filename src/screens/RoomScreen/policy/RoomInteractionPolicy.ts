@@ -10,8 +10,8 @@
  * 3. Pending Gates - NOOP/ALERT when reveal ack or hunter gate is pending
  * 4. Event Routing - Route to appropriate handler based on event type
  *
- * ❌ Do NOT import: services, navigation, showAlert, React, any IO
- * ✅ Allowed imports: types only, SeatTapPolicy (pure)
+ * Only imports types and SeatTapPolicy (pure). Does not import services,
+ * navigation, showAlert, React, or any IO.
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';

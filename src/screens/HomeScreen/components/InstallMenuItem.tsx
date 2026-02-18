@@ -4,9 +4,7 @@
  * Android/桌面 Chrome：点击直接触发系统安装弹窗。
  * iOS 浏览器（Safari / Chrome）：点击弹出引导 Modal，按浏览器类型显示对应步骤。
  * 已安装 / 不支持：不渲染。
- *
- * ✅ 允许：渲染 UI + 调用 usePWAInstall hook
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并调用 usePWAInstall hook，不 import service，不包含业务逻辑判断。
  */
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';

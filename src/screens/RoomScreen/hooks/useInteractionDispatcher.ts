@@ -1,18 +1,12 @@
 /**
  * useInteractionDispatcher.ts - Interaction policy dispatcher & seat tap handlers
  *
- * ✅ Allowed:
- *   - Build InteractionContext from game state / actor identity
- *   - Call RoomInteractionPolicy (pure logic) and execute resulting instructions
- *   - Own dispatchInteraction, onSeatTapped, onSeatLongPressed
- *   - Execute side effects: showAlert, showDialog, navigation, role card, bot takeover
- *
- * ❌ Do NOT:
- *   - Contain business rules / action processing (that's useActionOrchestrator)
- *   - Import services directly
- *   - Own night flow / audio logic
- *   - Render UI or hold JSX
- *   - Duplicate any policy logic (single-source-of-truth is policy layer)
+ * Builds InteractionContext from game state / actor identity, calls RoomInteractionPolicy
+ * (pure logic) and executes resulting instructions, owns dispatchInteraction / onSeatTapped /
+ * onSeatLongPressed, and executes side effects (showAlert, showDialog, navigation, role card,
+ * bot takeover). Does not contain business rules / action processing (that's useActionOrchestrator),
+ * does not import services directly, does not own night flow / audio logic, does not render UI
+ * or hold JSX, and does not duplicate any policy logic (single-source-of-truth is policy layer).
  */
 
 import * as Sentry from '@sentry/react-native';

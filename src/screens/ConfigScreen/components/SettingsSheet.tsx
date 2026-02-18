@@ -2,9 +2,7 @@
  * SettingsSheet - 配置页设置面板（动画 + BGM）
  *
  * 底部滑出 Modal，包含动画选择和 BGM 开关两个 Dropdown。
- *
- * ✅ 允许：渲染 UI + 上报 onSelect
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并通过回调上报 onSelect，不 import service，不包含业务逻辑判断。
  */
 import { memo } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';

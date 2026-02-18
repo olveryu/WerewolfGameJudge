@@ -9,8 +9,8 @@
  * - Snapshot requests (force sync)
  * - Seat error tracking
  *
- * ✅ 允许：通过 facade 管理房间/座位、使用 authService/roomService
- * ❌ 禁止：直接调用 Supabase、绕过 facade 修改游戏状态
+ * 通过 facade 管理房间/座位，使用 authService/roomService。
+ * 不直接调用 Supabase，不绕过 facade 修改游戏状态。
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';

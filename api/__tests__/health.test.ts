@@ -2,9 +2,7 @@
  * Health API Route Tests — GET /api/health
  *
  * 验证 health endpoint 返回正确的环境诊断信息。
- *
- * ✅ 覆盖：200 响应、env flags
- * ❌ 无外部依赖
+ * 覆盖 200 响应、env flags。无外部依赖。
  */
 
 import handler from '../health';

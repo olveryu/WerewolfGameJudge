@@ -10,8 +10,8 @@
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, spiritKnight (9)
  * - Third-party: slacker (1)
  *
- * ✅ 允许：声明式角色属性定义（faction / team / night1 / wolfMeeting 等）
- * ❌ 禁止：import service / 副作用 / resolver 逻辑
+ * 提供声明式角色属性定义（faction / team / night1 / wolfMeeting 等），
+ * 不依赖 service、不含副作用或 resolver 逻辑。
  */
 import type { RoleSpec } from './spec.types';
 import { Faction } from './types';

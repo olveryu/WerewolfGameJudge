@@ -1,10 +1,7 @@
 /**
  * Section - 角色分组容器（Memoized）
  *
- * 接收 title + children（RoleChip 列表）。
- *
- * ✅ 允许：渲染分区 UI
- * ❌ 禁止：import service / 业务逻辑判断
+ * 接收 title + children（RoleChip 列表）。仅渲染分区 UI，不 import service，不包含业务逻辑判断。
  */
 import React, { memo } from 'react';
 import { Text, View } from 'react-native';

@@ -3,9 +3,7 @@
  *
  * 管理消息列表、streaming 流式接收、冷却计时、
  * AbortController 生命周期、AsyncStorage 持久化、触觉反馈。
- *
- * ✅ 允许：消息 CRUD、调用 AIChatService、haptics
- * ❌ 禁止：UI 渲染、手势处理
+ * 负责消息 CRUD、调用 AIChatService 和触觉反馈。不涉及 UI 渲染或手势处理。
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';

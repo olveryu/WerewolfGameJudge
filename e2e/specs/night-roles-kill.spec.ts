@@ -28,8 +28,8 @@ import { ConfigPage } from '../pages/ConfigPage';
  * - WolfQueen charm
  * - Hunter poisoned → cannotShoot
  *
- * ✅ Allowed: UI assertions on death/status text
- * ❌ Forbidden: modifying game state directly, importing services/models
+ * Covers UI assertions on death/status text.
+ * Does not modify game state directly or import services/models.
  */
 
 test.describe.configure({ mode: 'serial' });

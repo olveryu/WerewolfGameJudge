@@ -2,9 +2,8 @@
  * Seat API Route Tests — POST /api/game/seat
  *
  * 验证入座/离座请求的参数校验、method 检查、handler 委托。
- *
- * ✅ 覆盖：405 / 400 / sit 路径 / standup 路径 / processGameAction 委托
- * ❌ 不测试 game-engine 纯函数逻辑（由 engine 自身测试覆盖）
+ * 覆盖 405 / 400 / sit 路径 / standup 路径 / processGameAction 委托。
+ * 不测试 game-engine 纯函数逻辑（由 engine 自身测试覆盖）。
  */
 
 import type { BroadcastGameState } from '@werewolf/game-engine';

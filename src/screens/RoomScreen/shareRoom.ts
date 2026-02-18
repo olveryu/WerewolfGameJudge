@@ -4,8 +4,7 @@
  * Web: navigator.share (mobile browsers) → navigator.clipboard fallback
  * Native: React Native Share API
  *
- * ✅ Allowed: browser/RN APIs only
- * ❌ Do NOT: import services, showAlert, navigation
+ * Uses browser/RN APIs only. Does not import services, showAlert, or navigation.
  */
 import { Platform, Share } from 'react-native';
 

@@ -3,9 +3,7 @@
  *
  * 点击"查看身份"后直接显示角色信息，无任何动画。
  * 卡片内容复用 RoleCardContent，本组件仅负责 Modal 包裹 + "我知道了"按钮。
- *
- * ✅ 允许：渲染 Modal + 按钮
- * ❌ 禁止：import service / 业务逻辑判断 / 重复卡片 UI
+ * 渲染 Modal 与按钮。不 import service，不含业务逻辑，不重复卡片 UI。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';

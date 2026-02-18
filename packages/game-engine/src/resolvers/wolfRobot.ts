@@ -1,10 +1,9 @@
 /**
  * Wolf Robot Resolver (HOST-ONLY, 纯函数)
  *
- * 职责：校验机器狼学习行动 + 返回精确角色身份 + 计算 canShootAsHunter
- *
- * ✅ 允许：学习行动校验 + 猎人技能继承判定（是否被女巫毒 → 不能开枪）
- * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * 职责：校验机器狼学习行动 + 返回精确角色身份 + 计算 canShootAsHunter，
+ * 提供学习行动校验与猎人技能继承判定（是否被女巫毒 → 不能开枪）。
+ * 不包含 IO（网络 / 音频 / Alert）。
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */

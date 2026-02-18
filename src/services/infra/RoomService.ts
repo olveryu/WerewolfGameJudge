@@ -1,14 +1,9 @@
 /**
  * RoomService - Supabase 房间记录 + 游戏状态持久化服务
  *
- * 职责：
- * - 创建/查询/删除 Supabase rooms 表记录
- * - 生成唯一 4 位房间号
- * - 持久化 game_state snapshot（供 Player 通过 postgres_changes 或 SELECT 恢复）
- *
- * ✅ 允许：Supabase rooms 表的 CRUD 操作
- * ✅ 允许：持久化 game_state snapshot（供 Player 恢复）
- * ❌ 禁止：校验游戏逻辑（游戏逻辑由 Host 内存 GameStore 管理）
+ * 创建/查询/删除 Supabase rooms 表记录，生成唯一 4 位房间号，
+ * 持久化 game_state snapshot（供 Player 通过 postgres_changes 或 SELECT 恢复）。
+ * 不校验游戏逻辑（游戏逻辑由 Host 内存 GameStore 管理）。
  *
  * Supabase rooms table schema:
  * - id: uuid (primary key)

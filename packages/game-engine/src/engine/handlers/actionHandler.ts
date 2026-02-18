@@ -6,9 +6,8 @@
  * - 调用 resolver 验证行动合法性并计算结果
  * - Nightmare 阻断的统一守卫（single-point guard）
  *
- * ✅ 允许：调用 resolver 纯函数 + 构建 StateAction 列表
- * ❌ 禁止：IO（网络 / 音频 / Alert）
- * ❌ 禁止：直接修改 state（返回 StateAction 列表由 reducer 执行）
+ * 调用 resolver 纯函数并构建 StateAction 列表，不包含 IO（网络 / 音频 / Alert），
+ * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
  */
 
 import type { RevealKind, RoleId } from '../../models/roles';

@@ -2,9 +2,7 @@
  * shuffle - Fisher-Yates shuffle for game-engine
  *
  * Platform-agnostic, uses game-engine's own secureRng.
- *
- * ✅ 允许：纯函数数组打乱、可注入 rng
- * ❌ 禁止：import 平台依赖
+ * 提供纯函数数组打乱，支持可注入 rng。不依赖任何平台模块。
  */
 
 import { type Rng, secureRng } from './random';

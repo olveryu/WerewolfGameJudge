@@ -12,8 +12,8 @@
  * - 递归推进直到 decision=none（与客户端 handleNightProgression 等价）
  * - 最多 MAX_PROGRESSION_LOOPS 次防止无限循环
  *
- * ✅ 允许：读 state + 调用 handler 纯函数 + 返回 actions/effects
- * ❌ 禁止：IO / 副作用 / 时间依赖（Date.now 由调用方传入）
+ * 可读取 state、调用 handler 纯函数并返回 actions/effects，
+ * 不包含 IO、副作用或时间依赖（Date.now 由调用方传入）。
  */
 
 import type { AudioEffect, BroadcastGameState } from '../protocol/types';

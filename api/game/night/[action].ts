@@ -9,8 +9,7 @@
  *   action, audio-ack, audio-gate, end, progression,
  *   reveal-ack, wolf-robot-viewed, wolf-vote
  *
- * ✅ 允许：请求解析、分派到对应 handler
- * ❌ 禁止：直接操作 DB 或 state、播放音频
+ * 负责请求解析与分派到对应 handler，不直接操作 DB / state，不播放音频。
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';

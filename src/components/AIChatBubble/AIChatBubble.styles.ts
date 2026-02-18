@@ -2,9 +2,7 @@
  * AIChatBubble.styles - 样式与布局常量
  *
  * 集中管理 AIChatBubble 的尺寸、位置和样式定义。
- *
- * ✅ 允许：样式定义、布局常量
- * ❌ 禁止：业务逻辑、import service
+ * 导出样式定义与布局常量。不含业务逻辑，不 import service。
  */
 
 import { Dimensions, StyleSheet } from 'react-native';

@@ -58,9 +58,9 @@ type BroadcastTransformedKeys =
  * Passthrough fields are auto-inherited from BroadcastGameState (via Omit).
  * Only the transformed / local-only fields are declared here.
  *
- * ✅ Adding a new BroadcastGameState field: automatically available here.
- * ✅ Adding a new required BroadcastGameState field: adapter MUST set it (TS error).
- * ❌ If a new field needs transformation: add it to BroadcastTransformedKeys and declare below.
+ * Adding a new BroadcastGameState field makes it automatically available here.
+ * Adding a new required field forces the adapter to set it (TS error).
+ * If a new field needs transformation, add it to BroadcastTransformedKeys and declare below.
  */
 export interface LocalGameState extends Omit<BroadcastGameState, BroadcastTransformedKeys> {
   // --- Transformed fields (different shape from BroadcastGameState) ---

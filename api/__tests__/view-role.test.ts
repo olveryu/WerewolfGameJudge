@@ -2,8 +2,7 @@
  * View Role API Route Tests — POST /api/game/view-role
  *
  * 验证查看角色请求的参数校验、method 检查、handler 委托。
- *
- * ✅ 覆盖：405 / 400 / 成功 / 失败
+ * 覆盖 405 / 400 / 成功 / 失败。
  */
 
 import type { GameActionResult } from '../_lib/types';

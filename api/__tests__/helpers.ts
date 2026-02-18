@@ -3,9 +3,7 @@
  *
  * Mock utilities for Vercel Serverless Function handler unit tests.
  * Provides mock VercelRequest / VercelResponse factories.
- *
- * ✅ 允许：测试构造工具
- * ❌ 禁止：业务逻辑
+ * 仅提供测试构造工具，不包含业务逻辑。
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';

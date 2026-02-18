@@ -5,9 +5,7 @@
  * - isWolfVoteAllComplete：判断全部狼人是否投票完成（server + evaluator 共用）
  * - decideWolfVoteTimerAction：Timer set/clear/noop 决策
  *
- * ✅ 允许：读取 state 事实做判断
- * ❌ 禁止：IO（网络 / 音频 / Alert）
- *
+ * 仅读取 state 事实做判断，不包含 IO（网络 / 音频 / Alert）。
  * 推进决策与执行由服务端 runInlineProgression 负责（见 inlineProgression.ts）。
  */
 

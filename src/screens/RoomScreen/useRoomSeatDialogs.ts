@@ -2,10 +2,8 @@
  * useRoomSeatDialogs - Pure UI dialog layer for seat management
  *
  * Only responsible for seat enter/leave dialogs and leave room.
- * Does NOT contain action-related logic.
- *
- * ❌ Do NOT: import services, contain business rules
- * ✅ Allowed: manage seat modal state, call showAlert
+ * Does NOT contain action-related logic. Manages seat modal state and calls
+ * showAlert. Does not import services or contain business rules.
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';

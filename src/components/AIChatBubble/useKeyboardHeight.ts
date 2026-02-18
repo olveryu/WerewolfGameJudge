@@ -5,8 +5,7 @@
  * iOS: keyboardWillShow / keyboardWillHide
  * Android: keyboardDidShow / keyboardDidHide
  *
- * ✅ 允许：平台检测、事件监听
- * ❌ 禁止：业务逻辑
+ * 提供平台检测与键盘事件监听。不含业务逻辑。
  */
 
 import { useEffect, useState } from 'react';

@@ -7,8 +7,7 @@
  * - Dialog 类型分类的单一真相（centralized classification）
  * - 支持循环检测和覆盖率验证
  *
- * ✅ 允许：拦截 dialog + 断言 + 覆盖率检查
- * ❌ 禁止：自动清除 gate / 跳过断言
+ * 提供拦截 dialog、断言、覆盖率检查能力，不自动清除 gate 或跳过断言。
  */
 
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';

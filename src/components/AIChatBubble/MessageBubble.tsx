@@ -3,9 +3,7 @@
  *
  * 用户消息右对齐蓝色，AI 消息左对齐灰色。
  * Streaming 时在文本末尾显示闪烁光标 ▊。
- *
- * ✅ 允许：渲染消息、光标动画
- * ❌ 禁止：直接调用 service
+ * 渲染消息气泡与光标动画。不直接调用 service。
  */
 
 import { memo, useEffect, useRef } from 'react';

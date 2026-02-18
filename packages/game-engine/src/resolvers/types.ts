@@ -2,11 +2,8 @@
  * Resolver Types (HOST-ONLY)
  *
  * 职责：定义 Resolver 系统的核心类型（ResolverFn / ResolverContext / ResolverResult / CurrentNightResults）
- *       以及 resolveRoleForChecks 等纯函数工具
- *
- * ✅ 允许：类型定义 + 纯函数工具
- * ❌ 禁止：被 UI 代码 import（import boundary test 强制）
- * ❌ 禁止：携带跨夜字段（previousActions / lastNightTarget 等）
+ * 以及 resolveRoleForChecks 等纯函数工具。导出类型定义与纯函数工具。
+ * 不被 UI 代码 import（import boundary test 强制），不携带跨夜字段（previousActions / lastNightTarget 等）。
  *
  * ⚠️ WARNING: These types and the resolver implementations MUST NOT be imported by UI code.
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.

@@ -2,10 +2,8 @@
  * id - Platform-agnostic unique ID generation for game-engine
  *
  * 使用标准 Web Crypto API（Node 19+ / 所有现代浏览器原生支持）。
- * 不依赖 expo-crypto。
- *
- * ✅ 允许：生成 randomHex / requestId / rejectionId
- * ❌ 禁止：import 平台依赖（expo-crypto）、Math.random()
+ * 不依赖 expo-crypto。导出 randomHex / requestId / rejectionId。
+ * 不使用 Math.random()，不 import 平台依赖。
  */
 
 /**

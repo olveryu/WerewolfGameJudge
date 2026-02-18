@@ -8,8 +8,7 @@
  * 逻辑层：useAIChat.ts（编排 → useBubbleDrag / useKeyboardHeight / useChatMessages）
  * 样式层：AIChatBubble.styles.ts
  *
- * ✅ 允许：渲染聊天 UI、通过 useAIChat hook 交互
- * ❌ 禁止：直接 import service / 直接调用 API
+ * 渲染聊天 UI，通过 useAIChat hook 交互。不直接 import service，不直接调用 API。
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';

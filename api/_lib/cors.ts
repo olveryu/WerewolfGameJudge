@@ -4,9 +4,7 @@
  * In production (same domain), CORS is not needed.
  * In local dev, the frontend runs on port 8081 (Metro) while
  * API runs on port 3000 (vercel dev), requiring cross-origin headers.
- *
- * ✅ 允许：CORS preflight + headers for dev origins
- * ❌ 禁止：业务逻辑、state 操作
+ * 提供 CORS preflight 响应与 dev origins 的跨域 headers，不包含业务逻辑或 state 操作。
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';

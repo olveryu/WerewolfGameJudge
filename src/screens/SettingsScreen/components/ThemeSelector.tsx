@@ -2,9 +2,7 @@
  * ThemeSelector - 主题选择组件（Memoized）
  *
  * 显示可用主题列表，通过 onThemeChange 上报选择。
- *
- * ✅ 允许：渲染 UI + 上报用户 intent
- * ❌ 禁止：import service / 业务逻辑判断
+ * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
 import { memo, useCallback, useMemo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

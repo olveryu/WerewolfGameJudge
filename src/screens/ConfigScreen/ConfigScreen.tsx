@@ -2,9 +2,8 @@
  * ConfigScreen - 游戏配置与房间创建
  *
  * 角色列表由 FACTION_GROUPS + ROLE_SPECS 数据驱动。性能优化同 HomeScreen。
- *
- * ✅ 允许：编排子组件、调用 service/navigation/showAlert
- * ❌ 禁止：硬编码样式值 / console.*
+ * 负责编排子组件、调用 service/navigation/showAlert。
+ * 不使用硬编码样式值，不使用 console.*。
  */
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';

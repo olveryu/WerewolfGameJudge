@@ -3,16 +3,10 @@
  *
  * All hook wiring, derived state, and side-effects live in useRoomScreenState.
  * This component only owns: styles, loading/error early returns, and JSX layout.
- *
- * ✅ Allowed:
- *   - Create styles (theme-based)
- *   - Render JSX (header, grid, bottom panel, modals)
- *   - Loading / error early returns
- *
- * ❌ Do NOT:
- *   - Wire hooks directly (that's useRoomScreenState)
- *   - Own local state (that's useRoomScreenState)
- *   - Import services / policy / helpers
+ * Creates theme-based styles, renders JSX (header, grid, bottom panel, modals),
+ * and handles loading/error early returns. Does not wire hooks directly
+ * (that's useRoomScreenState), does not own local state, and does not import
+ * services / policy / helpers.
  */
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';

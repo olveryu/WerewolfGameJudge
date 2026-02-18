@@ -1,11 +1,10 @@
 /**
  * AppNavigator - Root navigation stack for the app
  *
- * 注册所有 Screen（Home / Config / Room / Settings）并配置导航栈。
+ * 注册所有 Screen（Home / Config / Room / Settings）并配置导航栏。
  * 通过 `linking` 配置实现 URL ↔ 导航状态双向同步（Web 刷新恢复页面）。
- *
- * ✅ 允许：导航栈定义、Screen 注册、header 样式配置、linking 路由映射
- * ❌ 禁止：业务逻辑、直接调用 service
+ * 涵盖导航栋定义、Screen 注册、header 样式配置、linking 路由映射。
+ * 不包含业务逻辑，不直接调用 service。
  */
 import {
   getPathFromState as defaultGetPathFromState,

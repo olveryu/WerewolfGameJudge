@@ -10,8 +10,7 @@
  * - 纯函数：不 IO、不读外部、不写 state
  * - 与 witchContext.ts 对称：step-entry context，在步骤开始前就位
  *
- * ✅ 允许：读取 currentNightResults.poisonedSeat 判断是否被毒
- * ❌ 禁止：IO（网络 / 音频 / Alert）
+ * 可读取 currentNightResults.poisonedSeat 判断是否被毒，不包含 IO（网络 / 音频 / Alert）。
  */
 
 import type { SchemaId } from '../../models/roles/spec';

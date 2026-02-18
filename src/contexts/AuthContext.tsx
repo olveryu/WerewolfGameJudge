@@ -5,9 +5,8 @@
  * useAuth() state that resets on navigation (mount/unmount).
  *
  * Now auth state lives at App level - single subscription, single state.
- *
- * ✅ 允许：管理 auth 状态、订阅 onAuthStateChange、提供 login/logout/updateProfile
- * ❌ 禁止：游戏业务逻辑、直接操作游戏状态
+ * 管理 auth 状态、订阅 onAuthStateChange、提供 login/logout/updateProfile。
+ * 不包含游戏业务逻辑，不直接操作游戏状态。
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';

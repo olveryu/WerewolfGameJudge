@@ -2,9 +2,8 @@
  * useActionerState.ts - Memoized actioner state derivation
  *
  * This hook wraps the pure `determineActionerState` helper with useMemo.
- *
- * ❌ Do NOT: call services, push state, advance game phase
- * ✅ Allowed: memoize derived state from props
+ * Memoizes derived state from props. Does not call services, push state,
+ * or advance game phase.
  */
 
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';

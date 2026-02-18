@@ -9,8 +9,7 @@
  * 2. DisabledReason - ALERT when seat has schema constraint violation
  * 3. Room Status - Route to SEATING_FLOW or ACTION_FLOW
  *
- * ❌ Do NOT import: services, navigation, showAlert, React
- * ✅ Allowed imports: types only
+ * Only imports types. Does not import services, navigation, showAlert, or React.
  */
 
 // Use the re-export from models/Room for consistency with RoomScreen.tsx

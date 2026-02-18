@@ -3,9 +3,7 @@
  *
  * 输入邮箱时，在输入框下方显示常见域名补全项（dropdown 列表）。
  * 点选后填入完整邮箱并自动跳到下一个输入框。
- *
- * ✅ 允许：渲染 UI + 上报选择
- * ❌ 禁止：import service / 业务逻辑
+ * 渲染下拉 UI 并上报用户选择。不 import service，不含业务逻辑。
  */
 import { memo, useMemo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

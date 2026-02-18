@@ -3,8 +3,7 @@
  *
  * 验证重新开始请求的参数校验、method 检查、handler 委托。
  * 特殊逻辑：成功前先 broadcastViaRest GAME_RESTARTED 通知。
- *
- * ✅ 覆盖：405 / 400 / 成功 / 失败 / GAME_RESTARTED 广播
+ * 覆盖 405 / 400 / 成功 / 失败 / GAME_RESTARTED 广播。
  */
 
 import type { GameActionResult } from '../_lib/types';

@@ -2,9 +2,7 @@
  * Template - 游戏模板数据模型
  *
  * 定义 GameTemplate 接口、模板校验、预设模板和模板工厂。
- *
- * ✅ 允许：类型定义、纯函数校验/工厂、预设常量
- * ❌ 禁止：import service / 副作用 / IO
+ * 导出类型定义、纯函数校验/工厂及预设常量，不包含 service 依赖、副作用或 IO。
  */
 import { getRoleSpec, isValidRoleId, RoleId } from './roles';
 
