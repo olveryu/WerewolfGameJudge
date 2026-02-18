@@ -6,6 +6,8 @@ on:
     - cron: '*/5 * * * *'
   workflow_dispatch: # 允许手动触发
 
+permissions: {}
+
 jobs:
   ping:
     runs-on: ubuntu-latest

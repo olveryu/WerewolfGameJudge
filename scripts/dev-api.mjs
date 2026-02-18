@@ -46,7 +46,7 @@ writeEnvLocal(
 
 console.log(`\n🔧 Two-process dev mode (API-only)`);
 console.log(`📝 .env.local written:`);
-console.log(`   EXPO_PUBLIC_SUPABASE_URL=${config.EXPO_PUBLIC_SUPABASE_URL}`);
+console.log(`   EXPO_PUBLIC_SUPABASE_URL=[configured]`);
 console.log(`   EXPO_PUBLIC_API_URL=${apiUrl}`);
 console.log(`📡 API server: ${apiUrl}`);
 console.log(`🖥️  Start Metro separately: pnpm run web\n`);

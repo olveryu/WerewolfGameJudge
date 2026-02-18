@@ -54,9 +54,9 @@ console.log(`📝 .env.local written (${MANAGED_ENV_KEYS.length} managed vars, e
 // ─── Log ────────────────────────────────────────────────────────────────────
 
 console.log(`🌐 E2E Base URL: ${E2E_BASE_URL} (from playwright.config.ts)`);
-console.log(`📡 Supabase URL: ${config.EXPO_PUBLIC_SUPABASE_URL}`);
-console.log(`🔑 Supabase Key: [configured, ${config.EXPO_PUBLIC_SUPABASE_ANON_KEY.length} chars]`);
-console.log(`🗄️  DATABASE_URL: [configured, ${config.DATABASE_URL.length} chars]\n`);
+console.log(`📡 Supabase URL: [configured]`);
+console.log(`🔑 Supabase Key: [configured]`);
+console.log(`🗄️  DATABASE_URL: [configured]\n`);
 
 // ─── Start vercel dev (frontend + API) ──────────────────────────────────────
 
