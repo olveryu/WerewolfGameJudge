@@ -21,7 +21,7 @@ export type StoreStateListener = (state: GameState | null, revision: number) => 
 /**
  * 状态存储接口
  */
-export interface IGameStore {
+interface IGameStore {
   /** 获取当前状态 */
   getState(): GameState | null;
 

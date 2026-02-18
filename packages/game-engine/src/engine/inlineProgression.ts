@@ -32,7 +32,7 @@ const MAX_PROGRESSION_LOOPS = 20;
 /**
  * Inline progression 结果
  */
-export interface InlineProgressionResult {
+interface InlineProgressionResult {
   /** 推进过程中累积的所有 StateAction（不含触发 action 本身） */
   actions: StateAction[];
   /** 推进过程中收集的待播放音频 */

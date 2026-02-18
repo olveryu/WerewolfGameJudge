@@ -28,19 +28,6 @@ export const REASON_GAME_IN_PROGRESS = 'game_in_progress' as const;
 /** 玩家未入座 */
 export const REASON_NOT_SEATED = 'not_seated' as const;
 
-/** 无效的操作类型 */
-export const REASON_INVALID_ACTION = 'invalid_action' as const;
-
-// ============================================================
-// Transport Reason Codes (来自 Facade transport 层)
-// ============================================================
-
-/** 请求超时 */
-export const REASON_TIMEOUT = 'timeout' as const;
-
-/** 请求被取消（被新请求覆盖） */
-export const REASON_CANCELLED = 'cancelled' as const;
-
 // ============================================================
 // Type Union
 // ============================================================

@@ -16,18 +16,18 @@
 // =============================================================================
 
 /** Witch does nothing this night */
-export interface WitchActionNone {
+interface WitchActionNone {
   kind: 'none';
 }
 
 /** Witch uses save potion on a target */
-export interface WitchActionSave {
+interface WitchActionSave {
   kind: 'save';
   targetSeat: number; // 0-based seat number
 }
 
 /** Witch uses poison potion on a target */
-export interface WitchActionPoison {
+interface WitchActionPoison {
   kind: 'poison';
   targetSeat: number; // 0-based seat number
 }

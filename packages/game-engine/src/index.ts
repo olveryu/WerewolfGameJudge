@@ -61,12 +61,18 @@ export {
 } from './engine/handlers/stepTransitionHandler';
 export * from './engine/handlers/types';
 export { handleSetWolfRobotHunterStatusViewed } from './engine/handlers/wolfRobotHunterGateHandler';
-export { type InlineProgressionResult, runInlineProgression } from './engine/inlineProgression';
-export * from './engine/intents/types';
-export * from './engine/reducer';
-export * from './engine/reducer/types';
+export { runInlineProgression } from './engine/inlineProgression';
+export type {
+  EndNightIntent,
+  JoinSeatIntent,
+  LeaveMySeatIntent,
+  SetAudioPlayingIntent,
+  SubmitActionIntent,
+  SubmitWolfVoteIntent,
+} from './engine/intents/types';
+export { gameReducer } from './engine/reducer';
+export type { StateAction } from './engine/reducer/types';
 export { resolveWolfVotes } from './engine/resolveWolfVotes';
 export { buildInitialGameState } from './engine/state/buildInitialState';
 export { normalizeState } from './engine/state/normalize';
 export * from './engine/store';
-export * from './engine/store/types';

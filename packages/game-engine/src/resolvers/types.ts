@@ -188,7 +188,7 @@ export function getRoleAfterSwap(
  * WolfRobot disguise context from BroadcastGameState.
  * Passed to resolvers for disguise-aware identity checks.
  */
-export interface WolfRobotContext {
+interface WolfRobotContext {
   readonly learnedSeat: number;
   readonly disguisedRole: RoleId;
 }

@@ -15,24 +15,24 @@ import { WitchAction } from './WitchAction';
 // =============================================================================
 
 /** No action taken by this role */
-export interface RoleActionNone {
+interface RoleActionNone {
   kind: 'none';
 }
 
 /** Single target action (wolf kill, seer check, guard protect, hunter, etc.) */
-export interface RoleActionTarget {
+interface RoleActionTarget {
   kind: 'target';
   targetSeat: number; // 0-based seat number
 }
 
 /** Witch-specific action (save or poison) */
-export interface RoleActionWitch {
+interface RoleActionWitch {
   kind: 'witch';
   witchAction: WitchAction;
 }
 
 /** Magician swap action (two targets) */
-export interface RoleActionMagicianSwap {
+interface RoleActionMagicianSwap {
   kind: 'magicianSwap';
   firstSeat: number;
   secondSeat: number;
