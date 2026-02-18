@@ -29,6 +29,8 @@ export interface GameActionResult {
   /** DB state_revision（客户端用于 applySnapshot） */
   revision?: number;
   sideEffects?: SideEffect[];
+  /** Internal error message (only on INTERNAL_ERROR, stripped in production) */
+  error?: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -234,11 +234,18 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
 
-        return await facade.takeSeatWithAck(
+        const result = await facade.takeSeatWithAck(
           seatNumber,
           displayName ?? undefined,
           avatarUrl ?? undefined,
         );
+
+        // Wire up seat error for downstream consumers (e.g., showAlert in useRoomScreenState)
+        if (!result.success && result.reason === 'seat_taken') {
+          setLastSeatError({ seat: seatNumber, reason: 'seat_taken' });
+        }
+
+        return result;
       } catch (err) {
         gameRoomLog.error(' Error taking seat with ack:', err);
         Sentry.captureException(err);

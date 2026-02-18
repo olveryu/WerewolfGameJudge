@@ -604,7 +604,7 @@ describe('gameReducer', () => {
         lastNightDeaths: [0],
       });
 
-      const newState = gameReducer(state, { type: 'RESTART_GAME' });
+      const newState = gameReducer(state, { type: 'RESTART_GAME', nonce: 'test-nonce' });
 
       // v1 对齐：状态重置到 'seated'
       expect(newState.status).toBe('seated');
@@ -901,6 +901,7 @@ describe('gameReducer', () => {
       const action = {
         type: 'SET_ROLE_REVEAL_ANIMATION' as const,
         animation: 'random' as const,
+        nonce: 'testnonce',
       };
 
       const newState = gameReducer(state, action);
@@ -942,6 +943,7 @@ describe('gameReducer', () => {
       const action = {
         type: 'SET_ROLE_REVEAL_ANIMATION' as const,
         animation: 'random' as const,
+        nonce: 'fixednonce',
       };
 
       for (const roomCode of roomCodes) {
@@ -970,7 +972,7 @@ describe('gameReducer', () => {
       expect(newState.resolvedRoleRevealAnimation).toBe('none');
     });
 
-    it('should generate nonce when setting random for the first time', () => {
+    it('should use action nonce when state has no existing nonce', () => {
       const state = createMinimalState({
         roomCode: 'TEST',
         roleRevealRandomNonce: undefined,
@@ -978,12 +980,12 @@ describe('gameReducer', () => {
       const action = {
         type: 'SET_ROLE_REVEAL_ANIMATION' as const,
         animation: 'random' as const,
+        nonce: 'ab12cd34',
       };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.roleRevealRandomNonce).toBeDefined();
-      expect(newState.roleRevealRandomNonce).toHaveLength(8);
+      expect(newState.roleRevealRandomNonce).toBe('ab12cd34');
     });
 
     it('should preserve existing nonce when setting random again', () => {
@@ -1007,24 +1009,21 @@ describe('gameReducer', () => {
   // RESTART_GAME: nonce regeneration contract
   // ==========================================================================
   describe('RESTART_GAME nonce regeneration', () => {
-    it('should generate new nonce on restart', () => {
+    it('should use handler-provided nonce on restart', () => {
       const state = createMinimalState({
         roomCode: 'TEST',
         status: 'ended',
         roleRevealRandomNonce: 'oldnonce',
         roleRevealAnimation: 'flip',
       });
-      const action = { type: 'RESTART_GAME' as const };
+      const action = { type: 'RESTART_GAME' as const, nonce: 'newnonce1' };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.roleRevealRandomNonce).toBeDefined();
-      expect(newState.roleRevealRandomNonce).not.toBe('oldnonce');
-      expect(newState.roleRevealRandomNonce).toHaveLength(8);
+      expect(newState.roleRevealRandomNonce).toBe('newnonce1');
     });
 
-    it('should re-resolve random animation with new nonce on restart', () => {
-      // 使用固定的 nonce 来验证 seed 变化导致 resolved 变化
+    it('should re-resolve random animation with provided nonce on restart', () => {
       const state = createMinimalState({
         roomCode: 'TEST',
         status: 'ended',
@@ -1032,13 +1031,13 @@ describe('gameReducer', () => {
         roleRevealAnimation: 'random',
         resolvedRoleRevealAnimation: 'roulette',
       });
-      const action = { type: 'RESTART_GAME' as const };
+      const action = { type: 'RESTART_GAME' as const, nonce: 'nonce_b2' };
 
       const newState = gameReducer(state, action);
 
-      // nonce 应该变化
-      expect(newState.roleRevealRandomNonce).not.toBe('nonce_a1');
-      // resolved 应该是有效动画（可能相同也可能不同，但必须有效）
+      // nonce 应该使用 action 提供的值
+      expect(newState.roleRevealRandomNonce).toBe('nonce_b2');
+      // resolved 应该是有效动画
       expect(RANDOMIZABLE_ANIMATIONS).toContain(newState.resolvedRoleRevealAnimation);
     });
 
@@ -1050,14 +1049,14 @@ describe('gameReducer', () => {
         roleRevealAnimation: 'flip',
         resolvedRoleRevealAnimation: 'flip',
       });
-      const action = { type: 'RESTART_GAME' as const };
+      const action = { type: 'RESTART_GAME' as const, nonce: 'newnonce2' };
 
       const newState = gameReducer(state, action);
 
       // 非 random 时，resolved 保持不变
       expect(newState.resolvedRoleRevealAnimation).toBe('flip');
-      // 但 nonce 仍然更新（为下次切换到 random 做准备）
-      expect(newState.roleRevealRandomNonce).not.toBe('oldnonce');
+      // nonce 使用 action 提供的值
+      expect(newState.roleRevealRandomNonce).toBe('newnonce2');
     });
   });
 

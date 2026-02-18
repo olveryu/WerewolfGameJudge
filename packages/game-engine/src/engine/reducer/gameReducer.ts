@@ -11,7 +11,6 @@
 
 import type { ResolvedRoleRevealAnimation } from '../../types/RoleRevealAnimation';
 import { resolveRandomAnimation } from '../../types/RoleRevealAnimation';
-import { randomHex } from '../../utils/id';
 import type { GameState } from '../store/types';
 import type {
   ActionRejectedAction,
@@ -26,6 +25,7 @@ import type {
   PlayerLeaveAction,
   PlayerViewedRoleAction,
   RecordActionAction,
+  RestartGameAction,
   SetAudioPlayingAction,
   SetConfirmStatusAction,
   SetWitchContextAction,
@@ -57,7 +57,7 @@ function handleInitializeGame(state: GameState, action: InitializeGameAction): G
   };
 }
 
-function handleRestartGame(state: GameState): GameState {
+function handleRestartGame(state: GameState, action: RestartGameAction): GameState {
   // PR9: 对齐 v1 行为 - 保留玩家但清除角色
   // v1: 保持 players 不变，仅清除 role/hasViewedRole
   // v1: 状态重置到 'seated'（不是 'unseated'）
@@ -78,8 +78,8 @@ function handleRestartGame(state: GameState): GameState {
     }
   }
 
-  // 生成新的 nonce，重开时 random 会解析为新动画
-  const newNonce = randomHex(8);
+  // 使用 handler 预计算的 nonce（保证 reducer 纯函数性）
+  const newNonce = action.nonce;
 
   // 如果当前是 random，重新解析
   let resolvedAnimation = state.resolvedRoleRevealAnimation;
@@ -396,7 +396,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleInitializeGame(state, action);
 
     case 'RESTART_GAME':
-      return handleRestartGame(state);
+      return handleRestartGame(state, action);
 
     case 'UPDATE_TEMPLATE': {
       // 更新模板：保留现有座位玩家，智能扩缩容
@@ -436,12 +436,11 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     case 'SET_ROLE_REVEAL_ANIMATION': {
       const animation = action.animation;
       let resolved: ResolvedRoleRevealAnimation;
-      let nonce = state.roleRevealRandomNonce;
+      const nonce = action.nonce ?? state.roleRevealRandomNonce;
 
       if (animation === 'random') {
-        // 如果没有 nonce，生成一个新的
         if (!nonce) {
-          nonce = randomHex(8);
+          throw new Error('SET_ROLE_REVEAL_ANIMATION: nonce required when animation is random');
         }
         // seed = roomCode + ':' + nonce，确保同一房间同一局同一动画
         const seed = `${state.roomCode ?? 'default'}:${nonce}`;

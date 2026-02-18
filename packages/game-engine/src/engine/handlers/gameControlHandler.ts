@@ -15,6 +15,7 @@ import type { RoleId } from '../../models/roles';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { buildNightPlan } from '../../models/roles/spec/plan';
 import type { BroadcastPlayer } from '../../protocol/types';
+import { randomHex } from '../../utils/id';
 import { shuffleArray } from '../../utils/shuffle';
 import type {
   AssignRolesIntent,
@@ -238,6 +239,7 @@ export function handleRestartGame(
 
   const action: RestartGameAction = {
     type: 'RESTART_GAME',
+    nonce: randomHex(8),
   };
 
   return {
@@ -333,6 +335,7 @@ export function handleSetRoleRevealAnimation(
   const action: SetRoleRevealAnimationAction = {
     type: 'SET_ROLE_REVEAL_ANIMATION',
     animation: intent.animation,
+    nonce: intent.animation === 'random' ? randomHex(8) : undefined,
   };
 
   return {

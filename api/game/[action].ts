@@ -150,29 +150,17 @@ async function handleSeat(req: VercelRequest, res: VercelResponse) {
   }
 
   const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+    const handlerCtx = buildHandlerContext(state, uid);
     if (action === 'sit') {
       const intent: JoinSeatIntent = {
         type: 'JOIN_SEAT',
         payload: { seat: seat!, uid, displayName: displayName ?? '', avatarUrl },
       };
-      const handlerCtx: HandlerContext = {
-        state,
-        isHost: false,
-        myUid: uid,
-        mySeat: findSeatByUid(state, uid),
-      };
       return handleJoinSeat(intent, handlerCtx);
     } else {
-      const mySeat = findSeatByUid(state, uid);
       const intent: LeaveMySeatIntent = {
         type: 'LEAVE_MY_SEAT',
         payload: { uid },
-      };
-      const handlerCtx: HandlerContext = {
-        state,
-        isHost: false,
-        myUid: uid,
-        mySeat,
       };
       return handleLeaveMySeat(intent, handlerCtx);
     }
@@ -261,12 +249,7 @@ async function handleViewRole(req: VercelRequest, res: VercelResponse) {
   }
 
   const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
-    const handlerCtx: HandlerContext = {
-      state,
-      isHost: true,
-      myUid: uid,
-      mySeat: seat,
-    };
+    const handlerCtx = buildHandlerContext(state, uid);
     return handleViewedRole({ type: 'VIEWED_ROLE', payload: { seat } }, handlerCtx);
   });
   return res.status(resultToStatus(result)).json(result);

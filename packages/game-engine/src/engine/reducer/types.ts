@@ -26,6 +26,8 @@ export interface InitializeGameAction {
 }
 export interface RestartGameAction {
   type: 'RESTART_GAME';
+  /** Pre-computed nonce for random animation resolution (injected by handler) */
+  nonce: string;
 }
 
 export interface UpdateTemplateAction {
@@ -38,6 +40,8 @@ export interface UpdateTemplateAction {
 export interface SetRoleRevealAnimationAction {
   type: 'SET_ROLE_REVEAL_ANIMATION';
   animation: RoleRevealAnimation;
+  /** Pre-computed nonce for random animation resolution (injected by handler) */
+  nonce?: string;
 }
 
 // =============================================================================

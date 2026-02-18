@@ -33,7 +33,6 @@ import type {
   BroadcastGameState,
   HostBroadcast,
 } from '@werewolf/game-engine/protocol/types';
-import { newRequestId } from '@werewolf/game-engine/utils/id';
 
 import { AudioService } from '@/services/infra/AudioService';
 import { RoomService } from '@/services/infra/RoomService';
@@ -390,6 +389,9 @@ export class GameFacade implements IGameFacade {
       await seatActions.leaveSeat(this.getSeatActionsContext());
     }
 
+    // Release preloaded audio to free memory
+    this.audioService.clearPreloaded();
+
     await this.broadcastService.leaveRoom();
     this.store.reset();
     this.myUid = null;
@@ -458,6 +460,8 @@ export class GameFacade implements IGameFacade {
    * 服务端会先广播 GAME_RESTARTED，再变更 state。
    */
   async restartGame(): Promise<{ success: boolean; reason?: string }> {
+    // Release preloaded audio to free memory on restart
+    this.audioService.clearPreloaded();
     // 服务端校验 hostUid，客户端不再做冗余门控
     return hostActions.restartGame(this.getHostActionsContext());
   }
@@ -623,13 +627,5 @@ export class GameFacade implements IGameFacade {
       broadcastService: this.broadcastService,
       myUid: this.myUid,
     };
-  }
-
-  // =========================================================================
-  // Helpers
-  // =========================================================================
-
-  private generateRequestId(): string {
-    return newRequestId();
   }
 }

@@ -33,6 +33,7 @@ const mockAudio = () =>
     playAudio: jest.fn().mockResolvedValue(undefined),
     stopAudio: jest.fn(),
     cleanup: jest.fn(),
+    clearPreloaded: jest.fn(),
   }) as any;
 
 const createTestFacade = () =>
