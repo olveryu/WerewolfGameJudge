@@ -68,8 +68,8 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ### 未确认禁止写代码
 
-- ✅ 允许：只读检查（read/search/list/grep）、运行测试/格式化/类型检查。
-- ❌ 禁止未经用户确认修改代码。需先列出"文件 + 变更点 + 风险"等待确认。
+- 允许只读检查（read/search/list/grep）、运行测试/格式化/类型检查。
+- 未经用户确认禁止修改代码。需先列出"文件 + 变更点 + 风险"等待确认。
 - 收到修改需求时：分解问题 → 收集上下文 → 制定变更计划 → 验证假设 → 列变更计划等待确认。
 
 ### 修改代码时逐符号验证
@@ -115,9 +115,9 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 ### 日志
 
 - 统一从 `src/utils/logger.ts` 获取命名 logger（`gameRoomLog`、`roomScreenLog` 等）。状态迁移、action 提交、错误、关键分支决策必须打日志。
-- ❌ 禁止 `src/**` 业务代码 `console.*`。
-- ❌ 禁止 `__tests__/**`、`e2e/**` 测试代码 `console.*`。
-- ✅ 允许：`scripts/**`、`jest.setup.ts`。
+- 禁止 `src/**` 业务代码使用 `console.*`。
+- 禁止 `__tests__/**`、`e2e/**` 测试代码使用 `console.*`。
+- `scripts/**`、`jest.setup.ts` 中允许使用 `console.*`。
 
 ### 错误处理
 
@@ -131,4 +131,4 @@ Fail fast：handler / reducer / 纯函数保持严格校验，违反前置条件
 
 - **Git Commit**：`<type>(<scope>): <description>`（Conventional Commits，英文小写祈使语气，单 commit 单事）。Scope：`night` / `room` / `config` / `hooks` / `theme` / `e2e` / `models` / `services` / `audio` / `game-engine`。
 - **终端**：跑测试禁止 `| grep` / `| head` / `| tail` 截断。Playwright 加 `--reporter=list`。
-- **JSDoc**：每个 class/module 头部注释：第一行摘要（名称 + 一句话职责），后续段落展开细节，最后用自然语言点明边界约束（不做什么）。禁止 `✅/❌` emoji 格式。
+- **JSDoc**：每个 class/module 头部注释：第一行摘要（名称 + 一句话职责），后续段落展开细节，最后用自然语言点明边界约束（不做什么）。
