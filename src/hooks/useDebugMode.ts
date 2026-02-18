@@ -12,7 +12,7 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -45,20 +45,16 @@ export function useDebugMode(
   const [controlledSeat, setControlledSeat] = useState<number | null>(null);
 
   // effectiveSeat = controlledSeat ?? mySeatNumber
-  const effectiveSeat = useMemo(() => {
-    return controlledSeat ?? mySeatNumber;
-  }, [controlledSeat, mySeatNumber]);
+  const effectiveSeat = controlledSeat ?? mySeatNumber;
 
   // effectiveRole = role of effectiveSeat
-  const effectiveRole = useMemo(() => {
-    if (effectiveSeat === null || !gameState) return null;
-    return gameState.players.get(effectiveSeat)?.role ?? null;
-  }, [gameState, effectiveSeat]);
+  const effectiveRole =
+    effectiveSeat !== null && gameState
+      ? (gameState.players.get(effectiveSeat)?.role ?? null)
+      : null;
 
   // Whether debug bot mode is active
-  const isDebugMode = useMemo(() => {
-    return gameState?.debugMode?.botsEnabled === true;
-  }, [gameState]);
+  const isDebugMode = gameState?.debugMode?.botsEnabled === true;
 
   // Fill all empty seats with bots
   const fillWithBots = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {

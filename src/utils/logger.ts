@@ -5,7 +5,7 @@
  *
  * Usage:
  *   import { log } from '@/utils/logger';
- *   log.info('Host', 'Seat action', { seat: 1 });
+ *   log.info('Seat action', { seat: 1 });
  *
  * Or with extensions:
  *   const hostLog = log.extend('Host');

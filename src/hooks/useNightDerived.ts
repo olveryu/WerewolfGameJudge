@@ -9,7 +9,7 @@
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { buildNightPlan, RoleId } from '@werewolf/game-engine/models/roles';
+import { buildNightPlan, type RoleId } from '@werewolf/game-engine/models/roles';
 import {
   type ActionSchema,
   getRoleSpec,
@@ -80,25 +80,18 @@ export function useNightDerived(gameState: LocalGameState | null): NightDerivedV
   }, [currentSchemaId]);
 
   // Authoritative stepId from Host ROLE_TURN (UI-only)
-  const currentStepId = useMemo((): SchemaId | null => {
-    return gameState?.currentStepId ?? null;
-  }, [gameState]);
+  const currentStepId: SchemaId | null = gameState?.currentStepId ?? null;
 
   // Check if audio is currently playing
-  const isAudioPlaying = useMemo((): boolean => {
-    return gameState?.isAudioPlaying ?? false;
-  }, [gameState]);
+  const isAudioPlaying: boolean = gameState?.isAudioPlaying ?? false;
 
   // Role reveal animation (Host controlled, all players use)
-  const roleRevealAnimation = useMemo((): RoleRevealAnimation => {
-    return gameState?.roleRevealAnimation ?? 'random';
-  }, [gameState]);
+  const roleRevealAnimation: RoleRevealAnimation = gameState?.roleRevealAnimation ?? 'random';
 
   // Resolved animation (for UI rendering - never 'random')
-  const resolvedRoleRevealAnimation = useMemo((): ResolvedRoleRevealAnimation => {
-    // 'random' fallback 时返回 'roulette'（实际上 Host 会解析 random）
-    return gameState?.resolvedRoleRevealAnimation ?? 'roulette';
-  }, [gameState]);
+  // 'random' fallback 时返回 'roulette'（实际上 Host 会解析 random）
+  const resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation =
+    gameState?.resolvedRoleRevealAnimation ?? 'roulette';
 
   return {
     currentActionRole,

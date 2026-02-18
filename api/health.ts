@@ -4,6 +4,9 @@ import { handleCors } from './_lib/cors';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (handleCors(req, res)) return;
+  if (req.method !== 'GET') {
+    return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
+  }
   return res.status(200).json({
     ok: true,
     env: {

@@ -23,7 +23,7 @@ import type {
   ResolvedRoleRevealAnimation,
   RoleRevealAnimation,
 } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
@@ -243,15 +243,10 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Derived values
   // =========================================================================
 
-  const myRole = useMemo(() => {
-    if (mySeatNumber === null || !gameState) return null;
-    return gameState.players.get(mySeatNumber)?.role ?? null;
-  }, [gameState, mySeatNumber]);
+  const myRole: RoleId | null =
+    mySeatNumber !== null && gameState ? (gameState.players.get(mySeatNumber)?.role ?? null) : null;
 
-  const roomStatus = useMemo((): GameStatus => {
-    if (!gameState) return GameStatus.unseated;
-    return gameState.status;
-  }, [gameState]);
+  const roomStatus: GameStatus = gameState?.status ?? GameStatus.unseated;
 
   // =========================================================================
   // Return flat bag
