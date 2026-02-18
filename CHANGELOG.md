@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.239] - 2026-02-18
+
+- fix(tarot): prevent drawn card overlay from blocking wheel card taps
+- docs: replace emoji JSDoc markers with natural language across codebase
+- docs: replace emoji markers with natural language in copilot instructions
+- docs: simplify JSDoc convention to community standard style
+- docs: add bidirectional tracing rule for parameter/guard changes
+
 ## [1.0.238] - 2026-02-18
 
 - fix(game-engine): allow non-host players to view their own role
