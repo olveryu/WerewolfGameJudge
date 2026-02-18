@@ -25,7 +25,7 @@
 import * as Sentry from '@sentry/react-native';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStore } from '@werewolf/game-engine/engine/store';
-import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getStepSpec } from '@werewolf/game-engine/models/roles/spec/nightSteps';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type {
@@ -527,7 +527,7 @@ export class GameFacade implements IGameFacade {
    *
    * Host/Player 统一调用 HTTP API
    */
-  async submitRevealAck(_role: RevealKind): Promise<{ success: boolean; reason?: string }> {
+  async submitRevealAck(): Promise<{ success: boolean; reason?: string }> {
     return hostActions.clearRevealAcks(this.getHostActionsContext());
   }
 

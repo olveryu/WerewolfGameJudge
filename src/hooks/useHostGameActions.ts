@@ -12,7 +12,6 @@
  * ❌ 禁止：直接修改 BroadcastGameState、绕过 facade
  */
 
-import type { RevealKind } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback } from 'react';
@@ -52,7 +51,7 @@ export interface HostGameActionsState {
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
-  submitRevealAck: (role: RevealKind) => Promise<void>;
+  submitRevealAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   /** Host: wolf vote deadline 到期后触发服务端推进 */
   postProgression: () => Promise<void>;
@@ -176,13 +175,10 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
-  const submitRevealAck = useCallback(
-    async (role: RevealKind): Promise<void> => {
-      const result = await facade.submitRevealAck(role);
-      notifyIfFailed(result, '确认揭示');
-    },
-    [facade],
-  );
+  const submitRevealAck = useCallback(async (): Promise<void> => {
+    const result = await facade.submitRevealAck();
+    notifyIfFailed(result, '确认揭示');
+  }, [facade]);
 
   // WolfRobot hunter status viewed gate
   // seat 参数由调用方传入 effectiveSeat，以支持 debug bot 接管模式

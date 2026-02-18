@@ -16,7 +16,7 @@
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type {
@@ -106,7 +106,7 @@ export interface UseGameRoomResult {
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
-  submitRevealAck: (role: RevealKind) => Promise<void>;
+  submitRevealAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
   hasWolfVoted: (seatNumber: number) => boolean;

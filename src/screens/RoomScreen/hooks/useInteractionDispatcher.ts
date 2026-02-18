@@ -17,7 +17,7 @@
 
 import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { useCallback, useMemo } from 'react';
 
 import {
@@ -77,7 +77,7 @@ interface UseInteractionDispatcherParams {
   showRestartDialog: () => void;
 
   // ── Submission callbacks ──
-  submitRevealAckSafe: (role: RevealKind) => void;
+  submitRevealAckSafe: () => void;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   setControlledSeat: (seat: number | null) => void;
 
@@ -310,7 +310,7 @@ export function useInteractionDispatcher({
           roomScreenLog.debug('[dispatchInteraction] REVEAL_ACK', {
             revealRole: result.revealRole,
           });
-          submitRevealAckSafe(result.revealRole);
+          submitRevealAckSafe();
           setPendingRevealDialog(false);
           return;
 

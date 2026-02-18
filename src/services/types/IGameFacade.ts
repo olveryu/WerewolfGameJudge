@@ -5,7 +5,7 @@
  * Facade 只做编排，不写业务逻辑。
  */
 
-import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
@@ -175,7 +175,7 @@ export interface IGameFacade {
   /**
    * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）
    */
-  submitRevealAck(role: RevealKind): Promise<{ success: boolean; reason?: string }>;
+  submitRevealAck(): Promise<{ success: boolean; reason?: string }>;
 
   /**
    * 提交机械狼查看猎人状态确认

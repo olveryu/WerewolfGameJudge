@@ -19,7 +19,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -158,15 +158,12 @@ export function useRoomScreenState(
     return Array.from(gameState.players.values()).some((p) => p?.isBot);
   }, [gameState]);
 
-  const submitRevealAckSafe = useCallback(
-    (role: RevealKind) => {
-      void submitRevealAck(role).catch((err) => {
-        roomScreenLog.error('[submitRevealAckSafe] Unhandled error', err);
-        Sentry.captureException(err);
-      });
-    },
-    [submitRevealAck],
-  );
+  const submitRevealAckSafe = useCallback(() => {
+    void submitRevealAck().catch((err) => {
+      roomScreenLog.error('[submitRevealAckSafe] Unhandled error', err);
+      Sentry.captureException(err);
+    });
+  }, [submitRevealAck]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Local UI state
