@@ -1,57 +1,18 @@
 /**
- * Progression Evaluator - 夜晚推进决策纯函数
+ * Wolf Vote Pure Functions — 狼人投票相关纯函数
  *
  * 职责：
- * - evaluateNightProgression：基于 BroadcastGameState 事实评估是否需要推进
- * - 幂等保护（同一 {revision, currentStepId} 最多推进一次）
- * - isWolfVoteAllComplete：判断全部狼人是否投票完成（exported 纯函数，evaluator + server 共用）
- * - decideWolfVoteTimerAction：Timer set/clear/noop 决策（exported 纯函数）
+ * - isWolfVoteAllComplete：判断全部狼人是否投票完成（server + evaluator 共用）
+ * - decideWolfVoteTimerAction：Timer set/clear/noop 决策
  *
- * ✅ 允许：读取 state 事实做推进判断
+ * ✅ 允许：读取 state 事实做判断
  * ❌ 禁止：IO（网络 / 音频 / Alert）
  *
- * 推进执行由服务端 runInlineProgression 负责（见 inlineProgression.ts）。
+ * 推进决策与执行由服务端 runInlineProgression 负责（见 inlineProgression.ts）。
  */
 
 import { doesRoleParticipateInWolfVote } from '../../models/roles';
 import type { BroadcastGameState } from '../../protocol/types';
-
-/**
- * 非 null 的 state 类型
- */
-type NonNullState = NonNullable<BroadcastGameState>;
-
-// =============================================================================
-// Night Progression Evaluator (幂等推进决策)
-// =============================================================================
-
-/**
- * 夜晚推进决策结果
- */
-type NightProgressionDecision =
-  | { action: 'none'; reason: string }
-  | { action: 'advance'; reason: string }
-  | { action: 'end_night'; reason: string };
-
-/**
- * 幂等推进状态追踪器
- *
- * 用于防止重复推进：同一 {revision, currentStepId} 组合最多推进一次。
- */
-export interface ProgressionTracker {
-  lastProcessedKey: string | null;
-}
-
-/**
- * 创建推进追踪器
- */
-export function createProgressionTracker(): ProgressionTracker {
-  return { lastProcessedKey: null };
-}
-
-// =============================================================================
-// Wolf Vote Pure Functions（exported，evaluator + facade 共用）
-// =============================================================================
 
 /** 狼人投票倒计时毫秒数 */
 export const WOLF_VOTE_COUNTDOWN_MS = 5000;
@@ -119,130 +80,4 @@ export function decideWolfVoteTimerAction(
   if (allVoted) return { type: 'set', deadline: now + countdownMs };
   if (hasExistingTimer) return { type: 'clear' };
   return { type: 'noop' };
-}
-
-/**
- * 基于 state 事实生成幂等 key
- *
- * 使用 {revision, currentStepId} 组合确保同一游戏状态最多推进一次。
- * revision 由 GameStore 管理，每次 setState 自动递增。
- *
- * @param revision - 来自 GameStore.getRevision()
- * @param currentStepId - state.currentStepId
- */
-export function buildProgressionKey(revision: number, currentStepId: string | undefined): string {
-  return `${revision}:${currentStepId ?? 'null'}`;
-}
-
-/**
- * 检查当前步骤的所有必要行动是否已完成
- *
- * 判断逻辑：
- * - wolfKill: 检查所有参与投票的狼人是否都已投票
- * - 其他步骤: 检查对应角色是否已提交行动
- */
-function isCurrentStepComplete(state: NonNullState): boolean {
-  const currentStepId = state.currentStepId;
-
-  if (!currentStepId) {
-    // 没有当前步骤，视为"完成"（应该进入 endNight）
-    return true;
-  }
-
-  if (currentStepId === 'wolfKill') {
-    return isWolfVoteAllComplete(state);
-  }
-
-  // 其他步骤：检查是否已有对应 schemaId 的 action
-  const actions = state.actions;
-  return actions.some((a) => a.schemaId === currentStepId);
-}
-
-/**
- * 评估夜晚推进决策（Host-only, 幂等）
- *
- * 基于 BroadcastGameState 事实判断：
- * 1. 如果 status !== 'ongoing'，返回 none
- * 2. 如果 isAudioPlaying === true，返回 none
- * 3. 如果 currentStepId === undefined 且 status === 'ongoing'，返回 end_night
- * 4. 如果当前步骤的行动已完成，返回 advance
- * 5. 否则返回 none
- *
- * 幂等保护：
- * - 同一 {revision, currentStepId} 最多推进一次
- * - 重复调用返回 none + debug log
- *
- * @param state - 当前 BroadcastGameState
- * @param revision - 来自 GameStore.getRevision()
- * @param tracker - 幂等追踪器（可选，用于防止重复推进）
- * @param isHost - 是否为 Host
- * @param nowMs - 当前时间戳（默认 Date.now()），方便测试注入
- */
-export function evaluateNightProgression(
-  state: NonNullState | null,
-  revision: number,
-  tracker?: ProgressionTracker,
-  isHost?: boolean,
-  nowMs: number = Date.now(),
-): NightProgressionDecision {
-  // Gate: host_only
-  if (isHost === false) {
-    return { action: 'none', reason: 'not_host' };
-  }
-
-  // Gate: no_state
-  if (!state) {
-    return { action: 'none', reason: 'no_state' };
-  }
-
-  // Gate: status !== 'ongoing'
-  if (state.status !== 'ongoing') {
-    return { action: 'none', reason: 'not_ongoing' };
-  }
-
-  // Gate: audio playing
-  if (state.isAudioPlaying) {
-    return { action: 'none', reason: 'audio_playing' };
-  }
-
-  // Gate: pending reveal acks - 等待用户确认查验结果后再推进
-  if (state.pendingRevealAcks && state.pendingRevealAcks.length > 0) {
-    return { action: 'none', reason: 'pending_reveal_acks' };
-  }
-
-  // 幂等检查
-  if (tracker) {
-    const key = buildProgressionKey(revision, state.currentStepId);
-    if (tracker.lastProcessedKey === key) {
-      return { action: 'none', reason: 'already_processed' };
-    }
-  }
-
-  // 判断是否需要 endNight
-  if (state.currentStepId === undefined) {
-    // 没有下一步了，应该结束夜晚
-    if (tracker) {
-      tracker.lastProcessedKey = buildProgressionKey(revision, state.currentStepId);
-    }
-    return { action: 'end_night', reason: 'no_more_steps' };
-  }
-
-  // 判断当前步骤是否完成
-  if (isCurrentStepComplete(state)) {
-    // Countdown gate: wolfKill 全投完但倒计时未到 → 不推进
-    if (
-      state.currentStepId === 'wolfKill' &&
-      state.wolfVoteDeadline != null &&
-      nowMs < state.wolfVoteDeadline
-    ) {
-      return { action: 'none', reason: 'wolf_vote_countdown' };
-    }
-
-    if (tracker) {
-      tracker.lastProcessedKey = buildProgressionKey(revision, state.currentStepId);
-    }
-    return { action: 'advance', reason: 'step_complete' };
-  }
-
-  return { action: 'none', reason: 'step_not_complete' };
 }

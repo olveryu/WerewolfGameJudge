@@ -1,16 +1,13 @@
 /**
  * progressionEvaluator.wolfVote.test.ts
  *
- * Tests for wolf vote related pure functions and countdown gate:
+ * Tests for wolf vote related pure functions:
  * - isWolfVoteAllComplete
- * - shouldTriggerWolfVoteRecovery
  * - decideWolfVoteTimerAction
- * - evaluateNightProgression countdown gate
  */
 
 import {
   decideWolfVoteTimerAction,
-  evaluateNightProgression,
   isWolfVoteAllComplete,
   WOLF_VOTE_COUNTDOWN_MS,
 } from '@werewolf/game-engine/engine/handlers/progressionEvaluator';
@@ -171,45 +168,5 @@ describe('decideWolfVoteTimerAction', () => {
     // Strategy A: any successful submit resets. Content change is irrelevant.
     const action = decideWolfVoteTimerAction(true, true, NOW);
     expect(action.type).toBe('set');
-  });
-});
-
-// =============================================================================
-// evaluateNightProgression countdown gate
-// =============================================================================
-
-describe('evaluateNightProgression countdown gate', () => {
-  it('全投完 + deadline 未過 → none (wolf_vote_countdown)', () => {
-    const state = createWolfKillState({
-      currentNightResults: {
-        wolfVotesBySeat: { '0': 2, '1': 3 },
-      },
-      wolfVoteDeadline: Date.now() + 10000, // 10 seconds in the future
-    });
-    const decision = evaluateNightProgression(state, 1, undefined, true);
-    expect(decision.action).toBe('none');
-    expect(decision.reason).toBe('wolf_vote_countdown');
-  });
-
-  it('全投完 + deadline 已过 → advance', () => {
-    const state = createWolfKillState({
-      currentNightResults: {
-        wolfVotesBySeat: { '0': 2, '1': 3 },
-      },
-      wolfVoteDeadline: Date.now() - 1000, // Already past
-    });
-    const decision = evaluateNightProgression(state, 1, undefined, true);
-    expect(decision.action).toBe('advance');
-  });
-
-  it('全投完 + 无 deadline → advance（向后兼容）', () => {
-    const state = createWolfKillState({
-      currentNightResults: {
-        wolfVotesBySeat: { '0': 2, '1': 3 },
-      },
-      // no wolfVoteDeadline
-    });
-    const decision = evaluateNightProgression(state, 1, undefined, true);
-    expect(decision.action).toBe('advance');
   });
 });

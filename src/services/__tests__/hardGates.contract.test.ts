@@ -58,25 +58,8 @@ describe('hard gates (contract)', () => {
     expect(matches).toEqual([]);
   });
 
-  it('enforces progression evaluation logic lives in handlers, not facade', () => {
-    const forbiddenNeedles = ['evaluateNightProgression(', 'buildProgressionKey('];
-
-    const matches = forbiddenNeedles.flatMap((needle) =>
-      scanDirForNeedle(facadeRoot, needle).filter(
-        (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
-      ),
-    );
-
-    expect(matches).toEqual([]);
-  });
-
   it('forbids progression-controller symbols in facade (tracker/controller must be in handlers)', () => {
-    const forbiddenNeedles = [
-      'progressionTracker',
-      'tryAdvanceNight',
-      'evaluateNightProgression(',
-      'buildProgressionKey(',
-    ];
+    const forbiddenNeedles = ['progressionTracker', 'tryAdvanceNight'];
 
     const matches = forbiddenNeedles.flatMap((needle) =>
       scanDirForNeedle(facadeRoot, needle).filter(
