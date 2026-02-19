@@ -1,8 +1,8 @@
 /**
  * NotepadModal - 全屏笔记弹窗
  *
- * 在 AI Chat Bubble 的 📝 按钮触发后全屏展示 2×6 网格笔记面板。
- * 头部包含标题、清空按钮和关闭按钮。底部显示身份图例。
+ * 在 AI Chat Bubble 的 📝 按钮触发后全屏展示单列笔记面板。
+ * 头部包含标题、清空按钮和关闭按钮。底部显示角色阵营图例。
  * 接收 useNotepad 返回值作为 props，不直接调用 service / AsyncStorage。
  */
 
@@ -36,20 +36,17 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       container: styles.notepadContainer,
       list: styles.notepadList,
       listContent: styles.notepadListContent,
-      gridRow: styles.notepadGridRow,
       card: styles.notepadCard,
       cardGood: styles.notepadCardGood,
       cardBad: styles.notepadCardBad,
-      cardSuspect: styles.notepadCardSuspect,
       cardHeader: styles.notepadCardHeader,
       seatBtn: styles.notepadSeatBtn,
       seatNumber: styles.notepadSeatNumber,
+      seatPlaceholder: styles.notepadSeatPlaceholder,
       roleBadge: styles.notepadRoleBadge,
       roleBadgeGood: styles.notepadRoleBadgeGood,
       roleBadgeBad: styles.notepadRoleBadgeBad,
       roleBadgeText: styles.notepadRoleBadgeText,
-      identityBtn: styles.notepadIdentityBtn,
-      identityBtnText: styles.notepadIdentityBtnText,
       handTag: styles.notepadHandTag,
       handTagActive: styles.notepadHandTagActive,
       handTagText: styles.notepadHandTagText,
@@ -71,7 +68,6 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       legendDot: styles.notepadLegendDot,
       legendDotGood: styles.notepadLegendDotGood,
       legendDotBad: styles.notepadLegendDotBad,
-      legendDotSuspect: styles.notepadLegendDotSuspect,
       legendText: styles.notepadLegendText,
     }),
     [styles],
@@ -104,7 +100,6 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
           roleTags={notepad.roleTags}
           onNoteChange={notepad.setNote}
           onToggleHand={notepad.toggleHand}
-          onCycleIdentity={notepad.cycleIdentity}
           onSetRole={notepad.setRole}
           styles={notepadStyles}
         />
@@ -118,10 +113,6 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
           <View style={notepadStyles.legendItem}>
             <View style={[notepadStyles.legendDot, notepadStyles.legendDotBad]} />
             <Text style={notepadStyles.legendText}>狼人</Text>
-          </View>
-          <View style={notepadStyles.legendItem}>
-            <View style={[notepadStyles.legendDot, notepadStyles.legendDotSuspect]} />
-            <Text style={notepadStyles.legendText}>存疑</Text>
           </View>
         </View>
       </SafeAreaView>
