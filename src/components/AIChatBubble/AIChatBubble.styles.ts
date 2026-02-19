@@ -340,19 +340,19 @@ export const createStyles = (colors: ThemeColors) =>
       flex: 1,
     },
     notepadListContent: {
-      padding: spacing.small,
-      gap: spacing.small,
+      padding: spacing.tight,
+      gap: spacing.tight,
     },
     notepadGridRow: {
-      gap: spacing.small,
+      gap: spacing.tight,
     },
     notepadCard: {
       flex: 1,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
       ...shadows.sm,
-      padding: spacing.small,
-      gap: spacing.tight,
+      padding: spacing.tight,
+      gap: 2,
     },
     notepadCardGood: {
       backgroundColor: colors.success + '18',
@@ -369,22 +369,22 @@ export const createStyles = (colors: ThemeColors) =>
       gap: spacing.tight,
     },
     notepadSeatNumber: {
-      fontSize: typography.body,
+      fontSize: typography.secondary,
       fontWeight: typography.weights.bold,
       color: colors.text,
       width: componentSizes.icon.lg,
       textAlign: 'center',
     },
     notepadIdentityBtn: {
-      width: componentSizes.button.sm,
-      height: componentSizes.button.sm,
+      width: componentSizes.icon.lg,
+      height: componentSizes.icon.lg,
       borderRadius: borderRadius.small,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.background,
     },
     notepadIdentityBtnText: {
-      fontSize: typography.subtitle,
+      fontSize: typography.secondary,
     },
     notepadHandTag: {
       marginLeft: 'auto',
@@ -407,11 +407,11 @@ export const createStyles = (colors: ThemeColors) =>
     notepadRoleTagRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.tight,
+      gap: 2,
     },
     notepadRoleTag: {
       paddingHorizontal: spacing.tight,
-      paddingVertical: spacing.tight,
+      paddingVertical: 2,
       borderRadius: borderRadius.small,
       backgroundColor: colors.background,
     },
@@ -430,7 +430,7 @@ export const createStyles = (colors: ThemeColors) =>
       fontWeight: typography.weights.semibold,
     },
     notepadNoteInput: {
-      minHeight: componentSizes.button.sm,
+      minHeight: 28,
       backgroundColor: colors.background,
       borderRadius: borderRadius.small,
       paddingHorizontal: spacing.small,
