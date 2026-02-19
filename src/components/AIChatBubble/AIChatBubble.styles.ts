@@ -5,9 +5,10 @@
  * 导出样式定义与布局常量。不含业务逻辑，不 import service。
  */
 
-import { Dimensions, StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 // ── 布局常量 ──────────────────────────────────────────────
 
@@ -35,6 +36,22 @@ export interface DisplayMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+}
+
+// ── NotepadStyles（NotepadPanel 依赖此类型） ─────────────
+
+export interface NotepadStyles {
+  container: ViewStyle;
+  list: ViewStyle;
+  playerRow: ViewStyle;
+  playerLabel: TextStyle;
+  tagBtn: ViewStyle;
+  tagBtnActive: ViewStyle;
+  tagBtnBad: ViewStyle;
+  tagBtnWithdrawn: ViewStyle;
+  tagBtnText: TextStyle;
+  tagBtnTextInactive: TextStyle;
+  playerInput: TextStyle;
 }
 
 // ── StyleSheet ───────────────────────────────────────────
@@ -100,7 +117,7 @@ export const createStyles = (colors: ThemeColors) =>
       justifyContent: 'space-between',
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.small,
-      borderBottomWidth: 1,
+      borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
       backgroundColor: colors.background,
     },
@@ -118,6 +135,20 @@ export const createStyles = (colors: ThemeColors) =>
     },
     headerBtnText: {
       fontSize: typography.body,
+    },
+
+    // Notepad entry chip (subtle surface pill in header)
+    notepadEntryBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.medium,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
+    },
+    notepadEntryBtnText: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
     },
 
     // Messages (wrapper for scroll-to-bottom overlay)
@@ -176,7 +207,7 @@ export const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'flex-end',
       padding: spacing.small,
-      borderTopWidth: 1,
+      borderTopWidth: fixed.borderWidth,
       borderTopColor: colors.border,
       backgroundColor: colors.background,
     },
@@ -229,14 +260,14 @@ export const createStyles = (colors: ThemeColors) =>
       flexWrap: 'wrap',
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.small,
-      borderTopWidth: 1,
+      borderTopWidth: fixed.borderWidth,
       borderTopColor: colors.border,
       backgroundColor: colors.surface,
       gap: spacing.small,
     },
     quickQuestionBtn: {
       backgroundColor: colors.background,
-      borderWidth: 1,
+      borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       borderRadius: borderRadius.large,
       paddingVertical: spacing.tight,
@@ -252,4 +283,92 @@ export const createStyles = (colors: ThemeColors) =>
       fontSize: typography.caption,
       color: colors.textSecondary,
     },
+
+    // ── Notepad (full-screen modal) ──────────────────
+    notepadModal: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    notepadHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.border,
+    },
+    notepadHeaderTitle: {
+      fontSize: typography.subtitle,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+    },
+    notepadHeaderButtons: {
+      flexDirection: 'row',
+      gap: spacing.small,
+    },
+    notepadHeaderBtn: {
+      padding: spacing.tight,
+    },
+    notepadHeaderBtnText: {
+      fontSize: typography.body,
+      color: colors.textSecondary,
+    },
+    notepadContainer: {
+      flex: 1,
+    },
+    notepadList: {
+      flex: 1,
+    },
+    notepadPlayerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
+      gap: spacing.tight,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    notepadPlayerLabel: {
+      width: componentSizes.icon.lg,
+      fontSize: typography.secondary,
+      fontWeight: typography.weights.bold,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    notepadTagBtn: {
+      width: componentSizes.button.sm,
+      height: componentSizes.button.sm,
+      borderRadius: borderRadius.small,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+    },
+    notepadTagBtnActive: {
+      backgroundColor: colors.primary + '30',
+    },
+    notepadTagBtnBad: {
+      backgroundColor: colors.error + '30',
+    },
+    notepadTagBtnWithdrawn: {
+      backgroundColor: colors.textMuted + '30',
+    },
+    notepadTagBtnText: {
+      fontSize: typography.subtitle,
+    },
+    notepadTagBtnTextInactive: {
+      opacity: 0.4,
+    },
+    notepadPlayerInput: {
+      flex: 1,
+      minHeight: componentSizes.button.sm,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.small,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
+      fontSize: typography.secondary,
+      color: colors.text,
+    },
   });
+
+export type ChatStyles = ReturnType<typeof createStyles>;
