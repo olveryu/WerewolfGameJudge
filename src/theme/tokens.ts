@@ -135,6 +135,8 @@ const primitiveSize = {
  * - xxlarge: 特大间距 (大区块分隔)
  */
 export const spacing = {
+  /** 2px - 微间距（紧凑复合控件内部） */
+  micro: scale(primitiveSpace[1]),
   /** 4px - 紧凑间距 */
   tight: scale(primitiveSpace[2]),
   /** 8px - 小间距 */

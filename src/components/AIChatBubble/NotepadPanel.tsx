@@ -77,7 +77,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
 
     return (
       <View style={[styles.card, cardBgStyle]}>
-        {/* Seat(+role badge+chevron) + identity + hand */}
+        {/* Seat + role badge + hand */}
         <View style={styles.cardHeader}>
           <TouchableOpacity
             onPress={() => onSeatPress(seat)}
