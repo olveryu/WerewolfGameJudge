@@ -373,7 +373,7 @@ export const createStyles = (colors: ThemeColors) =>
     notepadSeatBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 2,
+      gap: spacing.micro,
       minHeight: componentSizes.button.sm,
     },
     notepadSeatNumber: {
@@ -388,8 +388,9 @@ export const createStyles = (colors: ThemeColors) =>
       color: colors.textMuted,
     },
     notepadRoleBadge: {
-      width: 26,
-      height: 22,
+      minWidth: componentSizes.badge.md,
+      paddingHorizontal: spacing.micro,
+      paddingVertical: 1,
       borderRadius: borderRadius.small,
       alignItems: 'center',
       justifyContent: 'center',
