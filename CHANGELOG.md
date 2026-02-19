@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.248] - 2026-02-19
+
+- fix(notepad): fix role badge / placeholder width asymmetry
+
 ## [1.0.247] - 2026-02-19
 
 - feat(notepad): remove identity button, replace chevron with emoji placeholder
