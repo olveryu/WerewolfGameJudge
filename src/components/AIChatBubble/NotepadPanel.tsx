@@ -7,42 +7,145 @@
  * 不直接调用 service / AsyncStorage / game-engine。
  */
 
-import React, { useCallback } from 'react';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import React, { useCallback, useState } from 'react';
 import {
   FlatList,
   type ListRenderItemInfo,
+  type NativeSyntheticEvent,
   Text,
   TextInput,
+  type TextInputContentSizeChangeEventData,
   TouchableOpacity,
   View,
 } from 'react-native';
 
-import type { ThemeColors } from '@/theme';
-
 import type { NotepadStyles } from './AIChatBubble.styles';
-import {
-  GOOD_ROLES,
-  type IdentityState,
-  type NotepadState,
-  ROLE_TAGS,
-  type RoleTag,
-} from './useNotepad';
+import type { IdentityState, NotepadState, RoleTagInfo } from './useNotepad';
 
-// ── Emoji map ────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────
 
 const IDENTITY_EMOJI: Record<IdentityState, string> = { 0: '👤', 1: '👍', 2: '👎', 3: '❓' };
+const MIN_INPUT_HEIGHT = 22;
+
+// ── NotepadCard (独立组件，管理自身 TextInput 高度) ─────
+
+interface NotepadCardProps {
+  seat: number;
+  identity: IdentityState;
+  hand: boolean;
+  selectedRoleId: RoleId | null;
+  noteText: string;
+  roleTags: readonly RoleTagInfo[];
+  onNoteChange: (seat: number, text: string) => void;
+  onToggleHand: (seat: number) => void;
+  onCycleIdentity: (seat: number) => void;
+  onSetRole: (seat: number, roleId: RoleId | null) => void;
+  styles: NotepadStyles;
+}
+
+const NotepadCard: React.FC<NotepadCardProps> = React.memo(
+  ({
+    seat,
+    identity,
+    hand,
+    selectedRoleId,
+    noteText,
+    roleTags,
+    onNoteChange,
+    onToggleHand,
+    onCycleIdentity,
+    onSetRole,
+    styles,
+  }) => {
+    const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
+
+    const handleContentSizeChange = useCallback(
+      (e: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) => {
+        const h = e.nativeEvent.contentSize.height;
+        setInputHeight(Math.max(MIN_INPUT_HEIGHT, h));
+      },
+      [],
+    );
+
+    const cardBgStyle =
+      identity === 1
+        ? styles.cardGood
+        : identity === 2
+          ? styles.cardBad
+          : identity === 3
+            ? styles.cardSuspect
+            : undefined;
+
+    return (
+      <View style={[styles.card, cardBgStyle]}>
+        {/* Header: seat + identity + hand */}
+        <View style={styles.cardHeader}>
+          <Text style={styles.seatNumber}>{seat}</Text>
+          <TouchableOpacity
+            onPress={() => onCycleIdentity(seat)}
+            style={styles.identityBtn}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.identityBtnText}>{IDENTITY_EMOJI[identity]}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => onToggleHand(seat)}
+            style={[styles.handTag, hand && styles.handTagActive]}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.handTagText, hand && styles.handTagTextActive]}>上警</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Role guess tags */}
+        <View style={styles.roleTagRow}>
+          {roleTags.map((tag) => {
+            const isSelected = selectedRoleId === tag.roleId;
+            const isGood = tag.team !== 'wolf';
+            return (
+              <TouchableOpacity
+                key={tag.roleId}
+                onPress={() => onSetRole(seat, tag.roleId)}
+                style={[
+                  styles.roleTag,
+                  isSelected && (isGood ? styles.roleTagSelectedGood : styles.roleTagSelectedBad),
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.roleTagText, isSelected && styles.roleTagTextSelected]}>
+                  {tag.shortName}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Note input — auto-grow via onContentSizeChange */}
+        <TextInput
+          style={[styles.noteInput, { height: inputHeight }]}
+          value={noteText}
+          onChangeText={(text) => onNoteChange(seat, text)}
+          onContentSizeChange={handleContentSizeChange}
+          multiline
+        />
+      </View>
+    );
+  },
+);
+NotepadCard.displayName = 'NotepadCard';
 
 // ── Props ────────────────────────────────────────────────
 
 interface NotepadPanelProps {
   state: NotepadState;
   playerCount: number;
+  roleTags: readonly RoleTagInfo[];
   onNoteChange: (seat: number, text: string) => void;
   onToggleHand: (seat: number) => void;
   onCycleIdentity: (seat: number) => void;
-  onSetRole: (seat: number, role: RoleTag | null) => void;
+  onSetRole: (seat: number, roleId: RoleId | null) => void;
   styles: NotepadStyles;
-  colors: ThemeColors;
 }
 
 // ── Seat list data ───────────────────────────────────────
@@ -56,12 +159,12 @@ interface SeatItem {
 export const NotepadPanel: React.FC<NotepadPanelProps> = ({
   state,
   playerCount,
+  roleTags,
   onNoteChange,
   onToggleHand,
   onCycleIdentity,
   onSetRole,
   styles,
-  colors,
 }) => {
   const seats = React.useMemo<SeatItem[]>(() => {
     const arr: SeatItem[] = [];
@@ -76,77 +179,23 @@ export const NotepadPanel: React.FC<NotepadPanelProps> = ({
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<SeatItem>) => {
       const { seat } = item;
-      const identity: IdentityState = state.identityStates[seat] ?? 0;
-      const hand = state.handStates[seat] ?? false;
-      const role: RoleTag | null = state.roleGuesses[seat] ?? null;
-      const noteText = state.playerNotes[seat] ?? '';
-
-      const cardBgStyle =
-        identity === 1
-          ? styles.cardGood
-          : identity === 2
-            ? styles.cardBad
-            : identity === 3
-              ? styles.cardSuspect
-              : undefined;
-
       return (
-        <View style={[styles.card, cardBgStyle]}>
-          {/* Header: seat + identity + hand */}
-          <View style={styles.cardHeader}>
-            <Text style={styles.seatNumber}>{seat}</Text>
-            <TouchableOpacity
-              onPress={() => onCycleIdentity(seat)}
-              style={styles.identityBtn}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.identityBtnText}>{IDENTITY_EMOJI[identity]}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => onToggleHand(seat)}
-              style={[styles.handTag, hand && styles.handTagActive]}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.handTagText, hand && styles.handTagTextActive]}>上警</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Role guess tags */}
-          <View style={styles.roleTagRow}>
-            {ROLE_TAGS.map((tag) => {
-              const isSelected = role === tag;
-              const isGood = GOOD_ROLES.includes(tag);
-              return (
-                <TouchableOpacity
-                  key={tag}
-                  onPress={() => onSetRole(seat, tag)}
-                  style={[
-                    styles.roleTag,
-                    isSelected && (isGood ? styles.roleTagSelectedGood : styles.roleTagSelectedBad),
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.roleTagText, isSelected && styles.roleTagTextSelected]}>
-                    {tag}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Note input */}
-          <TextInput
-            style={styles.noteInput}
-            value={noteText}
-            onChangeText={(text) => onNoteChange(seat, text)}
-            placeholder="笔记…"
-            placeholderTextColor={colors.textMuted}
-            multiline
-          />
-        </View>
+        <NotepadCard
+          seat={seat}
+          identity={state.identityStates[seat] ?? 0}
+          hand={state.handStates[seat] ?? false}
+          selectedRoleId={state.roleGuesses[seat] ?? null}
+          noteText={state.playerNotes[seat] ?? ''}
+          roleTags={roleTags}
+          onNoteChange={onNoteChange}
+          onToggleHand={onToggleHand}
+          onCycleIdentity={onCycleIdentity}
+          onSetRole={onSetRole}
+          styles={styles}
+        />
       );
     },
-    [state, onCycleIdentity, onToggleHand, onSetRole, onNoteChange, styles, colors.textMuted],
+    [state, onCycleIdentity, onToggleHand, onSetRole, onNoteChange, styles, roleTags],
   );
 
   return (

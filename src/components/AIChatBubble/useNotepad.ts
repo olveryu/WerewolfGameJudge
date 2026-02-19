@@ -7,7 +7,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { chatLog } from '@/utils/logger';
@@ -17,29 +18,28 @@ import { chatLog } from '@/utils/logger';
 /** 身份标记：0=未标记, 1=好人, 2=坏人, 3=存疑 */
 export type IdentityState = 0 | 1 | 2 | 3;
 
-/** 可选角色猜测标签 */
-export const ROLE_TAGS = ['预', '女', '猎', '守', '骑', '白', '狼', '石', '隐'] as const;
-export type RoleTag = (typeof ROLE_TAGS)[number];
-
-/** 好人阵营角色 */
-export const GOOD_ROLES: readonly RoleTag[] = ['预', '女', '猎', '守', '骑', '白'];
-/** 狼人阵营角色 */
-export const WOLF_ROLES: readonly RoleTag[] = ['狼', '石', '隐'];
+/** 角色标签信息（从 ROLE_SPECS 派生） */
+export interface RoleTagInfo {
+  roleId: RoleId;
+  shortName: string;
+  team: 'good' | 'wolf' | 'third';
+}
 
 export interface NotepadState {
   playerNotes: Record<number, string>;
   handStates: Record<number, boolean>;
   identityStates: Record<number, IdentityState>;
-  roleGuesses: Record<number, RoleTag | null>;
+  roleGuesses: Record<number, RoleId | null>;
 }
 
 export interface UseNotepadReturn {
   state: NotepadState;
   playerCount: number;
+  roleTags: readonly RoleTagInfo[];
   setNote: (seat: number, text: string) => void;
   toggleHand: (seat: number) => void;
   cycleIdentity: (seat: number) => void;
-  setRole: (seat: number, role: RoleTag | null) => void;
+  setRole: (seat: number, roleId: RoleId | null) => void;
   clearAll: () => void;
 }
 
@@ -62,14 +62,37 @@ function getStorageKey(roomCode: string | null): string | null {
 
 export function useNotepad(facade: IGameFacade): UseNotepadReturn {
   const [state, setState] = useState<NotepadState>(emptyState);
-  const stateRef = useRef(state);
-  stateRef.current = state;
 
   // Derive player count from game state
   const gameState = facade.getState();
   const playerCount = gameState?.templateRoles?.length ?? 12;
+  const templateRoles = gameState?.templateRoles;
   const roomCode = gameState?.roomCode ?? null;
   const storageKey = getStorageKey(roomCode);
+
+  // ── Derive role tags from templateRoles (schema-driven) ──
+  const roleTags = useMemo<readonly RoleTagInfo[]>(() => {
+    if (!templateRoles) return [];
+    const seen = new Set<RoleId>();
+    const good: RoleTagInfo[] = [];
+    const wolf: RoleTagInfo[] = [];
+    const third: RoleTagInfo[] = [];
+    for (const roleId of templateRoles) {
+      if (seen.has(roleId as RoleId)) continue;
+      seen.add(roleId as RoleId);
+      const spec = ROLE_SPECS[roleId as RoleId];
+      if (!spec) continue;
+      const info: RoleTagInfo = {
+        roleId: roleId as RoleId,
+        shortName: spec.shortName,
+        team: spec.team,
+      };
+      if (spec.team === 'wolf') wolf.push(info);
+      else if (spec.team === 'third') third.push(info);
+      else good.push(info);
+    }
+    return [...good, ...wolf, ...third];
+  }, [templateRoles]);
 
   // ── Load from AsyncStorage on mount / room change ────
   useEffect(() => {
@@ -152,10 +175,10 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
   );
 
   const setRole = useCallback(
-    (seat: number, role: RoleTag | null) => {
+    (seat: number, roleId: RoleId | null) => {
       setState((prev) => {
         const currentRole = prev.roleGuesses[seat] ?? null;
-        const newRole = currentRole === role ? null : role;
+        const newRole = currentRole === roleId ? null : roleId;
         const newState = { ...prev, roleGuesses: { ...prev.roleGuesses, [seat]: newRole } };
         persistState(newState);
         return newState;
@@ -174,5 +197,5 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     }
   }, [storageKey]);
 
-  return { state, playerCount, setNote, toggleHand, cycleIdentity, setRole, clearAll };
+  return { state, playerCount, roleTags, setNote, toggleHand, cycleIdentity, setRole, clearAll };
 }

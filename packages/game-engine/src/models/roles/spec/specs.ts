@@ -22,6 +22,7 @@ export const ROLE_SPECS = {
   villager: {
     id: 'villager',
     displayName: '普通村民',
+    shortName: '民',
     faction: Faction.Villager,
     team: 'good',
     description: '没有特殊能力，依靠推理和投票帮助好人阵营获胜',
@@ -34,6 +35,7 @@ export const ROLE_SPECS = {
   seer: {
     id: 'seer',
     displayName: '预言家',
+    shortName: '预',
     faction: Faction.God,
     team: 'good',
     description: '每晚可以查验一名玩家的身份，获知该玩家是好人还是狼人',
@@ -43,6 +45,7 @@ export const ROLE_SPECS = {
   witch: {
     id: 'witch',
     displayName: '女巫',
+    shortName: '女',
     faction: Faction.God,
     team: 'good',
     description:
@@ -54,6 +57,7 @@ export const ROLE_SPECS = {
   hunter: {
     id: 'hunter',
     displayName: '猎人',
+    shortName: '猎',
     faction: Faction.God,
     team: 'good',
     description: '被狼人杀害时，可以开枪带走一名玩家。被女巫毒死则不能开枪',
@@ -63,6 +67,7 @@ export const ROLE_SPECS = {
   guard: {
     id: 'guard',
     displayName: '守卫',
+    shortName: '守',
     faction: Faction.God,
     team: 'good',
     description:
@@ -73,6 +78,7 @@ export const ROLE_SPECS = {
   idiot: {
     id: 'idiot',
     displayName: '白痴',
+    shortName: '白',
     faction: Faction.God,
     team: 'good',
     description: '被投票放逐时可以翻牌免死，但之后不能投票和发动技能',
@@ -82,6 +88,7 @@ export const ROLE_SPECS = {
   knight: {
     id: 'knight',
     displayName: '骑士',
+    shortName: '骑',
     faction: Faction.God,
     team: 'good',
     description: '白天可以翻牌与一名玩家决斗，狼人死；若对方是好人，骑士死',
@@ -91,6 +98,7 @@ export const ROLE_SPECS = {
   magician: {
     id: 'magician',
     displayName: '魔术师',
+    shortName: '术',
     faction: Faction.God,
     team: 'good',
     description: '每晚在其他所有人之前行动，交换2个人的号码牌，当晚有效',
@@ -100,6 +108,7 @@ export const ROLE_SPECS = {
   witcher: {
     id: 'witcher',
     displayName: '猎魔人',
+    shortName: '魔',
     faction: Faction.God,
     team: 'good',
     description:
@@ -111,6 +120,7 @@ export const ROLE_SPECS = {
   psychic: {
     id: 'psychic',
     displayName: '通灵师',
+    shortName: '通',
     faction: Faction.God,
     team: 'good',
     description: '每晚可以查验一名玩家的具体身份牌（不只是阵营）',
@@ -120,6 +130,7 @@ export const ROLE_SPECS = {
   dreamcatcher: {
     id: 'dreamcatcher',
     displayName: '摄梦人',
+    shortName: '摄',
     englishName: 'Dreamcatcher',
     faction: Faction.God,
     team: 'good',
@@ -131,6 +142,7 @@ export const ROLE_SPECS = {
   graveyardKeeper: {
     id: 'graveyardKeeper',
     displayName: '守墓人',
+    shortName: '墓',
     faction: Faction.God,
     team: 'good',
     description: '每晚可以得知上一个白天被放逐的玩家是好人或狼人',
@@ -144,6 +156,7 @@ export const ROLE_SPECS = {
   wolf: {
     id: 'wolf',
     displayName: '狼人',
+    shortName: '狼',
     faction: Faction.Wolf,
     team: 'wolf',
     description: '每晚与狼队友共同选择一名玩家猎杀',
@@ -154,6 +167,7 @@ export const ROLE_SPECS = {
   wolfQueen: {
     id: 'wolfQueen',
     displayName: '狼美人',
+    shortName: '美',
     faction: Faction.Wolf,
     team: 'wolf',
     description:
@@ -166,6 +180,7 @@ export const ROLE_SPECS = {
   wolfKing: {
     id: 'wolfKing',
     displayName: '白狼王',
+    shortName: '王',
     faction: Faction.Wolf,
     team: 'wolf',
     description: '白天可以自爆并带走一名玩家，被带走的玩家无遗言。非自爆出局不能发动技能',
@@ -177,6 +192,7 @@ export const ROLE_SPECS = {
   darkWolfKing: {
     id: 'darkWolfKing',
     displayName: '黑狼王',
+    shortName: '黑',
     faction: Faction.Wolf,
     team: 'wolf',
     description: '被刀杀时可以开枪带走一名玩家（狼人版猎人）',
@@ -187,6 +203,7 @@ export const ROLE_SPECS = {
   nightmare: {
     id: 'nightmare',
     displayName: '梦魇',
+    shortName: '魇',
     faction: Faction.Wolf,
     team: 'wolf',
     description:
@@ -200,6 +217,7 @@ export const ROLE_SPECS = {
   gargoyle: {
     id: 'gargoyle',
     displayName: '石像鬼',
+    shortName: '石',
     faction: Faction.Wolf,
     team: 'wolf',
     description:
@@ -212,6 +230,7 @@ export const ROLE_SPECS = {
   bloodMoon: {
     id: 'bloodMoon',
     displayName: '血月使徒',
+    shortName: '血',
     faction: Faction.Wolf,
     team: 'wolf',
     description:
@@ -224,6 +243,7 @@ export const ROLE_SPECS = {
   wolfRobot: {
     id: 'wolfRobot',
     displayName: '机械狼',
+    shortName: '机',
     faction: Faction.Wolf,
     team: 'wolf',
     description:
@@ -236,6 +256,7 @@ export const ROLE_SPECS = {
   spiritKnight: {
     id: 'spiritKnight',
     displayName: '恶灵骑士',
+    shortName: '灵',
     faction: Faction.Wolf,
     team: 'wolf',
     description:
@@ -253,6 +274,7 @@ export const ROLE_SPECS = {
   slacker: {
     id: 'slacker',
     displayName: '混子',
+    shortName: '混',
     faction: Faction.Special,
     team: 'third', // Before choosing idol; seer sees "好人" (not "第三方")
     description: '第一晚选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
