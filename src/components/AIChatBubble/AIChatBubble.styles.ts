@@ -388,11 +388,11 @@ export const createStyles = (colors: ThemeColors) =>
       color: colors.textMuted,
     },
     notepadRoleBadge: {
-      paddingHorizontal: spacing.tight,
-      paddingVertical: 1,
+      width: 26,
+      height: 22,
       borderRadius: borderRadius.small,
-      minWidth: 22,
       alignItems: 'center',
+      justifyContent: 'center',
     },
     notepadRoleBadgeGood: {
       backgroundColor: colors.villager + '30',
