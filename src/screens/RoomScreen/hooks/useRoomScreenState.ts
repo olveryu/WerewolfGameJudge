@@ -17,6 +17,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
+import { createSeededRng } from '@werewolf/game-engine/utils/random';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
@@ -33,7 +34,7 @@ import {
   toGameRoomLike,
 } from '../RoomScreen.helpers';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
-import { useRoomHostDialogs } from '../useRoomHostDialogs';
+import { generateSpeakOrder, useRoomHostDialogs } from '../useRoomHostDialogs';
 import { useRoomSeatDialogs } from '../useRoomSeatDialogs';
 import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
@@ -522,7 +523,6 @@ export function useRoomScreenState(
     showStartGameDialog,
     showLastNightInfoDialog,
     showRestartDialog,
-    showSpeakOrderDialog,
     handleSettingsPress,
     isHostActionSubmitting,
   } = useRoomHostDialogs({
@@ -608,11 +608,6 @@ export function useRoomScreenState(
   const { nightProgress } = useNightProgress({
     currentStepId,
     gameState,
-    roomStatus,
-    isHost,
-    isAudioPlaying,
-    pendingRevealDialog,
-    showSpeakOrderDialog,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -620,6 +615,15 @@ export function useRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   const actionMessage = useMemo(() => {
+    // Speaking order message when night has ended (all players see this)
+    if (roomStatus === GameStatus.ended && gameState) {
+      const seed = gameState.roleRevealRandomNonce ?? gameState.roomCode;
+      const rng = createSeededRng(seed);
+      const playerCount = gameState.template.roles.length;
+      const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
+      return `发言顺序：从 ${startSeat} 号开始，${direction}发言\n如果当前玩家没上警，由${direction}的下一位玩家发言`;
+    }
+
     if (!currentActionRole) return '';
     if (!currentSchema?.ui?.prompt) {
       throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
@@ -640,13 +644,7 @@ export function useRoomScreenState(
     }
 
     return baseMessage;
-  }, [
-    currentActionRole,
-    currentSchema,
-    gameState?.wolfRobotReveal,
-    gameState?.wolfRobotHunterStatusViewed,
-    getWolfStatusLine,
-  ]);
+  }, [roomStatus, gameState, currentActionRole, currentSchema, getWolfStatusLine]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Return bag

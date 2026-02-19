@@ -49,7 +49,6 @@ interface UseRoomHostDialogsResult {
   showStartGameDialog: () => void;
   showLastNightInfoDialog: () => void;
   showRestartDialog: () => void;
-  showSpeakOrderDialog: () => void;
   handleSettingsPress: () => void;
   /** True while any host action (assign/start/restart) is in-flight. */
   isHostActionSubmitting: boolean;
@@ -162,18 +161,6 @@ export const useRoomHostDialogs = ({
     ]);
   }, [restartGame, markSubmitting]);
 
-  const showSpeakOrderDialog = useCallback(() => {
-    if (!gameState) return;
-
-    const playerCount = gameState.template.roles.length;
-    const { startSeat, direction } = generateSpeakOrder(playerCount);
-    roomScreenLog.debug('[HostDialogs] Generated speak order', { startSeat, direction });
-
-    showAlert('发言顺序', `从 ${startSeat} 号玩家开始，${direction} 发言。`, [
-      { text: '知道了', style: 'default' },
-    ]);
-  }, [gameState]);
-
   const handleSettingsPress = useCallback(() => {
     navigation.navigate('Config', { existingRoomNumber: roomNumber });
   }, [navigation, roomNumber]);
@@ -183,7 +170,6 @@ export const useRoomHostDialogs = ({
     showStartGameDialog,
     showLastNightInfoDialog,
     showRestartDialog,
-    showSpeakOrderDialog,
     handleSettingsPress,
     isHostActionSubmitting,
   };

@@ -248,16 +248,15 @@ export async function waitForNightEnd(pages: Page[], maxIter = 80): Promise<bool
 }
 
 /**
- * After night ends, dismiss any alert (e.g. speak order dialog) and
- * click "查看昨晚信息" to reveal the night result text.
- * The flow: speak order dialog → dismiss → click "查看昨晚信息" →
- * confirmation dialog ("确定查看昨夜信息？") → click "确定" → info alert.
+ * After night ends, click "查看昨晚信息" to reveal the night result text.
+ * The flow: click "查看昨晚信息" → confirmation dialog ("确定查看昨夜信息？")
+ * → click "确定" → info alert.
  * Call this before asserting on '平安夜' or '玩家死亡'.
  */
 export async function viewLastNightInfo(hostPage: Page): Promise<void> {
   const alertModal = hostPage.locator('[data-testid="alert-modal"]');
 
-  // Dismiss speak order dialog (or any other alert) up to 3 times
+  // Dismiss any stale alert, then click "查看昨晚信息"
   for (let i = 0; i < 3; i++) {
     await dismissAlert(hostPage);
     // Check if "查看昨晚信息" is visible now

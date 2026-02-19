@@ -32,18 +32,6 @@ test.describe('Restart & Settings', () => {
       const room = new RoomPage(hostPage);
       await room.screenshot(testInfo, 'restart-01-first-night-done.png');
 
-      // Dismiss speaking order dialog if visible
-      const speakingOrder = hostPage.getByText('发言顺序');
-      if (
-        await speakingOrder
-          .waitFor({ state: 'visible', timeout: 1000 })
-          .then(() => true)
-          .catch(() => false)
-      ) {
-        await hostPage.getByText('知道了', { exact: true }).click();
-        await speakingOrder.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
-      }
-
       // Restart
       await room.restart();
       await room.screenshot(testInfo, 'restart-02-after-restart.png');

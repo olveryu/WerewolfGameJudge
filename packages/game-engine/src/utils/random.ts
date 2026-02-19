@@ -61,3 +61,28 @@ export function randomPick<T>(arr: readonly T[], rng: Rng = secureRng): T {
   }
   return arr[Math.floor(rng() * arr.length)];
 }
+
+/**
+ * Create a deterministic PRNG from a string seed (mulberry32).
+ *
+ * All clients given the same seed produce identical sequences, enabling
+ * coordinated randomness without server round-trips.
+ *
+ * @param seed - Arbitrary string used as seed
+ * @returns A deterministic Rng function producing [0, 1) floats
+ */
+export function createSeededRng(seed: string): Rng {
+  // Simple string → 32-bit hash (djb2)
+  let h = 5381;
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) + h + seed.charCodeAt(i)) | 0;
+  }
+  // mulberry32 PRNG
+  return () => {
+    h |= 0;
+    h = (h + 0x6d2b79f5) | 0;
+    let t = Math.imul(h ^ (h >>> 15), 1 | h);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 0x100000000;
+  };
+}

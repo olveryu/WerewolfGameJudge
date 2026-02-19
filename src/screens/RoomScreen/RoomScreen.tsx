@@ -275,7 +275,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Bottom Action Panel - floating card with message + buttons */}
       <BottomActionPanel
         message={actionMessage}
-        showMessage={imActioner && !isAudioPlaying}
+        showMessage={!isAudioPlaying && (imActioner || roomStatus === GameStatus.ended)}
         styles={componentStyles.bottomActionPanel}
       >
         {/* Host Control Buttons - dispatch events to policy */}
