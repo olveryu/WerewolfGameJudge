@@ -366,7 +366,7 @@ export const createStyles = (colors: ThemeColors) =>
       borderRadius: borderRadius.small,
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.tight,
-      fontSize: typography.secondary,
+      fontSize: typography.body, // ≥ 16px — prevents iOS Safari auto-zoom
       color: colors.text,
     },
   });
