@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.242] - 2026-02-19
+
+- feat(services): redesign notepad to 2x6 grid with role tags and identity cards
+
 ## [1.0.241] - 2026-02-18
 
 - fix(services): use body fontSize in notepad input to prevent iOS auto-zoom
