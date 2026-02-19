@@ -47,6 +47,8 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       roleBadgeGood: styles.notepadRoleBadgeGood,
       roleBadgeBad: styles.notepadRoleBadgeBad,
       roleBadgeText: styles.notepadRoleBadgeText,
+      roleBadgeTextGood: styles.notepadRoleBadgeTextGood,
+      roleBadgeTextBad: styles.notepadRoleBadgeTextBad,
       handTag: styles.notepadHandTag,
       handTagActive: styles.notepadHandTagActive,
       handTagText: styles.notepadHandTagText,
