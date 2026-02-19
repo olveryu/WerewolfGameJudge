@@ -128,6 +128,24 @@ describe('Role Registry Contract Tests', () => {
     });
   });
 
+  describe('Role shortName contract', () => {
+    it('every spec has a non-empty shortName', () => {
+      const allRoleIds = getAllRoleIds();
+      for (const roleId of allRoleIds) {
+        const spec = getRoleSpec(roleId);
+        expect(spec.shortName).toBeTruthy();
+        expect(spec.shortName.length).toBe(1);
+      }
+    });
+
+    it('all shortNames are unique', () => {
+      const allRoleIds = getAllRoleIds();
+      const shortNames = allRoleIds.map((id) => getRoleSpec(id).shortName);
+      const uniqueNames = new Set(shortNames);
+      expect(uniqueNames.size).toBe(shortNames.length);
+    });
+  });
+
   describe('RoleId stability', () => {
     it('RoleId values match ROLE_SPECS keys (no drift)', () => {
       // This ensures the derived RoleId type matches actual spec keys

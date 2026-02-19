@@ -10,8 +10,6 @@ import React, { useMemo } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { ThemeColors } from '@/theme';
-
 import type { ChatStyles } from './AIChatBubble.styles';
 import { NotepadPanel } from './NotepadPanel';
 import type { UseNotepadReturn } from './useNotepad';
@@ -23,7 +21,6 @@ interface NotepadModalProps {
   onClose: () => void;
   notepad: UseNotepadReturn;
   styles: ChatStyles;
-  colors: ThemeColors;
 }
 
 // ── Component ────────────────────────────────────────────
@@ -33,7 +30,6 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
   onClose,
   notepad,
   styles,
-  colors,
 }) => {
   const notepadStyles = useMemo(
     () => ({
@@ -95,12 +91,12 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
         <NotepadPanel
           state={notepad.state}
           playerCount={notepad.playerCount}
+          roleTags={notepad.roleTags}
           onNoteChange={notepad.setNote}
           onToggleHand={notepad.toggleHand}
           onCycleIdentity={notepad.cycleIdentity}
           onSetRole={notepad.setRole}
           styles={notepadStyles}
-          colors={colors}
         />
 
         {/* Legend */}

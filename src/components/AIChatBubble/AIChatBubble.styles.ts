@@ -430,11 +430,10 @@ export const createStyles = (colors: ThemeColors) =>
       fontWeight: typography.weights.semibold,
     },
     notepadNoteInput: {
-      minHeight: 28,
       backgroundColor: colors.background,
       borderRadius: borderRadius.small,
       paddingHorizontal: spacing.small,
-      paddingVertical: spacing.tight,
+      paddingVertical: 0,
       fontSize: typography.body, // ≥ 16px — prevents iOS Safari auto-zoom
       color: colors.text,
     },

@@ -339,7 +339,6 @@ export const AIChatBubble: React.FC = () => {
         onClose={() => setNotepadOpen(false)}
         notepad={notepad}
         styles={styles}
-        colors={colors}
       />
     </>
   );

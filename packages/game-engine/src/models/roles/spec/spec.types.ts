@@ -56,6 +56,9 @@ export interface RoleSpec {
   /** Display name in Chinese */
   readonly displayName: string;
 
+  /** Single-character short name for notepad UI (unique across all roles) */
+  readonly shortName: string;
+
   /** English name (optional) */
   readonly englishName?: string;
 
