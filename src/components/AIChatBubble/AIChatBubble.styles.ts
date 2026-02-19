@@ -384,13 +384,15 @@ export const createStyles = (colors: ThemeColors) =>
       textAlign: 'center',
     },
     notepadSeatPlaceholder: {
-      fontSize: typography.secondary,
+      fontSize: typography.caption,
       color: colors.textMuted,
     },
     notepadRoleBadge: {
       paddingHorizontal: spacing.tight,
       paddingVertical: 1,
       borderRadius: borderRadius.small,
+      minWidth: 22,
+      alignItems: 'center',
     },
     notepadRoleBadgeGood: {
       backgroundColor: colors.villager + '30',
