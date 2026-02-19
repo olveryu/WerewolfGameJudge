@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.250] - 2026-02-19
+
+- refactor(theme): add spacing.micro token, fix hardcoded values
+
 ## [1.0.249] - 2026-02-19
 
 - fix(notepad): fix role badge alignment with fixed width container
