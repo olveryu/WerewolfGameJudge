@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.241] - 2026-02-18
+
+- fix(services): use body fontSize in notepad input to prevent iOS auto-zoom
+
 ## [1.0.240] - 2026-02-18
 
 - feat(services): add in-game notepad with persistence and full-screen modal
