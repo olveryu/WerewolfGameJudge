@@ -50,20 +50,30 @@ export interface NotepadStyles {
   cardBad: ViewStyle;
   cardSuspect: ViewStyle;
   cardHeader: ViewStyle;
+  seatBtn: ViewStyle;
   seatNumber: TextStyle;
+  roleBadge: ViewStyle;
+  roleBadgeGood: ViewStyle;
+  roleBadgeBad: ViewStyle;
+  roleBadgeText: TextStyle;
   identityBtn: ViewStyle;
   identityBtnText: TextStyle;
   handTag: ViewStyle;
   handTagActive: ViewStyle;
   handTagText: TextStyle;
   handTagTextActive: TextStyle;
-  roleTagRow: ViewStyle;
-  roleTag: ViewStyle;
-  roleTagSelectedGood: ViewStyle;
-  roleTagSelectedBad: ViewStyle;
-  roleTagText: TextStyle;
-  roleTagTextSelected: TextStyle;
   noteInput: TextStyle;
+  popoverOverlay: ViewStyle;
+  popover: ViewStyle;
+  popoverTitle: TextStyle;
+  popoverGrid: ViewStyle;
+  popoverTag: ViewStyle;
+  popoverTagSelectedGood: ViewStyle;
+  popoverTagSelectedBad: ViewStyle;
+  popoverTagText: TextStyle;
+  popoverTagTextSelected: TextStyle;
+  popoverClearBtn: ViewStyle;
+  popoverClearText: TextStyle;
   legend: ViewStyle;
   legendItem: ViewStyle;
   legendDot: ViewStyle;
@@ -368,12 +378,34 @@ export const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       gap: spacing.tight,
     },
+    notepadSeatBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+      minHeight: componentSizes.button.sm,
+    },
     notepadSeatNumber: {
       fontSize: typography.secondary,
       fontWeight: typography.weights.bold,
       color: colors.text,
-      width: componentSizes.icon.lg,
+      minWidth: componentSizes.icon.lg,
       textAlign: 'center',
+    },
+    notepadRoleBadge: {
+      paddingHorizontal: spacing.tight,
+      paddingVertical: 1,
+      borderRadius: borderRadius.small,
+    },
+    notepadRoleBadgeGood: {
+      backgroundColor: colors.villager + '30',
+    },
+    notepadRoleBadgeBad: {
+      backgroundColor: colors.wolf + '30',
+    },
+    notepadRoleBadgeText: {
+      fontSize: typography.caption,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
     },
     notepadIdentityBtn: {
       width: componentSizes.button.sm,
@@ -406,30 +438,65 @@ export const createStyles = (colors: ThemeColors) =>
       color: colors.primary,
       fontWeight: typography.weights.semibold,
     },
-    notepadRoleTagRow: {
+    notepadPopoverOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.overlayLight,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    notepadPopover: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      padding: spacing.medium,
+      ...shadows.lg,
+      width: 280,
+    },
+    notepadPopoverTitle: {
+      fontSize: typography.secondary,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+      marginBottom: spacing.small,
+      textAlign: 'center',
+    },
+    notepadPopoverGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: spacing.tight,
+      gap: spacing.small,
+      justifyContent: 'center',
     },
-    notepadRoleTag: {
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.tight,
-      borderRadius: borderRadius.small,
+    notepadPopoverTag: {
+      minWidth: componentSizes.button.md,
+      minHeight: componentSizes.button.md,
+      borderRadius: borderRadius.medium,
       backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    notepadRoleTagSelectedGood: {
+    notepadPopoverTagSelectedGood: {
       backgroundColor: colors.villager + '30',
     },
-    notepadRoleTagSelectedBad: {
+    notepadPopoverTagSelectedBad: {
       backgroundColor: colors.wolf + '30',
     },
-    notepadRoleTagText: {
-      fontSize: typography.caption,
+    notepadPopoverTagText: {
+      fontSize: typography.body,
       color: colors.textMuted,
     },
-    notepadRoleTagTextSelected: {
+    notepadPopoverTagTextSelected: {
       color: colors.text,
-      fontWeight: typography.weights.semibold,
+      fontWeight: typography.weights.bold,
+    },
+    notepadPopoverClearBtn: {
+      minWidth: componentSizes.button.md,
+      minHeight: componentSizes.button.md,
+      borderRadius: borderRadius.medium,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    notepadPopoverClearText: {
+      fontSize: typography.body,
+      color: colors.error,
     },
     notepadNoteInput: {
       backgroundColor: colors.background,
