@@ -1,9 +1,9 @@
 /**
- * NotepadPanel - 笔记面板（全屏 NotepadModal 内嵌 2×6 网格）
+ * NotepadPanel - 笔记面板（全屏 NotepadModal 内嵌单列 12 行）
  *
- * 显示玩家卡片网格：每张卡片包含座位号（可点击选角色）+ 身份按钮 + 上警标签 + 笔记输入。
+ * 显示玩家卡片列表：每行包含座位号🎭（可点击选角色）+ 角色徽标 + 上警标签 + 笔记输入。
  * 点击座位号弹出角色选择气泡，选中后在座位号旁显示角色徽标。
- * 卡片背景色随身份标记变化（好人/坏人/存疑）。
+ * 卡片背景色随角色猜测自动变化（好人阵营/狼人阵营）。
  * 接收 notepad 状态和操作回调（来自 useNotepad），接收 styles prop。
  * 不直接调用 service / AsyncStorage / game-engine。
  */
@@ -23,25 +23,22 @@ import {
 } from 'react-native';
 
 import type { NotepadStyles } from './AIChatBubble.styles';
-import type { IdentityState, NotepadState, RoleTagInfo } from './useNotepad';
+import type { NotepadState, RoleTagInfo } from './useNotepad';
 
 // ── Constants ────────────────────────────────────────────
 
-const IDENTITY_EMOJI: Record<IdentityState, string> = { 0: '👤', 1: '👍', 2: '👎', 3: '❓' };
 const MIN_INPUT_HEIGHT = 22;
 
 // ── NotepadCard (独立组件，管理自身 TextInput 高度) ─────
 
 interface NotepadCardProps {
   seat: number;
-  identity: IdentityState;
   hand: boolean;
   selectedRoleId: RoleId | null;
   noteText: string;
   roleTags: readonly RoleTagInfo[];
   onNoteChange: (seat: number, text: string) => void;
   onToggleHand: (seat: number) => void;
-  onCycleIdentity: (seat: number) => void;
   onSeatPress: (seat: number) => void;
   styles: NotepadStyles;
 }
@@ -49,14 +46,12 @@ interface NotepadCardProps {
 const NotepadCard: React.FC<NotepadCardProps> = React.memo(
   ({
     seat,
-    identity,
     hand,
     selectedRoleId,
     noteText,
     roleTags,
     onNoteChange,
     onToggleHand,
-    onCycleIdentity,
     onSeatPress,
     styles,
   }) => {
@@ -74,18 +69,15 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
       ? (roleTags.find((t) => t.roleId === selectedRoleId) ?? null)
       : null;
 
-    const cardBgStyle =
-      identity === 1
-        ? styles.cardGood
-        : identity === 2
-          ? styles.cardBad
-          : identity === 3
-            ? styles.cardSuspect
-            : undefined;
+    const cardBgStyle = selectedTag
+      ? selectedTag.team === 'wolf'
+        ? styles.cardBad
+        : styles.cardGood
+      : undefined;
 
     return (
       <View style={[styles.card, cardBgStyle]}>
-        {/* Header: seat(+role badge) + identity + hand */}
+        {/* Seat(+role badge+chevron) + identity + hand */}
         <View style={styles.cardHeader}>
           <TouchableOpacity
             onPress={() => onSeatPress(seat)}
@@ -94,7 +86,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             activeOpacity={0.7}
           >
             <Text style={styles.seatNumber}>{seat}</Text>
-            {selectedTag && (
+            {selectedTag ? (
               <View
                 style={[
                   styles.roleBadge,
@@ -103,15 +95,9 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
               >
                 <Text style={styles.roleBadgeText}>{selectedTag.shortName}</Text>
               </View>
+            ) : (
+              <Text style={styles.seatPlaceholder}>🎭</Text>
             )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => onCycleIdentity(seat)}
-            style={styles.identityBtn}
-            hitSlop={6}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.identityBtnText}>{IDENTITY_EMOJI[identity]}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onToggleHand(seat)}
@@ -123,7 +109,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
           </TouchableOpacity>
         </View>
 
-        {/* Note input — auto-grow via onContentSizeChange */}
+        {/* Note input — fills remaining width, auto-grow */}
         <TextInput
           style={[styles.noteInput, { height: inputHeight }]}
           value={noteText}
@@ -204,7 +190,6 @@ interface NotepadPanelProps {
   roleTags: readonly RoleTagInfo[];
   onNoteChange: (seat: number, text: string) => void;
   onToggleHand: (seat: number) => void;
-  onCycleIdentity: (seat: number) => void;
   onSetRole: (seat: number, roleId: RoleId | null) => void;
   styles: NotepadStyles;
 }
@@ -223,7 +208,6 @@ export const NotepadPanel: React.FC<NotepadPanelProps> = ({
   roleTags,
   onNoteChange,
   onToggleHand,
-  onCycleIdentity,
   onSetRole,
   styles,
 }) => {
@@ -261,20 +245,18 @@ export const NotepadPanel: React.FC<NotepadPanelProps> = ({
       return (
         <NotepadCard
           seat={seat}
-          identity={state.identityStates[seat] ?? 0}
           hand={state.handStates[seat] ?? false}
           selectedRoleId={state.roleGuesses[seat] ?? null}
           noteText={state.playerNotes[seat] ?? ''}
           roleTags={roleTags}
           onNoteChange={onNoteChange}
           onToggleHand={onToggleHand}
-          onCycleIdentity={onCycleIdentity}
           onSeatPress={handleSeatPress}
           styles={styles}
         />
       );
     },
-    [state, onCycleIdentity, onToggleHand, handleSeatPress, onNoteChange, styles, roleTags],
+    [state, onToggleHand, handleSeatPress, onNoteChange, styles, roleTags],
   );
 
   const pickerSelectedRoleId = pickerSeat !== null ? (state.roleGuesses[pickerSeat] ?? null) : null;
@@ -283,10 +265,8 @@ export const NotepadPanel: React.FC<NotepadPanelProps> = ({
     <View style={styles.container}>
       <FlatList
         data={seats}
-        numColumns={2}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
-        columnWrapperStyle={styles.gridRow}
         contentContainerStyle={styles.listContent}
         style={styles.list}
         keyboardShouldPersistTaps="handled"

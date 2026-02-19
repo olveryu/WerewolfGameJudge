@@ -44,20 +44,17 @@ export interface NotepadStyles {
   container: ViewStyle;
   list: ViewStyle;
   listContent: ViewStyle;
-  gridRow: ViewStyle;
   card: ViewStyle;
   cardGood: ViewStyle;
   cardBad: ViewStyle;
-  cardSuspect: ViewStyle;
   cardHeader: ViewStyle;
   seatBtn: ViewStyle;
   seatNumber: TextStyle;
+  seatPlaceholder: TextStyle;
   roleBadge: ViewStyle;
   roleBadgeGood: ViewStyle;
   roleBadgeBad: ViewStyle;
   roleBadgeText: TextStyle;
-  identityBtn: ViewStyle;
-  identityBtnText: TextStyle;
   handTag: ViewStyle;
   handTagActive: ViewStyle;
   handTagText: TextStyle;
@@ -79,7 +76,6 @@ export interface NotepadStyles {
   legendDot: ViewStyle;
   legendDotGood: ViewStyle;
   legendDotBad: ViewStyle;
-  legendDotSuspect: ViewStyle;
   legendText: TextStyle;
 }
 
@@ -353,25 +349,21 @@ export const createStyles = (colors: ThemeColors) =>
       padding: spacing.tight,
       gap: spacing.tight,
     },
-    notepadGridRow: {
-      gap: spacing.tight,
-    },
     notepadCard: {
-      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
       ...shadows.sm,
-      padding: spacing.tight,
-      gap: 2,
+      paddingHorizontal: spacing.tight,
+      paddingVertical: spacing.tight,
+      gap: spacing.tight,
     },
     notepadCardGood: {
       backgroundColor: colors.success + '18',
     },
     notepadCardBad: {
       backgroundColor: colors.error + '18',
-    },
-    notepadCardSuspect: {
-      backgroundColor: colors.warning + '18',
     },
     notepadCardHeader: {
       flexDirection: 'row',
@@ -391,6 +383,10 @@ export const createStyles = (colors: ThemeColors) =>
       minWidth: componentSizes.icon.lg,
       textAlign: 'center',
     },
+    notepadSeatPlaceholder: {
+      fontSize: typography.secondary,
+      color: colors.textMuted,
+    },
     notepadRoleBadge: {
       paddingHorizontal: spacing.tight,
       paddingVertical: 1,
@@ -406,17 +402,6 @@ export const createStyles = (colors: ThemeColors) =>
       fontSize: typography.caption,
       fontWeight: typography.weights.semibold,
       color: colors.text,
-    },
-    notepadIdentityBtn: {
-      width: componentSizes.button.sm,
-      height: componentSizes.button.sm,
-      borderRadius: borderRadius.small,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.background,
-    },
-    notepadIdentityBtnText: {
-      fontSize: typography.body,
     },
     notepadHandTag: {
       marginLeft: 'auto',
@@ -499,6 +484,7 @@ export const createStyles = (colors: ThemeColors) =>
       color: colors.error,
     },
     notepadNoteInput: {
+      flex: 1,
       backgroundColor: colors.background,
       borderRadius: borderRadius.small,
       paddingHorizontal: spacing.small,
@@ -529,9 +515,6 @@ export const createStyles = (colors: ThemeColors) =>
     },
     notepadLegendDotBad: {
       backgroundColor: colors.error,
-    },
-    notepadLegendDotSuspect: {
-      backgroundColor: colors.warning,
     },
     notepadLegendText: {
       fontSize: typography.caption,
