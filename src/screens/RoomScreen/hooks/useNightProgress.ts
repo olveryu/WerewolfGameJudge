@@ -1,20 +1,17 @@
 /**
- * useNightProgress.ts - Night progress indicator + speak order auto-dialog
+ * useNightProgress.ts - Night progress indicator
  *
- * Computes nightProgress derived state (current step / total / role name),
- * auto-shows speak order dialog when night ends (Host-only, one-shot), and resets
- * speak order flag when game restarts. Does not import services directly, does not
- * contain action processing / policy logic, does not render UI or hold JSX, and
- * does not own any gate state (gates are in useActionOrchestrator).
+ * Computes nightProgress derived state (current step / total / role name).
+ * Does not import services directly, does not contain action processing / policy logic,
+ * does not render UI or hold JSX, and does not own any gate state
+ * (gates are in useActionOrchestrator).
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { roomScreenLog } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -34,16 +31,6 @@ interface UseNightProgressParams {
   currentStepId: SchemaId | null;
   /** Game state (for status + template.roles to build night plan) */
   gameState: LocalGameState | null;
-  /** Current room status */
-  roomStatus: GameStatus;
-  /** Whether this device is the Host */
-  isHost: boolean;
-  /** Whether audio is currently playing (gate for speak order dialog) */
-  isAudioPlaying: boolean;
-  /** Whether a reveal dialog is pending (gate for speak order dialog) */
-  pendingRevealDialog: boolean;
-  /** Callback to show the speak order dialog (from useRoomHostDialogs) */
-  showSpeakOrderDialog: () => void;
 }
 
 interface UseNightProgressResult {
@@ -58,11 +45,6 @@ interface UseNightProgressResult {
 export function useNightProgress({
   currentStepId,
   gameState,
-  roomStatus,
-  isHost,
-  isAudioPlaying,
-  pendingRevealDialog,
-  showSpeakOrderDialog,
 }: UseNightProgressParams): UseNightProgressResult {
   // ─── Night progress derived state ────────────────────────────────────────
 
@@ -85,35 +67,6 @@ export function useNightProgress({
       roleName: currentStep?.displayName,
     };
   }, [currentStepId, gameState]);
-
-  // ─── Speak order dialog auto-show (Host-only, one-shot) ──────────────────
-
-  const hasShownSpeakOrderRef = useRef(false);
-
-  useEffect(() => {
-    // Only show once per game, only for host, only when game ended and audio finished
-    // P0-FIX: 等待查验结果弹窗关闭后再显示发言顺序弹窗
-    if (
-      !isHost ||
-      roomStatus !== GameStatus.ended ||
-      isAudioPlaying ||
-      pendingRevealDialog ||
-      hasShownSpeakOrderRef.current
-    )
-      return;
-
-    hasShownSpeakOrderRef.current = true;
-    roomScreenLog.debug('[useNightProgress] Auto-showing speak order dialog (night ended)');
-    showSpeakOrderDialog();
-  }, [isHost, roomStatus, isAudioPlaying, pendingRevealDialog, showSpeakOrderDialog]);
-
-  // Reset speak order flag when game restarts
-  useEffect(() => {
-    if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
-      roomScreenLog.debug('[useNightProgress] Resetting speak order flag', { roomStatus });
-      hasShownSpeakOrderRef.current = false;
-    }
-  }, [roomStatus]);
 
   return { nightProgress };
 }

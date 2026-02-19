@@ -77,7 +77,7 @@ test.describe('Night Verification', () => {
       // Verify the death message mentions the correct seat number (1-based display)
       const expectedSeatDisplay = villagerSeat + 1; // 0-based → 1-based
 
-      // Navigate through speak order dialog → view last night info
+      // View last night info
       await viewLastNightInfo(hostPage);
       const infoText = await readAlertText(hostPage);
       const deathVisible = infoText.includes(`${expectedSeatDisplay}号`);
