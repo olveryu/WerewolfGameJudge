@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.243] - 2026-02-19
+
+- style(services): compact notepad card layout for one-screen fit
+
 ## [1.0.242] - 2026-02-19
 
 - feat(services): redesign notepad to 2x6 grid with role tags and identity cards
