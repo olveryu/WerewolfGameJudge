@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.240] - 2026-02-18
+
+- feat(services): add in-game notepad with persistence and full-screen modal
+- feat(room): replace speak order dialog with inline text for all players
+
 ## [1.0.239] - 2026-02-18
 
 - fix(tarot): prevent drawn card overlay from blocking wheel card taps
