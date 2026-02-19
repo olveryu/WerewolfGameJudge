@@ -376,22 +376,24 @@ export const createStyles = (colors: ThemeColors) =>
       textAlign: 'center',
     },
     notepadIdentityBtn: {
-      width: componentSizes.icon.lg,
-      height: componentSizes.icon.lg,
+      width: componentSizes.button.sm,
+      height: componentSizes.button.sm,
       borderRadius: borderRadius.small,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: colors.background,
     },
     notepadIdentityBtnText: {
-      fontSize: typography.secondary,
+      fontSize: typography.body,
     },
     notepadHandTag: {
       marginLeft: 'auto',
+      minHeight: componentSizes.button.sm,
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.tight,
       borderRadius: borderRadius.small,
       backgroundColor: colors.background,
+      justifyContent: 'center',
     },
     notepadHandTagActive: {
       backgroundColor: colors.primary + '30',
@@ -407,11 +409,11 @@ export const createStyles = (colors: ThemeColors) =>
     notepadRoleTagRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 2,
+      gap: spacing.tight,
     },
     notepadRoleTag: {
-      paddingHorizontal: spacing.tight,
-      paddingVertical: 2,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
       borderRadius: borderRadius.small,
       backgroundColor: colors.background,
     },

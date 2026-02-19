@@ -54,6 +54,7 @@ export const AIChatBubble: React.FC = () => {
 
   const chat = useAIChat();
   const facade = useGameFacade();
+  const isInRoom = facade.getState() !== null;
   const notepad = useNotepad(facade);
 
   // ── Pulse animation after roles are assigned ────────
@@ -214,13 +215,15 @@ export const AIChatBubble: React.FC = () => {
             <View style={styles.chatHeader}>
               <Text style={styles.chatTitle}>🐺 狼人杀助手</Text>
               <View style={styles.headerButtons}>
-                <TouchableOpacity
-                  onPress={() => setNotepadOpen(true)}
-                  style={styles.notepadEntryBtn}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.notepadEntryBtnText}>📝 笔记</Text>
-                </TouchableOpacity>
+                {isInRoom && (
+                  <TouchableOpacity
+                    onPress={() => setNotepadOpen(true)}
+                    style={styles.notepadEntryBtn}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.notepadEntryBtnText}>📝 笔记</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={chat.handleClearHistory} style={styles.headerBtn}>
                   <Text style={styles.headerBtnText}>🗑️</Text>
                 </TouchableOpacity>
@@ -333,13 +336,15 @@ export const AIChatBubble: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Full-screen notepad */}
-      <NotepadModal
-        visible={notepadOpen}
-        onClose={() => setNotepadOpen(false)}
-        notepad={notepad}
-        styles={styles}
-      />
+      {/* Full-screen notepad (only when in room) */}
+      {isInRoom && (
+        <NotepadModal
+          visible={notepadOpen}
+          onClose={() => setNotepadOpen(false)}
+          notepad={notepad}
+          styles={styles}
+        />
+      )}
     </>
   );
 };

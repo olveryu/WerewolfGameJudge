@@ -85,6 +85,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
           <TouchableOpacity
             onPress={() => onCycleIdentity(seat)}
             style={styles.identityBtn}
+            hitSlop={6}
             activeOpacity={0.7}
           >
             <Text style={styles.identityBtnText}>{IDENTITY_EMOJI[identity]}</Text>
@@ -92,6 +93,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
           <TouchableOpacity
             onPress={() => onToggleHand(seat)}
             style={[styles.handTag, hand && styles.handTagActive]}
+            hitSlop={6}
             activeOpacity={0.7}
           >
             <Text style={[styles.handTagText, hand && styles.handTagTextActive]}>上警</Text>
@@ -111,6 +113,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
                   styles.roleTag,
                   isSelected && (isGood ? styles.roleTagSelectedGood : styles.roleTagSelectedBad),
                 ]}
+                hitSlop={2}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.roleTagText, isSelected && styles.roleTagTextSelected]}>
