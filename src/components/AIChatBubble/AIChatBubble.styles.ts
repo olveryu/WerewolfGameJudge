@@ -43,15 +43,34 @@ export interface DisplayMessage {
 export interface NotepadStyles {
   container: ViewStyle;
   list: ViewStyle;
-  playerRow: ViewStyle;
-  playerLabel: TextStyle;
-  tagBtn: ViewStyle;
-  tagBtnActive: ViewStyle;
-  tagBtnBad: ViewStyle;
-  tagBtnWithdrawn: ViewStyle;
-  tagBtnText: TextStyle;
-  tagBtnTextInactive: TextStyle;
-  playerInput: TextStyle;
+  listContent: ViewStyle;
+  gridRow: ViewStyle;
+  card: ViewStyle;
+  cardGood: ViewStyle;
+  cardBad: ViewStyle;
+  cardSuspect: ViewStyle;
+  cardHeader: ViewStyle;
+  seatNumber: TextStyle;
+  identityBtn: ViewStyle;
+  identityBtnText: TextStyle;
+  handTag: ViewStyle;
+  handTagActive: ViewStyle;
+  handTagText: TextStyle;
+  handTagTextActive: TextStyle;
+  roleTagRow: ViewStyle;
+  roleTag: ViewStyle;
+  roleTagSelectedGood: ViewStyle;
+  roleTagSelectedBad: ViewStyle;
+  roleTagText: TextStyle;
+  roleTagTextSelected: TextStyle;
+  noteInput: TextStyle;
+  legend: ViewStyle;
+  legendItem: ViewStyle;
+  legendDot: ViewStyle;
+  legendDotGood: ViewStyle;
+  legendDotBad: ViewStyle;
+  legendDotSuspect: ViewStyle;
+  legendText: TextStyle;
 }
 
 // ── StyleSheet ───────────────────────────────────────────
@@ -320,54 +339,135 @@ export const createStyles = (colors: ThemeColors) =>
     notepadList: {
       flex: 1,
     },
-    notepadPlayerRow: {
+    notepadListContent: {
+      padding: spacing.small,
+      gap: spacing.small,
+    },
+    notepadGridRow: {
+      gap: spacing.small,
+    },
+    notepadCard: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      ...shadows.sm,
+      padding: spacing.small,
+      gap: spacing.tight,
+    },
+    notepadCardGood: {
+      backgroundColor: colors.success + '18',
+    },
+    notepadCardBad: {
+      backgroundColor: colors.error + '18',
+    },
+    notepadCardSuspect: {
+      backgroundColor: colors.warning + '18',
+    },
+    notepadCardHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.tight,
       gap: spacing.tight,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
     },
-    notepadPlayerLabel: {
-      width: componentSizes.icon.lg,
-      fontSize: typography.secondary,
+    notepadSeatNumber: {
+      fontSize: typography.body,
       fontWeight: typography.weights.bold,
-      color: colors.textSecondary,
+      color: colors.text,
+      width: componentSizes.icon.lg,
       textAlign: 'center',
     },
-    notepadTagBtn: {
+    notepadIdentityBtn: {
       width: componentSizes.button.sm,
       height: componentSizes.button.sm,
       borderRadius: borderRadius.small,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
     },
-    notepadTagBtnActive: {
-      backgroundColor: colors.primary + '30',
-    },
-    notepadTagBtnBad: {
-      backgroundColor: colors.error + '30',
-    },
-    notepadTagBtnWithdrawn: {
-      backgroundColor: colors.textMuted + '30',
-    },
-    notepadTagBtnText: {
+    notepadIdentityBtnText: {
       fontSize: typography.subtitle,
     },
-    notepadTagBtnTextInactive: {
-      opacity: 0.4,
+    notepadHandTag: {
+      marginLeft: 'auto',
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
+      borderRadius: borderRadius.small,
+      backgroundColor: colors.background,
     },
-    notepadPlayerInput: {
-      flex: 1,
+    notepadHandTagActive: {
+      backgroundColor: colors.primary + '30',
+    },
+    notepadHandTagText: {
+      fontSize: typography.caption,
+      color: colors.textMuted,
+    },
+    notepadHandTagTextActive: {
+      color: colors.primary,
+      fontWeight: typography.weights.semibold,
+    },
+    notepadRoleTagRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.tight,
+    },
+    notepadRoleTag: {
+      paddingHorizontal: spacing.tight,
+      paddingVertical: spacing.tight,
+      borderRadius: borderRadius.small,
+      backgroundColor: colors.background,
+    },
+    notepadRoleTagSelectedGood: {
+      backgroundColor: colors.villager + '30',
+    },
+    notepadRoleTagSelectedBad: {
+      backgroundColor: colors.wolf + '30',
+    },
+    notepadRoleTagText: {
+      fontSize: typography.caption,
+      color: colors.textMuted,
+    },
+    notepadRoleTagTextSelected: {
+      color: colors.text,
+      fontWeight: typography.weights.semibold,
+    },
+    notepadNoteInput: {
       minHeight: componentSizes.button.sm,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
       borderRadius: borderRadius.small,
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.tight,
       fontSize: typography.body, // ≥ 16px — prevents iOS Safari auto-zoom
       color: colors.text,
+    },
+    notepadLegend: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.medium,
+      paddingVertical: spacing.small,
+      borderTopWidth: fixed.borderWidth,
+      borderTopColor: colors.border,
+    },
+    notepadLegendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
+    },
+    notepadLegendDot: {
+      width: spacing.small,
+      height: spacing.small,
+      borderRadius: borderRadius.full,
+    },
+    notepadLegendDotGood: {
+      backgroundColor: colors.success,
+    },
+    notepadLegendDotBad: {
+      backgroundColor: colors.error,
+    },
+    notepadLegendDotSuspect: {
+      backgroundColor: colors.warning,
+    },
+    notepadLegendText: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
     },
   });
 

@@ -1,8 +1,8 @@
 /**
  * useNotepad - 笔记本状态管理 hook
  *
- * 管理玩家笔记（文本 + 上警/身份标记），通过 AsyncStorage 持久化。
- * 提供 cycleHand / cycleIdentity / setNote / clearAll 操作。
+ * 管理玩家笔记（文本 + 上警/身份/角色猜测标记），通过 AsyncStorage 持久化。
+ * 提供 toggleHand / cycleIdentity / setNote / setRole / clearAll 操作。
  * 纯客户端状态，不涉及服务端 API 或 game-engine 逻辑。
  */
 
@@ -14,35 +14,42 @@ import { chatLog } from '@/utils/logger';
 
 // ── Types ────────────────────────────────────────────────
 
-/** 上警状态：0=未标记, 1=上警, 2=退水 */
-export type HandState = 0 | 1 | 2;
-
-/** 身份标记：0=未标记(👤), 1=好人(👍), 2=坏人(👎), 3=存疑(❓) */
+/** 身份标记：0=未标记, 1=好人, 2=坏人, 3=存疑 */
 export type IdentityState = 0 | 1 | 2 | 3;
+
+/** 可选角色猜测标签 */
+export const ROLE_TAGS = ['预', '女', '猎', '守', '骑', '白', '狼', '石', '隐'] as const;
+export type RoleTag = (typeof ROLE_TAGS)[number];
+
+/** 好人阵营角色 */
+export const GOOD_ROLES: readonly RoleTag[] = ['预', '女', '猎', '守', '骑', '白'];
+/** 狼人阵营角色 */
+export const WOLF_ROLES: readonly RoleTag[] = ['狼', '石', '隐'];
 
 export interface NotepadState {
   playerNotes: Record<number, string>;
-  handStates: Record<number, HandState>;
+  handStates: Record<number, boolean>;
   identityStates: Record<number, IdentityState>;
+  roleGuesses: Record<number, RoleTag | null>;
 }
 
 export interface UseNotepadReturn {
   state: NotepadState;
   playerCount: number;
   setNote: (seat: number, text: string) => void;
-  cycleHand: (seat: number) => void;
+  toggleHand: (seat: number) => void;
   cycleIdentity: (seat: number) => void;
+  setRole: (seat: number, role: RoleTag | null) => void;
   clearAll: () => void;
 }
 
 // ── Constants ────────────────────────────────────────────
 
 const STORAGE_KEY_PREFIX = '@notepad:';
-const HAND_COUNT = 3; // 0→1→2→0
 const IDENTITY_COUNT = 4; // 0→1→2→3→0
 
 function emptyState(): NotepadState {
-  return { playerNotes: {}, handStates: {}, identityStates: {} };
+  return { playerNotes: {}, handStates: {}, identityStates: {}, roleGuesses: {} };
 }
 
 function getStorageKey(roomCode: string | null): string | null {
@@ -119,12 +126,11 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     [persistState],
   );
 
-  const cycleHand = useCallback(
+  const toggleHand = useCallback(
     (seat: number) => {
       setState((prev) => {
-        const current = prev.handStates[seat] ?? 0;
-        const next: HandState = ((current + 1) % HAND_COUNT) as HandState;
-        const newState = { ...prev, handStates: { ...prev.handStates, [seat]: next } };
+        const current = prev.handStates[seat] ?? false;
+        const newState = { ...prev, handStates: { ...prev.handStates, [seat]: !current } };
         persistState(newState);
         return newState;
       });
@@ -145,6 +151,19 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     [persistState],
   );
 
+  const setRole = useCallback(
+    (seat: number, role: RoleTag | null) => {
+      setState((prev) => {
+        const currentRole = prev.roleGuesses[seat] ?? null;
+        const newRole = currentRole === role ? null : role;
+        const newState = { ...prev, roleGuesses: { ...prev.roleGuesses, [seat]: newRole } };
+        persistState(newState);
+        return newState;
+      });
+    },
+    [persistState],
+  );
+
   const clearAll = useCallback(() => {
     const cleared = emptyState();
     setState(cleared);
@@ -155,5 +174,5 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     }
   }, [storageKey]);
 
-  return { state, playerCount, setNote, cycleHand, cycleIdentity, clearAll };
+  return { state, playerCount, setNote, toggleHand, cycleIdentity, setRole, clearAll };
 }
