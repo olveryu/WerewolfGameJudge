@@ -86,18 +86,17 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             activeOpacity={0.7}
           >
             <Text style={styles.seatNumber}>{seat}</Text>
-            {selectedTag ? (
-              <View
-                style={[
-                  styles.roleBadge,
-                  selectedTag.team === 'wolf' ? styles.roleBadgeBad : styles.roleBadgeGood,
-                ]}
-              >
-                <Text style={styles.roleBadgeText}>{selectedTag.shortName}</Text>
-              </View>
-            ) : (
-              <Text style={styles.seatPlaceholder}>🎭</Text>
-            )}
+            <View
+              style={[
+                styles.roleBadge,
+                selectedTag &&
+                  (selectedTag.team === 'wolf' ? styles.roleBadgeBad : styles.roleBadgeGood),
+              ]}
+            >
+              <Text style={selectedTag ? styles.roleBadgeText : styles.seatPlaceholder}>
+                {selectedTag ? selectedTag.shortName : '🎭'}
+              </Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onToggleHand(seat)}
