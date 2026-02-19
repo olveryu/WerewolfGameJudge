@@ -55,6 +55,8 @@ export interface NotepadStyles {
   roleBadgeGood: ViewStyle;
   roleBadgeBad: ViewStyle;
   roleBadgeText: TextStyle;
+  roleBadgeTextGood: TextStyle;
+  roleBadgeTextBad: TextStyle;
   handTag: ViewStyle;
   handTagActive: ViewStyle;
   handTagText: TextStyle;
@@ -405,6 +407,12 @@ export const createStyles = (colors: ThemeColors) =>
       fontSize: typography.caption,
       fontWeight: typography.weights.semibold,
       color: colors.text,
+    },
+    notepadRoleBadgeTextGood: {
+      color: colors.villager,
+    },
+    notepadRoleBadgeTextBad: {
+      color: colors.wolf,
     },
     notepadHandTag: {
       marginLeft: 'auto',

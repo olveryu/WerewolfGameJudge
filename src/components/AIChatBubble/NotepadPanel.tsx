@@ -93,7 +93,15 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
                   (selectedTag.team === 'wolf' ? styles.roleBadgeBad : styles.roleBadgeGood),
               ]}
             >
-              <Text style={selectedTag ? styles.roleBadgeText : styles.seatPlaceholder}>
+              <Text
+                style={[
+                  selectedTag ? styles.roleBadgeText : styles.seatPlaceholder,
+                  selectedTag &&
+                    (selectedTag.team === 'wolf'
+                      ? styles.roleBadgeTextBad
+                      : styles.roleBadgeTextGood),
+                ]}
+              >
                 {selectedTag ? selectedTag.shortName : '🎭'}
               </Text>
             </View>
