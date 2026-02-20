@@ -31,7 +31,7 @@ import type { DebugModeState } from './useDebugMode';
  */
 function notifyIfFailed(result: { success: boolean; reason?: string }, actionLabel: string): void {
   if (result.success) return;
-  showAlert(`${actionLabel}失败`, '请稍后重试');
+  showAlert(`${actionLabel}失败`, result.reason ?? '请稍后重试');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
