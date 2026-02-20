@@ -23,8 +23,8 @@ const TEMPLATE_NAME = '标准板12人';
 const CUSTOM_ROLES: RoleId[] = [
   'magician',
   'slacker',
-  'nightmare',
-  'dreamcatcher',
+  'pureWhite',
+  'wolfWitch',
   'guard',
   'wolf',
   'wolf',
@@ -40,7 +40,7 @@ describe('Night-1: step-level coverage (12p)', () => {
     cleanupHostGame();
   });
 
-  it('should reach slackerChooseIdol / gargoyleCheck / psychicCheck steps', () => {
+  it('should reach slackerChooseIdol / wolfWitchCheck / gargoyleCheck / pureWhiteCheck / psychicCheck steps', () => {
     const ctx = createHostGame(CUSTOM_ROLES);
 
     // Theme assertion (not just deaths): include a real BroadcastGameState field assertion.
@@ -56,11 +56,25 @@ describe('Night-1: step-level coverage (12p)', () => {
     ctx.assertStep('slackerChooseIdol');
 
     expect(
+      executeStepsUntil(ctx, 'wolfWitchCheck', {
+        slacker: 0,
+      }),
+    ).toBe(true);
+    ctx.assertStep('wolfWitchCheck');
+
+    expect(
       executeStepsUntil(ctx, 'gargoyleCheck', {
         slacker: 0,
       }),
     ).toBe(true);
     ctx.assertStep('gargoyleCheck');
+
+    expect(
+      executeStepsUntil(ctx, 'pureWhiteCheck', {
+        slacker: 0,
+      }),
+    ).toBe(true);
+    ctx.assertStep('pureWhiteCheck');
 
     expect(
       executeStepsUntil(ctx, 'psychicCheck', {

@@ -168,6 +168,18 @@ export interface BroadcastGameState {
     result: string;
   };
 
+  /** PureWhite reveal result - only display to pureWhite via UI filter */
+  pureWhiteReveal?: {
+    targetSeat: number;
+    result: string;
+  };
+
+  /** WolfWitch reveal result - only display to wolfWitch via UI filter */
+  wolfWitchReveal?: {
+    targetSeat: number;
+    result: string;
+  };
+
   /**
    * 机械狼学习结果（公开广播的“事实结果”）
    *

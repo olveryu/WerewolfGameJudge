@@ -150,6 +150,16 @@ export const ROLE_SPECS = {
     night1: { hasAction: false },
   },
 
+  pureWhite: {
+    id: 'pureWhite',
+    displayName: '纯白之女',
+    shortName: '纯',
+    faction: Faction.God,
+    team: 'good',
+    description: '每晚可以查验一名玩家的具体身份。从第二夜起，查验到狼人则该狼人被查验出局',
+    night1: { hasAction: true },
+  },
+
   // ===================================================================
   // WOLF FACTION
   // ===================================================================
@@ -251,6 +261,18 @@ export const ROLE_SPECS = {
     night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
+  },
+
+  wolfWitch: {
+    id: 'wolfWitch',
+    displayName: '狼巫',
+    shortName: '巫',
+    faction: Faction.Wolf,
+    team: 'wolf',
+    description:
+      '每晚可以查验场上除狼人阵营外一名玩家的具体身份。从第二夜起，验到纯白之女则纯白之女被查验出局',
+    night1: { hasAction: true },
+    wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
   },
 
   spiritKnight: {

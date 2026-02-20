@@ -94,6 +94,21 @@ export const SCHEMAS = {
     },
   },
 
+  pureWhiteCheck: {
+    id: 'pureWhiteCheck',
+    displayName: '查验',
+    kind: 'chooseSeat',
+    constraints: [], // Can check self (neutral judge)
+    canSkip: true,
+    ui: {
+      confirmTitle: '确认查验',
+      prompt: '请选择要查验的玩家，如不使用请点击「不使用技能」',
+      confirmText: '确定要查验该玩家吗？',
+      revealKind: 'pureWhite',
+      bottomActionText: '不使用技能',
+    },
+  },
+
   dreamcatcherDream: {
     id: 'dreamcatcherDream',
     displayName: '摄梦',
@@ -201,6 +216,21 @@ export const SCHEMAS = {
       prompt: '请选择要查验的玩家，如不使用请点击「不使用技能」',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'gargoyle',
+      bottomActionText: '不使用技能',
+    },
+  },
+
+  wolfWitchCheck: {
+    id: 'wolfWitchCheck',
+    displayName: '查验',
+    kind: 'chooseSeat',
+    constraints: ['notWolfFaction'], // Cannot check wolf-faction players
+    canSkip: true,
+    ui: {
+      confirmTitle: '确认查验',
+      prompt: '请选择要查验的非狼人阵营玩家，如不使用请点击「不使用技能」',
+      confirmText: '确定要查验该玩家吗？',
+      revealKind: 'wolfWitch',
       bottomActionText: '不使用技能',
     },
   },

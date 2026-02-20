@@ -117,6 +117,8 @@ export interface ApplyResolverResultAction {
     seerReveal?: { targetSeat: number; result: '好人' | '狼人' };
     psychicReveal?: { targetSeat: number; result: string };
     gargoyleReveal?: { targetSeat: number; result: string };
+    pureWhiteReveal?: { targetSeat: number; result: string };
+    wolfWitchReveal?: { targetSeat: number; result: string };
     wolfRobotReveal?: {
       targetSeat: number;
       result: string;

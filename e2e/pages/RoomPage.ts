@@ -163,6 +163,8 @@ export class RoomPage {
       '通灵师',
       '摄梦人',
       '守墓人',
+      '纯白之女',
+      '狼巫',
     ];
 
     const viewBtn = this.page.getByText('查看身份', { exact: true });

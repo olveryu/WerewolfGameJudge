@@ -83,6 +83,7 @@ const schemaToRole: Record<string, string> = {
   seerCheck: 'seer',
   guardProtect: 'guard',
   psychicCheck: 'psychic',
+  pureWhiteCheck: 'pureWhite',
   dreamcatcherDream: 'dreamcatcher',
   magicianSwap: 'magician',
   hunterConfirm: 'hunter',
@@ -93,6 +94,7 @@ const schemaToRole: Record<string, string> = {
   wolfQueenCharm: 'wolfQueen',
   nightmareBlock: 'nightmare',
   gargoyleCheck: 'gargoyle',
+  wolfWitchCheck: 'wolfWitch',
   wolfRobotLearn: 'wolfRobot',
   darkWolfKingConfirm: 'darkWolfKing',
 
