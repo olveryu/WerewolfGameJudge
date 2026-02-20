@@ -3,12 +3,13 @@
  *
  * 显示玩家卡片列表：每行包含座位号🎭（可点击选角色）+ 角色徽标 + 上警标签 + 笔记输入。
  * 点击座位号弹出角色选择气泡，选中后在座位号旁显示角色徽标。
- * 卡片背景色随角色猜测自动变化（好人阵营/狼人阵营）。
+ * 卡片背景色随角色猜测自动变化（狼人/神职/平民/第三方 4 色区分）。
  * 接收 notepad 状态和操作回调（来自 useNotepad），接收 styles prop。
  * 不直接调用 service / AsyncStorage / game-engine。
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { useCallback, useState } from 'react';
 import {
   FlatList,
@@ -28,6 +29,20 @@ import type { NotepadState, RoleTagInfo } from './useNotepad';
 // ── Constants ────────────────────────────────────────────
 
 const MIN_INPUT_HEIGHT = 22;
+
+/** Map Faction to the corresponding style key suffix for 4-faction coloring */
+function getFactionStyleKey(faction: Faction): 'Wolf' | 'God' | 'Villager' | 'Third' {
+  switch (faction) {
+    case 'wolf':
+      return 'Wolf';
+    case 'god':
+      return 'God';
+    case 'villager':
+      return 'Villager';
+    default:
+      return 'Third';
+  }
+}
 
 // ── NotepadCard (独立组件，管理自身 TextInput 高度) ─────
 
@@ -69,11 +84,8 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
       ? (roleTags.find((t) => t.roleId === selectedRoleId) ?? null)
       : null;
 
-    const cardBgStyle = selectedTag
-      ? selectedTag.team === 'wolf'
-        ? styles.cardBad
-        : styles.cardGood
-      : undefined;
+    const factionKey = selectedTag ? getFactionStyleKey(selectedTag.faction) : null;
+    const cardBgStyle = factionKey ? styles[`card${factionKey}` as keyof NotepadStyles] : undefined;
 
     return (
       <View style={[styles.card, cardBgStyle]}>
@@ -89,17 +101,13 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             <View
               style={[
                 styles.roleBadge,
-                selectedTag &&
-                  (selectedTag.team === 'wolf' ? styles.roleBadgeBad : styles.roleBadgeGood),
+                factionKey && styles[`roleBadge${factionKey}` as keyof NotepadStyles],
               ]}
             >
               <Text
                 style={[
                   selectedTag ? styles.roleBadgeText : styles.seatPlaceholder,
-                  selectedTag &&
-                    (selectedTag.team === 'wolf'
-                      ? styles.roleBadgeTextBad
-                      : styles.roleBadgeTextGood),
+                  factionKey && styles[`roleBadgeText${factionKey}` as keyof NotepadStyles],
                 ]}
               >
                 {selectedTag ? selectedTag.shortName : '🎭'}
@@ -152,23 +160,21 @@ const RolePickerModal: React.FC<RolePickerModalProps> = React.memo(
             <View style={styles.popoverGrid}>
               {roleTags.map((tag) => {
                 const isSelected = selectedRoleId === tag.roleId;
-                const isGood = tag.team !== 'wolf';
+                const fKey = getFactionStyleKey(tag.faction);
                 return (
                   <TouchableOpacity
                     key={tag.roleId}
                     onPress={() => onSelect(seat, tag.roleId)}
                     style={[
                       styles.popoverTag,
-                      isSelected &&
-                        (isGood ? styles.popoverTagSelectedGood : styles.popoverTagSelectedBad),
+                      isSelected && styles[`popoverTagSelected${fKey}` as keyof NotepadStyles],
                     ]}
                     activeOpacity={0.7}
                   >
                     <Text
                       style={[
                         styles.popoverTagText,
-                        !isSelected &&
-                          (isGood ? styles.popoverTagTextGood : styles.popoverTagTextBad),
+                        !isSelected && styles[`popoverTagText${fKey}` as keyof NotepadStyles],
                         isSelected && styles.popoverTagTextSelected,
                       ]}
                     >

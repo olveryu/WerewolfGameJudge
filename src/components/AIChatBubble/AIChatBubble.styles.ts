@@ -45,18 +45,24 @@ export interface NotepadStyles {
   list: ViewStyle;
   listContent: ViewStyle;
   card: ViewStyle;
-  cardGood: ViewStyle;
-  cardBad: ViewStyle;
+  cardWolf: ViewStyle;
+  cardGod: ViewStyle;
+  cardVillager: ViewStyle;
+  cardThird: ViewStyle;
   cardHeader: ViewStyle;
   seatBtn: ViewStyle;
   seatNumber: TextStyle;
   seatPlaceholder: TextStyle;
   roleBadge: ViewStyle;
-  roleBadgeGood: ViewStyle;
-  roleBadgeBad: ViewStyle;
+  roleBadgeWolf: ViewStyle;
+  roleBadgeGod: ViewStyle;
+  roleBadgeVillager: ViewStyle;
+  roleBadgeThird: ViewStyle;
   roleBadgeText: TextStyle;
-  roleBadgeTextGood: TextStyle;
-  roleBadgeTextBad: TextStyle;
+  roleBadgeTextWolf: TextStyle;
+  roleBadgeTextGod: TextStyle;
+  roleBadgeTextVillager: TextStyle;
+  roleBadgeTextThird: TextStyle;
   handTag: ViewStyle;
   handTagActive: ViewStyle;
   handTagText: TextStyle;
@@ -67,19 +73,25 @@ export interface NotepadStyles {
   popoverTitle: TextStyle;
   popoverGrid: ViewStyle;
   popoverTag: ViewStyle;
-  popoverTagSelectedGood: ViewStyle;
-  popoverTagSelectedBad: ViewStyle;
+  popoverTagSelectedWolf: ViewStyle;
+  popoverTagSelectedGod: ViewStyle;
+  popoverTagSelectedVillager: ViewStyle;
+  popoverTagSelectedThird: ViewStyle;
   popoverTagText: TextStyle;
-  popoverTagTextGood: TextStyle;
-  popoverTagTextBad: TextStyle;
+  popoverTagTextWolf: TextStyle;
+  popoverTagTextGod: TextStyle;
+  popoverTagTextVillager: TextStyle;
+  popoverTagTextThird: TextStyle;
   popoverTagTextSelected: TextStyle;
   popoverClearBtn: ViewStyle;
   popoverClearText: TextStyle;
   legend: ViewStyle;
   legendItem: ViewStyle;
   legendDot: ViewStyle;
-  legendDotGood: ViewStyle;
-  legendDotBad: ViewStyle;
+  legendDotWolf: ViewStyle;
+  legendDotGod: ViewStyle;
+  legendDotVillager: ViewStyle;
+  legendDotThird: ViewStyle;
   legendText: TextStyle;
 }
 
@@ -363,11 +375,17 @@ export const createStyles = (colors: ThemeColors) =>
       paddingVertical: spacing.tight,
       gap: spacing.tight,
     },
-    notepadCardGood: {
-      backgroundColor: colors.success + '18',
+    notepadCardWolf: {
+      backgroundColor: colors.wolf + '18',
     },
-    notepadCardBad: {
-      backgroundColor: colors.error + '18',
+    notepadCardGod: {
+      backgroundColor: colors.god + '18',
+    },
+    notepadCardVillager: {
+      backgroundColor: colors.villager + '18',
+    },
+    notepadCardThird: {
+      backgroundColor: colors.third + '18',
     },
     notepadCardHeader: {
       flexDirection: 'row',
@@ -399,22 +417,34 @@ export const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    notepadRoleBadgeGood: {
+    notepadRoleBadgeWolf: {
+      backgroundColor: colors.wolf + '30',
+    },
+    notepadRoleBadgeGod: {
+      backgroundColor: colors.god + '30',
+    },
+    notepadRoleBadgeVillager: {
       backgroundColor: colors.villager + '30',
     },
-    notepadRoleBadgeBad: {
-      backgroundColor: colors.wolf + '30',
+    notepadRoleBadgeThird: {
+      backgroundColor: colors.third + '30',
     },
     notepadRoleBadgeText: {
       fontSize: typography.caption,
       fontWeight: typography.weights.semibold,
       color: colors.text,
     },
-    notepadRoleBadgeTextGood: {
+    notepadRoleBadgeTextWolf: {
+      color: colors.wolf,
+    },
+    notepadRoleBadgeTextGod: {
+      color: colors.god,
+    },
+    notepadRoleBadgeTextVillager: {
       color: colors.villager,
     },
-    notepadRoleBadgeTextBad: {
-      color: colors.wolf,
+    notepadRoleBadgeTextThird: {
+      color: colors.third,
     },
     notepadHandTag: {
       marginLeft: 'auto',
@@ -470,21 +500,33 @@ export const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    notepadPopoverTagSelectedGood: {
+    notepadPopoverTagSelectedWolf: {
+      backgroundColor: colors.wolf + '30',
+    },
+    notepadPopoverTagSelectedGod: {
+      backgroundColor: colors.god + '30',
+    },
+    notepadPopoverTagSelectedVillager: {
       backgroundColor: colors.villager + '30',
     },
-    notepadPopoverTagSelectedBad: {
-      backgroundColor: colors.wolf + '30',
+    notepadPopoverTagSelectedThird: {
+      backgroundColor: colors.third + '30',
     },
     notepadPopoverTagText: {
       fontSize: typography.body,
       color: colors.textMuted,
     },
-    notepadPopoverTagTextGood: {
+    notepadPopoverTagTextWolf: {
+      color: colors.wolf,
+    },
+    notepadPopoverTagTextGod: {
+      color: colors.god,
+    },
+    notepadPopoverTagTextVillager: {
       color: colors.villager,
     },
-    notepadPopoverTagTextBad: {
-      color: colors.wolf,
+    notepadPopoverTagTextThird: {
+      color: colors.third,
     },
     notepadPopoverTagTextSelected: {
       color: colors.text,
@@ -529,11 +571,17 @@ export const createStyles = (colors: ThemeColors) =>
       height: spacing.small,
       borderRadius: borderRadius.full,
     },
-    notepadLegendDotGood: {
-      backgroundColor: colors.success,
+    notepadLegendDotWolf: {
+      backgroundColor: colors.wolf,
     },
-    notepadLegendDotBad: {
-      backgroundColor: colors.error,
+    notepadLegendDotGod: {
+      backgroundColor: colors.god,
+    },
+    notepadLegendDotVillager: {
+      backgroundColor: colors.villager,
+    },
+    notepadLegendDotThird: {
+      backgroundColor: colors.third,
     },
     notepadLegendText: {
       fontSize: typography.caption,

@@ -8,6 +8,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
+import type { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -23,6 +24,7 @@ export interface RoleTagInfo {
   roleId: RoleId;
   shortName: string;
   team: 'good' | 'wolf' | 'third';
+  faction: Faction;
 }
 
 export interface NotepadState {
@@ -86,6 +88,7 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
         roleId: roleId as RoleId,
         shortName: spec.shortName,
         team: spec.team,
+        faction: spec.faction,
       };
       if (spec.team === 'wolf') wolf.push(info);
       else if (spec.team === 'third') third.push(info);

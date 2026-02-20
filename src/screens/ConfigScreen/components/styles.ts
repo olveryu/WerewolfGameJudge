@@ -68,7 +68,8 @@ export interface ConfigScreenStyles {
   chip: ViewStyle;
   chipSelected: ViewStyle;
   chipSelectedWolf: ViewStyle;
-  chipSelectedGood: ViewStyle;
+  chipSelectedGod: ViewStyle;
+  chipSelectedVillager: ViewStyle;
   chipSelectedNeutral: ViewStyle;
   chipText: TextStyle;
   chipTextSelected: TextStyle;
@@ -379,13 +380,17 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       backgroundColor: colors.wolf + '20',
       borderColor: colors.wolf,
     },
-    chipSelectedGood: {
+    chipSelectedGod: {
       backgroundColor: colors.god + '20',
       borderColor: colors.god,
     },
+    chipSelectedVillager: {
+      backgroundColor: colors.villager + '20',
+      borderColor: colors.villager,
+    },
     chipSelectedNeutral: {
-      backgroundColor: colors.warning + '20',
-      borderColor: colors.warning,
+      backgroundColor: colors.third + '20',
+      borderColor: colors.third,
     },
     chipText: {
       fontSize: typography.secondary,

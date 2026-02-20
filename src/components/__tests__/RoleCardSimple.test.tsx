@@ -18,6 +18,7 @@ jest.mock('../../theme', () => ({
     overlay: 'rgba(0,0,0,0.85)',
     wolf: '#EF4444',
     god: '#6366F1',
+    third: '#F59E0B',
   }),
   spacing: {
     xs: 4,

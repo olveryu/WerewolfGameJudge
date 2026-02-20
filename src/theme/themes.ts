@@ -37,10 +37,11 @@ export interface ThemeColors {
   error: string;
   info: string;
 
-  // Game specific
+  // Game specific (4-faction: wolf / god / villager / third)
   wolf: string;
   villager: string;
   god: string;
+  third: string;
 
   // Overlay
   overlay: string;
@@ -98,6 +99,7 @@ const darkTheme: Theme = {
     wolf: '#DC2626',
     villager: '#059669',
     god: '#7C3AED',
+    third: '#F59E0B',
 
     overlay: 'rgba(0, 0, 0, 0.7)',
     overlayLight: 'rgba(0, 0, 0, 0.4)',
@@ -134,6 +136,7 @@ const lightTheme: Theme = {
     wolf: '#DC2626',
     villager: '#16A34A',
     god: '#7C3AED',
+    third: '#CA8A04',
 
     overlay: 'rgba(0, 0, 0, 0.5)',
     overlayLight: 'rgba(0, 0, 0, 0.2)',
@@ -170,6 +173,7 @@ const midnightTheme: Theme = {
     wolf: '#DC2626',
     villager: '#059669',
     god: '#A855F7',
+    third: '#F59E0B',
 
     overlay: 'rgba(10, 10, 15, 0.8)',
     overlayLight: 'rgba(10, 10, 15, 0.5)',
@@ -206,6 +210,7 @@ const bloodTheme: Theme = {
     wolf: '#EF4444',
     villager: '#22C55E',
     god: '#F472B6',
+    third: '#FBBF24',
 
     overlay: 'rgba(17, 17, 17, 0.8)',
     overlayLight: 'rgba(17, 17, 17, 0.5)',
@@ -243,6 +248,7 @@ const forestTheme: Theme = {
     wolf: '#EF4444',
     villager: '#4ADE80',
     god: '#A78BFA',
+    third: '#FCD34D',
 
     overlay: 'rgba(10, 21, 16, 0.85)',
     overlayLight: 'rgba(10, 21, 16, 0.5)',
@@ -280,6 +286,7 @@ const snowTheme: Theme = {
     wolf: '#F43F5E',
     villager: '#34D399',
     god: '#A78BFA',
+    third: '#FBBF24',
 
     overlay: 'rgba(12, 25, 41, 0.85)',
     overlayLight: 'rgba(12, 25, 41, 0.5)',
@@ -317,6 +324,7 @@ const sandTheme: Theme = {
     wolf: '#8B2500',
     villager: '#5D8C3E',
     god: '#6B4F0A',
+    third: '#B8860B',
 
     overlay: 'rgba(61, 43, 31, 0.5)',
     overlayLight: 'rgba(61, 43, 31, 0.2)',
@@ -354,6 +362,7 @@ const amoledTheme: Theme = {
     wolf: '#DC2626',
     villager: '#059669',
     god: '#7C3AED',
+    third: '#F59E0B',
 
     overlay: 'rgba(0, 0, 0, 0.85)',
     overlayLight: 'rgba(0, 0, 0, 0.5)',
