@@ -471,7 +471,7 @@ describe('canSkip behavior alignment', () => {
 
 describe('NIGHT_STEPS order stability', () => {
   it('should have exactly 14 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(17);
+    expect(NIGHT_STEPS).toHaveLength(18);
   });
 
   it('step order should match expected sequence', () => {
@@ -489,6 +489,7 @@ describe('NIGHT_STEPS order stability', () => {
       'wolfRobotLearn',
       'seerCheck',
       'mirrorSeerCheck',
+      'drunkSeerCheck',
       'wolfWitchCheck',
       'gargoyleCheck',
       'pureWhiteCheck',

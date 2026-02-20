@@ -10,6 +10,7 @@
 
 import { darkWolfKingConfirmResolver } from './darkWolfKing';
 import { dreamcatcherDreamResolver } from './dreamcatcher';
+import { drunkSeerCheckResolver } from './drunkSeer';
 import { gargoyleCheckResolver } from './gargoyle';
 import { guardProtectResolver } from './guard';
 import { hunterConfirmResolver } from './hunter';
@@ -30,6 +31,7 @@ import { wolfWitchCheckResolver } from './wolfWitch';
 export const RESOLVERS: ResolverRegistry = {
   seerCheck: seerCheckResolver,
   mirrorSeerCheck: mirrorSeerCheckResolver,
+  drunkSeerCheck: drunkSeerCheckResolver,
   witchAction: witchActionResolver,
   wolfKill: wolfKillResolver,
   guardProtect: guardProtectResolver,

@@ -131,6 +131,19 @@ function handleMirrorSeerReveal(
 }
 
 /**
+ * 处理 DrunkSeer reveal (随机查验)
+ */
+function handleDrunkSeerReveal(
+  result: ResolverResult,
+  targetSeat: number,
+): Pick<ApplyResolverResultAction['payload'], 'drunkSeerReveal'> {
+  if (result.result?.checkResult) {
+    return { drunkSeerReveal: { targetSeat, result: result.result.checkResult } };
+  }
+  return {};
+}
+
+/**
  * 处理 Psychic reveal
  */
 function handlePsychicReveal(
@@ -244,6 +257,7 @@ type RevealHandler = (
 const REVEAL_HANDLERS: Record<RevealKind, RevealHandler> = {
   seer: handleSeerReveal,
   mirrorSeer: handleMirrorSeerReveal,
+  drunkSeer: handleDrunkSeerReveal,
   psychic: handlePsychicReveal,
   gargoyle: handleGargoyleReveal,
   pureWhite: handlePureWhiteReveal,

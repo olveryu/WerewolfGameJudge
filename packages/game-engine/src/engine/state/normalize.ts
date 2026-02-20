@@ -100,6 +100,7 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     witchContext: raw.witchContext,
     seerReveal: raw.seerReveal,
     mirrorSeerReveal: raw.mirrorSeerReveal,
+    drunkSeerReveal: raw.drunkSeerReveal,
     psychicReveal: raw.psychicReveal,
     gargoyleReveal: raw.gargoyleReveal,
     pureWhiteReveal: raw.pureWhiteReveal,

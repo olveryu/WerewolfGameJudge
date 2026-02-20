@@ -40,6 +40,21 @@ export const SCHEMAS = {
     },
   },
 
+  drunkSeerCheck: {
+    id: 'drunkSeerCheck',
+    displayName: '查验',
+    kind: 'chooseSeat',
+    constraints: [], // Can check self (neutral judge)
+    canSkip: true,
+    ui: {
+      confirmTitle: '确认查验',
+      prompt: '请选择要查验的玩家，如不使用请点击「不使用技能」',
+      confirmText: '确定要查验该玩家吗？',
+      revealKind: 'drunkSeer',
+      bottomActionText: '不使用技能',
+    },
+  },
+
   witchAction: {
     id: 'witchAction',
     displayName: '女巫行动',

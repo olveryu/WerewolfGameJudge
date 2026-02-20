@@ -118,6 +118,7 @@ export interface ApplyResolverResultAction {
     updates?: Partial<CurrentNightResults>;
     seerReveal?: { targetSeat: number; result: '好人' | '狼人' };
     mirrorSeerReveal?: { targetSeat: number; result: '好人' | '狼人' };
+    drunkSeerReveal?: { targetSeat: number; result: '好人' | '狼人' };
     psychicReveal?: { targetSeat: number; result: string };
     gargoyleReveal?: { targetSeat: number; result: string };
     pureWhiteReveal?: { targetSeat: number; result: string };
