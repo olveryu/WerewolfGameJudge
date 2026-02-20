@@ -32,6 +32,7 @@ export {
 } from './spec/schemas';
 export {
   getAllRoleIds,
+  getRoleDisplayAs,
   getRoleSpec,
   isValidRoleId,
   // Role Spec

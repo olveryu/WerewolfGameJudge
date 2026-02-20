@@ -44,6 +44,7 @@ export type DialogType =
   | 'gargoyleReveal' // Gargoyle reveal result
   | 'wolfRobotReveal' // WolfRobot learn result
   | 'wolfRobotHunterStatus' // WolfRobot learned hunter status
+  | 'mirrorSeerReveal' // MirrorSeer reveal result (inverted)
   | 'pureWhiteReveal' // PureWhite reveal result
   | 'wolfWitchReveal' // WolfWitch reveal result
 
@@ -114,6 +115,10 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   { type: 'witchPoisonPrompt', match: (t, m) => t.includes('毒药') || m.includes('毒药') },
 
   // Reveals (based on title patterns)
+  {
+    type: 'mirrorSeerReveal',
+    match: (t, m) => (t.includes('预言家') || t.includes('查验结果')) && m.includes('灯影'),
+  },
   { type: 'seerReveal', match: (t) => t.includes('预言家') || t.includes('查验结果') },
   { type: 'psychicReveal', match: (t) => t.includes('通灵师') || t.includes('通灵结果') },
   { type: 'gargoyleReveal', match: (t) => t.includes('石像鬼') },

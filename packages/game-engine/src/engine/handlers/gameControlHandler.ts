@@ -14,6 +14,7 @@ import type { RoleId } from '../../models/roles';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { buildNightPlan } from '../../models/roles/spec/plan';
 import type { BroadcastPlayer } from '../../protocol/types';
+import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { randomHex } from '../../utils/id';
 import { shuffleArray } from '../../utils/shuffle';
 import type {
@@ -100,10 +101,19 @@ export function handleAssignRoles(
     assignments[seats[i]] = shuffledRoles[i];
   }
 
+  // 当 seer + mirrorSeer 同时在场，随机分配 1号/2号预言家标签
+  const hasSeer = shuffledRoles.includes('seer');
+  const hasMirrorSeer = shuffledRoles.includes('mirrorSeer');
+  let seerLabelMap: Readonly<Record<string, number>> | undefined;
+  if (hasSeer && hasMirrorSeer) {
+    const labels = shuffleArray([1, 2]);
+    seerLabelMap = { seer: labels[0], mirrorSeer: labels[1] };
+  }
+
   // 只产生 ASSIGN_ROLES action（不产生 START_NIGHT）
   const assignRolesAction: AssignRolesAction = {
     type: 'ASSIGN_ROLES',
-    payload: { assignments },
+    payload: { assignments, ...(seerLabelMap ? { seerLabelMap } : {}) },
   };
 
   return {
@@ -206,7 +216,7 @@ export function handleStartNight(
   if (firstStepSpec) {
     sideEffects.push({
       type: 'PLAY_AUDIO',
-      audioKey: firstStepSpec.audioKey,
+      audioKey: resolveSeerAudioKey(firstStepSpec.audioKey, state.seerLabelMap),
       isEndAudio: false,
     });
   }

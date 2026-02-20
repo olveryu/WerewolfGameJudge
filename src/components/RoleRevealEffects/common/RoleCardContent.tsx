@@ -7,7 +7,7 @@
  * 渲染角色卡片内容 UI，通过 children 插槽扩展底部按钮。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayAs, getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
@@ -39,6 +39,11 @@ export interface RoleCardContentProps {
   testID?: string;
   /** Optional bottom slot (e.g. confirm button) rendered below description */
   children?: React.ReactNode;
+  /**
+   * 为 true 时跳过 displayAs 映射，显示角色真实身份。
+   * 用于裁判视角的技能预览（板子配置 chip）。默认 false（玩家翻牌看伪装身份）。
+   */
+  showRealIdentity?: boolean;
 }
 
 export const RoleCardContent: React.FC<RoleCardContentProps> = ({
@@ -48,16 +53,22 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   style,
   testID,
   children,
+  showRealIdentity = false,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors, width, height), [colors, width, height]);
 
   const spec = getRoleSpec(roleId);
-  const roleName = spec?.displayName || roleId;
-  const description = spec?.description || '无技能描述';
-  const icon = ROLE_ICONS[roleId] || '❓';
-  const factionColor = getFactionColor(roleId, colors);
-  const factionName = getFactionName(roleId);
+
+  // mirrorSeer 等有 displayAs 字段的角色：玩家看到的是目标角色的外观
+  // showRealIdentity=true 时跳过伪装，用于裁判视角的技能预览
+  const displayRoleId = showRealIdentity ? roleId : (getRoleDisplayAs(roleId) ?? roleId);
+  const displaySpec = displayRoleId !== roleId ? getRoleSpec(displayRoleId) : spec;
+  const roleName = displaySpec?.displayName || roleId;
+  const description = displaySpec?.description || '无技能描述';
+  const icon = ROLE_ICONS[displayRoleId] || '❓';
+  const factionColor = getFactionColor(displayRoleId, colors);
+  const factionName = getFactionName(displayRoleId);
 
   return (
     <View testID={testID} style={[styles.card, { borderColor: factionColor }, style]}>

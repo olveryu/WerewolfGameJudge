@@ -363,6 +363,7 @@ export function useRoomScreenState(
     wolfRoleItems,
     godRoleItems,
     specialRoleItems,
+    villagerRoleItems,
   } = useMemo(() => {
     if (!gameState) {
       return {
@@ -374,6 +375,7 @@ export function useRoomScreenState(
         wolfRoleItems: [],
         godRoleItems: [],
         specialRoleItems: [],
+        villagerRoleItems: [],
       };
     }
     return getRoleStats(gameState.template.roles);
@@ -695,6 +697,7 @@ export function useRoomScreenState(
     wolfRoleItems,
     godRoleItems,
     specialRoleItems,
+    villagerRoleItems,
     nightProgress,
     actionMessage,
 

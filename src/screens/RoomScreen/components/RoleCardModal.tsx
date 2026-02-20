@@ -12,7 +12,12 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { Faction, getRoleDisplayName, getRoleSpec } from '@werewolf/game-engine/models/roles';
+import {
+  Faction,
+  getRoleDisplayAs,
+  getRoleDisplayName,
+  getRoleSpec,
+} from '@werewolf/game-engine/models/roles';
 import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import React, { useCallback, useState } from 'react';
 
@@ -76,10 +81,13 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
 
   // 首次查看，播放动画
   const roleSpec = getRoleSpec(roleId);
+  // mirrorSeer 等有 displayAs 的角色：动画使用伪装身份
+  const displayRoleId = getRoleDisplayAs(roleId) ?? roleId;
+  const displaySpec = displayRoleId !== roleId ? getRoleSpec(displayRoleId) : roleSpec;
   const effectiveRoleData: RoleData = createRoleData(
-    roleId,
-    getRoleDisplayName(roleId),
-    ALIGNMENT_MAP[roleSpec.faction] ?? 'villager',
+    displayRoleId,
+    getRoleDisplayName(displayRoleId),
+    ALIGNMENT_MAP[displaySpec.faction] ?? 'villager',
   );
 
   const allRolesData: RoleData[] = allRoleIds.map((id) => {

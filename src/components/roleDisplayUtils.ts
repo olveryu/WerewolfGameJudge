@@ -30,6 +30,7 @@ export const ROLE_ICONS: Record<string, string> = {
   spiritKnight: '⚔️',
   // 平民
   villager: '👤',
+  mirrorSeer: '🔮',
   slacker: '😴',
 };
 

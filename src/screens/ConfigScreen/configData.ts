@@ -79,6 +79,10 @@ export const FACTION_GROUPS: FactionGroup[] = [
           { roleId: 'pureWhite' },
         ],
       },
+      {
+        title: '特殊平民',
+        roles: [{ roleId: 'mirrorSeer' }],
+      },
     ],
   },
   {

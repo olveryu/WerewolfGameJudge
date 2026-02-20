@@ -11,6 +11,7 @@ import { getAllSchemaIds } from '@werewolf/game-engine/models/roles/spec/schemas
 const schemaToRole: Record<string, string> = {
   // god
   seerCheck: 'seer',
+  mirrorSeerCheck: 'mirrorSeer',
   guardProtect: 'guard',
   psychicCheck: 'psychic',
   pureWhiteCheck: 'pureWhite',

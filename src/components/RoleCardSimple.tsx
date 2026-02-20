@@ -19,9 +19,19 @@ interface RoleCardSimpleProps {
   visible: boolean;
   roleId: RoleId | null;
   onClose: () => void;
+  /**
+   * 为 true 时显示角色真实身份（跳过 displayAs 伪装）。
+   * 用于裁判视角的技能预览。默认 false。
+   */
+  showRealIdentity?: boolean;
 }
 
-export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({ visible, roleId, onClose }) => {
+export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
+  visible,
+  roleId,
+  onClose,
+  showRealIdentity,
+}) => {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(screenWidth * 0.82, 320);
@@ -41,6 +51,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({ visible, roleId,
             roleId={roleId}
             width={cardWidth}
             height={cardHeight}
+            showRealIdentity={showRealIdentity}
           />
           <TouchableOpacity
             style={[styles.confirmButton, { backgroundColor: factionColor }]}

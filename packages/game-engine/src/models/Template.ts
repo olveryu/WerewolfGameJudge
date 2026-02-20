@@ -270,6 +270,23 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
       'pureWhite',
     ],
   },
+  {
+    name: '灯影预言家12人',
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolfKing',
+      'seer',
+      'mirrorSeer',
+      'witch',
+      'guard',
+      'knight',
+    ],
+  },
 ];
 
 // Get room info string (matching Flutter)
@@ -280,9 +297,11 @@ export const getTemplateRoomInfo = (template: GameTemplate): string => {
   let info = `村民x${villagerCount}, 普狼x${wolfCount}, `;
 
   const specialRoles = template.roles.filter((r) => r !== 'wolf' && r !== 'villager');
-  const uniqueSpecialRoles = [...new Set(specialRoles)];
+  // 板子配置是法官视角，使用真实角色名
+  const displayNames = specialRoles.map((r) => getRoleSpec(r as RoleId).displayName);
+  const uniqueDisplayNames = [...new Set(displayNames)];
 
-  info += uniqueSpecialRoles.map((r) => getRoleSpec(r).displayName).join(', ');
+  info += uniqueDisplayNames.join(', ');
 
   return info;
 };

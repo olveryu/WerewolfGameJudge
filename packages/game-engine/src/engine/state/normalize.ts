@@ -99,6 +99,7 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
     wolfKillDisabled: raw.wolfKillDisabled,
     witchContext: raw.witchContext,
     seerReveal: raw.seerReveal,
+    mirrorSeerReveal: raw.mirrorSeerReveal,
     psychicReveal: raw.psychicReveal,
     gargoyleReveal: raw.gargoyleReveal,
     pureWhiteReveal: raw.pureWhiteReveal,
@@ -120,5 +121,8 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
 
     // Debug mode（透传）
     debugMode: raw.debugMode,
+
+    // 双预言家标签映射（透传）
+    seerLabelMap: raw.seerLabelMap,
   } satisfies Complete<BroadcastGameState>;
 }

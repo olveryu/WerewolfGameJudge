@@ -144,7 +144,7 @@ function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): GameSta
 }
 
 function handleAssignRoles(state: GameState, action: AssignRolesAction): GameState {
-  const { assignments } = action.payload;
+  const { assignments, seerLabelMap } = action.payload;
   const newPlayers = { ...state.players };
 
   for (const [seatStr, role] of Object.entries(assignments)) {
@@ -159,6 +159,7 @@ function handleAssignRoles(state: GameState, action: AssignRolesAction): GameSta
     ...state,
     players: newPlayers,
     status: 'assigned',
+    seerLabelMap,
   };
 }
 
@@ -221,6 +222,7 @@ function handleApplyResolverResult(state: GameState, action: ApplyResolverResult
   const {
     updates,
     seerReveal,
+    mirrorSeerReveal,
     psychicReveal,
     gargoyleReveal,
     pureWhiteReveal,
@@ -251,6 +253,7 @@ function handleApplyResolverResult(state: GameState, action: ApplyResolverResult
     nightmareBlockedSeat,
     wolfKillDisabled,
     seerReveal: seerReveal ?? state.seerReveal,
+    mirrorSeerReveal: mirrorSeerReveal ?? state.mirrorSeerReveal,
     psychicReveal: psychicReveal ?? state.psychicReveal,
     gargoyleReveal: gargoyleReveal ?? state.gargoyleReveal,
     pureWhiteReveal: pureWhiteReveal ?? state.pureWhiteReveal,
@@ -501,6 +504,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return {
         ...state,
         seerReveal: undefined,
+        mirrorSeerReveal: undefined,
         psychicReveal: undefined,
         gargoyleReveal: undefined,
         pureWhiteReveal: undefined,

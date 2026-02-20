@@ -50,6 +50,7 @@ const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
   // 角色特定上下文
   'witchContext',
   'seerReveal',
+  'mirrorSeerReveal',
   'psychicReveal',
   'gargoyleReveal',
   'pureWhiteReveal',
@@ -70,6 +71,9 @@ const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
 
   // UI Hints
   'ui',
+
+  // 双预言家标签映射
+  'seerLabelMap',
 ];
 
 describe('normalizeState contract', () => {
