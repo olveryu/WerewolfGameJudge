@@ -21,7 +21,7 @@ import { executeFullNight, sendMessageOrThrow } from './stepByStepRunner';
 // Constants
 // =============================================================================
 
-const TEMPLATE_NAME = '标准板12人';
+const TEMPLATE_NAME = '预女猎白12人';
 
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();

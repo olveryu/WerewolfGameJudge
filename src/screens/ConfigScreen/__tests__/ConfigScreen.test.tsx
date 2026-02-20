@@ -98,7 +98,7 @@ describe('ConfigScreen', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
       // Template title in header shows short display name + arrow
-      expect(getByText(/标准板/)).toBeTruthy();
+      expect(getByText(/预女猎白/)).toBeTruthy();
     });
 
     it('should render role selection sections', () => {
@@ -134,7 +134,7 @@ describe('ConfigScreen', () => {
       const { getByText } = renderWithFacade(<ConfigScreen />);
 
       // Template title in header shows short name + arrow indicator
-      expect(getByText(/标准板/)).toBeTruthy();
+      expect(getByText(/预女猎白/)).toBeTruthy();
     });
   });
 

@@ -3,7 +3,7 @@
  *
  * 主题：机械狼学习后伪装身份，通灵师查验显示伪装角色
  *
- * 模板：机械狼通灵师12人
+ * 模板：机械通灵12人
  * 固定 seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
@@ -25,7 +25,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '机械狼通灵师12人';
+const TEMPLATE_NAME = '机械通灵12人';
 
 /**
  * 固定 seat-role assignment（按模板顺序）

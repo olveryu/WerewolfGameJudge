@@ -58,7 +58,7 @@ export class ConfigPage {
 
   /**
    * Open the template dropdown by clicking the template pill.
-   * @param currentTemplate Short label of current template (e.g. '标准板')
+   * @param currentTemplate Short label of current template (e.g. '预女猎白')
    */
   async openTemplateDropdown(currentTemplate: string) {
     const dropdown = getVisibleText(this.page, currentTemplate);
@@ -70,8 +70,8 @@ export class ConfigPage {
 
   /** Expect template pill to be visible (config screen identity check). */
   async expectTemplateVisible() {
-    // The template pill shows the short label (e.g. "标准板"), not the full name
-    await expect(this.page.getByText('标准板')).toBeVisible();
+    // The template pill shows the short label (e.g. "预女猎白"), not the full name
+    await expect(this.page.getByText('预女猎白')).toBeVisible();
   }
 
   // ---------------------------------------------------------------------------
@@ -200,7 +200,7 @@ export class ConfigPage {
   /**
    * Configure a 2-player template (1 wolf + 1 villager).
    *
-   * Starting from default 标准板 (4w + seer + witch + hunter + idiot + 4v = 12):
+   * Starting from default 预女猎白 (4w + seer + witch + hunter + idiot + 4v = 12):
    * - 好人阵营 tab: deselect seer/witch/hunter/idiot chips, reduce villager 4→1
    * - 狼人阵营 tab: reduce wolf 4→1
    */
@@ -220,7 +220,7 @@ export class ConfigPage {
   /**
    * Configure a 6-player template (2w + seer + witch + hunter + 1v = 6).
    *
-   * Starting from default 标准板 (4w + seer + witch + hunter + idiot + 4v = 12):
+   * Starting from default 预女猎白 (4w + seer + witch + hunter + idiot + 4v = 12):
    * - 好人阵营 tab: deselect idiot chip, reduce villager 4→1
    * - 狼人阵营 tab: reduce wolf 4→2
    */
@@ -242,7 +242,7 @@ export class ConfigPage {
   // ---------------------------------------------------------------------------
 
   /**
-   * Configure a custom template from default 标准板 (4w + seer + witch + hunter + idiot + 4v = 12).
+   * Configure a custom template from default 预女猎白 (4w + seer + witch + hunter + idiot + 4v = 12).
    *
    * Deselects all default special roles, zeros out wolf/villager steppers,
    * then adds the requested roles.

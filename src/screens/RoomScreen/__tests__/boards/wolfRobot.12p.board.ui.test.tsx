@@ -1,7 +1,7 @@
 /**
  * WolfRobot 12P Board UI Test
  *
- * Board: 机械狼通灵师12人
+ * Board: 机械通灵12人
  * Roles: 4x villager, 3x wolf, wolfRobot, psychic, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -113,7 +113,7 @@ jest.mock('../../hooks/useActionerState', () => ({
 // Test Setup
 // =============================================================================
 
-const BOARD_NAME = '机械狼通灵师12人';
+const BOARD_NAME = '机械通灵12人';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

@@ -29,7 +29,7 @@ test.describe('Config Screen', () => {
     await config.waitForCreateMode();
 
     // Open dropdown and select alternate template
-    await config.openTemplateDropdown('标准板');
+    await config.openTemplateDropdown('预女猎白');
     await config.selectTemplate('狼美守卫');
 
     // Should still be on config screen
@@ -55,7 +55,7 @@ test.describe('Config Screen', () => {
     await editConfig.waitForSaveMode();
 
     // Change template
-    await editConfig.openTemplateDropdown('标准板');
+    await editConfig.openTemplateDropdown('预女猎白');
     await editConfig.selectTemplate('狼美守卫');
 
     // Save and return to room

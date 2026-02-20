@@ -14,7 +14,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupHostGame, createHostGame } from './hostGameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '标准板12人';
+const TEMPLATE_NAME = '预女猎白12人';
 
 /**
  * 选用包含：slacker/gargoyle/psychic 的 12p 配置。
@@ -87,6 +87,6 @@ describe('Night-1: step-level coverage (12p)', () => {
     executeFullNight(ctx);
 
     // 仅用于 coverage contract：确保文件包含 TEMPLATE_NAME 常量（对应旧 contract 的 pattern 机制）
-    expect(TEMPLATE_NAME).toBe('标准板12人');
+    expect(TEMPLATE_NAME).toBe('预女猎白12人');
   });
 });

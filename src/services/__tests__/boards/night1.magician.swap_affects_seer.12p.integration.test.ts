@@ -3,7 +3,7 @@
  *
  * 主题：魔术师交换身份后，预言家查验结果应基于交换后的身份。
  *
- * 模板：狼王魔术师12人
+ * 模板：狼王魔术12人
  * 固定 seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
@@ -21,7 +21,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '狼王魔术师12人';
+const TEMPLATE_NAME = '狼王魔术12人';
 
 /**
  * 固定 seat-role assignment（可读、可复现）

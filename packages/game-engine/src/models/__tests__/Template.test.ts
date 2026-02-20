@@ -200,7 +200,7 @@ describe('Template - PRESET_TEMPLATES', () => {
   });
 
   it('should have required roles in standard template', () => {
-    const standard = PRESET_TEMPLATES.find((t) => t.name === '标准板12人');
+    const standard = PRESET_TEMPLATES.find((t) => t.name === '预女猎白12人');
     expect(standard).toBeDefined();
     expect(standard!.roles.filter((r) => r === 'villager').length).toBe(4);
     expect(standard!.roles.filter((r) => r === 'wolf').length).toBe(4);

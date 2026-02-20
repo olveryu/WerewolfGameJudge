@@ -313,13 +313,11 @@ export const ConfigScreen: React.FC = () => {
 
   // Template dropdown options (short display names, strip "12人" suffix)
   const templateOptions: DropdownOption[] = useMemo(
-    () => [
-      ...PRESET_TEMPLATES.map((p) => ({
+    () =>
+      PRESET_TEMPLATES.map((p) => ({
         value: p.name,
         label: p.name.replace(/\d+人$/, ''),
       })),
-      { value: '__custom__', label: '自定义' },
-    ],
     [],
   );
 
@@ -411,6 +409,7 @@ export const ConfigScreen: React.FC = () => {
   );
 
   const selectedTemplateLabel = useMemo(() => {
+    if (selectedTemplate === '__custom__') return '自定义';
     const opt = templateOptions.find((o) => o.value === selectedTemplate);
     return opt?.label ?? selectedTemplate;
   }, [selectedTemplate, templateOptions]);
@@ -526,7 +525,7 @@ export const ConfigScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
-      {/* Header row — ← | 标准板▾ 12人 | 🗑️ ⚙️ */}
+      {/* Header row — ← | 预女猎白▾ 12人 | 🗑️ ⚙️ */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerBtn}
