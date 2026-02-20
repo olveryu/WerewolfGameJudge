@@ -41,6 +41,18 @@ export const ROLE_SPECS = {
     displayAs: 'seer',
   },
 
+  drunkSeer: {
+    id: 'drunkSeer',
+    displayName: '酒鬼预言家',
+    shortName: '酒',
+    faction: Faction.Villager,
+    team: 'good',
+    description:
+      '每晚可以查验一名玩家的身份阵营，但查验结果随机（50%正确/50%错误）。酒鬼预言家无法知晓自己的真实身份，拿到的身份是预言家',
+    night1: { hasAction: true },
+    displayAs: 'seer',
+  },
+
   // ===================================================================
   // GOD FACTION
   // ===================================================================

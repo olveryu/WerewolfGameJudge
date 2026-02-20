@@ -10,7 +10,7 @@
  * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
  */
 
-import type { RoleId } from '../../models/roles';
+import { ROLE_SPECS, type RoleId } from '../../models/roles';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { buildNightPlan } from '../../models/roles/spec/plan';
 import type { BroadcastPlayer } from '../../protocol/types';
@@ -101,13 +101,16 @@ export function handleAssignRoles(
     assignments[seats[i]] = shuffledRoles[i];
   }
 
-  // 当 seer + mirrorSeer 同时在场，随机分配 1号/2号预言家标签
-  const hasSeer = shuffledRoles.includes('seer');
-  const hasMirrorSeer = shuffledRoles.includes('mirrorSeer');
+  // 当多个 displayAs='seer' 角色同时在场，随机分配编号标签
+  const seerLikeRoles = shuffledRoles.filter((r) => {
+    if (r === 'seer') return true;
+    const spec = ROLE_SPECS[r as RoleId];
+    return 'displayAs' in spec && spec.displayAs === 'seer';
+  });
   let seerLabelMap: Readonly<Record<string, number>> | undefined;
-  if (hasSeer && hasMirrorSeer) {
-    const labels = shuffleArray([1, 2]);
-    seerLabelMap = { seer: labels[0], mirrorSeer: labels[1] };
+  if (seerLikeRoles.length >= 2) {
+    const labels = shuffleArray(Array.from({ length: seerLikeRoles.length }, (_, i) => i + 1));
+    seerLabelMap = Object.fromEntries(seerLikeRoles.map((r, i) => [r, labels[i]]));
   }
 
   // 只产生 ASSIGN_ROLES action（不产生 START_NIGHT）

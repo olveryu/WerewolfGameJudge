@@ -30,7 +30,8 @@ export type RevealKind =
   | 'wolfRobot'
   | 'pureWhite'
   | 'wolfWitch'
-  | 'mirrorSeer';
+  | 'mirrorSeer'
+  | 'drunkSeer';
 
 /**
  * UI-only metadata for RoomScreen orchestration.

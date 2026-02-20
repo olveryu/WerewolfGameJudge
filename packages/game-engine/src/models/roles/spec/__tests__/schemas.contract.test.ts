@@ -213,6 +213,7 @@ describe('SCHEMAS contract', () => {
 
       // If we ever add/remove a reveal kind, this test will force updating the UI schema.
       const expectedRevealKinds = [
+        'drunkSeer',
         'gargoyle',
         'mirrorSeer',
         'psychic',
@@ -240,6 +241,7 @@ describe('SCHEMAS contract', () => {
       // This snapshot-like list is intentionally explicit: reveal flow is sensitive.
       // If this changes, reviewers should inspect the UI/reveal ack flow carefully.
       expect(revealSchemaIds).toEqual([
+        'drunkSeerCheck',
         'gargoyleCheck',
         'mirrorSeerCheck',
         'psychicCheck',

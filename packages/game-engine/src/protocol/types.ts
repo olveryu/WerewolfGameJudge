@@ -162,6 +162,12 @@ export interface BroadcastGameState {
     result: '好人' | '狼人';
   };
 
+  /** DrunkSeer reveal result - only display to drunkSeer via UI filter (random) */
+  drunkSeerReveal?: {
+    targetSeat: number;
+    result: '好人' | '狼人';
+  };
+
   /** Psychic reveal result - only display to psychic via UI filter */
   psychicReveal?: {
     targetSeat: number;

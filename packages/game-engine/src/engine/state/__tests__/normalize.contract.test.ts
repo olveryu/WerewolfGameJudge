@@ -51,6 +51,7 @@ const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
   'witchContext',
   'seerReveal',
   'mirrorSeerReveal',
+  'drunkSeerReveal',
   'psychicReveal',
   'gargoyleReveal',
   'pureWhiteReveal',
