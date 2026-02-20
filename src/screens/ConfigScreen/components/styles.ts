@@ -12,15 +12,16 @@ import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface ConfigScreenStyles {
   container: ViewStyle;
-  // Header row 1 (back + 配置 title + gear)
+  // Header row (back + template pill · count + trash + gear)
   header: ViewStyle;
   headerBtn: ViewStyle;
   headerBtnText: TextStyle;
   headerCenter: ViewStyle;
   headerTitle: TextStyle;
+  headerRight: ViewStyle;
   headerGearBtn: ViewStyle;
   headerGearBtnText: TextStyle;
-  // Card A (template + faction tabs)
+  // Card A (faction tabs)
   cardA: ViewStyle;
   cardADivider: ViewStyle;
   // Header row 2 (template pill + player count, inside cardA)
@@ -88,6 +89,14 @@ export interface ConfigScreenStyles {
   // Loading
   loadingContainer: ViewStyle;
   loadingText: TextStyle;
+  // Settings chip group (SettingsSheet / TemplatePicker)
+  settingsChipGroup: ViewStyle;
+  settingsChipGroupLabel: TextStyle;
+  settingsChipWrap: ViewStyle;
+  settingsChip: ViewStyle;
+  settingsChipSelected: ViewStyle;
+  settingsChipText: TextStyle;
+  settingsChipTextSelected: TextStyle;
   // Modal styles (for Dropdown)
   modalOverlay: ViewStyle;
   modalContent: ViewStyle;
@@ -110,7 +119,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       overflow: 'hidden', // Ensures flex children respect height constraints on web
     },
 
-    // ── Header row 1: ← | 配置 | ⚙️ ────────────
+    // ── Header row 1: ← | 标准板▾ 12人 | 🗑️ ⚙️ ────────────
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -134,13 +143,22 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       color: colors.text,
     },
     headerCenter: {
-      flex: 1,
+      ...StyleSheet.absoluteFillObject,
+      flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.small,
+      pointerEvents: 'box-none',
     },
     headerTitle: {
       fontSize: typography.subtitle,
       fontWeight: typography.weights.bold,
       color: colors.text,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
     },
     headerGearBtn: {
       width: componentSizes.avatar.md,
@@ -188,17 +206,17 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       paddingVertical: componentSizes.chip.paddingV,
     },
     templatePillText: {
-      fontSize: typography.secondary,
+      fontSize: typography.body,
       fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     templatePillArrow: {
-      fontSize: typography.caption,
+      fontSize: typography.secondary,
       color: colors.textSecondary,
       marginLeft: spacing.tight,
     },
     playerCount: {
-      fontSize: typography.secondary,
+      fontSize: typography.body,
       color: colors.textSecondary,
       fontWeight: typography.weights.medium,
     },
@@ -484,6 +502,43 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginTop: spacing.medium,
       fontSize: typography.body,
       color: colors.textSecondary,
+    },
+
+    // ── Settings chip group (SettingsSheet / TemplatePicker) ──
+    settingsChipGroup: {
+      marginBottom: spacing.medium,
+    },
+    settingsChipGroupLabel: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
+      fontWeight: typography.weights.medium,
+      marginBottom: spacing.small,
+    },
+    settingsChipWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.small,
+    },
+    settingsChip: {
+      paddingHorizontal: componentSizes.chip.paddingH,
+      paddingVertical: componentSizes.chip.paddingV,
+      borderRadius: borderRadius.full,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    settingsChipSelected: {
+      backgroundColor: colors.primary + '20',
+      borderColor: colors.primary,
+    },
+    settingsChipText: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
+      fontWeight: typography.weights.medium,
+    },
+    settingsChipTextSelected: {
+      color: colors.primary,
+      fontWeight: typography.weights.semibold,
     },
 
     // ── Modal (Dropdown) ────────────────────────

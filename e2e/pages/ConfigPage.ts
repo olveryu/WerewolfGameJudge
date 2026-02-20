@@ -163,8 +163,7 @@ export class ConfigPage {
    *
    * Uses stable testID selectors only (no text/position/coordinate hacks):
    * - `config-gear-btn` → open settings sheet
-   * - `config-animation` → open animation dropdown
-   * - `config-animation-option-none` → select "无动画"
+   * - `config-animation-option-none` → click "无动画" chip
    * - `config-settings-overlay` → close settings sheet
    */
   async setAnimationNone() {
@@ -173,17 +172,10 @@ export class ConfigPage {
     await gearBtn.waitFor({ state: 'visible', timeout: 3000 });
     await gearBtn.click();
 
-    // Open the animation dropdown (testID on the trigger button)
-    const animTrigger = this.page.locator('[data-testid="config-animation"]');
-    await animTrigger.waitFor({ state: 'visible', timeout: 3000 });
-    await animTrigger.click();
-
-    // Select "无动画" option (testID="config-animation-option-none")
+    // Click the "无动画" chip directly (no second modal needed)
     const noneOption = this.page.locator('[data-testid="config-animation-option-none"]');
     await noneOption.waitFor({ state: 'visible', timeout: 3000 });
     await noneOption.click();
-    // Wait for the dropdown modal to close
-    await noneOption.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
 
     // Close settings sheet by clicking the overlay backdrop.
     //
