@@ -84,7 +84,7 @@ describe('Wire Protocol Contract', () => {
   });
 
   describe('Runtime Payload Shape - Harness 运行态抓包', () => {
-    // 12人狼王魔术师板子：含 magician(swap) + witch(compound)
+    // 12人狼王魔术板子：含 magician(swap) + witch(compound)
     const TEMPLATE_ROLES: RoleId[] = [
       'villager',
       'villager',

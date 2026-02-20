@@ -119,7 +119,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       overflow: 'hidden', // Ensures flex children respect height constraints on web
     },
 
-    // ── Header row 1: ← | 标准板▾ 12人 | 🗑️ ⚙️ ────────────
+    // ── Header row 1: ← | 预女猎白▾ 12人 | 🗑️ ⚙️ ────────────
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -509,7 +509,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginBottom: spacing.medium,
     },
     settingsChipGroupLabel: {
-      fontSize: typography.caption,
+      fontSize: typography.secondary,
       color: colors.textSecondary,
       fontWeight: typography.weights.medium,
       marginBottom: spacing.small,
@@ -520,7 +520,10 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       gap: spacing.small,
     },
     settingsChip: {
-      paddingHorizontal: componentSizes.chip.paddingH,
+      flexBasis: '22%',
+      flexGrow: 1,
+      alignItems: 'center',
+      paddingHorizontal: spacing.small,
       paddingVertical: componentSizes.chip.paddingV,
       borderRadius: borderRadius.full,
       borderWidth: fixed.borderWidth,
@@ -535,6 +538,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       fontSize: typography.secondary,
       color: colors.textSecondary,
       fontWeight: typography.weights.medium,
+      textAlign: 'center',
     },
     settingsChipTextSelected: {
       color: colors.primary,

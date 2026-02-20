@@ -1,7 +1,7 @@
 /**
- * Night-1 Integration Test: 狼王摄梦人12人 - Dreamcatcher Dream
+ * Night-1 Integration Test: 狼王摄梦12人 - Dreamcatcher Dream
  *
- * 板子：狼王摄梦人12人
+ * 板子：狼王摄梦12人
  * 主题：摄梦人的守护与链接死亡
  *
  * 固定 seat-role assignment:
@@ -25,7 +25,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '狼王摄梦人12人';
+const TEMPLATE_NAME = '狼王摄梦12人';
 
 /**
  * 固定 seat-role assignment
@@ -47,7 +47,7 @@ function createRoleAssignment(): Map<number, RoleId> {
   return map;
 }
 
-describe('Night-1: 狼王摄梦人12人 - Dreamcatcher (12p)', () => {
+describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
   let ctx: HostGameContext;
 
   afterEach(() => {

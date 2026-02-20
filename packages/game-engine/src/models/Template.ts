@@ -84,7 +84,7 @@ export const findMatchingPresetName = (roles: RoleId[]): string | null => {
 // Predefined templates matching Flutter app
 export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   {
-    name: '标准板12人',
+    name: '预女猎白12人',
     roles: [
       'villager',
       'villager',
@@ -135,7 +135,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
     ],
   },
   {
-    name: '石像鬼守墓人12人',
+    name: '石像守墓12人',
     roles: [
       'villager',
       'villager',
@@ -186,7 +186,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
     ],
   },
   {
-    name: '狼王摄梦人12人',
+    name: '狼王摄梦12人',
     roles: [
       'villager',
       'villager',
@@ -203,7 +203,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
     ],
   },
   {
-    name: '狼王魔术师12人',
+    name: '狼王魔术12人',
     roles: [
       'villager',
       'villager',
@@ -220,7 +220,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
     ],
   },
   {
-    name: '机械狼通灵师12人',
+    name: '机械通灵12人',
     roles: [
       'villager',
       'villager',
@@ -271,7 +271,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
     ],
   },
   {
-    name: '灯影预言家12人',
+    name: '灯影预言12人',
     roles: [
       'villager',
       'villager',

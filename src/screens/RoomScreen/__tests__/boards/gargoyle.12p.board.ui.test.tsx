@@ -1,7 +1,7 @@
 /**
  * Gargoyle 12P Board UI Test
  *
- * Board: 石像鬼守墓人12人
+ * Board: 石像守墓12人
  * Roles: 4x villager, 3x wolf, gargoyle, seer, witch, hunter, graveyardKeeper
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -77,7 +77,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '石像鬼守墓人12人';
+const BOARD_NAME = '石像守墓12人';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

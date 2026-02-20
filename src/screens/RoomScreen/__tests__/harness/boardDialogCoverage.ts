@@ -255,18 +255,18 @@ export function generateCoverageMatrix(): CoverageEntry[] {
  * Map board name to expected test file name pattern
  */
 export const BOARD_TEST_FILE_MAP: Record<string, string> = {
-  标准板12人: 'standard.12p.board.ui.test.tsx',
+  预女猎白12人: 'standard.12p.board.ui.test.tsx',
   狼美守卫12人: 'wolfQueen.12p.board.ui.test.tsx',
   狼王守卫12人: 'darkWolfKing.12p.board.ui.test.tsx',
-  石像鬼守墓人12人: 'gargoyle.12p.board.ui.test.tsx',
+  石像守墓12人: 'gargoyle.12p.board.ui.test.tsx',
   梦魇守卫12人: 'nightmare.12p.board.ui.test.tsx',
   血月猎魔12人: 'bloodMoon.12p.board.ui.test.tsx',
-  狼王摄梦人12人: 'dreamcatcher.12p.board.ui.test.tsx',
-  狼王魔术师12人: 'magician.12p.board.ui.test.tsx',
-  机械狼通灵师12人: 'wolfRobot.12p.board.ui.test.tsx',
+  狼王摄梦12人: 'dreamcatcher.12p.board.ui.test.tsx',
+  狼王魔术12人: 'magician.12p.board.ui.test.tsx',
+  机械通灵12人: 'wolfRobot.12p.board.ui.test.tsx',
   恶灵骑士12人: 'spiritKnight.12p.board.ui.test.tsx',
   纯白夜影12人: 'pureWhite.12p.board.ui.test.tsx',
-  灯影预言家12人: 'mirrorSeer.12p.board.ui.test.tsx',
+  灯影预言12人: 'mirrorSeer.12p.board.ui.test.tsx',
 };
 
 /**

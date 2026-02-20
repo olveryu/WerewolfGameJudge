@@ -1,7 +1,7 @@
 /**
- * Night-1 Integration Test: 灯影预言家12人 - MirrorSeer Inverted Reveal
+ * Night-1 Integration Test: 灯影预言12人 - MirrorSeer Inverted Reveal
  *
- * 板子：灯影预言家12人
+ * 板子：灯影预言12人
  * 主题：灯影预言家查验结果写入 BroadcastGameState.mirrorSeerReveal（反转）
  *
  * 固定 seat-role assignment:
@@ -22,7 +22,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
 import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '灯影预言家12人';
+const TEMPLATE_NAME = '灯影预言12人';
 
 /**
  * 固定 seat-role assignment
@@ -44,7 +44,7 @@ function createRoleAssignment(): Map<number, RoleId> {
   return map;
 }
 
-describe('Night-1: 灯影预言家12人 - MirrorSeer Inverted Reveal (12p)', () => {
+describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => {
   let ctx: HostGameContext;
 
   afterEach(() => {
