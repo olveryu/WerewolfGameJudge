@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.261] - 2026-02-20
+
+- docs(readme): update role count to 25 and board count to 12
+
 ## [1.0.260] - 2026-02-20
 
 - fix(audio): lower BGM volume from 8% to 3%

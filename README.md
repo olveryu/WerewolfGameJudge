@@ -20,7 +20,7 @@ _An automated judge app for both in-person and remote Werewolf games_
 | 🎙️ **自动语音播报** - 第一晚全流程自动引导，Host 也能闭眼参与               | 🎙️ **Auto Voice Narration** - Fully guided Night-1 flow, Host can close eyes too       |
 | 📱 **多设备同步** - 一人建房，多人加入，支持线下同桌或远程联机              | 📱 **Multi-device Sync** - One host creates, others join; works locally or remotely    |
 | 🔄 **断线自愈** - DB 双通道备份，断线自动恢复，状态不丢失                   | 🔄 **Auto-Recovery** - DB-backed dual channel, auto-reconnect, zero state loss         |
-| 🎭 **22 种角色** - 完整狼人杀角色库，含多种特殊狼人和神职                   | 🎭 **22 Roles** - Complete role library with special wolves and gods                   |
+| 🎭 **25 种角色** - 完整狼人杀角色库，含多种特殊狼人和神职                   | 🎭 **25 Roles** - Complete role library with special wolves and gods                   |
 | 🤖 **AI 狼人杀助手** - 悬浮聊天泡泡，随时咨询规则和策略                     | 🤖 **AI Werewolf Assistant** - Floating chat bubble for rules and strategy help        |
 | ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入                     | ⚡ **Instant Play** - Anonymous login, no registration, quick join                     |
 | 🌐 **跨平台** - iOS / Android / Web 全平台支持                              | 🌐 **Cross-platform** - iOS / Android / Web supported                                  |
@@ -69,14 +69,14 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 
 ---
 
-## 🎭 支持角色 | Supported Roles (22)
+## 🎭 支持角色 | Supported Roles (25)
 
-| 阵营 Faction               | 角色 Roles                                                                                                                                                                         |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **好人 Good** — 村民 (1)   | 普通村民 Villager                                                                                                                                                                  |
-| **好人 Good** — 神职 (11)  | 预言家 Seer · 女巫 Witch · 猎人 Hunter · 守卫 Guard · 白痴 Idiot · 骑士 Knight · 魔术师 Magician · 猎魔人 Witcher · 通灵师 Psychic · 摄梦人 Dreamcatcher · 守墓人 Graveyard Keeper |
-| **狼人 Wolf** (9)          | 狼人 Werewolf · 狼美人 Wolf Queen · 白狼王 Wolf King · 黑狼王 Dark Wolf King · 梦魇 Nightmare · 石像鬼 Gargoyle · 血月使徒 Blood Moon · 机械狼 Wolf Robot · 恶灵骑士 Spirit Knight |
-| **第三方 Third Party** (1) | 混子 Slacker                                                                                                                                                                       |
+| 阵营 Faction               | 角色 Roles                                                                                                                                                                                                                        |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **好人 Good** — 村民 (1)   | 普通村民 Villager                                                                                                                                                                                                                 |
+| **好人 Good** — 神职 (13)  | 预言家 Seer · 女巫 Witch · 猎人 Hunter · 守卫 Guard · 白痴 Idiot · 骑士 Knight · 魔术师 Magician · 猎魔人 Witcher · 通灵师 Psychic · 摄梦人 Dreamcatcher · 守墓人 Graveyard Keeper · 纯白之女 Pure White · 灯影预言家 Mirror Seer |
+| **狼人 Wolf** (10)         | 狼人 Werewolf · 狼美人 Wolf Queen · 白狼王 Wolf King · 黑狼王 Dark Wolf King · 梦魇 Nightmare · 石像鬼 Gargoyle · 血月使徒 Blood Moon · 机械狼 Wolf Robot · 恶灵骑士 Spirit Knight · 狼巫 Wolf Witch                              |
+| **第三方 Third Party** (1) | 混子 Slacker                                                                                                                                                                                                                      |
 
 > 详细角色技能说明见 [角色对齐矩阵](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)  
 > _See [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) for detailed role abilities_
@@ -144,7 +144,7 @@ NIGHT_STEPS (步骤序列)                Step sequence
 | ---------------------- | -------------------------------------------------------------------------------------------------------------- |
 | **Unit / Integration** | game-engine + app，覆盖角色解析、夜晚流程全链路<br/>_game-engine + app, covering resolvers & full night flows_ |
 | **Contract Tests**     | Schema/Resolver/NightStep 三层对齐<br/>_Schema/Resolver/NightStep alignment_                                   |
-| **Board UI Tests**     | 10 种预设板子全覆盖<br/>_All 10 preset boards covered_                                                         |
+| **Board UI Tests**     | 12 种预设板子全覆盖<br/>_All 12 preset boards covered_                                                         |
 | **E2E Tests**          | Playwright 端到端（含断线恢复、重连）<br/>_Playwright end-to-end (incl. DB recovery & rejoin)_                 |
 
 ---
