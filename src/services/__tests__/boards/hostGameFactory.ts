@@ -131,7 +131,7 @@ export function createHostGame(
     });
   }
 
-  const nightPlan = buildNightPlan(template.roles);
+  const nightPlan = buildNightPlan(template.roles, state.seerLabelMap);
   const firstStepId = nightPlan.steps[0]?.stepId;
   if (!firstStepId) {
     throw new Error('Night plan has no steps');

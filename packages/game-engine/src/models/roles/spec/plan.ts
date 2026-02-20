@@ -27,7 +27,10 @@ import { isValidRoleId, ROLE_SPECS, type RoleId } from './specs';
  * - Roles with night1.hasAction=false are excluded
  * - Duplicate roles are deduplicated (e.g., multiple wolves → one wolf step)
  */
-export function buildNightPlan(templateRoles: readonly string[]): NightPlan {
+export function buildNightPlan(
+  templateRoles: readonly string[],
+  seerLabelMap?: Readonly<Record<string, number>>,
+): NightPlan {
   // Fail-fast: validate all roleIds first
   const invalidRoleIds = templateRoles.filter((id) => !isValidRoleId(id));
   if (invalidRoleIds.length > 0) {
@@ -72,6 +75,27 @@ export function buildNightPlan(templateRoles: readonly string[]): NightPlan {
       audioKey: step.audioKey,
     };
   });
+
+  // 当存在 seerLabelMap 时，按标签编号重排 seer-like 步骤
+  // 确保角色「1号预言家」的步骤在「2号预言家」之前执行/播放
+  if (seerLabelMap) {
+    const seerIndices: number[] = [];
+    const seerSteps: NightPlanStep[] = [];
+    for (let i = 0; i < steps.length; i++) {
+      if (seerLabelMap[steps[i].roleId] != null) {
+        seerIndices.push(i);
+        seerSteps.push(steps[i]);
+      }
+    }
+    seerSteps.sort((a, b) => seerLabelMap[a.roleId]! - seerLabelMap[b.roleId]!);
+    for (let i = 0; i < seerIndices.length; i++) {
+      steps[seerIndices[i]] = seerSteps[i];
+    }
+    // 重新计算 order
+    for (let i = 0; i < steps.length; i++) {
+      steps[i] = { ...steps[i], order: i };
+    }
+  }
 
   return {
     steps,
