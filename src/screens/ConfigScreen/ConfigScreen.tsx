@@ -84,8 +84,8 @@ const applyPreset = (presetRoles: RoleId[]): Record<string, boolean> => {
 /** Map Faction enum to FactionColorKey for chip coloring */
 const FACTION_COLOR_MAP: Record<string, FactionColorKey> = {
   [Faction.Wolf]: 'wolf',
-  [Faction.God]: 'good',
-  [Faction.Villager]: 'good',
+  [Faction.God]: 'god',
+  [Faction.Villager]: 'villager',
   [Faction.Special]: 'neutral',
 };
 
@@ -463,9 +463,9 @@ export const ConfigScreen: React.FC = () => {
         case Faction.God:
           return colors.god;
         case Faction.Villager:
-          return colors.god; // same as god for the "good" side
+          return colors.villager;
         case Faction.Special:
-          return colors.warning;
+          return colors.third;
         default:
           return colors.primary;
       }

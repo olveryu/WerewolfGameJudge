@@ -10,7 +10,7 @@ import { TESTIDS } from '@/testids';
 
 import { ConfigScreenStyles } from './styles';
 
-export type FactionColorKey = 'wolf' | 'good' | 'neutral';
+export type FactionColorKey = 'wolf' | 'god' | 'villager' | 'neutral';
 
 export interface RoleChipProps {
   id: string;
@@ -26,7 +26,8 @@ export interface RoleChipProps {
 
 const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
   wolf: 'chipSelectedWolf',
-  good: 'chipSelectedGood',
+  god: 'chipSelectedGod',
+  villager: 'chipSelectedVillager',
   neutral: 'chipSelectedNeutral',
 };
 

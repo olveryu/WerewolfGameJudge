@@ -37,18 +37,24 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       list: styles.notepadList,
       listContent: styles.notepadListContent,
       card: styles.notepadCard,
-      cardGood: styles.notepadCardGood,
-      cardBad: styles.notepadCardBad,
+      cardWolf: styles.notepadCardWolf,
+      cardGod: styles.notepadCardGod,
+      cardVillager: styles.notepadCardVillager,
+      cardThird: styles.notepadCardThird,
       cardHeader: styles.notepadCardHeader,
       seatBtn: styles.notepadSeatBtn,
       seatNumber: styles.notepadSeatNumber,
       seatPlaceholder: styles.notepadSeatPlaceholder,
       roleBadge: styles.notepadRoleBadge,
-      roleBadgeGood: styles.notepadRoleBadgeGood,
-      roleBadgeBad: styles.notepadRoleBadgeBad,
+      roleBadgeWolf: styles.notepadRoleBadgeWolf,
+      roleBadgeGod: styles.notepadRoleBadgeGod,
+      roleBadgeVillager: styles.notepadRoleBadgeVillager,
+      roleBadgeThird: styles.notepadRoleBadgeThird,
       roleBadgeText: styles.notepadRoleBadgeText,
-      roleBadgeTextGood: styles.notepadRoleBadgeTextGood,
-      roleBadgeTextBad: styles.notepadRoleBadgeTextBad,
+      roleBadgeTextWolf: styles.notepadRoleBadgeTextWolf,
+      roleBadgeTextGod: styles.notepadRoleBadgeTextGod,
+      roleBadgeTextVillager: styles.notepadRoleBadgeTextVillager,
+      roleBadgeTextThird: styles.notepadRoleBadgeTextThird,
       handTag: styles.notepadHandTag,
       handTagActive: styles.notepadHandTagActive,
       handTagText: styles.notepadHandTagText,
@@ -59,19 +65,25 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       popoverTitle: styles.notepadPopoverTitle,
       popoverGrid: styles.notepadPopoverGrid,
       popoverTag: styles.notepadPopoverTag,
-      popoverTagSelectedGood: styles.notepadPopoverTagSelectedGood,
-      popoverTagSelectedBad: styles.notepadPopoverTagSelectedBad,
+      popoverTagSelectedWolf: styles.notepadPopoverTagSelectedWolf,
+      popoverTagSelectedGod: styles.notepadPopoverTagSelectedGod,
+      popoverTagSelectedVillager: styles.notepadPopoverTagSelectedVillager,
+      popoverTagSelectedThird: styles.notepadPopoverTagSelectedThird,
       popoverTagText: styles.notepadPopoverTagText,
-      popoverTagTextGood: styles.notepadPopoverTagTextGood,
-      popoverTagTextBad: styles.notepadPopoverTagTextBad,
+      popoverTagTextWolf: styles.notepadPopoverTagTextWolf,
+      popoverTagTextGod: styles.notepadPopoverTagTextGod,
+      popoverTagTextVillager: styles.notepadPopoverTagTextVillager,
+      popoverTagTextThird: styles.notepadPopoverTagTextThird,
       popoverTagTextSelected: styles.notepadPopoverTagTextSelected,
       popoverClearBtn: styles.notepadPopoverClearBtn,
       popoverClearText: styles.notepadPopoverClearText,
       legend: styles.notepadLegend,
       legendItem: styles.notepadLegendItem,
       legendDot: styles.notepadLegendDot,
-      legendDotGood: styles.notepadLegendDotGood,
-      legendDotBad: styles.notepadLegendDotBad,
+      legendDotWolf: styles.notepadLegendDotWolf,
+      legendDotGod: styles.notepadLegendDotGod,
+      legendDotVillager: styles.notepadLegendDotVillager,
+      legendDotThird: styles.notepadLegendDotThird,
       legendText: styles.notepadLegendText,
     }),
     [styles],
@@ -111,12 +123,20 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
         {/* Legend */}
         <View style={notepadStyles.legend}>
           <View style={notepadStyles.legendItem}>
-            <View style={[notepadStyles.legendDot, notepadStyles.legendDotGood]} />
-            <Text style={notepadStyles.legendText}>好人</Text>
+            <View style={[notepadStyles.legendDot, notepadStyles.legendDotGod]} />
+            <Text style={notepadStyles.legendText}>神职</Text>
           </View>
           <View style={notepadStyles.legendItem}>
-            <View style={[notepadStyles.legendDot, notepadStyles.legendDotBad]} />
+            <View style={[notepadStyles.legendDot, notepadStyles.legendDotVillager]} />
+            <Text style={notepadStyles.legendText}>平民</Text>
+          </View>
+          <View style={notepadStyles.legendItem}>
+            <View style={[notepadStyles.legendDot, notepadStyles.legendDotWolf]} />
             <Text style={notepadStyles.legendText}>狼人</Text>
+          </View>
+          <View style={notepadStyles.legendItem}>
+            <View style={[notepadStyles.legendDot, notepadStyles.legendDotThird]} />
+            <Text style={notepadStyles.legendText}>第三方</Text>
           </View>
         </View>
       </SafeAreaView>

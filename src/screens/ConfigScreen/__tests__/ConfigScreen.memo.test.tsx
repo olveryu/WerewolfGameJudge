@@ -41,6 +41,7 @@ const mockColors = {
   wolf: '#d32f2f',
   villager: '#4caf50',
   god: '#9c27b0',
+  third: '#f59e0b',
   // Overlay
   overlay: 'rgba(0,0,0,0.5)',
   overlayLight: 'rgba(0,0,0,0.3)',
@@ -101,7 +102,8 @@ describe('ConfigScreen Performance Optimizations', () => {
         'chip',
         'chipSelected',
         'chipSelectedWolf',
-        'chipSelectedGood',
+        'chipSelectedGod',
+        'chipSelectedVillager',
         'chipSelectedNeutral',
         'chipText',
         'chipTextSelected',
