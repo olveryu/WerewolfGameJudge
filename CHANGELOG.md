@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.259] - 2026-02-20
+
+- refactor(config): replace header buttons with overflow menu, swap BGM
+- refactor(config): shorten board names, chip layout, header redesign
+- feat(ConfigScreen): enhance header layout and add settings chip selection
+- feat(models): add mirrorSeer (灯影预言家) role
+
 ## [1.0.258] - 2026-02-20
 
 - fix(night): guard postProgression countdown against non-ongoing status
