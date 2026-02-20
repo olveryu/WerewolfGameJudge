@@ -119,13 +119,13 @@ describe('ConfigScreen', () => {
       expect(getByText('创建房间')).toBeTruthy();
     });
 
-    it('should render header with player count and gear button', () => {
+    it('should render header with player count and more button', () => {
       const { getByText, getByTestId } = renderWithFacade(<ConfigScreen />);
 
       // Header shows player count
       expect(getByText(/\d+人/)).toBeTruthy();
-      // Gear button for settings
-      expect(getByTestId('config-gear-btn')).toBeTruthy();
+      // More button for overflow menu
+      expect(getByTestId('config-more-btn')).toBeTruthy();
     });
   });
 

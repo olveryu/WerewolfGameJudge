@@ -12,15 +12,18 @@ import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface ConfigScreenStyles {
   container: ViewStyle;
-  // Header row (back + template pill · count + trash + gear)
+  // Header row (back + template pill · count + ⋯)
   header: ViewStyle;
   headerBtn: ViewStyle;
   headerBtnText: TextStyle;
   headerCenter: ViewStyle;
   headerTitle: TextStyle;
-  headerRight: ViewStyle;
-  headerGearBtn: ViewStyle;
-  headerGearBtnText: TextStyle;
+  // Overflow (⋯) menu
+  overflowMenuOverlay: ViewStyle;
+  overflowMenu: ViewStyle;
+  overflowMenuItem: ViewStyle;
+  overflowMenuItemIcon: TextStyle;
+  overflowMenuItemText: TextStyle;
   // Card A (faction tabs)
   cardA: ViewStyle;
   cardADivider: ViewStyle;
@@ -119,7 +122,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       overflow: 'hidden', // Ensures flex children respect height constraints on web
     },
 
-    // ── Header row 1: ← | 预女猎白▾ 12人 | 🗑️ ⚙️ ────────────
+    // ── Header row: ← | 预女猎白▾ 12人 | ⋯ ────────────
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -155,21 +158,37 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
-    headerRight: {
+    // ── Overflow (⋯) popup menu ──────────────────────
+    overflowMenuOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      zIndex: 100,
+    },
+    overflowMenu: {
+      position: 'absolute',
+      top: spacing.small + spacing.tight + componentSizes.avatar.md + spacing.tight,
+      right: layout.screenPaddingH,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.medium,
+      paddingVertical: spacing.tight,
+      ...shadows.md,
+      zIndex: 101,
+      minWidth: 140,
+    },
+    overflowMenuItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.tight,
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small + spacing.tight,
+      gap: spacing.small,
     },
-    headerGearBtn: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
+    overflowMenuItemIcon: {
+      width: 20,
+      textAlign: 'center',
     },
-    headerGearBtnText: {
-      fontSize: typography.body,
+    overflowMenuItemText: {
+      fontSize: typography.secondary,
+      color: colors.text,
+      fontWeight: typography.weights.medium,
     },
 
     // ── Card A: template + faction tabs (merged card) ──
