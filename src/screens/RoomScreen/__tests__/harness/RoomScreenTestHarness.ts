@@ -44,6 +44,8 @@ export type DialogType =
   | 'gargoyleReveal' // Gargoyle reveal result
   | 'wolfRobotReveal' // WolfRobot learn result
   | 'wolfRobotHunterStatus' // WolfRobot learned hunter status
+  | 'pureWhiteReveal' // PureWhite reveal result
+  | 'wolfWitchReveal' // WolfWitch reveal result
 
   // Special dialogs
   | 'magicianFirst' // Magician first target selected
