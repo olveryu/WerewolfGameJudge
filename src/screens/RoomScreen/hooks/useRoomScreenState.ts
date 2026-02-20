@@ -184,6 +184,10 @@ export function useRoomScreenState(
 
   useEffect(() => {
     if (wolfVoteDeadline == null) return;
+    // Guard: only fire postProgression while game is ongoing.
+    // On host rejoin with status `ended`, stale wolfVoteDeadline may still exist
+    // and be expired — without this guard it would fire immediately and get 400.
+    if (roomStatus !== GameStatus.ongoing) return;
 
     // Already expired on mount — fire postProgression immediately (once)
     if (Date.now() >= wolfVoteDeadline) {
@@ -212,7 +216,7 @@ export function useRoomScreenState(
       setCountdownTick((t) => t + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [wolfVoteDeadline, isHost, postProgression]);
+  }, [wolfVoteDeadline, isHost, postProgression, roomStatus]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Simple hooks
