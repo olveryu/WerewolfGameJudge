@@ -27,7 +27,7 @@ import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
-import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, crossPlatformTextShadow, spacing, typography, useColors } from '@/theme';
 
@@ -151,7 +151,8 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
-  const theme = ALIGNMENT_THEMES[role.alignment];
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const theme = alignmentThemes[role.alignment];
   const centeringOffset = config.itemHeight;
 
   // ── Bulb pattern init ──
@@ -419,7 +420,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
               {/* Scrolling items */}
               <Animated.View style={[styles.scrollContainer, scrollStyle]}>
                 {repeatedRoles.map((r, index) => {
-                  const itemTheme = ALIGNMENT_THEMES[r.alignment];
+                  const itemTheme = alignmentThemes[r.alignment];
                   return (
                     <View
                       key={`role-${r.id}-${index}`}

@@ -27,7 +27,7 @@ import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
-import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, useColors } from '@/theme';
 
@@ -82,7 +82,8 @@ export const CardPick: React.FC<CardPickProps> = ({
 }) => {
   const colors = useColors();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const theme = ALIGNMENT_THEMES[role.alignment];
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const theme = alignmentThemes[role.alignment];
   const config = CONFIG.cardPick;
   const common = CONFIG.common;
 

@@ -7,7 +7,7 @@
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -25,7 +25,7 @@ import { RoleCard } from '@/components/RoleRevealEffects/common/RoleCard';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
-import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, useColors } from '@/theme';
 
@@ -97,7 +97,8 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const config = CONFIG.flip;
-  const theme = ALIGNMENT_THEMES[role.alignment];
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const theme = alignmentThemes[role.alignment];
 
   const [phase, setPhase] = useState<'entry' | 'levitate' | 'flipping' | 'landing' | 'revealed'>(
     'entry',

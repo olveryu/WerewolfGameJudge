@@ -25,11 +25,11 @@ import {
 } from '@/components/RoleRevealEffects';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────
-const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager'> = {
+const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager' | 'third'> = {
   [Faction.Wolf]: 'wolf',
   [Faction.God]: 'god',
   [Faction.Villager]: 'villager',
-  [Faction.Special]: 'villager', // Special 归类为 villager
+  [Faction.Special]: 'third',
 };
 
 // ─── Props ──────────────────────────────────────────────────────────────────

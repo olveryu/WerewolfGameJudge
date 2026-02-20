@@ -44,7 +44,7 @@ export type {
   RoleRevealAnimatorProps,
   RoleRevealEffectProps,
 } from './types';
-export { ALIGNMENT_THEMES } from './types';
+export { createAlignmentThemes } from './types';
 
 // Configuration (for customization)
 export { CONFIG } from './config';

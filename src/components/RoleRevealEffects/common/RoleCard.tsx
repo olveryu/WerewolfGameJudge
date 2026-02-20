@@ -4,11 +4,11 @@
  * 支持正反面显示、对齐主题色。
  * 渲染卡片 UI。不 import service，不含业务逻辑。
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import type { RoleAlignment, RoleData } from '@/components/RoleRevealEffects/types';
-import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { borderRadius, spacing, typography, useColors } from '@/theme';
 
 /** White text color for alignment badge on colored backgrounds */
@@ -35,6 +35,8 @@ function getAlignmentLabel(alignment: RoleAlignment): string {
       return '狼人阵营';
     case 'god':
       return '神职阵营';
+    case 'third':
+      return '第三方阵营';
     default:
       return '平民阵营';
   }
@@ -49,7 +51,8 @@ export const RoleCard: React.FC<RoleCardProps> = ({
   testID,
 }) => {
   const colors = useColors();
-  const theme = ALIGNMENT_THEMES[role.alignment];
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const theme = alignmentThemes[role.alignment];
 
   if (showBack) {
     return (

@@ -12,18 +12,18 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { getFactionName, ROLE_ICONS } from '@/components/roleDisplayUtils';
-import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
 import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 /** White text color for badges/overlays on colored backgrounds */
 const BADGE_TEXT_WHITE = '#fff';
 
-// 阵营颜色
-const getFactionColor = (roleId: RoleId): string => {
-  if (isWolfRole(roleId)) return ALIGNMENT_THEMES.wolf.primaryColor;
+// 阵营颜色（从主题 token 取色）
+const getFactionColor = (roleId: RoleId, colors: ThemeColors): string => {
+  if (isWolfRole(roleId)) return colors.wolf;
   const spec = getRoleSpec(roleId);
-  if (spec?.faction === 'god') return ALIGNMENT_THEMES.god.primaryColor;
-  return ALIGNMENT_THEMES.villager.primaryColor;
+  if (spec?.faction === 'god') return colors.god;
+  if (spec?.faction === 'special') return colors.third;
+  return colors.villager;
 };
 
 export interface RoleCardContentProps {
@@ -56,7 +56,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   const roleName = spec?.displayName || roleId;
   const description = spec?.description || '无技能描述';
   const icon = ROLE_ICONS[roleId] || '❓';
-  const factionColor = getFactionColor(roleId);
+  const factionColor = getFactionColor(roleId, colors);
   const factionName = getFactionName(roleId);
 
   return (

@@ -1,14 +1,18 @@
 /**
- * RoleRevealEffects/types - 揭示动画共享类型
+ * RoleRevealEffects/types - 揭示动画共享类型与阵营配色工厂
  *
  * 所有揭示动画组件的公共接口定义。
- * 导出纯类型、接口和枚举定义。不含运行时逻辑，不 import service。
+ * 导出类型、接口、枚举定义，以及 `createAlignmentThemes` 工厂函数
+ * （基于 ThemeColors token 派生 glow / particle / gradient 色）。
+ * 不 import service。
  */
+import type { ThemeColors } from '@/theme';
+import { darken, lighten } from '@/theme/colorUtils';
 
 /**
- * Role alignment/faction for visual theming
+ * Role alignment/faction for visual theming (4-faction)
  */
-export type RoleAlignment = 'wolf' | 'god' | 'villager';
+export type RoleAlignment = 'wolf' | 'god' | 'villager' | 'third';
 
 /**
  * Role data passed to reveal effects
@@ -82,25 +86,27 @@ export interface AlignmentTheme {
 }
 
 /**
- * Alignment theme configurations
+ * Build AlignmentTheme for a single primary color.
+ * Derives glow (lighten 35%), particle (lighten 55%), gradient (darken 75% / 55%).
  */
-export const ALIGNMENT_THEMES: Record<RoleAlignment, AlignmentTheme> = {
-  wolf: {
-    primaryColor: '#DC2626',
-    glowColor: '#FF4444',
-    particleColor: '#FF6B6B',
-    gradientColors: ['#450A0A', '#7F1D1D'],
-  },
-  god: {
-    primaryColor: '#3B82F6',
-    glowColor: '#60A5FA',
-    particleColor: '#93C5FD',
-    gradientColors: ['#1E3A5F', '#1E40AF'],
-  },
-  villager: {
-    primaryColor: '#22C55E',
-    glowColor: '#4ADE80',
-    particleColor: '#86EFAC',
-    gradientColors: ['#14532D', '#166534'],
-  },
-};
+function buildAlignmentTheme(primary: string): AlignmentTheme {
+  return {
+    primaryColor: primary,
+    glowColor: lighten(primary, 0.35),
+    particleColor: lighten(primary, 0.55),
+    gradientColors: [darken(primary, 0.75), darken(primary, 0.55)],
+  };
+}
+
+/**
+ * Create 4-faction alignment themes from current ThemeColors.
+ * Consumers should memoize the result via `useMemo(() => createAlignmentThemes(colors), [colors])`.
+ */
+export function createAlignmentThemes(colors: ThemeColors): Record<RoleAlignment, AlignmentTheme> {
+  return {
+    wolf: buildAlignmentTheme(colors.wolf),
+    god: buildAlignmentTheme(colors.god),
+    villager: buildAlignmentTheme(colors.villager),
+    third: buildAlignmentTheme(colors.third),
+  };
+}

@@ -53,11 +53,10 @@ const mockColors = {
   success: '#28A745',
   border: '#E0E0E0',
   divider: '#EEEEEE',
-  wolf: '#8B0000',
-  wolfLight: '#CD5C5C',
-  god: '#2196F3',
-  villager: '#4CAF50',
-  special: '#9C27B0',
+  wolf: '#DC2626',
+  god: '#7C3AED',
+  villager: '#16A34A',
+  third: '#CA8A04',
 };
 
 const mockAvailableThemes = [

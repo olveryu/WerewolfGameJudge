@@ -17,6 +17,7 @@ jest.mock('../../theme', () => ({
     border: '#374151',
     overlay: 'rgba(0,0,0,0.85)',
     wolf: '#EF4444',
+    villager: '#22C55E',
     god: '#6366F1',
     third: '#F59E0B',
   }),
