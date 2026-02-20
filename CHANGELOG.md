@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.252] - 2026-02-19
+
+- feat(notepad): add team-colored text to role picker options
+
 ## [1.0.251] - 2026-02-19
 
 - feat(notepad): add team-colored text to role badge
