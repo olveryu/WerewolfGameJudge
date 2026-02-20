@@ -33,6 +33,21 @@ applyTo: 'src/screens/**,src/components/**'
 - 例外：`*.stories.tsx`、`RoleRevealEffects/*` 动画常量、Emoji fontSize、statusDot 6×6、第三方不可控值。
 - 卡片用 `shadows.sm` + `borderRadius.large` + `colors.surface`，不用 border 描边。全宽 bar 卡片化。Banner 用浅色背景（主色+`'20'`透明度）+ `borderWidth: fixed.borderWidth`。
 
+### 4-Faction 阵营色（MUST）
+
+阵营颜色统一使用 theme token，禁止硬编码色值：
+
+| 阵营 | Token | 用途 |
+|---|---|---|
+| 狼人 | `colors.wolf` | chip 边框/文字、badge、notepad 角色标签 |
+| 神职 | `colors.god` | 同上 |
+| 村民 | `colors.villager` | 同上 |
+| 第三方 | `colors.third` | 同上 |
+
+- 所有 UI 展示阵营色的地方（ConfigScreen chip、BoardInfoCard chip、RoleCard、NotepadPanel badge、AIChatBubble 等）必须从 `colors.*` 读取，确保跟随主题切换。
+- `RoleRevealEffects` 动画组件通过 `createAlignmentThemes(colors)` 工厂函数派生 glow/particle/gradient 色值（`src/theme/colorUtils.ts`）。
+- 新增阵营相关 UI 时，必须覆盖全部 4 个 faction（wolf / god / villager / third）。
+
 ## Actor Identity 三层语义
 
 - `my*` — 真实身份，仅展示用。
