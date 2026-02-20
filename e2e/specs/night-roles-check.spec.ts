@@ -629,8 +629,9 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, wolfIndices, killTarget);
 
-        // Wait for wolfWitch's turn
-        const wwTurn = await waitForRoleTurn(pages[wolfWitchIdx], ['查验', '选择'], pages, 120);
+        // Wait for wolfWitch's turn (use '查验' only — '选择' also appears in the
+        // wolfKill prompt and would match before the step actually transitions)
+        const wwTurn = await waitForRoleTurn(pages[wolfWitchIdx], ['查验'], pages, 120);
         expect(wwTurn, 'WolfWitch turn should be detected').toBe(true);
 
         // Check the villager (notWolfFaction constraint — can only check non-wolf)
