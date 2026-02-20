@@ -12,6 +12,7 @@ const schemaToRole: Record<string, string> = {
   // god
   seerCheck: 'seer',
   mirrorSeerCheck: 'mirrorSeer',
+  drunkSeerCheck: 'drunkSeer',
   guardProtect: 'guard',
   psychicCheck: 'psychic',
   pureWhiteCheck: 'pureWhite',

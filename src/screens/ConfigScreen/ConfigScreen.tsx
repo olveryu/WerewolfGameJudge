@@ -43,6 +43,7 @@ import {
   Section,
   SettingsSheet,
   TemplatePicker,
+  VariantPicker,
 } from './components';
 import { buildInitialSelection, FACTION_GROUPS } from './configData';
 
@@ -52,11 +53,15 @@ import { buildInitialSelection, FACTION_GROUPS } from './configData';
 
 const getInitialSelection = (): Record<string, boolean> => buildInitialSelection();
 
-const selectionToRoles = (selection: Record<string, boolean>): RoleId[] => {
+const selectionToRoles = (
+  selection: Record<string, boolean>,
+  variantOverrides?: Record<string, string>,
+): RoleId[] => {
   const roles: RoleId[] = [];
   Object.entries(selection).forEach(([key, selected]) => {
     if (selected) {
-      const roleId = key.replace(/\d+$/, '') as RoleId;
+      const baseRoleId = key.replace(/\d+$/, '');
+      const roleId = (variantOverrides?.[baseRoleId] ?? baseRoleId) as RoleId;
       roles.push(roleId);
     }
   });
@@ -99,17 +104,24 @@ const computeTotalCount = (selection: Record<string, boolean>): number => {
 };
 
 /** Expand a RoleSlot into an array of {key, label} for rendering chips */
-const expandSlotToChipEntries = (slot: {
-  roleId: string;
-  count?: number;
-}): { key: string; label: string }[] => {
+const expandSlotToChipEntries = (
+  slot: {
+    roleId: string;
+    count?: number;
+    variants?: string[];
+  },
+  variantOverrides?: Record<string, string>,
+): { key: string; label: string; hasVariants: boolean }[] => {
   const count = slot.count ?? 1;
-  const spec = ROLE_SPECS[slot.roleId as keyof typeof ROLE_SPECS];
-  const label = spec?.displayName ?? slot.roleId;
+  const activeRoleId = variantOverrides?.[slot.roleId] ?? slot.roleId;
+  const spec = ROLE_SPECS[activeRoleId as keyof typeof ROLE_SPECS];
+  const label = spec?.displayName ?? activeRoleId;
+  const hasVariants = !!slot.variants && slot.variants.length > 0;
 
   return Array.from({ length: count }, (_, i) => ({
     key: i === 0 ? slot.roleId : `${slot.roleId}${i}`,
     label,
+    hasVariants,
   }));
 };
 
@@ -139,6 +151,7 @@ export const ConfigScreen: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
   const [bgmEnabled, setBgmEnabled] = useState(true);
   const [overflowVisible, setOverflowVisible] = useState(false);
+  const [variantOverrides, setVariantOverrides] = useState<Record<string, string>>({});
 
   const facade = useGameFacade();
   const totalCount = useMemo(() => computeTotalCount(selection), [selection]);
@@ -234,7 +247,7 @@ export const ConfigScreen: React.FC = () => {
     if (creatingRef.current || isLoading) return;
     creatingRef.current = true;
 
-    const roles = selectionToRoles(selection);
+    const roles = selectionToRoles(selection, variantOverrides);
     if (roles.length === 0) {
       showAlert('配置提示', '请至少选择一个角色');
       creatingRef.current = false;
@@ -310,6 +323,7 @@ export const ConfigScreen: React.FC = () => {
     isLoading,
     authService,
     roomService,
+    variantOverrides,
   ]);
 
   // Template dropdown options (short display names, strip "12人" suffix)
@@ -361,6 +375,62 @@ export const ConfigScreen: React.FC = () => {
 
   const handleBgmChange = useCallback((v: string) => {
     setBgmEnabled(v === 'on');
+  }, []);
+
+  // ============================================
+  // Variant picker
+  // ============================================
+
+  const [variantPickerSlotId, setVariantPickerSlotId] = useState<string | null>(null);
+
+  /** Find the slot config for a given roleId key (strips number suffix to get base roleId) */
+  const findSlotForKey = useCallback((key: string) => {
+    const baseRoleId = key.replace(/\d+$/, '');
+    for (const group of FACTION_GROUPS) {
+      for (const section of group.sections) {
+        for (const slot of section.roles) {
+          if (slot.roleId === baseRoleId && slot.variants && slot.variants.length > 0) {
+            return slot;
+          }
+        }
+      }
+    }
+    return null;
+  }, []);
+
+  const handleChipLongPress = useCallback((key: string) => {
+    const baseRoleId = key.replace(/\d+$/, '');
+    setVariantPickerSlotId(baseRoleId);
+  }, []);
+
+  const handleVariantSelect = useCallback(
+    (variantId: string) => {
+      if (!variantPickerSlotId) return;
+      setVariantOverrides((prev) => {
+        if (variantId === variantPickerSlotId) {
+          // Selecting the base role — remove override
+          const next = { ...prev };
+          delete next[variantPickerSlotId];
+          return next;
+        }
+        return { ...prev, [variantPickerSlotId]: variantId };
+      });
+      setSelectedTemplate('__custom__');
+    },
+    [variantPickerSlotId],
+  );
+
+  const variantPickerVisible = variantPickerSlotId !== null;
+  const variantPickerSlot = variantPickerSlotId ? findSlotForKey(variantPickerSlotId) : null;
+  const variantPickerIds = variantPickerSlot
+    ? [variantPickerSlot.roleId, ...variantPickerSlot.variants!]
+    : [];
+  const variantPickerActive = variantPickerSlotId
+    ? (variantOverrides[variantPickerSlotId] ?? variantPickerSlotId)
+    : '';
+
+  const handleCloseVariantPicker = useCallback(() => {
+    setVariantPickerSlotId(null);
   }, []);
 
   // ============================================
@@ -658,18 +728,22 @@ export const ConfigScreen: React.FC = () => {
                   <React.Fragment key={section.title}>
                     {index > 0 && <View style={styles.cardBDivider} />}
                     <Section title={section.title} styles={styles}>
-                      {section.roles.flatMap(expandSlotToChipEntries).map((entry) => (
-                        <RoleChip
-                          key={entry.key}
-                          id={entry.key}
-                          label={entry.label}
-                          selected={!!selection[entry.key]}
-                          onToggle={toggleRole}
-                          styles={styles}
-                          factionColor={sectionFactionColorKey}
-                          accentColor={sectionAccentColor}
-                        />
-                      ))}
+                      {section.roles
+                        .flatMap((slot) => expandSlotToChipEntries(slot, variantOverrides))
+                        .map((entry) => (
+                          <RoleChip
+                            key={entry.key}
+                            id={entry.key}
+                            label={entry.label}
+                            selected={!!selection[entry.key]}
+                            onToggle={toggleRole}
+                            styles={styles}
+                            factionColor={sectionFactionColorKey}
+                            accentColor={sectionAccentColor}
+                            hasVariants={entry.hasVariants}
+                            onLongPress={entry.hasVariants ? handleChipLongPress : undefined}
+                          />
+                        ))}
                     </Section>
                   </React.Fragment>
                 );
@@ -715,6 +789,16 @@ export const ConfigScreen: React.FC = () => {
         options={templateOptions}
         selectedValue={selectedTemplate}
         onSelect={handleSelectTemplate}
+        styles={styles}
+      />
+
+      {/* Variant Picker Modal */}
+      <VariantPicker
+        visible={variantPickerVisible}
+        onClose={handleCloseVariantPicker}
+        variantIds={variantPickerIds}
+        activeVariant={variantPickerActive}
+        onSelect={handleVariantSelect}
         styles={styles}
       />
     </SafeAreaView>

@@ -30,6 +30,12 @@ interface RoleSlot {
    * @default false
    */
   isBulk?: boolean;
+  /**
+   * Alternative variant role IDs that can replace this slot.
+   * When present, the chip shows a variant indicator and supports long-press to switch.
+   * The variants list does NOT include the base roleId — it lists only alternatives.
+   */
+  variants?: string[];
 }
 
 interface RoleSection {
@@ -81,7 +87,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
       },
       {
         title: '特殊平民',
-        roles: [{ roleId: 'mirrorSeer' }],
+        roles: [{ roleId: 'mirrorSeer', variants: ['drunkSeer'] }],
       },
     ],
   },

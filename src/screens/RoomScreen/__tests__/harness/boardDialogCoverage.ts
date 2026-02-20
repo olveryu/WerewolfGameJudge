@@ -130,6 +130,7 @@ const ROLE_HOST_DATA_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> 
   gargoyle: ['gargoyleReveal'],
   wolfRobot: ['wolfRobotReveal'],
   mirrorSeer: ['mirrorSeerReveal'],
+  drunkSeer: ['drunkSeerReveal'],
   pureWhite: ['pureWhiteReveal'],
   wolfWitch: ['wolfWitchReveal'],
 };
