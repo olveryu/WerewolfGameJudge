@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.256] - 2026-02-19
+
+- fix(room): add faction colors to BoardInfoCard role chips
+
 ## [1.0.255] - 2026-02-19
 
 - fix(config): use section-level faction color for role chips
