@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.257] - 2026-02-19
+
+- docs: add 4-faction color token rules to screens instructions
+
 ## [1.0.256] - 2026-02-19
 
 - fix(room): add faction colors to BoardInfoCard role chips
