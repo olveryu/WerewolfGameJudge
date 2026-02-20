@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.254] - 2026-02-19
+
+- refactor(theme): unify role reveal colors with theme tokens
+
 ## [1.0.253] - 2026-02-19
 
 - refactor(theme): unify faction colors to 4-faction system (wolf/god/villager/third)
