@@ -34,6 +34,8 @@ interface RoleSlot {
 
 interface RoleSection {
   title: string;
+  /** Override faction color for this section (defaults to parent group's faction) */
+  faction?: Faction;
   roles: RoleSlot[];
 }
 
@@ -61,6 +63,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
       },
       {
         title: '神职',
+        faction: Faction.God,
         roles: [
           { roleId: 'seer' },
           { roleId: 'witch' },

@@ -520,8 +520,7 @@ export const ConfigScreen: React.FC = () => {
     [activeTab],
   );
 
-  const activeAccentColor = getFactionAccentColor(activeGroup.faction);
-  const activeFactionColorKey = FACTION_COLOR_MAP[activeGroup.faction] ?? 'good';
+  // activeFactionColorKey removed — section-level faction is used per-section in render
 
   const isDisabled = isCreating || isLoading;
 
@@ -596,6 +595,9 @@ export const ConfigScreen: React.FC = () => {
             {/* Card B — stepper + role sections */}
             <View style={styles.cardB}>
               {activeGroup.sections.map((section, index) => {
+                const sectionFaction = section.faction ?? activeGroup.faction;
+                const sectionAccentColor = getFactionAccentColor(sectionFaction);
+
                 // Bulk slot → RoleStepper
                 const bulkSlot = section.roles.find((s) => s.isBulk);
                 if (bulkSlot) {
@@ -611,7 +613,7 @@ export const ConfigScreen: React.FC = () => {
                         maxCount={maxCount}
                         onCountChange={handleBulkCountChange}
                         styles={styles}
-                        accentColor={activeAccentColor}
+                        accentColor={sectionAccentColor}
                       />
                       {index < activeGroup.sections.length - 1 && (
                         <View style={styles.cardBDivider} />
@@ -621,6 +623,7 @@ export const ConfigScreen: React.FC = () => {
                 }
 
                 // Skill slots → Section + RoleChips
+                const sectionFactionColorKey = FACTION_COLOR_MAP[sectionFaction] ?? 'villager';
                 return (
                   <React.Fragment key={section.title}>
                     {index > 0 && <View style={styles.cardBDivider} />}
@@ -633,8 +636,8 @@ export const ConfigScreen: React.FC = () => {
                           selected={!!selection[entry.key]}
                           onToggle={toggleRole}
                           styles={styles}
-                          factionColor={activeFactionColorKey}
-                          accentColor={activeAccentColor}
+                          factionColor={sectionFactionColorKey}
+                          accentColor={sectionAccentColor}
                         />
                       ))}
                     </Section>
