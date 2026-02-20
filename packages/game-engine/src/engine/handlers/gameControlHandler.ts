@@ -102,11 +102,15 @@ export function handleAssignRoles(
   }
 
   // 当多个 displayAs='seer' 角色同时在场，随机分配编号标签
-  const seerLikeRoles = shuffledRoles.filter((r) => {
-    if (r === 'seer') return true;
-    const spec = ROLE_SPECS[r as RoleId];
-    return 'displayAs' in spec && spec.displayAs === 'seer';
-  });
+  const seerLikeRoles = [
+    ...new Set(
+      shuffledRoles.filter((r) => {
+        if (r === 'seer') return true;
+        const spec = ROLE_SPECS[r as RoleId];
+        return 'displayAs' in spec && spec.displayAs === 'seer';
+      }),
+    ),
+  ];
   let seerLabelMap: Readonly<Record<string, number>> | undefined;
   if (seerLikeRoles.length >= 2) {
     const labels = shuffleArray(Array.from({ length: seerLikeRoles.length }, (_, i) => i + 1));
@@ -170,7 +174,7 @@ export function handleStartNight(
   }
 
   // 首步来自 buildNightPlan 表驱动单源（按当前模板角色过滤）
-  const nightPlan = buildNightPlan(state.templateRoles);
+  const nightPlan = buildNightPlan(state.templateRoles, state.seerLabelMap);
 
   // Fail-fast: 如果 nightPlan 为空，说明 templateRoles 没有夜晚行动角色
   // 这在有效游戏中不应该发生（至少应该有 wolf）

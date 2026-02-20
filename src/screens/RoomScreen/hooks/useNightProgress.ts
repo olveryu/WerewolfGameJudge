@@ -54,7 +54,7 @@ export function useNightProgress({
     }
 
     // Build night plan from template roles (same as Host uses)
-    const nightPlan = buildNightPlan(gameState.template.roles);
+    const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
 
     // Find current step index in the dynamically built plan
     const stepIndex = nightPlan.steps.findIndex((step) => step.stepId === currentStepId);

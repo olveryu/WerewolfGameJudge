@@ -435,7 +435,7 @@ export function handleAdvanceNight(
 
   // ⚠️ 使用 buildNightPlan 过滤后的步骤，而不是全量 NIGHT_STEPS
   // 这样在 2-player 模板（只有 wolf + villager）中，wolfKill 之后不会有其他步骤
-  const nightPlan = buildNightPlan(state.templateRoles);
+  const nightPlan = buildNightPlan(state.templateRoles, state.seerLabelMap);
 
   // 计算下一个 stepId（若超出范围则为 null，表示夜晚结束）
   const nextStep = nightPlan.steps[nextIndex] ?? null;
