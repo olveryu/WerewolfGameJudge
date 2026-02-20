@@ -70,6 +70,8 @@ export interface NotepadStyles {
   popoverTagSelectedGood: ViewStyle;
   popoverTagSelectedBad: ViewStyle;
   popoverTagText: TextStyle;
+  popoverTagTextGood: TextStyle;
+  popoverTagTextBad: TextStyle;
   popoverTagTextSelected: TextStyle;
   popoverClearBtn: ViewStyle;
   popoverClearText: TextStyle;
@@ -477,6 +479,12 @@ export const createStyles = (colors: ThemeColors) =>
     notepadPopoverTagText: {
       fontSize: typography.body,
       color: colors.textMuted,
+    },
+    notepadPopoverTagTextGood: {
+      color: colors.villager,
+    },
+    notepadPopoverTagTextBad: {
+      color: colors.wolf,
     },
     notepadPopoverTagTextSelected: {
       color: colors.text,

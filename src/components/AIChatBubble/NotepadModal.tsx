@@ -62,6 +62,8 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       popoverTagSelectedGood: styles.notepadPopoverTagSelectedGood,
       popoverTagSelectedBad: styles.notepadPopoverTagSelectedBad,
       popoverTagText: styles.notepadPopoverTagText,
+      popoverTagTextGood: styles.notepadPopoverTagTextGood,
+      popoverTagTextBad: styles.notepadPopoverTagTextBad,
       popoverTagTextSelected: styles.notepadPopoverTagTextSelected,
       popoverClearBtn: styles.notepadPopoverClearBtn,
       popoverClearText: styles.notepadPopoverClearText,

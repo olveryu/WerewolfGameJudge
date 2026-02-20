@@ -165,7 +165,12 @@ const RolePickerModal: React.FC<RolePickerModalProps> = React.memo(
                     activeOpacity={0.7}
                   >
                     <Text
-                      style={[styles.popoverTagText, isSelected && styles.popoverTagTextSelected]}
+                      style={[
+                        styles.popoverTagText,
+                        !isSelected &&
+                          (isGood ? styles.popoverTagTextGood : styles.popoverTagTextBad),
+                        isSelected && styles.popoverTagTextSelected,
+                      ]}
                     >
                       {tag.shortName}
                     </Text>
