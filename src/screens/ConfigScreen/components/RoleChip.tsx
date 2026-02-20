@@ -2,9 +2,10 @@
  * RoleChip - 角色选择标签（Memoized）
  *
  * 带阵营色选中状态。渲染 UI 并通过回调上报 onToggle，不 import service，不包含业务逻辑判断。
+ * 当 hasVariants 为 true 时，chip 右下角显示 ▾ 指示器，长按触发变体选择。
  */
 import { memo } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 
@@ -22,6 +23,10 @@ export interface RoleChipProps {
   factionColor?: FactionColorKey;
   /** Accent color for selected text. Falls back to text color if omitted. */
   accentColor?: string;
+  /** Whether this chip has variant alternatives (shows ▾ indicator). */
+  hasVariants?: boolean;
+  /** Long-press handler for opening variant picker. */
+  onLongPress?: (id: string) => void;
 }
 
 const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
@@ -32,7 +37,17 @@ const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
 };
 
 export const RoleChip = memo<RoleChipProps>(
-  ({ id, label, selected, onToggle, styles, factionColor, accentColor }) => {
+  ({
+    id,
+    label,
+    selected,
+    onToggle,
+    styles,
+    factionColor,
+    accentColor,
+    hasVariants,
+    onLongPress,
+  }) => {
     const selectedStyle = factionColor
       ? styles[FACTION_STYLE_MAP[factionColor]]
       : styles.chipSelected;
@@ -42,6 +57,7 @@ export const RoleChip = memo<RoleChipProps>(
         testID={TESTIDS.configRoleChip(id)}
         style={[styles.chip, selected && selectedStyle]}
         onPress={() => onToggle(id)}
+        onLongPress={hasVariants && onLongPress ? () => onLongPress(id) : undefined}
         activeOpacity={0.7}
       >
         <Text
@@ -53,6 +69,11 @@ export const RoleChip = memo<RoleChipProps>(
         >
           {label}
         </Text>
+        {hasVariants && (
+          <View style={styles.chipVariantBadge}>
+            <Text style={styles.chipVariantBadgeText}>▾</Text>
+          </View>
+        )}
       </TouchableOpacity>
     );
   },

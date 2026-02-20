@@ -40,7 +40,8 @@ const AUDIO_FILES: Partial<Record<RoleId, AudioAsset>> = {
   wolfQueen: require('../../../assets/audio/wolf_queen.mp3'),
   witch: require('../../../assets/audio/witch.mp3'),
   seer: require('../../../assets/audio/seer.mp3'),
-  mirrorSeer: require('../../../assets/audio/mirror_seer.mp3'),
+  mirrorSeer: require('../../../assets/audio/seer.mp3'),
+  drunkSeer: require('../../../assets/audio/seer.mp3'),
   psychic: require('../../../assets/audio/psychic.mp3'),
   hunter: require('../../../assets/audio/hunter.mp3'),
   darkWolfKing: require('../../../assets/audio/dark_wolf_king.mp3'),
@@ -60,7 +61,8 @@ const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
   wolfQueen: require('../../../assets/audio_end/wolf_queen.mp3'),
   witch: require('../../../assets/audio_end/witch.mp3'),
   seer: require('../../../assets/audio_end/seer.mp3'),
-  mirrorSeer: require('../../../assets/audio_end/mirror_seer.mp3'),
+  mirrorSeer: require('../../../assets/audio_end/seer.mp3'),
+  drunkSeer: require('../../../assets/audio_end/seer.mp3'),
   psychic: require('../../../assets/audio_end/psychic.mp3'),
   hunter: require('../../../assets/audio_end/hunter.mp3'),
   darkWolfKing: require('../../../assets/audio_end/dark_wolf_king.mp3'),
@@ -68,7 +70,7 @@ const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
   wolfWitch: require('../../../assets/audio_end/wolf_witch.mp3'),
 };
 
-/** 双预言家标签音频（仅当 seer + mirrorSeer 同时在场时使用） */
+/** 多预言家标签音频（当 >=2 个 seer-like 角色同时在场时使用） */
 const SEER_LABEL_AUDIO: Record<string, AudioAsset> = {
   seer_1: require('../../../assets/audio/seer_1.mp3'),
   seer_2: require('../../../assets/audio/seer_2.mp3'),

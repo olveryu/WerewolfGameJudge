@@ -45,6 +45,7 @@ export type DialogType =
   | 'wolfRobotReveal' // WolfRobot learn result
   | 'wolfRobotHunterStatus' // WolfRobot learned hunter status
   | 'mirrorSeerReveal' // MirrorSeer reveal result (inverted)
+  | 'drunkSeerReveal' // DrunkSeer reveal result (random)
   | 'pureWhiteReveal' // PureWhite reveal result
   | 'wolfWitchReveal' // WolfWitch reveal result
 
@@ -118,6 +119,10 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   {
     type: 'mirrorSeerReveal',
     match: (t, m) => (t.includes('预言家') || t.includes('查验结果')) && m.includes('灯影'),
+  },
+  {
+    type: 'drunkSeerReveal',
+    match: (t, m) => (t.includes('预言家') || t.includes('查验结果')) && m.includes('酒鬼'),
   },
   { type: 'seerReveal', match: (t) => t.includes('预言家') || t.includes('查验结果') },
   { type: 'psychicReveal', match: (t) => t.includes('通灵师') || t.includes('通灵结果') },

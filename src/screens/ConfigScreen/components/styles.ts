@@ -77,6 +77,21 @@ export interface ConfigScreenStyles {
   chipSelectedNeutral: ViewStyle;
   chipText: TextStyle;
   chipTextSelected: TextStyle;
+  chipVariantBadge: ViewStyle;
+  chipVariantBadgeText: TextStyle;
+  // Variant picker modal
+  variantPickerOverlay: ViewStyle;
+  variantPickerContent: ViewStyle;
+  variantPickerHandle: ViewStyle;
+  variantPickerTitle: TextStyle;
+  variantPickerOption: ViewStyle;
+  variantPickerOptionSelected: ViewStyle;
+  variantPickerRadio: ViewStyle;
+  variantPickerRadioSelected: ViewStyle;
+  variantPickerRadioDot: ViewStyle;
+  variantPickerOptionContent: ViewStyle;
+  variantPickerOptionName: TextStyle;
+  variantPickerOptionDesc: TextStyle;
   // Role stepper
   stepperRow: ViewStyle;
   stepperLabel: TextStyle;
@@ -437,6 +452,16 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     chipTextSelected: {
       fontWeight: typography.weights.semibold,
     },
+    chipVariantBadge: {
+      position: 'absolute',
+      right: spacing.tight,
+      bottom: spacing.tight / 2,
+    },
+    chipVariantBadgeText: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
+      lineHeight: typography.caption + 2,
+    },
 
     // ── Card B: stepper + role sections (merged card) ──
     cardB: {
@@ -621,5 +646,75 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     modalOptionCheck: {
       fontSize: typography.body,
       color: colors.primary,
+    },
+
+    // ── Variant picker (bottom sheet) ────────────────
+    variantPickerOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    variantPickerContent: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: borderRadius.large,
+      borderTopRightRadius: borderRadius.large,
+      paddingBottom: spacing.xlarge,
+    },
+    variantPickerHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: borderRadius.small,
+      backgroundColor: colors.border,
+      alignSelf: 'center',
+      marginTop: spacing.small,
+      marginBottom: spacing.small,
+    },
+    variantPickerTitle: {
+      fontSize: typography.subtitle,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+      paddingHorizontal: layout.screenPaddingH,
+      paddingVertical: spacing.medium,
+    },
+    variantPickerOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: layout.screenPaddingH,
+      paddingVertical: spacing.medium,
+    },
+    variantPickerOptionSelected: {
+      backgroundColor: colors.primary + '10',
+    },
+    variantPickerRadio: {
+      width: 20,
+      height: 20,
+      borderRadius: borderRadius.full,
+      borderWidth: 2,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.medium,
+    },
+    variantPickerRadioSelected: {
+      borderColor: colors.primary,
+    },
+    variantPickerRadioDot: {
+      width: 10,
+      height: 10,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.primary,
+    },
+    variantPickerOptionContent: {
+      flex: 1,
+    },
+    variantPickerOptionName: {
+      fontSize: typography.body,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+    },
+    variantPickerOptionDesc: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.tight / 2,
     },
   });

@@ -17,3 +17,5 @@ export type { ConfigScreenStyles } from './styles';
 export { createConfigScreenStyles } from './styles';
 export type { TemplatePickerProps } from './TemplatePicker';
 export { TemplatePicker } from './TemplatePicker';
+export type { VariantPickerProps } from './VariantPicker';
+export { VariantPicker } from './VariantPicker';

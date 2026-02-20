@@ -65,6 +65,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
   // 无 notSelf 的 schema（允许自指）
   const schemasWithoutNotSelf: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
     { schemaId: 'seerCheck', roleId: 'seer' },
+    { schemaId: 'drunkSeerCheck', roleId: 'drunkSeer' },
     { schemaId: 'psychicCheck', roleId: 'psychic' },
     { schemaId: 'pureWhiteCheck', roleId: 'pureWhite' },
     { schemaId: 'gargoyleCheck', roleId: 'gargoyle' },
@@ -255,6 +256,7 @@ describe('notSelf constraint completeness', () => {
       // Without notSelf
       'seerCheck',
       'mirrorSeerCheck',
+      'drunkSeerCheck',
       'psychicCheck',
       'pureWhiteCheck',
       'gargoyleCheck',
