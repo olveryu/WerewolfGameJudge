@@ -32,6 +32,7 @@ import type {
   BroadcastGameState,
   HostBroadcast,
 } from '@werewolf/game-engine/protocol/types';
+import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverride';
 
 import { AudioService } from '@/services/infra/AudioService';
 import { RoomService } from '@/services/infra/RoomService';
@@ -297,7 +298,8 @@ export class GameFacade implements IGameFacade {
             audioKey: stepSpec.audioKey,
           });
           try {
-            await this.audioService.playRoleBeginningAudio(stepSpec.audioKey as RoleId);
+            const resolvedKey = resolveSeerAudioKey(stepSpec.audioKey, state.seerLabelMap);
+            await this.audioService.playRoleBeginningAudio(resolvedKey);
           } finally {
             // 音频完成（或失败）后，POST audio-ack 释放 gate + 触发推进
             await hostActions.postAudioAck(this.getHostActionsContext());
@@ -339,13 +341,13 @@ export class GameFacade implements IGameFacade {
         if (this._aborted) break;
         try {
           if (effect.isEndAudio) {
-            await this.audioService.playRoleEndingAudio(effect.audioKey as RoleId);
+            await this.audioService.playRoleEndingAudio(effect.audioKey);
           } else if (effect.audioKey === 'night') {
             await this.audioService.playNightAudio();
           } else if (effect.audioKey === 'night_end') {
             await this.audioService.playNightEndAudio();
           } else {
-            await this.audioService.playRoleBeginningAudio(effect.audioKey as RoleId);
+            await this.audioService.playRoleBeginningAudio(effect.audioKey);
           }
         } catch (e) {
           // 单个音频失败不阻断队列（与 resumeAfterRejoin 一致）

@@ -254,6 +254,7 @@ describe('notSelf constraint completeness', () => {
       'slackerChooseIdol',
       // Without notSelf
       'seerCheck',
+      'mirrorSeerCheck',
       'psychicCheck',
       'pureWhiteCheck',
       'gargoyleCheck',

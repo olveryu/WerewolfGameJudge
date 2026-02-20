@@ -17,8 +17,8 @@ import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.type
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
-  it('should have exactly 24 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(24);
+  it('should have exactly 25 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(25);
   });
 
   it('every role should have required fields', () => {
@@ -124,6 +124,7 @@ describe('ROLE_SPECS contract', () => {
       'witch', // 10
       'wolfWitch', // 14
       'seer', // 15
+      'mirrorSeer', // 15.5
       'pureWhite', // 16
       'psychic', // 16
       'hunter', // 20

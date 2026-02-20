@@ -4,8 +4,8 @@
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
  *
- * 22 roles total:
- * - Villager faction: villager (1)
+ * 25 roles total:
+ * - Villager faction: villager, mirrorSeer (2)
  * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper (11)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, spiritKnight (9)
  * - Third-party: slacker (1)
@@ -27,6 +27,18 @@ export const ROLE_SPECS = {
     team: 'good',
     description: '没有特殊能力，依靠推理和投票帮助好人阵营获胜',
     night1: { hasAction: false },
+  },
+
+  mirrorSeer: {
+    id: 'mirrorSeer',
+    displayName: '灯影预言家',
+    shortName: '灯',
+    faction: Faction.Villager,
+    team: 'good',
+    description:
+      '每晚可以查验一名玩家的身份阵营，但查验结果与玩家真实阵营相反。灯影预言家无法知晓自己的真实身份，拿到的身份是预言家',
+    night1: { hasAction: true },
+    displayAs: 'seer',
   },
 
   // ===================================================================
@@ -310,6 +322,17 @@ export type RoleId = keyof typeof ROLE_SPECS;
 /** Get spec by ID */
 export function getRoleSpec<K extends RoleId>(id: K): (typeof ROLE_SPECS)[K] {
   return ROLE_SPECS[id];
+}
+
+/**
+ * Get the displayAs target for a role.
+ * Returns the RoleId the role masquerades as (for player-facing display),
+ * or undefined if the role shows its own identity.
+ */
+export function getRoleDisplayAs(roleId: RoleId): RoleId | undefined {
+  // Type-safe access: 'displayAs' is only present on some roles in the as-const literal
+  const spec: RoleSpec = ROLE_SPECS[roleId];
+  return spec.displayAs as RoleId | undefined;
 }
 
 /** Check if a string is a valid RoleId */

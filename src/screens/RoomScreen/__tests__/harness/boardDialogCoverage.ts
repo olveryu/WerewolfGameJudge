@@ -37,9 +37,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 11) {
+  if (boards.length !== 12) {
     throw new Error(
-      `Expected exactly 11 presets with name including "12人", but got ${boards.length}. ` +
+      `Expected exactly 12 presets with name including "12人", but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -109,6 +109,9 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
   // Psychic: chooseSeat confirm + skip
   psychic: ['actionConfirm', 'skipConfirm'],
 
+  // MirrorSeer: chooseSeat confirm + skip (same as seer)
+  mirrorSeer: ['actionConfirm', 'skipConfirm'],
+
   // PureWhite: chooseSeat confirm + skip
   pureWhite: ['actionConfirm', 'skipConfirm'],
 
@@ -126,6 +129,7 @@ const ROLE_HOST_DATA_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> 
   psychic: ['psychicReveal'],
   gargoyle: ['gargoyleReveal'],
   wolfRobot: ['wolfRobotReveal'],
+  mirrorSeer: ['mirrorSeerReveal'],
   pureWhite: ['pureWhiteReveal'],
   wolfWitch: ['wolfWitchReveal'],
 };
@@ -203,6 +207,7 @@ export function getBoardSpecialRole(board: BoardConfig): RoleId | null {
     'spiritKnight',
     'witcher',
     'graveyardKeeper',
+    'mirrorSeer',
     'pureWhite',
     'wolfWitch',
   ]);
@@ -261,6 +266,7 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   机械狼通灵师12人: 'wolfRobot.12p.board.ui.test.tsx',
   恶灵骑士12人: 'spiritKnight.12p.board.ui.test.tsx',
   纯白夜影12人: 'pureWhite.12p.board.ui.test.tsx',
+  灯影预言家12人: 'mirrorSeer.12p.board.ui.test.tsx',
 };
 
 /**

@@ -214,6 +214,7 @@ describe('SCHEMAS contract', () => {
       // If we ever add/remove a reveal kind, this test will force updating the UI schema.
       const expectedRevealKinds = [
         'gargoyle',
+        'mirrorSeer',
         'psychic',
         'pureWhite',
         'seer',
@@ -240,6 +241,7 @@ describe('SCHEMAS contract', () => {
       // If this changes, reviewers should inspect the UI/reveal ack flow carefully.
       expect(revealSchemaIds).toEqual([
         'gargoyleCheck',
+        'mirrorSeerCheck',
         'psychicCheck',
         'pureWhiteCheck',
         'seerCheck',

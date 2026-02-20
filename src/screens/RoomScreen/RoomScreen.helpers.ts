@@ -66,6 +66,8 @@ interface RoleStats {
   wolfRoleItems: RoleDisplayItem[];
   godRoleItems: RoleDisplayItem[];
   specialRoleItems: RoleDisplayItem[];
+  /** Villager-faction roles that are NOT generic 'villager' (e.g. mirrorSeer) */
+  villagerRoleItems: RoleDisplayItem[];
 }
 
 export interface SeatViewModel {
@@ -233,50 +235,64 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
   const wolfItemMap = new Map<string, RoleDisplayItem>();
   const godItemMap = new Map<string, RoleDisplayItem>();
   const specialItemMap = new Map<string, RoleDisplayItem>();
+  const villagerItemMap = new Map<string, RoleDisplayItem>();
   let villagerCount = 0;
 
+  // 板子配置是法官视角，使用真实角色 spec（不走 displayAs 伪装）
   roles.forEach((role) => {
     const spec = getRoleSpec(role);
     if (!spec) return;
 
-    if (spec.faction === 'wolf') {
-      roleCounts[spec.displayName] = (roleCounts[spec.displayName] || 0) + 1;
-      if (!wolfRolesList.includes(spec.displayName)) {
-        wolfRolesList.push(spec.displayName);
+    const { faction, displayName } = spec;
+
+    if (faction === 'wolf') {
+      roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
+      if (!wolfRolesList.includes(displayName)) {
+        wolfRolesList.push(displayName);
       }
       const existing = wolfItemMap.get(role);
       wolfItemMap.set(
         role,
         existing
           ? { ...existing, count: existing.count + 1 }
-          : { roleId: role, displayName: spec.displayName, count: 1 },
+          : { roleId: role, displayName, count: 1 },
       );
-    } else if (spec.faction === 'god') {
-      roleCounts[spec.displayName] = (roleCounts[spec.displayName] || 0) + 1;
-      if (!godRolesList.includes(spec.displayName)) {
-        godRolesList.push(spec.displayName);
+    } else if (faction === 'god') {
+      roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
+      if (!godRolesList.includes(displayName)) {
+        godRolesList.push(displayName);
       }
       const existing = godItemMap.get(role);
       godItemMap.set(
         role,
         existing
           ? { ...existing, count: existing.count + 1 }
-          : { roleId: role, displayName: spec.displayName, count: 1 },
+          : { roleId: role, displayName, count: 1 },
       );
-    } else if (spec.faction === 'special') {
-      roleCounts[spec.displayName] = (roleCounts[spec.displayName] || 0) + 1;
-      if (!specialRolesList.includes(spec.displayName)) {
-        specialRolesList.push(spec.displayName);
+    } else if (faction === 'special') {
+      roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
+      if (!specialRolesList.includes(displayName)) {
+        specialRolesList.push(displayName);
       }
       const existing = specialItemMap.get(role);
       specialItemMap.set(
         role,
         existing
           ? { ...existing, count: existing.count + 1 }
-          : { roleId: role, displayName: spec.displayName, count: 1 },
+          : { roleId: role, displayName, count: 1 },
       );
     } else if (role === 'villager') {
       villagerCount++;
+    } else {
+      // Villager-faction but not generic villager (e.g. mirrorSeer)
+      roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
+      const existing = villagerItemMap.get(role);
+      villagerItemMap.set(
+        role,
+        existing
+          ? { ...existing, count: existing.count + 1 }
+          : { roleId: role, displayName, count: 1 },
+      );
     }
   });
 
@@ -289,6 +305,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
     wolfRoleItems: [...wolfItemMap.values()],
     godRoleItems: [...godItemMap.values()],
     specialRoleItems: [...specialItemMap.values()],
+    villagerRoleItems: [...villagerItemMap.values()],
   };
 }
 

@@ -23,6 +23,7 @@ import { buildNightPlan, type NightPlanStep } from '../../models/roles/spec/plan
 import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '../../models/roles/spec/schema.types';
 import { SCHEMAS } from '../../models/roles/spec/schemas';
 import type { ProtocolAction } from '../../protocol/types';
+import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { getEngineLogger } from '../../utils/logger';
 import type { NightActions, RoleSeatMap } from '../DeathCalculator';
 import { calculateDeaths } from '../DeathCalculator';
@@ -486,7 +487,7 @@ export function handleAdvanceNight(
       const audioEndKey = currentStep.audioEndKey ?? currentStep.audioKey;
       sideEffects.push({
         type: 'PLAY_AUDIO',
-        audioKey: audioEndKey,
+        audioKey: resolveSeerAudioKey(audioEndKey, state.seerLabelMap),
         isEndAudio: true, // 标记这是结束音频，走 audio_end 目录
       });
     }
@@ -498,7 +499,7 @@ export function handleAdvanceNight(
     if (nextStepSpec) {
       sideEffects.push({
         type: 'PLAY_AUDIO',
-        audioKey: nextStepSpec.audioKey,
+        audioKey: resolveSeerAudioKey(nextStepSpec.audioKey, state.seerLabelMap),
         isEndAudio: false, // 开始音频，走正常目录
       });
     }

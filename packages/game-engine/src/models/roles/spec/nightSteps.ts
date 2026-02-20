@@ -95,6 +95,11 @@ const NIGHT_STEPS_INTERNAL = [
     audioKey: 'seer',
   },
   {
+    id: 'mirrorSeerCheck',
+    roleId: 'mirrorSeer',
+    audioKey: 'mirrorSeer',
+  },
+  {
     id: 'wolfWitchCheck',
     roleId: 'wolfWitch',
     audioKey: 'wolfWitch',

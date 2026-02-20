@@ -14,6 +14,7 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "darkWolfKingConfirm",
   "wolfRobotLearn",
   "seerCheck",
+  "mirrorSeerCheck",
   "wolfWitchCheck",
   "gargoyleCheck",
   "pureWhiteCheck",

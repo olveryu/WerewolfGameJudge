@@ -98,6 +98,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     wolfRoleItems,
     godRoleItems,
     specialRoleItems,
+    villagerRoleItems,
     nightProgress,
     actionMessage,
     // Actioner
@@ -255,6 +256,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           godRoleItems={godRoleItems}
           specialRoleItems={specialRoleItems}
           villagerCount={villagerCount}
+          villagerRoleItems={villagerRoleItems}
           collapsed={roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended}
           onRolePress={handleSkillPreviewOpen}
           styles={componentStyles.boardInfoCard}
@@ -400,6 +402,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         visible={skillPreviewRoleId !== null}
         roleId={skillPreviewRoleId}
         onClose={handleSkillPreviewClose}
+        showRealIdentity
       />
     </SafeAreaView>
   );

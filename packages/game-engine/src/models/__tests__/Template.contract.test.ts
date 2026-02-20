@@ -29,7 +29,8 @@ function getActionOrderFromRoles(roles: RoleId[]): RoleId[] {
 
 // Helper functions extracted to avoid nesting depth issues
 const countWolves = (roles: RoleId[]): number => roles.filter((r) => isWolfRole(r)).length;
-const countVillagers = (roles: RoleId[]): number => roles.filter((r) => r === 'villager').length;
+const countVillagers = (roles: RoleId[]): number =>
+  roles.filter((r) => getRoleSpec(r).faction === 'villager').length;
 const countGods = (roles: RoleId[]): number =>
   roles.filter((r) => getRoleSpec(r).faction === 'god').length;
 const getSpecialRoles = (roles: RoleId[]): RoleId[] =>
@@ -145,6 +146,7 @@ describe('PRESET_TEMPLATES - 模板列表完整性', () => {
     '机械狼通灵师12人',
     '恶灵骑士12人',
     '纯白夜影12人',
+    '灯影预言家12人',
   ];
 
   it('应该包含所有预期的模板', () => {

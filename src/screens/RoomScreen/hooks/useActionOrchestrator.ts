@@ -278,6 +278,8 @@ export function useActionOrchestrator({
             switch (revealKind) {
               case 'seer':
                 return state.seerReveal;
+              case 'mirrorSeer':
+                return state.mirrorSeerReveal;
               case 'psychic':
                 return state.psychicReveal;
               case 'gargoyle':
@@ -308,9 +310,11 @@ export function useActionOrchestrator({
 
             if (reveal) {
               const displayResult =
-                revealKind === 'seer' ? reveal.result : getRoleDisplayName(reveal.result);
+                revealKind === 'seer' || revealKind === 'mirrorSeer'
+                  ? reveal.result
+                  : getRoleDisplayName(reveal.result);
               const titlePrefix =
-                revealKind === 'seer'
+                revealKind === 'seer' || revealKind === 'mirrorSeer'
                   ? '查验结果'
                   : revealKind === 'psychic'
                     ? '通灵结果'

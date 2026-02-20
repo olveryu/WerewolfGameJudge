@@ -87,4 +87,11 @@ export interface RoleSpec {
 
   /** Role-specific flags */
   readonly flags?: RoleFlags;
+
+  /**
+   * Display disguise: this role appears as another role to its holder.
+   * Used by mirrorSeer (displays as 'seer') so the player doesn't know their true identity.
+   * Only affects player-facing UI (role card, night progress). Host/ConfigScreen shows real role.
+   */
+  readonly displayAs?: string;
 }

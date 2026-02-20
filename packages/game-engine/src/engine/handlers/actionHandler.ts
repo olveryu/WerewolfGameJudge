@@ -118,6 +118,19 @@ function handleSeerReveal(
 }
 
 /**
+ * 处理 MirrorSeer reveal (反转查验)
+ */
+function handleMirrorSeerReveal(
+  result: ResolverResult,
+  targetSeat: number,
+): Pick<ApplyResolverResultAction['payload'], 'mirrorSeerReveal'> {
+  if (result.result?.checkResult) {
+    return { mirrorSeerReveal: { targetSeat, result: result.result.checkResult } };
+  }
+  return {};
+}
+
+/**
  * 处理 Psychic reveal
  */
 function handlePsychicReveal(
@@ -230,6 +243,7 @@ type RevealHandler = (
 
 const REVEAL_HANDLERS: Record<RevealKind, RevealHandler> = {
   seer: handleSeerReveal,
+  mirrorSeer: handleMirrorSeerReveal,
   psychic: handlePsychicReveal,
   gargoyle: handleGargoyleReveal,
   pureWhite: handlePureWhiteReveal,

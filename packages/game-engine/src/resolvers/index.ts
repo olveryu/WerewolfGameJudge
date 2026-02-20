@@ -14,6 +14,7 @@ import { gargoyleCheckResolver } from './gargoyle';
 import { guardProtectResolver } from './guard';
 import { hunterConfirmResolver } from './hunter';
 import { magicianSwapResolver } from './magician';
+import { mirrorSeerCheckResolver } from './mirrorSeer';
 import { nightmareBlockResolver } from './nightmare';
 import { psychicCheckResolver } from './psychic';
 import { pureWhiteCheckResolver } from './pureWhite';
@@ -28,6 +29,7 @@ import { wolfWitchCheckResolver } from './wolfWitch';
 
 export const RESOLVERS: ResolverRegistry = {
   seerCheck: seerCheckResolver,
+  mirrorSeerCheck: mirrorSeerCheckResolver,
   witchAction: witchActionResolver,
   wolfKill: wolfKillResolver,
   guardProtect: guardProtectResolver,

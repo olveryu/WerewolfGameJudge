@@ -21,8 +21,10 @@ interface BoardInfoCardProps {
   godRoleItems: readonly RoleDisplayItem[];
   /** Special role items (optional) */
   specialRoleItems: readonly RoleDisplayItem[];
-  /** Number of villagers */
+  /** Number of generic villagers */
   villagerCount: number;
+  /** Villager-faction roles that are NOT generic villager (e.g. mirrorSeer) */
+  villagerRoleItems: readonly RoleDisplayItem[];
   /** Whether the card should be collapsed */
   collapsed?: boolean;
   /** Callback when a role chip is pressed (reports roleId to parent) */
@@ -81,6 +83,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   godRoleItems,
   specialRoleItems,
   villagerCount,
+  villagerRoleItems,
   collapsed = false,
   onRolePress,
   styles,
@@ -142,19 +145,33 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               />
             </View>
           )}
-          {villagerCount > 0 && (
+          {(villagerCount > 0 || villagerRoleItems.length > 0) && (
             <View style={styles.roleCategory}>
               <Text style={styles.roleCategoryLabel}>👤 村民：</Text>
               <View style={styles.roleChipRow}>
-                <TouchableOpacity
-                  style={[styles.roleChip, styles.roleChipVillager]}
-                  activeOpacity={0.6}
-                  onPress={() => onRolePress?.('villager')}
-                >
-                  <Text style={[styles.roleChipText, styles.roleChipTextVillager]}>
-                    {villagerCount > 1 ? `村民×${villagerCount}` : '村民'}
-                  </Text>
-                </TouchableOpacity>
+                {villagerCount > 0 && (
+                  <TouchableOpacity
+                    style={[styles.roleChip, styles.roleChipVillager]}
+                    activeOpacity={0.6}
+                    onPress={() => onRolePress?.('villager')}
+                  >
+                    <Text style={[styles.roleChipText, styles.roleChipTextVillager]}>
+                      {villagerCount > 1 ? `村民×${villagerCount}` : '村民'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {villagerRoleItems.map((item) => (
+                  <TouchableOpacity
+                    key={item.roleId}
+                    style={[styles.roleChip, styles.roleChipVillager]}
+                    activeOpacity={0.6}
+                    onPress={() => onRolePress?.(item.roleId)}
+                  >
+                    <Text style={[styles.roleChipText, styles.roleChipTextVillager]}>
+                      {item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           )}

@@ -156,6 +156,12 @@ export interface BroadcastGameState {
     result: '好人' | '狼人';
   };
 
+  /** MirrorSeer reveal result - only display to mirrorSeer via UI filter (inverted) */
+  mirrorSeerReveal?: {
+    targetSeat: number;
+    result: '好人' | '狼人';
+  };
+
   /** Psychic reveal result - only display to psychic via UI filter */
   psychicReveal?: {
     targetSeat: number;
@@ -288,6 +294,14 @@ export interface BroadcastGameState {
     /** Whether bot placeholder mode is enabled */
     botsEnabled: boolean;
   };
+
+  /**
+   * 双预言家标签映射（当 seer + mirrorSeer 同时在模板中时生成）
+   *
+   * 随机分配“1号预言家”和“2号预言家”标签，玩家无法知晓哪个是真预言家。
+   * 在 ASSIGN_ROLES 时生成，用于音频/显示名/角色卡。
+   */
+  seerLabelMap?: Readonly<Record<string, number>>;
 }
 
 // =============================================================================

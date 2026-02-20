@@ -81,6 +81,7 @@ import { useRoomActionDialogs } from '@/screens/RoomScreen/useRoomActionDialogs'
 const schemaToRole: Record<string, string> = {
   // god
   seerCheck: 'seer',
+  mirrorSeerCheck: 'mirrorSeer',
   guardProtect: 'guard',
   psychicCheck: 'psychic',
   pureWhiteCheck: 'pureWhite',

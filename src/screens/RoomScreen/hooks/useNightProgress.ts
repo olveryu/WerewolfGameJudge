@@ -8,7 +8,7 @@
  */
 
 import type { SchemaId } from '@werewolf/game-engine/models/roles';
-import { buildNightPlan } from '@werewolf/game-engine/models/roles';
+import { buildNightPlan, getRoleDisplayAs, getRoleSpec } from '@werewolf/game-engine/models/roles';
 import { useMemo } from 'react';
 
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -61,10 +61,29 @@ export function useNightProgress({
     if (stepIndex === -1) return null;
 
     const currentStep = nightPlan.steps[stepIndex];
+
+    // displayAs + seerLabelMap 处理：对玩家隐藏灯影预言家真实身份
+    let roleName = currentStep?.displayName;
+    if (currentStep) {
+      const displayAs = getRoleDisplayAs(currentStep.roleId);
+      if (displayAs) {
+        const displaySpec = getRoleSpec(displayAs);
+        roleName = displaySpec?.displayName ?? roleName;
+      }
+      // 双预言家标签：seerLabelMap存在时显示 "X号预言家"
+      const labelMap = gameState.seerLabelMap;
+      if (labelMap) {
+        const label = labelMap[currentStep.roleId];
+        if (label != null && roleName) {
+          roleName = `${label}号${roleName}`;
+        }
+      }
+    }
+
     return {
       current: stepIndex + 1, // 1-based for display
       total: nightPlan.length,
-      roleName: currentStep?.displayName,
+      roleName,
     };
   }, [currentStepId, gameState]);
 
