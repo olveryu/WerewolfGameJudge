@@ -145,13 +145,21 @@ export class AudioService {
             this.wasPlayingBeforeHidden = this.isPlaying;
             this.wasBgmPlayingBeforeHidden = this.isBgmPlaying;
 
-            if (this.player) {
+            // Pause TTS: web audio element or native player
+            if (this.webAudioElement) {
+              try {
+                this.webAudioElement.pause();
+              } catch (e) {
+                audioLog.warn('[visibility] error pausing web audio', e);
+              }
+            } else if (this.player) {
               try {
                 this.player.pause();
               } catch (e) {
                 audioLog.warn('[visibility] error pausing player', e);
               }
             }
+            // Pause BGM: web bgm element or native bgm player
             if (this.webBgmElement) {
               try {
                 this.webBgmElement.pause();
@@ -171,18 +179,27 @@ export class AudioService {
               `[visibility] page visible, wasPlaying=${this.wasPlayingBeforeHidden}, wasBgmPlaying=${this.wasBgmPlayingBeforeHidden}`,
             );
 
-            if (this.wasPlayingBeforeHidden && this.player) {
-              try {
-                this.player.play();
-                audioLog.debug('[visibility] resumed main audio');
-              } catch (e) {
-                audioLog.warn('[visibility] error resuming player', e);
+            if (this.wasPlayingBeforeHidden) {
+              if (this.webAudioElement) {
+                try {
+                  void this.webAudioElement.play();
+                  audioLog.debug('[visibility] resumed web audio');
+                } catch (e) {
+                  audioLog.warn('[visibility] error resuming web audio', e);
+                }
+              } else if (this.player) {
+                try {
+                  this.player.play();
+                  audioLog.debug('[visibility] resumed main audio');
+                } catch (e) {
+                  audioLog.warn('[visibility] error resuming player', e);
+                }
               }
             }
             if (this.wasBgmPlayingBeforeHidden) {
               if (this.webBgmElement) {
                 try {
-                  this.webBgmElement.play();
+                  void this.webBgmElement.play();
                   audioLog.debug('[visibility] resumed web BGM');
                 } catch (e) {
                   audioLog.warn('[visibility] error resuming web bgm', e);
@@ -216,7 +233,22 @@ export class AudioService {
       clearTimeout(this.currentTimeoutId);
       this.currentTimeoutId = null;
     }
-    // Just pause, don't remove - we want to reuse the player for iOS Safari
+
+    // Web: pause HTML Audio element and detach callbacks to prevent stale onended leaks
+    if (this.webAudioElement) {
+      audioLog.debug('stopCurrentPlayer: pausing web audio element (keeping for reuse)');
+      try {
+        this.webAudioElement.pause();
+        this.webAudioElement.onended = null;
+        this.webAudioElement.onerror = null;
+      } catch (e) {
+        audioLog.warn('stopCurrentPlayer: error pausing web audio', e);
+      }
+      this.isPlaying = false;
+      return;
+    }
+
+    // Native: pause expo-audio player
     if (this.player) {
       audioLog.debug('stopCurrentPlayer: pausing current player (keeping for reuse)');
       try {

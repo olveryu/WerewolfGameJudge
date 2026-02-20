@@ -44,6 +44,11 @@ export interface RoleCardContentProps {
    * 用于裁判视角的技能预览（板子配置 chip）。默认 false（玩家翻牌看伪装身份）。
    */
   showRealIdentity?: boolean;
+  /**
+   * 双预言家编号（1 或 2），由 seerLabelMap 派生。
+   * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存板子使用。
+   */
+  seerLabel?: number;
 }
 
 export const RoleCardContent: React.FC<RoleCardContentProps> = ({
@@ -54,6 +59,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   testID,
   children,
   showRealIdentity = false,
+  seerLabel,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors, width, height), [colors, width, height]);
@@ -64,7 +70,8 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   // showRealIdentity=true 时跳过伪装，用于裁判视角的技能预览
   const displayRoleId = showRealIdentity ? roleId : (getRoleDisplayAs(roleId) ?? roleId);
   const displaySpec = displayRoleId !== roleId ? getRoleSpec(displayRoleId) : spec;
-  const roleName = displaySpec?.displayName || roleId;
+  const baseRoleName = displaySpec?.displayName || roleId;
+  const roleName = seerLabel != null ? `${seerLabel}号${baseRoleName}` : baseRoleName;
   const description = displaySpec?.description || '无技能描述';
   const icon = ROLE_ICONS[displayRoleId] || '❓';
   const factionColor = getFactionColor(displayRoleId, colors);
