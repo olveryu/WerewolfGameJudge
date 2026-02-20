@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.260] - 2026-02-20
+
+- fix(audio): lower BGM volume from 8% to 3%
+
 ## [1.0.259] - 2026-02-20
 
 - refactor(config): replace header buttons with overflow menu, swap BGM
