@@ -526,7 +526,7 @@ export const ConfigScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
-      {/* Header row 1 — ← | 配置 | ⚙️ */}
+      {/* Header row — ← | 标准板▾ 12人 | 🗑️ ⚙️ */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerBtn}
@@ -535,23 +535,7 @@ export const ConfigScreen: React.FC = () => {
         >
           <Ionicons name="chevron-back" size={20} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>配置</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.headerGearBtn}
-          onPress={handleOpenSettings}
-          activeOpacity={0.7}
-          testID={TESTIDS.configGearButton}
-        >
-          <Ionicons name="settings-outline" size={18} color={colors.text} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Card A — template selector + faction tabs */}
-      <View style={styles.cardA}>
-        {/* Template pill + player count */}
-        <View style={styles.templateRow}>
+        <View style={styles.headerCenter} pointerEvents="box-none">
           <TouchableOpacity
             style={styles.templatePill}
             onPress={handleOpenTemplateDropdown}
@@ -561,18 +545,28 @@ export const ConfigScreen: React.FC = () => {
             <Text style={styles.templatePillArrow}>▾</Text>
           </TouchableOpacity>
           <Text style={styles.playerCount}>{totalCount}人</Text>
+        </View>
+        <View style={styles.headerRight}>
           <TouchableOpacity
-            style={styles.clearBtn}
+            style={styles.headerBtn}
             onPress={handleClearSelection}
             activeOpacity={0.7}
           >
-            <Ionicons name="trash-outline" size={14} color={styles.clearBtnText.color as string} />
+            <Ionicons name="trash-outline" size={16} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={handleOpenSettings}
+            activeOpacity={0.7}
+            testID={TESTIDS.configGearButton}
+          >
+            <Ionicons name="settings-outline" size={18} color={colors.text} />
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* Divider */}
-        <View style={styles.cardADivider} />
-
+      {/* Card A — faction tabs */}
+      <View style={styles.cardA}>
         {/* Faction Tab Bar */}
         <FactionTabs
           tabs={tabItems}
