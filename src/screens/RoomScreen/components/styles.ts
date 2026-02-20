@@ -36,6 +36,14 @@ export interface BoardInfoCardStyles {
   roleChipRow: ViewStyle;
   roleChip: ViewStyle;
   roleChipText: TextStyle;
+  roleChipWolf: ViewStyle;
+  roleChipGod: ViewStyle;
+  roleChipThird: ViewStyle;
+  roleChipVillager: ViewStyle;
+  roleChipTextWolf: TextStyle;
+  roleChipTextGod: TextStyle;
+  roleChipTextThird: TextStyle;
+  roleChipTextVillager: TextStyle;
 }
 
 export interface BottomActionPanelStyles {
@@ -215,6 +223,34 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         fontSize: typography.secondary,
         color: colors.primary,
         lineHeight: typography.title, // ~20
+      },
+      roleChipWolf: {
+        borderWidth: 1,
+        borderColor: colors.wolf,
+      },
+      roleChipGod: {
+        borderWidth: 1,
+        borderColor: colors.god,
+      },
+      roleChipThird: {
+        borderWidth: 1,
+        borderColor: colors.third,
+      },
+      roleChipVillager: {
+        borderWidth: 1,
+        borderColor: colors.villager,
+      },
+      roleChipTextWolf: {
+        color: colors.wolf,
+      },
+      roleChipTextGod: {
+        color: colors.god,
+      },
+      roleChipTextThird: {
+        color: colors.third,
+      },
+      roleChipTextVillager: {
+        color: colors.villager,
       },
     }),
 
