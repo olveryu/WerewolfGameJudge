@@ -138,6 +138,7 @@ export const ConfigScreen: React.FC = () => {
   const [roleRevealAnimation, setRoleRevealAnimation] = useState<RoleRevealAnimation>('random');
   const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
   const [bgmEnabled, setBgmEnabled] = useState(true);
+  const [overflowVisible, setOverflowVisible] = useState(false);
 
   const facade = useGameFacade();
   const totalCount = useMemo(() => computeTotalCount(selection), [selection]);
@@ -525,7 +526,7 @@ export const ConfigScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
-      {/* Header row — ← | 预女猎白▾ 12人 | 🗑️ ⚙️ */}
+      {/* Header row — ← | 预女猎白▾ 12人 | ⋯ */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerBtn}
@@ -545,24 +546,60 @@ export const ConfigScreen: React.FC = () => {
           </TouchableOpacity>
           <Text style={styles.playerCount}>{totalCount}人</Text>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={handleClearSelection}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trash-outline" size={16} color={colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={handleOpenSettings}
-            activeOpacity={0.7}
-            testID={TESTIDS.configGearButton}
-          >
-            <Ionicons name="settings-outline" size={18} color={colors.text} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => setOverflowVisible((v) => !v)}
+          activeOpacity={0.7}
+          testID={TESTIDS.configMoreButton}
+        >
+          <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
+        </TouchableOpacity>
       </View>
+
+      {/* Overflow popup menu */}
+      {overflowVisible && (
+        <>
+          <TouchableOpacity
+            style={styles.overflowMenuOverlay}
+            activeOpacity={1}
+            onPress={() => setOverflowVisible(false)}
+          />
+          <View style={styles.overflowMenu}>
+            <TouchableOpacity
+              style={styles.overflowMenuItem}
+              onPress={() => {
+                setOverflowVisible(false);
+                handleClearSelection();
+              }}
+              testID={TESTIDS.configOverflowReset}
+            >
+              <Ionicons
+                name="trash-outline"
+                size={18}
+                color={colors.text}
+                style={styles.overflowMenuItemIcon}
+              />
+              <Text style={styles.overflowMenuItemText}>重置配置</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.overflowMenuItem}
+              onPress={() => {
+                setOverflowVisible(false);
+                handleOpenSettings();
+              }}
+              testID={TESTIDS.configOverflowSettings}
+            >
+              <Ionicons
+                name="settings-outline"
+                size={18}
+                color={colors.text}
+                style={styles.overflowMenuItemIcon}
+              />
+              <Text style={styles.overflowMenuItemText}>设置</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       {/* Card A — faction tabs */}
       <View style={styles.cardA}>

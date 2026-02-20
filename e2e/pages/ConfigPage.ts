@@ -162,15 +162,21 @@ export class ConfigPage {
    * Disable role reveal animation so E2E tests see the static "我知道了" card.
    *
    * Uses stable testID selectors only (no text/position/coordinate hacks):
-   * - `config-gear-btn` → open settings sheet
+   * - `config-more-btn` → open overflow menu
+   * - `config-overflow-settings` → open settings sheet
    * - `config-animation-option-none` → click "无动画" chip
    * - `config-settings-overlay` → close settings sheet
    */
   async setAnimationNone() {
-    // Open settings sheet
-    const gearBtn = this.page.locator('[data-testid="config-gear-btn"]');
-    await gearBtn.waitFor({ state: 'visible', timeout: 3000 });
-    await gearBtn.click();
+    // Open overflow menu via ⋯ button
+    const moreBtn = this.page.locator('[data-testid="config-more-btn"]');
+    await moreBtn.waitFor({ state: 'visible', timeout: 3000 });
+    await moreBtn.click();
+
+    // Click "设置" in overflow menu → opens SettingsSheet
+    const settingsItem = this.page.locator('[data-testid="config-overflow-settings"]');
+    await settingsItem.waitFor({ state: 'visible', timeout: 3000 });
+    await settingsItem.click();
 
     // Click the "无动画" chip directly (no second modal needed)
     const noneOption = this.page.locator('[data-testid="config-animation-option-none"]');
