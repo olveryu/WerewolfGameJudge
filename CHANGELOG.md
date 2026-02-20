@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.258] - 2026-02-20
+
+- fix(night): guard postProgression countdown against non-ongoing status
+- fix(e2e): narrow wolfWitch waitForRoleTurn keywords to avoid stale match
+- fix(models): add pureWhiteReveal and wolfWitchReveal to DialogType union
+- fix(hooks): show server reason in notifyIfFailed alert
+- feat(models): add pureWhite and wolfWitch roles with 纯白夜影12人 board
+- docs: add SOP for adding new roles in the game
+
 ## [1.0.257] - 2026-02-19
 
 - docs: add 4-faction color token rules to screens instructions
