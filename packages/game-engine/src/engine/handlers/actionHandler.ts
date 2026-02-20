@@ -144,6 +144,32 @@ function handleGargoyleReveal(
 }
 
 /**
+ * 处理 PureWhite reveal
+ */
+function handlePureWhiteReveal(
+  result: ResolverResult,
+  targetSeat: number,
+): Pick<ApplyResolverResultAction['payload'], 'pureWhiteReveal'> {
+  if (result.result?.identityResult) {
+    return { pureWhiteReveal: { targetSeat, result: result.result.identityResult } };
+  }
+  return {};
+}
+
+/**
+ * 处理 WolfWitch reveal
+ */
+function handleWolfWitchReveal(
+  result: ResolverResult,
+  targetSeat: number,
+): Pick<ApplyResolverResultAction['payload'], 'wolfWitchReveal'> {
+  if (result.result?.identityResult) {
+    return { wolfWitchReveal: { targetSeat, result: result.result.identityResult } };
+  }
+  return {};
+}
+
+/**
  * 处理 WolfRobot reveal
  */
 function handleWolfRobotReveal(
@@ -206,6 +232,8 @@ const REVEAL_HANDLERS: Record<RevealKind, RevealHandler> = {
   seer: handleSeerReveal,
   psychic: handlePsychicReveal,
   gargoyle: handleGargoyleReveal,
+  pureWhite: handlePureWhiteReveal,
+  wolfWitch: handleWolfWitchReveal,
   wolfRobot: handleWolfRobotReveal,
 };
 

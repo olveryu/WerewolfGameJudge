@@ -16,6 +16,7 @@ import { hunterConfirmResolver } from './hunter';
 import { magicianSwapResolver } from './magician';
 import { nightmareBlockResolver } from './nightmare';
 import { psychicCheckResolver } from './psychic';
+import { pureWhiteCheckResolver } from './pureWhite';
 import { seerCheckResolver } from './seer';
 import { slackerChooseIdolResolver } from './slacker';
 import type { ResolverRegistry } from './types';
@@ -23,6 +24,7 @@ import { witchActionResolver } from './witch';
 import { wolfKillResolver } from './wolf';
 import { wolfQueenCharmResolver } from './wolfQueen';
 import { wolfRobotLearnResolver } from './wolfRobot';
+import { wolfWitchCheckResolver } from './wolfWitch';
 
 export const RESOLVERS: ResolverRegistry = {
   seerCheck: seerCheckResolver,
@@ -39,6 +41,8 @@ export const RESOLVERS: ResolverRegistry = {
   slackerChooseIdol: slackerChooseIdolResolver,
   hunterConfirm: hunterConfirmResolver,
   darkWolfKingConfirm: darkWolfKingConfirmResolver,
+  pureWhiteCheck: pureWhiteCheckResolver,
+  wolfWitchCheck: wolfWitchCheckResolver,
 };
 
 // Re-export types for convenience (HOST-ONLY consumers)

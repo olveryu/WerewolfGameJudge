@@ -95,9 +95,19 @@ const NIGHT_STEPS_INTERNAL = [
     audioKey: 'seer',
   },
   {
+    id: 'wolfWitchCheck',
+    roleId: 'wolfWitch',
+    audioKey: 'wolfWitch',
+  },
+  {
     id: 'gargoyleCheck',
     roleId: 'gargoyle',
     audioKey: 'gargoyle',
+  },
+  {
+    id: 'pureWhiteCheck',
+    roleId: 'pureWhite',
+    audioKey: 'pureWhite',
   },
   {
     id: 'psychicCheck',

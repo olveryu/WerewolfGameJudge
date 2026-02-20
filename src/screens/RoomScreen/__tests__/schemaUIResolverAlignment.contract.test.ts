@@ -66,10 +66,16 @@ describe('Schema notSelf constraint - single source of truth', () => {
   const schemasWithoutNotSelf: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
     { schemaId: 'seerCheck', roleId: 'seer' },
     { schemaId: 'psychicCheck', roleId: 'psychic' },
+    { schemaId: 'pureWhiteCheck', roleId: 'pureWhite' },
     { schemaId: 'gargoyleCheck', roleId: 'gargoyle' },
     { schemaId: 'nightmareBlock', roleId: 'nightmare' },
     { schemaId: 'guardProtect', roleId: 'guard' },
     { schemaId: 'wolfKill', roleId: 'wolf' },
+  ];
+
+  // 有 notWolfFaction 的 schema（不能选狼阵营，自身为狼阵营所以也不能自指）
+  const schemasWithNotWolfFaction: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
+    { schemaId: 'wolfWitchCheck', roleId: 'wolfWitch' },
   ];
 
   describe('schemas WITH notSelf constraint', () => {
@@ -121,6 +127,42 @@ describe('Schema notSelf constraint - single source of truth', () => {
         const result = resolver!(context, input);
 
         expect(result.valid).toBe(true);
+      },
+    );
+  });
+
+  describe('schemas with notWolfFaction constraint', () => {
+    it.each(schemasWithNotWolfFaction)(
+      '$schemaId: schema.constraints contains notWolfFaction',
+      ({ schemaId }) => {
+        const constraints = getSchemaConstraints(schemaId);
+        expect(constraints).toContain('notWolfFaction');
+      },
+    );
+
+    it.each(schemasWithNotWolfFaction)(
+      '$schemaId: schema.constraints does NOT contain notSelf',
+      ({ schemaId }) => {
+        const constraints = getSchemaConstraints(schemaId);
+        expect(constraints).not.toContain('notSelf');
+      },
+    );
+
+    it.each(schemasWithNotWolfFaction)(
+      '$schemaId: resolver REJECTS wolf-faction target (aligned with schema)',
+      ({ schemaId, roleId }) => {
+        const resolver = RESOLVERS[schemaId];
+        expect(resolver).toBeDefined();
+
+        const actorSeat = 0;
+        const context = createContext(actorSeat, roleId);
+        // Self-target: wolfWitch is wolf faction, so notWolfFaction rejects
+        const input: ActionInput = { schemaId, target: actorSeat };
+
+        const result = resolver!(context, input);
+
+        expect(result.valid).toBe(false);
+        expect(result.rejectReason).toContain('狼人阵营');
       },
     );
   });
@@ -213,7 +255,9 @@ describe('notSelf constraint completeness', () => {
       // Without notSelf
       'seerCheck',
       'psychicCheck',
+      'pureWhiteCheck',
       'gargoyleCheck',
+      'wolfWitchCheck',
       'nightmareBlock',
       'guardProtect',
       'wolfKill',

@@ -43,6 +43,8 @@ const AUDIO_FILES: Partial<Record<RoleId, AudioAsset>> = {
   psychic: require('../../../assets/audio/psychic.mp3'),
   hunter: require('../../../assets/audio/hunter.mp3'),
   darkWolfKing: require('../../../assets/audio/dark_wolf_king.mp3'),
+  pureWhite: require('../../../assets/audio/pure_white.mp3'),
+  wolfWitch: require('../../../assets/audio/wolf_witch.mp3'),
 };
 
 const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
@@ -60,6 +62,8 @@ const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
   psychic: require('../../../assets/audio_end/psychic.mp3'),
   hunter: require('../../../assets/audio_end/hunter.mp3'),
   darkWolfKing: require('../../../assets/audio_end/dark_wolf_king.mp3'),
+  pureWhite: require('../../../assets/audio_end/pure_white.mp3'),
+  wolfWitch: require('../../../assets/audio_end/wolf_witch.mp3'),
 };
 
 // Night audio

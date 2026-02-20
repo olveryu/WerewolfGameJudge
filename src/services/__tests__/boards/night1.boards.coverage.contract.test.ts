@@ -27,6 +27,7 @@ const REQUIRED_12P_TEMPLATES = [
   '狼王魔术师12人',
   '机械狼通灵师12人',
   '恶灵骑士12人',
+  '纯白夜影12人',
 ] as const;
 
 // =============================================================================
@@ -48,6 +49,7 @@ const TEMPLATE_TO_TEST_PATTERN: Record<string, RegExp> = {
   狼王魔术师12人: /TEMPLATE_NAME\s*=\s*['"]狼王魔术师12人['"]/,
   机械狼通灵师12人: /TEMPLATE_NAME\s*=\s*['"]机械狼通灵师12人['"]/,
   恶灵骑士12人: /TEMPLATE_NAME\s*=\s*['"]恶灵骑士12人['"]/,
+  纯白夜影12人: /TEMPLATE_NAME\s*=\s*['"]纯白夜影12人['"]/,
 };
 
 // =============================================================================
@@ -60,6 +62,8 @@ const REQUIRED_ASSERTION_PATTERNS = [
   /\.psychicReveal/,
   /\.gargoyleReveal/,
   /\.wolfRobotReveal/,
+  /\.pureWhiteReveal/,
+  /\.wolfWitchReveal/,
   /\.actions\??\./,
   /\.actions\?\.\w+/,
 ];

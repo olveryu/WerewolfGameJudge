@@ -21,9 +21,9 @@ export const BLOCKED_UI_DEFAULTS = {
 } as const;
 
 /** Constraint types for target selection */
-export type TargetConstraint = 'notSelf'; // 不能选自己
+export type TargetConstraint = 'notSelf' | 'notWolfFaction';
 
-export type RevealKind = 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot';
+export type RevealKind = 'seer' | 'psychic' | 'gargoyle' | 'wolfRobot' | 'pureWhite' | 'wolfWitch';
 
 /**
  * UI-only metadata for RoomScreen orchestration.

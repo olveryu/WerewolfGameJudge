@@ -17,8 +17,8 @@ import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.type
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
-  it('should have exactly 22 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(22);
+  it('should have exactly 24 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(24);
   });
 
   it('every role should have required fields', () => {
@@ -122,7 +122,9 @@ describe('ROLE_SPECS contract', () => {
       'wolf', // 5
       'wolfQueen', // 6
       'witch', // 10
+      'wolfWitch', // 14
       'seer', // 15
+      'pureWhite', // 16
       'psychic', // 16
       'hunter', // 20
       'darkWolfKing', // 25
@@ -177,6 +179,7 @@ describe('ROLE_SPECS contract', () => {
       'nightmare',
       'bloodMoon',
       'spiritKnight',
+      'wolfWitch',
     ];
 
     const loneWolves: RoleId[] = ['gargoyle', 'wolfRobot'];

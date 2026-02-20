@@ -253,6 +253,23 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
       'guard',
     ],
   },
+  {
+    name: '纯白夜影12人',
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolfWitch',
+      'guard',
+      'witch',
+      'hunter',
+      'pureWhite',
+    ],
+  },
 ];
 
 // Get room info string (matching Flutter)

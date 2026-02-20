@@ -212,7 +212,14 @@ describe('SCHEMAS contract', () => {
       revealKinds.sort();
 
       // If we ever add/remove a reveal kind, this test will force updating the UI schema.
-      const expectedRevealKinds = ['gargoyle', 'psychic', 'seer', 'wolfRobot'];
+      const expectedRevealKinds = [
+        'gargoyle',
+        'psychic',
+        'pureWhite',
+        'seer',
+        'wolfRobot',
+        'wolfWitch',
+      ];
       expect(revealKinds).toEqual(expectedRevealKinds);
 
       // Assert 1:1 mapping (no two schemas share same revealKind)
@@ -234,8 +241,10 @@ describe('SCHEMAS contract', () => {
       expect(revealSchemaIds).toEqual([
         'gargoyleCheck',
         'psychicCheck',
+        'pureWhiteCheck',
         'seerCheck',
         'wolfRobotLearn',
+        'wolfWitchCheck',
       ]);
     });
 

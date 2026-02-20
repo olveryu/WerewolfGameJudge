@@ -282,6 +282,10 @@ export function useActionOrchestrator({
                 return state.psychicReveal;
               case 'gargoyle':
                 return state.gargoyleReveal;
+              case 'pureWhite':
+                return state.pureWhiteReveal;
+              case 'wolfWitch':
+                return state.wolfWitchReveal;
               case 'wolfRobot':
                 return state.wolfRobotReveal;
               default:
@@ -312,7 +316,11 @@ export function useActionOrchestrator({
                     ? '通灵结果'
                     : revealKind === 'gargoyle'
                       ? '石像鬼探查'
-                      : '学习结果';
+                      : revealKind === 'pureWhite'
+                        ? '纯白查验'
+                        : revealKind === 'wolfWitch'
+                          ? '狼巫查验'
+                          : '学习结果';
               actionDialogs.showRevealDialog(
                 `${titlePrefix}：${reveal.targetSeat + 1}号是${displayResult}`,
                 '',

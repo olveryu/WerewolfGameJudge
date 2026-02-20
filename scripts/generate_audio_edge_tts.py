@@ -64,6 +64,8 @@ BEGIN_TEXT: dict[str, str] = {
     "psychic": "通灵师请睁眼，请选择查验的玩家。",
     "slacker": "混子请睁眼，请选择你的榜样。",
     "dreamcatcher": "摄梦人请睁眼，请选择摄梦对象。",
+    "pure_white": "纯白之女请睁眼，请选择要查验的玩家。",
+    "wolf_witch": "狼巫请睁眼，请选择要查验的玩家。",
 }
 
 END_TEXT: dict[str, str] = {
@@ -81,6 +83,8 @@ END_TEXT: dict[str, str] = {
     "psychic": "通灵师请闭眼。",
     "slacker": "混子请闭眼。",
     "dreamcatcher": "摄梦人请闭眼。",
+    "pure_white": "纯白之女请闭眼。",
+    "wolf_witch": "狼巫请闭眼。",
 }
 
 

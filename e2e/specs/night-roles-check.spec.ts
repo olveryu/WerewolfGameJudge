@@ -537,6 +537,122 @@ test.describe('Night Roles — Check / Reveal', () => {
   // --------------------------------------------------------------------------
   // WolfRobot learns hunter → hunter gate UI
   // --------------------------------------------------------------------------
+  // --------------------------------------------------------------------------
+  // PureWhite checks villager → exact role name
+  // --------------------------------------------------------------------------
+  test('pureWhite checks villager → reveal shows 普通村民', async ({ browser }) => {
+    await withSetup(
+      browser,
+      {
+        playerCount: 4,
+        configure: async (c) =>
+          c.configureCustomTemplate({
+            wolves: 1,
+            villagers: 1,
+            goodRoles: ['pureWhite'],
+            wolfRoles: ['wolfWitch'],
+          }),
+      },
+      async ({ pages, roleMap }) => {
+        const pureWhiteIdx = findRolePageIndex(roleMap, '纯白之女');
+        const wolfWitchIdx = findRolePageIndex(roleMap, '狼巫');
+        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const wolfIdx = findRolePageIndex(roleMap, '狼人');
+        expect(pureWhiteIdx).not.toBe(-1);
+        expect(wolfWitchIdx).not.toBe(-1);
+
+        // Wolf faction: wolf + wolfWitch both participate in wolf vote
+        const wolfIndices = [...(wolfIdx !== -1 ? [wolfIdx] : []), wolfWitchIdx].filter(
+          (v, i, a) => a.indexOf(v) === i,
+        );
+
+        const killTarget = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
+
+        // Drive wolf kill
+        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['猎杀', '选择'], pages, 120);
+        expect(wolfTurn).toBe(true);
+        await driveWolfVote(pages, wolfIndices, killTarget);
+
+        // Wait for pureWhite's turn
+        const pwTurn = await waitForRoleTurn(pages[pureWhiteIdx], ['查验', '选择'], pages, 120);
+        expect(pwTurn, 'PureWhite turn should be detected').toBe(true);
+
+        // Check the villager
+        const checkSeat = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
+        await clickSeatAndConfirm(pages[pureWhiteIdx], checkSeat);
+
+        // Read reveal — "纯白查验：X号是普通村民"
+        const revealText = await readAlertText(pages[pureWhiteIdx]);
+        expect(revealText).toContain(`${checkSeat + 1}号`);
+        expect(revealText).toContain('普通村民');
+        await dismissAlert(pages[pureWhiteIdx]);
+
+        // Finish night
+        const ended = await waitForNightEnd(pages, 120);
+        expect(ended).toBe(true);
+      },
+    );
+  });
+
+  // --------------------------------------------------------------------------
+  // WolfWitch checks villager → exact role name
+  // --------------------------------------------------------------------------
+  test('wolfWitch checks villager → reveal shows 普通村民', async ({ browser }) => {
+    await withSetup(
+      browser,
+      {
+        playerCount: 4,
+        configure: async (c) =>
+          c.configureCustomTemplate({
+            wolves: 1,
+            villagers: 1,
+            goodRoles: ['pureWhite'],
+            wolfRoles: ['wolfWitch'],
+          }),
+      },
+      async ({ pages, roleMap }) => {
+        const wolfWitchIdx = findRolePageIndex(roleMap, '狼巫');
+        const pureWhiteIdx = findRolePageIndex(roleMap, '纯白之女');
+        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const wolfIdx = findRolePageIndex(roleMap, '狼人');
+        expect(wolfWitchIdx).not.toBe(-1);
+
+        // Wolf faction: wolf + wolfWitch
+        const wolfIndices = [...(wolfIdx !== -1 ? [wolfIdx] : []), wolfWitchIdx].filter(
+          (v, i, a) => a.indexOf(v) === i,
+        );
+
+        const killTarget = pureWhiteIdx !== -1 ? roleMap.get(pureWhiteIdx)!.seat : 0;
+
+        // Drive wolf kill (kill pureWhite so villager survives for wolfWitch to check)
+        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['猎杀', '选择'], pages, 120);
+        expect(wolfTurn).toBe(true);
+        await driveWolfVote(pages, wolfIndices, killTarget);
+
+        // Wait for wolfWitch's turn
+        const wwTurn = await waitForRoleTurn(pages[wolfWitchIdx], ['查验', '选择'], pages, 120);
+        expect(wwTurn, 'WolfWitch turn should be detected').toBe(true);
+
+        // Check the villager (notWolfFaction constraint — can only check non-wolf)
+        const checkSeat = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
+        await clickSeatAndConfirm(pages[wolfWitchIdx], checkSeat);
+
+        // Read reveal — "狼巫查验：X号是普通村民"
+        const revealText = await readAlertText(pages[wolfWitchIdx]);
+        expect(revealText).toContain(`${checkSeat + 1}号`);
+        expect(revealText).toContain('普通村民');
+        await dismissAlert(pages[wolfWitchIdx]);
+
+        // Finish night
+        const ended = await waitForNightEnd(pages, 120);
+        expect(ended).toBe(true);
+      },
+    );
+  });
+
+  // --------------------------------------------------------------------------
+  // WolfRobot learns hunter → hunter gate
+  // --------------------------------------------------------------------------
   test('wolfRobot learns hunter → hunter gate shows 可发动技能', async ({ browser }) => {
     await withSetup(
       browser,

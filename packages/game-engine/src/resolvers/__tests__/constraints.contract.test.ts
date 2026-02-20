@@ -4,6 +4,7 @@
  * Ensures resolver behavior is aligned with schema constraints.
  */
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { validateConstraints } from '@werewolf/game-engine/resolvers/constraintValidator';
 
@@ -23,6 +24,51 @@ describe('constraintValidator', () => {
     it('should allow self-target when notSelf is NOT in constraints', () => {
       const result = validateConstraints([], { actorSeat: 2, target: 2 });
       expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('notWolfFaction constraint', () => {
+    const players = new Map<number, RoleId>([
+      [0, 'villager'],
+      [1, 'seer'],
+      [2, 'wolf'],
+      [3, 'wolfKing'],
+      [4, 'wolfWitch'],
+    ]);
+
+    it('should reject wolf-faction target', () => {
+      const result = validateConstraints(['notWolfFaction'], {
+        actorSeat: 4,
+        target: 2,
+        players,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('狼人阵营');
+    });
+
+    it('should reject wolfKing target (wolf faction)', () => {
+      const result = validateConstraints(['notWolfFaction'], {
+        actorSeat: 4,
+        target: 3,
+        players,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('狼人阵营');
+    });
+
+    it('should allow non-wolf-faction target', () => {
+      const result = validateConstraints(['notWolfFaction'], {
+        actorSeat: 4,
+        target: 0,
+        players,
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it('should throw if players map is missing', () => {
+      expect(() => {
+        validateConstraints(['notWolfFaction'], { actorSeat: 4, target: 0 });
+      }).toThrow('notWolfFaction constraint requires players map');
     });
   });
 });
@@ -49,6 +95,7 @@ describe('schema-resolver constraint alignment', () => {
       'seerCheck', // 预言家可以查自己
       'psychicCheck', // 通灵师可以通灵自己
       'gargoyleCheck', // 石像鬼可以查自己
+      'pureWhiteCheck', // 纯白之女可以查自己
       'nightmareBlock', // 梦魇可以封自己
       'wolfKill', // 狼可以杀自己
       'guardProtect', // 守卫可以守自己
@@ -58,6 +105,18 @@ describe('schema-resolver constraint alignment', () => {
       const schema = SCHEMAS[schemaId];
       expect(schema.constraints).not.toContain('notSelf');
     });
+  });
+
+  describe('schemas with notWolfFaction constraint', () => {
+    const schemasWithNotWolfFaction = ['wolfWitchCheck'] as const;
+
+    it.each(schemasWithNotWolfFaction)(
+      '%s schema should have notWolfFaction constraint',
+      (schemaId) => {
+        const schema = SCHEMAS[schemaId];
+        expect(schema.constraints).toContain('notWolfFaction');
+      },
+    );
   });
 
   describe('witch compound schema step constraints', () => {
