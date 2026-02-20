@@ -54,6 +54,8 @@ interface RoleCardModalProps {
   remainingCards: number;
   /** 关闭回调 */
   onClose: () => void;
+  /** seer+mirrorSeer 共存时的编号映射（来自 BroadcastGameState） */
+  seerLabelMap?: Readonly<Record<string, number>>;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -66,6 +68,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   allRoleIds,
   remainingCards,
   onClose,
+  seerLabelMap,
 }) => {
   const [animationDone, setAnimationDone] = useState(false);
 
@@ -75,8 +78,13 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
 
   // 如果动画是 none 或不需要播放动画，直接显示静态卡片
   // 动画播完后也切到静态卡片（带"我知道了"按钮）
+  // 双预言家编号：seerLabelMap 存在时，从 roleId 查找编号
+  const seerLabel = seerLabelMap?.[roleId];
+
   if (resolvedAnimation === 'none' || !shouldPlayAnimation || animationDone) {
-    return <RoleCardSimple visible={visible} roleId={roleId} onClose={onClose} />;
+    return (
+      <RoleCardSimple visible={visible} roleId={roleId} onClose={onClose} seerLabel={seerLabel} />
+    );
   }
 
   // 首次查看，播放动画
@@ -84,9 +92,11 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   // mirrorSeer 等有 displayAs 的角色：动画使用伪装身份
   const displayRoleId = getRoleDisplayAs(roleId) ?? roleId;
   const displaySpec = displayRoleId !== roleId ? getRoleSpec(displayRoleId) : roleSpec;
+  const baseName = getRoleDisplayName(displayRoleId);
+  const displayName = seerLabel != null ? `${seerLabel}号${baseName}` : baseName;
   const effectiveRoleData: RoleData = createRoleData(
     displayRoleId,
-    getRoleDisplayName(displayRoleId),
+    displayName,
     ALIGNMENT_MAP[displaySpec.faction] ?? 'villager',
   );
 

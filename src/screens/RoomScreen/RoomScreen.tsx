@@ -394,6 +394,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               : 0
           }
           onClose={handleRoleCardClose}
+          seerLabelMap={gameState?.seerLabelMap}
         />
       )}
 

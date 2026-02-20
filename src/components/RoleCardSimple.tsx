@@ -24,6 +24,11 @@ interface RoleCardSimpleProps {
    * 用于裁判视角的技能预览。默认 false。
    */
   showRealIdentity?: boolean;
+  /**
+   * 双预言家编号（1 或 2），由 seerLabelMap 派生。
+   * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存板子使用。
+   */
+  seerLabel?: number;
 }
 
 export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
@@ -31,6 +36,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   roleId,
   onClose,
   showRealIdentity,
+  seerLabel,
 }) => {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
@@ -52,6 +58,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
             width={cardWidth}
             height={cardHeight}
             showRealIdentity={showRealIdentity}
+            seerLabel={seerLabel}
           />
           <TouchableOpacity
             style={[styles.confirmButton, { backgroundColor: factionColor }]}

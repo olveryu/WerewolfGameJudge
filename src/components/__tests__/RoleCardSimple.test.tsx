@@ -147,4 +147,26 @@ describe('RoleCardSimple', () => {
     expect(getByText('🏹')).toBeTruthy();
     expect(getByText('猎人')).toBeTruthy();
   });
+
+  describe('seerLabel (dual-seer boards)', () => {
+    it('prefixes role name with seerLabel when provided for seer', () => {
+      const { getByText } = render(
+        <RoleCardSimple {...defaultProps} roleId="seer" seerLabel={1} />,
+      );
+      expect(getByText('1号预言家')).toBeTruthy();
+    });
+
+    it('prefixes role name with seerLabel when provided for mirrorSeer', () => {
+      // mirrorSeer displayAs='seer' → shows "预言家", seerLabel → "2号预言家"
+      const { getByText } = render(
+        <RoleCardSimple {...defaultProps} roleId={'mirrorSeer' as RoleId} seerLabel={2} />,
+      );
+      expect(getByText('2号预言家')).toBeTruthy();
+    });
+
+    it('does not prefix when seerLabel is undefined', () => {
+      const { getByText } = render(<RoleCardSimple {...defaultProps} roleId="seer" />);
+      expect(getByText('预言家')).toBeTruthy();
+    });
+  });
 });
