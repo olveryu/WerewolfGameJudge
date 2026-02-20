@@ -73,9 +73,7 @@ export const VariantPicker = memo(function VariantPicker({
                 <View style={styles.variantPickerOptionContent}>
                   <Text style={styles.variantPickerOptionName}>{spec?.displayName ?? id}</Text>
                   {spec?.description && (
-                    <Text style={styles.variantPickerOptionDesc} numberOfLines={2}>
-                      {spec.description}
-                    </Text>
+                    <Text style={styles.variantPickerOptionDesc}>{spec.description}</Text>
                   )}
                 </View>
               </TouchableOpacity>

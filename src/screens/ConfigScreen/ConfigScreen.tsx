@@ -39,6 +39,7 @@ import {
   type FactionTabItem,
   FactionTabs,
   RoleChip,
+  RoleInfoSheet,
   RoleStepper,
   Section,
   SettingsSheet,
@@ -84,6 +85,57 @@ const applyPreset = (presetRoles: RoleId[]): Record<string, boolean> => {
     }
   });
   return selection;
+};
+
+/**
+ * Reverse lookup: variantId → base slot roleId.
+ * Built once from FACTION_GROUPS at module level.
+ */
+const VARIANT_TO_BASE: ReadonlyMap<string, string> = (() => {
+  const map = new Map<string, string>();
+  for (const group of FACTION_GROUPS) {
+    for (const section of group.sections) {
+      for (const slot of section.roles) {
+        if (slot.variants) {
+          for (const v of slot.variants) {
+            map.set(v, slot.roleId);
+          }
+        }
+      }
+    }
+  }
+  return map;
+})();
+
+/**
+ * Reconstruct selection + variantOverrides from stored templateRoles.
+ *
+ * Variant roleIds (e.g. drunkSeer) are mapped back to their base slot (mirrorSeer)
+ * for selection keys, and stored in variantOverrides for display.
+ */
+const restoreFromTemplateRoles = (
+  templateRoles: RoleId[],
+): { selection: Record<string, boolean>; variantOverrides: Record<string, string> } => {
+  const selection = getInitialSelection();
+  Object.keys(selection).forEach((key) => {
+    selection[key] = false;
+  });
+  const overrides: Record<string, string> = {};
+  const baseCounts: Record<string, number> = {};
+  templateRoles.forEach((role) => {
+    const baseId = VARIANT_TO_BASE.get(role) ?? role;
+    if (VARIANT_TO_BASE.has(role)) {
+      overrides[baseId] = role;
+    }
+    baseCounts[baseId] = (baseCounts[baseId] || 0) + 1;
+  });
+  Object.entries(baseCounts).forEach(([baseRole, count]) => {
+    for (let i = 0; i < count; i++) {
+      const key = i === 0 ? baseRole : `${baseRole}${i}`;
+      if (key in selection) selection[key] = true;
+    }
+  });
+  return { selection, variantOverrides: overrides };
 };
 
 /** Map Faction enum to FactionColorKey for chip coloring */
@@ -184,7 +236,9 @@ export const ConfigScreen: React.FC = () => {
         const state = facade.getState();
         configLog.debug(' State loaded:', state ? 'success' : 'not found');
         if (state?.templateRoles && state.templateRoles.length > 0) {
-          setSelection(applyPreset(state.templateRoles));
+          const restored = restoreFromTemplateRoles(state.templateRoles);
+          setSelection(restored.selection);
+          setVariantOverrides(restored.variantOverrides);
           const matchedPreset = findMatchingPresetName(state.templateRoles);
           setSelectedTemplate(matchedPreset ?? '__custom__');
         }
@@ -382,6 +436,22 @@ export const ConfigScreen: React.FC = () => {
   // ============================================
 
   const [variantPickerSlotId, setVariantPickerSlotId] = useState<string | null>(null);
+
+  // ============================================
+  // Role info sheet (long-press on non-variant chips)
+  // ============================================
+
+  const [roleInfoId, setRoleInfoId] = useState<string | null>(null);
+
+  const handleChipInfoPress = useCallback((key: string) => {
+    // Strip trailing digits for variant entries (e.g. 'seer1' → 'seer')
+    const roleId = key.replace(/\d+$/, '');
+    setRoleInfoId(roleId);
+  }, []);
+
+  const handleCloseRoleInfo = useCallback(() => {
+    setRoleInfoId(null);
+  }, []);
 
   /** Find the slot config for a given roleId key (strips number suffix to get base roleId) */
   const findSlotForKey = useCallback((key: string) => {
@@ -741,7 +811,8 @@ export const ConfigScreen: React.FC = () => {
                             factionColor={sectionFactionColorKey}
                             accentColor={sectionAccentColor}
                             hasVariants={entry.hasVariants}
-                            onLongPress={entry.hasVariants ? handleChipLongPress : undefined}
+                            onVariantPress={entry.hasVariants ? handleChipLongPress : undefined}
+                            onInfoPress={handleChipInfoPress}
                           />
                         ))}
                     </Section>
@@ -755,6 +826,9 @@ export const ConfigScreen: React.FC = () => {
 
       {/* Bottom Create Button */}
       <View style={styles.bottomCreateBar}>
+        <Text style={styles.cardBFooterHint}>
+          长按角色查看技能说明{'\n'}粗边框角色可长按切换变体
+        </Text>
         <TouchableOpacity
           style={[styles.bottomCreateBtn, isDisabled && styles.bottomCreateBtnDisabled]}
           onPress={handleCreateRoom}
@@ -801,6 +875,9 @@ export const ConfigScreen: React.FC = () => {
         onSelect={handleVariantSelect}
         styles={styles}
       />
+
+      {/* Role Info Sheet (long-press on any chip) */}
+      <RoleInfoSheet roleId={roleInfoId} onClose={handleCloseRoleInfo} styles={styles} />
     </SafeAreaView>
   );
 };

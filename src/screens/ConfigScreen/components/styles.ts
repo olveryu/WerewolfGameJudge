@@ -77,8 +77,9 @@ export interface ConfigScreenStyles {
   chipSelectedNeutral: ViewStyle;
   chipText: TextStyle;
   chipTextSelected: TextStyle;
-  chipVariantBadge: ViewStyle;
-  chipVariantBadgeText: TextStyle;
+  chipVariant: ViewStyle;
+  cardBFooterHint: TextStyle;
+
   // Variant picker modal
   variantPickerOverlay: ViewStyle;
   variantPickerContent: ViewStyle;
@@ -92,6 +93,8 @@ export interface ConfigScreenStyles {
   variantPickerOptionContent: ViewStyle;
   variantPickerOptionName: TextStyle;
   variantPickerOptionDesc: TextStyle;
+  // Role info sheet
+  roleInfoDesc: TextStyle;
   // Role stepper
   stepperRow: ViewStyle;
   stepperLabel: TextStyle;
@@ -452,15 +455,16 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     chipTextSelected: {
       fontWeight: typography.weights.semibold,
     },
-    chipVariantBadge: {
-      position: 'absolute',
-      right: spacing.tight,
-      bottom: spacing.tight / 2,
+    chipVariant: {
+      borderColor: colors.primary + '80',
+      borderWidth: fixed.borderWidthThick,
     },
-    chipVariantBadgeText: {
+    cardBFooterHint: {
       fontSize: typography.caption,
       color: colors.textSecondary,
-      lineHeight: typography.caption + 2,
+      textAlign: 'center',
+      marginBottom: spacing.small,
+      opacity: 0.5,
     },
 
     // ── Card B: stepper + role sections (merged card) ──
@@ -716,5 +720,14 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       fontSize: typography.caption,
       color: colors.textSecondary,
       marginTop: spacing.tight / 2,
+    },
+
+    // ── Role info sheet ──────────────────────────
+    roleInfoDesc: {
+      fontSize: typography.body,
+      color: colors.textSecondary,
+      lineHeight: typography.body * 1.6,
+      paddingHorizontal: layout.screenPaddingH,
+      paddingBottom: spacing.large,
     },
   });

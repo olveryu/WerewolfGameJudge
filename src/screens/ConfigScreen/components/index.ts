@@ -7,6 +7,8 @@ export type { FactionTabItem, FactionTabsProps } from './FactionTabs';
 export { FactionTabs } from './FactionTabs';
 export type { FactionColorKey, RoleChipProps } from './RoleChip';
 export { RoleChip } from './RoleChip';
+export type { RoleInfoSheetProps } from './RoleInfoSheet';
+export { RoleInfoSheet } from './RoleInfoSheet';
 export type { RoleStepperProps } from './RoleStepper';
 export { RoleStepper } from './RoleStepper';
 export type { SectionProps } from './Section';

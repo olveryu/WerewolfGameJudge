@@ -2,10 +2,11 @@
  * RoleChip - 角色选择标签（Memoized）
  *
  * 带阵营色选中状态。渲染 UI 并通过回调上报 onToggle，不 import service，不包含业务逻辑判断。
- * 当 hasVariants 为 true 时，chip 右下角显示 ▾ 指示器，长按触发变体选择。
+ * 变体 chip 用双色边框区分，长按触发变体选择。
+ * 所有 chip 长按可查看技能说明。
  */
 import { memo } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 
@@ -23,10 +24,12 @@ export interface RoleChipProps {
   factionColor?: FactionColorKey;
   /** Accent color for selected text. Falls back to text color if omitted. */
   accentColor?: string;
-  /** Whether this chip has variant alternatives (shows ▾ indicator). */
+  /** Whether this chip has variant alternatives (dual-color border hint). */
   hasVariants?: boolean;
-  /** Long-press handler for opening variant picker. */
-  onLongPress?: (id: string) => void;
+  /** Long-press handler for opening variant picker (variant chips). */
+  onVariantPress?: (id: string) => void;
+  /** Long-press handler for showing role info (all chips). */
+  onInfoPress?: (id: string) => void;
 }
 
 const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
@@ -46,18 +49,31 @@ export const RoleChip = memo<RoleChipProps>(
     factionColor,
     accentColor,
     hasVariants,
-    onLongPress,
+    onVariantPress,
+    onInfoPress,
   }) => {
     const selectedStyle = factionColor
       ? styles[FACTION_STYLE_MAP[factionColor]]
       : styles.chipSelected;
 
+    // Variant chips → variant picker; non-variant chips → role info sheet
+    const handleLongPress =
+      hasVariants && onVariantPress
+        ? () => onVariantPress(id)
+        : onInfoPress
+          ? () => onInfoPress(id)
+          : undefined;
+
     return (
       <TouchableOpacity
         testID={TESTIDS.configRoleChip(id)}
-        style={[styles.chip, selected && selectedStyle]}
+        style={[
+          styles.chip,
+          hasVariants && !selected && styles.chipVariant,
+          selected && selectedStyle,
+        ]}
         onPress={() => onToggle(id)}
-        onLongPress={hasVariants && onLongPress ? () => onLongPress(id) : undefined}
+        onLongPress={handleLongPress}
         activeOpacity={0.7}
       >
         <Text
@@ -69,11 +85,6 @@ export const RoleChip = memo<RoleChipProps>(
         >
           {label}
         </Text>
-        {hasVariants && (
-          <View style={styles.chipVariantBadge}>
-            <Text style={styles.chipVariantBadgeText}>▾</Text>
-          </View>
-        )}
       </TouchableOpacity>
     );
   },
