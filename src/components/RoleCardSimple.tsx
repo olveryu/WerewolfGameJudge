@@ -30,7 +30,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({ visible, roleId,
 
   if (!visible || !roleId) return null;
 
-  const factionColor = getFactionColor(roleId);
+  const factionColor = getFactionColor(roleId, colors);
 
   return (
     <Modal visible={true} transparent animationType="fade" onRequestClose={onClose}>

@@ -7,7 +7,7 @@
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -25,9 +25,9 @@ import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
-import { ALIGNMENT_THEMES } from '@/components/RoleRevealEffects/types';
+import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius } from '@/theme';
+import { borderRadius, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const CAPSULE_COLORS = [
@@ -99,7 +99,9 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   enableHaptics = true,
   testIDPrefix = 'gacha-machine',
 }) => {
-  const theme = ALIGNMENT_THEMES[role.alignment];
+  const colors = useColors();
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const theme = alignmentThemes[role.alignment];
   const config = CONFIG.gachaMachine ?? { revealHoldDuration: 1500 };
 
   const [phase, setPhase] = useState<

@@ -38,5 +38,6 @@ export const getFactionName = (roleId: RoleId): string => {
   if (isWolfRole(roleId)) return '狼人阵营';
   const spec = getRoleSpec(roleId);
   if (spec?.faction === 'god') return '神职阵营';
+  if (spec?.faction === 'special') return '第三方阵营';
   return '平民阵营';
 };

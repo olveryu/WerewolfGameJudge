@@ -109,7 +109,7 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
 export function createRoleData(
   id: string,
   name: string,
-  alignment: 'wolf' | 'god' | 'villager',
+  alignment: 'wolf' | 'god' | 'villager' | 'third',
   avatar?: string,
   description?: string,
 ): RoleData {
