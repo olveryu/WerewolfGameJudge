@@ -160,29 +160,23 @@ describe('Night-1: Gargoyle Check (12p)', () => {
   });
 
   describe('Gargoyle 查验狼阵营角色', () => {
-    it('gargoyle 查验 gargoyle 自己(7，狼阵营)，返回 gargoyle', () => {
+    it('gargoyle 查验自己应被拒绝 (notSelf constraint)', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
       // Step-aware 断言：确认确实走到了 gargoyleCheck step
       expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
       ctx.assertStep('gargoyleCheck');
 
-      // 石像鬼查验自己（如果 schema 允许）
-      const result = executeRemainingSteps(ctx, {
-        gargoyle: 7, // 查验自己
-        wolf: 0,
-        witch: { save: null, poison: null },
-        seer: 4,
+      // 石像鬼查验自己应被拒绝
+      const result = ctx.sendPlayerMessage({
+        type: 'ACTION',
+        seat: 7,
+        role: 'gargoyle',
+        target: 7,
       });
 
-      expect(result.completed).toBe(true);
-
-      // 如果允许自查，应返回 gargoyle
-      // 如果不允许，action 会被拒绝，这里根据实际 schema 约束判断
-      const state = ctx.getBroadcastState();
-      if (state.gargoyleReveal) {
-        expect(state.gargoyleReveal.result).toBe('gargoyle');
-      }
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('自己');
     });
   });
 });

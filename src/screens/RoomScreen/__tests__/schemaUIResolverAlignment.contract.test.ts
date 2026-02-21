@@ -56,6 +56,12 @@ function getSchemaConstraints(schemaId: SchemaId): readonly string[] {
 describe('Schema notSelf constraint - single source of truth', () => {
   // 有 notSelf 的 schema（必须拒绝自指）
   const schemasWithNotSelf: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
+    { schemaId: 'seerCheck', roleId: 'seer' },
+    { schemaId: 'mirrorSeerCheck', roleId: 'mirrorSeer' },
+    { schemaId: 'drunkSeerCheck', roleId: 'drunkSeer' },
+    { schemaId: 'psychicCheck', roleId: 'psychic' },
+    { schemaId: 'pureWhiteCheck', roleId: 'pureWhite' },
+    { schemaId: 'gargoyleCheck', roleId: 'gargoyle' },
     { schemaId: 'dreamcatcherDream', roleId: 'dreamcatcher' },
     { schemaId: 'wolfQueenCharm', roleId: 'wolfQueen' },
     { schemaId: 'wolfRobotLearn', roleId: 'wolfRobot' },
@@ -65,11 +71,6 @@ describe('Schema notSelf constraint - single source of truth', () => {
 
   // 无 notSelf 的 schema（允许自指）
   const schemasWithoutNotSelf: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
-    { schemaId: 'seerCheck', roleId: 'seer' },
-    { schemaId: 'drunkSeerCheck', roleId: 'drunkSeer' },
-    { schemaId: 'psychicCheck', roleId: 'psychic' },
-    { schemaId: 'pureWhiteCheck', roleId: 'pureWhite' },
-    { schemaId: 'gargoyleCheck', roleId: 'gargoyle' },
     { schemaId: 'nightmareBlock', roleId: 'nightmare' },
     { schemaId: 'guardProtect', roleId: 'guard' },
     { schemaId: 'wolfKill', roleId: 'wolf' },
@@ -250,22 +251,23 @@ describe('notSelf constraint completeness', () => {
 
     const testedSchemas = new Set([
       // With notSelf
-      'dreamcatcherDream',
-      'wolfQueenCharm',
-      'wolfRobotLearn',
-      'slackerChooseIdol',
-      'wildChildChooseIdol',
-      // Without notSelf
       'seerCheck',
       'mirrorSeerCheck',
       'drunkSeerCheck',
       'psychicCheck',
       'pureWhiteCheck',
       'gargoyleCheck',
-      'wolfWitchCheck',
+      'dreamcatcherDream',
+      'wolfQueenCharm',
+      'wolfRobotLearn',
+      'slackerChooseIdol',
+      'wildChildChooseIdol',
+      // Without notSelf
       'nightmareBlock',
       'guardProtect',
       'wolfKill',
+      // notWolfFaction
+      'wolfWitchCheck',
       // Swap (special)
       'magicianSwap',
     ]);

@@ -51,7 +51,7 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
   {
     schemaId: 'seerCheck',
     role: 'seer',
-    constraints: [],
+    constraints: ['notSelf'],
     hasReveal: true,
     revealKey: 'seerReveal',
   },
@@ -64,7 +64,7 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
   {
     schemaId: 'psychicCheck',
     role: 'psychic',
-    constraints: [],
+    constraints: ['notSelf'],
     hasReveal: true,
     revealKey: 'psychicReveal',
   },
@@ -85,7 +85,7 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
   {
     schemaId: 'gargoyleCheck',
     role: 'gargoyle',
-    constraints: [],
+    constraints: ['notSelf'],
     hasReveal: true,
     revealKey: 'gargoyleReveal',
   },

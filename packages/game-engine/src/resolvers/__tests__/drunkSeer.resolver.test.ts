@@ -67,6 +67,16 @@ describe('drunkSeerCheckResolver', () => {
       expect(result.result).toEqual({});
     });
 
+    it('应该拒绝查验自己 (notSelf constraint)', () => {
+      const ctx = createContext({ actorSeat: 4 });
+      const input = createInput(4);
+
+      const result = drunkSeerCheckResolver(ctx, input);
+
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('自己');
+    });
+
     it('应该拒绝不存在的目标', () => {
       const ctx = createContext();
       const input = createInput(99);

@@ -78,6 +78,12 @@ describe('schema-resolver constraint alignment', () => {
 
   describe('schemas with notSelf constraint', () => {
     const schemasWithNotSelf = [
+      'seerCheck',
+      'mirrorSeerCheck',
+      'drunkSeerCheck',
+      'psychicCheck',
+      'pureWhiteCheck',
+      'gargoyleCheck',
       'dreamcatcherDream',
       'wolfQueenCharm',
       'wolfRobotLearn',
@@ -92,10 +98,6 @@ describe('schema-resolver constraint alignment', () => {
 
   describe('schemas without notSelf constraint (neutral judge - can target self)', () => {
     const schemasWithoutNotSelf = [
-      'seerCheck', // 预言家可以查自己
-      'psychicCheck', // 通灵师可以通灵自己
-      'gargoyleCheck', // 石像鬼可以查自己
-      'pureWhiteCheck', // 纯白之女可以查自己
       'nightmareBlock', // 梦魇可以封自己
       'wolfKill', // 狼可以杀自己
       'guardProtect', // 守卫可以守自己
