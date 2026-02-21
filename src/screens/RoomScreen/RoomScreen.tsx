@@ -387,14 +387,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })
               }
             />
-            {/* Last Night Info — all players, ended phase only */}
-            {roomStatus === GameStatus.ended && !isAudioPlaying && (
-              <ActionButton
-                label="昨夜信息"
-                onPress={() => showLastNightInfo()}
-                styles={componentStyles.actionButton}
-              />
-            )}
             {/* Night Review Button — all players, ended phase only */}
             {roomStatus === GameStatus.ended && (
               <ActionButton
@@ -402,6 +394,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 testID={TESTIDS.nightReviewButton}
                 onPress={() => openNightReview()}
                 styles={componentStyles.dangerActionButton}
+              />
+            )}
+            {/* Last Night Info — all players, ended phase only */}
+            {roomStatus === GameStatus.ended && !isAudioPlaying && (
+              <ActionButton
+                label="昨夜信息"
+                onPress={() => showLastNightInfo()}
+                styles={componentStyles.actionButton}
               />
             )}
           </View>
