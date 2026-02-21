@@ -288,34 +288,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         showMessage={!isAudioPlaying && (imActioner || roomStatus === GameStatus.ended)}
         styles={componentStyles.bottomActionPanel}
       >
-        {/* Host Control Buttons - dispatch events to policy */}
-        <HostControlButtons
-          isHost={isHost}
-          showSettings={
-            !isStartingGame &&
-            !isAudioPlaying &&
-            (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated)
-          }
-          showPrepareToFlip={roomStatus === GameStatus.seated}
-          showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
-          showRestart={
-            !isAudioPlaying &&
-            (roomStatus === GameStatus.assigned ||
-              roomStatus === GameStatus.ready ||
-              roomStatus === GameStatus.ongoing ||
-              roomStatus === GameStatus.ended)
-          }
-          disabled={isHostActionSubmitting}
-          onSettingsPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })}
-          onPrepareToFlipPress={() =>
-            dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })
-          }
-          onStartGamePress={() =>
-            dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })
-          }
-          onRestartPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })}
-        />
-
         {/* Actioner: schema-driven bottom action buttons */}
         {(() => {
           const bottom = getBottomAction();
@@ -345,23 +317,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               styles={componentStyles.actionButton}
             />
           )}
-        {/* Last Night Info — all players, ended phase only */}
-        {roomStatus === GameStatus.ended && !isAudioPlaying && (
-          <ActionButton
-            label="查看昨晚信息"
-            onPress={() => showLastNightInfo()}
-            styles={componentStyles.actionButton}
-          />
-        )}
-        {/* Night Review Button — all players, ended phase only */}
-        {roomStatus === GameStatus.ended && (
-          <ActionButton
-            label="查看详细信息"
-            testID={TESTIDS.nightReviewButton}
-            onPress={() => openNightReview()}
-            styles={componentStyles.dangerActionButton}
-          />
-        )}
         {/* Greyed View Role (waiting for host) */}
         {(roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) &&
           effectiveSeat !== null && (
@@ -377,6 +332,60 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               styles={componentStyles.actionButton}
             />
           )}
+
+        {/* Secondary row: Host controls + review buttons */}
+        {(isHost || roomStatus === GameStatus.ended) && (
+          <View style={componentStyles.bottomActionPanel.secondaryRow}>
+            {/* Host Control Buttons - dispatch events to policy */}
+            <HostControlButtons
+              isHost={isHost}
+              showSettings={
+                !isStartingGame &&
+                !isAudioPlaying &&
+                (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated)
+              }
+              showPrepareToFlip={roomStatus === GameStatus.seated}
+              showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
+              showRestart={
+                !isAudioPlaying &&
+                (roomStatus === GameStatus.assigned ||
+                  roomStatus === GameStatus.ready ||
+                  roomStatus === GameStatus.ongoing ||
+                  roomStatus === GameStatus.ended)
+              }
+              disabled={isHostActionSubmitting}
+              onSettingsPress={() =>
+                dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })
+              }
+              onPrepareToFlipPress={() =>
+                dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })
+              }
+              onStartGamePress={() =>
+                dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })
+              }
+              onRestartPress={() =>
+                dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })
+              }
+            />
+            {/* Last Night Info — all players, ended phase only */}
+            {roomStatus === GameStatus.ended && !isAudioPlaying && (
+              <ActionButton
+                label="查看昨晚信息"
+                onPress={() => showLastNightInfo()}
+                styles={componentStyles.actionButton}
+              />
+            )}
+            {/* Night Review Button — all players, ended phase only */}
+            {roomStatus === GameStatus.ended && (
+              <ActionButton
+                label="查看详细信息"
+                testID={TESTIDS.nightReviewButton}
+                onPress={() => openNightReview()}
+                styles={componentStyles.dangerActionButton}
+              />
+            )}
+          </View>
+        )}
       </BottomActionPanel>
 
       {/* Continue Game Overlay — shown after Host rejoin to unlock audio */}

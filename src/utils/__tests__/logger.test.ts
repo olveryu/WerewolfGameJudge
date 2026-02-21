@@ -5,7 +5,8 @@
  * We use jest.requireActual to test the real mapAuthError implementation.
  */
 
-const { mapAuthError } = jest.requireActual<typeof import('@/utils/logger')>('@/utils/logger');
+const { mapAuthError, isExpectedAuthError } =
+  jest.requireActual<typeof import('@/utils/logger')>('@/utils/logger');
 
 describe('mapAuthError', () => {
   it('maps "invalid login credentials" to Chinese', () => {
@@ -62,5 +63,31 @@ describe('mapAuthError', () => {
   it('is case-insensitive', () => {
     expect(mapAuthError('INVALID LOGIN CREDENTIALS')).toBe('邮箱或密码错误');
     expect(mapAuthError('user ALREADY registered')).toBe('该邮箱已注册');
+  });
+});
+
+describe('isExpectedAuthError', () => {
+  it('returns true for user-input errors', () => {
+    expect(isExpectedAuthError('Invalid login credentials')).toBe(true);
+    expect(isExpectedAuthError('User already registered')).toBe(true);
+    expect(isExpectedAuthError('Email not confirmed')).toBe(true);
+    expect(isExpectedAuthError('Password should be at least 6 characters')).toBe(true);
+    expect(isExpectedAuthError('Unable to validate email address: invalid format')).toBe(true);
+    expect(isExpectedAuthError('Signups not allowed for this instance')).toBe(true);
+  });
+
+  it('returns true for rate-limit errors', () => {
+    expect(isExpectedAuthError('Email rate limit exceeded')).toBe(true);
+    expect(isExpectedAuthError('you can only request this once every 60 seconds')).toBe(true);
+  });
+
+  it('returns false for unexpected errors', () => {
+    expect(isExpectedAuthError('network error')).toBe(false);
+    expect(isExpectedAuthError('Something unexpected happened')).toBe(false);
+    expect(isExpectedAuthError('Internal server error')).toBe(false);
+  });
+
+  it('is case-insensitive', () => {
+    expect(isExpectedAuthError('PASSWORD SHOULD BE AT LEAST 6 CHARACTERS')).toBe(true);
   });
 });

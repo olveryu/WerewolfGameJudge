@@ -99,3 +99,23 @@ export function mapAuthError(message: string): string {
 
   return message;
 }
+
+/**
+ * Check if an auth error is expected (user input / rate-limit) and should NOT be reported to Sentry.
+ *
+ * 用户输入错误（密码太短、邮箱格式、凭证错误等）和速率限制是可预期的，
+ * 只需 `log.warn()` + UI 反馈，禁止上报 Sentry。
+ */
+export function isExpectedAuthError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('invalid login credentials') ||
+    lower.includes('user already registered') ||
+    lower.includes('email not confirmed') ||
+    lower.includes('password should be at least') ||
+    lower.includes('unable to validate email address') ||
+    lower.includes('email rate limit exceeded') ||
+    lower.includes('only request this once every') ||
+    lower.includes('signups not allowed')
+  );
+}

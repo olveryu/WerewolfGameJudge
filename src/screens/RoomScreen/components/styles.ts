@@ -50,6 +50,7 @@ export interface BottomActionPanelStyles {
   container: ViewStyle;
   message: TextStyle;
   buttonRow: ViewStyle;
+  secondaryRow: ViewStyle;
 }
 
 export interface ConnectionStatusBarStyles {
@@ -295,6 +296,13 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         lineHeight: typography.body * 1.4,
       },
       buttonRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: spacing.small,
+      },
+      secondaryRow: {
+        width: '100%',
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',

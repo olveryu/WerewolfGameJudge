@@ -100,9 +100,16 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
       try {
         await authService.waitForInit();
-        const hostUid = authService.getCurrentUserId();
+        let hostUid = authService.getCurrentUserId();
         if (!hostUid) {
-          throw new Error('请先登录后再创建房间');
+          // autoSignIn may have failed (e.g. network error during startup) — retry once
+          gameRoomLog.warn('[initializeHostRoom] No userId after waitForInit, retrying auth...');
+          try {
+            hostUid = await authService.ensureAuthenticated();
+          } catch (retryErr) {
+            gameRoomLog.error('[initializeHostRoom] Auth retry failed', retryErr);
+            throw new Error('网络连接失败，请检查网络后重试');
+          }
         }
 
         // Set roomRecord for connection sync & leaveRoom cleanup
@@ -132,9 +139,16 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
       try {
         await authService.waitForInit();
-        const playerUid = authService.getCurrentUserId();
+        let playerUid = authService.getCurrentUserId();
         if (!playerUid) {
-          throw new Error('请先登录后再加入房间');
+          // autoSignIn may have failed (e.g. network error during startup) — retry once
+          gameRoomLog.warn('[joinRoom] No userId after waitForInit, retrying auth...');
+          try {
+            playerUid = await authService.ensureAuthenticated();
+          } catch (retryErr) {
+            gameRoomLog.error('[joinRoom] Auth retry failed', retryErr);
+            throw new Error('网络连接失败，请检查网络后重试');
+          }
         }
 
         // Check if room exists
