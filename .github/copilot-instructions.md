@@ -121,7 +121,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ### 错误处理
 
-关键 catch 块三层齐备：`log.error()` + `Sentry.captureException()` + `showAlert(中文友好提示)`。可预期错误（用户取消、权限受限）只需 `log.warn()`。面向用户文本一律中文，`showAlert` title 用具体动作（`'创建失败'`），未知错误 fallback `'请稍后重试'`。auth 错误用 `mapAuthError()`。`ErrorBoundary.componentDidCatch` 使用 `Sentry.withScope` 附加 `componentStack`。
+关键 catch 块三层齐备：`log.error()` + `Sentry.captureException()` + `showAlert(中文友好提示)`。可预期错误（用户取消、权限受限、**用户输入错误、速率限制**）只需 `log.warn()` + UI 反馈，**禁止上报 Sentry**。auth 错误用 `mapAuthError()` 映射中文，用 `isExpectedAuthError()` 判断是否可预期。面向用户文本一律中文，`showAlert` title 用具体动作（`'创建失败'`），未知错误 fallback `'请稍后重试'`。`ErrorBoundary.componentDidCatch` 使用 `Sentry.withScope` 附加 `componentStack`。
 
 Fail fast：handler / reducer / 纯函数保持严格校验，违反前置条件立即报错，禁止防御性兜底或 silent fallback 掩盖上层调用错误。修正应在调用方（跳过无效调用 / 修正参数），而非在被调用方放宽校验。
 

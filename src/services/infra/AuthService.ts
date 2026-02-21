@@ -46,6 +46,22 @@ export class AuthService {
     await withTimeout(this.initPromise, 10000, () => new Error('登录超时，请重试'));
   }
 
+  /**
+   * Ensure the user is authenticated, retrying session restore + anonymous sign-in if needed.
+   * Use when getCurrentUserId() returns null after waitForInit() — e.g. network failed during startup.
+   * Throws on network failure (caller should catch and show user-friendly message).
+   */
+  async ensureAuthenticated(): Promise<string> {
+    if (this.currentUserId) return this.currentUserId;
+
+    // Retry session restore from local storage
+    const restored = await this.initAuth();
+    if (restored) return restored;
+
+    // Fall back to anonymous sign-in
+    return this.signInAnonymously();
+  }
+
   isConfigured(): boolean {
     return isSupabaseConfigured() && supabase !== null;
   }

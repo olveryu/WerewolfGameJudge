@@ -15,7 +15,7 @@ import React, { createContext, use, useCallback, useEffect, useMemo, useState } 
 
 import { useServices } from '@/contexts/ServiceContext';
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
-import { authLog, mapAuthError } from '@/utils/logger';
+import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
 
 export interface User {
   uid: string;
@@ -132,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const raw = e instanceof Error ? e.message : String(e);
       const friendly = mapAuthError(raw);
       authLog.error('Anonymous sign-in failed:', raw, e);
-      Sentry.captureException(e);
+      if (!isExpectedAuthError(raw)) Sentry.captureException(e);
       setError(friendly);
       throw new Error(friendly);
     } finally {
@@ -153,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const raw = e instanceof Error ? e.message : String(e);
         const friendly = mapAuthError(raw);
         authLog.error('Email sign-up failed:', raw, e);
-        Sentry.captureException(e);
+        if (!isExpectedAuthError(raw)) Sentry.captureException(e);
         setError(friendly);
         throw new Error(friendly);
       } finally {
@@ -177,7 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const raw = e instanceof Error ? e.message : String(e);
         const friendly = mapAuthError(raw);
         authLog.error('Email sign-in failed:', raw, e);
-        Sentry.captureException(e);
+        if (!isExpectedAuthError(raw)) Sentry.captureException(e);
         setError(friendly);
         throw new Error(friendly);
       } finally {
@@ -200,7 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const raw = e instanceof Error ? e.message : String(e);
         const friendly = mapAuthError(raw);
         authLog.error('Update profile failed:', raw, e);
-        Sentry.captureException(e);
+        if (!isExpectedAuthError(raw)) Sentry.captureException(e);
         setError(friendly);
         throw new Error(friendly);
       }
@@ -222,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const raw = e instanceof Error ? e.message : String(e);
         const friendly = mapAuthError(raw);
         authLog.error('Upload avatar failed:', raw, e);
-        Sentry.captureException(e);
+        if (!isExpectedAuthError(raw)) Sentry.captureException(e);
         setError(friendly);
         throw new Error(friendly);
       }
