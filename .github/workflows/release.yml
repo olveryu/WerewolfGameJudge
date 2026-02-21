@@ -10,6 +10,11 @@ permissions:
 jobs:
   github-release:
     runs-on: ubuntu-latest
+    # Only create GitHub Releases for minor/major bumps (skip patch-only tags).
+    # Patch tags (vX.Y.Z where Z>0 and Y unchanged from prev) still exist for
+    # rollback / git-describe, but don't clutter the Releases page.
+    # Pattern: vX.Y.0 is always a minor/major milestone.
+    if: endsWith(github.ref_name, '.0')
     steps:
       - uses: actions/checkout@v4
         with:
