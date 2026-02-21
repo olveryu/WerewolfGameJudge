@@ -28,13 +28,7 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, useColors } from '@/theme';
-
-// ─── Visual constants ──────────────────────────────────────────────────
-const EFFECT_COLORS = {
-  edgeGlow: '#FFD700',
-  ripple: 'rgba(255, 215, 0, 0.3)',
-  particle: ['#FFD700', '#FFA500', '#FF6347', '#FFFFFF', '#87CEEB'],
-};
+import { hexToRgba } from '@/theme/colorUtils';
 
 // ─── Self-animating particle ────────────────────────────────────────────
 interface ParticleConfig {
@@ -43,11 +37,12 @@ interface ParticleConfig {
   targetY: number;
   size: number;
   color: string;
+  glowColor: string;
   duration: number;
 }
 
 const BurstParticle: React.FC<ParticleConfig> = React.memo(
-  ({ targetX, targetY, size, color, duration }) => {
+  ({ targetX, targetY, size, color, glowColor, duration }) => {
     const progress = useSharedValue(0);
 
     useEffect(() => {
@@ -76,7 +71,7 @@ const BurstParticle: React.FC<ParticleConfig> = React.memo(
             height: size,
             borderRadius: size / 2,
             backgroundColor: color,
-            boxShadow: `0 0 4px ${EFFECT_COLORS.edgeGlow}`,
+            boxShadow: `0 0 4px ${glowColor}`,
           },
           animStyle,
         ]}
@@ -129,7 +124,11 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
 
-  // ── Particle burst ──
+  // ── Particle burst (alignment-themed) ──
+  const particleColors = useMemo(
+    () => [theme.primaryColor, theme.glowColor, theme.particleColor, '#FFFFFF', theme.glowColor],
+    [theme],
+  );
   const createParticles = useCallback(() => {
     const configs: ParticleConfig[] = [];
     const count = 30;
@@ -140,13 +139,14 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
         id: i,
         targetX: Math.cos(angle) * distance,
         targetY: Math.sin(angle) * distance - 30,
-        color: EFFECT_COLORS.particle[i % EFFECT_COLORS.particle.length],
+        color: particleColors[i % particleColors.length],
+        glowColor: theme.glowColor,
         size: 8 + (i % 4) * 4,
         duration: 600 + Math.random() * 400,
       });
     }
     setParticles(configs);
-  }, []);
+  }, [particleColors, theme.glowColor]);
 
   // ── Phase transitions (declared bottom-up to avoid forward references) ──
   const enterRevealed = useCallback(() => {
@@ -317,7 +317,7 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
             width: cardWidth * 1.5,
             height: cardHeight * 1.5,
             borderRadius: borderRadius.large,
-            borderColor: EFFECT_COLORS.ripple,
+            borderColor: hexToRgba(theme.primaryColor, 0.3),
           },
           rippleStyle,
         ]}
@@ -357,8 +357,8 @@ export const FlipReveal: React.FC<RoleRevealEffectProps> = ({
             style={[
               styles.edgeGlow,
               {
-                borderColor: EFFECT_COLORS.edgeGlow,
-                boxShadow: `0 0 15px ${EFFECT_COLORS.edgeGlow}`,
+                borderColor: theme.glowColor,
+                boxShadow: `0 0 15px ${theme.glowColor}`,
               },
               edgeGlowStyle,
             ]}

@@ -37,3 +37,9 @@ export function darken(hex: string, amount: number): string {
   const [r, g, b] = parseHex(hex);
   return toHex(r * (1 - amount), g * (1 - amount), b * (1 - amount));
 }
+
+/** Convert hex (#RRGGBB or #RGB) to rgba() string with given alpha (0–1) */
+export function hexToRgba(hex: string, alpha: number): string {
+  const [r, g, b] = parseHex(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
