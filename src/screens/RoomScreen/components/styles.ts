@@ -281,7 +281,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         borderTopRightRadius: borderRadius.large,
         paddingTop: spacing.medium,
         paddingHorizontal: spacing.medium,
-        paddingBottom: spacing.xlarge,
+        paddingBottom: spacing.medium,
         borderTopWidth: 1,
         borderTopColor: colors.borderLight,
         // Upward shadow

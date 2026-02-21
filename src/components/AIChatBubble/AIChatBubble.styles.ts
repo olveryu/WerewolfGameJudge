@@ -99,6 +99,7 @@ export interface NotepadStyles {
 export interface NotepadPublicStyles {
   notepadPublicSection: ViewStyle;
   notepadPublicLabel: TextStyle;
+  notepadPublicRow: ViewStyle;
   notepadPublicInput: TextStyle;
 }
 
@@ -609,7 +610,12 @@ export const createStyles = (colors: ThemeColors) =>
       color: colors.text,
       marginBottom: spacing.tight,
     },
+    notepadPublicRow: {
+      flexDirection: 'row',
+      gap: spacing.small,
+    },
     notepadPublicInput: {
+      flex: 1,
       backgroundColor: colors.background,
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,

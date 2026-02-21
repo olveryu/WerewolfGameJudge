@@ -120,16 +120,25 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
           styles={notepadStyles}
         />
 
-        {/* Public note area */}
+        {/* Public note area — side-by-side */}
         <View style={styles.notepadPublicSection}>
           <Text style={styles.notepadPublicLabel}>📋 记录</Text>
-          <TextInput
-            style={styles.notepadPublicInput}
-            value={notepad.state.publicNote}
-            onChangeText={notepad.setPublicNote}
-            multiline
-            textAlignVertical="top"
-          />
+          <View style={styles.notepadPublicRow}>
+            <TextInput
+              style={styles.notepadPublicInput}
+              value={notepad.state.publicNoteLeft}
+              onChangeText={notepad.setPublicNoteLeft}
+              multiline
+              textAlignVertical="top"
+            />
+            <TextInput
+              style={styles.notepadPublicInput}
+              value={notepad.state.publicNoteRight}
+              onChangeText={notepad.setPublicNoteRight}
+              multiline
+              textAlignVertical="top"
+            />
+          </View>
         </View>
 
         {/* Legend */}
