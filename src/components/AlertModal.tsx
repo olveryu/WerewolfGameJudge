@@ -109,7 +109,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     title: {
       fontSize: typography.subtitle,
-      fontWeight: 'bold',
+      fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',
       marginBottom: spacing.small,
