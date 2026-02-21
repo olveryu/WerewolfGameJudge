@@ -326,6 +326,31 @@ describe('handleStartNight', () => {
     expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
+
+  it('should skip night and return END_NIGHT with empty deaths for all-villager template', () => {
+    const allVillagerState = createMinimalState({
+      status: 'ready',
+      templateRoles: ['villager', 'villager', 'villager'],
+      players: {
+        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { uid: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+        2: { uid: 'p3', seatNumber: 2, role: 'villager', hasViewedRole: true },
+      },
+    });
+    const context = createContext(allVillagerState);
+    const intent: StartNightIntent = { type: 'START_NIGHT' };
+
+    const result = handleStartNight(intent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].type).toBe('END_NIGHT');
+    if (result.actions[0].type === 'END_NIGHT') {
+      expect(result.actions[0].payload.deaths).toEqual([]);
+    }
+    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+  });
 });
 
 describe('handleRestartGame', () => {
