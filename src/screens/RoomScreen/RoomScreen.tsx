@@ -398,7 +398,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               />
             )}
             {/* Night Review Button — all players, ended phase only */}
-            {roomStatus === GameStatus.ended && (
+            {roomStatus === GameStatus.ended && !isAudioPlaying && (
               <ActionButton
                 label="详细信息"
                 testID={TESTIDS.nightReviewButton}
