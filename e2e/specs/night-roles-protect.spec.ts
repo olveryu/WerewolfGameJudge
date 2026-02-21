@@ -180,8 +180,8 @@ test.describe('Night Roles — Protection / Immunity', () => {
         await confirmModal.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
         await dismissAlert(pages[witchIdx]);
 
-        // Allow action submission to complete before advancing
-        await pages[witchIdx].waitForTimeout(1000);
+        // Wait for action submission to complete (alert-modal dismissed)
+        await confirmModal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
 
         // Night should end with 平安夜
         const ended = await waitForNightEnd(pages, 120);

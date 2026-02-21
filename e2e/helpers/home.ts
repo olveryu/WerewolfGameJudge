@@ -471,8 +471,14 @@ async function waitForPostLoginStable(page: Page, maxWaitMs = 15000): Promise<vo
       return;
     }
 
-    // Still in transient state, wait
-    await page.waitForTimeout(300);
+    // Wait for any stable screen to appear
+    await page
+      .locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)
+      .or(page.locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`))
+      .or(page.locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`))
+      .first()
+      .waitFor({ state: 'visible', timeout: 3000 })
+      .catch(() => {});
   }
 }
 
