@@ -72,7 +72,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
   const body = req.body as ActionRequestBody;
   const { roomCode, hostUid, seat, role, target, extra } = body;
 
-  if (!roomCode || !hostUid || seat == null || !role) {
+  if (!roomCode || !hostUid || typeof seat !== 'number' || !role) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
@@ -124,7 +124,7 @@ async function handleAudioGate(req: VercelRequest, res: VercelResponse) {
   const body = req.body as AudioGateRequestBody;
   const { roomCode, hostUid, isPlaying } = body;
 
-  if (!roomCode || !hostUid || isPlaying == null) {
+  if (!roomCode || !hostUid || typeof isPlaying !== 'boolean') {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
@@ -215,7 +215,7 @@ async function handleWolfRobotViewed(req: VercelRequest, res: VercelResponse) {
   const body = req.body as WolfRobotViewedRequestBody;
   const { roomCode, hostUid, seat } = body;
 
-  if (!roomCode || !hostUid || seat == null) {
+  if (!roomCode || !hostUid || typeof seat !== 'number') {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
@@ -238,7 +238,7 @@ async function handleWolfVote(req: VercelRequest, res: VercelResponse) {
   const body = req.body as WolfVoteRequestBody;
   const { roomCode, hostUid, voterSeat, targetSeat } = body;
 
-  if (!roomCode || !hostUid || voterSeat == null || targetSeat == null) {
+  if (!roomCode || !hostUid || typeof voterSeat !== 'number' || typeof targetSeat !== 'number') {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 

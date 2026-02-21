@@ -147,7 +147,11 @@ async function handleSeat(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  if (action === 'sit' && seat == null) {
+  if (action !== 'sit' && action !== 'standup') {
+    return res.status(400).json({ success: false, reason: 'INVALID_ACTION' });
+  }
+
+  if (action === 'sit' && (seat == null || typeof seat !== 'number')) {
     return res.status(400).json({ success: false, reason: 'MISSING_SEAT' });
   }
 
@@ -228,7 +232,7 @@ async function handleUpdateTemplateRoute(req: VercelRequest, res: VercelResponse
   const body = req.body as UpdateTemplateRequestBody;
   const { roomCode, hostUid, templateRoles } = body;
 
-  if (!roomCode || !hostUid || !templateRoles) {
+  if (!roomCode || !hostUid || !templateRoles || !Array.isArray(templateRoles)) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
@@ -246,7 +250,7 @@ async function handleViewRole(req: VercelRequest, res: VercelResponse) {
   const body = req.body as ViewRoleRequestBody;
   const { roomCode, uid, seat } = body;
 
-  if (!roomCode || !uid || seat == null) {
+  if (!roomCode || !uid || typeof seat !== 'number') {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 

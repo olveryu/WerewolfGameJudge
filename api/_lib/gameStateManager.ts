@@ -191,6 +191,9 @@ export async function processGameAction(
     const message = err instanceof Error ? err.message : String(err);
     // eslint-disable-next-line no-console
     console.error('[processGameAction] Unhandled error:', message, err);
-    return { success: false, reason: 'INTERNAL_ERROR', error: message } as GameActionResult;
+    // Strip error details in production to avoid leaking internals
+    const isProd = globalThis.process?.env?.NODE_ENV === 'production';
+    const error = isProd ? undefined : message;
+    return { success: false, reason: 'INTERNAL_ERROR', error } as GameActionResult;
   }
 }
