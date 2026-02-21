@@ -60,8 +60,9 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
     }
   };
 
-  const showSyncButton = status === 'disconnected' || status === 'syncing';
-  const isSyncing = status === 'syncing';
+  const showSyncButton =
+    status === 'disconnected' || status === 'syncing' || status === 'connecting';
+  const isSyncing = status === 'syncing' || status === 'connecting';
 
   return (
     <View style={[styles.container, getStatusStyle()]} testID={TESTIDS.connectionStatusContainer}>

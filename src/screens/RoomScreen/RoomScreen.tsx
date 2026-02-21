@@ -242,13 +242,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       </View>
 
       {/* Connection Status Bar */}
-      {!isHost && (
-        <ConnectionStatusBar
-          status={connectionStatus}
-          onForceSync={() => requestSnapshot()}
-          styles={componentStyles.connectionStatusBar}
-        />
-      )}
+      <ConnectionStatusBar
+        status={connectionStatus}
+        onForceSync={() => requestSnapshot()}
+        styles={componentStyles.connectionStatusBar}
+      />
 
       {/* Night Progress Indicator - only show during ongoing game */}
       {nightProgress && (

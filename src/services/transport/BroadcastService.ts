@@ -230,10 +230,11 @@ export class BroadcastService {
   }
 
   /**
-   * Mark connection as live (called after receiving state)
+   * Mark connection as live (called after receiving state).
+   * Accepts both 'syncing' (normal flow) and 'connecting' (DB-fetch recovery).
    */
   markAsLive(): void {
-    if (this.connectionStatus === 'syncing') {
+    if (this.connectionStatus === 'syncing' || this.connectionStatus === 'connecting') {
       this.setConnectionStatus('live');
     }
   }
