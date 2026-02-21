@@ -5,12 +5,12 @@
     "version": "1.0.272",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a1a2e"
+      "backgroundColor": "#FAFAFA"
     },
     "ios": {
       "supportsTablet": true
@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1a1a2e"
+        "backgroundColor": "#FAFAFA"
       }
     },
     "web": {
@@ -28,7 +28,7 @@
       "description": "本地/离线狼人杀游戏辅助工具，支持多人联机",
       "lang": "zh-CN",
       "themeColor": "#6366F1",
-      "backgroundColor": "#1a1a2e",
+      "backgroundColor": "#FAFAFA",
       "display": "standalone",
       "orientation": "portrait",
       "startUrl": "/",
