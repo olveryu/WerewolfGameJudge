@@ -32,6 +32,8 @@ export interface NotepadState {
   handStates: Record<number, boolean>;
   identityStates: Record<number, IdentityState>;
   roleGuesses: Record<number, RoleId | null>;
+  /** 公共笔记区 — 不绑定座位的自由文本 */
+  publicNote: string;
 }
 
 export interface UseNotepadReturn {
@@ -39,6 +41,7 @@ export interface UseNotepadReturn {
   playerCount: number;
   roleTags: readonly RoleTagInfo[];
   setNote: (seat: number, text: string) => void;
+  setPublicNote: (text: string) => void;
   toggleHand: (seat: number) => void;
   cycleIdentity: (seat: number) => void;
   setRole: (seat: number, roleId: RoleId | null) => void;
@@ -51,7 +54,7 @@ const STORAGE_KEY_PREFIX = '@notepad:';
 const IDENTITY_COUNT = 4; // 0→1→2→3→0
 
 function emptyState(): NotepadState {
-  return { playerNotes: {}, handStates: {}, identityStates: {}, roleGuesses: {} };
+  return { playerNotes: {}, handStates: {}, identityStates: {}, roleGuesses: {}, publicNote: '' };
 }
 
 function getStorageKey(roomCode: string | null): string | null {
@@ -105,6 +108,8 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
         if (raw) {
           try {
             const parsed = JSON.parse(raw) as NotepadState;
+            // Backward compat: old persisted data may lack publicNote
+            if (parsed.publicNote === undefined) parsed.publicNote = '';
             setState(parsed);
           } catch {
             chatLog.warn('Failed to parse notepad state');
@@ -145,6 +150,17 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     (seat: number, text: string) => {
       setState((prev) => {
         const next = { ...prev, playerNotes: { ...prev.playerNotes, [seat]: text } };
+        persistState(next);
+        return next;
+      });
+    },
+    [persistState],
+  );
+
+  const setPublicNote = useCallback(
+    (text: string) => {
+      setState((prev) => {
+        const next = { ...prev, publicNote: text };
         persistState(next);
         return next;
       });
@@ -200,5 +216,15 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     }
   }, [storageKey]);
 
-  return { state, playerCount, roleTags, setNote, toggleHand, cycleIdentity, setRole, clearAll };
+  return {
+    state,
+    playerCount,
+    roleTags,
+    setNote,
+    setPublicNote,
+    toggleHand,
+    cycleIdentity,
+    setRole,
+    clearAll,
+  };
 }
