@@ -8,6 +8,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { drunkSeerCheckResolver } from '@werewolf/game-engine/resolvers/drunkSeer';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
+import * as randomModule from '@werewolf/game-engine/utils/random';
 
 // =============================================================================
 // Test Helpers
@@ -91,8 +92,8 @@ describe('drunkSeerCheckResolver', () => {
       jest.restoreAllMocks();
     });
 
-    it('Math.random >= 0.5 时查验狼人应返回"狼人"（正确）', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    it('secureRng >= 0.5 时查验狼人应返回"狼人"（正确）', () => {
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.5);
       const ctx = createContext();
       const input = createInput(2); // seat 2 is wolf
 
@@ -102,8 +103,8 @@ describe('drunkSeerCheckResolver', () => {
       expect(result.result?.checkResult).toBe('狼人');
     });
 
-    it('Math.random < 0.5 时查验狼人应返回"好人"（反转）', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0.49);
+    it('secureRng < 0.5 时查验狼人应返回"好人"（反转）', () => {
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.49);
       const ctx = createContext();
       const input = createInput(2); // seat 2 is wolf
 
@@ -113,8 +114,8 @@ describe('drunkSeerCheckResolver', () => {
       expect(result.result?.checkResult).toBe('好人');
     });
 
-    it('Math.random >= 0.5 时查验好人应返回"好人"（正确）', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0.8);
+    it('secureRng >= 0.5 时查验好人应返回"好人"（正确）', () => {
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.8);
       const ctx = createContext();
       const input = createInput(0); // seat 0 is villager
 
@@ -124,8 +125,8 @@ describe('drunkSeerCheckResolver', () => {
       expect(result.result?.checkResult).toBe('好人');
     });
 
-    it('Math.random < 0.5 时查验好人应返回"狼人"（反转）', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0.1);
+    it('secureRng < 0.5 时查验好人应返回"狼人"（反转）', () => {
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.1);
       const ctx = createContext();
       const input = createInput(0); // seat 0 is villager
 
@@ -136,7 +137,7 @@ describe('drunkSeerCheckResolver', () => {
     });
 
     it('查验女巫时随机正确应返回"好人"', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0.99);
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.99);
       const ctx = createContext();
       const input = createInput(5); // seat 5 is witch (good)
 
@@ -147,7 +148,7 @@ describe('drunkSeerCheckResolver', () => {
     });
 
     it('查验白狼王时随机正确应返回"狼人"', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0.7);
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.7);
       const players = new Map<number, RoleId>([
         [0, 'villager'],
         [1, 'wolfKing'],
@@ -163,7 +164,7 @@ describe('drunkSeerCheckResolver', () => {
     });
 
     it('查验白狼王时随机反转应返回"好人"', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0.3);
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.3);
       const players = new Map<number, RoleId>([
         [0, 'villager'],
         [1, 'wolfKing'],
@@ -178,8 +179,8 @@ describe('drunkSeerCheckResolver', () => {
       expect(result.result?.checkResult).toBe('好人');
     });
 
-    it('边界值：Math.random = 0 时应反转', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0);
+    it('边界值：secureRng = 0 时应反转', () => {
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0);
       const ctx = createContext();
       const input = createInput(2); // wolf
 
@@ -189,8 +190,8 @@ describe('drunkSeerCheckResolver', () => {
       expect(result.result?.checkResult).toBe('好人'); // wolf inverted = 好人
     });
 
-    it('边界值：Math.random = 1 时应正确', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(1);
+    it('边界值：secureRng = 1 时应正确', () => {
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(1);
       const ctx = createContext();
       const input = createInput(2); // wolf
 
@@ -207,7 +208,7 @@ describe('drunkSeerCheckResolver', () => {
     });
 
     it('魔术师交换后应查验交换后的角色（随机正确时）', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0.5);
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.5);
       // Seat 0: villager (被交换到 seat 2), Seat 2: wolf (被交换到 seat 0)
       const players = new Map<number, RoleId>([
         [0, 'villager'],
@@ -233,7 +234,7 @@ describe('drunkSeerCheckResolver', () => {
     });
 
     it('魔术师交换后应查验交换后的角色（随机反转时）', () => {
-      jest.spyOn(Math, 'random').mockReturnValue(0.1);
+      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.1);
       const players = new Map<number, RoleId>([
         [0, 'villager'],
         [1, 'magician'],

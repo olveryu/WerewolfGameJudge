@@ -4,7 +4,7 @@
  * 长按角色 chip 时弹出，展示角色名称与技能描述。
  * 纯 UI 组件，不 import service，不包含业务逻辑。
  */
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import { isValidRoleId, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import { memo } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
@@ -22,7 +22,7 @@ export const RoleInfoSheet = memo(function RoleInfoSheet({
   onClose,
   styles,
 }: RoleInfoSheetProps) {
-  const spec = roleId ? ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] : null;
+  const spec = roleId && isValidRoleId(roleId) ? ROLE_SPECS[roleId] : null;
 
   return (
     <Modal visible={roleId !== null} transparent animationType="slide" onRequestClose={onClose}>

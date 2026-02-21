@@ -470,7 +470,7 @@ describe('canSkip behavior alignment', () => {
 // === 6. NIGHT_STEPS order stability ===
 
 describe('NIGHT_STEPS order stability', () => {
-  it('should have exactly 14 steps', () => {
+  it('should have exactly 19 steps', () => {
     expect(NIGHT_STEPS).toHaveLength(19);
   });
 
