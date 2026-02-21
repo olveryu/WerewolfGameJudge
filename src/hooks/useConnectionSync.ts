@@ -84,6 +84,10 @@ export function useConnectionSync(
       if (status === 'live') {
         connectionLiveAtRef.current = Date.now();
       }
+      if (status === 'disconnected') {
+        // Reset throttle so auto-recovery can fire again after reconnection
+        hasRequestedInSessionRef.current = false;
+      }
     });
     return unsubscribe;
   }, [facade]);

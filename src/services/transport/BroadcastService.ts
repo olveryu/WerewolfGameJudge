@@ -146,7 +146,13 @@ export class BroadcastService {
 
       this.channel!.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          if (resolved) return;
+          if (resolved) {
+            // Reconnection: Supabase SDK re-established the channel after a drop.
+            // Go straight to 'live' so useConnectionSync auto-recovery can kick in.
+            broadcastLog.info('Channel reconnected after drop');
+            this.setConnectionStatus('live');
+            return;
+          }
           resolved = true;
           clearTimeout(timeout);
           this.setConnectionStatus('syncing');
@@ -159,7 +165,12 @@ export class BroadcastService {
           this.setConnectionStatus('disconnected');
           reject(new Error('BroadcastService: channel closed before subscribe completed'));
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          if (resolved) return;
+          if (resolved) {
+            // Post-connect error: WebSocket dropped while we were connected.
+            broadcastLog.warn('Channel error after connect:', status);
+            this.setConnectionStatus('disconnected');
+            return;
+          }
           resolved = true;
           clearTimeout(timeout);
           this.setConnectionStatus('disconnected');
