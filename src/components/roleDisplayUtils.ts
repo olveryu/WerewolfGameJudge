@@ -14,24 +14,33 @@ export const ROLE_ICONS: Record<string, string> = {
   wolf: '🐺',
   wolfKing: '👑🐺',
   darkWolfKing: '🌑👑',
-  whiteWolfKing: '⚪👑',
   wolfQueen: '👸🐺',
   nightmare: '😱',
   gargoyle: '🗿',
   wolfRobot: '🤖🐺',
+  wolfWitch: '🧙🐺',
+  spiritKnight: '⚔️',
+  bloodMoon: '🩸',
   // 神职阵营
   seer: '🔮',
   witch: '🧙‍♀️',
   hunter: '🏹',
   guard: '🛡️',
+  idiot: '🤡',
+  knight: '🗡️',
+  magician: '🎩',
+  witcher: '🔪',
   psychic: '👁️',
   dreamcatcher: '🌙',
-  magician: '🎩',
-  spiritKnight: '⚔️',
-  // 平民
+  graveyardKeeper: '⚰️',
+  pureWhite: '🤍',
+  // 平民阵营
   villager: '👤',
   mirrorSeer: '🔮',
+  drunkSeer: '🍺🔮',
+  // 第三方阵营
   slacker: '😴',
+  wildChild: '👶',
 };
 
 /** 根据 roleId 获取阵营中文名称 */
