@@ -33,7 +33,7 @@ test.describe('Room Lifecycle', () => {
       await page.getByText('加入', { exact: true }).click();
 
       // The app navigates to RoomScreen, which discovers the room doesn't exist.
-      // Fatal error triggers showAlert('提示', '房间不存在') + auto-redirect to Home.
+      // Fatal error triggers showAlert('房间异常', '房间不存在') + auto-redirect to Home.
       // Wait for the alert modal to appear (global AlertModal persists across screens)
       const alertModal = page.locator('[data-testid="alert-modal"]');
       const alertAppeared = await alertModal
@@ -52,9 +52,7 @@ test.describe('Room Lifecycle', () => {
       }
 
       // After alert dismiss, page should return to Home.
-      // React Navigation may keep screens mounted with display:none — use .last()
-      // to pick the active Home instance. If only one, .last() == .first().
-      await expect(page.getByText('创建房间').last()).toBeVisible({
+      await expect(page.locator('[data-testid="home-screen-root"]')).toBeVisible({
         timeout: 10_000,
       });
     } finally {
@@ -80,8 +78,9 @@ test.describe('Room Lifecycle', () => {
       await hostPage.getByText('确定', { exact: true }).click();
 
       // Verify redirected to home
-      // React Navigation keeps old screens mounted (display:none), so .last() picks the active one
-      await expect(hostPage.getByText('创建房间').last()).toBeVisible({ timeout: 10_000 });
+      await expect(hostPage.locator('[data-testid="home-screen-root"]')).toBeVisible({
+        timeout: 10_000,
+      });
     } finally {
       await closeAll(fixture);
     }
@@ -106,8 +105,9 @@ test.describe('Room Lifecycle', () => {
       await joinerPage.getByText('确定', { exact: true }).click();
 
       // Verify redirected to home
-      // React Navigation keeps old screens mounted (display:none), so .last() picks the active one
-      await expect(joinerPage.getByText('创建房间').last()).toBeVisible({ timeout: 10_000 });
+      await expect(joinerPage.locator('[data-testid="home-screen-root"]')).toBeVisible({
+        timeout: 10_000,
+      });
     } finally {
       await closeAll(fixture);
     }
