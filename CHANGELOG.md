@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.264] - 2026-02-20
+
+- fix(game-engine): export missing symbols from barrel
+- chore: bump version to 1.0.263 in app.json and package.json
+
 ## [1.0.262] - 2026-02-20
 
 - fix(game-engine): replace Math.random with secureRng, use theme tokens and type guards
