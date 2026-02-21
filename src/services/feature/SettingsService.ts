@@ -28,7 +28,7 @@ interface UserSettings {
 
 const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
-  themeKey: 'dark',
+  themeKey: 'light',
   roleRevealAnimation: 'random',
 };
 
