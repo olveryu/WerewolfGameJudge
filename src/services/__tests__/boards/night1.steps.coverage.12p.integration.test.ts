@@ -23,6 +23,7 @@ const TEMPLATE_NAME = '预女猎白12人';
 const CUSTOM_ROLES: RoleId[] = [
   'magician',
   'slacker',
+  'wildChild',
   'pureWhite',
   'wolfWitch',
   'guard',
@@ -30,7 +31,6 @@ const CUSTOM_ROLES: RoleId[] = [
   'wolf',
   'wolfQueen',
   'witch',
-  'hunter',
   'gargoyle',
   'psychic',
 ];
@@ -40,7 +40,7 @@ describe('Night-1: step-level coverage (12p)', () => {
     cleanupHostGame();
   });
 
-  it('should reach slackerChooseIdol / wolfWitchCheck / gargoyleCheck / pureWhiteCheck / psychicCheck steps', () => {
+  it('should reach slackerChooseIdol / wildChildChooseIdol / wolfWitchCheck / gargoyleCheck / pureWhiteCheck / psychicCheck steps', () => {
     const ctx = createHostGame(CUSTOM_ROLES);
 
     // Theme assertion (not just deaths): include a real BroadcastGameState field assertion.
@@ -56,8 +56,17 @@ describe('Night-1: step-level coverage (12p)', () => {
     ctx.assertStep('slackerChooseIdol');
 
     expect(
+      executeStepsUntil(ctx, 'wildChildChooseIdol', {
+        slacker: 0,
+        wildChild: 0,
+      }),
+    ).toBe(true);
+    ctx.assertStep('wildChildChooseIdol');
+
+    expect(
       executeStepsUntil(ctx, 'wolfWitchCheck', {
         slacker: 0,
+        wildChild: 0,
       }),
     ).toBe(true);
     ctx.assertStep('wolfWitchCheck');
@@ -65,6 +74,7 @@ describe('Night-1: step-level coverage (12p)', () => {
     expect(
       executeStepsUntil(ctx, 'gargoyleCheck', {
         slacker: 0,
+        wildChild: 0,
       }),
     ).toBe(true);
     ctx.assertStep('gargoyleCheck');
@@ -72,6 +82,7 @@ describe('Night-1: step-level coverage (12p)', () => {
     expect(
       executeStepsUntil(ctx, 'pureWhiteCheck', {
         slacker: 0,
+        wildChild: 0,
       }),
     ).toBe(true);
     ctx.assertStep('pureWhiteCheck');
@@ -79,6 +90,7 @@ describe('Night-1: step-level coverage (12p)', () => {
     expect(
       executeStepsUntil(ctx, 'psychicCheck', {
         slacker: 0,
+        wildChild: 0,
       }),
     ).toBe(true);
     ctx.assertStep('psychicCheck');

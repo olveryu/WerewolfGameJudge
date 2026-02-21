@@ -318,6 +318,19 @@ export const SCHEMAS = {
       bottomActionText: '不使用技能',
     },
   },
+  wildChildChooseIdol: {
+    id: 'wildChildChooseIdol',
+    displayName: '选择榜样',
+    kind: 'chooseSeat',
+    constraints: ['notSelf'],
+    canSkip: false,
+    ui: {
+      confirmTitle: '确认行动',
+      prompt: '请选择你的榜样',
+      confirmText: '确定选择该玩家为榜样吗？',
+      bottomActionText: '不使用技能',
+    },
+  },
 } as const satisfies Record<string, ActionSchema>;
 
 /** Schema ID type (auto-derived from registry keys) */

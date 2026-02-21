@@ -60,6 +60,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
     { schemaId: 'wolfQueenCharm', roleId: 'wolfQueen' },
     { schemaId: 'wolfRobotLearn', roleId: 'wolfRobot' },
     { schemaId: 'slackerChooseIdol', roleId: 'slacker' },
+    { schemaId: 'wildChildChooseIdol', roleId: 'wildChild' },
   ];
 
   // 无 notSelf 的 schema（允许自指）
@@ -253,6 +254,7 @@ describe('notSelf constraint completeness', () => {
       'wolfQueenCharm',
       'wolfRobotLearn',
       'slackerChooseIdol',
+      'wildChildChooseIdol',
       // Without notSelf
       'seerCheck',
       'mirrorSeerCheck',
