@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-import { closeAll } from '../fixtures/app.fixture';
 import { type GameSetupWithRolesResult, setupNPlayerGameWithRoles } from '../helpers/multi-player';
 import {
   clickSeatAndConfirm,
@@ -191,7 +190,12 @@ test.describe('Network reconnect during night', () => {
         for (const ctx of setup.fixture.contexts) {
           await ctx.setOffline(false).catch(() => {});
         }
-        await closeAll(setup.fixture);
+        // ctx.close() can fail with ENOENT when Playwright trace files are
+        // corrupted by the offline simulation. Catch individually so all
+        // contexts are cleaned up.
+        for (const ctx of setup.fixture.contexts) {
+          await ctx.close().catch(() => {});
+        }
       }
     }
   });
