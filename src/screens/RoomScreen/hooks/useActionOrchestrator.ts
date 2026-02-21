@@ -19,11 +19,10 @@ import type { ActionSchema, InlineSubStepSchema } from '@werewolf/game-engine/mo
 import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { roomScreenLog } from '@/utils/logger';
-
-import type { ActionIntent } from './useRoomActions';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

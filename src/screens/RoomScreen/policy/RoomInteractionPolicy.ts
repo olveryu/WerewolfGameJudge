@@ -131,7 +131,7 @@ function handleSeatTap(
  */
 function handleBottomAction(
   ctx: InteractionContext,
-  event: { intent: import('../hooks/useRoomActions').ActionIntent },
+  event: { intent: import('./types').ActionIntent },
 ): InteractionResult {
   // Only actioner can use bottom actions during ongoing phase
   if (ctx.roomStatus === GameStatus.ongoing && !ctx.imActioner) {

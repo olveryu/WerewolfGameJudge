@@ -138,8 +138,8 @@ describe('RoomScreen hooks boundary constraints', () => {
       }
       const content = fs.readFileSync(filePath, 'utf-8');
 
-      // Intent Layer: must export ActionIntent type
-      expect(content).toMatch(/export\s+(interface|type)\s+ActionIntent/);
+      // Intent Layer: must export ActionIntent type (directly or re-exported)
+      expect(content).toMatch(/export\s+(interface|type)\s+.*ActionIntent/);
 
       // Intent Layer: must export getActionIntent function
       expect(content).toMatch(/getActionIntent/);
