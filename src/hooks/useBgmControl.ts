@@ -4,7 +4,7 @@
  * Manages:
  * - Loading BGM enabled setting on mount
  * - Toggling BGM on/off (persisted to SettingsService)
- * - Auto-stopping BGM when game transitions from ongoing → ended (Host only)
+ * - Auto-stopping BGM when game ends AND ending audio finishes (Host only)
  *
  * 读写 BGM 设置、监听 game status 变化。
  * 不直接操作游戏状态，不调用 Supabase。
@@ -27,9 +27,13 @@ export interface BgmControlState {
 
 /**
  * Manages BGM playback state.
- * Auto-stops BGM when game transitions from ongoing → ended (Host only).
+ * Auto-stops BGM when game ends AND ending audio finishes (Host only).
  */
-export function useBgmControl(isHost: boolean, gameStatus: GameStatus | null): BgmControlState {
+export function useBgmControl(
+  isHost: boolean,
+  gameStatus: GameStatus | null,
+  isAudioPlaying: boolean,
+): BgmControlState {
   const [isBgmEnabled, setIsBgmEnabled] = useState(true);
   const { settingsService, audioService } = useServices();
   const settingsRef = useRef(settingsService);
@@ -46,19 +50,15 @@ export function useBgmControl(isHost: boolean, gameStatus: GameStatus | null): B
     });
   }, []);
 
-  // Auto-stop BGM when game ends (Host only)
-  const prevStatusRef = useRef<GameStatus | null>(null);
+  // Auto-stop BGM when game ends AND ending audio finishes (Host only)
+  // Night end flow: status→ended arrives while isAudioPlaying=true (last role ending + night_end
+  // audio still playing). BGM must keep playing until all audio effects finish.
   useEffect(() => {
     if (!isHost) return;
-    const currentStatus = gameStatus ?? null;
-    const prevStatus = prevStatusRef.current;
-    prevStatusRef.current = currentStatus;
-
-    // Stop BGM when transitioning from ongoing to ended
-    if (prevStatus === GameStatus.ongoing && currentStatus === GameStatus.ended) {
+    if (gameStatus === GameStatus.ended && !isAudioPlaying) {
       audioRef.current.stopBgm();
     }
-  }, [isHost, gameStatus]);
+  }, [isHost, gameStatus, isAudioPlaying]);
 
   // Toggle BGM setting (host only)
   const toggleBgm = useCallback(async (): Promise<void> => {

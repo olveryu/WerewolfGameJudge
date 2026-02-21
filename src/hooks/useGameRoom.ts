@@ -148,7 +148,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const connection = useConnectionSync(facade, isHost, roomRecord);
 
   // BGM state management
-  const bgm = useBgmControl(isHost, gameState?.status ?? null);
+  const bgm = useBgmControl(isHost, gameState?.status ?? null, gameState?.isAudioPlaying ?? false);
 
   // Rejoin overlay state: shown when Host rejoins an ongoing game
   const [showContinueOverlay, setShowContinueOverlay] = useState(false);
