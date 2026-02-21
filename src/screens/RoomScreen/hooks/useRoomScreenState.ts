@@ -126,6 +126,8 @@ export function useRoomScreenState(
     getLastNightInfo: getLastNightInfoFn,
     lastSeatError,
     clearLastSeatError,
+    needsAuth,
+    clearNeedsAuth,
     requestSnapshot,
     submitRevealAck,
     sendWolfRobotHunterStatusViewed,
@@ -684,6 +686,10 @@ export function useRoomScreenState(
     loadingMessage,
     showRetryButton,
     handleRetry,
+
+    // ── Auth gate (first-time direct URL user) ──
+    needsAuth,
+    clearNeedsAuth,
 
     // ── Derived view models ──
     seatViewModels,

@@ -246,6 +246,10 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     lastSeatError: null,
     clearLastSeatError: jest.fn(),
 
+    // Auth gate
+    needsAuth: false,
+    clearNeedsAuth: jest.fn(),
+
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),
 
