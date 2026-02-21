@@ -44,6 +44,9 @@ export interface BoardInfoCardStyles {
   roleChipTextGod: TextStyle;
   roleChipTextThird: TextStyle;
   roleChipTextVillager: TextStyle;
+  speakingOrderContainer: ViewStyle;
+  speakingOrderText: TextStyle;
+  speakingOrderSubText: TextStyle;
 }
 
 export interface BottomActionPanelStyles {
@@ -269,6 +272,22 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       roleChipTextVillager: {
         color: colors.villager,
+      },
+      speakingOrderContainer: {
+        marginTop: spacing.small,
+        paddingTop: spacing.small,
+        borderTopWidth: fixed.borderWidth,
+        borderTopColor: colors.border,
+      },
+      speakingOrderText: {
+        fontSize: typography.secondary,
+        color: colors.primary,
+        lineHeight: typography.title,
+      },
+      speakingOrderSubText: {
+        fontSize: typography.caption,
+        color: colors.textMuted,
+        marginTop: spacing.tight / 2,
       },
     }),
 

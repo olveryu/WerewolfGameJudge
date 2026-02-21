@@ -29,6 +29,8 @@ interface BoardInfoCardProps {
   collapsed?: boolean;
   /** Callback when a role chip is pressed (reports roleId to parent) */
   onRolePress?: (roleId: string) => void;
+  /** Speaking order text (shown for ~20s after night ends, outside collapsible) */
+  speakingOrderText?: string;
   /** Pre-created styles from parent */
   styles: BoardInfoCardStyles;
 }
@@ -86,6 +88,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   villagerRoleItems,
   collapsed = false,
   onRolePress,
+  speakingOrderText,
   styles,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
@@ -175,6 +178,14 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               </View>
             </View>
           )}
+        </View>
+      )}
+
+      {/* Speaking order — outside collapsible, always visible when provided */}
+      {speakingOrderText != null && (
+        <View style={styles.speakingOrderContainer}>
+          <Text style={styles.speakingOrderText}>{speakingOrderText}</Text>
+          <Text style={styles.speakingOrderSubText}>没上警则跳到下一位</Text>
         </View>
       )}
     </View>
