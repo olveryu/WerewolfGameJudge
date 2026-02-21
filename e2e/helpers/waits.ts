@@ -5,6 +5,7 @@ import { TESTIDS } from '../../src/testids';
 const ROOM_STATUS_TEXT = {
   live: '🟢 已连接',
   disconnected: '🔴 连接断开',
+  connecting: '⏳ 连接中...',
   forceSync: '强制同步',
 } as const;
 
@@ -58,12 +59,16 @@ async function waitForJoinerLive(page: Page, liveTimeoutMs: number): Promise<voi
     }
 
     const disconnectedIndicator = page.getByText(ROOM_STATUS_TEXT.disconnected, { exact: true });
-    if (await disconnectedIndicator.isVisible().catch(() => false)) {
+    const connectingIndicator = page.getByText(ROOM_STATUS_TEXT.connecting, { exact: true });
+    const isNotLive =
+      (await disconnectedIndicator.isVisible().catch(() => false)) ||
+      (await connectingIndicator.isVisible().catch(() => false));
+    if (isNotLive) {
       const forceSyncBtn = page.locator(`[data-testid="${TESTIDS.forceSyncButton}"]`);
       if (await forceSyncBtn.isVisible().catch(() => false)) {
         await forceSyncBtn.click();
-        // Wait for disconnected indicator to disappear after force sync
-        await disconnectedIndicator.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+        // Wait a moment for the sync to take effect
+        await page.waitForTimeout(1000);
       }
     }
 
