@@ -122,12 +122,11 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
 
         {/* Public note area */}
         <View style={styles.notepadPublicSection}>
-          <Text style={styles.notepadPublicLabel}>📋 公共记录</Text>
+          <Text style={styles.notepadPublicLabel}>📋 记录</Text>
           <TextInput
             style={styles.notepadPublicInput}
             value={notepad.state.publicNote}
             onChangeText={notepad.setPublicNote}
-            placeholder="记录发言、投票、遗言等公共信息…"
             multiline
             textAlignVertical="top"
           />
