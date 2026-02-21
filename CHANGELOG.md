@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.1.0] - 2026-02-21
+
+- ci(release): only create GitHub Releases for minor/major versions
+- test(e2e): add entry-flow spec and adjust CI sharding
+- feat(roles): add missing emoji icons and assistant questions with contract tests
+- feat(theme): add ThemedToast with theme-aware colors
+- feat(room): show one-time assistant hint toast on first room entry
+- fix(services): clear old seat in optimistic takeSeat update
+- feat(auth): show toast with settings link after email signup
+- feat(auth): add caption text inside login option buttons
+- fix(services): delete old avatars on upload
+- fix(settings): change default theme from dark to light
+- feat(auth): implement auth gate for first-time users and add AuthGateOverlay component
+- feat(auth): implement expected auth error handling and retry logic
+- refactor(RoomScreen): remove last night info functionality and related dialogs
+
 ## [1.0.274] - 2026-02-21
 
 - fix(services): detect WebSocket reconnection and recover night action state
