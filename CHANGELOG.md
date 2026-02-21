@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.269] - 2026-02-20
+
+- fix(theme): add border to public note input for visibility
+
 ## [1.0.268] - 2026-02-20
 
 - fix(screens): simplify public note label and remove placeholder
