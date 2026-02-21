@@ -88,6 +88,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     hasBots,
     fillWithBots,
     markAllBotsViewed,
+    clearAllSeats,
     requestSnapshot,
     setControlledSeat,
     // Initialization
@@ -226,6 +227,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           visible={isHost}
           showFillWithBots={roomStatus === GameStatus.unseated}
           showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.assigned}
+          showClearAllSeats={
+            (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) &&
+            !!gameState &&
+            Array.from(gameState.players.values()).some((p) => p !== null)
+          }
           onFillWithBots={() =>
             void fillWithBots().catch((err) => {
               roomScreenLog.error('[fillWithBots] failed', err);
@@ -235,6 +241,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onMarkAllBotsViewed={() =>
             void markAllBotsViewed().catch((err) => {
               roomScreenLog.error('[markAllBotsViewed] failed', err);
+              Sentry.captureException(err);
+            })
+          }
+          onClearAllSeats={() =>
+            void clearAllSeats().catch((err) => {
+              roomScreenLog.error('[clearAllSeats] failed', err);
               Sentry.captureException(err);
             })
           }

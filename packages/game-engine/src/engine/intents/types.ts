@@ -33,6 +33,15 @@ export interface LeaveMySeatIntent {
   };
 }
 
+/**
+ * 全员起立 Intent（Host-only）
+ * 前置条件：status === 'unseated' | 'seated'
+ * 结果：所有座位清空，status → 'unseated'
+ */
+export interface ClearAllSeatsIntent {
+  type: 'CLEAR_ALL_SEATS';
+}
+
 // =============================================================================
 // 游戏生命周期 Intent
 // =============================================================================
@@ -218,6 +227,7 @@ export interface MarkAllBotsViewedIntent {
 export type GameIntent =
   | JoinSeatIntent
   | LeaveMySeatIntent
+  | ClearAllSeatsIntent
   | AssignRolesIntent
   | StartNightIntent
   | RestartGameIntent

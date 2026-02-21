@@ -119,6 +119,7 @@ export function useRoomScreenState(
     assignRoles,
     startGame,
     restartGame,
+    clearAllSeats,
     setRoleRevealAnimation,
     viewedRole,
     submitAction,
@@ -709,6 +710,7 @@ export function useRoomScreenState(
     hasBots,
     fillWithBots,
     markAllBotsViewed,
+    clearAllSeats,
     requestSnapshot,
     setControlledSeat,
 

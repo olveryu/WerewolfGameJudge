@@ -632,3 +632,30 @@ export async function markAllBotsViewed(
     ctx.store,
   );
 }
+
+// =============================================================================
+// Clear All Seats（全员起立）
+// =============================================================================
+
+/**
+ * Host: 全员起立（HTTP API）
+ *
+ * 清空所有已入座玩家。仅在 status === 'unseated' | 'seated' 时可用。
+ */
+export async function clearAllSeats(
+  ctx: HostActionsContext,
+): Promise<{ success: boolean; reason?: string }> {
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
+
+  return callGameControlApi(
+    '/api/game/clear-seats',
+    {
+      roomCode,
+      hostUid: ctx.myUid,
+    },
+    ctx.store,
+  );
+}

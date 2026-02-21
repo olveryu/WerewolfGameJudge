@@ -44,6 +44,7 @@ interface HostGameActionsState {
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
+  clearAllSeats: () => Promise<void>;
   setRoleRevealAnimation: (animation: RoleRevealAnimation) => Promise<void>;
   setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
 
@@ -116,6 +117,13 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
     const result = await facade.restartGame();
     notifyIfFailed(result, '重新开始');
   }, [facade, bgm, debug]);
+
+  // Clear all seats (host only)
+  const clearAllSeats = useCallback(async (): Promise<void> => {
+    if (!facade.isHostPlayer()) return;
+    const result = await facade.clearAllSeats();
+    notifyIfFailed(result, '全员起立');
+  }, [facade]);
 
   // Set role reveal animation (host only)
   const setRoleRevealAnimation = useCallback(
@@ -223,6 +231,7 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
     assignRoles,
     startGame,
     restartGame,
+    clearAllSeats,
     setRoleRevealAnimation,
     setAudioPlaying,
     viewedRole,

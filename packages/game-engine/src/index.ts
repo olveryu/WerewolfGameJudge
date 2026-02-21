@@ -59,7 +59,11 @@ export {
   isWolfVoteAllComplete,
   WOLF_VOTE_COUNTDOWN_MS,
 } from './engine/handlers/progressionEvaluator';
-export { handleJoinSeat, handleLeaveMySeat } from './engine/handlers/seatHandler';
+export {
+  handleClearAllSeats,
+  handleJoinSeat,
+  handleLeaveMySeat,
+} from './engine/handlers/seatHandler';
 export {
   handleAdvanceNight,
   handleEndNight,

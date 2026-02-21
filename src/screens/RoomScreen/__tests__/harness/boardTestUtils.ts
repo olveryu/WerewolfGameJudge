@@ -233,6 +233,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     assignRoles: jest.fn(),
     startGame: jest.fn(),
     restartGame: jest.fn(),
+    clearAllSeats: jest.fn(),
     setRoleRevealAnimation: jest.fn().mockResolvedValue(undefined),
     submitAction: jest.fn().mockResolvedValue(undefined),
     submitWolfVote: jest.fn().mockResolvedValue(undefined),
