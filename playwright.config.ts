@@ -49,7 +49,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
 
   /* Use all available workers for parallel tests */
-  workers: process.env.CI ? 4 : undefined,
+  workers: process.env.CI ? 1 : undefined,
 
   /* Reporter to use */
   reporter: 'html',
