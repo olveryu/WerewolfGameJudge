@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.274] - 2026-02-21
+
+- fix(services): detect WebSocket reconnection and recover night action state
+- feat(night-review): implement Night Review modal and related functionality
+
 ## [1.0.273] - 2026-02-20
 
 - fix(config): set userInterfaceStyle to light for consistent default theme
