@@ -52,7 +52,9 @@ test.describe('Room Lifecycle', () => {
       }
 
       // After alert dismiss, page should return to Home.
-      await expect(page.locator('[data-testid="home-screen-root"]')).toBeVisible({
+      // navigation.navigate('Home') may push a new Home instance on the stack,
+      // leaving the original hidden. Use .last() to target the topmost one.
+      await expect(page.locator('[data-testid="home-screen-root"]').last()).toBeVisible({
         timeout: 10_000,
       });
     } finally {
@@ -78,7 +80,7 @@ test.describe('Room Lifecycle', () => {
       await hostPage.getByText('确定', { exact: true }).click();
 
       // Verify redirected to home
-      await expect(hostPage.locator('[data-testid="home-screen-root"]')).toBeVisible({
+      await expect(hostPage.locator('[data-testid="home-screen-root"]').last()).toBeVisible({
         timeout: 10_000,
       });
     } finally {
@@ -105,7 +107,7 @@ test.describe('Room Lifecycle', () => {
       await joinerPage.getByText('确定', { exact: true }).click();
 
       // Verify redirected to home
-      await expect(joinerPage.locator('[data-testid="home-screen-root"]')).toBeVisible({
+      await expect(joinerPage.locator('[data-testid="home-screen-root"]').last()).toBeVisible({
         timeout: 10_000,
       });
     } finally {
