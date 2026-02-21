@@ -125,7 +125,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
       if (!text || loadingRef.current) return;
       if (cooldownRemaining > 0) return;
       if (!isAIChatReady()) {
-        showAlert('提示', 'AI 助手暂不可用');
+        showAlert('AI 助手', 'AI 助手暂不可用');
         return;
       }
 

@@ -251,7 +251,7 @@ export function useRoomScreenState(
     roomScreenLog.debug('[useRoomScreenState] Fatal room error, redirecting to Home', {
       error: gameRoomError,
     });
-    showAlert('提示', gameRoomError);
+    showAlert('房间异常', gameRoomError);
     navigation.navigate('Home');
   }, [gameRoomError, navigation]);
 

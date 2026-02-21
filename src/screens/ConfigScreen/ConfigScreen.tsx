@@ -342,7 +342,7 @@ export const ConfigScreen: React.FC = () => {
         await authService.waitForInit();
         const hostUid = authService.getCurrentUserId();
         if (!hostUid) {
-          showAlert('提示', '请先登录后再创建房间');
+          showAlert('需要登录', '请先登录后再创建房间');
           return;
         }
         const record = await roomService.createRoom(hostUid, undefined, undefined, (roomCode) =>
