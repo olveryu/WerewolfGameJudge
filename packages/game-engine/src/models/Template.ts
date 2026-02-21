@@ -279,7 +279,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
       'wolf',
       'wolf',
       'wolf',
-      'wolfKing',
+      'darkWolfKing',
       'seer',
       'mirrorSeer',
       'witch',

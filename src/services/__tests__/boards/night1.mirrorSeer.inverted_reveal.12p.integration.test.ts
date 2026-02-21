@@ -9,7 +9,7 @@
  * MirrorSeer 固定 seat-role assignment:
  *   seat 0-2: villager
  *   seat 3-5: wolf
- *   seat 6: wolfKing
+ *   seat 6: darkWolfKing
  *   seat 7: seer
  *   seat 8: mirrorSeer
  *   seat 9: witch
@@ -40,7 +40,7 @@ function createRoleAssignment(): Map<number, RoleId> {
   map.set(3, 'wolf');
   map.set(4, 'wolf');
   map.set(5, 'wolf');
-  map.set(6, 'wolfKing');
+  map.set(6, 'darkWolfKing');
   map.set(7, 'seer');
   map.set(8, 'mirrorSeer');
   map.set(9, 'witch');
@@ -54,7 +54,7 @@ function createRoleAssignment(): Map<number, RoleId> {
  *
  *   seat 0-2: villager
  *   seat 3-5: wolf
- *   seat 6: wolfKing
+ *   seat 6: darkWolfKing
  *   seat 7: seer
  *   seat 8: mirrorSeer
  *   seat 9: witch
@@ -69,7 +69,7 @@ function createDrunkSeerRoleAssignment(): Map<number, RoleId> {
   map.set(3, 'wolf');
   map.set(4, 'wolf');
   map.set(5, 'wolf');
-  map.set(6, 'wolfKing');
+  map.set(6, 'darkWolfKing');
   map.set(7, 'seer');
   map.set(8, 'mirrorSeer');
   map.set(9, 'witch');
@@ -85,7 +85,7 @@ const DRUNK_SEER_ROLES: RoleId[] = [
   'wolf',
   'wolf',
   'wolf',
-  'wolfKing',
+  'darkWolfKing',
   'seer',
   'mirrorSeer',
   'witch',
