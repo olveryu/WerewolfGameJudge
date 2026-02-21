@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.262] - 2026-02-20
+
+- fix(game-engine): replace Math.random with secureRng, use theme tokens and type guards
+- feat(config): add 13 new avatar portraits (030-042)
+- feat(game-engine): add wildChild role as slacker variant
+- feat(config): implement role info sheet for displaying role skills on chip long-press
+- feat(game-engine): update buildNightPlan to accept seerLabelMap for dynamic role ordering
+- feat(config): variant system, drunkSeer client UI, audio consolidation
+- feat(game-engine): add drunkSeer (酒鬼预言家) role with random 50/50 check
+- feat(role): add seerLabel prop for dual-seer boards and update role name display
+
 ## [1.0.261] - 2026-02-20
 
 - docs(readme): update role count to 25 and board count to 12
