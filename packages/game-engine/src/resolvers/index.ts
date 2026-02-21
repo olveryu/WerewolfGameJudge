@@ -22,6 +22,7 @@ import { pureWhiteCheckResolver } from './pureWhite';
 import { seerCheckResolver } from './seer';
 import { slackerChooseIdolResolver } from './slacker';
 import type { ResolverRegistry } from './types';
+import { wildChildChooseIdolResolver } from './wildChild';
 import { witchActionResolver } from './witch';
 import { wolfKillResolver } from './wolf';
 import { wolfQueenCharmResolver } from './wolfQueen';
@@ -43,6 +44,7 @@ export const RESOLVERS: ResolverRegistry = {
   wolfRobotLearn: wolfRobotLearnResolver,
   wolfQueenCharm: wolfQueenCharmResolver,
   slackerChooseIdol: slackerChooseIdolResolver,
+  wildChildChooseIdol: wildChildChooseIdolResolver,
   hunterConfirm: hunterConfirmResolver,
   darkWolfKingConfirm: darkWolfKingConfirmResolver,
   pureWhiteCheck: pureWhiteCheckResolver,

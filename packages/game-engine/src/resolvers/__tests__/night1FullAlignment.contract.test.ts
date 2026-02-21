@@ -471,13 +471,14 @@ describe('canSkip behavior alignment', () => {
 
 describe('NIGHT_STEPS order stability', () => {
   it('should have exactly 14 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(18);
+    expect(NIGHT_STEPS).toHaveLength(19);
   });
 
   it('step order should match expected sequence', () => {
     const expectedOrder = [
       'magicianSwap',
       'slackerChooseIdol',
+      'wildChildChooseIdol',
       'nightmareBlock',
       'dreamcatcherDream',
       'guardProtect',

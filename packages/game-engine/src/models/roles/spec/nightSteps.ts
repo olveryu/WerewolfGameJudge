@@ -33,6 +33,11 @@ const NIGHT_STEPS_INTERNAL = [
     roleId: 'slacker',
     audioKey: 'slacker',
   },
+  {
+    id: 'wildChildChooseIdol',
+    roleId: 'wildChild',
+    audioKey: 'wildChild',
+  },
 
   // === 守护/查验类（狼刀前）===
   {

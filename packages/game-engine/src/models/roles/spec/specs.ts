@@ -326,6 +326,16 @@ export const ROLE_SPECS = {
     description: '第一晚选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
     night1: { hasAction: true },
   },
+  wildChild: {
+    id: 'wildChild',
+    displayName: '野孩子',
+    shortName: '野',
+    faction: Faction.Special,
+    team: 'third',
+    description:
+      '第一晚选择一名玩家作为榜样。当榜样被投票出局时，野孩子变为狼人。若野孩子先于榜样死亡，则始终为好人阵营',
+    night1: { hasAction: true },
+  },
 } as const satisfies Record<string, RoleSpec>;
 
 /** Role ID type (auto-derived from registry keys) */

@@ -34,6 +34,7 @@ const schemaToRole: Record<string, string> = {
 
   // third party
   slackerChooseIdol: 'slacker',
+  wildChildChooseIdol: 'wildChild',
 };
 
 describe('RoomScreen schema smoke: schemaId->role mapping contract', () => {

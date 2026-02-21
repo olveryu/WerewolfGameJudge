@@ -102,6 +102,7 @@ const schemaToRole: Record<string, string> = {
 
   // third party
   slackerChooseIdol: 'slacker',
+  wildChildChooseIdol: 'wildChild',
 };
 
 function roleForSchemaId(schemaId: string): string {

@@ -30,6 +30,7 @@ export function audioAssetToUrl(audioFile: number | string | { uri: string }): s
 // Audio file mappings matching Flutter's JudgeAudioProvider
 const AUDIO_FILES: Partial<Record<RoleId, AudioAsset>> = {
   slacker: require('../../../assets/audio/slacker.mp3'),
+  wildChild: require('../../../assets/audio/wild_child.mp3'),
   wolfRobot: require('../../../assets/audio/wolf_robot.mp3'),
   magician: require('../../../assets/audio/magician.mp3'),
   dreamcatcher: require('../../../assets/audio/dreamcatcher.mp3'),
@@ -51,6 +52,7 @@ const AUDIO_FILES: Partial<Record<RoleId, AudioAsset>> = {
 
 const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
   slacker: require('../../../assets/audio_end/slacker.mp3'),
+  wildChild: require('../../../assets/audio_end/wild_child.mp3'),
   wolfRobot: require('../../../assets/audio_end/wolf_robot.mp3'),
   magician: require('../../../assets/audio_end/magician.mp3'),
   dreamcatcher: require('../../../assets/audio_end/dreamcatcher.mp3'),
