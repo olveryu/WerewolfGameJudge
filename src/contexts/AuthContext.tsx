@@ -13,8 +13,8 @@ import * as Sentry from '@sentry/react-native';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import { useServices } from '@/contexts/ServiceContext';
+import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
 import { authLog, mapAuthError } from '@/utils/logger';
 
 export interface User {

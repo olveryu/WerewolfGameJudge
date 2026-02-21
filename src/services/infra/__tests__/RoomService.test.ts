@@ -27,7 +27,7 @@ let mockConfigured = true;
 
 // Use relative path (matches AuthService.test.ts pattern) —
 // @/ alias gets resolved differently depending on babel/jest config
-jest.mock('../../../config/supabase', () => ({
+jest.mock('../supabaseClient', () => ({
   get supabase() {
     return mockConfigured ? { from: mockFrom } : null;
   },
