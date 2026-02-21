@@ -97,6 +97,13 @@ export class GameFacade implements IGameFacade {
   private _wasAudioInterrupted = false;
 
   /**
+   * 断线时 postAudioAck 失败 → 设为 true。
+   * 重连后（status → live）且仍为 Host 时自动重试 postAudioAck。
+   * leaveRoom / createRoom / joinRoom 重置。
+   */
+  private _pendingAudioAckRetry = false;
+
+  /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
   constructor(deps: GameFacadeDeps) {
@@ -113,6 +120,23 @@ export class GameFacade implements IGameFacade {
       // Avoid reacting during rejoin overlay (resumeAfterRejoin handles that path)
       if (this._wasAudioInterrupted) return;
       void this._playPendingAudioEffects(state.pendingAudioEffects);
+    });
+
+    // Retry: 断线期间 postAudioAck 失败 → 重连 live 后自动重试
+    this.broadcastService.addStatusListener((status) => {
+      if (status !== 'live') return;
+      if (!this.isHost) return;
+      if (!this._pendingAudioAckRetry) return;
+      this._pendingAudioAckRetry = false;
+      facadeLog.info('Retrying postAudioAck after reconnect');
+      void hostActions.postAudioAck(this.getHostActionsContext()).then((result) => {
+        if (!result.success) {
+          facadeLog.warn('postAudioAck retry still failed, will retry on next reconnect', {
+            reason: result.reason,
+          });
+          this._pendingAudioAckRetry = true;
+        }
+      });
     });
   }
 
@@ -179,6 +203,7 @@ export class GameFacade implements IGameFacade {
 
   async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     this._aborted = false; // Reset abort flag when creating new room
+    this._pendingAudioAckRetry = false;
     this.isHost = true;
     this.myUid = hostUid;
     this._roomCode = roomCode;
@@ -215,6 +240,7 @@ export class GameFacade implements IGameFacade {
     isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }> {
     this._aborted = false;
+    this._pendingAudioAckRetry = false;
     this.isHost = isHost;
     this.myUid = uid;
     this._roomCode = roomCode;
@@ -367,7 +393,13 @@ export class GameFacade implements IGameFacade {
       this._isPlayingEffects = false;
       // 无论成功/失败/中断，都 POST audio-ack 释放 gate
       if (!this._aborted) {
-        await hostActions.postAudioAck(this.getHostActionsContext());
+        const ackResult = await hostActions.postAudioAck(this.getHostActionsContext());
+        if (!ackResult.success) {
+          facadeLog.warn('postAudioAck failed during playback, will retry on reconnect', {
+            reason: ackResult.reason,
+          });
+          this._pendingAudioAckRetry = true;
+        }
       }
     }
   }
@@ -388,6 +420,7 @@ export class GameFacade implements IGameFacade {
   async leaveRoom(): Promise<void> {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this._aborted = true;
+    this._pendingAudioAckRetry = false;
 
     const mySeat = this.getMySeatNumber();
 

@@ -48,6 +48,7 @@ describe('GameFacade', () => {
     joinRoom: jest.Mock;
     leaveRoom: jest.Mock;
     markAsLive: jest.Mock;
+    addStatusListener: jest.Mock;
   };
 
   const mockTemplate = {
@@ -63,6 +64,7 @@ describe('GameFacade', () => {
       joinRoom: jest.fn().mockResolvedValue(undefined),
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       markAsLive: jest.fn(),
+      addStatusListener: jest.fn().mockReturnValue(() => {}),
     };
 
     // DI: 直接注入 mock，无需 singleton
@@ -1266,6 +1268,178 @@ describe('GameFacade', () => {
         expect.stringContaining('/api/game/night/audio-ack'),
         expect.objectContaining({ method: 'POST' }),
       );
+    });
+  });
+
+  // ===========================================================================
+  // postAudioAck retry on reconnect
+  // ===========================================================================
+  describe('postAudioAck retry on reconnect', () => {
+    let statusListeners: Array<(status: string) => void>;
+    let retryBroadcastService: typeof mockBroadcastService;
+
+    const setupRetryFacade = async () => {
+      statusListeners = [];
+      retryBroadcastService = {
+        joinRoom: jest.fn().mockResolvedValue(undefined),
+        leaveRoom: jest.fn().mockResolvedValue(undefined),
+        markAsLive: jest.fn(),
+        addStatusListener: jest.fn().mockImplementation((listener: (s: string) => void) => {
+          statusListeners.push(listener);
+          return () => {
+            statusListeners = statusListeners.filter((l) => l !== listener);
+          };
+        }),
+      };
+
+      const f = new GameFacade({
+        store: new GameStore(),
+        broadcastService: retryBroadcastService as any,
+        audioService: mockAudioServiceInstance as any,
+        roomService: {
+          upsertGameState: jest.fn().mockResolvedValue(undefined),
+          getGameState: jest.fn().mockResolvedValue({
+            state: {
+              roomCode: 'RTRY',
+              hostUid: 'host-uid',
+              status: 'ongoing',
+              templateRoles: [],
+              numberOfPlayers: 6,
+              players: {},
+              currentStepId: 'wolfKill',
+              currentStepIndex: 0,
+              nightSteps: ['wolfKill'],
+              isAudioPlaying: true,
+              pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+              seerLabelMap: {},
+            },
+            revision: 10,
+          }),
+        } as any,
+      });
+      await f.createRoom('RTRY', 'host-uid', mockTemplate);
+      return f;
+    };
+
+    it('should set _pendingAudioAckRetry when postAudioAck fails during playback', async () => {
+      // Mock fetch to simulate network error on audio-ack
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+      const f = await setupRetryFacade();
+
+      // Trigger _playPendingAudioEffects manually via store subscription
+      // The facade constructor subscribes to store, so applySnapshot with pendingAudioEffects triggers it
+      const store = f['store'] as GameStore;
+      store.applySnapshot(
+        {
+          roomCode: 'RTRY',
+          hostUid: 'host-uid',
+          status: 'ongoing',
+          templateRoles: [],
+          numberOfPlayers: 6,
+          players: {},
+          currentStepId: 'wolfKill',
+          currentStepIndex: 0,
+          nightSteps: ['wolfKill'],
+          isAudioPlaying: true,
+          pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+          seerLabelMap: {},
+        } as any,
+        20,
+      );
+
+      // Wait for async audio effects + ack
+      await new Promise((r) => setTimeout(r, 50));
+
+      // Now simulate reconnect — mock fetch to succeed this time
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+
+      // Fire 'live' status to all registered listeners
+      statusListeners.forEach((l) => l('live'));
+
+      // Wait for async retry
+      await new Promise((r) => setTimeout(r, 50));
+
+      // Should have retried postAudioAck
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/game/night/audio-ack'),
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    it('should not retry postAudioAck on reconnect when ack succeeded during playback', async () => {
+      // Mock fetch to succeed for audio-ack
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+      const f = await setupRetryFacade();
+
+      const store = f['store'] as GameStore;
+      store.applySnapshot(
+        {
+          roomCode: 'RTRY',
+          hostUid: 'host-uid',
+          status: 'ongoing',
+          templateRoles: [],
+          numberOfPlayers: 6,
+          players: {},
+          currentStepId: 'wolfKill',
+          currentStepIndex: 0,
+          nightSteps: ['wolfKill'],
+          isAudioPlaying: true,
+          pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+          seerLabelMap: {},
+        } as any,
+        20,
+      );
+
+      // Wait for async audio effects + ack
+      await new Promise((r) => setTimeout(r, 50));
+      (global.fetch as jest.Mock).mockClear();
+
+      // Fire 'live' — should NOT retry since ack succeeded
+      statusListeners.forEach((l) => l('live'));
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should reset _pendingAudioAckRetry on leaveRoom', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+      const f = await setupRetryFacade();
+
+      const store = f['store'] as GameStore;
+      store.applySnapshot(
+        {
+          roomCode: 'RTRY',
+          hostUid: 'host-uid',
+          status: 'ongoing',
+          templateRoles: [],
+          numberOfPlayers: 6,
+          players: {},
+          currentStepId: 'wolfKill',
+          currentStepIndex: 0,
+          nightSteps: ['wolfKill'],
+          isAudioPlaying: true,
+          pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+          seerLabelMap: {},
+        } as any,
+        20,
+      );
+      await new Promise((r) => setTimeout(r, 50));
+
+      // Leave room resets the flag
+      await f.leaveRoom();
+
+      // Now reconnect should NOT retry
+      global.fetch = jest.fn().mockResolvedValue({
+        json: () => Promise.resolve({ success: true }),
+      });
+      statusListeners.forEach((l) => l('live'));
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 });
