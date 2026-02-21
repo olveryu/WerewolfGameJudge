@@ -130,20 +130,26 @@ export async function takeSeatWithAck(
       avatarUrl,
     },
     ctx.store,
-    // 乐观预测：立即显示玩家入座
-    (state) => ({
-      ...state,
-      players: {
-        ...state.players,
-        [seatNumber]: {
-          uid: ctx.myUid!,
-          seatNumber,
-          displayName,
-          avatarUrl,
-          hasViewedRole: false,
-        },
-      },
-    }),
+    // 乐观预测：立即显示玩家入座（同时清除旧座位）
+    (state) => {
+      const updatedPlayers = { ...state.players };
+      // 移除同一 uid 的旧座位
+      for (const [seat, player] of Object.entries(updatedPlayers)) {
+        if (player && player.uid === ctx.myUid) {
+          updatedPlayers[Number(seat)] = null;
+          break;
+        }
+      }
+      // 设置新座位
+      updatedPlayers[seatNumber] = {
+        uid: ctx.myUid!,
+        seatNumber,
+        displayName,
+        avatarUrl,
+        hasViewedRole: false,
+      };
+      return { ...state, players: updatedPlayers };
+    },
   );
 }
 
