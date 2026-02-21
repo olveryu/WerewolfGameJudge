@@ -250,6 +250,7 @@ export const ConfigScreen: React.FC = () => {
         setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
         configLog.error(' Failed to load room:', error);
+        Sentry.captureException(error);
       } finally {
         configLog.debug(' Setting isLoading=false');
         setIsLoading(false);

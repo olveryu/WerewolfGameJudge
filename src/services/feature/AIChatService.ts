@@ -200,6 +200,7 @@ export async function* streamChatMessage(
   if (!response.ok) {
     const errorText = await response.text();
     chatLog.error('Streaming API error', { status: response.status, error: errorText });
+    Sentry.captureException(new Error(`Streaming API error: HTTP ${response.status}`));
     if (response.status === 401) {
       yield { type: 'error', content: 'AI 服务认证失败，请联系管理员' };
     } else if (response.status === 429) {

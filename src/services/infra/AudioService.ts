@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { AudioPlayer, AudioStatus, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { Platform } from 'react-native';
@@ -223,6 +224,7 @@ export class AudioService {
       }
     } catch (error) {
       audioLog.error('Failed to initialize audio:', error);
+      Sentry.captureException(error);
     }
   }
 

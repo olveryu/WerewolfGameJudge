@@ -137,6 +137,7 @@ export const SettingsScreen: React.FC = () => {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : '请稍后重试';
       settingsLog.error('Image picker failed:', message, e);
+      Sentry.captureException(e);
       showAlert('选择图片失败', message);
     }
   }, [uploadAvatar]);
