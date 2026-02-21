@@ -374,6 +374,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                   roomStatus === GameStatus.ended)
               }
               disabled={isHostActionSubmitting}
+              actionStyles={componentStyles.actionButton}
+              dangerStyles={componentStyles.dangerActionButton}
               onSettingsPress={() =>
                 dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })
               }
