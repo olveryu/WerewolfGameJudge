@@ -32,31 +32,23 @@ test.describe('Room Lifecycle', () => {
       await enterRoomCodeViaNumPad(page, '9999');
       await page.getByText('加入', { exact: true }).click();
 
-      // Wait for Room URL to confirm navigation happened
-      await page.waitForURL((url) => url.pathname.includes('/room/'), { timeout: 10_000 });
+      // Wait for Room URL to confirm navigation happened (web-first assertion auto-retries)
+      await expect(page).toHaveURL(/\/room\//, { timeout: 15_000 });
 
       // The app navigates to RoomScreen, which discovers the room doesn't exist.
       // Fatal error triggers showAlert('房间异常', '房间不存在') + auto-redirect to Home.
-      // Wait for the alert modal to appear (global AlertModal persists across screens)
+      // Wait for the alert modal to appear (web-first assertion auto-retries)
       const alertModal = page.locator('[data-testid="alert-modal"]');
-      const alertAppeared = await alertModal
-        .waitFor({ state: 'visible', timeout: 15_000 })
-        .then(() => true)
-        .catch(() => false);
+      await expect(alertModal).toBeVisible({ timeout: 20_000 });
+      await expect(alertModal).toContainText('房间不存在');
 
-      if (alertAppeared) {
-        const alertText = (await alertModal.textContent()) ?? '';
-        expect(alertText).toContain('房间不存在');
+      // Dismiss alert
+      const okBtn = alertModal.getByText('确定', { exact: true });
+      await okBtn.click({ force: true });
+      await expect(alertModal).toBeHidden({ timeout: 5_000 });
 
-        // Dismiss alert and wait for it to close
-        const okBtn = alertModal.getByText('确定', { exact: true });
-        await okBtn.click({ force: true });
-        await alertModal.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
-      }
-
-      // Verify redirect to Home via URL — React Navigation linking updates URL
-      // synchronously, avoiding flaky DOM visibility checks on NativeStack web.
-      await page.waitForURL((url) => !url.pathname.includes('/room/'), { timeout: 15_000 });
+      // Verify redirect to Home via URL (web-first assertion polls URL until match)
+      await expect(page).toHaveURL(/^(?!.*\/room\/)/, { timeout: 30_000 });
     } finally {
       await closeAll(fixture);
     }
@@ -79,8 +71,8 @@ test.describe('Room Lifecycle', () => {
       await expect(hostPage.getByText('离开房间？')).toBeVisible({ timeout: 5000 });
       await hostPage.getByText('确定', { exact: true }).click();
 
-      // Verify redirected to home via URL (more reliable than DOM visibility)
-      await hostPage.waitForURL((url) => !url.pathname.includes('/room/'), { timeout: 15_000 });
+      // Verify redirected to home via URL (web-first assertion auto-retries)
+      await expect(hostPage).toHaveURL(/^(?!.*\/room\/)/, { timeout: 15_000 });
     } finally {
       await closeAll(fixture);
     }
@@ -104,8 +96,8 @@ test.describe('Room Lifecycle', () => {
       await expect(joinerPage.getByText('离开房间？')).toBeVisible({ timeout: 5000 });
       await joinerPage.getByText('确定', { exact: true }).click();
 
-      // Verify redirected to home via URL (more reliable than DOM visibility)
-      await joinerPage.waitForURL((url) => !url.pathname.includes('/room/'), { timeout: 15_000 });
+      // Verify redirected to home via URL (web-first assertion auto-retries)
+      await expect(joinerPage).toHaveURL(/^(?!.*\/room\/)/, { timeout: 15_000 });
     } finally {
       await closeAll(fixture);
     }
