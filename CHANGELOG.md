@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.267] - 2026-02-20
+
+- fix(e2e): use URL-based assertions for room-lifecycle redirect checks
+
 ## [1.0.266] - 2026-02-20
 
 - fix(e2e): use .last() for home-screen-root in room-lifecycle tests
