@@ -637,19 +637,29 @@ export function useRoomScreenState(
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Speaking order toast (shown once when night ends)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  useEffect(() => {
+    if (roomStatus !== GameStatus.ended || !gameState) return;
+    const seed = gameState.roleRevealRandomNonce ?? gameState.roomCode;
+    const rng = createSeededRng(seed);
+    const playerCount = gameState.template.roles.length;
+    const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
+    Toast.show({
+      type: 'info',
+      text1: `发言顺序：从 ${startSeat} 号开始，${direction}发言`,
+      text2: `如果当前玩家没上警，由${direction}的下一位玩家发言`,
+      position: 'top',
+      visibilityTime: 10000,
+    });
+  }, [roomStatus, gameState]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Action message builder
   // ═══════════════════════════════════════════════════════════════════════════
 
   const actionMessage = useMemo(() => {
-    // Speaking order message when night has ended (all players see this)
-    if (roomStatus === GameStatus.ended && gameState) {
-      const seed = gameState.roleRevealRandomNonce ?? gameState.roomCode;
-      const rng = createSeededRng(seed);
-      const playerCount = gameState.template.roles.length;
-      const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
-      return `发言顺序：从 ${startSeat} 号开始，${direction}发言\n如果当前玩家没上警，由${direction}的下一位玩家发言`;
-    }
-
     if (!currentActionRole) return '';
     if (!currentSchema?.ui?.prompt) {
       throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
@@ -670,7 +680,7 @@ export function useRoomScreenState(
     }
 
     return baseMessage;
-  }, [roomStatus, gameState, currentActionRole, currentSchema, getWolfStatusLine]);
+  }, [gameState, currentActionRole, currentSchema, getWolfStatusLine]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Return bag
