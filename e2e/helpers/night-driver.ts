@@ -275,7 +275,12 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
       }
       return;
     }
-    await hostPage.waitForTimeout(300);
+    // Wait for "查看昨晚信息" button to appear before next attempt
+    await hostPage
+      .getByText('查看昨晚信息')
+      .first()
+      .waitFor({ state: 'visible', timeout: 2000 })
+      .catch(() => {});
   }
 }
 
