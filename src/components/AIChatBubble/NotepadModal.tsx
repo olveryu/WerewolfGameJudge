@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ChatStyles } from './AIChatBubble.styles';
@@ -119,6 +119,19 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
           onSetRole={notepad.setRole}
           styles={notepadStyles}
         />
+
+        {/* Public note area */}
+        <View style={styles.notepadPublicSection}>
+          <Text style={styles.notepadPublicLabel}>📋 公共记录</Text>
+          <TextInput
+            style={styles.notepadPublicInput}
+            value={notepad.state.publicNote}
+            onChangeText={notepad.setPublicNote}
+            placeholder="记录发言、投票、遗言等公共信息…"
+            multiline
+            textAlignVertical="top"
+          />
+        </View>
 
         {/* Legend */}
         <View style={notepadStyles.legend}>

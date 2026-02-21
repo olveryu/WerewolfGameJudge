@@ -95,6 +95,13 @@ export interface NotepadStyles {
   legendText: TextStyle;
 }
 
+/** NotepadModal 层级额外样式（直接通过 ChatStyles 访问） */
+export interface NotepadPublicStyles {
+  notepadPublicSection: ViewStyle;
+  notepadPublicLabel: TextStyle;
+  notepadPublicInput: TextStyle;
+}
+
 // ── StyleSheet ───────────────────────────────────────────
 
 export const createStyles = (colors: ThemeColors) =>
@@ -586,6 +593,31 @@ export const createStyles = (colors: ThemeColors) =>
     notepadLegendText: {
       fontSize: typography.caption,
       color: colors.textSecondary,
+    },
+
+    // ── Notepad public note section ────────────────
+    notepadPublicSection: {
+      paddingHorizontal: spacing.medium,
+      paddingTop: spacing.small,
+      paddingBottom: spacing.tight,
+      borderTopWidth: fixed.borderWidth,
+      borderTopColor: colors.border,
+    },
+    notepadPublicLabel: {
+      fontSize: typography.secondary,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+      marginBottom: spacing.tight,
+    },
+    notepadPublicInput: {
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.medium,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.small,
+      fontSize: typography.body,
+      color: colors.text,
+      minHeight: 80,
+      maxHeight: 160,
     },
   });
 
