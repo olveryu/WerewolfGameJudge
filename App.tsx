@@ -4,11 +4,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import Toast from 'react-native-toast-message';
 
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ThemedToast } from '@/components/ThemedToast';
 import { AuthProvider, GameFacadeProvider, NetworkProvider, ServiceProvider } from '@/contexts';
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { AppNavigator } from '@/navigation';
@@ -73,7 +73,7 @@ function AppContent() {
         />
       )}
       <AIChatBubble />
-      <Toast />
+      <ThemedToast />
     </>
   );
 }
