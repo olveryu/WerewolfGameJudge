@@ -42,7 +42,7 @@ interface NightFlowResult {
  */
 const UI_TEXT = {
   /** Texts that signal the night phase has ended */
-  nightEnd: ['平安夜', '玩家死亡', '昨天晚上', '查看昨晚信息'] as const,
+  nightEnd: ['平安夜', '玩家死亡', '昨天晚上', '昨夜信息'] as const,
 
   /** Texts indicating a role's turn is active */
   roleTurn: [

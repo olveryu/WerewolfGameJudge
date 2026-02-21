@@ -47,7 +47,7 @@ export async function getActionMsg(page: Page): Promise<string> {
 
 /** Check if any night-end keyword is visible on the page. */
 export async function isNightEnded(page: Page): Promise<boolean> {
-  for (const kw of ['平安夜', '玩家死亡', '查看昨晚信息']) {
+  for (const kw of ['平安夜', '玩家死亡', '昨夜信息']) {
     const visible = await page
       .getByText(kw)
       .first()
@@ -248,19 +248,19 @@ export async function waitForNightEnd(pages: Page[], maxIter = 80): Promise<bool
 }
 
 /**
- * After night ends, click "查看昨晚信息" to reveal the night result text.
- * The flow: click "查看昨晚信息" → confirmation dialog ("确定查看昨夜信息？")
+ * After night ends, click "昨夜信息" to reveal the night result text.
+ * The flow: click "昨夜信息" → confirmation dialog ("确定查看昨夜信息？")
  * → click "确定" → info alert.
  * Call this before asserting on '平安夜' or '玩家死亡'.
  */
 export async function viewLastNightInfo(hostPage: Page): Promise<void> {
   const alertModal = hostPage.locator('[data-testid="alert-modal"]');
 
-  // Dismiss any stale alert, then click "查看昨晚信息"
+  // Dismiss any stale alert, then click "昨夜信息"
   for (let i = 0; i < 3; i++) {
     await dismissAlert(hostPage);
-    // Check if "查看昨晚信息" is visible now
-    const infoBtn = hostPage.getByText('查看昨晚信息').first();
+    // Check if "昨夜信息" is visible now
+    const infoBtn = hostPage.getByText('昨夜信息').first();
     if (await infoBtn.isVisible().catch(() => false)) {
       await infoBtn.click({ force: true });
       // Wait for confirmation dialog ("确定查看昨夜信息？")
@@ -275,9 +275,9 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
       }
       return;
     }
-    // Wait for "查看昨晚信息" button to appear before next attempt
+    // Wait for "昨夜信息" button to appear before next attempt
     await hostPage
-      .getByText('查看昨晚信息')
+      .getByText('昨夜信息')
       .first()
       .waitFor({ state: 'visible', timeout: 2000 })
       .catch(() => {});

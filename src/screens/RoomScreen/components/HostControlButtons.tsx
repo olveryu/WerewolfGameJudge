@@ -107,7 +107,6 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.large,
       paddingVertical: spacing.medium,
       borderRadius: borderRadius.full,
-      marginBottom: spacing.small,
     },
     restartButton: {
       backgroundColor: colors.error,
