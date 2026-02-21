@@ -528,7 +528,6 @@ export function useRoomScreenState(
   const {
     showPrepareToFlipDialog,
     showStartGameDialog,
-    showLastNightInfoDialog,
     showRestartDialog,
     handleSettingsPress,
     isHostActionSubmitting,
@@ -537,7 +536,6 @@ export function useRoomScreenState(
     assignRoles,
     startGame,
     restartGame,
-    getLastNightInfo: getLastNightInfoFn,
     setIsStartingGame,
     navigation,
     roomNumber,
@@ -604,7 +602,6 @@ export function useRoomScreenState(
     handleSettingsPress,
     showPrepareToFlipDialog,
     showStartGameDialog,
-    showLastNightInfoDialog,
     showRestartDialog,
   });
 
@@ -739,6 +736,20 @@ export function useRoomScreenState(
     resumeAfterRejoin,
     needsContinueOverlay,
     dismissContinueOverlay,
+
+    // ── Last night info (all players) ──
+    showLastNightInfo: useCallback(() => {
+      showAlert('确定查看昨夜信息？', '', [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          onPress: () => {
+            const info = getLastNightInfoFn();
+            showAlert('昨夜信息', info, [{ text: '知道了', style: 'default' }]);
+          },
+        },
+      ]);
+    }, [getLastNightInfoFn]),
 
     // ── Night review modal ──
     nightReviewVisible,

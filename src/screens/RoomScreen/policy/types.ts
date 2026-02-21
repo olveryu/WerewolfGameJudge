@@ -80,7 +80,7 @@ export interface BottomActionEvent {
 /** Host control button tap (start game, restart, etc.) */
 export interface HostControlEvent {
   kind: 'HOST_CONTROL';
-  action: 'settings' | 'prepareToFlip' | 'startGame' | 'lastNightInfo' | 'restart';
+  action: 'settings' | 'prepareToFlip' | 'startGame' | 'restart';
 }
 
 /** View role card button tap */
@@ -171,7 +171,7 @@ export interface InteractionResultActionFlow {
 /** Run host control action */
 export interface InteractionResultHostControl {
   kind: 'HOST_CONTROL';
-  action: 'settings' | 'prepareToFlip' | 'startGame' | 'lastNightInfo' | 'restart';
+  action: 'settings' | 'prepareToFlip' | 'startGame' | 'restart';
 }
 
 /** Submit reveal ack (seer/psychic/gargoyle/wolfRobot) */

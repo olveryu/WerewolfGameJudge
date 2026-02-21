@@ -133,6 +133,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Rejoin recovery
     resumeAfterRejoin,
     needsContinueOverlay,
+    // Last night info
+    showLastNightInfo,
     // Night review modal
     nightReviewVisible,
     openNightReview,
@@ -296,7 +298,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           showPrepareToFlip={roomStatus === GameStatus.seated}
           showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
-          showLastNightInfo={roomStatus === GameStatus.ended && !isAudioPlaying}
           showRestart={
             !isAudioPlaying &&
             (roomStatus === GameStatus.assigned ||
@@ -311,9 +312,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           onStartGamePress={() =>
             dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })
-          }
-          onLastNightInfoPress={() =>
-            dispatchInteraction({ kind: 'HOST_CONTROL', action: 'lastNightInfo' })
           }
           onRestartPress={() => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })}
         />
@@ -347,13 +345,21 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               styles={componentStyles.actionButton}
             />
           )}
+        {/* Last Night Info — all players, ended phase only */}
+        {roomStatus === GameStatus.ended && !isAudioPlaying && (
+          <ActionButton
+            label="查看昨晚信息"
+            onPress={() => showLastNightInfo()}
+            styles={componentStyles.actionButton}
+          />
+        )}
         {/* Night Review Button — all players, ended phase only */}
         {roomStatus === GameStatus.ended && (
           <ActionButton
             label="查看详细信息"
             testID={TESTIDS.nightReviewButton}
             onPress={() => openNightReview()}
-            styles={componentStyles.actionButton}
+            styles={componentStyles.dangerActionButton}
           />
         )}
         {/* Greyed View Role (waiting for host) */}

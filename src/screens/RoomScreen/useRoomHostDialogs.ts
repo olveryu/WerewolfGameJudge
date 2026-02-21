@@ -36,7 +36,6 @@ interface UseRoomHostDialogsParams {
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
-  getLastNightInfo: () => string;
 
   setIsStartingGame: React.Dispatch<React.SetStateAction<boolean>>;
 
@@ -47,7 +46,6 @@ interface UseRoomHostDialogsParams {
 interface UseRoomHostDialogsResult {
   showPrepareToFlipDialog: () => void;
   showStartGameDialog: () => void;
-  showLastNightInfoDialog: () => void;
   showRestartDialog: () => void;
   handleSettingsPress: () => void;
   /** True while any host action (assign/start/restart) is in-flight. */
@@ -59,7 +57,6 @@ export const useRoomHostDialogs = ({
   assignRoles,
   startGame,
   restartGame,
-  getLastNightInfo,
   setIsStartingGame,
   navigation,
   roomNumber,
@@ -131,19 +128,6 @@ export const useRoomHostDialogs = ({
     ]);
   }, [handleStartGame]);
 
-  const showLastNightInfoDialog = useCallback(() => {
-    showAlert('确定查看昨夜信息？', '', [
-      { text: '取消', style: 'cancel' },
-      {
-        text: '确定',
-        onPress: () => {
-          const info = getLastNightInfo();
-          showAlert('昨夜信息', info, [{ text: '知道了', style: 'default' }]);
-        },
-      },
-    ]);
-  }, [getLastNightInfo]);
-
   const showRestartDialog = useCallback(() => {
     showAlert('重新开始游戏？', '使用相同板子开始新一局游戏。', [
       { text: '取消', style: 'cancel' },
@@ -168,7 +152,6 @@ export const useRoomHostDialogs = ({
   return {
     showPrepareToFlipDialog,
     showStartGameDialog,
-    showLastNightInfoDialog,
     showRestartDialog,
     handleSettingsPress,
     isHostActionSubmitting,

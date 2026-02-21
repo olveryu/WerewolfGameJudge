@@ -121,6 +121,7 @@ export interface ContinueGameOverlayStyles {
 
 export interface RoomScreenComponentStyles {
   actionButton: ActionButtonStyles;
+  dangerActionButton: ActionButtonStyles;
   actionMessage: ActionMessageStyles;
   boardInfoCard: BoardInfoCardStyles;
   bottomActionPanel: BottomActionPanelStyles;
@@ -139,6 +140,24 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
     actionButton: StyleSheet.create<ActionButtonStyles>({
       actionButton: {
         backgroundColor: colors.primary,
+        paddingHorizontal: spacing.large,
+        paddingVertical: spacing.medium,
+        borderRadius: borderRadius.full,
+        marginBottom: spacing.small,
+      },
+      disabledButton: {
+        backgroundColor: colors.textMuted,
+      },
+      buttonText: {
+        color: colors.textInverse,
+        fontSize: typography.secondary,
+        fontWeight: typography.weights.semibold,
+      },
+    }),
+
+    dangerActionButton: StyleSheet.create<ActionButtonStyles>({
+      actionButton: {
+        backgroundColor: colors.error,
         paddingHorizontal: spacing.large,
         paddingVertical: spacing.medium,
         borderRadius: borderRadius.full,

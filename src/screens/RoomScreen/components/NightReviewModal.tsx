@@ -41,6 +41,9 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
           <Text style={styles.title}>夜晚行动回顾</Text>
 
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            {/* Fair play reminder */}
+            <Text style={styles.disclaimer}>⚠️ 请自觉，不要作弊</Text>
+
             {/* Action summary section */}
             <Text style={styles.sectionTitle}>行动摘要</Text>
             {data.actionLines.map((line, i) => (
@@ -101,6 +104,12 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       fontWeight: typography.weights.semibold,
       color: colors.primary,
       marginBottom: spacing.small,
+    },
+    disclaimer: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing.medium,
     },
     line: {
       fontSize: typography.secondary,
