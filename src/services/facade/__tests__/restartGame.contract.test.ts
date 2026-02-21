@@ -41,6 +41,7 @@ describe('restartGame Contract (HTTP API)', () => {
     joinRoom: jest.Mock;
     leaveRoom: jest.Mock;
     markAsLive: jest.Mock;
+    addStatusListener: jest.Mock;
   };
 
   const originalFetch = global.fetch;
@@ -57,6 +58,7 @@ describe('restartGame Contract (HTTP API)', () => {
       joinRoom: jest.fn().mockResolvedValue(undefined),
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       markAsLive: jest.fn(),
+      addStatusListener: jest.fn().mockReturnValue(() => {}),
     };
 
     // DI: 直接注入 mock
