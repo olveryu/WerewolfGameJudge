@@ -192,7 +192,7 @@ jest.mock(
 );
 
 // Mock Supabase client
-jest.mock('./src/config/supabase', () => ({
+jest.mock('./src/services/infra/supabaseClient', () => ({
   supabase: {
     auth: {
       getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
@@ -219,6 +219,14 @@ jest.mock('./src/config/supabase', () => ({
       single: jest.fn().mockResolvedValue({ data: null, error: null }),
     }),
   },
+  isSupabaseConfigured: jest.fn(() => true),
+}));
+
+// Mock Supabase config values (pure config — no client creation)
+jest.mock('./src/config/supabase', () => ({
+  SUPABASE_URL: 'https://test.supabase.co',
+  SUPABASE_ANON_KEY: 'test-anon-key',
+  isSupabaseConfigured: jest.fn(() => true),
 }));
 
 // ---------------------------------------------------------------------------

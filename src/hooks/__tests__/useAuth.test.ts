@@ -6,7 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 
 // Mock supabase config
-jest.mock('../../config/supabase', () => ({
+jest.mock('../../services/infra/supabaseClient', () => ({
   supabase: null,
   isSupabaseConfigured: jest.fn(() => false),
 }));

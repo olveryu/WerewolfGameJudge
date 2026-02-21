@@ -2,7 +2,7 @@ import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
 import type { AuthService } from '@/services/infra/AuthService';
 
 // Mock supabase
-jest.mock('@/config/supabase', () => ({
+jest.mock('@/services/infra/supabaseClient', () => ({
   supabase: null,
   isSupabaseConfigured: jest.fn(() => false),
 }));

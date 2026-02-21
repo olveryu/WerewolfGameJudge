@@ -18,7 +18,7 @@
 import * as Sentry from '@sentry/react-native';
 import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
 
-import { isSupabaseConfigured, supabase } from '@/config/supabase';
+import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
 import { roomLog } from '@/utils/logger';
 import { generateRoomCode } from '@/utils/roomCode';
 
