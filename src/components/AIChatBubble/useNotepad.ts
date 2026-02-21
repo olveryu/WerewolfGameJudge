@@ -32,8 +32,10 @@ export interface NotepadState {
   handStates: Record<number, boolean>;
   identityStates: Record<number, IdentityState>;
   roleGuesses: Record<number, RoleId | null>;
-  /** 公共笔记区 — 不绑定座位的自由文本 */
-  publicNote: string;
+  /** 公共笔记区（左）— 不绑定座位的自由文本 */
+  publicNoteLeft: string;
+  /** 公共笔记区（右）— 不绑定座位的自由文本 */
+  publicNoteRight: string;
 }
 
 export interface UseNotepadReturn {
@@ -41,7 +43,8 @@ export interface UseNotepadReturn {
   playerCount: number;
   roleTags: readonly RoleTagInfo[];
   setNote: (seat: number, text: string) => void;
-  setPublicNote: (text: string) => void;
+  setPublicNoteLeft: (text: string) => void;
+  setPublicNoteRight: (text: string) => void;
   toggleHand: (seat: number) => void;
   cycleIdentity: (seat: number) => void;
   setRole: (seat: number, roleId: RoleId | null) => void;
@@ -54,7 +57,14 @@ const STORAGE_KEY_PREFIX = '@notepad:';
 const IDENTITY_COUNT = 4; // 0→1→2→3→0
 
 function emptyState(): NotepadState {
-  return { playerNotes: {}, handStates: {}, identityStates: {}, roleGuesses: {}, publicNote: '' };
+  return {
+    playerNotes: {},
+    handStates: {},
+    identityStates: {},
+    roleGuesses: {},
+    publicNoteLeft: '',
+    publicNoteRight: '',
+  };
 }
 
 function getStorageKey(roomCode: string | null): string | null {
@@ -108,8 +118,14 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
         if (raw) {
           try {
             const parsed = JSON.parse(raw) as NotepadState;
-            // Backward compat: old persisted data may lack publicNote
-            if (parsed.publicNote === undefined) parsed.publicNote = '';
+            // Backward compat: migrate old single publicNote → left/right
+            const legacy = (parsed as unknown as Record<string, unknown>).publicNote;
+            if (legacy !== undefined) {
+              parsed.publicNoteLeft = legacy as string;
+              delete (parsed as unknown as Record<string, unknown>).publicNote;
+            }
+            if (parsed.publicNoteLeft === undefined) parsed.publicNoteLeft = '';
+            if (parsed.publicNoteRight === undefined) parsed.publicNoteRight = '';
             setState(parsed);
           } catch {
             chatLog.warn('Failed to parse notepad state');
@@ -157,10 +173,21 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     [persistState],
   );
 
-  const setPublicNote = useCallback(
+  const setPublicNoteLeft = useCallback(
     (text: string) => {
       setState((prev) => {
-        const next = { ...prev, publicNote: text };
+        const next = { ...prev, publicNoteLeft: text };
+        persistState(next);
+        return next;
+      });
+    },
+    [persistState],
+  );
+
+  const setPublicNoteRight = useCallback(
+    (text: string) => {
+      setState((prev) => {
+        const next = { ...prev, publicNoteRight: text };
         persistState(next);
         return next;
       });
@@ -221,7 +248,8 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     playerCount,
     roleTags,
     setNote,
-    setPublicNote,
+    setPublicNoteLeft,
+    setPublicNoteRight,
     toggleHand,
     cycleIdentity,
     setRole,
