@@ -144,7 +144,6 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         paddingHorizontal: spacing.large,
         paddingVertical: spacing.medium,
         borderRadius: borderRadius.full,
-        marginBottom: spacing.small,
       },
       disabledButton: {
         backgroundColor: colors.textMuted,
@@ -162,7 +161,6 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         paddingHorizontal: spacing.large,
         paddingVertical: spacing.medium,
         borderRadius: borderRadius.full,
-        marginBottom: spacing.small,
       },
       disabledButton: {
         backgroundColor: colors.textMuted,

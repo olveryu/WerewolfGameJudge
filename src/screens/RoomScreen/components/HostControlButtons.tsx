@@ -3,13 +3,16 @@
  *
  * 仅负责按 visibility flags 渲染按钮，业务逻辑由 RoomScreen 处理。
  * 渲染 UI 并通过回调上报 onPress，不 import service，不包含业务逻辑判断。
+ * 样式由父组件通过 props 注入（actionStyles / dangerStyles），不自建 StyleSheet。
  */
 import { Ionicons } from '@expo/vector-icons';
-import React, { memo, useMemo } from 'react';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import React, { memo } from 'react';
+import { Text, TouchableOpacity } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import { useColors } from '@/theme';
+
+import type { ActionButtonStyles } from './styles';
 
 interface HostControlButtonsProps {
   // Visibility flags
@@ -20,6 +23,10 @@ interface HostControlButtonsProps {
   showRestart: boolean;
   /** Disable all action buttons while a host action is in-flight. */
   disabled?: boolean;
+  /** Pre-created styles for normal buttons (from parent componentStyles.actionButton). */
+  actionStyles: ActionButtonStyles;
+  /** Pre-created styles for danger buttons (from parent componentStyles.dangerActionButton). */
+  dangerStyles: ActionButtonStyles;
 
   // Button press handlers (parent provides dialog/logic)
   onSettingsPress: () => void;
@@ -35,13 +42,14 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
   showStartGame,
   showRestart,
   disabled,
+  actionStyles,
+  dangerStyles,
   onSettingsPress,
   onPrepareToFlipPress,
   onStartGamePress,
   onRestartPress,
 }) => {
   const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
   if (!isHost) return null;
 
@@ -50,22 +58,22 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
       {/* Host: Restart Game - danger style (leftmost) */}
       {showRestart && (
         <TouchableOpacity
-          style={[styles.actionButton, styles.restartButton, disabled && styles.disabledButton]}
+          style={[dangerStyles.actionButton, disabled && dangerStyles.disabledButton]}
           onPress={onRestartPress}
           disabled={disabled}
         >
-          <Text style={styles.buttonText}>重开</Text>
+          <Text style={dangerStyles.buttonText}>重开</Text>
         </TouchableOpacity>
       )}
 
       {/* Host: Settings */}
       {showSettings && (
         <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: colors.info }]}
+          style={[actionStyles.actionButton, { backgroundColor: colors.info }]}
           onPress={onSettingsPress}
           testID={TESTIDS.roomSettingsButton}
         >
-          <Text style={styles.buttonText}>
+          <Text style={actionStyles.buttonText}>
             <Ionicons name="settings-outline" size={14} color={colors.textInverse} />
             {' 设置'}
           </Text>
@@ -75,22 +83,22 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
       {/* Host: Prepare to Flip */}
       {showPrepareToFlip && (
         <TouchableOpacity
-          style={[styles.actionButton, disabled && styles.disabledButton]}
+          style={[actionStyles.actionButton, disabled && actionStyles.disabledButton]}
           onPress={onPrepareToFlipPress}
           disabled={disabled}
         >
-          <Text style={styles.buttonText}>准备看牌</Text>
+          <Text style={actionStyles.buttonText}>准备看牌</Text>
         </TouchableOpacity>
       )}
 
       {/* Host: Start Game */}
       {showStartGame && (
         <TouchableOpacity
-          style={[styles.actionButton, disabled && styles.disabledButton]}
+          style={[actionStyles.actionButton, disabled && actionStyles.disabledButton]}
           onPress={onStartGamePress}
           disabled={disabled}
         >
-          <Text style={styles.buttonText}>开始游戏</Text>
+          <Text style={actionStyles.buttonText}>开始游戏</Text>
         </TouchableOpacity>
       )}
     </>
@@ -99,25 +107,3 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
 
 // Memoize to prevent unnecessary re-renders
 export const HostControlButtons = memo(HostControlButtonsComponent);
-
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    actionButton: {
-      backgroundColor: colors.primary,
-      paddingHorizontal: spacing.large,
-      paddingVertical: spacing.medium,
-      borderRadius: borderRadius.full,
-    },
-    restartButton: {
-      backgroundColor: colors.error,
-    },
-    disabledButton: {
-      opacity: 0.5,
-    },
-    buttonText: {
-      color: colors.textInverse,
-      fontSize: typography.secondary,
-      fontWeight: typography.weights.semibold,
-    },
-  });
-}

@@ -648,8 +648,8 @@ export function useRoomScreenState(
     const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
     Toast.show({
       type: 'info',
-      text1: `发言顺序：从 ${startSeat} 号开始，${direction}发言`,
-      text2: `如果当前玩家没上警，由${direction}的下一位玩家发言`,
+      text1: `从 ${startSeat} 号开始 ${direction}发言`,
+      text2: `没上警则跳到${direction}下一位`,
       position: 'top',
       visibilityTime: 10000,
     });
