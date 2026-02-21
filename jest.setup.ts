@@ -229,6 +229,13 @@ jest.mock('./src/config/supabase', () => ({
   isSupabaseConfigured: jest.fn(() => true),
 }));
 
+// Mock navigationRef — prevents createNavigationContainerRef from being called
+// in tests where @react-navigation/native is mocked as empty object.
+jest.mock('./src/navigation/navigationRef', () => ({
+  navigationRef: { isReady: jest.fn(() => false), navigate: jest.fn() },
+  navigateTo: jest.fn(),
+}));
+
 // ---------------------------------------------------------------------------
 // ServiceContext mock — provides default mock services globally.
 // Individual tests can override via jest.mock() or by wrapping with a real
