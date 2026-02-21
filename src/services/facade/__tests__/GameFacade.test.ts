@@ -1354,13 +1354,16 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         json: () => Promise.resolve({ success: true }),
       });
+      mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
 
       // Fire 'live' status to all registered listeners
       statusListeners.forEach((l) => l('live'));
 
-      // Wait for async retry
+      // Wait for async retry (audio replay + ack)
       await new Promise((r) => setTimeout(r, 50));
 
+      // Should have replayed audio effects before retrying ack
+      expect(mockAudioServiceInstance.playRoleBeginningAudio).toHaveBeenCalledWith('wolf');
       // Should have retried postAudioAck
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/game/night/audio-ack'),

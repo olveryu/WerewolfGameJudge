@@ -122,21 +122,34 @@ export class GameFacade implements IGameFacade {
       void this._playPendingAudioEffects(state.pendingAudioEffects);
     });
 
-    // Retry: 断线期间 postAudioAck 失败 → 重连 live 后自动重试
+    // Retry: 断线期间 postAudioAck 失败 → 重连 live 后重播音频 + 重试 ack
     this.broadcastService.addStatusListener((status) => {
       if (status !== 'live') return;
       if (!this.isHost) return;
       if (!this._pendingAudioAckRetry) return;
       this._pendingAudioAckRetry = false;
-      facadeLog.info('Retrying postAudioAck after reconnect');
-      void hostActions.postAudioAck(this.getHostActionsContext()).then((result) => {
-        if (!result.success) {
-          facadeLog.warn('postAudioAck retry still failed, will retry on next reconnect', {
-            reason: result.reason,
-          });
-          this._pendingAudioAckRetry = true;
-        }
-      });
+
+      // 优先重播断线时未播完的音频（pendingAudioEffects 仍在 store 中）
+      const state = this.store.getState();
+      const effects = state?.pendingAudioEffects;
+      if (effects && effects.length > 0) {
+        facadeLog.info('Replaying audio effects after reconnect', {
+          effectCount: effects.length,
+        });
+        // _playPendingAudioEffects finally 块会 postAudioAck
+        void this._playPendingAudioEffects(effects);
+      } else {
+        // 无 effects 可重播，兜底直接重试 ack
+        facadeLog.info('Retrying postAudioAck after reconnect (no effects to replay)');
+        void hostActions.postAudioAck(this.getHostActionsContext()).then((result) => {
+          if (!result.success) {
+            facadeLog.warn('postAudioAck retry still failed, will retry on next reconnect', {
+              reason: result.reason,
+            });
+            this._pendingAudioAckRetry = true;
+          }
+        });
+      }
     });
   }
 
