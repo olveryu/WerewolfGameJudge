@@ -66,6 +66,8 @@ export interface SettingsScreenStyles {
   outlineButton: ViewStyle;
   outlineButtonText: TextStyle;
   buttonDisabled: ViewStyle;
+  buttonCaption: TextStyle;
+  buttonCaptionInverse: TextStyle;
   // Theme section
   themeSection: ViewStyle;
   themeRow: ViewStyle;
@@ -409,6 +411,19 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     buttonDisabled: {
       opacity: 0.6,
+    },
+    buttonCaption: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: spacing.tight,
+    },
+    buttonCaptionInverse: {
+      fontSize: typography.caption,
+      color: colors.textInverse,
+      textAlign: 'center',
+      marginTop: spacing.tight,
+      opacity: 0.8,
     },
     // Theme section
     themeSection: {
