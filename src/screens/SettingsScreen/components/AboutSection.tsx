@@ -55,6 +55,12 @@ export const AboutSection = memo<AboutSectionProps>(({ styles }) => {
         <Text style={styles.aboutLinkText}>反馈 / 报告问题</Text>
         <Ionicons name="open-outline" style={styles.aboutLinkIcon} />
       </TouchableOpacity>
+
+      {/* WeChat contact */}
+      <View style={styles.aboutRow}>
+        <Text style={styles.aboutLabel}>联系微信</Text>
+        <Text style={styles.aboutValue}>olveryu</Text>
+      </View>
     </View>
   );
 });
