@@ -28,8 +28,9 @@ test.describe('Room Lifecycle', () => {
       await home.clickJoinRoom();
       await expect(page.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-      // Enter a room code that almost certainly doesn't exist
-      await enterRoomCodeViaNumPad(page, '9999');
+      // Enter a room code outside generateRoomCode() range [1000–9999],
+      // guaranteeing it never exists in the DB regardless of accumulated test data.
+      await enterRoomCodeViaNumPad(page, '0000');
       await page.getByText('加入', { exact: true }).click();
 
       // Wait for Room URL to confirm navigation happened (web-first assertion auto-retries)

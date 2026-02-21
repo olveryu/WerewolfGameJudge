@@ -83,6 +83,10 @@ export const TESTIDS = {
   // NumPad
   numpadKey: (key: string) => `numpad-${key}`,
 
+  // NightReviewModal
+  nightReviewButton: 'night-review-button',
+  nightReviewModal: 'night-review-modal',
+
   // RoleRevealEffects
   // Used by: RoleRevealEffects components, unit tests
   roleRevealModal: 'role-reveal-modal',
