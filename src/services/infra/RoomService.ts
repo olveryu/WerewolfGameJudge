@@ -15,6 +15,7 @@
  * - updated_at: timestamptz
  */
 
+import * as Sentry from '@sentry/react-native';
 import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
 
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
@@ -133,6 +134,7 @@ export class RoomService {
     if (error || !data) {
       if (error) {
         roomLog.error('getRoom DB error for room', roomNumber, ':', error.message);
+        Sentry.captureException(error);
       }
       return null;
     }
@@ -164,6 +166,7 @@ export class RoomService {
 
     if (error) {
       roomLog.error(' Failed to delete room:', error);
+      Sentry.captureException(error);
     }
   }
 
