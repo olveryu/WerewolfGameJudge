@@ -21,7 +21,6 @@ import {
   handleJoinSeat,
   handleLeaveMySeat,
   handleMarkAllBotsViewed,
-  type HandlerContext,
   handleRestartGame,
   handleSetRoleRevealAnimation,
   handleStartNight,
@@ -34,6 +33,7 @@ import {
 
 import { handleCors } from '../_lib/cors';
 import { broadcastViaRest, processGameAction } from '../_lib/gameStateManager';
+import { buildHandlerContext } from '../_lib/handlerContext';
 import { resultToStatus } from '../_lib/responseStatus';
 import type {
   AssignRequestBody,
@@ -46,26 +46,6 @@ import type {
   UpdateTemplateRequestBody,
   ViewRoleRequestBody,
 } from '../_lib/types';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function findSeatByUid(state: BroadcastGameState, uid: string): number | null {
-  for (const [seatKey, player] of Object.entries(state.players)) {
-    if (player?.uid === uid) return Number(seatKey);
-  }
-  return null;
-}
-
-function buildHandlerContext(state: BroadcastGameState, uid: string): HandlerContext {
-  return {
-    state,
-    isHost: state.hostUid === uid,
-    myUid: uid,
-    mySeat: findSeatByUid(state, uid),
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Sub-route handlers
