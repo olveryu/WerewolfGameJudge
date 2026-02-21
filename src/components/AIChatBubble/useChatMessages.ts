@@ -7,6 +7,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sentry from '@sentry/react-native';
 import { newRequestId } from '@werewolf/game-engine/utils/id';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
@@ -264,7 +265,11 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
           });
           return;
         }
-        throw err;
+        // Non-abort errors: log + Sentry + user feedback
+        chatLog.error('sendMessage failed:', err);
+        Sentry.captureException(err);
+        setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+        showAlert('发送失败', '请稍后重试');
       } finally {
         setIsLoading(false);
         loadingRef.current = false;
@@ -283,10 +288,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
 
   const handleQuickQuestion = useCallback(
     (question: string) => {
-      void sendMessage(question).catch(() => {
-        // Error already handled inside sendMessage (sets error state).
-        // Catch here to prevent unhandled promise rejection from re-thrown errors.
-      });
+      void sendMessage(question);
     },
     [sendMessage],
   );
