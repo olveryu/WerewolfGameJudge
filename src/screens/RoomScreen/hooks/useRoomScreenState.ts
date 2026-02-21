@@ -641,7 +641,7 @@ export function useRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   useEffect(() => {
-    if (roomStatus !== GameStatus.ended || !gameState) return;
+    if (roomStatus !== GameStatus.ended || !gameState || isAudioPlaying) return;
     const seed = gameState.roleRevealRandomNonce ?? gameState.roomCode;
     const rng = createSeededRng(seed);
     const playerCount = gameState.template.roles.length;
@@ -653,7 +653,7 @@ export function useRoomScreenState(
       position: 'top',
       visibilityTime: 10000,
     });
-  }, [roomStatus, gameState]);
+  }, [roomStatus, gameState, isAudioPlaying]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Action message builder
