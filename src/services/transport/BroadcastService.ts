@@ -41,6 +41,10 @@ export class BroadcastService {
   /** Callback for DB state changes (postgres_changes backup channel) */
   private onDbStateChange: ((state: BroadcastGameState, revision: number) => void) | null = null;
 
+  // Browser offline/online event handlers (bound for cleanup)
+  private handleBrowserOffline: (() => void) | null = null;
+  private handleBrowserOnline: (() => void) | null = null;
+
   constructor() {}
 
   private isConfigured(): boolean {
@@ -187,6 +191,10 @@ export class BroadcastService {
     // Status will be set to 'live' after receiving first STATE_UPDATE
     broadcastLog.info(' Joined room:', roomCode);
 
+    // Listen for browser offline/online events for instant disconnect detection.
+    // Supabase Phoenix heartbeat is ~30s; browser events fire immediately.
+    this.subscribeBrowserNetworkEvents();
+
     // Subscribe to DB state changes (reliable backup channel)
     // All clients receive state via both broadcast (fast) and postgres_changes (reliable).
     // Revision-based dedup in GameStore.applySnapshot() handles duplicates.
@@ -230,10 +238,54 @@ export class BroadcastService {
     }
   }
 
+  // =========================================================================
+  // Browser network event detection
+  // =========================================================================
+
+  /**
+   * Subscribe to browser offline/online events for instant disconnect detection.
+   * Supabase Phoenix heartbeat is ~30s; the browser `offline` event fires
+   * immediately when the OS network stack reports a loss.
+   */
+  private subscribeBrowserNetworkEvents(): void {
+    this.unsubscribeBrowserNetworkEvents();
+
+    if (typeof globalThis.addEventListener !== 'function') return;
+
+    this.handleBrowserOffline = () => {
+      broadcastLog.info('Browser offline event — setting disconnected');
+      this.setConnectionStatus('disconnected');
+    };
+
+    this.handleBrowserOnline = () => {
+      // Only transition to 'connecting' if we were disconnected.
+      // The Supabase channel reconnect callback will move to syncing → live.
+      if (this.connectionStatus === 'disconnected') {
+        broadcastLog.info('Browser online event — setting connecting');
+        this.setConnectionStatus('connecting');
+      }
+    };
+
+    globalThis.addEventListener('offline', this.handleBrowserOffline);
+    globalThis.addEventListener('online', this.handleBrowserOnline);
+  }
+
+  private unsubscribeBrowserNetworkEvents(): void {
+    if (this.handleBrowserOffline) {
+      globalThis.removeEventListener('offline', this.handleBrowserOffline);
+      this.handleBrowserOffline = null;
+    }
+    if (this.handleBrowserOnline) {
+      globalThis.removeEventListener('online', this.handleBrowserOnline);
+      this.handleBrowserOnline = null;
+    }
+  }
+
   /**
    * Leave the current room
    */
   async leaveRoom(): Promise<void> {
+    this.unsubscribeBrowserNetworkEvents();
     if (this.channel) {
       await this.channel.unsubscribe();
       this.channel = null;
