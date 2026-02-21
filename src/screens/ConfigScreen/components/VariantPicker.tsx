@@ -4,7 +4,7 @@
  * 底部 Modal，radio-style 选择。列表项来自 ROLE_SPECS。
  * 渲染 UI 并通过回调上报 onSelect，不 import service，不包含业务逻辑判断。
  */
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import { isValidRoleId, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import { memo, useCallback } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
@@ -50,7 +50,7 @@ export const VariantPicker = memo(function VariantPicker({
           <Text style={styles.variantPickerTitle}>选择变体</Text>
 
           {variantIds.map((id) => {
-            const spec = ROLE_SPECS[id as keyof typeof ROLE_SPECS];
+            const spec = isValidRoleId(id) ? ROLE_SPECS[id] : undefined;
             const isSelected = id === activeVariant;
             return (
               <TouchableOpacity

@@ -12,6 +12,7 @@
 import { ROLE_SPECS } from '../models/roles';
 import { SCHEMAS } from '../models/roles/spec/schemas';
 import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
+import { secureRng } from '../utils/random';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 import { resolveRoleForChecks } from './types';
@@ -57,7 +58,7 @@ export const drunkSeerCheckResolver: ResolverFn = (context, input) => {
   // Compute result: RANDOM — 50% correct, 50% inverted
   const targetSpec = ROLE_SPECS[effectiveRoleId];
   const normalResult = getSeerCheckResultForTeam(targetSpec.team);
-  const isCorrect = Math.random() >= 0.5;
+  const isCorrect = secureRng() >= 0.5;
   const checkResult = isCorrect ? normalResult : invertCheckResult(normalResult);
 
   return {

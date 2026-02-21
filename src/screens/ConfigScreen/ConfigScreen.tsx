@@ -11,7 +11,7 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
-import { Faction, ROLE_SPECS, RoleId } from '@werewolf/game-engine/models/roles';
+import { Faction, isValidRoleId, ROLE_SPECS, RoleId } from '@werewolf/game-engine/models/roles';
 import {
   createCustomTemplate,
   findMatchingPresetName,
@@ -62,8 +62,10 @@ const selectionToRoles = (
   Object.entries(selection).forEach(([key, selected]) => {
     if (selected) {
       const baseRoleId = key.replace(/\d+$/, '');
-      const roleId = (variantOverrides?.[baseRoleId] ?? baseRoleId) as RoleId;
-      roles.push(roleId);
+      const roleId = variantOverrides?.[baseRoleId] ?? baseRoleId;
+      if (isValidRoleId(roleId)) {
+        roles.push(roleId);
+      }
     }
   });
   return roles;
@@ -166,7 +168,7 @@ const expandSlotToChipEntries = (
 ): { key: string; label: string; hasVariants: boolean }[] => {
   const count = slot.count ?? 1;
   const activeRoleId = variantOverrides?.[slot.roleId] ?? slot.roleId;
-  const spec = ROLE_SPECS[activeRoleId as keyof typeof ROLE_SPECS];
+  const spec = isValidRoleId(activeRoleId) ? ROLE_SPECS[activeRoleId] : undefined;
   const label = spec?.displayName ?? activeRoleId;
   const hasVariants = !!slot.variants && slot.variants.length > 0;
 

@@ -656,7 +656,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     variantPickerOverlay: {
       flex: 1,
       justifyContent: 'flex-end',
-      backgroundColor: 'rgba(0,0,0,0.4)',
+      backgroundColor: colors.overlayLight,
     },
     variantPickerContent: {
       backgroundColor: colors.surface,
@@ -693,7 +693,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       width: 20,
       height: 20,
       borderRadius: borderRadius.full,
-      borderWidth: 2,
+      borderWidth: fixed.borderWidthThick,
       borderColor: colors.border,
       alignItems: 'center',
       justifyContent: 'center',
