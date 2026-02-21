@@ -107,6 +107,12 @@ export interface MarkBotsViewedRequestBody {
   hostUid: string;
 }
 
+/** POST /api/game/clear-seats */
+export interface ClearSeatsRequestBody {
+  roomCode: string;
+  hostUid: string;
+}
+
 // ---------------------------------------------------------------------------
 // Night Flow API
 // ---------------------------------------------------------------------------

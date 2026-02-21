@@ -544,6 +544,15 @@ export class GameFacade implements IGameFacade {
     return hostActions.markAllBotsViewed(this.getHostActionsContext());
   }
 
+  /**
+   * Host: 全员起立
+   *
+   * 清空所有座位上的玩家。仅在 unseated/seated 状态可用。
+   */
+  async clearAllSeats(): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.clearAllSeats(this.getHostActionsContext());
+  }
+
   // =========================================================================
   // Night Actions (委托给 hostActions)
   // =========================================================================

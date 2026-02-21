@@ -4,6 +4,7 @@
  * Shows a "..." button in the header that opens a dropdown menu with:
  * - Fill with Bots (填充机器人) - only in unseated phase
  * - Mark All Bots Viewed (标记机器人已查看) - only in assigned phase with debug mode
+ * - Clear All Seats (全员起立) - only in unseated/seated phase when players are seated
  *
  * Performance: Memoized, receives pre-created styles from parent.
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
@@ -20,9 +21,12 @@ interface HostMenuDropdownProps {
   showFillWithBots: boolean;
   /** Show mark all bots viewed option (in dropdown) */
   showMarkAllBotsViewed: boolean;
+  /** Show clear all seats option (in dropdown) */
+  showClearAllSeats: boolean;
   /** Callbacks */
   onFillWithBots: () => void;
   onMarkAllBotsViewed: () => void;
+  onClearAllSeats: () => void;
   /** Pre-created styles from parent */
   styles: HostMenuDropdownStyles;
 }
@@ -31,8 +35,10 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   visible,
   showFillWithBots,
   showMarkAllBotsViewed,
+  showClearAllSeats,
   onFillWithBots,
   onMarkAllBotsViewed,
+  onClearAllSeats,
   styles,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -55,13 +61,18 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     onMarkAllBotsViewed();
   }, [onMarkAllBotsViewed]);
 
+  const handleClearAllSeats = useCallback(() => {
+    setMenuOpen(false);
+    onClearAllSeats();
+  }, [onClearAllSeats]);
+
   // Don't render if not visible
   if (!visible) {
     return <View style={styles.triggerButton} />;
   }
 
   // Check if we have dropdown items (excluding restart which is shown separately)
-  const hasDropdownItems = showFillWithBots || showMarkAllBotsViewed;
+  const hasDropdownItems = showFillWithBots || showMarkAllBotsViewed || showClearAllSeats;
 
   return (
     <View style={styles.headerRightContainer}>
@@ -99,6 +110,17 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                     {showFillWithBots && <View style={styles.separator} />}
                     <TouchableOpacity style={styles.menuItem} onPress={handleMarkAllBotsViewed}>
                       <Text style={styles.menuItemText}>👁️ 标记机器人已查看</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {showClearAllSeats && (
+                  <>
+                    {(showFillWithBots || showMarkAllBotsViewed) && (
+                      <View style={styles.separator} />
+                    )}
+                    <TouchableOpacity style={styles.menuItem} onPress={handleClearAllSeats}>
+                      <Text style={styles.menuItemText}>🪑 全员起立</Text>
                     </TouchableOpacity>
                   </>
                 )}

@@ -148,6 +148,12 @@ export interface IGameFacade {
    */
   markAllBotsViewed(): Promise<{ success: boolean; reason?: string }>;
 
+  /**
+   * 全员起立（Host-only）
+   * 清空所有座位，仅在 unseated/seated 状态可用
+   */
+  clearAllSeats(): Promise<{ success: boolean; reason?: string }>;
+
   // === Player Actions ===
   /**
    * 玩家确认已查看角色

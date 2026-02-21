@@ -6,7 +6,7 @@
  * 根据 [action] path parameter 分派到对应的处理逻辑。
  *
  * 支持的 action：
- *   assign, fill-bots, mark-bots-viewed, restart,
+ *   assign, clear-seats, fill-bots, mark-bots-viewed, restart,
  *   seat, set-animation, start, update-template, view-role
  *
  * 负责请求解析与分派到对应 handler，不直接操作 DB / state，不播放音频。
@@ -17,6 +17,7 @@ import {
   type AudioEffect,
   type BroadcastGameState,
   handleAssignRoles,
+  handleClearAllSeats,
   handleFillWithBots,
   handleJoinSeat,
   handleLeaveMySeat,
@@ -37,6 +38,7 @@ import { buildHandlerContext } from '../_lib/handlerContext';
 import { resultToStatus } from '../_lib/responseStatus';
 import type {
   AssignRequestBody,
+  ClearSeatsRequestBody,
   FillBotsRequestBody,
   MarkBotsViewedRequestBody,
   RestartRequestBody,
@@ -92,6 +94,21 @@ async function handleMarkBotsViewed(req: VercelRequest, res: VercelResponse) {
   const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, handlerCtx);
+  });
+  return res.status(resultToStatus(result)).json(result);
+}
+
+async function handleClearSeats(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as ClearSeatsRequestBody;
+  const { roomCode, hostUid } = body;
+
+  if (!roomCode || !hostUid) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+    const handlerCtx = buildHandlerContext(state, hostUid);
+    return handleClearAllSeats({ type: 'CLEAR_ALL_SEATS' }, handlerCtx);
   });
   return res.status(resultToStatus(result)).json(result);
 }
@@ -250,6 +267,7 @@ const ROUTE_MAP: Record<
   (req: VercelRequest, res: VercelResponse) => Promise<VercelResponse | void>
 > = {
   assign: handleAssign,
+  'clear-seats': handleClearSeats,
   'fill-bots': handleFillBots,
   'mark-bots-viewed': handleMarkBotsViewed,
   restart: handleRestart,

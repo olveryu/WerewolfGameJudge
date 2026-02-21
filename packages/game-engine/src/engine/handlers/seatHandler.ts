@@ -17,7 +17,7 @@ import {
   REASON_NOT_SEATED,
   REASON_SEAT_TAKEN,
 } from '../../protocol/reasonCodes';
-import type { JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
+import type { ClearAllSeatsIntent, JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
 import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
 
@@ -172,6 +172,44 @@ export function handleLeaveMySeat(
   return {
     success: true,
     actions: [action],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+  };
+}
+
+/**
+ * 处理全员起立（Host-only）
+ *
+ * 清空所有已入座玩家，状态回到 unseated。
+ * 前置条件：isHost && status in ('unseated', 'seated')
+ */
+export function handleClearAllSeats(
+  _intent: ClearAllSeatsIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { state, isHost } = context;
+
+  if (!isHost) {
+    return { success: false, reason: 'host_only', actions: [] };
+  }
+
+  if (!state) {
+    return { success: false, reason: REASON_NO_STATE, actions: [] };
+  }
+
+  if (state.status !== 'unseated' && state.status !== 'seated') {
+    return { success: false, reason: REASON_GAME_IN_PROGRESS, actions: [] };
+  }
+
+  const actions: PlayerLeaveAction[] = [];
+  for (const [seatKey, player] of Object.entries(state.players)) {
+    if (player !== null) {
+      actions.push({ type: 'PLAYER_LEAVE', payload: { seat: Number(seatKey) } });
+    }
+  }
+
+  return {
+    success: true,
+    actions,
     sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
   };
 }
