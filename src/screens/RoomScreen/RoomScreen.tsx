@@ -106,6 +106,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     specialRoleItems,
     villagerRoleItems,
     nightProgress,
+    speakingOrderText,
     actionMessage,
     // Actioner
     imActioner,
@@ -285,6 +286,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           villagerRoleItems={villagerRoleItems}
           collapsed={roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended}
           onRolePress={handleSkillPreviewOpen}
+          speakingOrderText={speakingOrderText}
           styles={componentStyles.boardInfoCard}
         />
 

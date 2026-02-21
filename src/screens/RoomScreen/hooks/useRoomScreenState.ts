@@ -637,22 +637,23 @@ export function useRoomScreenState(
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Speaking order toast (shown once when night ends)
+  // Speaking order (shown in BoardInfoCard for 20s after night ends)
   // ═══════════════════════════════════════════════════════════════════════════
 
+  const [speakingOrderText, setSpeakingOrderText] = useState<string | undefined>();
+
   useEffect(() => {
-    if (roomStatus !== GameStatus.ended || !gameState || isAudioPlaying) return;
+    if (roomStatus !== GameStatus.ended || !gameState || isAudioPlaying) {
+      return;
+    }
     const seed = gameState.roleRevealRandomNonce ?? gameState.roomCode;
     const rng = createSeededRng(seed);
     const playerCount = gameState.template.roles.length;
     const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
-    Toast.show({
-      type: 'info',
-      text1: `从 ${startSeat} 号开始 ${direction}发言`,
-      text2: `没上警则跳到${direction}下一位`,
-      position: 'top',
-      visibilityTime: 10000,
-    });
+    setSpeakingOrderText(`🎙️ 从 ${startSeat} 号开始 ${direction}发言`);
+
+    const timer = setTimeout(() => setSpeakingOrderText(undefined), 20_000);
+    return () => clearTimeout(timer);
   }, [roomStatus, gameState, isAudioPlaying]);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -733,6 +734,7 @@ export function useRoomScreenState(
     specialRoleItems,
     villagerRoleItems,
     nightProgress,
+    speakingOrderText,
     actionMessage,
 
     // ── Actioner ──
