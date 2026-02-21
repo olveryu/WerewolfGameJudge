@@ -17,7 +17,6 @@ interface HostControlButtonsProps {
   showSettings: boolean;
   showPrepareToFlip: boolean;
   showStartGame: boolean;
-  showLastNightInfo: boolean;
   showRestart: boolean;
   /** Disable all action buttons while a host action is in-flight. */
   disabled?: boolean;
@@ -26,7 +25,6 @@ interface HostControlButtonsProps {
   onSettingsPress: () => void;
   onPrepareToFlipPress: () => void;
   onStartGamePress: () => void;
-  onLastNightInfoPress: () => void;
   onRestartPress: () => void;
 }
 
@@ -35,13 +33,11 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
   showSettings,
   showPrepareToFlip,
   showStartGame,
-  showLastNightInfo,
   showRestart,
   disabled,
   onSettingsPress,
   onPrepareToFlipPress,
   onStartGamePress,
-  onLastNightInfoPress,
   onRestartPress,
 }) => {
   const colors = useColors();
@@ -95,17 +91,6 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
           disabled={disabled}
         >
           <Text style={styles.buttonText}>开始游戏</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Host: View Last Night Info */}
-      {showLastNightInfo && (
-        <TouchableOpacity
-          style={[styles.actionButton, disabled && styles.disabledButton]}
-          onPress={onLastNightInfoPress}
-          disabled={disabled}
-        >
-          <Text style={styles.buttonText}>查看昨晚信息</Text>
         </TouchableOpacity>
       )}
     </>

@@ -151,13 +151,7 @@ function handleHostControl(ctx: InteractionContext, event: { action: string }): 
   }
 
   // Type narrowing for action
-  const validActions = [
-    'settings',
-    'prepareToFlip',
-    'startGame',
-    'lastNightInfo',
-    'restart',
-  ] as const;
+  const validActions = ['settings', 'prepareToFlip', 'startGame', 'restart'] as const;
 
   if (!validActions.includes(event.action as (typeof validActions)[number])) {
     return { kind: 'NOOP', reason: 'other_status' };

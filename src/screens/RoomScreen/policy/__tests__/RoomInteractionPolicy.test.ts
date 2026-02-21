@@ -56,7 +56,7 @@ function createBottomActionEvent(): InteractionEvent {
 }
 
 function createHostControlEvent(
-  action: 'settings' | 'prepareToFlip' | 'startGame' | 'lastNightInfo' | 'restart',
+  action: 'settings' | 'prepareToFlip' | 'startGame' | 'restart',
 ): InteractionEvent {
   return { kind: 'HOST_CONTROL', action };
 }

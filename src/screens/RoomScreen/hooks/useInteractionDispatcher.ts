@@ -66,7 +66,6 @@ interface UseInteractionDispatcherParams {
   handleSettingsPress: () => void;
   showPrepareToFlipDialog: () => void;
   showStartGameDialog: () => void;
-  showLastNightInfoDialog: () => void;
   showRestartDialog: () => void;
 
   // ── Submission callbacks ──
@@ -120,7 +119,6 @@ export function useInteractionDispatcher({
   handleSettingsPress,
   showPrepareToFlipDialog,
   showStartGameDialog,
-  showLastNightInfoDialog,
   showRestartDialog,
   submitRevealAckSafe,
   sendWolfRobotHunterStatusViewed,
@@ -295,9 +293,6 @@ export function useInteractionDispatcher({
             case 'startGame':
               showStartGameDialog();
               return;
-            case 'lastNightInfo':
-              showLastNightInfoDialog();
-              return;
             case 'restart':
               showRestartDialog();
               return;
@@ -367,7 +362,6 @@ export function useInteractionDispatcher({
       handleSettingsPress,
       showPrepareToFlipDialog,
       showStartGameDialog,
-      showLastNightInfoDialog,
       showRestartDialog,
       submitRevealAckSafe,
       sendWolfRobotHunterStatusViewed,
