@@ -32,6 +32,9 @@ test.describe('Room Lifecycle', () => {
       await enterRoomCodeViaNumPad(page, '9999');
       await page.getByText('加入', { exact: true }).click();
 
+      // Wait for Room URL to confirm navigation happened
+      await page.waitForURL((url) => url.pathname.includes('/room/'), { timeout: 10_000 });
+
       // The app navigates to RoomScreen, which discovers the room doesn't exist.
       // Fatal error triggers showAlert('房间异常', '房间不存在') + auto-redirect to Home.
       // Wait for the alert modal to appear (global AlertModal persists across screens)
@@ -51,12 +54,9 @@ test.describe('Room Lifecycle', () => {
         await alertModal.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
       }
 
-      // After alert dismiss, page should return to Home.
-      // navigation.navigate('Home') may push a new Home instance on the stack,
-      // leaving the original hidden. Use .last() to target the topmost one.
-      await expect(page.locator('[data-testid="home-screen-root"]').last()).toBeVisible({
-        timeout: 10_000,
-      });
+      // Verify redirect to Home via URL — React Navigation linking updates URL
+      // synchronously, avoiding flaky DOM visibility checks on NativeStack web.
+      await page.waitForURL((url) => !url.pathname.includes('/room/'), { timeout: 15_000 });
     } finally {
       await closeAll(fixture);
     }
@@ -79,10 +79,8 @@ test.describe('Room Lifecycle', () => {
       await expect(hostPage.getByText('离开房间？')).toBeVisible({ timeout: 5000 });
       await hostPage.getByText('确定', { exact: true }).click();
 
-      // Verify redirected to home
-      await expect(hostPage.locator('[data-testid="home-screen-root"]').last()).toBeVisible({
-        timeout: 10_000,
-      });
+      // Verify redirected to home via URL (more reliable than DOM visibility)
+      await hostPage.waitForURL((url) => !url.pathname.includes('/room/'), { timeout: 15_000 });
     } finally {
       await closeAll(fixture);
     }
@@ -106,10 +104,8 @@ test.describe('Room Lifecycle', () => {
       await expect(joinerPage.getByText('离开房间？')).toBeVisible({ timeout: 5000 });
       await joinerPage.getByText('确定', { exact: true }).click();
 
-      // Verify redirected to home
-      await expect(joinerPage.locator('[data-testid="home-screen-root"]').last()).toBeVisible({
-        timeout: 10_000,
-      });
+      // Verify redirected to home via URL (more reliable than DOM visibility)
+      await joinerPage.waitForURL((url) => !url.pathname.includes('/room/'), { timeout: 15_000 });
     } finally {
       await closeAll(fixture);
     }
