@@ -2,10 +2,11 @@
  * MirrorSeer 12P Board UI Test
  *
  * Board: 灯影预言12人
- * Roles: 3x villager, 3x wolf, wolfKing, seer, mirrorSeer, witch, guard, knight
+ * Roles: 3x villager, 3x wolf, darkWolfKing, seer, mirrorSeer, witch, guard, knight
  *
  * Required UI coverage (getRequiredUiDialogTypes):
  * - actionPrompt, wolfVote, wolfVoteEmpty, witchSavePrompt, witchPoisonPrompt, witchNoKill
+ * - confirmTrigger (darkWolfKingConfirm)
  * - actionConfirm, skipConfirm (seer, mirrorSeer, guard)
  *
  * Host-data required (covered by integration):
@@ -16,8 +17,10 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { getSchema } from '@werewolf/game-engine/models/roles/spec';
 
 import {
+  chainConfirmTrigger,
   chainWolfVoteConfirm,
   coverageChainActionPrompt,
+  coverageChainConfirmTrigger,
   coverageChainSeatActionConfirm,
   coverageChainSkipConfirm,
   coverageChainWitchPoisonPrompt,
@@ -153,7 +156,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [3, 'wolf'],
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolfKing'],
+          [6, 'darkWolfKing'],
         ]),
       });
 
@@ -291,6 +294,36 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
     });
   });
 
+  describe('confirmTrigger coverage', () => {
+    it('darkWolfKing confirm: pressing bottom button shows confirmTrigger dialog', async () => {
+      mockUseGameRoomReturn = createGameRoomMock({
+        schemaId: 'darkWolfKingConfirm',
+        currentActionRole: 'darkWolfKing',
+        myRole: 'darkWolfKing',
+        mySeatNumber: 6,
+        gameStateOverrides: { confirmStatus: { role: 'darkWolfKing', canShoot: true } },
+      });
+
+      const { getByTestId, getByText } = render(
+        <RoomScreen
+          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          navigation={mockNavigation as any}
+        />,
+      );
+
+      await waitForRoomScreen(getByTestId);
+
+      const bottomActionText = getSchema('darkWolfKingConfirm').ui?.bottomActionText;
+      if (!bottomActionText)
+        throw new Error('[TEST] Missing darkWolfKingConfirm.ui.bottomActionText');
+
+      await waitFor(() => expect(getByText(bottomActionText)).toBeTruthy());
+      fireEvent.press(getByText(bottomActionText));
+
+      await waitFor(() => expect(harness.hasSeen('confirmTrigger')).toBe(true));
+    });
+  });
+
   describe('wolfVoteEmpty coverage', () => {
     it('wolf: empty knife button shows wolfVoteEmpty dialog', async () => {
       mockUseGameRoomReturn = createGameRoomMock({
@@ -302,7 +335,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [3, 'wolf'],
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolfKing'],
+          [6, 'darkWolfKing'],
         ]),
       });
 
@@ -335,9 +368,21 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [3, 'wolf'],
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolfKing'],
+          [6, 'darkWolfKing'],
         ]),
         1,
+      );
+    });
+
+    it('confirmTrigger (darkWolfKing) → dialog dismissed', async () => {
+      await chainConfirmTrigger(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKingConfirm',
+        'darkWolfKing',
+        'darkWolfKing',
+        6,
       );
     });
   });
@@ -366,7 +411,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [3, 'wolf'],
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolfKing'],
+          [6, 'darkWolfKing'],
         ]),
         1,
       );
@@ -378,7 +423,18 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // Step 4: witchPoisonPrompt
       await coverageChainWitchPoisonPrompt(harness, setMock, renderRoom, 9);
 
-      // Step 5: actionConfirm (mirrorSeer tap seat) → press confirm → submitAction called
+      // Step 5: confirmTrigger (darkWolfKing) → press primary + assertNoLoop
+      await coverageChainConfirmTrigger(
+        harness,
+        setMock,
+        renderRoom,
+        'darkWolfKingConfirm',
+        'darkWolfKing',
+        'darkWolfKing',
+        6,
+      );
+
+      // Step 6: actionConfirm (mirrorSeer tap seat) → press confirm → submitAction called
       const { submitAction: mirrorSubmit } = await coverageChainSeatActionConfirm(
         harness,
         setMock,
@@ -391,7 +447,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(mirrorSubmit).toHaveBeenCalled();
 
-      // Step 6: skipConfirm (mirrorSeer) → press primary → submitAction called
+      // Step 7: skipConfirm (mirrorSeer) → press primary → submitAction called
       const { submitAction: mirrorSkip } = await coverageChainSkipConfirm(
         harness,
         setMock,
@@ -403,7 +459,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(mirrorSkip).toHaveBeenCalled();
 
-      // Step 7: wolfVoteEmpty → press confirm → submitWolfVote(-1) called
+      // Step 8: wolfVoteEmpty → press confirm → submitWolfVote(-1) called
       const { submitWolfVote: emptyVote } = await coverageChainWolfVoteEmpty(
         harness,
         setMock,
@@ -414,7 +470,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [3, 'wolf'],
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolfKing'],
+          [6, 'darkWolfKing'],
         ]),
       );
       expect(emptyVote).toHaveBeenCalledWith(-1);
@@ -424,6 +480,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         'actionPrompt',
         'wolfVote',
         'wolfVoteEmpty',
+        'confirmTrigger',
         'witchSavePrompt',
         'witchNoKill',
         'witchPoisonPrompt',
