@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.265] - 2026-02-20
+
+- fix(e2e): use testID for home screen redirect assertions
+- refactor(config): extract Supabase client creation from config/
+- refactor(e2e): replace safe waitForTimeout with event-driven waits
+- refactor(api): extract shared handlerContext helpers to \_lib/
+- fix(api): add runtime input validation and strip error in production
+- refactor(screens): move ActionIntent types to policy/types
+- fix(services): handle sendMessage errors instead of silent swallow
+- fix(components): use typography token for AlertModal fontWeight
+- fix(screens): replace index keys with stable keys
+- fix(screens): add exhaustive switch default cases
+- fix(screens): use specific showAlert titles instead of generic '提示'
+- fix(services): complete error-handling 3-layer pattern
+
 ## [1.0.264] - 2026-02-20
 
 - fix(game-engine): export missing symbols from barrel
