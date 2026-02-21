@@ -28,6 +28,7 @@ import type {
 } from '../intents/types';
 import type {
   AssignRolesAction,
+  EndNightAction,
   FillWithBotsAction,
   MarkAllBotsViewedAction,
   RestartGameAction,
@@ -176,13 +177,16 @@ export function handleStartNight(
   // 首步来自 buildNightPlan 表驱动单源（按当前模板角色过滤）
   const nightPlan = buildNightPlan(state.templateRoles, state.seerLabelMap);
 
-  // Fail-fast: 如果 nightPlan 为空，说明 templateRoles 没有夜晚行动角色
-  // 这在有效游戏中不应该发生（至少应该有 wolf）
+  // 无夜晚行动角色（如纯村民板）：跳过夜晚，直接结束，无死亡
   if (nightPlan.steps.length === 0) {
+    const endNightAction: EndNightAction = {
+      type: 'END_NIGHT',
+      payload: { deaths: [] },
+    };
     return {
-      success: false,
-      reason: 'no_night_actions',
-      actions: [],
+      success: true,
+      actions: [endNightAction],
+      sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
     };
   }
 
