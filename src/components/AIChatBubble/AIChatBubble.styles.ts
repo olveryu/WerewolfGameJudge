@@ -611,6 +611,8 @@ export const createStyles = (colors: ThemeColors) =>
     },
     notepadPublicInput: {
       backgroundColor: colors.background,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
       borderRadius: borderRadius.medium,
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.small,
