@@ -155,7 +155,7 @@ export const HomeScreen: React.FC = () => {
 
   const handleReturnToLastGame = useCallback(() => {
     if (!lastRoomNumber) {
-      showAlert('提示', '没有上局游戏记录');
+      showAlert('无记录', '没有上局游戏记录');
       return;
     }
     navigation.navigate('Room', { roomNumber: lastRoomNumber, isHost: false });
