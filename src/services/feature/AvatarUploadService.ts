@@ -35,6 +35,9 @@ export class AvatarUploadService {
     const userId = this.authService.getCurrentUserId();
     if (!userId) throw new Error('请先登录后再上传头像');
 
+    // List existing avatars before upload (for cleanup after success)
+    const oldFiles = await this.listUserAvatars(userId);
+
     // Compress image before upload (512x512 for crisp display on high-DPI screens)
     const compressedBlob = await this.compressImage(fileUri, 512, 0.85);
 
@@ -59,7 +62,45 @@ export class AvatarUploadService {
 
     avatarLog.debug('Uploaded avatar', { fileName, size: compressedBlob.size });
 
+    // Clean up old avatars (best-effort, failure doesn't affect new upload)
+    await this.deleteOldAvatars(userId, oldFiles, fileName);
+
     return urlData.publicUrl;
+  }
+
+  /**
+   * List all avatar files for a given user.
+   */
+  private async listUserAvatars(userId: string): Promise<string[]> {
+    const { data, error } = await supabase!.storage.from('avatars').list(userId);
+    if (error) {
+      avatarLog.warn('Failed to list old avatars', { error: error.message });
+      return [];
+    }
+    return (data ?? []).map((f) => `${userId}/${f.name}`);
+  }
+
+  /**
+   * Delete old avatar files after a successful upload.
+   * Best-effort: logs warning on failure but never throws.
+   */
+  private async deleteOldAvatars(
+    userId: string,
+    oldFiles: string[],
+    newFileName: string,
+  ): Promise<void> {
+    const toDelete = oldFiles.filter((f) => f !== newFileName);
+    if (toDelete.length === 0) return;
+
+    const { error } = await supabase!.storage.from('avatars').remove(toDelete);
+    if (error) {
+      avatarLog.warn('Failed to delete old avatars', {
+        error: error.message,
+        count: toDelete.length,
+      });
+    } else {
+      avatarLog.debug('Deleted old avatars', { count: toDelete.length });
+    }
   }
 
   /**
