@@ -46,7 +46,7 @@ describe('WolfVote Integration Tests', () => {
       executeFullNight(ctx, {
         wolf: 0,
         darkWolfKing: { confirmed: true },
-        seer: 8,
+        seer: 0,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },
@@ -72,7 +72,7 @@ describe('WolfVote Integration Tests', () => {
       executeFullNight(ctx, {
         wolf: null, // 空刀
         darkWolfKing: { confirmed: true },
-        seer: 8,
+        seer: 0,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },
@@ -98,7 +98,7 @@ describe('WolfVote Integration Tests', () => {
       const result = executeFullNight(ctx, {
         wolf: 2,
         darkWolfKing: { confirmed: true },
-        seer: 8,
+        seer: 0,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
         magician: { targets: [] },

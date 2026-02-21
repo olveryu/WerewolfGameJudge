@@ -14,7 +14,7 @@ export const SCHEMAS = {
     id: 'seerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: [], // Can check self (neutral judge)
+    constraints: ['notSelf'],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -29,7 +29,7 @@ export const SCHEMAS = {
     id: 'mirrorSeerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: [], // Can check self (neutral judge)
+    constraints: ['notSelf'],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -44,7 +44,7 @@ export const SCHEMAS = {
     id: 'drunkSeerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: [], // Can check self (neutral judge)
+    constraints: ['notSelf'],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -113,7 +113,7 @@ export const SCHEMAS = {
     id: 'psychicCheck',
     displayName: '通灵',
     kind: 'chooseSeat',
-    constraints: [], // Can check self (neutral judge)
+    constraints: ['notSelf'],
     canSkip: true,
     ui: {
       confirmTitle: '确认通灵',
@@ -128,7 +128,7 @@ export const SCHEMAS = {
     id: 'pureWhiteCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: [], // Can check self (neutral judge)
+    constraints: ['notSelf'],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -239,7 +239,7 @@ export const SCHEMAS = {
     id: 'gargoyleCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: [], // Can check self (neutral judge)
+    constraints: ['notSelf'],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',

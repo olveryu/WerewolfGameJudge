@@ -65,14 +65,14 @@ describe('psychicCheckResolver', () => {
       expect(result.result).toEqual({});
     });
 
-    it('应该允许通灵自己 (no notSelf constraint - neutral judge)', () => {
+    it('应该拒绝通灵自己 (notSelf constraint)', () => {
       const ctx = createContext({ actorSeat: 4 });
       const input = createInput(4);
 
       const result = psychicCheckResolver(ctx, input);
 
-      // Psychic can check self, result should show their own role
-      expect(result.valid).toBe(true);
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('自己');
     });
 
     it('应该拒绝不存在的目标', () => {

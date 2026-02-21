@@ -109,7 +109,7 @@ describe('Seer Integration', () => {
       expect(['好人', 'good']).toContain(state.seerReveal!.result);
     });
 
-    it('should allow seer to check self (neutral judge rule)', () => {
+    it('should reject seer self-check (notSelf constraint)', () => {
       const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
@@ -123,12 +123,8 @@ describe('Seer Integration', () => {
         target: 0,
       });
 
-      expect(result.success).toBe(true);
-
-      const state = ctx.getBroadcastState();
-      expect(state.seerReveal).toBeDefined();
-      expect(state.seerReveal!.targetSeat).toBe(0);
-      expect(['好人', 'good']).toContain(state.seerReveal!.result);
+      expect(result.success).toBe(false);
+      expect(result.reason).toContain('自己');
     });
   });
 
