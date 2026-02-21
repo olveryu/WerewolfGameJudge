@@ -10,8 +10,8 @@
 
 import { getAvatarByUid, getAvatarImageByIndex, getUniqueAvatarMap } from '@/utils/avatar';
 
-/** Number of avatar images (29 dark fantasy portraits) */
-const AVATAR_COUNT = 29;
+/** Number of avatar images (42 dark fantasy portraits) */
+const AVATAR_COUNT = 42;
 
 describe('getAvatarByUid', () => {
   describe('stability', () => {
@@ -90,7 +90,7 @@ describe('getAvatarByUid', () => {
 
 describe('getUniqueAvatarMap', () => {
   it('assigns unique avatar indices to 12 different uids in same room', () => {
-    // Precondition: 29 avatars > 12 players
+    // Precondition: 42 avatars > 12 players
     expect(AVATAR_COUNT).toBeGreaterThanOrEqual(12);
 
     const roomId = 'room-test-collision';
