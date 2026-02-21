@@ -129,7 +129,7 @@ export class RoomService {
       .from('rooms')
       .select('id, code, host_id, created_at')
       .eq('code', roomNumber)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       if (error) {
