@@ -10,11 +10,12 @@ function createQueryBuilder(resolveWith: { data?: unknown; error?: unknown }) {
   const terminal = jest.fn().mockResolvedValue(resolveWith);
 
   // Every chainable method returns the same builder
-  for (const method of ['select', 'insert', 'update', 'delete', 'eq', 'single']) {
+  for (const method of ['select', 'insert', 'update', 'delete', 'eq', 'single', 'maybeSingle']) {
     builder[method] = jest.fn().mockReturnValue(builder);
   }
-  // Override terminal methods (single / insert / delete act as terminal)
+  // Override terminal methods (single / maybeSingle / insert / delete act as terminal)
   builder.single = terminal;
+  builder.maybeSingle = terminal;
   // insert & delete without .single() resolve directly
   builder.insert = jest.fn().mockResolvedValue(resolveWith);
   builder.delete = jest.fn().mockReturnValue(builder);
