@@ -51,5 +51,8 @@ export function handleStateUpdate(ctx: MessageRouterContext, msg: HostBroadcast)
       ctx.broadcastService.markAsLive();
       break;
     }
+    default:
+      // Other broadcast types (ROLE_TURN, NIGHT_END, etc.) are legacy/unused by client.
+      break;
   }
 }

@@ -67,6 +67,11 @@ export async function triggerHaptic(style: HapticStyle, enabled: boolean = true)
       case 'error':
         await haptics.notificationAsync(haptics.NotificationFeedbackType.Error);
         break;
+      default: {
+        const _exhaustive: never = style;
+        void _exhaustive;
+        break;
+      }
     }
   } catch {
     // Silent fail - haptics are optional

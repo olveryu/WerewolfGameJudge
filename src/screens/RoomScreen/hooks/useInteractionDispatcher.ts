@@ -252,6 +252,11 @@ export function useInteractionDispatcher({
               roomScreenLog.debug('[dispatchInteraction] Show leaveRoom dialog');
               handleLeaveRoom();
               return;
+            default: {
+              const _exhaustive: never = result.dialogType;
+              roomScreenLog.warn('[dispatchInteraction] Unhandled dialogType', _exhaustive);
+              return;
+            }
           }
           return;
 
@@ -297,6 +302,11 @@ export function useInteractionDispatcher({
             case 'restart':
               showRestartDialog();
               return;
+            default: {
+              const _exhaustive: never = result.action;
+              roomScreenLog.warn('[dispatchInteraction] Unhandled host action', _exhaustive);
+              return;
+            }
           }
           return;
 
@@ -338,6 +348,12 @@ export function useInteractionDispatcher({
           roomScreenLog.debug('[dispatchInteraction] RELEASE_BOT_SEAT');
           setControlledSeat(null);
           return;
+
+        default: {
+          const _exhaustive: never = result;
+          roomScreenLog.warn('[dispatchInteraction] Unhandled result kind', _exhaustive);
+          return;
+        }
       }
     },
     [
