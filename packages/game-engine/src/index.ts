@@ -7,9 +7,17 @@
  */
 
 // === Utils (platform-agnostic) ===
+export { resolveSeerAudioKey } from './utils/audioKeyOverride';
 export { newRejectionId, newRequestId, randomHex } from './utils/id';
 export { type EngineLogger, getEngineLogger, setEngineLogger } from './utils/logger';
-export { type Rng, secureRng } from './utils/random';
+export {
+  createSeededRng,
+  randomBool,
+  randomIntInclusive,
+  randomPick,
+  type Rng,
+  secureRng,
+} from './utils/random';
 export { shuffleArray } from './utils/shuffle';
 
 // === Models ===
