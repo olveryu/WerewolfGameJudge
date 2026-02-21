@@ -21,6 +21,7 @@ import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 import { useColors } from '@/theme';
 import { log } from '@/utils/logger';
 
+import { navigationRef } from './navigationRef';
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -86,7 +87,7 @@ export const AppNavigator: React.FC = () => {
   const colors = useColors();
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer linking={linking} ref={navigationRef}>
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
