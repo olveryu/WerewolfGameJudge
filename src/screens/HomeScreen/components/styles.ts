@@ -61,6 +61,8 @@ export interface HomeScreenStyles {
   emailDomainDropdown: ViewStyle;
   emailDomainItem: ViewStyle;
   emailDomainText: TextStyle;
+  buttonCaption: TextStyle;
+  buttonCaptionInverse: TextStyle;
   // Footer
   footer: ViewStyle;
   footerText: TextStyle;
@@ -257,11 +259,25 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       padding: spacing.medium,
       borderRadius: borderRadius.medium,
       alignItems: 'center',
+      marginTop: spacing.small,
     },
     secondaryButtonText: {
       color: colors.textSecondary,
       fontSize: typography.body,
       fontWeight: typography.weights.medium,
+    },
+    buttonCaption: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: spacing.tight,
+    },
+    buttonCaptionInverse: {
+      fontSize: typography.caption,
+      color: colors.textInverse,
+      textAlign: 'center',
+      marginTop: spacing.tight,
+      opacity: 0.8,
     },
     input: {
       backgroundColor: colors.background,

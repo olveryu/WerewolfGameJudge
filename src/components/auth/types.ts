@@ -35,6 +35,8 @@ export interface AuthStyles {
   outlineButton: ViewStyle;
   outlineButtonText: TextStyle;
   buttonDisabled: ViewStyle;
+  buttonCaption: TextStyle;
+  buttonCaptionInverse: TextStyle;
 }
 
 /** EmailForm props — 两端共享 */
