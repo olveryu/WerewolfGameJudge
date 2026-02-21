@@ -248,10 +248,10 @@ export class RoomPage {
     await this.page.locator('[data-testid="room-settings-button"]').click();
   }
 
-  /** Check if "查看昨晚信息" button is visible (night ended indicator). */
+  /** Check if "昨夜信息" button is visible (night ended indicator). */
   async isLastNightInfoVisible(): Promise<boolean> {
     return this.page
-      .getByText('查看昨晚信息')
+      .getByText('昨夜信息')
       .waitFor({ state: 'visible', timeout: 3000 })
       .then(() => true)
       .catch(() => false);

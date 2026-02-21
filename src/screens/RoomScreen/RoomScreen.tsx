@@ -390,7 +390,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             {/* Last Night Info — all players, ended phase only */}
             {roomStatus === GameStatus.ended && !isAudioPlaying && (
               <ActionButton
-                label="查看昨晚信息"
+                label="昨夜信息"
                 onPress={() => showLastNightInfo()}
                 styles={componentStyles.actionButton}
               />
@@ -398,7 +398,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             {/* Night Review Button — all players, ended phase only */}
             {roomStatus === GameStatus.ended && (
               <ActionButton
-                label="查看详细信息"
+                label="详细信息"
                 testID={TESTIDS.nightReviewButton}
                 onPress={() => openNightReview()}
                 styles={componentStyles.dangerActionButton}
