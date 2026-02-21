@@ -17,7 +17,46 @@
 import type { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
 
-import type { ActionIntent } from '@/screens/RoomScreen/hooks/useRoomActions';
+// =============================================================================
+// ActionIntent Types (must be serializable - no callbacks/refs/functions)
+// =============================================================================
+
+export type ActionIntentType =
+  // Reveal (ANTI-CHEAT: RoomScreen only waits for private reveal + sends ack)
+  | 'reveal'
+
+  // Witch (schema-driven)
+
+  // Two-step
+  | 'magicianFirst' // Magician first target
+
+  // Vote/Confirm
+  | 'wolfVote' // Wolf vote
+  | 'actionConfirm' // Normal action confirm
+  | 'skip' // Skip action
+  | 'confirmTrigger' // Hunter/DarkWolfKing: trigger status check via bottom button
+
+  // WolfRobot hunter gate
+  | 'wolfRobotViewHunterStatus' // WolfRobot learned hunter: view status gate
+
+  // Auto-trigger prompt (dismiss → wait for seat tap)
+  | 'actionPrompt'; // Generic action prompt for all roles
+
+export interface ActionIntent {
+  type: ActionIntentType;
+  targetSeat: number;
+
+  // Optional fields (based on type)
+  wolfSeat?: number; // for wolfVote
+  revealKind?: RevealKind; // for reveal
+  message?: string; // for actionConfirm
+
+  /**
+   * For compound schemas (e.g. witchAction), this is the key of the active sub-step
+   * (e.g., 'save' or 'poison' for witch). Used by RoomScreen to derive confirm copy + payload.
+   */
+  stepKey?: string;
+}
 
 // =============================================================================
 // Interaction Events - What the user did

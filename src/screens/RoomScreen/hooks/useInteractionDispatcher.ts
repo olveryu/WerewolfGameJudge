@@ -19,11 +19,10 @@ import {
   type InteractionContext,
   type InteractionEvent,
 } from '@/screens/RoomScreen/policy';
+import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
-
-import type { ActionIntent } from './useRoomActions';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
