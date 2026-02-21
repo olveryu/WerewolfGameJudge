@@ -29,11 +29,9 @@ export class AuthService {
       const existingUserId = await this.initAuth();
       if (existingUserId) {
         authLog.info(' Restored session:', existingUserId);
-        return;
       }
-
-      const userId = await this.signInAnonymously();
-      authLog.info(' Auto signed in anonymously:', userId);
+      // No automatic anonymous sign-in for first-time users.
+      // They will see the login modal (with anonymous + email options) when they try to act.
     } catch (error) {
       authLog.error(' Auto sign in failed:', error);
       Sentry.captureException(error);

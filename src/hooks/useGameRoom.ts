@@ -96,6 +96,8 @@ interface UseGameRoomResult {
   requestSnapshot: () => Promise<boolean>;
   lastSeatError: { seat: number; reason: 'seat_taken' } | null;
   clearLastSeatError: () => void;
+  needsAuth: boolean;
+  clearNeedsAuth: () => void;
 
   // Host game actions (from useHostGameActions)
   assignRoles: () => Promise<void>;
@@ -290,6 +292,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     requestSnapshot: lifecycle.requestSnapshot,
     lastSeatError: lifecycle.lastSeatError,
     clearLastSeatError: lifecycle.clearLastSeatError,
+    needsAuth: lifecycle.needsAuth,
+    clearNeedsAuth: lifecycle.clearNeedsAuth,
     // Host game actions
     assignRoles: actions.assignRoles,
     startGame: actions.startGame,

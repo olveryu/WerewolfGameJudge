@@ -34,6 +34,10 @@ interface RoomLifecycleState {
   loading: boolean;
   error: string | null;
 
+  // Auth gate: true when first-time user entered via direct URL without session
+  needsAuth: boolean;
+  clearNeedsAuth: () => void;
+
   // Seat error (BUG-2 fix)
   lastSeatError: { seat: number; reason: 'seat_taken' } | null;
   clearLastSeatError: () => void;
@@ -82,6 +86,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
   const [lastSeatError, setLastSeatError] = useState<{
     seat: number;
     reason: 'seat_taken';
@@ -100,16 +105,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
       try {
         await authService.waitForInit();
-        let hostUid = authService.getCurrentUserId();
+        const hostUid = authService.getCurrentUserId();
         if (!hostUid) {
-          // autoSignIn may have failed (e.g. network error during startup) — retry once
-          gameRoomLog.warn('[initializeHostRoom] No userId after waitForInit, retrying auth...');
-          try {
-            hostUid = await authService.ensureAuthenticated();
-          } catch (retryErr) {
-            gameRoomLog.error('[initializeHostRoom] Auth retry failed', retryErr);
-            throw new Error('网络连接失败，请检查网络后重试');
-          }
+          // First-time user (no session) — show login modal instead of silent anonymous sign-in
+          gameRoomLog.info('[initializeHostRoom] No userId, requesting auth');
+          setNeedsAuth(true);
+          return false;
         }
 
         // Set roomRecord for connection sync & leaveRoom cleanup
@@ -139,16 +140,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
       try {
         await authService.waitForInit();
-        let playerUid = authService.getCurrentUserId();
+        const playerUid = authService.getCurrentUserId();
         if (!playerUid) {
-          // autoSignIn may have failed (e.g. network error during startup) — retry once
-          gameRoomLog.warn('[joinRoom] No userId after waitForInit, retrying auth...');
-          try {
-            playerUid = await authService.ensureAuthenticated();
-          } catch (retryErr) {
-            gameRoomLog.error('[joinRoom] Auth retry failed', retryErr);
-            throw new Error('网络连接失败，请检查网络后重试');
-          }
+          // First-time user (no session) — show login modal instead of silent anonymous sign-in
+          gameRoomLog.info('[joinRoom] No userId, requesting auth');
+          setNeedsAuth(true);
+          return false;
         }
 
         // Check if room exists
@@ -308,9 +305,15 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     setLastSeatError(null);
   }, []);
 
+  const clearNeedsAuth = useCallback(() => {
+    setNeedsAuth(false);
+  }, []);
+
   return {
     loading,
     error,
+    needsAuth,
+    clearNeedsAuth,
     lastSeatError,
     clearLastSeatError,
     initializeHostRoom,

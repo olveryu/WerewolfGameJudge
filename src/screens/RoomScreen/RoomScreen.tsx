@@ -25,6 +25,7 @@ import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 
 import { ActionButton } from './components/ActionButton';
+import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BottomActionPanel } from './components/BottomActionPanel';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
@@ -94,6 +95,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     loadingMessage,
     showRetryButton,
     handleRetry,
+    // Auth gate
+    needsAuth,
+    clearNeedsAuth,
     // Derived view models
     seatViewModels,
     villagerCount,
@@ -143,6 +147,22 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── Loading / Error early returns ─────────────────────────────────────
   if (!isInitialized || !gameState) {
+    // Auth gate: first-time user via direct URL — show login options (must check before error)
+    if (needsAuth) {
+      return (
+        <AuthGateOverlay
+          onSuccess={() => {
+            clearNeedsAuth();
+            handleRetry();
+          }}
+          onCancel={() => {
+            clearNeedsAuth();
+            navigation.navigate('Home');
+          }}
+        />
+      );
+    }
+
     const displayMessage = showRetryButton && gameRoomError ? gameRoomError : loadingMessage;
     const isError = showRetryButton;
 
