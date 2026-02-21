@@ -75,9 +75,13 @@ test.describe('Network reconnect during night', () => {
       await test.step('disconnect player', async () => {
         await disconnectContext.setOffline(true);
 
-        // Wait for disconnect indicator to appear
+        // Soft check: WebSocket heartbeat may take time to detect network loss.
+        // Like db-recovery.spec.ts, don't hard-fail if indicator doesn't appear immediately.
         const disconnectedIndicator = disconnectPage.getByText('🔴 连接断开', { exact: true });
-        await disconnectedIndicator.waitFor({ state: 'visible', timeout: 15_000 });
+        const sawDisconnected = await disconnectedIndicator
+          .waitFor({ state: 'visible', timeout: 15_000 })
+          .then(() => true)
+          .catch(() => false);
 
         await disconnectPage.screenshot().then((s) =>
           testInfo.attach('reconnect-02-disconnected.png', {
@@ -85,11 +89,30 @@ test.describe('Network reconnect during night', () => {
             contentType: 'image/png',
           }),
         );
+
+        await testInfo.attach('disconnect-detected.txt', {
+          body: `Disconnect indicator visible: ${sawDisconnected}`,
+          contentType: 'text/plain',
+        });
       });
 
       // Step 3: Wait 10 seconds (simulating real-world disconnect)
+      // Browser offline event should trigger instant disconnect detection.
       await test.step('wait 10s while disconnected', async () => {
         await disconnectPage.waitForTimeout(10_000);
+
+        const disconnectedIndicator = disconnectPage.getByText('🔴 连接断开', { exact: true });
+        await expect(
+          disconnectedIndicator,
+          'Disconnect indicator should be visible after 10s offline',
+        ).toBeVisible({ timeout: 5_000 });
+
+        await disconnectPage.screenshot().then((s) =>
+          testInfo.attach('reconnect-02b-after-10s.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
       });
 
       // Step 4: Restore network and verify reconnection
