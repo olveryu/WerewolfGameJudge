@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.271] - 2026-02-20
+
+- fix(e2e): replace waitForURL with web-first toHaveURL assertions
+
 ## [1.0.270] - 2026-02-20
 
 - fix(game-engine): add notSelf constraint to all check schemas
