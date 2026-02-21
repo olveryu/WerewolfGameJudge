@@ -73,6 +73,8 @@ export class GameFacade implements IGameFacade {
   private readonly roomService: RoomService;
   private isHost = false;
   private myUid: string | null = null;
+  /** Cached roomCode: survives store.reset(), used by fetchStateFromDB fallback */
+  private _roomCode: string | null = null;
 
   /**
    * Abort flag: set to true when leaving room.
@@ -179,6 +181,7 @@ export class GameFacade implements IGameFacade {
     this._aborted = false; // Reset abort flag when creating new room
     this.isHost = true;
     this.myUid = hostUid;
+    this._roomCode = roomCode;
 
     // 初始化 store（使用共享的 buildInitialGameState）
     const initialState = buildInitialGameState(roomCode, hostUid, template);
@@ -214,6 +217,7 @@ export class GameFacade implements IGameFacade {
     this._aborted = false;
     this.isHost = isHost;
     this.myUid = uid;
+    this._roomCode = roomCode;
     this.store.reset();
 
     // Host rejoin: 预设 guard，阻断 subscribe 阶段收到 pendingAudioEffects 时 reactive 误播
@@ -251,6 +255,8 @@ export class GameFacade implements IGameFacade {
       return { success: false, reason: 'no_db_state' };
     }
     // Player 无 DB 状态：正常 — 状态将通过 broadcast 到达
+    // 但必须 markAsLive，否则 connectionStatus 卡在 'syncing'，auto-heal 无法触发
+    this.broadcastService.markAsLive();
 
     return { success: true };
   }
@@ -397,6 +403,7 @@ export class GameFacade implements IGameFacade {
     this.store.reset();
     this.myUid = null;
     this.isHost = false;
+    this._roomCode = null;
   }
 
   // =========================================================================
@@ -555,11 +562,11 @@ export class GameFacade implements IGameFacade {
    * Host 和 Player 统一使用。
    */
   async fetchStateFromDB(): Promise<boolean> {
-    const state = this.store.getState();
-    if (!state) return false;
+    const roomCode = this.store.getState()?.roomCode ?? this._roomCode;
+    if (!roomCode) return false;
 
     try {
-      const dbState = await this.roomService.getGameState(state.roomCode);
+      const dbState = await this.roomService.getGameState(roomCode);
       if (dbState) {
         this.store.applySnapshot(dbState.state, dbState.revision);
         this.broadcastService.markAsLive();
