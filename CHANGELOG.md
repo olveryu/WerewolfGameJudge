@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.0.272] - 2026-02-20
+
+- fix(room): use maybeSingle() for room lookup to avoid false Sentry errors
+- Merge pull request #4 from olveryu/dependabot/npm_and_yarn/npm_and_yarn-f1bf2b0a19
+- chore(deps): bump ajv in the npm_and_yarn group across 1 directory
+
 ## [1.0.271] - 2026-02-20
 
 - fix(e2e): replace waitForURL with web-first toHaveURL assertions
