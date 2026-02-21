@@ -33,11 +33,13 @@ import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HostControlButtons } from './components/HostControlButtons';
 import { HostMenuDropdown } from './components/HostMenuDropdown';
 import { NightProgressIndicator } from './components/NightProgressIndicator';
+import { NightReviewModal } from './components/NightReviewModal';
 import { PlayerGrid } from './components/PlayerGrid';
 import { RoleCardModal } from './components/RoleCardModal';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { createRoomScreenComponentStyles } from './components/styles';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
+import { buildNightReviewData } from './NightReview.helpers';
 import { createRoomScreenStyles } from './RoomScreen.styles';
 import { shareOrCopyRoomLink } from './shareRoom';
 
@@ -131,6 +133,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Rejoin recovery
     resumeAfterRejoin,
     needsContinueOverlay,
+    // Night review modal
+    nightReviewVisible,
+    openNightReview,
+    closeNightReview,
   } = useRoomScreenState(route.params, navigation);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
@@ -341,7 +347,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               styles={componentStyles.actionButton}
             />
           )}
-
+        {/* Night Review Button — all players, ended phase only */}
+        {roomStatus === GameStatus.ended && (
+          <ActionButton
+            label="查看详细信息"
+            testID={TESTIDS.nightReviewButton}
+            onPress={() => openNightReview()}
+            styles={componentStyles.actionButton}
+          />
+        )}
         {/* Greyed View Role (waiting for host) */}
         {(roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) &&
           effectiveSeat !== null && (
@@ -405,6 +419,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onClose={handleSkillPreviewClose}
         showRealIdentity
       />
+
+      {/* Night Review Modal — 裁判/观战者用，显示夜晚行动 + 全员身份 */}
+      {nightReviewVisible && gameState && (
+        <NightReviewModal
+          visible={nightReviewVisible}
+          data={buildNightReviewData(gameState)}
+          onClose={closeNightReview}
+        />
+      )}
     </SafeAreaView>
   );
 };
