@@ -354,7 +354,7 @@ export const CardPick: React.FC<CardPickProps> = ({
 
             return (
               <AnimatedMiniCard
-                key={index}
+                key={`card-${pos.x}-${pos.y}`}
                 index={index}
                 x={pos.x}
                 y={pos.y}

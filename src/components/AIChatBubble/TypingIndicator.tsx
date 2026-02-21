@@ -54,7 +54,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ colors }) => {
       <View style={[styles.bubble, { backgroundColor: colors.background }]}>
         {dots.map((dot, i) => (
           <Animated.View
-            key={i}
+            key={`dot-${i}`}
             style={[
               styles.dot,
               { backgroundColor: colors.textMuted },

@@ -45,7 +45,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
           {/* Room code display */}
           <View style={styles.codeDisplay}>
             {digitIndices.map((i) => (
-              <View key={i} style={styles.codeDigitBox}>
+              <View key={`digit-${i}`} style={styles.codeDigitBox}>
                 <Text style={styles.codeDigitText}>{roomCode[i] || ''}</Text>
               </View>
             ))}
