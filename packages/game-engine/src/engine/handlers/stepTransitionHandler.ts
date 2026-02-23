@@ -23,6 +23,7 @@ import { buildNightPlan, type NightPlanStep } from '../../models/roles/spec/plan
 import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '../../models/roles/spec/schema.types';
 import { SCHEMAS } from '../../models/roles/spec/schemas';
 import type { ProtocolAction } from '../../protocol/types';
+import { getRoleAfterSwap } from '../../resolvers/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { getEngineLogger } from '../../utils/logger';
 import type { NightActions, RoleSeatMap } from '../DeathCalculator';
@@ -163,26 +164,40 @@ function validateSetAudioPlayingPreconditions(
 // =============================================================================
 
 /**
- * 从 state.players 构建 RoleSeatMap
+ * 从 state.players 构建 RoleSeatMap（magician swap 感知）
+ *
+ * 统一身份解析：遍历所有 seat，用 getRoleAfterSwap 获取交换后的有效身份，
+ * 再反向查找每个关键角色所在的「有效座位」。
+ * 这样 DeathCalculator 中灵骑反弹、术士免疫等规则自动跟着交换后的身份走。
+ *
+ * Constraint 校验仍使用原始 players map（玩家不知道 swap，操作合法性按已知信息判定）。
  */
 function buildRoleSeatMap(state: NonNullState): RoleSeatMap {
-  const findSeatByRole = (role: RoleId): number => {
-    for (const [seatStr, player] of Object.entries(state.players)) {
-      if (player?.role === role) {
-        return Number.parseInt(seatStr, 10);
-      }
+  const swappedSeats = state.currentNightResults?.swappedSeats;
+
+  // Build original players map once (seat → roleId)
+  const players = new Map<number, RoleId>();
+  for (const [seatStr, player] of Object.entries(state.players)) {
+    if (player?.role) players.set(Number.parseInt(seatStr, 10), player.role);
+  }
+
+  // Build effective role → seat mapping (swap-aware)
+  const effectiveRoleSeatMap = new Map<RoleId, number>();
+  for (const [seat] of players) {
+    const effectiveRole = getRoleAfterSwap(seat, players, swappedSeats);
+    if (effectiveRole) {
+      effectiveRoleSeatMap.set(effectiveRole, seat);
     }
-    return -1;
-  };
+  }
 
   return {
-    witcher: findSeatByRole('witcher'),
-    wolfQueen: findSeatByRole('wolfQueen'),
-    dreamcatcher: findSeatByRole('dreamcatcher'),
-    spiritKnight: findSeatByRole('spiritKnight'),
-    seer: findSeatByRole('seer'),
-    witch: findSeatByRole('witch'),
-    guard: findSeatByRole('guard'),
+    witcher: effectiveRoleSeatMap.get('witcher') ?? -1,
+    wolfQueen: effectiveRoleSeatMap.get('wolfQueen') ?? -1,
+    dreamcatcher: effectiveRoleSeatMap.get('dreamcatcher') ?? -1,
+    spiritKnight: effectiveRoleSeatMap.get('spiritKnight') ?? -1,
+    seer: effectiveRoleSeatMap.get('seer') ?? -1,
+    witch: effectiveRoleSeatMap.get('witch') ?? -1,
+    guard: effectiveRoleSeatMap.get('guard') ?? -1,
   };
 }
 

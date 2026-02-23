@@ -149,9 +149,8 @@ export type ResolverRegistry = Partial<Record<SchemaId, ResolverFn>>;
  * Get the effective role at a seat after magician swap.
  *
  * If magician swapped seats A and B, checking seat A returns B's role and vice versa.
- * This is for "check" actions (seer, psychic, gargoyle) that reveal identity.
- *
- * NOTE: Does NOT affect physical seat or death calculation - only identity checks.
+ * Used by resolvers (check/reveal actions) AND death calculation (buildRoleSeatMap)
+ * for unified identity resolution after magician swap.
  *
  * @param seat - The seat to check
  * @param players - Original seat->roleId map

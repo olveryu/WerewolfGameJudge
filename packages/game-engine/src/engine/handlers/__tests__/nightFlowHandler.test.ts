@@ -494,6 +494,157 @@ describe('nightFlowHandler', () => {
           expect(action.payload.deaths).not.toContain(4);
         }
       });
+
+      // ================================================================
+      // Magician swap + death calculation (unified identity resolution)
+      // ================================================================
+
+      it('should apply magician swap to spiritKnight identity in death calc (wolf kills swapped seat)', () => {
+        // 场景: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
+        // 狼刀 seat 2（swap 后 seat 2 是 villager 身份）→ seat 2 死亡
+        // processMagicianSwap: seat 2 dead → swap → seat 4 dead, seat 2 alive
+        // 灵骑能力跟着身份走到 seat 4，seat 2 不再是灵骑 → 不免疫
+        const context: HandlerContext = {
+          state: createOngoingState({
+            currentStepId: undefined,
+            players: {
+              0: createPlayer(0, 'wolf'),
+              1: createPlayer(1, 'wolf'),
+              2: createPlayer(2, 'spiritKnight'),
+              3: createPlayer(3, 'seer'),
+              4: createPlayer(4, 'villager'),
+              5: createPlayer(5, 'villager'),
+            },
+            currentNightResults: {
+              wolfVotesBySeat: { '0': 2, '1': 2 },
+              swappedSeats: [2, 4] as readonly [number, number],
+            },
+          }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleEndNight(intent, context);
+        expect(result.success).toBe(true);
+        const action = result.actions[0];
+        expect(action.type).toBe('END_NIGHT');
+        if (action.type === 'END_NIGHT') {
+          // seat 2 原本死亡，swap 后 seat 4 死亡（seat 2 存活）
+          expect(action.payload.deaths).toContain(4);
+          expect(action.payload.deaths).not.toContain(2);
+        }
+      });
+
+      it('should apply magician swap: seer checks swapped spiritKnight seat → no reflection', () => {
+        // 场景: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
+        // 预言家(seat 3) 查验 seat 2（swap 后 seat 2 = villager 身份）
+        // spiritKnight 的能力在 seat 4 → 查 seat 2 不触发反弹
+        // 预言家不死
+        const context: HandlerContext = {
+          state: createOngoingState({
+            currentStepId: undefined,
+            players: {
+              0: createPlayer(0, 'wolf'),
+              1: createPlayer(1, 'wolf'),
+              2: createPlayer(2, 'spiritKnight'),
+              3: createPlayer(3, 'seer'),
+              4: createPlayer(4, 'villager'),
+              5: createPlayer(5, 'villager'),
+            },
+            currentNightResults: {
+              wolfVotesBySeat: {},
+              swappedSeats: [2, 4] as readonly [number, number],
+            },
+            actions: [
+              { schemaId: 'seerCheck', actorSeat: 3, targetSeat: 2, timestamp: Date.now() },
+            ],
+          }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleEndNight(intent, context);
+        expect(result.success).toBe(true);
+        const action = result.actions[0];
+        expect(action.type).toBe('END_NIGHT');
+        if (action.type === 'END_NIGHT') {
+          // 预言家不死（spiritKnight 身份在 seat 4，不在 seat 2）
+          expect(action.payload.deaths).not.toContain(3);
+        }
+      });
+
+      it('should apply magician swap: seer checks seat with swapped-in spiritKnight → seer dies by reflection', () => {
+        // 场景: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
+        // 预言家(seat 3) 查验 seat 4（swap 后 seat 4 = spiritKnight 身份）
+        // 触发反弹 → 预言家死
+        const context: HandlerContext = {
+          state: createOngoingState({
+            currentStepId: undefined,
+            players: {
+              0: createPlayer(0, 'wolf'),
+              1: createPlayer(1, 'wolf'),
+              2: createPlayer(2, 'spiritKnight'),
+              3: createPlayer(3, 'seer'),
+              4: createPlayer(4, 'villager'),
+              5: createPlayer(5, 'villager'),
+            },
+            currentNightResults: {
+              wolfVotesBySeat: {},
+              swappedSeats: [2, 4] as readonly [number, number],
+            },
+            actions: [
+              { schemaId: 'seerCheck', actorSeat: 3, targetSeat: 4, timestamp: Date.now() },
+            ],
+          }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleEndNight(intent, context);
+        expect(result.success).toBe(true);
+        const action = result.actions[0];
+        expect(action.type).toBe('END_NIGHT');
+        if (action.type === 'END_NIGHT') {
+          // 预言家查到了 swap 后的灵骑 → 反弹致死
+          expect(action.payload.deaths).toContain(3);
+        }
+      });
+
+      it('should not change roleSeatMap when no magician swap (backward compatible)', () => {
+        // 无 swap 时行为不变：spiritKnight 在 seat 2 仍然正常工作
+        const context: HandlerContext = {
+          state: createOngoingState({
+            currentStepId: undefined,
+            players: {
+              0: createPlayer(0, 'wolf'),
+              1: createPlayer(1, 'wolf'),
+              2: createPlayer(2, 'spiritKnight'),
+              3: createPlayer(3, 'seer'),
+              4: createPlayer(4, 'villager'),
+              5: createPlayer(5, 'villager'),
+            },
+            currentNightResults: {
+              wolfVotesBySeat: { '0': 2, '1': 2 },
+              // no swappedSeats
+            },
+          }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = handleEndNight(intent, context);
+        expect(result.success).toBe(true);
+        const action = result.actions[0];
+        expect(action.type).toBe('END_NIGHT');
+        if (action.type === 'END_NIGHT') {
+          // 灵骑免疫狼刀 → 无人死亡
+          expect(action.payload.deaths).toEqual([]);
+        }
+      });
     });
   });
 
