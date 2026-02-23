@@ -307,6 +307,33 @@ export async function setRoleRevealAnimation(
 }
 
 /**
+ * Host: 分享「详细信息」给指定座位（HTTP API）
+ *
+ * ended 阶段 Host 选择允许查看夜晚行动详情的座位列表。
+ */
+export async function shareNightReview(
+  ctx: HostActionsContext,
+  allowedSeats: number[],
+): Promise<{ success: boolean; reason?: string }> {
+  facadeLog.debug('shareNightReview called', { allowedSeats });
+
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
+
+  return callGameControlApi(
+    '/api/game/share-review',
+    {
+      roomCode,
+      hostUid: ctx.myUid,
+      allowedSeats,
+    },
+    ctx.store,
+  );
+}
+
+/**
  * Host: 处理玩家提交的夜晚行动（HTTP API）
  *
  * Night-1 only. 成功后自动评估并执行夜晚推进。

@@ -1449,4 +1449,71 @@ describe('gameReducer', () => {
       expect(newState.status).toBe('ready');
     });
   });
+
+  describe('SET_NIGHT_REVIEW_ALLOWED_SEATS', () => {
+    it('should set nightReviewAllowedSeats', () => {
+      const state = createMinimalState({ status: 'ended' });
+      const action = {
+        type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS' as const,
+        allowedSeats: [0, 2],
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.nightReviewAllowedSeats).toEqual([0, 2]);
+    });
+
+    it('should overwrite previous allowedSeats', () => {
+      const state = createMinimalState({
+        status: 'ended',
+        nightReviewAllowedSeats: [0, 1],
+      });
+      const action = {
+        type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS' as const,
+        allowedSeats: [2],
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.nightReviewAllowedSeats).toEqual([2]);
+    });
+
+    it('should support empty array (revoke all)', () => {
+      const state = createMinimalState({
+        status: 'ended',
+        nightReviewAllowedSeats: [0, 1],
+      });
+      const action = {
+        type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS' as const,
+        allowedSeats: [],
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.nightReviewAllowedSeats).toEqual([]);
+    });
+  });
+
+  describe('RESTART_GAME clears nightReviewAllowedSeats', () => {
+    it('should clear nightReviewAllowedSeats on restart', () => {
+      const state = createMinimalState({
+        status: 'ended',
+        nightReviewAllowedSeats: [0, 2],
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+        },
+      });
+      const action = {
+        type: 'RESTART_GAME' as const,
+        nonce: 'test-nonce-123',
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.nightReviewAllowedSeats).toBeUndefined();
+      expect(newState.status).toBe('seated');
+    });
+  });
 });

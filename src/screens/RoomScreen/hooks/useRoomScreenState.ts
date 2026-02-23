@@ -121,6 +121,7 @@ export function useRoomScreenState(
     restartGame,
     clearAllSeats,
     setRoleRevealAnimation,
+    shareNightReview,
     viewedRole,
     submitAction,
     submitWolfVote,
@@ -176,6 +177,7 @@ export function useRoomScreenState(
   const [pendingSeat, setPendingSeat] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
   const [nightReviewVisible, setNightReviewVisible] = useState(false);
+  const [shareReviewVisible, setShareReviewVisible] = useState(false);
 
   // ── Wolf vote countdown tick ─────────────────────────────────────────────
   const [countdownTick, setCountdownTick] = useState(0);
@@ -794,14 +796,41 @@ export function useRoomScreenState(
     // ── Night review modal ──
     nightReviewVisible,
     openNightReview: useCallback(() => {
-      showAlert('提示', '请确保你是裁判或观战玩家，再查看详细信息', [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定查看',
-          onPress: () => setNightReviewVisible(true),
-        },
-      ]);
-    }, []),
+      if (isHost) {
+        // Host: choose between viewing or sharing
+        showAlert('详细信息', '选择操作', [
+          {
+            text: '自己查看',
+            onPress: () => setNightReviewVisible(true),
+          },
+          {
+            text: '分享给玩家',
+            onPress: () => setShareReviewVisible(true),
+          },
+          { text: '取消', style: 'cancel' },
+        ]);
+      } else {
+        // Non-host: confirm before viewing (anti-cheat reminder)
+        showAlert('提示', '请确保你是裁判或观战玩家，再查看详细信息', [
+          { text: '取消', style: 'cancel' },
+          {
+            text: '确定查看',
+            onPress: () => setNightReviewVisible(true),
+          },
+        ]);
+      }
+    }, [isHost]),
     closeNightReview: useCallback(() => setNightReviewVisible(false), []),
+
+    // ── Share review modal ──
+    shareReviewVisible,
+    closeShareReview: useCallback(() => setShareReviewVisible(false), []),
+    shareNightReview: useCallback(
+      async (allowedSeats: number[]) => {
+        await shareNightReview(allowedSeats);
+        setShareReviewVisible(false);
+      },
+      [shareNightReview],
+    ),
   };
 }

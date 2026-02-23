@@ -23,6 +23,7 @@ import type {
   MarkAllBotsViewedIntent,
   RestartGameIntent,
   SetRoleRevealAnimationIntent,
+  ShareNightReviewIntent,
   StartNightIntent,
   UpdateTemplateIntent,
 } from '../intents/types';
@@ -32,6 +33,7 @@ import type {
   FillWithBotsAction,
   MarkAllBotsViewedAction,
   RestartGameAction,
+  SetNightReviewAllowedSeatsAction,
   SetRoleRevealAnimationAction,
   StartNightAction,
   StateAction,
@@ -497,6 +499,42 @@ export function handleMarkAllBotsViewed(
 
   const action: MarkAllBotsViewedAction = {
     type: 'MARK_ALL_BOTS_VIEWED',
+  };
+
+  return {
+    success: true,
+    actions: [action],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+  };
+}
+
+/**
+ * 处理分享详细信息（Host-only, ended 阶段）
+ *
+ * Host 选择允许查看「详细信息」的座位列表，写入 state 后广播。
+ * 前置条件：仅 Host 可操作 + status === 'ended'
+ */
+export function handleShareNightReview(
+  intent: ShareNightReviewIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { state, isHost } = context;
+
+  if (!isHost) {
+    return { success: false, reason: 'host_only', actions: [] };
+  }
+
+  if (!state) {
+    return { success: false, reason: 'no_state', actions: [] };
+  }
+
+  if (state.status !== 'ended') {
+    return { success: false, reason: 'invalid_status', actions: [] };
+  }
+
+  const action: SetNightReviewAllowedSeatsAction = {
+    type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS',
+    allowedSeats: intent.allowedSeats,
   };
 
   return {

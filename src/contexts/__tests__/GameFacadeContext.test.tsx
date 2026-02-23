@@ -40,6 +40,7 @@ function createFakeFacade(): IGameFacade {
     addConnectionStatusListener: () => () => {},
     wasAudioInterrupted: false,
     resumeAfterRejoin: async () => {},
+    shareNightReview: async () => ({ success: true }),
   };
 }
 

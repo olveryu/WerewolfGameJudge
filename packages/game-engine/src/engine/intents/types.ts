@@ -89,6 +89,15 @@ export interface SetRoleRevealAnimationIntent {
   animation: RoleRevealAnimation;
 }
 
+/**
+ * 分享详细信息 Intent（Host-only）
+ * Host 在 ended 阶段选择允许查看「详细信息」的座位
+ */
+export interface ShareNightReviewIntent {
+  type: 'SHARE_NIGHT_REVIEW';
+  allowedSeats: number[];
+}
+
 // =============================================================================
 // 夜晚行动 Intent
 // =============================================================================
@@ -233,6 +242,7 @@ export type GameIntent =
   | RestartGameIntent
   | UpdateTemplateIntent
   | SetRoleRevealAnimationIntent
+  | ShareNightReviewIntent
   | SubmitActionIntent
   | SubmitWolfVoteIntent
   | ViewedRoleIntent

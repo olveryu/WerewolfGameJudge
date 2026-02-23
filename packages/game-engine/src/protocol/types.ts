@@ -308,6 +308,13 @@ export interface BroadcastGameState {
    * 在 ASSIGN_ROLES 时生成，用于音频/显示名/角色卡。
    */
   seerLabelMap?: Readonly<Record<string, number>>;
+
+  /**
+   * Host 分享「详细信息」给指定座位的玩家。
+   * ended 阶段 Host 选择座位后写入，restart 时清除。
+   * UI 判断：若 effectiveSeat 在此列表中，显示「详细信息」按钮。
+   */
+  nightReviewAllowedSeats?: readonly number[];
 }
 
 // =============================================================================

@@ -118,6 +118,8 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
     // 重开时更新 nonce 和 resolved 动画
     roleRevealRandomNonce: newNonce,
     resolvedRoleRevealAnimation: resolvedAnimation,
+    // 重开时清除详细信息分享权限
+    nightReviewAllowedSeats: undefined,
   };
 }
 
@@ -585,6 +587,12 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return {
         ...state,
         pendingAudioEffects: undefined,
+      };
+
+    case 'SET_NIGHT_REVIEW_ALLOWED_SEATS':
+      return {
+        ...state,
+        nightReviewAllowedSeats: action.allowedSeats,
       };
 
     default: {

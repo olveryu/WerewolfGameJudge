@@ -7,7 +7,7 @@
  *
  * 支持的 action：
  *   assign, clear-seats, fill-bots, mark-bots-viewed, restart,
- *   seat, set-animation, start, update-template, view-role
+ *   seat, set-animation, share-review, start, update-template, view-role
  *
  * 负责请求解析与分派到对应 handler，不直接操作 DB / state，不播放音频。
  */
@@ -24,6 +24,7 @@ import {
   handleMarkAllBotsViewed,
   handleRestartGame,
   handleSetRoleRevealAnimation,
+  handleShareNightReview,
   handleStartNight,
   handleUpdateTemplate,
   handleViewedRole,
@@ -44,6 +45,7 @@ import type {
   RestartRequestBody,
   SeatRequestBody,
   SetAnimationRequestBody,
+  ShareReviewRequestBody,
   StartRequestBody,
   UpdateTemplateRequestBody,
   ViewRoleRequestBody,
@@ -258,6 +260,21 @@ async function handleViewRole(req: VercelRequest, res: VercelResponse) {
   return res.status(resultToStatus(result)).json(result);
 }
 
+async function handleShareReview(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as ShareReviewRequestBody;
+  const { roomCode, hostUid, allowedSeats } = body;
+
+  if (!roomCode || !hostUid || !Array.isArray(allowedSeats)) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+    const handlerCtx = buildHandlerContext(state, hostUid);
+    return handleShareNightReview({ type: 'SHARE_NIGHT_REVIEW', allowedSeats }, handlerCtx);
+  });
+  return res.status(resultToStatus(result)).json(result);
+}
+
 // ---------------------------------------------------------------------------
 // Dispatcher
 // ---------------------------------------------------------------------------
@@ -273,6 +290,7 @@ const ROUTE_MAP: Record<
   restart: handleRestart,
   seat: handleSeat,
   'set-animation': handleSetAnimation,
+  'share-review': handleShareReview,
   start: handleStart,
   'update-template': handleUpdateTemplateRoute,
   'view-role': handleViewRole,

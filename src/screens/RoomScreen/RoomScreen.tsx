@@ -38,6 +38,7 @@ import { NightReviewModal } from './components/NightReviewModal';
 import { PlayerGrid } from './components/PlayerGrid';
 import { RoleCardModal } from './components/RoleCardModal';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
+import { ShareReviewModal } from './components/ShareReviewModal';
 import { createRoomScreenComponentStyles } from './components/styles';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
 import { buildNightReviewData } from './NightReview.helpers';
@@ -145,6 +146,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     nightReviewVisible,
     openNightReview,
     closeNightReview,
+    // Share review modal
+    shareReviewVisible,
+    closeShareReview,
+    shareNightReview,
   } = useRoomScreenState(route.params, navigation);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
@@ -409,8 +414,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 styles={componentStyles.dangerActionButton}
               />
             )}
-            {/* Night Review Button — host + spectators (no seat), ended phase only */}
-            {(isHost || effectiveSeat === null) &&
+            {/* Night Review Button — host + spectators (no seat) + allowed players, ended phase only */}
+            {(isHost ||
+              effectiveSeat === null ||
+              (effectiveSeat !== null &&
+                gameState?.nightReviewAllowedSeats?.includes(effectiveSeat))) &&
               roomStatus === GameStatus.ended &&
               !isAudioPlaying && (
                 <ActionButton
@@ -477,6 +485,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           visible={nightReviewVisible}
           data={buildNightReviewData(gameState)}
           onClose={closeNightReview}
+        />
+      )}
+
+      {/* Share Review Modal — Host 选择分享详细信息的座位 */}
+      {shareReviewVisible && gameState && (
+        <ShareReviewModal
+          visible={shareReviewVisible}
+          seats={Array.from(gameState.players.entries())
+            .filter(([seatNum, p]) => p !== null && seatNum !== effectiveSeat)
+            .map(([seatNum, p]) => ({
+              seat: seatNum,
+              displayName: p!.displayName ?? `玩家${seatNum + 1}`,
+            }))
+            .sort((a, b) => a.seat - b.seat)}
+          currentAllowedSeats={gameState.nightReviewAllowedSeats ?? []}
+          onConfirm={shareNightReview}
+          onClose={closeShareReview}
         />
       )}
     </SafeAreaView>

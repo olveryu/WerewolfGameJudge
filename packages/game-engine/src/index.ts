@@ -51,6 +51,7 @@ export {
   handleMarkAllBotsViewed,
   handleRestartGame,
   handleSetRoleRevealAnimation,
+  handleShareNightReview,
   handleStartNight,
   handleUpdateTemplate,
 } from './engine/handlers/gameControlHandler';

@@ -154,6 +154,11 @@ export interface IGameFacade {
    */
   clearAllSeats(): Promise<{ success: boolean; reason?: string }>;
 
+  /**
+   * 分享「详细信息」给指定座位（Host-only, ended 阶段）
+   */
+  shareNightReview(allowedSeats: number[]): Promise<{ success: boolean; reason?: string }>;
+
   // === Player Actions ===
   /**
    * 玩家确认已查看角色

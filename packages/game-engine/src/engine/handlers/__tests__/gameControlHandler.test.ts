@@ -5,6 +5,7 @@
 import {
   handleAssignRoles,
   handleRestartGame,
+  handleShareNightReview,
   handleStartNight,
   handleUpdateTemplate,
 } from '@werewolf/game-engine/engine/handlers/gameControlHandler';
@@ -12,6 +13,7 @@ import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types
 import type {
   AssignRolesIntent,
   RestartGameIntent,
+  ShareNightReviewIntent,
   StartNightIntent,
   UpdateTemplateIntent,
 } from '@werewolf/game-engine/engine/intents/types';
@@ -467,4 +469,70 @@ describe('handleUpdateTemplate', () => {
       expect(result.actions).toHaveLength(0);
     },
   );
+});
+
+// =============================================================================
+// handleShareNightReview tests
+// =============================================================================
+
+describe('handleShareNightReview', () => {
+  const endedState = createMinimalState({
+    status: 'ended',
+    players: {
+      0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+      1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+      2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+    },
+  });
+
+  const intent: ShareNightReviewIntent = {
+    type: 'SHARE_NIGHT_REVIEW',
+    allowedSeats: [0, 2],
+  };
+
+  it('should succeed for host in ended phase', () => {
+    const context = createContext(endedState);
+    const result = handleShareNightReview(intent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toEqual({
+      type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS',
+      allowedSeats: [0, 2],
+    });
+  });
+
+  it('should fail for non-host', () => {
+    const context = createContext(endedState, { isHost: false, myUid: 'p2' });
+    const result = handleShareNightReview(intent, context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('host_only');
+  });
+
+  it.each(['unseated', 'seated', 'assigned', 'ready', 'ongoing'] as const)(
+    'should fail when status is %s',
+    (status) => {
+      const state = createMinimalState({ status });
+      const context = createContext(state);
+      const result = handleShareNightReview(intent, context);
+
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('invalid_status');
+    },
+  );
+
+  it('should accept empty allowedSeats (revoke all)', () => {
+    const context = createContext(endedState);
+    const result = handleShareNightReview(
+      { type: 'SHARE_NIGHT_REVIEW', allowedSeats: [] },
+      context,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.actions[0]).toEqual({
+      type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS',
+      allowedSeats: [],
+    });
+  });
 });
