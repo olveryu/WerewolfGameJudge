@@ -87,6 +87,12 @@ async function callGameControlApi(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      // Guard: non-JSON error pages (502/503) would throw SyntaxError in .json()
+      if (!res.ok && !res.headers.get('content-type')?.includes('application/json')) {
+        facadeLog.error('callGameControlApi non-JSON error', { path, status: res.status });
+        if (store) store.rollbackOptimistic();
+        return { success: false, reason: 'SERVER_ERROR' };
+      }
       const result = (await res.json()) as GameControlApiResponse;
 
       // 乐观锁冲突 → 客户端透明重试（退避 + 随机抖动）

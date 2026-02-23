@@ -60,6 +60,12 @@ async function callSeatApi(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomCode, ...body }),
     });
+    // Guard: non-JSON error pages (502/503) would throw SyntaxError in .json()
+    if (!res.ok && !res.headers.get('content-type')?.includes('application/json')) {
+      facadeLog.error('callSeatApi non-JSON error', { status: res.status });
+      if (store) store.rollbackOptimistic();
+      return { success: false, reason: 'SERVER_ERROR' };
+    }
     // Response shape matches our own API contract (SeatApiResponse)
     const result = (await res.json()) as SeatApiResponse;
 
