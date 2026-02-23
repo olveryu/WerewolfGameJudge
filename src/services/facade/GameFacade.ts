@@ -216,6 +216,8 @@ export class GameFacade implements IGameFacade {
 
   async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     this._aborted = false; // Reset abort flag when creating new room
+    this._isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
+    this._wasAudioInterrupted = false; // Reset rejoin audio guard
     this._pendingAudioAckRetry = false;
     this.isHost = true;
     this.myUid = hostUid;
@@ -253,6 +255,7 @@ export class GameFacade implements IGameFacade {
     isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }> {
     this._aborted = false;
+    this._isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
     this._pendingAudioAckRetry = false;
     this.isHost = isHost;
     this.myUid = uid;
@@ -446,7 +449,8 @@ export class GameFacade implements IGameFacade {
       await seatActions.leaveSeat(this.getSeatActionsContext());
     }
 
-    // Release preloaded audio to free memory
+    // Stop currently playing audio and release preloaded audio to free memory
+    this.audioService.stop();
     this.audioService.clearPreloaded();
 
     await this.broadcastService.leaveRoom();
