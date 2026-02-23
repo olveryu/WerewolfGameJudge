@@ -128,6 +128,10 @@ export class AudioService {
   private preloadedPlayers: Map<string, AudioPlayer> = new Map();
   private preloadedWebAudios: Map<string, HTMLAudioElement> = new Map();
 
+  // Track old native players that were replaced but kept alive (paused) to avoid event issues.
+  // These are released in cleanup() and clearPreloaded() to prevent native resource leaks.
+  private staleNativePlayers: Set<AudioPlayer> = new Set();
+
   constructor() {
     // Fire-and-forget: initializes audio mode + Web visibility handler
     void this.initAudio();
@@ -408,7 +412,10 @@ export class AudioService {
       // This seems to work better than replace() which doesn't fire events.
       audioLog.debug(`[${label}] creating player and starting playback`);
       const player = createAudioPlayer(audioFile);
-      // Keep reference to old player (don't remove it), just replace reference
+      // Track old player for deferred cleanup (stale but not removed to avoid event issues)
+      if (this.player) {
+        this.staleNativePlayers.add(this.player);
+      }
       this.player = player;
       audioLog.debug(`[${label}] player created OK`);
 
@@ -557,6 +564,8 @@ export class AudioService {
     audioLog.debug('cleanup: stopping all audio');
     this.stopCurrentPlayer();
     this.stopBgm();
+    // Release stale native players accumulated during playback
+    this.releaseStaleNativePlayers();
     // Remove visibilitychange listener if registered (web only)
     if (this.visibilityHandler && typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', this.visibilityHandler);
@@ -716,9 +725,26 @@ export class AudioService {
     }
     this.preloadedPlayers.clear();
 
+    // Release stale native players accumulated during playback
+    this.releaseStaleNativePlayers();
+
     // Web: just clear references, browser GC handles the rest
     this.preloadedWebAudios.clear();
 
     audioLog.debug('clearPreloaded: all preloaded audio released');
+  }
+
+  /** Release old native AudioPlayer instances that were kept alive to avoid event issues. */
+  private releaseStaleNativePlayers(): void {
+    if (this.staleNativePlayers.size === 0) return;
+    audioLog.debug(`releasing ${this.staleNativePlayers.size} stale native players`);
+    for (const p of this.staleNativePlayers) {
+      try {
+        p.remove();
+      } catch {
+        // ignore — player may already be released
+      }
+    }
+    this.staleNativePlayers.clear();
   }
 }
