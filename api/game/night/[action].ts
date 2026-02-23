@@ -86,6 +86,13 @@ async function handleAudioAck(req: VercelRequest, res: VercelResponse) {
       if (state.hostUid !== hostUid) {
         return { success: false, reason: 'host_only', actions: [] };
       }
+      // Guard: no-op if audio is already not playing and no pending effects
+      if (
+        !state.isAudioPlaying &&
+        (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0)
+      ) {
+        return { success: false, reason: 'no_audio_playing', actions: [] };
+      }
       return {
         success: true,
         actions: [
