@@ -48,12 +48,25 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY_POSITION)
       .then((saved) => {
-        if (saved) setPosition(JSON.parse(saved));
+        if (saved) {
+          const parsed = JSON.parse(saved) as { x: number; y: number };
+          // Clamp to current screen bounds (screen may have rotated since save)
+          const clampedX = Math.max(
+            BUBBLE_MARGIN,
+            Math.min(screenWidth - BUBBLE_SIZE - BUBBLE_MARGIN, parsed.x),
+          );
+          const clampedY = Math.max(
+            BUBBLE_MARGIN + 50,
+            Math.min(screenHeight - BUBBLE_SIZE - BUBBLE_MARGIN, parsed.y),
+          );
+          setPosition({ x: clampedX, y: clampedY });
+        }
       })
       .catch((e) => {
         chatLog.warn('Failed to load bubble position:', e);
       });
-  }, []);
+    // Re-clamp when screen dimensions change (rotation)
+  }, [screenWidth, screenHeight]);
 
   // ── Bubble press (short tap) ───────────────────────
   const handleBubblePress = useCallback(() => {
