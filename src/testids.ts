@@ -87,6 +87,10 @@ export const TESTIDS = {
   nightReviewButton: 'night-review-button',
   nightReviewModal: 'night-review-modal',
 
+  // ShareReviewModal
+  shareReviewButton: 'share-review-button',
+  shareReviewModal: 'share-review-modal',
+
   // RoleRevealEffects
   // Used by: RoleRevealEffects components, unit tests
   roleRevealModal: 'role-reveal-modal',

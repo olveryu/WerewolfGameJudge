@@ -336,6 +336,15 @@ export interface ClearPendingAudioEffectsAction {
   type: 'CLEAR_PENDING_AUDIO_EFFECTS';
 }
 
+/**
+ * 设置详细信息分享权限
+ * Host 在 ended 阶段选择允许查看「详细信息」的座位列表。
+ */
+export interface SetNightReviewAllowedSeatsAction {
+  type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS';
+  allowedSeats: number[];
+}
+
 // =============================================================================
 // StateAction 联合类型
 // =============================================================================
@@ -384,4 +393,6 @@ export type StateAction =
   | ClearWolfVoteDeadlineAction
   // 待消费音频队列
   | SetPendingAudioEffectsAction
-  | ClearPendingAudioEffectsAction;
+  | ClearPendingAudioEffectsAction
+  // 详细信息分享
+  | SetNightReviewAllowedSeatsAction;

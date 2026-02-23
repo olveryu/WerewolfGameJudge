@@ -86,6 +86,13 @@ export interface UpdateTemplateRequestBody {
   templateRoles: RoleId[];
 }
 
+/** POST /api/game/share-review */
+export interface ShareReviewRequestBody {
+  roomCode: string;
+  hostUid: string;
+  allowedSeats: number[];
+}
+
 /** POST /api/game/set-animation */
 export interface SetAnimationRequestBody {
   roomCode: string;

@@ -75,6 +75,9 @@ const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
 
   // 双预言家标签映射
   'seerLabelMap',
+
+  // 详细信息分享权限
+  'nightReviewAllowedSeats',
 ];
 
 describe('normalizeState contract', () => {
@@ -140,6 +143,9 @@ describe('normalizeState contract', () => {
 
       // Debug 模式
       debugMode: { botsEnabled: true },
+
+      // 详细信息分享权限
+      nightReviewAllowedSeats: [0, 2],
     };
   };
 

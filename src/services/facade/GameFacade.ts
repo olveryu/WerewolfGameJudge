@@ -553,6 +553,15 @@ export class GameFacade implements IGameFacade {
     return hostActions.clearAllSeats(this.getHostActionsContext());
   }
 
+  /**
+   * Host: 分享「详细信息」给指定座位
+   *
+   * ended 阶段 Host 选择允许查看夜晚行动详情的座位列表。
+   */
+  async shareNightReview(allowedSeats: number[]): Promise<{ success: boolean; reason?: string }> {
+    return hostActions.shareNightReview(this.getHostActionsContext(), allowedSeats);
+  }
+
   // =========================================================================
   // Night Actions (委托给 hostActions)
   // =========================================================================

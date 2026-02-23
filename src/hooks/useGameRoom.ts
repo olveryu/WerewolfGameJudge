@@ -104,6 +104,7 @@ interface UseGameRoomResult {
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
   clearAllSeats: () => Promise<void>;
+  shareNightReview: (allowedSeats: number[]) => Promise<void>;
   setRoleRevealAnimation: (animation: RoleRevealAnimation) => Promise<void>;
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
@@ -300,6 +301,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     startGame: actions.startGame,
     restartGame: actions.restartGame,
     clearAllSeats: actions.clearAllSeats,
+    shareNightReview: actions.shareNightReview,
     setRoleRevealAnimation: actions.setRoleRevealAnimation,
     viewedRole: actions.viewedRole,
     submitAction: actions.submitAction,

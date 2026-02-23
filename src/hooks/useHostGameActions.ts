@@ -45,6 +45,7 @@ interface HostGameActionsState {
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
   clearAllSeats: () => Promise<void>;
+  shareNightReview: (allowedSeats: number[]) => Promise<void>;
   setRoleRevealAnimation: (animation: RoleRevealAnimation) => Promise<void>;
   setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
 
@@ -124,6 +125,16 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
     const result = await facade.clearAllSeats();
     notifyIfFailed(result, '全员起立');
   }, [facade]);
+
+  // Share night review to selected seats (host only)
+  const shareNightReview = useCallback(
+    async (allowedSeats: number[]): Promise<void> => {
+      if (!facade.isHostPlayer()) return;
+      const result = await facade.shareNightReview(allowedSeats);
+      notifyIfFailed(result, '分享详细信息');
+    },
+    [facade],
+  );
 
   // Set role reveal animation (host only)
   const setRoleRevealAnimation = useCallback(
@@ -232,6 +243,7 @@ export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsSt
     startGame,
     restartGame,
     clearAllSeats,
+    shareNightReview,
     setRoleRevealAnimation,
     setAudioPlaying,
     viewedRole,

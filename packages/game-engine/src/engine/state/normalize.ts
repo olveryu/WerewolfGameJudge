@@ -125,5 +125,8 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
 
     // 双预言家标签映射（透传）
     seerLabelMap: raw.seerLabelMap,
+
+    // 详细信息分享权限（透传）
+    nightReviewAllowedSeats: raw.nightReviewAllowedSeats,
   } satisfies Complete<BroadcastGameState>;
 }
