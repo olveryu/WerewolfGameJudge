@@ -225,7 +225,11 @@ export class BroadcastService {
             }
           },
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            broadcastLog.warn('DB backup channel subscribe failed:', status);
+          }
+        });
     }
   }
 

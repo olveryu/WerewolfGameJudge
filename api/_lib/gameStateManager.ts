@@ -172,8 +172,9 @@ export async function processGameAction(
         type: 'STATE_UPDATE',
         state: newState,
         revision: currentRevision + 1,
-      }).catch(() => {
-        /* non-blocking */
+      }).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('[broadcastViaRest] network error:', err);
       });
 
       return {
