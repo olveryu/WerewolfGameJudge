@@ -59,7 +59,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
       {/* Host: Restart Game - danger style (leftmost) */}
       {showRestart && (
         <ActionButton
-          label="重开"
+          label="重新开始"
           disabled={disabled}
           onPress={(meta) => {
             if (!meta.disabled) onRestartPress();
