@@ -86,7 +86,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
 
   // 5. Dreamcatcher
   if (nr.dreamingSeat != null) {
-    lines.push(`🌙 追梦人守护了 ${s(nr.dreamingSeat)}`);
+    lines.push(`🌙 摄梦人守护了 ${s(nr.dreamingSeat)}`);
   }
 
   // 6. Magician swap
@@ -97,7 +97,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   // 6a. Slacker idol (from actions Map)
   const slackerAction = gameState.actions.get('slacker' as RoleId);
   if (slackerAction && slackerAction.kind === 'target') {
-    lines.push(`🎭 混血儿选择了 ${s(slackerAction.targetSeat)} 为榜样`);
+    lines.push(`🎭 混子选择了 ${s(slackerAction.targetSeat)} 为榜样`);
   }
 
   // 6b. WildChild idol (from actions Map)
@@ -115,11 +115,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   // 7. Check reveals (seer family + others)
   const revealFields = [
     { key: 'seerReveal' as const, label: '预言家' },
-    { key: 'mirrorSeerReveal' as const, label: '镜像预言家' },
+    { key: 'mirrorSeerReveal' as const, label: '灯影预言家' },
     { key: 'drunkSeerReveal' as const, label: '酒鬼预言家' },
     { key: 'psychicReveal' as const, label: '通灵师' },
     { key: 'gargoyleReveal' as const, label: '石像鬼' },
-    { key: 'pureWhiteReveal' as const, label: '纯白' },
+    { key: 'pureWhiteReveal' as const, label: '纯白之女' },
     { key: 'wolfWitchReveal' as const, label: '狼巫' },
   ] as const;
 
@@ -147,7 +147,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   const darkWolfKingSeat = findSeatByRole(gameState.players, 'darkWolfKing' as RoleId);
   if (darkWolfKingSeat !== undefined) {
     const canShoot = nr.poisonedSeat !== darkWolfKingSeat;
-    lines.push(canShoot ? '👑 暗狼王可以发动技能' : '👑 暗狼王不能发动技能（被女巫毒杀）');
+    lines.push(canShoot ? '👑 黑狼王可以发动技能' : '👑 黑狼王不能发动技能（被女巫毒杀）');
   }
 
   // 10. Final deaths
