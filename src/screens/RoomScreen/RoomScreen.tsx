@@ -401,23 +401,25 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })
               }
             />
-            {/* Last Night Info — all players, ended phase only */}
-            {roomStatus === GameStatus.ended && !isAudioPlaying && (
+            {/* Last Night Info — host only, ended phase only */}
+            {isHost && roomStatus === GameStatus.ended && !isAudioPlaying && (
               <ActionButton
                 label="昨夜信息"
                 onPress={() => showLastNightInfo()}
                 styles={componentStyles.dangerActionButton}
               />
             )}
-            {/* Night Review Button — all players, ended phase only */}
-            {roomStatus === GameStatus.ended && !isAudioPlaying && (
-              <ActionButton
-                label="详细信息"
-                testID={TESTIDS.nightReviewButton}
-                onPress={() => openNightReview()}
-                styles={componentStyles.dangerActionButton}
-              />
-            )}
+            {/* Night Review Button — host + spectators (no seat), ended phase only */}
+            {(isHost || effectiveSeat === null) &&
+              roomStatus === GameStatus.ended &&
+              !isAudioPlaying && (
+                <ActionButton
+                  label="详细信息"
+                  testID={TESTIDS.nightReviewButton}
+                  onPress={() => openNightReview()}
+                  styles={componentStyles.dangerActionButton}
+                />
+              )}
           </View>
         )}
       </BottomActionPanel>
