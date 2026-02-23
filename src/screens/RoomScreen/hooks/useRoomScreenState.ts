@@ -644,11 +644,19 @@ export function useRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   const [speakingOrderText, setSpeakingOrderText] = useState<string | undefined>();
+  const speakingOrderShownRef = useRef(false);
 
   useEffect(() => {
-    if (roomStatus !== GameStatus.ended || !gameState || isAudioPlaying) {
+    // Reset when leaving ended status (e.g. restart)
+    if (roomStatus !== GameStatus.ended) {
+      speakingOrderShownRef.current = false;
       return;
     }
+    if (!gameState || isAudioPlaying || speakingOrderShownRef.current) {
+      return;
+    }
+    speakingOrderShownRef.current = true;
+
     const seed = gameState.roleRevealRandomNonce ?? gameState.roomCode;
     const rng = createSeededRng(seed);
     const playerCount = gameState.template.roles.length;
