@@ -30,7 +30,7 @@ interface ShareReviewModalProps {
   seats: SeatInfo[];
   /** 当前已授权的座位（用于回显） */
   currentAllowedSeats: readonly number[];
-  onConfirm: (selectedSeats: number[]) => void;
+  onConfirm: (selectedSeats: number[]) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -48,15 +48,22 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
     [colors, screenWidth, screenHeight],
   );
 
-  // Initialize selection from currentAllowedSeats when modal opens
-  const [selected, setSelected] = useState<Set<number>>(() => new Set(currentAllowedSeats));
+  // Visible seat numbers — used to filter out stale entries (e.g. host's own seat)
+  const visibleSeatSet = useMemo(() => new Set(seats.map((s) => s.seat)), [seats]);
+
+  // Initialize selection from currentAllowedSeats (filtered to visible seats)
+  const [selected, setSelected] = useState<Set<number>>(
+    () => new Set(currentAllowedSeats.filter((s) => visibleSeatSet.has(s))),
+  );
+  const [submitting, setSubmitting] = useState(false);
 
   // Sync selection with currentAllowedSeats each time modal opens
   useEffect(() => {
     if (visible) {
-      setSelected(new Set(currentAllowedSeats));
+      setSelected(new Set(currentAllowedSeats.filter((s) => visibleSeatSet.has(s))));
+      setSubmitting(false);
     }
-  }, [visible, currentAllowedSeats]);
+  }, [visible, currentAllowedSeats, visibleSeatSet]);
 
   const toggleSeat = useCallback((seat: number) => {
     setSelected((prev) => {
@@ -70,9 +77,15 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
     });
   }, []);
 
-  const handleConfirm = useCallback(() => {
-    onConfirm(Array.from(selected).sort((a, b) => a - b));
-  }, [onConfirm, selected]);
+  const handleConfirm = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onConfirm(Array.from(selected).sort((a, b) => a - b));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [onConfirm, selected, submitting]);
 
   const selectedCount = selected.size;
 
@@ -108,9 +121,15 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
               <Text style={styles.cancelButtonText}>取消</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
+            <TouchableOpacity
+              style={[styles.confirmButton, submitting && styles.confirmButtonDisabled]}
+              onPress={handleConfirm}
+              disabled={submitting}
+            >
               <Text style={styles.confirmButtonText}>
-                确认{selectedCount > 0 ? `（${selectedCount}人）` : ''}
+                {submitting
+                  ? '提交中…'
+                  : `确认${selectedCount > 0 ? `（${selectedCount}人）` : ''}`}
               </Text>
             </TouchableOpacity>
           </View>
@@ -208,6 +227,9 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       borderRadius: borderRadius.medium,
       paddingVertical: spacing.medium,
       alignItems: 'center',
+    },
+    confirmButtonDisabled: {
+      opacity: 0.5,
     },
     confirmButtonText: {
       fontSize: typography.body,
