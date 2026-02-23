@@ -6,9 +6,25 @@
  * 不 import service / hook / React；仅依赖 game-engine 类型与 getRoleDisplayName。
  */
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Internal helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Find the seat of a player with the given role (0-based), or undefined. */
+function findSeatByRole(
+  players: Map<number, LocalPlayer | null>,
+  roleId: RoleId,
+): number | undefined {
+  for (const [seat, player] of players) {
+    if (player?.role === roleId) return seat;
+  }
+  return undefined;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -78,6 +94,24 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(`🎩 魔术师交换了 ${s(nr.swappedSeats[0])} 和 ${s(nr.swappedSeats[1])}`);
   }
 
+  // 6a. Slacker idol (from actions Map)
+  const slackerAction = gameState.actions.get('slacker' as RoleId);
+  if (slackerAction && slackerAction.kind === 'target') {
+    lines.push(`🎭 混血儿选择了 ${s(slackerAction.targetSeat)} 为榜样`);
+  }
+
+  // 6b. WildChild idol (from actions Map)
+  const wildChildAction = gameState.actions.get('wildChild' as RoleId);
+  if (wildChildAction && wildChildAction.kind === 'target') {
+    lines.push(`👦 野孩子选择了 ${s(wildChildAction.targetSeat)} 为榜样`);
+  }
+
+  // 6c. WolfQueen charm (from actions Map)
+  const wolfQueenAction = gameState.actions.get('wolfQueen' as RoleId);
+  if (wolfQueenAction && wolfQueenAction.kind === 'target') {
+    lines.push(`💋 狼美人魅惑了 ${s(wolfQueenAction.targetSeat)}`);
+  }
+
   // 7. Check reveals (seer family + others)
   const revealFields = [
     { key: 'seerReveal' as const, label: '预言家' },
@@ -102,7 +136,21 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(`🤖 机械狼学习了 ${s(wr.targetSeat)}（${getRoleDisplayName(wr.learnedRoleId)}）`);
   }
 
-  // 9. Final deaths
+  // 9. Hunter / DarkWolfKing canShoot status
+  // confirmStatus is cleared on step advance, so we re-derive from poisonedSeat + players
+  const hunterSeat = findSeatByRole(gameState.players, 'hunter' as RoleId);
+  if (hunterSeat !== undefined) {
+    const canShoot = nr.poisonedSeat !== hunterSeat;
+    lines.push(canShoot ? '🔫 猎人可以发动技能' : '🔫 猎人不能发动技能（被女巫毒杀）');
+  }
+
+  const darkWolfKingSeat = findSeatByRole(gameState.players, 'darkWolfKing' as RoleId);
+  if (darkWolfKingSeat !== undefined) {
+    const canShoot = nr.poisonedSeat !== darkWolfKingSeat;
+    lines.push(canShoot ? '👑 暗狼王可以发动技能' : '👑 暗狼王不能发动技能（被女巫毒杀）');
+  }
+
+  // 10. Final deaths
   const deaths = gameState.lastNightDeaths;
   if (deaths.length === 0) {
     lines.push('✅ 昨夜平安夜');
