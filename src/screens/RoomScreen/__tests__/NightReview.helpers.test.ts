@@ -1,3 +1,6 @@
+import { makeActionTarget } from '@werewolf/game-engine/models/actions/RoleAction';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
 import { buildActionLines, buildIdentityLines, buildNightReviewData } from '../NightReview.helpers';
@@ -10,6 +13,7 @@ function makeGameState(
     currentNightResults: LocalGameState['currentNightResults'];
     lastNightDeaths: number[];
     players: Map<number, LocalPlayer | null>;
+    actions: Map<RoleId, ReturnType<typeof makeActionTarget>>;
     seerReveal: { targetSeat: number; result: '好人' | '狼人' };
     wolfRobotReveal: { targetSeat: number; result: string; learnedRoleId: string };
   }> = {},
@@ -18,6 +22,7 @@ function makeGameState(
     currentNightResults: overrides.currentNightResults ?? {},
     lastNightDeaths: overrides.lastNightDeaths ?? [],
     players: overrides.players ?? new Map(),
+    actions: overrides.actions ?? new Map(),
     seerReveal: overrides.seerReveal,
     wolfRobotReveal: overrides.wolfRobotReveal,
   } as unknown as LocalGameState;
@@ -111,6 +116,58 @@ describe('NightReview.helpers', () => {
         makeGameState({ currentNightResults: { wolfKillDisabled: true } }),
       );
       expect(lines).toContainEqual(expect.stringContaining('狼人刀空'));
+    });
+
+    it('shows slacker idol choice', () => {
+      const actions = new Map([['slacker' as RoleId, makeActionTarget(3)]]);
+      const lines = buildActionLines(makeGameState({ actions }));
+      expect(lines).toContainEqual(expect.stringContaining('混血儿选择了 4号 为榜样'));
+    });
+
+    it('shows wildChild idol choice', () => {
+      const actions = new Map([['wildChild' as RoleId, makeActionTarget(1)]]);
+      const lines = buildActionLines(makeGameState({ actions }));
+      expect(lines).toContainEqual(expect.stringContaining('野孩子选择了 2号 为榜样'));
+    });
+
+    it('shows wolfQueen charm', () => {
+      const actions = new Map([['wolfQueen' as RoleId, makeActionTarget(4)]]);
+      const lines = buildActionLines(makeGameState({ actions }));
+      expect(lines).toContainEqual(expect.stringContaining('狼美人魅惑了 5号'));
+    });
+
+    it('shows hunter can shoot when not poisoned', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'hunter')],
+        [1, makePlayer(1, 'wolf')],
+      ]);
+      const lines = buildActionLines(makeGameState({ players }));
+      expect(lines).toContainEqual(expect.stringContaining('猎人可以发动技能'));
+    });
+
+    it('shows hunter cannot shoot when poisoned', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'hunter')],
+        [1, makePlayer(1, 'wolf')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({ players, currentNightResults: { poisonedSeat: 0 } }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('猎人不能发动技能'));
+    });
+
+    it('shows darkWolfKing can shoot when not poisoned', () => {
+      const players = new Map<number, LocalPlayer | null>([[2, makePlayer(2, 'darkWolfKing')]]);
+      const lines = buildActionLines(makeGameState({ players }));
+      expect(lines).toContainEqual(expect.stringContaining('暗狼王可以发动技能'));
+    });
+
+    it('shows darkWolfKing cannot shoot when poisoned', () => {
+      const players = new Map<number, LocalPlayer | null>([[2, makePlayer(2, 'darkWolfKing')]]);
+      const lines = buildActionLines(
+        makeGameState({ players, currentNightResults: { poisonedSeat: 2 } }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('暗狼王不能发动技能'));
     });
   });
 
