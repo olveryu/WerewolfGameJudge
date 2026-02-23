@@ -54,7 +54,6 @@ export type ConnectionSyncActions = Pick<ConnectionSyncState, 'setConnectionStat
  */
 export function useConnectionSync(
   facade: IGameFacade,
-  isHost: boolean,
   roomRecord: { roomNumber: string } | null,
 ): ConnectionSyncState {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
@@ -121,7 +120,7 @@ export function useConnectionSync(
         reconnectTimerRef.current = null;
       }
     };
-  }, [connectionStatus, isHost, roomRecord, facade]);
+  }, [connectionStatus, roomRecord, facade]);
 
   // 一致性提示：状态是否可能过时
   const [isStateStale, setIsStateStale] = useState(true);
@@ -167,7 +166,7 @@ export function useConnectionSync(
     facade.fetchStateFromDB().catch((e) => {
       gameRoomLog.warn('Auto-heal fetchStateFromDB failed:', e);
     });
-  }, [isStateStale, connectionStatus, isHost, roomRecord, facade, lastStateReceivedAt]);
+  }, [isStateStale, connectionStatus, roomRecord, facade, lastStateReceivedAt]);
 
   return useMemo(
     () => ({
