@@ -200,12 +200,13 @@ export async function* streamChatMessage(
   if (!response.ok) {
     const errorText = await response.text();
     chatLog.error('Streaming API error', { status: response.status, error: errorText });
-    Sentry.captureException(new Error(`Streaming API error: HTTP ${response.status}`));
     if (response.status === 401) {
       yield { type: 'error', content: 'AI 服务认证失败，请联系管理员' };
     } else if (response.status === 429) {
+      chatLog.warn('Rate limited by AI service');
       yield { type: 'error', content: '请求太频繁，请稍后再试' };
     } else {
+      Sentry.captureException(new Error(`Streaming API error: HTTP ${response.status}`));
       yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };
     }
     return;
