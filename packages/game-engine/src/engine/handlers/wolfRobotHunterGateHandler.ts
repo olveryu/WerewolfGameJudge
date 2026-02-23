@@ -100,5 +100,6 @@ export function handleSetWolfRobotHunterStatusViewed(
   return {
     success: true,
     actions: [action],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
   };
 }
