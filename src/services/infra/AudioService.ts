@@ -301,6 +301,9 @@ export class AudioService {
 
     return new Promise<void>((resolve) => {
       try {
+        // Store resolve so stopCurrentPlayer() can settle this promise
+        this.currentPlaybackResolve = resolve;
+
         // Stop any current playback
         if (this.webAudioElement) {
           this.webAudioElement.pause();
