@@ -249,8 +249,8 @@ export async function waitForNightEnd(pages: Page[], maxIter = 80): Promise<bool
 
 /**
  * After night ends, click "昨夜信息" to reveal the night result text.
- * The flow: click "昨夜信息" → confirmation dialog ("确定查看昨夜信息？")
- * → click "确定" → info alert.
+ * The flow: click "昨夜信息" → confirmation dialog ("请在警长竞选结束后再查看，请勿作弊")
+ * → click "确定查看" → info alert.
  * Call this before asserting on '平安夜' or '玩家死亡'.
  */
 export async function viewLastNightInfo(hostPage: Page): Promise<void> {
@@ -263,10 +263,10 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
     const infoBtn = hostPage.getByText('昨夜信息').first();
     if (await infoBtn.isVisible().catch(() => false)) {
       await infoBtn.click({ force: true });
-      // Wait for confirmation dialog ("确定查看昨夜信息？")
+      // Wait for confirmation dialog ("请在警长竞选结束后再查看，请勿作弊")
       await alertModal.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
-      // Click "确定" to proceed to the info alert
-      const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
+      // Click "确定查看" to proceed to the info alert
+      const confirmBtn = alertModal.getByText('确定查看', { exact: true }).first();
       if (await confirmBtn.isVisible().catch(() => false)) {
         await confirmBtn.click({ force: true });
         // Wait for alert to cycle (hidden then visible with info)
