@@ -390,7 +390,9 @@ export class GameFacade implements IGameFacade {
           } else if (effect.audioKey === 'night') {
             await this.audioService.playNightAudio();
           } else if (effect.audioKey === 'night_end') {
-            // 天亮语音前停 BGM，避免 BGM 与"天亮了"语音重叠
+            // 音频时序：天亮语音前立即停 BGM，避免 BGM 与"天亮了"语音重叠。
+            // 注意：useBgmControl 中也有 stopBgm，但那是生命周期清理（ended && !isAudioPlaying），
+            // 触发时机晚于此处。两者职责不同，stopBgm() 幂等，重复调用无副作用。
             this.audioService.stopBgm();
             await this.audioService.playNightEndAudio();
           } else {

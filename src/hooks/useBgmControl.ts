@@ -50,9 +50,9 @@ export function useBgmControl(
     });
   }, []);
 
-  // Auto-stop BGM when game ends AND ending audio finishes (Host only)
-  // Night end flow: status→ended arrives while isAudioPlaying=true (last role ending + night_end
-  // audio still playing). BGM must keep playing until all audio effects finish.
+  // 生命周期清理：游戏结束且所有音频播完后自动停 BGM。
+  // 注意：音频时序层面的 stopBgm（如"天亮了"语音前停 BGM）由 GameFacade._playPendingAudioEffects 负责，
+  // 这里仅作为最终生命周期兜底，确保 BGM 不会在 ended 状态残留。stopBgm() 幂等，重复调用无副作用。
   useEffect(() => {
     if (!isHost) return;
     if (gameStatus === GameStatus.ended && !isAudioPlaying) {
