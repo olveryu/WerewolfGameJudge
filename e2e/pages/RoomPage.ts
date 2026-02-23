@@ -234,7 +234,7 @@ export class RoomPage {
 
   /** Click "重新开始" (重开) and confirm dialog. */
   async restart() {
-    const btn = this.page.getByText('重开');
+    const btn = this.page.getByText('重新开始');
     await expect(btn).toBeVisible({ timeout: 5000 });
     await btn.click();
     await expect(this.page.getByText('重新开始游戏？')).toBeVisible({ timeout: 3000 });
