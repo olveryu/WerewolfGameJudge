@@ -406,7 +406,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               <ActionButton
                 label="昨夜信息"
                 onPress={() => showLastNightInfo()}
-                styles={componentStyles.actionButton}
+                styles={componentStyles.dangerActionButton}
               />
             )}
             {/* Night Review Button — all players, ended phase only */}
