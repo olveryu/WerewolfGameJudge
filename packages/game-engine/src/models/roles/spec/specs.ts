@@ -4,11 +4,11 @@
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
  *
- * 25 roles total:
- * - Villager faction: villager, mirrorSeer (2)
- * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper (11)
- * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, spiritKnight (9)
- * - Third-party: slacker (1)
+ * 27 roles total:
+ * - Villager faction: villager, mirrorSeer, drunkSeer (3)
+ * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper, pureWhite (12)
+ * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight (10)
+ * - Third-party: slacker, wildChild (2)
  *
  * 提供声明式角色属性定义（faction / team / night1 / wolfMeeting 等），
  * 不依赖 service、不含副作用或 resolver 逻辑。
