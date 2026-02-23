@@ -121,9 +121,22 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ### 错误处理
 
-关键 catch 块三层齐备：`log.error()` + `Sentry.captureException()` + `showAlert(中文友好提示)`。可预期错误（用户取消、权限受限、**用户输入错误、速率限制**）只需 `log.warn()` + UI 反馈，**禁止上报 Sentry**。auth 错误用 `mapAuthError()` 映射中文，用 `isExpectedAuthError()` 判断是否可预期。面向用户文本一律中文，`showAlert` title 用具体动作（`'创建失败'`），未知错误 fallback `'请稍后重试'`。`ErrorBoundary.componentDidCatch` 使用 `Sentry.withScope` 附加 `componentStack`。
+关键 catch 块三层齐备：`log.error()` + `Sentry.captureException()` + `showAlert(中文友好提示)`。可预期错误（用户取消、权限受限、**用户输入错误、速率限制**）只需 `log.warn()` + UI 反馈，**禁止上报 Sentry**。具体地：**HTTP 状态码 `401` / `403` / `429` 是可预期错误**，catch 块应先按状态码分支处理可预期情况，fallback 才上报 Sentry。auth 错误用 `mapAuthError()` 映射中文，用 `isExpectedAuthError()` 判断是否可预期。面向用户文本一律中文，`showAlert` title 用具体动作（`'创建失败'`），未知错误 fallback `'请稍后重试'`。`ErrorBoundary.componentDidCatch` 使用 `Sentry.withScope` 附加 `componentStack`。
 
 Fail fast：handler / reducer / 纯函数保持严格校验，违反前置条件立即报错，禁止防御性兜底或 silent fallback 掩盖上层调用错误。修正应在调用方（跳过无效调用 / 修正参数），而非在被调用方放宽校验。
+
+### API Handler 幂等性
+
+服务端 handler 对重复请求必须幂等 no-op。例如 audio-ack 在 `isAudioPlaying=false` 且无 `pendingAudioEffects` 时应跳过返回失败，不重复推进。同一 `{revision, currentStepId}` 最多执行一次状态变更。
+
+### Realtime Channel 错误处理
+
+- Supabase channel `.subscribe()` 必须传 status callback。不传 = `CHANNEL_ERROR` / `TIMED_OUT` 静默丢失。
+- Fire-and-forget `.catch()` 必须 `log.error()`（或服务端 `console.error()`），禁止空 catch body。
+
+### 持久化数据加载后 Validate + Clamp
+
+从 AsyncStorage / DB 加载的 UI 状态（坐标、枚举、配置值）必须 validate 类型 + clamp 到当前有效范围，不能直接 trust。例如屏幕坐标需 clamp 到当前 viewport。
 
 ---
 
