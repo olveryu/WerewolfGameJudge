@@ -390,6 +390,8 @@ export class GameFacade implements IGameFacade {
           } else if (effect.audioKey === 'night') {
             await this.audioService.playNightAudio();
           } else if (effect.audioKey === 'night_end') {
+            // 天亮语音前停 BGM，避免 BGM 与"天亮了"语音重叠
+            this.audioService.stopBgm();
             await this.audioService.playNightEndAudio();
           } else {
             await this.audioService.playRoleBeginningAudio(effect.audioKey);
