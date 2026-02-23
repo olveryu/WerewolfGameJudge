@@ -144,9 +144,12 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
     actionButton: StyleSheet.create<ActionButtonStyles>({
       actionButton: {
         backgroundColor: colors.primary,
+        minHeight: componentSizes.button.md,
         paddingHorizontal: spacing.large,
-        paddingVertical: spacing.medium,
+        paddingVertical: spacing.small,
         borderRadius: borderRadius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
       },
       disabledButton: {
         backgroundColor: colors.textMuted,
@@ -161,9 +164,12 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
     dangerActionButton: StyleSheet.create<ActionButtonStyles>({
       actionButton: {
         backgroundColor: colors.error,
+        minHeight: componentSizes.button.md,
         paddingHorizontal: spacing.large,
-        paddingVertical: spacing.medium,
+        paddingVertical: spacing.small,
         borderRadius: borderRadius.full,
+        alignItems: 'center',
+        justifyContent: 'center',
       },
       disabledButton: {
         backgroundColor: colors.textMuted,
