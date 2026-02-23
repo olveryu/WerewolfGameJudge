@@ -113,6 +113,7 @@ export const useRoomHostDialogs = ({
       await startGame();
     } finally {
       markSubmitting(false);
+      setIsStartingGame(false);
     }
   }, [markSubmitting, setIsStartingGame, startGame]);
 
