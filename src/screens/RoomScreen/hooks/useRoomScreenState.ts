@@ -779,10 +779,10 @@ export function useRoomScreenState(
 
     // ── Last night info (all players) ──
     showLastNightInfo: useCallback(() => {
-      showAlert('确定查看昨夜信息？', '', [
+      showAlert('提示', '请在警长竞选结束后再查看，请勿作弊', [
         { text: '取消', style: 'cancel' },
         {
-          text: '确定',
+          text: '确定查看',
           onPress: () => {
             const info = getLastNightInfoFn();
             showAlert('昨夜信息', info, [{ text: '知道了', style: 'default' }]);
