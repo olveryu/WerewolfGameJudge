@@ -16,6 +16,23 @@ export interface AlertButton {
   style?: 'default' | 'cancel' | 'destructive';
 }
 
+/**
+ * Reorder buttons to match iOS Alert convention:
+ * - 2 buttons (row): cancel on the left (index 0), action on the right
+ * - 3+ buttons (column): actions first, cancel at the bottom
+ */
+function sortButtons(buttons: AlertButton[]): AlertButton[] {
+  const cancel = buttons.filter((b) => b.style === 'cancel');
+  const rest = buttons.filter((b) => b.style !== 'cancel');
+  if (cancel.length === 0) return buttons;
+  if (buttons.length === 2) {
+    // Row layout: cancel left, action right
+    return [...cancel, ...rest];
+  }
+  // Column layout: actions top, cancel bottom
+  return [...rest, ...cancel];
+}
+
 interface AlertModalProps {
   visible: boolean;
   title: string;
@@ -33,9 +50,10 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 }) => {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
+  const orderedButtons = useMemo(() => sortButtons(buttons), [buttons]);
   const styles = useMemo(
-    () => createStyles(colors, buttons.length, screenWidth),
-    [colors, buttons.length, screenWidth],
+    () => createStyles(colors, orderedButtons.length, screenWidth),
+    [colors, orderedButtons.length, screenWidth],
   );
 
   const handleButtonPress = (button: AlertButton) => {
@@ -63,7 +81,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
           ) : null}
 
           <View style={styles.buttonContainer}>
-            {buttons.map((button, index) => (
+            {orderedButtons.map((button, index) => (
               <TouchableOpacity
                 key={`alert-btn-${button.text}-${index}`}
                 testID={TESTIDS.alertButton(index)}
