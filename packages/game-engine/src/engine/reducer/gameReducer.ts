@@ -115,6 +115,12 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
     nightmareBlockedSeat: undefined,
     wolfKillDisabled: undefined,
     pendingRevealAcks: [],
+    // 重开时清除上局残留的 reveal / 音频 / 计时器 / UI 状态
+    mirrorSeerReveal: undefined,
+    drunkSeerReveal: undefined,
+    pendingAudioEffects: undefined,
+    wolfVoteDeadline: undefined,
+    ui: undefined,
     // 重开时更新 nonce 和 resolved 动画
     roleRevealRandomNonce: newNonce,
     resolvedRoleRevealAnimation: resolvedAnimation,

@@ -248,13 +248,22 @@ export function handleRestartGame(
   _intent: RestartGameIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { isHost } = context;
+  const { state, isHost } = context;
 
   // 验证：仅主机可操作
   if (!isHost) {
     return {
       success: false,
       reason: 'host_only',
+      actions: [],
+    };
+  }
+
+  // 验证：state 存在
+  if (!state) {
+    return {
+      success: false,
+      reason: 'no_state',
       actions: [],
     };
   }
