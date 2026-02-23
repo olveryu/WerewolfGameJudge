@@ -6,12 +6,12 @@
  * 样式由父组件通过 props 注入（actionStyles / dangerStyles），不自建 StyleSheet。
  */
 import { Ionicons } from '@expo/vector-icons';
-import React, { memo } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import React, { memo, useMemo } from 'react';
 
 import { TESTIDS } from '@/testids';
 import { useColors } from '@/theme';
 
+import { ActionButton } from './ActionButton';
 import type { ActionButtonStyles } from './styles';
 
 interface HostControlButtonsProps {
@@ -50,6 +50,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
   onRestartPress,
 }) => {
   const colors = useColors();
+  const settingsStyleOverride = useMemo(() => ({ backgroundColor: colors.info }), [colors.info]);
 
   if (!isHost) return null;
 
@@ -57,49 +58,50 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
     <>
       {/* Host: Restart Game - danger style (leftmost) */}
       {showRestart && (
-        <TouchableOpacity
-          style={[dangerStyles.actionButton, disabled && dangerStyles.disabledButton]}
-          onPress={onRestartPress}
+        <ActionButton
+          label="重开"
           disabled={disabled}
-        >
-          <Text style={dangerStyles.buttonText}>重开</Text>
-        </TouchableOpacity>
+          onPress={(meta) => {
+            if (!meta.disabled) onRestartPress();
+          }}
+          styles={dangerStyles}
+        />
       )}
 
       {/* Host: Settings */}
       {showSettings && (
-        <TouchableOpacity
-          style={[actionStyles.actionButton, { backgroundColor: colors.info }]}
-          onPress={onSettingsPress}
+        <ActionButton
+          label="设置"
+          icon={<Ionicons name="settings-outline" size={14} color={colors.textInverse} />}
+          onPress={() => onSettingsPress()}
+          styleOverride={settingsStyleOverride}
           testID={TESTIDS.roomSettingsButton}
-        >
-          <Text style={actionStyles.buttonText}>
-            <Ionicons name="settings-outline" size={14} color={colors.textInverse} />
-            {' 设置'}
-          </Text>
-        </TouchableOpacity>
+          styles={actionStyles}
+        />
       )}
 
       {/* Host: Prepare to Flip */}
       {showPrepareToFlip && (
-        <TouchableOpacity
-          style={[actionStyles.actionButton, disabled && actionStyles.disabledButton]}
-          onPress={onPrepareToFlipPress}
+        <ActionButton
+          label="准备看牌"
           disabled={disabled}
-        >
-          <Text style={actionStyles.buttonText}>准备看牌</Text>
-        </TouchableOpacity>
+          onPress={(meta) => {
+            if (!meta.disabled) onPrepareToFlipPress();
+          }}
+          styles={actionStyles}
+        />
       )}
 
       {/* Host: Start Game */}
       {showStartGame && (
-        <TouchableOpacity
-          style={[actionStyles.actionButton, disabled && actionStyles.disabledButton]}
-          onPress={onStartGamePress}
+        <ActionButton
+          label="开始游戏"
           disabled={disabled}
-        >
-          <Text style={actionStyles.buttonText}>开始游戏</Text>
-        </TouchableOpacity>
+          onPress={(meta) => {
+            if (!meta.disabled) onStartGamePress();
+          }}
+          styles={actionStyles}
+        />
       )}
     </>
   );
