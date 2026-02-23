@@ -43,12 +43,16 @@ function createMockCtx(overrides?: Partial<SeatActionsContext>): SeatActionsCont
 /** 创建 mock fetch response */
 function mockFetchSuccess(body: Record<string, unknown> = { success: true }): jest.Mock {
   return jest.fn().mockResolvedValue({
+    ok: true,
+    headers: { get: () => 'application/json' },
     json: () => Promise.resolve(body),
   });
 }
 
 function mockFetchFailure(reason: string): jest.Mock {
   return jest.fn().mockResolvedValue({
+    ok: true,
+    headers: { get: () => 'application/json' },
     json: () => Promise.resolve({ success: false, reason }),
   });
 }

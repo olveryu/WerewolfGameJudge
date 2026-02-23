@@ -32,6 +32,7 @@ jest.mock('../../infra/AudioService', () => ({
     preloadForRoles: jest.fn().mockResolvedValue(undefined),
     clearPreloaded: jest.fn(),
     cleanup: jest.fn(),
+    stop: jest.fn(),
   })),
 }));
 
@@ -73,6 +74,7 @@ describe('restartGame Contract (HTTP API)', () => {
         preloadForRoles: jest.fn().mockResolvedValue(undefined),
         clearPreloaded: jest.fn(),
         cleanup: jest.fn(),
+        stop: jest.fn(),
       } as any,
       roomService: {
         upsertGameState: jest.fn().mockResolvedValue(undefined),
@@ -94,6 +96,8 @@ describe('restartGame Contract (HTTP API)', () => {
   describe('API Call', () => {
     it('should call /api/game/restart with roomCode and hostUid', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -116,6 +120,8 @@ describe('restartGame Contract (HTTP API)', () => {
 
     it('should return success from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -126,6 +132,8 @@ describe('restartGame Contract (HTTP API)', () => {
 
     it('should return failure reason from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'host_only' }),
       });
 
@@ -137,6 +145,8 @@ describe('restartGame Contract (HTTP API)', () => {
 
     it('should be callable multiple times', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -157,6 +167,8 @@ describe('restartGame Contract (HTTP API)', () => {
       // Phase 7: 客户端不再做 isHost 门控，服务端通过 hostUid 校验拒绝
       (facade as unknown as { isHost: boolean }).isHost = false;
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'forbidden' }),
       });
 

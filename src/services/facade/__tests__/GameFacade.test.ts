@@ -29,6 +29,7 @@ const mockAudioServiceInstance = {
   preloadForRoles: jest.fn().mockResolvedValue(undefined),
   clearPreloaded: jest.fn(),
   cleanup: jest.fn(),
+  stop: jest.fn(),
 };
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
@@ -142,6 +143,8 @@ describe('GameFacade', () => {
 
     it('should call HTTP API and return true on success', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -159,6 +162,8 @@ describe('GameFacade', () => {
 
     it('should return false when API rejects (invalid seat)', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'invalid_seat' }),
       });
 
@@ -181,6 +186,8 @@ describe('GameFacade', () => {
 
     it('should call HTTP API and return true on success', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -191,6 +198,8 @@ describe('GameFacade', () => {
 
     it('should return false when not seated', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'not_seated' }),
       });
 
@@ -248,6 +257,8 @@ describe('GameFacade', () => {
 
     it('should call HTTP API and return result', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -265,6 +276,8 @@ describe('GameFacade', () => {
 
     it('should return false when API rejects', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'seat_taken' }),
       });
 
@@ -275,6 +288,8 @@ describe('GameFacade', () => {
 
     it('should optimistically update mySeat before server response', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -358,6 +373,8 @@ describe('GameFacade', () => {
 
     it('should return success with no reason on success', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -368,6 +385,8 @@ describe('GameFacade', () => {
 
     it('should return reason when seat is taken', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'seat_taken' }),
       });
 
@@ -378,6 +397,8 @@ describe('GameFacade', () => {
 
     it('should return reason when game in progress', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'game_in_progress' }),
       });
 
@@ -425,6 +446,8 @@ describe('GameFacade', () => {
 
     it('should return success on successful leave', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -435,6 +458,8 @@ describe('GameFacade', () => {
 
     it('should return reason when game in progress', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'game_in_progress' }),
       });
 
@@ -468,6 +493,8 @@ describe('GameFacade', () => {
 
     it('should return success on valid seat', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -478,6 +505,8 @@ describe('GameFacade', () => {
 
     it('should return reason from server when seat out of range', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'invalid_seat' }),
       });
 
@@ -500,6 +529,8 @@ describe('GameFacade', () => {
 
     it('should return success when leaving seat', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -510,6 +541,8 @@ describe('GameFacade', () => {
 
     it('should return reason when not seated', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'not_seated' }),
       });
 
@@ -535,6 +568,8 @@ describe('GameFacade', () => {
 
     it('should call correct API endpoint with roomCode and hostUid', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -557,6 +592,8 @@ describe('GameFacade', () => {
 
     it('should return success when API succeeds', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -567,6 +604,8 @@ describe('GameFacade', () => {
 
     it('should return failure reason from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
       });
 
@@ -617,6 +656,8 @@ describe('GameFacade', () => {
 
     it('should call view-role API with uid and seat', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -665,6 +706,8 @@ describe('GameFacade', () => {
       await playerFacade.joinRoom('ABCD', 'player-uid', false);
 
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -680,6 +723,8 @@ describe('GameFacade', () => {
 
     it('should return success from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -690,6 +735,8 @@ describe('GameFacade', () => {
 
     it('should return failure reason from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
       });
 
@@ -725,6 +772,8 @@ describe('GameFacade', () => {
 
     it('should call start API with roomCode and hostUid', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -755,6 +804,8 @@ describe('GameFacade', () => {
 
     it('should return success from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -765,6 +816,8 @@ describe('GameFacade', () => {
 
     it('should return failure reason from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
       });
 
@@ -779,6 +832,8 @@ describe('GameFacade', () => {
       fillAllSeatsViaReducer(facade, mockTemplate);
 
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -817,6 +872,8 @@ describe('GameFacade', () => {
 
     it('should call HTTP API for both Host and Player', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -834,6 +891,8 @@ describe('GameFacade', () => {
 
     it('should return failure reason from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
       });
 
@@ -871,6 +930,8 @@ describe('GameFacade', () => {
 
     it('should call HTTP API for both Host and Player', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -888,6 +949,8 @@ describe('GameFacade', () => {
 
     it('should return failure reason from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
       });
 
@@ -923,6 +986,8 @@ describe('GameFacade', () => {
 
     it('should call HTTP API with roomCode and hostUid', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -936,6 +1001,8 @@ describe('GameFacade', () => {
 
     it('should pass through failure reason from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
       });
 
@@ -970,6 +1037,8 @@ describe('GameFacade', () => {
 
     it('should call HTTP API with isPlaying=true', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -984,6 +1053,8 @@ describe('GameFacade', () => {
 
     it('should call HTTP API with isPlaying=false', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -994,6 +1065,8 @@ describe('GameFacade', () => {
 
     it('should pass through failure reason from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
       });
 
@@ -1029,6 +1102,8 @@ describe('GameFacade', () => {
       fillAllSeatsViaReducer(facade, mockTemplate);
 
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: false, reason: 'forbidden_while_audio_playing' }),
       });
 
@@ -1166,6 +1241,8 @@ describe('GameFacade', () => {
 
       // Mock fetch for HTTP API calls during resumeAfterRejoin
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
 
@@ -1184,6 +1261,8 @@ describe('GameFacade', () => {
       (global.fetch as jest.Mock).mockClear();
       // Re-set the mock after clearing
       (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
       return f;
@@ -1352,6 +1431,8 @@ describe('GameFacade', () => {
 
       // Now simulate reconnect — mock fetch to succeed this time
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
       mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
@@ -1374,6 +1455,8 @@ describe('GameFacade', () => {
     it('should not retry postAudioAck on reconnect when ack succeeded during playback', async () => {
       // Mock fetch to succeed for audio-ack
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
       const f = await setupRetryFacade();
@@ -1437,6 +1520,8 @@ describe('GameFacade', () => {
 
       // Now reconnect should NOT retry
       global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
       statusListeners.forEach((l) => l('live'));
