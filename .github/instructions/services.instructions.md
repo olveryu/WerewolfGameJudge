@@ -48,6 +48,22 @@ applyTo: src/services/**
 - 自动推进集中在 night flow handler（服务端），必须幂等（同一 `{revision, currentStepId}` 最多推进一次）。Facade 仅发起 intent，禁止自行计算 "should advance"。
 - phase 不匹配事件必须是幂等 no-op。Plan builder 遇到非法 `roleId` / `schemaId` 时 fail-fast。
 
+## Room Transition Cleanup
+
+持有可变状态的 service（flags / players / subscriptions）必须在 `createRoom` / `joinRoom` / `leaveRoom` 重置**全部**可变字段。AudioService 必须先 `stop()` 再 `clearPreloaded()`。遗漏 = 上一局状态泄漏到下一局。
+
+## HTTP 响应防御
+
+`fetch` 后必须先检查 `res.ok` + `content-type` 含 `application/json`，再调 `.json()`。非 JSON 响应（502/503 HTML）返回结构化错误（`{ success: false, reason: 'SERVER_ERROR' }`），不让 `SyntaxError` 传播到 Sentry。
+
+## Native 资源生命周期
+
+expo-audio `AudioPlayer` 等原生资源被替换时必须 track 旧实例，在 `cleanup()` / `clearPreloaded()` 集中 `remove()`。仅 `pause()` 不释放原生内存。Web `HTMLAudioElement` 由浏览器 GC 回收，清引用即可。
+
+## Promise 必达
+
+`new Promise()` 构造器必须保证所有路径（成功/错误/取消/stop）都 `resolve` 或 `reject`。`stopCurrentPlayer()` 等中断操作必须 settle 正在进行的 playback promise，禁止 dangling promise。
+
 ## 音频编排
 
 单一编排来源：Handler 声明 → Facade 执行 → UI 只读。

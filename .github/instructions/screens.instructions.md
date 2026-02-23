@@ -71,6 +71,14 @@ applyTo: 'src/screens/**,src/components/**'
 - 导航后重计算用 `InteractionManager.runAfterInteractions`。
 - 禁止渲染路径同步 I/O（大对象 JSON.parse 放 useEffect）。
 
+## Loading / Mutex Flag 必须在 `finally` 中重置
+
+`isStarting` / `isSubmitting` / `isLoading` 等互斥旗（disable 按钮防重复提交）必须放 `try/finally` 重置，不只在 success 路径重置。否则异常后 UI 永久锁死。
+
+## One-shot Effect 需 Ref Guard
+
+应该在生命周期内只触发一次的 effect（如"进入发言阶段显示发言顺序"）必须用 `useRef(false)` 守卫，防止每次 state broadcast 导致 deps 变化重新触发。Guard ref 在适当时机（phase 切换 / unmount）重置。
+
 ## 音频 Gate 合约
 
 `isAudioPlaying` gate 必须最高优先级：audio 播放时交互统一 NOOP，不得被 `disabledReason` / `notSelf` 等提示抢先。必须有 policy 单测锁死此优先级。新增/修改交互 policy 必须补单测覆盖关键 gate。

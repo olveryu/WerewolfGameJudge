@@ -27,7 +27,7 @@ applyTo: 'src/**/*.ts,src/**/*.tsx'
 
 - 自定义 hook 以 `use` 前缀命名，文件名与 hook 名一致（`useNightProgress.ts` → `useNightProgress()`）。
 - 禁止条件式调用 hook（`if` / `for` / `switch` / 早期 `return` 之后）。
-- deps 必须诚实反映回调实际读取的值。禁止无理由 suppress `react-hooks/exhaustive-deps`（suppress 需附注释）。
+- deps 必须诚实反映回调实际读取的值：缺少的要补，**不读取的要移除**。未使用的 dep 参数如果也无其他消费者，应从函数签名一并删除。禁止无理由 suppress `react-hooks/exhaustive-deps`（suppress 需附注释）。
 - Guard 从权威来源读取（`facade.isHostPlayer()`），不从 state dep 读。禁止 `useRef` 镜像 state 绕过 deps（stale closure 例外）。
 - `useEffect` 含订阅 / timer / listener 必须返回 cleanup 函数（即使"现在不会 unmount"）。
 - `useMemo` 仅用于昂贵计算（filter/sort/reduce、对象深构建），禁止对 primitive / 简单对象字面量包 useMemo。
