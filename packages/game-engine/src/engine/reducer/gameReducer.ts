@@ -391,8 +391,8 @@ function handleMarkAllBotsViewed(state: GameState): GameState {
     }
   }
 
-  // 检查是否所有玩家都已查看角色
-  const allViewed = Object.values(newPlayers).every((p) => p?.hasViewedRole === true);
+  // 检查是否所有玩家都已查看角色（null 座位视为已查看，与 handlePlayerViewedRole 一致）
+  const allViewed = Object.values(newPlayers).every((p) => p === null || p.hasViewedRole === true);
   const newStatus = state.status === 'assigned' && allViewed ? 'ready' : state.status;
 
   return {
