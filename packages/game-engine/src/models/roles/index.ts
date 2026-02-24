@@ -43,7 +43,7 @@ export {
   // Types
   Faction,
   getSeerCheckResultForTeam,
-  type Team,
+  Team,
 } from './spec/types';
 
 // ============================================================
@@ -51,6 +51,7 @@ export {
 // ============================================================
 import type { RoleSpec } from './spec/spec.types';
 import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec/specs';
+import { Team } from './spec/types';
 
 // ============================================================
 // Display Name Helpers (UI-facing)
@@ -82,7 +83,7 @@ export function getRoleDisplayName(roleId: string): string {
 export function isWolfRole(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
   const spec = getRoleSpec(roleId);
-  return spec?.team === 'wolf';
+  return spec?.team === Team.Wolf;
 }
 
 /**
@@ -119,7 +120,7 @@ export function doesRoleParticipateInWolfVote(roleId: string): boolean {
  * Get all wolf role IDs
  */
 export function getWolfRoleIds(): RoleId[] {
-  return getAllRoleIds().filter((id) => ROLE_SPECS[id].team === 'wolf');
+  return getAllRoleIds().filter((id) => ROLE_SPECS[id].team === Team.Wolf);
 }
 
 /**

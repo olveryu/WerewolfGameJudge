@@ -15,7 +15,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
-import type { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { realtimeLog } from '@/utils/logger';
 
 /** Status change listener */
@@ -30,7 +30,7 @@ export class RealtimeService {
   #channel: RealtimeChannel | null = null;
 
   // Connection status
-  #connectionStatus: ConnectionStatus = 'disconnected';
+  #connectionStatus: ConnectionStatus = ConnectionStatus.Disconnected;
   readonly #statusListeners: Set<ConnectionStatusListener> = new Set();
 
   /** Callback for DB state changes (postgres_changes) */
@@ -86,7 +86,7 @@ export class RealtimeService {
     // Leave previous room if any
     await this.leaveRoom();
 
-    this.#setConnectionStatus('connecting');
+    this.#setConnectionStatus(ConnectionStatus.Connecting);
 
     this.#onDbStateChange = callbacks.onDbStateChange || null;
 
@@ -120,7 +120,7 @@ export class RealtimeService {
       const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          this.#setConnectionStatus('disconnected');
+          this.#setConnectionStatus(ConnectionStatus.Disconnected);
           reject(new Error('RealtimeService: subscribe timeout after 8s'));
         }
       }, 8000);
@@ -130,28 +130,28 @@ export class RealtimeService {
           if (resolved) {
             // Reconnection: Supabase SDK re-established the channel after a drop.
             realtimeLog.info('Channel reconnected after drop');
-            this.#setConnectionStatus('live');
+            this.#setConnectionStatus(ConnectionStatus.Live);
             return;
           }
           resolved = true;
           clearTimeout(timeout);
-          this.#setConnectionStatus('syncing');
+          this.#setConnectionStatus(ConnectionStatus.Syncing);
           resolve();
         } else if (status === 'CLOSED') {
           if (resolved) return;
           resolved = true;
           clearTimeout(timeout);
-          this.#setConnectionStatus('disconnected');
+          this.#setConnectionStatus(ConnectionStatus.Disconnected);
           reject(new Error('RealtimeService: channel closed before subscribe completed'));
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           if (resolved) {
             realtimeLog.warn('Channel error after connect:', status);
-            this.#setConnectionStatus('disconnected');
+            this.#setConnectionStatus(ConnectionStatus.Disconnected);
             return;
           }
           resolved = true;
           clearTimeout(timeout);
-          this.#setConnectionStatus('disconnected');
+          this.#setConnectionStatus(ConnectionStatus.Disconnected);
           reject(new Error(`RealtimeService: subscribe failed with status ${status}`));
         }
       });
@@ -166,11 +166,14 @@ export class RealtimeService {
 
   /**
    * Mark connection as live (called after receiving state).
-   * Accepts both 'syncing' (normal flow) and 'connecting' (DB-fetch recovery).
+   * Accepts both ConnectionStatus.Syncing (normal flow) and ConnectionStatus.Connecting (DB-fetch recovery).
    */
   markAsLive(): void {
-    if (this.#connectionStatus === 'syncing' || this.#connectionStatus === 'connecting') {
-      this.#setConnectionStatus('live');
+    if (
+      this.#connectionStatus === ConnectionStatus.Syncing ||
+      this.#connectionStatus === ConnectionStatus.Connecting
+    ) {
+      this.#setConnectionStatus(ConnectionStatus.Live);
     }
   }
 
@@ -190,15 +193,15 @@ export class RealtimeService {
 
     this.#handleBrowserOffline = () => {
       realtimeLog.info('Browser offline event — setting disconnected');
-      this.#setConnectionStatus('disconnected');
+      this.#setConnectionStatus(ConnectionStatus.Disconnected);
     };
 
     this.#handleBrowserOnline = () => {
-      // Only transition to 'connecting' if we were disconnected.
+      // Only transition to ConnectionStatus.Connecting if we were disconnected.
       // The Supabase channel reconnect callback will move to syncing → live.
-      if (this.#connectionStatus === 'disconnected') {
+      if (this.#connectionStatus === ConnectionStatus.Disconnected) {
         realtimeLog.info('Browser online event — setting connecting');
-        this.#setConnectionStatus('connecting');
+        this.#setConnectionStatus(ConnectionStatus.Connecting);
       }
     };
 
@@ -227,7 +230,7 @@ export class RealtimeService {
       this.#channel = null;
     }
     this.#onDbStateChange = null;
-    this.#setConnectionStatus('disconnected');
+    this.#setConnectionStatus(ConnectionStatus.Disconnected);
     realtimeLog.info(' Left room');
   }
 }

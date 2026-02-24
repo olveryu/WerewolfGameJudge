@@ -10,9 +10,10 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { type SchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
-import type {
-  ChooseSeatSchema,
-  CompoundSchema,
+import {
+  type ChooseSeatSchema,
+  type CompoundSchema,
+  TargetConstraint,
 } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { RESOLVERS } from '@werewolf/game-engine/resolvers';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
@@ -139,7 +140,7 @@ describe('witchContext.canSave notSelf alignment (PR contract)', () => {
 
     const saveStep = witchSchema.steps[0];
     expect(saveStep.key).toBe('save');
-    expect(saveStep.constraints).toContain('notSelf');
+    expect(saveStep.constraints).toContain(TargetConstraint.NotSelf);
   });
 
   it('witch resolver should reject saving self (notSelf enforcement)', () => {

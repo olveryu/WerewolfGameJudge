@@ -35,7 +35,7 @@ import { AudioService } from '@/services/infra/AudioService';
 import { RoomService } from '@/services/infra/RoomService';
 import { RealtimeService } from '@/services/transport/RealtimeService';
 import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
-import type { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { facadeLog } from '@/utils/logger';
 
 // 子模块
@@ -119,7 +119,7 @@ export class GameFacade implements IGameFacade {
 
     // Retry: 断线期间 postAudioAck 失败 → 重连 live 后重播音频 + 重试 ack
     this.#realtimeService.addStatusListener((status) => {
-      if (status !== 'live') return;
+      if (status !== ConnectionStatus.Live) return;
       if (!this.#isHost) return;
       if (!this.#pendingAudioAckRetry) return;
       this.#pendingAudioAckRetry = false;

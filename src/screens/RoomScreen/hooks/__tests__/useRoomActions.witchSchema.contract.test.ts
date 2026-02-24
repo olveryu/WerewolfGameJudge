@@ -8,6 +8,7 @@
  * @see docs/architecture/schema-kinds.md
  */
 
+import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 describe('useRoomActions witch schema contract', () => {
@@ -44,7 +45,7 @@ describe('useRoomActions witch schema contract', () => {
 
     it('save step should have notSelf constraint (witch cannot save self)', () => {
       const saveStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'save');
-      expect(saveStep!.constraints).toContain('notSelf');
+      expect(saveStep!.constraints).toContain(TargetConstraint.NotSelf);
     });
 
     it('poison step should have no constraints (witch can poison anyone)', () => {

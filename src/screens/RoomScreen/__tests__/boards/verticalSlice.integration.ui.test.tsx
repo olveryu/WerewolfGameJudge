@@ -27,6 +27,7 @@ import {
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { cleanupHostGame, createHostGame } from '@/services/__tests__/boards/hostGameFactory';
 import { sendMessageOrThrow } from '@/services/__tests__/boards/stepByStepRunner';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
 
 // =============================================================================
@@ -155,7 +156,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
     const currentSchema = getSchema('witchAction');
     mockUseGameRoomReturn = {
       gameState: toMockGameState(realState),
-      connectionStatus: 'live',
+      connectionStatus: ConnectionStatus.Live,
       isHost: false,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'witch',
@@ -275,7 +276,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
     const currentSchema = getSchema('seerCheck');
     mockUseGameRoomReturn = {
       gameState: toMockGameState(realState),
-      connectionStatus: 'live',
+      connectionStatus: ConnectionStatus.Live,
       isHost: false,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'seer',

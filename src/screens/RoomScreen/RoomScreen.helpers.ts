@@ -14,7 +14,7 @@ import {
   getRoleSpec,
   isWolfRole,
 } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema, TargetConstraint } from '@werewolf/game-engine/models/roles/spec';
+import { type ActionSchema, TargetConstraint } from '@werewolf/game-engine/models/roles/spec';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 
@@ -367,7 +367,10 @@ export function buildSeatViewModels(
     let disabledReason: string | undefined;
 
     // Constraint: notSelf - cannot select own seat
-    if (options?.schemaConstraints?.includes('notSelf') && seat === actorSeatNumber) {
+    if (
+      options?.schemaConstraints?.includes(TargetConstraint.NotSelf) &&
+      seat === actorSeatNumber
+    ) {
       disabledReason = '不能选择自己';
     }
 

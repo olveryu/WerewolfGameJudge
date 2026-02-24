@@ -21,6 +21,7 @@ import { useCallback, useState } from 'react';
 import type { AuthService } from '@/services/infra/AuthService';
 import type { RoomRecord, RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
 import { gameRoomLog } from '@/utils/logger';
 
@@ -284,18 +285,18 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   // Force sync: read latest state from DB (reliable, bypasses broadcast channel)
   const requestSnapshot = useCallback(async (): Promise<boolean> => {
     try {
-      connection.setConnectionStatus('syncing');
+      connection.setConnectionStatus(ConnectionStatus.Syncing);
       const result = await facade.fetchStateFromDB();
       if (result) {
-        connection.setConnectionStatus('live');
+        connection.setConnectionStatus(ConnectionStatus.Live);
       } else {
-        connection.setConnectionStatus('disconnected');
+        connection.setConnectionStatus(ConnectionStatus.Disconnected);
       }
       return result;
     } catch (err) {
       gameRoomLog.error('Force sync fetchStateFromDB failed:', err);
       Sentry.captureException(err);
-      connection.setConnectionStatus('disconnected');
+      connection.setConnectionStatus(ConnectionStatus.Disconnected);
       return false;
     }
   }, [facade, connection]);

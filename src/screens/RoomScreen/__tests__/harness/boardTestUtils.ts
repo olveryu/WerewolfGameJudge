@@ -12,6 +12,7 @@ import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import React from 'react';
 import { View } from 'react-native';
 
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
 
 import { RoomScreenTestHarness } from './RoomScreenTestHarness';
@@ -193,7 +194,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     },
 
     roomRecord: null,
-    connectionStatus: 'live',
+    connectionStatus: ConnectionStatus.Live,
     isHost,
     roomStatus: GameStatus.Ongoing,
     currentActionRole,

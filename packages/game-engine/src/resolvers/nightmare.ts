@@ -4,12 +4,12 @@
  * 职责：校验梦魇阻断行动 + 计算阻断结果（若目标是狼阵营则设置 wolfKillDisabled），
  * 提供阻断校验与 wolfKillDisabled 判定。不包含 IO（网络 / 音频 / Alert）。
  *
- * RULE: If nightmare blocks ANY wolf (team='wolf'), wolves cannot kill that night.
+ * RULE: If nightmare blocks ANY wolf (Team.Wolf), wolves cannot kill that night.
  *       This includes all wolf-faction roles: wolf, nightmare, wolfQueen, darkWolfKing,
  *       gargoyle, wolfRobot, spiritKnight, etc.
  */
 
-import { ROLE_SPECS } from '../models/roles';
+import { ROLE_SPECS, Team } from '../models/roles';
 import type { ResolverFn } from './types';
 
 export const nightmareBlockResolver: ResolverFn = (context, input) => {
@@ -32,10 +32,10 @@ export const nightmareBlockResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: '目标玩家不存在' };
   }
 
-  // Check if target is ANY wolf (team='wolf')
+  // Check if target is ANY wolf (Team.Wolf)
   // ALL wolf-faction roles trigger wolfKillDisabled (including gargoyle, wolfRobot)
   const targetSpec = ROLE_SPECS[targetRoleId];
-  const blockedWolf = targetSpec.team === 'wolf';
+  const blockedWolf = targetSpec.team === Team.Wolf;
 
   return {
     valid: true,

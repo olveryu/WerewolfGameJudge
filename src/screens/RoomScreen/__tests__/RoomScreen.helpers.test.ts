@@ -4,6 +4,7 @@
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 import {
@@ -468,7 +469,7 @@ describe('buildSeatViewModels', () => {
 
       // I am seat 0, with notSelf constraint
       const seats = buildSeatViewModels(mockState, 0, false, null, {
-        schemaConstraints: ['notSelf'],
+        schemaConstraints: [TargetConstraint.NotSelf],
       });
 
       // My seat should be disabled

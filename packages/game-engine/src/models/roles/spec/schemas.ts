@@ -6,7 +6,7 @@
  * 不依赖 service、不含副作用或 resolver 逻辑。
  */
 
-import type { ActionSchema } from './schema.types';
+import { type ActionSchema, TargetConstraint } from './schema.types';
 
 export const SCHEMAS = {
   // === God actions ===
@@ -14,7 +14,7 @@ export const SCHEMAS = {
     id: 'seerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -29,7 +29,7 @@ export const SCHEMAS = {
     id: 'mirrorSeerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -44,7 +44,7 @@ export const SCHEMAS = {
     id: 'drunkSeerCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -68,7 +68,7 @@ export const SCHEMAS = {
         key: 'save',
         displayName: '救人',
         kind: 'confirmTarget', // Target is fixed (WITCH_CONTEXT.killedSeat), user only confirms
-        constraints: ['notSelf'], // Cannot save self (enforced by Host via canSave)
+        constraints: [TargetConstraint.NotSelf], // Cannot save self (enforced by Host via canSave)
         canSkip: true,
         ui: {
           confirmTitle: '确认行动',
@@ -113,7 +113,7 @@ export const SCHEMAS = {
     id: 'psychicCheck',
     displayName: '通灵',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: true,
     ui: {
       confirmTitle: '确认通灵',
@@ -128,7 +128,7 @@ export const SCHEMAS = {
     id: 'pureWhiteCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -143,7 +143,7 @@ export const SCHEMAS = {
     id: 'dreamcatcherDream',
     displayName: '摄梦',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: true,
     ui: {
       confirmTitle: '确认行动',
@@ -211,7 +211,7 @@ export const SCHEMAS = {
     id: 'wolfQueenCharm',
     displayName: '魅惑',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: true,
     ui: {
       confirmTitle: '确认行动',
@@ -239,7 +239,7 @@ export const SCHEMAS = {
     id: 'gargoyleCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -254,7 +254,7 @@ export const SCHEMAS = {
     id: 'wolfWitchCheck',
     displayName: '查验',
     kind: 'chooseSeat',
-    constraints: ['notWolfFaction'], // Cannot check wolf-faction players
+    constraints: [TargetConstraint.NotWolfFaction], // Cannot check wolf-faction players
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
@@ -269,7 +269,7 @@ export const SCHEMAS = {
     id: 'wolfRobotLearn',
     displayName: '学习',
     kind: 'chooseSeat',
-    constraints: ['notSelf'], // Cannot learn self
+    constraints: [TargetConstraint.NotSelf], // Cannot learn self
     canSkip: true,
     ui: {
       confirmTitle: '确认学习',
@@ -309,7 +309,7 @@ export const SCHEMAS = {
     id: 'slackerChooseIdol',
     displayName: '选择榜样',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: false,
     ui: {
       confirmTitle: '确认行动',
@@ -322,7 +322,7 @@ export const SCHEMAS = {
     id: 'wildChildChooseIdol',
     displayName: '选择榜样',
     kind: 'chooseSeat',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     canSkip: false,
     ui: {
       confirmTitle: '确认行动',

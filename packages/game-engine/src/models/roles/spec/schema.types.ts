@@ -21,7 +21,10 @@ export const BLOCKED_UI_DEFAULTS = {
 } as const;
 
 /** Constraint types for target selection */
-export type TargetConstraint = 'notSelf' | 'notWolfFaction';
+export enum TargetConstraint {
+  NotSelf = 'NotSelf',
+  NotWolfFaction = 'NotWolfFaction',
+}
 
 export type RevealKind =
   | 'seer'

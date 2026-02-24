@@ -15,6 +15,7 @@ import { GameStore } from '@werewolf/game-engine/engine/store';
 import type { Player } from '@werewolf/game-engine/protocol/types';
 
 import { GameFacade } from '@/services/facade/GameFacade';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 
 // Mock RealtimeService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
 jest.mock('../../transport/RealtimeService', () => ({
@@ -1435,7 +1436,7 @@ describe('GameFacade', () => {
       mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
 
       // Fire 'live' status to all registered listeners
-      statusListeners.forEach((l) => l('live'));
+      statusListeners.forEach((l) => l(ConnectionStatus.Live));
 
       // Wait for async retry (audio replay + ack)
       await new Promise((r) => setTimeout(r, 50));
@@ -1482,7 +1483,7 @@ describe('GameFacade', () => {
       (global.fetch as jest.Mock).mockClear();
 
       // Fire 'live' — should NOT retry since ack succeeded
-      statusListeners.forEach((l) => l('live'));
+      statusListeners.forEach((l) => l(ConnectionStatus.Live));
       await new Promise((r) => setTimeout(r, 50));
 
       expect(global.fetch).not.toHaveBeenCalled();
@@ -1521,7 +1522,7 @@ describe('GameFacade', () => {
         headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
-      statusListeners.forEach((l) => l('live'));
+      statusListeners.forEach((l) => l(ConnectionStatus.Live));
       await new Promise((r) => setTimeout(r, 50));
 
       expect(global.fetch).not.toHaveBeenCalled();

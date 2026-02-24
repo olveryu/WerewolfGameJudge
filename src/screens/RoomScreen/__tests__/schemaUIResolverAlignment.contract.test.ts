@@ -10,10 +10,11 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type {
-  ChooseSeatSchema,
-  CompoundSchema,
-  SwapSchema,
+import {
+  type ChooseSeatSchema,
+  type CompoundSchema,
+  type SwapSchema,
+  TargetConstraint,
 } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { type SchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { RESOLVERS } from '@werewolf/game-engine/resolvers';
@@ -86,7 +87,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
       '$schemaId: schema.constraints contains notSelf',
       ({ schemaId }) => {
         const constraints = getSchemaConstraints(schemaId);
-        expect(constraints).toContain('notSelf');
+        expect(constraints).toContain(TargetConstraint.NotSelf);
       },
     );
 
@@ -113,7 +114,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
       '$schemaId: schema.constraints does NOT contain notSelf',
       ({ schemaId }) => {
         const constraints = getSchemaConstraints(schemaId);
-        expect(constraints).not.toContain('notSelf');
+        expect(constraints).not.toContain(TargetConstraint.NotSelf);
       },
     );
 
@@ -139,7 +140,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
       '$schemaId: schema.constraints contains notWolfFaction',
       ({ schemaId }) => {
         const constraints = getSchemaConstraints(schemaId);
-        expect(constraints).toContain('notWolfFaction');
+        expect(constraints).toContain(TargetConstraint.NotWolfFaction);
       },
     );
 
@@ -147,7 +148,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
       '$schemaId: schema.constraints does NOT contain notSelf',
       ({ schemaId }) => {
         const constraints = getSchemaConstraints(schemaId);
-        expect(constraints).not.toContain('notSelf');
+        expect(constraints).not.toContain(TargetConstraint.NotSelf);
       },
     );
 
@@ -175,7 +176,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
       const schema = SCHEMAS.witchAction as CompoundSchema;
       const saveStep = schema.steps.find((s) => s.key === 'save');
       expect(saveStep).toBeDefined();
-      expect(saveStep!.constraints).toContain('notSelf');
+      expect(saveStep!.constraints).toContain(TargetConstraint.NotSelf);
     });
 
     it('witchAction resolver rejects self-save (aligned with schema)', () => {
