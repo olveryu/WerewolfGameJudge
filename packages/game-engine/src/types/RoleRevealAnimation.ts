@@ -8,20 +8,23 @@
 /**
  * 角色揭示动画配置类型（包含 random）
  * - roulette: 轮盘动画
- * - flip: 翻牌动画
+ * - roleHunt: 角色猎场动画
  * - scratch: 刮刮卡动画
  * - tarot: 塔罗牌抽取动画
  * - gachaMachine: 扭蛋机动画
+ * - cardPick: 抽牌动画
+ * - constellation: 星座连线动画
  * - none: 无动画（简单卡片）
  * - random: 随机选择（Host 解析后广播）
  */
 export type RoleRevealAnimation =
   | 'roulette'
-  | 'flip'
+  | 'roleHunt'
   | 'scratch'
   | 'tarot'
   | 'gachaMachine'
   | 'cardPick'
+  | 'constellation'
   | 'none'
   | 'random';
 
@@ -32,11 +35,12 @@ export type RoleRevealAnimation =
  */
 export type ResolvedRoleRevealAnimation =
   | 'roulette'
-  | 'flip'
+  | 'roleHunt'
   | 'scratch'
   | 'tarot'
   | 'gachaMachine'
   | 'cardPick'
+  | 'constellation'
   | 'none';
 
 /**
@@ -44,22 +48,24 @@ export type ResolvedRoleRevealAnimation =
  */
 export type RandomizableAnimation =
   | 'roulette'
-  | 'flip'
+  | 'roleHunt'
   | 'scratch'
   | 'tarot'
   | 'gachaMachine'
-  | 'cardPick';
+  | 'cardPick'
+  | 'constellation';
 
 /**
  * 可随机选择的动画数组（用于 random 解析）
  */
 export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
   'roulette',
-  'flip',
+  'roleHunt',
   'scratch',
   'tarot',
   'gachaMachine',
   'cardPick',
+  'constellation',
 ] as const;
 
 /**

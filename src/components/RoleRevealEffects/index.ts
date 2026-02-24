@@ -14,7 +14,7 @@
  *   return (
  *     <RoleRevealAnimator
  *       visible={showReveal}
- *       effectType="flip" // 'roulette' | 'flip' | 'scratch' | 'tarot' | 'gachaMachine'
+ *       effectType="roleHunt" // 'roulette' | 'roleHunt' | 'scratch' | 'tarot' | 'gachaMachine' | 'cardPick'
  *       role={role}
  *       onComplete={() => setShowReveal(false)}
  *       enableHaptics={true}
@@ -30,8 +30,8 @@ export { createRoleData, RoleRevealAnimator } from './RoleRevealAnimator';
 // Individual effect components (for advanced usage)
 export { CardPick, type CardPickProps } from './CardPick/CardPick';
 export { EnhancedRoulette, type EnhancedRouletteProps } from './EnhancedRoulette';
-export { FlipReveal } from './FlipReveal';
 export { GachaMachine } from './GachaMachine';
+export { RoleHunt, type RoleHuntProps } from './RoleHunt/RoleHunt';
 export { ScratchReveal } from './ScratchReveal';
 export { TarotDraw } from './TarotDraw';
 

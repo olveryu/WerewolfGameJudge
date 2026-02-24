@@ -883,13 +883,13 @@ describe('gameReducer', () => {
       });
       const action = {
         type: 'SET_ROLE_REVEAL_ANIMATION' as const,
-        animation: 'flip' as const,
+        animation: 'roleHunt' as const,
       };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.roleRevealAnimation).toBe('flip');
-      expect(newState.resolvedRoleRevealAnimation).toBe('flip');
+      expect(newState.roleRevealAnimation).toBe('roleHunt');
+      expect(newState.resolvedRoleRevealAnimation).toBe('roleHunt');
     });
 
     it('should resolve "random" to a specific animation', () => {
@@ -1014,7 +1014,7 @@ describe('gameReducer', () => {
         roomCode: 'TEST',
         status: 'ended',
         roleRevealRandomNonce: 'oldnonce',
-        roleRevealAnimation: 'flip',
+        roleRevealAnimation: 'roleHunt',
       });
       const action = { type: 'RESTART_GAME' as const, nonce: 'newnonce1' };
 
@@ -1046,15 +1046,15 @@ describe('gameReducer', () => {
         roomCode: 'TEST',
         status: 'ended',
         roleRevealRandomNonce: 'oldnonce',
-        roleRevealAnimation: 'flip',
-        resolvedRoleRevealAnimation: 'flip',
+        roleRevealAnimation: 'roleHunt',
+        resolvedRoleRevealAnimation: 'roleHunt',
       });
       const action = { type: 'RESTART_GAME' as const, nonce: 'newnonce2' };
 
       const newState = gameReducer(state, action);
 
       // 非 random 时，resolved 保持不变
-      expect(newState.resolvedRoleRevealAnimation).toBe('flip');
+      expect(newState.resolvedRoleRevealAnimation).toBe('roleHunt');
       // nonce 使用 action 提供的值
       expect(newState.roleRevealRandomNonce).toBe('newnonce2');
     });

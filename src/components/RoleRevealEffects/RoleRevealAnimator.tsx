@@ -13,8 +13,8 @@ import { log } from '@/utils/logger';
 
 import { CardPick } from './CardPick';
 import { EnhancedRoulette } from './EnhancedRoulette';
-import { FlipReveal } from './FlipReveal';
 import { GachaMachine } from './GachaMachine';
+import { RoleHunt } from './RoleHunt';
 import { ScratchReveal } from './ScratchReveal';
 import { TarotDraw } from './TarotDraw';
 import type { RoleData, RoleRevealAnimatorProps } from './types';
@@ -74,8 +74,8 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
     switch (effectType) {
       case 'roulette':
         return <EnhancedRoulette {...commonProps} allRoles={rouletteRoles} />;
-      case 'flip':
-        return <FlipReveal {...commonProps} />;
+      case 'roleHunt':
+        return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;
       case 'scratch':
         return <ScratchReveal {...commonProps} />;
       case 'tarot':
@@ -85,8 +85,8 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
       case 'cardPick':
         return <CardPick {...commonProps} remainingCards={remainingCards} />;
       default:
-        // Default to flip if unknown effect type
-        return <FlipReveal {...commonProps} />;
+        // Default to roleHunt if unknown effect type
+        return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;
     }
   };
 

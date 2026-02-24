@@ -18,17 +18,18 @@ import {
 
 describe('RoleRevealAnimation', () => {
   describe('RANDOMIZABLE_ANIMATIONS', () => {
-    it('should contain exactly 6 animation types', () => {
-      expect(RANDOMIZABLE_ANIMATIONS).toHaveLength(6);
+    it('should contain exactly 7 animation types', () => {
+      expect(RANDOMIZABLE_ANIMATIONS).toHaveLength(7);
     });
 
     it('should contain all expected animations', () => {
       expect(RANDOMIZABLE_ANIMATIONS).toContain('roulette');
-      expect(RANDOMIZABLE_ANIMATIONS).toContain('flip');
+      expect(RANDOMIZABLE_ANIMATIONS).toContain('roleHunt');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('scratch');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('tarot');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('gachaMachine');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('cardPick');
+      expect(RANDOMIZABLE_ANIMATIONS).toContain('constellation');
     });
 
     it('should NOT contain "none"', () => {
@@ -101,14 +102,14 @@ describe('RoleRevealAnimation', () => {
       }
     });
 
-    it('should distribute across all 6 animation types', () => {
+    it('should distribute across all 7 animation types', () => {
       // Generate results for many different seeds
       const results = new Set<ResolvedRoleRevealAnimation>();
       for (let i = 0; i < 1000; i++) {
         results.add(resolveRandomAnimation(`seed-${i}`));
       }
-      // Should eventually hit all 6 animations (probabilistic but very likely with 1000 samples)
-      expect(results.size).toBe(6);
+      // Should eventually hit all 7 animations (probabilistic but very likely with 1000 samples)
+      expect(results.size).toBe(7);
     });
 
     it('should return valid ResolvedRoleRevealAnimation type', () => {
@@ -128,8 +129,8 @@ describe('RoleRevealAnimation', () => {
     });
 
     it('should remain deterministic with previous parameter', () => {
-      const r1 = resolveRandomAnimation('seed-x', 'flip');
-      const r2 = resolveRandomAnimation('seed-x', 'flip');
+      const r1 = resolveRandomAnimation('seed-x', 'roleHunt');
+      const r2 = resolveRandomAnimation('seed-x', 'roleHunt');
       expect(r1).toBe(r2);
     });
 

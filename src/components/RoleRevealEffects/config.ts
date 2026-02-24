@@ -62,24 +62,13 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Flip Reveal
+  // Role Hunt (角色猎场)
   // =====================================================
-  flip: {
-    /** Flip animation duration */
-    flipDuration: 600,
-    /** Shadow animation range */
-    shadowOpacityRange: [0.2, 0.5] as [number, number],
-    shadowBlurRange: [10, 25] as [number, number],
-    /** Shine sweep duration */
-    shineDuration: 400,
-    /** Shine sweep delay after flip */
-    shineDelay: 100,
-    /** Particle burst count */
-    particleCount: 20,
-    /** Particle spread radius */
-    particleSpreadRadius: 150,
-    /** Particle animation duration */
-    particleDuration: 800,
+  roleHunt: {
+    /** Delay after hitting target before revealing card (ms) */
+    hitRevealDelay: 500,
+    /** Auto-select timeout if user doesn't find the target (ms) */
+    autoSelectTimeout: 8000,
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 0,
   },

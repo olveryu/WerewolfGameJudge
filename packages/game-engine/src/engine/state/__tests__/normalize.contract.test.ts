@@ -98,8 +98,8 @@ describe('normalizeState contract', () => {
       isAudioPlaying: false,
 
       // 开牌动画配置
-      roleRevealAnimation: 'flip',
-      resolvedRoleRevealAnimation: 'flip',
+      roleRevealAnimation: 'roleHunt',
+      resolvedRoleRevealAnimation: 'roleHunt',
       roleRevealRandomNonce: 'nonce-123',
 
       // Night flow 状态
