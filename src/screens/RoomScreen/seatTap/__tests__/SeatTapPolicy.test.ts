@@ -19,7 +19,7 @@ describe('SeatTapPolicy', () => {
   describe('Priority 1: Audio Gate (highest priority)', () => {
     it('returns NOOP(audio_playing) when audio is playing during ongoing game', () => {
       const input: SeatTapPolicyInput = {
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         isAudioPlaying: true,
         seat: 0,
         disabledReason: undefined,
@@ -39,7 +39,7 @@ describe('SeatTapPolicy', () => {
       // This is the key contract test: even if disabledReason exists,
       // audio gate should still return NOOP, not ALERT
       const input: SeatTapPolicyInput = {
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         isAudioPlaying: true,
         seat: 0,
         disabledReason: '不能选择自己', // Would normally trigger ALERT
@@ -60,7 +60,7 @@ describe('SeatTapPolicy', () => {
     it('audio gate does not apply to seating phase', () => {
       // Audio gate only applies during ongoing game
       const input: SeatTapPolicyInput = {
-        roomStatus: GameStatus.seated,
+        roomStatus: GameStatus.Seated,
         isAudioPlaying: true, // Even if true, should not block seating
         seat: 0,
         disabledReason: undefined,
@@ -80,7 +80,7 @@ describe('SeatTapPolicy', () => {
   describe('Priority 2: DisabledReason', () => {
     it('returns ALERT when disabledReason exists (audio not playing)', () => {
       const input: SeatTapPolicyInput = {
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         isAudioPlaying: false,
         seat: 0,
         disabledReason: '不能选择自己',
@@ -99,7 +99,7 @@ describe('SeatTapPolicy', () => {
 
     it('disabledReason also works during seating phase', () => {
       const input: SeatTapPolicyInput = {
-        roomStatus: GameStatus.seated,
+        roomStatus: GameStatus.Seated,
         isAudioPlaying: false,
         seat: 0,
         disabledReason: '某个原因',
@@ -123,7 +123,7 @@ describe('SeatTapPolicy', () => {
     describe('Seating phase', () => {
       it('returns SEATING_FLOW for unseated status', () => {
         const input: SeatTapPolicyInput = {
-          roomStatus: GameStatus.unseated,
+          roomStatus: GameStatus.Unseated,
           isAudioPlaying: false,
           seat: 3,
           disabledReason: undefined,
@@ -141,7 +141,7 @@ describe('SeatTapPolicy', () => {
 
       it('returns SEATING_FLOW for seated status', () => {
         const input: SeatTapPolicyInput = {
-          roomStatus: GameStatus.seated,
+          roomStatus: GameStatus.Seated,
           isAudioPlaying: false,
           seat: 5,
           disabledReason: undefined,
@@ -161,7 +161,7 @@ describe('SeatTapPolicy', () => {
     describe('Ongoing phase', () => {
       it('returns ACTION_FLOW when imActioner is true', () => {
         const input: SeatTapPolicyInput = {
-          roomStatus: GameStatus.ongoing,
+          roomStatus: GameStatus.Ongoing,
           isAudioPlaying: false,
           seat: 2,
           disabledReason: undefined,
@@ -179,7 +179,7 @@ describe('SeatTapPolicy', () => {
 
       it('returns NOOP(not_actioner) when imActioner is false', () => {
         const input: SeatTapPolicyInput = {
-          roomStatus: GameStatus.ongoing,
+          roomStatus: GameStatus.Ongoing,
           isAudioPlaying: false,
           seat: 2,
           disabledReason: undefined,
@@ -199,7 +199,7 @@ describe('SeatTapPolicy', () => {
     describe('Other statuses', () => {
       it('returns NOOP(other_status) for assigned status', () => {
         const input: SeatTapPolicyInput = {
-          roomStatus: GameStatus.assigned,
+          roomStatus: GameStatus.Assigned,
           isAudioPlaying: false,
           seat: 0,
           disabledReason: undefined,
@@ -217,7 +217,7 @@ describe('SeatTapPolicy', () => {
 
       it('returns NOOP(other_status) for ready status', () => {
         const input: SeatTapPolicyInput = {
-          roomStatus: GameStatus.ready,
+          roomStatus: GameStatus.Ready,
           isAudioPlaying: false,
           seat: 0,
           disabledReason: undefined,
@@ -235,7 +235,7 @@ describe('SeatTapPolicy', () => {
 
       it('returns NOOP(other_status) for ended status', () => {
         const input: SeatTapPolicyInput = {
-          roomStatus: GameStatus.ended,
+          roomStatus: GameStatus.Ended,
           isAudioPlaying: false,
           seat: 0,
           disabledReason: undefined,
@@ -259,7 +259,7 @@ describe('SeatTapPolicy', () => {
   describe('Edge cases', () => {
     it('returns NOOP(no_game_state) when hasGameState is false', () => {
       const input: SeatTapPolicyInput = {
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         isAudioPlaying: false,
         seat: 0,
         disabledReason: undefined,

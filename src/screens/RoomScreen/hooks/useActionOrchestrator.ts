@@ -673,7 +673,7 @@ export function useActionOrchestrator({
 
   useEffect(() => {
     // Guard: reset key when not in ongoing state or night ended
-    if (roomStatus !== GameStatus.ongoing || !currentActionRole) {
+    if (roomStatus !== GameStatus.Ongoing || !currentActionRole) {
       if (lastAutoIntentKeyRef.current !== null) {
         roomScreenLog.debug(' Clearing key (not ongoing or night ended)');
         lastAutoIntentKeyRef.current = null;

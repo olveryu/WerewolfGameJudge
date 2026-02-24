@@ -12,7 +12,7 @@ const makeGameState = (): LocalGameState =>
   ({
     roomCode: 'TEST',
     hostUid: 'host-uid',
-    status: GameStatus.ongoing,
+    status: GameStatus.Ongoing,
     template: {
       name: 'Test Template',
       numberOfPlayers: 6,
@@ -49,7 +49,7 @@ describe('useRoomActions seer reveal', () => {
       useRoomActions(
         {
           gameState,
-          roomStatus: GameStatus.ongoing,
+          roomStatus: GameStatus.Ongoing,
           currentActionRole: 'seer',
           currentSchema: schema,
           imActioner: true,
@@ -79,7 +79,7 @@ describe('useRoomActions seer reveal', () => {
       useRoomActions(
         {
           gameState,
-          roomStatus: GameStatus.ongoing,
+          roomStatus: GameStatus.Ongoing,
           currentActionRole: 'seer',
           currentSchema: schema,
           imActioner: true,
@@ -109,7 +109,7 @@ describe('useRoomActions seer reveal', () => {
       useRoomActions(
         {
           gameState,
-          roomStatus: GameStatus.ongoing,
+          roomStatus: GameStatus.Ongoing,
           currentActionRole: 'seer',
           currentSchema: schema,
           imActioner: true,
@@ -133,7 +133,7 @@ describe('useRoomActions seer reveal', () => {
       useRoomActions(
         {
           gameState,
-          roomStatus: GameStatus.ongoing,
+          roomStatus: GameStatus.Ongoing,
           currentActionRole: 'seer',
           currentSchema: null, // No schema!
           imActioner: true,

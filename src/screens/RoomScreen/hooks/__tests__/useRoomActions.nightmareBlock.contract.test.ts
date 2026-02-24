@@ -35,7 +35,7 @@ function makeGameState(): LocalGameState {
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   return {
     gameState: makeGameState(),
-    roomStatus: GameStatus.ongoing,
+    roomStatus: GameStatus.Ongoing,
     currentActionRole: 'seer',
     currentSchema: getSchema('seerCheck'),
     imActioner: true,

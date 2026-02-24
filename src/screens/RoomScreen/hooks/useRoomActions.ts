@@ -298,7 +298,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
   const canTapForAction = useCallback((): boolean => {
     if (!gameState) return false;
-    if (roomStatus !== GameStatus.ongoing) return false;
+    if (roomStatus !== GameStatus.Ongoing) return false;
     if (isAudioPlaying) return false;
     if (!imActioner) return false;
     return true;
@@ -349,7 +349,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     // Keep the same visibility rules previously in RoomScreen.
     if (!imActioner) return { buttons: [] };
     if (!gameState) return { buttons: [] };
-    if (roomStatus !== GameStatus.ongoing) return { buttons: [] };
+    if (roomStatus !== GameStatus.Ongoing) return { buttons: [] };
     if (isAudioPlaying) return { buttons: [] };
 
     // Schema-driven bottom action visibility.

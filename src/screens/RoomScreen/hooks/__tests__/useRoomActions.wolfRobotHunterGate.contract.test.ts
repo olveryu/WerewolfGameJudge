@@ -18,7 +18,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
   return {
     roomCode: 'TEST',
     hostUid: 'HOST',
-    status: GameStatus.ongoing,
+    status: GameStatus.Ongoing,
     template: createTemplateFromRoles(['wolfRobot', 'hunter', 'villager']),
     players: new Map([
       [0, { uid: 'U1', seatNumber: 0, displayName: 'P1', role: 'wolfRobot', hasViewedRole: true }],

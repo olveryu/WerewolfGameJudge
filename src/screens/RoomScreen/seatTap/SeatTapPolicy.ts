@@ -94,7 +94,7 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
   // When audio is playing during ongoing game, all seat taps are no-op.
   // This prevents accidental actions and ensures audio completes.
   // ─────────────────────────────────────────────────────────────────────────
-  if (roomStatus === GameStatus.ongoing && isAudioPlaying) {
+  if (roomStatus === GameStatus.Ongoing && isAudioPlaying) {
     return { kind: 'NOOP', reason: 'audio_playing' };
   }
 
@@ -115,12 +115,12 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   // Seating phase: allow seat selection/leaving
-  if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
+  if (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) {
     return { kind: 'SEATING_FLOW', seat };
   }
 
   // Ongoing phase: action flow if player can act
-  if (roomStatus === GameStatus.ongoing) {
+  if (roomStatus === GameStatus.Ongoing) {
     if (imActioner) {
       return { kind: 'ACTION_FLOW', seat };
     }

@@ -39,7 +39,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
   return {
     roomCode: '1234',
     hostUid: 'host-uid',
-    status: GameStatus.ongoing,
+    status: GameStatus.Ongoing,
     template: {
       roles: new Array(playerCount).fill('villager' as RoleId),
       name: 'Test Template',

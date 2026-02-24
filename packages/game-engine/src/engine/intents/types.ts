@@ -131,15 +131,6 @@ export interface ViewedRoleIntent {
   };
 }
 
-interface RevealAckIntent {
-  type: 'REVEAL_ACK';
-  payload: {
-    seat: number;
-    role: RoleId;
-    revision: number;
-  };
-}
-
 // =============================================================================
 // 音频控制 Intent（仅主机）
 // =============================================================================
@@ -163,14 +154,6 @@ export interface SetAudioPlayingIntent {
   };
 }
 
-interface SkipAudioIntent {
-  type: 'SKIP_AUDIO';
-}
-
-interface PlayNextAudioIntent {
-  type: 'PLAY_NEXT_AUDIO';
-}
-
 // =============================================================================
 // 夜晚流程 Intent（仅主机）
 // =============================================================================
@@ -189,18 +172,6 @@ export interface AdvanceNightIntent {
  */
 export interface EndNightIntent {
   type: 'END_NIGHT';
-}
-
-// =============================================================================
-// 状态同步 Intent
-// =============================================================================
-
-interface RequestSnapshotIntent {
-  type: 'REQUEST_SNAPSHOT';
-  payload: {
-    uid: string;
-    lastRevision?: number;
-  };
 }
 
 // =============================================================================
@@ -228,30 +199,3 @@ export interface FillWithBotsIntent {
 export interface MarkAllBotsViewedIntent {
   type: 'MARK_ALL_BOTS_VIEWED';
 }
-
-// =============================================================================
-// Intent 联合类型
-// =============================================================================
-
-type _GameIntent =
-  | JoinSeatIntent
-  | LeaveMySeatIntent
-  | ClearAllSeatsIntent
-  | AssignRolesIntent
-  | StartNightIntent
-  | RestartGameIntent
-  | UpdateTemplateIntent
-  | SetRoleRevealAnimationIntent
-  | ShareNightReviewIntent
-  | SubmitActionIntent
-  | SubmitWolfVoteIntent
-  | ViewedRoleIntent
-  | RevealAckIntent
-  | SetAudioPlayingIntent
-  | SkipAudioIntent
-  | PlayNextAudioIntent
-  | AdvanceNightIntent
-  | EndNightIntent
-  | RequestSnapshotIntent
-  | FillWithBotsIntent
-  | MarkAllBotsViewedIntent;

@@ -18,7 +18,7 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {
     gameState: { template: { roles: [] } } as unknown as LocalGameState,
-    roomStatus: GameStatus.ongoing,
+    roomStatus: GameStatus.Ongoing,
     currentActionRole: null,
     currentSchema: null,
     imActioner: true,
@@ -192,7 +192,7 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
 
     const ctx: GameContext = {
       gameState: { template: { roles: [] } } as unknown as LocalGameState,
-      roomStatus: GameStatus.ongoing,
+      roomStatus: GameStatus.Ongoing,
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,
       imActioner: true,
@@ -234,7 +234,7 @@ describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
 
     const ctx: GameContext = {
       gameState: { template: { roles: [] } } as unknown as LocalGameState,
-      roomStatus: GameStatus.ongoing,
+      roomStatus: GameStatus.Ongoing,
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,
       imActioner: true,

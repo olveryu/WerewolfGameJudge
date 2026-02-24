@@ -195,7 +195,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     roomRecord: null,
     connectionStatus: 'live',
     isHost,
-    roomStatus: GameStatus.ongoing,
+    roomStatus: GameStatus.Ongoing,
     currentActionRole,
     currentSchema,
     currentStepId: schemaId,
@@ -268,66 +268,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
 // Test Context
 // =============================================================================
 
-interface _BoardTestContext {
-  harness: RoomScreenTestHarness;
-  mockShowAlert: jest.Mock;
-  gameRoomMock: ReturnType<typeof createGameRoomMock>;
-  setGameRoomMock: (mock: ReturnType<typeof createGameRoomMock>) => void;
-}
-
-// =============================================================================
-// Common Test Setup
-// =============================================================================
-
-/**
- * Standard mocks that should be set up in every board UI test
- */
-function _setupBoardTestMocks() {
-  // Mock alert
-  jest.mock('../../../../utils/alert', () => ({
-    showAlert: jest.fn(),
-  }));
-
-  // Mock navigation
-  jest.mock('@react-navigation/native', () => ({}));
-
-  // Mock SafeAreaContext
-  jest.mock('react-native-safe-area-context', () => ({
-    SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
-  }));
-
-  // Mock host dialogs
-  jest.mock('../../useRoomHostDialogs', () => ({
-    useRoomHostDialogs: () => ({
-      showPrepareToFlipDialog: jest.fn(),
-      showStartGameDialog: jest.fn(),
-      showRestartDialog: jest.fn(),
-      handleSettingsPress: jest.fn(),
-    }),
-  }));
-
-  // Mock seat dialogs
-  jest.mock('../../useRoomSeatDialogs', () => ({
-    useRoomSeatDialogs: () => ({
-      showEnterSeatDialog: jest.fn(),
-      showLeaveSeatDialog: jest.fn(),
-      handleConfirmSeat: jest.fn(),
-      handleCancelSeat: jest.fn(),
-      handleConfirmLeave: jest.fn(),
-      handleLeaveRoom: jest.fn(),
-    }),
-  }));
-
-  // Mock useActionerState to always return imActioner=true
-  // This is critical for action dialogs to trigger
-  jest.mock('../hooks/useActionerState', () => ({
-    useActionerState: () => ({
-      imActioner: true,
-      showWolves: true,
-    }),
-  }));
-}
-
 // =============================================================================
 // Common Test Actions
 // =============================================================================
@@ -347,23 +287,6 @@ export async function waitForRoomScreen(getByTestId: (id: string) => any) {
 export function tapSeat(getByTestId: (id: string) => any, seatNumber: number) {
   const seat = getByTestId(TESTIDS.seatTilePressable(seatNumber));
   fireEvent.press(seat);
-}
-
-/**
- * Tap the bottom action button (by text content since no testID)
- * Returns true if found and pressed, false otherwise
- */
-function _tapBottomAction(queryByText: (text: string) => any, buttonText: string): boolean {
-  try {
-    const button = queryByText(buttonText);
-    if (button) {
-      fireEvent.press(button);
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
 }
 
 // =============================================================================
@@ -487,11 +410,6 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
 
   return self;
 }
-
-/**
- * Type for the reactive mock returned by createReactiveGameRoomMock
- */
-type _ReactiveGameRoomMock = ReturnType<typeof createReactiveGameRoomMock>;
 
 // =============================================================================
 // Chain Interaction Drivers
@@ -1204,77 +1122,6 @@ export async function coverageChainWolfVoteEmpty(
 
   result.unmount();
   return { submitWolfVote };
-}
-
-/**
- * Coverage chain: witch with killedSeat=-1 → auto-trigger shows witchNoKill dialog
- * No button press needed (informational dialog).
- */
-async function _coverageChainWitchNoKill(
-  harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
-  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
-  seatNumber: number,
-): Promise<void> {
-  mockSetter(
-    createGameRoomMock({
-      schemaId: 'witchAction',
-      currentActionRole: 'witch',
-      myRole: 'witch',
-      mySeatNumber: seatNumber,
-      witchContext: { killedSeat: -1, canSave: false, canPoison: true },
-      gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
-    }),
-  );
-
-  const result = renderFn();
-  await waitForRoomScreen(result.getByTestId);
-  await waitFor(() => expect(harness.hasSeen('witchNoKill')).toBe(true));
-  result.unmount();
-}
-
-/**
- * Coverage chain: witch skipAll → press "不使用技能" → skipConfirm → submitAction called
- *
- * Handles compound witchAction schema where bottomActionText comes from poison sub-step.
- * Returns { submitAction } for payload assertions.
- */
-async function _coverageChainWitchSkipAll(
-  harness: RoomScreenTestHarness,
-  mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
-  renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
-  seatNumber: number,
-): Promise<{ submitAction: jest.Mock }> {
-  const submitAction = jest.fn().mockResolvedValue(undefined);
-  mockSetter(
-    createGameRoomMock({
-      schemaId: 'witchAction',
-      currentActionRole: 'witch',
-      myRole: 'witch',
-      mySeatNumber: seatNumber,
-      witchContext: { killedSeat: -1, canSave: false, canPoison: true },
-      gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
-      hookOverrides: { submitAction },
-    }),
-  );
-
-  const result = renderFn();
-  await waitForRoomScreen(result.getByTestId);
-
-  // Witch compound skip uses poison step's bottomActionText
-  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec/schemas');
-  const poisonStep = SCHEMAS.witchAction.steps?.find((s: any) => s.key === 'poison');
-  const skipText = poisonStep?.ui?.bottomActionText || '不使用技能';
-
-  const skipButton = result.getByText(skipText);
-  fireEvent.press(skipButton);
-  await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
-
-  harness.pressPrimaryOnType('skipConfirm');
-  expect(submitAction).toHaveBeenCalledTimes(1);
-
-  result.unmount();
-  return { submitAction };
 }
 
 /**

@@ -194,7 +194,7 @@ export function useRoomScreenState(
     // Guard: only fire postProgression while game is ongoing.
     // On host rejoin with status `ended`, stale wolfVoteDeadline may still exist
     // and be expired — without this guard it would fire immediately and get 400.
-    if (roomStatus !== GameStatus.ongoing) return;
+    if (roomStatus !== GameStatus.Ongoing) return;
 
     // Already expired on mount — fire postProgression immediately (once)
     if (Date.now() >= wolfVoteDeadline) {
@@ -347,7 +347,7 @@ export function useRoomScreenState(
     return buildSeatViewModels(gameState, actorSeatForUi, showWolves, firstSwapSeat, {
       schemaConstraints: imActioner && !skipConstraints ? currentSchemaConstraints : undefined,
       secondSelectedSeat: secondSeat,
-      showReadyBadges: roomStatus === GameStatus.assigned || roomStatus === GameStatus.ready,
+      showReadyBadges: roomStatus === GameStatus.Assigned || roomStatus === GameStatus.Ready,
     });
   }, [
     gameState,
@@ -404,7 +404,7 @@ export function useRoomScreenState(
   // Reset UI state when game restarts
   useEffect(() => {
     if (!gameState) return;
-    if (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) {
+    if (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) {
       roomScreenLog.debug('[useRoomScreenState] Resetting UI state for restart', { roomStatus });
       setIsStartingGame(false);
       setFirstSwapSeat(null);
@@ -648,7 +648,7 @@ export function useRoomScreenState(
 
   useEffect(() => {
     // Reset when leaving ended status (e.g. restart)
-    if (roomStatus !== GameStatus.ended) {
+    if (roomStatus !== GameStatus.Ended) {
       speakingOrderShownRef.current = false;
       return;
     }

@@ -68,34 +68,34 @@ export class GameFacade implements IGameFacade {
   private isHost = false;
   private myUid: string | null = null;
   /** Cached roomCode: survives store.reset(), used by fetchStateFromDB fallback */
-  private _roomCode: string | null = null;
+  #roomCode: string | null = null;
 
   /**
    * Abort flag: set to true when leaving room.
-   * Used to abort ongoing async operations (e.g., audio queue in _playPendingAudioEffects).
+   * Used to abort ongoing async operations (e.g., audio queue in #playPendingAudioEffects).
    * Reset to false when creating/joining a new room.
    */
-  private _aborted = false;
+  #aborted = false;
 
   /**
-   * 防止 _playPendingAudioEffects 重入。
+   * 防止 #playPendingAudioEffects 重入。
    * 同一批 pendingAudioEffects 只播放一次。
    */
-  private _isPlayingEffects = false;
+  #isPlayingEffects = false;
 
   /**
    * 标记 Host rejoin 时音频是否被中断（缓存中 isAudioPlaying === true）。
    * 用于 UI 层判断是否需要重播当前步骤音频。
    * @see resumeAfterRejoin
    */
-  private _wasAudioInterrupted = false;
+  #wasAudioInterrupted = false;
 
   /**
    * 断线时 postAudioAck 失败 → 设为 true。
    * 重连后（status → live）且仍为 Host 时自动重试 postAudioAck。
    * leaveRoom / createRoom / joinRoom 重置。
    */
-  private _pendingAudioAckRetry = false;
+  #pendingAudioAckRetry = false;
 
   /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
@@ -112,16 +112,16 @@ export class GameFacade implements IGameFacade {
       if (!this.isHost) return;
       if (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0) return;
       // Avoid reacting during rejoin overlay (resumeAfterRejoin handles that path)
-      if (this._wasAudioInterrupted) return;
-      void this._playPendingAudioEffects(state.pendingAudioEffects);
+      if (this.#wasAudioInterrupted) return;
+      void this.#playPendingAudioEffects(state.pendingAudioEffects);
     });
 
     // Retry: 断线期间 postAudioAck 失败 → 重连 live 后重播音频 + 重试 ack
     this.realtimeService.addStatusListener((status) => {
       if (status !== 'live') return;
       if (!this.isHost) return;
-      if (!this._pendingAudioAckRetry) return;
-      this._pendingAudioAckRetry = false;
+      if (!this.#pendingAudioAckRetry) return;
+      this.#pendingAudioAckRetry = false;
 
       // 优先重播断线时未播完的音频（pendingAudioEffects 仍在 store 中）
       const state = this.store.getState();
@@ -130,8 +130,8 @@ export class GameFacade implements IGameFacade {
         facadeLog.info('Replaying audio effects after reconnect', {
           effectCount: effects.length,
         });
-        // _playPendingAudioEffects finally 块会 postAudioAck
-        void this._playPendingAudioEffects(effects);
+        // #playPendingAudioEffects finally 块会 postAudioAck
+        void this.#playPendingAudioEffects(effects);
       } else {
         // 无 effects 可重播，兜底直接重试 ack
         facadeLog.info('Retrying postAudioAck after reconnect (no effects to replay)');
@@ -140,7 +140,7 @@ export class GameFacade implements IGameFacade {
             facadeLog.warn('postAudioAck retry still failed, will retry on next reconnect', {
               reason: result.reason,
             });
-            this._pendingAudioAckRetry = true;
+            this.#pendingAudioAckRetry = true;
           }
         });
       }
@@ -209,13 +209,13 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
-    this._aborted = false; // Reset abort flag when creating new room
-    this._isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
-    this._wasAudioInterrupted = false; // Reset rejoin audio guard
-    this._pendingAudioAckRetry = false;
+    this.#aborted = false; // Reset abort flag when creating new room
+    this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
+    this.#wasAudioInterrupted = false; // Reset rejoin audio guard
+    this.#pendingAudioAckRetry = false;
     this.isHost = true;
     this.myUid = hostUid;
-    this._roomCode = roomCode;
+    this.#roomCode = roomCode;
 
     // 初始化 store（使用共享的 buildInitialGameState）
     const initialState = buildInitialGameState(roomCode, hostUid, template);
@@ -236,7 +236,7 @@ export class GameFacade implements IGameFacade {
    *
    * 社区标准模式 "subscribe first, then fetch"：
    * 先订阅频道（不丢事件），再从 DB 读取初始状态。
-   * Host rejoin 预设 _wasAudioInterrupted guard 阻断订阅期间可能到达的 pendingAudioEffects。
+   * Host rejoin 预设 #wasAudioInterrupted guard 阻断订阅期间可能到达的 pendingAudioEffects。
    *
    * @returns success=false 仅在 Host rejoin 且无 DB 状态时
    */
@@ -245,17 +245,17 @@ export class GameFacade implements IGameFacade {
     uid: string,
     isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }> {
-    this._aborted = false;
-    this._isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
-    this._pendingAudioAckRetry = false;
+    this.#aborted = false;
+    this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
+    this.#pendingAudioAckRetry = false;
     this.isHost = isHost;
     this.myUid = uid;
-    this._roomCode = roomCode;
+    this.#roomCode = roomCode;
     this.store.reset();
 
     // Host rejoin: 预设 guard，阻断 subscribe 阶段收到 pendingAudioEffects 时 reactive 误播
     // （非 ongoing 状态无 pendingAudioEffects，pre-set 无害；DB fetch 后按实际状态修正）
-    if (isHost) this._wasAudioInterrupted = true;
+    if (isHost) this.#wasAudioInterrupted = true;
 
     // 1. Subscribe first（社区标准：不丢 gap 期间的事件）
     await this.realtimeService.joinRoom(roomCode, uid, {
@@ -273,13 +273,13 @@ export class GameFacade implements IGameFacade {
       if (isHost) {
         // 在 applySnapshot 之前修正：applySnapshot 同步触发 listener，
         // listener 检查 wasAudioInterrupted 决定是否弹 overlay。
-        this._wasAudioInterrupted = dbState.state.status === 'ongoing';
+        this.#wasAudioInterrupted = dbState.state.status === 'ongoing';
       }
       this.store.applySnapshot(dbState.state, dbState.revision);
       this.realtimeService.markAsLive();
     } else if (isHost) {
       // Host rejoin 无 DB 状态：无法恢复
-      this._wasAudioInterrupted = false;
+      this.#wasAudioInterrupted = false;
       this.isHost = false;
       this.myUid = null;
       return { success: false, reason: 'no_db_state' };
@@ -296,7 +296,7 @@ export class GameFacade implements IGameFacade {
    * UI 层读取此值决定"继续游戏"overlay 是否需要重播当前步骤音频。
    */
   get wasAudioInterrupted(): boolean {
-    return this._wasAudioInterrupted;
+    return this.#wasAudioInterrupted;
   }
 
   /**
@@ -312,8 +312,8 @@ export class GameFacade implements IGameFacade {
    */
   async resumeAfterRejoin(): Promise<void> {
     // Early clear — 阻断 listener 重新设 overlay + 防止多次点击重入
-    if (!this._wasAudioInterrupted) return;
-    this._wasAudioInterrupted = false;
+    if (!this.#wasAudioInterrupted) return;
+    this.#wasAudioInterrupted = false;
 
     const state = this.store.getState();
     if (!state) return;
@@ -365,16 +365,16 @@ export class GameFacade implements IGameFacade {
    * 触发源：store subscription 检测到 state.pendingAudioEffects 非空。
    * 播放完成后调用 postAudioAck 释放 isAudioPlaying gate + 触发推进。
    *
-   * 防重入：_isPlayingEffects flag。
-   * 中断：_aborted flag（leaveRoom 时设置）。
+   * 防重入：isPlayingEffects flag。
+   * 中断：aborted flag（leaveRoom 时设置）。
    */
-  private async _playPendingAudioEffects(effects: AudioEffect[]): Promise<void> {
-    if (this._isPlayingEffects) return;
-    this._isPlayingEffects = true;
+  async #playPendingAudioEffects(effects: AudioEffect[]): Promise<void> {
+    if (this.#isPlayingEffects) return;
+    this.#isPlayingEffects = true;
 
     try {
       for (const effect of effects) {
-        if (this._aborted) break;
+        if (this.#aborted) break;
         try {
           if (effect.isEndAudio) {
             await this.audioService.playRoleEndingAudio(effect.audioKey);
@@ -398,15 +398,15 @@ export class GameFacade implements IGameFacade {
         }
       }
     } finally {
-      this._isPlayingEffects = false;
+      this.#isPlayingEffects = false;
       // 无论成功/失败/中断，都 POST audio-ack 释放 gate
-      if (!this._aborted) {
+      if (!this.#aborted) {
         const ackResult = await hostActions.postAudioAck(this.getHostActionsContext());
         if (!ackResult.success) {
           facadeLog.warn('postAudioAck failed during playback, will retry on reconnect', {
             reason: ackResult.reason,
           });
-          this._pendingAudioAckRetry = true;
+          this.#pendingAudioAckRetry = true;
         }
       }
     }
@@ -427,8 +427,8 @@ export class GameFacade implements IGameFacade {
 
   async leaveRoom(): Promise<void> {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
-    this._aborted = true;
-    this._pendingAudioAckRetry = false;
+    this.#aborted = true;
+    this.#pendingAudioAckRetry = false;
 
     const mySeat = this.getMySeatNumber();
 
@@ -445,7 +445,7 @@ export class GameFacade implements IGameFacade {
     this.store.reset();
     this.myUid = null;
     this.isHost = false;
-    this._roomCode = null;
+    this.#roomCode = null;
   }
 
   // =========================================================================
@@ -622,7 +622,7 @@ export class GameFacade implements IGameFacade {
    * Host 和 Player 统一使用。
    */
   async fetchStateFromDB(): Promise<boolean> {
-    const roomCode = this.store.getState()?.roomCode ?? this._roomCode;
+    const roomCode = this.store.getState()?.roomCode ?? this.#roomCode;
     if (!roomCode) return false;
 
     try {

@@ -53,6 +53,7 @@ export default tseslint.config(
         ...globals.node,
       },
       parserOptions: {
+        projectService: true,
         ecmaFeatures: { jsx: true },
       },
     },
@@ -95,6 +96,33 @@ export default tseslint.config(
       // Import sorting
       'simple-import-sort/imports': 'warn',
       'simple-import-sort/exports': 'warn',
+
+      // Naming conventions
+      '@typescript-eslint/naming-convention': [
+        'warn',
+        // Default: camelCase, no leading underscore
+        { selector: 'default', format: ['camelCase'] },
+        // Variables: allow _prefix for exhaustive checks / destructuring placeholders
+        {
+          selector: 'variable',
+          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+          leadingUnderscore: 'allow',
+        },
+        // Functions: camelCase | PascalCase (React components)
+        { selector: 'function', format: ['camelCase', 'PascalCase'] },
+        // Parameters: allow _prefix for unused callback params
+        { selector: 'parameter', format: ['camelCase'], leadingUnderscore: 'allow' },
+        // Class / interface / type alias / enum: PascalCase
+        { selector: 'typeLike', format: ['PascalCase'] },
+        // Enum members: PascalCase | UPPER_CASE
+        { selector: 'enumMember', format: ['PascalCase', 'UPPER_CASE'] },
+        // Object literal properties & methods: relax (external APIs, JSON keys, mock components)
+        { selector: 'objectLiteralProperty', format: null },
+        { selector: 'objectLiteralMethod', format: null },
+        { selector: 'typeProperty', format: null },
+        // Import: allow any (third-party naming out of our control)
+        { selector: 'import', format: null },
+      ],
     },
   },
 

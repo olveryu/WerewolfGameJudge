@@ -38,9 +38,9 @@ const STALE_THRESHOLD_IDLE_MS = 60_000;
 
 /** Phases where state changes frequently and require fast stale detection. */
 const ACTIVE_STATUSES = new Set<GameStatus>([
-  GameStatus.ongoing,
-  GameStatus.ready,
-  GameStatus.ended,
+  GameStatus.Ongoing,
+  GameStatus.Ready,
+  GameStatus.Ended,
 ]);
 
 function getStaleThreshold(gameStatus: GameStatus | null): number {

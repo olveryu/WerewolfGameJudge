@@ -38,7 +38,7 @@ function checkAudioGate(
   // Leave room is always allowed (safety exit)
   if (event.kind === 'LEAVE_ROOM') return null;
 
-  if (ctx.roomStatus === GameStatus.ongoing && ctx.isAudioPlaying) {
+  if (ctx.roomStatus === GameStatus.Ongoing && ctx.isAudioPlaying) {
     return { kind: 'NOOP', reason: 'audio_playing' };
   }
   return null;
@@ -64,7 +64,7 @@ function checkPendingRevealGate(
   event: InteractionEvent,
 ): InteractionResult | null {
   // Only block during ongoing phase
-  if (ctx.roomStatus !== GameStatus.ongoing) return null;
+  if (ctx.roomStatus !== GameStatus.Ongoing) return null;
 
   // Pending reveal ack blocks all interactions except leave room
   if (ctx.pendingRevealAck && event.kind !== 'LEAVE_ROOM') {
@@ -82,7 +82,7 @@ function checkPendingHunterGate(
   event: InteractionEvent,
 ): InteractionResult | null {
   // Only block during ongoing phase
-  if (ctx.roomStatus !== GameStatus.ongoing) return null;
+  if (ctx.roomStatus !== GameStatus.Ongoing) return null;
 
   // Pending hunter gate blocks all interactions except leave room
   if (ctx.pendingHunterGate && event.kind !== 'LEAVE_ROOM') {
@@ -134,7 +134,7 @@ function handleBottomAction(
   event: { intent: import('./types').ActionIntent },
 ): InteractionResult {
   // Only actioner can use bottom actions during ongoing phase
-  if (ctx.roomStatus === GameStatus.ongoing && !ctx.imActioner) {
+  if (ctx.roomStatus === GameStatus.Ongoing && !ctx.imActioner) {
     return { kind: 'NOOP', reason: 'not_actioner' };
   }
 
