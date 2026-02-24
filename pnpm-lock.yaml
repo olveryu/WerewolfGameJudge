@@ -111,6 +111,9 @@ importers:
       '@vercel/node':
         specifier: ^5.6.3
         version: 5.6.3
+      '@welldone-software/why-did-you-render':
+        specifier: ^10.0.1
+        version: 10.0.1(react@19.1.0)
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
@@ -1702,6 +1705,11 @@ packages:
 
   '@vercel/static-config@3.1.2':
     resolution: {integrity: sha512-2d+TXr6K30w86a+WbMbGm2W91O0UzO5VeemZYBBUJbCjk/5FLLGIi8aV6RS2+WmaRvtcqNTn2pUA7nCOK3bGcQ==}
+
+  '@welldone-software/why-did-you-render@10.0.1':
+    resolution: {integrity: sha512-tMgGkt30iVYeLMUKExNmtm019QgyjLtA7lwB0QAizYNEuihlCG2eoAWBBaz/bDeI7LeqAJ9msC6hY3vX+JB97g==}
+    peerDependencies:
+      react: ^19
 
   '@xmldom/xmldom@0.8.11':
     resolution: {integrity: sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==}
@@ -7381,6 +7389,11 @@ snapshots:
       ajv: 8.6.3
       json-schema-to-ts: 1.6.4
       ts-morph: 12.0.0
+
+  '@welldone-software/why-did-you-render@10.0.1(react@19.1.0)':
+    dependencies:
+      lodash: 4.17.23
+      react: 19.1.0
 
   '@xmldom/xmldom@0.8.11': {}
 
