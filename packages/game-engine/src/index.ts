@@ -9,7 +9,6 @@
 // === Utils (platform-agnostic) ===
 export { resolveSeerAudioKey } from './utils/audioKeyOverride';
 export { newRejectionId, newRequestId, randomHex } from './utils/id';
-export { type EngineLogger, getEngineLogger, setEngineLogger } from './utils/logger';
 export {
   createSeededRng,
   randomBool,
@@ -21,25 +20,71 @@ export {
 export { shuffleArray } from './utils/shuffle';
 
 // === Models ===
-export * from './models/actions/RoleAction';
-export * from './models/actions/WitchAction';
-export * from './models/GameStatus';
-export * from './models/roles';
-export * from './models/Template';
+export {
+  makeActionMagicianSwap,
+  makeActionTarget,
+  makeActionWitch,
+  type RoleAction,
+} from './models/actions/RoleAction';
+export {
+  makeWitchNone,
+  makeWitchPoison,
+  makeWitchSave,
+  type WitchAction,
+} from './models/actions/WitchAction';
+export { GameStatus } from './models/GameStatus';
+export {
+  type ActionSchema,
+  buildNightPlan,
+  canRoleSeeWolves,
+  doesRoleParticipateInWolfVote,
+  Faction,
+  getAllRoleIds,
+  getRoleDisplayAs,
+  getRoleDisplayName,
+  getRoleSpec,
+  getSchema,
+  getWolfKillImmuneRoleIds,
+  isValidRoleId,
+  isWolfRole,
+  type NightPlan,
+  type RevealKind,
+  ROLE_SPECS,
+  type RoleId,
+  type SchemaId,
+  SCHEMAS,
+} from './models/roles';
+export {
+  createCustomTemplate,
+  createTemplateFromRoles,
+  findMatchingPresetName,
+  type GameTemplate,
+  PRESET_TEMPLATES,
+  validateTemplateRoles,
+} from './models/Template';
 
 // === Protocol ===
-export * from './protocol/reasonCodes';
-export * from './protocol/types';
+export {
+  type AudioEffect,
+  type GameState,
+  type Player,
+  type PlayerMessage,
+  type ProtocolAction,
+} from './protocol/types';
 
 // === Types ===
-export * from './types/RoleRevealAnimation';
+export type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from './types/RoleRevealAnimation';
 
 // === Resolvers ===
-export * from './resolvers';
-export * from './resolvers/types';
+export { RESOLVERS } from './resolvers';
+export {
+  type ActionInput,
+  type CurrentNightResults,
+  type ResolverContext,
+  resolveRoleForChecks,
+} from './resolvers/types';
 
 // === Engine ===
-export { calculateDeaths } from './engine/DeathCalculator';
 export {
   handleSubmitAction,
   handleSubmitWolfVote,
@@ -58,7 +103,6 @@ export {
 export {
   decideWolfVoteTimerAction,
   isWolfVoteAllComplete,
-  WOLF_VOTE_COUNTDOWN_MS,
 } from './engine/handlers/progressionEvaluator';
 export {
   handleClearAllSeats,
@@ -70,7 +114,7 @@ export {
   handleEndNight,
   handleSetAudioPlaying,
 } from './engine/handlers/stepTransitionHandler';
-export * from './engine/handlers/types';
+export { type HandlerContext, type HandlerResult, type SideEffect } from './engine/handlers/types';
 export { handleSetWolfRobotHunterStatusViewed } from './engine/handlers/wolfRobotHunterGateHandler';
 export { runInlineProgression } from './engine/inlineProgression';
 export type {
@@ -86,5 +130,4 @@ export type { StateAction } from './engine/reducer/types';
 export { resolveWolfVotes } from './engine/resolveWolfVotes';
 export { buildInitialGameState } from './engine/state/buildInitialState';
 export { normalizeState } from './engine/state/normalize';
-export type { IHostGameStore, StoreStateListener } from './engine/store';
 export { GameStore } from './engine/store';
