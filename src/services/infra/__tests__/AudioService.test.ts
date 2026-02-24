@@ -46,8 +46,14 @@ jest.mock('../../../../assets/audio/hunter.mp3', () => 'hunter-audio', { virtual
 jest.mock('../../../../assets/audio/dark_wolf_king.mp3', () => 'dark_wolf_king-audio', {
   virtual: true,
 });
+jest.mock('../../../../assets/audio/pure_white.mp3', () => 'pure_white-audio', { virtual: true });
+jest.mock('../../../../assets/audio/wolf_witch.mp3', () => 'wolf_witch-audio', { virtual: true });
+jest.mock('../../../../assets/audio/wild_child.mp3', () => 'wild_child-audio', { virtual: true });
 jest.mock('../../../../assets/audio/night.mp3', () => 'night-audio', { virtual: true });
 jest.mock('../../../../assets/audio/night_end.mp3', () => 'night_end-audio', { virtual: true });
+jest.mock('../../../../assets/audio/bgm_night.mp3', () => 'bgm_night-audio', { virtual: true });
+jest.mock('../../../../assets/audio/seer_1.mp3', () => 'seer_1-audio', { virtual: true });
+jest.mock('../../../../assets/audio/seer_2.mp3', () => 'seer_2-audio', { virtual: true });
 
 // Mock ending audio files
 jest.mock('../../../../assets/audio_end/slacker.mp3', () => 'slacker-end-audio', { virtual: true });
@@ -78,6 +84,17 @@ jest.mock('../../../../assets/audio_end/hunter.mp3', () => 'hunter-end-audio', {
 jest.mock('../../../../assets/audio_end/dark_wolf_king.mp3', () => 'dark_wolf_king-end-audio', {
   virtual: true,
 });
+jest.mock('../../../../assets/audio_end/pure_white.mp3', () => 'pure_white-end-audio', {
+  virtual: true,
+});
+jest.mock('../../../../assets/audio_end/wolf_witch.mp3', () => 'wolf_witch-end-audio', {
+  virtual: true,
+});
+jest.mock('../../../../assets/audio_end/wild_child.mp3', () => 'wild_child-end-audio', {
+  virtual: true,
+});
+jest.mock('../../../../assets/audio_end/seer_1.mp3', () => 'seer_1-end-audio', { virtual: true });
+jest.mock('../../../../assets/audio_end/seer_2.mp3', () => 'seer_2-end-audio', { virtual: true });
 
 // Now import AudioService after mocks are set up
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
@@ -512,5 +529,313 @@ describe('Audio coverage contract', () => {
 
   it('AUDIO_FILES and AUDIO_END_FILES have same keys', () => {
     expect([..._AUDIO_ROLE_IDS].sort()).toEqual([..._AUDIO_END_ROLE_IDS].sort());
+  });
+});
+
+// =============================================================================
+// BGM Methods
+// =============================================================================
+
+describe('AudioService - BGM (native path)', () => {
+  let audioService: AudioService;
+
+  beforeEach(() => {
+    audioService = new AudioService();
+    jest.clearAllMocks();
+  });
+
+  it('startBgm should create player with loop and low volume', async () => {
+    const { createAudioPlayer } = require('expo-audio');
+    const mockPlayer = {
+      play: jest.fn(),
+      pause: jest.fn(),
+      remove: jest.fn(),
+      volume: 1,
+      loop: false,
+      addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    };
+    createAudioPlayer.mockReturnValueOnce(mockPlayer);
+
+    await audioService.startBgm();
+
+    expect(createAudioPlayer).toHaveBeenCalled();
+    expect(mockPlayer.volume).toBe(0.03);
+    expect(mockPlayer.loop).toBe(true);
+    expect(mockPlayer.play).toHaveBeenCalled();
+  });
+
+  it('startBgm should be idempotent (skip if already playing)', async () => {
+    const { createAudioPlayer } = require('expo-audio');
+    const mockPlayer = {
+      play: jest.fn(),
+      pause: jest.fn(),
+      remove: jest.fn(),
+      volume: 1,
+      loop: false,
+      addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    };
+    createAudioPlayer.mockReturnValue(mockPlayer);
+
+    await audioService.startBgm();
+    createAudioPlayer.mockClear();
+
+    // Second call should be no-op
+    await audioService.startBgm();
+    expect(createAudioPlayer).not.toHaveBeenCalled();
+  });
+
+  it('startBgm should swallow errors and not throw', async () => {
+    const { createAudioPlayer } = require('expo-audio');
+    createAudioPlayer.mockImplementationOnce(() => {
+      throw new Error('player creation failed');
+    });
+
+    await expect(audioService.startBgm()).resolves.toBeUndefined();
+  });
+
+  it('stopBgm should pause and remove bgm player', async () => {
+    const { createAudioPlayer } = require('expo-audio');
+    const mockPlayer = {
+      play: jest.fn(),
+      pause: mockPause,
+      remove: mockRemove,
+      volume: 1,
+      loop: false,
+      addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    };
+    createAudioPlayer.mockReturnValueOnce(mockPlayer);
+
+    await audioService.startBgm();
+    jest.clearAllMocks();
+
+    audioService.stopBgm();
+
+    expect(mockPause).toHaveBeenCalled();
+    expect(mockRemove).toHaveBeenCalled();
+  });
+
+  it('stopBgm should be safe when no bgm playing', () => {
+    expect(() => audioService.stopBgm()).not.toThrow();
+  });
+});
+
+// =============================================================================
+// Preload Methods
+// =============================================================================
+
+describe('AudioService - preloadForRoles (native)', () => {
+  let audioService: AudioService;
+
+  beforeEach(() => {
+    audioService = new AudioService();
+    jest.clearAllMocks();
+  });
+
+  it('should preload night + role begin/end for given roles', async () => {
+    const { createAudioPlayer: _createAudioPlayer } = require('expo-audio');
+
+    // In Jest environment (isJest=true), preloadSingleFile skips native preload.
+    // But we can verify the method runs without errors.
+    await audioService.preloadForRoles(['wolf', 'seer']);
+
+    // In Jest env, native preload is skipped (isJest check).
+    // We just verify no errors.
+  });
+
+  it('should handle roles without audio files gracefully', async () => {
+    // villager has no audio - should just skip, not error
+    await expect(audioService.preloadForRoles(['villager', 'wolf'])).resolves.toBeUndefined();
+  });
+
+  it('should handle empty roles array', async () => {
+    await expect(audioService.preloadForRoles([])).resolves.toBeUndefined();
+  });
+});
+
+describe('AudioService - clearPreloaded', () => {
+  let audioService: AudioService;
+
+  beforeEach(() => {
+    audioService = new AudioService();
+    jest.clearAllMocks();
+  });
+
+  it('should clear preloaded players map', () => {
+    // Add some fake preloaded entries
+    const fakePlayer = { remove: jest.fn() };
+    (audioService as any).preloadedPlayers.set('test', fakePlayer);
+
+    audioService.clearPreloaded();
+
+    expect((audioService as any).preloadedPlayers.size).toBe(0);
+    expect(fakePlayer.remove).toHaveBeenCalled();
+  });
+
+  it('should release stale native players', () => {
+    const stalePlayer = { remove: jest.fn() };
+    (audioService as any).staleNativePlayers.add(stalePlayer);
+
+    audioService.clearPreloaded();
+
+    expect(stalePlayer.remove).toHaveBeenCalled();
+    expect((audioService as any).staleNativePlayers.size).toBe(0);
+  });
+
+  it('should swallow errors from player.remove()', () => {
+    const badPlayer = {
+      remove: jest.fn(() => {
+        throw new Error('already released');
+      }),
+    };
+    (audioService as any).preloadedPlayers.set('bad', badPlayer);
+
+    expect(() => audioService.clearPreloaded()).not.toThrow();
+  });
+
+  it('should clear web preloaded audios', () => {
+    (audioService as any).preloadedWebAudios.set('test', {});
+
+    audioService.clearPreloaded();
+
+    expect((audioService as any).preloadedWebAudios.size).toBe(0);
+  });
+});
+
+// =============================================================================
+// handlePlaybackStatus edge cases
+// =============================================================================
+
+describe('AudioService - handlePlaybackStatus', () => {
+  let audioService: AudioService;
+
+  beforeEach(() => {
+    audioService = new AudioService();
+    jest.clearAllMocks();
+  });
+
+  it('should call finishCurrentPlayback on didJustFinish', () => {
+    const resolve = jest.fn();
+    (audioService as any).currentPlaybackResolve = resolve;
+    (audioService as any).currentLabel = 'test';
+    (audioService as any).currentStatusCount = 0;
+
+    (audioService as any).handlePlaybackStatus({
+      playing: false,
+      isLoaded: true,
+      duration: 3000,
+      didJustFinish: true,
+    });
+
+    expect(resolve).toHaveBeenCalled();
+  });
+
+  it('should NOT resolve when didJustFinish is false', () => {
+    const resolve = jest.fn();
+    (audioService as any).currentPlaybackResolve = resolve;
+    (audioService as any).currentLabel = 'test';
+    (audioService as any).currentStatusCount = 0;
+
+    (audioService as any).handlePlaybackStatus({
+      playing: true,
+      isLoaded: true,
+      duration: 3000,
+      didJustFinish: false,
+    });
+
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('should warn when duration is 0 (possibly invalid audio)', () => {
+    (audioService as any).currentPlaybackResolve = jest.fn();
+    (audioService as any).currentLabel = 'test';
+    (audioService as any).currentStatusCount = 0;
+
+    (audioService as any).handlePlaybackStatus({
+      playing: false,
+      isLoaded: true,
+      duration: 0,
+      didJustFinish: false,
+    });
+
+    expect(mockAudioLogWarn).toHaveBeenCalledWith(expect.stringContaining('Audio duration is 0'));
+  });
+
+  it('should not resolve when status is just "playing"', () => {
+    const resolve = jest.fn();
+    (audioService as any).currentPlaybackResolve = resolve;
+    (audioService as any).currentLabel = 'test';
+    (audioService as any).currentStatusCount = 0;
+
+    (audioService as any).handlePlaybackStatus({
+      playing: true,
+      isLoaded: true,
+      duration: 5000,
+      didJustFinish: false,
+    });
+
+    // Still playing — should not resolve
+    expect(resolve).not.toHaveBeenCalled();
+  });
+});
+
+// =============================================================================
+// finishCurrentPlayback
+// =============================================================================
+
+describe('AudioService - finishCurrentPlayback', () => {
+  let audioService: AudioService;
+
+  beforeEach(() => {
+    audioService = new AudioService();
+    jest.clearAllMocks();
+  });
+
+  it('should clear timeout and call resolve', () => {
+    const resolve = jest.fn();
+    const timeoutId = setTimeout(() => {}, 10000);
+    (audioService as any).currentPlaybackResolve = resolve;
+    (audioService as any).currentTimeoutId = timeoutId;
+    (audioService as any).currentLabel = 'test';
+    (audioService as any).currentStatusCount = 1;
+
+    (audioService as any).finishCurrentPlayback();
+
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect((audioService as any).currentTimeoutId).toBeNull();
+    expect((audioService as any).currentPlaybackResolve).toBeNull();
+  });
+
+  it('should be safe when no pending resolve', () => {
+    (audioService as any).currentPlaybackResolve = null;
+    (audioService as any).currentTimeoutId = null;
+
+    expect(() => (audioService as any).finishCurrentPlayback()).not.toThrow();
+  });
+});
+
+// =============================================================================
+// cleanup
+// =============================================================================
+
+describe('AudioService - cleanup (full)', () => {
+  let audioService: AudioService;
+
+  beforeEach(() => {
+    audioService = new AudioService();
+    jest.clearAllMocks();
+  });
+
+  it('should stop player + stop bgm + release stale players', () => {
+    // Set up state
+    const stale = { remove: jest.fn() };
+    (audioService as any).staleNativePlayers.add(stale);
+    (audioService as any).player = { pause: jest.fn() };
+    (audioService as any).isPlaying = true;
+
+    audioService.cleanup();
+
+    expect(audioService.getIsPlaying()).toBe(false);
+    expect(stale.remove).toHaveBeenCalled();
+    expect((audioService as any).staleNativePlayers.size).toBe(0);
   });
 });
