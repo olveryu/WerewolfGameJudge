@@ -11,6 +11,7 @@ import {
   determineActionerState,
   formatRoleList,
   getRoleStats,
+  getWolfVoteSummary,
   toGameRoomLike,
 } from '@/screens/RoomScreen/RoomScreen.helpers';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -627,5 +628,323 @@ describe('buildSeatViewModels', () => {
       expect(seats[0].wolfVoteTarget).toBe(2);
       expect(seats[0].showReadyBadge).toBe(false);
     });
+  });
+
+  describe('showReadyBadge option (assigned phase)', () => {
+    it('should show ready badge for players who have viewed their role', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 3,
+          roles: ['wolf', 'villager', 'seer'] as RoleId[],
+        },
+        players: new Map([
+          [
+            0,
+            {
+              uid: 'p1',
+              seatNumber: 0,
+              displayName: 'P1',
+              role: 'wolf' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+          [
+            1,
+            {
+              uid: 'p2',
+              seatNumber: 1,
+              displayName: 'P2',
+              role: 'villager' as RoleId,
+              hasViewedRole: false,
+            },
+          ],
+          [
+            2,
+            {
+              uid: 'p3',
+              seatNumber: 2,
+              displayName: 'P3',
+              role: 'seer' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+        ]),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentStepIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        currentNightResults: {},
+        pendingRevealAcks: [],
+        status: GameStatus.assigned,
+      };
+
+      const seats = buildSeatViewModels(mockState, null, false, null, {
+        showReadyBadges: true,
+      });
+
+      expect(seats[0].showReadyBadge).toBe(true);
+      expect(seats[1].showReadyBadge).toBe(false); // has NOT viewed
+      expect(seats[2].showReadyBadge).toBe(true);
+    });
+
+    it('should not show ready badge when player slot is null', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 2,
+          roles: ['wolf', 'villager'] as RoleId[],
+        },
+        players: new Map([[0, null]]),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentStepIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        currentNightResults: {},
+        pendingRevealAcks: [],
+        status: GameStatus.assigned,
+      };
+
+      const seats = buildSeatViewModels(mockState, null, false, null, {
+        showReadyBadges: true,
+      });
+
+      expect(seats[0].showReadyBadge).toBe(false);
+    });
+
+    it('should not show ready badge when showReadyBadges is not set', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 1,
+          roles: ['wolf'] as RoleId[],
+        },
+        players: new Map([
+          [
+            0,
+            {
+              uid: 'p1',
+              seatNumber: 0,
+              displayName: 'P1',
+              role: 'wolf' as RoleId,
+              hasViewedRole: true,
+            },
+          ],
+        ]),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentStepIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        currentNightResults: {},
+        pendingRevealAcks: [],
+        status: GameStatus.assigned,
+      };
+
+      const seats = buildSeatViewModels(mockState, null, false, null);
+      expect(seats[0].showReadyBadge).toBeFalsy();
+    });
+  });
+
+  describe('secondSelectedSeat option', () => {
+    it('should mark secondSelectedSeat as isSelected', () => {
+      const mockState: LocalGameState = {
+        roomCode: 'TEST',
+        hostUid: 'host1',
+        template: {
+          name: 'Test',
+          numberOfPlayers: 3,
+          roles: ['wolf', 'villager', 'seer'] as RoleId[],
+        },
+        players: new Map(),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentStepIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        currentNightResults: {},
+        pendingRevealAcks: [],
+        status: GameStatus.ongoing,
+      };
+
+      const seats = buildSeatViewModels(mockState, null, false, 0, {
+        secondSelectedSeat: 2,
+      });
+
+      expect(seats[0].isSelected).toBe(true); // primary
+      expect(seats[1].isSelected).toBe(false);
+      expect(seats[2].isSelected).toBe(true); // secondary
+    });
+  });
+});
+
+// =============================================================================
+// getWolfVoteSummary
+// =============================================================================
+
+describe('getWolfVoteSummary', () => {
+  function makeRoom(players: Array<[number, RoleId]>, wolfVotes: Map<number, number>) {
+    return {
+      template: {
+        name: 'Test',
+        numberOfPlayers: players.length,
+        roles: players.map(([, role]) => role),
+      },
+      players: new Map(
+        players.map(([seat, role]) => [
+          seat,
+          { uid: `p${seat}`, seatNumber: seat, role, hasViewedRole: true },
+        ]),
+      ),
+      actions: new Map(),
+      wolfVotes,
+      currentStepIndex: 0,
+    };
+  }
+
+  it('should return "0/0 狼人已投票" when there are no wolves', () => {
+    const room = makeRoom(
+      [
+        [0, 'villager'],
+        [1, 'seer'],
+      ],
+      new Map(),
+    );
+    expect(getWolfVoteSummary(room)).toBe('0/0 狼人已投票');
+  });
+
+  it('should count only wolves that participate in wolfVote', () => {
+    const room = makeRoom(
+      [
+        [0, 'wolf'],
+        [1, 'wolfRobot'], // doesn't participate
+        [2, 'nightmare'], // participates
+        [3, 'villager'],
+      ],
+      new Map(),
+    );
+    // wolf + nightmare participate, wolfRobot does not
+    expect(getWolfVoteSummary(room)).toBe('0/2 狼人已投票');
+  });
+
+  it('should count voted wolves correctly', () => {
+    const room = makeRoom(
+      [
+        [0, 'wolf'],
+        [1, 'wolf'],
+        [2, 'seer'],
+      ],
+      new Map([
+        [0, 2], // wolf seat 0 voted
+      ]),
+    );
+    expect(getWolfVoteSummary(room)).toBe('1/2 狼人已投票');
+  });
+
+  it('should return "2/2 狼人已投票" when all wolves voted', () => {
+    const room = makeRoom(
+      [
+        [0, 'wolf'],
+        [1, 'darkWolfKing'],
+        [2, 'villager'],
+      ],
+      new Map([
+        [0, 2],
+        [1, 2],
+      ]),
+    );
+    expect(getWolfVoteSummary(room)).toBe('2/2 狼人已投票');
+  });
+
+  it('should handle null player entries', () => {
+    const room = {
+      template: { name: 'Test', numberOfPlayers: 2, roles: ['wolf', 'wolf'] as RoleId[] },
+      players: new Map<number, any>([
+        [0, null],
+        [1, { uid: 'p1', seatNumber: 1, role: 'wolf', hasViewedRole: true }],
+      ]),
+      actions: new Map(),
+      wolfVotes: new Map([[1, 0]]),
+      currentStepIndex: 0,
+    };
+    expect(getWolfVoteSummary(room)).toBe('1/1 狼人已投票');
+  });
+});
+
+// =============================================================================
+// toGameRoomLike — legacy wolfVotes fallback
+// =============================================================================
+
+describe('toGameRoomLike — legacy wolfVotes fallback', () => {
+  it('should use currentNightResults.wolfVotesBySeat when present', () => {
+    const state: LocalGameState = {
+      roomCode: 'TEST',
+      hostUid: 'host1',
+      template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
+      players: new Map(),
+      actions: new Map(),
+      wolfVotes: new Map(),
+      currentStepIndex: 0,
+      isAudioPlaying: false,
+      lastNightDeaths: [],
+      currentNightResults: { wolfVotesBySeat: { '0': 1 } },
+      pendingRevealAcks: [],
+      status: GameStatus.ongoing,
+    };
+
+    const result = toGameRoomLike(state);
+    expect(result.wolfVotes.get(0)).toBe(1);
+  });
+
+  it('should convert plain object wolfVotes (legacy) to Map', () => {
+    // Simulate legacy data where wolfVotes is a plain object instead of Map
+    const legacyState = {
+      roomCode: 'TEST',
+      hostUid: 'host1',
+      template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
+      players: new Map(),
+      actions: new Map(),
+      // A legacy plain object that wasn't deserialized to Map
+      wolfVotes: { '0': 1, '2': 3 } as unknown as Map<number, number>,
+      currentStepIndex: 0,
+      isAudioPlaying: false,
+      lastNightDeaths: [],
+      currentNightResults: {},
+      pendingRevealAcks: [],
+      status: GameStatus.ongoing,
+    } as LocalGameState;
+
+    const result = toGameRoomLike(legacyState);
+    expect(result.wolfVotes).toBeInstanceOf(Map);
+    expect(result.wolfVotes.get(0)).toBe(1);
+    expect(result.wolfVotes.get(2)).toBe(3);
+  });
+
+  it('should return empty Map when no wolfVotes sources exist', () => {
+    const state: LocalGameState = {
+      roomCode: 'TEST',
+      hostUid: 'host1',
+      template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
+      players: new Map(),
+      actions: new Map(),
+      wolfVotes: new Map(),
+      currentStepIndex: 0,
+      isAudioPlaying: false,
+      lastNightDeaths: [],
+      currentNightResults: {},
+      pendingRevealAcks: [],
+      status: GameStatus.ongoing,
+    };
+
+    const result = toGameRoomLike(state);
+    expect(result.wolfVotes.size).toBe(0);
   });
 });
