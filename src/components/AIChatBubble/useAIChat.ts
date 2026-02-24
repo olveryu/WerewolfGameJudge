@@ -21,7 +21,7 @@ import { useKeyboardHeight } from './useKeyboardHeight';
 // Public interface
 // ══════════════════════════════════════════════════════════
 
-export interface UseAIChatReturn {
+interface UseAIChatReturn {
   // Chat state
   messages: DisplayMessage[];
   inputText: string;

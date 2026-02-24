@@ -22,13 +22,13 @@ import { dirname } from 'node:path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const ROOT_DIR = join(__dirname, '..', '..');
+const ROOT_DIR = join(__dirname, '..', '..');
 
 /**
  * All env fields that MUST be present in env/e2e.*.json.
  * Add new fields here — both scripts pick them up automatically.
  */
-export const REQUIRED_FIELDS = [
+const REQUIRED_FIELDS = [
   'EXPO_PUBLIC_SUPABASE_URL',
   'EXPO_PUBLIC_SUPABASE_ANON_KEY',
   'SUPABASE_URL',

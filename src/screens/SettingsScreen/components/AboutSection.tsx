@@ -16,7 +16,7 @@ import { SettingsScreenStyles } from './styles';
 const GITHUB_URL = 'https://github.com/olveryu/WerewolfGameJudge';
 const ISSUES_URL = 'https://github.com/olveryu/WerewolfGameJudge/issues';
 
-export interface AboutSectionProps {
+interface AboutSectionProps {
   styles: SettingsScreenStyles;
 }
 

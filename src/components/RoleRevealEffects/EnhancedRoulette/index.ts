@@ -1,4 +1,4 @@
 /**
  * EnhancedRoulette barrel export
  */
-export { EnhancedRoulette, type EnhancedRouletteProps } from './EnhancedRoulette';
+export { EnhancedRoulette } from './EnhancedRoulette';

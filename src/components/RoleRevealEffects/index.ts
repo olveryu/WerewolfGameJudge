@@ -28,31 +28,8 @@
 export { createRoleData, RoleRevealAnimator } from './RoleRevealAnimator';
 
 // Individual effect components (for advanced usage)
-export { CardPick, type CardPickProps } from './CardPick/CardPick';
-export { EnhancedRoulette, type EnhancedRouletteProps } from './EnhancedRoulette';
-export { GachaMachine } from './GachaMachine';
-export { RoleHunt, type RoleHuntProps } from './RoleHunt/RoleHunt';
+export { RoleHunt } from './RoleHunt/RoleHunt';
 export { ScratchReveal } from './ScratchReveal';
-export { TarotDraw } from './TarotDraw';
 
 // Types
-export type {
-  AlignmentTheme,
-  RevealEffectType,
-  RoleAlignment,
-  RoleData,
-  RoleRevealAnimatorProps,
-  RoleRevealEffectProps,
-} from './types';
-export { createAlignmentThemes } from './types';
-
-// Configuration (for customization)
-export { CONFIG } from './config';
-
-// Utilities (for advanced usage)
-export { type HapticStyle, triggerHaptic } from './utils/haptics';
-export { canUseHaptics } from './utils/platform';
-
-// Common components (for building custom effects)
-export { GlowBorder, type GlowBorderProps } from './common/GlowBorder';
-export { RoleCard, type RoleCardProps } from './common/RoleCard';
+export type { RevealEffectType, RoleData } from './types';

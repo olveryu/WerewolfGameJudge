@@ -9,12 +9,12 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import { SettingsScreenStyles } from './styles';
 
-export interface ThemeOption {
+interface ThemeOption {
   key: string;
   name: string;
 }
 
-export interface ThemeSelectorProps {
+interface ThemeSelectorProps {
   currentThemeKey: string;
   availableThemes: ThemeOption[];
   onThemeChange: (key: string) => void;

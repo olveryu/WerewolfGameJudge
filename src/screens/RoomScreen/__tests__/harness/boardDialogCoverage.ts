@@ -195,7 +195,7 @@ export function boardHasNightmare(board: BoardConfig): boolean {
  * Get the "special" role for a board (non-wolf, non-villager, non-standard god)
  * Used for naming test files
  */
-export function getBoardSpecialRole(board: BoardConfig): RoleId | null {
+function _getBoardSpecialRole(board: BoardConfig): RoleId | null {
   const specialRoles = new Set<RoleId>([
     'wolfQueen',
     'darkWolfKing',
@@ -226,7 +226,7 @@ export function getBoardSpecialRole(board: BoardConfig): RoleId | null {
 // Coverage Matrix
 // =============================================================================
 
-export interface CoverageEntry {
+interface CoverageEntry {
   board: string;
   requiredUiTypes: DialogType[];
   requiredHostDataTypes: DialogType[];
@@ -237,7 +237,7 @@ export interface CoverageEntry {
 /**
  * Generate the complete coverage matrix for all 12P boards
  */
-export function generateCoverageMatrix(): CoverageEntry[] {
+function _generateCoverageMatrix(): CoverageEntry[] {
   const boards = getAll12PBoards();
   return boards.map((board) => ({
     board: board.name,
@@ -273,6 +273,6 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
 /**
  * Get expected test file name for a board
  */
-export function getTestFileName(boardName: string): string {
+function _getTestFileName(boardName: string): string {
   return BOARD_TEST_FILE_MAP[boardName] || `${boardName}.12p.board.ui.test.tsx`;
 }

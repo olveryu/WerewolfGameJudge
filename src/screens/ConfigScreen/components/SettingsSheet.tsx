@@ -12,7 +12,7 @@ import { TESTIDS } from '@/testids';
 import type { DropdownOption } from './Dropdown';
 import type { ConfigScreenStyles } from './styles';
 
-export interface SettingsSheetProps {
+interface SettingsSheetProps {
   visible: boolean;
   onClose: () => void;
   roleRevealAnimation: string;

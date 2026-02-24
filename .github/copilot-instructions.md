@@ -44,6 +44,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 - `pnpm exec playwright test --reporter=list` — E2E（必须加 `--reporter=list`）
 - `pnpm exec tsc --noEmit` — 类型检查
 - `pnpm run quality` — typecheck + lint + format + test 一次全跑
+- `npx knip --no-exit-code` — 死代码检测（unused files / exports / dependencies / types）。定期运行，清理未使用的导出和文件。注意甄别误报：runtime 入口文件（`metro.config.js`、`web/sw.js`、Supabase Edge Functions）和 Expo Web 隐式依赖（`react-dom`）会被误报为 unused。
 
 ### 发版 & 部署
 

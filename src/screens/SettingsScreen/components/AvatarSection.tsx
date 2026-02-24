@@ -19,7 +19,7 @@ import { ThemeColors } from '@/theme';
 
 import { SettingsScreenStyles } from './styles';
 
-export interface AvatarSectionProps {
+interface AvatarSectionProps {
   isAnonymous: boolean;
   avatarSource: ImageSourcePropType;
   /** Whether the avatar source is a remote URL (use expo-image) */

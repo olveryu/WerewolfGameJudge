@@ -113,7 +113,7 @@ const generateRandomBulbPattern = (threshold = 0.5): boolean[] =>
   new Array(BULB_COUNT).fill(false).map(() => Math.random() > threshold);
 
 // ─── Props ──────────────────────────────────────────────────────────────
-export interface EnhancedRouletteProps extends RoleRevealEffectProps {
+interface EnhancedRouletteProps extends RoleRevealEffectProps {
   /** All roles to show in the roulette */
   allRoles: RoleData[];
 }

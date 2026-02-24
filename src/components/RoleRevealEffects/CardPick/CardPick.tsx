@@ -45,7 +45,7 @@ const TABLE_COLORS = {
 };
 
 // ─── Extended props ─────────────────────────────────────────────────────
-export interface CardPickProps extends RoleRevealEffectProps {
+interface CardPickProps extends RoleRevealEffectProps {
   /** Number of remaining (unviewed) cards to display on the table */
   remainingCards?: number;
 }

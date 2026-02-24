@@ -64,7 +64,7 @@ export const mockNavigation = {
 // Game State Factory
 // =============================================================================
 
-export interface GameStateMockOptions {
+interface GameStateMockOptions {
   /** Schema ID for current step */
   schemaId: SchemaId;
   /** Current action role */
@@ -268,7 +268,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
 // Test Context
 // =============================================================================
 
-export interface BoardTestContext {
+interface _BoardTestContext {
   harness: RoomScreenTestHarness;
   mockShowAlert: jest.Mock;
   gameRoomMock: ReturnType<typeof createGameRoomMock>;
@@ -282,7 +282,7 @@ export interface BoardTestContext {
 /**
  * Standard mocks that should be set up in every board UI test
  */
-export function setupBoardTestMocks() {
+function _setupBoardTestMocks() {
   // Mock alert
   jest.mock('../../../../utils/alert', () => ({
     showAlert: jest.fn(),
@@ -353,7 +353,7 @@ export function tapSeat(getByTestId: (id: string) => any, seatNumber: number) {
  * Tap the bottom action button (by text content since no testID)
  * Returns true if found and pressed, false otherwise
  */
-export function tapBottomAction(queryByText: (text: string) => any, buttonText: string): boolean {
+function _tapBottomAction(queryByText: (text: string) => any, buttonText: string): boolean {
   try {
     const button = queryByText(buttonText);
     if (button) {
@@ -373,7 +373,7 @@ export function tapBottomAction(queryByText: (text: string) => any, buttonText: 
 /**
  * ActionRejection type for simulateHostReject
  */
-export interface ActionRejection {
+interface ActionRejection {
   action: string;
   reason: string;
   targetUid: string;
@@ -491,7 +491,7 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
 /**
  * Type for the reactive mock returned by createReactiveGameRoomMock
  */
-export type ReactiveGameRoomMock = ReturnType<typeof createReactiveGameRoomMock>;
+type _ReactiveGameRoomMock = ReturnType<typeof createReactiveGameRoomMock>;
 
 // =============================================================================
 // Chain Interaction Drivers
@@ -1210,7 +1210,7 @@ export async function coverageChainWolfVoteEmpty(
  * Coverage chain: witch with killedSeat=-1 → auto-trigger shows witchNoKill dialog
  * No button press needed (informational dialog).
  */
-export async function coverageChainWitchNoKill(
+async function _coverageChainWitchNoKill(
   harness: RoomScreenTestHarness,
   mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
@@ -1239,7 +1239,7 @@ export async function coverageChainWitchNoKill(
  * Handles compound witchAction schema where bottomActionText comes from poison sub-step.
  * Returns { submitAction } for payload assertions.
  */
-export async function coverageChainWitchSkipAll(
+async function _coverageChainWitchSkipAll(
   harness: RoomScreenTestHarness,
   mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,

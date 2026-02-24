@@ -12,7 +12,7 @@ const ROOM_STATUS_TEXT = {
 /**
  * Options for waitForRoomScreenReady
  */
-export interface WaitForRoomScreenReadyOptions {
+interface WaitForRoomScreenReadyOptions {
   /** Role of the page: 'host' or 'joiner'. Host skips live check. */
   role?: 'host' | 'joiner';
   /** Max retries for room header + retry button flow */

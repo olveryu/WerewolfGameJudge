@@ -19,11 +19,11 @@ import type { ActionSchema, RevealKind, SchemaId } from '@werewolf/game-engine/m
 import { isValidSchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback } from 'react';
 
+import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
-// Re-export ActionIntent from canonical location for backward compatibility
-export type { ActionIntent, ActionIntentType } from '@/screens/RoomScreen/policy/types';
-import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
+// Re-export for architectural boundary contract (see hooks.boundary.test.ts)
+export type { ActionIntent };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Context & Dependencies

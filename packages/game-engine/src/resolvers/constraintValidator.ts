@@ -10,7 +10,7 @@ import type { RoleId } from '../models/roles';
 import type { TargetConstraint } from '../models/roles/spec/schema.types';
 import { ROLE_SPECS } from '../models/roles/spec/specs';
 
-export interface ConstraintValidationContext {
+interface ConstraintValidationContext {
   /** Current actor's seat */
   actorSeat: number;
   /** Target seat to validate */
@@ -19,7 +19,7 @@ export interface ConstraintValidationContext {
   players?: ReadonlyMap<number, RoleId>;
 }
 
-export interface ConstraintValidationResult {
+interface ConstraintValidationResult {
   valid: boolean;
   rejectReason?: string;
 }

@@ -539,7 +539,7 @@ export function createShowAlertMock(harness: RoomScreenTestHarness) {
  * harness.expectSeen('wolfVote');
  * ```
  */
-export function setupHarness(): RoomScreenTestHarness {
+function _setupHarness(): RoomScreenTestHarness {
   const harness = new RoomScreenTestHarness();
   const mockShowAlert = createShowAlertMock(harness);
 

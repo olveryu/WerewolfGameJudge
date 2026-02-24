@@ -8,7 +8,7 @@ import { Text, View } from 'react-native';
 
 import { ConfigScreenStyles } from './styles';
 
-export interface SectionProps {
+interface SectionProps {
   title: string;
   children: React.ReactNode;
   styles: ConfigScreenStyles;

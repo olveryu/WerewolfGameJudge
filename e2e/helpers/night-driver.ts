@@ -40,13 +40,13 @@ export function findAllRolePageIndices(
 // ---------------------------------------------------------------------------
 
 /** Read the action-message testID text content, empty string if not visible. */
-export async function getActionMsg(page: Page): Promise<string> {
+async function getActionMsg(page: Page): Promise<string> {
   const loc = page.locator('[data-testid="action-message"]');
   return (await loc.textContent({ timeout: 200 }).catch(() => '')) ?? '';
 }
 
 /** Check if any night-end keyword is visible on the page. */
-export async function isNightEnded(page: Page): Promise<boolean> {
+async function isNightEnded(page: Page): Promise<boolean> {
   for (const kw of ['平安夜', '玩家死亡', '昨夜信息']) {
     const visible = await page
       .getByText(kw)
@@ -129,7 +129,7 @@ const SAFE_ADVANCE_BUTTONS = ADVANCE_BUTTONS.filter((b) => b !== '不使用技�
  * @param includeSkip If false, excludes "不使用技能" to prevent
  *   prematurely skipping a role step. Defaults to true.
  */
-export async function tryClickAdvanceButton(page: Page, includeSkip = true): Promise<boolean> {
+async function tryClickAdvanceButton(page: Page, includeSkip = true): Promise<boolean> {
   const buttons = includeSkip ? ADVANCE_BUTTONS : SAFE_ADVANCE_BUTTONS;
   // Check alert modal first
   const alertModal = page.locator('[data-testid="alert-modal"]');
@@ -167,7 +167,7 @@ export async function tryClickAdvanceButton(page: Page, includeSkip = true): Pro
  * Generic poll loop: advance night on all pages until condition is met.
  * Uses simple skip-all strategy (clicks advance buttons, no seat selection).
  */
-export async function pollUntil(
+async function pollUntil(
   pages: Page[],
   condition: () => Promise<boolean>,
   maxIter = 60,

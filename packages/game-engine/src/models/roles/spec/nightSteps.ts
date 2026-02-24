@@ -135,7 +135,7 @@ const NIGHT_STEPS_INTERNAL = [
 export const NIGHT_STEPS: readonly StepSpec[] = NIGHT_STEPS_INTERNAL;
 
 /** NightStepId 从 NIGHT_STEPS 自动推导，避免类型漂移 */
-export type NightStepId = (typeof NIGHT_STEPS_INTERNAL)[number]['id'];
+type NightStepId = (typeof NIGHT_STEPS_INTERNAL)[number]['id'];
 
 // === Helper functions ===
 

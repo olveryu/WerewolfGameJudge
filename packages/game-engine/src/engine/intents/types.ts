@@ -131,7 +131,7 @@ export interface ViewedRoleIntent {
   };
 }
 
-export interface RevealAckIntent {
+interface RevealAckIntent {
   type: 'REVEAL_ACK';
   payload: {
     seat: number;
@@ -163,11 +163,11 @@ export interface SetAudioPlayingIntent {
   };
 }
 
-export interface SkipAudioIntent {
+interface SkipAudioIntent {
   type: 'SKIP_AUDIO';
 }
 
-export interface PlayNextAudioIntent {
+interface PlayNextAudioIntent {
   type: 'PLAY_NEXT_AUDIO';
 }
 
@@ -195,7 +195,7 @@ export interface EndNightIntent {
 // 状态同步 Intent
 // =============================================================================
 
-export interface RequestSnapshotIntent {
+interface RequestSnapshotIntent {
   type: 'REQUEST_SNAPSHOT';
   payload: {
     uid: string;
@@ -233,7 +233,7 @@ export interface MarkAllBotsViewedIntent {
 // Intent 联合类型
 // =============================================================================
 
-export type GameIntent =
+type _GameIntent =
   | JoinSeatIntent
   | LeaveMySeatIntent
   | ClearAllSeatsIntent

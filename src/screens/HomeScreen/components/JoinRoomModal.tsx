@@ -11,7 +11,7 @@ import { NumPad } from '@/components/NumPad';
 
 import { type HomeScreenStyles } from './styles';
 
-export interface JoinRoomModalProps {
+interface JoinRoomModalProps {
   visible: boolean;
   roomCode: string;
   isLoading: boolean;

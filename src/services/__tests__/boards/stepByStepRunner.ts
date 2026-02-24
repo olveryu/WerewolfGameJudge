@@ -74,19 +74,19 @@ export function sendMessageOrThrow(
  * - { targets: number[] }: 魔术师交换
  * - { confirmed: boolean }: 确认类 action
  */
-export type ActionValue =
+type ActionValue =
   | number
   | null
   | { save: number | null; poison: number | null }
   | { targets: readonly number[] }
   | { confirmed: boolean };
 
-export type CustomActions = Partial<Record<RoleId, ActionValue>>;
+type CustomActions = Partial<Record<RoleId, ActionValue>>;
 
 /**
  * 执行结果
  */
-export interface StepByStepResult {
+interface StepByStepResult {
   /** 最终死亡列表 */
   deaths: number[];
   /** 夜晚是否完成 */

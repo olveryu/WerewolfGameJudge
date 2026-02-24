@@ -134,7 +134,7 @@ export interface ChatMessage {
 // Streaming (SSE)
 // ══════════════════════════════════════════════════════════
 
-export interface StreamChunk {
+interface StreamChunk {
   type: 'delta' | 'done' | 'error';
   content: string;
 }

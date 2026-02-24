@@ -74,7 +74,7 @@ export interface RoleRevealAnimatorProps extends RoleRevealEffectProps {
 /**
  * Configuration for alignment-based visual theming
  */
-export interface AlignmentTheme {
+interface AlignmentTheme {
   /** Primary color */
   primaryColor: string;
   /** Secondary/glow color */

@@ -14,7 +14,7 @@ import { spacing, typography } from '@/theme';
 import type { DropdownOption } from './Dropdown';
 import type { ConfigScreenStyles } from './styles';
 
-export interface TemplatePickerProps {
+interface TemplatePickerProps {
   visible: boolean;
   onClose: () => void;
   options: DropdownOption[];

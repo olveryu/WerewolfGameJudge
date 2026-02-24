@@ -26,7 +26,7 @@ const getFactionColor = (roleId: RoleId, colors: ThemeColors): string => {
   return colors.villager;
 };
 
-export interface RoleCardContentProps {
+interface RoleCardContentProps {
   /** Role ID to display */
   roleId: RoleId;
   /** Card width */

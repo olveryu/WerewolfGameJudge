@@ -37,7 +37,7 @@ import {
 import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
 // Re-export types from hostGameContext.ts for backward compatibility
-export type { CapturedMessage, HostGameContext } from './hostGameContext';
+export type { HostGameContext } from './hostGameContext';
 import type { CapturedMessage, HostGameContext } from './hostGameContext';
 
 // =============================================================================

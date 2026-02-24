@@ -3,4 +3,4 @@
  */
 
 export { GameStore } from './GameStore';
-export type { GameState, IHostGameStore, StoreStateListener } from './types';
+export type { IHostGameStore, StoreStateListener } from './types';

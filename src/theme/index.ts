@@ -38,4 +38,4 @@ export {
 } from './tokens';
 
 // Types & Themes
-export { type Theme, type ThemeColors, type ThemeKey } from './themes';
+export { type ThemeColors, type ThemeKey } from './themes';
