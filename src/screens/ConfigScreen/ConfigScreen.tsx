@@ -396,14 +396,14 @@ export const ConfigScreen: React.FC = () => {
   // 5 种动画 + 随机 + 无动画
   const animationOptions: DropdownOption[] = useMemo(
     () => [
-      { value: 'random', label: '🎲 随机' },
-      { value: 'roulette', label: '🎰 轮盘' },
-      { value: 'roleHunt', label: '👻 猎场' },
-      { value: 'scratch', label: '🎫 刮刮卡' },
-      { value: 'tarot', label: '🎴 塔罗牌' },
-      { value: 'gachaMachine', label: '🎱 扭蛋机' },
-      { value: 'cardPick', label: '🃏 抽牌' },
-      { value: 'none', label: '⚡ 无动画' },
+      { value: 'random', label: '随机' },
+      { value: 'roulette', label: '轮盘' },
+      { value: 'roleHunt', label: '猎场' },
+      { value: 'scratch', label: '刮刮卡' },
+      { value: 'tarot', label: '塔罗牌' },
+      { value: 'gachaMachine', label: '扭蛋机' },
+      { value: 'cardPick', label: '抽牌' },
+      { value: 'none', label: '无动画' },
     ],
     [],
   );
