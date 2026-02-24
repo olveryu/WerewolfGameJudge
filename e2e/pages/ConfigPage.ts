@@ -80,9 +80,9 @@ export class ConfigPage {
 
   /**
    * Switch to a faction tab.
-   * @param faction - Tab key: 'villager' (好人阵营), 'wolf' (狼人阵营), 'special' (中立阵营)
+   * @param faction - Tab key: 'Villager' (好人阵营), 'Wolf' (狼人阵营), 'Special' (中立阵营)
    */
-  async switchToFactionTab(faction: 'villager' | 'wolf' | 'special') {
+  async switchToFactionTab(faction: 'Villager' | 'Wolf' | 'Special') {
     const tab = this.page.locator(`[data-testid="config-faction-tab-${faction}"]`);
     await tab.waitFor({ state: 'visible', timeout: 3000 });
     await tab.click();
@@ -219,7 +219,7 @@ export class ConfigPage {
     await this.decreaseStepper('villager', 3); // 4 → 1
 
     // Switch to 狼人阵营 tab to adjust wolf count
-    await this.switchToFactionTab('wolf');
+    await this.switchToFactionTab('Wolf');
     await this.decreaseStepper('wolf', 3); // 4 → 1
   }
 
@@ -239,7 +239,7 @@ export class ConfigPage {
     await this.decreaseStepper('villager', 3); // 4 → 1
 
     // Switch to 狼人阵营 tab to adjust wolf count
-    await this.switchToFactionTab('wolf');
+    await this.switchToFactionTab('Wolf');
     await this.decreaseStepper('wolf', 2); // 4 → 2
   }
 
@@ -288,7 +288,7 @@ export class ConfigPage {
     }
 
     // --- 狼人阵营 ---
-    await this.switchToFactionTab('wolf');
+    await this.switchToFactionTab('Wolf');
     // Adjust wolf count from default 4 → target
     const wolfDelta = 4 - wolves;
     if (wolfDelta > 0) {
@@ -303,7 +303,7 @@ export class ConfigPage {
 
     // --- 中立阵营 (if needed) ---
     if (specialRoles.length > 0) {
-      await this.switchToFactionTab('special');
+      await this.switchToFactionTab('Special');
       for (const roleId of specialRoles) {
         await this.toggleRole(roleId);
       }

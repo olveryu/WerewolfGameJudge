@@ -125,7 +125,7 @@ test.describe('Room Lifecycle', () => {
       // Decrease villager count 4 → 0
       await config.decreaseStepper('villager', 4);
       // Switch to wolf tab, decrease wolf count 4 → 0
-      await config.switchToFactionTab('wolf');
+      await config.switchToFactionTab('Wolf');
       await config.decreaseStepper('wolf', 4);
 
       // Try to create — should fail validation

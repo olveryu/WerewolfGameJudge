@@ -6,6 +6,7 @@
  */
 
 import { maybeCreateWitchContextAction } from '@werewolf/game-engine/engine/handlers/witchContext';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
@@ -26,7 +27,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
   return {
     roomCode: '1234',
     hostUid: 'host-uid',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'witch', 'villager'],
     players: {
       0: createPlayer(0, 'wolf'),

@@ -35,8 +35,8 @@ export interface LeaveMySeatIntent {
 
 /**
  * 全员起立 Intent（Host-only）
- * 前置条件：status === 'unseated' | 'seated'
- * 结果：所有座位清空，status → 'unseated'
+ * 前置条件：status === Unseated | Seated
+ * 结果：所有座位清空，status → Unseated
  */
 export interface ClearAllSeatsIntent {
   type: 'CLEAR_ALL_SEATS';
@@ -48,8 +48,8 @@ export interface ClearAllSeatsIntent {
 
 /**
  * 分配角色 Intent（Host-only）
- * 前置条件：status === 'seated'
- * 结果：status → 'assigned'
+ * 前置条件：status === Seated
+ * 结果：status → Assigned
  */
 export interface AssignRolesIntent {
   type: 'ASSIGN_ROLES';
@@ -57,8 +57,8 @@ export interface AssignRolesIntent {
 
 /**
  * 开始夜晚 Intent（Host-only）
- * 前置条件：status === 'ready'
- * 结果：status → 'ongoing'，初始化 Night-1 字段
+ * 前置条件：status === Ready
+ * 结果：status → Ongoing，初始化 Night-1 字段
  */
 export interface StartNightIntent {
   type: 'START_NIGHT';
@@ -70,7 +70,7 @@ export interface RestartGameIntent {
 
 /**
  * 更新模板 Intent（Host-only）
- * 前置条件：status === 'unseated' | 'seated'（准备看牌前）
+ * 前置条件：status === Unseated | Seated（准备看牌前）
  * 用于 Host 编辑房间配置
  */
 export interface UpdateTemplateIntent {
@@ -181,7 +181,7 @@ export interface EndNightIntent {
 /**
  * 填充机器人 Intent（Host-only, Debug-only）
  *
- * 前置条件：status === 'unseated'
+ * 前置条件：status === Unseated
  * 结果：
  * - 为所有空座位创建 bot player（isBot: true）
  * - 设置 debugMode.botsEnabled = true
@@ -193,7 +193,7 @@ export interface FillWithBotsIntent {
 /**
  * 标记所有机器人已查看角色 Intent（Host-only, Debug-only）
  *
- * 前置条件：debugMode.botsEnabled === true && status === 'assigned'
+ * 前置条件：debugMode.botsEnabled === true && status === Assigned
  * 结果：仅对 isBot === true 的玩家设置 hasViewedRole = true
  */
 export interface MarkAllBotsViewedIntent {

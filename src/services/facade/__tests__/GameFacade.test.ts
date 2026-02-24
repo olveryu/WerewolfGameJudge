@@ -1166,7 +1166,7 @@ describe('GameFacade', () => {
     });
 
     it('should set wasAudioInterrupted=false when DB status is not ongoing', async () => {
-      const dbState = buildOngoingDbState({ status: 'ready' });
+      const dbState = buildOngoingDbState({ status: GameStatus.Ready });
       const facadeWithDb = new GameFacade({
         store: new GameStore(),
         realtimeService: mockRealtimeService as any,

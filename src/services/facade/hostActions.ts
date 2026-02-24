@@ -622,7 +622,7 @@ export async function postProgression(
  * Host: 填充机器人（Debug-only, HTTP API）
  *
  * 为所有空座位创建 bot player，设置 debugMode.botsEnabled = true。
- * 仅在 status === 'unseated' 时可用。
+ * 仅在 status === Unseated 时可用。
  */
 export async function fillWithBots(
   ctx: HostActionsContext,
@@ -646,7 +646,7 @@ export async function fillWithBots(
  * Host: 标记所有机器人已查看角色（Debug-only, HTTP API）
  *
  * 仅对 isBot === true 的玩家设置 hasViewedRole = true。
- * 仅在 debugMode.botsEnabled === true && status === 'assigned' 时可用。
+ * 仅在 debugMode.botsEnabled === true && status === Assigned 时可用。
  */
 export async function markAllBotsViewed(
   ctx: HostActionsContext,
@@ -673,7 +673,7 @@ export async function markAllBotsViewed(
 /**
  * Host: 全员起立（HTTP API）
  *
- * 清空所有已入座玩家。仅在 status === 'unseated' | 'seated' 时可用。
+ * 清空所有已入座玩家。仅在 status === Unseated | Seated 时可用。
  */
 export async function clearAllSeats(
   ctx: HostActionsContext,
