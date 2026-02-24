@@ -23,10 +23,10 @@ export const WOLF_VOTE_COUNTDOWN_MS = 5000;
  * - 0 参与狼人 → return false（wolfKill step 下无狼人是异常，不应推进）
  * - 撤回（-2）的狼人 key 已被 resolver 删除，不在 wolfVotesBySeat 中 → 未投票 → false
  *
- * @invariant player.role !== null when status='ongoing'（此函数仅在 wolfKill step 调用）。
- * 保证链：handleAssignRoles 为全部 seats 写入 role → status='assigned' →
- * handleStartNight 设 status='ongoing'。ongoing 期间 handleTakeSeat 拒绝加入
- * （status !== unseated/seated），handleLeaveMySeat 拒绝离开（status === ongoing）。
+ * @invariant player.role !== null when status=Ongoing（此函数仅在 wolfKill step 调用）。
+ * 保证链：handleAssignRoles 为全部 seats 写入 role → status=Assigned →
+ * handleStartNight 设 status=Ongoing。Ongoing 期间 handleTakeSeat 拒绝加入
+ * （status !== Unseated/Seated），handleLeaveMySeat 拒绝离开（status === Ongoing）。
  * 因此 fail-closed 的 `return false` 在生产中不会触发 deadlock。
  *
  * ⚠️ 行为变更（vs 旧 isCurrentStepComplete wolfKill 分支）：

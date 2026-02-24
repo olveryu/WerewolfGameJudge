@@ -2,7 +2,7 @@
  * NightProgressIndicator.tsx - Shows night phase progress
  *
  * Displays current step number and total steps based on the active night plan.
- * Only visible during ongoing game (status === 'ongoing').
+ * Only visible during ongoing game (status === Ongoing).
  *
  * Performance: Memoized, receives pre-created styles from parent.
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.

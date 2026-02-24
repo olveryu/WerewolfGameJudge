@@ -65,7 +65,7 @@ describe('POST /api/game/start', () => {
     mockProcessGameAction.mockImplementation(async (_code, processFn) => {
       const state = {
         hostUid: 'h1',
-        status: 'ready',
+        status: GameStatus.Ready,
         players: { 1: { uid: 'h1', displayName: 'Host', role: null } },
       } as unknown as GameState;
       capturedResult = (processFn as (s: GameState, r: number) => ProcessResult)(state, 0);
@@ -101,7 +101,7 @@ describe('POST /api/game/start', () => {
     mockLocalProcess.mockImplementation(async (_code, processFn) => {
       const state = {
         hostUid: 'h1',
-        status: 'ready',
+        status: GameStatus.Ready,
         players: { 1: { uid: 'h1', displayName: 'Host', role: null } },
       } as unknown as GameState;
       capturedResult = (processFn as (s: GameState, r: number) => ProcessResult)(state, 0);

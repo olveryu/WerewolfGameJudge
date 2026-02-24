@@ -346,7 +346,7 @@ export function buildSeatViewModels(
     secondSelectedSeat?: number | null;
     /**
      * Show ✅ ready badge on seats where player has viewed their role.
-     * Typically true during 'assigned' phase.
+     * Typically true during Assigned phase.
      */
     showReadyBadges?: boolean;
   },

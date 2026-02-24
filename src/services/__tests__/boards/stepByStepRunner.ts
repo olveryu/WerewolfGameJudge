@@ -157,7 +157,7 @@ export function executeStepsUntil(
  * @param customActions - 自定义某些角色的 action
  * @returns 执行结果（deaths 列表 + 是否完成）
  * @throws 如果 advanceNight 失败（包括被 gate 阻塞）
- * @throws 如果 state.status !== 'ongoing' 且 currentStepId 存在（状态不一致）
+ * @throws 如果 state.status !== Ongoing 且 currentStepId 存在（状态不一致）
  */
 export function executeRemainingSteps(
   ctx: HostGameContext,
