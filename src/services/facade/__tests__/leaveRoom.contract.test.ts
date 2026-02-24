@@ -8,9 +8,9 @@ import { GameStore } from '@werewolf/game-engine/engine/store';
 
 import { GameFacade } from '@/services/facade/GameFacade';
 
-// Mock BroadcastService
-jest.mock('../../transport/BroadcastService', () => ({
-  BroadcastService: jest.fn().mockImplementation(() => ({
+// Mock RealtimeService
+jest.mock('../../transport/RealtimeService', () => ({
+  RealtimeService: jest.fn().mockImplementation(() => ({
     joinRoom: jest.fn().mockResolvedValue(undefined),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
     markAsLive: jest.fn(),
@@ -42,7 +42,7 @@ const mockAudio = () =>
 const createTestFacade = () =>
   new GameFacade({
     store: new GameStore(),
-    broadcastService: new (jest.requireMock('../../transport/BroadcastService').BroadcastService)(),
+    realtimeService: new (jest.requireMock('../../transport/RealtimeService').RealtimeService)(),
     audioService: mockAudio(),
     roomService: {
       upsertGameState: jest.fn().mockResolvedValue(undefined),

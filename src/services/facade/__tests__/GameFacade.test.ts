@@ -11,13 +11,13 @@
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStore } from '@werewolf/game-engine/engine/store';
-import type { BroadcastPlayer, HostBroadcast } from '@werewolf/game-engine/protocol/types';
+import type { BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
 
 import { GameFacade } from '@/services/facade/GameFacade';
 
-// Mock BroadcastService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
-jest.mock('../../transport/BroadcastService', () => ({
-  BroadcastService: jest.fn().mockImplementation(() => ({})),
+// Mock RealtimeService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
+jest.mock('../../transport/RealtimeService', () => ({
+  RealtimeService: jest.fn().mockImplementation(() => ({})),
 }));
 
 // P0-1: Mock AudioService
@@ -45,7 +45,7 @@ const mockRoomService = () =>
 
 describe('GameFacade', () => {
   let facade: GameFacade;
-  let mockBroadcastService: {
+  let mockRealtimeService: {
     joinRoom: jest.Mock;
     leaveRoom: jest.Mock;
     markAsLive: jest.Mock;
@@ -60,8 +60,8 @@ describe('GameFacade', () => {
   };
 
   beforeEach(() => {
-    // Setup mock BroadcastService
-    mockBroadcastService = {
+    // Setup mock RealtimeService
+    mockRealtimeService = {
       joinRoom: jest.fn().mockResolvedValue(undefined),
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       markAsLive: jest.fn(),
@@ -71,7 +71,7 @@ describe('GameFacade', () => {
     // DI: 直接注入 mock，无需 singleton
     facade = new GameFacade({
       store: new GameStore(),
-      broadcastService: mockBroadcastService as any,
+      realtimeService: mockRealtimeService as any,
       audioService: mockAudioServiceInstance as any,
       roomService: mockRoomService(),
     });
@@ -119,11 +119,10 @@ describe('GameFacade', () => {
     it('should join broadcast channel with correct callbacks', async () => {
       await facade.createRoom('ABCD', 'host-uid', mockTemplate);
 
-      expect(mockBroadcastService.joinRoom).toHaveBeenCalledWith(
+      expect(mockRealtimeService.joinRoom).toHaveBeenCalledWith(
         'ABCD',
         'host-uid',
         expect.objectContaining({
-          onHostBroadcast: expect.any(Function),
           onDbStateChange: expect.any(Function),
         }),
       );
@@ -216,11 +215,10 @@ describe('GameFacade', () => {
       expect(facade.isHostPlayer()).toBe(false);
       expect(facade.getMyUid()).toBe('player-uid');
 
-      expect(mockBroadcastService.joinRoom).toHaveBeenCalledWith(
+      expect(mockRealtimeService.joinRoom).toHaveBeenCalledWith(
         'ABCD',
         'player-uid',
         expect.objectContaining({
-          onHostBroadcast: expect.any(Function),
           onDbStateChange: expect.any(Function),
         }),
       );
@@ -233,13 +231,11 @@ describe('GameFacade', () => {
     beforeEach(async () => {
       await facade.joinRoom('ABCD', 'player-uid', false);
 
-      // Player must receive STATE_UPDATE to populate roomCode in store
-      const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
+      // Player must receive state to populate roomCode in store
+      const joinRoomCall = mockRealtimeService.joinRoom.mock.calls[0];
       const callbacks = joinRoomCall[2];
-      callbacks.onHostBroadcast({
-        type: 'STATE_UPDATE',
-        revision: 1,
-        state: {
+      callbacks.onDbStateChange(
+        {
           roomCode: 'ABCD',
           hostUid: 'host-uid',
           status: 'unseated',
@@ -248,7 +244,8 @@ describe('GameFacade', () => {
           currentStepIndex: -1,
           isAudioPlaying: false,
         },
-      });
+        1,
+      );
     });
 
     afterEach(() => {
@@ -305,41 +302,37 @@ describe('GameFacade', () => {
       await facade.joinRoom('ABCD', 'player-uid', false);
     });
 
-    it('should apply snapshot when receiving STATE_UPDATE', () => {
-      // Get the onHostBroadcast callback that was passed to joinRoom
-      const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
+    it('should apply snapshot when receiving state via postgres_changes', () => {
+      // Get the onDbStateChange callback that was passed to joinRoom
+      const joinRoomCall = mockRealtimeService.joinRoom.mock.calls[0];
       const callbacks = joinRoomCall[2];
-      const onHostBroadcast = callbacks.onHostBroadcast;
+      const onDbStateChange = callbacks.onDbStateChange;
 
-      const stateUpdate: HostBroadcast = {
-        type: 'STATE_UPDATE',
-        revision: 5,
-        state: {
-          roomCode: 'ABCD',
-          hostUid: 'host-uid',
-          status: 'unseated',
-          templateRoles: ['wolf', 'seer'] as any[],
-          players: {
-            0: null,
-            1: {
-              uid: 'player-uid',
-              seatNumber: 1,
-              displayName: 'Player One',
-              hasViewedRole: false,
-            },
+      const state = {
+        roomCode: 'ABCD',
+        hostUid: 'host-uid',
+        status: 'unseated',
+        templateRoles: ['wolf', 'seer'] as any[],
+        players: {
+          0: null,
+          1: {
+            uid: 'player-uid',
+            seatNumber: 1,
+            displayName: 'Player One',
+            hasViewedRole: false,
           },
-          currentStepIndex: -1,
-          isAudioPlaying: false,
-          actions: [],
-          pendingRevealAcks: [],
         },
+        currentStepIndex: -1,
+        isAudioPlaying: false,
+        actions: [],
+        pendingRevealAcks: [],
       };
 
-      onHostBroadcast(stateUpdate);
+      onDbStateChange(state, 5);
 
       expect(facade.getStateRevision()).toBe(5);
       expect(facade.getMySeatNumber()).toBe(1);
-      expect(mockBroadcastService.markAsLive).toHaveBeenCalled();
+      expect(mockRealtimeService.markAsLive).toHaveBeenCalled();
     });
   });
 
@@ -349,13 +342,11 @@ describe('GameFacade', () => {
     beforeEach(async () => {
       await facade.joinRoom('ABCD', 'player-uid', false);
 
-      // Player must receive STATE_UPDATE to populate roomCode in store
-      const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
+      // Player must receive state to populate roomCode in store
+      const joinRoomCall = mockRealtimeService.joinRoom.mock.calls[0];
       const callbacks = joinRoomCall[2];
-      callbacks.onHostBroadcast({
-        type: 'STATE_UPDATE',
-        revision: 1,
-        state: {
+      callbacks.onDbStateChange(
+        {
           roomCode: 'ABCD',
           hostUid: 'host-uid',
           status: 'unseated',
@@ -364,7 +355,8 @@ describe('GameFacade', () => {
           currentStepIndex: -1,
           isAudioPlaying: false,
         },
-      });
+        1,
+      );
     });
 
     afterEach(() => {
@@ -422,13 +414,11 @@ describe('GameFacade', () => {
     beforeEach(async () => {
       await facade.joinRoom('ABCD', 'player-uid', false);
 
-      // Player must receive STATE_UPDATE to populate roomCode in store
-      const joinRoomCall = mockBroadcastService.joinRoom.mock.calls[0];
+      // Player must receive state to populate roomCode in store
+      const joinRoomCall = mockRealtimeService.joinRoom.mock.calls[0];
       const callbacks = joinRoomCall[2];
-      callbacks.onHostBroadcast({
-        type: 'STATE_UPDATE',
-        revision: 1,
-        state: {
+      callbacks.onDbStateChange(
+        {
           roomCode: 'ABCD',
           hostUid: 'host-uid',
           status: 'unseated',
@@ -437,7 +427,8 @@ describe('GameFacade', () => {
           currentStepIndex: -1,
           isAudioPlaying: false,
         },
-      });
+        1,
+      );
     });
 
     afterEach(() => {
@@ -474,7 +465,7 @@ describe('GameFacade', () => {
       await facade.createRoom('ABCD', 'host-uid', mockTemplate);
       await facade.leaveRoom();
 
-      expect(mockBroadcastService.leaveRoom).toHaveBeenCalled();
+      expect(mockRealtimeService.leaveRoom).toHaveBeenCalled();
       expect(facade.getMyUid()).toBeNull();
       expect(facade.isHostPlayer()).toBe(false);
     });
@@ -619,7 +610,7 @@ describe('GameFacade', () => {
       // Player without store state
       const playerFacade = new GameFacade({
         store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
+        realtimeService: mockRealtimeService as any,
         audioService: mockAudioServiceInstance as any,
         roomService: mockRoomService(),
       });
@@ -683,7 +674,7 @@ describe('GameFacade', () => {
       const playerStore = new GameStore();
       const playerFacade = new GameFacade({
         store: playerStore,
-        broadcastService: mockBroadcastService as any,
+        realtimeService: mockRealtimeService as any,
         audioService: mockAudioServiceInstance as any,
         roomService: {
           upsertGameState: jest.fn().mockResolvedValue(undefined),
@@ -791,7 +782,7 @@ describe('GameFacade', () => {
     it('should return NOT_CONNECTED when not connected', async () => {
       const emptyFacade = new GameFacade({
         store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
+        realtimeService: mockRealtimeService as any,
         audioService: mockAudioServiceInstance as any,
         roomService: mockRoomService(),
       });
@@ -1155,7 +1146,7 @@ describe('GameFacade', () => {
       const dbState = buildOngoingDbState();
       const facadeWithDb = new GameFacade({
         store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
+        realtimeService: mockRealtimeService as any,
         audioService: mockAudioServiceInstance as any,
         roomService: {
           upsertGameState: jest.fn().mockResolvedValue(undefined),
@@ -1175,7 +1166,7 @@ describe('GameFacade', () => {
       const dbState = buildOngoingDbState({ status: 'ready' });
       const facadeWithDb = new GameFacade({
         store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
+        realtimeService: mockRealtimeService as any,
         audioService: mockAudioServiceInstance as any,
         roomService: {
           upsertGameState: jest.fn().mockResolvedValue(undefined),
@@ -1248,7 +1239,7 @@ describe('GameFacade', () => {
 
       const f = new GameFacade({
         store: new GameStore(),
-        broadcastService: mockBroadcastService as any,
+        realtimeService: mockRealtimeService as any,
         audioService: mockAudioServiceInstance as any,
         roomService: {
           upsertGameState: jest.fn().mockResolvedValue(undefined),
@@ -1355,11 +1346,11 @@ describe('GameFacade', () => {
   // ===========================================================================
   describe('postAudioAck retry on reconnect', () => {
     let statusListeners: Array<(status: string) => void>;
-    let retryBroadcastService: typeof mockBroadcastService;
+    let retryRealtimeService: typeof mockRealtimeService;
 
     const setupRetryFacade = async () => {
       statusListeners = [];
-      retryBroadcastService = {
+      retryRealtimeService = {
         joinRoom: jest.fn().mockResolvedValue(undefined),
         leaveRoom: jest.fn().mockResolvedValue(undefined),
         markAsLive: jest.fn(),
@@ -1373,7 +1364,7 @@ describe('GameFacade', () => {
 
       const f = new GameFacade({
         store: new GameStore(),
-        broadcastService: retryBroadcastService as any,
+        realtimeService: retryRealtimeService as any,
         audioService: mockAudioServiceInstance as any,
         roomService: {
           upsertGameState: jest.fn().mockResolvedValue(undefined),

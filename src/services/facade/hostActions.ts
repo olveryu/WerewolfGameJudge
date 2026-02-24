@@ -261,7 +261,7 @@ export async function updateTemplate(
  * Host: 重新开始游戏（HTTP API）
  *
  * RESTART_GAME（任意状态 → unseated）
- * 服务端会先广播 GAME_RESTARTED，再变更 state。
+ * 服务端重置 state → postgres_changes 推送新状态到所有客户端。
  */
 export async function restartGame(
   ctx: HostActionsContext,

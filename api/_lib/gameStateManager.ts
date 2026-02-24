@@ -1,5 +1,5 @@
 /**
- * Game State Manager — 通用"读-算-写-广播"流程
+ * Game State Manager — 通用"读-算-写"流程
  *
  * 所有 API Route 共享同一个处理模式：
  * 1. 从 DB 读 game_state + state_revision
@@ -7,9 +7,9 @@
  * 3. 用 gameReducer 将 actions apply 到 state
  * 4. （可选）内联推进：evaluateProgression → advance/endNight 循环
  * 5. 用 state_revision 做乐观锁写回 DB
- * 6. 通过 Supabase Realtime 广播新状态
  *
- * 负责 DB 读写、状态计算与 Realtime 广播，不包含游戏逻辑校验（由 handler 纯函数负责）。
+ * 客户端通过 postgres_changes 单通道接收状态变更，无需服务端主动广播。
+ * 负责 DB 读写与状态计算，不包含游戏逻辑校验（由 handler 纯函数负责）。
  */
 
 import {
@@ -21,53 +21,6 @@ import {
 
 import { getDb, jsonb } from './db';
 import type { GameActionResult, ProcessResult } from './types';
-
-// =============================================================================
-// REST Broadcast (无 websocket 开销)
-// =============================================================================
-
-/**
- * 通过 Supabase REST RPC 发送 Realtime Broadcast 消息
- *
- * 社区推荐的 serverless 广播方式：纯 HTTP POST，无需建立/销毁 websocket 连接。
- * 比 `supabase.channel().send()` + `removeChannel()` 快 200-400ms。
- *
- * @see https://supabase.com/docs/guides/realtime/broadcast#broadcast-using-the-rest-api
- */
-export async function broadcastViaRest(
-  roomCode: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for broadcast');
-  }
-
-  const res = await fetch(`${url}/realtime/v1/api/broadcast`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      messages: [
-        {
-          topic: `realtime:room:${roomCode}`,
-          event: 'host',
-          payload,
-        },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    // 广播失败不阻断主流程，但记录错误
-    // eslint-disable-next-line no-console
-    console.error(`[broadcastViaRest] Failed: ${res.status} ${res.statusText}`);
-  }
-}
 
 /**
  * 内联推进选项
@@ -166,17 +119,7 @@ export async function processGameAction(
         return { success: false, reason: 'CONFLICT_RETRY' };
       }
 
-      // Step 5: 广播 STATE_UPDATE（fire-and-forget — 不阻塞 HTTP 响应）
-      // broadcast 是 best-effort 快通道，丢失由 postgres_changes 兜底
-      broadcastViaRest(roomCode, {
-        type: 'STATE_UPDATE',
-        state: newState,
-        revision: currentRevision + 1,
-      }).catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error('[broadcastViaRest] network error:', err);
-      });
-
+      // 客户端通过 postgres_changes 单通道接收 DB 变更，无需服务端主动广播
       return {
         success: true,
         state: newState,

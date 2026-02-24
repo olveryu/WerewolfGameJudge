@@ -128,7 +128,7 @@ export function useRoomInit({
         initInProgressRef.current = false;
         roomScreenLog.debug('[useRoomInit] Host init complete');
       } else {
-        // Player joins existing room via BroadcastService
+        // Player joins existing room via RealtimeService
         setLoadingMessage('正在加入房间...');
         roomScreenLog.debug('[useRoomInit] Player joining room', { roomNumber });
         const joined = await joinRoom(roomNumber);

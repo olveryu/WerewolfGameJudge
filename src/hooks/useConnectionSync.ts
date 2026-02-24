@@ -2,7 +2,7 @@
  * useConnectionSync - Connection status tracking + auto-recovery
  *
  * Manages:
- * - BroadcastService connection status subscription
+ * - RealtimeService connection status subscription
  * - Auto-recovery after reconnect (DB read — throttled)
  * - State staleness detection + automatic self-healing via DB fallback
  *
@@ -11,10 +11,11 @@
  * staleness detector automatically reads the latest state from DB.
  * Host and Player use the same recovery path (server-authoritative).
  *
- * 订阅 BroadcastService 连接状态并派生 staleness。
+ * 订阅 RealtimeService 连接状态并派生 staleness。
  * 不直接修改游戏状态，不包含业务校验逻辑。
  */
 
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
@@ -23,10 +24,29 @@ import { gameRoomLog } from '@/utils/logger';
 
 /**
  * How long without a state update before we consider the state stale.
- * Must be longer than the Host heartbeat interval (5s) to avoid false positives.
- * At 8s, a single dropped heartbeat won't trigger, but two consecutive misses will.
+ *
+ * Active phases (ongoing / ready / ended): 8s — state changes frequently,
+ * a dropped postgres_changes notification must be recovered quickly.
+ *
+ * Idle phases (unseated / seated / assigned): 60s — state changes are rare
+ * and user-initiated (seat / assign), so a longer threshold avoids unnecessary
+ * DB reads. Real disconnections are still caught instantly by Layer 0
+ * (browser offline) and Layer 1 (Supabase SDK reconnect).
  */
-const STALE_THRESHOLD_MS = 8_000;
+const STALE_THRESHOLD_ACTIVE_MS = 8_000;
+const STALE_THRESHOLD_IDLE_MS = 60_000;
+
+/** Phases where state changes frequently and require fast stale detection. */
+const ACTIVE_STATUSES = new Set<GameStatus>([
+  GameStatus.ongoing,
+  GameStatus.ready,
+  GameStatus.ended,
+]);
+
+function getStaleThreshold(gameStatus: GameStatus | null): number {
+  if (gameStatus && ACTIVE_STATUSES.has(gameStatus)) return STALE_THRESHOLD_ACTIVE_MS;
+  return STALE_THRESHOLD_IDLE_MS;
+}
 
 /** How often we check staleness and potentially trigger auto-heal. */
 const STALE_CHECK_INTERVAL_MS = 3_000;
@@ -55,6 +75,7 @@ export type ConnectionSyncActions = Pick<ConnectionSyncState, 'setConnectionStat
 export function useConnectionSync(
   facade: IGameFacade,
   roomRecord: { roomNumber: string } | null,
+  gameStatus: GameStatus | null,
 ): ConnectionSyncState {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [stateRevision, setStateRevision] = useState(0);
@@ -134,12 +155,31 @@ export function useConnectionSync(
         setIsStateStale(true);
         return;
       }
-      setIsStateStale(Date.now() - lastStateReceivedAt > STALE_THRESHOLD_MS);
+      setIsStateStale(Date.now() - lastStateReceivedAt > getStaleThreshold(gameStatus));
     };
     check();
     const id = setInterval(check, STALE_CHECK_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [connectionStatus, lastStateReceivedAt]);
+
+    // Page Visibility API: mobile browsers freeze WebSocket when backgrounded
+    // but may not fire an 'offline' event. When the tab becomes visible again,
+    // run an immediate staleness check instead of waiting for the next 3s tick.
+    const onVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        gameRoomLog.debug('Page became visible — running immediate stale check');
+        check();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+
+    return () => {
+      clearInterval(id);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+    };
+  }, [connectionStatus, lastStateReceivedAt, gameStatus]);
 
   // ── 自动自愈：连接正常但漏收广播时，从 DB 直接读取最新状态 ──
   // Supabase broadcast 是 at-most-once，单条消息丢失不会触发断线重连。

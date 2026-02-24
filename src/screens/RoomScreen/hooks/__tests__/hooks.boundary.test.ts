@@ -30,7 +30,7 @@ function matchesAnyPattern(content: string, patterns: RegExp[]): boolean {
 function checkForbiddenImports(file: string): boolean {
   const forbiddenImports = [
     'GameStateService',
-    'BroadcastService',
+    'RealtimeService',
     'NightFlowController',
     'RoomService',
     'supabase',

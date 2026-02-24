@@ -2,7 +2,7 @@
  * Protocol Types - 协议层类型定义（唯一权威）
  *
  * 所有线协议类型的单一真相（Single Source of Truth）。
- * 其他文件必须从此处导入这些类型，禁止从 BroadcastService.ts 导入。
+ * 其他文件必须从此处导入这些类型，禁止从 RealtimeService.ts 导入。
  *
  * ⚠️ 本文件只能包含 type-only imports 和类型定义，禁止任何运行时代码。
  */
@@ -321,32 +321,19 @@ export interface BroadcastGameState {
 // 主机广播消息（HostBroadcast）
 // =============================================================================
 
-export type HostBroadcast =
-  | { type: 'STATE_UPDATE'; state: BroadcastGameState; revision: number }
-  | {
-      type: 'ROLE_TURN';
-      role: RoleId;
-      pendingSeats: number[];
-      killedSeat?: number;
-      stepId?: SchemaId;
-    }
-  | { type: 'NIGHT_END'; deaths: number[] }
-  | { type: 'PLAYER_JOINED'; seat: number; player: BroadcastPlayer }
-  | { type: 'PLAYER_LEFT'; seat: number }
-  | { type: 'GAME_RESTARTED' }
-  | { type: 'SEAT_REJECTED'; seat: number; requestUid: string; reason: 'seat_taken' }
-  | {
-      type: 'SNAPSHOT_RESPONSE';
-      requestId: string;
-      toUid: string;
-      state: BroadcastGameState;
-      revision: number;
-    };
+/** DB → postgres_changes 推送的状态变更消息 */
+export type HostBroadcast = { type: 'STATE_UPDATE'; state: BroadcastGameState; revision: number };
 
 // =============================================================================
-// 玩家消息（PlayerMessage）
+// 玩家消息（PlayerMessage）— 仅 integration test 使用
 // =============================================================================
 
+/**
+ * Integration test 专用 — 模拟 player→server intent 的消息类型
+ *
+ * 生产环境中玩家通过 HTTP API 提交操作，不使用此类型。
+ * 保留供 board integration tests（hostGameContext / hostGameFactory）使用。
+ */
 export type PlayerMessage =
   | { type: 'REQUEST_STATE'; uid: string }
   | { type: 'JOIN'; seat: number; uid: string; displayName: string; avatarUrl?: string }

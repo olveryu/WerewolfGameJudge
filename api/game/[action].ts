@@ -34,7 +34,7 @@ import {
 } from '@werewolf/game-engine';
 
 import { handleCors } from '../_lib/cors';
-import { broadcastViaRest, processGameAction } from '../_lib/gameStateManager';
+import { processGameAction } from '../_lib/gameStateManager';
 import { buildHandlerContext } from '../_lib/handlerContext';
 import { resultToStatus } from '../_lib/responseStatus';
 import type {
@@ -127,13 +127,6 @@ async function handleRestart(req: VercelRequest, res: VercelResponse) {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleRestartGame({ type: 'RESTART_GAME' }, handlerCtx);
   });
-
-  // 广播 GAME_RESTARTED 通知 Player（仅在验证通过后，fire-and-forget）
-  if (result.success) {
-    broadcastViaRest(roomCode, { type: 'GAME_RESTARTED' }).catch(() => {
-      /* non-blocking */
-    });
-  }
 
   return res.status(resultToStatus(result)).json(result);
 }

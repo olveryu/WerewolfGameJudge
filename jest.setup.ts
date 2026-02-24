@@ -336,7 +336,7 @@ jest.mock('./src/utils/logger', () => {
     hostLog: mockLogger,
     playerLog: mockLogger,
     nightFlowLog: mockLogger,
-    broadcastLog: mockLogger,
+    realtimeLog: mockLogger,
     audioLog: mockLogger,
     authLog: mockLogger,
     roomLog: mockLogger,
