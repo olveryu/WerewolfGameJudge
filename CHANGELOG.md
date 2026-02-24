@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.1.1] - 2026-02-23
+
+- refactor(config): replace FlipReveal+Pinball with RoleHunt, clean up animation options
+- fix(services): update facade test mocks for non-JSON response guard
+- fix(game-engine): unify magician swap identity resolution in death calc
+- docs: add 13 instruction rules from bug scan findings
+- fix(hooks): remove unused isHost from useConnectionSync
+- fix(audio): track and release stale native AudioPlayer instances
+- fix(components): clamp bubble position to screen bounds on load
+- fix(services): add error handling for broadcast channels
+- fix(game-engine): update ROLE_SPECS comment to 27 roles
+- fix(contexts): export useNetworkContext consumer hook
+- fix(services): guard non-JSON HTTP errors before res.json()
+- fix(night): guard duplicate audio-ack progression
+- fix(services): skip Sentry for expected HTTP errors in AIChatService
+- fix(screens): prevent speaking order timer from resetting on every broadcast
+- fix(screens): reset isStartingGame on startGame failure
+- fix(services): resolve web audio promise on stopCurrentPlayer
+- fix(services): reset audio flags and stop audio on room transitions
+- fix(game-engine): add sideEffects to wolfRobotHunterGateHandler
+- fix(game-engine): align allViewed check in handleMarkAllBotsViewed
+- fix(game-engine): reset stale fields in RESTART_GAME reducer + add state null check
+- docs(audio): clarify BGM stop responsibilities between Facade and useBgmControl
+- fix(audio): stop BGM before playing night_end audio
+- fix(room): filter host from share count and prevent double-tap on confirm
+- fix(e2e): update viewLastNightInfo button text to match client code
+- fix(alert): reorder buttons in AlertModal to match iOS convention
+- feat: add share review functionality for hosts in ended game phase
+- feat(room): restrict night info buttons visibility
+- style(room): rename restart button from 重开 to 重新开始
+- fix(night): correct role displayNames in NightReview and add contract test
+- fix(night): add missing night action lines to NightReview detail modal
+- style(room): unify bottom panel button sizing and refactor HostControlButtons
+- style(room): use danger style and anti-cheat warning for last-night-info button
+- feat(room): add clear-all-seats host menu action
+- feat(night): theme FlipReveal particles and glow by alignment color
+- fix(audio): delay BGM stop until ending audio finishes after night ends
+- refactor(room): move speaking order from toast to BoardInfoCard with 20s auto-hide
+- fix(services): replay audio effects on host reconnect instead of bare ack retry
+- fix(services): retry postAudioAck after host reconnect during night
+- fix(e2e): handle connecting state in waitForJoinerLive and fix trace cleanup
+- fix(room): show connection bar for host and defer toast until audio ends
+- fix(room): prevent night review button from displaying while audio is playing
+- fix(services): detect network loss instantly via browser offline event
+- fix(room): unify button styles via parent props and shorten toast text
+- test(e2e): add reconnect spec for non-host player disconnect during night
+- fix(game-engine): allow starting game with no night-action roles
+- fix(room): reorder buttons and show speaking order as toast
+- fix(room): reorder ended buttons — details right of restart
+- fix(room): remove button marginBottom overlap and shorten labels
+- feat(notepad): split public note into two columns and reduce bottom panel padding
+- feat(settings): add WeChat contact info to About section
+
 ## [1.1.0] - 2026-02-21
 
 - ci(release): only create GitHub Releases for minor/major versions
