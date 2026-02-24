@@ -35,7 +35,7 @@ export interface RoleData {
  */
 export type RevealEffectType =
   | 'roulette'
-  | 'flip'
+  | 'roleHunt'
   | 'scratch'
   | 'tarot'
   | 'gachaMachine'

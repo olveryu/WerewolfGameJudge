@@ -24,7 +24,7 @@ describe('SettingsService', () => {
       const storedSettings = {
         bgmEnabled: false,
         themeKey: 'midnight',
-        roleRevealAnimation: 'flip',
+        roleRevealAnimation: 'roleHunt',
       };
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(storedSettings));
 
@@ -35,17 +35,17 @@ describe('SettingsService', () => {
   });
 
   describe('roleRevealAnimation', () => {
-    it('can get and set animation to flip', async () => {
-      await service.setRoleRevealAnimation('flip');
-      expect(service.getRoleRevealAnimation()).toBe('flip');
+    it('can get and set animation to roleHunt', async () => {
+      await service.setRoleRevealAnimation('roleHunt');
+      expect(service.getRoleRevealAnimation()).toBe('roleHunt');
     });
 
     it('sets and persists animation', async () => {
-      await service.setRoleRevealAnimation('flip');
+      await service.setRoleRevealAnimation('roleHunt');
 
       expect(AsyncStorage.setItem).toHaveBeenCalledWith(
         '@werewolf_settings',
-        expect.stringContaining('"roleRevealAnimation":"flip"'),
+        expect.stringContaining('"roleRevealAnimation":"roleHunt"'),
       );
     });
 
@@ -63,8 +63,8 @@ describe('SettingsService', () => {
       await service.setRoleRevealAnimation('roulette');
       expect(service.getRoleRevealAnimation()).toBe('roulette');
 
-      await service.setRoleRevealAnimation('flip');
-      expect(service.getRoleRevealAnimation()).toBe('flip');
+      await service.setRoleRevealAnimation('roleHunt');
+      expect(service.getRoleRevealAnimation()).toBe('roleHunt');
 
       await service.setRoleRevealAnimation('none');
       expect(service.getRoleRevealAnimation()).toBe('none');
@@ -152,10 +152,10 @@ describe('SettingsService', () => {
       const listener = jest.fn();
       service.addListener(listener);
 
-      await service.setRoleRevealAnimation('flip');
+      await service.setRoleRevealAnimation('roleHunt');
 
       expect(listener).toHaveBeenCalledWith(
-        expect.objectContaining({ roleRevealAnimation: 'flip' }),
+        expect.objectContaining({ roleRevealAnimation: 'roleHunt' }),
       );
     });
 

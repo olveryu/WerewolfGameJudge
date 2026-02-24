@@ -32,6 +32,7 @@ import type {
   BroadcastGameState,
   HostBroadcast,
 } from '@werewolf/game-engine/protocol/types';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverride';
 
 import { AudioService } from '@/services/infra/AudioService';
@@ -502,7 +503,7 @@ export class GameFacade implements IGameFacade {
   }
 
   async setRoleRevealAnimation(
-    animation: 'roulette' | 'flip' | 'none',
+    animation: RoleRevealAnimation,
   ): Promise<{ success: boolean; reason?: string }> {
     return hostActions.setRoleRevealAnimation(this.getHostActionsContext(), animation);
   }

@@ -99,11 +99,12 @@ export interface SetAnimationRequestBody {
   hostUid: string;
   animation:
     | 'roulette'
-    | 'flip'
+    | 'roleHunt'
     | 'scratch'
     | 'tarot'
     | 'gachaMachine'
     | 'cardPick'
+    | 'constellation'
     | 'none'
     | 'random';
 }

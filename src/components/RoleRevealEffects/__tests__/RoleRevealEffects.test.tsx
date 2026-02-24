@@ -7,7 +7,7 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import {
   createRoleData,
-  FlipReveal,
+  RoleHunt,
   RoleRevealAnimator,
   ScratchReveal,
 } from '@/components/RoleRevealEffects/index';
@@ -53,7 +53,7 @@ describe('RoleRevealEffects', () => {
       const { queryByTestId } = render(
         <RoleRevealAnimator
           visible={false}
-          effectType="flip"
+          effectType="roleHunt"
           role={mockWolfRole}
           onComplete={onComplete}
         />,
@@ -67,7 +67,7 @@ describe('RoleRevealEffects', () => {
       const { getByTestId } = render(
         <RoleRevealAnimator
           visible={true}
-          effectType="flip"
+          effectType="roleHunt"
           role={mockWolfRole}
           onComplete={onComplete}
         />,
@@ -76,19 +76,19 @@ describe('RoleRevealEffects', () => {
       expect(getByTestId('role-reveal-modal')).toBeTruthy();
     });
 
-    it('renders flip effect container', () => {
+    it('renders roleHunt effect container', () => {
       const onComplete = jest.fn();
       const { getByTestId } = render(
         <RoleRevealAnimator
           visible={true}
-          effectType="flip"
+          effectType="roleHunt"
           role={mockGodRole}
           onComplete={onComplete}
-          testIDPrefix="flip-reveal"
+          testIDPrefix="role-hunt"
         />,
       );
 
-      expect(getByTestId('flip-reveal-container')).toBeTruthy();
+      expect(getByTestId('role-hunt-container')).toBeTruthy();
     });
 
     it('renders scratch effect container', () => {
@@ -155,25 +155,25 @@ describe('RoleRevealEffects', () => {
     });
   });
 
-  describe('FlipReveal', () => {
-    it('renders flip container', () => {
+  describe('RoleHunt', () => {
+    it('renders role hunt container', () => {
       const onComplete = jest.fn();
       const { getByTestId } = render(
-        <FlipReveal role={mockWolfRole} onComplete={onComplete} testIDPrefix="flip-reveal" />,
+        <RoleHunt role={mockWolfRole} onComplete={onComplete} testIDPrefix="role-hunt" />,
       );
 
-      expect(getByTestId('flip-reveal-container')).toBeTruthy();
+      expect(getByTestId('role-hunt-container')).toBeTruthy();
     });
 
     it('calls onComplete after animation in reduced motion mode', async () => {
       const onComplete = jest.fn();
 
       render(
-        <FlipReveal
+        <RoleHunt
           role={mockGodRole}
           onComplete={onComplete}
           reducedMotion={true}
-          testIDPrefix="flip-reveal"
+          testIDPrefix="role-hunt"
         />,
       );
 
@@ -190,11 +190,11 @@ describe('RoleRevealEffects', () => {
     it('displays correct role name', () => {
       const onComplete = jest.fn();
       const { getByText } = render(
-        <FlipReveal
+        <RoleHunt
           role={mockWolfRole}
           onComplete={onComplete}
           reducedMotion={true}
-          testIDPrefix="flip-reveal"
+          testIDPrefix="role-hunt"
         />,
       );
 
@@ -311,73 +311,73 @@ describe('RoleRevealEffects', () => {
     it('renders wolf alignment with correct styling', () => {
       const onComplete = jest.fn();
       const { getByTestId } = render(
-        <FlipReveal
+        <RoleHunt
           role={mockWolfRole}
           onComplete={onComplete}
           reducedMotion={true}
-          testIDPrefix="flip-reveal"
+          testIDPrefix="role-hunt"
         />,
       );
 
       // Container should render
-      expect(getByTestId('flip-reveal-container')).toBeTruthy();
+      expect(getByTestId('role-hunt-container')).toBeTruthy();
     });
 
     it('renders god alignment with correct styling', () => {
       const onComplete = jest.fn();
       const { getByTestId } = render(
-        <FlipReveal
+        <RoleHunt
           role={mockGodRole}
           onComplete={onComplete}
           reducedMotion={true}
-          testIDPrefix="flip-reveal"
+          testIDPrefix="role-hunt"
         />,
       );
 
-      expect(getByTestId('flip-reveal-container')).toBeTruthy();
+      expect(getByTestId('role-hunt-container')).toBeTruthy();
     });
 
     it('renders villager alignment with correct styling', () => {
       const onComplete = jest.fn();
       const { getByTestId } = render(
-        <FlipReveal
+        <RoleHunt
           role={mockVillagerRole}
           onComplete={onComplete}
           reducedMotion={true}
-          testIDPrefix="flip-reveal"
+          testIDPrefix="role-hunt"
         />,
       );
 
-      expect(getByTestId('flip-reveal-container')).toBeTruthy();
+      expect(getByTestId('role-hunt-container')).toBeTruthy();
     });
   });
 
   describe('Reduced Motion behavior', () => {
-    it('does not render particles in reduced motion mode (FlipReveal)', () => {
+    it('does not render particles in reduced motion mode (RoleHunt)', () => {
       const onComplete = jest.fn();
       const { queryByTestId } = render(
-        <FlipReveal
+        <RoleHunt
           role={mockWolfRole}
           onComplete={onComplete}
           reducedMotion={true}
-          testIDPrefix="flip-reveal"
+          testIDPrefix="role-hunt"
         />,
       );
 
       // Particle burst should not be rendered in reduced motion
-      expect(queryByTestId('flip-reveal-particle-burst')).toBeNull();
+      expect(queryByTestId('role-hunt-particle-burst')).toBeNull();
     });
 
     it('disables haptics with reducedMotion', async () => {
       const onComplete = jest.fn();
 
       render(
-        <FlipReveal
+        <RoleHunt
           role={mockGodRole}
           onComplete={onComplete}
           reducedMotion={true}
           enableHaptics={true}
-          testIDPrefix="flip-reveal"
+          testIDPrefix="role-hunt"
         />,
       );
 

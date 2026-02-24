@@ -398,7 +398,7 @@ export const ConfigScreen: React.FC = () => {
     () => [
       { value: 'random', label: '🎲 随机' },
       { value: 'roulette', label: '🎰 轮盘' },
-      { value: 'flip', label: '🃏 翻牌' },
+      { value: 'roleHunt', label: '👻 猎场' },
       { value: 'scratch', label: '🎫 刮刮卡' },
       { value: 'tarot', label: '🎴 塔罗牌' },
       { value: 'gachaMachine', label: '🎱 扭蛋机' },
