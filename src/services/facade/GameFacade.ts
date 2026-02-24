@@ -61,12 +61,12 @@ interface GameFacadeDeps {
 }
 
 export class GameFacade implements IGameFacade {
-  private readonly store: GameStore;
-  private readonly realtimeService: RealtimeService;
-  private readonly audioService: AudioService;
-  private readonly roomService: RoomService;
-  private isHost = false;
-  private myUid: string | null = null;
+  readonly #store: GameStore;
+  readonly #realtimeService: RealtimeService;
+  readonly #audioService: AudioService;
+  readonly #roomService: RoomService;
+  #isHost = false;
+  #myUid: string | null = null;
   /** Cached roomCode: survives store.reset(), used by fetchStateFromDB fallback */
   #roomCode: string | null = null;
 
@@ -101,15 +101,15 @@ export class GameFacade implements IGameFacade {
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
   constructor(deps: GameFacadeDeps) {
-    this.store = deps.store;
-    this.realtimeService = deps.realtimeService;
-    this.audioService = deps.audioService;
-    this.roomService = deps.roomService;
+    this.#store = deps.store;
+    this.#realtimeService = deps.realtimeService;
+    this.#audioService = deps.audioService;
+    this.#roomService = deps.roomService;
 
     // Reactive: 监听 state 中 pendingAudioEffects 出现 → Host 播放 → postAudioAck
-    this.store.subscribe((state) => {
+    this.#store.subscribe((state) => {
       if (!state) return;
-      if (!this.isHost) return;
+      if (!this.#isHost) return;
       if (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0) return;
       // Avoid reacting during rejoin overlay (resumeAfterRejoin handles that path)
       if (this.#wasAudioInterrupted) return;
@@ -117,14 +117,14 @@ export class GameFacade implements IGameFacade {
     });
 
     // Retry: 断线期间 postAudioAck 失败 → 重连 live 后重播音频 + 重试 ack
-    this.realtimeService.addStatusListener((status) => {
+    this.#realtimeService.addStatusListener((status) => {
       if (status !== 'live') return;
-      if (!this.isHost) return;
+      if (!this.#isHost) return;
       if (!this.#pendingAudioAckRetry) return;
       this.#pendingAudioAckRetry = false;
 
       // 优先重播断线时未播完的音频（pendingAudioEffects 仍在 store 中）
-      const state = this.store.getState();
+      const state = this.#store.getState();
       const effects = state?.pendingAudioEffects;
       if (effects && effects.length > 0) {
         facadeLog.info('Replaying audio effects after reconnect', {
@@ -135,7 +135,7 @@ export class GameFacade implements IGameFacade {
       } else {
         // 无 effects 可重播，兜底直接重试 ack
         facadeLog.info('Retrying postAudioAck after reconnect (no effects to replay)');
-        void hostActions.postAudioAck(this.getHostActionsContext()).then((result) => {
+        void hostActions.postAudioAck(this.#getHostActionsContext()).then((result) => {
           if (!result.success) {
             facadeLog.warn('postAudioAck retry still failed, will retry on next reconnect', {
               reason: result.reason,
@@ -152,13 +152,13 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   addListener(fn: FacadeStateListener): () => void {
-    return this.store.subscribe((_state, _rev) => {
-      fn(this.store.getState());
+    return this.#store.subscribe((_state, _rev) => {
+      fn(this.#store.getState());
     });
   }
 
   getState(): GameState | null {
-    return this.store.getState();
+    return this.#store.getState();
   }
 
   // =========================================================================
@@ -166,18 +166,18 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   isHostPlayer(): boolean {
-    return this.isHost;
+    return this.#isHost;
   }
 
   getMyUid(): string | null {
-    return this.myUid;
+    return this.#myUid;
   }
 
   getMySeatNumber(): number | null {
-    const state = this.store.getState();
-    if (!state || !this.myUid) return null;
+    const state = this.#store.getState();
+    if (!state || !this.#myUid) return null;
     for (const [seatStr, player] of Object.entries(state.players)) {
-      if (player?.uid === this.myUid) {
+      if (player?.uid === this.#myUid) {
         return Number.parseInt(seatStr, 10);
       }
     }
@@ -185,11 +185,11 @@ export class GameFacade implements IGameFacade {
   }
 
   getStateRevision(): number {
-    return this.store.getRevision();
+    return this.#store.getRevision();
   }
 
   addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void {
-    return this.realtimeService.addStatusListener(fn);
+    return this.#realtimeService.addStatusListener(fn);
   }
 
   /**
@@ -197,7 +197,7 @@ export class GameFacade implements IGameFacade {
    * 排除 constructor 内部的 pendingAudioEffects reactive 订阅（固定 1 个）。
    */
   getListenerCount(): number {
-    return this.store.getListenerCount() - 1;
+    return this.#store.getListenerCount() - 1;
   }
 
   // =========================================================================
@@ -213,20 +213,20 @@ export class GameFacade implements IGameFacade {
     this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
     this.#wasAudioInterrupted = false; // Reset rejoin audio guard
     this.#pendingAudioAckRetry = false;
-    this.isHost = true;
-    this.myUid = hostUid;
+    this.#isHost = true;
+    this.#myUid = hostUid;
     this.#roomCode = roomCode;
 
     // 初始化 store（使用共享的 buildInitialGameState）
     const initialState = buildInitialGameState(roomCode, hostUid, template);
-    this.store.initialize(initialState);
+    this.#store.initialize(initialState);
 
     // 加入频道（所有客户端统一监听 postgres_changes onDbStateChange）
-    await this.realtimeService.joinRoom(roomCode, hostUid, {
+    await this.#realtimeService.joinRoom(roomCode, hostUid, {
       onDbStateChange: (state: GameState, revision: number) => {
         facadeLog.debug('DB state change → applySnapshot, revision:', revision);
-        this.store.applySnapshot(state, revision);
-        this.realtimeService.markAsLive();
+        this.#store.applySnapshot(state, revision);
+        this.#realtimeService.markAsLive();
       },
     });
   }
@@ -248,26 +248,26 @@ export class GameFacade implements IGameFacade {
     this.#aborted = false;
     this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
     this.#pendingAudioAckRetry = false;
-    this.isHost = isHost;
-    this.myUid = uid;
+    this.#isHost = isHost;
+    this.#myUid = uid;
     this.#roomCode = roomCode;
-    this.store.reset();
+    this.#store.reset();
 
     // Host rejoin: 预设 guard，阻断 subscribe 阶段收到 pendingAudioEffects 时 reactive 误播
     // （非 ongoing 状态无 pendingAudioEffects，pre-set 无害；DB fetch 后按实际状态修正）
     if (isHost) this.#wasAudioInterrupted = true;
 
     // 1. Subscribe first（社区标准：不丢 gap 期间的事件）
-    await this.realtimeService.joinRoom(roomCode, uid, {
+    await this.#realtimeService.joinRoom(roomCode, uid, {
       onDbStateChange: (state: GameState, revision: number) => {
         facadeLog.debug('DB state change → applySnapshot, revision:', revision);
-        this.store.applySnapshot(state, revision);
-        this.realtimeService.markAsLive();
+        this.#store.applySnapshot(state, revision);
+        this.#realtimeService.markAsLive();
       },
     });
 
     // 2. Then fetch（统一 Host/Player 路径）
-    const dbState = await this.roomService.getGameState(roomCode);
+    const dbState = await this.#roomService.getGameState(roomCode);
 
     if (dbState) {
       if (isHost) {
@@ -275,18 +275,18 @@ export class GameFacade implements IGameFacade {
         // listener 检查 wasAudioInterrupted 决定是否弹 overlay。
         this.#wasAudioInterrupted = dbState.state.status === 'ongoing';
       }
-      this.store.applySnapshot(dbState.state, dbState.revision);
-      this.realtimeService.markAsLive();
+      this.#store.applySnapshot(dbState.state, dbState.revision);
+      this.#realtimeService.markAsLive();
     } else if (isHost) {
       // Host rejoin 无 DB 状态：无法恢复
       this.#wasAudioInterrupted = false;
-      this.isHost = false;
-      this.myUid = null;
+      this.#isHost = false;
+      this.#myUid = null;
       return { success: false, reason: 'no_db_state' };
     }
     // Player 无 DB 状态：正常 — 状态将通过 broadcast 到达
     // 但必须 markAsLive，否则 connectionStatus 卡在 'syncing'，auto-heal 无法触发
-    this.realtimeService.markAsLive();
+    this.#realtimeService.markAsLive();
 
     return { success: true };
   }
@@ -315,7 +315,7 @@ export class GameFacade implements IGameFacade {
     if (!this.#wasAudioInterrupted) return;
     this.#wasAudioInterrupted = false;
 
-    const state = this.store.getState();
+    const state = this.#store.getState();
     if (!state) return;
 
     try {
@@ -335,18 +335,18 @@ export class GameFacade implements IGameFacade {
           });
           try {
             const resolvedKey = resolveSeerAudioKey(stepSpec.audioKey, state.seerLabelMap);
-            await this.audioService.playRoleBeginningAudio(resolvedKey);
+            await this.#audioService.playRoleBeginningAudio(resolvedKey);
           } finally {
             // 音频完成（或失败）后，POST audio-ack 释放 gate + 触发推进
-            await hostActions.postAudioAck(this.getHostActionsContext());
+            await hostActions.postAudioAck(this.#getHostActionsContext());
           }
         } else {
           // 无 stepSpec（不该发生），兜底释放 gate
-          await hostActions.postAudioAck(this.getHostActionsContext());
+          await hostActions.postAudioAck(this.#getHostActionsContext());
         }
       } else {
         // 无 currentStepId，兜底释放 gate
-        await hostActions.postAudioAck(this.getHostActionsContext());
+        await hostActions.postAudioAck(this.#getHostActionsContext());
       }
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
@@ -377,17 +377,17 @@ export class GameFacade implements IGameFacade {
         if (this.#aborted) break;
         try {
           if (effect.isEndAudio) {
-            await this.audioService.playRoleEndingAudio(effect.audioKey);
+            await this.#audioService.playRoleEndingAudio(effect.audioKey);
           } else if (effect.audioKey === 'night') {
-            await this.audioService.playNightAudio();
+            await this.#audioService.playNightAudio();
           } else if (effect.audioKey === 'night_end') {
             // 音频时序：天亮语音前立即停 BGM，避免 BGM 与"天亮了"语音重叠。
             // 注意：useBgmControl 中也有 stopBgm，但那是生命周期清理（ended && !isAudioPlaying），
             // 触发时机晚于此处。两者职责不同，stopBgm() 幂等，重复调用无副作用。
-            this.audioService.stopBgm();
-            await this.audioService.playNightEndAudio();
+            this.#audioService.stopBgm();
+            await this.#audioService.playNightEndAudio();
           } else {
-            await this.audioService.playRoleBeginningAudio(effect.audioKey);
+            await this.#audioService.playRoleBeginningAudio(effect.audioKey);
           }
         } catch (e) {
           // 单个音频失败不阻断队列（与 resumeAfterRejoin 一致）
@@ -401,7 +401,7 @@ export class GameFacade implements IGameFacade {
       this.#isPlayingEffects = false;
       // 无论成功/失败/中断，都 POST audio-ack 释放 gate
       if (!this.#aborted) {
-        const ackResult = await hostActions.postAudioAck(this.getHostActionsContext());
+        const ackResult = await hostActions.postAudioAck(this.#getHostActionsContext());
         if (!ackResult.success) {
           facadeLog.warn('postAudioAck failed during playback, will retry on reconnect', {
             reason: ackResult.reason,
@@ -422,7 +422,7 @@ export class GameFacade implements IGameFacade {
    * 客户端倒计时到期时调用，服务端执行 inline progression。
    */
   async postProgression(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.postProgression(this.getHostActionsContext());
+    return hostActions.postProgression(this.#getHostActionsContext());
   }
 
   async leaveRoom(): Promise<void> {
@@ -433,18 +433,18 @@ export class GameFacade implements IGameFacade {
     const mySeat = this.getMySeatNumber();
 
     // 如果在座，通过 HTTP API 离座
-    if (mySeat !== null && this.myUid) {
-      await seatActions.leaveSeat(this.getSeatActionsContext());
+    if (mySeat !== null && this.#myUid) {
+      await seatActions.leaveSeat(this.#getSeatActionsContext());
     }
 
     // Stop currently playing audio and release preloaded audio to free memory
-    this.audioService.stop();
-    this.audioService.clearPreloaded();
+    this.#audioService.stop();
+    this.#audioService.clearPreloaded();
 
-    await this.realtimeService.leaveRoom();
-    this.store.reset();
-    this.myUid = null;
-    this.isHost = false;
+    await this.#realtimeService.leaveRoom();
+    this.#store.reset();
+    this.#myUid = null;
+    this.#isHost = false;
     this.#roomCode = null;
   }
 
@@ -453,7 +453,7 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   async takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
-    return seatActions.takeSeat(this.getSeatActionsContext(), seatNumber, displayName, avatarUrl);
+    return seatActions.takeSeat(this.#getSeatActionsContext(), seatNumber, displayName, avatarUrl);
   }
 
   async takeSeatWithAck(
@@ -462,7 +462,7 @@ export class GameFacade implements IGameFacade {
     avatarUrl?: string,
   ): Promise<{ success: boolean; reason?: string }> {
     return seatActions.takeSeatWithAck(
-      this.getSeatActionsContext(),
+      this.#getSeatActionsContext(),
       seatNumber,
       displayName,
       avatarUrl,
@@ -470,11 +470,11 @@ export class GameFacade implements IGameFacade {
   }
 
   async leaveSeat(): Promise<boolean> {
-    return seatActions.leaveSeat(this.getSeatActionsContext());
+    return seatActions.leaveSeat(this.#getSeatActionsContext());
   }
 
   async leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }> {
-    return seatActions.leaveSeatWithAck(this.getSeatActionsContext());
+    return seatActions.leaveSeatWithAck(this.#getSeatActionsContext());
   }
 
   // =========================================================================
@@ -482,26 +482,26 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   async assignRoles(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.assignRoles(this.getHostActionsContext());
+    return hostActions.assignRoles(this.#getHostActionsContext());
   }
 
   async updateTemplate(template: GameTemplate): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.updateTemplate(this.getHostActionsContext(), template);
+    return hostActions.updateTemplate(this.#getHostActionsContext(), template);
   }
 
   async setRoleRevealAnimation(
     animation: RoleRevealAnimation,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.setRoleRevealAnimation(this.getHostActionsContext(), animation);
+    return hostActions.setRoleRevealAnimation(this.#getHostActionsContext(), animation);
   }
 
   async markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }> {
     // Host 和 Player 统一走 HTTP API
-    return hostActions.markViewedRole(this.getHostActionsContext(), seat);
+    return hostActions.markViewedRole(this.#getHostActionsContext(), seat);
   }
 
   async startNight(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.startNight(this.getHostActionsContext());
+    return hostActions.startNight(this.#getHostActionsContext());
   }
 
   /**
@@ -511,9 +511,9 @@ export class GameFacade implements IGameFacade {
    */
   async restartGame(): Promise<{ success: boolean; reason?: string }> {
     // Release preloaded audio to free memory on restart
-    this.audioService.clearPreloaded();
+    this.#audioService.clearPreloaded();
     // 服务端校验 hostUid，客户端不再做冗余门控
-    return hostActions.restartGame(this.getHostActionsContext());
+    return hostActions.restartGame(this.#getHostActionsContext());
   }
 
   // =========================================================================
@@ -527,7 +527,7 @@ export class GameFacade implements IGameFacade {
    * 仅在 isHost && status === 'unseated' 时可用。
    */
   async fillWithBots(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.fillWithBots(this.getHostActionsContext());
+    return hostActions.fillWithBots(this.#getHostActionsContext());
   }
 
   /**
@@ -537,7 +537,7 @@ export class GameFacade implements IGameFacade {
    * 仅在 debugMode.botsEnabled === true && status === 'assigned' 时可用。
    */
   async markAllBotsViewed(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.markAllBotsViewed(this.getHostActionsContext());
+    return hostActions.markAllBotsViewed(this.#getHostActionsContext());
   }
 
   /**
@@ -546,7 +546,7 @@ export class GameFacade implements IGameFacade {
    * 清空所有座位上的玩家。仅在 unseated/seated 状态可用。
    */
   async clearAllSeats(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.clearAllSeats(this.getHostActionsContext());
+    return hostActions.clearAllSeats(this.#getHostActionsContext());
   }
 
   /**
@@ -555,7 +555,7 @@ export class GameFacade implements IGameFacade {
    * ended 阶段 Host 选择允许查看夜晚行动详情的座位列表。
    */
   async shareNightReview(allowedSeats: number[]): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.shareNightReview(this.getHostActionsContext(), allowedSeats);
+    return hostActions.shareNightReview(this.#getHostActionsContext(), allowedSeats);
   }
 
   // =========================================================================
@@ -574,7 +574,7 @@ export class GameFacade implements IGameFacade {
     target: number | null,
     extra?: unknown,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.submitAction(this.getHostActionsContext(), seat, role, target, extra);
+    return hostActions.submitAction(this.#getHostActionsContext(), seat, role, target, extra);
   }
 
   /**
@@ -587,7 +587,7 @@ export class GameFacade implements IGameFacade {
     voterSeat: number,
     targetSeat: number,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.submitWolfVote(this.getHostActionsContext(), voterSeat, targetSeat);
+    return hostActions.submitWolfVote(this.#getHostActionsContext(), voterSeat, targetSeat);
   }
 
   /**
@@ -596,7 +596,7 @@ export class GameFacade implements IGameFacade {
    * Host/Player 统一调用 HTTP API
    */
   async submitRevealAck(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.clearRevealAcks(this.getHostActionsContext());
+    return hostActions.clearRevealAcks(this.#getHostActionsContext());
   }
 
   // =========================================================================
@@ -613,7 +613,7 @@ export class GameFacade implements IGameFacade {
   async sendWolfRobotHunterStatusViewed(
     seat: number,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.setWolfRobotHunterStatusViewed(this.getHostActionsContext(), seat);
+    return hostActions.setWolfRobotHunterStatusViewed(this.#getHostActionsContext(), seat);
   }
 
   /**
@@ -622,14 +622,14 @@ export class GameFacade implements IGameFacade {
    * Host 和 Player 统一使用。
    */
   async fetchStateFromDB(): Promise<boolean> {
-    const roomCode = this.store.getState()?.roomCode ?? this.#roomCode;
+    const roomCode = this.#store.getState()?.roomCode ?? this.#roomCode;
     if (!roomCode) return false;
 
     try {
-      const dbState = await this.roomService.getGameState(roomCode);
+      const dbState = await this.#roomService.getGameState(roomCode);
       if (dbState) {
-        this.store.applySnapshot(dbState.state, dbState.revision);
-        this.realtimeService.markAsLive();
+        this.#store.applySnapshot(dbState.state, dbState.revision);
+        this.#realtimeService.markAsLive();
         return true;
       }
       return false;
@@ -649,7 +649,7 @@ export class GameFacade implements IGameFacade {
    * 夜晚结束音频结束后调用
    */
   async endNight(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.endNight(this.getHostActionsContext());
+    return hostActions.endNight(this.#getHostActionsContext());
   }
 
   /**
@@ -660,27 +660,27 @@ export class GameFacade implements IGameFacade {
    * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
    */
   async setAudioPlaying(isPlaying: boolean): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.setAudioPlaying(this.getHostActionsContext(), isPlaying);
+    return hostActions.setAudioPlaying(this.#getHostActionsContext(), isPlaying);
   }
 
   // =========================================================================
   // Context Builders (为子模块提供上下文)
   // =========================================================================
 
-  private getHostActionsContext(): HostActionsContext {
+  #getHostActionsContext(): HostActionsContext {
     return {
-      store: this.store,
-      myUid: this.myUid,
+      store: this.#store,
+      myUid: this.#myUid,
       getMySeatNumber: () => this.getMySeatNumber(),
-      audioService: this.audioService,
+      audioService: this.#audioService,
     };
   }
 
-  private getSeatActionsContext(): SeatActionsContext {
+  #getSeatActionsContext(): SeatActionsContext {
     return {
-      myUid: this.myUid,
-      getRoomCode: () => this.store.getState()?.roomCode ?? null,
-      store: this.store,
+      myUid: this.#myUid,
+      getRoomCode: () => this.#store.getState()?.roomCode ?? null,
+      store: this.#store,
     };
   }
 }

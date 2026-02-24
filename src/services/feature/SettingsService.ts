@@ -36,8 +36,8 @@ const DEFAULT_SETTINGS: UserSettings = {
 };
 
 export class SettingsService {
-  private settings: UserSettings = { ...DEFAULT_SETTINGS };
-  private loaded = false;
+  #settings: UserSettings = { ...DEFAULT_SETTINGS };
+  #loaded = false;
 
   constructor() {}
 
@@ -45,7 +45,7 @@ export class SettingsService {
    * Load settings from storage. Call this on app startup.
    */
   async load(): Promise<void> {
-    if (this.loaded) return;
+    if (this.#loaded) return;
 
     try {
       const raw = await AsyncStorage.getItem(SETTINGS_KEY);
@@ -53,27 +53,27 @@ export class SettingsService {
         const parsed: unknown = JSON.parse(raw);
         if (typeof parsed === 'object' && parsed !== null) {
           // Merge with defaults to handle new settings added in future versions
-          this.settings = { ...DEFAULT_SETTINGS, ...(parsed as Partial<UserSettings>) };
+          this.#settings = { ...DEFAULT_SETTINGS, ...(parsed as Partial<UserSettings>) };
         }
       }
 
-      this.loaded = true;
+      this.#loaded = true;
     } catch (e) {
       // If load fails, use defaults
       settingsServiceLog.error('Failed to load settings, using defaults:', e);
       Sentry.captureException(e);
-      this.settings = { ...DEFAULT_SETTINGS };
-      this.loaded = true;
+      this.#settings = { ...DEFAULT_SETTINGS };
+      this.#loaded = true;
     }
   }
 
   /**
    * Save current settings to storage.
    */
-  private async save(): Promise<void> {
+  async #save(): Promise<void> {
     try {
-      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
-      this.notifyListeners();
+      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(this.#settings));
+      this.#notifyListeners();
     } catch (e) {
       settingsServiceLog.error('Failed to save settings:', e);
       Sentry.captureException(e);
@@ -84,24 +84,24 @@ export class SettingsService {
    * Get whether BGM is enabled.
    */
   isBgmEnabled(): boolean {
-    return this.settings.bgmEnabled;
+    return this.#settings.bgmEnabled;
   }
 
   /**
    * Set BGM enabled/disabled and persist.
    */
   async setBgmEnabled(enabled: boolean): Promise<void> {
-    this.settings.bgmEnabled = enabled;
-    await this.save();
+    this.#settings.bgmEnabled = enabled;
+    await this.#save();
   }
 
   /**
    * Toggle BGM setting and persist. Returns new value.
    */
   async toggleBgm(): Promise<boolean> {
-    this.settings.bgmEnabled = !this.settings.bgmEnabled;
-    await this.save();
-    return this.settings.bgmEnabled;
+    this.#settings.bgmEnabled = !this.#settings.bgmEnabled;
+    await this.#save();
+    return this.#settings.bgmEnabled;
   }
 
   // =========================================================================
@@ -112,15 +112,15 @@ export class SettingsService {
    * Get current theme key.
    */
   getThemeKey(): ThemeKey {
-    return this.settings.themeKey;
+    return this.#settings.themeKey;
   }
 
   /**
    * Set theme and persist.
    */
   async setThemeKey(key: ThemeKey): Promise<void> {
-    this.settings.themeKey = key;
-    await this.save();
+    this.#settings.themeKey = key;
+    await this.#save();
   }
 
   // =========================================================================
@@ -131,15 +131,15 @@ export class SettingsService {
    * Get current role reveal animation.
    */
   getRoleRevealAnimation(): RoleRevealAnimation {
-    return this.settings.roleRevealAnimation;
+    return this.#settings.roleRevealAnimation;
   }
 
   /**
    * Set role reveal animation and persist.
    */
   async setRoleRevealAnimation(anim: RoleRevealAnimation): Promise<void> {
-    this.settings.roleRevealAnimation = anim;
-    await this.save();
+    this.#settings.roleRevealAnimation = anim;
+    await this.#save();
   }
 
   // =========================================================================
@@ -150,40 +150,40 @@ export class SettingsService {
    * Get whether the user has seen the AI assistant hint toast.
    */
   hasSeenAssistantHint(): boolean {
-    return this.settings.hasSeenAssistantHint;
+    return this.#settings.hasSeenAssistantHint;
   }
 
   /**
    * Mark the AI assistant hint as seen and persist.
    */
   async setHasSeenAssistantHint(seen: boolean): Promise<void> {
-    this.settings.hasSeenAssistantHint = seen;
-    await this.save();
+    this.#settings.hasSeenAssistantHint = seen;
+    await this.#save();
   }
 
   /**
    * Get all settings (for debugging/display).
    */
   getAll(): UserSettings {
-    return { ...this.settings };
+    return { ...this.#settings };
   }
 
   /**
    * Add a listener for settings changes.
    * Returns unsubscribe function.
    */
-  private readonly listeners: Set<(settings: UserSettings) => void> = new Set();
+  readonly #listeners: Set<(settings: UserSettings) => void> = new Set();
 
   addListener(listener: (settings: UserSettings) => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
   }
 
   /**
    * Notify all listeners of settings change.
    */
-  private notifyListeners(): void {
-    const snapshot = { ...this.settings };
-    this.listeners.forEach((listener) => listener(snapshot));
+  #notifyListeners(): void {
+    const snapshot = { ...this.#settings };
+    this.#listeners.forEach((listener) => listener(snapshot));
   }
 }

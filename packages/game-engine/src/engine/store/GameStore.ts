@@ -19,27 +19,27 @@ import type { GameState, IHostGameStore, StoreStateListener } from './types';
 const gameStoreLog = getEngineLogger().extend('GameStore');
 
 export class GameStore implements IHostGameStore {
-  private state: GameState | null = null;
-  private revision: number = 0;
-  private readonly listeners: Set<StoreStateListener> = new Set();
+  #state: GameState | null = null;
+  #revision: number = 0;
+  readonly #listeners: Set<StoreStateListener> = new Set();
 
   /** 乐观更新前的已确认 state（用于回滚） */
-  private confirmedState: GameState | null = null;
+  #confirmedState: GameState | null = null;
   /** 乐观更新前的 revision（用于检测是否已被 applySnapshot 覆盖） */
-  private confirmedRevision: number = 0;
+  #confirmedRevision: number = 0;
 
   /**
    * 获取当前状态
    */
   getState(): GameState | null {
-    return this.state;
+    return this.#state;
   }
 
   /**
    * 获取当前 revision
    */
   getRevision(): number {
-    return this.revision;
+    return this.#revision;
   }
 
   /**
@@ -47,9 +47,9 @@ export class GameStore implements IHostGameStore {
    * @returns 取消订阅函数
    */
   subscribe(listener: StoreStateListener): () => void {
-    this.listeners.add(listener);
+    this.#listeners.add(listener);
     return () => {
-      this.listeners.delete(listener);
+      this.#listeners.delete(listener);
     };
   }
 
@@ -59,16 +59,16 @@ export class GameStore implements IHostGameStore {
    * 应用 normalizeState 确保 Host/Player shape 一致（anti-drift）
    */
   applySnapshot(state: GameState, revision: number): void {
-    if (revision <= this.revision) {
+    if (revision <= this.#revision) {
       // 丢弃旧版本
       return;
     }
 
     // 权威 state 到达 → 清除乐观标记
-    this.confirmedState = null;
-    this.state = normalizeState(state);
-    this.revision = revision;
-    this.notifyListeners();
+    this.#confirmedState = null;
+    this.#state = normalizeState(state);
+    this.#revision = revision;
+    this.#notifyListeners();
   }
 
   /**
@@ -80,11 +80,11 @@ export class GameStore implements IHostGameStore {
    * 社区标准做法：optimistic update + server reconciliation。
    */
   applyOptimistic(state: GameState): void {
-    this.confirmedState = this.state;
-    this.confirmedRevision = this.revision;
-    this.state = normalizeState(state);
+    this.#confirmedState = this.#state;
+    this.#confirmedRevision = this.#revision;
+    this.#state = normalizeState(state);
     // 不改 revision — 让 applySnapshot 总能覆盖
-    this.notifyListeners();
+    this.#notifyListeners();
   }
 
   /**
@@ -93,11 +93,11 @@ export class GameStore implements IHostGameStore {
    * 仅在 revision 未变时回滚（如果已被 applySnapshot 覆盖，说明有更新的权威 state，无需回滚）。
    */
   rollbackOptimistic(): void {
-    if (this.confirmedState && this.revision === this.confirmedRevision) {
-      this.state = this.confirmedState;
-      this.notifyListeners();
+    if (this.#confirmedState && this.#revision === this.#confirmedRevision) {
+      this.#state = this.#confirmedState;
+      this.#notifyListeners();
     }
-    this.confirmedState = null;
+    this.#confirmedState = null;
   }
 
   /**
@@ -105,9 +105,9 @@ export class GameStore implements IHostGameStore {
    * 自动递增 revision 并归一化
    */
   setState(state: GameState): void {
-    this.state = normalizeState(state);
-    this.revision += 1;
-    this.notifyListeners();
+    this.#state = normalizeState(state);
+    this.#revision += 1;
+    this.#notifyListeners();
   }
 
   /**
@@ -115,11 +115,11 @@ export class GameStore implements IHostGameStore {
    * @param updater 状态更新函数
    */
   updateState(updater: (state: GameState) => GameState): void {
-    if (!this.state) {
+    if (!this.#state) {
       throw new Error('Cannot update state: no state initialized');
     }
 
-    const newState = updater(this.state);
+    const newState = updater(this.#state);
     this.setState(newState);
   }
 
@@ -127,9 +127,9 @@ export class GameStore implements IHostGameStore {
    * 初始化状态（主机创建房间时）
    */
   initialize(state: GameState): void {
-    this.state = normalizeState(state);
-    this.revision = 1;
-    this.notifyListeners();
+    this.#state = normalizeState(state);
+    this.#revision = 1;
+    this.#notifyListeners();
   }
 
   /**
@@ -137,12 +137,12 @@ export class GameStore implements IHostGameStore {
    * 用于 leaveRoom 等场景
    */
   reset(): void {
-    this.state = null;
-    this.revision = 0;
-    this.confirmedState = null;
+    this.#state = null;
+    this.#revision = 0;
+    this.#confirmedState = null;
     // 注意：不清除 listeners，因为 React useEffect 的 listener 生命周期独立于 store
     // 通知 listeners state 已变为 null
-    for (const listener of this.listeners) {
+    for (const listener of this.#listeners) {
       try {
         listener(null, 0);
       } catch (error) {
@@ -156,28 +156,28 @@ export class GameStore implements IHostGameStore {
    * 仅用于测试隔离
    */
   destroy(): void {
-    this.state = null;
-    this.revision = 0;
-    this.confirmedState = null;
-    this.listeners.clear();
+    this.#state = null;
+    this.#revision = 0;
+    this.#confirmedState = null;
+    this.#listeners.clear();
   }
 
   /**
    * 获取当前 listener 数量（仅用于测试/调试）
    */
   getListenerCount(): number {
-    return this.listeners.size;
+    return this.#listeners.size;
   }
 
   /**
    * 通知所有订阅者
    */
-  private notifyListeners(): void {
-    if (!this.state) return;
+  #notifyListeners(): void {
+    if (!this.#state) return;
 
-    for (const listener of this.listeners) {
+    for (const listener of this.#listeners) {
       try {
-        listener(this.state, this.revision);
+        listener(this.#state, this.#revision);
       } catch (error) {
         // 防止单个 listener 错误影响其他订阅者
         gameStoreLog.error('Listener error', { error });

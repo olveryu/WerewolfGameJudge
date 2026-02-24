@@ -45,6 +45,7 @@ const mockRoomService = () =>
 
 describe('GameFacade', () => {
   let facade: GameFacade;
+  let testStore: GameStore;
   let mockRealtimeService: {
     joinRoom: jest.Mock;
     leaveRoom: jest.Mock;
@@ -69,8 +70,9 @@ describe('GameFacade', () => {
     };
 
     // DI: 直接注入 mock，无需 singleton
+    testStore = new GameStore();
     facade = new GameFacade({
-      store: new GameStore(),
+      store: testStore,
       realtimeService: mockRealtimeService as any,
       audioService: mockAudioServiceInstance as any,
       roomService: mockRoomService(),
@@ -80,8 +82,8 @@ describe('GameFacade', () => {
   // ===========================================================================
   // Shared Helper: 通过 PLAYER_JOIN actions + reducer 填充所有座位
   // ===========================================================================
-  const fillAllSeatsViaReducer = (facadeInstance: GameFacade, template: typeof mockTemplate) => {
-    let state = facadeInstance['store'].getState()!;
+  const fillAllSeatsViaReducer = (_facadeInstance: GameFacade, template: typeof mockTemplate) => {
+    let state = testStore.getState()!;
 
     for (let i = 0; i < template.numberOfPlayers; i++) {
       const player: Player = {
@@ -102,7 +104,7 @@ describe('GameFacade', () => {
     }
 
     // 写回 store
-    facadeInstance['store'].setState(state);
+    testStore.setState(state);
 
     return state;
   };
@@ -1348,6 +1350,8 @@ describe('GameFacade', () => {
     let statusListeners: Array<(status: string) => void>;
     let retryRealtimeService: typeof mockRealtimeService;
 
+    let retryStore: GameStore;
+
     const setupRetryFacade = async () => {
       statusListeners = [];
       retryRealtimeService = {
@@ -1362,8 +1366,9 @@ describe('GameFacade', () => {
         }),
       };
 
+      retryStore = new GameStore();
       const f = new GameFacade({
-        store: new GameStore(),
+        store: retryStore,
         realtimeService: retryRealtimeService as any,
         audioService: mockAudioServiceInstance as any,
         roomService: {
@@ -1391,14 +1396,14 @@ describe('GameFacade', () => {
       return f;
     };
 
-    it('should set _pendingAudioAckRetry when postAudioAck fails during playback', async () => {
+    it('should set #pendingAudioAckRetry when postAudioAck fails during playback', async () => {
       // Mock fetch to simulate network error on audio-ack
       global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
-      const f = await setupRetryFacade();
+      await setupRetryFacade();
 
-      // Trigger _playPendingAudioEffects manually via store subscription
+      // Trigger #playPendingAudioEffects manually via store subscription
       // The facade constructor subscribes to store, so applySnapshot with pendingAudioEffects triggers it
-      const store = f['store'] as GameStore;
+      const store = retryStore;
       store.applySnapshot(
         {
           roomCode: 'RTRY',
@@ -1450,9 +1455,9 @@ describe('GameFacade', () => {
         headers: { get: () => 'application/json' },
         json: () => Promise.resolve({ success: true }),
       });
-      const f = await setupRetryFacade();
+      await setupRetryFacade();
 
-      const store = f['store'] as GameStore;
+      const store = retryStore;
       store.applySnapshot(
         {
           roomCode: 'RTRY',
@@ -1482,11 +1487,11 @@ describe('GameFacade', () => {
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it('should reset _pendingAudioAckRetry on leaveRoom', async () => {
+    it('should reset #pendingAudioAckRetry on leaveRoom', async () => {
       global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
       const f = await setupRetryFacade();
 
-      const store = f['store'] as GameStore;
+      const store = retryStore;
       store.applySnapshot(
         {
           roomCode: 'RTRY',

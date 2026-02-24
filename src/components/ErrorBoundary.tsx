@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<Props, State> {
     });
   }
 
-  private handleRetry = () => {
+  #handleRetry = () => {
     this.setState({ hasError: false, error: null });
   };
 
@@ -58,7 +58,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <Text style={styles.emoji}>😵</Text>
           <Text style={styles.title}>出了点问题</Text>
           <Text style={styles.message}>应用遇到了问题，请点击重试</Text>
-          <TouchableOpacity style={styles.button} onPress={this.handleRetry}>
+          <TouchableOpacity style={styles.button} onPress={this.#handleRetry}>
             <Text style={styles.buttonText}>重试</Text>
           </TouchableOpacity>
         </View>

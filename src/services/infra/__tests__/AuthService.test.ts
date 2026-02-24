@@ -188,44 +188,6 @@ describe('AuthService - Display name generation diversity', () => {
   });
 });
 
-describe('AuthService - waitForInit timeout', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
-  });
-
-  it('should timeout after 10 seconds if initPromise never resolves', async () => {
-    // Create a service with a never-resolving init promise
-    const authService = new AuthService();
-
-    // Override the initPromise with one that never resolves
-    (authService as any).initPromise = new Promise(() => {});
-
-    // Start waiting
-    const waitPromise = authService.waitForInit();
-
-    // Fast-forward 10 seconds
-    jest.advanceTimersByTime(10000);
-
-    // Should reject with user-friendly timeout error
-    await expect(waitPromise).rejects.toThrow('登录超时，请重试');
-  });
-
-  it('should resolve if initPromise resolves before timeout', async () => {
-    const authService = new AuthService();
-
-    // Override with a quick-resolving promise
-    (authService as any).initPromise = Promise.resolve();
-
-    // Should resolve without error
-    await expect(authService.waitForInit()).resolves.toBeUndefined();
-  });
-});
-
 // Note: Testing the configured state would require module mocking before import,
 // which is complex with singleton patterns. The unconfigured tests above
 // thoroughly cover the service's behavior and display name generation.

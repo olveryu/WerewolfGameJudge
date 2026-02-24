@@ -27,23 +27,22 @@ type ConnectionStatusListener = (status: ConnectionStatus) => void;
 
 export class RealtimeService {
   /** Single postgres_changes channel for state synchronization + connection detection */
-  private channel: RealtimeChannel | null = null;
-  private roomCode: string | null = null;
+  #channel: RealtimeChannel | null = null;
 
   // Connection status
-  private connectionStatus: ConnectionStatus = 'disconnected';
-  private readonly statusListeners: Set<ConnectionStatusListener> = new Set();
+  #connectionStatus: ConnectionStatus = 'disconnected';
+  readonly #statusListeners: Set<ConnectionStatusListener> = new Set();
 
   /** Callback for DB state changes (postgres_changes) */
-  private onDbStateChange: ((state: GameState, revision: number) => void) | null = null;
+  #onDbStateChange: ((state: GameState, revision: number) => void) | null = null;
 
   // Browser offline/online event handlers (bound for cleanup)
-  private handleBrowserOffline: (() => void) | null = null;
-  private handleBrowserOnline: (() => void) | null = null;
+  #handleBrowserOffline: (() => void) | null = null;
+  #handleBrowserOnline: (() => void) | null = null;
 
   constructor() {}
 
-  private isConfigured(): boolean {
+  #isConfigured(): boolean {
     return isSupabaseConfigured() && supabase !== null;
   }
 
@@ -51,20 +50,20 @@ export class RealtimeService {
    * Subscribe to connection status changes
    */
   addStatusListener(listener: ConnectionStatusListener): () => void {
-    this.statusListeners.add(listener);
+    this.#statusListeners.add(listener);
     // Immediately notify of current status
-    listener(this.connectionStatus);
-    return () => this.statusListeners.delete(listener);
+    listener(this.#connectionStatus);
+    return () => this.#statusListeners.delete(listener);
   }
 
   /**
    * Set connection status
    */
-  private setConnectionStatus(status: ConnectionStatus): void {
-    if (this.connectionStatus !== status) {
-      realtimeLog.info(` Connection status: ${this.connectionStatus} -> ${status}`);
-      this.connectionStatus = status;
-      this.statusListeners.forEach((listener) => listener(status));
+  #setConnectionStatus(status: ConnectionStatus): void {
+    if (this.#connectionStatus !== status) {
+      realtimeLog.info(` Connection status: ${this.#connectionStatus} -> ${status}`);
+      this.#connectionStatus = status;
+      this.#statusListeners.forEach((listener) => listener(status));
     }
   }
 
@@ -79,7 +78,7 @@ export class RealtimeService {
       onDbStateChange?: (state: GameState, revision: number) => void;
     },
   ): Promise<void> {
-    if (!this.isConfigured()) {
+    if (!this.#isConfigured()) {
       realtimeLog.warn(' Supabase not configured');
       return;
     }
@@ -87,14 +86,13 @@ export class RealtimeService {
     // Leave previous room if any
     await this.leaveRoom();
 
-    this.setConnectionStatus('connecting');
+    this.#setConnectionStatus('connecting');
 
-    this.roomCode = roomCode;
-    this.onDbStateChange = callbacks.onDbStateChange || null;
+    this.#onDbStateChange = callbacks.onDbStateChange || null;
 
     // Create single postgres_changes channel
     realtimeLog.info(` Creating channel for db-room:${roomCode}`);
-    this.channel = supabase!.channel(`db-room:${roomCode}`).on(
+    this.#channel = supabase!.channel(`db-room:${roomCode}`).on(
       'postgres_changes',
       {
         event: 'UPDATE',
@@ -110,7 +108,7 @@ export class RealtimeService {
           newRow.state_revision != null
         ) {
           realtimeLog.debug(' DB state change received, revision:', newRow.state_revision);
-          this.onDbStateChange?.(newRow.game_state as GameState, newRow.state_revision);
+          this.#onDbStateChange?.(newRow.game_state as GameState, newRow.state_revision);
         }
       },
     );
@@ -122,38 +120,38 @@ export class RealtimeService {
       const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          this.setConnectionStatus('disconnected');
+          this.#setConnectionStatus('disconnected');
           reject(new Error('RealtimeService: subscribe timeout after 8s'));
         }
       }, 8000);
 
-      this.channel!.subscribe((status) => {
+      this.#channel!.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           if (resolved) {
             // Reconnection: Supabase SDK re-established the channel after a drop.
             realtimeLog.info('Channel reconnected after drop');
-            this.setConnectionStatus('live');
+            this.#setConnectionStatus('live');
             return;
           }
           resolved = true;
           clearTimeout(timeout);
-          this.setConnectionStatus('syncing');
+          this.#setConnectionStatus('syncing');
           resolve();
         } else if (status === 'CLOSED') {
           if (resolved) return;
           resolved = true;
           clearTimeout(timeout);
-          this.setConnectionStatus('disconnected');
+          this.#setConnectionStatus('disconnected');
           reject(new Error('RealtimeService: channel closed before subscribe completed'));
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           if (resolved) {
             realtimeLog.warn('Channel error after connect:', status);
-            this.setConnectionStatus('disconnected');
+            this.#setConnectionStatus('disconnected');
             return;
           }
           resolved = true;
           clearTimeout(timeout);
-          this.setConnectionStatus('disconnected');
+          this.#setConnectionStatus('disconnected');
           reject(new Error(`RealtimeService: subscribe failed with status ${status}`));
         }
       });
@@ -163,7 +161,7 @@ export class RealtimeService {
     realtimeLog.info(' Joined room:', roomCode);
 
     // Listen for browser offline/online events for instant disconnect detection.
-    this.subscribeBrowserNetworkEvents();
+    this.#subscribeBrowserNetworkEvents();
   }
 
   /**
@@ -171,8 +169,8 @@ export class RealtimeService {
    * Accepts both 'syncing' (normal flow) and 'connecting' (DB-fetch recovery).
    */
   markAsLive(): void {
-    if (this.connectionStatus === 'syncing' || this.connectionStatus === 'connecting') {
-      this.setConnectionStatus('live');
+    if (this.#connectionStatus === 'syncing' || this.#connectionStatus === 'connecting') {
+      this.#setConnectionStatus('live');
     }
   }
 
@@ -185,37 +183,37 @@ export class RealtimeService {
    * Supabase Phoenix heartbeat is ~30s; the browser `offline` event fires
    * immediately when the OS network stack reports a loss.
    */
-  private subscribeBrowserNetworkEvents(): void {
-    this.unsubscribeBrowserNetworkEvents();
+  #subscribeBrowserNetworkEvents(): void {
+    this.#unsubscribeBrowserNetworkEvents();
 
     if (typeof globalThis.addEventListener !== 'function') return;
 
-    this.handleBrowserOffline = () => {
+    this.#handleBrowserOffline = () => {
       realtimeLog.info('Browser offline event — setting disconnected');
-      this.setConnectionStatus('disconnected');
+      this.#setConnectionStatus('disconnected');
     };
 
-    this.handleBrowserOnline = () => {
+    this.#handleBrowserOnline = () => {
       // Only transition to 'connecting' if we were disconnected.
       // The Supabase channel reconnect callback will move to syncing → live.
-      if (this.connectionStatus === 'disconnected') {
+      if (this.#connectionStatus === 'disconnected') {
         realtimeLog.info('Browser online event — setting connecting');
-        this.setConnectionStatus('connecting');
+        this.#setConnectionStatus('connecting');
       }
     };
 
-    globalThis.addEventListener('offline', this.handleBrowserOffline);
-    globalThis.addEventListener('online', this.handleBrowserOnline);
+    globalThis.addEventListener('offline', this.#handleBrowserOffline);
+    globalThis.addEventListener('online', this.#handleBrowserOnline);
   }
 
-  private unsubscribeBrowserNetworkEvents(): void {
-    if (this.handleBrowserOffline) {
-      globalThis.removeEventListener('offline', this.handleBrowserOffline);
-      this.handleBrowserOffline = null;
+  #unsubscribeBrowserNetworkEvents(): void {
+    if (this.#handleBrowserOffline) {
+      globalThis.removeEventListener('offline', this.#handleBrowserOffline);
+      this.#handleBrowserOffline = null;
     }
-    if (this.handleBrowserOnline) {
-      globalThis.removeEventListener('online', this.handleBrowserOnline);
-      this.handleBrowserOnline = null;
+    if (this.#handleBrowserOnline) {
+      globalThis.removeEventListener('online', this.#handleBrowserOnline);
+      this.#handleBrowserOnline = null;
     }
   }
 
@@ -223,14 +221,13 @@ export class RealtimeService {
    * Leave the current room
    */
   async leaveRoom(): Promise<void> {
-    this.unsubscribeBrowserNetworkEvents();
-    if (this.channel) {
-      await this.channel.unsubscribe();
-      this.channel = null;
+    this.#unsubscribeBrowserNetworkEvents();
+    if (this.#channel) {
+      await this.#channel.unsubscribe();
+      this.#channel = null;
     }
-    this.roomCode = null;
-    this.onDbStateChange = null;
-    this.setConnectionStatus('disconnected');
+    this.#onDbStateChange = null;
+    this.#setConnectionStatus('disconnected');
     realtimeLog.info(' Left room');
   }
 }
