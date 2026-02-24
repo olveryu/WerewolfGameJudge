@@ -10,6 +10,7 @@
  */
 
 import * as Sentry from '@sentry/react-native';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 import { isSupabaseConfigured, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config/supabase';
 import { log } from '@/utils/logger';
@@ -44,7 +45,7 @@ export interface GameContext {
   /** 房间号 */
   roomCode?: string;
   /** 游戏状态 */
-  status?: 'unseated' | 'seated' | 'assigned' | 'ready' | 'ongoing' | 'ended';
+  status?: GameStatus;
   /** 我的座位号 */
   mySeat?: number;
   /** 我的角色 */
@@ -73,12 +74,12 @@ function buildGameContextPrompt(context: GameContext): string {
 
   if (context.status) {
     const statusMap: Record<string, string> = {
-      unseated: '等待入座',
-      seated: '已入座，等待分配角色',
-      assigned: '已分配角色，等待查看',
-      ready: '已准备，等待开始',
-      ongoing: '游戏进行中（第一夜）',
-      ended: '游戏已结束',
+      Unseated: '等待入座',
+      Seated: '已入座，等待分配角色',
+      Assigned: '已分配角色，等待查看',
+      Ready: '已准备，等待开始',
+      Ongoing: '游戏进行中（第一夜）',
+      Ended: '游戏已结束',
     };
     lines.push(`- 游戏状态: ${statusMap[context.status] || context.status}`);
   }

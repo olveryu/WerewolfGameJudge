@@ -16,6 +16,7 @@
  * 不包含 IO、副作用或时间依赖（Date.now 由调用方传入）。
  */
 
+import { GameStatus } from '../models/GameStatus';
 import type { AudioEffect, GameState } from '../protocol/types';
 import { getEngineLogger } from '../utils/logger';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
@@ -69,7 +70,7 @@ function isStepComplete(state: GameState): boolean {
  * - 接受 nowMs 用于 wolfVoteDeadline 检查
  */
 function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_night' | 'none' {
-  if (state.status !== 'ongoing') return 'none';
+  if (state.status !== GameStatus.Ongoing) return 'none';
   if (state.isAudioPlaying) return 'none';
   if (state.pendingRevealAcks && state.pendingRevealAcks.length > 0) return 'none';
 

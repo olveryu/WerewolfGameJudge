@@ -7,6 +7,7 @@
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
+import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 
 /** 角色对应的 emoji 图标（SSOT：所有 RoleCard 组件共用） */
 export const ROLE_ICONS: Record<string, string> = {
@@ -47,7 +48,7 @@ export const ROLE_ICONS: Record<string, string> = {
 export const getFactionName = (roleId: RoleId): string => {
   if (isWolfRole(roleId)) return '狼人阵营';
   const spec = getRoleSpec(roleId);
-  if (spec?.faction === 'god') return '神职阵营';
-  if (spec?.faction === 'special') return '第三方阵营';
+  if (spec?.faction === Faction.God) return '神职阵营';
+  if (spec?.faction === Faction.Special) return '第三方阵营';
   return '平民阵营';
 };

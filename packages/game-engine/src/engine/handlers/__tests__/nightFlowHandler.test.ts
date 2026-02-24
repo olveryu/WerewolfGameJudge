@@ -25,6 +25,7 @@ import type {
   EndNightIntent,
   SetAudioPlayingIntent,
 } from '@werewolf/game-engine/engine/intents/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
@@ -51,7 +52,7 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-uid',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'],
     players: {
       0: createPlayer(0, 'wolf'),
@@ -113,23 +114,26 @@ describe('nightFlowHandler', () => {
     });
 
     describe('Gate: invalid_status', () => {
-      it.each(['unseated', 'seated', 'assigned', 'ready', 'ended'] as const)(
-        'should reject when status is %s',
-        (status) => {
-          const context: HandlerContext = {
-            state: createOngoingState({ status }),
-            isHost: true,
-            myUid: 'host-uid',
-            mySeat: null,
-          };
+      it.each([
+        GameStatus.Unseated,
+        GameStatus.Seated,
+        GameStatus.Assigned,
+        GameStatus.Ready,
+        GameStatus.Ended,
+      ] as const)('should reject when status is %s', (status) => {
+        const context: HandlerContext = {
+          state: createOngoingState({ status }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
 
-          const result = handleAdvanceNight(intent, context);
+        const result = handleAdvanceNight(intent, context);
 
-          expect(result.success).toBe(false);
-          expect(result.reason).toBe('invalid_status');
-          expect(result.actions).toHaveLength(0);
-        },
-      );
+        expect(result.success).toBe(false);
+        expect(result.reason).toBe('invalid_status');
+        expect(result.actions).toHaveLength(0);
+      });
     });
 
     describe('Gate: forbidden_while_audio_playing', () => {
@@ -250,7 +254,7 @@ describe('nightFlowHandler', () => {
       const context: any = {
         isHost: true,
         state: {
-          status: 'ongoing',
+          status: GameStatus.Ongoing,
           isAudioPlaying: false,
           templateRoles: ['wolf', 'villager'],
           players: {
@@ -300,23 +304,26 @@ describe('nightFlowHandler', () => {
     });
 
     describe('Gate: invalid_status', () => {
-      it.each(['unseated', 'seated', 'assigned', 'ready', 'ended'] as const)(
-        'should reject when status is %s',
-        (status) => {
-          const context: HandlerContext = {
-            state: createOngoingState({ status }),
-            isHost: true,
-            myUid: 'host-uid',
-            mySeat: null,
-          };
+      it.each([
+        GameStatus.Unseated,
+        GameStatus.Seated,
+        GameStatus.Assigned,
+        GameStatus.Ready,
+        GameStatus.Ended,
+      ] as const)('should reject when status is %s', (status) => {
+        const context: HandlerContext = {
+          state: createOngoingState({ status }),
+          isHost: true,
+          myUid: 'host-uid',
+          mySeat: null,
+        };
 
-          const result = handleEndNight(intent, context);
+        const result = handleEndNight(intent, context);
 
-          expect(result.success).toBe(false);
-          expect(result.reason).toBe('invalid_status');
-          expect(result.actions).toHaveLength(0);
-        },
-      );
+        expect(result.success).toBe(false);
+        expect(result.reason).toBe('invalid_status');
+        expect(result.actions).toHaveLength(0);
+      });
     });
 
     describe('Gate: forbidden_while_audio_playing', () => {
@@ -696,7 +703,7 @@ describe('nightFlowHandler', () => {
           payload: { isPlaying: true },
         };
         const context: HandlerContext = {
-          state: createOngoingState({ status: 'ready' }),
+          state: createOngoingState({ status: GameStatus.Ready }),
           isHost: true,
           myUid: 'host-uid',
           mySeat: null,

@@ -6,6 +6,7 @@
  */
 
 import { maybeCreateConfirmStatusAction } from '@werewolf/game-engine/engine/handlers/confirmContext';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
@@ -16,7 +17,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
   return {
     roomCode: 'TEST',
     hostUid: 'host',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'wolf', 'villager', 'villager', 'seer', 'witch', 'hunter'],
     players: {
       0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },

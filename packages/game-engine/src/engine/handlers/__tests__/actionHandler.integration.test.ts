@@ -3,6 +3,7 @@
  */
 
 import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 const baseContext: any = {
   isHost: true,
@@ -11,7 +12,7 @@ const baseContext: any = {
   state: {
     roomCode: 'ROOM',
     hostUid: 'HOST',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: ['seer', 'villager'],
     players: {
       0: { uid: 'p0', seatNumber: 0, role: 'seer', hasViewedRole: true },

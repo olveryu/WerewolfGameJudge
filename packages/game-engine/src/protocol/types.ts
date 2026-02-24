@@ -70,7 +70,7 @@ export interface GameState {
   // --- 核心字段（现有） ---
   roomCode: string;
   hostUid: string;
-  status: `${GameStatus}`;
+  status: GameStatus;
   templateRoles: RoleId[];
 
   // ⚠️ Phase 1: players 保持 Record<number, ...> 不改，与现有实现一致

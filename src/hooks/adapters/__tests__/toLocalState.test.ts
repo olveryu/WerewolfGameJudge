@@ -1,3 +1,4 @@
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { toLocalState } from '@/hooks/adapters/toLocalState';
@@ -6,7 +7,7 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
   return {
     roomCode: 'ROOM',
     hostUid: 'HOST',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'witch', 'seer'] as any,
     players: {
       0: { uid: 'p0', seatNumber: 0, displayName: 'P1', hasViewedRole: true, role: 'wolf' as any },
@@ -40,7 +41,7 @@ describe('toLocalState', () => {
 
     expect(local.roomCode).toBe('ROOM');
     expect(local.hostUid).toBe('HOST');
-    expect(local.status).toBe('ongoing');
+    expect(local.status).toBe(GameStatus.Ongoing);
     expect(local.currentStepId).toBe('seerCheck');
 
     expect(local.players.get(0)?.uid).toBe('p0');

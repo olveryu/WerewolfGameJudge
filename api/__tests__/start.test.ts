@@ -7,6 +7,7 @@
  */
 
 import type { GameState } from '@werewolf/game-engine';
+import { GameStatus } from '@werewolf/game-engine';
 
 import type { GameActionResult, ProcessResult } from '../_lib/types';
 import { mockRequest, mockResponse } from './helpers';
@@ -79,7 +80,7 @@ describe('POST /api/game/start', () => {
         ...actual,
         handleStartNight: () => ({
           success: true,
-          actions: [{ type: 'SET_STATUS', payload: { status: 'ongoing' } }],
+          actions: [{ type: 'SET_STATUS', payload: { status: GameStatus.Ongoing } }],
           sideEffects: [
             { type: 'PLAY_AUDIO', audioKey: 'night-start.mp3' },
             { type: 'PLAY_AUDIO', audioKey: 'wolf-step.mp3', isEndAudio: true },

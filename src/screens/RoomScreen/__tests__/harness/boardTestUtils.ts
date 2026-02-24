@@ -163,7 +163,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
 
   return {
     gameState: {
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       template: {
         numberOfPlayers,
         roles: Array.from({ length: numberOfPlayers }).map(

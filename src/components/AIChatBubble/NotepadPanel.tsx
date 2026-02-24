@@ -9,7 +9,7 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { Faction } from '@werewolf/game-engine/models/roles/spec/types';
+import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { useCallback, useState } from 'react';
 import {
   FlatList,
@@ -33,11 +33,11 @@ const MIN_INPUT_HEIGHT = 22;
 /** Map Faction to the corresponding style key suffix for 4-faction coloring */
 function getFactionStyleKey(faction: Faction): 'Wolf' | 'God' | 'Villager' | 'Third' {
   switch (faction) {
-    case 'wolf':
+    case Faction.Wolf:
       return 'Wolf';
-    case 'god':
+    case Faction.God:
       return 'God';
-    case 'villager':
+    case Faction.Villager:
       return 'Villager';
     default:
       return 'Third';

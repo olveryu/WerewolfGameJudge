@@ -9,6 +9,7 @@
  * 步骤顺序 (预女猎白12人): wolfKill → witchAction → hunterConfirm → seerCheck
  */
 
+import { GameStatus } from '@werewolf/game-engine';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
 
@@ -55,7 +56,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
 
     // --- 初始状态 ---
     const s0 = ctx.getGameState();
-    expect(s0.status).toBe('ongoing');
+    expect(s0.status).toBe(GameStatus.Ongoing);
     expect(s0.currentStepId).toBe('wolfKill');
     expect(s0.isAudioPlaying).toBe(false);
     expect(s0.actions).toEqual([]);
@@ -183,7 +184,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     ctx.endNight();
 
     const finalState = ctx.getGameState();
-    expect(finalState.status).toBe('ended');
+    expect(finalState.status).toBe(GameStatus.Ended);
     // Seat 0 should have died (wolf killed, witch didn't save)
     expect(finalState.lastNightDeaths).toContain(0);
   });
@@ -243,7 +244,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     ctx.endNight();
 
     const finalState = ctx.getGameState();
-    expect(finalState.status).toBe('ended');
+    expect(finalState.status).toBe(GameStatus.Ended);
     // Seat 0 was saved by witch → should NOT be in deaths
     expect(finalState.lastNightDeaths).not.toContain(0);
   });
@@ -303,7 +304,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     ctx.endNight();
 
     const finalState = ctx.getGameState();
-    expect(finalState.status).toBe('ended');
+    expect(finalState.status).toBe(GameStatus.Ended);
     // Seat 0 killed by wolf, seat 2 poisoned by witch
     expect(finalState.lastNightDeaths).toContain(0);
     expect(finalState.lastNightDeaths).toContain(2);

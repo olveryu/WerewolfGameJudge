@@ -15,6 +15,7 @@ import {
   isWolfRole,
 } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, TargetConstraint } from '@werewolf/game-engine/models/roles/spec';
+import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -245,7 +246,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
 
     const { faction, displayName } = spec;
 
-    if (faction === 'wolf') {
+    if (faction === Faction.Wolf) {
       roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
       if (!wolfRolesList.includes(displayName)) {
         wolfRolesList.push(displayName);
@@ -257,7 +258,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
           ? { ...existing, count: existing.count + 1 }
           : { roleId: role, displayName, count: 1 },
       );
-    } else if (faction === 'god') {
+    } else if (faction === Faction.God) {
       roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
       if (!godRolesList.includes(displayName)) {
         godRolesList.push(displayName);
@@ -269,7 +270,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
           ? { ...existing, count: existing.count + 1 }
           : { roleId: role, displayName, count: 1 },
       );
-    } else if (faction === 'special') {
+    } else if (faction === Faction.Special) {
       roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
       if (!specialRolesList.includes(displayName)) {
         specialRolesList.push(displayName);

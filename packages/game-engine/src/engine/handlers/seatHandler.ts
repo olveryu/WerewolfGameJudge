@@ -9,6 +9,7 @@
  * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
  */
 
+import { GameStatus } from '../../models/GameStatus';
 import {
   REASON_GAME_IN_PROGRESS,
   REASON_INVALID_SEAT,
@@ -67,7 +68,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   }
 
   // 验证：游戏状态是否允许加入
-  if (state.status !== 'unseated' && state.status !== 'seated') {
+  if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
     return {
       success: false,
       reason: REASON_GAME_IN_PROGRESS,
@@ -156,7 +157,7 @@ export function handleLeaveMySeat(
   }
 
   // 验证：游戏状态是否允许离开
-  if (state.status === 'ongoing') {
+  if (state.status === GameStatus.Ongoing) {
     return {
       success: false,
       reason: REASON_GAME_IN_PROGRESS,
@@ -180,7 +181,7 @@ export function handleLeaveMySeat(
  * 处理全员起立（Host-only）
  *
  * 清空所有已入座玩家，状态回到 unseated。
- * 前置条件：isHost && status in ('unseated', 'seated')
+ * 前置条件：isHost && status in (GameStatus.Unseated, GameStatus.Seated)
  */
 export function handleClearAllSeats(
   _intent: ClearAllSeatsIntent,
@@ -196,7 +197,7 @@ export function handleClearAllSeats(
     return { success: false, reason: REASON_NO_STATE, actions: [] };
   }
 
-  if (state.status !== 'unseated' && state.status !== 'seated') {
+  if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
     return { success: false, reason: REASON_GAME_IN_PROGRESS, actions: [] };
   }
 

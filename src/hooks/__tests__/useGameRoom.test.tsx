@@ -8,6 +8,7 @@
  */
 
 import { act, renderHook } from '@testing-library/react-native';
+import { GameStatus } from '@werewolf/game-engine';
 import React from 'react';
 
 import { GameFacadeProvider } from '@/contexts';
@@ -277,7 +278,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       const mockState = {
         roomCode: 'TEST',
         hostUid: 'host-1',
-        status: 'unseated',
+        status: GameStatus.Unseated,
         templateRoles: ['villager', 'wolf', 'seer'],
         players: {},
         currentStepIndex: -1,
@@ -408,7 +409,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       const mockState = {
         roomCode: 'TEST',
         hostUid: 'host-1',
-        status: 'unseated',
+        status: GameStatus.Unseated,
         templateRoles: ['villager'],
         players: {},
         currentStepIndex: -1,
@@ -476,12 +477,12 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
       expect(fetchStateFromDBMock).toHaveBeenCalledTimes(1);
 
-      // Receive state with 'ongoing' status — active phase uses 8s stale threshold.
-      // (Idle phases like 'unseated' use 60s threshold, which is too long for this test.)
+      // Receive state with GameStatus.Ongoing status — active phase uses 8s stale threshold.
+      // (Idle phases like GameStatus.Unseated use 60s threshold, which is too long for this test.)
       const mockState = {
         roomCode: 'TEST',
         hostUid: 'host-1',
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         templateRoles: ['villager'],
         players: {},
         currentStepIndex: 0,
@@ -589,12 +590,12 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     let stateListener: ((state: any) => void) | null = null;
 
     // Mock state with Host at seat 0 (villager) and bot at seat 1 (wolf)
-    // Use 'assigned' status to avoid triggering nightPlan logic in hook
+    // Use GameStatus.Assigned status to avoid triggering nightPlan logic in hook
     // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
       roomCode: 'TEST',
       hostUid: 'host-uid',
-      status: 'assigned' as const,
+      status: GameStatus.Assigned as const,
       templateRoles: ['villager', 'wolf'],
       players: {
         0: {
@@ -668,12 +669,12 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     const submitWolfVoteMock = jest.fn().mockResolvedValue({ success: true });
     let stateListener: ((state: any) => void) | null = null;
 
-    // Use 'assigned' status to avoid triggering nightPlan logic in hook
+    // Use GameStatus.Assigned status to avoid triggering nightPlan logic in hook
     // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
       roomCode: 'TEST',
       hostUid: 'host-uid',
-      status: 'assigned' as const,
+      status: GameStatus.Assigned as const,
       templateRoles: ['villager', 'wolf'],
       players: {
         0: {
@@ -744,7 +745,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     const mockState = {
       roomCode: 'TEST',
       hostUid: 'host-uid',
-      status: 'assigned' as const,
+      status: GameStatus.Assigned as const,
       templateRoles: ['villager', 'wolfRobot'],
       players: {
         0: {
@@ -812,12 +813,12 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
   it('effectiveRole should be null when effectiveSeat has no player', async () => {
     let stateListener: ((state: any) => void) | null = null;
 
-    // Use 'assigned' status to avoid triggering nightPlan logic in hook
+    // Use GameStatus.Assigned status to avoid triggering nightPlan logic in hook
     // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
       roomCode: 'TEST',
       hostUid: 'host-uid',
-      status: 'assigned' as const,
+      status: GameStatus.Assigned as const,
       templateRoles: ['villager', 'wolf', 'seer'],
       players: {
         0: {
@@ -946,7 +947,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
   const ongoingGameState = {
     roomCode: 'REJN',
     hostUid: 'host-uid',
-    status: 'ongoing' as const,
+    status: GameStatus.Ongoing as const,
     templateRoles: ['wolf', 'villager'],
     players: {
       0: {

@@ -9,7 +9,7 @@
  */
 
 import type { GameState } from '@werewolf/game-engine';
-import { runInlineProgression } from '@werewolf/game-engine';
+import { GameStatus, runInlineProgression } from '@werewolf/game-engine';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 
 // =============================================================================
@@ -25,7 +25,7 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: TEMPLATE_2P,
     players: {
       0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
@@ -46,7 +46,7 @@ function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: TEMPLATE_5P,
     players: {
       0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
@@ -71,7 +71,7 @@ function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
 describe('runInlineProgression', () => {
   describe('不推进的情况', () => {
     it('status !== ongoing → stepsAdvanced=0', () => {
-      const state = make2PlayerState({ status: 'ended' });
+      const state = make2PlayerState({ status: GameStatus.Ended });
       const result = runInlineProgression(state, 'host');
       expect(result.stepsAdvanced).toBe(0);
       expect(result.audioEffects).toEqual([]);
@@ -149,8 +149,8 @@ describe('runInlineProgression', () => {
       // Should have advanced at least once (advance) + end_night
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
       expect(result.audioEffects.length).toBeGreaterThan(0);
-      // Final state should be 'ended'
-      expect(result.finalState.status).toBe('ended');
+      // Final state should be GameStatus.Ended
+      expect(result.finalState.status).toBe(GameStatus.Ended);
       // Should have SET_PENDING_AUDIO_EFFECTS + SET_AUDIO_PLAYING in actions
       const hasPendingAudio = result.actions.some((a) => a.type === 'SET_PENDING_AUDIO_EFFECTS');
       expect(hasPendingAudio).toBe(true);
@@ -177,7 +177,7 @@ describe('runInlineProgression', () => {
       // Should advance once (wolfKill → witchAction)
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
       // Should NOT end night (witch + seer still need to act)
-      expect(result.finalState.status).toBe('ongoing');
+      expect(result.finalState.status).toBe(GameStatus.Ongoing);
       // Audio effects from advance
       expect(result.audioEffects.length).toBeGreaterThan(0);
     });

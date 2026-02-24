@@ -6,6 +6,7 @@
 
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 interface PlayerInput {
@@ -44,7 +45,7 @@ function createStateWithPlayers(
   return {
     roomCode: 'TEST',
     hostUid: 'host-1',
-    status: allSeated ? 'seated' : 'unseated',
+    status: allSeated ? GameStatus.Seated : GameStatus.Unseated,
     templateRoles,
     players: playersMap,
     currentStepIndex: -1,
@@ -71,7 +72,7 @@ describe('UPDATE_TEMPLATE player retention', () => {
     expect(newState.players[0]?.displayName).toBe('Player1');
     expect(newState.players[1]?.uid).toBe('u2');
     expect(newState.players[1]?.displayName).toBe('Player2');
-    expect(newState.status).toBe('seated');
+    expect(newState.status).toBe(GameStatus.Seated);
   });
 
   it('should add empty seats when template size increases', () => {
@@ -88,7 +89,7 @@ describe('UPDATE_TEMPLATE player retention', () => {
     expect(newState.players[0]?.uid).toBe('u1');
     expect(newState.players[1]?.uid).toBe('u2');
     expect(newState.players[2]).toBeNull();
-    expect(newState.status).toBe('unseated'); // 有空座位
+    expect(newState.status).toBe(GameStatus.Unseated); // 有空座位
   });
 
   it('should remove trailing players when template size decreases', () => {
@@ -107,7 +108,7 @@ describe('UPDATE_TEMPLATE player retention', () => {
     expect(newState.players[0]?.uid).toBe('u1');
     expect(newState.players[1]?.uid).toBe('u2');
     expect(newState.players[2]).toBeUndefined(); // 被移除
-    expect(newState.status).toBe('seated');
+    expect(newState.status).toBe(GameStatus.Seated);
   });
 
   it('should clear role if player somehow has one (safety fallback)', () => {
@@ -153,7 +154,7 @@ describe('UPDATE_TEMPLATE player retention', () => {
     expect(newState.players[1]).toBeNull();
     expect(newState.players[2]?.uid).toBe('u3');
     expect(newState.players[3]).toBeNull();
-    expect(newState.status).toBe('unseated');
+    expect(newState.status).toBe(GameStatus.Unseated);
   });
 
   it('should update templateRoles correctly', () => {

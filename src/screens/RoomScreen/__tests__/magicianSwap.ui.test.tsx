@@ -28,90 +28,93 @@ jest.mock('react-native-safe-area-context', () => {
 
 const mockSubmitAction = jest.fn();
 
-jest.mock('../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => ({
-    gameState: {
-      status: 'ongoing',
-      template: {
-        numberOfPlayers: 12,
-        roles: Array.from({ length: 12 }).map(() => 'villager'),
-        actionOrder: ['magician'],
+jest.mock('../../../hooks/useGameRoom', () => {
+  const { GameStatus } = require('@werewolf/game-engine');
+  return {
+    useGameRoom: () => ({
+      gameState: {
+        status: GameStatus.Ongoing,
+        template: {
+          numberOfPlayers: 12,
+          roles: Array.from({ length: 12 }).map(() => 'villager'),
+          actionOrder: ['magician'],
+        },
+        players: new Map(
+          Array.from({ length: 12 }).map((_, i) => [
+            i,
+            {
+              uid: `p${i}`,
+              seatNumber: i,
+              displayName: `P${i + 1}`,
+              avatarUrl: undefined,
+              role: i === 0 ? 'magician' : 'villager',
+              hasViewedRole: true,
+            },
+          ]),
+        ),
+        actions: new Map(),
+        wolfVotes: new Map(),
+        currentStepIndex: 0,
+        isAudioPlaying: false,
+        lastNightDeaths: [],
+        nightmareBlockedSeat: null,
+        templateRoles: [],
+        hostUid: 'host',
+        roomCode: '1234',
       },
-      players: new Map(
-        Array.from({ length: 12 }).map((_, i) => [
-          i,
-          {
-            uid: `p${i}`,
-            seatNumber: i,
-            displayName: `P${i + 1}`,
-            avatarUrl: undefined,
-            role: i === 0 ? 'magician' : 'villager',
-            hasViewedRole: true,
-          },
-        ]),
-      ),
-      actions: new Map(),
-      wolfVotes: new Map(),
-      currentStepIndex: 0,
+
+      connectionStatus: 'live',
+
+      isHost: false,
+      roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,
+
+      currentActionRole: 'magician',
+      currentSchema: (() => {
+        const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
+        return getSchema('magicianSwap');
+      })(),
+
       isAudioPlaying: false,
-      lastNightDeaths: [],
-      nightmareBlockedSeat: null,
-      templateRoles: [],
-      hostUid: 'host',
-      roomCode: '1234',
-    },
 
-    connectionStatus: 'live',
+      mySeatNumber: 0,
+      myRole: 'magician',
+      myUid: 'p0',
 
-    isHost: false,
-    roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,
+      // Debug mode fields
+      isDebugMode: false,
+      controlledSeat: null,
+      effectiveSeat: 0,
+      effectiveRole: 'magician',
+      fillWithBots: jest.fn(),
+      markAllBotsViewed: jest.fn(),
+      setControlledSeat: jest.fn(),
 
-    currentActionRole: 'magician',
-    currentSchema: (() => {
-      const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
-      return getSchema('magicianSwap');
-    })(),
+      joinRoom: jest.fn().mockResolvedValue(true),
+      takeSeat: jest.fn(),
+      leaveSeat: jest.fn(),
+      assignRoles: jest.fn(),
+      startGame: jest.fn(),
+      restartGame: jest.fn(),
 
-    isAudioPlaying: false,
+      submitAction: mockSubmitAction,
+      submitWolfVote: jest.fn(),
 
-    mySeatNumber: 0,
-    myRole: 'magician',
-    myUid: 'p0',
+      hasWolfVoted: () => false,
+      requestSnapshot: jest.fn(),
+      viewedRole: jest.fn(),
 
-    // Debug mode fields
-    isDebugMode: false,
-    controlledSeat: null,
-    effectiveSeat: 0,
-    effectiveRole: 'magician',
-    fillWithBots: jest.fn(),
-    markAllBotsViewed: jest.fn(),
-    setControlledSeat: jest.fn(),
+      lastSeatError: null,
+      clearLastSeatError: jest.fn(),
 
-    joinRoom: jest.fn().mockResolvedValue(true),
-    takeSeat: jest.fn(),
-    leaveSeat: jest.fn(),
-    assignRoles: jest.fn(),
-    startGame: jest.fn(),
-    restartGame: jest.fn(),
+      getLastNightInfo: jest.fn().mockReturnValue(''),
 
-    submitAction: mockSubmitAction,
-    submitWolfVote: jest.fn(),
+      submitRevealAck: jest.fn(),
 
-    hasWolfVoted: () => false,
-    requestSnapshot: jest.fn(),
-    viewedRole: jest.fn(),
-
-    lastSeatError: null,
-    clearLastSeatError: jest.fn(),
-
-    getLastNightInfo: jest.fn().mockReturnValue(''),
-
-    submitRevealAck: jest.fn(),
-
-    isBgmEnabled: true,
-    toggleBgm: jest.fn(),
-  }),
-}));
+      isBgmEnabled: true,
+      toggleBgm: jest.fn(),
+    }),
+  };
+});
 
 jest.mock('../hooks/useActionerState', () => ({
   useActionerState: () => ({

@@ -15,6 +15,7 @@ import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
 import type { ApplyResolverResultAction } from '@werewolf/game-engine/engine/reducer/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
@@ -26,7 +27,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-1',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: ['villager', 'wolf', 'witch'],
     players: {
       0: { uid: 'p0', seatNumber: 0, role: 'villager', hasViewedRole: true },

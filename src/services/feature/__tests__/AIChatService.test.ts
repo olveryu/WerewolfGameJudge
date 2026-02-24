@@ -25,6 +25,8 @@ jest.mock('@/config/supabase', () => ({
   SUPABASE_ANON_KEY: 'test-anon-key',
 }));
 
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+
 import type { GameContext } from '@/services/feature/AIChatService';
 import { isAIChatReady, streamChatMessage } from '@/services/feature/AIChatService';
 
@@ -237,7 +239,7 @@ describe('AIChatService - streamChatMessage', () => {
     const context: GameContext = {
       inRoom: true,
       roomCode: 'ABC1',
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       mySeat: 2,
       myRoleName: '预言家',
       totalPlayers: 9,
@@ -318,7 +320,7 @@ describe('AIChatService - streamChatMessage', () => {
     const context: GameContext = {
       inRoom: true,
       roomCode: 'ROOM1',
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       mySeat: 0,
       myRoleName: '狼人',
       totalPlayers: 9,

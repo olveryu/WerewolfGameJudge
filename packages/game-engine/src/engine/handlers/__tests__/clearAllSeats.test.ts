@@ -6,12 +6,13 @@ import { handleClearAllSeats } from '@werewolf/game-engine/engine/handlers/seatH
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { ClearAllSeatsIntent } from '@werewolf/game-engine/engine/intents/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-1',
-    status: 'unseated',
+    status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
     currentStepIndex: -1,
@@ -36,7 +37,7 @@ const intent: ClearAllSeatsIntent = { type: 'CLEAR_ALL_SEATS' };
 
 describe('handleClearAllSeats', () => {
   const seatedState = createMinimalState({
-    status: 'seated',
+    status: GameStatus.Seated,
     players: {
       0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
       1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
@@ -60,7 +61,7 @@ describe('handleClearAllSeats', () => {
 
   it('should succeed in unseated status with partial seats', () => {
     const state = createMinimalState({
-      status: 'unseated',
+      status: GameStatus.Unseated,
       players: {
         0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
         1: null,
@@ -75,7 +76,7 @@ describe('handleClearAllSeats', () => {
   });
 
   it('should succeed with 0 actions when no players seated', () => {
-    const state = createMinimalState({ status: 'unseated' });
+    const state = createMinimalState({ status: GameStatus.Unseated });
     const context = createContext(state);
     const result = handleClearAllSeats(intent, context);
     expect(result.success).toBe(true);
@@ -97,7 +98,7 @@ describe('handleClearAllSeats', () => {
   });
 
   it('should reject when status is assigned', () => {
-    const state = createMinimalState({ status: 'assigned' });
+    const state = createMinimalState({ status: GameStatus.Assigned });
     const context = createContext(state);
     const result = handleClearAllSeats(intent, context);
     expect(result.success).toBe(false);
@@ -105,7 +106,7 @@ describe('handleClearAllSeats', () => {
   });
 
   it('should reject when status is ongoing', () => {
-    const state = createMinimalState({ status: 'ongoing' });
+    const state = createMinimalState({ status: GameStatus.Ongoing });
     const context = createContext(state);
     const result = handleClearAllSeats(intent, context);
     expect(result.success).toBe(false);

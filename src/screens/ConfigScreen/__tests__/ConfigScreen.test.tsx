@@ -105,9 +105,9 @@ describe('ConfigScreen', () => {
       const { getByText, getByTestId } = renderWithFacade(<ConfigScreen />);
 
       // Check for faction tabs in tab bar (use testID to avoid emoji encoding issues)
-      expect(getByTestId('config-faction-tab-villager')).toBeTruthy();
-      expect(getByTestId('config-faction-tab-wolf')).toBeTruthy();
-      expect(getByTestId('config-faction-tab-special')).toBeTruthy();
+      expect(getByTestId('config-faction-tab-Villager')).toBeTruthy();
+      expect(getByTestId('config-faction-tab-Wolf')).toBeTruthy();
+      expect(getByTestId('config-faction-tab-Special')).toBeTruthy();
       // Active tab (good) shows its section title
       expect(getByText('神职')).toBeTruthy();
     });

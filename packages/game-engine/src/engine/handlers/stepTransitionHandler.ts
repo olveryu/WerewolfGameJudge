@@ -40,6 +40,7 @@ import { resolveWolfVotes } from '../resolveWolfVotes';
 
 const nightFlowLog = getEngineLogger().extend('NightFlow');
 
+import { GameStatus } from '../../models/GameStatus';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
 import type { HandlerContext, HandlerResult } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
@@ -85,7 +86,7 @@ function validateNightFlowPreconditions(
   }
 
   // Gate 3: invalid_status (must be ongoing)
-  if (state.status !== 'ongoing') {
+  if (state.status !== GameStatus.Ongoing) {
     return {
       valid: false,
       result: { success: false, reason: 'invalid_status', actions: [] },
@@ -149,7 +150,7 @@ function validateSetAudioPlayingPreconditions(
 
   // Gate 3: invalid_status (must be ongoing or ended)
   // 允许 ended 状态是因为天亮音频在 endNight 之后播放
-  if (state.status !== 'ongoing' && state.status !== 'ended') {
+  if (state.status !== GameStatus.Ongoing && state.status !== GameStatus.Ended) {
     return {
       valid: false,
       result: { success: false, reason: 'invalid_status', actions: [] },
