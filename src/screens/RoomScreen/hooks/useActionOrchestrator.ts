@@ -8,7 +8,7 @@
  * Does not import services directly (all actions come via params), does not contain policy /
  * interaction dispatch logic (that's useInteractionDispatcher), does not render UI or hold JSX,
  * does not own seat tap / interaction context / dispatchInteraction, and does not modify
- * BroadcastGameState directly.
+ * GameState directly.
  */
 
 import * as Sentry from '@sentry/react-native';

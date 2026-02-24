@@ -9,7 +9,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { BroadcastGameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
+import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Types
@@ -32,8 +32,8 @@ export interface CapturedMessage {
  * 实现在 hostGameFactory.ts 的 createHostGame() 中。
  */
 export interface HostGameContext {
-  /** 获取当前 BroadcastGameState */
-  getBroadcastState: () => BroadcastGameState;
+  /** 获取当前 GameState */
+  getGameState: () => GameState;
   /** 获取当前 revision */
   getRevision: () => number;
   /** 获取 NightPlan */

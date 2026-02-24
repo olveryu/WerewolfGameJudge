@@ -9,7 +9,7 @@
  * 强制约束（MUST）：
  * - swap 唯一输入方式: extra.targets: [seatA, seatB]
  * - target 必须为 null
- * - swappedSeats 是 BroadcastGameState 的单一真相
+ * - swappedSeats 是 GameState 的单一真相
  */
 
 import { calculateDeaths } from '@werewolf/game-engine/engine/DeathCalculator';

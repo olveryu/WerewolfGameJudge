@@ -19,10 +19,10 @@
 import { handleAdvanceNight } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
-import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 // Create minimal state for testing
-function createTestState(overrides?: Partial<BroadcastGameState>): BroadcastGameState {
+function createTestState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'HOST',

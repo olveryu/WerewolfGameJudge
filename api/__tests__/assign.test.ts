@@ -5,7 +5,7 @@
  * 覆盖 405 / 400 / 成功 / 失败 / callback 构建。
  */
 
-import type { BroadcastGameState } from '@werewolf/game-engine';
+import type { GameState } from '@werewolf/game-engine';
 
 import type { GameActionResult } from '../_lib/types';
 import { mockRequest, mockResponse } from './helpers';
@@ -70,8 +70,8 @@ describe('POST /api/game/assign', () => {
 
   it('callback sets isHost correctly', async () => {
     mockProcessGameAction.mockImplementation(async (_code, processFn) => {
-      const state = { hostUid: 'h1', players: {} } as unknown as BroadcastGameState;
-      const result = (processFn as (s: BroadcastGameState, r: number) => unknown)(state, 0);
+      const state = { hostUid: 'h1', players: {} } as unknown as GameState;
+      const result = (processFn as (s: GameState, r: number) => unknown)(state, 0);
       return { success: true, _cb: result } as unknown as GameActionResult;
     });
     const res = mockResponse();

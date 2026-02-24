@@ -16,9 +16,9 @@
  * 核心规则：
  * - gargoyle 查验返回具体角色（不是阵营）
  * - 查验结果基于 swap 后的身份
- * - 结果写入 BroadcastGameState.gargoyleReveal
+ * - 结果写入 GameState.gargoyleReveal
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -74,7 +74,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：gargoyleReveal 返回具体角色
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.gargoyleReveal).toBeDefined();
       expect(state.gargoyleReveal!.targetSeat).toBe(0);
       expect(state.gargoyleReveal!.result).toBe('villager');
@@ -92,7 +92,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.gargoyleReveal).toBeDefined();
       expect(state.gargoyleReveal!.targetSeat).toBe(4);
       expect(state.gargoyleReveal!.result).toBe('wolf');
@@ -110,7 +110,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.gargoyleReveal).toBeDefined();
       expect(state.gargoyleReveal!.targetSeat).toBe(8);
       expect(state.gargoyleReveal!.result).toBe('seer');
@@ -128,7 +128,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.gargoyleReveal).toBeDefined();
       expect(state.gargoyleReveal!.targetSeat).toBe(10);
       expect(state.gargoyleReveal!.result).toBe('hunter');
@@ -154,7 +154,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       expect(result.completed).toBe(true);
 
       // gargoyleReveal 应该为 undefined
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.gargoyleReveal).toBeUndefined();
     });
   });

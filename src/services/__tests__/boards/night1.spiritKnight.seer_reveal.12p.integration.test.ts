@@ -2,7 +2,7 @@
  * Night-1 Integration Test: 恶灵骑士12人 - Seer Reveal
  *
  * 板子：恶灵骑士12人
- * 主题：预言家查验结果写入 BroadcastGameState.seerReveal
+ * 主题：预言家查验结果写入 GameState.seerReveal
  *
  * 固定 seat-role assignment:
  *   seat 0-3: villager
@@ -13,7 +13,7 @@
  *   seat 10: hunter
  *   seat 11: guard
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -63,8 +63,8 @@ describe('Night-1: 恶灵骑士12人 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 写入 BroadcastGameState
-      const state = ctx.getBroadcastState();
+      // 核心断言：seerReveal 写入 GameState
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);
       expect(['good', '好人']).toContain(state.seerReveal!.result);
@@ -85,7 +85,7 @@ describe('Night-1: 恶灵骑士12人 - Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：spiritKnight 是狼阵营
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(7);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
@@ -106,7 +106,7 @@ describe('Night-1: 恶灵骑士12人 - Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：seerReveal 无结果
-      expect(ctx.getBroadcastState().seerReveal?.result).toBeUndefined();
+      expect(ctx.getGameState().seerReveal?.result).toBeUndefined();
     });
   });
 
@@ -124,7 +124,7 @@ describe('Night-1: 恶灵骑士12人 - Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言 1：seerReveal 写入
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(4);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);

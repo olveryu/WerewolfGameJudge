@@ -28,21 +28,17 @@ import type {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
-import type { BroadcastGameState, BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
+import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 
 /**
  * 创建完整的玩家对象
  */
-function createPlayer(
-  seat: number,
-  role: string,
-  overrides?: Partial<BroadcastPlayer>,
-): BroadcastPlayer {
+function createPlayer(seat: number, role: string, overrides?: Partial<Player>): Player {
   return {
     uid: `player-${seat}`,
     seatNumber: seat,
     displayName: `Player ${seat}`,
-    role: role as BroadcastPlayer['role'],
+    role: role as Player['role'],
     hasViewedRole: true,
     ...overrides,
   };
@@ -51,7 +47,7 @@ function createPlayer(
 /**
  * 创建基础的 ongoing 状态
  */
-function createOngoingState(overrides?: Partial<BroadcastGameState>): BroadcastGameState {
+function createOngoingState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-uid',
@@ -807,7 +803,7 @@ describe('nightFlowHandler', () => {
         const templateRoles: RoleId[] = ['wolf', 'witch', 'villager'];
 
         // players: wolf 在 0, witch 在 1
-        const players: Record<number, BroadcastPlayer> = {
+        const players: Record<number, Player> = {
           0: createPlayer(0, 'wolf'),
           1: createPlayer(1, 'witch'),
           2: createPlayer(2, 'villager'),
@@ -849,7 +845,7 @@ describe('nightFlowHandler', () => {
         // 模板: wolf, witch, villager (witch 在座位 1)
         const templateRoles: RoleId[] = ['wolf', 'witch', 'villager'];
 
-        const players: Record<number, BroadcastPlayer> = {
+        const players: Record<number, Player> = {
           0: createPlayer(0, 'wolf'),
           1: createPlayer(1, 'witch'),
           2: createPlayer(2, 'villager'),
@@ -897,7 +893,7 @@ describe('nightFlowHandler', () => {
         // 模板: 女巫 + 预言家 + 村民，没有狼人
         const templateRoles: RoleId[] = ['witch', 'seer', 'villager', 'villager'];
 
-        const players: Record<number, BroadcastPlayer> = {
+        const players: Record<number, Player> = {
           0: createPlayer(0, 'witch'),
           1: createPlayer(1, 'seer'),
           2: createPlayer(2, 'villager'),
@@ -935,7 +931,7 @@ describe('nightFlowHandler', () => {
         // 模板: wolf, witch - 只有 2 步（wolfKill, witchAction）
         const templateRoles: RoleId[] = ['wolf', 'witch', 'villager'];
 
-        const players: Record<number, BroadcastPlayer> = {
+        const players: Record<number, Player> = {
           0: createPlayer(0, 'wolf'),
           1: createPlayer(1, 'witch'),
           2: createPlayer(2, 'villager'),

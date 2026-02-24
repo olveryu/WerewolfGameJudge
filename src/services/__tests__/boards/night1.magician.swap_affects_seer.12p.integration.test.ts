@@ -13,7 +13,7 @@
  *   seat 10: hunter
  *   seat 11: magician
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -66,7 +66,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：seerReveal 应显示 seat 0 是"狼人"（因为交换后身份是 wolf）
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
@@ -89,7 +89,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：seerReveal 应显示 seat 4 是"好人"
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(4);
       expect(['good', '好人']).toContain(state.seerReveal!.result);
@@ -108,7 +108,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(4);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
@@ -173,7 +173,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
     });
   });
 
-  describe('Swap targets 写入 BroadcastGameState', () => {
+  describe('Swap targets 写入 GameState', () => {
     it('swappedSeats 应正确记录交换的两个座位', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
@@ -187,7 +187,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // swappedSeats 写入 currentNightResults
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.swappedSeats).toEqual([2, 7]);
 
       // seer 查 seat 2 应返回"狼人"（darkWolfKing 是狼阵营）

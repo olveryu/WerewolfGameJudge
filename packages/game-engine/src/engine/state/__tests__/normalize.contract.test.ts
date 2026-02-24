@@ -1,22 +1,22 @@
 /**
  * normalize.contract.test.ts - normalizeState 契约测试
  *
- * 确保 normalizeState 正确透传 BroadcastGameState 的所有字段。
+ * 确保 normalizeState 正确透传 GameState 的所有字段。
  * 当新增字段时，如果忘记在 normalizeState 中透传，此测试会失败。
  */
 
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
-import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 /**
- * BroadcastGameState 的所有顶层字段列表（单一真相）
+ * GameState 的所有顶层字段列表（单一真相）
  *
- * 当向 BroadcastGameState 新增字段时：
+ * 当向 GameState 新增字段时：
  * 1. 在此列表添加字段名
  * 2. 在 normalizeState 中添加透传
  * 3. 运行此测试验证
  */
-const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
+const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // 核心必填字段
   'roomCode',
   'hostUid',
@@ -82,9 +82,9 @@ const BROADCAST_GAME_STATE_FIELDS: (keyof BroadcastGameState)[] = [
 
 describe('normalizeState contract', () => {
   /**
-   * 创建一个包含所有字段的完整 BroadcastGameState
+   * 创建一个包含所有字段的完整 GameState
    */
-  const createFullState = (): BroadcastGameState => {
+  const createFullState = (): GameState => {
     return {
       // 核心必填字段
       roomCode: 'TEST',
@@ -149,12 +149,12 @@ describe('normalizeState contract', () => {
     };
   };
 
-  it('should preserve all BroadcastGameState fields after normalization', () => {
+  it('should preserve all GameState fields after normalization', () => {
     const fullState = createFullState();
     const normalized = normalizeState(fullState);
 
     // 检查所有字段都被透传
-    for (const field of BROADCAST_GAME_STATE_FIELDS) {
+    for (const field of GAME_STATE_FIELDS) {
       expect(normalized).toHaveProperty(field);
       // 对于必填字段，值应该相等
       // 对于可选字段，如果原始有值，归一化后也应该有值
@@ -169,16 +169,16 @@ describe('normalizeState contract', () => {
     const normalized = normalizeState(fullState);
 
     // 获取归一化后的所有字段
-    const normalizedFields = Object.keys(normalized) as (keyof BroadcastGameState)[];
+    const normalizedFields = Object.keys(normalized) as (keyof GameState)[];
 
-    // 确保 BROADCAST_GAME_STATE_FIELDS 覆盖了所有字段
+    // 确保 GAME_STATE_FIELDS 覆盖了所有字段
     // 如果归一化后有新字段不在列表中，测试会失败
     for (const field of normalizedFields) {
-      expect(BROADCAST_GAME_STATE_FIELDS).toContain(field);
+      expect(GAME_STATE_FIELDS).toContain(field);
     }
 
     // 确保列表中的所有字段都在归一化结果中
-    for (const field of BROADCAST_GAME_STATE_FIELDS) {
+    for (const field of GAME_STATE_FIELDS) {
       expect(normalizedFields).toContain(field);
     }
   });
@@ -193,7 +193,7 @@ describe('normalizeState contract', () => {
   });
 
   it('should preserve undefined optional fields as undefined', () => {
-    const minimalState: BroadcastGameState = {
+    const minimalState: GameState = {
       roomCode: 'TEST',
       hostUid: 'host-uid',
       status: 'unseated',

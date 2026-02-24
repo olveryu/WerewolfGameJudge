@@ -6,21 +6,21 @@
  * - 判断是否需要设置 witchContext 并返回 action
  *
  * 设计原则：
- * - 单一真相：witchContext 只存在于 BroadcastGameState.witchContext
+ * - 单一真相：witchContext 只存在于 GameState.witchContext
  * - 纯函数：不 IO、不读外部、不写 state
  * - Schema-first：canSave 逻辑与 witchAction.steps[0].constraints['notSelf'] 对齐
  * - Night-1-only：canPoison 总是 true（项目规则：Night-1 毒药可用）
  */
 
 import type { SchemaId } from '../../models/roles/spec';
-import type { BroadcastGameState } from '../../protocol/types';
+import type { GameState } from '../../protocol/types';
 import type { SetWitchContextAction } from '../reducer/types';
 import { resolveWolfVotes } from '../resolveWolfVotes';
 
 /**
  * 非 null 的 state 类型
  */
-type NonNullState = NonNullable<BroadcastGameState>;
+type NonNullState = NonNullable<GameState>;
 
 /**
  * 计算女巫上下文（纯函数）

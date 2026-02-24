@@ -6,25 +6,23 @@
  */
 
 import { maybeCreateWitchContextAction } from '@werewolf/game-engine/engine/handlers/witchContext';
-import type { BroadcastGameState, BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
+import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Helpers
 // =============================================================================
 
-function createPlayer(seat: number, role: string): BroadcastPlayer {
+function createPlayer(seat: number, role: string): Player {
   return {
     uid: `uid-${seat}`,
     seatNumber: seat,
     displayName: `Player ${seat}`,
-    role: role as BroadcastPlayer['role'],
+    role: role as Player['role'],
     hasViewedRole: true,
   };
 }
 
-function createOngoingState(
-  overrides: Partial<BroadcastGameState> = {},
-): NonNullable<BroadcastGameState> {
+function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<GameState> {
   return {
     roomCode: '1234',
     hostUid: 'host-uid',
@@ -44,7 +42,7 @@ function createOngoingState(
     wolfKillDisabled: false,
     isAudioPlaying: false,
     ...overrides,
-  } as NonNullable<BroadcastGameState>;
+  } as NonNullable<GameState>;
 }
 
 // =============================================================================

@@ -440,7 +440,7 @@ describe('Wire Protocol Contract', () => {
     /** 辅助函数：推进到 seerCheck 步骤 */
     function advanceToSeerCheck(ctx: ReturnType<typeof createHostGame>): void {
       // 第一步是 wolfKill
-      if (ctx.getBroadcastState().currentStepId === 'wolfKill') {
+      if (ctx.getGameState().currentStepId === 'wolfKill') {
         // 狼空刀
         ctx.sendPlayerMessage({
           type: 'WOLF_VOTE',
@@ -465,7 +465,7 @@ describe('Wire Protocol Contract', () => {
 
       // 推进到 seerCheck
       advanceToSeerCheck(ctx);
-      expect(ctx.getBroadcastState().currentStepId).toBe('seerCheck');
+      expect(ctx.getGameState().currentStepId).toBe('seerCheck');
 
       ctx.clearCapturedMessages();
 
@@ -523,12 +523,12 @@ describe('Wire Protocol Contract', () => {
       const ctx = createHostGame(GUARD_TEMPLATE, assignment);
 
       // 找到 guardProtect 步骤
-      while (ctx.getBroadcastState().currentStepId !== 'guardProtect') {
+      while (ctx.getGameState().currentStepId !== 'guardProtect') {
         const result = ctx.advanceNight();
         if (!result.success) break;
       }
 
-      if (ctx.getBroadcastState().currentStepId === 'guardProtect') {
+      if (ctx.getGameState().currentStepId === 'guardProtect') {
         ctx.clearCapturedMessages();
 
         ctx.sendPlayerMessage({

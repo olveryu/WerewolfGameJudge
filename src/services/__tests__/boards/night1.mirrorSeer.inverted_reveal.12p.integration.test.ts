@@ -3,8 +3,8 @@
  *
  * 板子：灯影预言12人（seer 变体家族）
  * 主题：
- *   - 灯影预言家查验结果写入 BroadcastGameState.mirrorSeerReveal（反转）
- *   - 酒鬼预言家查验结果写入 BroadcastGameState.drunkSeerReveal（随机）
+ *   - 灯影预言家查验结果写入 GameState.mirrorSeerReveal（反转）
+ *   - 酒鬼预言家查验结果写入 GameState.drunkSeerReveal（随机）
  *
  * MirrorSeer 固定 seat-role assignment:
  *   seat 0-2: villager
@@ -18,7 +18,7 @@
  *
  * DrunkSeer 额外 seat-role assignment（knight → drunkSeer）见下方。
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -116,7 +116,7 @@ describe('Night-1: 灯影预言12人 - DrunkSeer Random Reveal (12p)', () => {
         mirrorSeer: null,
       });
       expect(reached).toBe(true);
-      expect(ctx.getBroadcastState().currentStepId).toBe('drunkSeerCheck');
+      expect(ctx.getGameState().currentStepId).toBe('drunkSeerCheck');
 
       // drunkSeer 查验 seat 0 (villager)
       sendMessageOrThrow(
@@ -130,7 +130,7 @@ describe('Night-1: 灯影预言12人 - DrunkSeer Random Reveal (12p)', () => {
         'drunkSeerCheck',
       );
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.drunkSeerReveal).toBeDefined();
       expect(state.drunkSeerReveal!.targetSeat).toBe(0);
       expect(state.drunkSeerReveal!.result).toBe('好人');
@@ -158,7 +158,7 @@ describe('Night-1: 灯影预言12人 - DrunkSeer Random Reveal (12p)', () => {
         'drunkSeerCheck',
       );
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.drunkSeerReveal).toBeDefined();
       expect(state.drunkSeerReveal!.targetSeat).toBe(0);
       // 查验好人，反转后返回 "狼人"
@@ -202,7 +202,7 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
         seer: null,
       });
       expect(reached).toBe(true);
-      expect(ctx.getBroadcastState().currentStepId).toBe('mirrorSeerCheck');
+      expect(ctx.getGameState().currentStepId).toBe('mirrorSeerCheck');
 
       // mirrorSeer 查验 seat 0 (villager)
       sendMessageOrThrow(
@@ -216,7 +216,7 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
         'mirrorSeerCheck',
       );
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.mirrorSeerReveal).toBeDefined();
       expect(state.mirrorSeerReveal!.targetSeat).toBe(0);
       // 灯影预言家查验好人应该返回 "狼人"（反转）
@@ -244,7 +244,7 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
         'mirrorSeerCheck',
       );
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.mirrorSeerReveal).toBeDefined();
       expect(state.mirrorSeerReveal!.targetSeat).toBe(3);
       // 查验狼人应该返回 "好人"（反转）
@@ -275,7 +275,7 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
       );
 
       // 验证 seerReveal
-      const stateAfterSeer = ctx.getBroadcastState();
+      const stateAfterSeer = ctx.getGameState();
       expect(stateAfterSeer.seerReveal).toBeDefined();
       expect(stateAfterSeer.seerReveal!.result).toBe('狼人');
 
@@ -289,7 +289,7 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
       // 推进到 mirrorSeerCheck
       ctx.advanceNightOrThrow('after seerCheck');
 
-      expect(ctx.getBroadcastState().currentStepId).toBe('mirrorSeerCheck');
+      expect(ctx.getGameState().currentStepId).toBe('mirrorSeerCheck');
 
       // mirrorSeer 查验 seat 3 (wolf) — 应返回 "好人"（反转）
       sendMessageOrThrow(
@@ -303,7 +303,7 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
         'mirrorSeerCheck',
       );
 
-      const stateAfterMirror = ctx.getBroadcastState();
+      const stateAfterMirror = ctx.getGameState();
       expect(stateAfterMirror.mirrorSeerReveal).toBeDefined();
       expect(stateAfterMirror.mirrorSeerReveal!.result).toBe('好人');
     });

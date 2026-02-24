@@ -86,4 +86,5 @@ export type { StateAction } from './engine/reducer/types';
 export { resolveWolfVotes } from './engine/resolveWolfVotes';
 export { buildInitialGameState } from './engine/state/buildInitialState';
 export { normalizeState } from './engine/state/normalize';
-export * from './engine/store';
+export type { IHostGameStore, StoreStateListener } from './engine/store';
+export { GameStore } from './engine/store';

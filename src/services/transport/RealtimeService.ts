@@ -12,7 +12,7 @@
  */
 
 import { RealtimeChannel } from '@supabase/supabase-js';
-import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
@@ -35,7 +35,7 @@ export class RealtimeService {
   private readonly statusListeners: Set<ConnectionStatusListener> = new Set();
 
   /** Callback for DB state changes (postgres_changes) */
-  private onDbStateChange: ((state: BroadcastGameState, revision: number) => void) | null = null;
+  private onDbStateChange: ((state: GameState, revision: number) => void) | null = null;
 
   // Browser offline/online event handlers (bound for cleanup)
   private handleBrowserOffline: (() => void) | null = null;
@@ -76,7 +76,7 @@ export class RealtimeService {
     _userId: string,
     callbacks: {
       /** DB state change callback (postgres_changes — sole state sync channel) */
-      onDbStateChange?: (state: BroadcastGameState, revision: number) => void;
+      onDbStateChange?: (state: GameState, revision: number) => void;
     },
   ): Promise<void> {
     if (!this.isConfigured()) {
@@ -110,7 +110,7 @@ export class RealtimeService {
           newRow.state_revision != null
         ) {
           realtimeLog.debug(' DB state change received, revision:', newRow.state_revision);
-          this.onDbStateChange?.(newRow.game_state as BroadcastGameState, newRow.state_revision);
+          this.onDbStateChange?.(newRow.game_state as GameState, newRow.state_revision);
         }
       },
     );

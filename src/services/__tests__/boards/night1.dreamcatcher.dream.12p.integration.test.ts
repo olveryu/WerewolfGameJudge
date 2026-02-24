@@ -17,7 +17,7 @@
  * - 摄梦人守护的目标免疫夜晚死亡
  * - 摄梦人死亡时，被守护者也死亡（链接死亡）
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -68,7 +68,7 @@ describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：dreamcatcherDream action 写入 state.actions
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
       expect(dreamAction).toBeDefined();
       expect(dreamAction!.actorSeat).toBe(11); // dreamcatcher 在 seat 11
@@ -91,7 +91,7 @@ describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：action 记录
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
       expect(dreamAction).toBeDefined();
       expect(dreamAction!.targetSeat).toBe(1);
@@ -115,7 +115,7 @@ describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：空选时 action 的 targetSeat 为 undefined 或无该 action
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
       expect(dreamAction?.targetSeat).toBeUndefined();
 

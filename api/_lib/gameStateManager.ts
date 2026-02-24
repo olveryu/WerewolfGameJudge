@@ -13,8 +13,8 @@
  */
 
 import {
-  type BroadcastGameState,
   gameReducer,
+  type GameState,
   normalizeState,
   runInlineProgression,
 } from '@werewolf/game-engine';
@@ -44,7 +44,7 @@ interface InlineProgressionOptions {
  */
 export async function processGameAction(
   roomCode: string,
-  process: (state: BroadcastGameState, revision: number) => ProcessResult,
+  process: (state: GameState, revision: number) => ProcessResult,
   inlineProgression?: InlineProgressionOptions,
 ): Promise<GameActionResult> {
   try {
@@ -66,7 +66,7 @@ export async function processGameAction(
 
       // postgres.js + Supavisor (prepare:false) 可能将 jsonb 作为字符串返回
       const rawState = rows[0].game_state;
-      const currentState: BroadcastGameState =
+      const currentState: GameState =
         typeof rawState === 'string' ? JSON.parse(rawState) : rawState;
       const currentRevision = (rows[0].state_revision as number) ?? 0;
 

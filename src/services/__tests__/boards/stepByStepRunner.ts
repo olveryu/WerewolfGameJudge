@@ -121,7 +121,7 @@ export function executeStepsUntil(
   const MAX_ITERATIONS = 30;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     const currentStepId = state.currentStepId;
     if (!currentStepId) return false;
 
@@ -143,7 +143,7 @@ export function executeStepsUntil(
 /**
  * 从当前步骤继续执行到 Night-1 结束
  *
- * 语义：从当前 `BroadcastGameState.currentStepId` 接着往后逐步执行，直到 Night-1 结束。
+ * 语义：从当前 `GameState.currentStepId` 接着往后逐步执行，直到 Night-1 结束。
  * 支持先 `executeStepsUntil` 到某个步骤，再调用本函数继续跑完剩余流程。
  *
  * ⚠️ 硬性要求（MUST follow）：
@@ -165,7 +165,7 @@ export function executeRemainingSteps(
   const MAX_ITERATIONS = 30;
 
   // Fail-fast 校验：状态必须合法（只读校验，不修改 state）
-  const initialState = ctx.getBroadcastState();
+  const initialState = ctx.getGameState();
   if (initialState.currentStepId && initialState.status !== 'ongoing') {
     throw new Error(
       `[executeRemainingSteps] Invalid state: currentStepId="${initialState.currentStepId}" ` +
@@ -175,7 +175,7 @@ export function executeRemainingSteps(
   }
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     const currentStepId = state.currentStepId;
 
     // Night 已结束（currentStepId 为空）
@@ -257,7 +257,7 @@ export function executeFullNight(
  */
 function executeCurrentStep(ctx: HostGameContext, customActions: CustomActions): void {
   const plan = ctx.getNightPlan();
-  const state = ctx.getBroadcastState();
+  const state = ctx.getGameState();
   const currentStepId = state.currentStepId;
   if (!currentStepId) return;
 
@@ -317,7 +317,7 @@ function submitWolfKillAction(
   actionValue: ActionValue | undefined,
 ): void {
   const target = typeof actionValue === 'number' ? actionValue : null;
-  const state = ctx.getBroadcastState();
+  const state = ctx.getGameState();
 
   // 所有参与狼刀的狼投票（fail-fast）
   // 注意：只有 participatesInWolfVote=true 的角色才发送 WOLF_VOTE

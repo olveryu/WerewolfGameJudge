@@ -16,9 +16,9 @@
  * 核心规则：
  * - pureWhite 查验返回具体角色身份
  * - wolfWitch 查验返回具体角色身份，且不能查验狼阵营
- * - 结果写入 BroadcastGameState.pureWhiteReveal / wolfWitchReveal
+ * - 结果写入 GameState.pureWhiteReveal / wolfWitchReveal
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -76,7 +76,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.pureWhiteReveal).toBeDefined();
       expect(state.pureWhiteReveal!.targetSeat).toBe(0);
       expect(state.pureWhiteReveal!.result).toBe('villager');
@@ -95,7 +95,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.pureWhiteReveal).toBeDefined();
       expect(state.pureWhiteReveal!.targetSeat).toBe(4);
       expect(state.pureWhiteReveal!.result).toBe('wolf');
@@ -114,7 +114,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.pureWhiteReveal).toBeDefined();
       expect(state.pureWhiteReveal!.targetSeat).toBe(7);
       expect(state.pureWhiteReveal!.result).toBe('wolfWitch');
@@ -133,7 +133,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.pureWhiteReveal).toBeDefined();
       expect(state.pureWhiteReveal!.targetSeat).toBe(9);
       expect(state.pureWhiteReveal!.result).toBe('witch');
@@ -157,7 +157,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.pureWhiteReveal).toBeUndefined();
     });
   });
@@ -183,7 +183,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.wolfWitchReveal).toBeDefined();
       expect(state.wolfWitchReveal!.targetSeat).toBe(0);
       expect(state.wolfWitchReveal!.result).toBe('villager');
@@ -202,7 +202,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.wolfWitchReveal).toBeDefined();
       expect(state.wolfWitchReveal!.targetSeat).toBe(11);
       expect(state.wolfWitchReveal!.result).toBe('pureWhite');
@@ -221,7 +221,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.wolfWitchReveal).toBeDefined();
       expect(state.wolfWitchReveal!.targetSeat).toBe(8);
       expect(state.wolfWitchReveal!.result).toBe('guard');
@@ -245,7 +245,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.wolfWitchReveal).toBeUndefined();
     });
   });

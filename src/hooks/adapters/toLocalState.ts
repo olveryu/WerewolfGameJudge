@@ -1,5 +1,5 @@
 /**
- * broadcastToLocalState - 将 BroadcastGameState 转换为 UI 期望的 LocalGameState
+ * toLocalState - 将 GameState 转换为 UI 期望的 LocalGameState
  *
  * Phase 1 适配层，让 UI 可以消费 facade 的状态。只做纯数据格式转换
  * （Record → Map，templateRoles → template）和缺失字段默认值填充。
@@ -21,14 +21,14 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
-import type { BroadcastGameState, BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
+import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
 /**
- * 将 BroadcastPlayer 转换为 LocalPlayer
+ * 将 Player 转换为 LocalPlayer
  */
-function toLocalPlayer(bp: BroadcastPlayer, seatNumber: number): LocalPlayer {
+function toLocalPlayer(bp: Player, seatNumber: number): LocalPlayer {
   return {
     uid: bp.uid,
     seatNumber,
@@ -43,35 +43,35 @@ function toLocalPlayer(bp: BroadcastPlayer, seatNumber: number): LocalPlayer {
 /**
  * 将 GameStatus 字符串转换为 enum
  */
-function toGameStatusEnum(status: BroadcastGameState['status']): GameStatus {
-  // BroadcastGameState.status 是 string literal union，与 GameStatus enum 值相同
+function toGameStatusEnum(status: GameState['status']): GameStatus {
+  // GameState.status 是 string literal union，与 GameStatus enum 值相同
   return status as GameStatus;
 }
 
 /**
- * 将 BroadcastGameState 转换为 LocalGameState
+ * 将 GameState 转换为 LocalGameState
  *
  * Passthrough fields are auto-forwarded via object spread.
  * Only fields that need transformation are destructured and re-mapped.
- * Adding a new BroadcastGameState field is automatically passed through.
+ * Adding a new GameState field is automatically passed through.
  */
-export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameState {
+export function toLocalState(state: GameState): LocalGameState {
   // =========================================================================
   // Destructure fields that need transformation; rest auto-passthrough.
   // =========================================================================
   const {
-    players: broadcastPlayers,
+    players: protocolPlayers,
     templateRoles,
     actions: protocolActions,
     currentNightResults: nightResults,
     lastNightDeaths,
     status,
     ...passthroughFields
-  } = broadcast;
+  } = state;
 
   // 1. players: Record<number, ...> → Map<number, ...>
   const playersMap = new Map<number, LocalPlayer | null>();
-  for (const [seatStr, bp] of Object.entries(broadcastPlayers)) {
+  for (const [seatStr, bp] of Object.entries(protocolPlayers)) {
     const seat = Number.parseInt(seatStr, 10);
     playersMap.set(seat, bp ? toLocalPlayer(bp, seat) : null);
   }
@@ -82,7 +82,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
   // 3. actions: ProtocolAction[]  Map<RoleId, RoleAction>
   // This is an adapter-only mapping so the existing UI can keep reading
   // LocalGameState.actions (legacy-compatible) while the on-wire source of truth
-  // remains BroadcastGameState.actions.
+  // remains GameState.actions.
   //
   // NOTE:
   // - This mapping is adapter-only (UI compatibility). Game logic must NOT depend on it.
@@ -164,7 +164,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
   }
 
   return {
-    // Auto-passthrough: all BroadcastGameState fields not in BroadcastTransformedKeys
+    // Auto-passthrough: all GameState fields not in TransformedKeys
     // (new optional fields are forwarded automatically — no manual sync needed)
     ...passthroughFields,
 
@@ -175,7 +175,7 @@ export function broadcastToLocalState(broadcast: BroadcastGameState): LocalGameS
     lastNightDeaths: lastNightDeaths ?? [],
     currentNightResults: nightResults ?? {},
 
-    // Local-only fields (derived from BroadcastGameState data)
+    // Local-only fields (derived from GameState data)
     actions: actionsMap,
     wolfVotes: wolfVotesMap,
   };

@@ -9,14 +9,14 @@
  * - id: uuid (primary key)
  * - code: text (unique, 4-digit room code)
  * - host_id: text
- * - game_state: jsonb (BroadcastGameState snapshot)
+ * - game_state: jsonb (GameState snapshot)
  * - state_revision: integer (monotonic revision counter)
  * - created_at: timestamptz
  * - updated_at: timestamptz
  */
 
 import * as Sentry from '@sentry/react-native';
-import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
 import { roomLog } from '@/utils/logger';
@@ -67,7 +67,7 @@ export class RoomService {
     hostUid: string,
     initialRoomNumber?: string,
     maxRetries: number = 5,
-    buildInitialState?: (roomCode: string) => BroadcastGameState,
+    buildInitialState?: (roomCode: string) => GameState,
   ): Promise<RoomRecord> {
     this.ensureConfigured();
 
@@ -175,11 +175,7 @@ export class RoomService {
    * Called by Host after every state mutation (broadcastCurrentState).
    * Fire-and-forget — failure only logs a warning, does not block gameplay.
    */
-  async upsertGameState(
-    roomCode: string,
-    state: BroadcastGameState,
-    revision: number,
-  ): Promise<void> {
+  async upsertGameState(roomCode: string, state: GameState, revision: number): Promise<void> {
     this.ensureConfigured();
 
     const { error } = await supabase!
@@ -196,9 +192,7 @@ export class RoomService {
    * Read latest game state from DB.
    * Used by Player for initial load and auto-heal fallback.
    */
-  async getGameState(
-    roomCode: string,
-  ): Promise<{ state: BroadcastGameState; revision: number } | null> {
+  async getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null> {
     this.ensureConfigured();
 
     const { data, error } = await supabase!
@@ -211,7 +205,7 @@ export class RoomService {
 
     // Supabase .single() returns row matching our DB schema
     return {
-      state: data.game_state as BroadcastGameState,
+      state: data.game_state as GameState,
       revision: data.state_revision as number,
     };
   }

@@ -17,7 +17,7 @@
  * - 守卫守护的目标免疫狼刀
  * - witchContext.killedSeat 在守卫挡刀时的取值需要固化
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -72,7 +72,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       expect(result.deaths).toEqual([]);
 
       // guardedSeat 写入 currentNightResults
-      expect(ctx.getBroadcastState().currentNightResults?.guardedSeat).toBe(0);
+      expect(ctx.getGameState().currentNightResults?.guardedSeat).toBe(0);
     });
 
     it('守卫守护非狼刀目标，狼刀目标死亡', () => {

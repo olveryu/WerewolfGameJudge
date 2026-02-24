@@ -3,7 +3,7 @@
  *
  * 板子：预女猎白12人 (4 villager, 4 wolf, seer, witch, hunter, idiot)
  *
- * 目的：逐步执行 Night-1，在每一步 action 提交后断言 BroadcastGameState
+ * 目的：逐步执行 Night-1，在每一步 action 提交后断言 GameState
  * 的关键字段，确保中间状态正确。填补现有测试只关注最终结果的盲区。
  *
  * 步骤顺序 (预女猎白12人): wolfKill → witchAction → hunterConfirm → seerCheck
@@ -50,11 +50,11 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     cleanupHostGame();
   });
 
-  it('逐步断言每个步骤完成后的 BroadcastGameState', () => {
+  it('逐步断言每个步骤完成后的 GameState', () => {
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
     // --- 初始状态 ---
-    const s0 = ctx.getBroadcastState();
+    const s0 = ctx.getGameState();
     expect(s0.status).toBe('ongoing');
     expect(s0.currentStepId).toBe('wolfKill');
     expect(s0.isAudioPlaying).toBe(false);
@@ -74,7 +74,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     }
 
     // Verify wolf votes recorded
-    const afterWolfVotes = ctx.getBroadcastState();
+    const afterWolfVotes = ctx.getGameState();
     const wolfVotes = afterWolfVotes.currentNightResults?.wolfVotesBySeat ?? {};
     expect(Object.keys(wolfVotes).length).toBe(4);
     // All wolves voted for seat 0
@@ -89,7 +89,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
       'wolfKill lead',
     );
 
-    const afterWolfAction = ctx.getBroadcastState();
+    const afterWolfAction = ctx.getGameState();
     // Wolf action should be recorded in actions array
     expect(afterWolfAction.actions?.length).toBeGreaterThanOrEqual(1);
     const wolfAction = afterWolfAction.actions?.find((a: any) => a.schemaId === 'wolfKill');
@@ -102,7 +102,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     // --- Step 2: witchAction ---
     ctx.assertStep('witchAction');
 
-    const beforeWitch = ctx.getBroadcastState();
+    const beforeWitch = ctx.getGameState();
     // Witch should see who was killed
     expect(beforeWitch.witchContext).toBeDefined();
     expect(beforeWitch.witchContext?.killedSeat).toBe(0);
@@ -120,7 +120,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
       'witchAction',
     );
 
-    const afterWitch = ctx.getBroadcastState();
+    const afterWitch = ctx.getGameState();
     const witchAction = afterWitch.actions?.find((a: any) => a.schemaId === 'witchAction');
     expect(witchAction).toBeDefined();
 
@@ -129,7 +129,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     // --- Step 3: hunterConfirm ---
     ctx.assertStep('hunterConfirm');
 
-    const beforeHunter = ctx.getBroadcastState();
+    const beforeHunter = ctx.getGameState();
     // confirmStatus should be set for hunter
     expect(beforeHunter.confirmStatus).toBeDefined();
     expect(beforeHunter.confirmStatus?.role).toBe('hunter');
@@ -140,7 +140,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
       'hunterConfirm',
     );
 
-    const afterHunter = ctx.getBroadcastState();
+    const afterHunter = ctx.getGameState();
     const hunterAction = afterHunter.actions?.find((a: any) => a.schemaId === 'hunterConfirm');
     expect(hunterAction).toBeDefined();
 
@@ -156,7 +156,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
       'seerCheck',
     );
 
-    const afterSeer = ctx.getBroadcastState();
+    const afterSeer = ctx.getGameState();
     const seerAction = afterSeer.actions?.find((a: any) => a.schemaId === 'seerCheck');
     expect(seerAction).toBeDefined();
 
@@ -171,18 +171,18 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     // Ack the reveal
     sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8, role: 'seer', revision: 0 }, 'seer ack');
 
-    const afterAck = ctx.getBroadcastState();
+    const afterAck = ctx.getGameState();
     expect(afterAck.pendingRevealAcks?.length ?? 0).toBe(0);
 
     ctx.advanceNightOrThrow('past seerCheck');
 
     // --- Night should end ---
-    const endState = ctx.getBroadcastState();
+    const endState = ctx.getGameState();
     expect(endState.currentStepId).toBeUndefined();
 
     ctx.endNight();
 
-    const finalState = ctx.getBroadcastState();
+    const finalState = ctx.getGameState();
     expect(finalState.status).toBe('ended');
     // Seat 0 should have died (wolf killed, witch didn't save)
     expect(finalState.lastNightDeaths).toContain(0);
@@ -192,7 +192,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
     // wolfKill: target seat 0
-    const s0 = ctx.getBroadcastState();
+    const s0 = ctx.getGameState();
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
@@ -242,7 +242,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
 
     ctx.endNight();
 
-    const finalState = ctx.getBroadcastState();
+    const finalState = ctx.getGameState();
     expect(finalState.status).toBe('ended');
     // Seat 0 was saved by witch → should NOT be in deaths
     expect(finalState.lastNightDeaths).not.toContain(0);
@@ -252,7 +252,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
     // wolfKill: target seat 0
-    const s0 = ctx.getBroadcastState();
+    const s0 = ctx.getGameState();
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
@@ -302,7 +302,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
 
     ctx.endNight();
 
-    const finalState = ctx.getBroadcastState();
+    const finalState = ctx.getGameState();
     expect(finalState.status).toBe('ended');
     // Seat 0 killed by wolf, seat 2 poisoned by witch
     expect(finalState.lastNightDeaths).toContain(0);

@@ -6,15 +6,13 @@
  */
 
 import { maybeCreateConfirmStatusAction } from '@werewolf/game-engine/engine/handlers/confirmContext';
-import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Helper
 // =============================================================================
 
-function createOngoingState(
-  overrides: Partial<BroadcastGameState> = {},
-): NonNullable<BroadcastGameState> {
+function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<GameState> {
   return {
     roomCode: 'TEST',
     hostUid: 'host',

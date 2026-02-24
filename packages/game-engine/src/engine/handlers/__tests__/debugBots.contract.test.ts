@@ -13,13 +13,13 @@ import {
 } from '@werewolf/game-engine/engine/handlers/gameControlHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
-import type { BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
+import type { Player } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Utilities
 // =============================================================================
 
-function createMinimalPlayer(seat: number, overrides?: Partial<BroadcastPlayer>): BroadcastPlayer {
+function createMinimalPlayer(seat: number, overrides?: Partial<Player>): Player {
   return {
     uid: `player-${seat}`,
     seatNumber: seat,
@@ -32,7 +32,7 @@ function createMinimalPlayer(seat: number, overrides?: Partial<BroadcastPlayer>)
 
 function createTestState(overrides?: Partial<GameState>): GameState {
   const totalSeats = 12;
-  const defaultPlayers: Record<number, BroadcastPlayer | null> = {};
+  const defaultPlayers: Record<number, Player | null> = {};
   for (let i = 0; i < totalSeats; i++) {
     defaultPlayers[i] = null;
   }
@@ -71,7 +71,7 @@ function createTestContext(overrides?: {
 describe('handleFillWithBots', () => {
   describe('success cases', () => {
     it('should create bot players for all empty seats', () => {
-      const players: Record<number, BroadcastPlayer | null> = {};
+      const players: Record<number, Player | null> = {};
       for (let i = 0; i < 12; i++) {
         players[i] = null;
       }
@@ -88,7 +88,7 @@ describe('handleFillWithBots', () => {
 
       const action = result.actions[0] as {
         type: 'FILL_WITH_BOTS';
-        payload: { bots: Record<number, BroadcastPlayer> };
+        payload: { bots: Record<number, Player> };
       };
       const bots = action.payload.bots;
 
@@ -104,7 +104,7 @@ describe('handleFillWithBots', () => {
     });
 
     it('should not overwrite existing human players', () => {
-      const players: Record<number, BroadcastPlayer | null> = {};
+      const players: Record<number, Player | null> = {};
       for (let i = 0; i < 12; i++) {
         players[i] = null;
       }
@@ -123,7 +123,7 @@ describe('handleFillWithBots', () => {
 
       const action = result.actions[0] as {
         type: 'FILL_WITH_BOTS';
-        payload: { bots: Record<number, BroadcastPlayer> };
+        payload: { bots: Record<number, Player> };
       };
       const bots = action.payload.bots;
 
@@ -172,7 +172,7 @@ describe('handleFillWithBots', () => {
 describe('handleMarkAllBotsViewed', () => {
   describe('success cases', () => {
     it('should only mark bot players as viewed', () => {
-      const players: Record<number, BroadcastPlayer | null> = {};
+      const players: Record<number, Player | null> = {};
       // Create a mix of bots and humans
       players[0] = createMinimalPlayer(0, { isBot: true, role: 'villager', hasViewedRole: false });
       players[1] = createMinimalPlayer(1, { isBot: false, role: 'wolf', hasViewedRole: false }); // human
@@ -201,7 +201,7 @@ describe('handleMarkAllBotsViewed', () => {
 
   describe('rejection cases', () => {
     it('should reject when debug mode is not enabled', () => {
-      const players: Record<number, BroadcastPlayer | null> = {};
+      const players: Record<number, Player | null> = {};
       players[0] = createMinimalPlayer(0, { isBot: true, role: 'villager' });
 
       const context = createTestContext({
@@ -219,7 +219,7 @@ describe('handleMarkAllBotsViewed', () => {
     });
 
     it('should reject when status is not assigned', () => {
-      const players: Record<number, BroadcastPlayer | null> = {};
+      const players: Record<number, Player | null> = {};
       players[0] = createMinimalPlayer(0, { isBot: true });
 
       const context = createTestContext({

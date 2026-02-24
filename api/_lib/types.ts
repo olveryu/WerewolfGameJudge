@@ -5,7 +5,7 @@
  * 仅包含类型定义，不包含运行时逻辑。
  */
 
-import type { BroadcastGameState, RoleId, SideEffect, StateAction } from '@werewolf/game-engine';
+import type { GameState, RoleId, SideEffect, StateAction } from '@werewolf/game-engine';
 
 // ---------------------------------------------------------------------------
 // 通用
@@ -23,7 +23,7 @@ export interface ProcessResult {
 export interface GameActionResult {
   success: boolean;
   reason?: string;
-  state?: BroadcastGameState;
+  state?: GameState;
   /** DB state_revision（客户端用于 applySnapshot） */
   revision?: number;
   sideEffects?: SideEffect[];

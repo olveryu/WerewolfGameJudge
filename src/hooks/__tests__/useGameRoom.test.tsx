@@ -590,7 +590,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
     // Mock state with Host at seat 0 (villager) and bot at seat 1 (wolf)
     // Use 'assigned' status to avoid triggering nightPlan logic in hook
-    // Players must be Record<number, ...> for broadcastToLocalState adapter
+    // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
       roomCode: 'TEST',
       hostUid: 'host-uid',
@@ -669,7 +669,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     let stateListener: ((state: any) => void) | null = null;
 
     // Use 'assigned' status to avoid triggering nightPlan logic in hook
-    // Players must be Record<number, ...> for broadcastToLocalState adapter
+    // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
       roomCode: 'TEST',
       hostUid: 'host-uid',
@@ -813,7 +813,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     let stateListener: ((state: any) => void) | null = null;
 
     // Use 'assigned' status to avoid triggering nightPlan logic in hook
-    // Players must be Record<number, ...> for broadcastToLocalState adapter
+    // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
       roomCode: 'TEST',
       hostUid: 'host-uid',
@@ -943,7 +943,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
   });
 
   /** Ongoing broadcast state for rejoin scenarios */
-  const ongoingBroadcastState = {
+  const ongoingGameState = {
     roomCode: 'REJN',
     hostUid: 'host-uid',
     status: 'ongoing' as const,
@@ -974,7 +974,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       }),
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: true,
-      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUid: jest.fn().mockReturnValue('host-uid'),
       getMySeatNumber: jest.fn().mockReturnValue(0),
     });
@@ -986,7 +986,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
     await act(async () => {
-      stateListener?.(ongoingBroadcastState);
+      stateListener?.(ongoingGameState);
     });
 
     expect(result.current.needsContinueOverlay).toBe(true);
@@ -1001,7 +1001,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       }),
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: false,
-      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUid: jest.fn().mockReturnValue('host-uid'),
       getMySeatNumber: jest.fn().mockReturnValue(0),
     });
@@ -1013,7 +1013,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
     await act(async () => {
-      stateListener?.(ongoingBroadcastState);
+      stateListener?.(ongoingGameState);
     });
 
     expect(result.current.needsContinueOverlay).toBe(false);
@@ -1028,7 +1028,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       }),
       isHostPlayer: jest.fn().mockReturnValue(false),
       wasAudioInterrupted: true,
-      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUid: jest.fn().mockReturnValue('player-2'),
       getMySeatNumber: jest.fn().mockReturnValue(1),
     });
@@ -1040,7 +1040,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
     await act(async () => {
-      stateListener?.(ongoingBroadcastState);
+      stateListener?.(ongoingGameState);
     });
 
     expect(result.current.needsContinueOverlay).toBe(false);
@@ -1055,7 +1055,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       }),
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: true,
-      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUid: jest.fn().mockReturnValue('host-uid'),
       getMySeatNumber: jest.fn().mockReturnValue(0),
     });
@@ -1068,7 +1068,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
 
     // Trigger overlay
     await act(async () => {
-      stateListener?.(ongoingBroadcastState);
+      stateListener?.(ongoingGameState);
     });
     expect(result.current.needsContinueOverlay).toBe(true);
 
@@ -1090,7 +1090,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       }),
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: true,
-      getState: jest.fn().mockReturnValue(ongoingBroadcastState),
+      getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUid: jest.fn().mockReturnValue('host-uid'),
       getMySeatNumber: jest.fn().mockReturnValue(0),
     });
@@ -1103,7 +1103,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
 
     // Trigger overlay
     await act(async () => {
-      stateListener?.(ongoingBroadcastState);
+      stateListener?.(ongoingGameState);
     });
     expect(result.current.needsContinueOverlay).toBe(true);
 

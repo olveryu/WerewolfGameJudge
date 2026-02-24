@@ -17,7 +17,7 @@ let _sql: ReturnType<typeof postgres> | null = null;
  * 将任意 object 包装为 sql.json() 参数。
  *
  * postgres.js 的 JSONValue 类型要求 index signature，
- * 但业务 interface（如 BroadcastGameState）不应添加 index signature（会削弱类型检查）。
+ * 但业务 interface（如 GameState）不应添加 index signature（会削弱类型检查）。
  * 社区标准做法：将 type assertion 隔离到单一 wrapper 函数。
  *
  * @see https://github.com/porsager/postgres — sql.json() helper

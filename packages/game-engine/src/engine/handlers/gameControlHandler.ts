@@ -13,7 +13,7 @@
 import { ROLE_SPECS, type RoleId } from '../../models/roles';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { buildNightPlan } from '../../models/roles/spec/plan';
-import type { BroadcastPlayer } from '../../protocol/types';
+import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { randomHex } from '../../utils/id';
 import { shuffleArray } from '../../utils/shuffle';
@@ -428,7 +428,7 @@ export function handleFillWithBots(
       .filter(([, player]) => player !== null)
       .map(([seat]) => Number.parseInt(seat, 10)),
   );
-  const bots: Record<number, BroadcastPlayer> = {};
+  const bots: Record<number, Player> = {};
 
   for (let seat = 0; seat < seatCount; seat++) {
     if (!occupiedSeats.has(seat)) {

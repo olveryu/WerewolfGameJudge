@@ -1,13 +1,13 @@
 /**
  * Vertical Slice Board Test
  *
- * 从 hostGameFactory 产生的真实 BroadcastGameState 驱动 RoomScreen UI 渲染。
+ * 从 hostGameFactory 产生的真实 GameState 驱动 RoomScreen UI 渲染。
  * 目的：验证 integration state → UI rendering 的完整通路，
  * 捕获 mock 与真实 state 形状不一致导致的 UI 行为差异。
  *
  * 策略：
  * 1. hostGameFactory 创建游戏并走到 witchAction 步骤
- * 2. 将真实 broadcastState 转换为 useGameRoom mock 格式
+ * 2. 将真实 snapshot 转换为 useGameRoom mock 格式
  * 3. 渲染 RoomScreen 并验证正确的 dialog 出现
  */
 
@@ -17,7 +17,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
 import { getSchema } from '@werewolf/game-engine/models/roles/spec';
 
-import { broadcastToLocalState } from '@/hooks/adapters/broadcastToLocalState';
+import { toLocalState } from '@/hooks/adapters/toLocalState';
 import {
   createShowAlertMock,
   mockNavigation,
@@ -99,11 +99,11 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 /**
- * 将 BroadcastGameState (protocol 格式) 转换为 useGameRoom mock 中的 gameState 格式。
- * 使用真实的 broadcastToLocalState 适配器（与生产代码路径一致）。
+ * 将 GameState (protocol 格式) 转换为 useGameRoom mock 中的 gameState 格式。
+ * 使用真实的 toLocalState 适配器（与生产代码路径一致）。
  */
-function broadcastToMockGameState(state: any) {
-  return broadcastToLocalState(state);
+function toMockGameState(state: any) {
+  return toLocalState(state);
 }
 
 let harness: RoomScreenTestHarness;
@@ -131,7 +131,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
   it('witchAction step with real state → shows witchSavePrompt', async () => {
     // 1. Create real game and walk to witchAction
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
-    const s0 = ctx.getBroadcastState();
+    const s0 = ctx.getGameState();
 
     // Submit wolf votes + action to pass wolfKill
     for (const [seatStr, player] of Object.entries(s0.players)) {
@@ -149,12 +149,12 @@ describe('Vertical Slice: real state → UI rendering', () => {
     ctx.assertStep('witchAction');
 
     // 2. Get real broadcast state at witchAction
-    const realState = ctx.getBroadcastState();
+    const realState = ctx.getGameState();
 
     // 3. Build useGameRoom mock from real state
     const currentSchema = getSchema('witchAction');
     mockUseGameRoomReturn = {
-      gameState: broadcastToMockGameState(realState),
+      gameState: toMockGameState(realState),
       connectionStatus: 'live',
       isHost: false,
       roomStatus: GameStatus.ongoing,
@@ -234,7 +234,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
 
   it('seerCheck step with real state → shows actionPrompt', async () => {
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
-    const s0 = ctx.getBroadcastState();
+    const s0 = ctx.getGameState();
 
     // Walk to seerCheck
     for (const [seatStr, player] of Object.entries(s0.players)) {
@@ -269,12 +269,12 @@ describe('Vertical Slice: real state → UI rendering', () => {
     ctx.advanceNightOrThrow('past hunterConfirm');
     ctx.assertStep('seerCheck');
 
-    const realState = ctx.getBroadcastState();
+    const realState = ctx.getGameState();
     const seerSeat = 8;
 
     const currentSchema = getSchema('seerCheck');
     mockUseGameRoomReturn = {
-      gameState: broadcastToMockGameState(realState),
+      gameState: toMockGameState(realState),
       connectionStatus: 'live',
       isHost: false,
       roomStatus: GameStatus.ongoing,

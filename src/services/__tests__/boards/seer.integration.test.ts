@@ -41,7 +41,7 @@ describe('Seer Integration', () => {
   /** 推进到 seerCheck 步骤的辅助函数（带 hard cap）*/
   function advanceToSeerStep(ctx: ReturnType<typeof createHostGame>): boolean {
     // 第一步是 wolfKill
-    if (ctx.getBroadcastState().currentStepId === 'wolfKill') {
+    if (ctx.getGameState().currentStepId === 'wolfKill') {
       // 狼空刀
       ctx.sendPlayerMessage({
         type: 'WOLF_VOTE',
@@ -58,16 +58,16 @@ describe('Seer Integration', () => {
     }
 
     // 现在应该在 seerCheck
-    return ctx.getBroadcastState().currentStepId === 'seerCheck';
+    return ctx.getGameState().currentStepId === 'seerCheck';
   }
 
   describe('seerReveal Single Source of Truth', () => {
-    it('should write seerReveal to BroadcastGameState when seer checks wolf', () => {
+    it('should write seerReveal to GameState when seer checks wolf', () => {
       const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       expect(advanceToSeerStep(ctx)).toBe(true);
-      expect(ctx.getBroadcastState().currentStepId).toBe('seerCheck');
+      expect(ctx.getGameState().currentStepId).toBe('seerCheck');
 
       // seer 查验 seat 1 (wolf)
       const result = ctx.sendPlayerMessage({
@@ -79,7 +79,7 @@ describe('Seer Integration', () => {
 
       expect(result.success).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(1);
       // result 可能是 "wolf" 或 "狼人"（取决于 resolver 实现）
@@ -102,7 +102,7 @@ describe('Seer Integration', () => {
 
       expect(result.success).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(2);
       // 预言家查验好人返回 "好人" 或 "good"
@@ -144,7 +144,7 @@ describe('Seer Integration', () => {
 
       expect(result.success).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       // skip 时不应该有 seerReveal
       expect(state.seerReveal).toBeUndefined();
     });
@@ -168,11 +168,11 @@ describe('Seer Integration', () => {
     /** 推进到 seerCheck 步骤（带 hard cap） */
     function advanceToSeerCheckWithCap(ctx: ReturnType<typeof createHostGame>): void {
       for (let i = 0; i < MAX_STEP_ADVANCES; i++) {
-        if (ctx.getBroadcastState().currentStepId === 'seerCheck') {
+        if (ctx.getGameState().currentStepId === 'seerCheck') {
           return;
         }
 
-        const currentStep = ctx.getBroadcastState().currentStepId;
+        const currentStep = ctx.getGameState().currentStepId;
 
         // 如果是 wolfKill，需要提交狼刀
         if (currentStep === 'wolfKill') {
@@ -193,7 +193,7 @@ describe('Seer Integration', () => {
         if (!advanceResult.success) break;
       }
 
-      if (ctx.getBroadcastState().currentStepId !== 'seerCheck') {
+      if (ctx.getGameState().currentStepId !== 'seerCheck') {
         throw new Error(`Failed to reach seerCheck within ${MAX_STEP_ADVANCES} advances`);
       }
     }
@@ -202,7 +202,7 @@ describe('Seer Integration', () => {
       const ctx = createHostGame(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
 
       // 第一步是 nightmare
-      expect(ctx.getBroadcastState().currentStepId).toBe('nightmareBlock');
+      expect(ctx.getGameState().currentStepId).toBe('nightmareBlock');
 
       // nightmare 封锁 seer (seat 2)
       ctx.sendPlayerMessage({
@@ -213,7 +213,7 @@ describe('Seer Integration', () => {
       });
 
       // 验证 blockedSeat 已设置
-      expect(ctx.getBroadcastState().currentNightResults?.blockedSeat).toBe(2);
+      expect(ctx.getGameState().currentNightResults?.blockedSeat).toBe(2);
 
       // 推进到 seer 步骤（带 hard cap）
       advanceToSeerCheckWithCap(ctx);

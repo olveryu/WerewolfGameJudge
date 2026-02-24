@@ -9,7 +9,7 @@
  * - Game state queries: getLastNightInfo, hasWolfVoted
  *
  * 通过 facade 执行游戏操作，使用 debug/bgm sub-hook state。
- * 不直接修改 BroadcastGameState，不绕过 facade。
+ * 不直接修改 GameState，不绕过 facade。
  */
 
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';

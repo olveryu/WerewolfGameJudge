@@ -11,7 +11,7 @@
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStore } from '@werewolf/game-engine/engine/store';
-import type { BroadcastPlayer } from '@werewolf/game-engine/protocol/types';
+import type { Player } from '@werewolf/game-engine/protocol/types';
 
 import { GameFacade } from '@/services/facade/GameFacade';
 
@@ -84,7 +84,7 @@ describe('GameFacade', () => {
     let state = facadeInstance['store'].getState()!;
 
     for (let i = 0; i < template.numberOfPlayers; i++) {
-      const player: BroadcastPlayer = {
+      const player: Player = {
         uid: i === 0 ? 'host-uid' : `player-${i}`,
         seatNumber: i,
         displayName: `Player ${i}`,

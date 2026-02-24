@@ -5,7 +5,7 @@
  * loading/retry UI state, sets role reveal animation on room creation (host only), and
  * surfaces gameRoomError for error display. Does not control night phase or push game
  * actions, does not import services or business logic, does not access or modify
- * BroadcastGameState fields, does not contain night flow / audio / policy logic, and
+ * GameState fields, does not contain night flow / audio / policy logic, and
  * does not create room record in DB (that's done in ConfigScreen before navigation).
  */
 
