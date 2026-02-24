@@ -14,15 +14,15 @@ import { withTimeout } from '@/utils/withTimeout';
  * 不涉及游戏逻辑或游戏状态存储。
  */
 export class AuthService {
-  private currentUserId: string | null = null;
-  private readonly initPromise: Promise<void>;
+  #currentUserId: string | null = null;
+  readonly #initPromise: Promise<void>;
 
   constructor() {
     // Async operation in constructor — promise stored and awaitable via waitForInit()
-    this.initPromise = this.autoSignIn();
+    this.#initPromise = this.#autoSignIn();
   }
 
-  private async autoSignIn(): Promise<void> {
+  async #autoSignIn(): Promise<void> {
     if (!this.isConfigured()) return;
 
     try {
@@ -41,7 +41,7 @@ export class AuthService {
   async waitForInit(): Promise<void> {
     // Add timeout to prevent infinite waiting
     // 使用用户友好的错误消息，技术上下文由 withTimeout 内部 logger 记录
-    await withTimeout(this.initPromise, 10000, () => new Error('登录超时，请重试'));
+    await withTimeout(this.#initPromise, 10000, () => new Error('登录超时，请重试'));
   }
 
   /**
@@ -50,7 +50,7 @@ export class AuthService {
    * Throws on network failure (caller should catch and show user-friendly message).
    */
   async ensureAuthenticated(): Promise<string> {
-    if (this.currentUserId) return this.currentUserId;
+    if (this.#currentUserId) return this.#currentUserId;
 
     // Retry session restore from local storage
     const restored = await this.initAuth();
@@ -64,14 +64,14 @@ export class AuthService {
     return isSupabaseConfigured() && supabase !== null;
   }
 
-  private ensureConfigured(): void {
+  #ensureConfigured(): void {
     if (!this.isConfigured()) {
       throw new Error('服务未配置，请检查网络连接');
     }
   }
 
   getCurrentUserId(): string | null {
-    return this.currentUserId;
+    return this.#currentUserId;
   }
 
   getCurrentUser() {
@@ -80,14 +80,14 @@ export class AuthService {
   }
 
   async signInAnonymously(): Promise<string> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
     const { data, error } = await supabase!.auth.signInAnonymously();
     if (error) throw error;
     const userId = data.user?.id;
     if (!userId) {
       throw new Error('[FAIL-FAST] signInAnonymously succeeded but user.id is missing');
     }
-    this.currentUserId = userId;
+    this.#currentUserId = userId;
     return userId;
   }
 
@@ -96,7 +96,7 @@ export class AuthService {
     password: string,
     displayName?: string,
   ): Promise<{ userId: string; user: SupabaseUser | null }> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
     const { data, error } = await supabase!.auth.signUp({
       email,
       password,
@@ -112,7 +112,7 @@ export class AuthService {
     if (!userId) {
       throw new Error('[FAIL-FAST] signUpWithEmail succeeded but user.id is missing');
     }
-    this.currentUserId = userId;
+    this.#currentUserId = userId;
 
     return {
       userId,
@@ -121,7 +121,7 @@ export class AuthService {
   }
 
   async signInWithEmail(email: string, password: string): Promise<string> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
     const { data, error } = await supabase!.auth.signInWithPassword({
       email,
       password,
@@ -131,12 +131,12 @@ export class AuthService {
     if (!userId) {
       throw new Error('[FAIL-FAST] signInWithEmail succeeded but user.id is missing');
     }
-    this.currentUserId = userId;
+    this.#currentUserId = userId;
     return userId;
   }
 
   async updateProfile(updates: { displayName?: string; avatarUrl?: string }): Promise<void> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
     const { error } = await supabase!.auth.updateUser({
       data: {
         display_name: updates.displayName,
@@ -147,9 +147,9 @@ export class AuthService {
   }
 
   async signOut(): Promise<void> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
     await supabase!.auth.signOut();
-    this.currentUserId = null;
+    this.#currentUserId = null;
   }
 
   async initAuth(): Promise<string | null> {
@@ -158,8 +158,8 @@ export class AuthService {
       data: { session },
     } = await supabase!.auth.getSession();
     if (session?.user) {
-      this.currentUserId = session.user.id;
-      return this.currentUserId;
+      this.#currentUserId = session.user.id;
+      return this.#currentUserId;
     }
     return null;
   }
@@ -247,7 +247,7 @@ export class AuthService {
   // Get current user's display name
   async getCurrentDisplayName(): Promise<string> {
     if (!this.isConfigured()) {
-      return this.generateDisplayName(this.currentUserId || 'anonymous');
+      return this.generateDisplayName(this.#currentUserId || 'anonymous');
     }
 
     try {
@@ -260,7 +260,7 @@ export class AuthService {
       authLog.debug('getUser for displayName failed, falling through to generated name', e);
     }
 
-    return this.generateDisplayName(this.currentUserId || 'anonymous');
+    return this.generateDisplayName(this.#currentUserId || 'anonymous');
   }
 
   // Get current user's avatar URL

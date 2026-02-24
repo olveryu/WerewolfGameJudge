@@ -178,20 +178,4 @@ describe('AvatarUploadService - Configured state', () => {
 
     jest.restoreAllMocks();
   });
-
-  // --- compressImage fallback (no DOM) ---
-
-  it('compressImage should fetch original blob when DOM APIs not available', async () => {
-    // In jest, isDomCompressionAvailable returns false
-    // compressImage falls back to fetch(fileUri).blob()
-    const blob = await (service as any).compressImage('file:///test.png', 512, 0.85);
-    expect(global.fetch).toHaveBeenCalledWith('file:///test.png');
-    expect(blob).toBe(mockFetchBlob);
-  });
-
-  // --- isDomCompressionAvailable ---
-
-  it('isDomCompressionAvailable returns false in node/jest environment', () => {
-    expect((service as any).isDomCompressionAvailable()).toBe(false);
-  });
 });

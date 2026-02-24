@@ -108,36 +108,36 @@ const BGM_VOLUME = 0.03;
  * 不决定"何时播什么音频"（由 Handler 声明、Facade 编排），不涉及游戏逻辑或状态修改。
  */
 export class AudioService {
-  private player: AudioPlayer | null = null;
-  private playerSubscription: ReturnType<AudioPlayer['addListener']> | null = null;
-  private bgmPlayer: AudioPlayer | null = null;
-  private isPlaying = false;
-  private isBgmPlaying = false;
+  #player: AudioPlayer | null = null;
+  #playerSubscription: ReturnType<AudioPlayer['addListener']> | null = null;
+  #bgmPlayer: AudioPlayer | null = null;
+  #isPlaying = false;
+  #isBgmPlaying = false;
   // Resolve function for current playback - called when audio finishes or times out
-  private currentPlaybackResolve: (() => void) | null = null;
-  private currentTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private visibilityHandler: (() => void) | null = null;
-  private wasPlayingBeforeHidden = false;
-  private wasBgmPlayingBeforeHidden = false;
+  #currentPlaybackResolve: (() => void) | null = null;
+  #currentTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  #visibilityHandler: (() => void) | null = null;
+  #wasPlayingBeforeHidden = false;
+  #wasBgmPlayingBeforeHidden = false;
 
   // Web-only: Single HTML Audio element that we reuse (iOS Safari requires this)
-  private webAudioElement: HTMLAudioElement | null = null;
-  private webBgmElement: HTMLAudioElement | null = null;
+  #webAudioElement: HTMLAudioElement | null = null;
+  #webBgmElement: HTMLAudioElement | null = null;
 
   // Preload cache: keeps pre-decoded audio players alive to skip first-play decode latency
-  private preloadedPlayers: Map<string, AudioPlayer> = new Map();
-  private preloadedWebAudios: Map<string, HTMLAudioElement> = new Map();
+  #preloadedPlayers: Map<string, AudioPlayer> = new Map();
+  #preloadedWebAudios: Map<string, HTMLAudioElement> = new Map();
 
   // Track old native players that were replaced but kept alive (paused) to avoid event issues.
   // These are released in cleanup() and clearPreloaded() to prevent native resource leaks.
-  private staleNativePlayers: Set<AudioPlayer> = new Set();
+  #staleNativePlayers: Set<AudioPlayer> = new Set();
 
   constructor() {
     // Fire-and-forget: initializes audio mode + Web visibility handler
-    void this.initAudio();
+    void this.#initAudio();
   }
 
-  private async initAudio(): Promise<void> {
+  async #initAudio(): Promise<void> {
     try {
       await setAudioModeAsync({
         playsInSilentMode: true,
@@ -147,37 +147,37 @@ export class AudioService {
 
       // Web: Listen for visibility change to pause/resume audio when browser goes to background
       if (typeof document !== 'undefined') {
-        this.visibilityHandler = () => {
+        this.#visibilityHandler = () => {
           if (document.hidden) {
             // Page hidden - pause all audio
             audioLog.debug('[visibility] page hidden, pausing all audio');
-            this.wasPlayingBeforeHidden = this.isPlaying;
-            this.wasBgmPlayingBeforeHidden = this.isBgmPlaying;
+            this.#wasPlayingBeforeHidden = this.#isPlaying;
+            this.#wasBgmPlayingBeforeHidden = this.#isBgmPlaying;
 
             // Pause TTS: web audio element or native player
-            if (this.webAudioElement) {
+            if (this.#webAudioElement) {
               try {
-                this.webAudioElement.pause();
+                this.#webAudioElement.pause();
               } catch (e) {
                 audioLog.warn('[visibility] error pausing web audio', e);
               }
-            } else if (this.player) {
+            } else if (this.#player) {
               try {
-                this.player.pause();
+                this.#player.pause();
               } catch (e) {
                 audioLog.warn('[visibility] error pausing player', e);
               }
             }
             // Pause BGM: web bgm element or native bgm player
-            if (this.webBgmElement) {
+            if (this.#webBgmElement) {
               try {
-                this.webBgmElement.pause();
+                this.#webBgmElement.pause();
               } catch (e) {
                 audioLog.warn('[visibility] error pausing web bgm', e);
               }
-            } else if (this.bgmPlayer) {
+            } else if (this.#bgmPlayer) {
               try {
-                this.bgmPlayer.pause();
+                this.#bgmPlayer.pause();
               } catch (e) {
                 audioLog.warn('[visibility] error pausing bgm', e);
               }
@@ -185,37 +185,37 @@ export class AudioService {
           } else {
             // Page visible again - resume audio if it was playing before
             audioLog.debug(
-              `[visibility] page visible, wasPlaying=${this.wasPlayingBeforeHidden}, wasBgmPlaying=${this.wasBgmPlayingBeforeHidden}`,
+              `[visibility] page visible, wasPlaying=${this.#wasPlayingBeforeHidden}, wasBgmPlaying=${this.#wasBgmPlayingBeforeHidden}`,
             );
 
-            if (this.wasPlayingBeforeHidden) {
-              if (this.webAudioElement) {
+            if (this.#wasPlayingBeforeHidden) {
+              if (this.#webAudioElement) {
                 try {
-                  void this.webAudioElement.play();
+                  void this.#webAudioElement.play();
                   audioLog.debug('[visibility] resumed web audio');
                 } catch (e) {
                   audioLog.warn('[visibility] error resuming web audio', e);
                 }
-              } else if (this.player) {
+              } else if (this.#player) {
                 try {
-                  this.player.play();
+                  this.#player.play();
                   audioLog.debug('[visibility] resumed main audio');
                 } catch (e) {
                   audioLog.warn('[visibility] error resuming player', e);
                 }
               }
             }
-            if (this.wasBgmPlayingBeforeHidden) {
-              if (this.webBgmElement) {
+            if (this.#wasBgmPlayingBeforeHidden) {
+              if (this.#webBgmElement) {
                 try {
-                  void this.webBgmElement.play();
+                  void this.#webBgmElement.play();
                   audioLog.debug('[visibility] resumed web BGM');
                 } catch (e) {
                   audioLog.warn('[visibility] error resuming web bgm', e);
                 }
-              } else if (this.bgmPlayer) {
+              } else if (this.#bgmPlayer) {
                 try {
-                  this.bgmPlayer.play();
+                  this.#bgmPlayer.play();
                   audioLog.debug('[visibility] resumed BGM');
                 } catch (e) {
                   audioLog.warn('[visibility] error resuming bgm', e);
@@ -224,7 +224,7 @@ export class AudioService {
             }
           }
         };
-        document.addEventListener('visibilitychange', this.visibilityHandler);
+        document.addEventListener('visibilitychange', this.#visibilityHandler);
       }
     } catch (error) {
       audioLog.error('Failed to initialize audio:', error);
@@ -232,41 +232,41 @@ export class AudioService {
     }
   }
 
-  private stopCurrentPlayer(): void {
+  #stopCurrentPlayer(): void {
     // Cancel any pending playback
-    if (this.currentPlaybackResolve) {
+    if (this.#currentPlaybackResolve) {
       audioLog.debug('[stopCurrentPlayer] resolving pending playback');
-      this.currentPlaybackResolve();
-      this.currentPlaybackResolve = null;
+      this.#currentPlaybackResolve();
+      this.#currentPlaybackResolve = null;
     }
-    if (this.currentTimeoutId) {
-      clearTimeout(this.currentTimeoutId);
-      this.currentTimeoutId = null;
+    if (this.#currentTimeoutId) {
+      clearTimeout(this.#currentTimeoutId);
+      this.#currentTimeoutId = null;
     }
 
     // Web: pause HTML Audio element and detach callbacks to prevent stale onended leaks
-    if (this.webAudioElement) {
+    if (this.#webAudioElement) {
       audioLog.debug('stopCurrentPlayer: pausing web audio element (keeping for reuse)');
       try {
-        this.webAudioElement.pause();
-        this.webAudioElement.onended = null;
-        this.webAudioElement.onerror = null;
+        this.#webAudioElement.pause();
+        this.#webAudioElement.onended = null;
+        this.#webAudioElement.onerror = null;
       } catch (e) {
         audioLog.warn('stopCurrentPlayer: error pausing web audio', e);
       }
-      this.isPlaying = false;
+      this.#isPlaying = false;
       return;
     }
 
     // Native: pause expo-audio player
-    if (this.player) {
+    if (this.#player) {
       audioLog.debug('stopCurrentPlayer: pausing current player (keeping for reuse)');
       try {
-        this.player.pause();
+        this.#player.pause();
       } catch (e) {
         audioLog.warn('stopCurrentPlayer: error pausing player', e);
       }
-      this.isPlaying = false;
+      this.#isPlaying = false;
     } else {
       audioLog.debug('stopCurrentPlayer: no player to stop');
     }
@@ -284,39 +284,39 @@ export class AudioService {
    * - Resolves on: normal completion, timeout, or any error
    * - Logs warnings on fallback scenarios for debugging
    */
-  private async safePlayAudioFile(audioFile: AudioAsset, label = 'audio'): Promise<void> {
+  async #safePlayAudioFile(audioFile: AudioAsset, label = 'audio'): Promise<void> {
     audioLog.debug(`[${label}] safePlayAudioFile START`);
 
     // On Web, use native HTML Audio API for iOS Safari compatibility
     if (isWeb && typeof document !== 'undefined') {
-      return this.safePlayAudioFileWeb(audioFile, label);
+      return this.#safePlayAudioFileWeb(audioFile, label);
     }
 
     // Native platforms: use expo-audio
-    return this.safePlayAudioFileNative(audioFile, label);
+    return this.#safePlayAudioFileNative(audioFile, label);
   }
 
   /**
    * Web-specific audio playback using HTML Audio element.
    * Reuses a single Audio element to maintain iOS Safari user gesture authorization.
    */
-  private async safePlayAudioFileWeb(audioFile: AudioAsset, label = 'audio'): Promise<void> {
+  async #safePlayAudioFileWeb(audioFile: AudioAsset, label = 'audio'): Promise<void> {
     audioLog.debug(`[${label}] [WEB] starting playback`);
 
     return new Promise<void>((resolve) => {
       try {
         // Store resolve so stopCurrentPlayer() can settle this promise
-        this.currentPlaybackResolve = resolve;
+        this.#currentPlaybackResolve = resolve;
 
         // Stop any current playback
-        if (this.webAudioElement) {
-          this.webAudioElement.pause();
-          this.webAudioElement.onended = null;
-          this.webAudioElement.onerror = null;
+        if (this.#webAudioElement) {
+          this.#webAudioElement.pause();
+          this.#webAudioElement.onended = null;
+          this.#webAudioElement.onerror = null;
         }
-        if (this.currentTimeoutId) {
-          clearTimeout(this.currentTimeoutId);
-          this.currentTimeoutId = null;
+        if (this.#currentTimeoutId) {
+          clearTimeout(this.#currentTimeoutId);
+          this.#currentTimeoutId = null;
         }
 
         // Get the audio URL from the audioFile (expo asset)
@@ -324,41 +324,41 @@ export class AudioService {
         audioLog.debug(`[${label}] [WEB] audioUrl=${audioUrl}`);
 
         // Create or reuse Audio element
-        if (this.webAudioElement) {
+        if (this.#webAudioElement) {
           audioLog.debug(`[${label}] [WEB] reusing existing Audio element`);
         } else {
           audioLog.debug(`[${label}] [WEB] creating new Audio element`);
-          this.webAudioElement = new Audio();
+          this.#webAudioElement = new Audio();
         }
 
-        const audio = this.webAudioElement;
-        this.isPlaying = true;
+        const audio = this.#webAudioElement;
+        this.#isPlaying = true;
 
         // Set up event handlers
         audio.onended = () => {
           audioLog.debug(`[${label}] [WEB] onended fired`);
-          this.isPlaying = false;
-          if (this.currentTimeoutId) {
-            clearTimeout(this.currentTimeoutId);
-            this.currentTimeoutId = null;
+          this.#isPlaying = false;
+          if (this.#currentTimeoutId) {
+            clearTimeout(this.#currentTimeoutId);
+            this.#currentTimeoutId = null;
           }
           resolve();
         };
 
         audio.onerror = () => {
           audioLog.warn(`[WEB] Audio error for ${label}`);
-          this.isPlaying = false;
-          if (this.currentTimeoutId) {
-            clearTimeout(this.currentTimeoutId);
-            this.currentTimeoutId = null;
+          this.#isPlaying = false;
+          if (this.#currentTimeoutId) {
+            clearTimeout(this.#currentTimeoutId);
+            this.#currentTimeoutId = null;
           }
           resolve(); // Resolve anyway to not block the flow
         };
 
         // Timeout fallback
-        this.currentTimeoutId = setTimeout(() => {
+        this.#currentTimeoutId = setTimeout(() => {
           audioLog.warn(`[WEB] Playback timeout for ${label}`);
-          this.isPlaying = false;
+          this.#isPlaying = false;
           audio.pause();
           resolve();
         }, AUDIO_TIMEOUT_MS);
@@ -374,16 +374,16 @@ export class AudioService {
           })
           .catch((err) => {
             audioLog.warn(`[WEB] play() failed for ${label}:`, err);
-            this.isPlaying = false;
-            if (this.currentTimeoutId) {
-              clearTimeout(this.currentTimeoutId);
-              this.currentTimeoutId = null;
+            this.#isPlaying = false;
+            if (this.#currentTimeoutId) {
+              clearTimeout(this.#currentTimeoutId);
+              this.#currentTimeoutId = null;
             }
             resolve(); // Resolve anyway
           });
       } catch (error) {
         audioLog.warn(`[WEB] Audio playback failed for ${label}:`, error);
-        this.isPlaying = false;
+        this.#isPlaying = false;
         resolve();
       }
     });
@@ -392,19 +392,19 @@ export class AudioService {
   /**
    * Native platform audio playback using expo-audio.
    */
-  private async safePlayAudioFileNative(audioFile: AudioAsset, label = 'audio'): Promise<void> {
+  async #safePlayAudioFileNative(audioFile: AudioAsset, label = 'audio'): Promise<void> {
     try {
       // Stop any current playback but keep old player alive (just paused)
-      this.stopCurrentPlayer();
+      this.#stopCurrentPlayer();
 
       // Remove old listener if exists
-      if (this.playerSubscription) {
+      if (this.#playerSubscription) {
         try {
-          this.playerSubscription.remove();
+          this.#playerSubscription.remove();
         } catch {
           // Ignore
         }
-        this.playerSubscription = null;
+        this.#playerSubscription = null;
       }
 
       // iOS Safari fix: Always create a new player for each audio file.
@@ -413,40 +413,40 @@ export class AudioService {
       audioLog.debug(`[${label}] creating player and starting playback`);
       const player = createAudioPlayer(audioFile);
       // Track old player for deferred cleanup (stale but not removed to avoid event issues)
-      if (this.player) {
-        this.staleNativePlayers.add(this.player);
+      if (this.#player) {
+        this.#staleNativePlayers.add(this.#player);
       }
-      this.player = player;
+      this.#player = player;
       audioLog.debug(`[${label}] player created OK`);
 
       // Add listener for the new player
-      this.playerSubscription = player.addListener(
+      this.#playerSubscription = player.addListener(
         'playbackStatusUpdate',
         (status: AudioStatus) => {
-          this.handlePlaybackStatus(status);
+          this.#handlePlaybackStatus(status);
         },
       );
       audioLog.debug(`[${label}] listener added`);
 
-      this.isPlaying = true;
+      this.#isPlaying = true;
 
       return new Promise<void>((resolve) => {
         // Store resolve function so status handler can call it
-        this.currentPlaybackResolve = resolve;
-        this.currentLabel = label;
-        this.currentStatusCount = 0;
+        this.#currentPlaybackResolve = resolve;
+        this.#currentLabel = label;
+        this.#currentStatusCount = 0;
 
         // Timeout fallback - resolve after max time even if audio didn't finish
-        this.currentTimeoutId = setTimeout(() => {
+        this.#currentTimeoutId = setTimeout(() => {
           audioLog.debug(
-            `[${label}] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms, statusCount=${this.currentStatusCount}`,
+            `[${label}] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms, statusCount=${this.#currentStatusCount}`,
           );
           if (isJest) {
             audioLog.debug(' Playback timeout - proceeding without waiting for completion');
           } else {
             audioLog.warn(' Playback timeout - proceeding without waiting for completion');
           }
-          this.finishCurrentPlayback();
+          this.#finishCurrentPlayback();
         }, AUDIO_TIMEOUT_MS);
 
         audioLog.debug(`[${label}] calling player.play()`);
@@ -455,20 +455,20 @@ export class AudioService {
       });
     } catch (error) {
       audioLog.warn(`[${label}] Audio playback failed, resolving anyway:`, error);
-      this.isPlaying = false;
+      this.#isPlaying = false;
       return;
     }
   }
 
   // Shared state for current playback
-  private currentLabel = 'audio';
-  private currentStatusCount = 0;
+  #currentLabel = 'audio';
+  #currentStatusCount = 0;
 
-  private handlePlaybackStatus(status: AudioStatus): void {
-    this.currentStatusCount++;
-    const label = this.currentLabel;
+  #handlePlaybackStatus(status: AudioStatus): void {
+    this.#currentStatusCount++;
+    const label = this.#currentLabel;
     audioLog.debug(
-      `[${label}] status #${this.currentStatusCount}: playing=${status.playing} loaded=${status.isLoaded} duration=${status.duration} didJustFinish=${status.didJustFinish}`,
+      `[${label}] status #${this.#currentStatusCount}: playing=${status.playing} loaded=${status.isLoaded} duration=${status.duration} didJustFinish=${status.didJustFinish}`,
     );
 
     try {
@@ -477,42 +477,42 @@ export class AudioService {
       }
       if (status.didJustFinish) {
         audioLog.debug(`[${label}] didJustFinish=true, calling finishCurrentPlayback`);
-        this.finishCurrentPlayback();
+        this.#finishCurrentPlayback();
       }
     } catch {
       audioLog.warn(' Error in playback status listener - resolving');
-      this.finishCurrentPlayback();
+      this.#finishCurrentPlayback();
     }
   }
 
-  private finishCurrentPlayback(): void {
-    if (this.currentTimeoutId) {
-      clearTimeout(this.currentTimeoutId);
-      this.currentTimeoutId = null;
+  #finishCurrentPlayback(): void {
+    if (this.#currentTimeoutId) {
+      clearTimeout(this.#currentTimeoutId);
+      this.#currentTimeoutId = null;
     }
-    this.isPlaying = false;
-    if (this.currentPlaybackResolve) {
+    this.#isPlaying = false;
+    if (this.#currentPlaybackResolve) {
       audioLog.debug(
-        `[${this.currentLabel}] finishCurrentPlayback called, statusCount=${this.currentStatusCount}`,
+        `[${this.#currentLabel}] finishCurrentPlayback called, statusCount=${this.#currentStatusCount}`,
       );
-      this.currentPlaybackResolve();
-      this.currentPlaybackResolve = null;
+      this.#currentPlaybackResolve();
+      this.#currentPlaybackResolve = null;
     }
   }
 
   // Play night start audio
   async playNightAudio(): Promise<void> {
-    return this.safePlayAudioFile(NIGHT_AUDIO, 'night');
+    return this.#safePlayAudioFile(NIGHT_AUDIO, 'night');
   }
 
   // Alias for playNightAudio
   async playNightBeginAudio(): Promise<void> {
-    return this.safePlayAudioFile(NIGHT_AUDIO, 'night');
+    return this.#safePlayAudioFile(NIGHT_AUDIO, 'night');
   }
 
   // Play night end audio
   async playNightEndAudio(): Promise<void> {
-    return this.safePlayAudioFile(NIGHT_END_AUDIO, 'night_end');
+    return this.#safePlayAudioFile(NIGHT_END_AUDIO, 'night_end');
   }
 
   // Play role beginning audio (when role's turn starts)
@@ -524,7 +524,7 @@ export class AudioService {
       return;
     }
     audioLog.debug(`playRoleBeginningAudio: playing audio for role "${role}"`);
-    return this.safePlayAudioFile(audioFile, `role_begin_${role}`);
+    return this.#safePlayAudioFile(audioFile, `role_begin_${role}`);
   }
 
   // Play role ending audio (when role's turn ends)
@@ -536,7 +536,7 @@ export class AudioService {
       return;
     }
     audioLog.debug(`playRoleEndingAudio: playing audio for role "${role}"`);
-    return this.safePlayAudioFile(audioFile, `role_end_${role}`);
+    return this.#safePlayAudioFile(audioFile, `role_end_${role}`);
   }
 
   // Get beginning audio for role
@@ -551,25 +551,25 @@ export class AudioService {
 
   // Stop all audio (not BGM)
   stop(): void {
-    this.stopCurrentPlayer();
+    this.#stopCurrentPlayer();
   }
 
   // Check if audio is currently playing
   getIsPlaying(): boolean {
-    return this.isPlaying;
+    return this.#isPlaying;
   }
 
   // Clean up all audio including BGM
   cleanup(): void {
     audioLog.debug('cleanup: stopping all audio');
-    this.stopCurrentPlayer();
+    this.#stopCurrentPlayer();
     this.stopBgm();
     // Release stale native players accumulated during playback
-    this.releaseStaleNativePlayers();
+    this.#releaseStaleNativePlayers();
     // Remove visibilitychange listener if registered (web only)
-    if (this.visibilityHandler && typeof document !== 'undefined') {
-      document.removeEventListener('visibilitychange', this.visibilityHandler);
-      this.visibilityHandler = null;
+    if (this.#visibilityHandler && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.#visibilityHandler);
+      this.#visibilityHandler = null;
     }
   }
 
@@ -580,7 +580,7 @@ export class AudioService {
    * Does nothing if BGM is already playing.
    */
   async startBgm(): Promise<void> {
-    if (this.isBgmPlaying || this.bgmPlayer || this.webBgmElement) {
+    if (this.#isBgmPlaying || this.#bgmPlayer || this.#webBgmElement) {
       audioLog.debug('BGM already playing, skipping');
       return; // Already playing
     }
@@ -594,8 +594,8 @@ export class AudioService {
         const audio = new Audio(audioUrl);
         audio.volume = BGM_VOLUME;
         audio.loop = true;
-        this.webBgmElement = audio;
-        this.isBgmPlaying = true;
+        this.#webBgmElement = audio;
+        this.#isBgmPlaying = true;
         audio.play();
         audioLog.debug('BGM started successfully (Web HTML Audio)');
         return;
@@ -603,8 +603,8 @@ export class AudioService {
 
       // Native: use expo-audio player
       const player = createAudioPlayer(BGM_NIGHT);
-      this.bgmPlayer = player;
-      this.isBgmPlaying = true;
+      this.#bgmPlayer = player;
+      this.#isBgmPlaying = true;
 
       // Set volume lower so TTS is audible
       player.volume = BGM_VOLUME;
@@ -616,9 +616,9 @@ export class AudioService {
       audioLog.debug('BGM started successfully');
     } catch (error) {
       audioLog.warn('Failed to start BGM:', error);
-      this.isBgmPlaying = false;
-      this.bgmPlayer = null;
-      this.webBgmElement = null;
+      this.#isBgmPlaying = false;
+      this.#bgmPlayer = null;
+      this.#webBgmElement = null;
     }
   }
 
@@ -626,26 +626,26 @@ export class AudioService {
    * Stop background music.
    */
   stopBgm(): void {
-    if (this.webBgmElement) {
+    if (this.#webBgmElement) {
       try {
-        this.webBgmElement.pause();
-        this.webBgmElement.src = '';
+        this.#webBgmElement.pause();
+        this.#webBgmElement.src = '';
       } catch {
         // Ignore errors
       }
-      this.webBgmElement = null;
-      this.isBgmPlaying = false;
+      this.#webBgmElement = null;
+      this.#isBgmPlaying = false;
       audioLog.debug('BGM stopped (Web)');
     }
-    if (this.bgmPlayer) {
+    if (this.#bgmPlayer) {
       try {
-        this.bgmPlayer.pause();
-        this.bgmPlayer.remove();
+        this.#bgmPlayer.pause();
+        this.#bgmPlayer.remove();
       } catch {
         // Ignore errors
       }
-      this.bgmPlayer = null;
-      this.isBgmPlaying = false;
+      this.#bgmPlayer = null;
+      this.#isBgmPlaying = false;
       audioLog.debug('BGM stopped');
     }
   }
@@ -684,7 +684,7 @@ export class AudioService {
     }
 
     const promises = filesToPreload.map(({ key, file }) =>
-      this.preloadSingleFile(key, file).catch((err) => {
+      this.#preloadSingleFile(key, file).catch((err) => {
         audioLog.warn(`preloadForRoles: failed to preload ${key}`, err);
       }),
     );
@@ -693,22 +693,22 @@ export class AudioService {
     audioLog.debug('preloadForRoles: done', { count: filesToPreload.length });
   }
 
-  private async preloadSingleFile(key: string, audioFile: AudioAsset): Promise<void> {
+  async #preloadSingleFile(key: string, audioFile: AudioAsset): Promise<void> {
     if (isWeb && typeof document !== 'undefined') {
       // Web: create an Audio element, set preload='auto' to trigger decode
-      if (this.preloadedWebAudios.has(key)) return;
+      if (this.#preloadedWebAudios.has(key)) return;
       const audioUrl = audioAssetToUrl(audioFile);
       const audio = new Audio();
       audio.preload = 'auto';
       audio.src = audioUrl;
       // Load but don't play
       audio.load();
-      this.preloadedWebAudios.set(key, audio);
+      this.#preloadedWebAudios.set(key, audio);
     } else if (!isJest) {
       // Native: create a player to pre-decode the audio asset
-      if (this.preloadedPlayers.has(key)) return;
+      if (this.#preloadedPlayers.has(key)) return;
       const player = createAudioPlayer(audioFile);
-      this.preloadedPlayers.set(key, player);
+      this.#preloadedPlayers.set(key, player);
     }
   }
 
@@ -716,35 +716,35 @@ export class AudioService {
    * Clear all preloaded audio (call on restartGame / leaveRoom to free memory).
    */
   clearPreloaded(): void {
-    for (const player of this.preloadedPlayers.values()) {
+    for (const player of this.#preloadedPlayers.values()) {
       try {
         player.remove();
       } catch {
         // ignore
       }
     }
-    this.preloadedPlayers.clear();
+    this.#preloadedPlayers.clear();
 
     // Release stale native players accumulated during playback
-    this.releaseStaleNativePlayers();
+    this.#releaseStaleNativePlayers();
 
     // Web: just clear references, browser GC handles the rest
-    this.preloadedWebAudios.clear();
+    this.#preloadedWebAudios.clear();
 
     audioLog.debug('clearPreloaded: all preloaded audio released');
   }
 
   /** Release old native AudioPlayer instances that were kept alive to avoid event issues. */
-  private releaseStaleNativePlayers(): void {
-    if (this.staleNativePlayers.size === 0) return;
-    audioLog.debug(`releasing ${this.staleNativePlayers.size} stale native players`);
-    for (const p of this.staleNativePlayers) {
+  #releaseStaleNativePlayers(): void {
+    if (this.#staleNativePlayers.size === 0) return;
+    audioLog.debug(`releasing ${this.#staleNativePlayers.size} stale native players`);
+    for (const p of this.#staleNativePlayers) {
       try {
         p.remove();
       } catch {
         // ignore — player may already be released
       }
     }
-    this.staleNativePlayers.clear();
+    this.#staleNativePlayers.clear();
   }
 }

@@ -41,12 +41,12 @@ interface DbRoomRecord {
 export class RoomService {
   constructor() {}
 
-  private isConfigured(): boolean {
+  #isConfigured(): boolean {
     return isSupabaseConfigured() && supabase !== null;
   }
 
-  private ensureConfigured(): void {
-    if (!this.isConfigured()) {
+  #ensureConfigured(): void {
+    if (!this.#isConfigured()) {
       throw new Error('服务未配置，请检查网络连接');
     }
   }
@@ -69,7 +69,7 @@ export class RoomService {
     maxRetries: number = 5,
     buildInitialState?: (roomCode: string) => GameState,
   ): Promise<RoomRecord> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
 
     let lastError: Error | undefined;
 
@@ -123,7 +123,7 @@ export class RoomService {
    * Check if a room exists and get its host
    */
   async getRoom(roomNumber: string): Promise<RoomRecord | null> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
 
     const { data, error } = await supabase!
       .from('rooms')
@@ -160,7 +160,7 @@ export class RoomService {
    * Delete a room (cleanup)
    */
   async deleteRoom(roomNumber: string): Promise<void> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
 
     const { error } = await supabase!.from('rooms').delete().eq('code', roomNumber);
 
@@ -176,7 +176,7 @@ export class RoomService {
    * Fire-and-forget — failure only logs a warning, does not block gameplay.
    */
   async upsertGameState(roomCode: string, state: GameState, revision: number): Promise<void> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
 
     const { error } = await supabase!
       .from('rooms')
@@ -193,7 +193,7 @@ export class RoomService {
    * Used by Player for initial load and auto-heal fallback.
    */
   async getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null> {
-    this.ensureConfigured();
+    this.#ensureConfigured();
 
     const { data, error } = await supabase!
       .from('rooms')

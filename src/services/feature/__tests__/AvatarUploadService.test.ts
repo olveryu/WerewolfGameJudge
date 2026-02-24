@@ -37,33 +37,6 @@ describe('AvatarUploadService - Unconfigured state', () => {
 // before checking authentication, so with the current mock setup that
 // tests unconfigured state, we get full coverage of the error paths.
 
-describe('AvatarUploadService - Image compression', () => {
-  let avatarService: AvatarUploadService;
-
-  beforeEach(() => {
-    avatarService = createService();
-    jest.clearAllMocks();
-  });
-
-  // Note: compressImage is a private method that uses browser APIs (Image, canvas)
-  // In a Node.js test environment, we can't test it directly without mocking DOM APIs
-  // These tests would be better as integration tests in a browser environment
-
-  it('should have compressImage method', () => {
-    // Verify the private method exists
-    expect((avatarService as any).compressImage).toBeDefined();
-    expect(typeof (avatarService as any).compressImage).toBe('function');
-  });
-
-  it('should have isDomCompressionAvailable capability check', () => {
-    // Verify the capability check method exists
-    expect((avatarService as any).isDomCompressionAvailable).toBeDefined();
-    expect(typeof (avatarService as any).isDomCompressionAvailable).toBe('function');
-    // In Node.js test environment, DOM APIs are not available
-    expect((avatarService as any).isDomCompressionAvailable()).toBe(false);
-  });
-});
-
 // Integration-style tests that would work with proper mocking
 describe('AvatarUploadService - Upload flow (mocked)', () => {
   beforeEach(() => {
@@ -89,11 +62,6 @@ describe('AvatarUploadService - Error handling', () => {
   beforeEach(() => {
     avatarService = createService();
     jest.clearAllMocks();
-  });
-
-  it('should handle configuration check correctly', () => {
-    // isConfigured should be false with our mock
-    expect((avatarService as any).isConfigured()).toBe(false);
   });
 
   it('should throw appropriate error when not configured', async () => {
