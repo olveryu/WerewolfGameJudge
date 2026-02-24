@@ -9,6 +9,7 @@ import {
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { JoinSeatIntent, LeaveMySeatIntent } from '@werewolf/game-engine/engine/intents/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import {
   REASON_GAME_IN_PROGRESS,
   REASON_INVALID_SEAT,
@@ -22,7 +23,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-1',
-    status: 'unseated',
+    status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
     currentStepIndex: -1,
@@ -109,7 +110,7 @@ describe('handleJoinSeat', () => {
   });
 
   it('should fail when game is in progress', () => {
-    const state = createMinimalState({ status: 'ongoing' });
+    const state = createMinimalState({ status: GameStatus.Ongoing });
     const context = createContext(state);
     const intent: JoinSeatIntent = {
       type: 'JOIN_SEAT',
@@ -317,7 +318,7 @@ describe('handleLeaveMySeat', () => {
 
   it('should fail with game_in_progress when game is ongoing', () => {
     const state = createMinimalState({
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       players: {
         0: { uid: 'player-1', seatNumber: 0, role: 'villager', hasViewedRole: true },
         1: null,

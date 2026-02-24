@@ -1,4 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { GameStatus } from '@werewolf/game-engine';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
@@ -42,7 +43,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
   return {
     // Room data
     gameState: {
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       template: {
         numberOfPlayers: 12,
         roles: Array.from({ length: 12 }).map(() => 'villager'),

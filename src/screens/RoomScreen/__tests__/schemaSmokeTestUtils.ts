@@ -1,3 +1,4 @@
+import { GameStatus } from '@werewolf/game-engine';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 type RoleId = any;
@@ -50,7 +51,7 @@ export function makeBaseUseGameRoomReturn({
 
   return {
     gameState: {
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       template: {
         numberOfPlayers,
         roles: Array.from({ length: numberOfPlayers }).map(() => 'villager'),

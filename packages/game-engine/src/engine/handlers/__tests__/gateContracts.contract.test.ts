@@ -23,6 +23,7 @@ import type {
   SubmitWolfVoteIntent,
 } from '@werewolf/game-engine/engine/intents/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
@@ -34,7 +35,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-1',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: {
       0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
@@ -423,7 +424,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
    */
   it('submit after game ended → invalid_status', () => {
     const state = createMinimalState({
-      status: 'ended',
+      status: GameStatus.Ended,
       currentStepId: 'seerCheck' as SchemaId,
     });
     const context = createContext(state);
@@ -510,7 +511,7 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
 
   it('invalid_status fires before forbidden_while_audio_playing', () => {
     const state = createMinimalState({
-      status: 'ended',
+      status: GameStatus.Ended,
       isAudioPlaying: true,
     });
     const context = createContext(state);

@@ -11,6 +11,7 @@
  * 5. advanceNightOrThrow 的单一实现来源是 ctx.advanceNightOrThrow()（在 hostGameFactory.ts）
  */
 
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
@@ -166,7 +167,7 @@ export function executeRemainingSteps(
 
   // Fail-fast 校验：状态必须合法（只读校验，不修改 state）
   const initialState = ctx.getGameState();
-  if (initialState.currentStepId && initialState.status !== 'ongoing') {
+  if (initialState.currentStepId && initialState.status !== GameStatus.Ongoing) {
     throw new Error(
       `[executeRemainingSteps] Invalid state: currentStepId="${initialState.currentStepId}" ` +
         `but status="${initialState.status}" (expected "ongoing"). ` +
@@ -189,7 +190,7 @@ export function executeRemainingSteps(
     }
 
     // 检查是否已经结束
-    if (state.status === 'ended') {
+    if (state.status === GameStatus.Ended) {
       return {
         deaths: state.lastNightDeaths ?? [],
         completed: true,

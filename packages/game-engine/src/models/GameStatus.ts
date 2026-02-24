@@ -10,16 +10,16 @@
 // =============================================================================
 
 export enum GameStatus {
-  Unseated = 'unseated', // Waiting for players to join
-  Seated = 'seated', // All seats filled, waiting for host to assign roles
-  Assigned = 'assigned', // Roles assigned, players viewing their cards
-  Ready = 'ready', // All players have viewed cards, ready to start
-  Ongoing = 'ongoing', // Night phase in progress
+  Unseated = 'Unseated', // Waiting for players to join
+  Seated = 'Seated', // All seats filled, waiting for host to assign roles
+  Assigned = 'Assigned', // Roles assigned, players viewing their cards
+  Ready = 'Ready', // All players have viewed cards, ready to start
+  Ongoing = 'Ongoing', // Night phase in progress
   /**
    * Night-1 complete (results ready).
    *
    * IMPORTANT: This app does not decide winners. "ended" only means the app's
    * Night-1 flow is complete and players can view the summary/deaths.
    */
-  Ended = 'ended',
+  Ended = 'Ended',
 }

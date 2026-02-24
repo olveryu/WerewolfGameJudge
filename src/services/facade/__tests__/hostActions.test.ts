@@ -13,6 +13,7 @@
  * thin wrapper（assignRoles 等）只测 NOT_CONNECTED 路径 + 正常调用转发。
  */
 
+import { GameStatus } from '@werewolf/game-engine';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 
@@ -133,7 +134,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
   });
 
   it('should apply snapshot when response contains state + revision', async () => {
-    const newState = { roomCode: 'ABCD', status: 'assigned' };
+    const newState = { roomCode: 'ABCD', status: GameStatus.Assigned };
     global.fetch = mockFetchSuccess({ success: true, state: newState, revision: 5 });
     const ctx = createMockCtx();
 

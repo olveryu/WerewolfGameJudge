@@ -8,6 +8,7 @@
  * 4. Role metadata (displayName, faction, etc.) is complete
  */
 import {
+  Faction,
   getAllRoleIds,
   getRoleDisplayName,
   getRoleSpec,
@@ -45,7 +46,7 @@ describe('Role Registry Contract Tests', () => {
       const spec = getRoleSpec('villager');
       expect(spec).toBeDefined();
       expect(spec.displayName).toBe('普通村民');
-      expect(spec.faction).toBe('villager');
+      expect(spec.faction).toBe(Faction.Villager);
     });
 
     it('returns same reference as ROLE_SPECS for same roleId', () => {
@@ -85,7 +86,9 @@ describe('Role Registry Contract Tests', () => {
         const spec = getRoleSpec(roleId);
         expect(spec.displayName).toBeTruthy();
         expect(spec.faction).toBeTruthy();
-        expect(['villager', 'wolf', 'god', 'special']).toContain(spec.faction);
+        expect([Faction.Villager, Faction.Wolf, Faction.God, Faction.Special]).toContain(
+          spec.faction,
+        );
       }
     });
 
@@ -93,7 +96,7 @@ describe('Role Registry Contract Tests', () => {
       const wolfRoles: RoleId[] = ['wolf', 'wolfQueen', 'wolfRobot', 'darkWolfKing'];
       for (const roleId of wolfRoles) {
         const spec = getRoleSpec(roleId);
-        expect(spec.faction).toBe('wolf');
+        expect(spec.faction).toBe(Faction.Wolf);
       }
     });
 
@@ -109,13 +112,13 @@ describe('Role Registry Contract Tests', () => {
       ];
       for (const roleId of godRoles) {
         const spec = getRoleSpec(roleId);
-        expect(spec.faction).toBe('god');
+        expect(spec.faction).toBe(Faction.God);
       }
     });
 
     it('villager faction roles are marked correctly', () => {
       const spec = getRoleSpec('villager');
-      expect(spec.faction).toBe('villager');
+      expect(spec.faction).toBe(Faction.Villager);
     });
   });
 

@@ -18,6 +18,7 @@ import {
   type EndNightIntent,
   gameReducer,
   type GameState,
+  GameStatus,
   handleEndNight,
   handleSetAudioPlaying,
   handleSetWolfRobotHunterStatusViewed,
@@ -158,7 +159,7 @@ async function handleProgression(req: VercelRequest, res: VercelResponse) {
       if (state.hostUid !== hostUid) {
         return { success: false, reason: 'host_only', actions: [] };
       }
-      if (state.status !== 'ongoing') {
+      if (state.status !== GameStatus.Ongoing) {
         return { success: false, reason: 'not_ongoing', actions: [] };
       }
       return { success: true, actions: [] };

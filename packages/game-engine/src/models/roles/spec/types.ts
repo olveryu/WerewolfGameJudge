@@ -14,10 +14,10 @@
  */
 
 export enum Faction {
-  Wolf = 'wolf',
-  God = 'god',
-  Villager = 'villager',
-  Special = 'special',
+  Wolf = 'Wolf',
+  God = 'God',
+  Villager = 'Villager',
+  Special = 'Special',
 }
 
 /**

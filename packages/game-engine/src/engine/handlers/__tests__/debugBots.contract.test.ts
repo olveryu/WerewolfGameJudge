@@ -13,6 +13,7 @@ import {
 } from '@werewolf/game-engine/engine/handlers/gameControlHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { Player } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
@@ -40,7 +41,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-uid',
-    status: 'unseated',
+    status: GameStatus.Unseated,
     templateRoles: new Array<string>(totalSeats).fill('villager') as any,
     players: defaultPlayers,
     currentStepIndex: -1,
@@ -147,7 +148,7 @@ describe('handleFillWithBots', () => {
 
     it('should reject when status is not unseated', () => {
       const context = createTestContext({
-        state: createTestState({ status: 'seated' }),
+        state: createTestState({ status: GameStatus.Seated }),
       });
       const result = handleFillWithBots({ type: 'FILL_WITH_BOTS' }, context);
 
@@ -185,7 +186,7 @@ describe('handleMarkAllBotsViewed', () => {
 
       const context = createTestContext({
         state: createTestState({
-          status: 'assigned',
+          status: GameStatus.Assigned,
           players,
           debugMode: { botsEnabled: true },
         }),
@@ -206,7 +207,7 @@ describe('handleMarkAllBotsViewed', () => {
 
       const context = createTestContext({
         state: createTestState({
-          status: 'assigned',
+          status: GameStatus.Assigned,
           players,
           // debugMode is undefined
         }),
@@ -224,7 +225,7 @@ describe('handleMarkAllBotsViewed', () => {
 
       const context = createTestContext({
         state: createTestState({
-          status: 'seated', // wrong status
+          status: GameStatus.Seated, // wrong status
           players,
           debugMode: { botsEnabled: true },
         }),
@@ -240,7 +241,7 @@ describe('handleMarkAllBotsViewed', () => {
       const context = createTestContext({
         isHost: false,
         state: createTestState({
-          status: 'assigned',
+          status: GameStatus.Assigned,
           debugMode: { botsEnabled: true },
         }),
       });

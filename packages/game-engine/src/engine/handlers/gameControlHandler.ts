@@ -10,6 +10,7 @@
  * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
  */
 
+import { GameStatus } from '../../models/GameStatus';
 import { ROLE_SPECS, type RoleId } from '../../models/roles';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { buildNightPlan } from '../../models/roles/spec/plan';
@@ -46,10 +47,10 @@ import { maybeCreateWitchContextAction } from './witchContext';
 /**
  * 处理分配角色（仅 seated → assigned）
  *
- * - 前置条件：status === 'seated' && isHost
+ * - 前置条件：status === GameStatus.Seated && isHost
  * - 洗牌分配角色
  * - 设置 hasViewedRole = false
- * - status → 'assigned'
+ * - status → GameStatus.Assigned
  * - 广播 STATE_UPDATE
  */
 export function handleAssignRoles(
@@ -76,8 +77,8 @@ export function handleAssignRoles(
     };
   }
 
-  // Gate: game status must be 'seated'
-  if (state.status !== 'seated') {
+  // Gate: game status must be GameStatus.Seated
+  if (state.status !== GameStatus.Seated) {
     return {
       success: false,
       reason: 'invalid_status',
@@ -136,9 +137,9 @@ export function handleAssignRoles(
 /**
  * 处理开始夜晚（ready → ongoing）
  *
- * - 前置条件：status === 'ready' && isHost
+ * - 前置条件：status === GameStatus.Ready && isHost
  * - 初始化 Night-1 字段
- * - status → 'ongoing'
+ * - status → GameStatus.Ongoing
  * - 广播 STATE_UPDATE
  *
  * PR3 范围：只做状态初始化，不做音频/advance/action 处理
@@ -167,8 +168,8 @@ export function handleStartNight(
     };
   }
 
-  // Gate: status must be 'ready'
-  if (state.status !== 'ready') {
+  // Gate: status must be GameStatus.Ready
+  if (state.status !== GameStatus.Ready) {
     return {
       success: false,
       reason: 'invalid_status',
@@ -311,7 +312,8 @@ export function handleUpdateTemplate(
 
   // 验证：仅允许“准备看牌前”修改（unseated/seated）。
   // 一旦进入 assigned/ready/ongoing/ended，修改会造成状态机与玩家认知漂移，因此强制要求先 RESTART_GAME。
-  const canUpdateTemplateBeforeView = state.status === 'unseated' || state.status === 'seated';
+  const canUpdateTemplateBeforeView =
+    state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
   if (!canUpdateTemplateBeforeView) {
     return {
       success: false,
@@ -381,7 +383,7 @@ export function handleSetRoleRevealAnimation(
  *
  * 前置条件：
  * - isHost === true
- * - status === 'unseated'
+ * - status === GameStatus.Unseated
  *
  * 结果：
  * - 为所有空座位创建 bot player（isBot: true）
@@ -412,7 +414,7 @@ export function handleFillWithBots(
   }
 
   // Gate: 只允许在 unseated 阶段填充 bot
-  if (state.status !== 'unseated') {
+  if (state.status !== GameStatus.Unseated) {
     return {
       success: false,
       reason: 'invalid_status',
@@ -460,7 +462,7 @@ export function handleFillWithBots(
  * 前置条件：
  * - isHost === true
  * - debugMode.botsEnabled === true
- * - status === 'assigned'
+ * - status === GameStatus.Assigned
  *
  * 结果：仅对 isBot === true 的玩家设置 hasViewedRole = true
  */
@@ -498,7 +500,7 @@ export function handleMarkAllBotsViewed(
   }
 
   // Gate: status 必须是 assigned
-  if (state.status !== 'assigned') {
+  if (state.status !== GameStatus.Assigned) {
     return {
       success: false,
       reason: 'invalid_status',
@@ -521,7 +523,7 @@ export function handleMarkAllBotsViewed(
  * 处理分享详细信息（Host-only, ended 阶段）
  *
  * Host 选择允许查看「详细信息」的座位列表，写入 state 后广播。
- * 前置条件：仅 Host 可操作 + status === 'ended'
+ * 前置条件：仅 Host 可操作 + status === GameStatus.Ended
  */
 export function handleShareNightReview(
   intent: ShareNightReviewIntent,
@@ -537,7 +539,7 @@ export function handleShareNightReview(
     return { success: false, reason: 'no_state', actions: [] };
   }
 
-  if (state.status !== 'ended') {
+  if (state.status !== GameStatus.Ended) {
     return { success: false, reason: 'invalid_status', actions: [] };
   }
 

@@ -23,6 +23,7 @@
 import * as Sentry from '@sentry/react-native';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStore } from '@werewolf/game-engine/engine/store';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getStepSpec } from '@werewolf/game-engine/models/roles/spec/nightSteps';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
@@ -273,7 +274,7 @@ export class GameFacade implements IGameFacade {
       if (isHost) {
         // 在 applySnapshot 之前修正：applySnapshot 同步触发 listener，
         // listener 检查 wasAudioInterrupted 决定是否弹 overlay。
-        this.#wasAudioInterrupted = dbState.state.status === 'ongoing';
+        this.#wasAudioInterrupted = dbState.state.status === GameStatus.Ongoing;
       }
       this.#store.applySnapshot(dbState.state, dbState.revision);
       this.#realtimeService.markAsLive();

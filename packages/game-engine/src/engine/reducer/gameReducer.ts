@@ -9,6 +9,7 @@
  * - 不调用 resolver（resolver 由 handler 调用，结果通过 action 传入）
  */
 
+import { GameStatus } from '../../models/GameStatus';
 import type { ResolvedRoleRevealAnimation } from '../../types/RoleRevealAnimation';
 import { resolveRandomAnimation } from '../../types/RoleRevealAnimation';
 import type { GameState } from '../store/types';
@@ -51,7 +52,7 @@ function handleInitializeGame(state: GameState, action: InitializeGameAction): G
     hostUid,
     templateRoles,
     players,
-    status: 'unseated',
+    status: GameStatus.Unseated,
     currentStepIndex: -1,
     isAudioPlaying: false,
   };
@@ -60,7 +61,7 @@ function handleInitializeGame(state: GameState, action: InitializeGameAction): G
 function handleRestartGame(state: GameState, action: RestartGameAction): GameState {
   // PR9: 对齐 v1 行为 - 保留玩家但清除角色
   // v1: 保持 players 不变，仅清除 role/hasViewedRole
-  // v1: 状态重置到 'seated'（不是 'unseated'）
+  // v1: 状态重置到 GameStatus.Seated（不是 GameStatus.Unseated）
   const players: Record<number, (typeof state.players)[number]> = {};
   const seatCount = Object.keys(state.players).length;
 
@@ -95,7 +96,7 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
   return {
     ...state,
     players,
-    status: 'seated', // v1: 重置到 seated，不是 unseated
+    status: GameStatus.Seated, // v1: 重置到 seated，不是 unseated
     currentStepIndex: 0, // v1: 重置到 0
     isAudioPlaying: false,
     currentStepId: undefined, // 清除夜晚步骤
@@ -133,7 +134,7 @@ function handlePlayerJoin(state: GameState, action: PlayerJoinAction): GameState
   const { seat, player } = action.payload;
   const newPlayers = { ...state.players, [seat]: player };
   const allSeated = Object.values(newPlayers).every((p) => p !== null);
-  const newStatus = allSeated ? 'seated' : state.status;
+  const newStatus = allSeated ? GameStatus.Seated : state.status;
 
   return {
     ...state,
@@ -147,7 +148,7 @@ function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): GameSta
   return {
     ...state,
     players: { ...state.players, [seat]: null },
-    status: state.status === 'seated' ? 'unseated' : state.status,
+    status: state.status === GameStatus.Seated ? GameStatus.Unseated : state.status,
   };
 }
 
@@ -166,7 +167,7 @@ function handleAssignRoles(state: GameState, action: AssignRolesAction): GameSta
   return {
     ...state,
     players: newPlayers,
-    status: 'assigned',
+    status: GameStatus.Assigned,
     seerLabelMap,
   };
 }
@@ -175,7 +176,7 @@ function handleStartNight(state: GameState, action: StartNightAction): GameState
   const { currentStepIndex, currentStepId } = action.payload;
   return {
     ...state,
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     currentStepIndex,
     currentStepId,
     // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
@@ -208,7 +209,7 @@ function handleEndNight(state: GameState, action: EndNightAction): GameState {
     ...state,
     // Terminal state for this app's scope (Night-1-only): results are ready.
     // This is NOT a winner decision; players decide outcomes offline.
-    status: 'ended',
+    status: GameStatus.Ended,
     lastNightDeaths: deaths,
     currentStepIndex: -1,
     // PR6 contract: 夜晚结束清空 stepId 和 isAudioPlaying
@@ -331,8 +332,9 @@ function handlePlayerViewedRole(state: GameState, action: PlayerViewedRoleAction
   // 检查是否所有已入座玩家都已查看角色
   const allViewed = Object.values(newPlayers).every((p) => p === null || p.hasViewedRole === true);
 
-  // 仅当 status === 'assigned' 且 all viewed 时才推进到 'ready'
-  const newStatus = state.status === 'assigned' && allViewed ? 'ready' : state.status;
+  // 仅当 status === GameStatus.Assigned 且 all viewed 时才推进到 GameStatus.Ready
+  const newStatus =
+    state.status === GameStatus.Assigned && allViewed ? GameStatus.Ready : state.status;
 
   return {
     ...state,
@@ -373,7 +375,7 @@ function handleFillWithBots(state: GameState, action: FillWithBotsAction): GameS
   return {
     ...state,
     players: newPlayers,
-    status: allSeated ? 'seated' : state.status,
+    status: allSeated ? GameStatus.Seated : state.status,
     debugMode: { botsEnabled: true },
   };
 }
@@ -393,7 +395,8 @@ function handleMarkAllBotsViewed(state: GameState): GameState {
 
   // 检查是否所有玩家都已查看角色（null 座位视为已查看，与 handlePlayerViewedRole 一致）
   const allViewed = Object.values(newPlayers).every((p) => p === null || p.hasViewedRole === true);
-  const newStatus = state.status === 'assigned' && allViewed ? 'ready' : state.status;
+  const newStatus =
+    state.status === GameStatus.Assigned && allViewed ? GameStatus.Ready : state.status;
 
   return {
     ...state,
@@ -448,7 +451,7 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
         ...state,
         templateRoles: newTemplateRoles,
         players: newPlayers,
-        status: allSeated ? 'seated' : 'unseated',
+        status: allSeated ? GameStatus.Seated : GameStatus.Unseated,
       };
     }
 

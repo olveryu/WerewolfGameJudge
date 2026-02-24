@@ -7,6 +7,7 @@
  * (gates are in useActionOrchestrator).
  */
 
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles';
 import { buildNightPlan, getRoleDisplayAs, getRoleSpec } from '@werewolf/game-engine/models/roles';
 import { useMemo } from 'react';
@@ -49,7 +50,7 @@ export function useNightProgress({
   // ─── Night progress derived state ────────────────────────────────────────
 
   const nightProgress = useMemo<NightProgressInfo | null>(() => {
-    if (!currentStepId || gameState?.status !== 'ongoing') {
+    if (!currentStepId || gameState?.status !== GameStatus.Ongoing) {
       return null;
     }
 

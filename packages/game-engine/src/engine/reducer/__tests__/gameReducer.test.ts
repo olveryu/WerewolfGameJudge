@@ -17,13 +17,14 @@ import type {
   StateAction,
 } from '@werewolf/game-engine/engine/reducer/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-1',
-    status: 'unseated',
+    status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
     currentStepIndex: -1,
@@ -75,7 +76,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.status).toBe('seated');
+      expect(newState.status).toBe(GameStatus.Seated);
     });
   });
 
@@ -100,7 +101,7 @@ describe('gameReducer', () => {
 
     it('should revert status from seated to unseated', () => {
       const state = createMinimalState({
-        status: 'seated',
+        status: GameStatus.Seated,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
           1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
@@ -114,14 +115,14 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.status).toBe('unseated');
+      expect(newState.status).toBe(GameStatus.Unseated);
     });
   });
 
   describe('ASSIGN_ROLES', () => {
     it('should assign roles to players', () => {
       const state = createMinimalState({
-        status: 'seated',
+        status: GameStatus.Seated,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
           1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
@@ -140,12 +141,12 @@ describe('gameReducer', () => {
       expect(newState.players[0]?.role).toBe('villager');
       expect(newState.players[1]?.role).toBe('wolf');
       expect(newState.players[2]?.role).toBe('seer');
-      expect(newState.status).toBe('assigned');
+      expect(newState.status).toBe(GameStatus.Assigned);
     });
 
     it('should reset hasViewedRole to false', () => {
       const state = createMinimalState({
-        status: 'seated',
+        status: GameStatus.Seated,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: true },
           1: null,
@@ -164,7 +165,7 @@ describe('gameReducer', () => {
 
     it('should set hasViewedRole to false for all assigned players', () => {
       const state = createMinimalState({
-        status: 'seated',
+        status: GameStatus.Seated,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: true },
           1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: true },
@@ -186,7 +187,7 @@ describe('gameReducer', () => {
 
     it('should NOT touch night-related fields (PR1 contract)', () => {
       const state = createMinimalState({
-        status: 'seated',
+        status: GameStatus.Seated,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
           1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
@@ -204,7 +205,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       // PR1 contract: ASSIGN_ROLES should NOT initialize night fields
-      expect(newState.status).toBe('assigned'); // NOT 'ongoing'
+      expect(newState.status).toBe(GameStatus.Assigned); // NOT GameStatus.Ongoing
       expect(newState.currentStepIndex).toBe(-1); // NOT 0
       expect(newState.isAudioPlaying).toBe(false);
       expect(newState.actions).toEqual([]);
@@ -214,7 +215,7 @@ describe('gameReducer', () => {
 
   describe('START_NIGHT', () => {
     it('should set status to ongoing and initialize night state', () => {
-      const state = createMinimalState({ status: 'assigned' });
+      const state = createMinimalState({ status: GameStatus.Assigned });
       const action: StartNightAction = {
         type: 'START_NIGHT',
         payload: { currentStepIndex: 0, currentStepId: 'magicianSwap' },
@@ -222,7 +223,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.status).toBe('ongoing');
+      expect(newState.status).toBe(GameStatus.Ongoing);
       expect(newState.currentStepIndex).toBe(0);
       expect(newState.currentStepId).toBe('magicianSwap');
       expect(newState.actions).toEqual([]);
@@ -230,7 +231,7 @@ describe('gameReducer', () => {
     });
 
     it('should set currentStepId from payload (table-driven single source)', () => {
-      const state = createMinimalState({ status: 'ready' });
+      const state = createMinimalState({ status: GameStatus.Ready });
       const action: StartNightAction = {
         type: 'START_NIGHT',
         payload: { currentStepIndex: 0, currentStepId: 'wolfKill' },
@@ -245,7 +246,7 @@ describe('gameReducer', () => {
   describe('ADVANCE_TO_NEXT_ACTION', () => {
     it('should update currentStepIndex, currentStepId and clear context but preserve reveal states', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         currentStepIndex: 0,
         currentStepId: 'wolfKill',
         seerReveal: { targetSeat: 1, result: '好人' },
@@ -281,7 +282,7 @@ describe('gameReducer', () => {
 
     it('should preserve currentNightResults on advance for death calculation at END_NIGHT', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         currentStepIndex: 0,
         currentStepId: 'wolfKill',
         currentNightResults: { wolfVotesBySeat: { '1': 3, '2': 3 } },
@@ -298,7 +299,7 @@ describe('gameReducer', () => {
 
     it('should set currentStepId to undefined when nextStepId is null (night end)', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         currentStepIndex: 5,
         currentStepId: 'hunterConfirm',
       });
@@ -318,7 +319,7 @@ describe('gameReducer', () => {
   describe('END_NIGHT', () => {
     it('should set status to ended and record deaths', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         currentStepId: 'hunterConfirm',
         isAudioPlaying: true,
       });
@@ -329,7 +330,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.status).toBe('ended');
+      expect(newState.status).toBe(GameStatus.Ended);
       expect(newState.lastNightDeaths).toEqual([1, 2]);
       expect(newState.currentStepIndex).toBe(-1);
       // PR6 contract: 清空 stepId 和 isAudioPlaying
@@ -339,7 +340,7 @@ describe('gameReducer', () => {
 
     it('should clear currentStepId and isAudioPlaying (PR6 contract)', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         currentStepId: 'witchAction',
         isAudioPlaying: true,
         currentStepIndex: 3,
@@ -355,14 +356,14 @@ describe('gameReducer', () => {
       expect(newState.currentStepId).toBeUndefined();
       expect(newState.isAudioPlaying).toBe(false);
       expect(newState.currentStepIndex).toBe(-1);
-      expect(newState.status).toBe('ended');
+      expect(newState.status).toBe(GameStatus.Ended);
     });
   });
 
   describe('RECORD_ACTION', () => {
     it('should append action to actions array', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         actions: [],
       });
       const action: RecordActionAction = {
@@ -384,7 +385,7 @@ describe('gameReducer', () => {
     });
 
     it('should create actions array if undefined', () => {
-      const state = createMinimalState({ status: 'ongoing' });
+      const state = createMinimalState({ status: GameStatus.Ongoing });
       const action: RecordActionAction = {
         type: 'RECORD_ACTION',
         payload: {
@@ -406,7 +407,7 @@ describe('gameReducer', () => {
   describe('APPLY_RESOLVER_RESULT', () => {
     it('should merge updates into currentNightResults', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         currentNightResults: { guardedSeat: 0 },
       });
       const action: ApplyResolverResultAction = {
@@ -424,7 +425,7 @@ describe('gameReducer', () => {
     });
 
     it('should set seerReveal', () => {
-      const state = createMinimalState({ status: 'ongoing' });
+      const state = createMinimalState({ status: GameStatus.Ongoing });
       const action: ApplyResolverResultAction = {
         type: 'APPLY_RESOLVER_RESULT',
         payload: {
@@ -441,7 +442,7 @@ describe('gameReducer', () => {
   describe('APPLY_RESOLVER_RESULT (wolfVotesBySeat)', () => {
     it('should merge wolfVotesBySeat into currentNightResults', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         currentNightResults: {},
       });
 
@@ -462,7 +463,7 @@ describe('gameReducer', () => {
   describe('PLAYER_VIEWED_ROLE', () => {
     it('should set hasViewedRole to true for single player', () => {
       const state = createMinimalState({
-        status: 'assigned',
+        status: GameStatus.Assigned,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
           1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
@@ -478,12 +479,12 @@ describe('gameReducer', () => {
 
       expect(newState.players[0]?.hasViewedRole).toBe(true);
       // status 仍为 assigned（因为还有玩家没 viewed）
-      expect(newState.status).toBe('assigned');
+      expect(newState.status).toBe(GameStatus.Assigned);
     });
 
     it('should transition to ready when all players have viewed', () => {
       const state = createMinimalState({
-        status: 'assigned',
+        status: GameStatus.Assigned,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
           1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
@@ -499,13 +500,13 @@ describe('gameReducer', () => {
 
       expect(newState.players[2]?.hasViewedRole).toBe(true);
       // 所有玩家都 viewed → status 变为 ready
-      expect(newState.status).toBe('ready');
+      expect(newState.status).toBe(GameStatus.Ready);
     });
 
     it('should handle null seats correctly when checking all viewed', () => {
       // 场景：只有 2 个玩家，第 3 个座位是空的
       const state = createMinimalState({
-        status: 'assigned',
+        status: GameStatus.Assigned,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
           1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
@@ -521,12 +522,12 @@ describe('gameReducer', () => {
 
       expect(newState.players[1]?.hasViewedRole).toBe(true);
       // 所有非 null 玩家都 viewed → status 变为 ready
-      expect(newState.status).toBe('ready');
+      expect(newState.status).toBe(GameStatus.Ready);
     });
 
     it('should throw if player not found (fail-fast)', () => {
       const state = createMinimalState({
-        status: 'assigned',
+        status: GameStatus.Assigned,
         players: { 0: null, 1: null, 2: null },
       });
       const action: PlayerViewedRoleAction = {
@@ -539,7 +540,7 @@ describe('gameReducer', () => {
 
     it('should NOT transition if status is not assigned', () => {
       const state = createMinimalState({
-        status: 'ongoing', // 不是 assigned
+        status: GameStatus.Ongoing, // 不是 assigned
         players: {
           0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
           1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
@@ -555,12 +556,12 @@ describe('gameReducer', () => {
 
       expect(newState.players[1]?.hasViewedRole).toBe(true);
       // status 不变，因为原始 status 不是 assigned
-      expect(newState.status).toBe('ongoing');
+      expect(newState.status).toBe(GameStatus.Ongoing);
     });
 
     it('PR2 contract: should NOT touch night fields', () => {
       const state = createMinimalState({
-        status: 'assigned',
+        status: GameStatus.Assigned,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
           1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
@@ -589,12 +590,12 @@ describe('gameReducer', () => {
   describe('RESTART_GAME', () => {
     /**
      * PR9: 对齐 v1 行为
-     * - 状态重置到 'seated'（不是 'unseated'）
+     * - 状态重置到 GameStatus.Seated（不是 GameStatus.Unseated）
      * - 保留玩家但清除角色和 hasViewedRole
      */
     it('should reset game state while keeping players (v1 alignment)', () => {
       const state = createMinimalState({
-        status: 'ended',
+        status: GameStatus.Ended,
         players: {
           0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
           1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
@@ -606,8 +607,8 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, { type: 'RESTART_GAME', nonce: 'test-nonce' });
 
-      // v1 对齐：状态重置到 'seated'
-      expect(newState.status).toBe('seated');
+      // v1 对齐：状态重置到 GameStatus.Seated
+      expect(newState.status).toBe(GameStatus.Seated);
       expect(newState.roomCode).toBe('TEST');
       expect(newState.hostUid).toBe('host-1');
 
@@ -650,7 +651,7 @@ describe('gameReducer', () => {
      * actionRejected 必须属于 GameState（公开广播），不引入 hostOnly 字段。
      */
     it('should write actionRejected to state (public broadcast field)', () => {
-      const state = createMinimalState({ status: 'ongoing' });
+      const state = createMinimalState({ status: GameStatus.Ongoing });
       const action = {
         type: 'ACTION_REJECTED' as const,
         payload: {
@@ -672,7 +673,7 @@ describe('gameReducer', () => {
     });
 
     it('should NOT introduce any hostOnly or private fields', () => {
-      const state = createMinimalState({ status: 'ongoing' });
+      const state = createMinimalState({ status: GameStatus.Ongoing });
       const action = {
         type: 'ACTION_REJECTED' as const,
         payload: {
@@ -693,7 +694,7 @@ describe('gameReducer', () => {
 
     it('should overwrite previous actionRejected', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         actionRejected: {
           action: 'oldAction',
           reason: 'old_reason',
@@ -725,7 +726,7 @@ describe('gameReducer', () => {
   describe('CLEAR_ACTION_REJECTED', () => {
     it('should clear actionRejected field', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         actionRejected: {
           action: 'seerCheck',
           reason: 'test',
@@ -746,7 +747,7 @@ describe('gameReducer', () => {
   describe('SET_AUDIO_PLAYING', () => {
     it('should set isAudioPlaying to true', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         isAudioPlaying: false,
       });
       const action: SetAudioPlayingAction = {
@@ -761,7 +762,7 @@ describe('gameReducer', () => {
 
     it('should set isAudioPlaying to false', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         isAudioPlaying: true,
       });
       const action: SetAudioPlayingAction = {
@@ -776,7 +777,7 @@ describe('gameReducer', () => {
 
     it('should not change other state fields', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         currentStepIndex: 2,
         currentStepId: 'seerCheck',
         isAudioPlaying: false,
@@ -788,7 +789,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.status).toBe('ongoing');
+      expect(newState.status).toBe(GameStatus.Ongoing);
       expect(newState.currentStepIndex).toBe(2);
       expect(newState.currentStepId).toBe('seerCheck');
     });
@@ -800,7 +801,7 @@ describe('gameReducer', () => {
   describe('contract: only SET_AUDIO_PLAYING may change isAudioPlaying', () => {
     it('should keep isAudioPlaying unchanged for all other actions', () => {
       const baseState = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         isAudioPlaying: true,
         currentStepIndex: 0,
         currentStepId: 'wolfKill',
@@ -854,7 +855,7 @@ describe('gameReducer', () => {
   describe('PR7 contract: END_NIGHT forces isAudioPlaying=false', () => {
     it('should set isAudioPlaying to false even if it was true', () => {
       const state = createMinimalState({
-        status: 'ongoing',
+        status: GameStatus.Ongoing,
         isAudioPlaying: true, // 音频还在播放（理论上不应该发生，但 reducer 要保证）
         currentStepId: 'hunterConfirm',
       });
@@ -867,7 +868,7 @@ describe('gameReducer', () => {
 
       // PR7 contract: END_NIGHT 必须强制 isAudioPlaying=false
       expect(newState.isAudioPlaying).toBe(false);
-      expect(newState.status).toBe('ended');
+      expect(newState.status).toBe(GameStatus.Ended);
       expect(newState.currentStepId).toBeUndefined();
     });
   });
@@ -1012,7 +1013,7 @@ describe('gameReducer', () => {
     it('should use handler-provided nonce on restart', () => {
       const state = createMinimalState({
         roomCode: 'TEST',
-        status: 'ended',
+        status: GameStatus.Ended,
         roleRevealRandomNonce: 'oldnonce',
         roleRevealAnimation: 'roleHunt',
       });
@@ -1026,7 +1027,7 @@ describe('gameReducer', () => {
     it('should re-resolve random animation with provided nonce on restart', () => {
       const state = createMinimalState({
         roomCode: 'TEST',
-        status: 'ended',
+        status: GameStatus.Ended,
         roleRevealRandomNonce: 'nonce_a1',
         roleRevealAnimation: 'random',
         resolvedRoleRevealAnimation: 'roulette',
@@ -1044,7 +1045,7 @@ describe('gameReducer', () => {
     it('should NOT change resolvedRoleRevealAnimation if not random', () => {
       const state = createMinimalState({
         roomCode: 'TEST',
-        status: 'ended',
+        status: GameStatus.Ended,
         roleRevealRandomNonce: 'oldnonce',
         roleRevealAnimation: 'roleHunt',
         resolvedRoleRevealAnimation: 'roleHunt',
@@ -1329,7 +1330,7 @@ describe('gameReducer', () => {
       // New seat = null
       expect(newState.players[3]).toBeNull();
       // Status → unseated (seat 2 and 3 are null)
-      expect(newState.status).toBe('unseated');
+      expect(newState.status).toBe(GameStatus.Unseated);
     });
 
     it('should set status to seated when all seats have players', () => {
@@ -1347,7 +1348,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.status).toBe('seated');
+      expect(newState.status).toBe(GameStatus.Seated);
     });
   });
 
@@ -1387,7 +1388,7 @@ describe('gameReducer', () => {
       expect(newState.players[2]).toMatchObject({ uid: 'bot-2', isBot: true });
       // Original player untouched
       expect(newState.players[0]).toMatchObject({ uid: 'p0' });
-      expect(newState.status).toBe('seated');
+      expect(newState.status).toBe(GameStatus.Seated);
       expect(newState.debugMode).toEqual({ botsEnabled: true });
     });
   });
@@ -1395,7 +1396,7 @@ describe('gameReducer', () => {
   describe('MARK_ALL_BOTS_VIEWED', () => {
     it('should mark only bot players as hasViewedRole', () => {
       const state = createMinimalState({
-        status: 'assigned',
+        status: GameStatus.Assigned,
         players: {
           0: { uid: 'p0', seatNumber: 0, hasViewedRole: false, role: 'wolf' } as any,
           1: {
@@ -1424,12 +1425,12 @@ describe('gameReducer', () => {
       // Human player unchanged
       expect(newState.players[0]?.hasViewedRole).toBe(false);
       // Not all viewed (human hasn't) → status stays assigned
-      expect(newState.status).toBe('assigned');
+      expect(newState.status).toBe(GameStatus.Assigned);
     });
 
     it('should transition to ready when all players (humans + bots) have viewed', () => {
       const state = createMinimalState({
-        status: 'assigned',
+        status: GameStatus.Assigned,
         players: {
           0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' } as any,
           1: {
@@ -1446,13 +1447,13 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.players[1]?.hasViewedRole).toBe(true);
-      expect(newState.status).toBe('ready');
+      expect(newState.status).toBe(GameStatus.Ready);
     });
   });
 
   describe('SET_NIGHT_REVIEW_ALLOWED_SEATS', () => {
     it('should set nightReviewAllowedSeats', () => {
-      const state = createMinimalState({ status: 'ended' });
+      const state = createMinimalState({ status: GameStatus.Ended });
       const action = {
         type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS' as const,
         allowedSeats: [0, 2],
@@ -1465,7 +1466,7 @@ describe('gameReducer', () => {
 
     it('should overwrite previous allowedSeats', () => {
       const state = createMinimalState({
-        status: 'ended',
+        status: GameStatus.Ended,
         nightReviewAllowedSeats: [0, 1],
       });
       const action = {
@@ -1480,7 +1481,7 @@ describe('gameReducer', () => {
 
     it('should support empty array (revoke all)', () => {
       const state = createMinimalState({
-        status: 'ended',
+        status: GameStatus.Ended,
         nightReviewAllowedSeats: [0, 1],
       });
       const action = {
@@ -1497,7 +1498,7 @@ describe('gameReducer', () => {
   describe('RESTART_GAME clears nightReviewAllowedSeats', () => {
     it('should clear nightReviewAllowedSeats on restart', () => {
       const state = createMinimalState({
-        status: 'ended',
+        status: GameStatus.Ended,
         nightReviewAllowedSeats: [0, 2],
         players: {
           0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
@@ -1513,7 +1514,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.nightReviewAllowedSeats).toBeUndefined();
-      expect(newState.status).toBe('seated');
+      expect(newState.status).toBe(GameStatus.Seated);
     });
   });
 });

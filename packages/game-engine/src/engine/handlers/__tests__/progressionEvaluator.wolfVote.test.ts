@@ -11,6 +11,7 @@ import {
   isWolfVoteAllComplete,
   WOLF_VOTE_COUNTDOWN_MS,
 } from '@werewolf/game-engine/engine/handlers/progressionEvaluator';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
@@ -21,7 +22,7 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'wolf', 'villager', 'villager', 'seer'],
     players: {
       0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
@@ -109,7 +110,7 @@ describe('isWolfVoteAllComplete', () => {
 
   it('production invariant: all players have roles when status=ongoing → fail-closed never triggers', () => {
     // Mirrors real game flow: handleAssignRoles assigns a role to every seat
-    // before handleStartNight sets status='ongoing'. During ongoing,
+    // before handleStartNight sets status=GameStatus.Ongoing. During ongoing,
     // handleTakeSeat rejects joins and handleLeaveMySeat rejects leaves.
     // Therefore player.role is never null when this function runs.
     const state = createWolfKillState({

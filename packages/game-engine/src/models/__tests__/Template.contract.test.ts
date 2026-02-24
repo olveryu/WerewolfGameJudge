@@ -11,6 +11,7 @@
 
 import {
   buildNightPlan,
+  Faction,
   getRoleSpec,
   hasNightAction,
   isValidRoleId,
@@ -30,9 +31,9 @@ function getActionOrderFromRoles(roles: RoleId[]): RoleId[] {
 // Helper functions extracted to avoid nesting depth issues
 const countWolves = (roles: RoleId[]): number => roles.filter((r) => isWolfRole(r)).length;
 const countVillagers = (roles: RoleId[]): number =>
-  roles.filter((r) => getRoleSpec(r).faction === 'villager').length;
+  roles.filter((r) => getRoleSpec(r).faction === Faction.Villager).length;
 const countGods = (roles: RoleId[]): number =>
-  roles.filter((r) => getRoleSpec(r).faction === 'god').length;
+  roles.filter((r) => getRoleSpec(r).faction === Faction.God).length;
 const getSpecialRoles = (roles: RoleId[]): RoleId[] =>
   roles.filter((r) => r !== 'villager' && r !== 'wolf');
 

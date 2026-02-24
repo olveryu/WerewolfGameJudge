@@ -25,6 +25,7 @@ import type {
 } from '@werewolf/game-engine/engine/intents/types';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer';
 import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
@@ -98,7 +99,7 @@ export function createHostGame(
   let state: GameState = {
     roomCode: 'TEST01',
     hostUid: 'host-uid',
-    status: 'seated',
+    status: GameStatus.Seated,
     templateRoles: template.roles,
     players: initialPlayers,
     currentStepIndex: 0,

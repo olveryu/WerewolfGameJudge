@@ -6,6 +6,7 @@
  */
 
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 /**
@@ -89,7 +90,7 @@ describe('normalizeState contract', () => {
       // 核心必填字段
       roomCode: 'TEST',
       hostUid: 'host-uid',
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       templateRoles: ['villager', 'wolf'],
       players: {
         1: { uid: 'p1', seatNumber: 1, hasViewedRole: true },
@@ -196,7 +197,7 @@ describe('normalizeState contract', () => {
     const minimalState: GameState = {
       roomCode: 'TEST',
       hostUid: 'host-uid',
-      status: 'unseated',
+      status: GameStatus.Unseated,
       templateRoles: ['villager'],
       players: {},
       currentStepIndex: -1,

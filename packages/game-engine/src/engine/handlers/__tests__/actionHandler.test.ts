@@ -14,13 +14,14 @@ import type {
   ViewedRoleIntent,
 } from '@werewolf/game-engine/engine/intents/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-1',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: {
       0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
@@ -54,7 +55,7 @@ describe('handleSubmitWolfVote', () => {
    */
   const createWolfVoteState = (overrides?: Partial<GameState>): GameState => {
     return createMinimalState({
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       currentStepId: 'wolfKill' as SchemaId, // wolfVote schema
       isAudioPlaying: false,
       players: {
@@ -167,7 +168,7 @@ describe('handleSubmitWolfVote', () => {
   // === Gate: invalid_status ===
 
   it('should fail when game not ongoing (invalid_status)', () => {
-    const state = createWolfVoteState({ status: 'ended' });
+    const state = createWolfVoteState({ status: GameStatus.Ended });
     const context = createContext(state);
     const intent: SubmitWolfVoteIntent = {
       type: 'SUBMIT_WOLF_VOTE',
@@ -369,7 +370,7 @@ describe('handleViewedRole', () => {
   // Helper: 创建 assigned 状态用于 ViewedRole 测试
   const createAssignedState = (overrides?: Partial<GameState>): GameState => {
     return createMinimalState({
-      status: 'assigned',
+      status: GameStatus.Assigned,
       players: {
         0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
         1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
@@ -442,7 +443,7 @@ describe('handleViewedRole', () => {
   });
 
   it('should fail when status is not assigned (invalid_status)', () => {
-    const state = createMinimalState({ status: 'ongoing' });
+    const state = createMinimalState({ status: GameStatus.Ongoing });
     const context = createContext(state, { isHost: true });
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
@@ -499,7 +500,7 @@ describe('handleSubmitAction', () => {
     overrides?: Partial<GameState> & { currentStepId?: SchemaId },
   ): GameState => {
     return createMinimalState({
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       currentStepId: 'seerCheck',
       isAudioPlaying: false,
       players: {
@@ -600,7 +601,7 @@ describe('handleSubmitAction', () => {
   // === Gate: invalid_status ===
 
   it('should fail when status is not ongoing (gate: invalid_status)', () => {
-    const state = createOngoingState({ status: 'assigned' });
+    const state = createOngoingState({ status: GameStatus.Assigned });
     const context = createContext(state, { isHost: true });
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',

@@ -8,6 +8,7 @@
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayAs, getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
+import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
@@ -21,8 +22,8 @@ const BADGE_TEXT_WHITE = '#fff';
 const getFactionColor = (roleId: RoleId, colors: ThemeColors): string => {
   if (isWolfRole(roleId)) return colors.wolf;
   const spec = getRoleSpec(roleId);
-  if (spec?.faction === 'god') return colors.god;
-  if (spec?.faction === 'special') return colors.third;
+  if (spec?.faction === Faction.God) return colors.god;
+  if (spec?.faction === Faction.Special) return colors.third;
   return colors.villager;
 };
 

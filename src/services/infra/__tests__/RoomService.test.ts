@@ -1,3 +1,4 @@
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ function makeFakeState(overrides: Partial<GameState> = {}): GameState {
   return {
     roomCode: '0000',
     hostUid: 'test-host',
-    status: 'ongoing',
+    status: GameStatus.Ongoing,
     templateRoles: [],
     players: {},
     currentStepIndex: 0,
@@ -346,7 +347,7 @@ describe('RoomService', () => {
       });
       mockFrom = jest.fn(() => ({ update: updateMock }));
 
-      const state = makeFakeState({ status: 'ongoing' });
+      const state = makeFakeState({ status: GameStatus.Ongoing });
       await service.upsertGameState('1234', state, 5);
 
       expect(mockFrom).toHaveBeenCalledWith('rooms');
@@ -394,7 +395,7 @@ describe('RoomService', () => {
 
   describe('getGameState', () => {
     it('returns state and revision when data exists', async () => {
-      const state = makeFakeState({ status: 'ongoing' });
+      const state = makeFakeState({ status: GameStatus.Ongoing });
       const builder = createQueryBuilder({
         data: { game_state: state, state_revision: 3 },
         error: null,
@@ -443,7 +444,7 @@ describe('RoomService', () => {
     });
 
     it('handles revision 0 correctly (does not treat as falsy)', async () => {
-      const state = makeFakeState({ status: 'seated' });
+      const state = makeFakeState({ status: GameStatus.Seated });
       const builder = createQueryBuilder({
         data: { game_state: state, state_revision: 0 },
         error: null,

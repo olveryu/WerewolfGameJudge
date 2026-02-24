@@ -18,12 +18,13 @@ import type {
   UpdateTemplateIntent,
 } from '@werewolf/game-engine/engine/intents/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUid: 'host-1',
-    status: 'unseated',
+    status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
     currentStepIndex: -1,
@@ -50,7 +51,7 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
 
 describe('handleAssignRoles', () => {
   const seatedState = createMinimalState({
-    status: 'seated',
+    status: GameStatus.Seated,
     players: {
       0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
       1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
@@ -96,7 +97,7 @@ describe('handleAssignRoles', () => {
   });
 
   it('should fail when status is not seated (edge case)', () => {
-    const state = createMinimalState({ status: 'unseated' });
+    const state = createMinimalState({ status: GameStatus.Unseated });
     const context = createContext(state);
     const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
 
@@ -108,7 +109,7 @@ describe('handleAssignRoles', () => {
 
   it('should fail when status is assigned (edge case)', () => {
     const state = createMinimalState({
-      status: 'assigned',
+      status: GameStatus.Assigned,
       players: {
         0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
         1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
@@ -126,7 +127,7 @@ describe('handleAssignRoles', () => {
 
   it('should fail when role count mismatches seat count', () => {
     const state = createMinimalState({
-      status: 'seated',
+      status: GameStatus.Seated,
       templateRoles: ['villager', 'wolf'], // 2 roles but 3 seats
       players: {
         0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
@@ -160,7 +161,7 @@ describe('handleAssignRoles', () => {
 
 describe('handleStartNight', () => {
   const readyState = createMinimalState({
-    status: 'ready',
+    status: GameStatus.Ready,
     players: {
       0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
       1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
@@ -210,7 +211,7 @@ describe('handleStartNight', () => {
   it('should set witchContext when first step is witchAction (no wolf template)', () => {
     // 无狼板子：只有女巫 + 村民
     const noWolfState = createMinimalState({
-      status: 'ready',
+      status: GameStatus.Ready,
       templateRoles: ['villager', 'villager', 'witch'],
       players: {
         0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
@@ -274,7 +275,7 @@ describe('handleStartNight', () => {
 
   it('should fail when status is assigned (gate: invalid_status)', () => {
     const state = createMinimalState({
-      status: 'assigned',
+      status: GameStatus.Assigned,
       players: {
         0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
         1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
@@ -292,7 +293,7 @@ describe('handleStartNight', () => {
 
   it('should fail when status is ongoing (gate: invalid_status)', () => {
     const state = createMinimalState({
-      status: 'ongoing',
+      status: GameStatus.Ongoing,
       players: {
         0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
         1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
@@ -309,7 +310,7 @@ describe('handleStartNight', () => {
   });
 
   it('should fail when status is ended (gate: invalid_status)', () => {
-    const state = createMinimalState({ status: 'ended' });
+    const state = createMinimalState({ status: GameStatus.Ended });
     const context = createContext(state);
     const intent: StartNightIntent = { type: 'START_NIGHT' };
 
@@ -331,7 +332,7 @@ describe('handleStartNight', () => {
 
   it('should skip night and return END_NIGHT with empty deaths for all-villager template', () => {
     const allVillagerState = createMinimalState({
-      status: 'ready',
+      status: GameStatus.Ready,
       templateRoles: ['villager', 'villager', 'villager'],
       players: {
         0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
@@ -357,7 +358,7 @@ describe('handleStartNight', () => {
 
 describe('handleRestartGame', () => {
   it('should succeed when host', () => {
-    const state = createMinimalState({ status: 'ended' });
+    const state = createMinimalState({ status: GameStatus.Ended });
     const context = createContext(state);
     const intent: RestartGameIntent = { type: 'RESTART_GAME' };
 
@@ -369,7 +370,7 @@ describe('handleRestartGame', () => {
   });
 
   it('should fail when not host', () => {
-    const state = createMinimalState({ status: 'ended' });
+    const state = createMinimalState({ status: GameStatus.Ended });
     const context = createContext(state, { isHost: false });
     const intent: RestartGameIntent = { type: 'RESTART_GAME' };
 
@@ -380,7 +381,7 @@ describe('handleRestartGame', () => {
   });
 
   it('should include side effects', () => {
-    const state = createMinimalState({ status: 'ended' });
+    const state = createMinimalState({ status: GameStatus.Ended });
     const context = createContext(state);
     const intent: RestartGameIntent = { type: 'RESTART_GAME' };
 
@@ -402,7 +403,7 @@ describe('handleUpdateTemplate', () => {
   };
 
   it('should succeed when status is unseated', () => {
-    const state = createMinimalState({ status: 'unseated' });
+    const state = createMinimalState({ status: GameStatus.Unseated });
     const context = createContext(state);
 
     const result = handleUpdateTemplate(updateIntent, context);
@@ -416,7 +417,7 @@ describe('handleUpdateTemplate', () => {
 
   it('should succeed when status is seated', () => {
     const state = createMinimalState({
-      status: 'seated',
+      status: GameStatus.Seated,
       players: {
         0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
         1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
@@ -433,7 +434,7 @@ describe('handleUpdateTemplate', () => {
   });
 
   it('should fail when not host (gate: host_only)', () => {
-    const state = createMinimalState({ status: 'unseated' });
+    const state = createMinimalState({ status: GameStatus.Unseated });
     const context = createContext(state, { isHost: false });
 
     const result = handleUpdateTemplate(updateIntent, context);
@@ -456,7 +457,7 @@ describe('handleUpdateTemplate', () => {
     expect(result.reason).toBe('no_state');
   });
 
-  it.each(['assigned', 'ready', 'ongoing', 'ended'] as const)(
+  it.each([GameStatus.Assigned, GameStatus.Ready, GameStatus.Ongoing, GameStatus.Ended] as const)(
     'should fail when status is %s (before_view_only message)',
     (status) => {
       const state = createMinimalState({ status });
@@ -477,7 +478,7 @@ describe('handleUpdateTemplate', () => {
 
 describe('handleShareNightReview', () => {
   const endedState = createMinimalState({
-    status: 'ended',
+    status: GameStatus.Ended,
     players: {
       0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
       1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
@@ -510,17 +511,20 @@ describe('handleShareNightReview', () => {
     expect(result.reason).toBe('host_only');
   });
 
-  it.each(['unseated', 'seated', 'assigned', 'ready', 'ongoing'] as const)(
-    'should fail when status is %s',
-    (status) => {
-      const state = createMinimalState({ status });
-      const context = createContext(state);
-      const result = handleShareNightReview(intent, context);
+  it.each([
+    GameStatus.Unseated,
+    GameStatus.Seated,
+    GameStatus.Assigned,
+    GameStatus.Ready,
+    GameStatus.Ongoing,
+  ] as const)('should fail when status is %s', (status) => {
+    const state = createMinimalState({ status });
+    const context = createContext(state);
+    const result = handleShareNightReview(intent, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
-    },
-  );
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_status');
+  });
 
   it('should accept empty allowedSeats (revoke all)', () => {
     const context = createContext(endedState);

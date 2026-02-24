@@ -8,6 +8,7 @@
  * - Player 收到 STATE_UPDATE → applySnapshot
  */
 
+import { GameStatus } from '@werewolf/game-engine';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStore } from '@werewolf/game-engine/engine/store';
@@ -240,7 +241,7 @@ describe('GameFacade', () => {
         {
           roomCode: 'ABCD',
           hostUid: 'host-uid',
-          status: 'unseated',
+          status: GameStatus.Unseated,
           templateRoles: ['wolf', 'seer'] as any[],
           players: { 0: null, 1: null },
           currentStepIndex: -1,
@@ -313,7 +314,7 @@ describe('GameFacade', () => {
       const state = {
         roomCode: 'ABCD',
         hostUid: 'host-uid',
-        status: 'unseated',
+        status: GameStatus.Unseated,
         templateRoles: ['wolf', 'seer'] as any[],
         players: {
           0: null,
@@ -351,7 +352,7 @@ describe('GameFacade', () => {
         {
           roomCode: 'ABCD',
           hostUid: 'host-uid',
-          status: 'unseated',
+          status: GameStatus.Unseated,
           templateRoles: ['wolf', 'seer'] as any[],
           players: { 0: null, 1: null },
           currentStepIndex: -1,
@@ -423,7 +424,7 @@ describe('GameFacade', () => {
         {
           roomCode: 'ABCD',
           hostUid: 'host-uid',
-          status: 'unseated',
+          status: GameStatus.Unseated,
           templateRoles: ['wolf', 'seer'] as any[],
           players: { 0: null, 1: null },
           currentStepIndex: -1,
@@ -685,7 +686,7 @@ describe('GameFacade', () => {
             state: {
               roomCode: 'ABCD',
               hostUid: 'host-uid',
-              status: 'assigned',
+              status: GameStatus.Assigned,
               templateRoles: [],
               numberOfPlayers: 6,
               players: {},
@@ -1116,7 +1117,7 @@ describe('GameFacade', () => {
       state: {
         roomCode: 'REJN',
         hostUid: 'host-uid',
-        status: 'ongoing' as const,
+        status: GameStatus.Ongoing as const,
         templateRoles: ['wolf', 'villager'],
         players: {
           0: {
@@ -1161,7 +1162,7 @@ describe('GameFacade', () => {
       expect(result.success).toBe(true);
       expect(facadeWithDb.wasAudioInterrupted).toBe(true);
       expect(facadeWithDb.isHostPlayer()).toBe(true);
-      expect(facadeWithDb.getState()?.status).toBe('ongoing');
+      expect(facadeWithDb.getState()?.status).toBe(GameStatus.Ongoing);
     });
 
     it('should set wasAudioInterrupted=false when DB status is not ongoing', async () => {
@@ -1204,7 +1205,7 @@ describe('GameFacade', () => {
         state: {
           roomCode: 'REJN',
           hostUid: 'host-uid',
-          status: 'ongoing' as const,
+          status: GameStatus.Ongoing as const,
           templateRoles: ['wolf', 'villager'],
           players: {
             0: {
@@ -1377,7 +1378,7 @@ describe('GameFacade', () => {
             state: {
               roomCode: 'RTRY',
               hostUid: 'host-uid',
-              status: 'ongoing',
+              status: GameStatus.Ongoing,
               templateRoles: [],
               numberOfPlayers: 6,
               players: {},
@@ -1408,7 +1409,7 @@ describe('GameFacade', () => {
         {
           roomCode: 'RTRY',
           hostUid: 'host-uid',
-          status: 'ongoing',
+          status: GameStatus.Ongoing,
           templateRoles: [],
           numberOfPlayers: 6,
           players: {},
@@ -1462,7 +1463,7 @@ describe('GameFacade', () => {
         {
           roomCode: 'RTRY',
           hostUid: 'host-uid',
-          status: 'ongoing',
+          status: GameStatus.Ongoing,
           templateRoles: [],
           numberOfPlayers: 6,
           players: {},
@@ -1496,7 +1497,7 @@ describe('GameFacade', () => {
         {
           roomCode: 'RTRY',
           hostUid: 'host-uid',
-          status: 'ongoing',
+          status: GameStatus.Ongoing,
           templateRoles: [],
           numberOfPlayers: 6,
           players: {},

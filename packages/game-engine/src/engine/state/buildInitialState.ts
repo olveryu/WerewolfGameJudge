@@ -6,6 +6,7 @@
  * 纯函数，无副作用，不依赖 React Native / Expo / IO。
  */
 
+import { GameStatus } from '../../models/GameStatus';
 import type { GameTemplate } from '../../models/Template';
 import type { GameState } from '../../protocol/types';
 
@@ -22,7 +23,7 @@ export function buildInitialGameState(
   return {
     roomCode,
     hostUid,
-    status: 'unseated',
+    status: GameStatus.Unseated,
     templateRoles: template.roles,
     players,
     currentStepIndex: -1,

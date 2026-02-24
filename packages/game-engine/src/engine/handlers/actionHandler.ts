@@ -10,6 +10,7 @@
  * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
  */
 
+import { GameStatus } from '../../models/GameStatus';
 import type { RevealKind, RoleId } from '../../models/roles';
 import { doesRoleParticipateInWolfVote } from '../../models/roles';
 import type { SchemaId } from '../../models/roles/spec';
@@ -52,7 +53,7 @@ function buildResolverContext(
     }
   }
 
-  // FAIL-FAST: currentNightResults must exist when status === 'ongoing'
+  // FAIL-FAST: currentNightResults must exist when status === GameStatus.Ongoing
   if (!state.currentNightResults) {
     throw new Error('[FAIL-FAST] currentNightResults missing in ongoing state');
   }
@@ -324,7 +325,7 @@ function validateActionPreconditions(
   }
 
   // Gate 3: invalid_status (must be ongoing)
-  if (state.status !== 'ongoing') {
+  if (state.status !== GameStatus.Ongoing) {
     return {
       valid: false,
       result: { success: false, reason: 'invalid_status', actions: [] },
@@ -717,7 +718,7 @@ export function handleSubmitWolfVote(
   if (!context.state) {
     return normalizeWolfVoteRejection({ success: false, reason: 'no_state', actions: [] });
   }
-  if (context.state.status !== 'ongoing') {
+  if (context.state.status !== GameStatus.Ongoing) {
     return normalizeWolfVoteRejection({ success: false, reason: 'invalid_status', actions: [] });
   }
   if (context.state.isAudioPlaying) {
@@ -787,9 +788,9 @@ export function handleSubmitWolfVote(
  * 处理查看角色
  *
  * PR2: VIEWED_ROLE (assigned → ready)
- * - 前置条件：isHost、state != null、status === 'assigned'
+ * - 前置条件：isHost、state != null、status === GameStatus.Assigned
  * - 标记 seat 的 hasViewedRole = true
- * - 当所有玩家都 viewed 时，reducer 会将 status → 'ready'
+ * - 当所有玩家都 viewed 时，reducer 会将 status → GameStatus.Ready
  */
 export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerContext): HandlerResult {
   const { seat } = intent.payload;
@@ -813,8 +814,8 @@ export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerConte
     };
   }
 
-  // 验证：status 必须是 'assigned'
-  if (state.status !== 'assigned') {
+  // 验证：status 必须是 GameStatus.Assigned
+  if (state.status !== GameStatus.Assigned) {
     return {
       success: false,
       reason: 'invalid_status',
