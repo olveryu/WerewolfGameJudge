@@ -17,7 +17,7 @@ import { facadeLog } from '@/utils/logger';
 /**
  * Seat Actions 依赖的上下文接口
  *
- * 迁移后只需 roomCode + uid 信息，不再需要 store / broadcastService 等
+ * 迁移后只需 roomCode + uid 信息，不再需要 store / realtimeService 等
  */
 export interface SeatActionsContext {
   myUid: string | null;

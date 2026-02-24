@@ -9,16 +9,16 @@
  * 3. 权限检查：仅 Host 可调用（facade-level gate）
  * 4. 返回 API 响应
  * 5. 网络错误处理
- * 6. 服务端负责 GAME_RESTARTED 广播 + 状态重置
+ * 6. 服务端负责状态重置，postgres_changes 推送新状态到所有客户端
  */
 
 import { GameStore } from '@werewolf/game-engine/engine/store';
 
 import { GameFacade } from '@/services/facade/GameFacade';
 
-// Mock BroadcastService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
-jest.mock('../../transport/BroadcastService', () => ({
-  BroadcastService: jest.fn().mockImplementation(() => ({})),
+// Mock RealtimeService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
+jest.mock('../../transport/RealtimeService', () => ({
+  RealtimeService: jest.fn().mockImplementation(() => ({})),
 }));
 
 // P0-1: Mock AudioService
@@ -38,7 +38,7 @@ jest.mock('../../infra/AudioService', () => ({
 
 describe('restartGame Contract (HTTP API)', () => {
   let facade: GameFacade;
-  let mockBroadcastService: {
+  let mockRealtimeService: {
     joinRoom: jest.Mock;
     leaveRoom: jest.Mock;
     markAsLive: jest.Mock;
@@ -55,7 +55,7 @@ describe('restartGame Contract (HTTP API)', () => {
   };
 
   beforeEach(async () => {
-    mockBroadcastService = {
+    mockRealtimeService = {
       joinRoom: jest.fn().mockResolvedValue(undefined),
       leaveRoom: jest.fn().mockResolvedValue(undefined),
       markAsLive: jest.fn(),
@@ -65,7 +65,7 @@ describe('restartGame Contract (HTTP API)', () => {
     // DI: 直接注入 mock
     facade = new GameFacade({
       store: new GameStore(),
-      broadcastService: mockBroadcastService as any,
+      realtimeService: mockRealtimeService as any,
       audioService: {
         playNightAudio: jest.fn().mockResolvedValue(undefined),
         playNightEndAudio: jest.fn().mockResolvedValue(undefined),
@@ -201,11 +201,10 @@ describe('restartGame Contract (HTTP API)', () => {
   // ===========================================================================
 
   describe('Server-side behavior (documented, not tested here)', () => {
-    it('NOTE: GAME_RESTARTED broadcast is now handled server-side', () => {
+    it('NOTE: restart is handled server-side, state pushed via postgres_changes', () => {
       // 服务端 /api/game/restart 负责：
-      // 1. 广播 GAME_RESTARTED 消息
-      // 2. 调用 handleRestartGame handler
-      // 3. 通过 processGameAction 广播 STATE_UPDATE
+      // 1. 调用 handleRestartGame handler
+      // 2. 写入 DB → postgres_changes 推送新状态到所有客户端
       // 这些行为由 API route 测试验证，不在 facade 测试中
       expect(true).toBe(true);
     });

@@ -18,7 +18,7 @@ import { SettingsService } from '@/services/feature/SettingsService';
 import { AudioService } from '@/services/infra/AudioService';
 import { AuthService } from '@/services/infra/AuthService';
 import { RoomService } from '@/services/infra/RoomService';
-import { BroadcastService } from '@/services/transport/BroadcastService';
+import { RealtimeService } from '@/services/transport/RealtimeService';
 import { ThemeProvider, useTheme } from '@/theme';
 import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { log } from '@/utils/logger';
@@ -95,7 +95,7 @@ export default function App() {
     () =>
       new GameFacade({
         store: new GameStore(),
-        broadcastService: new BroadcastService(),
+        realtimeService: new RealtimeService(),
         audioService: services.audioService,
         roomService: services.roomService,
       }),

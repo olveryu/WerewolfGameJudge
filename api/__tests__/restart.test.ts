@@ -2,8 +2,7 @@
  * Restart Game API Route Tests — POST /api/game/restart
  *
  * 验证重新开始请求的参数校验、method 检查、handler 委托。
- * 特殊逻辑：成功前先 broadcastViaRest GAME_RESTARTED 通知。
- * 覆盖 405 / 400 / 成功 / 失败 / GAME_RESTARTED 广播。
+ * 覆盖 405 / 400 / 成功 / 失败。
  */
 
 import type { GameActionResult } from '../_lib/types';
@@ -14,10 +13,8 @@ jest.mock('../_lib/cors', () => ({
 }));
 
 const mockProcessGameAction = jest.fn<Promise<GameActionResult>, [string, unknown]>();
-const mockBroadcastViaRest = jest.fn().mockResolvedValue(undefined);
 jest.mock('../_lib/gameStateManager', () => ({
   processGameAction: (...args: unknown[]) => mockProcessGameAction(...(args as [string, unknown])),
-  broadcastViaRest: (...args: unknown[]) => mockBroadcastViaRest(...args),
 }));
 
 import handler from '../game/[action]';
@@ -43,15 +40,6 @@ describe('POST /api/game/restart', () => {
     const res = mockResponse();
     await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(400);
-  });
-
-  it('broadcasts GAME_RESTARTED before processing', async () => {
-    mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
-    const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
-
-    expect(mockBroadcastViaRest).toHaveBeenCalledWith('ABCD', { type: 'GAME_RESTARTED' });
-    expect(res._status).toBe(200);
   });
 
   it('returns 200 on success', async () => {

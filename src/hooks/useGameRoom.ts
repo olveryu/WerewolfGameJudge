@@ -147,7 +147,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // =========================================================================
 
   // Connection status + Player auto-recovery
-  const connection = useConnectionSync(facade, roomRecord);
+  const connection = useConnectionSync(facade, roomRecord, gameState?.status ?? null);
 
   // BGM state management
   const bgm = useBgmControl(isHost, gameState?.status ?? null, gameState?.isAudioPlaying ?? false);

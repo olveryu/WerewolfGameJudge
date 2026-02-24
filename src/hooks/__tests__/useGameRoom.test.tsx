@@ -476,14 +476,15 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
       expect(fetchStateFromDBMock).toHaveBeenCalledTimes(1);
 
-      // Receive state (establishes baseline for auto-heal)
+      // Receive state with 'ongoing' status — active phase uses 8s stale threshold.
+      // (Idle phases like 'unseated' use 60s threshold, which is too long for this test.)
       const mockState = {
         roomCode: 'TEST',
         hostUid: 'host-1',
-        status: 'unseated',
+        status: 'ongoing',
         templateRoles: ['villager'],
         players: {},
-        currentStepIndex: -1,
+        currentStepIndex: 0,
         isAudioPlaying: false,
         actions: [],
         pendingRevealAcks: [],
@@ -492,14 +493,12 @@ describe('useGameRoom - ACK reason transparency', () => {
         stateListener?.(mockState);
       });
 
-      // Advance past AUTO_HEAL_COOLDOWN_MS (15s) grace period from connection
-      // AND past STALE_THRESHOLD_MS (15s) so state becomes stale.
-      // State received at t=2000. Stale check interval fires every 5s from t=2000.
-      // At t=17000: diff = 15000, NOT > 15000 (strict). Not stale yet.
-      // At t=22000: diff = 20000 > 15000. Stale! Auto-heal fires.
-      // Grace period: 22000 - 0 (connectionLiveAt) = 22000 > 15000. Passed.
+      // Advance past AUTO_HEAL_COOLDOWN_MS (8s) grace period from connection
+      // AND past STALE_THRESHOLD_ACTIVE_MS (8s) so state becomes stale.
+      // State received at t=2000. Stale check interval fires every 3s.
+      // At t=11000: diff = 9000 > 8000. Stale! Grace: 11000 > 8000. Auto-heal fires.
       await act(async () => {
-        jest.advanceTimersByTime(20000); // t=22000
+        jest.advanceTimersByTime(20000); // t=22000 (generous margin)
       });
 
       // Auto-heal should have fired (state stale + connected + grace period passed)

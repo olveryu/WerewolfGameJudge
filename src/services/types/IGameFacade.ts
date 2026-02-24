@@ -10,7 +10,7 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
-/** Connection status for UI display (re-exported from BroadcastService) */
+/** Connection status for UI display (re-exported from RealtimeService) */
 export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected';
 
 export type FacadeStateListener = (state: BroadcastGameState | null) => void;
@@ -232,7 +232,7 @@ export interface IGameFacade {
   // === Connection ===
   /**
    * 订阅连接状态变化
-   * 委托 BroadcastService.addStatusListener，避免 UI 层直接依赖 BroadcastService
+   * 委托 RealtimeService.addStatusListener，避免 UI 层直接依赖 RealtimeService
    * @returns 取消订阅函数
    */
   addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void;
