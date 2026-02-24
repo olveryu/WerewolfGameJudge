@@ -63,7 +63,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
         roomCode: '1234',
       },
 
-      connectionStatus: 'live',
+      connectionStatus: require('@/services/types/IGameFacade').ConnectionStatus.Live,
 
       isHost: false,
       roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,

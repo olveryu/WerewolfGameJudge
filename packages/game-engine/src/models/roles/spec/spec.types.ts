@@ -42,9 +42,9 @@ export interface RoleFlags {
  * IMPORTANT NOTES:
  *
  * 1. Seer Check Rule (team field):
- *    - team='wolf' → seer sees "狼人"
- *    - team='good' OR team='third' → seer sees "好人"
- *    - The 'third' value is for UI display only; seer check is strictly binary.
+ *    - Team.Wolf → seer sees "狼人"
+ *    - Team.Good OR Team.Third → seer sees "好人"
+ *    - The Third value is for UI display only; seer check is strictly binary.
  *
  * 2. actsSolo (nightmare fear phase):
  *    - actsSolo=true means no wolf teammate visibility, but player CAN see self.
@@ -69,10 +69,10 @@ export interface RoleSpec {
    * Team for seer check / camp display.
    *
    * SEER CHECK RULE (strictly binary):
-   * - team='wolf' → "狼人"
-   * - team='good' OR team='third' → "好人"
+   * - Team.Wolf → "狼人"
+   * - Team.Good OR Team.Third → "好人"
    *
-   * The 'third' value is kept for UI/display purposes only.
+   * The Third value is kept for UI/display purposes only.
    */
   readonly team: Team;
 

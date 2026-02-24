@@ -23,6 +23,7 @@ import type {
   CompoundSchema,
   RevealKind,
 } from '@werewolf/game-engine/models/roles/spec/schema.types';
+import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { RESOLVERS } from '@werewolf/game-engine/resolvers';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
 
@@ -132,7 +133,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
 
       const saveStep = witchSchema.steps[0];
       expect(saveStep.key).toBe('save');
-      expect(saveStep.constraints).toContain('notSelf');
+      expect(saveStep.constraints).toContain(TargetConstraint.NotSelf);
     });
 
     it('resolver should reject witch saving self', () => {
@@ -155,7 +156,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
   describe('wolfKill should NOT have notSelf (neutral judge rule)', () => {
     it('schema should not have notSelf constraint', () => {
       const wolfSchema = SCHEMAS.wolfKill;
-      expect(wolfSchema.constraints ?? []).not.toContain('notSelf');
+      expect(wolfSchema.constraints ?? []).not.toContain(TargetConstraint.NotSelf);
     });
 
     it('resolver should accept wolf killing self', () => {

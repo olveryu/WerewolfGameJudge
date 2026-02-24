@@ -18,8 +18,8 @@
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { gameRoomLog } from '@/utils/logger';
 
 /**
@@ -77,14 +77,16 @@ export function useConnectionSync(
   roomRecord: { roomNumber: string } | null,
   gameStatus: GameStatus | null,
 ): ConnectionSyncState {
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
+    ConnectionStatus.Disconnected,
+  );
   const [stateRevision, setStateRevision] = useState(0);
   const [lastStateReceivedAt, setLastStateReceivedAt] = useState<number | null>(null);
 
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Throttle: only request once per live session (reset when state is received)
   const hasRequestedInSessionRef = useRef<boolean>(false);
-  // Track when connection last transitioned to 'live' (for auto-heal grace period)
+  // Track when connection last transitioned to ConnectionStatus.Live (for auto-heal grace period)
   const connectionLiveAtRef = useRef<number>(0);
 
   // Called when a state update is received — resets throttle and clears timer
@@ -101,10 +103,10 @@ export function useConnectionSync(
   useEffect(() => {
     const unsubscribe = facade.addConnectionStatusListener((status) => {
       setConnectionStatus(status);
-      if (status === 'live') {
+      if (status === ConnectionStatus.Live) {
         connectionLiveAtRef.current = Date.now();
       }
-      if (status === 'disconnected') {
+      if (status === ConnectionStatus.Disconnected) {
         // Reset throttle so auto-recovery can fire again after reconnection
         hasRequestedInSessionRef.current = false;
       }
@@ -116,7 +118,7 @@ export function useConnectionSync(
   // Throttle: 只在同一 live session 中请求一次（收到 STATE_UPDATE 后重置）
   useEffect(() => {
     // 只在连接恢复时触发
-    if (connectionStatus !== 'live') return;
+    if (connectionStatus !== ConnectionStatus.Live) return;
     // 如果没有 roomRecord，说明还没加入房间
     if (!roomRecord) return;
     // Throttle: 已经请求过，跳过
@@ -147,7 +149,7 @@ export function useConnectionSync(
   const [isStateStale, setIsStateStale] = useState(true);
   useEffect(() => {
     const check = () => {
-      if (connectionStatus !== 'live') {
+      if (connectionStatus !== ConnectionStatus.Live) {
         setIsStateStale(true);
         return;
       }
@@ -187,7 +189,7 @@ export function useConnectionSync(
   const lastAutoHealRef = useRef<number>(0);
   useEffect(() => {
     if (!isStateStale) return;
-    if (connectionStatus !== 'live') return;
+    if (connectionStatus !== ConnectionStatus.Live) return;
     if (!roomRecord) return;
     // Only auto-heal when we previously received state (baseline established).
     // If lastStateReceivedAt is null, reconnect recovery handles initial fetch.

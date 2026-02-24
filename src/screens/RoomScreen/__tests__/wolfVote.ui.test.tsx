@@ -77,7 +77,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     },
 
     // Connection
-    connectionStatus: 'live',
+    connectionStatus: require('@/services/types/IGameFacade').ConnectionStatus.Live,
 
     // Host/role/step info used by RoomScreen
     isHost: false,

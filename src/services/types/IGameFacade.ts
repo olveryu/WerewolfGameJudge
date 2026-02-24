@@ -11,7 +11,12 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 /** Connection status for UI display (re-exported from RealtimeService) */
-export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected';
+export enum ConnectionStatus {
+  Connecting = 'Connecting',
+  Syncing = 'Syncing',
+  Live = 'Live',
+  Disconnected = 'Disconnected',
+}
 
 export type FacadeStateListener = (state: GameState | null) => void;
 

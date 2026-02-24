@@ -24,6 +24,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
+import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
 
 // =============================================================================
 // Test Data
@@ -42,17 +43,16 @@ import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@werewolf/game-engine/models/roles
 interface ChooseSeatTestCase {
   schemaId: SchemaId;
   role: RoleId;
-  constraints: readonly string[];
+  constraints: readonly (TargetConstraint | string)[];
   hasReveal: boolean;
   revealKey?: 'seerReveal' | 'psychicReveal' | 'gargoyleReveal' | 'wolfRobotReveal';
 }
 
 const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
-  // === 神职 ===
   {
     schemaId: 'seerCheck',
     role: 'seer',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     hasReveal: true,
     revealKey: 'seerReveal',
   },
@@ -65,14 +65,14 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
   {
     schemaId: 'psychicCheck',
     role: 'psychic',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     hasReveal: true,
     revealKey: 'psychicReveal',
   },
   {
     schemaId: 'dreamcatcherDream',
     role: 'dreamcatcher',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     hasReveal: false,
   },
 
@@ -86,21 +86,21 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
   {
     schemaId: 'gargoyleCheck',
     role: 'gargoyle',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     hasReveal: true,
     revealKey: 'gargoyleReveal',
   },
   {
     schemaId: 'wolfRobotLearn',
     role: 'wolfRobot',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     hasReveal: true,
     revealKey: 'wolfRobotReveal',
   },
   {
     schemaId: 'wolfQueenCharm',
     role: 'wolfQueen',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     hasReveal: false,
   },
 
@@ -108,7 +108,7 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
   {
     schemaId: 'slackerChooseIdol',
     role: 'slacker',
-    constraints: ['notSelf'],
+    constraints: [TargetConstraint.NotSelf],
     hasReveal: false,
   },
 ];
@@ -237,8 +237,12 @@ describe('chooseSeat Batch Handler Contract', () => {
   });
 
   describe('Constraint: notSelf', () => {
-    const notSelfSchemas = CHOOSE_SEAT_SCHEMAS.filter((c) => c.constraints.includes('notSelf'));
-    const allowSelfSchemas = CHOOSE_SEAT_SCHEMAS.filter((c) => !c.constraints.includes('notSelf'));
+    const notSelfSchemas = CHOOSE_SEAT_SCHEMAS.filter((c) =>
+      c.constraints.includes(TargetConstraint.NotSelf),
+    );
+    const allowSelfSchemas = CHOOSE_SEAT_SCHEMAS.filter(
+      (c) => !c.constraints.includes(TargetConstraint.NotSelf),
+    );
 
     it.each(notSelfSchemas)(
       '$schemaId - should reject self-target when notSelf constraint exists',

@@ -5,19 +5,20 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { validateConstraints } from '@werewolf/game-engine/resolvers/constraintValidator';
 
 describe('constraintValidator', () => {
   describe('notSelf constraint', () => {
     it('should reject self-target when notSelf is in constraints', () => {
-      const result = validateConstraints(['notSelf'], { actorSeat: 2, target: 2 });
+      const result = validateConstraints([TargetConstraint.NotSelf], { actorSeat: 2, target: 2 });
       expect(result.valid).toBe(false);
       expect(result.rejectReason).toContain('自己');
     });
 
     it('should allow other targets when notSelf is in constraints', () => {
-      const result = validateConstraints(['notSelf'], { actorSeat: 2, target: 3 });
+      const result = validateConstraints([TargetConstraint.NotSelf], { actorSeat: 2, target: 3 });
       expect(result.valid).toBe(true);
     });
 
@@ -37,7 +38,7 @@ describe('constraintValidator', () => {
     ]);
 
     it('should reject wolf-faction target', () => {
-      const result = validateConstraints(['notWolfFaction'], {
+      const result = validateConstraints([TargetConstraint.NotWolfFaction], {
         actorSeat: 4,
         target: 2,
         players,
@@ -47,7 +48,7 @@ describe('constraintValidator', () => {
     });
 
     it('should reject wolfKing target (wolf faction)', () => {
-      const result = validateConstraints(['notWolfFaction'], {
+      const result = validateConstraints([TargetConstraint.NotWolfFaction], {
         actorSeat: 4,
         target: 3,
         players,
@@ -57,7 +58,7 @@ describe('constraintValidator', () => {
     });
 
     it('should allow non-wolf-faction target', () => {
-      const result = validateConstraints(['notWolfFaction'], {
+      const result = validateConstraints([TargetConstraint.NotWolfFaction], {
         actorSeat: 4,
         target: 0,
         players,
@@ -67,7 +68,7 @@ describe('constraintValidator', () => {
 
     it('should throw if players map is missing', () => {
       expect(() => {
-        validateConstraints(['notWolfFaction'], { actorSeat: 4, target: 0 });
+        validateConstraints([TargetConstraint.NotWolfFaction], { actorSeat: 4, target: 0 });
       }).toThrow('notWolfFaction constraint requires players map');
     });
   });
@@ -92,7 +93,7 @@ describe('schema-resolver constraint alignment', () => {
 
     it.each(schemasWithNotSelf)('%s schema should have notSelf constraint', (schemaId) => {
       const schema = SCHEMAS[schemaId];
-      expect(schema.constraints).toContain('notSelf');
+      expect(schema.constraints).toContain(TargetConstraint.NotSelf);
     });
   });
 
@@ -105,7 +106,7 @@ describe('schema-resolver constraint alignment', () => {
 
     it.each(schemasWithoutNotSelf)('%s schema should NOT have notSelf constraint', (schemaId) => {
       const schema = SCHEMAS[schemaId];
-      expect(schema.constraints).not.toContain('notSelf');
+      expect(schema.constraints).not.toContain(TargetConstraint.NotSelf);
     });
   });
 
@@ -116,7 +117,7 @@ describe('schema-resolver constraint alignment', () => {
       '%s schema should have notWolfFaction constraint',
       (schemaId) => {
         const schema = SCHEMAS[schemaId];
-        expect(schema.constraints).toContain('notWolfFaction');
+        expect(schema.constraints).toContain(TargetConstraint.NotWolfFaction);
       },
     );
   });
@@ -127,14 +128,14 @@ describe('schema-resolver constraint alignment', () => {
       expect(witchSchema.kind).toBe('compound');
       const saveStep = witchSchema.steps.find((s) => s.key === 'save');
       expect(saveStep).toBeDefined();
-      expect(saveStep!.constraints).toContain('notSelf');
+      expect(saveStep!.constraints).toContain(TargetConstraint.NotSelf);
     });
 
     it('witch poison step should NOT have notSelf constraint', () => {
       const witchSchema = SCHEMAS.witchAction;
       const poisonStep = witchSchema.steps.find((s) => s.key === 'poison');
       expect(poisonStep).toBeDefined();
-      expect(poisonStep!.constraints).not.toContain('notSelf');
+      expect(poisonStep!.constraints).not.toContain(TargetConstraint.NotSelf);
     });
   });
 });

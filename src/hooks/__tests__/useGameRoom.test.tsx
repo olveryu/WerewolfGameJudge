@@ -15,6 +15,7 @@ import { GameFacadeProvider } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
@@ -311,7 +312,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
     it('should only call fetchStateFromDB once per live session (no spam)', async () => {
       const fetchStateFromDBMock = jest.fn().mockResolvedValue(true);
-      let statusListener: ((status: 'live' | 'connecting' | 'disconnected') => void) | null = null;
+      let statusListener: ((status: ConnectionStatus) => void) | null = null;
 
       const mockFacade = createMockFacade({
         fetchStateFromDB: fetchStateFromDBMock,
@@ -337,7 +338,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       // 第一次 live：触发 auto-recovery timer
       act(() => {
-        statusListener?.('live');
+        statusListener?.(ConnectionStatus.Live);
       });
 
       // 快进 2 秒，触发 fetchStateFromDB
@@ -349,12 +350,12 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       // 模拟断线
       act(() => {
-        statusListener?.('connecting');
+        statusListener?.(ConnectionStatus.Connecting);
       });
 
       // 重新连接（同一 session，因为没有收到新 STATE_UPDATE）
       act(() => {
-        statusListener?.('live');
+        statusListener?.(ConnectionStatus.Live);
       });
 
       // 再次快进 2 秒
@@ -368,7 +369,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
     it('should allow new fetchStateFromDB after receiving state (throttle reset)', async () => {
       const fetchStateFromDBMock = jest.fn().mockResolvedValue(true);
-      let statusListener: ((status: 'live' | 'connecting' | 'disconnected') => void) | null = null;
+      let statusListener: ((status: ConnectionStatus) => void) | null = null;
       let stateListener: ((state: any) => void) | null = null;
 
       const mockFacade = createMockFacade({
@@ -396,7 +397,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       // 第一次 live：触发 auto-recovery
       act(() => {
-        statusListener?.('live');
+        statusListener?.(ConnectionStatus.Live);
       });
 
       await act(async () => {
@@ -424,12 +425,12 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       // 模拟断线
       act(() => {
-        statusListener?.('connecting');
+        statusListener?.(ConnectionStatus.Connecting);
       });
 
       // 重新连接（新 session，因为收到了 STATE_UPDATE 重置 throttle）
       act(() => {
-        statusListener?.('live');
+        statusListener?.(ConnectionStatus.Live);
       });
 
       await act(async () => {
@@ -442,7 +443,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
     it('should auto-heal when state is stale while connected (dropped broadcast)', async () => {
       const fetchStateFromDBMock = jest.fn().mockResolvedValue(true);
-      let statusListener: ((status: 'live' | 'connecting' | 'disconnected') => void) | null = null;
+      let statusListener: ((status: ConnectionStatus) => void) | null = null;
       let stateListener: ((state: any) => void) | null = null;
 
       const mockFacade = createMockFacade({
@@ -470,7 +471,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       // Connect and let reconnect recovery fire
       act(() => {
-        statusListener?.('live');
+        statusListener?.(ConnectionStatus.Live);
       });
       await act(async () => {
         jest.advanceTimersByTime(2000);

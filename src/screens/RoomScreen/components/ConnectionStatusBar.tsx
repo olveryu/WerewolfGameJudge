@@ -7,15 +7,14 @@
 import React, { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
 
 import { type ConnectionStatusBarStyles } from './styles';
 
-type ConnectionState = 'live' | 'syncing' | 'connecting' | 'disconnected';
-
 interface ConnectionStatusBarProps {
   /** Current connection state */
-  status: ConnectionState;
+  status: ConnectionStatus;
   /** Callback for force sync button */
   onForceSync?: () => void;
   /** Pre-created styles from parent */
@@ -32,13 +31,13 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
 }) => {
   const getStatusStyle = () => {
     switch (status) {
-      case 'live':
+      case ConnectionStatus.Live:
         return styles.statusLive;
-      case 'syncing':
+      case ConnectionStatus.Syncing:
         return styles.statusSyncing;
-      case 'connecting':
+      case ConnectionStatus.Connecting:
         return styles.statusConnecting;
-      case 'disconnected':
+      case ConnectionStatus.Disconnected:
         return styles.statusDisconnected;
       default:
         return undefined;
@@ -47,13 +46,13 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
 
   const getStatusText = () => {
     switch (status) {
-      case 'live':
+      case ConnectionStatus.Live:
         return '🟢 已连接';
-      case 'syncing':
+      case ConnectionStatus.Syncing:
         return '🔄 同步中...';
-      case 'connecting':
+      case ConnectionStatus.Connecting:
         return '⏳ 连接中...';
-      case 'disconnected':
+      case ConnectionStatus.Disconnected:
         return '🔴 连接断开';
       default:
         return '';
@@ -61,8 +60,10 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   };
 
   const showSyncButton =
-    status === 'disconnected' || status === 'syncing' || status === 'connecting';
-  const isSyncing = status === 'syncing' || status === 'connecting';
+    status === ConnectionStatus.Disconnected ||
+    status === ConnectionStatus.Syncing ||
+    status === ConnectionStatus.Connecting;
+  const isSyncing = status === ConnectionStatus.Syncing || status === ConnectionStatus.Connecting;
 
   return (
     <View style={[styles.container, getStatusStyle()]} testID={TESTIDS.connectionStatusContainer}>

@@ -12,9 +12,10 @@ import {
   ROLE_SPECS,
   type RoleId,
 } from '@werewolf/game-engine/models/roles/spec';
+import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.types';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
+import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
   it('should have exactly 27 roles', () => {
@@ -26,7 +27,7 @@ describe('ROLE_SPECS contract', () => {
       expect(spec.id).toBe(id);
       expect(spec.displayName).toBeTruthy();
       expect(spec.faction).toBeDefined();
-      expect(spec.team).toMatch(/^(wolf|good|third)$/);
+      expect(Object.values(Team)).toContain(spec.team);
       expect(spec.night1).toBeDefined();
     }
   });
@@ -50,7 +51,7 @@ describe('ROLE_SPECS contract', () => {
       const saveStep = witchSchema.steps.find((s) => s.key === 'save');
       expect(saveStep).toBeDefined();
       expect(saveStep!.kind).toBe('confirmTarget'); // Fixed target, user confirms
-      expect(saveStep!.constraints).toContain('notSelf');
+      expect(saveStep!.constraints).toContain(TargetConstraint.NotSelf);
     });
 
     it('witch poison action should have chooseSeat kind', () => {
@@ -205,21 +206,21 @@ describe('ROLE_SPECS contract', () => {
   });
 
   describe('seer check rule (team field)', () => {
-    it('all wolf-faction roles should have team="wolf"', () => {
+    it('all wolf-faction roles should have team=Team.Wolf', () => {
       const wolfRoles = getAllRoleIds().filter((id) => ROLE_SPECS[id].faction === Faction.Wolf);
       for (const roleId of wolfRoles) {
-        expect(ROLE_SPECS[roleId].team).toBe('wolf');
+        expect(ROLE_SPECS[roleId].team).toBe(Team.Wolf);
       }
     });
 
-    it('slacker should have team="third" (for UI display)', () => {
-      expect(ROLE_SPECS.slacker.team).toBe('third');
+    it('slacker should have team=Team.Third (for UI display)', () => {
+      expect(ROLE_SPECS.slacker.team).toBe(Team.Third);
     });
 
-    it('god roles should have team="good"', () => {
+    it('god roles should have team=Team.Good', () => {
       const godRoles = getAllRoleIds().filter((id) => ROLE_SPECS[id].faction === Faction.God);
       for (const roleId of godRoles) {
-        expect(ROLE_SPECS[roleId].team).toBe('good');
+        expect(ROLE_SPECS[roleId].team).toBe(Team.Good);
       }
     });
   });
