@@ -192,9 +192,3 @@ export function useColors(): ThemeColors {
   const { colors } = useTheme();
   return colors;
 }
-
-// ============================================
-// Re-export tokens for direct import
-// ============================================
-export { type Theme, type ThemeColors, type ThemeKey, themes } from './themes';
-export { borderRadius, layout, shadows, spacing, typography } from './tokens';

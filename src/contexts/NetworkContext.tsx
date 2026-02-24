@@ -6,7 +6,7 @@
  * 不包含游戏业务逻辑，不直接调用 Supabase。
  */
 import * as Sentry from '@sentry/react-native';
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useMemo, useRef, useState } from 'react';
 
 import { showAlert } from '@/utils/alert';
 import { log } from '@/utils/logger';
@@ -149,8 +149,3 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
 
   return <NetworkContext.Provider value={contextValue}>{children}</NetworkContext.Provider>;
 };
-
-/** Consumer hook — mirrors useAuthContext / useServices pattern. */
-export function useNetworkContext(): NetworkContextType {
-  return useContext(NetworkContext);
-}

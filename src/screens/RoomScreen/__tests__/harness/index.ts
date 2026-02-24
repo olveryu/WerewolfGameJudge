@@ -26,10 +26,8 @@ export {
   coverageChainNightmareBlocked,
   coverageChainSeatActionConfirm,
   coverageChainSkipConfirm,
-  coverageChainWitchNoKill,
   coverageChainWitchPoisonPrompt,
   coverageChainWitchSavePrompt,
-  coverageChainWitchSkipAll,
   coverageChainWolfRobotHunterStatus,
   // Coverage-integrated chain drivers
   coverageChainWolfVote,
@@ -43,7 +41,6 @@ export {
 } from './boardTestUtils';
 export {
   createShowAlertMock,
-  type DialogEvent,
   type DialogType,
   RoomScreenTestHarness,
 } from './RoomScreenTestHarness';

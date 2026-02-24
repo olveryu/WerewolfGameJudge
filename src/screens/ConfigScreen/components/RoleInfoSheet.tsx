@@ -10,7 +10,7 @@ import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import type { ConfigScreenStyles } from './styles';
 
-export interface RoleInfoSheetProps {
+interface RoleInfoSheetProps {
   /** The roleId to display info for, or null when hidden. */
   roleId: string | null;
   onClose: () => void;

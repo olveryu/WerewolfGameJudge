@@ -8,7 +8,7 @@
 import type { GameState, HandlerContext } from '@werewolf/game-engine';
 
 /** Find seat number by UID, or null if user is not seated */
-export function findSeatByUid(state: GameState, uid: string): number | null {
+function findSeatByUid(state: GameState, uid: string): number | null {
   for (const [seatKey, player] of Object.entries(state.players)) {
     if (player?.uid === uid) return Number(seatKey);
   }

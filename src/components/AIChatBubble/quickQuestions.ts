@@ -591,7 +591,7 @@ const GENERIC_FOLLOW_UPS = ['继续说说？', '还有别的吗？', '具体怎�
  * 从聊天记录提取关键词并生成跟进问题
  * 优先从 AI 最后回答中提取，其次用户最后问题
  */
-export function getContextQuestion(messages: DisplayMessage[]): string | null {
+function _getContextQuestion(messages: DisplayMessage[]): string | null {
   if (messages.length === 0) return null;
 
   const lastAssistantMsg = [...messages].reverse().find((m) => m.role === 'assistant');

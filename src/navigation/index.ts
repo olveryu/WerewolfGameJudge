@@ -1,3 +1,2 @@
-export { default as AppNavigator } from './AppNavigator';
-export { navigationRef } from './navigationRef';
+export { AppNavigator } from './AppNavigator';
 export * from './types';

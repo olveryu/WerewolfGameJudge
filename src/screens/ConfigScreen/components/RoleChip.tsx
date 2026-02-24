@@ -14,7 +14,7 @@ import { ConfigScreenStyles } from './styles';
 
 export type FactionColorKey = 'wolf' | 'god' | 'villager' | 'neutral';
 
-export interface RoleChipProps {
+interface RoleChipProps {
   id: string;
   label: string;
   selected: boolean;

@@ -53,10 +53,7 @@ export function isWolfVoteAllComplete(state: GameState): boolean {
 /**
  * Timer 决策纯函数结果类型
  */
-export type WolfVoteTimerAction =
-  | { type: 'set'; deadline: number }
-  | { type: 'clear' }
-  | { type: 'noop' };
+type WolfVoteTimerAction = { type: 'set'; deadline: number } | { type: 'clear' } | { type: 'noop' };
 
 /**
  * 决定狼人投票 Timer 的动作（纯函数）。

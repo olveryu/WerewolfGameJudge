@@ -24,14 +24,7 @@ async function loadHaptics(): Promise<typeof import('expo-haptics') | null> {
 /**
  * Haptic feedback styles
  */
-export type HapticStyle =
-  | 'light'
-  | 'medium'
-  | 'heavy'
-  | 'selection'
-  | 'success'
-  | 'warning'
-  | 'error';
+type HapticStyle = 'light' | 'medium' | 'heavy' | 'selection' | 'success' | 'warning' | 'error';
 
 /**
  * Trigger haptic feedback

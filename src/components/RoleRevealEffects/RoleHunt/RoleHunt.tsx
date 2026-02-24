@@ -51,7 +51,7 @@ const HUNT_COLORS = {
 };
 
 // ─── Extended props ─────────────────────────────────────────────────────
-export interface RoleHuntProps extends RoleRevealEffectProps {
+interface RoleHuntProps extends RoleRevealEffectProps {
   /** All roles in the game (used to create ghost targets) */
   allRoles?: RoleData[];
 }

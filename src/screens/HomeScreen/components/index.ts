@@ -5,11 +5,8 @@
  * redundant StyleSheet.create calls per component.
  */
 export { InstallMenuItem } from './InstallMenuItem';
-export type { JoinRoomModalProps } from './JoinRoomModal';
 export { JoinRoomModal } from './JoinRoomModal';
-export type { MenuItemProps } from './MenuItem';
 export { MenuItem } from './MenuItem';
 export type { HomeScreenStyles } from './styles';
 export { createHomeScreenStyles } from './styles';
-export type { UserBarProps } from './UserBar';
 export { UserBar } from './UserBar';

@@ -34,7 +34,7 @@ export interface DropdownOption {
   label: string;
 }
 
-export interface DropdownProps {
+interface DropdownProps {
   label: string;
   value: string;
   options: DropdownOption[];

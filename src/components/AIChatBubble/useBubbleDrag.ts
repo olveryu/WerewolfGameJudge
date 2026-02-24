@@ -19,7 +19,7 @@ import { BUBBLE_MARGIN, BUBBLE_SIZE, DEFAULT_POSITION } from './AIChatBubble.sty
 const STORAGE_KEY_POSITION = '@ai_chat_bubble_position';
 const DRAG_THRESHOLD = 10;
 
-export interface UseBubbleDragReturn {
+interface UseBubbleDragReturn {
   position: { x: number; y: number };
   scaleAnim: Animated.Value;
   handleTouchStart: (e: GestureResponderEvent) => void;

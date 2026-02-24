@@ -19,7 +19,7 @@ export interface FactionTabItem {
   accentColor: string;
 }
 
-export interface FactionTabsProps {
+interface FactionTabsProps {
   tabs: FactionTabItem[];
   activeKey: string;
   onTabPress: (key: string) => void;

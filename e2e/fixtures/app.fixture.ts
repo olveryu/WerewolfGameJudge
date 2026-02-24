@@ -10,7 +10,7 @@ import { gotoWithRetry } from '../helpers/ui';
  * Eliminates the repeated gotoWithRetry → waitForAppReady → ensureAnonLogin
  * boilerplate from every spec.
  */
-export interface AppFixture {
+interface AppFixture {
   /** Page that is logged in and on the home screen. */
   page: Page;
   /** Diagnostic data collector attached to the page. */

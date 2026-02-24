@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-export interface GlowBorderProps {
+interface GlowBorderProps {
   /** Border color */
   color: string;
   /** Glow color (typically lighter than border) */

@@ -21,7 +21,7 @@ import { waitForRoomScreenReady } from './waits';
 // Types
 // ---------------------------------------------------------------------------
 
-export interface SetupGameOptions {
+interface SetupGameOptions {
   /** Number of players (first = host). Default: 2. */
   playerCount?: number;
   /** Template configurator called on ConfigPage before creating room. */
@@ -30,7 +30,7 @@ export interface SetupGameOptions {
   startGame?: boolean;
 }
 
-export interface GameSetupResult {
+interface GameSetupResult {
   fixture: MultiPlayerFixture;
   roomNumber: string;
   hostPage: Page;

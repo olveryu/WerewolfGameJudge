@@ -150,7 +150,7 @@ export interface WolfVoteSchema extends BaseActionSchema {
  * Defines how a group of players coordinate on a single action (e.g., wolf kill).
  * This is schema-level metadata; actual participant list comes from ROLE_SPECS.wolfMeeting.
  */
-export interface MeetingConfig {
+interface MeetingConfig {
   /**
    * Whether participants can see each other's identities during the meeting.
    * - true: participants see each other (e.g., wolf pack sees teammates)

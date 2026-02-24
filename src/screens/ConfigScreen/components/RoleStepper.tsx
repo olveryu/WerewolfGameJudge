@@ -11,7 +11,7 @@ import { TESTIDS } from '@/testids';
 
 import { ConfigScreenStyles } from './styles';
 
-export interface RoleStepperProps {
+interface RoleStepperProps {
   roleId: string;
   label: string;
   count: number;

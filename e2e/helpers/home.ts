@@ -300,7 +300,7 @@ async function dismissBlockingModals(page: Page): Promise<boolean> {
  * @param opts - Options for timeout and retry behavior
  * @throws Error if stable state cannot be reached
  */
-export async function ensureHomeReady(
+async function ensureHomeReady(
   page: Page,
   opts: { maxRetries?: number; timeoutMs?: number } = {},
 ): Promise<void> {

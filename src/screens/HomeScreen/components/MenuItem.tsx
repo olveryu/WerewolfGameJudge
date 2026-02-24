@@ -9,7 +9,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import { type HomeScreenStyles } from './styles';
 
-export interface MenuItemProps {
+interface MenuItemProps {
   icon: ReactNode;
   title: string;
   subtitle?: string;

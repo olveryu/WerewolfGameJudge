@@ -58,7 +58,6 @@ const config = {
 export const log = logger.createLogger(config);
 
 // Pre-configured extensions for common modules
-export const nightFlowLog = log.extend('NightFlow');
 export const realtimeLog = log.extend('Realtime');
 export const audioLog = log.extend('Audio');
 export const authLog = log.extend('Auth');

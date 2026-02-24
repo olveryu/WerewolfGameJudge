@@ -21,7 +21,7 @@ interface User {
   avatarUrl?: string | null;
 }
 
-export interface UserBarProps {
+interface UserBarProps {
   user: User | null;
   userName: string;
   onLogin: () => void;

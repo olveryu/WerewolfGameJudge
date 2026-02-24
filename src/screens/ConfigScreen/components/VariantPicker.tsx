@@ -10,7 +10,7 @@ import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import type { ConfigScreenStyles } from './styles';
 
-export interface VariantPickerProps {
+interface VariantPickerProps {
   visible: boolean;
   onClose: () => void;
   /** All variant roleIds for this slot (including the base role) */

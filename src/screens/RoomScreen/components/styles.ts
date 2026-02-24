@@ -123,7 +123,7 @@ export interface ContinueGameOverlayStyles {
 
 // ─── Combined styles container ──────────────────────────────────────────────
 
-export interface RoomScreenComponentStyles {
+interface RoomScreenComponentStyles {
   actionButton: ActionButtonStyles;
   dangerActionButton: ActionButtonStyles;
   actionMessage: ActionMessageStyles;

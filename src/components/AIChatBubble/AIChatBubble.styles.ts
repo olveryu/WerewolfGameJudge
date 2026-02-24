@@ -14,7 +14,7 @@ import { componentSizes, fixed } from '@/theme/tokens';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export const CHAT_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
+const CHAT_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
 export const BUBBLE_SIZE = 56;
 export const BUBBLE_MARGIN = 16;
 
@@ -96,7 +96,7 @@ export interface NotepadStyles {
 }
 
 /** NotepadModal 层级额外样式（直接通过 ChatStyles 访问） */
-export interface NotepadPublicStyles {
+interface _NotepadPublicStyles {
   notepadPublicSection: ViewStyle;
   notepadPublicLabel: TextStyle;
   notepadPublicRow: ViewStyle;

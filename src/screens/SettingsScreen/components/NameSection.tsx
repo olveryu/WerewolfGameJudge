@@ -11,7 +11,7 @@ import { ThemeColors } from '@/theme';
 
 import { SettingsScreenStyles } from './styles';
 
-export interface NameSectionProps {
+interface NameSectionProps {
   isAnonymous: boolean;
   displayName: string | null;
   isEditingName: boolean;
