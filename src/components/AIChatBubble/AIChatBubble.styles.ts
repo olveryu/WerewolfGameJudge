@@ -95,14 +95,6 @@ export interface NotepadStyles {
   legendText: TextStyle;
 }
 
-/** NotepadModal 层级额外样式（直接通过 ChatStyles 访问） */
-interface _NotepadPublicStyles {
-  notepadPublicSection: ViewStyle;
-  notepadPublicLabel: TextStyle;
-  notepadPublicRow: ViewStyle;
-  notepadPublicInput: TextStyle;
-}
-
 // ── StyleSheet ───────────────────────────────────────────
 
 export const createStyles = (colors: ThemeColors) =>

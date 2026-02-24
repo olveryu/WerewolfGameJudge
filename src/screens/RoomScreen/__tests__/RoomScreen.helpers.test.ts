@@ -217,7 +217,7 @@ describe('toGameRoomLike', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
-      status: GameStatus.seated,
+      status: GameStatus.Seated,
     };
 
     const result = toGameRoomLike(mockState);
@@ -274,7 +274,7 @@ describe('buildSeatViewModels', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
-      status: GameStatus.ongoing,
+      status: GameStatus.Ongoing,
     };
 
     const seats = buildSeatViewModels(mockState, 0, true, 1);
@@ -353,7 +353,7 @@ describe('buildSeatViewModels', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
-      status: GameStatus.ongoing,
+      status: GameStatus.Ongoing,
     };
 
     const seats = buildSeatViewModels(mockState, null, true, null);
@@ -406,7 +406,7 @@ describe('buildSeatViewModels', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
-      status: GameStatus.ongoing,
+      status: GameStatus.Ongoing,
     };
 
     const seats = buildSeatViewModels(mockState, null, true, null);
@@ -463,7 +463,7 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
-        status: GameStatus.ongoing,
+        status: GameStatus.Ongoing,
       };
 
       // I am seat 0, with notSelf constraint
@@ -526,7 +526,7 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
-        status: GameStatus.ongoing,
+        status: GameStatus.Ongoing,
       };
 
       // I am seat 0, with NO constraints
@@ -591,7 +591,7 @@ describe('buildSeatViewModels', () => {
       lastNightDeaths: [],
       currentNightResults: { wolfVotesBySeat },
       pendingRevealAcks: [],
-      status: GameStatus.ongoing,
+      status: GameStatus.Ongoing,
     });
 
     it('should populate wolfVoteTarget when showWolves=true and wolf has voted', () => {
@@ -679,7 +679,7 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
-        status: GameStatus.assigned,
+        status: GameStatus.Assigned,
       };
 
       const seats = buildSeatViewModels(mockState, null, false, null, {
@@ -708,7 +708,7 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
-        status: GameStatus.assigned,
+        status: GameStatus.Assigned,
       };
 
       const seats = buildSeatViewModels(mockState, null, false, null, {
@@ -746,7 +746,7 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
-        status: GameStatus.assigned,
+        status: GameStatus.Assigned,
       };
 
       const seats = buildSeatViewModels(mockState, null, false, null);
@@ -772,7 +772,7 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
-        status: GameStatus.ongoing,
+        status: GameStatus.Ongoing,
       };
 
       const seats = buildSeatViewModels(mockState, null, false, 0, {
@@ -897,7 +897,7 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
       lastNightDeaths: [],
       currentNightResults: { wolfVotesBySeat: { '0': 1 } },
       pendingRevealAcks: [],
-      status: GameStatus.ongoing,
+      status: GameStatus.Ongoing,
     };
 
     const result = toGameRoomLike(state);
@@ -919,7 +919,7 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
-      status: GameStatus.ongoing,
+      status: GameStatus.Ongoing,
     } as LocalGameState;
 
     const result = toGameRoomLike(legacyState);
@@ -941,7 +941,7 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
-      status: GameStatus.ongoing,
+      status: GameStatus.Ongoing,
     };
 
     const result = toGameRoomLike(state);

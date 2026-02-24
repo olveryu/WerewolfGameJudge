@@ -52,7 +52,7 @@ export function useNightDerived(gameState: LocalGameState | null): NightDerivedV
   const currentActionRole = useMemo((): RoleId | null => {
     if (!gameState) return null;
     // Only return action role when game is in progress
-    if (gameState.status !== GameStatus.ongoing) return null;
+    if (gameState.status !== GameStatus.Ongoing) return null;
     // Derive action order dynamically from template.roles via NightPlan
     const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
     if (gameState.currentStepIndex >= nightPlan.steps.length) return null;

@@ -43,7 +43,7 @@ const CHEATING_PATTERNS = {
   placeholder: /placeholder/i,
   typeofAssertCoverage: /typeof\s+.*assertCoverage/,
   bindAssertCoverage: /assertCoverage\.bind/,
-  directRecord: /harness\._record\s*\(/,
+  directRecord: /harness\.record\s*\(/,
   customShowAlertMock: /jest\.fn\(\s*\(\s*title.*message.*buttons?\s*\)\s*=>/,
   // ANTI-CHEAT: Dynamic function call bypasses the literal array requirement
   dynamicGetRequiredTypes: /harness\.assertCoverage\s*\(\s*getRequiredUiDialogTypes\s*\(/,

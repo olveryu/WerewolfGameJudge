@@ -55,7 +55,7 @@ export function useBgmControl(
   // 这里仅作为最终生命周期兜底，确保 BGM 不会在 ended 状态残留。stopBgm() 幂等，重复调用无副作用。
   useEffect(() => {
     if (!isHost) return;
-    if (gameStatus === GameStatus.ended && !isAudioPlaying) {
+    if (gameStatus === GameStatus.Ended && !isAudioPlaying) {
       audioRef.current.stopBgm();
     }
   }, [isHost, gameStatus, isAudioPlaying]);
@@ -67,7 +67,7 @@ export function useBgmControl(
     // If currently playing, stop/start based on new setting
     if (newValue) {
       // Only start if game is ongoing
-      if (gameStatus === GameStatus.ongoing) {
+      if (gameStatus === GameStatus.Ongoing) {
         audioRef.current.startBgm().catch((e) => {
           bgmLog.warn('BGM start failed after toggle:', e);
         });

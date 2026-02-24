@@ -62,7 +62,7 @@ export const AIChatBubble: React.FC = () => {
   const wasAssignedRef = useRef(
     (() => {
       const s = facade.getState();
-      return s !== null && s.status !== GameStatus.unseated && s.status !== GameStatus.seated;
+      return s !== null && s.status !== GameStatus.Unseated && s.status !== GameStatus.Seated;
     })(),
   );
 
@@ -70,8 +70,8 @@ export const AIChatBubble: React.FC = () => {
     const unsubscribe = facade.addListener((state) => {
       const isAssigned =
         state !== null &&
-        state.status !== GameStatus.unseated &&
-        state.status !== GameStatus.seated;
+        state.status !== GameStatus.Unseated &&
+        state.status !== GameStatus.Seated;
       if (!wasAssignedRef.current && isAssigned) {
         // Roles just assigned → start pulse
         pulseAnim.setValue(0);

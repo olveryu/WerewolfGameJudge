@@ -245,7 +245,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const myRole: RoleId | null =
     mySeatNumber !== null && gameState ? (gameState.players.get(mySeatNumber)?.role ?? null) : null;
 
-  const roomStatus: GameStatus = gameState?.status ?? GameStatus.unseated;
+  const roomStatus: GameStatus = gameState?.status ?? GameStatus.Unseated;
 
   // =========================================================================
   // Return flat bag

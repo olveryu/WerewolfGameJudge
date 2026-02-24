@@ -108,14 +108,6 @@ function mockFetchSuccess(result: Record<string, unknown> = { success: true }) {
   });
 }
 
-function _mockFetchWithResponses(responses: Array<() => Response | Promise<Response>>): jest.Mock {
-  const mock = jest.fn();
-  responses.forEach((fn) => {
-    mock.mockImplementationOnce(fn);
-  });
-  return mock;
-}
-
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe('callGameControlApi (via assignRoles wrapper)', () => {

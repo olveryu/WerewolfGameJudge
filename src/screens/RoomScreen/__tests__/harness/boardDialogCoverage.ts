@@ -191,63 +191,6 @@ export function boardHasNightmare(board: BoardConfig): boolean {
   return boardHasRole(board, 'nightmare');
 }
 
-/**
- * Get the "special" role for a board (non-wolf, non-villager, non-standard god)
- * Used for naming test files
- */
-function _getBoardSpecialRole(board: BoardConfig): RoleId | null {
-  const specialRoles = new Set<RoleId>([
-    'wolfQueen',
-    'darkWolfKing',
-    'gargoyle',
-    'nightmare',
-    'bloodMoon',
-    'dreamcatcher',
-    'magician',
-    'wolfRobot',
-    'spiritKnight',
-    'witcher',
-    'graveyardKeeper',
-    'mirrorSeer',
-    'pureWhite',
-    'wolfWitch',
-  ]);
-
-  for (const role of board.roles) {
-    if (specialRoles.has(role)) {
-      return role;
-    }
-  }
-
-  return null;
-}
-
-// =============================================================================
-// Coverage Matrix
-// =============================================================================
-
-interface CoverageEntry {
-  board: string;
-  requiredUiTypes: DialogType[];
-  requiredHostDataTypes: DialogType[];
-  hasNightmare: boolean;
-  hasWolfRobot: boolean;
-}
-
-/**
- * Generate the complete coverage matrix for all 12P boards
- */
-function _generateCoverageMatrix(): CoverageEntry[] {
-  const boards = getAll12PBoards();
-  return boards.map((board) => ({
-    board: board.name,
-    requiredUiTypes: getRequiredUiDialogTypes(board),
-    requiredHostDataTypes: getRequiredHostDataDialogTypes(board),
-    hasNightmare: boardHasNightmare(board),
-    hasWolfRobot: boardHasRole(board, 'wolfRobot'),
-  }));
-}
-
 // =============================================================================
 // Test File Naming
 // =============================================================================
@@ -269,10 +212,3 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   纯白夜影12人: 'pureWhite.12p.board.ui.test.tsx',
   灯影预言12人: 'mirrorSeer.12p.board.ui.test.tsx',
 };
-
-/**
- * Get expected test file name for a board
- */
-function _getTestFileName(boardName: string): string {
-  return BOARD_TEST_FILE_MAP[boardName] || `${boardName}.12p.board.ui.test.tsx`;
-}

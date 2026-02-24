@@ -15,7 +15,7 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {
     gameState: { template: { roles: [] } } as unknown as LocalGameState,
-    roomStatus: GameStatus.ongoing,
+    roomStatus: GameStatus.Ongoing,
     currentActionRole: 'magician',
     currentSchema: getSchema('magicianSwap'),
     imActioner: true,

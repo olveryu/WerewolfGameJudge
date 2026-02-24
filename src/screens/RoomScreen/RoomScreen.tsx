@@ -230,10 +230,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Host Menu Dropdown - replaces headerSpacer */}
         <HostMenuDropdown
           visible={isHost}
-          showFillWithBots={roomStatus === GameStatus.unseated}
-          showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.assigned}
+          showFillWithBots={roomStatus === GameStatus.Unseated}
+          showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.Assigned}
           showClearAllSeats={
-            (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) &&
+            (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
             !!gameState &&
             Array.from(gameState.players.values()).some((p) => p !== null)
           }
@@ -279,7 +279,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Bot Mode Hint / Controlled Seat Banner - mutually exclusive */}
       {isDebugMode &&
         hasBots &&
-        roomStatus === GameStatus.ongoing &&
+        roomStatus === GameStatus.Ongoing &&
         (controlledSeat !== null && gameState.players.get(controlledSeat) ? (
           <ControlledSeatBanner
             mode="controlled"
@@ -301,7 +301,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           specialRoleItems={specialRoleItems}
           villagerCount={villagerCount}
           villagerRoleItems={villagerRoleItems}
-          collapsed={roomStatus === GameStatus.ongoing || roomStatus === GameStatus.ended}
+          collapsed={roomStatus === GameStatus.Ongoing || roomStatus === GameStatus.Ended}
           onRolePress={handleSkillPreviewOpen}
           speakingOrderText={speakingOrderText}
           styles={componentStyles.boardInfoCard}
@@ -313,7 +313,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           roomNumber={roomNumber}
           onSeatPress={onSeatTapped}
           onSeatLongPress={onSeatLongPressed}
-          disabled={(roomStatus === GameStatus.ongoing && isAudioPlaying) || isActionSubmitting}
+          disabled={(roomStatus === GameStatus.Ongoing && isAudioPlaying) || isActionSubmitting}
           controlledSeat={controlledSeat}
           showBotRoles={isDebugMode && isHost}
         />
@@ -322,7 +322,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Bottom Action Panel - floating card with message + buttons */}
       <BottomActionPanel
         message={actionMessage}
-        showMessage={!isAudioPlaying && (imActioner || roomStatus === GameStatus.ended)}
+        showMessage={!isAudioPlaying && (imActioner || roomStatus === GameStatus.Ended)}
         styles={componentStyles.bottomActionPanel}
       >
         {/* Actioner: schema-driven bottom action buttons */}
@@ -343,10 +343,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* View Role Card */}
         {/* P0-FIX: 使用 effectiveSeat 支持接管模式（Host 无 seat 但接管 bot 时也能查看身份） */}
-        {(roomStatus === GameStatus.assigned ||
-          roomStatus === GameStatus.ready ||
-          roomStatus === GameStatus.ongoing ||
-          roomStatus === GameStatus.ended) &&
+        {(roomStatus === GameStatus.Assigned ||
+          roomStatus === GameStatus.Ready ||
+          roomStatus === GameStatus.Ongoing ||
+          roomStatus === GameStatus.Ended) &&
           effectiveSeat !== null && (
             <ActionButton
               label="查看身份"
@@ -355,7 +355,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             />
           )}
         {/* Greyed View Role (waiting for host) */}
-        {(roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated) &&
+        {(roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
           effectiveSeat !== null && (
             <ActionButton
               label="查看身份"
@@ -371,7 +371,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           )}
 
         {/* Secondary row: Host controls + review buttons */}
-        {(isHost || roomStatus === GameStatus.ended) && (
+        {(isHost || roomStatus === GameStatus.Ended) && (
           <View style={componentStyles.bottomActionPanel.secondaryRow}>
             {/* Host Control Buttons - dispatch events to policy */}
             <HostControlButtons
@@ -379,16 +379,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               showSettings={
                 !isStartingGame &&
                 !isAudioPlaying &&
-                (roomStatus === GameStatus.unseated || roomStatus === GameStatus.seated)
+                (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated)
               }
-              showPrepareToFlip={roomStatus === GameStatus.seated}
-              showStartGame={roomStatus === GameStatus.ready && !isStartingGame}
+              showPrepareToFlip={roomStatus === GameStatus.Seated}
+              showStartGame={roomStatus === GameStatus.Ready && !isStartingGame}
               showRestart={
                 !isAudioPlaying &&
-                (roomStatus === GameStatus.assigned ||
-                  roomStatus === GameStatus.ready ||
-                  roomStatus === GameStatus.ongoing ||
-                  roomStatus === GameStatus.ended)
+                (roomStatus === GameStatus.Assigned ||
+                  roomStatus === GameStatus.Ready ||
+                  roomStatus === GameStatus.Ongoing ||
+                  roomStatus === GameStatus.Ended)
               }
               disabled={isHostActionSubmitting}
               actionStyles={componentStyles.actionButton}
@@ -407,7 +407,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               }
             />
             {/* Last Night Info — host only, ended phase only */}
-            {isHost && roomStatus === GameStatus.ended && !isAudioPlaying && (
+            {isHost && roomStatus === GameStatus.Ended && !isAudioPlaying && (
               <ActionButton
                 label="昨夜信息"
                 onPress={() => showLastNightInfo()}
@@ -419,7 +419,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               effectiveSeat === null ||
               (effectiveSeat !== null &&
                 gameState?.nightReviewAllowedSeats?.includes(effectiveSeat))) &&
-              roomStatus === GameStatus.ended &&
+              roomStatus === GameStatus.Ended &&
               !isAudioPlaying && (
                 <ActionButton
                   label="详细信息"

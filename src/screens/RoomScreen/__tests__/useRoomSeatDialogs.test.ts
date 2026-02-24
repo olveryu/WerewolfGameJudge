@@ -52,7 +52,7 @@ describe('useRoomSeatDialogs', () => {
     setModalType: mockSetModalType,
     takeSeat: mockTakeSeat,
     leaveSeat: mockLeaveSeat,
-    roomStatus: GameStatus.unseated,
+    roomStatus: GameStatus.Unseated,
     navigation: mockNavigation,
     ...overrides,
   });
@@ -251,7 +251,7 @@ describe('useRoomSeatDialogs', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            roomStatus: GameStatus.ongoing,
+            roomStatus: GameStatus.Ongoing,
           }),
         ),
       );
@@ -275,7 +275,7 @@ describe('useRoomSeatDialogs', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            roomStatus: GameStatus.ended,
+            roomStatus: GameStatus.Ended,
           }),
         ),
       );
@@ -299,7 +299,7 @@ describe('useRoomSeatDialogs', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            roomStatus: GameStatus.unseated,
+            roomStatus: GameStatus.Unseated,
           }),
         ),
       );
@@ -323,7 +323,7 @@ describe('useRoomSeatDialogs', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            roomStatus: GameStatus.unseated,
+            roomStatus: GameStatus.Unseated,
           }),
         ),
       );
@@ -351,7 +351,7 @@ describe('useRoomSeatDialogs', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            roomStatus: GameStatus.seated,
+            roomStatus: GameStatus.Seated,
           }),
         ),
       );
@@ -376,7 +376,7 @@ describe('useRoomSeatDialogs', () => {
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
           createHookParams({
-            roomStatus: GameStatus.ongoing,
+            roomStatus: GameStatus.Ongoing,
             onLeaveRoom: mockOnLeaveRoom,
           }),
         ),

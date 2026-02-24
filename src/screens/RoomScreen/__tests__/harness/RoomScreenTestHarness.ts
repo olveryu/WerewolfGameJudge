@@ -12,8 +12,6 @@
 
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 
-import { showAlert as realShowAlert } from '@/utils/alert';
-
 // =============================================================================
 // Dialog Type Definitions (Single Source of Truth)
 // =============================================================================
@@ -226,27 +224,27 @@ function classifyDialog(title: string, message: string): DialogType {
 // =============================================================================
 
 export class RoomScreenTestHarness {
-  private _events: DialogEvent[] = [];
+  #events: DialogEvent[] = [];
 
   /**
    * Get all recorded dialog events
    */
   events(): DialogEvent[] {
-    return [...this._events];
+    return [...this.#events];
   }
 
   /**
    * Get events of a specific type
    */
   eventsOfType(type: DialogType): DialogEvent[] {
-    return this._events.filter((e) => e.type === type);
+    return this.#events.filter((e) => e.type === type);
   }
 
   /**
    * Check if a dialog type has been seen
    */
   hasSeen(type: DialogType): boolean {
-    return this._events.some((e) => e.type === type);
+    return this.#events.some((e) => e.type === type);
   }
 
   /**
@@ -254,8 +252,8 @@ export class RoomScreenTestHarness {
    */
   expectSeen(type: DialogType): void {
     if (!this.hasSeen(type)) {
-      const seenTypes = [...new Set(this._events.map((e) => e.type))];
-      const eventList = this._events
+      const seenTypes = [...new Set(this.#events.map((e) => e.type))];
+      const eventList = this.#events
         .map((e) => `  - ${e.type}: "${e.title}" :: ${JSON.stringify(e.message)}`)
         .join('\n');
       throw new Error(
@@ -270,7 +268,7 @@ export class RoomScreenTestHarness {
    * Assert that a dialog type was seen exactly n times
    */
   expectCount(type: DialogType, n: number): void {
-    const count = this._events.filter((e) => e.type === type).length;
+    const count = this.#events.filter((e) => e.type === type).length;
     if (count !== n) {
       throw new Error(
         `Expected dialog type '${type}' to appear ${n} times, but it appeared ${count} times`,
@@ -289,7 +287,7 @@ export class RoomScreenTestHarness {
       }
     }
     if (missing.length > 0) {
-      const seenTypes = [...new Set(this._events.map((e) => e.type))];
+      const seenTypes = [...new Set(this.#events.map((e) => e.type))];
       throw new Error(
         `Missing dialog coverage for: [${missing.join(', ')}]\n` +
           `Seen types: [${seenTypes.join(', ')}]`,
@@ -302,7 +300,7 @@ export class RoomScreenTestHarness {
    */
   assertNoLoop(opts: { type: DialogType; maxTimesPerStep?: number }): void {
     const { type, maxTimesPerStep = 3 } = opts;
-    const count = this._events.filter((e) => e.type === type).length;
+    const count = this.#events.filter((e) => e.type === type).length;
     if (count > maxTimesPerStep) {
       throw new Error(
         `Potential infinite loop detected: dialog type '${type}' appeared ${count} times ` +
@@ -320,7 +318,7 @@ export class RoomScreenTestHarness {
    * Returns null if no dialogs have been recorded.
    */
   getLastEvent(): DialogEvent | null {
-    return this._events.at(-1) ?? null;
+    return this.#events.at(-1) ?? null;
   }
 
   /**
@@ -328,8 +326,8 @@ export class RoomScreenTestHarness {
    * Returns null if no matching dialog has been recorded.
    */
   getLastEventOfType(type: DialogType): DialogEvent | null {
-    for (let i = this._events.length - 1; i >= 0; i--) {
-      if (this._events[i].type === type) return this._events[i];
+    for (let i = this.#events.length - 1; i >= 0; i--) {
+      if (this.#events[i].type === type) return this.#events[i];
     }
     return null;
   }
@@ -343,11 +341,11 @@ export class RoomScreenTestHarness {
    * harness.pressButton('取消');
    */
   pressButton(label: string): void {
-    const last = this._events.at(-1);
+    const last = this.#events.at(-1);
     if (!last) {
       throw new Error(`[pressButton] No dialog recorded. Cannot press "${label}".`);
     }
-    this._pressButtonOnEvent(last, label);
+    this.#pressButtonOnEvent(last, label);
   }
 
   /**
@@ -359,7 +357,7 @@ export class RoomScreenTestHarness {
    * harness.pressButtonByIndex(1); // second button (usually "取消")
    */
   pressButtonByIndex(index: number): void {
-    const last = this._events.at(-1);
+    const last = this.#events.at(-1);
     if (!last) {
       throw new Error(
         `[pressButtonByIndex] No dialog recorded. Cannot press button at index ${index}.`,
@@ -371,7 +369,7 @@ export class RoomScreenTestHarness {
           `Last dialog "${last.title}" has ${last.buttons.length} button(s): [${last.buttons.join(', ')}]`,
       );
     }
-    this._pressButtonOnEvent(last, last.buttons[index]);
+    this.#pressButtonOnEvent(last, last.buttons[index]);
   }
 
   /**
@@ -385,14 +383,14 @@ export class RoomScreenTestHarness {
   pressButtonOnType(type: DialogType, label: string): void {
     const event = this.getLastEventOfType(type);
     if (!event) {
-      const seenTypes = [...new Set(this._events.map((e) => e.type))];
+      const seenTypes = [...new Set(this.#events.map((e) => e.type))];
       throw new Error(
         `[pressButtonOnType] No dialog of type '${type}' found.\n` +
           `Seen types: [${seenTypes.join(', ')}]\n` +
-          `Total events: ${this._events.length}`,
+          `Total events: ${this.#events.length}`,
       );
     }
-    this._pressButtonOnEvent(event, label);
+    this.#pressButtonOnEvent(event, label);
   }
 
   /**
@@ -407,8 +405,8 @@ export class RoomScreenTestHarness {
     if (event.buttons.length === 0) {
       throw new Error(`[pressLastPrimary] Dialog ("${event.title}") has no buttons.`);
     }
-    const primaryLabel = this._findPrimaryButton(event);
-    this._pressButtonOnEvent(event, primaryLabel);
+    const primaryLabel = this.#findPrimaryButton(event);
+    this.#pressButtonOnEvent(event, primaryLabel);
   }
 
   /**
@@ -418,18 +416,18 @@ export class RoomScreenTestHarness {
   pressPrimaryOnType(type: DialogType): void {
     const event = this.getLastEventOfType(type);
     if (!event) {
-      const seenTypes = [...new Set(this._events.map((e) => e.type))];
+      const seenTypes = [...new Set(this.#events.map((e) => e.type))];
       throw new Error(
         `[pressPrimaryOnType] No dialog of type '${type}' found.\n` +
           `Seen types: [${seenTypes.join(', ')}]\n` +
-          `Total events: ${this._events.length}`,
+          `Total events: ${this.#events.length}`,
       );
     }
     if (event.buttons.length === 0) {
       throw new Error(`[pressPrimaryOnType] Dialog '${type}' ("${event.title}") has no buttons.`);
     }
-    const primaryLabel = this._findPrimaryButton(event);
-    this._pressButtonOnEvent(event, primaryLabel);
+    const primaryLabel = this.#findPrimaryButton(event);
+    this.#pressButtonOnEvent(event, primaryLabel);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -440,7 +438,7 @@ export class RoomScreenTestHarness {
    * Find the primary (non-cancel) button label from raw button data.
    * Falls back to first button if no style info available.
    */
-  private _findPrimaryButton(event: DialogEvent): string {
+  #findPrimaryButton(event: DialogEvent): string {
     const rawButtons = event.raw.buttons;
     if (rawButtons && rawButtons.length > 1) {
       const primary = rawButtons.find((b: any) => b.style !== 'cancel');
@@ -450,22 +448,9 @@ export class RoomScreenTestHarness {
   }
 
   /**
-   * Find the cancel button label from raw button data.
-   * Falls back to second button if no style info available.
-   */
-  private _findCancelButton(event: DialogEvent): string | null {
-    const rawButtons = event.raw.buttons;
-    if (rawButtons && rawButtons.length > 1) {
-      const cancel = rawButtons.find((b: any) => b.style === 'cancel');
-      if (cancel?.text) return cancel.text;
-    }
-    return event.buttons.length > 1 ? event.buttons[1] : null;
-  }
-
-  /**
    * Internal: press a button on a specific event, with fail-fast.
    */
-  private _pressButtonOnEvent(event: DialogEvent, label: string): void {
+  #pressButtonOnEvent(event: DialogEvent, label: string): void {
     const callback = event._callbacks.get(label);
     if (callback === undefined && !event._callbacks.has(label)) {
       throw new Error(
@@ -482,14 +467,14 @@ export class RoomScreenTestHarness {
    * Clear all recorded events
    */
   clear(): void {
-    this._events = [];
+    this.#events = [];
   }
 
   /**
    * Record a showAlert call
    * @internal Called by the mock
    */
-  _record(title: string, message?: string, buttons?: any[]): void {
+  record(title: string, message?: string, buttons?: any[]): void {
     const msg = message || '';
     const type = classifyDialog(title, msg);
     const btnArray = buttons || [{ text: '确定' }];
@@ -503,7 +488,7 @@ export class RoomScreenTestHarness {
       }
     }
 
-    this._events.push({
+    this.#events.push({
       type,
       title,
       message: msg,
@@ -524,27 +509,6 @@ export class RoomScreenTestHarness {
  */
 export function createShowAlertMock(harness: RoomScreenTestHarness) {
   return jest.fn((title: string, message?: string, buttons?: any[]) => {
-    harness._record(title, message, buttons);
+    harness.record(title, message, buttons);
   });
-}
-
-/**
- * Setup the harness by mocking showAlert.
- * Returns the harness instance.
- *
- * Usage:
- * ```ts
- * const harness = setupHarness();
- * // ... render and interact ...
- * harness.expectSeen('wolfVote');
- * ```
- */
-function _setupHarness(): RoomScreenTestHarness {
-  const harness = new RoomScreenTestHarness();
-  const mockShowAlert = createShowAlertMock(harness);
-
-  // Replace the mock implementation
-  (realShowAlert as jest.Mock).mockImplementation(mockShowAlert);
-
-  return harness;
 }

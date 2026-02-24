@@ -23,7 +23,7 @@ import { INTERACTION_PRIORITY } from '@/screens/RoomScreen/policy/types';
 
 function createBaseContext(overrides: Partial<InteractionContext> = {}): InteractionContext {
   return {
-    roomStatus: GameStatus.ongoing,
+    roomStatus: GameStatus.Ongoing,
     hasGameState: true,
     isAudioPlaying: false,
     pendingRevealAck: false,
@@ -99,7 +99,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('audio_playing blocks seat tap even with disabledReason', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createSeatTapEvent(1, '不能选择自己');
 
@@ -112,7 +112,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('audio_playing blocks bottom action', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createBottomActionEvent();
 
@@ -125,7 +125,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('audio_playing blocks view role', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createViewRoleEvent();
 
@@ -138,7 +138,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('audio_playing blocks host control during ongoing', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         isHost: true,
       });
       const event = createHostControlEvent('restart');
@@ -152,7 +152,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('audio_playing does NOT block leave room (safety exit)', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createLeaveRoomEvent();
 
@@ -182,7 +182,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       const ctx = createBaseContext({
         hasGameState: false,
         isAudioPlaying: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createSeatTapEvent(1);
 
@@ -198,7 +198,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('pending_reveal_ack blocks seat tap during ongoing', () => {
       const ctx = createBaseContext({
         pendingRevealAck: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createSeatTapEvent(1);
 
@@ -211,7 +211,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('pending_reveal_ack blocks bottom action during ongoing', () => {
       const ctx = createBaseContext({
         pendingRevealAck: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createBottomActionEvent();
 
@@ -224,7 +224,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('pending_reveal_ack does NOT block leave room', () => {
       const ctx = createBaseContext({
         pendingRevealAck: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createLeaveRoomEvent();
 
@@ -237,7 +237,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('pending_reveal_ack is ignored outside ongoing phase', () => {
       const ctx = createBaseContext({
         pendingRevealAck: true,
-        roomStatus: GameStatus.seated,
+        roomStatus: GameStatus.Seated,
       });
       const event = createSeatTapEvent(1);
 
@@ -251,7 +251,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
         pendingRevealAck: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createSeatTapEvent(1);
 
@@ -265,7 +265,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('pending_hunter_gate blocks seat tap during ongoing', () => {
       const ctx = createBaseContext({
         pendingHunterGate: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createSeatTapEvent(1);
 
@@ -279,7 +279,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       const ctx = createBaseContext({
         pendingRevealAck: true,
         pendingHunterGate: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createSeatTapEvent(1);
 
@@ -291,7 +291,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     test('pending_hunter_gate does NOT block leave room', () => {
       const ctx = createBaseContext({
         pendingHunterGate: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createLeaveRoomEvent();
 
@@ -310,7 +310,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
 describe('RoomInteractionPolicy - Event Routing', () => {
   describe('SEAT_TAP', () => {
     test('routes to SEATING_FLOW during unseated phase', () => {
-      const ctx = createBaseContext({ roomStatus: GameStatus.unseated });
+      const ctx = createBaseContext({ roomStatus: GameStatus.Unseated });
       const event = createSeatTapEvent(3);
 
       const result = getInteractionResult(ctx, event);
@@ -320,7 +320,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     });
 
     test('routes to SEATING_FLOW during seated phase', () => {
-      const ctx = createBaseContext({ roomStatus: GameStatus.seated });
+      const ctx = createBaseContext({ roomStatus: GameStatus.Seated });
       const event = createSeatTapEvent(5);
 
       const result = getInteractionResult(ctx, event);
@@ -331,7 +331,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
 
     test('routes to ACTION_FLOW when imActioner during ongoing', () => {
       const ctx = createBaseContext({
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         imActioner: true,
       });
       const event = createSeatTapEvent(2);
@@ -344,7 +344,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
 
     test('returns NOOP when not actioner during ongoing', () => {
       const ctx = createBaseContext({
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         imActioner: false,
       });
       const event = createSeatTapEvent(2);
@@ -357,7 +357,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
 
     test('returns ALERT when seat has disabledReason', () => {
       const ctx = createBaseContext({
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         imActioner: true,
       });
       const event = createSeatTapEvent(0, '不能选择自己');
@@ -370,7 +370,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     });
 
     test('returns NOOP during ended phase', () => {
-      const ctx = createBaseContext({ roomStatus: GameStatus.ended });
+      const ctx = createBaseContext({ roomStatus: GameStatus.Ended });
       const event = createSeatTapEvent(1);
 
       const result = getInteractionResult(ctx, event);
@@ -383,7 +383,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
   describe('BOTTOM_ACTION', () => {
     test('routes to ACTION_FLOW when actioner', () => {
       const ctx = createBaseContext({
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         imActioner: true,
       });
       const event = createBottomActionEvent();
@@ -396,7 +396,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
 
     test('returns NOOP when not actioner during ongoing', () => {
       const ctx = createBaseContext({
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
         imActioner: false,
       });
       const event = createBottomActionEvent();
@@ -412,7 +412,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     test('routes to HOST_CONTROL when isHost', () => {
       const ctx = createBaseContext({
         isHost: true,
-        roomStatus: GameStatus.seated,
+        roomStatus: GameStatus.Seated,
       });
       const event = createHostControlEvent('startGame');
 
@@ -425,7 +425,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     test('returns NOOP when not host', () => {
       const ctx = createBaseContext({
         isHost: false,
-        roomStatus: GameStatus.seated,
+        roomStatus: GameStatus.Seated,
       });
       const event = createHostControlEvent('startGame');
 
@@ -534,7 +534,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     test('blocked by audio gate during ongoing', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createRevealAckEvent('seer');
 
@@ -558,7 +558,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     test('blocked by audio gate during ongoing', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
-        roomStatus: GameStatus.ongoing,
+        roomStatus: GameStatus.Ongoing,
       });
       const event = createWolfRobotHunterStatusViewedEvent();
 
@@ -581,7 +581,7 @@ describe('RoomInteractionPolicy - Edge Cases', () => {
       pendingRevealAck: false,
       pendingHunterGate: false,
       hasGameState: true,
-      roomStatus: GameStatus.ongoing,
+      roomStatus: GameStatus.Ongoing,
       imActioner: true,
     });
     const event = createSeatTapEvent(1);
