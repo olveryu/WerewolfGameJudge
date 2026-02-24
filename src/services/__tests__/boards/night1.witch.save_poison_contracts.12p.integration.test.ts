@@ -18,7 +18,7 @@
  * - save 只能救被狼人袭击的玩家
  * - 同一晚不能同时使用解药和毒药
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -73,7 +73,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       expect(result.deaths).toEqual([]);
 
       // savedSeat 写入 currentNightResults
-      expect(ctx.getBroadcastState().currentNightResults?.savedSeat).toBe(0);
+      expect(ctx.getGameState().currentNightResults?.savedSeat).toBe(0);
     });
 
     it('女巫不救人时，被狼刀的玩家死亡', () => {
@@ -109,7 +109,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       expect(result.deaths).toEqual([2]);
 
       // poisonedSeat 写入 currentNightResults
-      expect(ctx.getBroadcastState().currentNightResults?.poisonedSeat).toBe(2);
+      expect(ctx.getGameState().currentNightResults?.poisonedSeat).toBe(2);
     });
 
     it('女巫可以毒狼人', () => {
@@ -151,7 +151,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
     });
   });
 
-  describe('witchContext 写入 BroadcastGameState', () => {
+  describe('witchContext 写入 GameState', () => {
     it('狼刀目标写入 witchContext.killedSeat（验证最终状态）', () => {
       ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
@@ -166,7 +166,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：savedSeat 记录了女巫救的目标
-      expect(ctx.getBroadcastState().currentNightResults?.savedSeat).toBe(0);
+      expect(ctx.getGameState().currentNightResults?.savedSeat).toBe(0);
 
       // seat 0 被救，不死
       expect(result.deaths).toEqual([]);
@@ -195,7 +195,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
 
       // 核心断言：seat 0 被救，不死
       expect(result.deaths).not.toContain(0);
-      expect(ctx.getBroadcastState().currentNightResults?.savedSeat).toBe(0);
+      expect(ctx.getGameState().currentNightResults?.savedSeat).toBe(0);
     });
 
     it('女巫不救人时，被狼刀者死亡', () => {

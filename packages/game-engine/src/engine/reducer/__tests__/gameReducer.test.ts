@@ -647,7 +647,7 @@ describe('gameReducer', () => {
   describe('ACTION_REJECTED', () => {
     /**
      * 锁死：ACTION_REJECTED 只写入 actionRejected 字段。
-     * actionRejected 必须属于 BroadcastGameState（公开广播），不引入 hostOnly 字段。
+     * actionRejected 必须属于 GameState（公开广播），不引入 hostOnly 字段。
      */
     it('should write actionRejected to state (public broadcast field)', () => {
       const state = createMinimalState({ status: 'ongoing' });

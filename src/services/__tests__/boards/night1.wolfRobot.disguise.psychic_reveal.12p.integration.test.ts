@@ -17,7 +17,7 @@
  * - wolfRobot 学习某角色后，psychic 查验 wolfRobot 显示 disguisedRole
  * - 未学习时，psychic 查验返回 wolfRobot 本体
  *
- * 架构：intents → handlers → resolver(resolveRoleForChecks) → BroadcastGameState
+ * 架构：intents → handlers → resolver(resolveRoleForChecks) → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -67,7 +67,7 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
 
     expect(result.completed).toBe(true);
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     // wolfRobotContext 写入
     expect(state.wolfRobotContext).toBeDefined();
     expect(state.wolfRobotContext!.learnedSeat).toBe(0);
@@ -94,7 +94,7 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
 
     expect(result.completed).toBe(true);
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     expect(state.wolfRobotContext!.disguisedRole).toBe('wolf');
     expect(state.psychicReveal!.result).toBe('wolf');
   });
@@ -112,7 +112,7 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
 
     expect(result.completed).toBe(true);
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     // wolfRobotContext 未写入
     expect(state.wolfRobotContext).toBeUndefined();
     // psychicReveal 显示真实角色 wolfRobot

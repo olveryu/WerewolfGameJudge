@@ -21,7 +21,7 @@ export interface CurrentNightResults {
    * Wolf votes during the wolf meeting (seat -> target seat).
    *
    * This is the single source of truth for wolf vote tracking.
-   * BroadcastGameState MUST include currentNightResults, so this data is public
+   * GameState MUST include currentNightResults, so this data is public
    * and UI should filter by role.
    */
   readonly wolfVotesBySeat?: Readonly<Record<string, number>>;
@@ -181,7 +181,7 @@ export function getRoleAfterSwap(
 // =============================================================================
 
 /**
- * WolfRobot disguise context from BroadcastGameState.
+ * WolfRobot disguise context from GameState.
  * Passed to resolvers for disguise-aware identity checks.
  */
 interface WolfRobotContext {

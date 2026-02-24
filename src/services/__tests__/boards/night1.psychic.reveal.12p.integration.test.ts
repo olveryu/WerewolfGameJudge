@@ -14,10 +14,10 @@
  *   seat 11: guard
  *
  * 核心规则：
- * - psychic 查验结果写入 BroadcastGameState.psychicReveal
+ * - psychic 查验结果写入 GameState.psychicReveal
  * - 查验结果基于目标的阵营（好人/狼人）
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -80,8 +80,8 @@ describe('Night-1: Psychic Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：psychicReveal 写入 BroadcastGameState
-      const state = ctx.getBroadcastState();
+      // 核心断言：psychicReveal 写入 GameState
+      const state = ctx.getGameState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(0);
       expect(state.psychicReveal!.result).toBe('villager');
@@ -101,7 +101,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(4);
       expect(state.psychicReveal!.result).toBe('wolf');
@@ -121,7 +121,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(7);
       // wolfRobot 是狼阵营，返回精确角色 roleId
@@ -150,7 +150,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // psychicReveal 应该为 undefined 或不包含结果
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.psychicReveal?.result).toBeUndefined();
     });
   });
@@ -175,7 +175,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(11);
       // psychic 返回精确角色 roleId
@@ -196,7 +196,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(9);
       expect(state.psychicReveal!.result).toBe('witch');

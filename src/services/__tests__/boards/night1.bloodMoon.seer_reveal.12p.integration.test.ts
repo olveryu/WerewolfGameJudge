@@ -2,7 +2,7 @@
  * Night-1 Integration Test: 血月猎魔12人 - Seer Reveal
  *
  * 板子：血月猎魔12人
- * 主题：预言家查验结果写入 BroadcastGameState.seerReveal
+ * 主题：预言家查验结果写入 GameState.seerReveal
  *
  * 固定 seat-role assignment:
  *   seat 0-3: villager
@@ -13,7 +13,7 @@
  *   seat 10: idiot
  *   seat 11: witcher
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -62,8 +62,8 @@ describe('Night-1: 血月猎魔12人 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 写入 BroadcastGameState
-      const state = ctx.getBroadcastState();
+      // 核心断言：seerReveal 写入 GameState
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);
       expect(['good', '好人']).toContain(state.seerReveal!.result);
@@ -83,7 +83,7 @@ describe('Night-1: 血月猎魔12人 - Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：bloodMoon 是狼阵营
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(7);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
@@ -103,7 +103,7 @@ describe('Night-1: 血月猎魔12人 - Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：seerReveal 无结果
-      expect(ctx.getBroadcastState().seerReveal?.result).toBeUndefined();
+      expect(ctx.getGameState().seerReveal?.result).toBeUndefined();
     });
   });
 
@@ -120,7 +120,7 @@ describe('Night-1: 血月猎魔12人 - Seer Reveal (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：witcher 是好人阵营
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(11);
       expect(['good', '好人']).toContain(state.seerReveal!.result);

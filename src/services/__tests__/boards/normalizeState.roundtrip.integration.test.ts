@@ -2,11 +2,11 @@
  * normalizeState Round-Trip Integration Test
  *
  * 验证 normalizeState 在真实 Night-1 board state 上的幂等性：
- * 在每步 action 后取 getBroadcastState()，通过 normalizeState 再做一次归一化，
+ * 在每步 action 后取 getGameState()，通过 normalizeState 再做一次归一化，
  * 确保结果等价（round-trip）。
  *
  * 捕获的 bug：
- * - 新增 BroadcastGameState 字段未同步到 normalizeState → 静默丢失
+ * - 新增 GameState 字段未同步到 normalizeState → 静默丢失
  * - seat-key 规范化引入数据变形
  */
 
@@ -47,7 +47,7 @@ function createRoleAssignment(): Map<number, RoleId> {
 // =============================================================================
 
 /**
- * 比较两个 BroadcastGameState 的 key 集合。
+ * 比较两个 GameState 的 key 集合。
  *
  * normalizeState 总是输出所有字段（包括 undefined），而 raw state 可能省略 undefined key。
  * 关键断言：raw 中的所有 key 必须出现在 normalized 中（不能丢失字段）。
@@ -74,7 +74,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
 
   it('初始 ongoing 状态 → normalizeState 幂等', () => {
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     const normalized = normalizeState(state);
 
     assertNoKeysLost(state, normalized);
@@ -88,7 +88,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
 
   it('wolfKill 后 → normalizeState 保留 wolfVotesBySeat', () => {
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
-    const s0 = ctx.getBroadcastState();
+    const s0 = ctx.getGameState();
 
     // All wolves vote
     for (const [seatStr, player] of Object.entries(s0.players)) {
@@ -103,7 +103,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
       'wolfKill',
     );
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     const normalized = normalizeState(state);
 
     assertNoKeysLost(state, normalized);
@@ -120,7 +120,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
 
     // Walk to seerCheck: wolfKill → witchAction → hunterConfirm → seerCheck
-    const s0 = ctx.getBroadcastState();
+    const s0 = ctx.getGameState();
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
@@ -159,7 +159,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
       'seerCheck',
     );
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     const normalized = normalizeState(state);
 
     assertNoKeysLost(state, normalized);
@@ -171,7 +171,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
     executeFullNight(ctx);
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     const normalized = normalizeState(state);
 
     assertNoKeysLost(state, normalized);
@@ -183,7 +183,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
     executeFullNight(ctx);
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     const once = normalizeState(state);
     const twice = normalizeState(once);
 

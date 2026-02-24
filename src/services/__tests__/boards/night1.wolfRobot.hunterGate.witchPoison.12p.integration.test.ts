@@ -23,7 +23,7 @@
  * 测试风格：按 NightPlan 顺序真实执行每个 step，不跳过任何步骤
  * 使用统一 runner（stepByStepRunner.ts），禁止自造 runner
  *
- * 架构：intents → handlers → resolver → BroadcastGameState
+ * 架构：intents → handlers → resolver → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -106,7 +106,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       );
 
       // 断言 1: 学习事实已记录
-      const stateAfterLearn = ctx.getBroadcastState();
+      const stateAfterLearn = ctx.getGameState();
       expect(stateAfterLearn.wolfRobotReveal).toBeDefined();
       expect(stateAfterLearn.wolfRobotReveal?.learnedRoleId).toBe('hunter');
       expect(stateAfterLearn.wolfRobotReveal?.targetSeat).toBe(HUNTER_SEAT);
@@ -137,14 +137,14 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       );
 
       // 断言 5: gate 已解除
-      const stateAfterGate = ctx.getBroadcastState();
+      const stateAfterGate = ctx.getGameState();
       expect(stateAfterGate.wolfRobotHunterStatusViewed).toBe(true);
 
       // 断言 6: advance 不再被拒绝（可以推进到下一步）
       ctx.advanceNightOrThrow('after gate cleared');
 
       // 断言 7: 已推进到下一步（不再是 wolfRobotLearn）
-      const stateAfterAdvance = ctx.getBroadcastState();
+      const stateAfterAdvance = ctx.getGameState();
       expect(stateAfterAdvance.currentStepId).not.toBe('wolfRobotLearn');
     });
   });
@@ -177,7 +177,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       );
 
       // 验证学习结果
-      let state = ctx.getBroadcastState();
+      let state = ctx.getGameState();
       expect(state.wolfRobotReveal?.learnedRoleId).toBe('hunter');
       expect(state.wolfRobotContext?.disguisedRole).toBe('hunter');
       expect(state.wolfRobotHunterStatusViewed).toBe(false);
@@ -192,7 +192,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         'wolf robot hunter gate',
       );
 
-      state = ctx.getBroadcastState();
+      state = ctx.getGameState();
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
 
       // 推进到下一步
@@ -211,7 +211,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(deaths).toContain(0);
 
       // 回归断言：毒杀不应影响 wolfRobotReveal / wolfRobotContext 的存在性
-      const finalState = ctx.getBroadcastState();
+      const finalState = ctx.getGameState();
       expect(finalState.wolfRobotReveal).toBeDefined();
       expect(finalState.wolfRobotReveal?.learnedRoleId).toBe('hunter');
       expect(finalState.wolfRobotContext).toBeDefined();
@@ -247,7 +247,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       );
 
       // 验证学习结果和 gate 状态
-      let state = ctx.getBroadcastState();
+      let state = ctx.getGameState();
       expect(state.wolfRobotReveal?.learnedRoleId).toBe('hunter');
       expect(state.wolfRobotContext?.disguisedRole).toBe('hunter');
       expect(state.wolfRobotHunterStatusViewed).toBe(false);
@@ -262,7 +262,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         'wolf robot hunter gate',
       );
 
-      state = ctx.getBroadcastState();
+      state = ctx.getGameState();
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
 
       // 推进到下一步
@@ -281,7 +281,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(deaths).toContain(0);
 
       // wolfRobotReveal 仍存在
-      const finalState = ctx.getBroadcastState();
+      const finalState = ctx.getGameState();
       expect(finalState.wolfRobotReveal).toBeDefined();
       expect(finalState.wolfRobotReveal?.learnedRoleId).toBe('hunter');
       expect(finalState.wolfRobotContext).toBeDefined();
@@ -314,7 +314,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         'wolfRobot learn villager',
       );
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
 
       // 学习 villager，不是 hunter
       expect(state.wolfRobotReveal?.learnedRoleId).toBe('villager');
@@ -350,7 +350,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         'wolfRobot skip',
       );
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
 
       // 没有学习，wolfRobotReveal 不应该有 learnedRoleId
       expect(state.wolfRobotReveal?.learnedRoleId).toBeUndefined();

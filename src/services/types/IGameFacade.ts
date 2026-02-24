@@ -7,13 +7,13 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 /** Connection status for UI display (re-exported from RealtimeService) */
 export type ConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected';
 
-export type FacadeStateListener = (state: BroadcastGameState | null) => void;
+export type FacadeStateListener = (state: GameState | null) => void;
 
 export interface IGameFacade {
   // === Lifecycle ===
@@ -26,7 +26,7 @@ export interface IGameFacade {
   /**
    * 获取当前状态（一次性读取）
    */
-  getState(): BroadcastGameState | null;
+  getState(): GameState | null;
 
   // === Identity ===
   /** 当前用户是否是 Host */

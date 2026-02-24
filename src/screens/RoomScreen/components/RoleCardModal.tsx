@@ -54,7 +54,7 @@ interface RoleCardModalProps {
   remainingCards: number;
   /** 关闭回调 */
   onClose: () => void;
-  /** seer+mirrorSeer 共存时的编号映射（来自 BroadcastGameState） */
+  /** seer+mirrorSeer 共存时的编号映射（来自 GameState） */
   seerLabelMap?: Readonly<Record<string, number>>;
 }
 

@@ -6,7 +6,7 @@
  * 覆盖 405 / 400 / 成功 / 失败 / audio extraction。
  */
 
-import type { BroadcastGameState } from '@werewolf/game-engine';
+import type { GameState } from '@werewolf/game-engine';
 
 import type { GameActionResult, ProcessResult } from '../_lib/types';
 import { mockRequest, mockResponse } from './helpers';
@@ -66,8 +66,8 @@ describe('POST /api/game/start', () => {
         hostUid: 'h1',
         status: 'ready',
         players: { 1: { uid: 'h1', displayName: 'Host', role: null } },
-      } as unknown as BroadcastGameState;
-      capturedResult = (processFn as (s: BroadcastGameState, r: number) => ProcessResult)(state, 0);
+      } as unknown as GameState;
+      capturedResult = (processFn as (s: GameState, r: number) => ProcessResult)(state, 0);
       return { success: true } as GameActionResult;
     });
 
@@ -102,8 +102,8 @@ describe('POST /api/game/start', () => {
         hostUid: 'h1',
         status: 'ready',
         players: { 1: { uid: 'h1', displayName: 'Host', role: null } },
-      } as unknown as BroadcastGameState;
-      capturedResult = (processFn as (s: BroadcastGameState, r: number) => ProcessResult)(state, 0);
+      } as unknown as GameState;
+      capturedResult = (processFn as (s: GameState, r: number) => ProcessResult)(state, 0);
       return { success: true } as GameActionResult;
     });
 

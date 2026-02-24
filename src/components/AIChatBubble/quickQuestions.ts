@@ -6,7 +6,7 @@
  * 读取 gameState 进行问题匹配。不调用 service，不修改 state。
  */
 
-import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { randomPick } from '@werewolf/game-engine/utils/random';
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
 
@@ -612,10 +612,7 @@ export function getContextQuestion(messages: DisplayMessage[]): string | null {
 /**
  * 根据游戏上下文和聊天记录生成快捷问题（共4道）
  */
-export function generateQuickQuestions(
-  state: BroadcastGameState | null,
-  mySeat: number | null,
-): string[] {
+export function generateQuickQuestions(state: GameState | null, mySeat: number | null): string[] {
   const questions: string[] = [];
   const used = new Set<string>();
 

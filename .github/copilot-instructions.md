@@ -97,7 +97,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 - **服务端是唯一的游戏逻辑权威。** Vercel Serverless 负责读-算-写-广播。客户端完全平等。
 - **"Host" 只是 UI 角色标记。** `isHost` 决定按钮可见性和音频播放。Host 设备同时也是玩家。
 - **仅 Night-1 范围。** 禁止跨夜状态/规则。
-- **`BroadcastGameState` 是单一真相。** 所有信息公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift/PRIVATE_EFFECT。
+- **`GameState` 是单一真相。** 所有信息公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift/PRIVATE_EFFECT。
 - **优先使用成熟库。**
 - **SRP ~400 行拆分信号**（行数是信号不是判决）。
 

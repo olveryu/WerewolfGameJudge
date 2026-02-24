@@ -14,10 +14,10 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
-  type BroadcastGameState,
   decideWolfVoteTimerAction,
   type EndNightIntent,
   gameReducer,
+  type GameState,
   handleEndNight,
   handleSetAudioPlaying,
   handleSetWolfRobotHunterStatusViewed,
@@ -58,7 +58,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
 
   const result = await processGameAction(
     roomCode,
-    (state: BroadcastGameState) => {
+    (state: GameState) => {
       const handlerCtx = buildHandlerContext(state, hostUid);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
@@ -115,7 +115,7 @@ async function handleAudioGate(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     const intent: SetAudioPlayingIntent = {
       type: 'SET_AUDIO_PLAYING',
@@ -135,7 +135,7 @@ async function handleEnd(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     const intent: EndNightIntent = { type: 'END_NIGHT' };
     return handleEndNight(intent, handlerCtx);
@@ -208,7 +208,7 @@ async function handleWolfRobotViewed(req: VercelRequest, res: VercelResponse) {
 
   const result = await processGameAction(
     roomCode,
-    (state: BroadcastGameState) => {
+    (state: GameState) => {
       const handlerCtx = buildHandlerContext(state, hostUid);
       return handleSetWolfRobotHunterStatusViewed(handlerCtx, {
         type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
@@ -231,7 +231,7 @@ async function handleWolfVote(req: VercelRequest, res: VercelResponse) {
 
   const result = await processGameAction(
     roomCode,
-    (state: BroadcastGameState) => {
+    (state: GameState) => {
       const handlerCtx = buildHandlerContext(state, hostUid);
       const intent: SubmitWolfVoteIntent = {
         type: 'SUBMIT_WOLF_VOTE',

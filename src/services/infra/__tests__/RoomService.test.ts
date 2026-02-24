@@ -1,4 +1,4 @@
-import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock setup — must be before imports
@@ -49,7 +49,7 @@ const mockGenerateRoomCode = generateRoomCode as jest.Mock;
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function makeFakeState(overrides: Partial<BroadcastGameState> = {}): BroadcastGameState {
+function makeFakeState(overrides: Partial<GameState> = {}): GameState {
   return {
     roomCode: '0000',
     hostUid: 'test-host',
@@ -61,7 +61,7 @@ function makeFakeState(overrides: Partial<BroadcastGameState> = {}): BroadcastGa
     actions: [],
     pendingRevealAcks: [],
     ...overrides,
-  } as BroadcastGameState;
+  } as GameState;
 }
 
 /** Create a mock `from()` that returns a chainable query builder for specific tables */

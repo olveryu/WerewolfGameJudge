@@ -4,11 +4,11 @@
  * Tests for runInlineProgression — 服务端内联推进纯函数
  *
  * 测试策略：
- * - 构建已完成 action 的 BroadcastGameState
+ * - 构建已完成 action 的 GameState
  * - 调用 runInlineProgression 验证：推进步数、audioEffects、finalState
  */
 
-import type { BroadcastGameState } from '@werewolf/game-engine';
+import type { GameState } from '@werewolf/game-engine';
 import { runInlineProgression } from '@werewolf/game-engine';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 
@@ -16,16 +16,10 @@ import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 // Test Helpers
 // =============================================================================
 
-const TEMPLATE_2P: BroadcastGameState['templateRoles'] = ['wolf', 'villager'];
-const TEMPLATE_5P: BroadcastGameState['templateRoles'] = [
-  'wolf',
-  'wolf',
-  'seer',
-  'witch',
-  'villager',
-];
+const TEMPLATE_2P: GameState['templateRoles'] = ['wolf', 'villager'];
+const TEMPLATE_5P: GameState['templateRoles'] = ['wolf', 'wolf', 'seer', 'witch', 'villager'];
 
-function make2PlayerState(overrides: Partial<BroadcastGameState> = {}): BroadcastGameState {
+function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
   const plan = buildNightPlan(TEMPLATE_2P);
   const firstStep = plan.steps[0];
   return {
@@ -46,7 +40,7 @@ function make2PlayerState(overrides: Partial<BroadcastGameState> = {}): Broadcas
   };
 }
 
-function make5PlayerState(overrides: Partial<BroadcastGameState> = {}): BroadcastGameState {
+function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
   const plan = buildNightPlan(TEMPLATE_5P);
   const firstStep = plan.steps[0];
   return {

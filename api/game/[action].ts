@@ -15,7 +15,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   type AudioEffect,
-  type BroadcastGameState,
+  type GameState,
   handleAssignRoles,
   handleClearAllSeats,
   handleFillWithBots,
@@ -63,7 +63,7 @@ async function handleAssign(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleAssignRoles({ type: 'ASSIGN_ROLES' }, handlerCtx);
   });
@@ -78,7 +78,7 @@ async function handleFillBots(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleFillWithBots({ type: 'FILL_WITH_BOTS' }, handlerCtx);
   });
@@ -93,7 +93,7 @@ async function handleMarkBotsViewed(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, handlerCtx);
   });
@@ -108,7 +108,7 @@ async function handleClearSeats(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleClearAllSeats({ type: 'CLEAR_ALL_SEATS' }, handlerCtx);
   });
@@ -123,7 +123,7 @@ async function handleRestart(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleRestartGame({ type: 'RESTART_GAME' }, handlerCtx);
   });
@@ -147,7 +147,7 @@ async function handleSeat(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_SEAT' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, uid);
     if (action === 'sit') {
       const intent: JoinSeatIntent = {
@@ -174,7 +174,7 @@ async function handleSetAnimation(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleSetRoleRevealAnimation(
       { type: 'SET_ROLE_REVEAL_ANIMATION', animation },
@@ -192,7 +192,7 @@ async function handleStart(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     const handlerResult = handleStartNight({ type: 'START_NIGHT' }, handlerCtx);
     if (!handlerResult.success) return handlerResult;
@@ -228,7 +228,7 @@ async function handleUpdateTemplateRoute(req: VercelRequest, res: VercelResponse
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleUpdateTemplate(
       { type: 'UPDATE_TEMPLATE', payload: { templateRoles } },
@@ -246,7 +246,7 @@ async function handleViewRole(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, uid);
     return handleViewedRole({ type: 'VIEWED_ROLE', payload: { seat } }, handlerCtx);
   });
@@ -261,7 +261,7 @@ async function handleShareReview(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
-  const result = await processGameAction(roomCode, (state: BroadcastGameState) => {
+  const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, hostUid);
     return handleShareNightReview({ type: 'SHARE_NIGHT_REVIEW', allowedSeats }, handlerCtx);
   });

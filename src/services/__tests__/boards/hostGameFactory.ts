@@ -2,11 +2,11 @@
  * Host Game Factory for Integration Tests
  *
  * 完全基于 架构：
- * - intents → handlers → reducer → BroadcastGameState
+ * - intents → handlers → reducer → GameState
  * - 禁止 import legacy GameStateService / NightFlowController
  * - 禁止 encoded target 协议
  *
- * 单一真相：BroadcastGameState（= GameState）
+ * 单一真相：GameState（= GameState）
  */
 
 import {
@@ -25,7 +25,6 @@ import type {
 } from '@werewolf/game-engine/engine/intents/types';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer';
 import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
@@ -35,7 +34,7 @@ import {
   GameTemplate,
   PRESET_TEMPLATES,
 } from '@werewolf/game-engine/models/Template';
-import type { BroadcastGameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
+import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
 // Re-export types from hostGameContext.ts for backward compatibility
 export type { CapturedMessage, HostGameContext } from './hostGameContext';
@@ -84,7 +83,7 @@ export function createHostGame(
     template = createTemplateFromRoles(templateNameOrRoles);
   }
 
-  const initialPlayers: Record<number, BroadcastGameState['players'][number]> = {};
+  const initialPlayers: Record<number, GameState['players'][number]> = {};
   for (let i = 0; i < template.numberOfPlayers; i++) {
     initialPlayers[i] = {
       uid: `player_${i}`,
@@ -154,7 +153,7 @@ export function createHostGame(
     capturedMessages: [],
   };
 
-  const getBroadcastState = (): BroadcastGameState => internal.state;
+  const getGameState = (): GameState => internal.state;
   const getRevision = (): number => internal.revision;
   const getNightPlan = (): NightPlan => internal.nightPlan;
   const getCapturedMessages = (): readonly CapturedMessage[] => internal.capturedMessages;
@@ -314,7 +313,7 @@ export function createHostGame(
   };
 
   return {
-    getBroadcastState,
+    getGameState,
     getRevision,
     getNightPlan,
     sendPlayerMessage,

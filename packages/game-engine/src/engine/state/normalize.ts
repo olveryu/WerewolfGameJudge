@@ -6,7 +6,7 @@
  * - 可选字段正确透传
  */
 
-import type { BroadcastGameState } from '../../protocol/types';
+import type { GameState } from '../../protocol/types';
 
 /**
  * Compile-time exhaustiveness guard for normalizeState.
@@ -14,7 +14,7 @@ import type { BroadcastGameState } from '../../protocol/types';
  * Requires all keys of T to be explicitly present in the object literal.
  * Value correctness is guaranteed by the function's return type annotation.
  *
- * Effect: adding a new field to BroadcastGameState without listing it in
+ * Effect: adding a new field to GameState without listing it in
  * normalizeState's return → TS error (missing property).
  */
 type Complete<T> = Record<keyof T, unknown>;
@@ -50,14 +50,14 @@ function requireField<T>(value: T | undefined, fieldName: string): T {
  * - normalize 的核心职责是：形态规范化（canonicalize keys）
  * - 对"旧的核心必填字段"（roomCode/hostUid/status 等）在真实运行中更推荐 fail-fast，避免用默认值掩盖状态损坏
  * - 如果需要为测试工厂提供便捷默认值，建议拆分：
- *   - normalizeStateForBroadcast(state: BroadcastGameState): BroadcastGameState
- *   - normalizeStateForTests(partial: Partial<BroadcastGameState>): BroadcastGameState
+ *   - normalizeStateForBroadcast(state: GameState): GameState
+ *   - normalizeStateForTests(partial: Partial<GameState>): GameState
  *
  * 🛡️ Compile-time guard:
- * 返回对象使用 `satisfies Complete<BroadcastGameState>` 确保每个字段都被显式列出。
- * 新增 BroadcastGameState 字段但忘记在此透传 → 编译报错（不再静默丢弃）。
+ * 返回对象使用 `satisfies Complete<GameState>` 确保每个字段都被显式列出。
+ * 新增 GameState 字段但忘记在此透传 → 编译报错（不再静默丢弃）。
  */
-export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
+export function normalizeState(raw: GameState): GameState {
   // single source of truth: currentNightResults.wolfVotesBySeat
   // Protocol no longer includes top-level wolfVotes/wolfVoteStatus.
   const wolfVotesBySeat = canonicalizeSeatKeyRecord(raw.currentNightResults?.wolfVotesBySeat);
@@ -128,5 +128,5 @@ export function normalizeState(raw: BroadcastGameState): BroadcastGameState {
 
     // 详细信息分享权限（透传）
     nightReviewAllowedSeats: raw.nightReviewAllowedSeats,
-  } satisfies Complete<BroadcastGameState>;
+  } satisfies Complete<GameState>;
 }

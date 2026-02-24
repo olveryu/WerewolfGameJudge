@@ -1,8 +1,8 @@
-import type { BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
-import { broadcastToLocalState } from '@/hooks/adapters/broadcastToLocalState';
+import { toLocalState } from '@/hooks/adapters/toLocalState';
 
-function makeBaseBroadcastState(overrides: Partial<BroadcastGameState> = {}): BroadcastGameState {
+function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
   return {
     roomCode: 'ROOM',
     hostUid: 'HOST',
@@ -21,9 +21,9 @@ function makeBaseBroadcastState(overrides: Partial<BroadcastGameState> = {}): Br
   };
 }
 
-describe('broadcastToLocalState', () => {
+describe('toLocalState', () => {
   it('maps core fields and optional role contexts', () => {
-    const broadcast = makeBaseBroadcastState({
+    const state = makeBaseGameState({
       currentStepId: 'seerCheck' as any,
       currentNightResults: { wolfVotesBySeat: { '0': 2 } } as any,
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
@@ -36,7 +36,7 @@ describe('broadcastToLocalState', () => {
       },
     });
 
-    const local = broadcastToLocalState(broadcast);
+    const local = toLocalState(state);
 
     expect(local.roomCode).toBe('ROOM');
     expect(local.hostUid).toBe('HOST');
@@ -58,8 +58,8 @@ describe('broadcastToLocalState', () => {
     });
   });
 
-  it('maps BroadcastGameState.actions into LocalGameState.actions (all Night-1 schemas)', () => {
-    const broadcast = makeBaseBroadcastState({
+  it('maps GameState.actions into LocalGameState.actions (all Night-1 schemas)', () => {
+    const state = makeBaseGameState({
       // swap lives in currentNightResults
       currentNightResults: { swappedSeats: [3, 4] } as any,
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
@@ -81,7 +81,7 @@ describe('broadcastToLocalState', () => {
       ],
     });
 
-    const local = broadcastToLocalState(broadcast);
+    const local = toLocalState(state);
 
     expect(local.actions.get('seer' as any)).toEqual({ kind: 'target', targetSeat: 0 });
     expect(local.actions.get('guard' as any)).toEqual({ kind: 'target', targetSeat: 1 });
@@ -106,12 +106,12 @@ describe('broadcastToLocalState', () => {
   });
 
   it('maps witchAction as poison when target != killedSeat', () => {
-    const broadcast = makeBaseBroadcastState({
+    const state = makeBaseGameState({
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       actions: [{ schemaId: 'witchAction' as any, actorSeat: 1, targetSeat: 0, timestamp: 1 }],
     });
 
-    const local = broadcastToLocalState(broadcast);
+    const local = toLocalState(state);
     expect(local.actions.get('witch' as any)).toEqual({
       kind: 'witch',
       witchAction: { kind: 'poison', targetSeat: 0 },
@@ -119,12 +119,12 @@ describe('broadcastToLocalState', () => {
   });
 
   it('maps witchAction as none when no targetSeat', () => {
-    const broadcast = makeBaseBroadcastState({
+    const state = makeBaseGameState({
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       actions: [{ schemaId: 'witchAction' as any, actorSeat: 1, timestamp: 1 }],
     });
 
-    const local = broadcastToLocalState(broadcast);
+    const local = toLocalState(state);
     expect(local.actions.get('witch' as any)).toEqual({
       kind: 'witch',
       witchAction: { kind: 'none' },

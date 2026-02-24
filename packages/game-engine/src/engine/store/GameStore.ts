@@ -2,7 +2,7 @@
  * GameStore - 游戏状态持有者
  *
  * 职责：
- * - 持有 GameState（= BroadcastGameState）
+ * - 持有 GameState（= GameState）
  * - 管理 revision 版本号
  * - 订阅/通知机制
  * - 玩家端：applySnapshot（版本号检查）

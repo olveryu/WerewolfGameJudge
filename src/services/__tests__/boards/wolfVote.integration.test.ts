@@ -53,7 +53,7 @@ describe('WolfVote Integration Tests', () => {
       });
 
       // 验证 wolfVotesBySeat 单一真相
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat;
 
       expect(wolfVotesBySeat).toBeDefined();
@@ -79,7 +79,7 @@ describe('WolfVote Integration Tests', () => {
       });
 
       // 验证空刀记录
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat;
 
       // 空刀时 lead wolf 的投票应该记录为 -1
@@ -151,7 +151,7 @@ describe('WolfVote Integration Tests', () => {
       expect(sendResult.success).toBe(true);
 
       // 验证 wolfVotesBySeat 被更新
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.wolfVotesBySeat?.['4']).toBe(1);
     });
 
@@ -187,7 +187,7 @@ describe('WolfVote Integration Tests', () => {
       });
 
       // 验证第一次投票
-      let state = ctx.getBroadcastState();
+      let state = ctx.getGameState();
       expect(state.currentNightResults?.wolfVotesBySeat?.['4']).toBe(1);
 
       // 改票
@@ -198,7 +198,7 @@ describe('WolfVote Integration Tests', () => {
       });
 
       // 验证改票后的结果
-      state = ctx.getBroadcastState();
+      state = ctx.getGameState();
       expect(state.currentNightResults?.wolfVotesBySeat?.['4']).toBe(2);
     });
 
@@ -221,7 +221,7 @@ describe('WolfVote Integration Tests', () => {
       });
 
       // 验证所有投票都被记录
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat;
 
       expect(wolfVotesBySeat).toBeDefined();
@@ -269,7 +269,7 @@ describe('WolfVote Integration Tests', () => {
       expect(blockResult.success).toBe(true);
 
       // 验证封锁状态
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.blockedSeat).toBe(4);
       expect(state.currentNightResults?.wolfKillDisabled).toBe(true);
     });
@@ -287,7 +287,7 @@ describe('WolfVote Integration Tests', () => {
       });
 
       // 验证狼没有被禁用
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.blockedSeat).toBe(1);
       expect(state.currentNightResults?.wolfKillDisabled).toBeFalsy();
     });

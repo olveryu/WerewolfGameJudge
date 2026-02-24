@@ -6,7 +6,7 @@
  * - 返回 SET_CONFIRM_STATUS action 或 null
  *
  * 设计原则：
- * - 单一真相：confirmStatus 只存在于 BroadcastGameState.confirmStatus
+ * - 单一真相：confirmStatus 只存在于 GameState.confirmStatus
  * - 纯函数：不 IO、不读外部、不写 state
  * - 与 witchContext.ts 对称：step-entry context，在步骤开始前就位
  *
@@ -14,13 +14,13 @@
  */
 
 import type { SchemaId } from '../../models/roles/spec';
-import type { BroadcastGameState } from '../../protocol/types';
+import type { GameState } from '../../protocol/types';
 import type { SetConfirmStatusAction } from '../reducer/types';
 
 /**
  * 非 null 的 state 类型
  */
-type NonNullState = NonNullable<BroadcastGameState>;
+type NonNullState = NonNullable<GameState>;
 
 /** hunterConfirm / darkWolfKingConfirm stepId → role 映射 */
 const CONFIRM_STEP_ROLE: Record<string, 'hunter' | 'darkWolfKing'> = {

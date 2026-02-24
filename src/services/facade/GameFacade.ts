@@ -26,7 +26,7 @@ import { GameStore } from '@werewolf/game-engine/engine/store';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getStepSpec } from '@werewolf/game-engine/models/roles/spec/nightSteps';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { AudioEffect, BroadcastGameState } from '@werewolf/game-engine/protocol/types';
+import type { AudioEffect, GameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverride';
 
@@ -157,7 +157,7 @@ export class GameFacade implements IGameFacade {
     });
   }
 
-  getState(): BroadcastGameState | null {
+  getState(): GameState | null {
     return this.store.getState();
   }
 
@@ -223,7 +223,7 @@ export class GameFacade implements IGameFacade {
 
     // 加入频道（所有客户端统一监听 postgres_changes onDbStateChange）
     await this.realtimeService.joinRoom(roomCode, hostUid, {
-      onDbStateChange: (state: BroadcastGameState, revision: number) => {
+      onDbStateChange: (state: GameState, revision: number) => {
         facadeLog.debug('DB state change → applySnapshot, revision:', revision);
         this.store.applySnapshot(state, revision);
         this.realtimeService.markAsLive();
@@ -259,7 +259,7 @@ export class GameFacade implements IGameFacade {
 
     // 1. Subscribe first（社区标准：不丢 gap 期间的事件）
     await this.realtimeService.joinRoom(roomCode, uid, {
-      onDbStateChange: (state: BroadcastGameState, revision: number) => {
+      onDbStateChange: (state: GameState, revision: number) => {
         facadeLog.debug('DB state change → applySnapshot, revision:', revision);
         this.store.applySnapshot(state, revision);
         this.realtimeService.markAsLive();

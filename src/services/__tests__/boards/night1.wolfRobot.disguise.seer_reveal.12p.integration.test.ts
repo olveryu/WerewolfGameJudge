@@ -19,7 +19,7 @@
  * - 未学习时，seer 查验返回 "狼人"（wolfRobot 本体是狼阵营）
  * - magician swap 后，seer 查验仍遵循 resolveRoleForChecks 逻辑
  *
- * 架构：intents → handlers → resolver(resolveRoleForChecks) → BroadcastGameState
+ * 架构：intents → handlers → resolver(resolveRoleForChecks) → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -86,7 +86,7 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
 
     expect(result.completed).toBe(true);
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     // wolfRobotContext 写入
     expect(state.wolfRobotContext).toBeDefined();
     expect(state.wolfRobotContext!.learnedSeat).toBe(0);
@@ -111,7 +111,7 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
 
     expect(result.completed).toBe(true);
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     expect(state.wolfRobotContext!.disguisedRole).toBe('wolf');
     expect(state.seerReveal!.result).toBe('狼人');
   });
@@ -130,7 +130,7 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
 
     expect(result.completed).toBe(true);
 
-    const state = ctx.getBroadcastState();
+    const state = ctx.getGameState();
     // wolfRobotContext 未写入
     expect(state.wolfRobotContext).toBeUndefined();
     // seerReveal 显示 "狼人"（wolfRobot 本体是狼阵营）
@@ -156,7 +156,7 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       // wolfRobotContext 写入（学到 witch）
       expect(state.wolfRobotContext!.disguisedRole).toBe('witch');
 
@@ -183,7 +183,7 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       // seer 查验 seat 7（swap 后是 wolf）显示 "狼人"
       expect(state.seerReveal!.targetSeat).toBe(7);
       expect(state.seerReveal!.result).toBe('狼人');

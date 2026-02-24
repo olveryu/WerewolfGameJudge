@@ -36,7 +36,7 @@ export interface ProtocolAction {
 /**
  * 音频效果描述符
  *
- * 服务端内联推进时产生，写入 `BroadcastGameState.pendingAudioEffects`。
+ * 服务端内联推进时产生，写入 `GameState.pendingAudioEffects`。
  * Host 设备消费队列播放音频，播放完成后 POST `/api/game/night/audio-ack` 清除。
  * Non-Host 设备忽略。
  */
@@ -48,10 +48,10 @@ export interface AudioEffect {
 }
 
 // =============================================================================
-// 广播玩家（BroadcastPlayer）
+// 玩家（Player）— 线协议
 // =============================================================================
 
-export interface BroadcastPlayer {
+export interface Player {
   uid: string;
   seatNumber: number;
   displayName?: string;
@@ -63,10 +63,10 @@ export interface BroadcastPlayer {
 }
 
 // =============================================================================
-// 广播游戏状态（BroadcastGameState）— 线协议
+// 游戏状态（GameState）— 线协议
 // =============================================================================
 
-export interface BroadcastGameState {
+export interface GameState {
   // --- 核心字段（现有） ---
   roomCode: string;
   hostUid: string;
@@ -74,7 +74,7 @@ export interface BroadcastGameState {
   templateRoles: RoleId[];
 
   // ⚠️ Phase 1: players 保持 Record<number, ...> 不改，与现有实现一致
-  players: Record<number, BroadcastPlayer | null>;
+  players: Record<number, Player | null>;
 
   currentStepIndex: number;
   isAudioPlaying: boolean;
@@ -131,8 +131,8 @@ export interface BroadcastGameState {
    * 解释为 `disguisedRole`，从而影响预言家/通灵师/石像鬼等的查验结果。
    *
    * 注意：
-   * - 这是 BroadcastGameState 的一部分（公开广播），但 UI 一般不直接依赖它；
-   *   UI 只从 schema + BroadcastGameState 渲染，并按 myRole 过滤展示。
+   * - 这是 GameState 的一部分（公开广播），但 UI 一般不直接依赖它；
+   *   UI 只从 schema + GameState 渲染，并按 myRole 过滤展示。
    * - 禁止在 engine 之外维护平行的“伪装身份”状态，避免 Host/Player drift。
    */
   wolfRobotContext?: {
@@ -219,7 +219,7 @@ export interface BroadcastGameState {
    * - Host 写入：当 `wolfRobotReveal.learnedRoleId === 'hunter'` 时设置为 false（需要查看）。
    * - Host 清除：收到玩家确认消息 `WOLF_ROBOT_HUNTER_STATUS_VIEWED` 后设置为 true。
    * - NightFlow：若 gate 未清除，Host 必须拒绝推进（防止 authority split）。
-   * - UI：仅根据 schema + BroadcastGameState 展示底部按钮，不允许 UI 本地状态机自推导。
+   * - UI：仅根据 schema + GameState 展示底部按钮，不允许 UI 本地状态机自推导。
    */
   wolfRobotHunterStatusViewed?: boolean;
 
@@ -316,13 +316,6 @@ export interface BroadcastGameState {
    */
   nightReviewAllowedSeats?: readonly number[];
 }
-
-// =============================================================================
-// 主机广播消息（HostBroadcast）
-// =============================================================================
-
-/** DB → postgres_changes 推送的状态变更消息 */
-export type HostBroadcast = { type: 'STATE_UPDATE'; state: BroadcastGameState; revision: number };
 
 // =============================================================================
 // 玩家消息（PlayerMessage）— 仅 integration test 使用

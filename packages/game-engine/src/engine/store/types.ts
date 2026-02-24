@@ -1,16 +1,12 @@
 /**
  * Store Types - 状态存储类型定义
  *
- * GameState ≡ BroadcastGameState（单一状态形态）
+ * GameState 定义在 protocol/types.ts（单一真相），此处 re-export 供 store 层消费者使用。
  */
 
-import type { BroadcastGameState } from '../../protocol/types';
-
-/**
- * 游戏状态类型别名
- * 主机和玩家持有完全相同的类型
- */
-export type GameState = BroadcastGameState;
+// Re-export from protocol (canonical definition)
+export type { GameState } from '../../protocol/types';
+import type { GameState } from '../../protocol/types';
 
 /**
  * 状态订阅者回调（Store 层）

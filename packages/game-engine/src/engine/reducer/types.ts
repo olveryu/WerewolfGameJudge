@@ -6,7 +6,7 @@
 
 import type { RoleId } from '../../models/roles';
 import type { SchemaId } from '../../models/roles/spec';
-import type { BroadcastPlayer, ProtocolAction } from '../../protocol/types';
+import type { Player, ProtocolAction } from '../../protocol/types';
 import type { AudioEffect } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
 import type { RoleRevealAnimation } from '../../types/RoleRevealAnimation';
@@ -52,7 +52,7 @@ export interface PlayerJoinAction {
   type: 'PLAYER_JOIN';
   payload: {
     seat: number;
-    player: BroadcastPlayer;
+    player: Player;
   };
 }
 
@@ -278,7 +278,7 @@ export interface FillWithBotsAction {
   type: 'FILL_WITH_BOTS';
   payload: {
     /** bot players to add (keyed by seat number) */
-    bots: Record<number, BroadcastPlayer>;
+    bots: Record<number, Player>;
   };
 }
 

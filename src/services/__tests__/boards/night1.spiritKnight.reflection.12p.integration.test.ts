@@ -18,7 +18,7 @@
  * - Seer 查验 Spirit Knight → Seer 死亡（反伤）
  * - Witch 毒 Spirit Knight → Witch 死亡，Spirit Knight 免疫（反伤 + 免疫）
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -69,7 +69,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言 1：seerReveal 写入（主题字段）
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(7);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
@@ -100,7 +100,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：seerReveal 写入，但目标不是 spiritKnight
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(4);
 
@@ -126,7 +126,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言 1：witch 的 action 记录 poisonedSeat（主题字段）
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.poisonedSeat).toBe(7);
 
       // 核心断言 2：witch(9) 反伤死亡
@@ -152,7 +152,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：poisonedSeat 写入
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.poisonedSeat).toBe(0);
 
       // witch(9) 不反伤死亡

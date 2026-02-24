@@ -305,7 +305,7 @@ pnpm exec jest --updateSnapshot
 适用于：查验类角色（如 seer / psychic / gargoyle）。
 
 1. `schema.types.ts` — `RevealKind` 联合类型加新值
-2. `protocol/types.ts` — `BroadcastGameState` 加 `newRoleReveal?` 字段
+2. `protocol/types.ts` — `GameState` 加 `newRoleReveal?` 字段
 3. `engine/state/normalize.ts` — 加对应字段（有 `satisfies Complete<...>` 编译守卫）
 4. `engine/reducer/types.ts` — `ApplyResolverResultAction.payload` 加 reveal 字段
 5. Resolver 中 `result: { checkResult }` 返回查验结果
@@ -332,9 +332,9 @@ pnpm exec jest --updateSnapshot
 1. `models/actions/RoleAction.ts` — 加新 discriminated union 变体
 2. `engine/handlers/actionHandler.ts` — 加对应分发逻辑
 
-### C5 — 新 BroadcastGameState 字段
+### C5 — 新 GameState 字段
 
-任何新增 `BroadcastGameState` 字段都必须同步：
+任何新增 `GameState` 字段都必须同步：
 
 1. `protocol/types.ts` — 字段定义
 2. `engine/state/normalize.ts` — 默认值（编译器会报错提醒）
@@ -381,7 +381,7 @@ pnpm exec jest --updateSnapshot
 - `NIGHT_STEPS[*].id` **必须** === 对应 `SchemaId`
 - `ROLE_SPECS` 中 `night1.hasAction === true` 的角色**必须**在 `NIGHT_STEPS` 中出现恰好一次
 - Resolver 校验**必须**与 `SCHEMAS[*].constraints` 双向一致
-- 新增 `BroadcastGameState` 字段**必须**同步 `normalizeState`（编译期守卫）
+- 新增 `GameState` 字段**必须**同步 `normalizeState`（编译期守卫）
 - `shortName` 全局唯一（单字）
 
 ```

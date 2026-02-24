@@ -6,7 +6,7 @@
  * 不测试 game-engine 纯函数逻辑（由 engine 自身测试覆盖）。
  */
 
-import type { BroadcastGameState } from '@werewolf/game-engine';
+import type { GameState } from '@werewolf/game-engine';
 
 import type { GameActionResult } from '../_lib/types';
 import { mockRequest, mockResponse } from './helpers';
@@ -139,8 +139,8 @@ describe('POST /api/game/seat', () => {
       const state = {
         hostUid: 'host1',
         players: { 2: { uid: 'u1', displayName: 'A', role: null } },
-      } as unknown as BroadcastGameState;
-      const result = (processFn as (s: BroadcastGameState, r: number) => unknown)(state, 1);
+      } as unknown as GameState;
+      const result = (processFn as (s: GameState, r: number) => unknown)(state, 1);
       // Should be a ProcessResult from handleJoinSeat
       return { success: true, _callbackResult: result } as unknown as GameActionResult;
     });
@@ -161,8 +161,8 @@ describe('POST /api/game/seat', () => {
       const state = {
         hostUid: 'host1',
         players: { 2: { uid: 'u1', displayName: 'A', role: null } },
-      } as unknown as BroadcastGameState;
-      const result = (processFn as (s: BroadcastGameState, r: number) => unknown)(state, 1);
+      } as unknown as GameState;
+      const result = (processFn as (s: GameState, r: number) => unknown)(state, 1);
       return { success: true, _callbackResult: result } as unknown as GameActionResult;
     });
 

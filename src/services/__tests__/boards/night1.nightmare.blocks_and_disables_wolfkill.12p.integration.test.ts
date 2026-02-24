@@ -18,7 +18,7 @@
  * - **被阻断玩家提交 skip（target: null）→ 有效但无效果**
  * - 若 nightmare 选中狼阵营玩家：wolfKillDisabled === true，狼刀无效
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -73,7 +73,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.advanceNight();
 
       // 核心断言：wolfKillDisabled = true
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.wolfKillDisabled).toBe(true);
       expect(state.currentNightResults?.blockedSeat).toBe(4);
     });
@@ -93,7 +93,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.advanceNight();
 
       // nightmare 是狼阵营，选中自己也触发禁刀
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.wolfKillDisabled).toBe(true);
     });
   });
@@ -113,7 +113,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.advanceNight();
 
       // 核心断言：wolfKillDisabled 不设置（undefined）
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.wolfKillDisabled).toBeUndefined();
       expect(state.currentNightResults?.blockedSeat).toBe(0);
     });
@@ -256,7 +256,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       expect(seerResult.success).toBe(true);
 
       // seerReveal 为空（因为 skip）
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.seerReveal?.result).toBeUndefined();
     });
   });
@@ -275,7 +275,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       });
       ctx.advanceNight();
 
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       expect(state.currentNightResults?.blockedSeat).toBeUndefined();
       expect(state.currentNightResults?.wolfKillDisabled).toBeUndefined();
     });

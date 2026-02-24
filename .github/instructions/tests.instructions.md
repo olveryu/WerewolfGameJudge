@@ -9,7 +9,7 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 
 - 禁止 `console.*`（Jest 断言失败自动输出 diff；E2E 有 trace + testInfo.attach）。如需全局拦截，`jest.setup.ts` 中配置 console spy。
 - 禁止 `it.skip` / `test.skip` / `describe.skip`（CI 检测到直接 fail）。
-- 测试断言基于 `BroadcastGameState` 单一真相，禁止直接改 state / 注入 host-only 状态。
+- 测试断言基于 `GameState` 单一真相，禁止直接改 state / 注入 host-only 状态。
 - 测试文件允许 `as` 构造 mock 数据。允许 mock `src/utils/alert.ts` 的 `showAlert`。
 - Jest mock game-engine 模块用包路径 `@werewolf/game-engine/...`，禁止相对路径 mock 存根。静态分析测试从 `packages/game-engine/src/` 读取源文件。
 - 跑测试禁止 `| grep` / `| head` / `| tail` 截断输出。Playwright 必须加 `--reporter=list`。

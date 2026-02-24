@@ -10,7 +10,7 @@
  */
 
 import { doesRoleParticipateInWolfVote } from '../../models/roles';
-import type { BroadcastGameState } from '../../protocol/types';
+import type { GameState } from '../../protocol/types';
 
 /** 狼人投票倒计时毫秒数 */
 export const WOLF_VOTE_COUNTDOWN_MS = 5000;
@@ -32,7 +32,7 @@ export const WOLF_VOTE_COUNTDOWN_MS = 5000;
  * ⚠️ 行为变更（vs 旧 isCurrentStepComplete wolfKill 分支）：
  * 旧逻辑 `continue` 跳过 role 缺失的座位，新逻辑 `return false`（fail-closed）。
  */
-export function isWolfVoteAllComplete(state: BroadcastGameState): boolean {
+export function isWolfVoteAllComplete(state: GameState): boolean {
   const wolfVotes = state.currentNightResults?.wolfVotesBySeat ?? {};
   const participatingWolfSeats: number[] = [];
   for (const [seatStr, player] of Object.entries(state.players)) {

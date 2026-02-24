@@ -31,7 +31,7 @@ import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { gameRoomLog } from '@/utils/logger';
 
-import { broadcastToLocalState } from './adapters/broadcastToLocalState';
+import { toLocalState } from './adapters/toLocalState';
 import { useBgmControl } from './useBgmControl';
 import { useConnectionSync } from './useConnectionSync';
 import { useDebugMode } from './useDebugMode';
@@ -189,13 +189,13 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Facade state subscription → identity derivation
   // =========================================================================
   useEffect(() => {
-    const unsubscribe = facade.addListener((broadcastState) => {
-      if (broadcastState) {
+    const unsubscribe = facade.addListener((snapshot) => {
+      if (snapshot) {
         gameRoomLog.debug('[facade] State update from facade', {
-          roomCode: broadcastState.roomCode,
-          status: broadcastState.status,
+          roomCode: snapshot.roomCode,
+          status: snapshot.status,
         });
-        const localState = broadcastToLocalState(broadcastState);
+        const localState = toLocalState(snapshot);
         setGameState(localState);
         // 从 facade 派生 identity
         setIsHost(facade.isHostPlayer());
@@ -208,11 +208,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         // Host rejoin to ongoing game → show "continue game" overlay
         // wasAudioInterrupted is a one-shot flag set during joinRoom(isHost=true) DB restore,
         // cleared after resumeAfterRejoin(). setState(true) is idempotent.
-        if (
-          facade.isHostPlayer() &&
-          broadcastState.status === 'ongoing' &&
-          facade.wasAudioInterrupted
-        ) {
+        if (facade.isHostPlayer() && snapshot.status === 'ongoing' && facade.wasAudioInterrupted) {
           setShowContinueOverlay(true);
         }
       } else {

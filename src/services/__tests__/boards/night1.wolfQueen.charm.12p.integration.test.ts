@@ -17,7 +17,7 @@
  * - wolfQueen 魅惑目标通过 action 记录（targetSeat）
  * - 被魅惑者与狼美人连体（链接死亡在 DeathCalculator 处理）
  *
- * 架构：intents → handlers → reducer → BroadcastGameState
+ * 架构：intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -69,7 +69,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：wolfQueenCharm action 写入 state.actions
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
       expect(charmAction).toBeDefined();
       expect(charmAction!.actorSeat).toBe(7); // wolfQueen 在 seat 7
@@ -93,7 +93,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
       expect(result.completed).toBe(true);
 
       // 核心断言：action 记录魅惑目标
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
       expect(charmAction).toBeDefined();
       expect(charmAction!.targetSeat).toBe(8);
@@ -115,7 +115,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
       });
 
       // 核心断言：空选时 action 存在但 targetSeat 为 undefined，或无该 action
-      const state = ctx.getBroadcastState();
+      const state = ctx.getGameState();
       const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
       // 空选时：要么无 action，要么 targetSeat 为 undefined
       expect(charmAction?.targetSeat).toBeUndefined();

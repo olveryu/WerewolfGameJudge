@@ -16,7 +16,7 @@
  * 不包含 IO、副作用或时间依赖（Date.now 由调用方传入）。
  */
 
-import type { AudioEffect, BroadcastGameState } from '../protocol/types';
+import type { AudioEffect, GameState } from '../protocol/types';
 import { getEngineLogger } from '../utils/logger';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
@@ -38,7 +38,7 @@ interface InlineProgressionResult {
   /** 推进过程中收集的待播放音频 */
   audioEffects: AudioEffect[];
   /** 最终 state（已 apply 所有 actions） */
-  finalState: BroadcastGameState;
+  finalState: GameState;
   /** 推进步数（0 = 未推进） */
   stepsAdvanced: number;
 }
@@ -48,7 +48,7 @@ interface InlineProgressionResult {
  *
  * 内联在此处避免导出 private 函数。
  */
-function isStepComplete(state: BroadcastGameState): boolean {
+function isStepComplete(state: GameState): boolean {
   const stepId = state.currentStepId;
   if (!stepId) return true; // 没有当前步骤 → 完成（进入 endNight）
 
@@ -68,10 +68,7 @@ function isStepComplete(state: BroadcastGameState): boolean {
  * - 不使用 ProgressionTracker（服务端无状态）
  * - 接受 nowMs 用于 wolfVoteDeadline 检查
  */
-function evaluateProgression(
-  state: BroadcastGameState,
-  nowMs: number,
-): 'advance' | 'end_night' | 'none' {
+function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_night' | 'none' {
   if (state.status !== 'ongoing') return 'none';
   if (state.isAudioPlaying) return 'none';
   if (state.pendingRevealAcks && state.pendingRevealAcks.length > 0) return 'none';
@@ -118,7 +115,7 @@ function extractAudioEffects(sideEffects: SideEffect[] | undefined): AudioEffect
  * @returns 推进结果（actions + audioEffects + finalState）
  */
 export function runInlineProgression(
-  state: BroadcastGameState,
+  state: GameState,
   hostUid: string,
   nowMs: number = Date.now(),
 ): InlineProgressionResult {
