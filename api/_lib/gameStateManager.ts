@@ -74,14 +74,21 @@ export async function processGameAction(
       const result = process(currentState, currentRevision);
 
       if (!result.success) {
-        // Handler 逻辑失败不重试
-        return { success: false, reason: result.reason };
+        // Handler 逻辑拒绝 — 仍需 apply 附带 actions（如 ACTION_REJECTED）并写回 DB，
+        // 这样客户端能通过 postgres_changes 收到拒绝通知（UI 读 gameState.actionRejected）。
+        // 无 actions 时直接返回，不写 DB。
+        if (!result.actions || result.actions.length === 0) {
+          return { success: false, reason: result.reason };
+        }
+        // Fall through: apply actions → write DB → return failure with sideEffects
       }
 
       // Step 3: apply actions → 新 state
       let newState = currentState;
+      let totalActionsApplied = 0;
       for (const action of result.actions) {
         newState = gameReducer(newState, action);
+        totalActionsApplied++;
       }
 
       // Step 3.5: 内联推进（可选）
@@ -93,7 +100,18 @@ export async function processGameAction(
         );
         for (const action of progressionResult.actions) {
           newState = gameReducer(newState, action);
+          totalActionsApplied++;
         }
+      }
+
+      // No-op guard: skip DB write if nothing changed (avoids wasted writes + postgres_changes noise)
+      if (totalActionsApplied === 0) {
+        return {
+          success: result.success,
+          reason: result.reason,
+          state: currentState,
+          revision: currentRevision,
+        };
       }
 
       newState = normalizeState(newState);
@@ -121,7 +139,8 @@ export async function processGameAction(
 
       // 客户端通过 postgres_changes 单通道接收 DB 变更，无需服务端主动广播
       return {
-        success: true,
+        success: result.success,
+        reason: result.reason,
         state: newState,
         revision: currentRevision + 1,
         sideEffects: result.sideEffects,
