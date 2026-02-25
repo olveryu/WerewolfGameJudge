@@ -570,6 +570,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     settingsChip: {
       flexBasis: '22%',
       flexGrow: 1,
+      maxWidth: '24%',
       alignItems: 'center',
       paddingHorizontal: spacing.small,
       paddingVertical: componentSizes.chip.paddingV,
