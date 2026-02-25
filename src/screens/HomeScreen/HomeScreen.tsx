@@ -110,6 +110,7 @@ export const HomeScreen: React.FC = () => {
 
   const requireAuth = useCallback(
     (action: () => void) => {
+      if (authLoading) return; // 初始化中，静默忽略
       if (!user) {
         showAlert('需要登录', '请先登录后继续', [
           { text: '取消', style: 'cancel' },
@@ -119,7 +120,7 @@ export const HomeScreen: React.FC = () => {
       }
       action();
     },
-    [user],
+    [user, authLoading],
   );
 
   // ============================================
