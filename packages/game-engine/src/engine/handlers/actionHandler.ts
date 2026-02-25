@@ -271,17 +271,21 @@ const REVEAL_HANDLERS: Record<RevealKind, RevealHandler> = {
  */
 function buildRevealPayload(
   result: ResolverResult,
-  role: RoleId,
+  schemaId: SchemaId,
   targetSeat: number,
 ): ApplyResolverResultAction['payload'] {
   const payload: ApplyResolverResultAction['payload'] = {
     updates: result.updates,
   };
 
-  // 根据角色类型查表设置对应的 reveal
-  const handler = REVEAL_HANDLERS[role as RevealKind];
-  if (handler) {
-    Object.assign(payload, handler(result, targetSeat));
+  // 从 schema.ui.revealKind 查表设置对应的 reveal（schema 是单一真相）
+  const schema = SCHEMAS[schemaId];
+  const revealKind = (schema?.ui as { revealKind?: RevealKind } | undefined)?.revealKind;
+  if (revealKind) {
+    const handler = REVEAL_HANDLERS[revealKind];
+    if (handler) {
+      Object.assign(payload, handler(result, targetSeat));
+    }
   }
 
   return payload;
@@ -617,7 +621,7 @@ function buildSuccessResult(
   if (target !== null && (result.updates || result.result)) {
     actions.push({
       type: 'APPLY_RESOLVER_RESULT',
-      payload: buildRevealPayload(result, role, target),
+      payload: buildRevealPayload(result, schemaId, target),
     });
 
     // 如果 schema 定义了 revealKind，需要弹窗确认，添加 pending ack 阻塞推进

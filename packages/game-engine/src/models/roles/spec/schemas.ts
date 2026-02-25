@@ -194,7 +194,7 @@ export const SCHEMAS = {
     constraints: [], // Neutral judge: wolves can target ANY seat
     meeting: {
       canSeeEachOther: true,
-      resolution: 'firstVote',
+      resolution: 'majority',
       allowEmptyVote: true,
     },
     ui: {

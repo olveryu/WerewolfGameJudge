@@ -57,11 +57,13 @@ export function validateConstraints(
         }
         break;
       }
-      default:
-        // FAIL-FAST: Unknown constraint must throw error
+      default: {
+        // Compile-time exhaustiveness guard + runtime fail-fast
+        const _exhaustive: never = constraint;
         throw new Error(
-          `[FAIL-FAST] Unknown constraint: ${constraint}. Add handler in constraintValidator.ts or remove from schema.`,
+          `[FAIL-FAST] Unknown constraint: ${_exhaustive}. Add handler in constraintValidator.ts or remove from schema.`,
         );
+      }
     }
   }
 
