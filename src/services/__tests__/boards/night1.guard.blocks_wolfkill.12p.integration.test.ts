@@ -22,7 +22,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '狼王守卫12人';
@@ -48,15 +48,15 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('守卫守护成功挡刀', () => {
     it('守卫守护狼刀目标，该目标不死', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 0，狼刀 seat 0
       const result = executeFullNight(ctx, {
@@ -76,7 +76,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
     });
 
     it('守卫守护非狼刀目标，狼刀目标死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 1，狼刀 seat 0
       const result = executeFullNight(ctx, {
@@ -95,7 +95,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
 
   describe('守卫不守护', () => {
     it('守卫空守时，狼刀正常生效', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null, // 不守护
@@ -119,7 +119,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
 
   describe('守卫 + 女巫同守同救', () => {
     it('守卫守护 + 女巫救同一目标：按"同守同救必死"规则，目标死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 0，女巫救 seat 0，狼刀 seat 0
       const result = executeFullNight(ctx, {
@@ -136,7 +136,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
     });
 
     it('守卫守护 A + 女巫救 B：只有女巫救的 B 生效（如果 B 被刀）', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 1，狼刀 seat 0，女巫救 seat 0
       const result = executeFullNight(ctx, {

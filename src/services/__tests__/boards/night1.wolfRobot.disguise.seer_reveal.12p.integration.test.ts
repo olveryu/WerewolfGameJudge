@@ -24,7 +24,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 /**
@@ -66,14 +66,14 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   it('wolfRobot 学习 villager，seer 查验 wolfRobot 显示 "好人"', () => {
-    ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+    ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
       wolfRobot: 0, // 学习 villager（好人阵营）
@@ -98,7 +98,7 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
   });
 
   it('wolfRobot 学习 wolf，seer 查验 wolfRobot 显示 "狼人"', () => {
-    ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+    ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
       wolfRobot: 4, // 学习 wolf（狼阵营）
@@ -117,7 +117,7 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
   });
 
   it('wolfRobot 空选，seer 查验 wolfRobot 显示 "狼人"（本体）', () => {
-    ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+    ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
       wolfRobot: null, // 不学习
@@ -139,7 +139,7 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
 
   describe('swap + disguise 边界', () => {
     it('magician swap wolfRobot<->villager，wolfRobot 学习后，seer 查验 villager 原 seat 显示伪装阵营', () => {
-      ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+      ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // magician 把 wolfRobot(7) 和 villager(0) 交换
       // 交换后：seat 7 是 villager，seat 0 是 wolfRobot
@@ -166,7 +166,7 @@ describe('Night-1: WolfRobot Disguise - Seer Reveal (12p)', () => {
     });
 
     it('magician swap wolfRobot<->wolf，seer 查验 wolfRobot 原 seat 显示 "狼人"（swap 后是 wolf）', () => {
-      ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+      ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // magician 把 wolfRobot(7) 和 wolf(4) 交换
       // 交换后：seat 7 是 wolf，seat 4 是 wolfRobot

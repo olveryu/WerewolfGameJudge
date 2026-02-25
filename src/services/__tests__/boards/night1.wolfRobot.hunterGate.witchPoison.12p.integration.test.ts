@@ -28,7 +28,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
 
 /**
@@ -73,15 +73,15 @@ const WOLF_ROBOT_SEAT = 7;
 const HUNTER_SEAT = 3;
 
 describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('Hunter Gate 行为验证', () => {
     it('wolfRobot 学习 hunter 后，wolfRobotHunterStatusViewed 初始为 false，发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 后变为 true', () => {
-      ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+      ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // Step 1: 按顺序执行到 wolfRobotLearn 步骤（使用统一 runner）
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
@@ -151,7 +151,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
 
   describe('Case A: 学到猎人 + 女巫毒他', () => {
     it('女巫毒杀学到猎人的机械狼，机械狼死亡但 wolfRobotReveal/wolfRobotContext 仍存在', () => {
-      ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+      ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // Step 1: 按顺序执行到 wolfRobotLearn 步骤
       // 女巫在前面毒 wolfRobot
@@ -221,7 +221,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
 
   describe('Case B: 学到猎人 + 女巫不毒他', () => {
     it('女巫不毒机械狼，机械狼存活且 wolfRobotReveal 仍存在', () => {
-      ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+      ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // Step 1: 按顺序执行到 wolfRobotLearn 步骤
       // 女巫不毒
@@ -291,7 +291,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
 
   describe('Edge cases', () => {
     it('wolfRobot 学习非 hunter 角色时，不触发 hunter gate', () => {
-      ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+      ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // 按顺序执行到 wolfRobotLearn 步骤（使用统一 runner）
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
@@ -327,7 +327,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
     });
 
     it('wolfRobot 跳过学习时，不触发 hunter gate', () => {
-      ctx = createHostGame(CUSTOM_ROLES, createRoleAssignment());
+      ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // 按顺序执行到 wolfRobotLearn 步骤（使用统一 runner）
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {

@@ -22,7 +22,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '狼美守卫12人';
@@ -48,15 +48,15 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: WolfQueen Charm (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('WolfQueen 魅惑正常执行', () => {
     it('wolfQueen 魅惑 villager(0)，action 记录正确，流程完成', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,
@@ -80,7 +80,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
     });
 
     it('wolfQueen 魅惑 seer(8)，action 写入 targetSeat=8', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,
@@ -104,7 +104,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
   describe('WolfQueen 不魅惑', () => {
     it('wolfQueen 空选，action 中 targetSeat 为 undefined（或无该 action）', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,
@@ -136,7 +136,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
      */
 
     it('被魅惑者被刀时，只有被魅惑者死（单向链接）', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // wolfQueen 魅惑 seat 0，狼刀 seat 0
       // 根据当前规则（单向链接），只有 seat 0 死
@@ -155,7 +155,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
     });
 
     it('wolfQueen 死亡时，被魅惑者也死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // wolfQueen 魅惑 seat 0，女巫毒 wolfQueen(7)
       const result = executeFullNight(ctx, {
@@ -175,7 +175,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
   describe('WolfQueen 魅惑不影响狼刀其他目标', () => {
     it('wolfQueen 魅惑 A，狼刀 B，只有 B 死', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,

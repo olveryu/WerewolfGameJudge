@@ -24,7 +24,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import * as randomModule from '@werewolf/game-engine/utils/random';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '灯影预言12人';
@@ -94,10 +94,10 @@ const DRUNK_SEER_ROLES: RoleId[] = [
 ];
 
 describe('Night-1: 灯影预言12人 - DrunkSeer Random Reveal (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('drunkSeerReveal 随机查验写入', () => {
@@ -107,7 +107,7 @@ describe('Night-1: 灯影预言12人 - DrunkSeer Random Reveal (12p)', () => {
 
     it('drunkSeer 查验 villager(0)，secureRng>=0.5 时 result 为 "好人"（正确）', () => {
       jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.5);
-      ctx = createHostGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
+      ctx = createGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
 
       // 推进到 drunkSeerCheck 步骤
       const reached = executeStepsUntil(ctx, 'drunkSeerCheck', {
@@ -138,7 +138,7 @@ describe('Night-1: 灯影预言12人 - DrunkSeer Random Reveal (12p)', () => {
 
     it('drunkSeer 查验 villager(0)，secureRng<0.5 时 result 为 "狼人"（反转）', () => {
       jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.3);
-      ctx = createHostGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
+      ctx = createGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
 
       const reached = executeStepsUntil(ctx, 'drunkSeerCheck', {
         wolf: 1,
@@ -168,7 +168,7 @@ describe('Night-1: 灯影预言12人 - DrunkSeer Random Reveal (12p)', () => {
 
   describe('完整夜晚流程（含 drunkSeer）', () => {
     it('drunkSeer 板子可以跑完完整夜晚', () => {
-      ctx = createHostGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
+      ctx = createGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
 
       const result = executeRemainingSteps(ctx, {
         wolf: 1,
@@ -186,15 +186,15 @@ describe('Night-1: 灯影预言12人 - DrunkSeer Random Reveal (12p)', () => {
 });
 
 describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('mirrorSeerReveal 反转查验写入', () => {
     it('mirrorSeer 查验 villager(0)，mirrorSeerReveal.result 为 "狼人"（反转）', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 推进到 mirrorSeerCheck 步骤
       const reached = executeStepsUntil(ctx, 'mirrorSeerCheck', {
@@ -224,7 +224,7 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
     });
 
     it('mirrorSeer 查验 wolf(3)，mirrorSeerReveal.result 为 "好人"（反转）', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const reached = executeStepsUntil(ctx, 'mirrorSeerCheck', {
         wolf: 1,
@@ -254,7 +254,7 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
 
   describe('seerReveal + mirrorSeerReveal 共存', () => {
     it('seer 和 mirrorSeer 各自写入独立 reveal', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 推进到 seerCheck
       const reachedSeer = executeStepsUntil(ctx, 'seerCheck', {
@@ -312,11 +312,11 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
   describe('seerLabelMap 生成', () => {
     it('板子同时包含 seer + mirrorSeer 时 gameControlHandler 会生成 seerLabelMap', () => {
       // seerLabelMap 由 handleAssignRoles (gameControlHandler) 在
-      // ASSIGN_ROLES action 的 payload 中注入，hostGameFactory 直接使用
+      // ASSIGN_ROLES action 的 payload 中注入，gameFactory 直接使用
       // gameReducer 不经过 handler 层，因此此处手动注入验证 reducer 行为。
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // hostGameFactory 直接调用 gameReducer(ASSIGN_ROLES)，
+      // gameFactory 直接调用 gameReducer(ASSIGN_ROLES)，
       // seerLabelMap 由 handler 层注入 — 这里验证 reducer 正确存储它
       // (handler 层测试见 gameControlHandler.test.ts)
       // 此集成测试侧重 mirrorSeerReveal 反转逻辑，seerLabelMap 生成
@@ -327,7 +327,7 @@ describe('Night-1: 灯影预言12人 - MirrorSeer Inverted Reveal (12p)', () => 
 
   describe('完整夜晚流程', () => {
     it('mirrorSeer 板子可以跑完完整夜晚', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeRemainingSteps(ctx, {
         wolf: 1,

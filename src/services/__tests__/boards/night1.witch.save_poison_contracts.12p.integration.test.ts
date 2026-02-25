@@ -23,7 +23,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '狼王魔术12人';
@@ -49,15 +49,15 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('Save 正常救人', () => {
     it('女巫救被狼刀的玩家，该玩家不死', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 狼刀 seat 0，女巫救 seat 0
       const result = executeFullNight(ctx, {
@@ -77,7 +77,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
     });
 
     it('女巫不救人时，被狼刀的玩家死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         magician: null,
@@ -93,7 +93,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
 
   describe('Poison 毒人', () => {
     it('女巫毒人，该玩家死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 狼空刀，女巫毒 seat 2
       const result = executeFullNight(ctx, {
@@ -113,7 +113,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
     });
 
     it('女巫可以毒狼人', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         magician: null,
@@ -134,7 +134,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
      * reject 的直接测试由 schema/resolver contract 测试覆盖。
      */
     it('狼刀女巫 seat(9) 时，女巫 skip 救人，女巫死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 狼刀 seat 9（witch），女巫 skip（因为不能自救）
       const result = executeFullNight(ctx, {
@@ -153,7 +153,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
 
   describe('witchContext 写入 GameState', () => {
     it('狼刀目标写入 witchContext.killedSeat（验证最终状态）', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 完整走完夜晚，检查 state 中的 savedSeat/poisonedSeat 记录
       const result = executeFullNight(ctx, {
@@ -181,7 +181,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
      * reject 的直接测试由 schema/resolver contract 测试覆盖。
      */
     it('女巫只救被狼刀目标，救成功', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 狼刀 seat 0，女巫救 seat 0（唯一合法目标）
       const result = executeFullNight(ctx, {
@@ -199,7 +199,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
     });
 
     it('女巫不救人时，被狼刀者死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 狼刀 seat 0，女巫不救
       const result = executeFullNight(ctx, {

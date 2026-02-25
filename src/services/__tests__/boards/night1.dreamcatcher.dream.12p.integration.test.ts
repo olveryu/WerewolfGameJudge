@@ -22,7 +22,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '狼王摄梦12人';
@@ -48,15 +48,15 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('Dreamcatcher 守护目标', () => {
     it('dreamcatcher 守护 villager(0)，action 写入 state.actions', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         dreamcatcher: 0, // 守护 villager
@@ -79,7 +79,7 @@ describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
     });
 
     it('dreamcatcher 守护被狼刀目标(1)，该目标免疫死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         dreamcatcher: 1, // 守护 villager(1)
@@ -103,7 +103,7 @@ describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
 
   describe('Dreamcatcher 空选', () => {
     it('dreamcatcher 不守护时，action 中 targetSeat 为 undefined', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         dreamcatcher: null, // 不守护
@@ -125,7 +125,7 @@ describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
 
   describe('Dreamcatcher 链接死亡', () => {
     it('dreamcatcher 被毒杀，被守护者也死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         dreamcatcher: 0, // 守护 villager(0)

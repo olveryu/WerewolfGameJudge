@@ -14,7 +14,7 @@ import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame } from './hostGameFactory';
+import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, sendMessageOrThrow } from './stepByStepRunner';
 
 // =============================================================================
@@ -69,11 +69,11 @@ function assertNoKeysLost(
 
 describe('normalizeState round-trip (integration with real board state)', () => {
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   it('初始 ongoing 状态 → normalizeState 幂等', () => {
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const state = ctx.getGameState();
     const normalized = normalizeState(state);
 
@@ -87,7 +87,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
   });
 
   it('wolfKill 后 → normalizeState 保留 wolfVotesBySeat', () => {
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const s0 = ctx.getGameState();
 
     // All wolves vote
@@ -117,7 +117,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
   });
 
   it('seerReveal 后 → normalizeState 保留 seerReveal + pendingRevealAcks', () => {
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     // Walk to seerCheck: wolfKill → witchAction → hunterConfirm → seerCheck
     const s0 = ctx.getGameState();
@@ -168,7 +168,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
   });
 
   it('全流程 executeFullNight 后 → normalizeState 幂等', () => {
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     executeFullNight(ctx);
 
     const state = ctx.getGameState();
@@ -180,7 +180,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
   });
 
   it('normalizeState 二次应用 → 结果不变（严格幂等）', () => {
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     executeFullNight(ctx);
 
     const state = ctx.getGameState();

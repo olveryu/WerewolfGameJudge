@@ -23,7 +23,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '恶灵骑士12人';
@@ -49,15 +49,15 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('Seer 查验 spiritKnight → Seer 反伤死亡', () => {
     it('seer 查验 spiritKnight(7)，seer 反伤死亡，spiritKnight 不死', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,
@@ -88,7 +88,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
     });
 
     it('seer 不查验 spiritKnight 时，seer 不反伤死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,
@@ -114,7 +114,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
 
   describe('Witch 毒 spiritKnight → Witch 反伤死亡', () => {
     it('witch 毒 spiritKnight(7)，witch 反伤死亡，spiritKnight 不死', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,
@@ -140,7 +140,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
     });
 
     it('witch 毒非 spiritKnight 目标时，witch 不反伤死亡', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,
@@ -170,7 +170,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
      * 此测试验证狼人选择其他目标时的正常流程。
      */
     it('wolf 刀 villager(0)，流程正常执行', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,

@@ -23,7 +23,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '石像守墓12人';
@@ -49,15 +49,15 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: Gargoyle Check (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('Gargoyle 查验返回具体角色', () => {
     it('gargoyle 查验 villager(0)，返回 villager', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // Step-aware 断言：确认确实走到了 gargoyleCheck step
       expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
@@ -81,7 +81,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     });
 
     it('gargoyle 查验 wolf(4)，返回 wolf', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         gargoyle: 4, // 查验 wolf
@@ -99,7 +99,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     });
 
     it('gargoyle 查验 seer(8)，返回 seer', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         gargoyle: 8, // 查验 seer
@@ -117,7 +117,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     });
 
     it('gargoyle 查验 hunter(10)，返回 hunter', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         gargoyle: 10, // 查验 hunter
@@ -137,7 +137,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
 
   describe('Gargoyle 空选', () => {
     it('gargoyle 不查验时，gargoyleReveal 不写入', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // Step-aware 断言：确认确实走到了 gargoyleCheck step
       expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
@@ -161,7 +161,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
 
   describe('Gargoyle 查验狼阵营角色', () => {
     it('gargoyle 查验自己应被拒绝 (notSelf constraint)', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // Step-aware 断言：确认确实走到了 gargoyleCheck step
       expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);

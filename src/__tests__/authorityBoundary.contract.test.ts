@@ -1,7 +1,7 @@
 /**
- * Contract test: Host authority import boundary
+ * Contract test: Server authority import boundary
  *
- * Ensures that hooks and screens DO NOT import Host-only business logic modules:
+ * Ensures that hooks and screens DO NOT import server-authority business logic modules:
  * - services/engine/reducer (state transitions)
  * - services/engine/handlers (action handlers)
  * - services/night/resolvers (night action resolvers)
@@ -11,7 +11,7 @@
  * UI/hooks should only interact via GameFacade or transport layer.
  */
 
-describe('Host authority import boundary', () => {
+describe('Server authority import boundary', () => {
   const fs = require('node:fs');
   const path = require('node:path');
 
@@ -52,8 +52,8 @@ describe('Host authority import boundary', () => {
     return results;
   }
 
-  // Host-only module patterns (both absolute and relative paths)
-  // These modules contain Host-only business logic and MUST NOT be imported by hooks/screens
+  // Server-authority module patterns (both absolute and relative paths)
+  // These modules contain server-authority business logic and MUST NOT be imported by hooks/screens
   const forbiddenPatterns = [
     // Absolute path patterns
     /from\s+['"].*services\/engine\/reducer/,
@@ -91,14 +91,14 @@ describe('Host authority import boundary', () => {
     expect(allFilesToCheck.length).toBeGreaterThan(0);
   });
 
-  it.each(allFilesToCheck)('should not import Host-only modules in %s', (filePath) => {
+  it.each(allFilesToCheck)('should not import server-authority modules in %s', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
 
     for (const pattern of forbiddenPatterns) {
       const match = content.match(pattern);
       if (match) {
         fail(
-          `File ${filePath} imports Host-only module: "${match[0]}"\n` +
+          `File ${filePath} imports server-authority module: "${match[0]}"\n` +
             'Hooks and screens should not import reducer, handlers, resolvers, DeathCalculator, or resolveWolfVotes.\n' +
             'Use GameFacade or transport layer instead.',
         );
