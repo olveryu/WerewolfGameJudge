@@ -273,11 +273,11 @@ describe('死亡结算对齐 (swap 规则)', () => {
       {
         wolfQueen: -1,
         dreamcatcher: -1,
-        spiritKnight: -1,
         seer: -1,
         witch: -1,
         guard: -1,
         poisonImmuneSeats: [],
+        reflectsDamageSeats: [],
       },
     );
 
@@ -295,11 +295,11 @@ describe('死亡结算对齐 (swap 规则)', () => {
       {
         wolfQueen: -1,
         dreamcatcher: -1,
-        spiritKnight: -1,
         seer: -1,
         witch: -1,
         guard: -1,
         poisonImmuneSeats: [],
+        reflectsDamageSeats: [],
       },
     );
 
@@ -317,11 +317,11 @@ describe('死亡结算对齐 (swap 规则)', () => {
       {
         wolfQueen: -1,
         dreamcatcher: -1,
-        spiritKnight: -1,
         seer: -1,
         witch: -1,
         guard: -1,
         poisonImmuneSeats: [],
+        reflectsDamageSeats: [],
       },
     );
 
@@ -339,11 +339,11 @@ describe('死亡结算对齐 (swap 规则)', () => {
       {
         wolfQueen: -1,
         dreamcatcher: -1,
-        spiritKnight: -1,
         seer: -1,
         witch: -1,
         guard: -1,
         poisonImmuneSeats: [],
+        reflectsDamageSeats: [],
       },
     );
 
@@ -362,11 +362,11 @@ describe('死亡结算对齐 (swap 规则)', () => {
       {
         wolfQueen: -1,
         dreamcatcher: -1,
-        spiritKnight: -1,
         seer: -1,
         witch: -1,
         guard: -1,
         poisonImmuneSeats: [],
+        reflectsDamageSeats: [],
       },
     );
 
@@ -408,11 +408,11 @@ describe('Swap 边界情况', () => {
       {
         wolfQueen: -1,
         dreamcatcher: -1,
-        spiritKnight: -1,
         seer: -1,
         witch: -1,
         guard: -1,
         poisonImmuneSeats: [],
+        reflectsDamageSeats: [],
       },
     );
 

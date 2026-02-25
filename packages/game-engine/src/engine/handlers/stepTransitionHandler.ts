@@ -193,23 +193,27 @@ function buildRoleSeatMap(state: NonNullState): RoleSeatMap {
     }
   }
 
-  // Collect seats of roles with immuneToPoison flag
+  // Collect flag-driven seat arrays
   const poisonImmuneSeats: number[] = [];
+  const reflectsDamageSeats: number[] = [];
   for (const [roleId, seat] of effectiveRoleSeatMap) {
     const spec: RoleSpec = ROLE_SPECS[roleId];
     if (spec.flags?.immuneToPoison) {
       poisonImmuneSeats.push(seat);
+    }
+    if (spec.flags?.reflectsDamage) {
+      reflectsDamageSeats.push(seat);
     }
   }
 
   return {
     wolfQueen: effectiveRoleSeatMap.get('wolfQueen') ?? -1,
     dreamcatcher: effectiveRoleSeatMap.get('dreamcatcher') ?? -1,
-    spiritKnight: effectiveRoleSeatMap.get('spiritKnight') ?? -1,
     seer: effectiveRoleSeatMap.get('seer') ?? -1,
     witch: effectiveRoleSeatMap.get('witch') ?? -1,
     guard: effectiveRoleSeatMap.get('guard') ?? -1,
     poisonImmuneSeats,
+    reflectsDamageSeats,
   };
 }
 

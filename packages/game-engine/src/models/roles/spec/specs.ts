@@ -350,7 +350,7 @@ export const ROLE_SPECS = {
     night1: { hasAction: false },
     // 互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
-    flags: { immuneToWolfKill: true },
+    flags: { immuneToWolfKill: true, immuneToPoison: true, reflectsDamage: true },
   },
 
   masquerade: {
