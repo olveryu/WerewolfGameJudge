@@ -220,8 +220,8 @@ export async function startNight(
   // Fire-and-forget: preload audio for all template roles before night flow starts.
   const stateAfterStart = ctx.store.getState();
   if (stateAfterStart?.templateRoles) {
-    ctx.audioService.preloadForRoles(stateAfterStart.templateRoles as RoleId[]).catch(() => {
-      // Preload failure is non-critical; normal playback will still work.
+    ctx.audioService.preloadForRoles(stateAfterStart.templateRoles as RoleId[]).catch((err) => {
+      facadeLog.warn('preloadForRoles failed (non-critical):', err);
     });
   }
 

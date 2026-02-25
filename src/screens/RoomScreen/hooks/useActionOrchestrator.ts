@@ -708,7 +708,10 @@ export function useActionOrchestrator({
 
     roomScreenLog.debug(` Triggering: key=${key}, intent=${autoIntent.type}`);
     lastAutoIntentKeyRef.current = key;
-    handleActionIntent(autoIntent);
+    void handleActionIntent(autoIntent).catch((err) => {
+      roomScreenLog.error('[auto-trigger] unhandled rejection', err);
+      Sentry.captureException(err);
+    });
   }, [
     imActioner,
     isAudioPlaying,
