@@ -33,6 +33,7 @@ export {
 export {
   getAllRoleIds,
   getRoleDisplayAs,
+  getRoleEmoji,
   getRoleSpec,
   isValidRoleId,
   // Role Spec

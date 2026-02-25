@@ -7,12 +7,17 @@
  * 渲染角色卡片内容 UI，通过 children 插槽扩展底部按钮。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayAs, getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
+import {
+  getRoleDisplayAs,
+  getRoleEmoji,
+  getRoleSpec,
+  isWolfRole,
+} from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
-import { getFactionName, ROLE_ICONS } from '@/components/roleDisplayUtils';
+import { getFactionName } from '@/components/roleDisplayUtils';
 import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 /** White text color for badges/overlays on colored backgrounds */
@@ -74,7 +79,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   const baseRoleName = displaySpec?.displayName || roleId;
   const roleName = seerLabel != null ? `${seerLabel}号${baseRoleName}` : baseRoleName;
   const description = displaySpec?.description || '无技能描述';
-  const icon = ROLE_ICONS[displayRoleId] || '❓';
+  const icon = getRoleEmoji(displayRoleId);
   const factionColor = getFactionColor(displayRoleId, colors);
   const factionName = getFactionName(displayRoleId);
 

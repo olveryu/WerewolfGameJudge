@@ -42,6 +42,7 @@ export {
   getAllRoleIds,
   getRoleDisplayAs,
   getRoleDisplayName,
+  getRoleEmoji,
   getRoleSpec,
   getSchema,
   getWolfKillImmuneRoleIds,
