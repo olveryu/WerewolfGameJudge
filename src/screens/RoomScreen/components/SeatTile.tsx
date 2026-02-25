@@ -286,7 +286,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
     mySpotTile: {
       borderColor: colors.success,
-      borderWidth: 3,
+      borderWidth: fixed.borderWidthHighlight,
     },
     wolfTile: {
       backgroundColor: colors.error,
@@ -298,7 +298,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
     controlledTile: {
       borderColor: colors.warning,
-      borderWidth: 3,
+      borderWidth: fixed.borderWidthHighlight,
     },
     seatNumberBadge: {
       position: 'absolute',
@@ -387,7 +387,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       height: typography.subtitle,
     },
     botRoleName: {
-      fontSize: typography.caption - 2,
+      fontSize: typography.captionSmall,
       color: colors.textMuted,
       textAlign: 'center',
       width: tileSize - spacing.small,

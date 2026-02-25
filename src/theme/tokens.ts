@@ -153,6 +153,7 @@ export const spacing = {
 
 /**
  * 语义化字号
+ * - captionSmall: 极小辅助
  * - caption: 辅助说明文字
  * - secondary: 次要信息
  * - body: 正文
@@ -163,6 +164,8 @@ export const spacing = {
  * - display: 展示标题
  */
 export const typography = {
+  /** 10px - 极小辅助 */
+  captionSmall: scale(primitiveFontSize[10]),
   /** 12px - 辅助说明 */
   caption: scale(primitiveFontSize[12]),
   /** 14px - 次要信息 */
@@ -278,6 +281,7 @@ export const fixed = {
   /** 边框宽度 */
   borderWidth: 1,
   borderWidthThick: 2,
+  borderWidthHighlight: 3,
 
   /** 分隔线高度 */
   divider: 1,

@@ -7,7 +7,7 @@
  * UI or hold JSX, and does not access any game state.
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { roomScreenLog } from '@/utils/logger';
 import { mobileDebug } from '@/utils/mobileDebug';
@@ -37,6 +37,15 @@ interface UseHiddenDebugTriggerResult {
 export function useHiddenDebugTrigger(): UseHiddenDebugTriggerResult {
   const tapCountRef = useRef(0);
   const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timer on unmount to prevent stale setState calls
+  useEffect(() => {
+    return () => {
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleDebugTitleTap = useCallback(() => {
     tapCountRef.current += 1;
