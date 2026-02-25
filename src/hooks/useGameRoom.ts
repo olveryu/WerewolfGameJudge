@@ -9,7 +9,7 @@
  * - useDebugMode: debug bot control
  * - useNightDerived: pure night-phase derivations
  *
- * Host device is the Single Source of Truth for all game state.
+ * Server is the Single Source of Truth for all game state.
  * 组合子 hooks、订阅 facade state、派生 identity/roomStatus。
  * 不直接调用 Supabase，不包含业务 callback 逻辑（应在子 hooks 中）。
  */

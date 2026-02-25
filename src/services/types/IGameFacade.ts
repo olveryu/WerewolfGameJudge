@@ -81,16 +81,14 @@ export interface IGameFacade {
   // === Seating ===
   /**
    * 入座
-   * Host: 直接处理
-   * Player: 发送请求，返回只表示"已发送"
+   * 统一 HTTP API，服务端处理
    */
   takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean>;
 
   /**
    * 入座（带 ACK 等待）
-   * Host: 直接处理
-   * Player: 发送请求并等待 Host ACK
-   * @returns success + reason（透传 Host 拒绝原因）
+   * 统一 HTTP API，等待服务端响应
+   * @returns success + reason（透传服务端拒绝原因）
    */
   takeSeatWithAck(
     seatNumber: number,
@@ -100,16 +98,14 @@ export interface IGameFacade {
 
   /**
    * 离座
-   * Host: 直接处理
-   * Player: 发送请求，返回只表示"已发送"
+   * 统一 HTTP API，服务端处理
    */
   leaveSeat(): Promise<boolean>;
 
   /**
    * 离座（带 ACK 等待）
-   * Host: 直接处理
-   * Player: 发送请求并等待 Host ACK
-   * @returns success + reason（透传 Host 拒绝原因）
+   * 统一 HTTP API，等待服务端响应
+   * @returns success + reason（透传服务端拒绝原因）
    */
   leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }>;
 
