@@ -25,6 +25,7 @@ import type {
 } from '@werewolf/game-engine/engine/intents/types';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer';
 import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
+import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
@@ -187,12 +188,12 @@ export function createHostGame(
       // Mirror production gameStateManager: apply actions even on failure
       // (e.g. ACTION_REJECTED must be applied so gameState.actionRejected is set)
       if (result.actions.length > 0) {
-        internal.state = applyActions(internal.state, result.actions);
+        internal.state = normalizeState(applyActions(internal.state, result.actions));
         internal.revision++;
       }
       return { success: false, reason: result.reason };
     }
-    internal.state = applyActions(internal.state, result.actions);
+    internal.state = normalizeState(applyActions(internal.state, result.actions));
     internal.revision++;
     return { success: true };
   };
@@ -235,6 +236,7 @@ export function createHostGame(
    * 中途调用会抛出错误，因为这违反了 NightFlow invariants。
    *
    * 复用生产 handleEndNight handler，不自造 deaths。
+   * 走 executeHandler 统一管线（applyActions + normalizeState）。
    */
   const endNight = (): { success: boolean; deaths: number[] } => {
     const context = createContext(internal.state, true);
@@ -249,8 +251,7 @@ export function createHostGame(
       }
       return { success: false, deaths: [] };
     }
-    internal.state = applyActions(internal.state, result.actions);
-    internal.revision++;
+    executeHandler(result);
     return {
       success: true,
       deaths: internal.state.lastNightDeaths ?? [],
@@ -294,16 +295,18 @@ export function createHostGame(
       }
 
       case 'REVEAL_ACK': {
-        if (internal.state.pendingRevealAcks?.length) {
-          internal.state = {
-            ...internal.state,
-            pendingRevealAcks: internal.state.pendingRevealAcks.filter(
-              (ack) => ack !== internal.state.currentStepId,
-            ),
-          };
-          internal.revision++;
+        // Mirror production handleRevealAck:
+        // - no pending acks → fail (idempotent no-op guard)
+        // - dispatch CLEAR_REVEAL_ACKS through reducer (clears ALL acks, not just current step)
+        if (!internal.state.pendingRevealAcks || internal.state.pendingRevealAcks.length === 0) {
+          return { success: false, reason: 'no_pending_acks' };
         }
-        return { success: true };
+        const revealAckResult: HandlerResult = {
+          success: true,
+          actions: [{ type: 'CLEAR_REVEAL_ACKS' as const }],
+          sideEffects: [{ type: 'BROADCAST_STATE' as const }],
+        };
+        return executeHandler(revealAckResult);
       }
 
       case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED': {
