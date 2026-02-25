@@ -97,7 +97,7 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
     ...state,
     players,
     status: GameStatus.Seated, // v1: 重置到 seated，不是 unseated
-    currentStepIndex: 0, // v1: 重置到 0
+    currentStepIndex: -1, // 与 buildInitialGameState 一致
     isAudioPlaying: false,
     currentStepId: undefined, // 清除夜晚步骤
     actions: [],
@@ -111,6 +111,7 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
     wolfWitchReveal: undefined,
     wolfRobotReveal: undefined,
     wolfRobotContext: undefined,
+    wolfRobotHunterStatusViewed: undefined,
     confirmStatus: undefined,
     actionRejected: undefined,
     nightmareBlockedSeat: undefined,
@@ -127,6 +128,8 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
     resolvedRoleRevealAnimation: resolvedAnimation,
     // 重开时清除详细信息分享权限
     nightReviewAllowedSeats: undefined,
+    // 重开时清除上局残留的 seer 标签
+    seerLabelMap: undefined,
   };
 }
 

@@ -19,6 +19,12 @@ export const guardProtectResolver: ResolverFn = (context, input) => {
 
   // Block guard is handled at actionHandler layer (single-point guard)
 
+  // Validate target seat exists
+  const targetRoleId = context.players.get(target);
+  if (!targetRoleId) {
+    return { valid: false, rejectReason: '目标玩家不存在' };
+  }
+
   // Night-1-only scope: no cross-night restriction.
 
   return {

@@ -153,7 +153,7 @@
 | **kind**                    | `wolfVote`                                                                  | 特殊：多狼投票机制                                                                               |
 | **constraints**             | `[]`                                                                        | 中立裁判：可刀任意座位                                                                           |
 | **meeting.canSeeEachOther** | `true`                                                                      | 狼人互相可见                                                                                     |
-| **meeting.resolution**      | `firstVote`                                                                 | 第一个投票生效                                                                                   |
+| **meeting.resolution**      | `majority`                                                                  | 多数投票生效                                                                                     |
 | **meeting.allowEmptyVote**  | `true`                                                                      | 可空刀                                                                                           |
 | **prompt**                  | "请选择要猎杀的玩家"                                                        |                                                                                                  |
 | **emptyVoteText**           | "空刀"                                                                      |                                                                                                  |

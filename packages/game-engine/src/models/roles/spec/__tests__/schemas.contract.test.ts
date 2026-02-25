@@ -98,7 +98,7 @@ describe('SCHEMAS contract', () => {
       const wolfKill = SCHEMAS.wolfKill;
       expect(wolfKill.meeting).toBeDefined();
       expect(wolfKill.meeting.canSeeEachOther).toBe(true);
-      expect(wolfKill.meeting.resolution).toBe('firstVote');
+      expect(wolfKill.meeting.resolution).toBe('majority');
       expect(wolfKill.meeting.allowEmptyVote).toBe(true);
     });
   });

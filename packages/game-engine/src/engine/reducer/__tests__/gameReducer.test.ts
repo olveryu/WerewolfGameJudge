@@ -621,7 +621,7 @@ describe('gameReducer', () => {
       // 夜晚状态清除
       expect(newState.actions).toEqual([]);
       expect(newState.lastNightDeaths).toBeUndefined();
-      expect(newState.currentStepIndex).toBe(0);
+      expect(newState.currentStepIndex).toBe(-1);
     });
   });
 

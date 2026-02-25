@@ -509,7 +509,10 @@ export function handleAdvanceNight(
   // 音频播放：当前步骤的结束音频 + 下一步的开始音频
   // 按顺序添加到 sideEffects，Facade 会按顺序播放
   const currentStepId = state.currentStepId;
-  const sideEffects: HandlerResult['sideEffects'] = [{ type: 'BROADCAST_STATE' }];
+  const sideEffects: HandlerResult['sideEffects'] = [
+    { type: 'BROADCAST_STATE' },
+    { type: 'SAVE_STATE' },
+  ];
 
   // 1) 当前步骤的结束音频
   if (currentStepId) {
@@ -615,6 +618,7 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
     actions: [endNightAction],
     sideEffects: [
       { type: 'BROADCAST_STATE' },
+      { type: 'SAVE_STATE' },
       // P0-1: 返回夜晚结束音频播放副作用
       { type: 'PLAY_AUDIO', audioKey: 'night_end' },
     ],
