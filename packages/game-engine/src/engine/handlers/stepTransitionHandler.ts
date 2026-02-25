@@ -16,12 +16,13 @@
 import type { WitchAction } from '../../models/actions/WitchAction';
 import { makeWitchNone, makeWitchPoison, makeWitchSave } from '../../models/actions/WitchAction';
 import type { RoleId } from '../../models/roles';
-import { getWolfRoleIds } from '../../models/roles';
+import { getWolfRoleIds, ROLE_SPECS } from '../../models/roles';
 import type { SchemaId } from '../../models/roles/spec';
 import { getStepSpec } from '../../models/roles/spec/nightSteps';
 import { buildNightPlan, type NightPlanStep } from '../../models/roles/spec/plan';
 import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '../../models/roles/spec/schema.types';
 import { SCHEMAS } from '../../models/roles/spec/schemas';
+import type { RoleSpec } from '../../models/roles/spec/spec.types';
 import type { ProtocolAction } from '../../protocol/types';
 import { getRoleAfterSwap } from '../../resolvers/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
@@ -169,7 +170,8 @@ function validateSetAudioPlayingPreconditions(
  *
  * 统一身份解析：遍历所有 seat，用 getRoleAfterSwap 获取交换后的有效身份，
  * 再反向查找每个关键角色所在的「有效座位」。
- * 这样 DeathCalculator 中灵骑反弹、术士免疫等规则自动跟着交换后的身份走。
+ * 这样 DeathCalculator 中灵骑反弹、毒药免疫等规则自动跟着交换后的身份走。
+ * 毒药免疫由 ROLE_SPECS[role].flags.immuneToPoison 驱动，无需逐角色硬编码。
  *
  * Constraint 校验仍使用原始 players map（玩家不知道 swap，操作合法性按已知信息判定）。
  */
@@ -191,14 +193,23 @@ function buildRoleSeatMap(state: NonNullState): RoleSeatMap {
     }
   }
 
+  // Collect seats of roles with immuneToPoison flag
+  const poisonImmuneSeats: number[] = [];
+  for (const [roleId, seat] of effectiveRoleSeatMap) {
+    const spec: RoleSpec = ROLE_SPECS[roleId];
+    if (spec.flags?.immuneToPoison) {
+      poisonImmuneSeats.push(seat);
+    }
+  }
+
   return {
-    witcher: effectiveRoleSeatMap.get('witcher') ?? -1,
     wolfQueen: effectiveRoleSeatMap.get('wolfQueen') ?? -1,
     dreamcatcher: effectiveRoleSeatMap.get('dreamcatcher') ?? -1,
     spiritKnight: effectiveRoleSeatMap.get('spiritKnight') ?? -1,
     seer: effectiveRoleSeatMap.get('seer') ?? -1,
     witch: effectiveRoleSeatMap.get('witch') ?? -1,
     guard: effectiveRoleSeatMap.get('guard') ?? -1,
+    poisonImmuneSeats,
   };
 }
 
