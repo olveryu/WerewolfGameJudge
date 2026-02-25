@@ -83,6 +83,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
           { roleId: 'witcher' },
           { roleId: 'psychic' },
           { roleId: 'pureWhite' },
+          { roleId: 'dancer' },
         ],
       },
       {
@@ -112,6 +113,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
           { roleId: 'wolfRobot' },
           { roleId: 'spiritKnight' },
           { roleId: 'wolfWitch' },
+          { roleId: 'masquerade' },
         ],
       },
     ],

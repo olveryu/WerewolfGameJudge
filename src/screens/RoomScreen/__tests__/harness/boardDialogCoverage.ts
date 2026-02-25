@@ -37,9 +37,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 12) {
+  if (boards.length !== 13) {
     throw new Error(
-      `Expected exactly 12 presets with name including "12人", but got ${boards.length}. ` +
+      `Expected exactly 13 presets with name including "12人", but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -211,4 +211,5 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   恶灵骑士12人: 'spiritKnight.12p.board.ui.test.tsx',
   纯白夜影12人: 'pureWhite.12p.board.ui.test.tsx',
   灯影预言12人: 'mirrorSeer.12p.board.ui.test.tsx',
+  假面舞会12人: 'masquerade.12p.board.ui.test.tsx',
 };

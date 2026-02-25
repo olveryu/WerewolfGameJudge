@@ -22,6 +22,7 @@ export const ROLE_ICONS: Record<string, string> = {
   wolfWitch: '🧙🐺',
   spiritKnight: '⚔️',
   bloodMoon: '🩸',
+  masquerade: '🎭🐺',
   // 神职阵营
   seer: '🔮',
   witch: '🧙‍♀️',
@@ -35,6 +36,7 @@ export const ROLE_ICONS: Record<string, string> = {
   dreamcatcher: '🌙',
   graveyardKeeper: '⚰️',
   pureWhite: '🤍',
+  dancer: '💃',
   // 平民阵营
   villager: '👤',
   mirrorSeer: '🔮',

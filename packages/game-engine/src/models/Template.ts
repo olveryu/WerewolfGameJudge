@@ -287,6 +287,23 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
       'knight',
     ],
   },
+  {
+    name: '假面舞会12人',
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'masquerade',
+      'seer',
+      'witch',
+      'dancer',
+      'idiot',
+    ],
+  },
 ];
 
 // Get room info string (matching Flutter)

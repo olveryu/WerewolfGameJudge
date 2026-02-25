@@ -4,10 +4,10 @@
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
  *
- * 27 roles total:
+ * 29 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
- * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper, pureWhite (12)
- * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight (10)
+ * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper, pureWhite, dancer (13)
+ * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade (11)
  * - Third-party: slacker, wildChild (2)
  *
  * 提供声明式角色属性定义（faction / team / night1 / wolfMeeting 等），
@@ -185,6 +185,19 @@ export const ROLE_SPECS = {
     night1: { hasAction: true },
   },
 
+  dancer: {
+    id: 'dancer',
+    displayName: '舞者',
+    shortName: '舞',
+    faction: Faction.God,
+    team: Team.Good,
+    description:
+      '从第二夜开始，每晚必须选择三名玩家共舞，若三人为不同阵营则人数少的一方死亡。舞者可以选择自己参舞，参舞者当夜免疫狼刀。女巫毒药对舞者无效',
+    // Night-1-only scope: dancer starts from night 2, so no night-1 action
+    night1: { hasAction: false },
+    flags: { immuneToPoison: true },
+  },
+
   // ===================================================================
   // WOLF FACTION
   // ===================================================================
@@ -313,6 +326,21 @@ export const ROLE_SPECS = {
     // 互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     flags: { immuneToNightDamage: true, reflectsDamage: true, immuneToWolfKill: true },
+  },
+
+  masquerade: {
+    id: 'masquerade',
+    displayName: '假面',
+    shortName: '假',
+    faction: Faction.Wolf,
+    team: Team.Wolf,
+    description:
+      '不入狼队不参与夜间讨论，三名普狼全部出局后可带刀。从第二夜起可询问法官某张牌是否进入舞池，并可选择对某名玩家发动“面具”改变其在共舞中的阵营。女巫毒药对假面无效',
+    // Night-1-only scope: masquerade starts from night 2, so no night-1 action
+    night1: { hasAction: false },
+    // 不入狼队不参刀
+    wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
+    flags: { immuneToPoison: true },
   },
 
   // ===================================================================
