@@ -89,6 +89,8 @@ const schemaToRole: Record<string, string> = {
   magicianSwap: 'magician',
   hunterConfirm: 'hunter',
   witchAction: 'witch',
+  silenceElderSilence: 'silenceElder',
+  votebanElderBan: 'votebanElder',
 
   // wolf
   wolfKill: 'wolf',

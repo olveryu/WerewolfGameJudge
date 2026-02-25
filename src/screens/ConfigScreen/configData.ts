@@ -84,6 +84,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
           { roleId: 'psychic' },
           { roleId: 'pureWhite' },
           { roleId: 'dancer' },
+          { roleId: 'silenceElder', variants: ['votebanElder'] },
         ],
       },
       {

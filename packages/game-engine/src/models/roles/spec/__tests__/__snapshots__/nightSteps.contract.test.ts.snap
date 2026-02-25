@@ -8,6 +8,8 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "nightmareBlock",
   "dreamcatcherDream",
   "guardProtect",
+  "silenceElderSilence",
+  "votebanElderBan",
   "wolfKill",
   "wolfQueenCharm",
   "witchAction",

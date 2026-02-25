@@ -49,6 +49,8 @@ const AUDIO_FILES: Partial<Record<RoleId, AudioAsset>> = {
   darkWolfKing: require('../../../assets/audio/dark_wolf_king.mp3'),
   pureWhite: require('../../../assets/audio/pure_white.mp3'),
   wolfWitch: require('../../../assets/audio/wolf_witch.mp3'),
+  silenceElder: require('../../../assets/audio/silence_elder.mp3'),
+  votebanElder: require('../../../assets/audio/voteban_elder.mp3'),
 };
 
 const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
@@ -71,6 +73,8 @@ const AUDIO_END_FILES: Partial<Record<RoleId, AudioAsset>> = {
   darkWolfKing: require('../../../assets/audio_end/dark_wolf_king.mp3'),
   pureWhite: require('../../../assets/audio_end/pure_white.mp3'),
   wolfWitch: require('../../../assets/audio_end/wolf_witch.mp3'),
+  silenceElder: require('../../../assets/audio_end/silence_elder.mp3'),
+  votebanElder: require('../../../assets/audio_end/voteban_elder.mp3'),
 };
 
 /** 多预言家标签音频（当 >=2 个 seer-like 角色同时在场时使用） */

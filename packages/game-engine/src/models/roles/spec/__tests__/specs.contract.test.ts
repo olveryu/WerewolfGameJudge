@@ -18,8 +18,8 @@ import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.type
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
-  it('should have exactly 29 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(29);
+  it('should have exactly 31 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(31);
   });
 
   it('every role should have required fields', () => {
@@ -123,6 +123,8 @@ describe('ROLE_SPECS contract', () => {
       'gargoyle', // 1
       'nightmare', // 2
       'guard', // 3
+      'silenceElder', // 3.5
+      'votebanElder', // 3.6
       'wolf', // 5
       'wolfQueen', // 6
       'witch', // 10

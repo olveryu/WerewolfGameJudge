@@ -471,8 +471,8 @@ describe('canSkip behavior alignment', () => {
 // === 6. NIGHT_STEPS order stability ===
 
 describe('NIGHT_STEPS order stability', () => {
-  it('should have exactly 19 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(19);
+  it('should have exactly 21 steps', () => {
+    expect(NIGHT_STEPS).toHaveLength(21);
   });
 
   it('step order should match expected sequence', () => {
@@ -483,6 +483,8 @@ describe('NIGHT_STEPS order stability', () => {
       'nightmareBlock',
       'dreamcatcherDream',
       'guardProtect',
+      'silenceElderSilence',
+      'votebanElderBan',
       'wolfKill',
       'wolfQueenCharm',
       'witchAction',

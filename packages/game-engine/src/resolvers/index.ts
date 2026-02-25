@@ -20,8 +20,10 @@ import { nightmareBlockResolver } from './nightmare';
 import { psychicCheckResolver } from './psychic';
 import { pureWhiteCheckResolver } from './pureWhite';
 import { seerCheckResolver } from './seer';
+import { silenceElderSilenceResolver } from './silenceElder';
 import { slackerChooseIdolResolver } from './slacker';
 import type { ResolverRegistry } from './types';
+import { votebanElderBanResolver } from './votebanElder';
 import { wildChildChooseIdolResolver } from './wildChild';
 import { witchActionResolver } from './witch';
 import { wolfKillResolver } from './wolf';
@@ -49,6 +51,8 @@ export const RESOLVERS: ResolverRegistry = {
   darkWolfKingConfirm: darkWolfKingConfirmResolver,
   pureWhiteCheck: pureWhiteCheckResolver,
   wolfWitchCheck: wolfWitchCheckResolver,
+  silenceElderSilence: silenceElderSilenceResolver,
+  votebanElderBan: votebanElderBanResolver,
 };
 
 // Re-export types for convenience (SERVER-ONLY consumers)
