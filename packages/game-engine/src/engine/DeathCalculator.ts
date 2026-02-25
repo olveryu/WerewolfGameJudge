@@ -70,9 +70,6 @@ export interface NightActions {
  * All seat numbers are 0-based indices. -1 means role not present.
  */
 export interface RoleSeatMap {
-  /** Witcher seat (immune to poison). -1 if not present */
-  witcher: number;
-
   /** Wolf Queen seat (for link death check). -1 if not present */
   wolfQueen: number;
 
@@ -90,19 +87,22 @@ export interface RoleSeatMap {
 
   /** Guard seat (for nightmare block check). -1 if not present */
   guard: number;
+
+  /** Seats of roles with immuneToPoison flag (witcher, dancer, masquerade, etc.) */
+  poisonImmuneSeats: number[];
 }
 
 /**
  * Default role seat map (all roles not present)
  */
 const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
-  witcher: -1,
   wolfQueen: -1,
   dreamcatcher: -1,
   spiritKnight: -1,
   seer: -1,
   witch: -1,
   guard: -1,
+  poisonImmuneSeats: [],
 };
 
 // =============================================================================
@@ -127,7 +127,7 @@ export function calculateDeaths(
   // 1. Process wolf kill (with guard/witch/nightmare interaction)
   processWolfKill(actions, roleSeatMap, deaths);
 
-  // 2. Process witch poison (with witcher immunity and nightmare block)
+  // 2. Process witch poison (with poison immunity and nightmare block)
   processWitchPoison(actions, roleSeatMap, deaths);
 
   // 3. Process wolf queen link death
@@ -198,11 +198,11 @@ function processWolfKill(
 }
 
 /**
- * Process witch poison with witcher immunity and nightmare block.
+ * Process witch poison with poison immunity and nightmare block.
  *
  * Rules:
  * - Witch poison kills target
- * - Witcher is immune to poison
+ * - Roles with immuneToPoison flag are immune to poison
  * - If witch is blocked by nightmare, poison has no effect
  */
 function processWitchPoison(
@@ -211,7 +211,7 @@ function processWitchPoison(
   deaths: Set<number>,
 ): void {
   const { nightmareBlock } = actions;
-  const { witcher: witcherSeat, witch: witchSeat } = roleSeatMap;
+  const { witch: witchSeat, poisonImmuneSeats } = roleSeatMap;
 
   // If witch is blocked by nightmare, poison has no effect
   const isWitchBlocked =
@@ -222,8 +222,8 @@ function processWitchPoison(
 
   if (witchPoisonTarget === undefined) return;
 
-  // Witcher is immune to poison
-  if (witcherSeat !== -1 && witchPoisonTarget === witcherSeat) {
+  // Roles with immuneToPoison flag are immune
+  if (poisonImmuneSeats.includes(witchPoisonTarget)) {
     return;
   }
 

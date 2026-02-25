@@ -6,7 +6,7 @@
  * - Guard protection
  * - Witch save/poison
  * - 同守同救必死 (double save = death)
- * - Witcher poison immunity
+ * - Witcher/dancer/masquerade poison immunity (driven by poisonImmuneSeats)
  * - Wolf Queen link death
  * - Dreamcatcher protection and link death
  * - Magician swap
@@ -26,7 +26,8 @@
  * - isWolfBlockedByNightmare: boolean | undefined
  *
  * RoleSeatMap 字段定义来源：src/services/DeathCalculator.ts
- * - witcher, wolfQueen, dreamcatcher, spiritKnight, seer, witch, guard: number (-1 表示不在场)
+ * - wolfQueen, dreamcatcher, spiritKnight, seer, witch, guard: number (-1 表示不在场)
+ * - poisonImmuneSeats: number[] (免疫毒药的角色座位)
  */
 
 import {
@@ -38,13 +39,13 @@ import { makeWitchPoison, makeWitchSave } from '@werewolf/game-engine/models/act
 
 /** All roles absent — mirrors the module-private DEFAULT_ROLE_SEAT_MAP */
 const NO_ROLES: RoleSeatMap = {
-  witcher: -1,
   wolfQueen: -1,
   dreamcatcher: -1,
   spiritKnight: -1,
   seer: -1,
   witch: -1,
   guard: -1,
+  poisonImmuneSeats: [],
 };
 
 describe('DeathCalculator', () => {
@@ -174,26 +175,26 @@ describe('DeathCalculator', () => {
       expect(deaths).toEqual([3, 5]);
     });
 
-    it('should not kill witcher when poisoned', () => {
+    it('should not kill poison-immune role when poisoned', () => {
       const actions: NightActions = {
         witchAction: makeWitchPoison(5),
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        witcher: 5,
+        poisonImmuneSeats: [5],
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
       expect(deaths).toEqual([]);
     });
 
-    it('should kill non-witcher when poisoned', () => {
+    it('should kill non-immune role when poisoned', () => {
       const actions: NightActions = {
         witchAction: makeWitchPoison(5),
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        witcher: 7, // witcher is at different seat
+        poisonImmuneSeats: [7], // immune role is at different seat
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);

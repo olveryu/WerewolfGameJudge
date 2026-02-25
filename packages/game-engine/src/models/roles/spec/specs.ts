@@ -139,6 +139,7 @@ export const ROLE_SPECS = {
       '从第二晚开始，每晚可选择一名玩家狩猎。若对方是狼人则次日对方出局，若对方是好人则次日猎魔人出局。女巫毒药对猎魔人无效',
     // Night-1-only scope: witcher starts from night 2, so no night-1 action
     night1: { hasAction: false },
+    flags: { immuneToPoison: true },
   },
 
   psychic: {

@@ -34,6 +34,9 @@ export interface RoleFlags {
 
   /** Cannot be targeted by wolf kill (spiritKnight, wolfQueen) */
   readonly immuneToWolfKill?: boolean;
+
+  /** Immune to witch poison (witcher, dancer, masquerade, etc.) */
+  readonly immuneToPoison?: boolean;
 }
 
 /**
