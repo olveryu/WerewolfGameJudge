@@ -391,11 +391,11 @@ test.describe('Night Roles — Protection / Immunity', () => {
         // First wolf tries to vote spiritKnight → confirm → rejection
         await clickSeatAndConfirm(pages[allWolfIndices[0]], skSeat);
 
-        // Should see rejection alert (notifyIfFailed shows '狼人投票失败')
+        // Should see rejection alert (server rejects → actionRejected shows '操作无效')
         const alertModal = pages[allWolfIndices[0]].locator('[data-testid="alert-modal"]');
         await alertModal.waitFor({ state: 'visible', timeout: 5000 });
         const rejectionText = await readAlertText(pages[allWolfIndices[0]]);
-        expect(rejectionText).toContain('投票失败');
+        expect(rejectionText).toContain('操作无效');
         await dismissAlert(pages[allWolfIndices[0]]);
 
         // Re-vote on valid target
