@@ -25,13 +25,6 @@ export interface WolfMeetingConfig {
 
 /** Role-specific flags */
 export interface RoleFlags {
-  /** Nightmare: blocks player skill for the night */
-  readonly blocksSkill?: boolean;
-
-  /** SpiritKnight: immune to night damage, reflects damage */
-  readonly immuneToNightDamage?: boolean;
-  readonly reflectsDamage?: boolean;
-
   /** Cannot be targeted by wolf kill (spiritKnight, wolfQueen) */
   readonly immuneToWolfKill?: boolean;
 

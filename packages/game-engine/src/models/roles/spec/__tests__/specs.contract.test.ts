@@ -67,10 +67,6 @@ describe('ROLE_SPECS contract', () => {
       expect(ROLE_SPECS.spiritKnight.wolfMeeting?.canSeeWolves).toBe(true);
       expect(ROLE_SPECS.spiritKnight.wolfMeeting?.participatesInWolfVote).toBe(true);
     });
-
-    it('should have immuneToNightDamage=true', () => {
-      expect(ROLE_SPECS.spiritKnight.flags?.immuneToNightDamage).toBe(true);
-    });
   });
 
   describe('gargoyle and wolfRobot specs', () => {

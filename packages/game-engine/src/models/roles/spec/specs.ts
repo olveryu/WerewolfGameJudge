@@ -280,7 +280,6 @@ export const ROLE_SPECS = {
     night1: { hasAction: true },
     // 狼人刀人阶段：互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
-    flags: { blocksSkill: true },
   },
 
   gargoyle: {
@@ -351,7 +350,7 @@ export const ROLE_SPECS = {
     night1: { hasAction: false },
     // 互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
-    flags: { immuneToNightDamage: true, reflectsDamage: true, immuneToWolfKill: true },
+    flags: { immuneToWolfKill: true },
   },
 
   masquerade: {
