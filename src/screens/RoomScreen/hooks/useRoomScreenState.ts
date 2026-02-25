@@ -322,7 +322,6 @@ export function useRoomScreenState(
     currentSchema,
     actorSeatNumber: actorSeatForUi,
     wolfVotes: wolfVotesMap,
-    isHost,
     actions: gameState?.actions ?? EMPTY_ACTIONS,
   });
 

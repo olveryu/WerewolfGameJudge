@@ -24,7 +24,6 @@ function createParams(overrides: Partial<UseActionerStateParams> = {}): UseActio
     currentSchema: null,
     actorSeatNumber: null,
     wolfVotes: new Map(),
-    isHost: false,
     actions: new Map(),
     ...overrides,
   };
