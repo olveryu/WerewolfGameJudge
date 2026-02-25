@@ -67,7 +67,7 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
     const targetRoleName = targetRoleSpec?.displayName ?? targetRoleId;
     return {
       valid: false,
-      rejectReason: `不能投${targetRoleName}`,
+      rejectReason: `${targetRoleName}不能自刀，不能选为目标`,
     };
   }
 
