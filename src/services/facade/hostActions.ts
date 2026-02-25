@@ -100,8 +100,11 @@ async function callGameControlApi(
 const NOT_CONNECTED = { success: false, reason: 'NOT_CONNECTED' } as const;
 
 /**
- * Extract roomCode + myUid from context, or return NOT_CONNECTED.
- * 所有 host/player action 函数共用的前置校验。
+ * Extract roomCode + 当前用户 uid from context.
+ *
+ * 用于任意玩家可调用的动作（markViewedRole 等），uid 来自 ctx.myUid（调用者自身）。
+ * 与 getHostConnectionOrFail 不同：后者从 state 读取 hostUid，仅限 host-only 动作。
+ * 返回 null 表示未连接，调用方应返回 NOT_CONNECTED。
  */
 function getConnectionOrFail(ctx: HostActionsContext): { roomCode: string; myUid: string } | null {
   const roomCode = ctx.store.getState()?.roomCode;
@@ -110,8 +113,12 @@ function getConnectionOrFail(ctx: HostActionsContext): { roomCode: string; myUid
 }
 
 /**
- * Extract roomCode + hostUid from state, or return NOT_CONNECTED.
- * 夜晚行动等需要 hostUid 的函数共用。
+ * Extract roomCode + hostUid from game state.
+ *
+ * 用于 host-only 夜晚动作（submitAction / postAudioAck 等），uid 来自 state.hostUid（权威状态）。
+ * 与 getConnectionOrFail 不同：后者读取 ctx.myUid（调用者自身），适用于任意玩家动作。
+ * 两者不可合并——非 host 玩家调用时 ctx.myUid ≠ state.hostUid。
+ * 返回 null 表示未连接，调用方应返回 NOT_CONNECTED。
  */
 function getHostConnectionOrFail(
   ctx: HostActionsContext,
