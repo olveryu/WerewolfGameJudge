@@ -1,5 +1,5 @@
 /**
- * Wolf Queen Resolver (HOST-ONLY, 纯函数)
+ * Wolf Queen Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验狼王魅惑行动 + 计算魅惑结果，
  * 提供魅惑目标校验与结果计算。不包含 IO（网络 / 音频 / Alert）。

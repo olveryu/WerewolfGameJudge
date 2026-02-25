@@ -1,5 +1,5 @@
 /**
- * Wolf Robot Resolver (HOST-ONLY, 纯函数)
+ * Wolf Robot Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验机器狼学习行动 + 返回精确角色身份 + 计算 canShootAsHunter，
  * 提供学习行动校验与猎人技能继承判定（是否被女巫毒 → 不能开枪）。

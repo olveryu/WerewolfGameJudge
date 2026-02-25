@@ -84,7 +84,7 @@ export interface SeatViewModel {
   isMySpot: boolean;
   isWolf: boolean;
   isSelected: boolean;
-  /** UX-only: if set, the seat is non-selectable for the current UI context (Host still validates). */
+  /** UX-only: if set, the seat is non-selectable for the current UI context (server still validates). */
   disabledReason?: string;
   /** Show ✅ badge on seat tile (e.g. player has viewed role during assigned phase). */
   showReadyBadge?: boolean;
@@ -334,7 +334,7 @@ export function buildSeatViewModels(
   options?: {
     /**
      * Schema constraints for current action (e.g. ['notSelf']).
-     * UX-only early rejection - Host still validates.
+     * UX-only early rejection - server still validates.
      */
     schemaConstraints?: readonly TargetConstraint[];
     /**
@@ -361,7 +361,7 @@ export function buildSeatViewModels(
     const isWolf = showWolves && isWolfRole(effectiveRole) && canRoleSeeWolves(effectiveRole);
 
     // UX-only early rejection based on schema constraints.
-    // IMPORTANT: Host remains the authority. This is just early UI guidance.
+    // IMPORTANT: Server remains the authority. This is just early UI guidance.
     let disabledReason: string | undefined;
 
     // Constraint: notSelf - cannot select own seat

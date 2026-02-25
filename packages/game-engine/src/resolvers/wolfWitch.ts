@@ -1,5 +1,5 @@
 /**
- * WolfWitch Resolver (HOST-ONLY, 纯函数)
+ * WolfWitch Resolver (SERVER-ONLY, 纯函数)
  *
  * 狼巫查验行动：返回精确角色身份（不只是阵营）。
  * 约束：不能查验狼人阵营的玩家（notWolfFaction — 需传 players 给 constraint 校验）。

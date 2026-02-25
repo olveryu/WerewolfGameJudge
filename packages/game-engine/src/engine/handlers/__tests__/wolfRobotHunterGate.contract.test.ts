@@ -1,5 +1,5 @@
 /**
- * WolfRobot Hunter Status Gate Host Enforcement Contract Tests
+ * WolfRobot Hunter Status Gate Server Enforcement Contract Tests
  *
  * Gate 5 触发条件（三条件全满足才阻挡）:
  * 1. currentStepId === 'wolfRobotLearn'
@@ -7,9 +7,9 @@
  * 3. wolfRobotHunterStatusViewed === false
  *
  * Verifies:
- * 1. Host rejects advance when all 3 conditions met (Host enforce)
- * 2. Host allows advance after gate is viewed
- * 3. Host allows advance when not applicable (wrong step or not hunter)
+ * 1. Server rejects advance when all 3 conditions met (server enforce)
+ * 2. Server allows advance after gate is viewed
+ * 3. Server allows advance when not applicable (wrong step or not hunter)
  * 4. Handler correctly validates and returns SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED action
  *
  * 本测试文件只测试 handleAdvanceNight 的 Gate 逻辑。
@@ -50,9 +50,9 @@ function createTestState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-describe('WolfRobot Hunter Status Gate - Host Enforcement (handleAdvanceNight)', () => {
+describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)', () => {
   describe('Gate 5: wolfRobotHunterStatusViewed', () => {
-    it('rejects advance when wolfRobotHunterStatusViewed === false (Host enforce)', () => {
+    it('rejects advance when wolfRobotHunterStatusViewed === false (server enforce)', () => {
       const state = createTestState({
         wolfRobotHunterStatusViewed: false,
       });

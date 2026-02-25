@@ -152,7 +152,7 @@ export function useActionOrchestrator({
     [submitAction, markActionSubmitting],
   );
 
-  // ── Action extra typing (UI -> Host wire payload) ──
+  // ── Action extra typing (UI -> server wire payload) ──
   type WitchStepResults = { save: number | null; poison: number | null };
   type ActionExtra =
     | { stepResults: WitchStepResults }
@@ -241,7 +241,7 @@ export function useActionOrchestrator({
     if (key === lastRejectedKeyRef.current) return;
     lastRejectedKeyRef.current = key;
 
-    roomScreenLog.warn('[useActionOrchestrator] Action rejected by Host', {
+    roomScreenLog.warn('[useActionOrchestrator] Action rejected by server', {
       action: rejected.action,
       reason: rejected.reason,
       targetUid: rejected.targetUid,
@@ -383,7 +383,7 @@ export function useActionOrchestrator({
                 const resolved = tpl
                   .replace('{wolf}', `${seat + 1}号狼人`)
                   .replace('{seat}', `${intent.targetSeat + 1}`);
-                return `${resolved}\n（提示：该角色免疫狼刀，Host 会拒绝）`;
+                return `${resolved}\n（提示：该角色免疫狼刀，服务端会拒绝）`;
               })(),
               currentSchema!,
             );

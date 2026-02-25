@@ -1,5 +1,5 @@
 /**
- * MirrorSeer Resolver (HOST-ONLY, 纯函数)
+ * MirrorSeer Resolver (SERVER-ONLY, 纯函数)
  *
  * 灯影预言家查验行动：返回反转后的目标阵营。
  * 查验结果与真实阵营相反：wolf → '好人'，good/third → '狼人'。

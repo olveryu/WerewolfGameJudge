@@ -1,5 +1,5 @@
 /**
- * DrunkSeer Resolver (HOST-ONLY, 纯函数)
+ * DrunkSeer Resolver (SERVER-ONLY, 纯函数)
  *
  * 酒鬼预言家查验行动：返回随机化后的目标阵营。
  * 查验结果随机：50% 概率正确，50% 概率反转。

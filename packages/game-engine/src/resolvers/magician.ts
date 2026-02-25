@@ -1,5 +1,5 @@
 /**
- * Magician Resolver (HOST-ONLY, 纯函数)
+ * Magician Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验魔术师交换行动 + 计算交换结果，
  * 提供交换目标校验与结果计算（含跳过交换）。不包含 IO（网络 / 音频 / Alert）。

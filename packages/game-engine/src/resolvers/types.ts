@@ -1,5 +1,5 @@
 /**
- * Resolver Types (HOST-ONLY)
+ * Resolver Types (SERVER-ONLY)
  *
  * 职责：定义 Resolver 系统的核心类型（ResolverFn / ResolverContext / ResolverResult / CurrentNightResults）
  * 以及 resolveRoleForChecks 等纯函数工具。导出类型定义与纯函数工具。
@@ -96,11 +96,11 @@ export interface ResolverResult {
 
   /**
    * Updates to CurrentNightResults after this action.
-   * Host will merge these updates into the accumulated results.
+   * Server will merge these updates into the accumulated results.
    */
   readonly updates?: Partial<CurrentNightResults>;
 
-  /** Computed results (role-specific, for feedback to Host/UI) */
+  /** Computed results (role-specific, for feedback to server/UI) */
   readonly result?: {
     readonly checkResult?: '好人' | '狼人'; // seer
     readonly identityResult?: RoleId; // psychic, gargoyle, wolfRobot (display only)
@@ -142,7 +142,7 @@ export type ResolverFn = (context: ResolverContext, input: ActionInput) => Resol
 export type ResolverRegistry = Partial<Record<SchemaId, ResolverFn>>;
 
 // =============================================================================
-// Magician Swap Helpers (HOST-ONLY)
+// Magician Swap Helpers (SERVER-ONLY)
 // =============================================================================
 
 /**
@@ -190,7 +190,7 @@ interface WolfRobotContext {
 }
 
 // =============================================================================
-// Unified Role Resolution for Checks (HOST-ONLY, Single Source of Truth)
+// Unified Role Resolution for Checks (SERVER-ONLY, Single Source of Truth)
 // =============================================================================
 
 /**

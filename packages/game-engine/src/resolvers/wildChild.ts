@@ -1,5 +1,5 @@
 /**
- * WildChild Resolver (HOST-ONLY, 纯函数)
+ * WildChild Resolver (SERVER-ONLY, 纯函数)
  *
  * 野孩子选择偶像行动：选择一名非自己的玩家作为榜样。
  * 不包含 IO（网络 / 音频 / Alert）。

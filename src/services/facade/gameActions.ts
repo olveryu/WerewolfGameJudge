@@ -324,9 +324,9 @@ export async function shareNightReview(
 }
 
 /**
- * Host: 处理玩家提交的夜晚行动（HTTP API）
+ * 提交夜晚行动（HTTP API）
  *
- * Night-1 only. 成功后自动评估并执行夜晚推进。
+ * Night-1 only. 成功后服务端自动评估并执行夜晚推进。
  */
 export async function submitAction(
   ctx: GameActionsContext,
@@ -362,7 +362,7 @@ export async function submitAction(
 }
 
 /**
- * Host: 处理狼人投票（HTTP API）
+ * 提交狼人投票（HTTP API）
  *
  * Night-1 only. 服务端内联推进自动处理 deadline + 步骤推进。
  */

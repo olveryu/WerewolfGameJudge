@@ -126,14 +126,14 @@ export interface GameState {
   /**
    * 机械狼伪装上下文（用于“查验类”resolver 的身份解析）
    *
-   * 职责：这是给 Host-only resolvers/engine 用的“计算上下文”，用于统一的
+   * 职责：这是给 server-only resolvers/engine 用的“计算上下文”，用于统一的
    * `resolveRoleForChecks()`：当某座位的有效身份为 wolfRobot 时，需要把它
    * 解释为 `disguisedRole`，从而影响预言家/通灵师/石像鬼等的查验结果。
    *
    * 注意：
    * - 这是 GameState 的一部分（公开广播），但 UI 一般不直接依赖它；
    *   UI 只从 schema + GameState 渲染，并按 myRole 过滤展示。
-   * - 禁止在 engine 之外维护平行的“伪装身份”状态，避免 Host/Player drift。
+   * - 禁止在 engine 之外维护平行的“伪装身份”状态，避免 server/client drift。
    */
   wolfRobotContext?: {
     /** The seat wolfRobot learned from */
@@ -196,7 +196,7 @@ export interface GameState {
    * 机械狼学习结果（公开广播的“事实结果”）
    *
    * 职责：描述 wolfRobot 在 wolfRobotLearn 这一步的计算结果（学了谁/学到什么）。
-   * 这是单一真相（Single source of truth）：Host 执行 resolver 后写入并广播。
+   * 这是单一真相（Single source of truth）：服务端执行 resolver 后写入并广播。
    *
    * UI：所有客户端都会收到，但必须按 myRole 过滤，只对 wolfRobot（或 Host UI）展示。
    */
@@ -215,10 +215,10 @@ export interface GameState {
   /**
    * Gate（流程前置条件）：机械狼学到猎人后，必须“查看状态”才能推进夜晚
    *
-   * 职责：这是 Host-authoritative 的流程 gate。
-   * - Host 写入：当 `wolfRobotReveal.learnedRoleId === 'hunter'` 时设置为 false（需要查看）。
-   * - Host 清除：收到玩家确认消息 `WOLF_ROBOT_HUNTER_STATUS_VIEWED` 后设置为 true。
-   * - NightFlow：若 gate 未清除，Host 必须拒绝推进（防止 authority split）。
+   * 职责：这是 server-authoritative 的流程 gate。
+   * - 服务端写入：当 `wolfRobotReveal.learnedRoleId === 'hunter'` 时设置为 false（需要查看）。
+   * - 服务端清除：收到玩家确认消息 `WOLF_ROBOT_HUNTER_STATUS_VIEWED` 后设置为 true。
+   * - NightFlow：若 gate 未清除，服务端必须拒绝推进（防止 authority split）。
    * - UI：仅根据 schema + GameState 展示底部按钮，不允许 UI 本地状态机自推导。
    */
   wolfRobotHunterStatusViewed?: boolean;
@@ -242,7 +242,7 @@ export interface GameState {
   /**
    * 全部狼人投票完成后的截止时间（epoch ms）。
    *
-   * Host 在所有狼人投票完成时写入 `Date.now() + WOLF_VOTE_COUNTDOWN_MS`，
+   * 服务端在所有狼人投票完成时写入 `Date.now() + WOLF_VOTE_COUNTDOWN_MS`，
    * 改票/撤回导致重新全投完时重置，撤回导致未全投完时清除。
    * Timer 是 best-effort 触发器，此字段是权威时间戳。
    */
@@ -262,9 +262,9 @@ export interface GameState {
    */
   pendingAudioEffects?: AudioEffect[];
 
-  // --- UI Hints（Host 广播驱动，UI 只读展示） ---
+  // --- UI Hints（服务端广播驱动，UI 只读展示） ---
   /**
-   * UI hint for current step - Host writes, UI reads only (no derivation).
+   * UI hint for current step - Server writes, UI reads only (no derivation).
    *
    * 职责：允许 Host 向特定角色广播"提前提示"（如被封锁/狼刀被禁用）。
    * Host 通过 resolver/handler 判定后写入，进入下一 step 或阻断解除时清空。

@@ -1,5 +1,5 @@
 /**
- * Guard Resolver (HOST-ONLY, 纯函数)
+ * Guard Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验守卫守护行动 + 计算守护结果，
  * 提供守护目标校验与结果计算（含跳过守护）。不包含 IO（网络 / 音频 / Alert）。

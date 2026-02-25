@@ -1,5 +1,5 @@
 /**
- * Psychic Resolver (HOST-ONLY, 纯函数)
+ * Psychic Resolver (SERVER-ONLY, 纯函数)
  *
  * 通灵师查验行动：返回精确角色身份（不只是阵营）。
  * 使用 resolveRoleForChecks 统一角色解析（magician swap + wolfRobot disguise）。

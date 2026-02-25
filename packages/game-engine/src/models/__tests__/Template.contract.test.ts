@@ -6,7 +6,7 @@
  * NOTE（Night-1-only scope）:
  * - 本项目只做第一晚。
  * - 任何“第一晚不行动/从第二晚开始才行动”的角色，必须在 role model 中配置为 `hasNightAction=false`。
- *   这样它才不会出现在 `template.actionOrder`，避免 Host 夜晚流程错误提示该角色起床。
+ *   这样它才不会出现在 `template.actionOrder`，避免夜晚流程错误提示该角色起床。
  */
 
 import {
@@ -165,5 +165,5 @@ describe('PRESET_TEMPLATES - 模板列表完整性', () => {
 
   // NOTE: We intentionally don't enforce "one test file per preset" here.
   // Template presets are covered by this contract test, plus Template/Room/
-  // (future) Host runtime integration tests.
+  // (future) runtime integration tests.
 });
