@@ -617,7 +617,7 @@ describe('nightFlowHandler', () => {
       });
 
       it('should not change roleSeatMap when no magician swap (backward compatible)', () => {
-        // 无 swap 时行为不变：spiritKnight 在 seat 2 仍然正常工作
+        // 无 swap 时行为不变：spiritKnight 在 seat 2，狼刀杀 villager seat 4
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -630,7 +630,7 @@ describe('nightFlowHandler', () => {
               5: createPlayer(5, 'villager'),
             },
             currentNightResults: {
-              wolfVotesBySeat: { '0': 2, '1': 2 },
+              wolfVotesBySeat: { '0': 4, '1': 4 },
               // no swappedSeats
             },
           }),
@@ -644,8 +644,8 @@ describe('nightFlowHandler', () => {
         const action = result.actions[0];
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // 灵骑免疫狼刀 → 无人死亡
-          expect(action.payload.deaths).toEqual([]);
+          // 狼刀杀 villager → seat 4 死亡
+          expect(action.payload.deaths).toEqual([4]);
         }
       });
     });

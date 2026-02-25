@@ -26,8 +26,9 @@
  * - isWolfBlockedByNightmare: boolean | undefined
  *
  * RoleSeatMap 字段定义来源：src/services/DeathCalculator.ts
- * - wolfQueen, dreamcatcher, spiritKnight, seer, witch, guard: number (-1 表示不在场)
+ * - wolfQueen, dreamcatcher, seer, witch, guard: number (-1 表示不在场)
  * - poisonImmuneSeats: number[] (免疫毒药的角色座位)
+ * - reflectsDamageSeats: number[] (反伤角色座位)
  */
 
 import {
@@ -41,11 +42,11 @@ import { makeWitchPoison, makeWitchSave } from '@werewolf/game-engine/models/act
 const NO_ROLES: RoleSeatMap = {
   wolfQueen: -1,
   dreamcatcher: -1,
-  spiritKnight: -1,
   seer: -1,
   witch: -1,
   guard: -1,
   poisonImmuneSeats: [],
+  reflectsDamageSeats: [],
 };
 
 describe('DeathCalculator', () => {
@@ -484,7 +485,8 @@ describe('DeathCalculator', () => {
   describe('Spirit Knight Reflection', () => {
     const spiritKnightRoleSeatMap: RoleSeatMap = {
       ...NO_ROLES,
-      spiritKnight: 7,
+      reflectsDamageSeats: [7],
+      poisonImmuneSeats: [7],
       seer: 8,
       witch: 9,
     };
@@ -539,41 +541,30 @@ describe('DeathCalculator', () => {
       expect(deaths).not.toContain(9);
     });
 
-    it('恶灵骑士不在场时无反伤规则', () => {
+    it('反伤角色不在场时无反伤规则', () => {
       const actions: NightActions = {
         wolfKill: 0,
         seerCheck: 4,
         witchAction: makeWitchPoison(5),
       };
 
-      const deaths = calculateDeaths(actions); // default role seat map (no spirit knight)
+      const deaths = calculateDeaths(actions); // default role seat map (no reflectsDamage)
 
       expect(deaths).toContain(0);
       expect(deaths).toContain(5);
     });
 
-    it('狼刀恶灵骑士 → 恶灵骑士免疫', () => {
+    it('女巫被梦魇封锁时毒恶灵骑士 → 无反伤', () => {
       const actions: NightActions = {
-        wolfKill: 7,
+        wolfKill: 0,
+        witchAction: makeWitchPoison(7),
+        nightmareBlock: 9, // 封锁女巫
       };
 
       const deaths = calculateDeaths(actions, spiritKnightRoleSeatMap);
 
-      expect(deaths).not.toContain(7);
-      expect(deaths).toEqual([]);
-    });
-
-    it('狼刀恶灵骑士 + 女巫毒村民 → 只有村民死', () => {
-      const actions: NightActions = {
-        wolfKill: 7,
-        witchAction: makeWitchPoison(0),
-      };
-
-      const deaths = calculateDeaths(actions, spiritKnightRoleSeatMap);
-
-      expect(deaths).not.toContain(7);
-      expect(deaths).toContain(0);
-      expect(deaths.length).toBe(1);
+      // 女巫被封锁，毒无效 → 无反伤，只有 0 号死
+      expect(deaths).toEqual([0]);
     });
   });
 
