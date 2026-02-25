@@ -1,7 +1,7 @@
 /**
  * Import Boundary Tests
  *
- * Ensures HOST-ONLY modules (resolvers) are not imported by UI code.
+ * Ensures server-authority modules (resolvers) are not imported by UI code.
  * This is a static analysis test that validates the import structure.
  */
 
@@ -55,7 +55,7 @@ function checkForbiddenImports(filePath: string, forbiddenPatterns: RegExp[]): s
 }
 
 describe('Import Boundary Enforcement', () => {
-  describe('UI components should not import HOST-ONLY resolvers', () => {
+  describe('UI components should not import server-authority resolvers', () => {
     // Forbidden import patterns
     const forbiddenPatterns = [
       /from\s+['"].*\/services\/night\/resolvers/,
@@ -86,7 +86,7 @@ describe('Import Boundary Enforcement', () => {
           const report = allViolations
             .map((v) => `${v.file}:\n  ${v.violations.join('\n  ')}`)
             .join('\n\n');
-          fail(`Found forbidden imports from HOST-ONLY resolvers:\n\n${report}`);
+          fail(`Found forbidden imports from server-authority resolvers:\n\n${report}`);
         }
       });
     }

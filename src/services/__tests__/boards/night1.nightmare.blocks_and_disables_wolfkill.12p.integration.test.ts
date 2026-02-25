@@ -14,7 +14,7 @@
  *   seat 11: guard
  *
  * 核心规则（nightmare block 语义）：
- * - **被阻断玩家提交非 skip action → Host reject**（actionHandler 层 checkNightmareBlockGuard）
+ * - **被阻断玩家提交非 skip action → 服务端 reject**（actionHandler 层 checkNightmareBlockGuard）
  * - **被阻断玩家提交 skip（target: null）→ 有效但无效果**
  * - 若 nightmare 选中狼阵营玩家：wolfKillDisabled === true，狼刀无效
  *

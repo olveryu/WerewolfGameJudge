@@ -1,10 +1,10 @@
 /**
  * Nightmare Block Contract Tests for useRoomActions
  *
- * NEW BEHAVIOR (Host-authoritative, UI no-interception):
+ * NEW BEHAVIOR (server-authoritative, UI no-interception):
  * - UI does NOT know about blocked status (isBlockedByNightmare/wolfKillDisabled removed from GameContext)
  * - UI always returns normal schema-driven intents
- * - All actions go through submit → Host validates → ACTION_REJECTED if blocked
+ * - All actions go through submit → server validates → ACTION_REJECTED if blocked
  *
  * This test file verifies that the hook layer returns normal schema-driven intents.
  * The blocked behavior is tested at the resolver layer (resolver tests) and
@@ -119,7 +119,7 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
-      // Host-authoritative design: 未 blocked 时只显示 confirm，无 skip 选项
+      // server-authoritative design: 未 blocked 时只显示 confirm，无 skip 选项
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('confirm');

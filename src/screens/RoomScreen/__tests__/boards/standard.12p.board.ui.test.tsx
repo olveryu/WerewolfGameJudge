@@ -11,7 +11,7 @@
  * - witchPoisonPrompt: witch poison flow
  * - confirmTrigger: hunter confirm trigger
  *
- * Host-data required (covered by integration):
+ * Server-data required (covered by integration):
  * - seerReveal
  */
 

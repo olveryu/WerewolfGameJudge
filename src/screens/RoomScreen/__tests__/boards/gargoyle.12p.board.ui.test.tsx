@@ -7,7 +7,7 @@
  * Required UI coverage (getRequiredUiDialogTypes):
  * - actionPrompt, wolfVote, witchSavePrompt, witchPoisonPrompt, confirmTrigger
  *
- * Host-data required (covered by integration):
+ * Server-data required (covered by integration):
  * - gargoyleReveal, seerReveal
  */
 

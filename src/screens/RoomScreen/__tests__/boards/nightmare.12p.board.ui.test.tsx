@@ -13,11 +13,11 @@
  * - confirmTrigger: hunter confirm trigger
  * - skipConfirm: guard skip confirmation
  *
- * Host-data required (covered by integration):
+ * Server-data required (covered by integration):
  * - seerReveal
  *
  * CRITICAL: Nightmare board MUST cover blocked → actionRejected with REAL interaction:
- * - Blocked player (e.g., seer) taps a seat → triggers action → Host rejects
+ * - Blocked player (e.g., seer) taps a seat → triggers action → server rejects
  * - UI shows actionRejected with BLOCKED_UI_DEFAULTS message
  */
 
@@ -220,12 +220,12 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
      * Flow:
      * 1. Seer is blocked by nightmare (blockedSeat: 8)
      * 2. Seer tries to act (taps a seat) - REAL INTERACTION
-     * 3. Host rejects with actionRejected containing BLOCKED_UI_DEFAULTS.message
+     * 3. Server rejects with actionRejected containing BLOCKED_UI_DEFAULTS.message
      * 4. UI shows actionRejected dialog with correct message
      *
      * NOTE: Uses createReactiveGameRoomMock with connect() for clean state simulation.
      */
-    it('blocked seer: tapSeat triggers action → Host rejects → shows actionRejected with BLOCKED_UI_DEFAULTS', async () => {
+    it('blocked seer: tapSeat triggers action → server rejects → shows actionRejected with BLOCKED_UI_DEFAULTS', async () => {
       // Seer is blocked by nightmare - use reactive mock
       const reactiveMock = createReactiveGameRoomMock({
         schemaId: 'seerCheck',
@@ -246,7 +246,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         />,
       );
 
-      // Connect rerender for automatic updates when Host state changes
+      // Connect rerender for automatic updates when server state changes
       reactiveMock.connect((newMock) => {
         mockUseGameRoomReturn = newMock;
         rerender(
@@ -263,7 +263,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // REAL INTERACTION: Blocked seer taps a seat to try to act
       tapSeat(getByTestId, 1);
 
-      // Simulate Host rejecting the action due to nightmare block
+      // Simulate server rejecting the action due to nightmare block
       // Uses reactive mock - connect() auto-triggers rerender
       reactiveMock.simulateHostReject({
         action: 'seerCheck',
@@ -285,7 +285,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       reactiveMock.disconnect();
     });
 
-    it('blocked witch: tapSeat triggers action → Host rejects → shows actionRejected', async () => {
+    it('blocked witch: tapSeat triggers action → server rejects → shows actionRejected', async () => {
       // Witch is blocked by nightmare - use reactive mock
       const reactiveMock = createReactiveGameRoomMock({
         schemaId: 'witchAction',
@@ -328,7 +328,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // REAL INTERACTION: Blocked witch taps to try to use poison
       tapSeat(getByTestId, 1);
 
-      // Host rejects due to nightmare block - uses reactive mock
+      // Server rejects due to nightmare block - uses reactive mock
       reactiveMock.simulateHostReject({
         action: 'witchAction',
         reason: BLOCKED_UI_DEFAULTS.message,

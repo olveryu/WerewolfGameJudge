@@ -71,7 +71,7 @@ describe('useRoomActions seer reveal', () => {
     expect(intent?.targetSeat).toBe(2);
   });
 
-  it('returns normal reveal intent when seer is blocked (Host validates)', () => {
+  it('returns normal reveal intent when seer is blocked (server validates)', () => {
     const gameState = makeGameState();
     const schema = makeSeerSchema();
 
@@ -92,7 +92,7 @@ describe('useRoomActions seer reveal', () => {
       ),
     );
 
-    // Seer taps seat 2 - UI returns normal intent, Host will reject
+    // Seer taps seat 2 - UI returns normal intent, server will reject
     const intent = result.current.getActionIntent(2);
 
     expect(intent).not.toBeNull();

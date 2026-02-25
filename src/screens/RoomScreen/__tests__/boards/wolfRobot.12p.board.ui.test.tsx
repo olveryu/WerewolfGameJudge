@@ -13,7 +13,7 @@
  * - confirmTrigger: hunter confirm trigger
  * - skipConfirm: guard skip confirmation
  *
- * Host-data required (covered by integration):
+ * Server-data required (covered by integration):
  * - wolfRobotReveal, psychicReveal
  *
  * SPECIAL: Hunter gate MUST use pressPrimaryOnType + assertNoLoop
@@ -282,7 +282,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
      * CRITICAL TEST: Verify sendWolfRobotHunterStatusViewed is called on confirmation
      *
      * This test ensures that pressing the primary button in the hunter status dialog
-     * actually triggers the wire protocol message to the Host.
+     * actually triggers the wire protocol message to the server.
      */
     it('pressing confirm calls sendWolfRobotHunterStatusViewed', async () => {
       const sendWolfRobotHunterStatusViewedMock = jest.fn().mockResolvedValue(undefined);
@@ -333,7 +333,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
      * This test uses reactive mock with connect() to simulate the state update that occurs
      * after sendWolfRobotHunterStatusViewed succeeds. The button should disappear.
      *
-     * NOTE: Uses createReactiveGameRoomMock with connect() for clean Host state simulation.
+     * NOTE: Uses createReactiveGameRoomMock with connect() for clean server state simulation.
      */
     it('gate button disappears after wolfRobotHunterStatusViewed becomes true', async () => {
       // Initial state: gate not viewed - use reactive mock
@@ -356,7 +356,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         />,
       );
 
-      // Connect rerender for automatic updates when Host state changes
+      // Connect rerender for automatic updates when server state changes
       reactiveMock.connect((newMock) => {
         mockUseGameRoomReturn = newMock;
         rerender(
@@ -372,7 +372,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // Button should be visible initially
       expect(getByText(getWolfRobotHunterGateButtonText())).toBeTruthy();
 
-      // Simulate state update: Host broadcasts wolfRobotHunterStatusViewed = true
+      // Simulate state update: server broadcasts wolfRobotHunterStatusViewed = true
       reactiveMock.simulateStateUpdate({
         gameStateOverrides: {
           wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },

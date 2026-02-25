@@ -285,11 +285,11 @@ describe('RoomScreen wolf vote UI', () => {
   it('forbidden target role is NOT disabled in UI; still opens confirm dialog and submits vote intent', async () => {
     let submitWolfVoteMock: jest.Mock | null = null;
 
-    // Plan A (Host-authoritative): UI does not disable schema-external targets.
+    // Plan A (server-authoritative): UI does not disable schema-external targets.
     // If a forbidden role is tapped, we still open confirm dialog and submit.
-    // Host then broadcasts actionRejected and UI shows the unified "操作无效" alert.
+    // Server then broadcasts actionRejected and UI shows the unified "操作无效" alert.
 
-    // Override just the players map: seat 3 (index 2) is spiritKnight (Host will reject).
+    // Override just the players map: seat 3 (index 2) is spiritKnight (server will reject).
     mockUseGameRoomImpl = () => {
       const base = makeBaseUseGameRoomReturn();
       const players = new Map(base.gameState.players);
@@ -339,7 +339,7 @@ describe('RoomScreen wolf vote UI', () => {
     // Ignore any alerts from initial render/auto intent.
     (showAlert as jest.Mock).mockClear();
 
-    // Tap seat 3 (index 2) -> spiritKnight (Host will reject)
+    // Tap seat 3 (index 2) -> spiritKnight (server will reject)
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
     fireEvent.press(seatPressable);
 
@@ -364,7 +364,7 @@ describe('RoomScreen wolf vote UI', () => {
     const confirmBtn = buttons.find((b) => b.text === '确定');
     expect(confirmBtn).toBeDefined();
 
-    // Confirming the dialog should submit to Host.
+    // Confirming the dialog should submit to server.
     await act(async () => {
       confirmBtn?.onPress?.();
     });
