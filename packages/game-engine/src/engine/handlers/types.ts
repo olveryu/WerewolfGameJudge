@@ -56,3 +56,14 @@ export type SideEffect =
   | { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean }
   | { type: 'SEND_MESSAGE'; message: unknown }
   | { type: 'SAVE_STATE' };
+
+/**
+ * 标准副作用：广播状态 + 保存状态
+ *
+ * 大多数 handler 的 sideEffects 都是这对组合。
+ * 包含 PLAY_AUDIO 的 handler 应自行构造完整列表。
+ */
+export const STANDARD_SIDE_EFFECTS: SideEffect[] = [
+  { type: 'BROADCAST_STATE' },
+  { type: 'SAVE_STATE' },
+];

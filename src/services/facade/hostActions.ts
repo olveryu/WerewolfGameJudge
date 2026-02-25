@@ -19,7 +19,6 @@
  * - 直接修改 state（全部在 reducer / 服务端）
  */
 
-import * as Sentry from '@sentry/react-native';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -27,9 +26,10 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { secureRng } from '@werewolf/game-engine/utils/random';
 
-import { API_BASE_URL } from '@/config/api';
 import type { AudioService } from '@/services/infra/AudioService';
 import { facadeLog } from '@/utils/logger';
+
+import { type ApiResponse, applyOptimisticUpdate, callApiOnce } from './apiUtils';
 
 /**
  * Host Actions 依赖的上下文接口
@@ -47,13 +47,8 @@ export interface HostActionsContext {
 // Game Control API (HTTP — Phase 2)
 // =============================================================================
 
-/** Game Control API 响应 */
-interface GameControlApiResponse {
-  success: boolean;
-  reason?: string;
-  state?: Record<string, unknown>;
-  revision?: number;
-}
+/** Game Control API 响应（re-export from apiUtils） */
+type GameControlApiResponse = ApiResponse;
 
 /**
  * 调用 Game Control API（内置客户端重试）
@@ -73,63 +68,59 @@ async function callGameControlApi(
   const MAX_CLIENT_RETRIES = 2;
 
   // 乐观更新：fetch 前立即渲染预测 state
-  if (optimisticFn && store) {
-    const currentState = store.getState();
-    if (currentState) {
-      store.applyOptimistic(optimisticFn(currentState));
-    }
-  }
+  applyOptimisticUpdate(store, optimisticFn);
 
   for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
-    try {
-      const res = await fetch(`${API_BASE_URL}${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      // Guard: non-JSON error pages (502/503) would throw SyntaxError in .json()
-      if (!res.ok && !res.headers.get('content-type')?.includes('application/json')) {
-        facadeLog.error('callGameControlApi non-JSON error', { path, status: res.status });
-        if (store) store.rollbackOptimistic();
-        return { success: false, reason: 'SERVER_ERROR' };
-      }
-      const result = (await res.json()) as GameControlApiResponse;
+    const result = await callApiOnce(path, body, 'callGameControlApi', store);
 
-      // 乐观锁冲突 → 客户端透明重试（退避 + 随机抖动）
-      if (result.reason === 'CONFLICT_RETRY' && attempt < MAX_CLIENT_RETRIES) {
-        const delay = 100 * (attempt + 1) + secureRng() * 50;
-        facadeLog.warn('CONFLICT_RETRY, client retrying', { path, attempt: attempt + 1 });
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
-      }
-
-      // Optimistic Response: HTTP 响应含 state 时立即 apply，不等 broadcast
-      if (result.success && result.state && result.revision != null && store) {
-        store.applySnapshot(result.state as never, result.revision);
-      }
-
-      // 服务端拒绝 → 回滚乐观更新
-      if (!result.success && store) {
-        store.rollbackOptimistic();
-      }
-
+    // 网络/服务端错误已在 callApiOnce 中处理
+    if (result.reason === 'NETWORK_ERROR' || result.reason === 'SERVER_ERROR') {
       return result;
-    } catch (e) {
-      // Rethrow programming errors (ReferenceError = always a code bug).
-      // TypeError is NOT rethrown because fetch() throws TypeError for network failures.
-      if (e instanceof ReferenceError) throw e;
-      const err = e as { message?: string };
-      facadeLog.error('callGameControlApi failed', { path, error: err?.message ?? String(e) });
-      Sentry.captureException(e);
-      // 网络错误 → 回滚乐观更新
-      if (store) store.rollbackOptimistic();
-      return { success: false, reason: 'NETWORK_ERROR' };
     }
+
+    // 乐观锁冲突 → 客户端透明重试（退避 + 随机抖动）
+    if (result.reason === 'CONFLICT_RETRY' && attempt < MAX_CLIENT_RETRIES) {
+      const delay = 100 * (attempt + 1) + secureRng() * 50;
+      facadeLog.warn('CONFLICT_RETRY, client retrying', { path, attempt: attempt + 1 });
+      await new Promise((r) => setTimeout(r, delay));
+      continue;
+    }
+
+    return result;
   }
 
   // 重试耗尽 → 回滚乐观更新
   if (store) store.rollbackOptimistic();
   return { success: false, reason: 'CONFLICT_RETRY' };
+}
+
+// ---------------------------------------------------------------------------
+// Connection guard (DRY)
+// ---------------------------------------------------------------------------
+const NOT_CONNECTED = { success: false, reason: 'NOT_CONNECTED' } as const;
+
+/**
+ * Extract roomCode + myUid from context, or return NOT_CONNECTED.
+ * 所有 host/player action 函数共用的前置校验。
+ */
+function getConnectionOrFail(ctx: HostActionsContext): { roomCode: string; myUid: string } | null {
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (!roomCode || !ctx.myUid) return null;
+  return { roomCode, myUid: ctx.myUid };
+}
+
+/**
+ * Extract roomCode + hostUid from state, or return NOT_CONNECTED.
+ * 夜晚行动等需要 hostUid 的函数共用。
+ */
+function getHostConnectionOrFail(
+  ctx: HostActionsContext,
+): { roomCode: string; hostUid: string } | null {
+  const state = ctx.store.getState();
+  const roomCode = state?.roomCode;
+  const hostUid = state?.hostUid;
+  if (!roomCode || !hostUid) return null;
+  return { roomCode, hostUid };
 }
 
 /**
@@ -140,10 +131,9 @@ export async function assignRoles(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('assignRoles called');
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   return callGameControlApi(
     '/api/game/assign',
@@ -162,10 +152,9 @@ export async function markViewedRole(
   ctx: HostActionsContext,
   seat: number,
 ): Promise<{ success: boolean; reason?: string }> {
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   const result = await callGameControlApi(
     '/api/game/view-role',
@@ -199,10 +188,9 @@ export async function startNight(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('startNight called');
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   const result = await callGameControlApi(
     '/api/game/start',
@@ -239,10 +227,9 @@ export async function updateTemplate(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('updateTemplate called');
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   return callGameControlApi(
     '/api/game/update-template',
@@ -268,10 +255,9 @@ export async function restartGame(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('restartGame called');
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   return callGameControlApi(
     '/api/game/restart',
@@ -294,10 +280,9 @@ export async function setRoleRevealAnimation(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setRoleRevealAnimation called', { animation });
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   return callGameControlApi(
     '/api/game/set-animation',
@@ -323,10 +308,9 @@ export async function shareNightReview(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('shareNightReview called', { allowedSeats });
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   return callGameControlApi(
     '/api/game/share-review',
@@ -353,11 +337,9 @@ export async function submitAction(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('submitAction called', { seat, role, target });
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   const result = await callGameControlApi(
     '/api/game/night/action',
@@ -392,11 +374,9 @@ export async function submitWolfVote(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('submitWolfVote called', { voterSeat, targetSeat });
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   const result = await callGameControlApi(
     '/api/game/night/wolf-vote',
@@ -431,11 +411,9 @@ export async function endNight(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('endNight called');
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   const result = await callGameControlApi(
     '/api/game/night/end',
@@ -467,11 +445,9 @@ export async function setAudioPlaying(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setAudioPlaying called', { isPlaying });
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/night/audio-gate',
@@ -498,11 +474,9 @@ export async function clearRevealAcks(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('clearRevealAcks called');
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   const result = await callGameControlApi(
     '/api/game/night/reveal-ack',
@@ -532,11 +506,9 @@ export async function setWolfRobotHunterStatusViewed(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setWolfRobotHunterStatusViewed called', { seat });
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   const result = await callGameControlApi(
     '/api/game/night/wolf-robot-viewed',
@@ -571,11 +543,9 @@ export async function postAudioAck(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('postAudioAck called');
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/night/audio-ack',
@@ -598,11 +568,9 @@ export async function postProgression(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('postProgression called');
 
-  const roomCode = ctx.store.getState()?.roomCode;
-  const hostUid = ctx.store.getState()?.hostUid;
-  if (!roomCode || !hostUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/night/progression',
@@ -627,10 +595,9 @@ export async function postProgression(
 export async function fillWithBots(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   return callGameControlApi(
     '/api/game/fill-bots',
@@ -651,10 +618,9 @@ export async function fillWithBots(
 export async function markAllBotsViewed(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   return callGameControlApi(
     '/api/game/mark-bots-viewed',
@@ -678,10 +644,9 @@ export async function markAllBotsViewed(
 export async function clearAllSeats(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode } = conn;
 
   return callGameControlApi(
     '/api/game/clear-seats',

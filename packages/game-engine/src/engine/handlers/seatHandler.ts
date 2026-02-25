@@ -21,6 +21,7 @@ import {
 import type { ClearAllSeatsIntent, JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
 import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
+import { STANDARD_SIDE_EFFECTS } from './types';
 
 /**
  * 处理加入座位
@@ -112,7 +113,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   return {
     success: true,
     actions,
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
 
@@ -173,7 +174,7 @@ export function handleLeaveMySeat(
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
 
@@ -211,6 +212,6 @@ export function handleClearAllSeats(
   return {
     success: true,
     actions,
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }

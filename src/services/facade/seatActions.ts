@@ -7,12 +7,12 @@
  * 不包含业务逻辑/校验规则（全部在服务端 handler），不直接修改 state（全部在服务端 reducer）。
  */
 
-import * as Sentry from '@sentry/react-native';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 
-import { API_BASE_URL } from '@/config/api';
 import { facadeLog } from '@/utils/logger';
+
+import { type ApiResponse, applyOptimisticUpdate, callApiOnce } from './apiUtils';
 
 /**
  * Seat Actions 依赖的上下文接口
@@ -26,13 +26,8 @@ export interface SeatActionsContext {
   readonly store?: GameStore;
 }
 
-/** 座位操作 API 响应 */
-interface SeatApiResponse {
-  success: boolean;
-  reason?: string;
-  state?: Record<string, unknown>;
-  revision?: number;
-}
+/** 座位操作 API 响应（re-export from apiUtils） */
+type SeatApiResponse = ApiResponse;
 
 /**
  * 调用座位 API
@@ -46,51 +41,8 @@ async function callSeatApi(
   store?: GameStore,
   optimisticFn?: (state: GameState) => GameState,
 ): Promise<SeatApiResponse> {
-  // 乐观更新：fetch 前立即渲染预测 state
-  if (optimisticFn && store) {
-    const currentState = store.getState();
-    if (currentState) {
-      store.applyOptimistic(optimisticFn(currentState));
-    }
-  }
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/game/seat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode, ...body }),
-    });
-    // Guard: non-JSON error pages (502/503) would throw SyntaxError in .json()
-    if (!res.ok && !res.headers.get('content-type')?.includes('application/json')) {
-      facadeLog.error('callSeatApi non-JSON error', { status: res.status });
-      if (store) store.rollbackOptimistic();
-      return { success: false, reason: 'SERVER_ERROR' };
-    }
-    // Response shape matches our own API contract (SeatApiResponse)
-    const result = (await res.json()) as SeatApiResponse;
-
-    // Optimistic Response: HTTP 响应含 state 时立即 apply，不等 broadcast
-    if (result.success && result.state && result.revision != null && store) {
-      store.applySnapshot(result.state as never, result.revision);
-    }
-
-    // 服务端拒绝 → 回滚乐观更新
-    if (!result.success && store) {
-      store.rollbackOptimistic();
-    }
-
-    return result;
-  } catch (e) {
-    // Rethrow programming errors (ReferenceError = always a code bug).
-    // TypeError is NOT rethrown because fetch() throws TypeError for network failures.
-    if (e instanceof ReferenceError) throw e;
-    const err = e as { message?: string };
-    facadeLog.error('callSeatApi failed', { error: err?.message ?? String(e) });
-    Sentry.captureException(e);
-    // 网络错误 → 回滚乐观更新
-    if (store) store.rollbackOptimistic();
-    return { success: false, reason: 'NETWORK_ERROR' };
-  }
+  applyOptimisticUpdate(store, optimisticFn);
+  return callApiOnce('/api/game/seat', { roomCode, ...body }, 'callSeatApi', store);
 }
 
 // =============================================================================
