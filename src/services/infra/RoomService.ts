@@ -3,7 +3,7 @@
  *
  * 创建/查询/删除 Supabase rooms 表记录，生成唯一 4 位房间号，
  * 持久化 game_state snapshot（供 Player 通过 postgres_changes 或 SELECT 恢复）。
- * 不校验游戏逻辑（游戏逻辑由 Host 内存 GameStore 管理）。
+ * 不校验游戏逻辑（游戏逻辑由服务端 handler/reducer 管理）。
  *
  * Supabase rooms table schema:
  * - id: uuid (primary key)
@@ -172,7 +172,7 @@ export class RoomService {
 
   /**
    * Upsert game state into rooms table.
-   * Called by Host after every state mutation (broadcastCurrentState).
+   * Called after every state mutation to persist snapshot for reconnect recovery.
    * Fire-and-forget — failure only logs a warning, does not block gameplay.
    */
   async upsertGameState(roomCode: string, state: GameState, revision: number): Promise<void> {
