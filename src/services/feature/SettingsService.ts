@@ -28,6 +28,31 @@ interface UserSettings {
   hasSeenAssistantHint: boolean;
 }
 
+/** Valid theme keys for runtime validation of persisted data */
+const VALID_THEME_KEYS: ReadonlySet<string> = new Set<ThemeKey>([
+  'light',
+  'dark',
+  'amoled',
+  'sand',
+  'midnight',
+  'blood',
+  'forest',
+  'snow',
+]);
+
+/** Valid role reveal animation values for runtime validation of persisted data */
+const VALID_ROLE_REVEAL_ANIMATIONS: ReadonlySet<string> = new Set<RoleRevealAnimation>([
+  'roulette',
+  'roleHunt',
+  'scratch',
+  'tarot',
+  'gachaMachine',
+  'cardPick',
+  'constellation',
+  'none',
+  'random',
+]);
+
 const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
   themeKey: 'light',
@@ -53,7 +78,23 @@ export class SettingsService {
         const parsed: unknown = JSON.parse(raw);
         if (typeof parsed === 'object' && parsed !== null) {
           // Merge with defaults to handle new settings added in future versions
-          this.#settings = { ...DEFAULT_SETTINGS, ...(parsed as Partial<UserSettings>) };
+          const merged = { ...DEFAULT_SETTINGS, ...(parsed as Partial<UserSettings>) };
+          // Validate + clamp persisted values to current valid ranges
+          if (!VALID_THEME_KEYS.has(merged.themeKey)) {
+            settingsServiceLog.warn(
+              'Invalid persisted themeKey, resetting to default:',
+              merged.themeKey,
+            );
+            merged.themeKey = DEFAULT_SETTINGS.themeKey;
+          }
+          if (!VALID_ROLE_REVEAL_ANIMATIONS.has(merged.roleRevealAnimation)) {
+            settingsServiceLog.warn(
+              'Invalid persisted roleRevealAnimation, resetting to default:',
+              merged.roleRevealAnimation,
+            );
+            merged.roleRevealAnimation = DEFAULT_SETTINGS.roleRevealAnimation;
+          }
+          this.#settings = merged;
         }
       }
 
