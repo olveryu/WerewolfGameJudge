@@ -8,7 +8,7 @@
  *
  * 设计：
  * - 纯函数，不做 IO（DB / 网络 / 音频）
- * - 使用 evaluateNightProgression（跳过 isHost gate，服务端始终有权限）
+ * - 使用 evaluateNightProgression（服务端始终有权限）
  * - 递归推进直到 decision=none（与客户端 handleNightProgression 等价）
  * - 最多 MAX_PROGRESSION_LOOPS 次防止无限循环
  *
@@ -62,10 +62,9 @@ function isStepComplete(state: GameState): boolean {
 }
 
 /**
- * 服务端内联评估推进决策（跳过 isHost gate）
+ * 服务端内联评估推进决策
  *
  * 与 evaluateNightProgression 等价，但：
- * - 不检查 isHost（服务端始终有权限）
  * - 不使用 ProgressionTracker（服务端无状态）
  * - 接受 nowMs 用于 wolfVoteDeadline 检查
  */
@@ -132,7 +131,6 @@ export function runInlineProgression(
 
     const ctx: HandlerContext = {
       state: currentState,
-      isHost: true, // 服务端始终是 host
       myUid: hostUid,
       mySeat: null, // 服务端不需要 mySeat
     };

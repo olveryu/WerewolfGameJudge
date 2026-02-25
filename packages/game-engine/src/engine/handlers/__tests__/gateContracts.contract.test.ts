@@ -54,7 +54,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
-    isHost: true,
     myUid: 'host-1',
     mySeat: 0,
     ...overrides,
@@ -482,21 +481,9 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
    * This prevents confusing error messages when multiple conditions fail.
    */
 
-  it('host_only fires before no_state', () => {
-    const context = createContext(null as unknown as GameState, { isHost: false });
-    const intent: SubmitActionIntent = {
-      type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
-    };
-
-    const result = handleSubmitAction(intent, context);
-    expect(result.reason).toBe('host_only');
-  });
-
   it('no_state fires before invalid_status', () => {
     const context: HandlerContext = {
       state: null as unknown as GameState,
-      isHost: true,
       myUid: 'host-1',
       mySeat: 0,
     };

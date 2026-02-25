@@ -53,12 +53,8 @@ function createTestState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-function createTestContext(overrides?: {
-  isHost?: boolean;
-  state?: GameState | null;
-}): HandlerContext {
+function createTestContext(overrides?: { state?: GameState | null }): HandlerContext {
   return {
-    isHost: overrides?.isHost ?? true,
     state: overrides?.state === undefined ? createTestState() : overrides.state,
     myUid: 'host-uid',
     mySeat: null,
@@ -138,14 +134,6 @@ describe('handleFillWithBots', () => {
   });
 
   describe('rejection cases', () => {
-    it('should reject when not host', () => {
-      const context = createTestContext({ isHost: false });
-      const result = handleFillWithBots({ type: 'FILL_WITH_BOTS' }, context);
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
-    });
-
     it('should reject when status is not unseated', () => {
       const context = createTestContext({
         state: createTestState({ status: GameStatus.Seated }),
@@ -235,21 +223,6 @@ describe('handleMarkAllBotsViewed', () => {
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('invalid_status');
-    });
-
-    it('should reject when not host', () => {
-      const context = createTestContext({
-        isHost: false,
-        state: createTestState({
-          status: GameStatus.Assigned,
-          debugMode: { botsEnabled: true },
-        }),
-      });
-
-      const result = handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, context);
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
     });
   });
 });

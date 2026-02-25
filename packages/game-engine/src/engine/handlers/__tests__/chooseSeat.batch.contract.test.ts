@@ -145,7 +145,6 @@ function createMinimalState(
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
-    isHost: true,
     myUid: 'host-1',
     mySeat: 1,
     ...overrides,

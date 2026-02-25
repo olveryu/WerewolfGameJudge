@@ -253,13 +253,12 @@ function buildRevealPayload(
  * 验证前置条件（PR4 完整 gate）
  *
  * Gate 顺序（必须遵守）：
- * 1. host_only
- * 2. no_state
- * 3. invalid_status (must be ongoing)
- * 4. forbidden_while_audio_playing
- * 5. invalid_step (currentStepId 必须存在且匹配)
- * 6. not_seated (actor seat 必须有玩家)
- * 7. schema constraints (由 resolver 处理)
+ * 1. no_state
+ * 2. invalid_status (must be ongoing)
+ * 3. forbidden_while_audio_playing
+ * 4. invalid_step (currentStepId 必须存在且匹配)
+ * 5. not_seated (actor seat 必须有玩家)
+ * 6. schema constraints (由 resolver 处理)
  */
 function validateActionPreconditions(
   context: HandlerContext,
@@ -268,17 +267,9 @@ function validateActionPreconditions(
 ):
   | { valid: false; result: HandlerResult }
   | { valid: true; schemaId: SchemaId; state: NonNullState; schema: (typeof SCHEMAS)[SchemaId] } {
-  const { state, isHost } = context;
+  const { state } = context;
 
-  // Gate 1: host_only
-  if (!isHost) {
-    return {
-      valid: false,
-      result: { success: false, reason: 'host_only', actions: [] },
-    };
-  }
-
-  // Gate 2: no_state
+  // Gate 1: no_state
   if (!state) {
     return {
       valid: false,
@@ -286,7 +277,7 @@ function validateActionPreconditions(
     };
   }
 
-  // Gate 3: invalid_status (must be ongoing)
+  // Gate 2: invalid_status (must be ongoing)
   if (state.status !== GameStatus.Ongoing) {
     return {
       valid: false,
@@ -294,7 +285,7 @@ function validateActionPreconditions(
     };
   }
 
-  // Gate 4: forbidden_while_audio_playing
+  // Gate 3: forbidden_while_audio_playing
   if (state.isAudioPlaying) {
     return {
       valid: false,
@@ -302,7 +293,7 @@ function validateActionPreconditions(
     };
   }
 
-  // Gate 5: invalid_step (currentStepId 必须存在且能在 SCHEMAS 里找到)
+  // Gate 4: invalid_step (currentStepId 必须存在且能在 SCHEMAS 里找到)
   const currentStepId = state.currentStepId;
   if (!currentStepId) {
     return {
@@ -319,7 +310,7 @@ function validateActionPreconditions(
     };
   }
 
-  // Gate 5b: step mismatch - 提交的 role 必须与当前 step 对应
+  // Gate 4b: step mismatch - 提交的 role 必须与当前 step 对应
   const expectedSchemaId = getSchemaIdForRole(role);
   // Special case: wolfKill is a meeting step shared by multiple wolf-team roles
   // (e.g. wolf, spiritKnight, wolfQueen...). For this step we validate participation
@@ -333,7 +324,7 @@ function validateActionPreconditions(
     };
   }
 
-  // Gate 6: not_seated (actor seat 必须有玩家)
+  // Gate 5: not_seated (actor seat 必须有玩家)
   const player = state.players[actorSeat];
   if (!player) {
     return {
@@ -342,7 +333,7 @@ function validateActionPreconditions(
     };
   }
 
-  // Gate 6b: 玩家角色必须匹配
+  // Gate 5b: 玩家角色必须匹配
   if (player.role !== role) {
     return {
       valid: false,
@@ -350,7 +341,7 @@ function validateActionPreconditions(
     };
   }
 
-  // Gate 7: resolver 存在性检查
+  // Gate 6: resolver 存在性检查
   if (!RESOLVERS[currentStepId]) {
     return {
       valid: false,
@@ -669,14 +660,11 @@ export function handleSubmitWolfVote(
   //
   // IMPORTANT: We still keep one extra gate here:
   // - not_wolf_participant (meeting-specific rule)
-  // Everything else is validated by `handleSubmitAction` (host/state/status/audio/step/seat/role).
+  // Everything else is validated by `handleSubmitAction` (state/status/audio/step/seat/role).
 
-  // Guards needed to safely resolve voterRole (gates 1-4 duplicated from
+  // Guards needed to safely resolve voterRole (gates 1-3 duplicated from
   // validateActionPreconditions — acceptable since they're trivial checks
   // and keeping the canonical gate order avoids confusing rejection reasons).
-  if (!context.isHost) {
-    return normalizeWolfVoteRejection({ success: false, reason: 'host_only', actions: [] });
-  }
   if (!context.state) {
     return normalizeWolfVoteRejection({ success: false, reason: 'no_state', actions: [] });
   }
@@ -750,16 +738,16 @@ export function handleSubmitWolfVote(
  * 处理查看角色
  *
  * PR2: VIEWED_ROLE (assigned → ready)
- * - 前置条件：isHost、state != null、status === GameStatus.Assigned
+ * - 前置条件：state != null、status === GameStatus.Assigned
  * - 标记 seat 的 hasViewedRole = true
  * - 当所有玩家都 viewed 时，reducer 会将 status → GameStatus.Ready
  */
 export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerContext): HandlerResult {
   const { seat } = intent.payload;
-  const { state, isHost, mySeat } = context;
+  const { state, mySeat } = context;
 
   // 验证：座位所有权（Host 可标记任意座位用于 bot 控制；非 Host 只能标记自己的座位）
-  if (!isHost && mySeat !== seat) {
+  if (state?.hostUid !== context.myUid && mySeat !== seat) {
     return {
       success: false,
       reason: 'not_my_seat',

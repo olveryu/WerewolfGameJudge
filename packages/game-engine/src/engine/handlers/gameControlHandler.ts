@@ -53,9 +53,6 @@ type HostGuardOk = { ok: true; state: GameState };
 type HostGuardFail = { ok: false; result: HandlerResult };
 
 function requireHostWithState(context: HandlerContext): HostGuardOk | HostGuardFail {
-  if (!context.isHost) {
-    return { ok: false, result: { success: false, reason: 'host_only', actions: [] } };
-  }
   if (!context.state) {
     return { ok: false, result: { success: false, reason: 'no_state', actions: [] } };
   }
@@ -65,7 +62,7 @@ function requireHostWithState(context: HandlerContext): HostGuardOk | HostGuardF
 /**
  * 处理分配角色（仅 seated → assigned）
  *
- * - 前置条件：status === GameStatus.Seated && isHost
+ * - 前置条件：status === GameStatus.Seated
  * - 洗牌分配角色
  * - 设置 hasViewedRole = false
  * - status → GameStatus.Assigned
@@ -139,7 +136,7 @@ export function handleAssignRoles(
 /**
  * 处理开始夜晚（ready → ongoing）
  *
- * - 前置条件：status === GameStatus.Ready && isHost
+ * - 前置条件：status === GameStatus.Ready
  * - 初始化 Night-1 字段
  * - status → GameStatus.Ongoing
  * - 广播 STATE_UPDATE
@@ -318,7 +315,6 @@ export function handleSetRoleRevealAnimation(
  * 处理填充机器人（Debug-only, Host-only）
  *
  * 前置条件：
- * - isHost === true
  * - status === GameStatus.Unseated
  *
  * 结果：
@@ -380,7 +376,6 @@ export function handleFillWithBots(
  * 处理标记所有机器人已查看角色（Debug-only, Host-only）
  *
  * 前置条件：
- * - isHost === true
  * - debugMode.botsEnabled === true
  * - status === GameStatus.Assigned
  *

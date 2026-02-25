@@ -2,7 +2,7 @@
  * Assign Roles API Route Tests — POST /api/game/assign (unique tests)
  *
  * Common tests (405 / 400 / 200 / 400) are in simple-host-endpoints.test.ts.
- * This file tests assign-specific behavior: CORS preflight + callback isHost.
+ * This file tests assign-specific behavior: CORS preflight + callback invocation.
  */
 
 import type { GameState } from '@werewolf/game-engine';
@@ -41,7 +41,7 @@ describe('POST /api/game/assign (unique)', () => {
     expect(res._json).toEqual({ success: false, reason: 'MISSING_PARAMS' });
   });
 
-  it('callback sets isHost correctly', async () => {
+  it('callback invokes handler via processGameAction', async () => {
     mockProcessGameAction.mockImplementation(async (_code, processFn) => {
       const state = { hostUid: 'h1', players: {} } as unknown as GameState;
       const result = (processFn as (s: GameState, r: number) => unknown)(state, 0);

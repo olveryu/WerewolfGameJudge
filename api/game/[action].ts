@@ -58,7 +58,7 @@ function missingParams(res: VercelResponse) {
  * Factory for simple host-only handlers that only need roomCode.
  *
  * Pattern: extract body → validate → processGameAction → buildHandlerContext(state, state.hostUid) → handlerFn → respond.
- * Host 鉴权由 game-engine handler 的 `isHost` gate 完成（state.hostUid === state.hostUid → true）。
+ * Host 鉴权由路由层完成（传入 state.hostUid 保证只有 host 能执行这些操作）。
  */
 function createSimpleHostHandler<I extends { type: string }>(
   handlerFn: (

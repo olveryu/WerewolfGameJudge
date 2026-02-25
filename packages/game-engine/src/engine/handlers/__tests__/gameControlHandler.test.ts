@@ -38,7 +38,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
-    isHost: true,
     myUid: 'host-1',
     mySeat: 0,
     ...overrides,
@@ -84,16 +83,6 @@ describe('handleAssignRoles', () => {
       const sortedRoles = [...assignedRoles].sort((a, b) => a.localeCompare(b));
       expect(sortedRoles).toEqual(['seer', 'villager', 'wolf']);
     }
-  });
-
-  it('should fail when not host (edge case)', () => {
-    const context = createContext(seatedState, { isHost: false });
-    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
-
-    const result = handleAssignRoles(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
   });
 
   it('should fail when status is not seated (edge case)', () => {
@@ -248,20 +237,9 @@ describe('handleStartNight', () => {
     }
   });
 
-  it('should fail when not host (gate: host_only)', () => {
-    const context = createContext(readyState, { isHost: false });
-    const intent: StartNightIntent = { type: 'START_NIGHT' };
-
-    const result = handleStartNight(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
-  });
-
   it('should fail when state is null (gate: no_state)', () => {
     const context: HandlerContext = {
       state: null,
-      isHost: true,
       myUid: 'host-1',
       mySeat: 0,
     };
@@ -369,17 +347,6 @@ describe('handleRestartGame', () => {
     expect(result.actions[0].type).toBe('RESTART_GAME');
   });
 
-  it('should fail when not host', () => {
-    const state = createMinimalState({ status: GameStatus.Ended });
-    const context = createContext(state, { isHost: false });
-    const intent: RestartGameIntent = { type: 'RESTART_GAME' };
-
-    const result = handleRestartGame(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
-  });
-
   it('should include side effects', () => {
     const state = createMinimalState({ status: GameStatus.Ended });
     const context = createContext(state);
@@ -433,20 +400,9 @@ describe('handleUpdateTemplate', () => {
     expect(result.actions[0].type).toBe('UPDATE_TEMPLATE');
   });
 
-  it('should fail when not host (gate: host_only)', () => {
-    const state = createMinimalState({ status: GameStatus.Unseated });
-    const context = createContext(state, { isHost: false });
-
-    const result = handleUpdateTemplate(updateIntent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
-  });
-
   it('should fail when state is null (gate: no_state)', () => {
     const context: HandlerContext = {
       state: null,
-      isHost: true,
       myUid: 'host-1',
       mySeat: 0,
     };
@@ -501,14 +457,6 @@ describe('handleShareNightReview', () => {
       type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS',
       allowedSeats: [0, 2],
     });
-  });
-
-  it('should fail for non-host', () => {
-    const context = createContext(endedState, { isHost: false, myUid: 'p2' });
-    const result = handleShareNightReview(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
   });
 
   it.each([
