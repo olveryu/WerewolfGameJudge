@@ -24,6 +24,7 @@ export interface HomeScreenStyles {
   userNameText: TextStyle;
   menu: ViewStyle;
   menuItem: ViewStyle;
+  menuItemDisabled: ViewStyle;
   menuIcon: ViewStyle;
   menuIconText: TextStyle;
   menuContent: ViewStyle;
@@ -153,6 +154,9 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       flexDirection: 'row',
       alignItems: 'center',
       padding: spacing.medium,
+    },
+    menuItemDisabled: {
+      opacity: 0.4,
     },
     menuIcon: {
       width: componentSizes.button.md,

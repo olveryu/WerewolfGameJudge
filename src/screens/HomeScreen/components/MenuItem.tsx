@@ -13,6 +13,7 @@ interface MenuItemProps {
   icon: ReactNode;
   title: string;
   subtitle?: string;
+  disabled?: boolean;
   onPress: () => void;
   testID?: string;
   styles: HomeScreenStyles;
@@ -22,12 +23,19 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   icon,
   title,
   subtitle,
+  disabled,
   onPress,
   testID,
   styles,
 }) => {
   return (
-    <TouchableOpacity testID={testID} style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      testID={testID}
+      style={[styles.menuItem, disabled && styles.menuItemDisabled]}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.7}
+    >
       <View style={styles.menuIcon}>
         {typeof icon === 'string' ? <Text style={styles.menuIconText}>{icon}</Text> : icon}
       </View>
