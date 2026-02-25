@@ -6,7 +6,7 @@
  *
  * Coverage is split into TWO layers:
  * 1. UI-TRIGGERABLE: Dialogs that UI tests MUST cover (prompts, confirms, skips, gates)
- * 2. HOST-DATA-REQUIRED: Reveal dialogs requiring Host broadcast data (covered by integration tests)
+ * 2. SERVER-DATA-REQUIRED: Reveal dialogs requiring server broadcast data (covered by integration tests)
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -120,11 +120,11 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
 };
 
 /**
- * HOST-DATA-REQUIRED dialog types
- * These require Host broadcast data and are covered by integration tests
+ * SERVER-DATA-REQUIRED dialog types
+ * These require server broadcast data and are covered by integration tests
  */
-const ROLE_HOST_DATA_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
-  // Reveals require Host to provide result data
+const ROLE_SERVER_DATA_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
+  // Reveals require server to provide result data
   seer: ['seerReveal'],
   psychic: ['psychicReveal'],
   gargoyle: ['gargoyleReveal'],
@@ -159,14 +159,14 @@ export function getRequiredUiDialogTypes(board: BoardConfig): DialogType[] {
 }
 
 /**
- * Generate HOST-DATA-REQUIRED dialog types for a board
+ * Generate SERVER-DATA-REQUIRED dialog types for a board
  * These are covered by integration tests
  */
-export function getRequiredHostDataDialogTypes(board: BoardConfig): DialogType[] {
+export function getRequiredServerDataDialogTypes(board: BoardConfig): DialogType[] {
   const types = new Set<DialogType>();
 
   for (const role of board.roles) {
-    const roleRequirements = ROLE_HOST_DATA_DIALOG_REQUIREMENTS[role];
+    const roleRequirements = ROLE_SERVER_DATA_DIALOG_REQUIREMENTS[role];
     if (roleRequirements) {
       for (const type of roleRequirements) {
         types.add(type);

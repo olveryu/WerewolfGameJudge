@@ -28,7 +28,7 @@ import {
   boardHasRole,
   type DialogType,
   getAll12PBoards,
-  getRequiredHostDataDialogTypes,
+  getRequiredServerDataDialogTypes,
   getRequiredUiDialogTypes,
 } from '@/screens/RoomScreen/__tests__/harness';
 
@@ -386,13 +386,13 @@ describe('Board UI Coverage Contract', () => {
 
       if (!report.isValid) {
         const requiredUiTypes = getRequiredUiDialogTypes(board);
-        const requiredHostDataTypes = getRequiredHostDataDialogTypes(board);
+        const requiredServerDataTypes = getRequiredServerDataDialogTypes(board);
 
         throw new Error(
           `INCOMPLETE COVERAGE in ${expectedFile}:\n` +
             `${report.issues.join('\n')}\n\n` +
             `Required UI types (MUST cover): [${requiredUiTypes.join(', ')}]\n` +
-            `Required Server-data types (covered by integration): [${requiredHostDataTypes.join(', ')}]\n` +
+            `Required Server-data types (covered by integration): [${requiredServerDataTypes.join(', ')}]\n` +
             `Asserted types: [${report.assertedTypes.join(', ')}]\n` +
             `Missing types: [${report.missingTypes.join(', ')}]`,
         );
