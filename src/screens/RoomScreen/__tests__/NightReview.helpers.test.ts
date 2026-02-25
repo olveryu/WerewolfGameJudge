@@ -224,6 +224,8 @@ describe('NightReview.helpers', () => {
         [16, makePlayer(16, 'wolfQueen')],
         [17, makePlayer(17, 'slacker')],
         [18, makePlayer(18, 'wildChild')],
+        [19, makePlayer(19, 'silenceElder')],
+        [20, makePlayer(20, 'votebanElder')],
       ]);
 
       const actions = new Map<RoleId, ReturnType<typeof makeActionTarget>>([
@@ -237,6 +239,8 @@ describe('NightReview.helpers', () => {
           wolfVotesBySeat: { '0': 8 },
           blockedSeat: 3,
           guardedSeat: 4,
+          silencedSeat: 19,
+          votebannedSeat: 20,
           savedSeat: 5,
           poisonedSeat: 99, // non-existent seat so hunter/darkWolfKing can shoot
           dreamingSeat: 6,

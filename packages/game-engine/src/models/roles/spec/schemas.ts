@@ -186,6 +186,34 @@ export const SCHEMAS = {
     },
   },
 
+  silenceElderSilence: {
+    id: 'silenceElderSilence',
+    displayName: '禁言',
+    kind: 'chooseSeat',
+    constraints: [],
+    canSkip: true,
+    ui: {
+      confirmTitle: '确认禁言',
+      prompt: '请选择要禁言的玩家，如不使用请点击「不使用技能」',
+      confirmText: '确定要禁言该玩家吗？',
+      bottomActionText: '不使用技能',
+    },
+  },
+
+  votebanElderBan: {
+    id: 'votebanElderBan',
+    displayName: '禁票',
+    kind: 'chooseSeat',
+    constraints: [],
+    canSkip: true,
+    ui: {
+      confirmTitle: '确认禁票',
+      prompt: '请选择要禁票的玩家，如不使用请点击「不使用技能」',
+      confirmText: '确定要禁票该玩家吗？',
+      bottomActionText: '不使用技能',
+    },
+  },
+
   // === Wolf actions ===
   wolfKill: {
     id: 'wolfKill',

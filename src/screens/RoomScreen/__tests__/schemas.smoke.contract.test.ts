@@ -22,6 +22,8 @@ const schemaToRole: Record<string, string> = {
   witchSave: 'witch',
   witchPoison: 'witch',
   witchAction: 'witch',
+  silenceElderSilence: 'silenceElder',
+  votebanElderBan: 'votebanElder',
 
   // wolf
   wolfKill: 'wolf',

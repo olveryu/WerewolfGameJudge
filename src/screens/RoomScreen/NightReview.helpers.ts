@@ -76,6 +76,16 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(`🛡️ 守卫守护了 ${s(nr.guardedSeat)}`);
   }
 
+  // 3a. SilenceElder
+  if (nr.silencedSeat != null) {
+    lines.push(`🤫 禁言长老禁言了 ${s(nr.silencedSeat)}`);
+  }
+
+  // 3b. VotebanElder
+  if (nr.votebannedSeat != null) {
+    lines.push(`🚫 禁票长老禁票了 ${s(nr.votebannedSeat)}`);
+  }
+
   // 4. Witch
   if (nr.savedSeat != null) {
     lines.push(`💊 女巫救了 ${s(nr.savedSeat)}`);

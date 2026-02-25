@@ -49,6 +49,12 @@ export interface CurrentNightResults {
 
   /** Seats swapped by magician */
   readonly swappedSeats?: readonly [number, number];
+
+  /** Seat silenced by silenceElder (cannot speak during day) */
+  readonly silencedSeat?: number;
+
+  /** Seat vote-banned by votebanElder (cannot vote during exile) */
+  readonly votebannedSeat?: number;
 }
 
 /** Context passed to resolvers */
@@ -115,6 +121,8 @@ export interface ResolverResult {
     readonly learnedRoleId?: RoleId; // wolfRobot - learned role (see WolfRobotLearnSuccessResult for strong typing)
     readonly canShootAsHunter?: boolean; // wolfRobot - can shoot as hunter (only set when learned hunter)
     readonly idolTarget?: number; // slacker
+    readonly silenceTarget?: number; // silenceElder
+    readonly votebanTarget?: number; // votebanElder
   };
 }
 

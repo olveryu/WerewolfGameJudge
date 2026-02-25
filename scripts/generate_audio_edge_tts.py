@@ -70,6 +70,8 @@ BEGIN_TEXT: dict[str, str] = {
     "dreamcatcher": "摄梦人请睁眼，请选择摄梦对象。",
     "pure_white": "纯白之女请睁眼，请选择要查验的玩家。",
     "wolf_witch": "狼巫请睁眼，请选择要查验的玩家。",
+    "silence_elder": "禁言长老请睁眼，请选择要禁言的玩家。",
+    "voteban_elder": "禁票长老请睁眼，请选择要禁票的玩家。",
 }
 
 END_TEXT: dict[str, str] = {
@@ -93,6 +95,8 @@ END_TEXT: dict[str, str] = {
     "dreamcatcher": "摄梦人请闭眼。",
     "pure_white": "纯白之女请闭眼。",
     "wolf_witch": "狼巫请闭眼。",
+    "silence_elder": "禁言长老请闭眼。",
+    "voteban_elder": "禁票长老请闭眼。",
 }
 
 

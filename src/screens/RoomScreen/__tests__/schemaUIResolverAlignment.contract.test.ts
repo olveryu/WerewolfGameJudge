@@ -269,6 +269,9 @@ describe('notSelf constraint completeness', () => {
       'wolfKill',
       // notWolfFaction
       'wolfWitchCheck',
+      // No constraint (can target self)
+      'silenceElderSilence',
+      'votebanElderBan',
       // Swap (special)
       'magicianSwap',
     ]);

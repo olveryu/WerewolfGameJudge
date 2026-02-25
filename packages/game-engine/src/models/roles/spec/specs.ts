@@ -4,9 +4,9 @@
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
  *
- * 29 roles total:
+ * 31 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
- * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper, pureWhite, dancer (13)
+ * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder (15)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade (11)
  * - Third-party: slacker, wildChild (2)
  *
@@ -212,6 +212,30 @@ export const ROLE_SPECS = {
     // Night-1-only scope: dancer starts from night 2, so no night-1 action
     night1: { hasAction: false },
     flags: { immuneToPoison: true },
+  },
+
+  silenceElder: {
+    id: 'silenceElder',
+    displayName: '禁言长老',
+    shortName: '禁',
+    emoji: '🤫',
+    faction: Faction.God,
+    team: Team.Good,
+    description:
+      '每晚可以禁言一位玩家，被禁言的玩家在发言阶段不能说话只能用肢体动作表达。不能连续两天禁言同一位玩家。禁言情况与死讯同时公布',
+    night1: { hasAction: true },
+  },
+
+  votebanElder: {
+    id: 'votebanElder',
+    displayName: '禁票长老',
+    shortName: '票',
+    emoji: '🚫',
+    faction: Faction.God,
+    team: Team.Good,
+    description:
+      '每晚可以禁票一位玩家，被禁票的玩家在放逐环节不能投票。不能连续两天禁票同一位玩家。禁票情况与死讯同时公布',
+    night1: { hasAction: true },
   },
 
   // ===================================================================

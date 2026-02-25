@@ -55,6 +55,16 @@ const NIGHT_STEPS_INTERNAL = [
     roleId: 'guard',
     audioKey: 'guard',
   },
+  {
+    id: 'silenceElderSilence',
+    roleId: 'silenceElder',
+    audioKey: 'silenceElder',
+  },
+  {
+    id: 'votebanElderBan',
+    roleId: 'votebanElder',
+    audioKey: 'votebanElder',
+  },
 
   // === 狼人会议阶段 ===
   {
