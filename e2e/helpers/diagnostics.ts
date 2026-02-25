@@ -63,12 +63,23 @@ export function setupDiagnostics(page: Page, label: string): DiagnosticData {
     console.error('[PW requestfailed]', failLine);
   });
 
-  // Capture 4xx/5xx responses
+  // Capture 4xx/5xx responses (with body for API routes)
   page.on('response', (resp) => {
     if (resp.status() >= 400) {
       const errLine = `[${label}] HTTP ${resp.status()}: ${resp.url()}`;
       data.errorResponses.push(errLine);
       console.warn('[PW response]', errLine);
+      // Log response body for API errors to identify rejection reason
+      if (resp.url().includes('/api/')) {
+        void resp
+          .json()
+          .then((body) => {
+            console.warn('[PW response body]', `[${label}]`, JSON.stringify(body));
+          })
+          .catch(() => {
+            // Non-JSON response, ignore
+          });
+      }
     }
   });
 

@@ -72,16 +72,13 @@ describe('POST /api/game/night/action', () => {
 
   it('returns 400 when seat is missing', async () => {
     const res = mockResponse();
-    await handler(
-      mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1', role: 'seer' } }),
-      res,
-    );
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD', role: 'seer' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when role is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1', seat: 1 } }), res);
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD', seat: 1 } }), res);
     expect(res._status).toBe(400);
   });
 
@@ -91,7 +88,7 @@ describe('POST /api/game/night/action', () => {
     await handler(
       mockRequest({
         query,
-        body: { roomCode: 'ABCD', hostUid: 'h1', seat: 1, role: 'seer', target: 2 },
+        body: { roomCode: 'ABCD', seat: 1, role: 'seer', target: 2 },
       }),
       res,
     );
@@ -99,7 +96,6 @@ describe('POST /api/game/night/action', () => {
     // Should pass inlineProgression options
     expect(mockProcessGameAction).toHaveBeenCalledWith('ABCD', expect.any(Function), {
       enabled: true,
-      hostUid: 'h1',
     });
   });
 
@@ -109,7 +105,7 @@ describe('POST /api/game/night/action', () => {
     await handler(
       mockRequest({
         query,
-        body: { roomCode: 'ABCD', hostUid: 'h1', seat: 1, role: 'seer', target: 2 },
+        body: { roomCode: 'ABCD', seat: 1, role: 'seer', target: 2 },
       }),
       res,
     );
@@ -126,10 +122,7 @@ describe('POST /api/game/night/wolf-vote', () => {
 
   it('returns 400 when params missing', async () => {
     const res = mockResponse();
-    await handler(
-      mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1', voterSeat: 1 } }),
-      res,
-    );
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD', voterSeat: 1 } }), res);
     expect(res._status).toBe(400);
   });
 
@@ -139,14 +132,13 @@ describe('POST /api/game/night/wolf-vote', () => {
     await handler(
       mockRequest({
         query,
-        body: { roomCode: 'ABCD', hostUid: 'h1', voterSeat: 1, targetSeat: 3 },
+        body: { roomCode: 'ABCD', voterSeat: 1, targetSeat: 3 },
       }),
       res,
     );
     expect(res._status).toBe(200);
     expect(mockProcessGameAction).toHaveBeenCalledWith('ABCD', expect.any(Function), {
       enabled: true,
-      hostUid: 'h1',
     });
   });
 });
@@ -158,16 +150,16 @@ describe('POST /api/game/night/wolf-vote', () => {
 describe('POST /api/game/night/audio-ack', () => {
   const query = { action: 'audio-ack' };
 
-  it('returns 400 when params missing', async () => {
+  it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
+    await handler(mockRequest({ query, body: {} }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(200);
   });
 });
@@ -181,17 +173,14 @@ describe('POST /api/game/night/audio-gate', () => {
 
   it('returns 400 when params missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(
-      mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1', isPlaying: true } }),
-      res,
-    );
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD', isPlaying: true } }), res);
     expect(res._status).toBe(200);
   });
 });
@@ -203,16 +192,16 @@ describe('POST /api/game/night/audio-gate', () => {
 describe('POST /api/game/night/end', () => {
   const query = { action: 'end' };
 
-  it('returns 400 when params missing', async () => {
+  it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
+    await handler(mockRequest({ query, body: {} }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(200);
   });
 });
@@ -224,16 +213,16 @@ describe('POST /api/game/night/end', () => {
 describe('POST /api/game/night/progression', () => {
   const query = { action: 'progression' };
 
-  it('returns 400 when params missing', async () => {
+  it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
+    await handler(mockRequest({ query, body: {} }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(200);
   });
 });
@@ -245,16 +234,16 @@ describe('POST /api/game/night/progression', () => {
 describe('POST /api/game/night/reveal-ack', () => {
   const query = { action: 'reveal-ack' };
 
-  it('returns 400 when params missing', async () => {
+  it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
+    await handler(mockRequest({ query, body: {} }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(200);
   });
 });
@@ -268,14 +257,14 @@ describe('POST /api/game/night/wolf-robot-viewed', () => {
 
   it('returns 400 when params missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ query, body: { roomCode: 'ABCD', hostUid: 'h1', seat: 2 } }), res);
+    await handler(mockRequest({ query, body: { roomCode: 'ABCD', seat: 2 } }), res);
     expect(res._status).toBe(200);
   });
 });

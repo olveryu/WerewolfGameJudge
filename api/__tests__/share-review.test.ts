@@ -31,31 +31,19 @@ describe('POST /api/game/share-review', () => {
 
   it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { hostUid: 'h1', allowedSeats: [0] } }), res);
-    expect(res._status).toBe(400);
-  });
-
-  it('returns 400 when hostUid is missing', async () => {
-    const res = mockResponse();
-    await handler(
-      mockRequest({ query: QUERY, body: { roomCode: 'ABCD', allowedSeats: [0] } }),
-      res,
-    );
+    await handler(mockRequest({ query: QUERY, body: { allowedSeats: [0] } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when allowedSeats is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when allowedSeats is not an array', async () => {
     const res = mockResponse();
-    await handler(
-      mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1', allowedSeats: 0 } }),
-      res,
-    );
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', allowedSeats: 0 } }), res);
     expect(res._status).toBe(400);
   });
 
@@ -65,7 +53,7 @@ describe('POST /api/game/share-review', () => {
     await handler(
       mockRequest({
         query: QUERY,
-        body: { roomCode: 'ABCD', hostUid: 'h1', allowedSeats: [0, 2] },
+        body: { roomCode: 'ABCD', allowedSeats: [0, 2] },
       }),
       res,
     );
@@ -78,7 +66,7 @@ describe('POST /api/game/share-review', () => {
     await handler(
       mockRequest({
         query: QUERY,
-        body: { roomCode: 'ABCD', hostUid: 'h1', allowedSeats: [] },
+        body: { roomCode: 'ABCD', allowedSeats: [] },
       }),
       res,
     );
@@ -91,7 +79,7 @@ describe('POST /api/game/share-review', () => {
     await handler(
       mockRequest({
         query: QUERY,
-        body: { roomCode: 'ABCD', hostUid: 'h1', allowedSeats: [0] },
+        body: { roomCode: 'ABCD', allowedSeats: [0] },
       }),
       res,
     );

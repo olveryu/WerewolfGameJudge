@@ -36,27 +36,21 @@ describe('POST /api/game/start', () => {
 
   it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { hostUid: 'h1' } }), res);
-    expect(res._status).toBe(400);
-  });
-
-  it('returns 400 when hostUid is missing', async () => {
-    const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
+    await handler(mockRequest({ query: QUERY, body: {} }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 200 on success', async () => {
     mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
     const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(200);
   });
 
   it('returns 400 on failure', async () => {
     mockProcessGameAction.mockResolvedValue({ success: false, reason: 'NOT_READY' });
     const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(400);
   });
 
@@ -110,10 +104,7 @@ describe('POST /api/game/start', () => {
 
     const freshHandler = (require('../game/[action]') as { default: typeof handler }).default;
     const res = mockResponse();
-    await freshHandler(
-      mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }),
-      res,
-    );
+    await freshHandler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
 
     expect(capturedResult).toBeDefined();
     expect(capturedResult!.success).toBe(true);

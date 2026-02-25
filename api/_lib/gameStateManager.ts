@@ -28,8 +28,6 @@ import type { GameActionResult, ProcessResult } from './types';
 interface InlineProgressionOptions {
   /** 启用内联推进（action 处理后自动 evaluate + advance/endNight） */
   enabled: boolean;
-  /** Host UID（用于构建 HandlerContext） */
-  hostUid: string;
   /** 当前时间戳（用于 wolfVoteDeadline 检查，默认 Date.now()） */
   nowMs?: number;
 }
@@ -95,7 +93,7 @@ export async function processGameAction(
       if (inlineProgression?.enabled) {
         const progressionResult = runInlineProgression(
           newState,
-          inlineProgression.hostUid,
+          newState.hostUid,
           inlineProgression.nowMs,
         );
         for (const action of progressionResult.actions) {

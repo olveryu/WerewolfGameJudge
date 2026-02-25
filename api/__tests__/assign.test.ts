@@ -36,7 +36,7 @@ describe('POST /api/game/assign (unique)', () => {
 
   it('returns 400 when params missing (verifies MISSING_PARAMS reason)', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: {} }), res);
     expect(res._status).toBe(400);
     expect(res._json).toEqual({ success: false, reason: 'MISSING_PARAMS' });
   });
@@ -48,7 +48,7 @@ describe('POST /api/game/assign (unique)', () => {
       return { success: true, _cb: result } as unknown as GameActionResult;
     });
     const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
     expect(mockProcessGameAction).toHaveBeenCalled();
   });
 });

@@ -51,25 +51,21 @@ export interface SeatRequestBody {
 /** POST /api/game/assign */
 export interface AssignRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 /** POST /api/game/fill-bots */
 export interface FillBotsRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 /** POST /api/game/start */
 export interface StartRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 /** POST /api/game/restart */
 export interface RestartRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 /** POST /api/game/view-role */
@@ -82,21 +78,18 @@ export interface ViewRoleRequestBody {
 /** POST /api/game/update-template */
 export interface UpdateTemplateRequestBody {
   roomCode: string;
-  hostUid: string;
   templateRoles: RoleId[];
 }
 
 /** POST /api/game/share-review */
 export interface ShareReviewRequestBody {
   roomCode: string;
-  hostUid: string;
   allowedSeats: number[];
 }
 
 /** POST /api/game/set-animation */
 export interface SetAnimationRequestBody {
   roomCode: string;
-  hostUid: string;
   animation:
     | 'roulette'
     | 'roleHunt'
@@ -112,13 +105,11 @@ export interface SetAnimationRequestBody {
 /** POST /api/game/mark-bots-viewed */
 export interface MarkBotsViewedRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 /** POST /api/game/clear-seats */
 export interface ClearSeatsRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +119,6 @@ export interface ClearSeatsRequestBody {
 /** POST /api/game/night/action */
 export interface ActionRequestBody {
   roomCode: string;
-  hostUid: string;
   seat: number;
   role: RoleId;
   target: number | null;
@@ -138,7 +128,6 @@ export interface ActionRequestBody {
 /** POST /api/game/night/wolf-vote */
 export interface WolfVoteRequestBody {
   roomCode: string;
-  hostUid: string;
   voterSeat: number;
   targetSeat: number;
 }
@@ -146,37 +135,31 @@ export interface WolfVoteRequestBody {
 /** POST /api/game/night/end */
 export interface EndNightRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 /** POST /api/game/night/audio-gate */
 export interface AudioGateRequestBody {
   roomCode: string;
-  hostUid: string;
   isPlaying: boolean;
 }
 
 /** POST /api/game/night/audio-ack */
 export interface AudioAckRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 /** POST /api/game/night/progression */
 export interface ProgressionRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 /** POST /api/game/night/reveal-ack */
 export interface RevealAckRequestBody {
   roomCode: string;
-  hostUid: string;
 }
 
 /** POST /api/game/night/wolf-robot-viewed */
 export interface WolfRobotViewedRequestBody {
   roomCode: string;
-  hostUid: string;
   seat: number;
 }

@@ -36,11 +36,7 @@ import { buildHandlerContext } from '../../_lib/handlerContext';
 import { resultToStatus } from '../../_lib/responseStatus';
 import type {
   ActionRequestBody,
-  AudioAckRequestBody,
   AudioGateRequestBody,
-  EndNightRequestBody,
-  ProgressionRequestBody,
-  RevealAckRequestBody,
   WolfRobotViewedRequestBody,
   WolfVoteRequestBody,
 } from '../../_lib/types';
@@ -51,42 +47,39 @@ import type {
 
 async function handleAction(req: VercelRequest, res: VercelResponse) {
   const body = req.body as ActionRequestBody;
-  const { roomCode, hostUid, seat, role, target, extra } = body;
+  const { roomCode, seat, role, target, extra } = body;
 
-  if (!roomCode || !hostUid || typeof seat !== 'number' || !role) {
+  if (!roomCode || typeof seat !== 'number' || !role) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
   const result = await processGameAction(
     roomCode,
     (state: GameState) => {
-      const handlerCtx = buildHandlerContext(state, hostUid);
+      const handlerCtx = buildHandlerContext(state, state.hostUid);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: { seat, role, target, extra },
       };
       return handleSubmitAction(intent, handlerCtx);
     },
-    { enabled: true, hostUid },
+    { enabled: true },
   );
 
   return res.status(resultToStatus(result)).json(result);
 }
 
 async function handleAudioAck(req: VercelRequest, res: VercelResponse) {
-  const body = req.body as AudioAckRequestBody;
-  const { roomCode, hostUid } = body;
+  const body = req.body as { roomCode?: string };
+  const { roomCode } = body;
 
-  if (!roomCode || !hostUid) {
+  if (!roomCode) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
   const result = await processGameAction(
     roomCode,
     (state) => {
-      if (state.hostUid !== hostUid) {
-        return { success: false, reason: 'host_only', actions: [] };
-      }
       // Guard: no-op if audio is already not playing and no pending effects
       if (
         !state.isAudioPlaying &&
@@ -102,7 +95,7 @@ async function handleAudioAck(req: VercelRequest, res: VercelResponse) {
         ],
       };
     },
-    { enabled: true, hostUid },
+    { enabled: true },
   );
 
   return res.status(resultToStatus(result)).json(result);
@@ -110,14 +103,14 @@ async function handleAudioAck(req: VercelRequest, res: VercelResponse) {
 
 async function handleAudioGate(req: VercelRequest, res: VercelResponse) {
   const body = req.body as AudioGateRequestBody;
-  const { roomCode, hostUid, isPlaying } = body;
+  const { roomCode, isPlaying } = body;
 
-  if (!roomCode || !hostUid || typeof isPlaying !== 'boolean') {
+  if (!roomCode || typeof isPlaying !== 'boolean') {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
   const result = await processGameAction(roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, hostUid);
+    const handlerCtx = buildHandlerContext(state, state.hostUid);
     const intent: SetAudioPlayingIntent = {
       type: 'SET_AUDIO_PLAYING',
       payload: { isPlaying },
@@ -129,15 +122,15 @@ async function handleAudioGate(req: VercelRequest, res: VercelResponse) {
 }
 
 async function handleEnd(req: VercelRequest, res: VercelResponse) {
-  const body = req.body as EndNightRequestBody;
-  const { roomCode, hostUid } = body;
+  const body = req.body as { roomCode?: string };
+  const { roomCode } = body;
 
-  if (!roomCode || !hostUid) {
+  if (!roomCode) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
   const result = await processGameAction(roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, hostUid);
+    const handlerCtx = buildHandlerContext(state, state.hostUid);
     const intent: EndNightIntent = { type: 'END_NIGHT' };
     return handleEndNight(intent, handlerCtx);
   });
@@ -146,44 +139,38 @@ async function handleEnd(req: VercelRequest, res: VercelResponse) {
 }
 
 async function handleProgression(req: VercelRequest, res: VercelResponse) {
-  const body = req.body as ProgressionRequestBody;
-  const { roomCode, hostUid } = body;
+  const body = req.body as { roomCode?: string };
+  const { roomCode } = body;
 
-  if (!roomCode || !hostUid) {
+  if (!roomCode) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
   const result = await processGameAction(
     roomCode,
     (state) => {
-      if (state.hostUid !== hostUid) {
-        return { success: false, reason: 'host_only', actions: [] };
-      }
       if (state.status !== GameStatus.Ongoing) {
         return { success: false, reason: 'not_ongoing', actions: [] };
       }
       return { success: true, actions: [] };
     },
-    { enabled: true, hostUid },
+    { enabled: true },
   );
 
   return res.status(resultToStatus(result)).json(result);
 }
 
 async function handleRevealAck(req: VercelRequest, res: VercelResponse) {
-  const body = req.body as RevealAckRequestBody;
-  const { roomCode, hostUid } = body;
+  const body = req.body as { roomCode?: string };
+  const { roomCode } = body;
 
-  if (!roomCode || !hostUid) {
+  if (!roomCode) {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
   const result = await processGameAction(
     roomCode,
     (state) => {
-      if (state.hostUid !== hostUid) {
-        return { success: false, reason: 'host_only', actions: [] };
-      }
       if (!state.pendingRevealAcks || state.pendingRevealAcks.length === 0) {
         return { success: false, reason: 'no_pending_acks', actions: [] };
       }
@@ -193,7 +180,7 @@ async function handleRevealAck(req: VercelRequest, res: VercelResponse) {
         sideEffects: [{ type: 'BROADCAST_STATE' as const }],
       };
     },
-    { enabled: true, hostUid },
+    { enabled: true },
   );
 
   return res.status(resultToStatus(result)).json(result);
@@ -201,22 +188,22 @@ async function handleRevealAck(req: VercelRequest, res: VercelResponse) {
 
 async function handleWolfRobotViewed(req: VercelRequest, res: VercelResponse) {
   const body = req.body as WolfRobotViewedRequestBody;
-  const { roomCode, hostUid, seat } = body;
+  const { roomCode, seat } = body;
 
-  if (!roomCode || !hostUid || typeof seat !== 'number') {
+  if (!roomCode || typeof seat !== 'number') {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
   const result = await processGameAction(
     roomCode,
     (state: GameState) => {
-      const handlerCtx = buildHandlerContext(state, hostUid);
+      const handlerCtx = buildHandlerContext(state, state.hostUid);
       return handleSetWolfRobotHunterStatusViewed(handlerCtx, {
         type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
         seat,
       });
     },
-    { enabled: true, hostUid },
+    { enabled: true },
   );
 
   return res.status(resultToStatus(result)).json(result);
@@ -224,16 +211,16 @@ async function handleWolfRobotViewed(req: VercelRequest, res: VercelResponse) {
 
 async function handleWolfVote(req: VercelRequest, res: VercelResponse) {
   const body = req.body as WolfVoteRequestBody;
-  const { roomCode, hostUid, voterSeat, targetSeat } = body;
+  const { roomCode, voterSeat, targetSeat } = body;
 
-  if (!roomCode || !hostUid || typeof voterSeat !== 'number' || typeof targetSeat !== 'number') {
+  if (!roomCode || typeof voterSeat !== 'number' || typeof targetSeat !== 'number') {
     return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
   }
 
   const result = await processGameAction(
     roomCode,
     (state: GameState) => {
-      const handlerCtx = buildHandlerContext(state, hostUid);
+      const handlerCtx = buildHandlerContext(state, state.hostUid);
       const intent: SubmitWolfVoteIntent = {
         type: 'SUBMIT_WOLF_VOTE',
         payload: { seat: voterSeat, target: targetSeat },
@@ -265,7 +252,7 @@ async function handleWolfVote(req: VercelRequest, res: VercelResponse) {
 
       return { ...voteResult, actions };
     },
-    { enabled: true, hostUid },
+    { enabled: true },
   );
 
   return res.status(resultToStatus(result)).json(result);
