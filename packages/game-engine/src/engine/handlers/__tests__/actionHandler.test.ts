@@ -341,8 +341,8 @@ describe('handleSubmitWolfVote', () => {
     const result = handleSubmitWolfVote(intent, context);
 
     expect(result.success).toBe(false);
-    // Expect user-facing copy from resolver.
-    expect(result.reason).toMatch(/^不能投/);
+    // Expect user-facing copy from resolver: "{roleName}免疫狼刀，不能选为目标"
+    expect(result.reason).toContain('免疫狼刀');
     // Still must broadcast ACTION_REJECTED for UI.
     expect(result.actions?.[0]?.type).toBe('ACTION_REJECTED');
   });
