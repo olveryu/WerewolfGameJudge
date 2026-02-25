@@ -102,8 +102,8 @@ const NOT_CONNECTED = { success: false, reason: 'NOT_CONNECTED' } as const;
 /**
  * Extract roomCode + 当前用户 uid from context.
  *
- * 用于任意玩家可调用的动作（markViewedRole 等），uid 来自 ctx.myUid（调用者自身）。
- * 与 getHostConnectionOrFail 不同：后者从 state 读取 hostUid，仅限 host-only 动作。
+ * 仅用于任意玩家可调用的动作（markViewedRole），uid 来自 ctx.myUid（调用者自身）。
+ * Host-only 动作统一使用 getHostConnectionOrFail（从 state 读取 hostUid）。
  * 返回 null 表示未连接，调用方应返回 NOT_CONNECTED。
  */
 function getConnectionOrFail(ctx: HostActionsContext): { roomCode: string; myUid: string } | null {
@@ -138,15 +138,15 @@ export async function assignRoles(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('assignRoles called');
 
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/assign',
     {
       roomCode,
-      hostUid: ctx.myUid,
+      hostUid,
     },
     ctx.store,
   );
@@ -195,15 +195,15 @@ export async function startNight(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('startNight called');
 
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   const result = await callGameControlApi(
     '/api/game/start',
     {
       roomCode,
-      hostUid: ctx.myUid,
+      hostUid,
     },
     ctx.store,
   );
@@ -234,15 +234,15 @@ export async function updateTemplate(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('updateTemplate called');
 
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/update-template',
     {
       roomCode,
-      hostUid: ctx.myUid,
+      hostUid,
       templateRoles: template.roles,
     },
     ctx.store,
@@ -262,15 +262,15 @@ export async function restartGame(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('restartGame called');
 
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/restart',
     {
       roomCode,
-      hostUid: ctx.myUid,
+      hostUid,
     },
     ctx.store,
   );
@@ -287,15 +287,15 @@ export async function setRoleRevealAnimation(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setRoleRevealAnimation called', { animation });
 
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/set-animation',
     {
       roomCode,
-      hostUid: ctx.myUid,
+      hostUid,
       animation,
     },
     ctx.store,
@@ -315,15 +315,15 @@ export async function shareNightReview(
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('shareNightReview called', { allowedSeats });
 
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/share-review',
     {
       roomCode,
-      hostUid: ctx.myUid,
+      hostUid,
       allowedSeats,
     },
     ctx.store,
@@ -602,15 +602,15 @@ export async function postProgression(
 export async function fillWithBots(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/fill-bots',
     {
       roomCode,
-      hostUid: ctx.myUid,
+      hostUid,
     },
     ctx.store,
   );
@@ -625,15 +625,15 @@ export async function fillWithBots(
 export async function markAllBotsViewed(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/mark-bots-viewed',
     {
       roomCode,
-      hostUid: ctx.myUid,
+      hostUid,
     },
     ctx.store,
   );
@@ -651,15 +651,15 @@ export async function markAllBotsViewed(
 export async function clearAllSeats(
   ctx: HostActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+  const hconn = getHostConnectionOrFail(ctx);
+  if (!hconn) return NOT_CONNECTED;
+  const { roomCode, hostUid } = hconn;
 
   return callGameControlApi(
     '/api/game/clear-seats',
     {
       roomCode,
-      hostUid: ctx.myUid,
+      hostUid,
     },
     ctx.store,
   );
