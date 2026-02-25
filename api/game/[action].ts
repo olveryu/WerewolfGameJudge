@@ -41,6 +41,7 @@ import type {
   SeatRequestBody,
   SetAnimationRequestBody,
   ShareReviewRequestBody,
+  StartRequestBody,
   UpdateTemplateRequestBody,
   ViewRoleRequestBody,
 } from '../_lib/types';
