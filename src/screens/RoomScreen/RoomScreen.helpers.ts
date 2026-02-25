@@ -109,7 +109,6 @@ export interface SeatViewModel {
  * @param currentSchema - Current action schema (schema-driven UI)
  * @param actorSeatNumber - Actor's seat number (actorSeatForUi — may be bot's seat when delegating)
  * @param wolfVotes - Map of wolf votes (seat -> target)
- * @param isHost - Whether current player is host (unused but kept for future)
  * @param actions - Map of already submitted role actions
  */
 export function determineActionerState(
@@ -118,7 +117,6 @@ export function determineActionerState(
   currentSchema: ActionSchema | null,
   actorSeatNumber: number | null,
   wolfVotes: Map<number, number>,
-  _isHost: boolean,
   actions: Map<RoleId, RoleAction> = new Map(),
 ): ActionerState {
   if (!currentActionRole) {

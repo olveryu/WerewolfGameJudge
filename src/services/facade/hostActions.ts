@@ -1,12 +1,17 @@
 /**
- * Host Actions - Host-only 业务编排
+ * Host Actions - 游戏 HTTP API 业务编排
  *
  * 拆分自 GameFacade.ts（纯重构 PR，无行为变更）
  *
  * 职责：
- * - Host-only 游戏控制方法（assignRoles/markViewedRole/startNight）→ HTTP API
- * - Host-only 夜晚行动方法（submitAction/submitWolfVote）→ HTTP API
+ * - Host-only 游戏控制方法（assignRoles/startNight/restartGame 等）→ HTTP API
+ * - 夜晚行动方法（submitAction/submitWolfVote）→ HTTP API
+ * - 任意玩家动作（markViewedRole）→ HTTP API
  * - 夜晚控制（endNight/setAudioPlaying/postAudioAck/postProgression）→ HTTP API
+ *
+ * 注意：submitAction/submitWolfVote 的 `hostUid` 来自 GameState（公开广播），
+ * 因此非 Host 玩家在技术上也能调用。服务端以 `hostUid` 参数做鉴权，
+ * 但 GameState 对所有客户端可见，这属于信任模型设计而非命名错误。
  *
  * 服务端内联推进（inline progression）在 action 处理后自动执行。
  * 客户端不再驱动推进循环，只需：

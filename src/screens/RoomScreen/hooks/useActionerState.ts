@@ -27,8 +27,6 @@ export interface UseActionerStateParams {
   actorSeatNumber: number | null;
   /** Wolf votes map (seatNumber -> targetSeat) */
   wolfVotes: Map<number, number>;
-  /** Whether current player is host */
-  isHost: boolean;
   /** Already submitted role actions */
   actions: Map<RoleId, RoleAction>;
 }
@@ -43,7 +41,6 @@ export function useActionerState({
   currentSchema,
   actorSeatNumber,
   wolfVotes,
-  isHost,
   actions,
 }: UseActionerStateParams): ActionerState {
   return useMemo(() => {
@@ -53,8 +50,7 @@ export function useActionerState({
       currentSchema,
       actorSeatNumber,
       wolfVotes,
-      isHost,
       actions,
     );
-  }, [actorRole, currentActionRole, currentSchema, actorSeatNumber, wolfVotes, isHost, actions]);
+  }, [actorRole, currentActionRole, currentSchema, actorSeatNumber, wolfVotes, actions]);
 }

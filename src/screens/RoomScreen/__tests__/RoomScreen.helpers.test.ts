@@ -35,7 +35,6 @@ describe('determineActionerState', () => {
       seerCheckSchema, // currentSchema
       0, // mySeatNumber
       new Map(), // wolfVotes
-      false, // isHost
       new Map(), // actions
     );
 
@@ -53,7 +52,6 @@ describe('determineActionerState', () => {
       wolfKillSchema, // currentSchema
       1, // mySeatNumber (same as voted seat)
       wolfVotes,
-      false,
       new Map(),
     );
 
@@ -70,7 +68,6 @@ describe('determineActionerState', () => {
       wolfKillSchema, // currentSchema
       2, // mySeatNumber
       wolfVotes,
-      false,
       new Map(),
     );
 
@@ -86,7 +83,6 @@ describe('determineActionerState', () => {
         wolfKillSchema,
         3,
         new Map(),
-        false,
         new Map(),
       );
 
@@ -101,7 +97,6 @@ describe('determineActionerState', () => {
         wolfKillSchema,
         3,
         new Map(),
-        false,
         new Map(),
       );
 
@@ -117,7 +112,6 @@ describe('determineActionerState', () => {
           wolfKillSchema,
           2,
           new Map(),
-          false,
           new Map(),
         );
 
@@ -144,7 +138,6 @@ describe('determineActionerState', () => {
           wolfKillSchema,
           7,
           wolfVotes,
-          false,
           new Map(),
         );
 
