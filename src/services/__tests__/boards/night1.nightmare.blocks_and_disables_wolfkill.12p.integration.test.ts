@@ -148,6 +148,11 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       // 核心断言：被阻断后提交非 skip action 被 reject
       expect(guardResult.success).toBe(false);
       expect(guardResult.reason).toContain('梦魇封锁');
+
+      // 验证 ACTION_REJECTED 被 apply 到 GameState（完整 intent→handler→reducer→state 链路）
+      const state = ctx.getGameState();
+      expect(state.actionRejected).toBeDefined();
+      expect(state.actionRejected!.reason).toContain('梦魇封锁');
     });
 
     it('seer 被阻断后尝试查验 → reject', () => {
@@ -183,6 +188,11 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       // 核心断言：被阻断后提交非 skip action 被 reject
       expect(seerResult.success).toBe(false);
       expect(seerResult.reason).toContain('梦魇封锁');
+
+      // 验证 ACTION_REJECTED 被 apply 到 GameState（完整 intent→handler→reducer→state 链路）
+      const state = ctx.getGameState();
+      expect(state.actionRejected).toBeDefined();
+      expect(state.actionRejected!.reason).toContain('梦魇封锁');
     });
 
     it('witch 被阻断后尝试救人 → reject', () => {
@@ -218,6 +228,11 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       // 核心断言：被阻断后提交非 skip action 被 reject
       expect(witchResult.success).toBe(false);
       expect(witchResult.reason).toContain('梦魇封锁');
+
+      // 验证 ACTION_REJECTED 被 apply 到 GameState（完整 intent→handler→reducer→state 链路）
+      const state = ctx.getGameState();
+      expect(state.actionRejected).toBeDefined();
+      expect(state.actionRejected!.reason).toContain('梦魇封锁');
     });
   });
 

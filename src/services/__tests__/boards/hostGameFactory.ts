@@ -184,6 +184,12 @@ export function createHostGame(
 
   const executeHandler = (result: HandlerResult): { success: boolean; reason?: string } => {
     if (!result.success) {
+      // Mirror production gameStateManager: apply actions even on failure
+      // (e.g. ACTION_REJECTED must be applied so gameState.actionRejected is set)
+      if (result.actions.length > 0) {
+        internal.state = applyActions(internal.state, result.actions);
+        internal.revision++;
+      }
       return { success: false, reason: result.reason };
     }
     internal.state = applyActions(internal.state, result.actions);
