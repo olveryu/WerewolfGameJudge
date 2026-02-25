@@ -227,6 +227,8 @@ export class RealtimeService {
     this.#unsubscribeBrowserNetworkEvents();
     if (this.#channel) {
       await this.#channel.unsubscribe();
+      // removeChannel cleans up the channel from supabase client's internal tracking
+      supabase?.removeChannel(this.#channel);
       this.#channel = null;
     }
     this.#onDbStateChange = null;

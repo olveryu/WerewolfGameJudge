@@ -190,12 +190,10 @@ export class AudioService {
 
             if (this.#wasPlayingBeforeHidden) {
               if (this.#webAudioElement) {
-                try {
-                  void this.#webAudioElement.play();
-                  audioLog.debug('[visibility] resumed web audio');
-                } catch (e) {
+                this.#webAudioElement.play().catch((e) => {
                   audioLog.warn('[visibility] error resuming web audio', e);
-                }
+                });
+                audioLog.debug('[visibility] resumed web audio');
               } else if (this.#player) {
                 try {
                   this.#player.play();
@@ -207,12 +205,10 @@ export class AudioService {
             }
             if (this.#wasBgmPlayingBeforeHidden) {
               if (this.#webBgmElement) {
-                try {
-                  void this.#webBgmElement.play();
-                  audioLog.debug('[visibility] resumed web BGM');
-                } catch (e) {
+                this.#webBgmElement.play().catch((e) => {
                   audioLog.warn('[visibility] error resuming web bgm', e);
-                }
+                });
+                audioLog.debug('[visibility] resumed web BGM');
               } else if (this.#bgmPlayer) {
                 try {
                   this.#bgmPlayer.play();
@@ -338,6 +334,7 @@ export class AudioService {
         audio.onended = () => {
           audioLog.debug(`[${label}] [WEB] onended fired`);
           this.#isPlaying = false;
+          this.#currentPlaybackResolve = null;
           if (this.#currentTimeoutId) {
             clearTimeout(this.#currentTimeoutId);
             this.#currentTimeoutId = null;
@@ -348,6 +345,7 @@ export class AudioService {
         audio.onerror = () => {
           audioLog.warn(`[WEB] Audio error for ${label}`);
           this.#isPlaying = false;
+          this.#currentPlaybackResolve = null;
           if (this.#currentTimeoutId) {
             clearTimeout(this.#currentTimeoutId);
             this.#currentTimeoutId = null;
@@ -359,6 +357,7 @@ export class AudioService {
         this.#currentTimeoutId = setTimeout(() => {
           audioLog.warn(`[WEB] Playback timeout for ${label}`);
           this.#isPlaying = false;
+          this.#currentPlaybackResolve = null;
           audio.pause();
           resolve();
         }, AUDIO_TIMEOUT_MS);
@@ -375,6 +374,7 @@ export class AudioService {
           .catch((err) => {
             audioLog.warn(`[WEB] play() failed for ${label}:`, err);
             this.#isPlaying = false;
+            this.#currentPlaybackResolve = null;
             if (this.#currentTimeoutId) {
               clearTimeout(this.#currentTimeoutId);
               this.#currentTimeoutId = null;
@@ -596,7 +596,10 @@ export class AudioService {
         audio.loop = true;
         this.#webBgmElement = audio;
         this.#isBgmPlaying = true;
-        audio.play();
+        audio.play().catch((err) => {
+          audioLog.warn('Web BGM play() rejected (autoplay policy?):', err);
+          this.#isBgmPlaying = false;
+        });
         audioLog.debug('BGM started successfully (Web HTML Audio)');
         return;
       }

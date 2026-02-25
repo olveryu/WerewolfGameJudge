@@ -136,14 +136,19 @@ export class GameFacade implements IGameFacade {
       } else {
         // 无 effects 可重播，兜底直接重试 ack
         facadeLog.info('Retrying postAudioAck after reconnect (no effects to replay)');
-        void hostActions.postAudioAck(this.#getHostActionsContext()).then((result) => {
-          if (!result.success) {
-            facadeLog.warn('postAudioAck retry still failed, will retry on next reconnect', {
-              reason: result.reason,
-            });
-            this.#pendingAudioAckRetry = true;
-          }
-        });
+        void hostActions
+          .postAudioAck(this.#getHostActionsContext())
+          .then((result) => {
+            if (!result.success) {
+              facadeLog.warn('postAudioAck retry still failed, will retry on next reconnect', {
+                reason: result.reason,
+              });
+              this.#pendingAudioAckRetry = true;
+            }
+          })
+          .catch((err) => {
+            facadeLog.error('postAudioAck retry threw', err);
+          });
       }
     });
   }
@@ -450,6 +455,7 @@ export class GameFacade implements IGameFacade {
     this.#myUid = null;
     this.#isHost = false;
     this.#roomCode = null;
+    this.#wasAudioInterrupted = false;
   }
 
   // =========================================================================
@@ -514,7 +520,8 @@ export class GameFacade implements IGameFacade {
    * 服务端重置 state → postgres_changes 推送新状态到所有客户端。
    */
   async restartGame(): Promise<{ success: boolean; reason?: string }> {
-    // Release preloaded audio to free memory on restart
+    // Stop current audio then release preloaded resources (stop before clearPreloaded)
+    this.#audioService.stop();
     this.#audioService.clearPreloaded();
     // 服务端校验 hostUid，客户端不再做冗余门控
     return hostActions.restartGame(this.#getHostActionsContext());
