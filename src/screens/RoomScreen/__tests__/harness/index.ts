@@ -11,7 +11,7 @@ export {
   boardHasRole,
   getAll12PBoards,
   getBoardByName,
-  getRequiredHostDataDialogTypes,
+  getRequiredServerDataDialogTypes,
   getRequiredUiDialogTypes,
 } from './boardDialogCoverage';
 export {
