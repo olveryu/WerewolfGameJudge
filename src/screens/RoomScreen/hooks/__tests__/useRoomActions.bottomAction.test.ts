@@ -72,7 +72,7 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
       constraints: [],
       meeting: {
         canSeeEachOther: true,
-        resolution: 'firstVote',
+        resolution: 'majority',
         allowEmptyVote: true,
       },
       ui: {
@@ -142,7 +142,7 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
       constraints: [],
       meeting: {
         canSeeEachOther: true,
-        resolution: 'firstVote',
+        resolution: 'majority',
         allowEmptyVote: true,
       },
       ui: {
