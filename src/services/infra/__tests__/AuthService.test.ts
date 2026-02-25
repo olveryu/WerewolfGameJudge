@@ -167,9 +167,9 @@ describe('AuthService - Display name generation diversity', () => {
   it('should generate diverse names for many users', () => {
     const names = new Set<string>();
 
-    // Generate 50 unique UIDs
+    // Generate 50 unique deterministic UIDs
     for (let i = 0; i < 50; i++) {
-      const uid = `user-${i}-${Math.random().toString(36).substring(7)}`;
+      const uid = `user-${i}`;
       names.add(authService.generateDisplayName(uid));
     }
 
