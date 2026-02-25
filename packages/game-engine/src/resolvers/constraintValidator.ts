@@ -1,5 +1,5 @@
 /**
- * Constraint Validator (HOST-ONLY, 纯函数)
+ * Constraint Validator (SERVER-ONLY, 纯函数)
  *
  * 职责：根据 schema constraints 统一校验 target 合法性（单一真相），
  * 提供 schema constraint 校验（TargetConstraint.NotSelf / TargetConstraint.NotWolfFaction 等）。resolver 不自行硬编码约束检查（必须调用

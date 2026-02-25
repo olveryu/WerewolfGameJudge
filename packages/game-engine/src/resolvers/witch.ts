@@ -1,5 +1,5 @@
 /**
- * Witch Resolver (HOST-ONLY, 纯函数)
+ * Witch Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验女巫行动（save/poison compound）+ 计算结果，
  * 提供救人/毒人复合行动校验与结果计算。不包含 IO（网络 / 音频 / Alert）。

@@ -41,7 +41,7 @@ export type RevealKind =
  *
  * Red lines:
  * - Must NOT contain sensitive info (reveal result, identities, private payload contents).
- * - Host remains the authority; UI metadata is only for prompts/buttons.
+ * - Server remains the authority; UI metadata is only for prompts/buttons.
  */
 export interface SchemaUi {
   /** Top-of-screen prompt / action message (non-sensitive). */

@@ -20,7 +20,7 @@ import { showAlert } from '@/utils/alert';
 interface WitchContext {
   /** Seat killed by wolves (-1 = empty kill) */
   killedSeat: number;
-  /** Whether witch can save (Host already checked: not self, has antidote) */
+  /** Whether witch can save (Server already checked: not self, has antidote) */
   canSave: boolean;
   /** Whether witch has poison available */
   canPoison: boolean;
@@ -28,7 +28,7 @@ interface WitchContext {
 
 export interface UseRoomActionDialogsResult {
   /**
-   * Action rejected alert - displays when Host rejects an action.
+   * Action rejected alert - displays when server rejects an action.
    * @param reason - Human-readable reason from ACTION_REJECTED payload
    */
   showActionRejectedAlert: (reason: string) => void;
@@ -72,7 +72,7 @@ export interface UseRoomActionDialogsResult {
 
 export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
-  // Action rejected alert (unified UX for Host rejections)
+  // Action rejected alert (unified UX for server rejections)
   // ─────────────────────────────────────────────────────────────────────────
 
   const showActionRejectedAlert = useCallback((reason: string) => {

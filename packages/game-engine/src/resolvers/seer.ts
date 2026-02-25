@@ -1,5 +1,5 @@
 /**
- * Seer Resolver (HOST-ONLY, 纯函数)
+ * Seer Resolver (SERVER-ONLY, 纯函数)
  *
  * 预言家查验行动：返回目标阵营（好人/狼人）。
  * 使用 resolveRoleForChecks 统一角色解析（magician swap + wolfRobot disguise）。

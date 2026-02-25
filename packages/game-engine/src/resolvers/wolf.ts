@@ -1,5 +1,5 @@
 /**
- * Wolf Kill Resolver (HOST-ONLY, 纯函数)
+ * Wolf Kill Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验狼刀行动合法性 + 计算刀人结果，
  * 提供狼刀校验与 wolfKillDisabled 检查（nightmare 阻断）。

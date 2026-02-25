@@ -8,7 +8,7 @@
  * - Utils: isValidRoleId, isValidSchemaId, getSeerCheckResultForTeam
  *
  * IMPORTANT: This module does NOT export resolvers.
- * Resolvers are HOST-ONLY and located in src/services/night/resolvers.
+ * Resolvers are SERVER-ONLY and located in src/resolvers/.
  */
 
 // Base types

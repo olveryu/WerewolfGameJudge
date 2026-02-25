@@ -215,8 +215,8 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
         };
       }
     case 'wolfVote':
-      // NOTE: wolfKillDisabled is now handled by Host resolver.
-      // UI no longer blocks seat taps. All votes go through submit → Host validates.
+      // NOTE: wolfKillDisabled is now handled by server resolver.
+      // UI no longer blocks seat taps. All votes go through submit → server validates.
       return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetSeat: seat, wolfSeat } : null;
     case 'chooseSeat':
       return deriveChooseSeatIntent(ctx);
@@ -356,8 +356,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (!currentSchema) return { buttons: [] };
 
     // ─────────────────────────────────────────────────────────────────────────
-    // UI Hint（Host 广播驱动，UI 只读展示）
-    // 如果 Host 广播了 currentActorHint，直接按 hint 渲染按钮，不再走 schema 分支。
+    // UI Hint（服务端广播驱动，UI 只读展示）
+    // 如果服务端广播了 currentActorHint，直接按 hint 渲染按钮，不再走 schema 分支。
     // 使用 targetRoleIds 过滤：只有 actorRole 在 targetRoleIds 中才显示 hint。
     // ─────────────────────────────────────────────────────────────────────────
     const hint = gameState.ui?.currentActorHint;
@@ -553,9 +553,9 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   const getAutoTriggerIntent = useCallback((): ActionIntent | null => {
     if (!actorRole || !imActioner || isAudioPlaying) return null;
 
-    // NOTE: Nightmare block is handled by Host resolver (Host-authoritative).
+    // NOTE: Nightmare block is handled by server resolver (server-authoritative).
     // UI does NOT intercept or change prompt for blocked players.
-    // All actions go through submit → Host validates → ACTION_REJECTED if blocked.
+    // All actions go through submit → server validates → ACTION_REJECTED if blocked.
     // UI then reads gameState.actionRejected and shows the rejection alert.
 
     // wolfRobotLearn: suppress auto-trigger if wolfRobot has already completed learning
@@ -563,7 +563,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (currentSchema?.id === 'wolfRobotLearn' && gameState?.wolfRobotReveal) {
       // WolfRobot has already learned a role - don't auto-trigger actionPrompt
       // If learned hunter, the hunter gate button will be shown instead
-      // If learned other role, wait for Host to advance to next step
+      // If learned other role, wait for server to advance to next step
       return null;
     }
 
@@ -622,9 +622,9 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         return null;
       }
 
-      // NOTE: Nightmare block is handled by Host resolver (Host-authoritative).
+      // NOTE: Nightmare block is handled by server resolver (server-authoritative).
       // UI does NOT intercept seat taps for blocked players.
-      // All seat taps go through submit → Host validates → ACTION_REJECTED if blocked.
+      // All seat taps go through submit → server validates → ACTION_REJECTED if blocked.
       // UI then reads gameState.actionRejected and shows the rejection alert.
 
       // Delegate to pure helper for schema-driven intent derivation

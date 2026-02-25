@@ -1,5 +1,5 @@
 /**
- * Dark Wolf King Confirm Resolver (HOST-ONLY, 纯函数)
+ * Dark Wolf King Confirm Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验黑狼王确认行动（仅确认身份，无目标选择），
  * 导出确认行动校验。不包含 IO（网络 / 音频 / Alert）。

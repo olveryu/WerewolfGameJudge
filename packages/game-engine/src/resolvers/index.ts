@@ -1,5 +1,5 @@
 /**
- * Resolvers Registry (HOST-ONLY)
+ * Resolvers Registry (SERVER-ONLY)
  *
  * 职责：注册 SchemaId → ResolverFn 的映射表，供 actionHandler 调用，
  * 导出 resolver 映射注册。不被 UI 代码 import（import boundary test 强制）。
@@ -51,5 +51,5 @@ export const RESOLVERS: ResolverRegistry = {
   wolfWitchCheck: wolfWitchCheckResolver,
 };
 
-// Re-export types for convenience (HOST-ONLY consumers)
+// Re-export types for convenience (SERVER-ONLY consumers)
 export * from './types';

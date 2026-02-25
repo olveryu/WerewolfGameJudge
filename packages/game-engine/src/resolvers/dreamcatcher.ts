@@ -1,5 +1,5 @@
 /**
- * Dreamcatcher Resolver (HOST-ONLY, 纯函数)
+ * Dreamcatcher Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验摄梦人行动 + 计算摄梦结果，
  * 提供摄梦目标校验与结果计算。不包含 IO（网络 / 音频 / Alert）。
