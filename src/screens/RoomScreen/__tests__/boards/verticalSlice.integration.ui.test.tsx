@@ -1,12 +1,12 @@
 /**
  * Vertical Slice Board Test
  *
- * 从 hostGameFactory 产生的真实 GameState 驱动 RoomScreen UI 渲染。
+ * 从 gameFactory 产生的真实 GameState 驱动 RoomScreen UI 渲染。
  * 目的：验证 integration state → UI rendering 的完整通路，
  * 捕获 mock 与真实 state 形状不一致导致的 UI 行为差异。
  *
  * 策略：
- * 1. hostGameFactory 创建游戏并走到 witchAction 步骤
+ * 1. gameFactory 创建游戏并走到 witchAction 步骤
  * 2. 将真实 snapshot 转换为 useGameRoom mock 格式
  * 3. 渲染 RoomScreen 并验证正确的 dialog 出现
  */
@@ -25,7 +25,7 @@ import {
   waitForRoomScreen,
 } from '@/screens/RoomScreen/__tests__/harness';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import { cleanupHostGame, createHostGame } from '@/services/__tests__/boards/hostGameFactory';
+import { cleanupGame, createGame } from '@/services/__tests__/boards/gameFactory';
 import { sendMessageOrThrow } from '@/services/__tests__/boards/stepByStepRunner';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
@@ -126,12 +126,12 @@ describe('Vertical Slice: real state → UI rendering', () => {
   });
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   it('witchAction step with real state → shows witchSavePrompt', async () => {
     // 1. Create real game and walk to witchAction
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const s0 = ctx.getGameState();
 
     // Submit wolf votes + action to pass wolfKill
@@ -234,7 +234,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
   });
 
   it('seerCheck step with real state → shows actionPrompt', async () => {
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const s0 = ctx.getGameState();
 
     // Walk to seerCheck

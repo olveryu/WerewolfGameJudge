@@ -1,5 +1,5 @@
 /**
- * Host Game Factory for Integration Tests
+ * Game Factory for Integration Tests
  *
  * 完全基于 架构：
  * - intents → handlers → reducer → GameState
@@ -38,9 +38,9 @@ import {
 } from '@werewolf/game-engine/models/Template';
 import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
-// Re-export types from hostGameContext.ts for backward compatibility
-export type { HostGameContext } from './hostGameContext';
-import type { CapturedMessage, HostGameContext } from './hostGameContext';
+// Re-export types from gameContext.ts for backward compatibility
+export type { GameContext } from './gameContext';
+import type { CapturedMessage, GameContext } from './gameContext';
 
 // =============================================================================
 // Internal State Management
@@ -71,10 +71,10 @@ function createContext(state: GameState): HandlerContext {
 // Factory Function
 // =============================================================================
 
-export function createHostGame(
+export function createGame(
   templateNameOrRoles: string | RoleId[],
   roleAssignment?: Map<number, RoleId>,
-): HostGameContext {
+): GameContext {
   let template: GameTemplate;
   if (typeof templateNameOrRoles === 'string') {
     const preset = PRESET_TEMPLATES.find((t) => t.name === templateNameOrRoles);
@@ -338,6 +338,6 @@ export function createHostGame(
   };
 }
 
-export function cleanupHostGame(): void {
+export function cleanupGame(): void {
   // 不使用 singleton，无需清理
 }

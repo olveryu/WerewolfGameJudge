@@ -8,7 +8,7 @@
  * 2. 任何 gate（如 wolfRobotHunterStatusViewed）都必须由测试显式发送消息解除
  * 3. 禁止 helper 自动发送任何确认/ack 类消息
  * 4. 每次 sendPlayerMessage / advanceNight 必须 fail-fast（失败即 throw）
- * 5. advanceNightOrThrow 的单一实现来源是 ctx.advanceNightOrThrow()（在 hostGameFactory.ts）
+ * 5. advanceNightOrThrow 的单一实现来源是 ctx.advanceNightOrThrow()（在 gameFactory.ts）
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -17,7 +17,7 @@ import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/role
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
-import type { HostGameContext } from './hostGameContext';
+import type { GameContext } from './gameContext';
 
 // =============================================================================
 // Fail-Fast Helpers (Exported for direct use in tests)
@@ -33,13 +33,13 @@ import type { HostGameContext } from './hostGameContext';
  * - 此函数不会自动发送任何 ack/gate 消息
  * - 所有 gate（REVEAL_ACK / WOLF_ROBOT_HUNTER_STATUS_VIEWED）必须由测试显式发送
  *
- * @param ctx - HostGameContext
+ * @param ctx - GameContext
  * @param message - PlayerMessage 消息
  * @param context - 上下文信息（用于错误消息）
  * @throws 如果 sendPlayerMessage 返回 success: false
  */
 export function sendMessageOrThrow(
-  ctx: HostGameContext,
+  ctx: GameContext,
   message: PlayerMessage,
   context: string | { stepId?: SchemaId | null },
 ): void {
@@ -108,14 +108,14 @@ interface StepByStepResult {
  * ⚠️ 任何 gate（如 pendingRevealAcks / wolfRobotHunterStatusViewed）
  *    必须由测试在 customActions 回调中显式发送消息解除
  *
- * @param ctx - HostGameContext
+ * @param ctx - GameContext
  * @param targetStepId - 目标步骤 ID
  * @param customActions - 自定义某些角色的 action
  * @returns 是否成功到达目标步骤
  * @throws 如果 advanceNight 失败
  */
 export function executeStepsUntil(
-  ctx: HostGameContext,
+  ctx: GameContext,
   targetStepId: SchemaId,
   customActions: CustomActions = {},
 ): boolean {
@@ -153,14 +153,14 @@ export function executeStepsUntil(
  *   必须由测试显式发送对应消息解除
  * - 遇到 gate 阻塞时会 throw（fail-fast），不会自动处理
  *
- * @param ctx - HostGameContext
+ * @param ctx - GameContext
  * @param customActions - 自定义某些角色的 action
  * @returns 执行结果（deaths 列表 + 是否完成）
  * @throws 如果 advanceNight 失败（包括被 gate 阻塞）
  * @throws 如果 state.status !== Ongoing 且 currentStepId 存在（状态不一致）
  */
 export function executeRemainingSteps(
-  ctx: HostGameContext,
+  ctx: GameContext,
   customActions: CustomActions = {},
 ): StepByStepResult {
   const MAX_ITERATIONS = 30;
@@ -231,13 +231,13 @@ export function executeRemainingSteps(
  * - 自动 skip step / fast-forward / jump
  * - 任何"遇到 gate 就帮忙处理"的逻辑
  *
- * @param ctx - HostGameContext
+ * @param ctx - GameContext
  * @param customActions - 自定义某些角色的 action
  * @returns 执行结果（deaths 列表 + 是否完成）
  * @throws 如果 advanceNight 失败（包括被 gate 阻塞）
  */
 export function executeFullNight(
-  ctx: HostGameContext,
+  ctx: GameContext,
   customActions: CustomActions = {},
 ): StepByStepResult {
   // 薄封装：只调用 executeRemainingSteps，禁止添加任何额外逻辑
@@ -256,7 +256,7 @@ export function executeFullNight(
  * ⚠️ 任何 gate（如 pendingRevealAcks / wolfRobotHunterStatusViewed）
  *    必须由测试在 customActions 回调中显式发送消息解除
  */
-function executeCurrentStep(ctx: HostGameContext, customActions: CustomActions): void {
+function executeCurrentStep(ctx: GameContext, customActions: CustomActions): void {
   const plan = ctx.getNightPlan();
   const state = ctx.getGameState();
   const currentStepId = state.currentStepId;
@@ -288,7 +288,7 @@ function executeCurrentStep(ctx: HostGameContext, customActions: CustomActions):
  * 根据步骤类型提交对应的 action
  */
 function submitActionForStep(
-  ctx: HostGameContext,
+  ctx: GameContext,
   stepId: SchemaId,
   roleId: RoleId,
   actorSeat: number,
@@ -312,7 +312,7 @@ function submitActionForStep(
  * 提交狼刀 action
  */
 function submitWolfKillAction(
-  ctx: HostGameContext,
+  ctx: GameContext,
   stepId: SchemaId,
   actorSeat: number,
   actionValue: ActionValue | undefined,
@@ -371,7 +371,7 @@ function submitWolfKillAction(
  * 提交女巫 action
  */
 function submitWitchAction(
-  ctx: HostGameContext,
+  ctx: GameContext,
   stepId: SchemaId,
   actorSeat: number,
   actionValue: ActionValue | undefined,
@@ -402,7 +402,7 @@ function submitWitchAction(
  * 提交魔术师交换 action
  */
 function submitMagicianSwapAction(
-  ctx: HostGameContext,
+  ctx: GameContext,
   stepId: SchemaId,
   actorSeat: number,
   actionValue: ActionValue | undefined,
@@ -433,7 +433,7 @@ function submitMagicianSwapAction(
  * 如果测试需要跳过（confirmed: false），必须显式指定
  */
 function submitConfirmAction(
-  ctx: HostGameContext,
+  ctx: GameContext,
   stepId: SchemaId,
   roleId: RoleId,
   actorSeat: number,
@@ -463,7 +463,7 @@ function submitConfirmAction(
  * 提交普通 action
  */
 function submitNormalAction(
-  ctx: HostGameContext,
+  ctx: GameContext,
   stepId: SchemaId,
   roleId: RoleId,
   actorSeat: number,

@@ -22,7 +22,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '机械通灵12人';
@@ -48,14 +48,14 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   it('wolfRobot 学习 villager，psychic 查验 wolfRobot 显示 villager', () => {
-    ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
       wolfRobot: 0, // 学习 villager
@@ -82,7 +82,7 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
   });
 
   it('wolfRobot 学习 wolf，psychic 查验 wolfRobot 显示 wolf', () => {
-    ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
       wolfRobot: 4, // 学习 wolf
@@ -100,7 +100,7 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
   });
 
   it('wolfRobot 空选，psychic 查验 wolfRobot 显示 wolfRobot（本体）', () => {
-    ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
       wolfRobot: null, // 不学习

@@ -11,7 +11,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame } from './hostGameFactory';
+import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '预女猎白12人';
@@ -37,11 +37,11 @@ const CUSTOM_ROLES: RoleId[] = [
 
 describe('Night-1: step-level coverage (12p)', () => {
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   it('should reach slackerChooseIdol / wildChildChooseIdol / wolfWitchCheck / gargoyleCheck / pureWhiteCheck / psychicCheck steps', () => {
-    const ctx = createHostGame(CUSTOM_ROLES);
+    const ctx = createGame(CUSTOM_ROLES);
 
     // Theme assertion (not just deaths): include a real GameState field assertion.
     // Contract gate looks for patterns like `.actions??.` so we assert with optional chaining.

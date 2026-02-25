@@ -1,7 +1,7 @@
 /**
- * Host Game Context Types
+ * Game Context Types
  *
- * 纯类型文件，用于打破 stepByStepRunner ↔ hostGameFactory 循环依赖。
+ * 纯类型文件，用于打破 stepByStepRunner ↔ gameFactory 循环依赖。
  * 只包含 type/interface，不包含实现代码。
  */
 
@@ -29,9 +29,9 @@ export interface CapturedMessage {
  * Host Game Context
  *
  * Integration tests 使用的游戏上下文接口。
- * 实现在 hostGameFactory.ts 的 createHostGame() 中。
+ * 实现在 gameFactory.ts 的 createGame() 中。
  */
-export interface HostGameContext {
+export interface GameContext {
   /** 获取当前 GameState */
   getGameState: () => GameState;
   /** 获取当前 revision */
@@ -46,7 +46,7 @@ export interface HostGameContext {
    * 推进到下一个夜晚步骤（fail-fast 版本）
    *
    * 这是所有 board integration tests 的**单一 fail-fast 实现来源**。
-   * 实现在 hostGameFactory.ts 中。
+   * 实现在 gameFactory.ts 中。
    *
    * ⚠️ 硬性要求：
    * - 禁止在测试文件或 runner 中自行实现类似的 helper

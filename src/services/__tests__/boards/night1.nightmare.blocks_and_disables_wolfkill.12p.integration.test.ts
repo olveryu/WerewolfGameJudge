@@ -23,7 +23,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeStepsUntil } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '梦魇守卫12人';
@@ -49,15 +49,15 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   describe('Nightmare 阻断狼阵营 → 禁刀', () => {
     it('nightmare 选中 wolf(4)，wolfKillDisabled=true', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 执行到 nightmareBlock 步骤
       ctx.assertStep('nightmareBlock');
@@ -79,7 +79,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
     });
 
     it('nightmare 选中 nightmare 自己(7，狼阵营)，wolfKillDisabled=true', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
       // nightmare 阻断自己
@@ -100,7 +100,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
 
   describe('Nightmare 阻断好人阵营 → 不禁刀', () => {
     it('nightmare 选中 villager(0)，wolfKillDisabled 不设置', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
       // nightmare 阻断 villager
@@ -121,7 +121,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
 
   describe('被阻断者提交非 skip action → reject', () => {
     it('guard 被阻断后尝试守护 → reject', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
       // nightmare 阻断 guard(11)
@@ -156,7 +156,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
     });
 
     it('seer 被阻断后尝试查验 → reject', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
       // nightmare 阻断 seer(8)
@@ -196,7 +196,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
     });
 
     it('witch 被阻断后尝试救人 → reject', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
       // nightmare 阻断 witch(9)
@@ -238,7 +238,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
 
   describe('被阻断者提交 skip → 有效但无效果', () => {
     it('seer 被阻断后 skip，流程继续但 seerReveal 为空', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
       // nightmare 阻断 seer(8)
@@ -278,7 +278,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
 
   describe('Nightmare 不行动', () => {
     it('nightmare 空选，狼刀正常生效', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
       // nightmare skip

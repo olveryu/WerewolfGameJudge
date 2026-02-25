@@ -1,7 +1,7 @@
 /**
  * Assign Roles API Route Tests — POST /api/game/assign (unique tests)
  *
- * Common tests (405 / 400 / 200 / 400) are in simple-host-endpoints.test.ts.
+ * Common tests (405 / 400 / 200 / 400) are in simple-endpoints.test.ts.
  * This file tests assign-specific behavior: CORS preflight + callback invocation.
  */
 

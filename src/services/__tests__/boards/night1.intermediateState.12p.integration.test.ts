@@ -13,7 +13,7 @@ import { GameStatus } from '@werewolf/game-engine';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame } from './hostGameFactory';
+import { cleanupGame, createGame } from './gameFactory';
 import { sendMessageOrThrow } from './stepByStepRunner';
 
 // =============================================================================
@@ -48,11 +48,11 @@ function createRoleAssignment(): Map<number, RoleId> {
 
 describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   it('逐步断言每个步骤完成后的 GameState', () => {
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     // --- 初始状态 ---
     const s0 = ctx.getGameState();
@@ -190,7 +190,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
   });
 
   it('witch 救人后 → lastNightDeaths 不含被救座位', () => {
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     // wolfKill: target seat 0
     const s0 = ctx.getGameState();
@@ -250,7 +250,7 @@ describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
   });
 
   it('witch 毒人后 → lastNightDeaths 包含毒杀目标', () => {
-    const ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+    const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     // wolfKill: target seat 0
     const s0 = ctx.getGameState();

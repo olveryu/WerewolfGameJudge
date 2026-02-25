@@ -6,13 +6,13 @@
  * - seerReveal 结果正确性
  * - Nightmare block 场景
  *
- * 使用 harness (createHostGame)
+ * 使用 harness (createGame)
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
 
-import { createHostGame } from './hostGameFactory';
+import { createGame } from './gameFactory';
 
 /** Hard cap for step progression loops to avoid infinite loops */
 const MAX_STEP_ADVANCES = 20;
@@ -39,7 +39,7 @@ describe('Seer Integration', () => {
   }
 
   /** 推进到 seerCheck 步骤的辅助函数（带 hard cap）*/
-  function advanceToSeerStep(ctx: ReturnType<typeof createHostGame>): boolean {
+  function advanceToSeerStep(ctx: ReturnType<typeof createGame>): boolean {
     // 第一步是 wolfKill
     if (ctx.getGameState().currentStepId === 'wolfKill') {
       // 狼空刀
@@ -63,7 +63,7 @@ describe('Seer Integration', () => {
 
   describe('seerReveal Single Source of Truth', () => {
     it('should write seerReveal to GameState when seer checks wolf', () => {
-      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       expect(advanceToSeerStep(ctx)).toBe(true);
@@ -87,7 +87,7 @@ describe('Seer Integration', () => {
     });
 
     it('should write seerReveal with "good" when seer checks villager', () => {
-      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
@@ -110,7 +110,7 @@ describe('Seer Integration', () => {
     });
 
     it('should reject seer self-check (notSelf constraint)', () => {
-      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
@@ -130,7 +130,7 @@ describe('Seer Integration', () => {
 
   describe('Skip Action', () => {
     it('should allow seer to skip (target=null)', () => {
-      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
@@ -166,7 +166,7 @@ describe('Seer Integration', () => {
     }
 
     /** 推进到 seerCheck 步骤（带 hard cap） */
-    function advanceToSeerCheckWithCap(ctx: ReturnType<typeof createHostGame>): void {
+    function advanceToSeerCheckWithCap(ctx: ReturnType<typeof createGame>): void {
       for (let i = 0; i < MAX_STEP_ADVANCES; i++) {
         if (ctx.getGameState().currentStepId === 'seerCheck') {
           return;
@@ -199,7 +199,7 @@ describe('Seer Integration', () => {
     }
 
     it('should reject blocked seer with non-skip action', () => {
-      const ctx = createHostGame(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
+      const ctx = createGame(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
 
       // 第一步是 nightmare
       expect(ctx.getGameState().currentStepId).toBe('nightmareBlock');
@@ -232,7 +232,7 @@ describe('Seer Integration', () => {
     });
 
     it('should allow blocked seer to skip', () => {
-      const ctx = createHostGame(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
+      const ctx = createGame(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
 
       // nightmare 封锁 seer (seat 2)
       ctx.sendPlayerMessage({
@@ -259,7 +259,7 @@ describe('Seer Integration', () => {
 
   describe('Wire Protocol Contract', () => {
     it('seerCheck payload: target is single seat number (not encoded)', () => {
-      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       advanceToSeerStep(ctx);
@@ -283,7 +283,7 @@ describe('Seer Integration', () => {
     });
 
     it('seerCheck payload: skip has target=null', () => {
-      const ctx = createHostGame(SEER_TEMPLATE, createRoleAssignment());
+      const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
       // 推进到 seerCheck
       advanceToSeerStep(ctx);

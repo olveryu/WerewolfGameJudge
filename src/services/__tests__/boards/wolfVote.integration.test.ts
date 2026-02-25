@@ -7,12 +7,12 @@
  * 3. Nightmare block edge cases
  * 4. Night flow completion (not stuck after voting)
  *
- * All tests run on harness (createHostGame)
+ * All tests run on harness (createGame)
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { createHostGame } from './hostGameFactory';
+import { createGame } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 describe('WolfVote Integration Tests', () => {
@@ -40,7 +40,7 @@ describe('WolfVote Integration Tests', () => {
 
   describe('wolfVotesBySeat Single Source of Truth', () => {
     it('多狼投票后 wolfVotesBySeat 正确记录所有投票', () => {
-      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
 
       // 运行夜晚：所有狼刀座位 0
       executeFullNight(ctx, {
@@ -66,7 +66,7 @@ describe('WolfVote Integration Tests', () => {
     });
 
     it('空刀时 wolfVotesBySeat 记录 -1', () => {
-      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
 
       // 运行夜晚：狼空刀
       executeFullNight(ctx, {
@@ -93,7 +93,7 @@ describe('WolfVote Integration Tests', () => {
     });
 
     it('投票后 night 正常结束（不会卡住）', () => {
-      const ctx = createHostGame(TEMPLATE_ROLES, createRoleAssignment());
+      const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         wolf: 2,
@@ -136,7 +136,7 @@ describe('WolfVote Integration Tests', () => {
     }
 
     it('WOLF_VOTE 消息通过统一 resolver 管线处理', () => {
-      const ctx = createHostGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
+      const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
 
       // 这个模板第一步应该是 wolfKill（没有 guard/nightmare/magician 等前置角色）
       ctx.assertStep('wolfKill');
@@ -156,7 +156,7 @@ describe('WolfVote Integration Tests', () => {
     });
 
     it('非狼角色发送 WOLF_VOTE 被拒绝', () => {
-      const ctx = createHostGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
+      const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
       ctx.assertStep('wolfKill');
 
       // 非狼角色尝试发送 WOLF_VOTE
@@ -176,7 +176,7 @@ describe('WolfVote Integration Tests', () => {
     });
 
     it('狼可以改票（覆盖之前的投票）', () => {
-      const ctx = createHostGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
+      const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
       ctx.assertStep('wolfKill');
 
       // 第一次投票
@@ -203,7 +203,7 @@ describe('WolfVote Integration Tests', () => {
     });
 
     it('多狼分别投票，wolfVotesBySeat 正确累积', () => {
-      const ctx = createHostGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
+      const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
       ctx.assertStep('wolfKill');
 
       // 狼 1 投票
@@ -254,7 +254,7 @@ describe('WolfVote Integration Tests', () => {
     }
 
     it('nightmare 封锁狼后，wolfKillDisabled 设为 true', () => {
-      const ctx = createHostGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
+      const ctx = createGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
 
       // 第一步应该是 nightmare
       ctx.assertStep('nightmareBlock');
@@ -275,7 +275,7 @@ describe('WolfVote Integration Tests', () => {
     });
 
     it('nightmare 封锁非狼角色时，wolfKillDisabled 不设置', () => {
-      const ctx = createHostGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
+      const ctx = createGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
       // nightmare 封锁座位 1（villager，非狼）
@@ -293,7 +293,7 @@ describe('WolfVote Integration Tests', () => {
     });
 
     it('nightmare 封锁后通过逐步执行完成夜晚，被封锁狼空刀', () => {
-      const ctx = createHostGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
+      const ctx = createGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
 
       // 完整运行夜晚：nightmare 封锁座位 4（第一个狼）
       // 注意：被封锁的狼只能 skip（非 skip action 会被 reject）

@@ -1,7 +1,7 @@
 /**
- * Simple Host Endpoint Tests — DRY consolidated
+ * Simple Endpoint Tests — DRY consolidated
  *
- * All 5 simple host-only endpoints share identical behavior:
+ * All 5 simple endpoints share identical behavior:
  * extract roomCode → validate → processGameAction → respond.
  * This file tests the common cases for each via describe.each.
  *

@@ -41,8 +41,8 @@ function checkForbiddenImports(
 
 describe('Boundary Guard', () => {
   describe('boards harness 禁止 import legacy', () => {
-    it('hostGameFactory.ts 不应 import legacy 代码', () => {
-      const harnessPath = path.join(BOARDS_DIR, 'hostGameFactory.ts');
+    it('gameFactory.ts 不应 import legacy 代码', () => {
+      const harnessPath = path.join(BOARDS_DIR, 'gameFactory.ts');
       const content = fs.readFileSync(harnessPath, 'utf-8');
 
       const forbiddenPatterns = [

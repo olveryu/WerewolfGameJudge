@@ -23,7 +23,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupHostGame, createHostGame, HostGameContext } from './hostGameFactory';
+import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '纯白夜影12人';
@@ -49,10 +49,10 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
-  let ctx: HostGameContext;
+  let ctx: GameContext;
 
   afterEach(() => {
-    cleanupHostGame();
+    cleanupGame();
   });
 
   // ===========================================================================
@@ -61,7 +61,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
   describe('PureWhite 查验返回具体角色', () => {
     it('pureWhite 查验 villager(0)，返回 villager', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       expect(executeStepsUntil(ctx, 'pureWhiteCheck')).toBe(true);
       ctx.assertStep('pureWhiteCheck');
@@ -83,7 +83,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
     });
 
     it('pureWhite 查验 wolf(4)，返回 wolf', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         pureWhite: 4,
@@ -102,7 +102,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
     });
 
     it('pureWhite 查验 wolfWitch(7)，返回 wolfWitch', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         pureWhite: 7,
@@ -121,7 +121,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
     });
 
     it('pureWhite 查验 witch(9)，返回 witch', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         pureWhite: 9,
@@ -142,7 +142,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
   describe('PureWhite 空选', () => {
     it('pureWhite 不查验时，pureWhiteReveal 不写入', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       expect(executeStepsUntil(ctx, 'pureWhiteCheck')).toBe(true);
       ctx.assertStep('pureWhiteCheck');
@@ -168,7 +168,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
   describe('WolfWitch 查验返回具体角色（非狼阵营）', () => {
     it('wolfWitch 查验 villager(0)，返回 villager', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       expect(executeStepsUntil(ctx, 'wolfWitchCheck')).toBe(true);
       ctx.assertStep('wolfWitchCheck');
@@ -190,7 +190,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
     });
 
     it('wolfWitch 查验 pureWhite(11)，返回 pureWhite', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         wolfWitch: 11,
@@ -209,7 +209,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
     });
 
     it('wolfWitch 查验 guard(8)，返回 guard', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         wolfWitch: 8,
@@ -230,7 +230,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
 
   describe('WolfWitch 空选', () => {
     it('wolfWitch 不查验时，wolfWitchReveal 不写入', () => {
-      ctx = createHostGame(TEMPLATE_NAME, createRoleAssignment());
+      ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       expect(executeStepsUntil(ctx, 'wolfWitchCheck')).toBe(true);
       ctx.assertStep('wolfWitchCheck');
