@@ -102,6 +102,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 - **仅 Night-1 范围。** 禁止跨夜状态/规则。
 - **`GameState` 是单一真相。** 所有信息公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift/PRIVATE_EFFECT。
 - **优先使用成熟库。**
+- **DRY（Don't Repeat Yourself）。** 同一逻辑只写一处，其他地方复用。发现重复实现时主动提取公共函数/模块。
 - **SRP ~400 行拆分信号**（行数是信号不是判决）。
 
 不清楚就先问再写代码。不要臆造仓库事实。
