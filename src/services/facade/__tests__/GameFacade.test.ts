@@ -561,7 +561,7 @@ describe('GameFacade', () => {
       global.fetch = originalFetch;
     });
 
-    it('should call correct API endpoint with roomCode and hostUid', async () => {
+    it('should call correct API endpoint with roomCode', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
@@ -575,12 +575,6 @@ describe('GameFacade', () => {
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"roomCode":"ABCD"'),
-        }),
-      );
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: expect.stringContaining('"hostUid":"host-uid"'),
         }),
       );
     });
@@ -765,7 +759,7 @@ describe('GameFacade', () => {
       global.fetch = originalFetch;
     });
 
-    it('should call start API with roomCode and hostUid', async () => {
+    it('should call start API with roomCode', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
@@ -979,7 +973,7 @@ describe('GameFacade', () => {
       global.fetch = origFetch;
     });
 
-    it('should call HTTP API with roomCode and hostUid', async () => {
+    it('should call HTTP API with roomCode', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },

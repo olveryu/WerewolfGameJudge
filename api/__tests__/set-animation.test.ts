@@ -31,25 +31,13 @@ describe('POST /api/game/set-animation', () => {
 
   it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(
-      mockRequest({ query: QUERY, body: { hostUid: 'h1', animation: 'roleHunt' } }),
-      res,
-    );
-    expect(res._status).toBe(400);
-  });
-
-  it('returns 400 when hostUid is missing', async () => {
-    const res = mockResponse();
-    await handler(
-      mockRequest({ query: QUERY, body: { roomCode: 'ABCD', animation: 'roleHunt' } }),
-      res,
-    );
+    await handler(mockRequest({ query: QUERY, body: { animation: 'roleHunt' } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when animation is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(400);
   });
 
@@ -59,7 +47,7 @@ describe('POST /api/game/set-animation', () => {
     await handler(
       mockRequest({
         query: QUERY,
-        body: { roomCode: 'ABCD', hostUid: 'h1', animation: 'roulette' },
+        body: { roomCode: 'ABCD', animation: 'roulette' },
       }),
       res,
     );
@@ -72,7 +60,7 @@ describe('POST /api/game/set-animation', () => {
     await handler(
       mockRequest({
         query: QUERY,
-        body: { roomCode: 'ABCD', hostUid: 'h1', animation: 'roleHunt' },
+        body: { roomCode: 'ABCD', animation: 'roleHunt' },
       }),
       res,
     );

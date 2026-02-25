@@ -31,28 +31,13 @@ describe('POST /api/game/update-template', () => {
 
   it('returns 400 when roomCode is missing', async () => {
     const res = mockResponse();
-    await handler(
-      mockRequest({ query: QUERY, body: { hostUid: 'h1', templateRoles: ['wolf', 'seer'] } }),
-      res,
-    );
-    expect(res._status).toBe(400);
-  });
-
-  it('returns 400 when hostUid is missing', async () => {
-    const res = mockResponse();
-    await handler(
-      mockRequest({
-        query: QUERY,
-        body: { roomCode: 'ABCD', templateRoles: ['wolf', 'seer'] },
-      }),
-      res,
-    );
+    await handler(mockRequest({ query: QUERY, body: { templateRoles: ['wolf', 'seer'] } }), res);
     expect(res._status).toBe(400);
   });
 
   it('returns 400 when templateRoles is missing', async () => {
     const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
     expect(res._status).toBe(400);
   });
 
@@ -62,7 +47,7 @@ describe('POST /api/game/update-template', () => {
     await handler(
       mockRequest({
         query: QUERY,
-        body: { roomCode: 'ABCD', hostUid: 'h1', templateRoles: ['wolf', 'seer', 'villager'] },
+        body: { roomCode: 'ABCD', templateRoles: ['wolf', 'seer', 'villager'] },
       }),
       res,
     );
@@ -75,7 +60,7 @@ describe('POST /api/game/update-template', () => {
     await handler(
       mockRequest({
         query: QUERY,
-        body: { roomCode: 'ABCD', hostUid: 'h1', templateRoles: ['wolf'] },
+        body: { roomCode: 'ABCD', templateRoles: ['wolf'] },
       }),
       res,
     );

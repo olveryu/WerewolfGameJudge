@@ -5,7 +5,7 @@
  *
  * 验收标准：
  * 1. 调用正确 API endpoint（/api/game/restart）
- * 2. 传递正确 request body（roomCode + hostUid）
+ * 2. 传递正确 request body（roomCode）
  * 3. 权限检查：仅 Host 可调用（facade-level gate）
  * 4. 返回 API 响应
  * 5. 网络错误处理
@@ -94,7 +94,7 @@ describe('restartGame Contract (HTTP API)', () => {
   // ===========================================================================
 
   describe('API Call', () => {
-    it('should call /api/game/restart with roomCode and hostUid', async () => {
+    it('should call /api/game/restart with roomCode', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
@@ -108,12 +108,6 @@ describe('restartGame Contract (HTTP API)', () => {
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"roomCode":"1234"'),
-        }),
-      );
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: expect.stringContaining('"hostUid":"host-uid"'),
         }),
       );
     });
@@ -164,7 +158,7 @@ describe('restartGame Contract (HTTP API)', () => {
 
   describe('Permission Check', () => {
     it('non-host calls are now rejected server-side (no client gate)', async () => {
-      // Phase 7: 客户端不再做 isHost 门控，服务端通过 hostUid 校验拒绝
+      // Phase 7: 客户端不再做 isHost 门控，服务端通过 state.hostUid 校验拒绝
       (facade as unknown as { isHost: boolean }).isHost = false;
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,

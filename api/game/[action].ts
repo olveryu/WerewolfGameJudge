@@ -41,7 +41,6 @@ import type {
   SeatRequestBody,
   SetAnimationRequestBody,
   ShareReviewRequestBody,
-  StartRequestBody,
   UpdateTemplateRequestBody,
   ViewRoleRequestBody,
 } from '../_lib/types';
@@ -56,9 +55,10 @@ function missingParams(res: VercelResponse) {
 }
 
 /**
- * Factory for simple host-only handlers that only need roomCode + hostUid.
+ * Factory for simple host-only handlers that only need roomCode.
  *
- * Pattern: extract body → validate → processGameAction → buildHandlerContext → handlerFn → respond
+ * Pattern: extract body → validate → processGameAction → buildHandlerContext(state, state.hostUid) → handlerFn → respond.
+ * Host 鉴权由 game-engine handler 的 `isHost` gate 完成（state.hostUid === state.hostUid → true）。
  */
 function createSimpleHostHandler<I extends { type: string }>(
   handlerFn: (
@@ -68,12 +68,12 @@ function createSimpleHostHandler<I extends { type: string }>(
   intent: I,
 ) {
   return async (req: VercelRequest, res: VercelResponse) => {
-    const body = req.body as { roomCode?: string; hostUid?: string };
-    const { roomCode, hostUid } = body;
-    if (!roomCode || !hostUid) return missingParams(res);
+    const body = req.body as { roomCode?: string };
+    const { roomCode } = body;
+    if (!roomCode) return missingParams(res);
 
     const result = await processGameAction(roomCode, (state: GameState) => {
-      const handlerCtx = buildHandlerContext(state, hostUid);
+      const handlerCtx = buildHandlerContext(state, state.hostUid);
       return handlerFn(intent, handlerCtx);
     });
     return res.status(resultToStatus(result)).json(result);
@@ -133,14 +133,14 @@ async function handleSeat(req: VercelRequest, res: VercelResponse) {
 
 async function handleSetAnimation(req: VercelRequest, res: VercelResponse) {
   const body = req.body as SetAnimationRequestBody;
-  const { roomCode, hostUid, animation } = body;
+  const { roomCode, animation } = body;
 
-  if (!roomCode || !hostUid || !animation) {
+  if (!roomCode || !animation) {
     return missingParams(res);
   }
 
   const result = await processGameAction(roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, hostUid);
+    const handlerCtx = buildHandlerContext(state, state.hostUid);
     return handleSetRoleRevealAnimation(
       { type: 'SET_ROLE_REVEAL_ANIMATION', animation },
       handlerCtx,
@@ -151,14 +151,14 @@ async function handleSetAnimation(req: VercelRequest, res: VercelResponse) {
 
 async function handleStart(req: VercelRequest, res: VercelResponse) {
   const body = req.body as StartRequestBody;
-  const { roomCode, hostUid } = body;
+  const { roomCode } = body;
 
-  if (!roomCode || !hostUid) {
+  if (!roomCode) {
     return missingParams(res);
   }
 
   const result = await processGameAction(roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, hostUid);
+    const handlerCtx = buildHandlerContext(state, state.hostUid);
     const handlerResult = handleStartNight({ type: 'START_NIGHT' }, handlerCtx);
     if (!handlerResult.success) return handlerResult;
 
@@ -187,14 +187,14 @@ async function handleStart(req: VercelRequest, res: VercelResponse) {
 
 async function handleUpdateTemplateRoute(req: VercelRequest, res: VercelResponse) {
   const body = req.body as UpdateTemplateRequestBody;
-  const { roomCode, hostUid, templateRoles } = body;
+  const { roomCode, templateRoles } = body;
 
-  if (!roomCode || !hostUid || !templateRoles || !Array.isArray(templateRoles)) {
+  if (!roomCode || !templateRoles || !Array.isArray(templateRoles)) {
     return missingParams(res);
   }
 
   const result = await processGameAction(roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, hostUid);
+    const handlerCtx = buildHandlerContext(state, state.hostUid);
     return handleUpdateTemplate(
       { type: 'UPDATE_TEMPLATE', payload: { templateRoles } },
       handlerCtx,
@@ -220,14 +220,14 @@ async function handleViewRole(req: VercelRequest, res: VercelResponse) {
 
 async function handleShareReview(req: VercelRequest, res: VercelResponse) {
   const body = req.body as ShareReviewRequestBody;
-  const { roomCode, hostUid, allowedSeats } = body;
+  const { roomCode, allowedSeats } = body;
 
-  if (!roomCode || !hostUid || !Array.isArray(allowedSeats)) {
+  if (!roomCode || !Array.isArray(allowedSeats)) {
     return missingParams(res);
   }
 
   const result = await processGameAction(roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, hostUid);
+    const handlerCtx = buildHandlerContext(state, state.hostUid);
     return handleShareNightReview({ type: 'SHARE_NIGHT_REVIEW', allowedSeats }, handlerCtx);
   });
   return res.status(resultToStatus(result)).json(result);

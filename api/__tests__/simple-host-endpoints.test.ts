@@ -2,8 +2,8 @@
  * Simple Host Endpoint Tests — DRY consolidated
  *
  * All 5 simple host-only endpoints share identical behavior:
- * extract roomCode + hostUid → validate → processGameAction → respond.
- * This file tests the common 5 cases for each via describe.each.
+ * extract roomCode → validate → processGameAction → respond.
+ * This file tests the common cases for each via describe.each.
  *
  * Unique tests (e.g., assign's CORS preflight) remain in their own file.
  */
@@ -37,27 +37,21 @@ describe.each(['assign', 'clear-seats', 'fill-bots', 'mark-bots-viewed', 'restar
 
     it('returns 400 when roomCode is missing', async () => {
       const res = mockResponse();
-      await handler(mockRequest({ query: QUERY, body: { hostUid: 'h1' } }), res);
-      expect(res._status).toBe(400);
-    });
-
-    it('returns 400 when hostUid is missing', async () => {
-      const res = mockResponse();
-      await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
+      await handler(mockRequest({ query: QUERY, body: {} }), res);
       expect(res._status).toBe(400);
     });
 
     it('returns 200 on success', async () => {
       mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
       const res = mockResponse();
-      await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+      await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
       expect(res._status).toBe(200);
     });
 
     it('returns 400 on failure', async () => {
       mockProcessGameAction.mockResolvedValue({ success: false, reason: 'NOT_HOST' });
       const res = mockResponse();
-      await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
+      await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
       expect(res._status).toBe(400);
     });
   },
