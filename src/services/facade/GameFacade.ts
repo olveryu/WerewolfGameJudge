@@ -230,6 +230,9 @@ export class GameFacade implements IGameFacade {
         this.#realtimeService.markAsLive();
       },
     });
+
+    // 新建房间无需从 DB 读快照（本地已初始化），channel 已 SUBSCRIBED，直接标记 Live
+    this.#realtimeService.markAsLive();
   }
 
   /**
