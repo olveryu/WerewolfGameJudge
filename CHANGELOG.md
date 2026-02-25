@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.2.0] - 2026-02-25
+
+- fix(services): mark connection Live after createRoom channel subscribe
+- fix(home): disable menu buttons while auth initializing
+- fix(config,home): template chip orphan row stretch + auth race guard
+- refactor(game-engine): unify DeathCalculator to flag-driven reflectsDamageSeats
+- refactor(roles): remove unnecessary flags from spiritKnight and update ROLE_SPECS
+- refactor(models): move role emoji from ROLE_ICONS into RoleSpec.emoji
+- feat(models): add dancer and masquerade roles with masquerade template
+- refactor(game-engine): extract immuneToPoison flag from RoleSeatMap
+- refactor(models): convert Team, TargetConstraint, ConnectionStatus to enums
+- docs(config): add no-hardcode and no-fabrication rules to first principles
+- fix(models): patch remaining hardcoded enum strings and stale JSDoc
+- refactor(models): enum values to PascalCase, eliminate hardcoded strings
+- refactor: migrate all private class members to ES # private fields
+- refactor: enforce @typescript-eslint/naming-convention
+- refactor(index): streamline exports and remove unused logger
+- refactor(ConfigScreen): update animation option labels to remove emojis
+- test: add unit tests to meet coverage thresholds
+- perf(room): add wdyr, test:coverage, and 3 memo render tests
+- chore: remove dead code detected by knip
+- refactor(logger): rename realtimeLog extension from Broadcast to Realtime
+- refactor(protocol): rename BroadcastGameState -> GameState, BroadcastPlayer -> Player
+- refactor(services): rename BroadcastService to RealtimeService
+
 ## [1.1.1] - 2026-02-23
 
 - refactor(config): replace FlipReveal+Pinball with RoleHunt, clean up animation options
