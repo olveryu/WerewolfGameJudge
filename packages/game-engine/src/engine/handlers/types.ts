@@ -20,9 +20,6 @@ export interface HandlerContext {
   /** 当前状态（只读，可能为 null） */
   readonly state: GameState | null;
 
-  /** 当前用户是否是主机 */
-  readonly isHost: boolean;
-
   /** 当前用户 UID（可能为 null） */
   readonly myUid: string | null;
 

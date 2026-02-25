@@ -40,7 +40,6 @@ function createContext(
 ): HandlerContext {
   return {
     state,
-    isHost: true,
     myUid: 'player-1',
     mySeat: null,
     ...overrides,

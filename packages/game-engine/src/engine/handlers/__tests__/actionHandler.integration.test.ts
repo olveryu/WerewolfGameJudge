@@ -6,7 +6,6 @@ import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/action
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 const baseContext: any = {
-  isHost: true,
   myUid: 'HOST',
   mySeat: 0,
   state: {

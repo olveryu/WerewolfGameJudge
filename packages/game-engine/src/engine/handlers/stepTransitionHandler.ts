@@ -59,26 +59,17 @@ type NonNullState = NonNullable<HandlerContext['state']>;
  * 验证前置条件（ADVANCE_NIGHT / END_NIGHT 共用）
  *
  * Gate 顺序：
- * 1. host_only
- * 2. no_state
- * 3. invalid_status (must be ongoing)
- * 4. forbidden_while_audio_playing
- * 5. wolfrobot_hunter_status_not_viewed (if learned hunter but not viewed)
+ * 1. no_state
+ * 2. invalid_status (must be ongoing)
+ * 3. forbidden_while_audio_playing
+ * 4. wolfrobot_hunter_status_not_viewed (if learned hunter but not viewed)
  */
 function validateNightFlowPreconditions(
   context: HandlerContext,
 ): { valid: false; result: HandlerResult } | { valid: true; state: NonNullState } {
-  const { state, isHost } = context;
+  const { state } = context;
 
-  // Gate 1: host_only
-  if (!isHost) {
-    return {
-      valid: false,
-      result: { success: false, reason: 'host_only', actions: [] },
-    };
-  }
-
-  // Gate 2: no_state
+  // Gate 1: no_state
   if (!state) {
     return {
       valid: false,
@@ -86,7 +77,7 @@ function validateNightFlowPreconditions(
     };
   }
 
-  // Gate 3: invalid_status (must be ongoing)
+  // Gate 2: invalid_status (must be ongoing)
   if (state.status !== GameStatus.Ongoing) {
     return {
       valid: false,
@@ -94,7 +85,7 @@ function validateNightFlowPreconditions(
     };
   }
 
-  // Gate 4: forbidden_while_audio_playing
+  // Gate 3: forbidden_while_audio_playing
   if (state.isAudioPlaying) {
     return {
       valid: false,
@@ -102,7 +93,7 @@ function validateNightFlowPreconditions(
     };
   }
 
-  // Gate 5: wolfrobot_hunter_status_not_viewed
+  // Gate 4: wolfrobot_hunter_status_not_viewed
   // If current step is wolfRobotLearn and learned hunter but not viewed, reject advance
   if (
     state.currentStepId === 'wolfRobotLearn' &&
@@ -122,26 +113,17 @@ function validateNightFlowPreconditions(
  * 验证 SET_AUDIO_PLAYING 前置条件
  *
  * Gate 顺序：
- * 1. host_only
- * 2. no_state
- * 3. invalid_status (must be ongoing or ended)
+ * 1. no_state
+ * 2. invalid_status (must be ongoing or ended)
  *
  * 注：不检查 isAudioPlaying，因为这个 handler 就是用来设置它的
  */
 function validateSetAudioPlayingPreconditions(
   context: HandlerContext,
 ): { valid: false; result: HandlerResult } | { valid: true; state: NonNullState } {
-  const { state, isHost } = context;
+  const { state } = context;
 
-  // Gate 1: host_only
-  if (!isHost) {
-    return {
-      valid: false,
-      result: { success: false, reason: 'host_only', actions: [] },
-    };
-  }
-
-  // Gate 2: no_state
+  // Gate 1: no_state
   if (!state) {
     return {
       valid: false,
@@ -149,7 +131,7 @@ function validateSetAudioPlayingPreconditions(
     };
   }
 
-  // Gate 3: invalid_status (must be ongoing or ended)
+  // Gate 2: invalid_status (must be ongoing or ended)
   // 允许 ended 状态是因为天亮音频在 endNight 之后播放
   if (state.status !== GameStatus.Ongoing && state.status !== GameStatus.Ended) {
     return {

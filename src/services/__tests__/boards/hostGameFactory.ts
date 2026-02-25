@@ -59,10 +59,9 @@ function applyActions(current: GameState, actions: StateAction[]): GameState {
   return actions.reduce((s, action) => gameReducer(s, action), current);
 }
 
-function createContext(state: GameState, isHost: boolean): HandlerContext {
+function createContext(state: GameState): HandlerContext {
   return {
     state,
-    isHost,
     myUid: 'host-uid',
     mySeat: null,
   };
@@ -199,7 +198,7 @@ export function createHostGame(
   };
 
   const advanceNight = (): { success: boolean; reason?: string } => {
-    const context = createContext(internal.state, true);
+    const context = createContext(internal.state);
     const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, context);
     return executeHandler(result);
   };
@@ -239,7 +238,7 @@ export function createHostGame(
    * 走 executeHandler 统一管线（applyActions + normalizeState）。
    */
   const endNight = (): { success: boolean; deaths: number[] } => {
-    const context = createContext(internal.state, true);
+    const context = createContext(internal.state);
     const result = handleEndNight({ type: 'END_NIGHT' }, context);
     if (!result.success) {
       // FAIL-FAST: 如果是 night_not_complete，说明测试代码试图中途 endNight，这是架构违规
@@ -265,7 +264,7 @@ export function createHostGame(
       message: msg,
     });
 
-    const context = createContext(internal.state, true);
+    const context = createContext(internal.state);
 
     switch (msg.type) {
       case 'ACTION': {

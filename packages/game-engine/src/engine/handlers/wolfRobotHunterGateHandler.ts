@@ -31,11 +31,10 @@ interface SetWolfRobotHunterStatusViewedIntent {
  * 处理机械狼查看猎人状态
  *
  * 校验：
- * 1. host_only
- * 2. state 存在
- * 3. currentStepId === 'wolfRobotLearn'
- * 4. wolfRobotReveal.learnedRoleId === 'hunter'
- * 5. seat 对应的 player.role === 'wolfRobot'
+ * 1. state 存在
+ * 2. currentStepId === 'wolfRobotLearn'
+ * 3. wolfRobotReveal.learnedRoleId === 'hunter'
+ * 4. seat 对应的 player.role === 'wolfRobot'
  *
  * 返回：
  * - success: true + actions: [SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED]
@@ -46,24 +45,17 @@ export function handleSetWolfRobotHunterStatusViewed(
   intent: SetWolfRobotHunterStatusViewedIntent,
 ): HandlerResult {
   handlerLog.debug('handleSetWolfRobotHunterStatusViewed', {
-    isHost: ctx.isHost,
     seat: intent.seat,
   });
 
-  // Gate 1: host_only
-  if (!ctx.isHost) {
-    handlerLog.debug('rejected: host_only');
-    return { success: false, reason: 'host_only', actions: [] };
-  }
-
-  // Gate 2: state 存在
+  // Gate 1: state 存在
   const state = ctx.state;
   if (!state) {
     handlerLog.debug('rejected: no_state');
     return { success: false, reason: 'no_state', actions: [] };
   }
 
-  // Gate 3: 当前 step 必须是 wolfRobotLearn
+  // Gate 2: 当前 step 必须是 wolfRobotLearn
   if (state.currentStepId !== 'wolfRobotLearn') {
     handlerLog.warn('rejected: invalid_step', {
       currentStepId: state.currentStepId,
@@ -72,7 +64,7 @@ export function handleSetWolfRobotHunterStatusViewed(
     return { success: false, reason: 'invalid_step', actions: [] };
   }
 
-  // Gate 4: wolfRobotReveal.learnedRoleId 必须是 hunter
+  // Gate 3: wolfRobotReveal.learnedRoleId 必须是 hunter
   if (state.wolfRobotReveal?.learnedRoleId !== 'hunter') {
     handlerLog.warn('rejected: not_learned_hunter', {
       learnedRoleId: state.wolfRobotReveal?.learnedRoleId,
@@ -80,7 +72,7 @@ export function handleSetWolfRobotHunterStatusViewed(
     return { success: false, reason: 'not_learned_hunter', actions: [] };
   }
 
-  // Gate 5: seat 必须是 wolfRobot 的 seat
+  // Gate 4: seat 必须是 wolfRobot 的 seat
   const player = state.players[intent.seat];
   if (player?.role !== 'wolfRobot') {
     handlerLog.warn('rejected: invalid_seat', {

@@ -26,7 +26,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
-    isHost: true,
     myUid: 'host-1',
     mySeat: null,
     ...overrides,
@@ -83,15 +82,8 @@ describe('handleClearAllSeats', () => {
     expect(result.actions).toHaveLength(0);
   });
 
-  it('should reject when not host', () => {
-    const context = createContext(seatedState, { isHost: false });
-    const result = handleClearAllSeats(intent, context);
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
-  });
-
   it('should reject when state is null', () => {
-    const context: HandlerContext = { state: null, isHost: true, myUid: 'host-1', mySeat: null };
+    const context: HandlerContext = { state: null, myUid: 'host-1', mySeat: null };
     const result = handleClearAllSeats(intent, context);
     expect(result.success).toBe(false);
     expect(result.reason).toBe('no_state');

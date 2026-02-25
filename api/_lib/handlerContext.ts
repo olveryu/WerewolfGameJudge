@@ -19,7 +19,6 @@ function findSeatByUid(state: GameState, uid: string): number | null {
 export function buildHandlerContext(state: GameState, uid: string): HandlerContext {
   return {
     state,
-    isHost: state.hostUid === uid,
     myUid: uid,
     mySeat: findSeatByUid(state, uid),
   };

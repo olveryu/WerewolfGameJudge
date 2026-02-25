@@ -40,7 +40,6 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
-    isHost: true,
     myUid: 'host-1',
     mySeat: 0,
     ...overrides,
@@ -129,28 +128,11 @@ describe('handleSubmitWolfVote', () => {
     expect((result.actions[1] as any).payload.updates.wolfVotesBySeat).toEqual({ '1': 2 });
   });
 
-  // === Gate: host_only ===
-
-  it('should fail when not host (host_only)', () => {
-    const state = createWolfVoteState();
-    const context = createContext(state, { isHost: false });
-    const intent: SubmitWolfVoteIntent = {
-      type: 'SUBMIT_WOLF_VOTE',
-      payload: { seat: 1, target: 0 },
-    };
-
-    const result = handleSubmitWolfVote(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
-  });
-
   // === Gate: no_state ===
 
   it('should fail when state is null (no_state)', () => {
     const context: HandlerContext = {
       state: null as unknown as GameState,
-      isHost: true,
       myUid: 'host-1',
       mySeat: 0,
     };
@@ -382,7 +364,7 @@ describe('handleViewedRole', () => {
 
   it('should succeed when host and status is assigned', () => {
     const state = createAssignedState();
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 0 },
@@ -397,7 +379,7 @@ describe('handleViewedRole', () => {
 
   it('should succeed when non-host views own seat', () => {
     const state = createAssignedState();
-    const context = createContext(state, { isHost: false, mySeat: 1, myUid: 'p2' });
+    const context = createContext(state, { mySeat: 1, myUid: 'p2' });
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 1 },
@@ -412,7 +394,7 @@ describe('handleViewedRole', () => {
 
   it('should fail when non-host views another seat (not_my_seat)', () => {
     const state = createAssignedState();
-    const context = createContext(state, { isHost: false, mySeat: 1, myUid: 'p2' });
+    const context = createContext(state, { mySeat: 1, myUid: 'p2' });
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 0 },
@@ -427,7 +409,6 @@ describe('handleViewedRole', () => {
   it('should fail when state is null (no_state)', () => {
     const context: HandlerContext = {
       state: null as unknown as GameState,
-      isHost: true,
       myUid: 'host-1',
       mySeat: 0,
     };
@@ -444,7 +425,7 @@ describe('handleViewedRole', () => {
 
   it('should fail when status is not assigned (invalid_status)', () => {
     const state = createMinimalState({ status: GameStatus.Ongoing });
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 0 },
@@ -460,7 +441,7 @@ describe('handleViewedRole', () => {
     const state = createAssignedState({
       players: { 0: null, 1: null, 2: null },
     });
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 0 },
@@ -474,7 +455,7 @@ describe('handleViewedRole', () => {
 
   it('should include BROADCAST_STATE and SAVE_STATE side effects', () => {
     const state = createAssignedState();
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: ViewedRoleIntent = {
       type: 'VIEWED_ROLE',
       payload: { seat: 0 },
@@ -518,7 +499,7 @@ describe('handleSubmitAction', () => {
 
   it('should succeed with valid seer action (happy path)', () => {
     const state = createOngoingState();
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 2, role: 'seer', target: 0, extra: {} },
@@ -534,7 +515,7 @@ describe('handleSubmitAction', () => {
 
   it('should produce RECORD_ACTION and APPLY_RESOLVER_RESULT on success', () => {
     const state = createOngoingState();
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 2, role: 'seer', target: 0, extra: {} },
@@ -550,7 +531,7 @@ describe('handleSubmitAction', () => {
 
   it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
     const state = createOngoingState();
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 2, role: 'seer', target: 0, extra: {} },
@@ -562,28 +543,11 @@ describe('handleSubmitAction', () => {
     expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
-  // === Gate: host_only ===
-
-  it('should fail when not host (gate: host_only)', () => {
-    const state = createOngoingState();
-    const context = createContext(state, { isHost: false });
-    const intent: SubmitActionIntent = {
-      type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
-    };
-
-    const result = handleSubmitAction(intent, context);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('host_only');
-  });
-
   // === Gate: no_state ===
 
   it('should fail when state is null (gate: no_state)', () => {
     const context: HandlerContext = {
       state: null as unknown as GameState,
-      isHost: true,
       myUid: 'host-1',
       mySeat: 0,
     };
@@ -602,7 +566,7 @@ describe('handleSubmitAction', () => {
 
   it('should fail when status is not ongoing (gate: invalid_status)', () => {
     const state = createOngoingState({ status: GameStatus.Assigned });
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 2, role: 'seer', target: 0, extra: {} },
@@ -618,7 +582,7 @@ describe('handleSubmitAction', () => {
 
   it('should fail when audio is playing (gate: forbidden_while_audio_playing)', () => {
     const state = createOngoingState({ isAudioPlaying: true });
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 2, role: 'seer', target: 0, extra: {} },
@@ -634,7 +598,7 @@ describe('handleSubmitAction', () => {
 
   it('should fail when currentStepId is missing (gate: invalid_step)', () => {
     const state = createOngoingState({ currentStepId: undefined });
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 2, role: 'seer', target: 0, extra: {} },
@@ -658,7 +622,7 @@ describe('handleSubmitAction', () => {
         2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
       },
     });
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 0, role: 'guard', target: 1, extra: {} },
@@ -680,7 +644,7 @@ describe('handleSubmitAction', () => {
         2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
       },
     });
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 1, role: 'seer', target: 0, extra: {} },
@@ -696,7 +660,7 @@ describe('handleSubmitAction', () => {
 
   it('should fail when player role does not match submitted role (gate: role_mismatch)', () => {
     const state = createOngoingState();
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     // seat 0 是 villager，但提交的 role 是 seer
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
@@ -713,7 +677,7 @@ describe('handleSubmitAction', () => {
 
   it('should broadcast on rejection (reject also broadcasts)', () => {
     const state = createOngoingState({ isAudioPlaying: true });
-    const context = createContext(state, { isHost: true });
+    const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 2, role: 'seer', target: 0, extra: {} },
@@ -742,7 +706,7 @@ describe('handleSubmitAction', () => {
           2: { uid: 'p3', seatNumber: 2, role: 'wolfRobot', hasViewedRole: true },
         },
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       // wolfRobot (seat 2) 尝试自指 (target: 2)
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
@@ -769,7 +733,7 @@ describe('handleSubmitAction', () => {
           2: { uid: 'p3', seatNumber: 2, role: 'wolfRobot', hasViewedRole: true },
         },
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       // wolfRobot (seat 2) 选择 seat 0（非自己）
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
@@ -806,7 +770,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 0 }, // seer is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: { seat: 0, role: 'seer', target: 1, extra: {} }, // trying to check seat 1
@@ -828,7 +792,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 0 }, // seer is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: { seat: 0, role: 'seer', target: null, extra: {} }, // skip
@@ -848,7 +812,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 99 }, // someone else blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: { seat: 0, role: 'seer', target: 1, extra: {} },
@@ -871,7 +835,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 0 }, // magician is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -899,7 +863,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 0 }, // magician is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -930,7 +894,7 @@ describe('handleSubmitAction', () => {
           wolfVotesBySeat: { '1': 0 }, // wolf killed seat 0
         },
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -958,7 +922,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 3 }, // witch is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -987,7 +951,7 @@ describe('handleSubmitAction', () => {
         currentNightResults: { blockedSeat: 3 }, // witch is blocked
         witchContext: { killedSeat: 0, canSave: true, canPoison: true },
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -1017,7 +981,7 @@ describe('handleSubmitAction', () => {
         },
         witchContext: { killedSeat: 0, canSave: true, canPoison: true },
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -1044,7 +1008,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 0 }, // hunter is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -1071,7 +1035,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 0 }, // hunter is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -1096,7 +1060,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: {}, // NOT blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -1123,7 +1087,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: {}, // NOT blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -1150,7 +1114,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 0 }, // darkWolfKing is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -1176,7 +1140,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: {}, // NOT blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: {
@@ -1204,7 +1168,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 0 }, // wolf is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitWolfVoteIntent = {
         type: 'SUBMIT_WOLF_VOTE',
         payload: { seat: 0, target: 1 }, // trying to kill
@@ -1225,7 +1189,7 @@ describe('handleSubmitAction', () => {
         },
         currentNightResults: { blockedSeat: 0 }, // wolf is blocked
       });
-      const context = createContext(state, { isHost: true });
+      const context = createContext(state);
       const intent: SubmitWolfVoteIntent = {
         type: 'SUBMIT_WOLF_VOTE',
         payload: { seat: 0, target: -1 }, // empty knife

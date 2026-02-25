@@ -182,17 +182,13 @@ export function handleLeaveMySeat(
  * 处理全员起立（Host-only）
  *
  * 清空所有已入座玩家，状态回到 unseated。
- * 前置条件：isHost && status in (GameStatus.Unseated, GameStatus.Seated)
+ * 前置条件：status in (GameStatus.Unseated, GameStatus.Seated)
  */
 export function handleClearAllSeats(
   _intent: ClearAllSeatsIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { state, isHost } = context;
-
-  if (!isHost) {
-    return { success: false, reason: 'host_only', actions: [] };
-  }
+  const { state } = context;
 
   if (!state) {
     return { success: false, reason: REASON_NO_STATE, actions: [] };

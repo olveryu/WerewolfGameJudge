@@ -58,7 +58,6 @@ describe('WolfRobot Hunter Status Gate - Host Enforcement (handleAdvanceNight)',
       });
 
       const context: HandlerContext = {
-        isHost: true,
         state,
         myUid: 'HOST',
         mySeat: 0,
@@ -76,7 +75,6 @@ describe('WolfRobot Hunter Status Gate - Host Enforcement (handleAdvanceNight)',
       });
 
       const context: HandlerContext = {
-        isHost: true,
         state,
         myUid: 'HOST',
         mySeat: 0,
@@ -98,7 +96,6 @@ describe('WolfRobot Hunter Status Gate - Host Enforcement (handleAdvanceNight)',
       });
 
       const context: HandlerContext = {
-        isHost: true,
         state,
         myUid: 'HOST',
         mySeat: 0,
@@ -116,7 +113,6 @@ describe('WolfRobot Hunter Status Gate - Host Enforcement (handleAdvanceNight)',
       });
 
       const context: HandlerContext = {
-        isHost: true,
         state,
         myUid: 'HOST',
         mySeat: 0,
@@ -142,7 +138,6 @@ describe('WolfRobot Hunter Status Gate - Host Enforcement (handleAdvanceNight)',
       });
 
       const context: HandlerContext = {
-        isHost: true,
         state,
         myUid: 'HOST',
         mySeat: 0,
@@ -157,28 +152,8 @@ describe('WolfRobot Hunter Status Gate - Host Enforcement (handleAdvanceNight)',
 
 describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
   describe('validation gates', () => {
-    it('rejects when not host', () => {
-      const state = createTestState();
-      const context: HandlerContext = {
-        isHost: false, // not host
-        state,
-        myUid: 'PLAYER',
-        mySeat: 0,
-      };
-
-      const result = handleSetWolfRobotHunterStatusViewed(context, {
-        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-        seat: 0,
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('host_only');
-      expect(result.actions).toHaveLength(0);
-    });
-
     it('rejects when state is null', () => {
       const context: HandlerContext = {
-        isHost: true,
         state: null, // no state
         myUid: 'HOST',
         mySeat: 0,
@@ -198,7 +173,6 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         currentStepId: 'seerCheck', // wrong step
       });
       const context: HandlerContext = {
-        isHost: true,
         state,
         myUid: 'HOST',
         mySeat: 0,
@@ -222,7 +196,6 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         },
       });
       const context: HandlerContext = {
-        isHost: true,
         state,
         myUid: 'HOST',
         mySeat: 0,
@@ -240,7 +213,6 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
     it('rejects when seat is not wolfRobot', () => {
       const state = createTestState();
       const context: HandlerContext = {
-        isHost: true,
         state,
         myUid: 'HOST',
         mySeat: 1,
@@ -260,7 +232,6 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
     it('returns SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED action when all validations pass', () => {
       const state = createTestState();
       const context: HandlerContext = {
-        isHost: true,
         state,
         myUid: 'HOST',
         mySeat: 0,
@@ -288,7 +259,6 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
       });
 
       const ctx1: HandlerContext = {
-        isHost: true,
         state: initialState,
         myUid: 'HOST',
         mySeat: 0,
@@ -311,7 +281,6 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
       });
 
       const ctx2: HandlerContext = {
-        isHost: true,
         state: updatedState,
         myUid: 'HOST',
         mySeat: 0,
