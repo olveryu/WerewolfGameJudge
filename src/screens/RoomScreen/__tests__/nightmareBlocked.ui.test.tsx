@@ -1,10 +1,10 @@
 /**
- * Nightmare Blocked UI Test (Host-authoritative version)
+ * Nightmare Blocked UI Test (server-authoritative version)
  *
  * NEW BEHAVIOR:
  * - UI does NOT intercept blocked players for chooseSeat/swap schemas
  * - UI shows skip button for confirm schemas when blocked
- * - Host returns ACTION_REJECTED with blocked reason
+ * - Server returns ACTION_REJECTED with blocked reason
  * - UI shows error from gameState.actionRejected
  */
 
@@ -54,7 +54,7 @@ jest.mock('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => mockUseGameRoomReturn,
 }));
 
-describe('Nightmare Blocked UI (Host-authoritative)', () => {
+describe('Nightmare Blocked UI (server-authoritative)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseGameRoomReturn = makeBlockedPlayerMock();
@@ -139,7 +139,7 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
         currentNightResults: {
           blockedSeat: 0,
         },
-        // Host-driven UI hint for blocked player (skip button)
+        // Server-driven UI hint for blocked player (skip button)
         ui: {
           currentActorHint: {
             bottomAction: 'skipOnly',
@@ -258,7 +258,7 @@ describe('Nightmare Blocked UI (Host-authoritative)', () => {
         currentNightResults: {
           blockedSeat: 0,
         },
-        // Host-driven UI hint for blocked player (skip button)
+        // Server-driven UI hint for blocked player (skip button)
         ui: {
           currentActorHint: {
             bottomAction: 'skipOnly',

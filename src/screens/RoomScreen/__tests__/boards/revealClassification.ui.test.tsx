@@ -4,7 +4,7 @@
  * Verifies that the RoomScreenTestHarness correctly classifies reveal dialogs
  * by directly recording showAlert calls with reveal-style title/message patterns.
  *
- * The actual reveal flow (tap seat → submit → host provides data → poll → dialog)
+ * The actual reveal flow (tap seat → submit → server provides data → poll → dialog)
  * requires real async state propagation through gameStateRef and is covered by
  * integration/E2E tests. This test ensures the harness classification layer
  * is correct, so when reveals DO appear, they are properly tracked.

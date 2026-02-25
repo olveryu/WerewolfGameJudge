@@ -4,7 +4,7 @@
  * 规则（详见 docs/random-and-id-guidelines.md）：
  * 1. ID/nonce 生成 → 用 src/utils/id.ts (randomHex, newRequestId, newRejectionId)
  * 2. 可测试随机 → 用 src/utils/random.ts (secureRng + Rng 注入)
- * 3. 跨客户端一致随机 → Host 解析 + GameState 广播
+ * 3. 跨客户端一致随机 → 服务端解析 + GameState 广播
  *
  * 例外（允许 Math.random）：
  * - __tests__/ 测试文件
@@ -101,7 +101,7 @@ describe('Math.random() 禁止规则', () => {
           `- ID/nonce 生成 → import { randomHex } from '@werewolf/game-engine/utils/id'\n` +
           `- 可测试随机 → import { secureRng, randomIntInclusive, randomPick } from '@werewolf/game-engine/utils/random'\n` +
           `- 数组打乱 → import { shuffleArray } from '@werewolf/game-engine/utils/shuffle'\n` +
-          `- 跨客户端一致 → Host 解析并通过 GameState 广播\n` +
+          `- 跨客户端一致 → 服务端解析并通过 GameState 广播\n` +
           `- 详见 docs/random-and-id-guidelines.md`,
       );
     }

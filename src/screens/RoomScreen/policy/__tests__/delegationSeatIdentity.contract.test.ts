@@ -275,7 +275,7 @@ describe('Delegation Seat Identity Contract', () => {
      *
      * Bug prevented: When delegating or when actor has already voted,
      * findVotingWolfSeat() returns null, causing wolfVote to silently return
-     * instead of letting Host reject via actionRejected.
+     * instead of letting server reject via actionRejected.
      */
     it('wolfVote should use effectiveSeat as fallback, not findVotingWolfSeat', () => {
       const content = readFileContent(ORCHESTRATOR_PATH);

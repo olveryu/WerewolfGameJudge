@@ -1,11 +1,11 @@
 /**
- * useRoomActions.getBottomAction and getActionIntent tests (Host-authoritative)
+ * useRoomActions.getBottomAction and getActionIntent tests (server-authoritative)
  *
  * NEW BEHAVIOR:
  * - UI does NOT intercept blocked players
  * - Blocked players get normal intent (not 'blocked')
  * - Bottom buttons show normal labels (not forced skip)
- * - Host handles all blocking via ACTION_REJECTED
+ * - Server handles all blocking via ACTION_REJECTED
  */
 import { renderHook } from '@testing-library/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -30,7 +30,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   return { ...base, ...overrides };
 }
 
-describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
+describe('useRoomActions.getBottomAction (server-authoritative)', () => {
   it('shows normal skip button when nightmare-blocked (no forced label)', () => {
     const chooseSeatSchema: ActionSchema = {
       id: 'seerAction',
@@ -174,8 +174,8 @@ describe('useRoomActions.getBottomAction (Host-authoritative)', () => {
   });
 });
 
-describe('useRoomActions.getActionIntent (Host-authoritative)', () => {
-  it('blocked player tapping seat returns normal intent (Host validates)', () => {
+describe('useRoomActions.getActionIntent (server-authoritative)', () => {
+  it('blocked player tapping seat returns normal intent (server validates)', () => {
     const chooseSeatSchema: ActionSchema = {
       id: 'seerAction',
       kind: 'chooseSeat',

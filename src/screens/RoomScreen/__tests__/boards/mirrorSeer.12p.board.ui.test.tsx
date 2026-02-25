@@ -9,7 +9,7 @@
  * - confirmTrigger (darkWolfKingConfirm)
  * - actionConfirm, skipConfirm (seer, mirrorSeer, guard)
  *
- * Host-data required (covered by integration):
+ * Server-data required (covered by integration):
  * - seerReveal, mirrorSeerReveal
  */
 

@@ -78,7 +78,7 @@ describe('Server authority import boundary', () => {
     /from\s+['"].*resolvers.*['"]\s*;?\s*$/m,
   ];
 
-  // Directories to check (UI layer - should not import Host-only modules)
+  // Directories to check (UI layer - should not import server-authority modules)
   const hooksDir = path.join(process.cwd(), 'src', 'hooks');
   const screensDir = path.join(process.cwd(), 'src', 'screens');
 

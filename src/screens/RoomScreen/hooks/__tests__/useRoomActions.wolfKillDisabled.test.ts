@@ -1,10 +1,10 @@
 /**
- * Tests for wolf vote behavior (Host-authoritative version)
+ * Tests for wolf vote behavior (server-authoritative version)
  *
  * NEW BEHAVIOR:
  * - UI no longer knows about wolfKillDisabled (removed from GameContext)
  * - Wolf can tap seats and get normal intent
- * - Host validates and rejects via ACTION_REJECTED if needed
+ * - Server validates and rejects via ACTION_REJECTED if needed
  * - UI shows normal buttons
  *
  * This test now verifies normal wolf vote behavior without block-related fields.
@@ -38,7 +38,7 @@ const defaultDeps = {
   getWitchContext: () => null,
 };
 
-describe('useRoomActions wolf vote (Host-authoritative)', () => {
+describe('useRoomActions wolf vote (server-authoritative)', () => {
   describe('getActionIntent', () => {
     it('returns wolfVote intent for wolf actioner', () => {
       const ctx = makeContext();
