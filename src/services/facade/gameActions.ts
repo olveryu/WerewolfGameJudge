@@ -1,5 +1,5 @@
 /**
- * Host Actions - 游戏 HTTP API 业务编排
+ * Game Actions - 游戏 HTTP API 业务编排
  *
  * 拆分自 GameFacade.ts（纯重构 PR，无行为变更）
  *
@@ -36,10 +36,10 @@ import { facadeLog } from '@/utils/logger';
 import { type ApiResponse, applyOptimisticUpdate, callApiOnce } from './apiUtils';
 
 /**
- * Host Actions 依赖的上下文接口
+ * gameActions 依赖的上下文接口
  * （从 Facade 注入，避免循环依赖）
  */
-export interface HostActionsContext {
+export interface GameActionsContext {
   readonly store: GameStore;
   myUid: string | null;
   getMySeatNumber: () => number | null;
@@ -110,7 +110,7 @@ const NOT_CONNECTED = { success: false, reason: 'NOT_CONNECTED' } as const;
  * Host-only 动作统一使用 getRoomCodeOrFail（只需 roomCode，服务端从 state 读取 hostUid）。
  * 返回 null 表示未连接，调用方应返回 NOT_CONNECTED。
  */
-function getConnectionOrFail(ctx: HostActionsContext): { roomCode: string; myUid: string } | null {
+function getConnectionOrFail(ctx: GameActionsContext): { roomCode: string; myUid: string } | null {
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode || !ctx.myUid) return null;
   return { roomCode, myUid: ctx.myUid };
@@ -123,7 +123,7 @@ function getConnectionOrFail(ctx: HostActionsContext): { roomCode: string; myUid
  * 与 getConnectionOrFail 不同：后者还读取 ctx.myUid（调用者自身），适用于 view-role 等任意玩家动作。
  * 返回 null 表示未连接，调用方应返回 NOT_CONNECTED。
  */
-function getRoomCodeOrFail(ctx: HostActionsContext): { roomCode: string } | null {
+function getRoomCodeOrFail(ctx: GameActionsContext): { roomCode: string } | null {
   const roomCode = ctx.store.getState()?.roomCode;
   if (!roomCode) return null;
   return { roomCode };
@@ -133,7 +133,7 @@ function getRoomCodeOrFail(ctx: HostActionsContext): { roomCode: string } | null
  * Host: 分配角色（HTTP API）
  */
 export async function assignRoles(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('assignRoles called');
 
@@ -154,7 +154,7 @@ export async function assignRoles(
  * Host/Player: 标记某座位已查看角色（HTTP API）
  */
 export async function markViewedRole(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
   seat: number,
 ): Promise<{ success: boolean; reason?: string }> {
   const conn = getConnectionOrFail(ctx);
@@ -189,7 +189,7 @@ export async function markViewedRole(
  * ready → ongoing. 音频 sideEffects 由客户端按序播放。
  */
 export async function startNight(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('startNight called');
 
@@ -226,7 +226,7 @@ export async function startNight(
  * 仅在"准备看牌前"（unseated | seated）允许
  */
 export async function updateTemplate(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
   template: GameTemplate,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('updateTemplate called');
@@ -254,7 +254,7 @@ export async function updateTemplate(
  * 服务端重置 state → postgres_changes 推送新状态到所有客户端。
  */
 export async function restartGame(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('restartGame called');
 
@@ -277,7 +277,7 @@ export async function restartGame(
  * Host 在房间内选择开牌动画，所有玩家统一使用
  */
 export async function setRoleRevealAnimation(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
   animation: RoleRevealAnimation,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setRoleRevealAnimation called', { animation });
@@ -304,7 +304,7 @@ export async function setRoleRevealAnimation(
  * ended 阶段 Host 选择允许查看夜晚行动详情的座位列表。
  */
 export async function shareNightReview(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
   allowedSeats: number[],
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('shareNightReview called', { allowedSeats });
@@ -329,7 +329,7 @@ export async function shareNightReview(
  * Night-1 only. 成功后自动评估并执行夜晚推进。
  */
 export async function submitAction(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
   seat: number,
   role: RoleId,
   target: number | null,
@@ -367,7 +367,7 @@ export async function submitAction(
  * Night-1 only. 服务端内联推进自动处理 deadline + 步骤推进。
  */
 export async function submitWolfVote(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
   voterSeat: number,
   targetSeat: number,
 ): Promise<{ success: boolean; reason?: string }> {
@@ -405,7 +405,7 @@ export async function submitWolfVote(
  * 保留：作为手动触发 endNight 的 fallback。
  */
 export async function endNight(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('endNight called');
 
@@ -437,7 +437,7 @@ export async function endNight(
  * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
  */
 export async function setAudioPlaying(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
   isPlaying: boolean,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setAudioPlaying called', { isPlaying });
@@ -466,7 +466,7 @@ export async function setAudioPlaying(
  * 当用户确认 reveal 弹窗后调用
  */
 export async function clearRevealAcks(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('clearRevealAcks called');
 
@@ -496,7 +496,7 @@ export async function clearRevealAcks(
  * 当机械狼学到猎人后查看状态按钮被点击时调用
  */
 export async function setWolfRobotHunterStatusViewed(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
   seat: number,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('setWolfRobotHunterStatusViewed called', { seat });
@@ -533,7 +533,7 @@ export async function setWolfRobotHunterStatusViewed(
  * 服务端清除 effects + isAudioPlaying，然后执行内联推进。
  */
 export async function postAudioAck(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('postAudioAck called');
 
@@ -557,7 +557,7 @@ export async function postAudioAck(
  * 服务端执行内联推进（evaluate + advance/endNight 循环）。
  */
 export async function postProgression(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   facadeLog.debug('postProgression called');
 
@@ -585,7 +585,7 @@ export async function postProgression(
  * 仅在 status === Unseated 时可用。
  */
 export async function fillWithBots(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   const conn = getRoomCodeOrFail(ctx);
   if (!conn) return NOT_CONNECTED;
@@ -607,7 +607,7 @@ export async function fillWithBots(
  * 仅在 debugMode.botsEnabled === true && status === Assigned 时可用。
  */
 export async function markAllBotsViewed(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   const conn = getRoomCodeOrFail(ctx);
   if (!conn) return NOT_CONNECTED;
@@ -632,7 +632,7 @@ export async function markAllBotsViewed(
  * 清空所有已入座玩家。仅在 status === Unseated | Seated 时可用。
  */
 export async function clearAllSeats(
-  ctx: HostActionsContext,
+  ctx: GameActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   const conn = getRoomCodeOrFail(ctx);
   if (!conn) return NOT_CONNECTED;

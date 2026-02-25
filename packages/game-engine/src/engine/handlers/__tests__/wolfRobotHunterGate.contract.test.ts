@@ -13,7 +13,7 @@
  * 4. Handler correctly validates and returns SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED action
  *
  * 本测试文件只测试 handleAdvanceNight 的 Gate 逻辑。
- * Facade 的 security validation 测试应放在 hostActions 的单元测试中。
+ * Facade 的 security validation 测试应放在 gameActions 的单元测试中。
  */
 
 import { handleAdvanceNight } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';

@@ -47,12 +47,12 @@ import { STANDARD_SIDE_EFFECTS } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
 
 // ---------------------------------------------------------------------------
-// Shared guard: host + state must exist
+// Shared guard: state must exist
 // ---------------------------------------------------------------------------
-type HostGuardOk = { ok: true; state: GameState };
-type HostGuardFail = { ok: false; result: HandlerResult };
+type StateGuardOk = { ok: true; state: GameState };
+type StateGuardFail = { ok: false; result: HandlerResult };
 
-function requireHostWithState(context: HandlerContext): HostGuardOk | HostGuardFail {
+function requireState(context: HandlerContext): StateGuardOk | StateGuardFail {
   if (!context.state) {
     return { ok: false, result: { success: false, reason: 'no_state', actions: [] } };
   }
@@ -72,7 +72,7 @@ export function handleAssignRoles(
   _intent: AssignRolesIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireHostWithState(context);
+  const guard = requireState(context);
   if (!guard.ok) return guard.result;
   const { state } = guard;
 
@@ -147,7 +147,7 @@ export function handleStartNight(
   _intent: StartNightIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireHostWithState(context);
+  const guard = requireState(context);
   if (!guard.ok) return guard.result;
   const { state } = guard;
 
@@ -232,7 +232,7 @@ export function handleRestartGame(
   _intent: RestartGameIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireHostWithState(context);
+  const guard = requireState(context);
   if (!guard.ok) return guard.result;
 
   const action: RestartGameAction = {
@@ -256,7 +256,7 @@ export function handleUpdateTemplate(
   intent: UpdateTemplateIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireHostWithState(context);
+  const guard = requireState(context);
   if (!guard.ok) return guard.result;
   const { state } = guard;
 
@@ -295,7 +295,7 @@ export function handleSetRoleRevealAnimation(
   intent: SetRoleRevealAnimationIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireHostWithState(context);
+  const guard = requireState(context);
   if (!guard.ok) return guard.result;
 
   const action: SetRoleRevealAnimationAction = {
@@ -325,7 +325,7 @@ export function handleFillWithBots(
   _intent: FillWithBotsIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireHostWithState(context);
+  const guard = requireState(context);
   if (!guard.ok) return guard.result;
   const { state } = guard;
 
@@ -385,7 +385,7 @@ export function handleMarkAllBotsViewed(
   _intent: MarkAllBotsViewedIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireHostWithState(context);
+  const guard = requireState(context);
   if (!guard.ok) return guard.result;
   const { state } = guard;
 
@@ -428,7 +428,7 @@ export function handleShareNightReview(
   intent: ShareNightReviewIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireHostWithState(context);
+  const guard = requireState(context);
   if (!guard.ok) return guard.result;
   const { state } = guard;
 

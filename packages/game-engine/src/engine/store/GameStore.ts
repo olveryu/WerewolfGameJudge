@@ -14,11 +14,11 @@
 
 import { getEngineLogger } from '../../utils/logger';
 import { normalizeState } from '../state/normalize';
-import type { GameState, IHostGameStore, StoreStateListener } from './types';
+import type { GameState, IWritableGameStore, StoreStateListener } from './types';
 
 const gameStoreLog = getEngineLogger().extend('GameStore');
 
-export class GameStore implements IHostGameStore {
+export class GameStore implements IWritableGameStore {
   #state: GameState | null = null;
   #revision: number = 0;
   readonly #listeners: Set<StoreStateListener> = new Set();

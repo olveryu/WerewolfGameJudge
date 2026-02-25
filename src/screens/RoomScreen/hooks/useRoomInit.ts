@@ -1,7 +1,7 @@
 /**
  * useRoomInit.ts - Room initialization hook
  *
- * Calls useGameRoom init APIs (initializeHostRoom, joinRoom, takeSeat), manages local
+ * Calls useGameRoom init APIs (initializeRoom, joinRoom, takeSeat), manages local
  * loading/retry UI state, sets role reveal animation on room creation (host only), and
  * surfaces gameRoomError for error display. Does not control night phase or push game
  * actions, does not import services or business logic, does not access or modify
@@ -23,7 +23,7 @@ interface UseRoomInitParams {
   /** Template for room creation (host only) */
   template: GameTemplate | undefined;
   /** From useGameRoom: initialize host room (facade only, no DB) */
-  initializeHostRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
+  initializeRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
   /** From useGameRoom: join existing room */
   joinRoom: (roomNumber: string) => Promise<boolean>;
   /** Check if we have received game state */
@@ -49,7 +49,7 @@ interface UseRoomInitResult {
 
 /**
  * Manages room initialization lifecycle.
- * Host: initializeHostRoom → setRoleRevealAnimation → initialized
+ * Host: initializeRoom → setRoleRevealAnimation → initialized
  * Player: joinRoom → initialized
  *
  * Note: DB room creation is done in ConfigScreen BEFORE navigation.
@@ -61,7 +61,7 @@ export function useRoomInit({
   roomNumber,
   isHostParam,
   template,
-  initializeHostRoom,
+  initializeRoom,
   joinRoom,
   hasGameState,
   initialRoleRevealAnimation,
@@ -104,11 +104,11 @@ export function useRoomInit({
           roomNumber,
           roleCount: template.roles.length,
         });
-        const success = await initializeHostRoom(roomNumber, template);
+        const success = await initializeRoom(roomNumber, template);
 
         if (!success) {
           initInProgressRef.current = false;
-          roomScreenLog.warn('[useRoomInit] Host initializeHostRoom failed', {
+          roomScreenLog.warn('[useRoomInit] Host initializeRoom failed', {
             roomNumber,
             error: gameRoomErrorRef.current ?? 'unknown',
           });
@@ -154,7 +154,7 @@ export function useRoomInit({
     isHostParam,
     template,
     roomNumber,
-    initializeHostRoom,
+    initializeRoom,
     joinRoom,
     initialRoleRevealAnimation,
     setRoleRevealAnimation,

@@ -1,5 +1,5 @@
 /**
- * useHostGameActions - Host game control + night-phase player actions
+ * useGameActions - Host game control + night-phase player actions
  *
  * Manages:
  * - Host-only game flow: updateTemplate, assignRoles, startGame, restartGame
@@ -26,7 +26,7 @@ import type { DebugModeState } from './useDebugMode';
 /**
  * 公用的 API 失败通知 — 所有重试耗尽后向用户显示提示
  *
- * 用于 useHostGameActions 内用户发起的操作。
+ * 用于 useGameActions 内用户发起的操作。
  * 不用于后台/系统操作（audio-ack / progression 等）。
  */
 function notifyIfFailed(result: { success: boolean; reason?: string }, actionLabel: string): void {
@@ -38,7 +38,7 @@ function notifyIfFailed(result: { success: boolean; reason?: string }, actionLab
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface HostGameActionsState {
+interface GameActionsState {
   // Host game control
   updateTemplate: (template: GameTemplate) => Promise<void>;
   assignRoles: () => Promise<void>;
@@ -63,7 +63,7 @@ interface HostGameActionsState {
   hasWolfVoted: (seatNumber: number) => boolean;
 }
 
-interface HostGameActionsDeps {
+interface GameActionsDeps {
   facade: IGameFacade;
   bgm: BgmControlState;
   debug: DebugModeState;
@@ -75,7 +75,7 @@ interface HostGameActionsDeps {
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function useHostGameActions(deps: HostGameActionsDeps): HostGameActionsState {
+export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const { facade, bgm, debug, mySeatNumber, gameState } = deps;
 
   // =========================================================================
