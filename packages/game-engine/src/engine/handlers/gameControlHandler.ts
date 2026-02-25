@@ -40,9 +40,27 @@ import type {
   StateAction,
   UpdateTemplateAction,
 } from '../reducer/types';
+import type { GameState } from '../store/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
 import type { HandlerContext, HandlerResult } from './types';
+import { STANDARD_SIDE_EFFECTS } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
+
+// ---------------------------------------------------------------------------
+// Shared guard: host + state must exist
+// ---------------------------------------------------------------------------
+type HostGuardOk = { ok: true; state: GameState };
+type HostGuardFail = { ok: false; result: HandlerResult };
+
+function requireHostWithState(context: HandlerContext): HostGuardOk | HostGuardFail {
+  if (!context.isHost) {
+    return { ok: false, result: { success: false, reason: 'host_only', actions: [] } };
+  }
+  if (!context.state) {
+    return { ok: false, result: { success: false, reason: 'no_state', actions: [] } };
+  }
+  return { ok: true, state: context.state };
+}
 
 /**
  * 处理分配角色（仅 seated → assigned）
@@ -57,25 +75,9 @@ export function handleAssignRoles(
   _intent: AssignRolesIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { state, isHost } = context;
-
-  // Gate: host only
-  if (!isHost) {
-    return {
-      success: false,
-      reason: 'host_only',
-      actions: [],
-    };
-  }
-
-  // 验证：state 存在
-  if (!state) {
-    return {
-      success: false,
-      reason: 'no_state',
-      actions: [],
-    };
-  }
+  const guard = requireHostWithState(context);
+  if (!guard.ok) return guard.result;
+  const { state } = guard;
 
   // Gate: game status must be GameStatus.Seated
   if (state.status !== GameStatus.Seated) {
@@ -130,7 +132,7 @@ export function handleAssignRoles(
   return {
     success: true,
     actions: [assignRolesAction],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
 
@@ -148,25 +150,9 @@ export function handleStartNight(
   _intent: StartNightIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { state, isHost } = context;
-
-  // Gate: 仅主机可操作
-  if (!isHost) {
-    return {
-      success: false,
-      reason: 'host_only',
-      actions: [],
-    };
-  }
-
-  // Gate: state 存在
-  if (!state) {
-    return {
-      success: false,
-      reason: 'no_state',
-      actions: [],
-    };
-  }
+  const guard = requireHostWithState(context);
+  if (!guard.ok) return guard.result;
+  const { state } = guard;
 
   // Gate: status must be GameStatus.Ready
   if (state.status !== GameStatus.Ready) {
@@ -189,7 +175,7 @@ export function handleStartNight(
     return {
       success: true,
       actions: [endNightAction],
-      sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+      sideEffects: STANDARD_SIDE_EFFECTS,
     };
   }
 
@@ -249,25 +235,8 @@ export function handleRestartGame(
   _intent: RestartGameIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { state, isHost } = context;
-
-  // 验证：仅主机可操作
-  if (!isHost) {
-    return {
-      success: false,
-      reason: 'host_only',
-      actions: [],
-    };
-  }
-
-  // 验证：state 存在
-  if (!state) {
-    return {
-      success: false,
-      reason: 'no_state',
-      actions: [],
-    };
-  }
+  const guard = requireHostWithState(context);
+  if (!guard.ok) return guard.result;
 
   const action: RestartGameAction = {
     type: 'RESTART_GAME',
@@ -277,7 +246,7 @@ export function handleRestartGame(
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
 
@@ -290,25 +259,9 @@ export function handleUpdateTemplate(
   intent: UpdateTemplateIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { state, isHost } = context;
-
-  // 验证：仅主机可操作
-  if (!isHost) {
-    return {
-      success: false,
-      reason: 'host_only',
-      actions: [],
-    };
-  }
-
-  // 验证：state 存在
-  if (!state) {
-    return {
-      success: false,
-      reason: 'no_state',
-      actions: [],
-    };
-  }
+  const guard = requireHostWithState(context);
+  if (!guard.ok) return guard.result;
+  const { state } = guard;
 
   // 验证：仅允许“准备看牌前”修改（unseated/seated）。
   // 一旦进入 assigned/ready/ongoing/ended，修改会造成状态机与玩家认知漂移，因此强制要求先 RESTART_GAME。
@@ -331,7 +284,7 @@ export function handleUpdateTemplate(
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
 
@@ -345,25 +298,8 @@ export function handleSetRoleRevealAnimation(
   intent: SetRoleRevealAnimationIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { state, isHost } = context;
-
-  // 验证：仅主机可操作
-  if (!isHost) {
-    return {
-      success: false,
-      reason: 'host_only',
-      actions: [],
-    };
-  }
-
-  // 验证：state 存在
-  if (!state) {
-    return {
-      success: false,
-      reason: 'no_state',
-      actions: [],
-    };
-  }
+  const guard = requireHostWithState(context);
+  if (!guard.ok) return guard.result;
 
   const action: SetRoleRevealAnimationAction = {
     type: 'SET_ROLE_REVEAL_ANIMATION',
@@ -374,7 +310,7 @@ export function handleSetRoleRevealAnimation(
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
 
@@ -393,25 +329,9 @@ export function handleFillWithBots(
   _intent: FillWithBotsIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { state, isHost } = context;
-
-  // Gate: host only
-  if (!isHost) {
-    return {
-      success: false,
-      reason: 'host_only',
-      actions: [],
-    };
-  }
-
-  // Gate: state 存在
-  if (!state) {
-    return {
-      success: false,
-      reason: 'no_state',
-      actions: [],
-    };
-  }
+  const guard = requireHostWithState(context);
+  if (!guard.ok) return guard.result;
+  const { state } = guard;
 
   // Gate: 只允许在 unseated 阶段填充 bot
   if (state.status !== GameStatus.Unseated) {
@@ -452,7 +372,7 @@ export function handleFillWithBots(
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
 
@@ -470,25 +390,9 @@ export function handleMarkAllBotsViewed(
   _intent: MarkAllBotsViewedIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { state, isHost } = context;
-
-  // Gate: host only
-  if (!isHost) {
-    return {
-      success: false,
-      reason: 'host_only',
-      actions: [],
-    };
-  }
-
-  // Gate: state 存在
-  if (!state) {
-    return {
-      success: false,
-      reason: 'no_state',
-      actions: [],
-    };
-  }
+  const guard = requireHostWithState(context);
+  if (!guard.ok) return guard.result;
+  const { state } = guard;
 
   // Gate: debugMode.botsEnabled 必须为 true
   if (!state.debugMode?.botsEnabled) {
@@ -515,7 +419,7 @@ export function handleMarkAllBotsViewed(
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
 
@@ -529,15 +433,9 @@ export function handleShareNightReview(
   intent: ShareNightReviewIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { state, isHost } = context;
-
-  if (!isHost) {
-    return { success: false, reason: 'host_only', actions: [] };
-  }
-
-  if (!state) {
-    return { success: false, reason: 'no_state', actions: [] };
-  }
+  const guard = requireHostWithState(context);
+  if (!guard.ok) return guard.result;
+  const { state } = guard;
 
   if (state.status !== GameStatus.Ended) {
     return { success: false, reason: 'invalid_status', actions: [] };
@@ -551,6 +449,6 @@ export function handleShareNightReview(
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }

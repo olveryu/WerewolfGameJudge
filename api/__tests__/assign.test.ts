@@ -1,8 +1,8 @@
 /**
- * Assign Roles API Route Tests — POST /api/game/assign
+ * Assign Roles API Route Tests — POST /api/game/assign (unique tests)
  *
- * 验证分配角色请求的参数校验、method 检查、handler 委托。
- * 覆盖 405 / 400 / 成功 / 失败 / callback 构建。
+ * Common tests (405 / 400 / 200 / 400) are in simple-host-endpoints.test.ts.
+ * This file tests assign-specific behavior: CORS preflight + callback isHost.
  */
 
 import type { GameState } from '@werewolf/game-engine';
@@ -26,13 +26,7 @@ const QUERY = { action: 'assign' };
 
 beforeEach(() => jest.clearAllMocks());
 
-describe('POST /api/game/assign', () => {
-  it('returns 405 for non-POST', async () => {
-    const res = mockResponse();
-    await handler(mockRequest({ method: 'GET', query: QUERY }), res);
-    expect(res._status).toBe(405);
-  });
-
+describe('POST /api/game/assign (unique)', () => {
   it('handles CORS preflight', async () => {
     (handleCors as jest.Mock).mockReturnValueOnce(true);
     const res = mockResponse();
@@ -40,32 +34,11 @@ describe('POST /api/game/assign', () => {
     expect(res._status).toBe(0);
   });
 
-  it('returns 400 when roomCode is missing', async () => {
+  it('returns 400 when params missing (verifies MISSING_PARAMS reason)', async () => {
     const res = mockResponse();
     await handler(mockRequest({ query: QUERY, body: { hostUid: 'h1' } }), res);
     expect(res._status).toBe(400);
     expect(res._json).toEqual({ success: false, reason: 'MISSING_PARAMS' });
-  });
-
-  it('returns 400 when hostUid is missing', async () => {
-    const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD' } }), res);
-    expect(res._status).toBe(400);
-  });
-
-  it('returns 200 on success', async () => {
-    mockProcessGameAction.mockResolvedValue({ success: true, revision: 1 });
-    const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
-    expect(res._status).toBe(200);
-    expect(mockProcessGameAction).toHaveBeenCalledWith('ABCD', expect.any(Function));
-  });
-
-  it('returns 400 on failure', async () => {
-    mockProcessGameAction.mockResolvedValue({ success: false, reason: 'NOT_HOST' });
-    const res = mockResponse();
-    await handler(mockRequest({ query: QUERY, body: { roomCode: 'ABCD', hostUid: 'h1' } }), res);
-    expect(res._status).toBe(400);
   });
 
   it('callback sets isHost correctly', async () => {

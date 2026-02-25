@@ -15,6 +15,7 @@
 import { getEngineLogger } from '../../utils/logger';
 import type { SetWolfRobotHunterStatusViewedAction } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
+import { STANDARD_SIDE_EFFECTS } from './types';
 
 const handlerLog = getEngineLogger().extend('WolfRobotHunterGateHandler');
 
@@ -100,6 +101,6 @@ export function handleSetWolfRobotHunterStatusViewed(
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }

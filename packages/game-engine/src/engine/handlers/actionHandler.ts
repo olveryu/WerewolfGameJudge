@@ -29,6 +29,7 @@ import type {
   StateAction,
 } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
+import { STANDARD_SIDE_EFFECTS } from './types';
 
 const actionHandlerLog = getEngineLogger().extend('ActionHandler');
 
@@ -105,95 +106,52 @@ function getSchemaIdForRole(role: RoleId): SchemaId | null {
   return null;
 }
 
-/**
- * 处理 Seer reveal
- */
-function handleSeerReveal(
+// ---------------------------------------------------------------------------
+// Generic reveal handler factories (DRY)
+// ---------------------------------------------------------------------------
+
+/** RevealKind keys that use checkResult (seer family) */
+type CheckResultRevealKey = 'seerReveal' | 'mirrorSeerReveal' | 'drunkSeerReveal';
+
+/** RevealKind keys that use identityResult (identity-check family) */
+type IdentityResultRevealKey =
+  | 'psychicReveal'
+  | 'gargoyleReveal'
+  | 'pureWhiteReveal'
+  | 'wolfWitchReveal';
+
+function makeCheckResultRevealHandler(
+  key: CheckResultRevealKey,
+): (
   result: ResolverResult,
   targetSeat: number,
-): Pick<ApplyResolverResultAction['payload'], 'seerReveal'> {
-  if (result.result?.checkResult) {
-    return { seerReveal: { targetSeat, result: result.result.checkResult } };
-  }
-  return {};
+) => Pick<ApplyResolverResultAction['payload'], CheckResultRevealKey> {
+  return (result, targetSeat) => {
+    if (result.result?.checkResult) {
+      return { [key]: { targetSeat, result: result.result.checkResult } } as Pick<
+        ApplyResolverResultAction['payload'],
+        CheckResultRevealKey
+      >;
+    }
+    return {} as Pick<ApplyResolverResultAction['payload'], CheckResultRevealKey>;
+  };
 }
 
-/**
- * 处理 MirrorSeer reveal (反转查验)
- */
-function handleMirrorSeerReveal(
+function makeIdentityResultRevealHandler(
+  key: IdentityResultRevealKey,
+): (
   result: ResolverResult,
   targetSeat: number,
-): Pick<ApplyResolverResultAction['payload'], 'mirrorSeerReveal'> {
-  if (result.result?.checkResult) {
-    return { mirrorSeerReveal: { targetSeat, result: result.result.checkResult } };
-  }
-  return {};
-}
-
-/**
- * 处理 DrunkSeer reveal (随机查验)
- */
-function handleDrunkSeerReveal(
-  result: ResolverResult,
-  targetSeat: number,
-): Pick<ApplyResolverResultAction['payload'], 'drunkSeerReveal'> {
-  if (result.result?.checkResult) {
-    return { drunkSeerReveal: { targetSeat, result: result.result.checkResult } };
-  }
-  return {};
-}
-
-/**
- * 处理 Psychic reveal
- */
-function handlePsychicReveal(
-  result: ResolverResult,
-  targetSeat: number,
-): Pick<ApplyResolverResultAction['payload'], 'psychicReveal'> {
-  if (result.result?.identityResult) {
-    return { psychicReveal: { targetSeat, result: result.result.identityResult } };
-  }
-  return {};
-}
-
-/**
- * 处理 Gargoyle reveal
- */
-function handleGargoyleReveal(
-  result: ResolverResult,
-  targetSeat: number,
-): Pick<ApplyResolverResultAction['payload'], 'gargoyleReveal'> {
-  if (result.result?.identityResult) {
-    return { gargoyleReveal: { targetSeat, result: result.result.identityResult } };
-  }
-  return {};
-}
-
-/**
- * 处理 PureWhite reveal
- */
-function handlePureWhiteReveal(
-  result: ResolverResult,
-  targetSeat: number,
-): Pick<ApplyResolverResultAction['payload'], 'pureWhiteReveal'> {
-  if (result.result?.identityResult) {
-    return { pureWhiteReveal: { targetSeat, result: result.result.identityResult } };
-  }
-  return {};
-}
-
-/**
- * 处理 WolfWitch reveal
- */
-function handleWolfWitchReveal(
-  result: ResolverResult,
-  targetSeat: number,
-): Pick<ApplyResolverResultAction['payload'], 'wolfWitchReveal'> {
-  if (result.result?.identityResult) {
-    return { wolfWitchReveal: { targetSeat, result: result.result.identityResult } };
-  }
-  return {};
+) => Pick<ApplyResolverResultAction['payload'], IdentityResultRevealKey> {
+  return (result, targetSeat) => {
+    if (result.result?.identityResult) {
+      return { [key]: { targetSeat, result: result.result.identityResult } } as Pick<
+        ApplyResolverResultAction['payload'],
+        IdentityResultRevealKey
+      >;
+    }
+    return {} as Pick<ApplyResolverResultAction['payload'], IdentityResultRevealKey>;
+  };
 }
 
 /**
@@ -256,13 +214,13 @@ type RevealHandler = (
 ) => Partial<ApplyResolverResultAction['payload']>;
 
 const REVEAL_HANDLERS: Record<RevealKind, RevealHandler> = {
-  seer: handleSeerReveal,
-  mirrorSeer: handleMirrorSeerReveal,
-  drunkSeer: handleDrunkSeerReveal,
-  psychic: handlePsychicReveal,
-  gargoyle: handleGargoyleReveal,
-  pureWhite: handlePureWhiteReveal,
-  wolfWitch: handleWolfWitchReveal,
+  seer: makeCheckResultRevealHandler('seerReveal'),
+  mirrorSeer: makeCheckResultRevealHandler('mirrorSeerReveal'),
+  drunkSeer: makeCheckResultRevealHandler('drunkSeerReveal'),
+  psychic: makeIdentityResultRevealHandler('psychicReveal'),
+  gargoyle: makeIdentityResultRevealHandler('gargoyleReveal'),
+  pureWhite: makeIdentityResultRevealHandler('pureWhiteReveal'),
+  wolfWitch: makeIdentityResultRevealHandler('wolfWitchReveal'),
   wolfRobot: handleWolfRobotReveal,
 };
 
@@ -645,7 +603,7 @@ function buildSuccessResult(
   return {
     success: true,
     actions,
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
 
@@ -844,6 +802,6 @@ export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerConte
   return {
     success: true,
     actions: [action],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
+    sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }
