@@ -1,5 +1,5 @@
 /**
- * useGameActions — unit tests for host game control & player night actions hook.
+ * useGameActions — unit tests for game control & player night actions hook.
  *
  * Verifies facade delegation, non-host guards, notifyIfFailed alerting,
  * and derived state queries (getLastNightInfo, hasWolfVoted).
@@ -65,7 +65,7 @@ function createDeps(overrides: Record<string, unknown> = {}) {
 
 // ---- Tests ----
 
-describe('useGameActions - host game control', () => {
+describe('useGameActions - game control', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('updateTemplate should call facade.updateTemplate', async () => {

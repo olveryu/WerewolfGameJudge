@@ -97,7 +97,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   // Room lifecycle
   // =========================================================================
 
-  // Initialize host room: facade only, no DB creation.
+  // Initialize room: facade only, no DB creation.
   // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomNumber.
   const initializeRoom = useCallback(
     async (roomNumber: string, template: GameTemplate): Promise<boolean> => {

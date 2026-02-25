@@ -8,8 +8,8 @@
  *   log.info('Seat action', { seat: 1 });
  *
  * Or with extensions:
- *   const hostLog = log.extend('Host');
- *   hostLog.info('Seat action', { seat: 1 });
+ *   const myLog = log.extend('MyModule');
+ *   myLog.info('Seat action', { seat: 1 });
  *
  * 不引入 React、service 或游戏状态。
  */

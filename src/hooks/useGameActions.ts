@@ -1,5 +1,5 @@
 /**
- * useGameActions - Host game control + night-phase player actions
+ * useGameActions - Game control + night-phase player actions
  *
  * Manages:
  * - Host-only game flow: updateTemplate, assignRoles, startGame, restartGame
@@ -39,7 +39,7 @@ function notifyIfFailed(result: { success: boolean; reason?: string }, actionLab
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface GameActionsState {
-  // Host game control
+  // Game control (host-only)
   updateTemplate: (template: GameTemplate) => Promise<void>;
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
@@ -79,7 +79,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const { facade, bgm, debug, mySeatNumber, gameState } = deps;
 
   // =========================================================================
-  // Host game control
+  // Game control (host-only)
   // =========================================================================
 
   // Update template (host only)

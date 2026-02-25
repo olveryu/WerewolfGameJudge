@@ -333,8 +333,6 @@ jest.mock('./src/utils/logger', () => {
 
   return {
     log: mockLogger,
-    hostLog: mockLogger,
-    playerLog: mockLogger,
     realtimeLog: mockLogger,
     audioLog: mockLogger,
     authLog: mockLogger,
@@ -344,7 +342,6 @@ jest.mock('./src/utils/logger', () => {
     roomScreenLog: mockLogger,
     homeLog: mockLogger,
     facadeLog: mockLogger,
-    gameStateLog: mockLogger,
     settingsLog: mockLogger,
     settingsServiceLog: mockLogger,
     bgmLog: mockLogger,

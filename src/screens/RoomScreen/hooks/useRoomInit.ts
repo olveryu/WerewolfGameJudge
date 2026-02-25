@@ -22,7 +22,7 @@ interface UseRoomInitParams {
   isHostParam: boolean;
   /** Template for room creation (host only) */
   template: GameTemplate | undefined;
-  /** From useGameRoom: initialize host room (facade only, no DB) */
+  /** From useGameRoom: initialize room (facade only, no DB) */
   initializeRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
   /** From useGameRoom: join existing room */
   joinRoom: (roomNumber: string) => Promise<boolean>;
