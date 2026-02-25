@@ -1,5 +1,5 @@
 /**
- * useHostGameActions — unit tests for host game control & player night actions hook.
+ * useGameActions — unit tests for host game control & player night actions hook.
  *
  * Verifies facade delegation, non-host guards, notifyIfFailed alerting,
  * and derived state queries (getLastNightInfo, hasWolfVoted).
@@ -7,7 +7,7 @@
 
 import { act, renderHook } from '@testing-library/react-native';
 
-import { useHostGameActions } from '@/hooks/useHostGameActions';
+import { useGameActions } from '@/hooks/useGameActions';
 
 // Mock showAlert
 const mockShowAlert = jest.fn();
@@ -65,12 +65,12 @@ function createDeps(overrides: Record<string, unknown> = {}) {
 
 // ---- Tests ----
 
-describe('useHostGameActions - host game control', () => {
+describe('useGameActions - host game control', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('updateTemplate should call facade.updateTemplate', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.updateTemplate({ roles: [] } as any));
 
@@ -79,7 +79,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('updateTemplate should skip when not host', async () => {
     const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.updateTemplate({ roles: [] } as any));
 
@@ -91,7 +91,7 @@ describe('useHostGameActions - host game control', () => {
       assignRoles: jest.fn().mockResolvedValue({ success: false, reason: '人数不足' }),
     });
     const deps = createDeps({ facade });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.assignRoles());
 
@@ -100,7 +100,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('assignRoles should NOT alert on success', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.assignRoles());
 
@@ -109,7 +109,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('startGame should start BGM and call facade.startNight', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.startGame());
 
@@ -119,7 +119,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('restartGame should stop BGM, clear debug seat, and call facade', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.restartGame());
 
@@ -130,7 +130,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('clearAllSeats should call facade', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.clearAllSeats());
 
@@ -139,7 +139,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('shareNightReview should call facade with allowedSeats', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.shareNightReview([1, 3, 5]));
 
@@ -148,7 +148,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('setRoleRevealAnimation should call facade for host', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.setRoleRevealAnimation('flip' as any));
 
@@ -157,7 +157,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('setAudioPlaying should return host_only reason when not host', async () => {
     const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     let res: any;
     await act(async () => {
@@ -170,7 +170,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('postProgression should call facade for host', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.postProgression());
 
@@ -179,7 +179,7 @@ describe('useHostGameActions - host game control', () => {
 
   it('postProgression should skip for non-host', async () => {
     const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.postProgression());
 
@@ -187,12 +187,12 @@ describe('useHostGameActions - host game control', () => {
   });
 });
 
-describe('useHostGameActions - player night actions', () => {
+describe('useGameActions - player night actions', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('viewedRole should use mySeatNumber when no controlled seat', async () => {
     const deps = createDeps({ mySeatNumber: 3 });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.viewedRole());
 
@@ -201,7 +201,7 @@ describe('useHostGameActions - player night actions', () => {
 
   it('viewedRole should use debug.controlledSeat when set', async () => {
     const deps = createDeps({ debug: createMockDebug({ controlledSeat: 5 }) });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.viewedRole());
 
@@ -213,7 +213,7 @@ describe('useHostGameActions - player night actions', () => {
       mySeatNumber: null,
       debug: createMockDebug({ controlledSeat: null }),
     });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.viewedRole());
 
@@ -224,7 +224,7 @@ describe('useHostGameActions - player night actions', () => {
     const deps = createDeps({
       debug: createMockDebug({ effectiveSeat: 2, effectiveRole: 'seer' }),
     });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.submitAction(4));
 
@@ -233,7 +233,7 @@ describe('useHostGameActions - player night actions', () => {
 
   it('submitAction should skip when effectiveSeat is null', async () => {
     const deps = createDeps({ debug: createMockDebug({ effectiveSeat: null }) });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.submitAction(4));
 
@@ -242,7 +242,7 @@ describe('useHostGameActions - player night actions', () => {
 
   it('submitWolfVote should use effectiveSeat', async () => {
     const deps = createDeps({ debug: createMockDebug({ effectiveSeat: 3 }) });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.submitWolfVote(6));
 
@@ -251,7 +251,7 @@ describe('useHostGameActions - player night actions', () => {
 
   it('submitWolfVote should skip when effectiveSeat is null', async () => {
     const deps = createDeps({ debug: createMockDebug({ effectiveSeat: null }) });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.submitWolfVote(6));
 
@@ -260,7 +260,7 @@ describe('useHostGameActions - player night actions', () => {
 
   it('submitRevealAck should call facade', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.submitRevealAck());
 
@@ -269,7 +269,7 @@ describe('useHostGameActions - player night actions', () => {
 
   it('sendWolfRobotHunterStatusViewed should call facade with seat', async () => {
     const deps = createDeps();
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.sendWolfRobotHunterStatusViewed(7));
 
@@ -277,26 +277,26 @@ describe('useHostGameActions - player night actions', () => {
   });
 });
 
-describe('useHostGameActions - game state queries', () => {
+describe('useGameActions - game state queries', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('getLastNightInfo should return "无信息" when no gameState', () => {
     const deps = createDeps({ gameState: null });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.getLastNightInfo()).toBe('无信息');
   });
 
   it('getLastNightInfo should return "昨夜平安夜" when no deaths', () => {
     const deps = createDeps({ gameState: { lastNightDeaths: [], wolfVotes: new Map() } });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.getLastNightInfo()).toBe('昨夜平安夜');
   });
 
   it('getLastNightInfo should return "昨夜平安夜" when lastNightDeaths is null/undefined', () => {
     const deps = createDeps({ gameState: { lastNightDeaths: null, wolfVotes: new Map() } });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.getLastNightInfo()).toBe('昨夜平安夜');
   });
@@ -305,14 +305,14 @@ describe('useHostGameActions - game state queries', () => {
     const deps = createDeps({
       gameState: { lastNightDeaths: [0, 2, 5], wolfVotes: new Map() },
     });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.getLastNightInfo()).toBe('昨夜死亡: 1号, 3号, 6号');
   });
 
   it('hasWolfVoted should return false when no gameState', () => {
     const deps = createDeps({ gameState: null });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.hasWolfVoted(1)).toBe(false);
   });
@@ -320,14 +320,14 @@ describe('useHostGameActions - game state queries', () => {
   it('hasWolfVoted should check wolfVotes map', () => {
     const wolfVotes = new Map([[3, 5]]);
     const deps = createDeps({ gameState: { lastNightDeaths: [], wolfVotes } });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.hasWolfVoted(3)).toBe(true);
     expect(result.current.hasWolfVoted(1)).toBe(false);
   });
 });
 
-describe('useHostGameActions - notifyIfFailed', () => {
+describe('useGameActions - notifyIfFailed', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('should alert with default reason when reason is missing', async () => {
@@ -335,7 +335,7 @@ describe('useHostGameActions - notifyIfFailed', () => {
       clearAllSeats: jest.fn().mockResolvedValue({ success: false }),
     });
     const deps = createDeps({ facade });
-    const { result } = renderHook(() => useHostGameActions(deps));
+    const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.clearAllSeats());
 

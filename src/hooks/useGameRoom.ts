@@ -3,7 +3,7 @@
  *
  * Orchestrates 6 sub-hooks into a single flat interface:
  * - useRoomLifecycle: room creation/joining/leaving + seat management
- * - useHostGameActions: host game control + night actions
+ * - useGameActions: game control + night actions
  * - useConnectionSync: connection status + Player auto-recovery
  * - useBgmControl: BGM state management
  * - useDebugMode: debug bot control
@@ -35,7 +35,7 @@ import { toLocalState } from './adapters/toLocalState';
 import { useBgmControl } from './useBgmControl';
 import { useConnectionSync } from './useConnectionSync';
 import { useDebugMode } from './useDebugMode';
-import { useHostGameActions } from './useHostGameActions';
+import { useGameActions } from './useGameActions';
 import { useNightDerived } from './useNightDerived';
 import { useRoomLifecycle } from './useRoomLifecycle';
 
@@ -86,7 +86,7 @@ interface UseGameRoomResult {
   error: string | null;
 
   // Room lifecycle (from useRoomLifecycle)
-  initializeHostRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
+  initializeRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
   joinRoom: (roomNumber: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
   takeSeat: (seatNumber: number) => Promise<boolean>;
@@ -99,7 +99,7 @@ interface UseGameRoomResult {
   needsAuth: boolean;
   clearNeedsAuth: () => void;
 
-  // Host game actions (from useHostGameActions)
+  // Game actions (from useGameActions)
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
@@ -176,8 +176,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     setRoomRecord,
   });
 
-  // Host game actions: game control + night actions
-  const actions = useHostGameActions({
+  // Game actions: game control + night actions
+  const actions = useGameActions({
     facade,
     bgm,
     debug,
@@ -284,7 +284,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     // Lifecycle
     loading: lifecycle.loading,
     error: lifecycle.error,
-    initializeHostRoom: lifecycle.initializeHostRoom,
+    initializeRoom: lifecycle.initializeRoom,
     joinRoom: lifecycle.joinRoom,
     leaveRoom: lifecycle.leaveRoom,
     takeSeat: lifecycle.takeSeat,
@@ -296,7 +296,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     clearLastSeatError: lifecycle.clearLastSeatError,
     needsAuth: lifecycle.needsAuth,
     clearNeedsAuth: lifecycle.clearNeedsAuth,
-    // Host game actions
+    // Game actions
     assignRoles: actions.assignRoles,
     startGame: actions.startGame,
     restartGame: actions.restartGame,

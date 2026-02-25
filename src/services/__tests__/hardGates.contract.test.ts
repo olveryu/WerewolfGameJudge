@@ -72,7 +72,7 @@ describe('hard gates (contract)', () => {
 
   it('forbids facade from implementing chained/conditional advance/end-night orchestration', () => {
     // Hard gate: facade must not implement auto-advance logic (even under different names).
-    // Allow facade to expose simple methods that forward to hostActions, but disallow
+    // Allow facade to expose simple methods that forward to gameActions, but disallow
     // any conditional/recursive orchestration around those calls.
     const forbiddenNeedles = [
       'if (decision.action',

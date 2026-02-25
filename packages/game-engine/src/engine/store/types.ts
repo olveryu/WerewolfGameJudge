@@ -38,9 +38,9 @@ interface IGameStore {
 }
 
 /**
- * 主机专用存储接口
+ * 可写存储接口（含 setState/updateState/initialize/reset/destroy）
  */
-export interface IHostGameStore extends IGameStore {
+export interface IWritableGameStore extends IGameStore {
   /** 设置状态（仅主机） */
   setState(state: GameState): void;
 

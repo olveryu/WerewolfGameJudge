@@ -44,7 +44,7 @@ interface RoomLifecycleState {
   clearLastSeatError: () => void;
 
   // Room actions
-  initializeHostRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
+  initializeRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
   joinRoom: (roomNumber: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
 
@@ -99,7 +99,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
   // Initialize host room: facade only, no DB creation.
   // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomNumber.
-  const initializeHostRoom = useCallback(
+  const initializeRoom = useCallback(
     async (roomNumber: string, template: GameTemplate): Promise<boolean> => {
       setLoading(true);
       setError(null);
@@ -109,7 +109,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const hostUid = authService.getCurrentUserId();
         if (!hostUid) {
           // First-time user (no session) — show login modal instead of silent anonymous sign-in
-          gameRoomLog.info('[initializeHostRoom] No userId, requesting auth');
+          gameRoomLog.info('[initializeRoom] No userId, requesting auth');
           setNeedsAuth(true);
           return false;
         }
@@ -122,7 +122,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return true;
       } catch (err) {
         const message = err instanceof Error ? err.message : '房间初始化失败，请重试';
-        gameRoomLog.error('[initializeHostRoom] Failed', { error: message, roomNumber });
+        gameRoomLog.error('[initializeRoom] Failed', { error: message, roomNumber });
         Sentry.captureException(err);
         setError(message);
         return false;
@@ -317,7 +317,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     clearNeedsAuth,
     lastSeatError,
     clearLastSeatError,
-    initializeHostRoom,
+    initializeRoom,
     joinRoom,
     leaveRoom,
     takeSeat,

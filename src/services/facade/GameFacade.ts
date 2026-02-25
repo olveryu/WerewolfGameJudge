@@ -2,7 +2,7 @@
  * GameFacade - UI Facade 实现
  *
  * 职责：
- * - 组合 hostActions / seatActions 子模块
+ * - 组合 gameActions / seatActions 子模块
  * - 管理生命周期和身份状态
  * - 对外暴露统一的 public API
  * - 音频编排（执行 SideEffect: PLAY_AUDIO）
@@ -16,7 +16,7 @@
  * 不使用全局单例（已移除 getInstance/resetInstance）。
  *
  * 子模块划分：
- * - hostActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction/submitWolfVote）
+ * - gameActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction/submitWolfVote）
  * - seatActions.ts: 座位操作编排（takeSeat/leaveSeat + player ACK 等待逻辑）
  */
 
@@ -39,8 +39,8 @@ import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { facadeLog } from '@/utils/logger';
 
 // 子模块
-import type { HostActionsContext } from './hostActions';
-import * as hostActions from './hostActions';
+import type { GameActionsContext } from './gameActions';
+import * as gameActions from './gameActions';
 import type { SeatActionsContext } from './seatActions';
 import * as seatActions from './seatActions';
 
@@ -136,8 +136,8 @@ export class GameFacade implements IGameFacade {
       } else {
         // 无 effects 可重播，兜底直接重试 ack
         facadeLog.info('Retrying postAudioAck after reconnect (no effects to replay)');
-        void hostActions
-          .postAudioAck(this.#getHostActionsContext())
+        void gameActions
+          .postAudioAck(this.#getActionsContext())
           .then((result) => {
             if (!result.success) {
               facadeLog.warn('postAudioAck retry still failed, will retry on next reconnect', {
@@ -347,15 +347,15 @@ export class GameFacade implements IGameFacade {
             await this.#audioService.playRoleBeginningAudio(resolvedKey);
           } finally {
             // 音频完成（或失败）后，POST audio-ack 释放 gate + 触发推进
-            await hostActions.postAudioAck(this.#getHostActionsContext());
+            await gameActions.postAudioAck(this.#getActionsContext());
           }
         } else {
           // 无 stepSpec（不该发生），兜底释放 gate
-          await hostActions.postAudioAck(this.#getHostActionsContext());
+          await gameActions.postAudioAck(this.#getActionsContext());
         }
       } else {
         // 无 currentStepId，兜底释放 gate
-        await hostActions.postAudioAck(this.#getHostActionsContext());
+        await gameActions.postAudioAck(this.#getActionsContext());
       }
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
@@ -410,7 +410,7 @@ export class GameFacade implements IGameFacade {
       this.#isPlayingEffects = false;
       // 无论成功/失败/中断，都 POST audio-ack 释放 gate
       if (!this.#aborted) {
-        const ackResult = await hostActions.postAudioAck(this.#getHostActionsContext());
+        const ackResult = await gameActions.postAudioAck(this.#getActionsContext());
         if (!ackResult.success) {
           facadeLog.warn('postAudioAck failed during playback, will retry on reconnect', {
             reason: ackResult.reason,
@@ -431,7 +431,7 @@ export class GameFacade implements IGameFacade {
    * 客户端倒计时到期时调用，服务端执行 inline progression。
    */
   async postProgression(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.postProgression(this.#getHostActionsContext());
+    return gameActions.postProgression(this.#getActionsContext());
   }
 
   async leaveRoom(): Promise<void> {
@@ -488,30 +488,30 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
-  // Game Control (委托给 hostActions)
+  // Game Control (委托给 gameActions)
   // =========================================================================
 
   async assignRoles(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.assignRoles(this.#getHostActionsContext());
+    return gameActions.assignRoles(this.#getActionsContext());
   }
 
   async updateTemplate(template: GameTemplate): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.updateTemplate(this.#getHostActionsContext(), template);
+    return gameActions.updateTemplate(this.#getActionsContext(), template);
   }
 
   async setRoleRevealAnimation(
     animation: RoleRevealAnimation,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.setRoleRevealAnimation(this.#getHostActionsContext(), animation);
+    return gameActions.setRoleRevealAnimation(this.#getActionsContext(), animation);
   }
 
   async markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }> {
     // Host 和 Player 统一走 HTTP API
-    return hostActions.markViewedRole(this.#getHostActionsContext(), seat);
+    return gameActions.markViewedRole(this.#getActionsContext(), seat);
   }
 
   async startNight(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.startNight(this.#getHostActionsContext());
+    return gameActions.startNight(this.#getActionsContext());
   }
 
   /**
@@ -524,11 +524,11 @@ export class GameFacade implements IGameFacade {
     this.#audioService.stop();
     this.#audioService.clearPreloaded();
     // 服务端校验 hostUid，客户端不再做冗余门控
-    return hostActions.restartGame(this.#getHostActionsContext());
+    return gameActions.restartGame(this.#getActionsContext());
   }
 
   // =========================================================================
-  // Debug Mode: Fill With Bots (委托给 hostActions)
+  // Debug Mode: Fill With Bots (委托给 gameActions)
   // =========================================================================
 
   /**
@@ -538,7 +538,7 @@ export class GameFacade implements IGameFacade {
    * 仅在 isHost && status === Unseated 时可用。
    */
   async fillWithBots(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.fillWithBots(this.#getHostActionsContext());
+    return gameActions.fillWithBots(this.#getActionsContext());
   }
 
   /**
@@ -548,7 +548,7 @@ export class GameFacade implements IGameFacade {
    * 仅在 debugMode.botsEnabled === true && status === Assigned 时可用。
    */
   async markAllBotsViewed(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.markAllBotsViewed(this.#getHostActionsContext());
+    return gameActions.markAllBotsViewed(this.#getActionsContext());
   }
 
   /**
@@ -557,7 +557,7 @@ export class GameFacade implements IGameFacade {
    * 清空所有座位上的玩家。仅在 unseated/seated 状态可用。
    */
   async clearAllSeats(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.clearAllSeats(this.#getHostActionsContext());
+    return gameActions.clearAllSeats(this.#getActionsContext());
   }
 
   /**
@@ -566,18 +566,18 @@ export class GameFacade implements IGameFacade {
    * ended 阶段 Host 选择允许查看夜晚行动详情的座位列表。
    */
   async shareNightReview(allowedSeats: number[]): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.shareNightReview(this.#getHostActionsContext(), allowedSeats);
+    return gameActions.shareNightReview(this.#getActionsContext(), allowedSeats);
   }
 
   // =========================================================================
-  // Night Actions (委托给 hostActions)
+  // Night Actions (委托给 gameActions)
   // =========================================================================
 
   /**
    * 提交夜晚行动（HTTP API）
    *
    * Host 和 Player 统一走 HTTP API。
-   * 推进由 hostActions.submitAction 内部触发（仅 Host）。
+   * 推进由 gameActions.submitAction 内部触发（仅 Host）。
    */
   async submitAction(
     seat: number,
@@ -585,20 +585,20 @@ export class GameFacade implements IGameFacade {
     target: number | null,
     extra?: unknown,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.submitAction(this.#getHostActionsContext(), seat, role, target, extra);
+    return gameActions.submitAction(this.#getActionsContext(), seat, role, target, extra);
   }
 
   /**
    * 提交狼人投票（HTTP API）
    *
    * Host 和 Player 统一走 HTTP API。
-   * 推进和 Timer 管理由 hostActions.submitWolfVote 内部触发（仅 Host）。
+   * 推进和 Timer 管理由 gameActions.submitWolfVote 内部触发（仅 Host）。
    */
   async submitWolfVote(
     voterSeat: number,
     targetSeat: number,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.submitWolfVote(this.#getHostActionsContext(), voterSeat, targetSeat);
+    return gameActions.submitWolfVote(this.#getActionsContext(), voterSeat, targetSeat);
   }
 
   /**
@@ -607,7 +607,7 @@ export class GameFacade implements IGameFacade {
    * Host/Player 统一调用 HTTP API
    */
   async submitRevealAck(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.clearRevealAcks(this.#getHostActionsContext());
+    return gameActions.clearRevealAcks(this.#getActionsContext());
   }
 
   // =========================================================================
@@ -624,7 +624,7 @@ export class GameFacade implements IGameFacade {
   async sendWolfRobotHunterStatusViewed(
     seat: number,
   ): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.setWolfRobotHunterStatusViewed(this.#getHostActionsContext(), seat);
+    return gameActions.setWolfRobotHunterStatusViewed(this.#getActionsContext(), seat);
   }
 
   /**
@@ -652,7 +652,7 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
-  // Night Flow (委托给 hostActions) - PR6
+  // Night Flow (委托给 gameActions) - PR6
   // =========================================================================
 
   /**
@@ -660,7 +660,7 @@ export class GameFacade implements IGameFacade {
    * 夜晚结束音频结束后调用
    */
   async endNight(): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.endNight(this.#getHostActionsContext());
+    return gameActions.endNight(this.#getActionsContext());
   }
 
   /**
@@ -671,14 +671,14 @@ export class GameFacade implements IGameFacade {
    * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
    */
   async setAudioPlaying(isPlaying: boolean): Promise<{ success: boolean; reason?: string }> {
-    return hostActions.setAudioPlaying(this.#getHostActionsContext(), isPlaying);
+    return gameActions.setAudioPlaying(this.#getActionsContext(), isPlaying);
   }
 
   // =========================================================================
   // Context Builders (为子模块提供上下文)
   // =========================================================================
 
-  #getHostActionsContext(): HostActionsContext {
+  #getActionsContext(): GameActionsContext {
     return {
       store: this.#store,
       myUid: this.#myUid,

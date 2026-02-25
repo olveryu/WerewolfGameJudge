@@ -1,5 +1,5 @@
 /**
- * hostActions.test.ts — callGameControlApi 核心逻辑 + thin wrapper 契约
+ * gameActions.test.ts — callGameControlApi 核心逻辑 + thin wrapper 契约
  *
  * 重点测试 callGameControlApi 的高 bug 密度分支：
  * 1. 成功路径 + optimistic snapshot apply
@@ -52,7 +52,7 @@ import {
   submitAction,
   submitWolfVote,
   updateTemplate,
-} from '@/services/facade/hostActions';
+} from '@/services/facade/gameActions';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -340,7 +340,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
 // Thin wrappers: NOT_CONNECTED guard + correct API path
 // =============================================================================
 
-describe('hostActions thin wrappers — NOT_CONNECTED guard', () => {
+describe('gameActions thin wrappers — NOT_CONNECTED guard', () => {
   const originalFetch = global.fetch;
 
   afterEach(() => {

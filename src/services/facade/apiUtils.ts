@@ -2,7 +2,7 @@
  * Shared API Utilities — DRY 提取
  *
  * 提供通用 HTTP POST + 乐观更新 + 错误处理的基础设施，
- * 被 hostActions 和 seatActions 共用。不包含业务逻辑。
+ * 被 gameActions 和 seatActions 共用。不包含业务逻辑。
  */
 
 import * as Sentry from '@sentry/react-native';
