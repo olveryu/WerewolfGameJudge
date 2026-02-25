@@ -62,6 +62,9 @@ export interface RoleSpec {
   /** Single-character short name for notepad UI (unique across all roles) */
   readonly shortName: string;
 
+  /** Emoji icon for UI display (e.g. '🐺', '🔮') */
+  readonly emoji: string;
+
   /** English name (optional) */
   readonly englishName?: string;
 

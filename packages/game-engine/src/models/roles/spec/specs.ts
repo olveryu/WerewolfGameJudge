@@ -23,6 +23,7 @@ export const ROLE_SPECS = {
     id: 'villager',
     displayName: '普通村民',
     shortName: '民',
+    emoji: '👤',
     faction: Faction.Villager,
     team: Team.Good,
     description: '没有特殊能力，依靠推理和投票帮助好人阵营获胜',
@@ -33,6 +34,7 @@ export const ROLE_SPECS = {
     id: 'mirrorSeer',
     displayName: '灯影预言家',
     shortName: '灯',
+    emoji: '🔮',
     faction: Faction.Villager,
     team: Team.Good,
     description:
@@ -45,6 +47,7 @@ export const ROLE_SPECS = {
     id: 'drunkSeer',
     displayName: '酒鬼预言家',
     shortName: '酒',
+    emoji: '🍺🔮',
     faction: Faction.Villager,
     team: Team.Good,
     description:
@@ -60,6 +63,7 @@ export const ROLE_SPECS = {
     id: 'seer',
     displayName: '预言家',
     shortName: '预',
+    emoji: '🔮',
     faction: Faction.God,
     team: Team.Good,
     description: '每晚可以查验一名玩家的身份，获知该玩家是好人还是狼人',
@@ -70,6 +74,7 @@ export const ROLE_SPECS = {
     id: 'witch',
     displayName: '女巫',
     shortName: '女',
+    emoji: '🧙‍♀️',
     faction: Faction.God,
     team: Team.Good,
     description:
@@ -82,6 +87,7 @@ export const ROLE_SPECS = {
     id: 'hunter',
     displayName: '猎人',
     shortName: '猎',
+    emoji: '🏹',
     faction: Faction.God,
     team: Team.Good,
     description: '被狼人杀害时，可以开枪带走一名玩家。被女巫毒死则不能开枪',
@@ -92,6 +98,7 @@ export const ROLE_SPECS = {
     id: 'guard',
     displayName: '守卫',
     shortName: '守',
+    emoji: '🛡️',
     faction: Faction.God,
     team: Team.Good,
     description:
@@ -103,6 +110,7 @@ export const ROLE_SPECS = {
     id: 'idiot',
     displayName: '白痴',
     shortName: '白',
+    emoji: '🤡',
     faction: Faction.God,
     team: Team.Good,
     description: '被投票放逐时可以翻牌免死，但之后不能投票和发动技能',
@@ -113,6 +121,7 @@ export const ROLE_SPECS = {
     id: 'knight',
     displayName: '骑士',
     shortName: '骑',
+    emoji: '🗡️',
     faction: Faction.God,
     team: Team.Good,
     description: '白天可以翻牌与一名玩家决斗，狼人死；若对方是好人，骑士死',
@@ -123,6 +132,7 @@ export const ROLE_SPECS = {
     id: 'magician',
     displayName: '魔术师',
     shortName: '术',
+    emoji: '🎩',
     faction: Faction.God,
     team: Team.Good,
     description: '每晚在其他所有人之前行动，交换2个人的号码牌，当晚有效',
@@ -133,6 +143,7 @@ export const ROLE_SPECS = {
     id: 'witcher',
     displayName: '猎魔人',
     shortName: '魔',
+    emoji: '🔪',
     faction: Faction.God,
     team: Team.Good,
     description:
@@ -146,6 +157,7 @@ export const ROLE_SPECS = {
     id: 'psychic',
     displayName: '通灵师',
     shortName: '通',
+    emoji: '👁️',
     faction: Faction.God,
     team: Team.Good,
     description: '每晚可以查验一名玩家的具体身份牌（不只是阵营）',
@@ -156,6 +168,7 @@ export const ROLE_SPECS = {
     id: 'dreamcatcher',
     displayName: '摄梦人',
     shortName: '摄',
+    emoji: '🌙',
     englishName: 'Dreamcatcher',
     faction: Faction.God,
     team: Team.Good,
@@ -168,6 +181,7 @@ export const ROLE_SPECS = {
     id: 'graveyardKeeper',
     displayName: '守墓人',
     shortName: '墓',
+    emoji: '⚰️',
     faction: Faction.God,
     team: Team.Good,
     description: '每晚可以得知上一个白天被放逐的玩家是好人或狼人',
@@ -179,6 +193,7 @@ export const ROLE_SPECS = {
     id: 'pureWhite',
     displayName: '纯白之女',
     shortName: '纯',
+    emoji: '🤍',
     faction: Faction.God,
     team: Team.Good,
     description: '每晚可以查验一名玩家的具体身份。从第二夜起，查验到狼人则该狼人被查验出局',
@@ -189,6 +204,7 @@ export const ROLE_SPECS = {
     id: 'dancer',
     displayName: '舞者',
     shortName: '舞',
+    emoji: '💃',
     faction: Faction.God,
     team: Team.Good,
     description:
@@ -205,6 +221,7 @@ export const ROLE_SPECS = {
     id: 'wolf',
     displayName: '狼人',
     shortName: '狼',
+    emoji: '🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description: '每晚与狼队友共同选择一名玩家猎杀',
@@ -216,6 +233,7 @@ export const ROLE_SPECS = {
     id: 'wolfQueen',
     displayName: '狼美人',
     shortName: '美',
+    emoji: '👸🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
@@ -229,6 +247,7 @@ export const ROLE_SPECS = {
     id: 'wolfKing',
     displayName: '白狼王',
     shortName: '王',
+    emoji: '👑🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description: '白天可以自爆并带走一名玩家，被带走的玩家无遗言。非自爆出局不能发动技能',
@@ -241,6 +260,7 @@ export const ROLE_SPECS = {
     id: 'darkWolfKing',
     displayName: '黑狼王',
     shortName: '黑',
+    emoji: '🌑👑',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description: '被刀杀时可以开枪带走一名玩家（狼人版猎人）',
@@ -252,6 +272,7 @@ export const ROLE_SPECS = {
     id: 'nightmare',
     displayName: '梦魇',
     shortName: '魇',
+    emoji: '😱',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
@@ -266,6 +287,7 @@ export const ROLE_SPECS = {
     id: 'gargoyle',
     displayName: '石像鬼',
     shortName: '石',
+    emoji: '🗿',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
@@ -279,6 +301,7 @@ export const ROLE_SPECS = {
     id: 'bloodMoon',
     displayName: '血月使徒',
     shortName: '血',
+    emoji: '🩸',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
@@ -292,6 +315,7 @@ export const ROLE_SPECS = {
     id: 'wolfRobot',
     displayName: '机械狼',
     shortName: '机',
+    emoji: '🤖🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
@@ -305,6 +329,7 @@ export const ROLE_SPECS = {
     id: 'wolfWitch',
     displayName: '狼巫',
     shortName: '巫',
+    emoji: '🧙🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
@@ -317,6 +342,7 @@ export const ROLE_SPECS = {
     id: 'spiritKnight',
     displayName: '恶灵骑士',
     shortName: '灵',
+    emoji: '⚔️',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
@@ -332,6 +358,7 @@ export const ROLE_SPECS = {
     id: 'masquerade',
     displayName: '假面',
     shortName: '假',
+    emoji: '🎭🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
@@ -350,6 +377,7 @@ export const ROLE_SPECS = {
     id: 'slacker',
     displayName: '混子',
     shortName: '混',
+    emoji: '😴',
     faction: Faction.Special,
     team: Team.Third, // Before choosing idol; seer sees "好人" (not "第三方")
     description: '第一晚选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
@@ -359,6 +387,7 @@ export const ROLE_SPECS = {
     id: 'wildChild',
     displayName: '野孩子',
     shortName: '野',
+    emoji: '👶',
     faction: Faction.Special,
     team: Team.Third,
     description:
@@ -384,6 +413,11 @@ export function getRoleDisplayAs(roleId: RoleId): RoleId | undefined {
   // Type-safe access: 'displayAs' is only present on some roles in the as-const literal
   const spec: RoleSpec = ROLE_SPECS[roleId];
   return spec.displayAs as RoleId | undefined;
+}
+
+/** Get the emoji icon for a role. Falls back to '❓' for unknown roleIds. */
+export function getRoleEmoji(roleId: RoleId): string {
+  return ROLE_SPECS[roleId].emoji;
 }
 
 /** Check if a string is a valid RoleId */

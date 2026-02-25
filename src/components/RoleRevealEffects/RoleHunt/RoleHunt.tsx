@@ -11,6 +11,7 @@
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { getRoleEmoji, isValidRoleId } from '@werewolf/game-engine/models/roles';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -25,7 +26,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { ROLE_ICONS } from '@/components/roleDisplayUtils';
 import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
@@ -88,7 +88,7 @@ const AnimatedGhost: React.FC<AnimatedGhostProps> = React.memo(
     const captureScale = useSharedValue(1);
     const bobProgress = useSharedValue(0);
 
-    const emoji = ROLE_ICONS[ghost.role.id] ?? '👻';
+    const emoji = isValidRoleId(ghost.role.id) ? getRoleEmoji(ghost.role.id) : '👻';
 
     // Start floating animation — each ghost has unique driftDuration for natural desync
     useEffect(() => {
