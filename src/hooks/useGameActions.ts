@@ -222,10 +222,25 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   // Get last night info - derived from gameState
   const getLastNightInfo = useCallback((): string => {
     if (!gameState) return '无信息';
+    const parts: string[] = [];
+
     const deaths = gameState.lastNightDeaths;
-    if (!deaths || deaths.length === 0) return '昨夜平安夜';
-    const deathList = deaths.map((d: number) => (d + 1).toString() + '号').join(', ');
-    return '昨夜死亡: ' + deathList;
+    if (!deaths || deaths.length === 0) {
+      parts.push('昨夜平安夜');
+    } else {
+      const deathList = deaths.map((d: number) => (d + 1).toString() + '号').join(', ');
+      parts.push('昨夜死亡: ' + deathList);
+    }
+
+    const nr = gameState.currentNightResults;
+    if (nr.silencedSeat != null) {
+      parts.push(`${nr.silencedSeat + 1}号被禁言`);
+    }
+    if (nr.votebannedSeat != null) {
+      parts.push(`${nr.votebannedSeat + 1}号被禁票`);
+    }
+
+    return parts.join('\n');
   }, [gameState]);
 
   // Check if a wolf has voted

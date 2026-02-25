@@ -288,14 +288,18 @@ describe('useGameActions - game state queries', () => {
   });
 
   it('getLastNightInfo should return "昨夜平安夜" when no deaths', () => {
-    const deps = createDeps({ gameState: { lastNightDeaths: [], wolfVotes: new Map() } });
+    const deps = createDeps({
+      gameState: { lastNightDeaths: [], wolfVotes: new Map(), currentNightResults: {} },
+    });
     const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.getLastNightInfo()).toBe('昨夜平安夜');
   });
 
   it('getLastNightInfo should return "昨夜平安夜" when lastNightDeaths is null/undefined', () => {
-    const deps = createDeps({ gameState: { lastNightDeaths: null, wolfVotes: new Map() } });
+    const deps = createDeps({
+      gameState: { lastNightDeaths: null, wolfVotes: new Map(), currentNightResults: {} },
+    });
     const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.getLastNightInfo()).toBe('昨夜平安夜');
@@ -303,11 +307,54 @@ describe('useGameActions - game state queries', () => {
 
   it('getLastNightInfo should format death list (0-indexed → 1-indexed)', () => {
     const deps = createDeps({
-      gameState: { lastNightDeaths: [0, 2, 5], wolfVotes: new Map() },
+      gameState: {
+        lastNightDeaths: [0, 2, 5],
+        wolfVotes: new Map(),
+        currentNightResults: {},
+      },
     });
     const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.getLastNightInfo()).toBe('昨夜死亡: 1号, 3号, 6号');
+  });
+
+  it('getLastNightInfo should include silencedSeat info', () => {
+    const deps = createDeps({
+      gameState: {
+        lastNightDeaths: [],
+        wolfVotes: new Map(),
+        currentNightResults: { silencedSeat: 2 },
+      },
+    });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    expect(result.current.getLastNightInfo()).toBe('昨夜平安夜\n3号被禁言');
+  });
+
+  it('getLastNightInfo should include votebannedSeat info', () => {
+    const deps = createDeps({
+      gameState: {
+        lastNightDeaths: [],
+        wolfVotes: new Map(),
+        currentNightResults: { votebannedSeat: 4 },
+      },
+    });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    expect(result.current.getLastNightInfo()).toBe('昨夜平安夜\n5号被禁票');
+  });
+
+  it('getLastNightInfo should include both silence and voteban with deaths', () => {
+    const deps = createDeps({
+      gameState: {
+        lastNightDeaths: [0],
+        wolfVotes: new Map(),
+        currentNightResults: { silencedSeat: 1, votebannedSeat: 3 },
+      },
+    });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    expect(result.current.getLastNightInfo()).toBe('昨夜死亡: 1号\n2号被禁言\n4号被禁票');
   });
 
   it('hasWolfVoted should return false when no gameState', () => {
@@ -319,7 +366,9 @@ describe('useGameActions - game state queries', () => {
 
   it('hasWolfVoted should check wolfVotes map', () => {
     const wolfVotes = new Map([[3, 5]]);
-    const deps = createDeps({ gameState: { lastNightDeaths: [], wolfVotes } });
+    const deps = createDeps({
+      gameState: { lastNightDeaths: [], wolfVotes, currentNightResults: {} },
+    });
     const { result } = renderHook(() => useGameActions(deps));
 
     expect(result.current.hasWolfVoted(3)).toBe(true);
