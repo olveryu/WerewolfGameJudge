@@ -110,7 +110,6 @@ export const HomeScreen: React.FC = () => {
 
   const requireAuth = useCallback(
     (action: () => void) => {
-      if (authLoading) return; // 初始化中，静默忽略
       if (!user) {
         showAlert('需要登录', '请先登录后继续', [
           { text: '取消', style: 'cancel' },
@@ -120,7 +119,7 @@ export const HomeScreen: React.FC = () => {
       }
       action();
     },
-    [user, authLoading],
+    [user],
   );
 
   // ============================================
@@ -261,6 +260,7 @@ export const HomeScreen: React.FC = () => {
             icon={<Ionicons name="log-in-outline" size={22} color={colors.text} />}
             title={isJoining ? '进入中...' : '进入房间'}
             subtitle="输入房间号进入游戏"
+            disabled={authLoading}
             onPress={handleEnterRoomPress}
             testID={TESTIDS.homeEnterRoomButton}
             styles={styles}
@@ -269,6 +269,7 @@ export const HomeScreen: React.FC = () => {
             icon={<Ionicons name="add-circle-outline" size={22} color={colors.text} />}
             title={isCreating ? '创建中...' : '创建房间'}
             subtitle="开始新的一局游戏"
+            disabled={authLoading}
             onPress={handleCreateRoomPress}
             testID={TESTIDS.homeCreateRoomButton}
             styles={styles}
@@ -278,6 +279,7 @@ export const HomeScreen: React.FC = () => {
             icon={<Ionicons name="arrow-undo-outline" size={22} color={colors.text} />}
             title="返回上局"
             subtitle={lastRoomNumber ? `房间 ${lastRoomNumber}` : '没有上局记录'}
+            disabled={authLoading}
             onPress={handleReturnLastGamePress}
             testID={TESTIDS.homeReturnLastGameButton}
             styles={styles}
