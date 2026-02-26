@@ -169,8 +169,8 @@ test.describe('Night Roles — Kill / Status', () => {
         // Dismiss the "行动提示" alert before interacting with bottom buttons
         await dismissAlert(pages[hunterIdx]);
 
-        // Click "查看发动状态"
-        await clickBottomButton(pages[hunterIdx], '查看发动状态');
+        // Click "发动状态"
+        await clickBottomButton(pages[hunterIdx], '发动状态');
 
         // Read the alert — should say "猎人可以发动技能" or "猎人不能发动技能"
         const alertText = await readAlertText(pages[hunterIdx]);
@@ -309,8 +309,8 @@ test.describe('Night Roles — Kill / Status', () => {
         // Dismiss the "行动提示" alert before interacting with bottom buttons
         await dismissAlert(pages[dwkIdx]);
 
-        // Click "查看发动状态"
-        await clickBottomButton(pages[dwkIdx], '查看发动状态');
+        // Click "发动状态"
+        await clickBottomButton(pages[dwkIdx], '发动状态');
 
         // Read alert — "黑狼王可以发动技能" or "黑狼王不能发动技能"
         const alertText = await readAlertText(pages[dwkIdx]);
@@ -377,7 +377,7 @@ test.describe('Night Roles — Kill / Status', () => {
         expect(hunterTurn).toBe(true);
 
         await dismissAlert(pages[hunterIdx]);
-        await clickBottomButton(pages[hunterIdx], '查看发动状态');
+        await clickBottomButton(pages[hunterIdx], '发动状态');
 
         const alertText = await readAlertText(pages[hunterIdx]);
         expect(alertText).toContain('猎人');

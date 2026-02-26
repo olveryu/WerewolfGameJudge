@@ -480,7 +480,7 @@ export async function chainWolfVoteConfirm(
 /**
  * Chain interaction: skipConfirm → submitAction called
  *
- * Flow: render guard step → press "不使用技能" → skipConfirm dialog
+ * Flow: render guard step → press "不用技能" → skipConfirm dialog
  *       → press "确定" → assert submitAction was called
  *
  * @returns The submitAction mock for further assertions if needed
@@ -532,7 +532,7 @@ export async function chainSkipConfirm(
 /**
  * Chain interaction: confirmTrigger → dialog dismissed with "知道了"
  *
- * Flow: render confirm step → press "查看发动状态" → confirmTrigger dialog
+ * Flow: render confirm step → press "发动状态" → confirmTrigger dialog
  *       → press "知道了" → verify dialog button callback fired
  *
  * Note: confirmTrigger shows status info; pressing "知道了" dismisses it.
@@ -588,7 +588,7 @@ export async function chainConfirmTrigger(
 /**
  * Chain interaction: wolfRobotHunterStatus gate → sendWolfRobotHunterStatusViewed called
  *
- * Flow: render wolfRobot learn (hunter learned) → press "查看发动状态"
+ * Flow: render wolfRobot learn (hunter learned) → press "发动状态"
  *       → wolfRobotHunterStatus dialog → press primary
  *       → assert sendWolfRobotHunterStatusViewed was called
  *
@@ -748,7 +748,7 @@ export async function coverageChainSkipConfirm(
 
 /**
  * Coverage chain: confirmTrigger → press primary → assertNoLoop
- * Presses "查看发动状态" button, then presses primary on confirmTrigger dialog.
+ * Presses "发动状态" button, then presses primary on confirmTrigger dialog.
  */
 export async function coverageChainConfirmTrigger(
   harness: RoomScreenTestHarness,

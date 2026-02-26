@@ -18,10 +18,10 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
-      prompt: '请选择要查验的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'seer',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -33,10 +33,10 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
-      prompt: '请选择要查验的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'mirrorSeer',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -48,10 +48,10 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
-      prompt: '请选择要查验的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'drunkSeer',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -76,7 +76,7 @@ export const SCHEMAS = {
           promptTemplate: '{seat}号被狼人杀了，是否使用解药？',
           cannotSavePrompt: '你被狼人杀了，无法对自己使用解药，可以对别人用毒药或者不用技能。',
           confirmText: '确定使用解药吗？',
-          bottomActionText: '不使用技能',
+          bottomActionText: '不用技能',
         },
       },
       {
@@ -89,7 +89,7 @@ export const SCHEMAS = {
           confirmTitle: '确认行动',
           prompt: '如要使用毒药，请点击座位。',
           confirmText: '确定使用毒药吗？',
-          bottomActionText: '不使用技能',
+          bottomActionText: '不用技能',
         },
       },
     ],
@@ -103,9 +103,9 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认行动',
-      prompt: '请选择要守护的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要守护的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要守护该玩家吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -117,10 +117,10 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认通灵',
-      prompt: '请选择要通灵的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要通灵的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要通灵该玩家吗？',
       revealKind: 'psychic',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -132,10 +132,10 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
-      prompt: '请选择要查验的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'pureWhite',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -147,9 +147,9 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认行动',
-      prompt: '请选择要摄梦的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要摄梦的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要摄梦该玩家吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -161,9 +161,9 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认交换',
-      prompt: '请选择要交换的两名玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要交换的两名玩家，如不使用请点击「不用技能」',
       confirmText: '确定要交换这两名玩家吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
       firstTargetTitle: '已选择第一位玩家',
       firstTargetPromptTemplate: '{seat}号，请选择第二位玩家',
     },
@@ -178,8 +178,8 @@ export const SCHEMAS = {
       confirmTitle: '确认行动',
       prompt: '请点击下方按钮查看技能发动状态',
       confirmText: '确定查看猎人发动状态吗？',
-      bottomActionText: '查看发动状态',
-      // Status dialog (shown after user taps "查看发动状态")
+      bottomActionText: '发动状态',
+      // Status dialog (shown after user taps "发动状态")
       statusDialogTitle: '技能状态',
       canShootText: '猎人可以发动技能',
       cannotShootText: '猎人不能发动技能',
@@ -194,9 +194,9 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认禁言',
-      prompt: '请选择要禁言的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要禁言的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要禁言该玩家吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -208,9 +208,9 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认禁票',
-      prompt: '请选择要禁票的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要禁票的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要禁票该玩家吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -243,9 +243,9 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认行动',
-      prompt: '请选择要魅惑的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要魅惑的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要魅惑该玩家吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -257,9 +257,9 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认行动',
-      prompt: '请选择要封锁的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要封锁的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要封锁该玩家吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -271,10 +271,10 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
-      prompt: '请选择要查验的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'gargoyle',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -286,10 +286,10 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认查验',
-      prompt: '请选择要查验的非狼人阵营玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要查验的非狼人阵营玩家，如不使用请点击「不用技能」',
       confirmText: '确定要查验该玩家吗？',
       revealKind: 'wolfWitch',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
 
@@ -301,10 +301,10 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认学习',
-      prompt: '请选择要学习的玩家，如不使用请点击「不使用技能」',
+      prompt: '请选择要学习的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要学习该玩家吗？',
       revealKind: 'wolfRobot',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
       // Hunter gate UI: shown after learning hunter, before night advances
       hunterGatePrompt: '你学习到了猎人，请确认是否可发动技能',
       hunterGateButtonText: '查看技能状态',
@@ -324,8 +324,8 @@ export const SCHEMAS = {
       confirmTitle: '确认行动',
       prompt: '请点击下方按钮查看技能发动状态',
       confirmText: '确定查看黑狼王发动状态吗？',
-      bottomActionText: '查看发动状态',
-      // Status dialog (shown after user taps "查看发动状态")
+      bottomActionText: '发动状态',
+      // Status dialog (shown after user taps "发动状态")
       statusDialogTitle: '技能状态',
       canShootText: '黑狼王可以发动技能',
       cannotShootText: '黑狼王不能发动技能',
@@ -343,7 +343,7 @@ export const SCHEMAS = {
       confirmTitle: '确认行动',
       prompt: '请选择你的榜样',
       confirmText: '确定选择该玩家为榜样吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
   wildChildChooseIdol: {
@@ -356,7 +356,7 @@ export const SCHEMAS = {
       confirmTitle: '确认行动',
       prompt: '请选择你的榜样',
       confirmText: '确定选择该玩家为榜样吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
     },
   },
   piperHypnotize: {
@@ -369,9 +369,9 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认催眠',
-      prompt: '请选择1-2名要催眠的玩家',
+      prompt: '请选择1-2名要催眠的玩家，如不使用请点击「不用技能」',
       confirmText: '确定要催眠选中的玩家吗？',
-      bottomActionText: '不使用技能',
+      bottomActionText: '不用技能',
       confirmButtonText: '确认催眠({count}人)',
     },
   },
@@ -381,7 +381,7 @@ export const SCHEMAS = {
     kind: 'groupConfirm',
     requireAllAcks: true,
     ui: {
-      prompt: '所有玩家请睁眼，请看手机确认催眠信息，如不使用请点击「不使用技能」',
+      prompt: '所有玩家请睁眼，请看手机确认催眠信息',
       bottomActionText: '催眠状态',
       hypnotizedText: '你已被吹笛者催眠，当前被催眠的座位：{seats}',
       notHypnotizedText: '你未被催眠',

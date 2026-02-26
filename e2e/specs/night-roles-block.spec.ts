@@ -25,7 +25,7 @@ import { ConfigPage } from '../pages/ConfigPage';
  * - Nightmare blocks guard / seer / witch / wolf / dreamcatcher
  * - Magician swap (basic flow)
  * - Slacker idol choice
- * - Seer & guard voluntary skip (不使用技能)
+ * - Seer & guard voluntary skip (不用技能)
  *
  * Covers UI assertions on blocked prompts, 平安夜 / death outcomes.
  * Does not modify game state directly or import services/models.
@@ -425,7 +425,7 @@ test.describe('Night Roles — Block / Skip', () => {
   // --------------------------------------------------------------------------
   // Seer skips action → night completes
   // --------------------------------------------------------------------------
-  test('seer skips action (不使用技能) → night completes', async ({ browser }) => {
+  test('seer skips action (不用技能) → night completes', async ({ browser }) => {
     await withSetup(
       browser,
       {
@@ -451,11 +451,11 @@ test.describe('Night Roles — Block / Skip', () => {
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 
-        // Seer's turn — skip via "不使用技能"
+        // Seer's turn — skip via "不用技能"
         const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
         expect(seerTurn).toBe(true);
         await dismissAlert(pages[seerIdx]);
-        await clickBottomButton(pages[seerIdx], '不使用技能');
+        await clickBottomButton(pages[seerIdx], '不用技能');
 
         // Confirm skip if alert appears
         await dismissAlert(pages[seerIdx]);
@@ -541,7 +541,7 @@ test.describe('Night Roles — Block / Skip', () => {
   // --------------------------------------------------------------------------
   // Guard skips action → night completes
   // --------------------------------------------------------------------------
-  test('guard skips action (不使用技能) → night completes', async ({ browser }) => {
+  test('guard skips action (不用技能) → night completes', async ({ browser }) => {
     await withSetup(
       browser,
       {
@@ -559,11 +559,11 @@ test.describe('Night Roles — Block / Skip', () => {
         expect(guardIdx).not.toBe(-1);
         expect(wolfIdx).not.toBe(-1);
 
-        // Guard's turn — skip via "不使用技能"
+        // Guard's turn — skip via "不用技能"
         const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 120);
         expect(guardTurn).toBe(true);
         await dismissAlert(pages[guardIdx]);
-        await clickBottomButton(pages[guardIdx], '不使用技能');
+        await clickBottomButton(pages[guardIdx], '不用技能');
         await dismissAlert(pages[guardIdx]);
 
         // Drive wolf kill

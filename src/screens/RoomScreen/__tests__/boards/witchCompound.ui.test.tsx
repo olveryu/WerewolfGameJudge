@@ -164,7 +164,7 @@ describe('Witch Compound Sequence', () => {
 
       // Step 3: press the skip button
       const poisonStep = SCHEMAS.witchAction.steps?.find((s) => s.key === 'poison');
-      const skipText = poisonStep?.ui?.bottomActionText || '不使用技能';
+      const skipText = poisonStep?.ui?.bottomActionText || '不用技能';
       fireEvent.press(getByText(skipText));
 
       await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
@@ -204,7 +204,7 @@ describe('Witch Compound Sequence', () => {
       harness.pressPrimaryOnType('witchNoKill');
 
       const poisonStep = SCHEMAS.witchAction.steps?.find((s) => s.key === 'poison');
-      const skipText = poisonStep?.ui?.bottomActionText || '不使用技能';
+      const skipText = poisonStep?.ui?.bottomActionText || '不用技能';
       fireEvent.press(getByText(skipText));
 
       await waitFor(() => expect(harness.hasSeen('skipConfirm')).toBe(true));
