@@ -37,9 +37,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 13) {
+  if (boards.length !== 16) {
     throw new Error(
-      `Expected exactly 13 presets with name including "12人", but got ${boards.length}. ` +
+      `Expected exactly 16 presets with name including "12人", but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -117,6 +117,15 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
 
   // WolfWitch: chooseSeat confirm + skip
   wolfWitch: ['actionConfirm', 'skipConfirm'],
+
+  // Slacker: chooseSeat (canSkip=false, must choose)
+  slacker: ['actionConfirm'],
+
+  // WildChild: chooseSeat (canSkip=false, must choose)
+  wildChild: ['actionConfirm'],
+
+  // Piper: multiChooseSeat confirm + skip
+  piper: ['actionConfirm', 'skipConfirm'],
 };
 
 /**
@@ -212,4 +221,7 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   纯白夜影12人: 'pureWhite.12p.board.ui.test.tsx',
   灯影预言12人: 'mirrorSeer.12p.board.ui.test.tsx',
   假面舞会12人: 'masquerade.12p.board.ui.test.tsx',
+  吹笛守卫12人: 'piper.12p.board.ui.test.tsx',
+  混子标准12人: 'slacker.12p.board.ui.test.tsx',
+  野孩标准12人: 'wildChild.12p.board.ui.test.tsx',
 };
