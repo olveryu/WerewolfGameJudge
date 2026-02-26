@@ -34,6 +34,8 @@ const countVillagers = (roles: RoleId[]): number =>
   roles.filter((r) => getRoleSpec(r).faction === Faction.Villager).length;
 const countGods = (roles: RoleId[]): number =>
   roles.filter((r) => getRoleSpec(r).faction === Faction.God).length;
+const countThirdParty = (roles: RoleId[]): number =>
+  roles.filter((r) => getRoleSpec(r).faction === Faction.Special).length;
 const getSpecialRoles = (roles: RoleId[]): RoleId[] =>
   roles.filter((r) => r !== 'villager' && r !== 'wolf');
 
@@ -87,11 +89,12 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
         const wolves = countWolves(preset.roles);
         const villagers = countVillagers(preset.roles);
         const gods = countGods(preset.roles);
+        const thirdParty = countThirdParty(preset.roles);
 
         expect(wolves).toBeGreaterThanOrEqual(1);
         expect(wolves).toBeLessThanOrEqual(4);
         expect(villagers).toBeGreaterThanOrEqual(0);
-        expect(wolves + villagers + gods).toBe(preset.roles.length);
+        expect(wolves + villagers + gods + thirdParty).toBe(preset.roles.length);
       });
 
       it('不应该有重复的特殊角色（除村民和普狼外）', () => {
@@ -149,6 +152,9 @@ describe('PRESET_TEMPLATES - 模板列表完整性', () => {
     '纯白夜影12人',
     '灯影预言12人',
     '假面舞会12人',
+    '吹笛守卫12人',
+    '混子标准12人',
+    '野孩标准12人',
   ];
 
   it('应该包含所有预期的模板', () => {
