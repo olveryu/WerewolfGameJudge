@@ -165,6 +165,14 @@ export class RoomPage {
       '守墓人',
       '纯白之女',
       '狼巫',
+      '灯影预言家',
+      '酒鬼预言家',
+      '舞者',
+      '禁言长老',
+      '禁票长老',
+      '假面',
+      '野孩子',
+      '吹笛者',
     ];
 
     const viewBtn = this.page.getByText('查看身份', { exact: true });
