@@ -71,24 +71,6 @@ const selectionToRoles = (
   return roles;
 };
 
-const applyPreset = (presetRoles: RoleId[]): Record<string, boolean> => {
-  const selection = getInitialSelection();
-  Object.keys(selection).forEach((key) => {
-    selection[key] = false;
-  });
-  const roleCounts: Record<string, number> = {};
-  presetRoles.forEach((role) => {
-    roleCounts[role] = (roleCounts[role] || 0) + 1;
-  });
-  Object.entries(roleCounts).forEach(([role, count]) => {
-    for (let i = 0; i < count; i++) {
-      const key = i === 0 ? role : `${role}${i}`;
-      if (key in selection) selection[key] = true;
-    }
-  });
-  return selection;
-};
-
 /**
  * Reverse lookup: variantId → base slot roleId.
  * Built once from FACTION_GROUPS at module level.
@@ -287,7 +269,10 @@ export const ConfigScreen: React.FC = () => {
 
   const handlePresetSelect = useCallback((presetName: string) => {
     const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
-    if (preset) setSelection(applyPreset(preset.roles));
+    if (!preset) return;
+    const restored = restoreFromTemplateRoles(preset.roles);
+    setSelection(restored.selection);
+    setVariantOverrides(restored.variantOverrides);
   }, []);
 
   const handleClearSelection = useCallback(() => {
