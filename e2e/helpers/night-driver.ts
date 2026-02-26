@@ -102,31 +102,31 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
 // ---------------------------------------------------------------------------
 
 /** Advance button labels used to skip / acknowledge steps.
- * Order matters: "确定" must come before "不使用技能" because confirm dialogs
- * contain "不使用技能" as body text — getByText would match the body instead
+ * Order matters: "确定" must come before "不用技能" because confirm dialogs
+ * contain "不用技能" as body text — getByText would match the body instead
  * of the actual button.
  */
 const ADVANCE_BUTTONS = [
   '知道了',
   '确定',
-  '不使用技能',
-  '查看发动状态',
+  '不用技能',
+  '发动状态',
   '查看技能状态',
   '跳过（技能被封锁）', // nightmare-blocked roles
 ];
 
 /**
- * Safe advance buttons — excludes "不使用技能" to avoid accidentally
+ * Safe advance buttons — excludes "不用技能" to avoid accidentally
  * skipping a role's action step while waiting for its turn.
  */
-const SAFE_ADVANCE_BUTTONS = ADVANCE_BUTTONS.filter((b) => b !== '不使用技能');
+const SAFE_ADVANCE_BUTTONS = ADVANCE_BUTTONS.filter((b) => b !== '不用技能');
 
 /**
  * Try to click any advance button on a page.
  * Checks alert modal first, then bottom action panel.
  * Returns true if a button was clicked.
  *
- * @param includeSkip If false, excludes "不使用技能" to prevent
+ * @param includeSkip If false, excludes "不用技能" to prevent
  *   prematurely skipping a role step. Defaults to true.
  */
 async function tryClickAdvanceButton(page: Page, includeSkip = true): Promise<boolean> {

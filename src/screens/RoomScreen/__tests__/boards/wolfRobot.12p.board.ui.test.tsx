@@ -233,7 +233,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
      * Prerequisites:
      * - wolfRobotReveal.learnedRoleId = 'hunter' (shows gate button)
      * - wolfRobotHunterStatusViewed = false (gate not yet cleared)
-     * - Must press gate button ('查看发动状态') to trigger the dialog
+     * - Must press gate button ('发动状态') to trigger the dialog
      */
     it('wolfRobot learns hunter: shows hunter status gate, requires pressPrimaryOnType, no infinite loop', async () => {
       mockUseGameRoomReturn = createGameRoomMock({

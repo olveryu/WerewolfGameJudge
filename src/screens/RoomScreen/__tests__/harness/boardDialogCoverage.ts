@@ -88,10 +88,10 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
   // Guard: chooseSeat confirm + skip
   guard: ['actionConfirm', 'skipConfirm'],
 
-  // Hunter: confirm trigger (requires pressing '查看发动状态' button)
+  // Hunter: confirm trigger (requires pressing '发动状态' button)
   hunter: ['confirmTrigger'],
 
-  // DarkWolfKing: confirm trigger (requires pressing '查看发动状态' button)
+  // DarkWolfKing: confirm trigger (requires pressing '发动状态' button)
   darkWolfKing: ['confirmTrigger'],
 
   // WolfRobot: hunter gate + chooseSeat confirm + skip

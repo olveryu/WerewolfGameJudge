@@ -42,7 +42,7 @@ const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema
   };
 };
 
-// Minimal RoomScreen runtime: we only care that pressing "不使用技能" triggers submitAction(null)
+// Minimal RoomScreen runtime: we only care that pressing "不用技能" triggers submitAction(null)
 jest.mock('../../../hooks/useGameRoom', () => {
   const { GameStatus } = require('@werewolf/game-engine');
   return {
@@ -191,7 +191,7 @@ describe('RoomScreen skip action UI', () => {
     });
   });
 
-  it('press "不使用技能" -> confirm -> submitAction(null)', async () => {
+  it('press "不用技能" -> confirm -> submitAction(null)', async () => {
     mockedCanSkip = true;
     mockedSchemaId = 'seerCheck';
     const skipText = getChooseSeatSchema(mockedSchemaId).ui?.bottomActionText;

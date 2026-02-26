@@ -251,7 +251,7 @@ export interface MultiChooseSeatSchema extends BaseActionSchema {
   readonly maxTargets: number;
   readonly canSkip: boolean;
   readonly ui?: SchemaUi & {
-    /** 跳过按钮文案（如「不使用技能」） */
+    /** 跳过按钮文案（如「不用技能」） */
     readonly bottomActionText?: string;
     /** 确认按钮文案，支持 {count} 占位符（如「确认催眠({count}人)」） */
     readonly confirmButtonText?: string;

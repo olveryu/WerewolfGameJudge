@@ -337,7 +337,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         await dismissAlert(pages[witchIdx]);
 
         // Witch skips (no save, no poison)
-        await clickBottomButton(pages[witchIdx], '不使用技能');
+        await clickBottomButton(pages[witchIdx], '不用技能');
         await dismissAlert(pages[witchIdx]);
 
         // Night ends — witch dies
@@ -524,7 +524,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         );
         expect(witchTurn).toBe(true);
         await dismissAlert(pages[witchIdx]);
-        await clickBottomButton(pages[witchIdx], '不使用技能');
+        await clickBottomButton(pages[witchIdx], '不用技能');
         await dismissAlert(pages[witchIdx]);
 
         // Night ends — both DC and dream target should be dead (link death)

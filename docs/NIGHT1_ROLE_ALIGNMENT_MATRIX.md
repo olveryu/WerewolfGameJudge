@@ -239,7 +239,7 @@
 | **schemaId**         | `hunterConfirm`                          |                      |
 | **kind**             | `confirm`                                | 只需确认，无目标选择 |
 | **prompt**           | "请点击下方按钮查看技能发动状态"         |                      |
-| **bottomActionText** | "查看发动状态"                           |                      |
+| **bottomActionText** | "发动状态"                               |                      |
 | **revealKind**       | 无                                       |                      |
 | **nightmare 阻断**   | ❌ 不适用                                | confirm 类型无需检查 |
 | **结果落点**         | `confirmStatus: { kind: 'hunter', ... }` |                      |
@@ -253,7 +253,7 @@
 | **schemaId**         | `darkWolfKingConfirm`                          |            |
 | **kind**             | `confirm`                                      |            |
 | **prompt**           | "请点击下方按钮查看技能发动状态"               |            |
-| **bottomActionText** | "查看发动状态"                                 |            |
+| **bottomActionText** | "发动状态"                                     |            |
 | **revealKind**       | 无                                             |            |
 | **nightmare 阻断**   | ❌ 不适用                                      |            |
 | **结果落点**         | `confirmStatus: { kind: 'darkWolfKing', ... }` |            |
