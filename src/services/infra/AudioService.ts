@@ -11,6 +11,7 @@ import {
   NIGHT_END_AUDIO,
   SEER_LABEL_AUDIO,
   SEER_LABEL_AUDIO_END,
+  STEP_AUDIO,
 } from './audio/audioRegistry';
 import { BgmPlayer } from './audio/BgmPlayer';
 import { NativeAudioStrategy } from './audio/NativeAudioStrategy';
@@ -92,7 +93,7 @@ export class AudioService {
 
   async playRoleBeginningAudio(role: string): Promise<void> {
     const entry = AUDIO_REGISTRY[role as RoleId];
-    const audioFile = entry?.begin ?? SEER_LABEL_AUDIO[role];
+    const audioFile = entry?.begin ?? SEER_LABEL_AUDIO[role] ?? STEP_AUDIO[role]?.begin;
     if (!audioFile) {
       // Normal case: some roles (e.g. villager) intentionally have no narration.
       audioLog.debug(`playRoleBeginningAudio: no audio file for role "${role}", skipping`);
@@ -104,7 +105,7 @@ export class AudioService {
 
   async playRoleEndingAudio(role: string): Promise<void> {
     const entry = AUDIO_REGISTRY[role as RoleId];
-    const audioFile = entry?.end ?? SEER_LABEL_AUDIO_END[role];
+    const audioFile = entry?.end ?? SEER_LABEL_AUDIO_END[role] ?? STEP_AUDIO[role]?.end;
     if (!audioFile) {
       // Normal case: some roles (e.g. villager) intentionally have no narration.
       audioLog.debug(`playRoleEndingAudio: no audio file for role "${role}", skipping`);

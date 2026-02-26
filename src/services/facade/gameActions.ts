@@ -491,6 +491,36 @@ export async function clearRevealAcks(
 }
 
 /**
+ * Player: 提交 groupConfirm ack（HTTP API）
+ *
+ * 当所有玩家看到催眠确认提示后，每位玩家点击"我知道了"调用此方法。
+ * 服务端收到所有玩家 ack 后自动推进夜晚步骤。
+ */
+export async function submitGroupConfirmAck(
+  ctx: GameActionsContext,
+  seat: number,
+): Promise<{ success: boolean; reason?: string }> {
+  const conn = getConnectionOrFail(ctx);
+  if (!conn) return NOT_CONNECTED;
+  const { roomCode, myUid } = conn;
+
+  facadeLog.debug('submitGroupConfirmAck called', { seat });
+
+  const result = await callGameControlApi(
+    '/api/game/night/group-confirm-ack',
+    { roomCode, seat, uid: myUid },
+    ctx.store,
+  );
+
+  if (!result.success) {
+    facadeLog.warn('submitGroupConfirmAck failed', { reason: result.reason, seat });
+    return { success: false, reason: result.reason };
+  }
+
+  return { success: true };
+}
+
+/**
  * Host/Player: 设置机械狼查看猎人状态（HTTP API）
  *
  * 当机械狼学到猎人后查看状态按钮被点击时调用

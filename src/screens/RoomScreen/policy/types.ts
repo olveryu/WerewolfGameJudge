@@ -39,6 +39,13 @@ export type ActionIntentType =
   // WolfRobot hunter gate
   | 'wolfRobotViewHunterStatus' // WolfRobot learned hunter: view status gate
 
+  // Multi-select (piperHypnotize)
+  | 'multiSelectToggle' // Toggle a seat in multi-select set
+  | 'multiSelectConfirm' // Confirm multi-select targets
+
+  // GroupConfirm (piperHypnotizedReveal)
+  | 'groupConfirmAck' // Acknowledge group confirm prompt
+
   // Auto-trigger prompt (dismiss → wait for seat tap)
   | 'actionPrompt'; // Generic action prompt for all roles
 
@@ -50,6 +57,8 @@ export interface ActionIntent {
   wolfSeat?: number; // for wolfVote
   revealKind?: RevealKind; // for reveal
   message?: string; // for actionConfirm
+  /** Multi-select targets (for multiSelectConfirm) */
+  targets?: readonly number[];
 
   /**
    * For compound schemas (e.g. witchAction), this is the key of the active sub-step

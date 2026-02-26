@@ -110,6 +110,7 @@ interface UseGameRoomResult {
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
   submitRevealAck: () => Promise<void>;
+  submitGroupConfirmAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
   hasWolfVoted: (seatNumber: number) => boolean;
@@ -307,6 +308,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     submitAction: actions.submitAction,
     submitWolfVote: actions.submitWolfVote,
     submitRevealAck: actions.submitRevealAck,
+    submitGroupConfirmAck: actions.submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed: actions.sendWolfRobotHunterStatusViewed,
     getLastNightInfo: actions.getLastNightInfo,
     hasWolfVoted: actions.hasWolfVoted,

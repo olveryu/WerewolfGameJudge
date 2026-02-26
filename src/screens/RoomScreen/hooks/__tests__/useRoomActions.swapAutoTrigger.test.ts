@@ -23,6 +23,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     actorRole: 'magician',
     isAudioPlaying: false,
     firstSwapSeat: null,
+    multiSelectedSeats: [],
   };
   return { ...base, ...overrides };
 }

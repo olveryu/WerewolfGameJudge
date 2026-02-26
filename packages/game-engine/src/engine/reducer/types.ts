@@ -346,6 +346,21 @@ export interface SetNightReviewAllowedSeatsAction {
 }
 
 // =============================================================================
+// 吹笛者 groupConfirm ACK
+// =============================================================================
+
+/**
+ * 记录某座位已确认催眠状态（幂等：重复 ack 忽略）。
+ * 所有在座玩家 ack 后，服务端推进到下一步骤。
+ */
+export interface AddPiperRevealAckAction {
+  type: 'ADD_PIPER_REVEAL_ACK';
+  payload: {
+    seat: number;
+  };
+}
+
+// =============================================================================
 // StateAction 联合类型
 // =============================================================================
 
@@ -395,4 +410,6 @@ export type StateAction =
   | SetPendingAudioEffectsAction
   | ClearPendingAudioEffectsAction
   // 详细信息分享
-  | SetNightReviewAllowedSeatsAction;
+  | SetNightReviewAllowedSeatsAction
+  // 吹笛者 groupConfirm ACK
+  | AddPiperRevealAckAction;

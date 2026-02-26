@@ -35,7 +35,25 @@ describe('RoomScreen schema ui coverage (contract)', () => {
         continue;
       }
 
-      // All non-compound schemas must not rely on fallback UI.
+      if (schema.kind === 'groupConfirm') {
+        // groupConfirm schemas have their own UI fields (hypnotizedText/notHypnotizedText), not confirmText.
+        expect(schema.ui).toBeDefined();
+        expect(typeof schema.ui.prompt).toBe('string');
+        expect(schema.ui.prompt.length).toBeGreaterThan(0);
+        continue;
+      }
+
+      if (schema.kind === 'multiChooseSeat') {
+        // multiChooseSeat schemas have confirmText + multi-target selection.
+        expect(schema.ui).toBeDefined();
+        expect(typeof schema.ui.prompt).toBe('string');
+        expect(schema.ui.prompt.length).toBeGreaterThan(0);
+        expect(typeof schema.ui.confirmText).toBe('string');
+        expect(schema.ui.confirmText.length).toBeGreaterThan(0);
+        continue;
+      }
+
+      // All other non-compound schemas must not rely on fallback UI.
       // (RoomScreen/useRoomActions will fail-fast if confirmText is missing.)
       expect(schema.ui).toBeDefined();
       expect(typeof schema.ui.prompt).toBe('string');

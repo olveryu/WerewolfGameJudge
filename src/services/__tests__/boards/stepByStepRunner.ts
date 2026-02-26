@@ -302,6 +302,11 @@ function submitActionForStep(
     submitMagicianSwapAction(ctx, stepId, actorSeat, actionValue);
   } else if (stepId === 'hunterConfirm' || stepId === 'darkWolfKingConfirm') {
     submitConfirmAction(ctx, stepId, roleId, actorSeat, actionValue);
+  } else if (stepId === 'piperHypnotize') {
+    submitPiperHypnotizeAction(ctx, stepId, roleId, actorSeat, actionValue);
+  } else if (stepId === 'piperHypnotizedReveal') {
+    // groupConfirm: auto-completes after audio, no action submission needed
+    return;
   } else {
     // 普通 action（seer, guard, nightmare, etc.）
     submitNormalAction(ctx, stepId, roleId, actorSeat, actionValue);
@@ -454,6 +459,39 @@ function submitConfirmAction(
       role: roleId,
       target: null,
       extra: { confirmed },
+    },
+    { stepId },
+  );
+}
+
+/**
+ * 提交吹笛者催眠 action（multiChooseSeat）
+ */
+function submitPiperHypnotizeAction(
+  ctx: GameContext,
+  stepId: SchemaId,
+  roleId: RoleId,
+  actorSeat: number,
+  actionValue: ActionValue | undefined,
+): void {
+  let targets: readonly number[];
+  if (actionValue && typeof actionValue === 'object' && 'targets' in actionValue) {
+    targets = actionValue.targets;
+  } else if (typeof actionValue === 'number') {
+    targets = [actionValue];
+  } else {
+    // Default: hypnotize seat 0 (test convenience — pick any valid seat)
+    targets = [0];
+  }
+
+  sendMessageOrThrow(
+    ctx,
+    {
+      type: 'ACTION',
+      seat: actorSeat,
+      role: roleId,
+      target: null,
+      extra: { targets },
     },
     { stepId },
   );

@@ -105,6 +105,7 @@ export function makeBaseUseGameRoomReturn({
     submitWolfVote: jest.fn(),
 
     hasWolfVoted: () => false,
+    getWolfVoteSummary: () => '0/0 狼人已投票',
     requestSnapshot: jest.fn(),
     viewedRole: jest.fn(),
 
@@ -114,6 +115,7 @@ export function makeBaseUseGameRoomReturn({
     getLastNightInfo: jest.fn().mockReturnValue(''),
 
     submitRevealAck: jest.fn(),
+    submitGroupConfirmAck: jest.fn(),
 
     isBgmEnabled: true,
     toggleBgm: jest.fn(),

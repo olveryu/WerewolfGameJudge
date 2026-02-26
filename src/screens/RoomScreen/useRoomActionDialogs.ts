@@ -67,7 +67,12 @@ export interface UseRoomActionDialogsResult {
   ) => void;
 
   /** Generic role action prompt (e.g., "请预言家行动") */
-  showRoleActionPrompt: (roleName: string, actionMessage: string, onDismiss: () => void) => void;
+  showRoleActionPrompt: (
+    roleName: string,
+    actionMessage: string,
+    onDismiss: () => void,
+    buttonLabel?: string,
+  ) => void;
 }
 
 export function useRoomActionDialogs(): UseRoomActionDialogsResult {
@@ -187,8 +192,10 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showRoleActionPrompt = useCallback(
-    (title: string, actionMessage: string, onDismiss: () => void) => {
-      showAlert(title, actionMessage, [{ text: '知道了', style: 'default', onPress: onDismiss }]);
+    (title: string, actionMessage: string, onDismiss: () => void, buttonLabel?: string) => {
+      showAlert(title, actionMessage, [
+        { text: buttonLabel ?? '知道了', style: 'default', onPress: onDismiss },
+      ]);
     },
     [],
   );

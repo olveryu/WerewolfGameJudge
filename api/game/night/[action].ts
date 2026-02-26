@@ -25,7 +25,10 @@ import {
   handleSubmitAction,
   handleSubmitWolfVote,
   isWolfVoteAllComplete,
+  type SchemaId,
+  SCHEMAS,
   type SetAudioPlayingIntent,
+  type StateAction,
   type SubmitActionIntent,
   type SubmitWolfVoteIntent,
 } from '@werewolf/game-engine';
@@ -37,6 +40,7 @@ import { resultToStatus } from '../../_lib/responseStatus';
 import type {
   ActionRequestBody,
   AudioGateRequestBody,
+  GroupConfirmAckRequestBody,
   WolfRobotViewedRequestBody,
   WolfVoteRequestBody,
 } from '../../_lib/types';
@@ -258,6 +262,55 @@ async function handleWolfVote(req: VercelRequest, res: VercelResponse) {
   return res.status(resultToStatus(result)).json(result);
 }
 
+async function handleGroupConfirmAck(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as GroupConfirmAckRequestBody;
+  const { roomCode, seat, uid } = body;
+
+  if (!roomCode || typeof seat !== 'number' || !uid) {
+    return res.status(400).json({ success: false, reason: 'MISSING_PARAMS' });
+  }
+
+  const result = await processGameAction(
+    roomCode,
+    (state: GameState) => {
+      // Must be ongoing
+      if (state.status !== GameStatus.Ongoing) {
+        return { success: false, reason: 'not_ongoing', actions: [] };
+      }
+      // Current step must be a groupConfirm schema
+      const stepId = state.currentStepId;
+      if (!stepId) {
+        return { success: false, reason: 'no_current_step', actions: [] };
+      }
+      const schema = SCHEMAS[stepId as SchemaId];
+      if (!schema || schema.kind !== 'groupConfirm') {
+        return { success: false, reason: 'not_group_confirm_step', actions: [] };
+      }
+      // Validate seat has a player and uid matches
+      const player = state.players[seat];
+      if (!player) {
+        return { success: false, reason: 'no_player_at_seat', actions: [] };
+      }
+      if (player.uid !== uid && uid !== state.hostUid) {
+        return { success: false, reason: 'uid_mismatch', actions: [] };
+      }
+      // Idempotent: already acked → no-op success
+      const acks = state.piperRevealAcks ?? [];
+      if (acks.includes(seat)) {
+        return { success: true, actions: [] };
+      }
+
+      // Build action: ack this single seat only
+      const actions: StateAction[] = [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
+
+      return { success: true, actions };
+    },
+    { enabled: true },
+  );
+
+  return res.status(resultToStatus(result)).json(result);
+}
+
 // ---------------------------------------------------------------------------
 // Dispatcher
 // ---------------------------------------------------------------------------
@@ -270,6 +323,7 @@ const ROUTE_MAP: Record<
   'audio-ack': handleAudioAck,
   'audio-gate': handleAudioGate,
   end: handleEnd,
+  'group-confirm-ack': handleGroupConfirmAck,
   progression: handleProgression,
   'reveal-ack': handleRevealAck,
   'wolf-robot-viewed': handleWolfRobotViewed,

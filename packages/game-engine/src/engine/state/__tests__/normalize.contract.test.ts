@@ -45,6 +45,10 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'nightmareBlockedSeat',
   'wolfKillDisabled',
 
+  // 吹笛者
+  'hypnotizedSeats',
+  'piperRevealAcks',
+
   // 机械狼伪装上下文
   'wolfRobotContext',
 
@@ -115,6 +119,10 @@ describe('normalizeState contract', () => {
       // 梦魇封锁
       nightmareBlockedSeat: 5,
       wolfKillDisabled: true,
+
+      // 吹笛者
+      hypnotizedSeats: [3, 5],
+      piperRevealAcks: [3],
 
       // 机械狼伪装上下文
       wolfRobotContext: { learnedSeat: 4, disguisedRole: 'seer' },

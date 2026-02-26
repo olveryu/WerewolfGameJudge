@@ -359,6 +359,35 @@ export const SCHEMAS = {
       bottomActionText: '不使用技能',
     },
   },
+  piperHypnotize: {
+    id: 'piperHypnotize',
+    displayName: '催眠',
+    kind: 'multiChooseSeat',
+    constraints: [TargetConstraint.NotSelf],
+    minTargets: 1,
+    maxTargets: 2,
+    canSkip: true,
+    ui: {
+      confirmTitle: '确认催眠',
+      prompt: '请选择1-2名要催眠的玩家',
+      confirmText: '确定要催眠选中的玩家吗？',
+      bottomActionText: '不使用技能',
+      confirmButtonText: '确认催眠({count}人)',
+    },
+  },
+  piperHypnotizedReveal: {
+    id: 'piperHypnotizedReveal',
+    displayName: '催眠确认',
+    kind: 'groupConfirm',
+    requireAllAcks: true,
+    ui: {
+      prompt: '所有玩家请睁眼，请看手机确认催眠信息，如不使用请点击「不使用技能」',
+      bottomActionText: '催眠状态',
+      hypnotizedText: '你已被吹笛者催眠，当前被催眠的座位：{seats}',
+      notHypnotizedText: '你未被催眠',
+      confirmButtonText: '我知道了',
+    },
+  },
 } as const satisfies Record<string, ActionSchema>;
 
 /** Schema ID type (auto-derived from registry keys) */

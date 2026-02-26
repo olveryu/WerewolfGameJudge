@@ -133,6 +133,7 @@ export function useRoomScreenState(
     clearNeedsAuth,
     requestSnapshot,
     submitRevealAck,
+    submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed,
     // Debug mode
     isDebugMode,
@@ -166,12 +167,17 @@ export function useRoomScreenState(
     });
   }, [submitRevealAck]);
 
+  const submitGroupConfirmAckSafe = useCallback(async () => {
+    await submitGroupConfirmAck();
+  }, [submitGroupConfirmAck]);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Local UI state
   // ═══════════════════════════════════════════════════════════════════════════
 
   const [firstSwapSeat, setFirstSwapSeat] = useState<number | null>(null);
   const [secondSeat, setSecondSeat] = useState<number | null>(null);
+  const [multiSelectedSeats, setMultiSelectedSeats] = useState<readonly number[]>([]);
   const [isStartingGame, setIsStartingGame] = useState(false);
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const [pendingSeat, setPendingSeat] = useState<number | null>(null);
@@ -331,7 +337,11 @@ export function useRoomScreenState(
 
   const currentSchemaConstraints = useMemo(() => {
     if (!currentSchema) return undefined;
-    if (currentSchema.kind === 'chooseSeat' || currentSchema.kind === 'swap') {
+    if (
+      currentSchema.kind === 'chooseSeat' ||
+      currentSchema.kind === 'swap' ||
+      currentSchema.kind === 'multiChooseSeat'
+    ) {
       return currentSchema.constraints;
     }
     return undefined;
@@ -346,7 +356,10 @@ export function useRoomScreenState(
     return buildSeatViewModels(gameState, actorSeatForUi, showWolves, firstSwapSeat, {
       schemaConstraints: imActioner && !skipConstraints ? currentSchemaConstraints : undefined,
       secondSelectedSeat: secondSeat,
+      multiSelectedSeats,
       showReadyBadges: roomStatus === GameStatus.Assigned || roomStatus === GameStatus.Ready,
+      groupConfirmAcks:
+        currentSchema?.kind === 'groupConfirm' ? (gameState.piperRevealAcks ?? []) : undefined,
     });
   }, [
     gameState,
@@ -354,9 +367,11 @@ export function useRoomScreenState(
     showWolves,
     firstSwapSeat,
     secondSeat,
+    multiSelectedSeats,
     imActioner,
     currentSchemaConstraints,
     currentSchema?.id,
+    currentSchema?.kind,
     roomStatus,
   ]);
 
@@ -407,8 +422,14 @@ export function useRoomScreenState(
       roomScreenLog.debug('[useRoomScreenState] Resetting UI state for restart', { roomStatus });
       setIsStartingGame(false);
       setFirstSwapSeat(null);
+      setMultiSelectedSeats([]);
     }
   }, [gameState, roomStatus]);
+
+  // Reset multi-select state when night step changes
+  useEffect(() => {
+    setMultiSelectedSeats([]);
+  }, [currentStepId]);
 
   // Show one-time hint toast for the AI assistant bubble (bottom-right)
   // 6s delay avoids collision with the registration toast (5s visibilityTime)
@@ -444,6 +465,7 @@ export function useRoomScreenState(
       actorRole: actorRoleForUi,
       isAudioPlaying,
       firstSwapSeat,
+      multiSelectedSeats,
       countdownTick,
     }),
     [
@@ -456,6 +478,7 @@ export function useRoomScreenState(
       actorRoleForUi,
       isAudioPlaying,
       firstSwapSeat,
+      multiSelectedSeats,
       countdownTick,
     ],
   );
@@ -540,6 +563,9 @@ export function useRoomScreenState(
     submitWolfVote,
     submitRevealAckSafe,
     sendWolfRobotHunterStatusViewed,
+    submitGroupConfirmAck: submitGroupConfirmAckSafe,
+    multiSelectedSeats,
+    setMultiSelectedSeats,
     getAutoTriggerIntent,
     findVotingWolfSeat,
     actionDialogs,

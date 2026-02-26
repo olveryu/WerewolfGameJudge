@@ -54,6 +54,11 @@ interface UseActionOrchestratorParams {
   submitWolfVote: (targetSeat: number) => Promise<void>;
   submitRevealAckSafe: (role: RevealKind) => void;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
+  submitGroupConfirmAck: () => Promise<void>;
+
+  // ── Multi-select state (owned by RoomScreen, passed in + out) ──
+  multiSelectedSeats: readonly number[];
+  setMultiSelectedSeats: (v: readonly number[]) => void;
 
   // ── Intent helpers (from useRoomActions) ──
   getAutoTriggerIntent: () => ActionIntent | null;
@@ -99,6 +104,9 @@ export function useActionOrchestrator({
   submitWolfVote,
   submitRevealAckSafe,
   sendWolfRobotHunterStatusViewed,
+  submitGroupConfirmAck,
+  multiSelectedSeats,
+  setMultiSelectedSeats,
   getAutoTriggerIntent,
   findVotingWolfSeat: _findVotingWolfSeat,
   actionDialogs,
@@ -644,6 +652,82 @@ export function useActionOrchestrator({
           });
           break;
         }
+
+        case 'multiSelectToggle': {
+          const seat = intent.targetSeat;
+          roomScreenLog.debug('[handleActionIntent] multiSelectToggle', { seat });
+          const current = multiSelectedSeats;
+          if (current.includes(seat)) {
+            setMultiSelectedSeats(current.filter((s) => s !== seat));
+          } else {
+            const max =
+              currentSchema?.kind === 'multiChooseSeat' ? currentSchema.maxTargets : undefined;
+            if (max != null && current.length >= max) {
+              roomScreenLog.debug('[multiSelectToggle] maxTargets reached, ignoring', { max });
+              break;
+            }
+            setMultiSelectedSeats([...current, seat]);
+          }
+          break;
+        }
+
+        case 'multiSelectConfirm': {
+          const targets = intent.targets;
+          if (!targets || targets.length === 0) {
+            roomScreenLog.warn('[handleActionIntent] multiSelectConfirm with no targets');
+            return;
+          }
+          roomScreenLog.debug('[handleActionIntent] multiSelectConfirm', { targets });
+
+          // Schema-driven confirm dialog
+          const confirmCopy =
+            currentSchema?.ui?.confirmText ?? `确认选择 ${targets.length} 名玩家？`;
+          const targetLabels = targets.map((s) => `${s + 1}号`).join('、');
+
+          actionDialogs.showConfirmDialog(confirmCopy, `已选择: ${targetLabels}`, async () => {
+            markActionSubmitting(true);
+            try {
+              // Submit with extra.targets for multiChooseSeat
+              await submitAction(null, { targets });
+              setMultiSelectedSeats([]);
+            } finally {
+              markActionSubmitting(false);
+            }
+          });
+          break;
+        }
+
+        case 'groupConfirmAck': {
+          // Compute personal hypnotize message inline (like confirmTrigger reads confirmStatus)
+          const mySeat = actorSeatForUi;
+          const hypnotizedSeats = gameState?.hypnotizedSeats ?? [];
+          const isHypnotized = mySeat !== null && hypnotizedSeats.includes(mySeat);
+          const gcSchema = currentSchema?.kind === 'groupConfirm' ? currentSchema : null;
+
+          let personalMessage: string;
+          if (isHypnotized) {
+            const seatsText = hypnotizedSeats.map((s) => `${s + 1}号`).join('、');
+            const template = gcSchema?.ui?.hypnotizedText ?? '你已被催眠';
+            personalMessage = template.replace('{seats}', seatsText);
+          } else {
+            personalMessage = gcSchema?.ui?.notHypnotizedText ?? '你未被催眠';
+          }
+
+          roomScreenLog.debug('[handleActionIntent] groupConfirmAck', { personalMessage });
+
+          const doAck = async () => {
+            try {
+              await submitGroupConfirmAck();
+            } catch (error) {
+              roomScreenLog.error('[groupConfirmAck] Failed to submit ack', error);
+              Sentry.captureException(error);
+            }
+          };
+
+          const buttonLabel = gcSchema?.ui?.confirmButtonText ?? '我知道了';
+          actionDialogs.showRoleActionPrompt('催眠信息', personalMessage, doAck, buttonLabel);
+          break;
+        }
       }
     },
     [
@@ -660,8 +744,13 @@ export function useActionOrchestrator({
       pendingHunterStatusViewed,
       proceedWithActionTyped,
       sendWolfRobotHunterStatusViewed,
+      submitAction,
       submitRevealAckSafe,
       submitWolfVote,
+      submitGroupConfirmAck,
+      actorSeatForUi,
+      multiSelectedSeats,
+      setMultiSelectedSeats,
       setFirstSwapSeat,
       setSecondSeat,
       controlledSeat,

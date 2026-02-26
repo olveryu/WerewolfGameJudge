@@ -610,6 +610,15 @@ export class GameFacade implements IGameFacade {
     return gameActions.clearRevealAcks(this.#getActionsContext());
   }
 
+  /**
+   * 提交 groupConfirm ack（催眠确认 "我知道了"）（HTTP API）
+   *
+   * 任意玩家调用。服务端收到所有玩家 ack 后自动推进步骤。
+   */
+  async submitGroupConfirmAck(seat: number): Promise<{ success: boolean; reason?: string }> {
+    return gameActions.submitGroupConfirmAck(this.#getActionsContext(), seat);
+  }
+
   // =========================================================================
   // Sync
   // =========================================================================

@@ -72,6 +72,8 @@ BEGIN_TEXT: dict[str, str] = {
     "wolf_witch": "狼巫请睁眼，请选择要查验的玩家。",
     "silence_elder": "禁言长老请睁眼，请选择要禁言的玩家。",
     "voteban_elder": "禁票长老请睁眼，请选择要禁票的玩家。",
+    "piper": "吹笛者请睁眼，请选择要催眠的玩家。",
+    "piper_hypnotized_reveal": "所有玩家请睁眼，请看手机确认信息。",
 }
 
 END_TEXT: dict[str, str] = {
@@ -97,6 +99,8 @@ END_TEXT: dict[str, str] = {
     "wolf_witch": "狼巫请闭眼。",
     "silence_elder": "禁言长老请闭眼。",
     "voteban_elder": "禁票长老请闭眼。",
+    "piper": "吹笛者请闭眼。",
+    "piper_hypnotized_reveal": "所有玩家请闭眼。",
 }
 
 

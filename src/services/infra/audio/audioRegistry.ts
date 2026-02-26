@@ -111,6 +111,10 @@ export const AUDIO_REGISTRY: Partial<Record<RoleId, RoleAudioEntry>> = {
     begin: require('../../../../assets/audio/voteban_elder.mp3'),
     end: require('../../../../assets/audio_end/voteban_elder.mp3'),
   },
+  piper: {
+    begin: require('../../../../assets/audio/piper.mp3'),
+    end: require('../../../../assets/audio_end/piper.mp3'),
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -126,6 +130,21 @@ export const SEER_LABEL_AUDIO: Record<string, AudioAsset> = {
 export const SEER_LABEL_AUDIO_END: Record<string, AudioAsset> = {
   seer_1: require('../../../../assets/audio_end/seer_1.mp3'),
   seer_2: require('../../../../assets/audio_end/seer_2.mp3'),
+};
+
+// ---------------------------------------------------------------------------
+// Step-specific audio (non-RoleId keys, e.g. multi-step roles)
+// ---------------------------------------------------------------------------
+
+/**
+ * Audio for night steps whose audioKey differs from their roleId.
+ * Lookup fallback chain: AUDIO_REGISTRY → SEER_LABEL_AUDIO → STEP_AUDIO.
+ */
+export const STEP_AUDIO: Record<string, RoleAudioEntry> = {
+  piperHypnotizedReveal: {
+    begin: require('../../../../assets/audio/piper_hypnotized_reveal.mp3'),
+    end: require('../../../../assets/audio_end/piper_hypnotized_reveal.mp3'),
+  },
 };
 
 // ---------------------------------------------------------------------------

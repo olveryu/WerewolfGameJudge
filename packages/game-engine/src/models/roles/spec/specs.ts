@@ -4,11 +4,11 @@
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
  *
- * 31 roles total:
+ * 32 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder (15)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade (11)
- * - Third-party: slacker, wildChild (2)
+ * - Third-party: slacker, wildChild, piper (3)
  *
  * 提供声明式角色属性定义（faction / team / night1 / wolfMeeting 等），
  * 不依赖 service、不含副作用或 resolver 逻辑。
@@ -415,6 +415,17 @@ export const ROLE_SPECS = {
     team: Team.Third,
     description:
       '第一晚选择一名玩家作为榜样。当榜样被投票出局时，野孩子变为狼人。若野孩子先于榜样死亡，则始终为好人阵营',
+    night1: { hasAction: true },
+  },
+  piper: {
+    id: 'piper',
+    displayName: '吹笛者',
+    shortName: '笛',
+    emoji: '🪈',
+    faction: Faction.Special,
+    team: Team.Third,
+    description:
+      '每晚选择1-2名玩家进行催眠。被催眠的玩家会醒来确认身份。当所有存活玩家（除吹笛者外）都被催眠时，吹笛者获胜',
     night1: { hasAction: true },
   },
 } as const satisfies Record<string, RoleSpec>;

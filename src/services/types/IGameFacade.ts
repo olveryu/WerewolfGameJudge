@@ -190,6 +190,12 @@ export interface IGameFacade {
   submitRevealAck(): Promise<{ success: boolean; reason?: string }>;
 
   /**
+   * 提交 groupConfirm ack（催眠确认 "我知道了"）
+   * @param seat - 玩家座位号（必须由调用方传入 effectiveSeat，以支持 debug bot 接管）
+   */
+  submitGroupConfirmAck(seat: number): Promise<{ success: boolean; reason?: string }>;
+
+  /**
    * 提交机械狼查看猎人状态确认
    * @param seat - wolfRobot 的座位号（必须由调用方传入 effectiveSeat，以支持 debug bot 接管）
    */

@@ -18,8 +18,8 @@ import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.type
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
-  it('should have exactly 31 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(31);
+  it('should have exactly 32 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(32);
   });
 
   it('every role should have required fields', () => {
@@ -32,13 +32,13 @@ describe('ROLE_SPECS contract', () => {
     }
   });
 
-  it('roles with hasAction=true should appear exactly once in NIGHT_STEPS', () => {
+  it('roles with hasAction=true should appear at least once in NIGHT_STEPS', () => {
     const rolesWithAction = getAllRoleIds().filter((id: RoleId) => ROLE_SPECS[id].night1.hasAction);
     const rolesInSteps = NIGHT_STEPS.map((s) => s.roleId);
 
     for (const roleId of rolesWithAction) {
       const count = rolesInSteps.filter((r) => r === roleId).length;
-      expect(count).toBe(1);
+      expect(count).toBeGreaterThanOrEqual(1);
     }
   });
 
@@ -136,6 +136,7 @@ describe('ROLE_SPECS contract', () => {
       'psychic', // 16
       'hunter', // 20
       'darkWolfKing', // 25
+      'piper', // 30
     ];
 
     it('should have correct night-1 action roles', () => {

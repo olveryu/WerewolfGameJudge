@@ -139,6 +139,19 @@ const NIGHT_STEPS_INTERNAL = [
     roleId: 'psychic',
     audioKey: 'psychic',
   },
+
+  // === 吹笛者（最后行动：催眠 → 全员确认）===
+  {
+    id: 'piperHypnotize',
+    roleId: 'piper',
+    audioKey: 'piper',
+  },
+  {
+    id: 'piperHypnotizedReveal',
+    roleId: 'piper',
+    audioKey: 'piperHypnotizedReveal', // 不同于 roleId — 此步骤有独立音频
+    audioEndKey: 'piperHypnotizedReveal',
+  },
 ] as const satisfies readonly StepSpec[];
 
 /** Exported NIGHT_STEPS for external use */

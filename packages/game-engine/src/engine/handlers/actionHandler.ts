@@ -68,6 +68,7 @@ function buildResolverContext(
     witchState: state.witchContext,
     gameState: {
       isNight1: true, // Night-1 only
+      hypnotizedSeats: state.hypnotizedSeats ?? [],
     },
   };
 }
@@ -376,6 +377,10 @@ function isSkipAction(schema: (typeof SCHEMAS)[SchemaId], actionInput: ActionInp
       // 选择座位类型：target == null 视为 skip
       return actionInput.target === undefined || actionInput.target === null;
 
+    case 'multiChooseSeat':
+      // 多目标选择类型：targets 为空视为 skip
+      return !actionInput.targets || actionInput.targets.length === 0;
+
     case 'swap':
       // 交换类型：targets 为空视为 skip
       return !actionInput.targets || actionInput.targets.length === 0;
@@ -388,6 +393,10 @@ function isSkipAction(schema: (typeof SCHEMAS)[SchemaId], actionInput: ActionInp
       if (results.length === 0) return true;
       return results.every((v) => v === null);
     }
+
+    case 'groupConfirm':
+      // groupConfirm 类型：确认步骤，永远不是 skip
+      return false;
 
     default:
       // 未知类型：安全策略 - 统一视为 non-skip

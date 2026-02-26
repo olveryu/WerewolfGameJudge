@@ -104,6 +104,8 @@ const schemaToRole: Record<string, string> = {
   // third party
   slackerChooseIdol: 'slacker',
   wildChildChooseIdol: 'wildChild',
+  piperHypnotize: 'piper',
+  piperHypnotizedReveal: 'piper',
 };
 
 function roleForSchemaId(schemaId: string): string {
@@ -152,12 +154,14 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
           {
             gameState: room.gameState,
             roomStatus: room.roomStatus,
+            currentActionRole: room.currentActionRole,
             currentSchema: room.currentSchema,
             imActioner: true,
-            mySeatNumber: room.mySeatNumber,
-            myRole: room.myRole,
+            actorSeatNumber: room.mySeatNumber,
+            actorRole: room.myRole,
             isAudioPlaying: false,
             firstSwapSeat: null,
+            multiSelectedSeats: [],
           },
           {
             hasWolfVoted: room.hasWolfVoted,
@@ -200,7 +204,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
       // (wolfVote prompts are shown via dialog.)
       const prompt = (schema as any)?.ui?.prompt;
       if (typeof prompt !== 'string' || !prompt) {
-        throw new Error(`[schemas.smoke.ui] Missing schema.ui.prompt for schema: ${schemaId}`);
+        throw new Error(`[schemas.smoke.ui] Missing rendered text for schema: ${schemaId}`);
       }
 
       await waitFor(() => {

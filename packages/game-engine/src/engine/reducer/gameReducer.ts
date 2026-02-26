@@ -130,6 +130,9 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
     nightReviewAllowedSeats: undefined,
     // 重开时清除上局残留的 seer 标签
     seerLabelMap: undefined,
+    // 重开时清除吹笛者相关状态
+    hypnotizedSeats: undefined,
+    piperRevealAcks: undefined,
   };
 }
 
@@ -260,11 +263,17 @@ function handleApplyResolverResult(state: GameState, action: ApplyResolverResult
   const wolfKillDisabled =
     updates && 'wolfKillDisabled' in updates ? updates.wolfKillDisabled : state.wolfKillDisabled;
 
+  // Sync cumulative hypnotizedSeats from resolver updates to top-level state
+  // (Top-level hypnotizedSeats is the cross-night source of truth; resolver context reads it)
+  const hypnotizedSeats =
+    updates && 'hypnotizedSeats' in updates ? updates.hypnotizedSeats : state.hypnotizedSeats;
+
   return {
     ...state,
     currentNightResults,
     nightmareBlockedSeat,
     wolfKillDisabled,
+    hypnotizedSeats,
     seerReveal: seerReveal ?? state.seerReveal,
     mirrorSeerReveal: mirrorSeerReveal ?? state.mirrorSeerReveal,
     drunkSeerReveal: drunkSeerReveal ?? state.drunkSeerReveal,
@@ -606,6 +615,17 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
         ...state,
         nightReviewAllowedSeats: action.allowedSeats,
       };
+
+    case 'ADD_PIPER_REVEAL_ACK': {
+      const acks = state.piperRevealAcks ?? [];
+      const seat = action.payload.seat;
+      // Idempotent: ignore duplicate ack
+      if (acks.includes(seat)) return state;
+      return {
+        ...state,
+        piperRevealAcks: [...acks, seat],
+      };
+    }
 
     default: {
       const _exhaustive: never = action;

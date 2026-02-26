@@ -43,6 +43,8 @@ export interface GameContext {
 
   isAudioPlaying: boolean;
   firstSwapSeat: number | null; // Magician first target
+  /** Multi-select seats for multiChooseSeat schema (piper hypnotize) */
+  multiSelectedSeats: readonly number[];
   /** Counter that ticks every second during wolf vote countdown, forcing re-render. */
   countdownTick?: number;
 }
@@ -143,6 +145,14 @@ export function deriveSkipIntentFromSchema(
     return null;
   }
 
+  // multiChooseSeat schemas (piperHypnotize): skip if canSkip
+  if (currentSchema?.kind === 'multiChooseSeat') {
+    if (currentSchema.canSkip) {
+      return { type: 'skip', targetSeat: -1, message: buildMessage(-1) };
+    }
+    return null;
+  }
+
   // compound schema (witch): skip is handled via getBottomAction's 'skipAll' button.
   // getSkipIntent should not provide a generic skip for compound schemas.
   if (currentSchema?.kind === 'compound') {
@@ -220,8 +230,12 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
       return isWolf && wolfSeat !== null ? { type: 'wolfVote', targetSeat: seat, wolfSeat } : null;
     case 'chooseSeat':
       return deriveChooseSeatIntent(ctx);
+    case 'multiChooseSeat':
+      // Multi-select: seat tap toggles selection (added/removed in orchestrator)
+      return { type: 'multiSelectToggle', targetSeat: seat };
     case 'skip':
     case 'confirmTarget':
+    case 'groupConfirm':
     case undefined:
       return null;
     default: {
@@ -245,6 +259,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     actorRole,
     isAudioPlaying,
     firstSwapSeat,
+    multiSelectedSeats,
     countdownTick,
   } = gameContext;
 
@@ -346,14 +361,14 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const getBottomAction = useCallback((): BottomActionVM => {
-    // Keep the same visibility rules previously in RoomScreen.
-    if (!imActioner) return { buttons: [] };
     if (!gameState) return { buttons: [] };
     if (roomStatus !== GameStatus.Ongoing) return { buttons: [] };
     if (isAudioPlaying) return { buttons: [] };
-
-    // Schema-driven bottom action visibility.
     if (!currentSchema) return { buttons: [] };
+
+    // All schemas (including groupConfirm): only visible to the actioner.
+    // For groupConfirm, determineActionerState already sets imActioner=true for all seated players.
+    if (!imActioner) return { buttons: [] };
 
     // ─────────────────────────────────────────────────────────────────────────
     // UI Hint（服务端广播驱动，UI 只读展示）
@@ -531,6 +546,55 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       };
     }
 
+    // groupConfirm schema (piperHypnotizedReveal)
+    // Already acked → hide button; otherwise show "催眠状态" button.
+    if (currentSchema.kind === 'groupConfirm') {
+      const acks = gameState.piperRevealAcks ?? [];
+      if (actorSeatNumber !== null && acks.includes(actorSeatNumber)) {
+        return { buttons: [] };
+      }
+      return {
+        buttons: [
+          {
+            key: 'groupConfirmAck',
+            label: currentSchema.ui?.bottomActionText ?? '催眠状态',
+            intent: { type: 'groupConfirmAck', targetSeat: -1 },
+          },
+        ],
+      };
+    }
+
+    // multiChooseSeat (piperHypnotize): confirm + skip buttons
+    if (currentSchema.kind === 'multiChooseSeat') {
+      const buttons: BottomButton[] = [];
+      const count = multiSelectedSeats.length;
+
+      // Confirm button (only when at least 1 target selected)
+      if (count > 0) {
+        const rawLabel = currentSchema.ui?.confirmButtonText ?? '确认({count}人)';
+        buttons.push({
+          key: 'multiConfirm',
+          label: rawLabel.replace('{count}', String(count)),
+          intent: {
+            type: 'multiSelectConfirm',
+            targetSeat: -1,
+            targets: multiSelectedSeats,
+          },
+        });
+      }
+
+      // Skip button (if canSkip)
+      if (currentSchema.canSkip && currentSchema.ui?.bottomActionText) {
+        buttons.push({
+          key: 'skip',
+          label: currentSchema.ui.bottomActionText,
+          intent: { type: 'skip', targetSeat: -1, message: currentSchema.ui.bottomActionText },
+        });
+      }
+
+      return { buttons };
+    }
+
     // skip: no generic bottom action
     return { buttons: [] };
   }, [
@@ -543,6 +607,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     actorSeatNumber,
     actorRole,
     hasWolfVoted,
+    multiSelectedSeats,
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -587,6 +652,12 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       if (firstSwapSeat !== null) {
         return null; // Suppress auto-trigger while selecting second seat
       }
+      return { type: 'actionPrompt', targetSeat: -1 };
+    }
+
+    // Schema-driven: groupConfirm (e.g. piperHypnotizedReveal) — auto-trigger prompt dialog
+    // (same as hunterConfirm: show prompt → dismiss → bottom-bar button triggers detail dialog → ack)
+    if (currentSchema?.kind === 'groupConfirm') {
       return { type: 'actionPrompt', targetSeat: -1 };
     }
 
