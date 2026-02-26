@@ -17,6 +17,8 @@
  */
 
 import { GameStatus } from '../models/GameStatus';
+import { SCHEMAS } from '../models/roles';
+import type { SchemaId } from '../models/roles/spec/schemas';
 import type { AudioEffect, GameState } from '../protocol/types';
 import { getEngineLogger } from '../utils/logger';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
@@ -55,6 +57,15 @@ function isStepComplete(state: GameState): boolean {
 
   if (stepId === 'wolfKill') {
     return isWolfVoteAllComplete(state);
+  }
+
+  // groupConfirm steps: complete when all seated players have acked.
+  const schema = SCHEMAS[stepId as SchemaId];
+  if (schema?.kind === 'groupConfirm') {
+    const acks = state.piperRevealAcks ?? [];
+    // All seated (non-null) players must ack
+    const seatedCount = Object.values(state.players).filter((p) => p !== null).length;
+    return acks.length >= seatedCount;
   }
 
   const actions = state.actions;

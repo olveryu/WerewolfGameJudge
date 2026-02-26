@@ -11,10 +11,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { buildNightPlan, type RoleId } from '@werewolf/game-engine/models/roles';
 import {
   type ActionSchema,
-  getRoleSpec,
   getSchema,
-  getStepsByRoleStrict,
-  isValidRoleId,
   type SchemaId,
 } from '@werewolf/game-engine/models/roles/spec';
 import type {
@@ -47,30 +44,22 @@ interface NightDerivedValues {
  * All pure useMemo computations — no side effects, no subscriptions.
  */
 export function useNightDerived(gameState: LocalGameState | null): NightDerivedValues {
-  // Current action role - only valid when game is ongoing (night phase)
-  // Phase 5: actionOrder removed from template, now derived from NightPlan
-  const currentActionRole = useMemo((): RoleId | null => {
-    if (!gameState) return null;
-    // Only return action role when game is in progress
-    if (gameState.status !== GameStatus.Ongoing) return null;
-    // Derive action order dynamically from template.roles via NightPlan
+  // Current action role + schemaId — derived from NightPlan in one pass.
+  // Phase 5: actionOrder removed from template, now derived from NightPlan.
+  // Uses currentStepIndex to pick the exact step, which correctly handles roles
+  // with multiple night steps (e.g. piper → piperHypnotize + piperHypnotizedReveal).
+  const { currentActionRole, currentSchemaId } = useMemo(() => {
+    const NONE = { currentActionRole: null, currentSchemaId: null } as const;
+    if (!gameState) return NONE;
+    if (gameState.status !== GameStatus.Ongoing) return NONE;
     const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
-    if (gameState.currentStepIndex >= nightPlan.steps.length) return null;
-    return nightPlan.steps[gameState.currentStepIndex].roleId;
+    if (gameState.currentStepIndex >= nightPlan.steps.length) return NONE;
+    const step = nightPlan.steps[gameState.currentStepIndex];
+    return {
+      currentActionRole: step.roleId as RoleId | null,
+      currentSchemaId: step.stepId as SchemaId | null,
+    };
   }, [gameState]);
-
-  // Schema-driven UI (Phase 3): derive schemaId from currentActionRole locally
-  // No broadcast needed - schema is derived from local spec
-  const currentSchemaId = useMemo((): SchemaId | null => {
-    if (!currentActionRole) return null;
-    if (!isValidRoleId(currentActionRole)) return null;
-    const spec = getRoleSpec(currentActionRole);
-    if (!spec.night1.hasAction) return null;
-    // M3: schemaId is derived from NIGHT_STEPS single source of truth.
-    // Current assumption (locked by contract tests): each role has at most one NightStep.
-    const [step] = getStepsByRoleStrict(currentActionRole);
-    return step?.id ?? null; // step.id is the schemaId
-  }, [currentActionRole]);
 
   // Schema-driven UI (Phase 3): derive full schema from schemaId
   const currentSchema = useMemo((): ActionSchema | null => {

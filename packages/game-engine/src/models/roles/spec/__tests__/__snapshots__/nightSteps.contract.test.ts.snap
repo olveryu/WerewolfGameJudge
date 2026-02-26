@@ -23,5 +23,7 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "gargoyleCheck",
   "pureWhiteCheck",
   "psychicCheck",
+  "piperHypnotize",
+  "piperHypnotizedReveal",
 ]
 `;

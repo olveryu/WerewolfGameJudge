@@ -54,6 +54,7 @@ interface GameActionsState {
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitWolfVote: (target: number) => Promise<void>;
   submitRevealAck: () => Promise<void>;
+  submitGroupConfirmAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   /** Host: wolf vote deadline 到期后触发服务端推进 */
   postProgression: () => Promise<void>;
@@ -199,6 +200,15 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     notifyIfFailed(result, '确认揭示');
   }, [facade]);
 
+  // Group confirm acknowledge (piperHypnotizedReveal)
+  // Uses effectiveSeat internally to support debug bot control mode
+  const submitGroupConfirmAck = useCallback(async (): Promise<void> => {
+    const seat = debug.effectiveSeat;
+    if (seat === null) return;
+    const result = await facade.submitGroupConfirmAck(seat);
+    notifyIfFailed(result, '确认催眠');
+  }, [debug.effectiveSeat, facade]);
+
   // WolfRobot hunter status viewed gate
   // seat 参数由调用方传入 effectiveSeat，以支持 debug bot 接管模式
   const sendWolfRobotHunterStatusViewed = useCallback(
@@ -265,6 +275,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     submitAction,
     submitWolfVote,
     submitRevealAck,
+    submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed,
     postProgression,
     getLastNightInfo,

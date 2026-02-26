@@ -226,6 +226,7 @@ describe('NightReview.helpers', () => {
         [18, makePlayer(18, 'wildChild')],
         [19, makePlayer(19, 'silenceElder')],
         [20, makePlayer(20, 'votebanElder')],
+        [21, makePlayer(21, 'piper')],
       ]);
 
       const actions = new Map<RoleId, ReturnType<typeof makeActionTarget>>([
@@ -245,6 +246,7 @@ describe('NightReview.helpers', () => {
           poisonedSeat: 99, // non-existent seat so hunter/darkWolfKing can shoot
           dreamingSeat: 6,
           swappedSeats: [7, 8],
+          hypnotizedSeats: [2, 10],
         },
         lastNightDeaths: [8],
         players,

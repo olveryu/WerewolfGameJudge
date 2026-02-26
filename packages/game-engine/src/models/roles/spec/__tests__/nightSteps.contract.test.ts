@@ -49,13 +49,24 @@ describe('NIGHT_STEPS contract', () => {
       }
     });
 
-    it('audioKey should be a valid RoleId (AudioService uses RoleId to find audio files)', () => {
-      // AudioService.playRoleBeginningAudio/playRoleEndingAudio 使用 RoleId 查找音频
-      // 因此 audioKey 必须是有效的 RoleId，或者等于 step.roleId
+    it('audioKey should match roleId for single-step roles, first step for multi-step roles', () => {
+      // AudioService.playRoleBeginningAudio/playRoleEndingAudio 使用 audioKey 查找音频
+      // 单步骤角色：audioKey 必须与 roleId 一致
+      // 多步骤角色（如 piper）：第一步的 audioKey 必须与 roleId 一致，后续步骤可以不同
+      const stepsByRole = new Map<
+        string,
+        typeof NIGHT_STEPS extends readonly (infer T)[] ? T[] : never
+      >();
       for (const step of NIGHT_STEPS) {
-        // 验证 audioKey 必须与 roleId 一致（最严格约束）
-        // 这样可以防止 audioKey 写错导致播放失败
-        expect(step.audioKey).toBe(step.roleId);
+        const existing = stepsByRole.get(step.roleId) ?? [];
+        existing.push(step);
+        stepsByRole.set(step.roleId, existing);
+      }
+
+      for (const [roleId, steps] of stepsByRole) {
+        // First step must have audioKey === roleId
+        expect(steps[0].audioKey).toBe(roleId);
+        // Subsequent steps may have different audioKey (e.g. piperHypnotizedReveal)
       }
     });
   });
@@ -80,21 +91,22 @@ describe('NIGHT_STEPS contract', () => {
       }
     });
 
-    it('every role with hasAction=true should appear exactly once in NIGHT_STEPS', () => {
+    it('every role with hasAction=true should appear at least once in NIGHT_STEPS', () => {
       const rolesWithAction = Object.entries(ROLE_SPECS)
         .filter(([_, spec]) => spec.night1.hasAction)
         .map(([id]) => id);
 
       const rolesInSteps = NIGHT_STEPS.map((s) => s.roleId);
 
-      // Each role with action should appear exactly once
+      // Each role with action should appear at least once
       for (const roleId of rolesWithAction) {
         const count = rolesInSteps.filter((r) => r === roleId).length;
-        expect(count).toBe(1);
+        expect(count).toBeGreaterThanOrEqual(1);
       }
 
-      // No extra roles in NIGHT_STEPS
-      expect(rolesInSteps.length).toBe(rolesWithAction.length);
+      // All unique roles in NIGHT_STEPS must have hasAction=true
+      const uniqueRolesInSteps = [...new Set(rolesInSteps)];
+      expect(uniqueRolesInSteps.length).toBe(rolesWithAction.length);
     });
   });
 

@@ -242,6 +242,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     hasWolfVoted: jest.fn().mockReturnValue(false),
     viewedRole: jest.fn(),
     submitRevealAck: jest.fn().mockResolvedValue(undefined),
+    submitGroupConfirmAck: jest.fn().mockResolvedValue(undefined),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
     postProgression: jest.fn().mockResolvedValue(undefined),
 

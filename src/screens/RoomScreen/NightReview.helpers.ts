@@ -122,6 +122,14 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(`💋 狼美人魅惑了 ${s(wolfQueenAction.targetSeat)}`);
   }
 
+  // 6d. Piper hypnotize
+  if (nr.hypnotizedSeats && nr.hypnotizedSeats.length > 0) {
+    const hypnotizedList = (nr.hypnotizedSeats as readonly number[])
+      .map((seat) => s(seat))
+      .join('、');
+    lines.push(`🪈 吹笛者催眠了 ${hypnotizedList}`);
+  }
+
   // 7. Check reveals (seer family + others)
   const revealFields = [
     { key: 'seerReveal' as const, label: '预言家' },

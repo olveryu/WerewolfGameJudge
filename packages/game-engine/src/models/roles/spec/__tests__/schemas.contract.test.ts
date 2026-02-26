@@ -34,7 +34,9 @@ describe('SCHEMAS contract', () => {
       (typeof SCHEMAS)[SchemaId],
     ][]) {
       expect(schema.id).toBe(id);
-      expect(schema.kind).toMatch(/^(chooseSeat|confirm|compound|swap|wolfVote)$/);
+      expect(schema.kind).toMatch(
+        /^(chooseSeat|confirm|compound|swap|wolfVote|multiChooseSeat|groupConfirm)$/,
+      );
     }
   });
 

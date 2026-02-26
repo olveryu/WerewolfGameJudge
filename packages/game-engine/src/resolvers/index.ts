@@ -17,6 +17,7 @@ import { hunterConfirmResolver } from './hunter';
 import { magicianSwapResolver } from './magician';
 import { mirrorSeerCheckResolver } from './mirrorSeer';
 import { nightmareBlockResolver } from './nightmare';
+import { piperHypnotizedRevealResolver, piperHypnotizeResolver } from './piper';
 import { psychicCheckResolver } from './psychic';
 import { pureWhiteCheckResolver } from './pureWhite';
 import { seerCheckResolver } from './seer';
@@ -53,6 +54,8 @@ export const RESOLVERS: ResolverRegistry = {
   wolfWitchCheck: wolfWitchCheckResolver,
   silenceElderSilence: silenceElderSilenceResolver,
   votebanElderBan: votebanElderBanResolver,
+  piperHypnotize: piperHypnotizeResolver,
+  piperHypnotizedReveal: piperHypnotizedRevealResolver,
 };
 
 // Re-export types for convenience (SERVER-ONLY consumers)

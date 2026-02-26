@@ -17,6 +17,8 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
     ...overrides,
   };
 }

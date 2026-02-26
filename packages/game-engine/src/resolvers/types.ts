@@ -55,6 +55,9 @@ export interface CurrentNightResults {
 
   /** Seat vote-banned by votebanElder (cannot vote during exile) */
   readonly votebannedSeat?: number;
+
+  /** Seats newly hypnotized by piper this night (1-2 seats) */
+  readonly hypnotizedSeats?: readonly number[];
 }
 
 /** Context passed to resolvers */
@@ -83,6 +86,8 @@ export interface ResolverContext {
   /** Game state flags shared across all resolvers */
   readonly gameState: {
     readonly isNight1: boolean;
+    /** Accumulated hypnotized seats (piper) — needed to reject already-hypnotized targets */
+    readonly hypnotizedSeats?: readonly number[];
   };
 }
 
@@ -123,6 +128,7 @@ export interface ResolverResult {
     readonly idolTarget?: number; // slacker
     readonly silenceTarget?: number; // silenceElder
     readonly votebanTarget?: number; // votebanElder
+    readonly hypnotizedTargets?: readonly number[]; // piper - newly hypnotized seats this night
   };
 }
 

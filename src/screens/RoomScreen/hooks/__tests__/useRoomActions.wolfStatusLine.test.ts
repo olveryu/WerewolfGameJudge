@@ -20,6 +20,7 @@ function makeContext(partial: Partial<GameContext>): GameContext {
     actorRole: null,
     isAudioPlaying: false,
     firstSwapSeat: null,
+    multiSelectedSeats: [],
     ...partial,
   };
 }

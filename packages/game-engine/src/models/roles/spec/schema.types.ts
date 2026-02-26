@@ -106,6 +106,12 @@ export interface SchemaUi {
   /** Dialog message when role cannot shoot/trigger. */
   readonly cannotShootText?: string;
 
+  // === GroupConfirm UI (piperHypnotizedReveal) ===
+  /** Text shown to hypnotized players. Placeholder: {seats} (comma-separated hypnotized seat numbers). */
+  readonly hypnotizedText?: string;
+  /** Text shown to non-hypnotized players. */
+  readonly notHypnotizedText?: string;
+
   // === Wolf vote dialog templates (schema-driven) ===
   /** Wolf vote confirm dialog template. Placeholders: {wolf}, {seat}. */
   readonly voteConfirmTemplate?: string;
@@ -232,6 +238,48 @@ export interface ConfirmTargetSchema extends BaseActionSchema {
   readonly canSkip: boolean;
 }
 
+/**
+ * Choose multiple seats (piper hypnotize - select 1-2 targets)
+ *
+ * Unlike chooseSeat (single target), this allows selecting multiple targets
+ * within [minTargets, maxTargets] range.
+ */
+export interface MultiChooseSeatSchema extends BaseActionSchema {
+  readonly kind: 'multiChooseSeat';
+  readonly constraints: readonly TargetConstraint[];
+  readonly minTargets: number;
+  readonly maxTargets: number;
+  readonly canSkip: boolean;
+  readonly ui?: SchemaUi & {
+    /** 跳过按钮文案（如「不使用技能」） */
+    readonly bottomActionText?: string;
+    /** 确认按钮文案，支持 {count} 占位符（如「确认催眠({count}人)」） */
+    readonly confirmButtonText?: string;
+  };
+}
+
+/**
+ * Group confirm (all players confirm - e.g., piper hypnotized reveal)
+ *
+ * All players see their status on phone and must acknowledge.
+ * Unlike confirm (single role), this targets ALL players.
+ */
+export interface GroupConfirmSchema extends BaseActionSchema {
+  readonly kind: 'groupConfirm';
+  /** Whether all living players must ack before proceeding */
+  readonly requireAllAcks: boolean;
+  readonly ui?: SchemaUi & {
+    /** 底栏按钮文案（如「催眠状态」），点击后弹出催眠信息弹窗 */
+    readonly bottomActionText?: string;
+    /** 弹窗内确认按钮文案（如「我知道了」） */
+    readonly confirmButtonText?: string;
+    /** 被催眠玩家看到的文案，支持 {seats} 占位符 */
+    readonly hypnotizedText?: string;
+    /** 未被催眠玩家看到的文案 */
+    readonly notHypnotizedText?: string;
+  };
+}
+
 /** Union type for all schemas */
 export type ActionSchema =
   | ChooseSeatSchema
@@ -240,4 +288,6 @@ export type ActionSchema =
   | SwapSchema
   | SkipSchema
   | ConfirmSchema
-  | ConfirmTargetSchema;
+  | ConfirmTargetSchema
+  | MultiChooseSeatSchema
+  | GroupConfirmSchema;

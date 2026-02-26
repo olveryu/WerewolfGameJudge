@@ -89,13 +89,29 @@ function getSchemaRevealKind(schemaId: SchemaId): RevealKind | undefined {
 // === 1. audioKey === roleId Contract ===
 
 describe('audioKey === roleId Contract (PR8 alignment)', () => {
-  it.each(NIGHT_STEPS)('$id: audioKey should equal roleId', (step) => {
-    expect(step.audioKey).toBe(step.roleId);
+  // For multi-step roles (e.g. piper), only the first step must have audioKey === roleId.
+  // Subsequent steps may use a different audioKey (e.g. piperHypnotizedReveal).
+  const firstStepByRole = new Map<string, (typeof NIGHT_STEPS)[number]>();
+  for (const step of NIGHT_STEPS) {
+    if (!firstStepByRole.has(step.roleId)) {
+      firstStepByRole.set(step.roleId, step);
+    }
+  }
+
+  it.each(NIGHT_STEPS)('$id: audioKey should be valid (first step matches roleId)', (step) => {
+    const isFirstStep = firstStepByRole.get(step.roleId) === step;
+    if (isFirstStep) {
+      expect(step.audioKey).toBe(step.roleId);
+    } else {
+      // Secondary steps: audioKey must be a non-empty string but not necessarily a RoleId
+      expect(typeof step.audioKey).toBe('string');
+      expect(step.audioKey.length).toBeGreaterThan(0);
+    }
   });
 
-  it('all audioKey values should be valid RoleId values', () => {
+  it('all first-step audioKey values should be valid RoleId values', () => {
     const validRoleIds = Object.keys(ROLE_SPECS);
-    for (const step of NIGHT_STEPS) {
+    for (const step of firstStepByRole.values()) {
       expect(validRoleIds).toContain(step.audioKey);
     }
   });
@@ -471,8 +487,8 @@ describe('canSkip behavior alignment', () => {
 // === 6. NIGHT_STEPS order stability ===
 
 describe('NIGHT_STEPS order stability', () => {
-  it('should have exactly 21 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(21);
+  it('should have exactly 23 steps', () => {
+    expect(NIGHT_STEPS).toHaveLength(23);
   });
 
   it('step order should match expected sequence', () => {
@@ -498,6 +514,8 @@ describe('NIGHT_STEPS order stability', () => {
       'gargoyleCheck',
       'pureWhiteCheck',
       'psychicCheck',
+      'piperHypnotize',
+      'piperHypnotizedReveal',
     ];
 
     const actualOrder = NIGHT_STEPS.map((s) => s.id);

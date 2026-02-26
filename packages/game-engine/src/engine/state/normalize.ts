@@ -128,5 +128,9 @@ export function normalizeState(raw: GameState): GameState {
 
     // 详细信息分享权限（透传）
     nightReviewAllowedSeats: raw.nightReviewAllowedSeats,
+
+    // 吹笛者（透传）
+    hypnotizedSeats: raw.hypnotizedSeats ?? [],
+    piperRevealAcks: raw.piperRevealAcks ?? [],
   } satisfies Complete<GameState>;
 }

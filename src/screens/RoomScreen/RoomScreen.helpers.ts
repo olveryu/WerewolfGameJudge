@@ -123,6 +123,11 @@ export function determineActionerState(
     return { imActioner: false, showWolves: false };
   }
 
+  // groupConfirm: ALL seated players are actioners (e.g. piperHypnotizedReveal)
+  if (currentSchema?.kind === 'groupConfirm' && actorSeatNumber !== null) {
+    return { imActioner: true, showWolves: false };
+  }
+
   // Schema-driven: determine if this is a wolf meeting phase
   const isWolfMeetingSchema =
     currentSchema?.kind === 'wolfVote' && currentSchema.meeting?.canSeeEachOther === true;
@@ -343,10 +348,20 @@ export function buildSeatViewModels(
      */
     secondSelectedSeat?: number | null;
     /**
+     * Multi-selected seats for multiChooseSeat schema (piper hypnotize).
+     * Each selected seat is highlighted.
+     */
+    multiSelectedSeats?: readonly number[];
+    /**
      * Show ✅ ready badge on seats where player has viewed their role.
      * Typically true during Assigned phase.
      */
     showReadyBadges?: boolean;
+    /**
+     * Seats that have acked groupConfirm (e.g. piperHypnotizedReveal).
+     * Shows ✅ badge on acked seats during groupConfirm phase.
+     */
+    groupConfirmAcks?: readonly number[];
   },
 ): SeatViewModel[] {
   // Wolf vote progress: reuse ✅ badge on wolf seats that have voted (ongoing phase only, mutually exclusive with assigned/ready badge)
@@ -373,13 +388,13 @@ export function buildSeatViewModels(
     }
 
     // ✅ badge: assigned/ready → "已查看身份"
+    // groupConfirm ack → "已确认催眠"
     // wolfVoteTarget badge 已包含"已投票"语义，两者互斥
     const hasWolfVoteTarget = isWolf && wolfVotesBySeat != null && String(seat) in wolfVotesBySeat;
     const readyBadge =
       !hasWolfVoteTarget &&
-      options?.showReadyBadges &&
-      player != null &&
-      (player.hasViewedRole ?? false);
+      ((options?.showReadyBadges && player != null && (player.hasViewedRole ?? false)) ||
+        (options?.groupConfirmAcks?.includes(seat) ?? false));
 
     return {
       seat,
@@ -395,7 +410,10 @@ export function buildSeatViewModels(
         : null,
       isMySpot: actorSeatNumber === seat,
       isWolf,
-      isSelected: selectedSeat === seat || options?.secondSelectedSeat === seat,
+      isSelected:
+        selectedSeat === seat ||
+        options?.secondSelectedSeat === seat ||
+        (options?.multiSelectedSeats?.includes(seat) ?? false),
       disabledReason,
       showReadyBadge: readyBadge,
       wolfVoteTarget: hasWolfVoteTarget ? wolfVotesBySeat[String(seat)] : undefined,

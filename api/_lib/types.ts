@@ -163,3 +163,10 @@ export interface WolfRobotViewedRequestBody {
   roomCode: string;
   seat: number;
 }
+
+/** POST /api/game/night/group-confirm-ack */
+export interface GroupConfirmAckRequestBody {
+  roomCode: string;
+  seat: number;
+  uid: string;
+}

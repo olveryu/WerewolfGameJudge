@@ -26,6 +26,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     actorRole: 'seer',
     isAudioPlaying: false,
     firstSwapSeat: null,
+    multiSelectedSeats: [],
   };
   return { ...base, ...overrides };
 }
@@ -200,6 +201,7 @@ describe('useRoomActions.getActionIntent (server-authoritative)', () => {
       actorRole: 'seer',
       isAudioPlaying: false,
       firstSwapSeat: null,
+      multiSelectedSeats: [],
     };
 
     const { result } = renderHook(() =>
@@ -242,6 +244,7 @@ describe('useRoomActions.getActionIntent (server-authoritative)', () => {
       actorRole: 'seer',
       isAudioPlaying: false,
       firstSwapSeat: null,
+      multiSelectedSeats: [],
     };
 
     const { result } = renderHook(() =>
