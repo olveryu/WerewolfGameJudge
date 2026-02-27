@@ -9,6 +9,7 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
+import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
@@ -183,6 +184,6 @@ describe('Room creation → navigation roomNumber contract', () => {
     });
 
     // lastRoomNumber stored must match the confirmed DB code
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith('lastRoomNumber', '7777');
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith(LAST_ROOM_NUMBER_KEY, '7777');
   });
 });

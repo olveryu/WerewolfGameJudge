@@ -24,6 +24,7 @@ import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { RootStackParamList } from '@/navigation/types';
@@ -334,7 +335,7 @@ export const ConfigScreen: React.FC = () => {
           buildInitialGameState(roomCode, hostUid, template),
         );
         const roomNumber = record.roomNumber;
-        await AsyncStorage.setItem('lastRoomNumber', roomNumber);
+        await AsyncStorage.setItem(LAST_ROOM_NUMBER_KEY, roomNumber);
         navigation.navigate('Room', {
           roomNumber,
           isHost: true,

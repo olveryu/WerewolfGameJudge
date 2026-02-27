@@ -13,6 +13,7 @@ import * as Sentry from '@sentry/react-native';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
+import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
@@ -234,7 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       await authService.signOut();
-      await AsyncStorage.removeItem('lastRoomNumber');
+      await AsyncStorage.removeItem(LAST_ROOM_NUMBER_KEY);
       setUser(null);
     } catch (e: unknown) {
       const raw = e instanceof Error ? e.message : String(e);
