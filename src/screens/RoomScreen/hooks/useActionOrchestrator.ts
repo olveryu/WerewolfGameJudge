@@ -54,7 +54,7 @@ interface UseActionOrchestratorParams {
   submitWolfVote: (targetSeat: number) => Promise<void>;
   submitRevealAckSafe: (role: RevealKind) => void;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
-  submitGroupConfirmAck: () => Promise<void>;
+  submitGroupConfirmAck: () => void;
 
   // ── Multi-select state (owned by RoomScreen, passed in + out) ──
   multiSelectedSeats: readonly number[];
@@ -715,13 +715,8 @@ export function useActionOrchestrator({
 
           roomScreenLog.debug('[handleActionIntent] groupConfirmAck', { personalMessage });
 
-          const doAck = async () => {
-            try {
-              await submitGroupConfirmAck();
-            } catch (error) {
-              roomScreenLog.error('[groupConfirmAck] Failed to submit ack', error);
-              Sentry.captureException(error);
-            }
+          const doAck = () => {
+            submitGroupConfirmAck();
           };
 
           const buttonLabel = gcSchema?.ui?.confirmButtonText ?? '我知道了';

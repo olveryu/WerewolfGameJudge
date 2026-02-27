@@ -89,8 +89,8 @@ export const HomeScreen: React.FC = () => {
         .then((value) => {
           setLastRoomNumber(value);
         })
-        .catch(() => {
-          // AsyncStorage read failure — not critical, leave lastRoomNumber as-is
+        .catch((e: unknown) => {
+          homeLog.warn('Failed to read lastRoomNumber from AsyncStorage', e);
         });
     };
     readLastRoom();

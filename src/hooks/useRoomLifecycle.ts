@@ -24,6 +24,7 @@ import type { RoomRecord, RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
+import { getErrorMessage } from '@/utils/errorUtils';
 import { gameRoomLog } from '@/utils/logger';
 
 import type { ConnectionSyncActions } from './useConnectionSync';
@@ -122,7 +123,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : '房间初始化失败，请重试';
+        const message = getErrorMessage(err, '房间初始化失败，请重试');
         gameRoomLog.error('[initializeRoom] Failed', { error: message, roomNumber });
         Sentry.captureException(err);
         setError(message);
@@ -181,7 +182,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return true;
       } catch (err) {
-        const message = err instanceof Error ? err.message : '加入房间失败，请重试';
+        const message = getErrorMessage(err, '加入房间失败，请重试');
         gameRoomLog.error('Player joinRoom failed:', message, err);
         Sentry.captureException(err);
         setError(message);
