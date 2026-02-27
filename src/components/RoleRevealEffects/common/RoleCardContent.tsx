@@ -14,11 +14,23 @@ import {
   isWolfRole,
 } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
-import React, { useMemo } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { getFactionName } from '@/components/roleDisplayUtils';
-import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import { CONFIG } from '@/components/RoleRevealEffects/config';
+import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
+
+const AE = CONFIG.alignmentEffects;
 
 /** White text color for badges/overlays on colored backgrounds */
 const BADGE_TEXT_WHITE = '#fff';
@@ -55,6 +67,34 @@ interface RoleCardContentProps {
    * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存板子使用。
    */
   seerLabel?: number;
+  /**
+   * 动画揭牌模式。为 true 时卡片使用暗色阵营背景 + 亮色文字，匹配 HTML demo 视觉。
+   * 仅在 RoleRevealAnimator 的 6 个动画组件中传入 true；
+   * RoleCardSimple（静态卡片 + "我知道了"按钮）不传此 prop，保持默认白底。
+   */
+  revealMode?: boolean;
+  /**
+   * Reveal-mode 3-stop 渐变背景色（来自 AlignmentTheme.revealGradient）。
+   * 匹配 HTML demo v2 的 `linear-gradient(160deg, edge, center, edge)` 模式。
+   * 仅在 revealMode=true 时生效。
+   */
+  revealGradient?: readonly [string, string, string];
+  /**
+   * Reveal-mode 边框透明度（匹配 HTML demo 半透明边框）。
+   * 仅在 revealMode=true 时生效。默认 0.5。
+   */
+  revealBorderOpacity?: number;
+  /**
+   * 触发入场动画（emoji 弹出、角色名/描述滑入、狼人震颤）。
+   *
+   * 三态语义：
+   * - `undefined`（不传）— 内容立即可见，无入场动画（ScratchReveal 透视孔卡片）。
+   * - `false` — 内容**隐藏**，等待触发（卡片翻转前的正面，防止翻转时内容闪现）。
+   * - `true` — 从隐藏态播放入场动画（卡片翻转完成后设置）。
+   *
+   * 与 revealMode 独立：revealMode 控制视觉样式，animateEntrance 控制入场动画生命周期。
+   */
+  animateEntrance?: boolean;
 }
 
 export const RoleCardContent: React.FC<RoleCardContentProps> = ({
@@ -66,6 +106,10 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   children,
   showRealIdentity = false,
   seerLabel,
+  revealMode = false,
+  revealGradient,
+  revealBorderOpacity = 0.5,
+  animateEntrance,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors, width, height), [colors, width, height]);
@@ -80,24 +124,220 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   const roleName = seerLabel != null ? `${seerLabel}号${baseRoleName}` : baseRoleName;
   const description = displaySpec?.description || '无技能描述';
   const icon = getRoleEmoji(displayRoleId);
+  // English subtitle for reveal mode: convert camelCase roleId to UPPERCASE
+  const roleSub = displayRoleId.toUpperCase();
   const factionColor = getFactionColor(displayRoleId, colors);
   const factionName = getFactionName(displayRoleId);
+  const isWolf = isWolfRole(displayRoleId);
+  // Reveal mode: semi-transparent border matching HTML demo (e.g. rgba(180,0,0,0.5))
+  const borderColor = revealMode
+    ? `${factionColor}${Math.round(revealBorderOpacity * 255)
+        .toString(16)
+        .padStart(2, '0')}`
+    : factionColor;
+
+  // ── Reveal entrance animations ──
+  // Three-state semantics for animateEntrance:
+  //   undefined → static visible (ScratchReveal peek-through, no animation)
+  //   false     → hidden, waiting for trigger (flip card front before reveal)
+  //   true      → play entrance animation from hidden → visible
+  // When animateEntrance is a boolean (false or true), content starts hidden
+  // to prevent the flash where content is visible before the animation fires.
+  const willAnimate = animateEntrance != null; // boolean → hide initially
+  const emojiScale = useSharedValue(willAnimate ? 0 : 1);
+  const emojiRotate = useSharedValue(0);
+  const nameOpacity = useSharedValue(willAnimate ? 0 : 1);
+  const nameTranslateY = useSharedValue(willAnimate ? 10 : 0);
+  const descOpacity = useSharedValue(willAnimate ? 0 : 1);
+  const descTranslateY = useSharedValue(willAnimate ? 10 : 0);
+  const shakeTranslateX = useSharedValue(0);
+  const shakeRotate = useSharedValue(0);
+
+  useEffect(() => {
+    if (!animateEntrance) return;
+
+    // Values already start hidden (scale=0, opacity=0, translateY=10),
+    // so no snap needed — just kick off the animation.
+
+    // Emoji pop — wolf uses emojiPopWolf (with rotation), others use emojiPop
+    const popEasing = Easing.bezier(0.34, 1.56, 0.64, 1);
+    if (isWolf) {
+      // HTML: scale 0.2+rotate(-10) → 1.3+rotate(3) → 0.95+rotate(-1) → 1+rotate(0)
+      emojiScale.value = 0.2;
+      emojiRotate.value = -10;
+      emojiScale.value = withDelay(
+        AE.emojiPopDelay,
+        withSequence(
+          withTiming(1.3, { duration: AE.emojiPopDuration * 0.5, easing: popEasing }),
+          withTiming(0.95, {
+            duration: AE.emojiPopDuration * 0.2,
+            easing: Easing.out(Easing.quad),
+          }),
+          withTiming(1, { duration: AE.emojiPopDuration * 0.3, easing: Easing.out(Easing.quad) }),
+        ),
+      );
+      emojiRotate.value = withDelay(
+        AE.emojiPopDelay,
+        withSequence(
+          withTiming(3, { duration: AE.emojiPopDuration * 0.5, easing: popEasing }),
+          withTiming(-1, { duration: AE.emojiPopDuration * 0.2 }),
+          withTiming(0, { duration: AE.emojiPopDuration * 0.3 }),
+        ),
+      );
+    } else {
+      // HTML: scale 0.3 → 1.2 → 1
+      emojiScale.value = 0.3;
+      emojiScale.value = withDelay(
+        AE.emojiPopDelay,
+        withSequence(
+          withTiming(1.2, { duration: AE.emojiPopDuration * 0.6, easing: popEasing }),
+          withTiming(1, { duration: AE.emojiPopDuration * 0.4, easing: Easing.out(Easing.quad) }),
+        ),
+      );
+    }
+
+    // Name slide-up (matches HTML @keyframes nameSlideUp delay 0.5s)
+    nameOpacity.value = withDelay(
+      AE.nameSlideDelay,
+      withTiming(1, { duration: AE.nameSlideDuration, easing: Easing.out(Easing.quad) }),
+    );
+    nameTranslateY.value = withDelay(
+      AE.nameSlideDelay,
+      withTiming(0, { duration: AE.nameSlideDuration, easing: Easing.out(Easing.quad) }),
+    );
+
+    // Description slide-up (matches HTML delay 0.6s)
+    descOpacity.value = withDelay(
+      AE.descSlideDelay,
+      withTiming(1, { duration: AE.descSlideDuration, easing: Easing.out(Easing.quad) }),
+    );
+    descTranslateY.value = withDelay(
+      AE.descSlideDelay,
+      withTiming(0, { duration: AE.descSlideDuration, easing: Easing.out(Easing.quad) }),
+    );
+
+    // Wolf shake (matches HTML @keyframes wolfShake ±4px + ±1° rotation)
+    if (isWolf) {
+      const shakeDur = AE.wolfShakeDuration / 6;
+      shakeTranslateX.value = withDelay(
+        AE.wolfShakeDelay,
+        withSequence(
+          withTiming(-4, { duration: shakeDur }),
+          withTiming(4, { duration: shakeDur }),
+          withTiming(-3, { duration: shakeDur }),
+          withTiming(2, { duration: shakeDur }),
+          withTiming(-1, { duration: shakeDur }),
+          withTiming(0, { duration: shakeDur }),
+        ),
+      );
+      shakeRotate.value = withDelay(
+        AE.wolfShakeDelay,
+        withSequence(
+          withTiming(-1, { duration: shakeDur }),
+          withTiming(1, { duration: shakeDur }),
+          withTiming(-0.5, { duration: shakeDur }),
+          withTiming(0.5, { duration: shakeDur }),
+          withTiming(0, { duration: shakeDur * 2 }),
+        ),
+      );
+    }
+  }, [
+    animateEntrance,
+    isWolf,
+    emojiScale,
+    emojiRotate,
+    nameOpacity,
+    nameTranslateY,
+    descOpacity,
+    descTranslateY,
+    shakeTranslateX,
+    shakeRotate,
+  ]);
+
+  const emojiAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: emojiScale.value }, { rotate: `${emojiRotate.value}deg` }],
+  }));
+
+  const nameAnimStyle = useAnimatedStyle(() => ({
+    opacity: nameOpacity.value,
+    transform: [{ translateY: nameTranslateY.value }],
+  }));
+
+  const descAnimStyle = useAnimatedStyle(() => ({
+    opacity: descOpacity.value,
+    transform: [{ translateY: descTranslateY.value }],
+  }));
+
+  const cardShakeStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: shakeTranslateX.value }, { rotate: `${shakeRotate.value}deg` }],
+  }));
 
   return (
-    <View testID={testID} style={[styles.card, { borderColor: factionColor }, style]}>
-      <View style={[styles.factionBadge, { backgroundColor: factionColor }]}>
-        <Text style={styles.factionText}>{factionName}</Text>
-      </View>
+    <Animated.View
+      testID={testID}
+      style={[
+        styles.card,
+        { borderColor },
+        // Set transparent bg when gradient is rendered; solid bg otherwise
+        revealGradient != null && styles.transparentBg,
+        // Reveal mode: vertically center emoji+name+sub (matches HTML demo flex center layout)
+        revealMode && styles.cardRevealCenter,
+        style,
+        // Wolf shake applied to the whole card (matches HTML wolfShake on .card-inner)
+        revealMode && cardShakeStyle,
+      ]}
+    >
+      {/* Reveal-mode gradient background (matches HTML demo linear-gradient 160deg) */}
+      {revealMode && revealGradient != null && (
+        <LinearGradient
+          colors={[...revealGradient]}
+          locations={[0, 0.5, 1]}
+          start={{ x: 0.15, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={styles.revealGradientBg}
+        />
+      )}
 
-      <Text style={styles.roleIcon}>{icon}</Text>
-      <Text style={[styles.roleName, { color: factionColor }]}>{roleName}</Text>
+      {/* Faction badge — only in normal (non-reveal) mode */}
+      {!revealMode && (
+        <View style={[styles.factionBadge, { backgroundColor: factionColor }]}>
+          <Text style={styles.factionText}>{factionName}</Text>
+        </View>
+      )}
 
-      <View style={styles.divider} />
+      {revealMode ? (
+        <Animated.Text style={[styles.roleIcon, styles.roleIconReveal, emojiAnimStyle]}>
+          {icon}
+        </Animated.Text>
+      ) : (
+        <Text style={styles.roleIcon}>{icon}</Text>
+      )}
 
-      <Text style={styles.skillTitle}>技能介绍</Text>
-      <Text style={styles.description}>{description}</Text>
+      {revealMode ? (
+        <Animated.Text
+          style={[styles.roleName, styles.roleNameReveal, { color: factionColor }, nameAnimStyle]}
+        >
+          {roleName}
+        </Animated.Text>
+      ) : (
+        <Text style={[styles.roleName, { color: factionColor }]}>{roleName}</Text>
+      )}
+
+      {/* English subtitle — only in reveal mode (matches HTML .role-sub) */}
+      {revealMode ? (
+        <Animated.Text style={[styles.roleSub, { color: factionColor }, descAnimStyle]}>
+          {roleSub}
+        </Animated.Text>
+      ) : (
+        /* Normal mode: divider + skill description */
+        <>
+          <View style={styles.divider} />
+          <Text style={styles.skillTitle}>技能介绍</Text>
+          <Text style={styles.description}>{description}</Text>
+        </>
+      )}
       {children && <View style={styles.childrenSlot}>{children}</View>}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -111,11 +351,19 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       height,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xlarge,
-      borderWidth: 3,
+      borderWidth: fixed.borderWidthHighlight,
       padding: spacing.large,
       alignItems: 'center',
       overflow: 'hidden',
       boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+    },
+    cardRevealCenter: {
+      justifyContent: 'center',
+      paddingTop: 0,
+    },
+    revealGradientBg: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: borderRadius.xlarge - fixed.borderWidthHighlight, // Inside border
     },
     factionBadge: {
       position: 'absolute',
@@ -123,8 +371,8 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       left: 0,
       right: 0,
       paddingVertical: spacing.tight,
-      borderTopLeftRadius: borderRadius.xlarge - 3,
-      borderTopRightRadius: borderRadius.xlarge - 3,
+      borderTopLeftRadius: borderRadius.xlarge - fixed.borderWidthHighlight,
+      borderTopRightRadius: borderRadius.xlarge - fixed.borderWidthHighlight,
       alignItems: 'center',
     },
     factionText: {
@@ -137,9 +385,32 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       marginTop: spacing.xlarge + spacing.medium,
       marginBottom: spacing.medium,
     },
+    /** Reveal mode: emoji centered, drop-shadow (matches HTML .role-emoji 48px on 140px card → 0.343) */
+    roleIconReveal: {
+      fontSize: Math.round(width * 0.343),
+      marginTop: 0,
+      marginBottom: Math.round(width * 0.057),
+      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowOffset: { width: 0, height: Math.round(height * 0.02) },
+      textShadowRadius: Math.round(height * 0.04),
+    },
     roleName: {
       fontSize: typography.heading,
       fontWeight: '700',
+    },
+    /** Reveal mode: bolder, letter-spaced (matches HTML .role-name 16px/800/2px on 140px card) */
+    roleNameReveal: {
+      fontSize: Math.round(width * 0.114),
+      fontWeight: '800',
+      letterSpacing: Math.round(width * 0.014),
+    },
+    /** English subtitle under role name in reveal mode (matches HTML .role-sub 10px on 140px card) */
+    roleSub: {
+      fontSize: Math.round(width * 0.071),
+      marginTop: Math.round(width * 0.029),
+      opacity: 0.5,
+      letterSpacing: Math.max(1, Math.round(width * 0.007)),
+      fontWeight: typography.weights.semibold,
     },
     divider: {
       width: '80%',
@@ -162,6 +433,9 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
     childrenSlot: {
       marginTop: 'auto',
       alignItems: 'center',
+    },
+    transparentBg: {
+      backgroundColor: 'transparent',
     },
   });
 }

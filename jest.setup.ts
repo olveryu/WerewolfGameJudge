@@ -156,6 +156,15 @@ jest.mock('./src/theme', () => {
       cardPadding: 16,
       listItemGap: 8,
     },
+    fixed: {
+      borderWidth: 1,
+      borderWidthThick: 2,
+      borderWidthHighlight: 3,
+      divider: 1,
+      minTouchTarget: 44,
+      maxContentWidth: 600,
+      keyboardOffset: 24,
+    },
   };
 });
 

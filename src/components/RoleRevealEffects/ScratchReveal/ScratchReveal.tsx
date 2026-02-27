@@ -22,7 +22,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
+import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -345,7 +345,14 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       >
         {/* Role card underneath */}
         <View style={styles.roleCardLayer}>
-          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+            revealMode
+            revealGradient={theme.revealGradient}
+            animateEntrance={isRevealed}
+          />
         </View>
 
         {/* Scratch overlay */}
@@ -413,6 +420,8 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
                       roleId={role.id as RoleId}
                       width={cardWidth}
                       height={cardHeight}
+                      revealMode
+                      revealGradient={theme.revealGradient}
                     />
                   </View>
                 </View>
@@ -451,18 +460,13 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
         {/* Glow border on reveal */}
         {showGlow && (
-          <GlowBorder
-            width={cardWidth + common.glowPadding}
-            height={cardHeight + common.glowPadding}
-            color={theme.primaryColor}
-            glowColor={theme.glowColor}
-            borderWidth={common.glowBorderWidth}
-            borderRadius={borderRadius.medium + 4}
+          <AlignmentRevealOverlay
+            alignment={role.alignment}
+            theme={theme}
+            cardWidth={cardWidth}
+            cardHeight={cardHeight}
             animate={!reducedMotion}
-            flashCount={common.glowFlashCount}
-            flashDuration={common.glowFlashDuration}
             onComplete={handleGlowComplete}
-            style={styles.glowBorder}
           />
         )}
       </View>

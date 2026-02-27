@@ -68,6 +68,15 @@ jest.mock('../../theme', () => ({
     md: { boxShadow: '0px 2px 4px rgba(0,0,0,0.1)' },
     lg: { boxShadow: '0px 4px 8px rgba(0,0,0,0.15)' },
   },
+  fixed: {
+    borderWidth: 1,
+    borderWidthThick: 2,
+    borderWidthHighlight: 3,
+    divider: 1,
+    minTouchTarget: 44,
+    maxContentWidth: 600,
+    keyboardOffset: 24,
+  },
 }));
 
 describe('RoleCardSimple', () => {

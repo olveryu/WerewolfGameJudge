@@ -21,7 +21,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
+import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -355,21 +355,23 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
         {/* Card front */}
         <Animated.View style={[styles.cardFace, styles.cardFrontZ, frontOpacityStyle]}>
-          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+            revealMode
+            revealGradient={theme.revealGradient}
+            animateEntrance={phase === 'revealed'}
+          />
 
           {phase === 'revealed' && (
-            <GlowBorder
-              width={cardWidth + common.glowPadding}
-              height={cardHeight + common.glowPadding}
-              color={theme.primaryColor}
-              glowColor={theme.glowColor}
-              borderWidth={common.glowBorderWidth}
-              borderRadius={borderRadius.medium + 4}
+            <AlignmentRevealOverlay
+              alignment={role.alignment}
+              theme={theme}
+              cardWidth={cardWidth}
+              cardHeight={cardHeight}
               animate={!reducedMotion}
-              flashCount={common.glowFlashCount}
-              flashDuration={common.glowFlashDuration}
               onComplete={handleGlowComplete}
-              style={styles.glowBorder}
             />
           )}
         </Animated.View>
@@ -418,6 +420,7 @@ const styles = StyleSheet.create({
   drawnCard: {
     borderRadius: borderRadius.medium,
     boxShadow: `0px 10px 20px rgba(212,175,55,0.5)`,
+    overflow: 'visible',
   },
   cardFace: {
     position: 'absolute',
@@ -426,7 +429,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: borderRadius.medium,
-    overflow: 'hidden',
+    overflow: 'visible',
     backfaceVisibility: 'hidden',
   },
   cardBackZ: {
