@@ -16,6 +16,7 @@ import Toast from 'react-native-toast-message';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { navigateTo } from '@/navigation/navigationRef';
 import { showAlert } from '@/utils/alert';
+import { getErrorMessage } from '@/utils/errorUtils';
 
 /** Logger interface — matches react-native-logs extended logger */
 interface Logger {
@@ -97,7 +98,7 @@ export function useAuthForm({
       onSuccess();
       resetForm();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : '请稍后重试';
+      const message = getErrorMessage(e);
       logger.warn('Email auth failed:', message);
       showAlert(isSignUp ? '注册失败' : '登录失败', message);
     }
@@ -119,7 +120,7 @@ export function useAuthForm({
       await signInAnonymously();
       onSuccess();
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
+      const message = getErrorMessage(e);
       logger.warn('Anonymous login failed:', message);
       showAlert('登录失败', message || '请稍后重试');
     }

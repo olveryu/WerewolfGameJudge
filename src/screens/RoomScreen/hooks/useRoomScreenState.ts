@@ -11,7 +11,6 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -25,6 +24,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { RootStackParamList } from '@/navigation/types';
 import { showAlert } from '@/utils/alert';
+import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
 import { getActorIdentity, isActorIdentityValid } from '../policy';
@@ -161,14 +161,15 @@ export function useRoomScreenState(
   }, [gameState]);
 
   const submitRevealAckSafe = useCallback(() => {
-    void submitRevealAck().catch((err) => {
-      roomScreenLog.error('[submitRevealAckSafe] Unhandled error', err);
-      Sentry.captureException(err);
-    });
+    fireAndForget(submitRevealAck(), '[submitRevealAckSafe] Unhandled error', roomScreenLog);
   }, [submitRevealAck]);
 
-  const submitGroupConfirmAckSafe = useCallback(async () => {
-    await submitGroupConfirmAck();
+  const submitGroupConfirmAckSafe = useCallback(() => {
+    fireAndForget(
+      submitGroupConfirmAck(),
+      '[submitGroupConfirmAckSafe] Unhandled error',
+      roomScreenLog,
+    );
   }, [submitGroupConfirmAck]);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -206,10 +207,11 @@ export function useRoomScreenState(
     if (Date.now() >= wolfVoteDeadline) {
       if (isHost && !postProgressionFiredRef.current) {
         postProgressionFiredRef.current = true;
-        void postProgression().catch((err) => {
-          roomScreenLog.error('[postProgression] countdown expired fire failed', err);
-          Sentry.captureException(err);
-        });
+        fireAndForget(
+          postProgression(),
+          '[postProgression] countdown expired fire failed',
+          roomScreenLog,
+        );
       }
       return;
     }
@@ -220,10 +222,11 @@ export function useRoomScreenState(
         // Host triggers server-side progression when countdown expires
         if (isHost && !postProgressionFiredRef.current) {
           postProgressionFiredRef.current = true;
-          void postProgression().catch((err) => {
-            roomScreenLog.error('[postProgression] countdown interval fire failed', err);
-            Sentry.captureException(err);
-          });
+          fireAndForget(
+            postProgression(),
+            '[postProgression] countdown interval fire failed',
+            roomScreenLog,
+          );
         }
       }
       setCountdownTick((t) => t + 1);
