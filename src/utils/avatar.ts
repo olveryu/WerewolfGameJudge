@@ -1,7 +1,7 @@
 /**
  * avatar - Local avatar image registry and selection utilities
  *
- * 42 dark fantasy style character portraits.
+ * 56 dark fantasy style character portraits.
  * 提供头像图片映射、基于 uid/roomId 的稳定 hash 分配和去重。
  * 不引入 React、service，也不发起网络请求。
  */
@@ -50,6 +50,20 @@ const AVATAR_IMAGES = [
   require('../../assets/avatars/villager_040.jpg'),
   require('../../assets/avatars/villager_041.jpg'),
   require('../../assets/avatars/villager_042.jpg'),
+  require('../../assets/avatars/villager_043.jpg'),
+  require('../../assets/avatars/villager_044.jpg'),
+  require('../../assets/avatars/villager_045.jpg'),
+  require('../../assets/avatars/villager_046.jpg'),
+  require('../../assets/avatars/villager_047.jpg'),
+  require('../../assets/avatars/villager_048.jpg'),
+  require('../../assets/avatars/villager_049.jpg'),
+  require('../../assets/avatars/villager_050.jpg'),
+  require('../../assets/avatars/villager_051.jpg'),
+  require('../../assets/avatars/villager_052.jpg'),
+  require('../../assets/avatars/villager_053.jpg'),
+  require('../../assets/avatars/villager_054.jpg'),
+  require('../../assets/avatars/villager_055.jpg'),
+  require('../../assets/avatars/villager_056.jpg'),
 ];
 
 /**
@@ -114,7 +128,7 @@ function getDefaultAvatarIndex(roomId: string, uid: string): number {
  *
  * Uses each uid's preferred index (from getDefaultAvatarIndex) as the starting
  * point, then probes forward to find the next free slot if taken.
- * With 42 avatars and ≤12 players this always succeeds and never collides.
+ * With 56 avatars and ≤12 players this always succeeds and never collides.
  *
  * @param roomId - The room identifier
  * @param uids   - Ordered list of player UIDs in the room
