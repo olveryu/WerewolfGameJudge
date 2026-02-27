@@ -43,7 +43,6 @@ export {
 export {
   // Types
   Faction,
-  getSeerCheckResultForTeam,
   Team,
 } from './spec/types';
 

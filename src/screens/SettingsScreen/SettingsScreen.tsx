@@ -19,8 +19,8 @@ import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { ThemeKey, typography, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
-import { getErrorMessage } from '@/utils/errorUtils';
 import { getAvatarImage } from '@/utils/avatar';
+import { getErrorMessage } from '@/utils/errorUtils';
 import { settingsLog } from '@/utils/logger';
 
 import {

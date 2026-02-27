@@ -51,7 +51,7 @@ export interface GameActionsContext {
 // Game Control API (HTTP — Phase 2)
 // =============================================================================
 
-/** Game Control API 响应（re-export from apiUtils） */
+/** Game Control API 响应（alias for readability within this file） */
 type GameControlApiResponse = ApiResponse;
 
 /**
