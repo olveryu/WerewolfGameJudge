@@ -14,6 +14,7 @@ import { Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
+import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useAuthForm } from '@/hooks/useAuthForm';
@@ -84,7 +85,7 @@ export const HomeScreen: React.FC = () => {
   // (room-not-found clears AsyncStorage, need to re-read on focus)
   useEffect(() => {
     const readLastRoom = () => {
-      AsyncStorage.getItem('lastRoomNumber')
+      AsyncStorage.getItem(LAST_ROOM_NUMBER_KEY)
         .then((value) => {
           setLastRoomNumber(value);
         })
@@ -142,7 +143,7 @@ export const HomeScreen: React.FC = () => {
     setIsJoining(true);
 
     try {
-      await AsyncStorage.setItem('lastRoomNumber', roomCode);
+      await AsyncStorage.setItem(LAST_ROOM_NUMBER_KEY, roomCode);
       setShowJoinModal(false);
       navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
       setRoomCode('');

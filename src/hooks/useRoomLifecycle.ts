@@ -18,6 +18,7 @@ import * as Sentry from '@sentry/react-native';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
+import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import type { AuthService } from '@/services/infra/AuthService';
 import type { RoomRecord, RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -154,7 +155,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         if (!record) {
           setError('房间不存在');
           // 防御性清理：房间已不存在，清除过时的 lastRoomNumber
-          void AsyncStorage.removeItem('lastRoomNumber');
+          void AsyncStorage.removeItem(LAST_ROOM_NUMBER_KEY);
           return false;
         }
         setRoomRecord(record);
