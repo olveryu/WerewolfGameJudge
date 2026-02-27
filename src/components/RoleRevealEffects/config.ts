@@ -160,6 +160,96 @@ export const CONFIG = {
   },
 
   // =====================================================
+  // Alignment reveal effects (阵营特效)
+  // =====================================================
+  alignmentEffects: {
+    /** Delay before effects start after card reveal (ms) */
+    effectStartDelay: 100,
+
+    // ── God (神职) — 圣光系 ──
+    /** Number of radiating light rays */
+    godRayCount: 12,
+    /** Max ray length (px) */
+    godRayLength: 180,
+    /** Ray + cross + halo total animation duration (ms) */
+    godAnimationDuration: 2000,
+    /** Number of sparkle particles (matches HTML demo: 40 canvas particles) */
+    godParticleCount: 40,
+
+    // ── Wolf (狼人) — 暗红系 ──
+    /** Wolf total animation duration (ms) */
+    wolfAnimationDuration: 2000,
+    /** Number of shockwave rings */
+    wolfWaveCount: 3,
+    /** Number of spark fragments (matches HTML demo: 24 sparks) */
+    wolfSparkCount: 24,
+
+    // ── Third (第三方) — 神秘系 ──
+    /** Outer rune ring rotation cycle (ms) */
+    thirdRuneRotationDuration: 12000,
+    /** Number of rune symbols */
+    thirdRuneSymbolCount: 6,
+    /** Inner rune ring rotation cycle — HTML: 8s reverse (ms) */
+    thirdInnerRingDuration: 8000,
+    /** Spiral particle orbit cycle (ms) */
+    thirdOrbitDuration: 6000,
+    /** Number of spiral particles (matches HTML demo: 30 canvas particles) */
+    thirdParticleCount: 30,
+
+    // ── Villager (村民) — 宁静系 ──
+    /** Number of floating firefly particles */
+    villagerFireflyCount: 16,
+    /** Firefly upward drift cycle (ms) */
+    villagerFireflyDuration: 5000,
+    /** Number of twinkling star points */
+    villagerStarCount: 10,
+    /** Star twinkle cycle (ms) */
+    villagerTwinkleDuration: 3000,
+
+    // ── Shared ──
+    /** How long alignment effects display before triggering onComplete (ms) */
+    effectDisplayDuration: 2500,
+    /** Breathing border cycle duration — per alignment (ms, matches HTML demo) */
+    breathingDuration: {
+      wolf: 2500,
+      god: 3000,
+      third: 4000,
+      villager: 2500,
+    } as Record<string, number>,
+
+    // ── Screen flash ──
+    /** Screen flash duration (ms) */
+    screenFlashDuration: 600,
+    /** Screen flash peak opacity per alignment */
+    screenFlashOpacity: {
+      wolf: 0.45,
+      god: 0.5,
+      third: 0.4,
+      villager: 0.3,
+    } as Record<string, number>,
+
+    // ── Card content entrance animations ──
+    /** Emoji pop animation delay after reveal (ms) */
+    emojiPopDelay: 350,
+    /** Emoji pop animation duration (ms) */
+    emojiPopDuration: 600,
+    /** Role name slide-up delay after reveal (ms) */
+    nameSlideDelay: 500,
+    /** Role name slide-up duration (ms) */
+    nameSlideDuration: 500,
+    /** Description slide-up delay after reveal (ms) */
+    descSlideDelay: 600,
+    /** Description slide-up duration (ms) */
+    descSlideDuration: 500,
+
+    // ── Wolf shake ──
+    /** Wolf card shake delay after reveal (ms) */
+    wolfShakeDelay: 350,
+    /** Wolf card shake duration (ms) */
+    wolfShakeDuration: 500,
+  },
+
+  // =====================================================
   // Haptics
   // =====================================================
   haptics: {

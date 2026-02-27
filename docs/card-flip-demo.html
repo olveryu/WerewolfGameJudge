@@ -1,0 +1,1556 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>狼人杀翻牌特效 Demo v2</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #06060f;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #eee;
+        padding: 40px 20px;
+        overflow-x: hidden;
+      }
+
+      /* 全屏闪光层 */
+      .screen-flash {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0;
+      }
+
+      .screen-flash.god-flash {
+        background: radial-gradient(
+          circle at var(--fx, 50%) var(--fy, 50%),
+          rgba(245, 215, 125, 0.5),
+          transparent 60%
+        );
+        animation: screenFlash 0.6s ease-out forwards;
+      }
+
+      .screen-flash.wolf-flash {
+        background: radial-gradient(
+          circle at var(--fx, 50%) var(--fy, 50%),
+          rgba(255, 30, 30, 0.45),
+          transparent 60%
+        );
+        animation: screenFlash 0.5s ease-out forwards;
+      }
+
+      .screen-flash.third-flash {
+        background: radial-gradient(
+          circle at var(--fx, 50%) var(--fy, 50%),
+          rgba(180, 100, 255, 0.4),
+          transparent 60%
+        );
+        animation: screenFlash 0.5s ease-out forwards;
+      }
+
+      @keyframes screenFlash {
+        0% {
+          opacity: 0;
+        }
+        15% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+        background: linear-gradient(135deg, #f5d77d, #c9a032);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .subtitle {
+        color: #888;
+        margin-bottom: 40px;
+        font-size: 14px;
+      }
+
+      .section-title {
+        font-size: 20px;
+        margin: 30px 0 20px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #222;
+        width: 100%;
+        max-width: 960px;
+        text-align: left;
+      }
+
+      .card-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 28px;
+        justify-content: center;
+        max-width: 960px;
+        margin-bottom: 20px;
+      }
+
+      /* ====== Card Container ====== */
+      .card-wrapper {
+        position: relative;
+      }
+
+      .card-container {
+        perspective: 1200px;
+        width: 140px;
+        height: 195px;
+        cursor: pointer;
+        position: relative;
+      }
+
+      .card-label {
+        text-align: center;
+        margin-top: 8px;
+        font-size: 13px;
+        color: #666;
+        transition: color 0.5s;
+      }
+
+      .card-container.flipped + .card-label {
+        color: #aaa;
+      }
+
+      /* ====== Card Inner (flip) ====== */
+      .card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transform-style: preserve-3d;
+      }
+
+      .card-container.flipped .card-inner {
+        transform: rotateY(180deg);
+      }
+
+      .card-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 600;
+        overflow: hidden;
+      }
+
+      /* ====== Card Back (共用) ====== */
+      .card-back {
+        background: linear-gradient(135deg, #151530, #1e1e4a);
+        border: 2px solid #333;
+        z-index: 2;
+        transition: border-color 0.3s;
+      }
+
+      .card-back::before {
+        content: '🐺';
+        font-size: 44px;
+        opacity: 0.2;
+        transition: opacity 0.3s;
+      }
+
+      .card-back::after {
+        content: '点击翻牌';
+        font-size: 11px;
+        color: #555;
+        margin-top: 10px;
+      }
+
+      .card-container:hover .card-back {
+        border-color: #555;
+      }
+
+      .card-container:hover .card-back::before {
+        opacity: 0.35;
+      }
+
+      /* ====== Card Front (base) ====== */
+      .card-front {
+        transform: rotateY(180deg);
+        z-index: 1;
+      }
+
+      .card-front .role-emoji {
+        font-size: 48px;
+        margin-bottom: 8px;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+        position: relative;
+        z-index: 2;
+      }
+
+      .card-front .role-name {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        position: relative;
+        z-index: 2;
+      }
+
+      .card-front .role-sub {
+        font-size: 10px;
+        margin-top: 4px;
+        opacity: 0.5;
+        position: relative;
+        z-index: 2;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      /* ============================================================
+     普通村民 / 普通狼人 — 简约翻牌
+     ============================================================ */
+      .card-normal .card-front {
+        background: linear-gradient(160deg, #1e2230, #2a3040, #1e2230);
+        border: 2px solid #444;
+        color: #ccc;
+      }
+
+      .card-normal.flipped .card-front {
+        animation: normalReveal 0.6s ease-out forwards;
+      }
+
+      @keyframes normalReveal {
+        0% {
+          box-shadow: none;
+        }
+        40% {
+          box-shadow: 0 0 15px 3px rgba(150, 150, 180, 0.2);
+        }
+        100% {
+          box-shadow: 0 0 8px 2px rgba(150, 150, 180, 0.08);
+        }
+      }
+
+      /* ============================================================
+     ✨ 神职 — 圣光爆发 + 射线 + 粒子雨 + 光环
+     ============================================================ */
+      .card-god .card-front {
+        background: linear-gradient(160deg, #15101e, #1e1528, #15101e);
+        border: 2px solid rgba(201, 160, 50, 0.4);
+        color: #f5d77d;
+      }
+
+      /* 翻开 glow */
+      .card-god.flipped .card-front {
+        animation: godGlow 2.5s ease-out forwards;
+      }
+
+      @keyframes godGlow {
+        0% {
+          box-shadow: 0 0 0 0 rgba(201, 160, 50, 0);
+        }
+        15% {
+          box-shadow:
+            0 0 40px 15px rgba(245, 215, 125, 0.7),
+            0 0 80px 30px rgba(201, 160, 50, 0.35),
+            inset 0 0 40px rgba(245, 215, 125, 0.2);
+        }
+        40% {
+          box-shadow:
+            0 0 25px 10px rgba(245, 215, 125, 0.4),
+            0 0 50px 20px rgba(201, 160, 50, 0.15),
+            inset 0 0 25px rgba(245, 215, 125, 0.08);
+        }
+        100% {
+          box-shadow:
+            0 0 12px 4px rgba(245, 215, 125, 0.2),
+            0 0 25px 8px rgba(201, 160, 50, 0.06),
+            inset 0 0 10px rgba(245, 215, 125, 0.03);
+        }
+      }
+
+      /* 射线容器 */
+      .god-rays {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: visible;
+        border-radius: 14px;
+        opacity: 0;
+      }
+
+      .card-god.flipped .god-rays {
+        animation: raysAppear 0.3s 0.25s ease-out forwards;
+      }
+
+      @keyframes raysAppear {
+        to {
+          opacity: 1;
+        }
+      }
+
+      .god-ray {
+        position: absolute;
+        top: 42%;
+        left: 50%;
+        width: 2px;
+        height: 0;
+        background: linear-gradient(to top, rgba(245, 215, 125, 0.8), transparent);
+        transform-origin: bottom center;
+        border-radius: 2px;
+      }
+
+      .card-god.flipped .god-ray {
+        animation: rayShoot 1.2s ease-out forwards;
+      }
+
+      @keyframes rayShoot {
+        0% {
+          height: 0;
+          opacity: 1;
+        }
+        40% {
+          height: 160px;
+          opacity: 0.7;
+        }
+        100% {
+          height: 200px;
+          opacity: 0;
+        }
+      }
+
+      /* 大十字闪光 */
+      .god-cross {
+        position: absolute;
+        top: 42%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      .god-cross::before,
+      .god-cross::after {
+        content: '';
+        position: absolute;
+        background: linear-gradient(to right, transparent, rgba(255, 240, 180, 0.95), transparent);
+        transform-origin: center;
+        opacity: 0;
+      }
+
+      .god-cross::before {
+        width: 280px;
+        height: 3px;
+        left: -140px;
+        top: -1.5px;
+      }
+
+      .god-cross::after {
+        width: 3px;
+        height: 280px;
+        left: -1.5px;
+        top: -140px;
+      }
+
+      .card-god.flipped .god-cross::before {
+        animation: crossH 1s 0.2s ease-out forwards;
+      }
+
+      .card-god.flipped .god-cross::after {
+        animation: crossV 1s 0.2s ease-out forwards;
+      }
+
+      @keyframes crossH {
+        0% {
+          opacity: 0;
+          transform: scaleX(0);
+        }
+        25% {
+          opacity: 1;
+          transform: scaleX(1.3);
+        }
+        60% {
+          opacity: 0.3;
+          transform: scaleX(1.1);
+        }
+        100% {
+          opacity: 0;
+          transform: scaleX(1.5);
+        }
+      }
+
+      @keyframes crossV {
+        0% {
+          opacity: 0;
+          transform: scaleY(0);
+        }
+        25% {
+          opacity: 1;
+          transform: scaleY(1.3);
+        }
+        60% {
+          opacity: 0.3;
+          transform: scaleY(1.1);
+        }
+        100% {
+          opacity: 0;
+          transform: scaleY(1.5);
+        }
+      }
+
+      /* 光环扩散（多层） */
+      .god-halo {
+        position: absolute;
+        border: 2px solid rgba(245, 215, 125, 0.5);
+        border-radius: 50%;
+        top: 42%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      .god-halo-1 {
+        width: 60px;
+        height: 60px;
+      }
+      .god-halo-2 {
+        width: 80px;
+        height: 80px;
+      }
+      .god-halo-3 {
+        width: 100px;
+        height: 100px;
+        border-width: 1px;
+      }
+
+      .card-god.flipped .god-halo-1 {
+        animation: haloExpand 1s 0.15s ease-out forwards;
+      }
+      .card-god.flipped .god-halo-2 {
+        animation: haloExpand 1.2s 0.3s ease-out forwards;
+      }
+      .card-god.flipped .god-halo-3 {
+        animation: haloExpand 1.4s 0.45s ease-out forwards;
+      }
+
+      @keyframes haloExpand {
+        0% {
+          transform: translate(-50%, -50%) scale(0);
+          opacity: 1;
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(2);
+          opacity: 0.4;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(3);
+          opacity: 0;
+        }
+      }
+
+      /* 粒子雨(canvas) */
+      .god-canvas {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: 14px;
+        z-index: 1;
+      }
+
+      /* emoji 弹出缩放 */
+      .card-god.flipped .role-emoji {
+        animation: emojiPop 0.6s 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+
+      @keyframes emojiPop {
+        0% {
+          transform: scale(0.3);
+          opacity: 0;
+        }
+        60% {
+          transform: scale(1.2);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* 名字渐入 */
+      .card-god.flipped .role-name {
+        animation: nameSlideUp 0.5s 0.5s ease-out both;
+      }
+
+      .card-god.flipped .role-sub {
+        animation: nameSlideUp 0.5s 0.6s ease-out both;
+      }
+
+      @keyframes nameSlideUp {
+        0% {
+          transform: translateY(10px);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      /* 神职持续闪烁边框 */
+      .card-god.flipped::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 16px;
+        border: 2px solid rgba(245, 215, 125, 0.3);
+        animation: godBorderBreath 3s ease-in-out infinite;
+        pointer-events: none;
+      }
+
+      @keyframes godBorderBreath {
+        0%,
+        100% {
+          border-color: rgba(245, 215, 125, 0.15);
+          box-shadow: 0 0 8px rgba(245, 215, 125, 0.1);
+        }
+        50% {
+          border-color: rgba(245, 215, 125, 0.4);
+          box-shadow: 0 0 15px rgba(245, 215, 125, 0.2);
+        }
+      }
+
+      /* ============================================================
+     🐺 技能狼 — 暗红震撼
+     ============================================================ */
+      .card-skillwolf .card-front {
+        background: linear-gradient(160deg, #120505, #1e0a0a, #120505);
+        border: 2px solid rgba(180, 0, 0, 0.5);
+        color: #ff3333;
+      }
+
+      .card-skillwolf.flipped .card-front {
+        animation: wolfGlow 2.5s ease-out forwards;
+      }
+
+      @keyframes wolfGlow {
+        0% {
+          box-shadow: 0 0 0 0 rgba(139, 0, 0, 0);
+        }
+        12% {
+          box-shadow:
+            0 0 50px 20px rgba(255, 30, 30, 0.6),
+            0 0 100px 40px rgba(139, 0, 0, 0.3),
+            inset 0 0 40px rgba(255, 30, 30, 0.15);
+        }
+        35% {
+          box-shadow:
+            0 0 30px 12px rgba(255, 30, 30, 0.35),
+            0 0 60px 25px rgba(139, 0, 0, 0.15),
+            inset 0 0 25px rgba(255, 30, 30, 0.06);
+        }
+        100% {
+          box-shadow:
+            0 0 15px 5px rgba(255, 30, 30, 0.2),
+            0 0 30px 10px rgba(139, 0, 0, 0.06),
+            inset 0 0 10px rgba(255, 30, 30, 0.03);
+        }
+      }
+
+      /* 震动 */
+      .card-skillwolf.flipped .card-inner {
+        animation: wolfShake 0.5s 0.35s ease-out;
+      }
+
+      @keyframes wolfShake {
+        0% {
+          transform: rotateY(180deg) translateX(0);
+        }
+        15% {
+          transform: rotateY(180deg) translateX(-4px) rotate(-1deg);
+        }
+        30% {
+          transform: rotateY(180deg) translateX(4px) rotate(1deg);
+        }
+        45% {
+          transform: rotateY(180deg) translateX(-3px) rotate(-0.5deg);
+        }
+        60% {
+          transform: rotateY(180deg) translateX(2px) rotate(0.5deg);
+        }
+        80% {
+          transform: rotateY(180deg) translateX(-1px);
+        }
+        100% {
+          transform: rotateY(180deg) translateX(0);
+        }
+      }
+
+      /* 暗能量波纹 */
+      .wolf-wave {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border: 2px solid rgba(255, 30, 30, 0.6);
+        border-radius: 50%;
+        top: 42%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      .card-skillwolf.flipped .wolf-wave:nth-child(2) {
+        animation: wolfWaveExpand 1.2s 0.2s ease-out forwards;
+      }
+      .card-skillwolf.flipped .wolf-wave:nth-child(3) {
+        animation: wolfWaveExpand 1.4s 0.35s ease-out forwards;
+        border-color: rgba(255, 30, 30, 0.3);
+      }
+      .card-skillwolf.flipped .wolf-wave:nth-child(4) {
+        animation: wolfWaveExpand 1.6s 0.5s ease-out forwards;
+        border-color: rgba(255, 30, 30, 0.15);
+        border-width: 1px;
+      }
+
+      @keyframes wolfWaveExpand {
+        0% {
+          transform: translate(-50%, -50%) scale(0);
+          opacity: 1;
+        }
+        60% {
+          transform: translate(-50%, -50%) scale(3.5);
+          opacity: 0.3;
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(5);
+          opacity: 0;
+        }
+      }
+
+      /* 裂纹 SVG */
+      .wolf-cracks {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: 14px;
+        overflow: hidden;
+        opacity: 0;
+        z-index: 4;
+      }
+
+      .card-skillwolf.flipped .wolf-cracks {
+        animation:
+          cracksAppear 0.15s 0.2s steps(2) forwards,
+          cracksGlow 3s 1s ease-in-out infinite;
+      }
+
+      @keyframes cracksAppear {
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes cracksGlow {
+        0%,
+        100% {
+          filter: brightness(1);
+        }
+        50% {
+          filter: brightness(1.6);
+        }
+      }
+
+      .crack-svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* 烟雾(canvas) */
+      .wolf-canvas {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: 14px;
+        z-index: 1;
+      }
+
+      /* 暗红粒子碎片 */
+      .wolf-spark {
+        position: absolute;
+        width: 3px;
+        height: 3px;
+        background: #ff4444;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      /* 狼眼闪现 */
+      .wolf-eyes {
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 20px;
+        pointer-events: none;
+        z-index: 3;
+        opacity: 0;
+      }
+
+      .wolf-eye {
+        position: absolute;
+        width: 10px;
+        height: 6px;
+        background: radial-gradient(ellipse, #ff2222, rgba(255, 30, 30, 0.3));
+        border-radius: 50%;
+        filter: blur(2px);
+        box-shadow: 0 0 10px 3px rgba(255, 30, 30, 0.5);
+      }
+
+      .wolf-eye.left {
+        left: 8px;
+      }
+      .wolf-eye.right {
+        right: 8px;
+      }
+
+      .card-skillwolf.flipped .wolf-eyes {
+        animation: eyesFlash 1.5s 0.2s ease-out forwards;
+      }
+
+      @keyframes eyesFlash {
+        0% {
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        25% {
+          opacity: 1;
+        }
+        40% {
+          opacity: 0.1;
+        }
+        45% {
+          opacity: 0.9;
+        }
+        60% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
+      /* emoji 弹出 + 震颤 */
+      .card-skillwolf.flipped .role-emoji {
+        animation: emojiPopWolf 0.7s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+
+      @keyframes emojiPopWolf {
+        0% {
+          transform: scale(0.2) rotate(-10deg);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.3) rotate(3deg);
+          opacity: 1;
+        }
+        70% {
+          transform: scale(0.95) rotate(-1deg);
+        }
+        100% {
+          transform: scale(1) rotate(0);
+          opacity: 1;
+        }
+      }
+
+      .card-skillwolf.flipped .role-name {
+        animation: nameSlideUp 0.5s 0.5s ease-out both;
+      }
+      .card-skillwolf.flipped .role-sub {
+        animation: nameSlideUp 0.5s 0.6s ease-out both;
+      }
+
+      /* 持续红色呼吸边框 */
+      .card-skillwolf.flipped::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 16px;
+        border: 2px solid rgba(255, 30, 30, 0.25);
+        animation: wolfBorderBreath 2.5s ease-in-out infinite;
+        pointer-events: none;
+      }
+
+      @keyframes wolfBorderBreath {
+        0%,
+        100% {
+          border-color: rgba(255, 30, 30, 0.12);
+          box-shadow: 0 0 6px rgba(255, 30, 30, 0.08);
+        }
+        50% {
+          border-color: rgba(255, 30, 30, 0.35);
+          box-shadow: 0 0 12px rgba(255, 30, 30, 0.15);
+        }
+      }
+
+      /* 底部烟雾 CSS */
+      .wolf-fog {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60%;
+        pointer-events: none;
+        border-radius: 0 0 14px 14px;
+        background: linear-gradient(to top, rgba(80, 0, 0, 0.3), transparent);
+        opacity: 0;
+        z-index: 1;
+      }
+
+      .card-skillwolf.flipped .wolf-fog {
+        animation: fogRise 2s 0.4s ease-out forwards;
+      }
+
+      @keyframes fogRise {
+        0% {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        40% {
+          opacity: 0.8;
+          transform: translateY(0);
+        }
+        100% {
+          opacity: 0.4;
+          transform: translateY(-5px);
+        }
+      }
+
+      /* ============================================================
+     🎭 第三方 — 紫色漩涡 + 神秘符文
+     ============================================================ */
+      .card-third .card-front {
+        background: linear-gradient(160deg, #0a0515, #150a25, #0a0515);
+        border: 2px solid rgba(123, 47, 190, 0.5);
+        color: #c77dff;
+      }
+
+      .card-third.flipped .card-front {
+        animation: thirdGlow 2.5s ease-out forwards;
+      }
+
+      @keyframes thirdGlow {
+        0% {
+          box-shadow: 0 0 0 0 rgba(123, 47, 190, 0);
+        }
+        15% {
+          box-shadow:
+            0 0 35px 12px rgba(199, 125, 255, 0.55),
+            0 0 70px 25px rgba(123, 47, 190, 0.25),
+            inset 0 0 30px rgba(199, 125, 255, 0.12);
+        }
+        40% {
+          box-shadow:
+            0 0 20px 8px rgba(199, 125, 255, 0.3),
+            0 0 40px 15px rgba(123, 47, 190, 0.1),
+            inset 0 0 15px rgba(199, 125, 255, 0.05);
+        }
+        100% {
+          box-shadow:
+            0 0 10px 3px rgba(199, 125, 255, 0.15),
+            0 0 20px 6px rgba(123, 47, 190, 0.04),
+            inset 0 0 8px rgba(199, 125, 255, 0.02);
+        }
+      }
+
+      /* 旋转符文环 */
+      .third-rune-ring {
+        position: absolute;
+        inset: -15px;
+        pointer-events: none;
+        z-index: 3;
+        opacity: 0;
+      }
+
+      .card-third.flipped .third-rune-ring {
+        animation: runeAppear 0.5s 0.3s ease-out forwards;
+      }
+
+      @keyframes runeAppear {
+        0% {
+          opacity: 0;
+          transform: scale(0.5) rotate(-30deg);
+        }
+        100% {
+          opacity: 0.6;
+          transform: scale(1) rotate(0deg);
+        }
+      }
+
+      .rune-circle {
+        position: absolute;
+        inset: 0;
+        border: 1px dashed rgba(199, 125, 255, 0.25);
+        border-radius: 50%;
+        animation: runeRotate 12s linear infinite;
+      }
+
+      .rune-circle:nth-child(2) {
+        inset: 10px;
+        animation-direction: reverse;
+        animation-duration: 8s;
+        border-style: dotted;
+        border-color: rgba(199, 125, 255, 0.15);
+      }
+
+      @keyframes runeRotate {
+        from {
+          transform: rotate(0);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .rune-symbol {
+        position: absolute;
+        font-size: 14px;
+        opacity: 0.4;
+        animation: runeFloat 4s ease-in-out infinite;
+      }
+
+      @keyframes runeFloat {
+        0%,
+        100% {
+          opacity: 0.3;
+          transform: translateY(0);
+        }
+        50% {
+          opacity: 0.6;
+          transform: translateY(-4px);
+        }
+      }
+
+      .card-third.flipped .role-emoji {
+        animation: emojiPop 0.6s 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+
+      .card-third.flipped .role-name {
+        animation: nameSlideUp 0.5s 0.5s ease-out both;
+      }
+      .card-third.flipped .role-sub {
+        animation: nameSlideUp 0.5s 0.6s ease-out both;
+      }
+
+      .card-third.flipped::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 16px;
+        border: 2px solid rgba(199, 125, 255, 0.2);
+        animation: thirdBorderBreath 4s ease-in-out infinite;
+        pointer-events: none;
+      }
+
+      @keyframes thirdBorderBreath {
+        0%,
+        100% {
+          border-color: rgba(199, 125, 255, 0.1);
+          box-shadow: 0 0 5px rgba(199, 125, 255, 0.06);
+        }
+        50% {
+          border-color: rgba(199, 125, 255, 0.3);
+          box-shadow: 0 0 10px rgba(199, 125, 255, 0.12);
+        }
+      }
+
+      /* 第三方 canvas */
+      .third-canvas {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: 14px;
+        z-index: 1;
+      }
+
+      /* ====== 重置按钮 ====== */
+      .reset-btn {
+        margin-top: 40px;
+        padding: 14px 36px;
+        background: linear-gradient(135deg, #1a1a2e, #2a2a4e);
+        border: 1px solid #444;
+        color: #ccc;
+        font-size: 15px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        letter-spacing: 1px;
+      }
+
+      .reset-btn:hover {
+        background: linear-gradient(135deg, #2a2a4e, #3a3a6e);
+        border-color: #666;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      /* ====== 说明 ====== */
+      .legend {
+        margin-top: 40px;
+        max-width: 720px;
+        background: #0d0d1a;
+        border-radius: 14px;
+        padding: 24px 28px;
+        border: 1px solid #1a1a30;
+        line-height: 2;
+        font-size: 13px;
+        color: #888;
+      }
+
+      .legend h3 {
+        color: #bbb;
+        margin-bottom: 12px;
+        font-size: 15px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 6px 0;
+      }
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 5px;
+      }
+
+      .legend-dot.god {
+        background: #f5d77d;
+        box-shadow: 0 0 6px rgba(245, 215, 125, 0.5);
+      }
+      .legend-dot.wolf {
+        background: #ff3333;
+        box-shadow: 0 0 6px rgba(255, 50, 50, 0.5);
+      }
+      .legend-dot.third {
+        background: #c77dff;
+        box-shadow: 0 0 6px rgba(199, 125, 255, 0.5);
+      }
+      .legend-dot.normal {
+        background: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 全屏闪光层 -->
+    <div class="screen-flash" id="screenFlash"></div>
+
+    <h1>🐺 狼人杀翻牌特效 v2</h1>
+    <p class="subtitle">点击卡牌查看翻牌动画 — 神职 / 技能狼 / 第三方拥有特殊特效</p>
+
+    <!-- ====== 普通角色 ====== -->
+    <div class="section-title">👤 普通角色</div>
+    <div class="card-row" id="normalRow"></div>
+
+    <!-- ====== 神职 ====== -->
+    <div class="section-title">✨ 神职 — 圣光降临</div>
+    <div class="card-row" id="godRow"></div>
+
+    <!-- ====== 技能狼 ====== -->
+    <div class="section-title">🐺 技能狼 — 暗影觉醒</div>
+    <div class="card-row" id="wolfRow"></div>
+
+    <!-- ====== 第三方 ====== -->
+    <div class="section-title">🎭 第三方 — 神秘现身</div>
+    <div class="card-row" id="thirdRow"></div>
+
+    <button class="reset-btn" onclick="resetAll()">🔄 重置所有卡牌</button>
+
+    <div class="legend">
+      <h3>特效说明</h3>
+      <div class="legend-item">
+        <div class="legend-dot normal"></div>
+        <span><strong>普通角色</strong>（村民、普通狼人）— 基础翻牌微光</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot god"></div>
+        <span
+          ><strong>神职</strong>（15种）— 全屏金光闪烁 + 十字圣光射线 + 光环冲击波 ×3 + 金色粒子雨 +
+          呼吸边框</span
+        >
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot wolf"></div>
+        <span
+          ><strong>技能狼</strong>（10种）— 全屏红光 + 暗能量冲击波 ×3 + 卡牌震颤 + 裂纹闪电 +
+          狼眼闪烁 + 暗红烟雾 + 火花碎片 + 呼吸边框</span
+        >
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot third"></div>
+        <span><strong>第三方</strong>（3种）— 全屏紫光 + 旋转符文环 + 紫色粒子漂浮 + 呼吸边框</span>
+      </div>
+    </div>
+
+    <script>
+      // ====== 角色数据 ======
+      const roles = {
+        normal: [
+          { emoji: '👤', name: '普通村民', sub: 'Villager' },
+          { emoji: '🐺', name: '普通狼人', sub: 'Wolf' },
+        ],
+        god: [
+          { emoji: '🔮', name: '预言家', sub: 'Seer' },
+          { emoji: '🧙‍♀️', name: '女巫', sub: 'Witch' },
+          { emoji: '🏹', name: '猎人', sub: 'Hunter' },
+          { emoji: '🛡️', name: '守卫', sub: 'Guard' },
+          { emoji: '🤡', name: '白痴', sub: 'Idiot' },
+          { emoji: '🗡️', name: '骑士', sub: 'Knight' },
+          { emoji: '🎩', name: '魔术师', sub: 'Magician' },
+          { emoji: '🔪', name: '猎魔人', sub: 'Witcher' },
+          { emoji: '👁️', name: '通灵师', sub: 'Psychic' },
+          { emoji: '🌙', name: '摄梦人', sub: 'Dreamcatcher' },
+          { emoji: '⚰️', name: '守墓人', sub: 'GraveyardKeeper' },
+          { emoji: '🤍', name: '纯白之女', sub: 'PureWhite' },
+          { emoji: '💃', name: '舞者', sub: 'Dancer' },
+          { emoji: '🤫', name: '禁言长老', sub: 'SilenceElder' },
+          { emoji: '🚫', name: '禁票长老', sub: 'VotebanElder' },
+        ],
+        wolf: [
+          { emoji: '👸🐺', name: '狼美人', sub: 'WolfQueen' },
+          { emoji: '👑🐺', name: '白狼王', sub: 'WolfKing' },
+          { emoji: '🌑👑', name: '黑狼王', sub: 'DarkWolfKing' },
+          { emoji: '😱', name: '梦魇', sub: 'Nightmare' },
+          { emoji: '🗿', name: '石像鬼', sub: 'Gargoyle' },
+          { emoji: '🩸', name: '血月使徒', sub: 'BloodMoon' },
+          { emoji: '🤖🐺', name: '机械狼', sub: 'WolfRobot' },
+          { emoji: '🧙🐺', name: '狼巫', sub: 'WolfWitch' },
+          { emoji: '⚔️', name: '恶灵骑士', sub: 'SpiritKnight' },
+          { emoji: '🎭🐺', name: '假面', sub: 'Masquerade' },
+        ],
+        third: [
+          { emoji: '😴', name: '混子', sub: 'Slacker' },
+          { emoji: '👶', name: '野孩子', sub: 'WildChild' },
+          { emoji: '🪈', name: '吹笛者', sub: 'Piper' },
+        ],
+      };
+
+      // ====== 建卡 ======
+      function createCard(role, type) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card-wrapper';
+
+        const container = document.createElement('div');
+        container.className = `card-container card-${type}`;
+        container.onclick = function () {
+          flipCard(this, type);
+        };
+
+        const inner = document.createElement('div');
+        inner.className = 'card-inner';
+
+        const back = document.createElement('div');
+        back.className = 'card-face card-back';
+
+        const front = document.createElement('div');
+        front.className = 'card-face card-front';
+
+        if (type === 'god') {
+          front.innerHTML = `
+      <div class="god-cross"></div>
+      <div class="god-halo god-halo-1"></div>
+      <div class="god-halo god-halo-2"></div>
+      <div class="god-halo god-halo-3"></div>
+      <div class="god-rays"></div>
+      <canvas class="god-canvas"></canvas>
+    `;
+          const rays = front.querySelector('.god-rays');
+          for (let i = 0; i < 16; i++) {
+            const ray = document.createElement('div');
+            ray.className = 'god-ray';
+            ray.style.transform = `rotate(${i * 22.5}deg)`;
+            ray.style.animationDelay = `${0.25 + i * 0.03}s`;
+            ray.style.opacity = 0.3 + Math.random() * 0.5;
+            ray.style.width = 1 + Math.random() * 2 + 'px';
+            rays.appendChild(ray);
+          }
+        }
+
+        if (type === 'skillwolf') {
+          front.innerHTML = `
+      <div class="wolf-eyes"><div class="wolf-eye left"></div><div class="wolf-eye right"></div></div>
+      <div class="wolf-wave"></div><div class="wolf-wave"></div><div class="wolf-wave"></div>
+      <div class="wolf-cracks">
+        <svg class="crack-svg" viewBox="0 0 140 195">
+          <line x1="45" y1="10" x2="50" y2="55" stroke="rgba(255,60,30,0.6)" stroke-width="1.5"/>
+          <line x1="50" y1="55" x2="38" y2="90" stroke="rgba(255,60,30,0.5)" stroke-width="1.2"/>
+          <line x1="50" y1="55" x2="65" y2="80" stroke="rgba(255,60,30,0.4)" stroke-width="1"/>
+          <line x1="90" y1="15" x2="85" y2="60" stroke="rgba(255,60,30,0.55)" stroke-width="1.3"/>
+          <line x1="85" y1="60" x2="95" y2="100" stroke="rgba(255,60,30,0.4)" stroke-width="1"/>
+          <line x1="85" y1="60" x2="72" y2="85" stroke="rgba(255,60,30,0.35)" stroke-width="0.8"/>
+          <line x1="30" y1="130" x2="55" y2="175" stroke="rgba(255,60,30,0.3)" stroke-width="1"/>
+          <line x1="100" y1="140" x2="80" y2="185" stroke="rgba(255,60,30,0.3)" stroke-width="0.8"/>
+        </svg>
+      </div>
+      <div class="wolf-fog"></div>
+      <canvas class="wolf-canvas"></canvas>
+    `;
+        }
+
+        if (type === 'third') {
+          const runeSymbols = ['✦', '⟡', '◇', '⊕', '☽', '✧', '⚝', '◈'];
+          front.innerHTML = `
+      <div class="third-rune-ring">
+        <div class="rune-circle"></div>
+        <div class="rune-circle"></div>
+      </div>
+      <canvas class="third-canvas"></canvas>
+    `;
+          const ring = front.querySelector('.third-rune-ring');
+          for (let i = 0; i < 8; i++) {
+            const sym = document.createElement('div');
+            sym.className = 'rune-symbol';
+            const angle = (i / 8) * Math.PI * 2;
+            const r = 72;
+            sym.style.left = 50 + (Math.cos(angle) * r) / 1.7 + '%';
+            sym.style.top = 50 + (Math.sin(angle) * r) / 2.4 + '%';
+            sym.textContent = runeSymbols[i];
+            sym.style.animationDelay = i * 0.5 + 's';
+            sym.style.color = 'rgba(199,125,255,0.6)';
+            ring.appendChild(sym);
+          }
+        }
+
+        const emojiDiv = document.createElement('div');
+        emojiDiv.className = 'role-emoji';
+        emojiDiv.textContent = role.emoji;
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'role-name';
+        nameDiv.textContent = role.name;
+
+        const subDiv = document.createElement('div');
+        subDiv.className = 'role-sub';
+        subDiv.textContent = role.sub;
+
+        front.appendChild(emojiDiv);
+        front.appendChild(nameDiv);
+        front.appendChild(subDiv);
+
+        inner.appendChild(back);
+        inner.appendChild(front);
+        container.appendChild(inner);
+
+        const label = document.createElement('div');
+        label.className = 'card-label';
+        label.textContent = role.name;
+
+        wrapper.appendChild(container);
+        wrapper.appendChild(label);
+        return wrapper;
+      }
+
+      // 渲染所有卡牌
+      Object.entries(roles).forEach(([type, list]) => {
+        const rowId = type === 'wolf' ? 'wolfRow' : type + 'Row';
+        const row = document.getElementById(rowId);
+        const cardType = type === 'wolf' ? 'skillwolf' : type;
+        list.forEach((role) => {
+          row.appendChild(createCard(role, cardType));
+        });
+      });
+
+      // ====== 翻牌逻辑 ======
+      function flipCard(el, type) {
+        if (el.classList.contains('flipped')) return;
+        el.classList.add('flipped');
+
+        // 全屏闪光
+        const flash = document.getElementById('screenFlash');
+        const rect = el.getBoundingClientRect();
+        const fx = (((rect.left + rect.width / 2) / window.innerWidth) * 100).toFixed(1);
+        const fy = (((rect.top + rect.height / 2) / window.innerHeight) * 100).toFixed(1);
+        flash.style.setProperty('--fx', fx + '%');
+        flash.style.setProperty('--fy', fy + '%');
+        flash.className = 'screen-flash';
+
+        if (type === 'god') {
+          setTimeout(() => {
+            flash.classList.add('god-flash');
+          }, 250);
+          startGodParticles(el);
+        } else if (type === 'skillwolf') {
+          setTimeout(() => {
+            flash.classList.add('wolf-flash');
+          }, 200);
+          spawnSparks(el);
+          startWolfSmoke(el);
+        } else if (type === 'third') {
+          setTimeout(() => {
+            flash.classList.add('third-flash');
+          }, 250);
+          startThirdParticles(el);
+        }
+
+        setTimeout(() => {
+          flash.className = 'screen-flash';
+        }, 1200);
+      }
+
+      // ====== 神职金色粒子雨 (Canvas) ======
+      function startGodParticles(cardEl) {
+        const canvas = cardEl.querySelector('.god-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = 140;
+        canvas.height = 195;
+
+        const particles = [];
+        for (let i = 0; i < 40; i++) {
+          particles.push({
+            x: Math.random() * 140,
+            y: Math.random() * 195,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: -0.3 - Math.random() * 1.2,
+            size: 1 + Math.random() * 2.5,
+            alpha: 0.3 + Math.random() * 0.7,
+            life: 1,
+            twinkle: Math.random() * Math.PI * 2,
+          });
+        }
+
+        let frame = 0;
+        function draw() {
+          ctx.clearRect(0, 0, 140, 195);
+          particles.forEach((p) => {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.003;
+            p.twinkle += 0.1;
+            if (p.life <= 0) return;
+
+            const flicker = 0.5 + 0.5 * Math.sin(p.twinkle);
+            const a = p.alpha * p.life * flicker;
+
+            // 星形
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.twinkle * 0.3);
+            ctx.beginPath();
+            for (let j = 0; j < 4; j++) {
+              const ang = (j / 4) * Math.PI * 2;
+              ctx.moveTo(0, 0);
+              ctx.lineTo(Math.cos(ang) * p.size * 2, Math.sin(ang) * p.size * 2);
+            }
+            ctx.strokeStyle = `rgba(245, 215, 125, ${a * 0.4})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(245, 215, 125, ${a})`;
+            ctx.fill();
+
+            // glow
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(245, 215, 125, ${a * 0.1})`;
+            ctx.fill();
+          });
+
+          frame++;
+          if (frame < 350) requestAnimationFrame(draw);
+        }
+        setTimeout(draw, 400);
+      }
+
+      // ====== 技能狼火花碎片 ======
+      function spawnSparks(cardEl) {
+        const front = cardEl.querySelector('.card-front');
+        const cx = 70,
+          cy = 80;
+
+        for (let i = 0; i < 24; i++) {
+          const spark = document.createElement('div');
+          spark.className = 'wolf-spark';
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 40 + Math.random() * 100;
+          const tx = cx + Math.cos(angle) * dist;
+          const ty = cy + Math.sin(angle) * dist;
+          spark.style.left = cx + 'px';
+          spark.style.top = cy + 'px';
+          const sz = 1.5 + Math.random() * 3;
+          spark.style.width = sz + 'px';
+          spark.style.height = sz + 'px';
+          const hue = Math.random() * 40;
+          spark.style.background = `hsl(${hue}, 100%, ${50 + Math.random() * 30}%)`;
+          spark.style.boxShadow = `0 0 ${4 + Math.random() * 4}px ${spark.style.background}`;
+          front.appendChild(spark);
+
+          spark.animate(
+            [
+              { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+              { transform: `translate(${tx - cx}px, ${ty - cy}px) scale(0)`, opacity: 0 },
+            ],
+            {
+              duration: 600 + Math.random() * 700,
+              delay: 200 + Math.random() * 200,
+              easing: 'cubic-bezier(0, 0.5, 0.5, 1)',
+              fill: 'forwards',
+            },
+          );
+
+          setTimeout(() => spark.remove(), 1600);
+        }
+      }
+
+      // ====== 技能狼烟雾 (Canvas) ======
+      function startWolfSmoke(cardEl) {
+        const canvas = cardEl.querySelector('.wolf-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = 140;
+        canvas.height = 195;
+
+        const smokes = [];
+        for (let i = 0; i < 18; i++) {
+          smokes.push({
+            x: 20 + Math.random() * 100,
+            y: 155 + Math.random() * 40,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: -0.4 - Math.random() * 0.9,
+            size: 15 + Math.random() * 30,
+            alpha: 0.15 + Math.random() * 0.25,
+            life: 1,
+          });
+        }
+
+        let frame = 0;
+        function draw() {
+          ctx.clearRect(0, 0, 140, 195);
+          smokes.forEach((s) => {
+            s.x += s.vx + Math.sin(frame * 0.02 + s.y) * 0.2;
+            s.y += s.vy;
+            s.size += 0.35;
+            s.life -= 0.004;
+            if (s.life <= 0) return;
+
+            const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.size);
+            grad.addColorStop(0, `rgba(120, 10, 10, ${s.alpha * s.life})`);
+            grad.addColorStop(0.5, `rgba(60, 0, 0, ${s.alpha * s.life * 0.5})`);
+            grad.addColorStop(1, `rgba(30, 0, 0, 0)`);
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+          });
+
+          frame++;
+          if (frame < 350) requestAnimationFrame(draw);
+        }
+        setTimeout(draw, 300);
+      }
+
+      // ====== 第三方紫色粒子 (Canvas) ======
+      function startThirdParticles(cardEl) {
+        const canvas = cardEl.querySelector('.third-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = 140;
+        canvas.height = 195;
+
+        const particles = [];
+        for (let i = 0; i < 30; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const r = 15 + Math.random() * 45;
+          particles.push({
+            cx: 70,
+            cy: 90,
+            angle,
+            r,
+            speed: 0.008 + Math.random() * 0.015,
+            size: 1 + Math.random() * 2.5,
+            alpha: 0.3 + Math.random() * 0.6,
+            life: 1,
+          });
+        }
+
+        let frame = 0;
+        function draw() {
+          ctx.clearRect(0, 0, 140, 195);
+          particles.forEach((p) => {
+            p.angle += p.speed;
+            p.r += 0.06;
+            p.life -= 0.0018;
+            if (p.life <= 0) return;
+
+            const x = p.cx + Math.cos(p.angle) * p.r;
+            const y = p.cy + Math.sin(p.angle) * p.r;
+
+            ctx.beginPath();
+            ctx.arc(x, y, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(199, 125, 255, ${p.alpha * p.life})`;
+            ctx.fill();
+
+            // glow
+            ctx.beginPath();
+            ctx.arc(x, y, p.size * 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(199, 125, 255, ${p.alpha * p.life * 0.08})`;
+            ctx.fill();
+
+            // 拖尾
+            for (let t = 1; t <= 3; t++) {
+              const ta = p.angle - p.speed * t * 2;
+              const tr = p.r - 0.06 * t;
+              const tx = p.cx + Math.cos(ta) * tr;
+              const ty = p.cy + Math.sin(ta) * tr;
+              ctx.beginPath();
+              ctx.arc(tx, ty, p.size * (1 - t * 0.2), 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(199, 125, 255, ${p.alpha * p.life * (0.3 - t * 0.08)})`;
+              ctx.fill();
+            }
+          });
+
+          frame++;
+          if (frame < 450) requestAnimationFrame(draw);
+        }
+        setTimeout(draw, 400);
+      }
+
+      // ====== 重置 ======
+      function resetAll() {
+        document.querySelectorAll('.card-container').forEach((card) => {
+          card.classList.remove('flipped');
+          card.querySelectorAll('.wolf-spark').forEach((s) => s.remove());
+          card.querySelectorAll('canvas').forEach((c) => {
+            const ctx = c.getContext('2d');
+            ctx.clearRect(0, 0, c.width, c.height);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

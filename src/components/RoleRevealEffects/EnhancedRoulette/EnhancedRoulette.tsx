@@ -23,13 +23,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
+import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, crossPlatformTextShadow, spacing, typography, useColors } from '@/theme';
+import { crossPlatformTextShadow, spacing, typography, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const SLOT_COLORS = {
@@ -495,20 +495,22 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         <Animated.View
           style={[styles.revealedCardContainer, { width: cardWidth, height: cardHeight }]}
         >
-          <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
+          <RoleCardContent
+            roleId={role.id as RoleId}
+            width={cardWidth}
+            height={cardHeight}
+            revealMode
+            revealGradient={theme.revealGradient}
+            animateEntrance={phase === 'revealed'}
+          />
           {phase === 'revealed' && (
-            <GlowBorder
-              width={cardWidth + common.glowPadding}
-              height={cardHeight + common.glowPadding}
-              color={theme.primaryColor}
-              glowColor={theme.glowColor}
-              borderWidth={common.glowBorderWidth}
-              borderRadius={borderRadius.medium + 4}
+            <AlignmentRevealOverlay
+              alignment={role.alignment}
+              theme={theme}
+              cardWidth={cardWidth}
+              cardHeight={cardHeight}
               animate={!reducedMotion}
-              flashCount={common.glowFlashCount}
-              flashDuration={common.glowFlashDuration}
               onComplete={handleRevealComplete}
-              style={styles.glowBorder}
             />
           )}
         </Animated.View>
@@ -674,6 +676,7 @@ const styles = StyleSheet.create({
   revealedCardContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   particleContainer: {
     ...StyleSheet.absoluteFillObject,

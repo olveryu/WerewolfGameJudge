@@ -31,6 +31,7 @@ export { ThemeProvider, useColors, useTheme } from './ThemeProvider';
 export {
   borderRadius,
   crossPlatformTextShadow,
+  fixed,
   layout,
   shadows,
   spacing,

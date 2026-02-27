@@ -21,13 +21,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { GlowBorder } from '@/components/RoleRevealEffects/common/GlowBorder';
+import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, useColors } from '@/theme';
+import { useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const CAPSULE_COLORS = [
@@ -375,20 +375,22 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       {(phase === 'opening' || phase === 'revealed') && (
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
-            <RoleCardContent roleId={role.id as RoleId} width={cardWidth} height={cardHeight} />
+            <RoleCardContent
+              roleId={role.id as RoleId}
+              width={cardWidth}
+              height={cardHeight}
+              revealMode
+              revealGradient={theme.revealGradient}
+              animateEntrance={phase === 'revealed'}
+            />
             {phase === 'revealed' && (
-              <GlowBorder
-                width={cardWidth + common.glowPadding}
-                height={cardHeight + common.glowPadding}
-                color={theme.primaryColor}
-                glowColor={theme.glowColor}
-                borderWidth={common.glowBorderWidth}
-                borderRadius={borderRadius.medium + 4}
+              <AlignmentRevealOverlay
+                alignment={role.alignment}
+                theme={theme}
+                cardWidth={cardWidth}
+                cardHeight={cardHeight}
                 animate={!reducedMotion}
-                flashCount={common.glowFlashCount}
-                flashDuration={common.glowFlashDuration}
                 onComplete={handleGlowComplete}
-                style={styles.glowBorder}
               />
             )}
           </View>
@@ -579,6 +581,6 @@ const styles = StyleSheet.create({
   },
 
   cardWrapper: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  cardInner: { alignItems: 'center', justifyContent: 'center' },
+  cardInner: { alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   glowBorder: { position: 'absolute', top: -4, left: -4 },
 });
