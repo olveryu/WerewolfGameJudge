@@ -79,6 +79,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser((prev) => (userEquals(prev, newUser) ? prev : newUser));
   }, []);
 
+  /**
+   * Shared auth error handler — DRY extraction of 7 near-identical catch blocks.
+   *
+   * Logs, conditionally reports to Sentry (skipping expected auth errors),
+   * sets error state, and optionally re-throws a user-friendly Error.
+   */
+  const handleAuthError = useCallback(
+    (e: unknown, label: string, opts?: { rethrow?: boolean }) => {
+      const raw = e instanceof Error ? e.message : String(e);
+      const friendly = mapAuthError(raw);
+      authLog.error(`${label}:`, raw, e);
+      if (!isExpectedAuthError(raw)) Sentry.captureException(e);
+      setError(friendly);
+      if (opts?.rethrow) throw new Error(friendly);
+    },
+    [],
+  );
+
   // Load current user on mount - runs ONCE at app startup
   useEffect(() => {
     // Don't do anything if Supabase is not configured
@@ -94,10 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updateUserIfChanged(toUser(result.data.user));
         }
       } catch (e: unknown) {
-        const raw = e instanceof Error ? e.message : String(e);
-        authLog.error('Failed to load user:', raw, e);
-        Sentry.captureException(e);
-        setError(mapAuthError(raw));
+        handleAuthError(e, 'Failed to load user');
       } finally {
         setLoading(false);
       }
@@ -122,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription?.unsubscribe();
     };
-  }, [authService, updateUserIfChanged]);
+  }, [authService, handleAuthError, updateUserIfChanged]);
 
   const signInAnonymously = useCallback(async () => {
     setLoading(true);
@@ -130,16 +145,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await authService.signInAnonymously();
     } catch (e: unknown) {
-      const raw = e instanceof Error ? e.message : String(e);
-      const friendly = mapAuthError(raw);
-      authLog.error('Anonymous sign-in failed:', raw, e);
-      if (!isExpectedAuthError(raw)) Sentry.captureException(e);
-      setError(friendly);
-      throw new Error(friendly);
+      handleAuthError(e, 'Anonymous sign-in failed', { rethrow: true });
     } finally {
       setLoading(false);
     }
-  }, [authService]);
+  }, [authService, handleAuthError]);
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, displayName?: string) => {
@@ -151,17 +161,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(toUser(result.user));
         }
       } catch (e: unknown) {
-        const raw = e instanceof Error ? e.message : String(e);
-        const friendly = mapAuthError(raw);
-        authLog.error('Email sign-up failed:', raw, e);
-        if (!isExpectedAuthError(raw)) Sentry.captureException(e);
-        setError(friendly);
-        throw new Error(friendly);
+        handleAuthError(e, 'Email sign-up failed', { rethrow: true });
       } finally {
         setLoading(false);
       }
     },
-    [authService],
+    [authService, handleAuthError],
   );
 
   const signInWithEmail = useCallback(
@@ -175,17 +180,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(toUser(result.data.user));
         }
       } catch (e: unknown) {
-        const raw = e instanceof Error ? e.message : String(e);
-        const friendly = mapAuthError(raw);
-        authLog.error('Email sign-in failed:', raw, e);
-        if (!isExpectedAuthError(raw)) Sentry.captureException(e);
-        setError(friendly);
-        throw new Error(friendly);
+        handleAuthError(e, 'Email sign-in failed', { rethrow: true });
       } finally {
         setLoading(false);
       }
     },
-    [authService],
+    [authService, handleAuthError],
   );
 
   const updateProfile = useCallback(
@@ -198,15 +198,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(toUser(result.data.user));
         }
       } catch (e: unknown) {
-        const raw = e instanceof Error ? e.message : String(e);
-        const friendly = mapAuthError(raw);
-        authLog.error('Update profile failed:', raw, e);
-        if (!isExpectedAuthError(raw)) Sentry.captureException(e);
-        setError(friendly);
-        throw new Error(friendly);
+        handleAuthError(e, 'Update profile failed', { rethrow: true });
       }
     },
-    [authService],
+    [authService, handleAuthError],
   );
 
   const uploadAvatar = useCallback(
@@ -220,15 +215,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return url;
       } catch (e: unknown) {
-        const raw = e instanceof Error ? e.message : String(e);
-        const friendly = mapAuthError(raw);
-        authLog.error('Upload avatar failed:', raw, e);
-        if (!isExpectedAuthError(raw)) Sentry.captureException(e);
-        setError(friendly);
-        throw new Error(friendly);
+        // handleAuthError with rethrow always throws; explicit throw satisfies TS return type
+        handleAuthError(e, 'Upload avatar failed', { rethrow: true });
+        throw e; // unreachable — TS control-flow hint
       }
     },
-    [authService, avatarUploadService],
+    [authService, avatarUploadService, handleAuthError],
   );
 
   const signOut = useCallback(async () => {
@@ -238,14 +230,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await AsyncStorage.removeItem(LAST_ROOM_NUMBER_KEY);
       setUser(null);
     } catch (e: unknown) {
-      const raw = e instanceof Error ? e.message : String(e);
-      authLog.error('Sign-out failed:', raw, e);
-      Sentry.captureException(e);
-      setError(mapAuthError(raw));
+      handleAuthError(e, 'Sign-out failed');
     } finally {
       setLoading(false);
     }
-  }, [authService]);
+  }, [authService, handleAuthError]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
