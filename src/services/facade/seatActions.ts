@@ -26,7 +26,7 @@ export interface SeatActionsContext {
   readonly store?: GameStore;
 }
 
-/** 座位操作 API 响应（re-export from apiUtils） */
+/** 座位操作 API 响应（alias for readability within this file） */
 type SeatApiResponse = ApiResponse;
 
 /**

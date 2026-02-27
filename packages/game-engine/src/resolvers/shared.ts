@@ -18,10 +18,10 @@ import { resolveRoleForChecks } from './types';
 // =============================================================================
 
 /** 目标玩家不存在（所有 resolver 共用的拒绝理由） */
-export const REJECT_TARGET_NOT_FOUND = '目标玩家不存在' as const;
+const REJECT_TARGET_NOT_FOUND = '目标玩家不存在' as const;
 
 /** 必须选择榜样（wildChild / slacker 共用） */
-export const REJECT_MUST_CHOOSE_IDOL = '必须选择榜样' as const;
+const REJECT_MUST_CHOOSE_IDOL = '必须选择榜样' as const;
 
 /**
  * 反转预言家查验结果：'好人' → '狼人'，'狼人' → '好人'

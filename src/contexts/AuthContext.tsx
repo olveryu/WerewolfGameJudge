@@ -85,17 +85,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Logs, conditionally reports to Sentry (skipping expected auth errors),
    * sets error state, and optionally re-throws a user-friendly Error.
    */
-  const handleAuthError = useCallback(
-    (e: unknown, label: string, opts?: { rethrow?: boolean }) => {
-      const raw = e instanceof Error ? e.message : String(e);
-      const friendly = mapAuthError(raw);
-      authLog.error(`${label}:`, raw, e);
-      if (!isExpectedAuthError(raw)) Sentry.captureException(e);
-      setError(friendly);
-      if (opts?.rethrow) throw new Error(friendly);
-    },
-    [],
-  );
+  const handleAuthError = useCallback((e: unknown, label: string, opts?: { rethrow?: boolean }) => {
+    const raw = e instanceof Error ? e.message : String(e);
+    const friendly = mapAuthError(raw);
+    authLog.error(`${label}:`, raw, e);
+    if (!isExpectedAuthError(raw)) Sentry.captureException(e);
+    setError(friendly);
+    if (opts?.rethrow) throw new Error(friendly);
+  }, []);
 
   // Load current user on mount - runs ONCE at app startup
   useEffect(() => {
