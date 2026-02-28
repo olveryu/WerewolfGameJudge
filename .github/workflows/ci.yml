@@ -91,9 +91,6 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Install Vercel CLI
-        run: npm i -g vercel
-
       - name: Create E2E remote config
         run: cp env/e2e.remote.example.json env/e2e.remote.json
 
@@ -101,14 +98,8 @@ jobs:
         run: pnpm exec playwright test --shard=${{ matrix.shard }}/6 --reporter=list --reporter=blob
         env:
           E2E_ENV: remote
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Upload blob report
         uses: actions/upload-artifact@v4
