@@ -47,15 +47,9 @@ export class RealtimeService {
   #handleBrowserOffline: (() => void) | null = null;
   #handleBrowserOnline: (() => void) | null = null;
 
-  // Visibility-based rejoin: saved joinRoom params for automatic reconnection
-  #lastRoomCode: string | null = null;
-  #lastUserId: string | null = null;
-  #lastCallbacks: { onDbStateChange?: (state: GameState, revision: number) => void } | null = null;
-
   // Visibility change tracking
   #backgroundedAt: number | null = null;
   #handleVisibilityChange: (() => void) | null = null;
-  #isRejoining = false;
 
   constructor() {}
 
@@ -177,11 +171,6 @@ export class RealtimeService {
 
     realtimeLog.info(' Joined room:', roomCode);
 
-    // Save params for visibility-based rejoin
-    this.#lastRoomCode = roomCode;
-    this.#lastUserId = _userId;
-    this.#lastCallbacks = callbacks;
-
     // Listen for browser offline/online events for instant disconnect detection.
     this.#subscribeBrowserNetworkEvents();
 
@@ -278,9 +267,9 @@ export class RealtimeService {
       }
 
       realtimeLog.info(
-        `Page foregrounded after ${Math.round(elapsed / 1000)}s — triggering channel rejoin`,
+        `Page foregrounded after ${Math.round(elapsed / 1000)}s — checking connection`,
       );
-      void this.#rejoinAfterBackground();
+      this.#reconnectIfNeeded();
     };
 
     document.addEventListener('visibilitychange', this.#handleVisibilityChange);
@@ -295,33 +284,30 @@ export class RealtimeService {
   }
 
   /**
-   * Tear down stale channel and rejoin with saved params.
-   * Called when page returns from background after threshold.
+   * Lightweight reconnection using SDK's built-in `isConnected()` / `connect()`.
+   *
+   * `worker: true` on the client prevents most background disconnections, but
+   * some mobile OSes kill WebSocket connections outright. This method detects
+   * and recovers from that. The SDK's `connect()` re-establishes the transport
+   * and automatically rejoins existing channels — no manual teardown needed.
    */
-  async #rejoinAfterBackground(): Promise<void> {
-    if (this.#isRejoining) {
-      realtimeLog.debug('rejoinAfterBackground: already in progress, skipping');
-      return;
-    }
-    const roomCode = this.#lastRoomCode;
-    const userId = this.#lastUserId;
-    const callbacks = this.#lastCallbacks;
-    if (!roomCode || !userId || !callbacks) {
-      realtimeLog.warn('rejoinAfterBackground: no saved join params, skipping');
+  #reconnectIfNeeded(): void {
+    if (!supabase) return;
+
+    if (supabase.realtime.isConnected()) {
+      realtimeLog.debug('reconnectIfNeeded: SDK reports connected, skipping');
+      // Mark as connecting so staleness check (Layer 3) can verify quickly
+      if (this.#connectionStatus === ConnectionStatus.Disconnected) {
+        this.#setConnectionStatus(ConnectionStatus.Connecting);
+      }
       return;
     }
 
-    this.#isRejoining = true;
-    try {
-      // joinRoom() internally calls leaveRoom() first, which tears down the stale channel
-      await this.joinRoom(roomCode, userId, callbacks);
-      realtimeLog.info('rejoinAfterBackground: successfully rejoined');
-    } catch (e) {
-      realtimeLog.warn('rejoinAfterBackground: rejoin failed, status → Disconnected', e);
-      this.#setConnectionStatus(ConnectionStatus.Disconnected);
-    } finally {
-      this.#isRejoining = false;
-    }
+    realtimeLog.info('reconnectIfNeeded: SDK reports disconnected, calling connect()');
+    this.#setConnectionStatus(ConnectionStatus.Connecting);
+    supabase.realtime.connect();
+    // SDK will re-subscribe existing channels automatically.
+    // The subscribe status callback will fire SUBSCRIBED → sets Live.
   }
 
   /**
@@ -337,10 +323,6 @@ export class RealtimeService {
       this.#channel = null;
     }
     this.#onDbStateChange = null;
-    // Clear saved join params so stale rejoin cannot fire after explicit leave
-    this.#lastRoomCode = null;
-    this.#lastUserId = null;
-    this.#lastCallbacks = null;
     this.#setConnectionStatus(ConnectionStatus.Disconnected);
     realtimeLog.info(' Left room');
   }
