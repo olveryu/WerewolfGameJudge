@@ -183,8 +183,16 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return true;
       } catch (err) {
         const message = getErrorMessage(err, '加入房间失败，请重试');
-        gameRoomLog.error('Player joinRoom failed:', message, err);
-        Sentry.captureException(err);
+        // Channel closed during retry = user-initiated cancel (old channel torn down by new joinRoom).
+        // Expected error — warn only, do not pollute Sentry.
+        const isChannelClosed =
+          err instanceof Error && err.message.includes('channel closed before subscribe');
+        if (isChannelClosed) {
+          gameRoomLog.warn('joinRoom aborted (channel closed by retry):', message);
+        } else {
+          gameRoomLog.error('Player joinRoom failed:', message, err);
+          Sentry.captureException(err);
+        }
         setError(message);
         return false;
       } finally {
