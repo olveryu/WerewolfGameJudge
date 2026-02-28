@@ -673,27 +673,34 @@ export function useRoomScreenState(
 
   const [speakingOrderText, setSpeakingOrderText] = useState<string | undefined>();
   const speakingOrderShownRef = useRef(false);
+  // Ref to read gameState inside effect without adding it as a dependency
+  // (gameState object reference changes on every broadcast, which would cancel the 20s timer)
+  const gameStateRef = useRef(gameState);
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
 
   useEffect(() => {
     // Reset when leaving ended status (e.g. restart)
     if (roomStatus !== GameStatus.Ended) {
       speakingOrderShownRef.current = false;
+      setSpeakingOrderText(undefined);
       return;
     }
-    if (!gameState || isAudioPlaying || speakingOrderShownRef.current) {
+    if (!gameStateRef.current || isAudioPlaying || speakingOrderShownRef.current) {
       return;
     }
     speakingOrderShownRef.current = true;
 
-    const seed = gameState.roleRevealRandomNonce ?? gameState.roomCode;
+    const seed = gameStateRef.current.roleRevealRandomNonce ?? gameStateRef.current.roomCode;
     const rng = createSeededRng(seed);
-    const playerCount = gameState.template.roles.length;
+    const playerCount = gameStateRef.current.template.roles.length;
     const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
     setSpeakingOrderText(`🎙️ 从 ${startSeat} 号开始 ${direction}发言`);
 
     const timer = setTimeout(() => setSpeakingOrderText(undefined), 20_000);
     return () => clearTimeout(timer);
-  }, [roomStatus, gameState, isAudioPlaying]);
+  }, [roomStatus, isAudioPlaying]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Action message builder
