@@ -5,12 +5,7 @@
  * 仅包含类型定义，不包含运行时逻辑。
  */
 
-import type {
-  GameState,
-  RoleId,
-  SideEffect,
-  StateAction,
-} from '../_shared/game-engine/index.js';
+import type { GameState, RoleId, SideEffect, StateAction } from '../_shared/game-engine/index.js';
 
 // ---------------------------------------------------------------------------
 // 通用
