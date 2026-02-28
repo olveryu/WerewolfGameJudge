@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.3.0] - 2026-02-27
+
+- fix(room): speaking order not visible to host after restart
+- docs: update README and alignment matrix for 32 roles and current schemas
+- feat(assets): add 14 new dark fantasy avatar portraits (043-056)
+- feat(models): add alignment reveal effects for all 4 factions
+- refactor(game-engine): remove unused exports and fix JSDoc labels
+- fix(screens): fix Sentry double-reporting, empty catch, and missing error handling
+- fix(auth): DRY AuthContext catch blocks and fix signOut missing isExpectedAuthError
+- refactor(utils): extract shared error helpers and storage key constant
+- fix(config): preset templates now correctly apply variant roles
+- test(e2e): add piper night role E2E tests
+- feat(night): add 3 preset templates with board UI tests
+- docs(models): update new-role SOP to reflect current codebase
+- refactor(models): shorten all bottomActionText to 4 characters
+- feat(night): add piper role (hypnotize + groupConfirm reveal)
+- feat(game-state): enhance getLastNightInfo to include silenced and votebanned seat info
+- refactor(audio): decompose AudioService into Strategy + BgmPlayer + registry
+- feat(night): add silenceElder & votebanElder roles
+- fix(game-engine): improve wolf immune rejection message
+- refactor: update rejection reason for self-targeting in wolf kill resolver
+- refactor(tests): update rejection alert message in night roles protection test
+- fix(e2e): rename Host-data → server-data in test harness
+- refactor: fix last 11 inaccurate Host comments in facade/hooks/services
+- refactor: replace inaccurate Host wording with server across codebase
+- refactor(tests): replace inaccurate Host wording with server in comments
+- refactor(models): rename remaining inaccurate Host naming in tests
+- refactor: fix stale Host naming in comments/mocks
+- refactor: rename inaccurate Host naming across codebase
+- refactor(types): add StartRequestBody type to action API
+- refactor(game-engine): remove isHost from HandlerContext
+- refactor(services): remove redundant hostUid from client-server API protocol
+- refactor: remove unused isHost parameter from actioner state functions and tests
+- refactor: unify host connection retrieval in game actions
+- refactor: improve connection extraction functions with clearer documentation
+- refactor: eliminate DRY violations across resolvers, handlers, API, and services
+- fix(docs): add DRY principle to copilot instructions
+- Merge pull request #5 from olveryu/dependabot/npm_and_yarn/npm_and_yarn-c7796958eb
+- fix(tests): align hostGameFactory with production gameStateManager pipeline
+- fix(tests): apply ACTION_REJECTED actions in hostGameFactory executeHandler
+- fix(screens): replace magic values with design tokens and cleanup
+- fix(config): validate and clamp persisted settings on load
+- fix(game-engine): resolver, reducer, schema, and handler corrections
+- fix(services): audio lifecycle, promise handling, and channel cleanup
+- fix(api): apply ACTION_REJECTED actions and add no-op write guard
+- chore(deps): bump minimatch in the npm_and_yarn group across 1 directory
+
 ## [1.2.0] - 2026-02-25
 
 - fix(services): mark connection Live after createRoom channel subscribe
