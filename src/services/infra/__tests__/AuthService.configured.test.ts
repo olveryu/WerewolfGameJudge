@@ -150,38 +150,41 @@ describe('AuthService (configured)', () => {
 
   describe('getCurrentDisplayName', () => {
     it('should return registered name from user_metadata when available', async () => {
-      mockGetSession.mockResolvedValue({ data: { session: null } });
-      mockGetUser.mockResolvedValue({
-        data: { user: { user_metadata: { display_name: '张三' } } },
-      });
+      mockGetSession.mockResolvedValueOnce({ data: { session: null } });
 
       const service = new AuthService();
       await service.waitForInit();
+
+      mockGetSession.mockResolvedValueOnce({
+        data: { session: { user: { user_metadata: { display_name: '张三' } } } },
+      });
 
       const name = await service.getCurrentDisplayName();
       expect(name).toBe('张三');
     });
 
-    it('should fallback to generated name when getUser returns no display_name', async () => {
-      mockGetSession.mockResolvedValue({ data: { session: null } });
-      mockGetUser.mockResolvedValue({
-        data: { user: { user_metadata: {} } },
-      });
+    it('should fallback to generated name when getSession returns no display_name', async () => {
+      mockGetSession.mockResolvedValueOnce({ data: { session: null } });
 
       const service = new AuthService();
       await service.waitForInit();
+
+      mockGetSession.mockResolvedValueOnce({
+        data: { session: { user: { user_metadata: {} } } },
+      });
 
       const name = await service.getCurrentDisplayName();
       // Should be a generated Chinese name, not 'anonymous'
       expect(name).toMatch(/[\u4e00-\u9fff]/);
     });
 
-    it('should fallback to generated name when getUser throws', async () => {
-      mockGetSession.mockResolvedValue({ data: { session: null } });
-      mockGetUser.mockRejectedValue(new Error('network error'));
+    it('should fallback to generated name when getSession throws', async () => {
+      mockGetSession.mockResolvedValueOnce({ data: { session: null } });
 
       const service = new AuthService();
       await service.waitForInit();
+
+      mockGetSession.mockRejectedValueOnce(new Error('network error'));
 
       const name = await service.getCurrentDisplayName();
       expect(name).toMatch(/[\u4e00-\u9fff]/);
@@ -190,37 +193,42 @@ describe('AuthService (configured)', () => {
 
   describe('getCurrentAvatarUrl', () => {
     it('should return avatar_url from user_metadata', async () => {
-      mockGetSession.mockResolvedValue({ data: { session: null } });
-      mockGetUser.mockResolvedValue({
-        data: { user: { user_metadata: { avatar_url: 'https://example.com/avatar.png' } } },
-      });
+      mockGetSession.mockResolvedValueOnce({ data: { session: null } });
 
       const service = new AuthService();
       await service.waitForInit();
+
+      mockGetSession.mockResolvedValueOnce({
+        data: {
+          session: { user: { user_metadata: { avatar_url: 'https://example.com/avatar.png' } } },
+        },
+      });
 
       const url = await service.getCurrentAvatarUrl();
       expect(url).toBe('https://example.com/avatar.png');
     });
 
     it('should return null when avatar_url is not set', async () => {
-      mockGetSession.mockResolvedValue({ data: { session: null } });
-      mockGetUser.mockResolvedValue({
-        data: { user: { user_metadata: {} } },
-      });
+      mockGetSession.mockResolvedValueOnce({ data: { session: null } });
 
       const service = new AuthService();
       await service.waitForInit();
+
+      mockGetSession.mockResolvedValueOnce({
+        data: { session: { user: { user_metadata: {} } } },
+      });
 
       const url = await service.getCurrentAvatarUrl();
       expect(url).toBeNull();
     });
 
-    it('should return null when getUser throws', async () => {
-      mockGetSession.mockResolvedValue({ data: { session: null } });
-      mockGetUser.mockRejectedValue(new Error('network error'));
+    it('should return null when getSession throws', async () => {
+      mockGetSession.mockResolvedValueOnce({ data: { session: null } });
 
       const service = new AuthService();
       await service.waitForInit();
+
+      mockGetSession.mockRejectedValueOnce(new Error('network error'));
 
       const url = await service.getCurrentAvatarUrl();
       expect(url).toBeNull();

@@ -251,13 +251,13 @@ export class AuthService {
     }
 
     try {
-      const { data } = await supabase!.auth.getUser();
-      const registeredName = data.user?.user_metadata?.display_name;
+      const { data } = await supabase!.auth.getSession();
+      const registeredName = data.session?.user?.user_metadata?.display_name;
       if (registeredName) {
         return registeredName;
       }
     } catch (e) {
-      authLog.debug('getUser for displayName failed, falling through to generated name', e);
+      authLog.debug('getSession for displayName failed, falling through to generated name', e);
     }
 
     return this.generateDisplayName(this.#currentUserId || 'anonymous');
@@ -270,10 +270,10 @@ export class AuthService {
     }
 
     try {
-      const { data } = await supabase!.auth.getUser();
-      return data.user?.user_metadata?.avatar_url || null;
+      const { data } = await supabase!.auth.getSession();
+      return data.session?.user?.user_metadata?.avatar_url || null;
     } catch (e) {
-      authLog.debug('getUser for avatarUrl failed', e);
+      authLog.debug('getSession for avatarUrl failed', e);
       return null;
     }
   }
