@@ -1,22 +1,26 @@
 #!/usr/bin/env node
 /**
- * E2E Web Server Launcher
+ * Unified Dev / E2E Web Server Launcher
  *
- * Loads Supabase configuration based on E2E_ENV and starts `vercel dev`.
- * `vercel dev` serves both the Expo frontend AND /api/** serverless functions.
+ * Loads Supabase configuration based on E2E_ENV, writes .env.local, then:
+ *   - local:  concurrently starts `supabase functions serve` + `expo start --web`
+ *   - remote: starts `expo start --web` only (Edge Functions already deployed)
  *
  * Usage:
- *   E2E_ENV=local node scripts/run-e2e-web.mjs   # Use local Supabase (127.0.0.1:54321)
- *   E2E_ENV=remote node scripts/run-e2e-web.mjs  # Use remote Supabase (production/shared)
+ *   E2E_ENV=local  node scripts/run-e2e-web.mjs   # Local Supabase + Edge Functions
+ *   E2E_ENV=remote node scripts/run-e2e-web.mjs   # Remote Supabase (production)
  *
  * Default: E2E_ENV=local
+ *
+ * Also used as Playwright webServer command (see playwright.config.ts).
  */
 
 import {
-  buildChildEnv,
+  buildGameEngineEsm,
   loadConfig,
+  LOCAL_FUNCTIONS_URL,
   MANAGED_ENV_KEYS,
-  spawnVercelDev,
+  spawnProcess,
   writeEnvLocal,
 } from './lib/devConfig.mjs';
 
@@ -36,31 +40,50 @@ console.log(`\n🔧 E2E Environment: ${e2eEnv.toUpperCase()}\n`);
 
 const config = loadConfig(e2eEnv, { allowEnvFallback: e2eEnv === 'remote' });
 
-// ─── E2E_BASE_URL ───────────────────────────────────────────────────────────
-// When launched by Playwright, playwright.config.ts sets this.
-// When launched standalone (`pnpm run dev`), default to localhost:3000.
+// ─── Resolve API URL ────────────────────────────────────────────────────────
 
-const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
+const REMOTE_FUNCTIONS_URL = 'https://abmzjezdvpzyeooqhhsn.supabase.co/functions/v1';
+const apiUrl = e2eEnv === 'remote' ? REMOTE_FUNCTIONS_URL : LOCAL_FUNCTIONS_URL;
+
+// ─── Web port ───────────────────────────────────────────────────────────────
+// Expo Metro default is 8081. Playwright reads E2E_BASE_URL for navigation.
+
+const WEB_PORT = process.env.WEB_PORT || '8081';
 
 // ─── Write .env.local ───────────────────────────────────────────────────────
 
-const envVars = {};
-for (const k of MANAGED_ENV_KEYS) {
-  if (config[k]) envVars[k] = config[k];
+writeEnvLocal(
+  {
+    EXPO_PUBLIC_SUPABASE_URL: config.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: config.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    EXPO_PUBLIC_API_URL: apiUrl,
+  },
+  { managedKeys: MANAGED_ENV_KEYS },
+);
+
+console.log(`📝 .env.local written (env=${e2eEnv}, API → ${apiUrl})`);
+console.log(`🌐 Web server: http://localhost:${WEB_PORT}`);
+console.log(`📡 API: ${apiUrl}\n`);
+
+// ─── Build & Start ──────────────────────────────────────────────────────────
+
+if (e2eEnv === 'local') {
+  // Build game-engine ESM bundle for Edge Functions
+  buildGameEngineEsm();
+
+  // Start Edge Functions + Expo web concurrently
+  console.log(`🚀 Starting: supabase functions serve + expo start --web\n`);
+  spawnProcess('npx', [
+    'concurrently',
+    '-n',
+    'edge,web',
+    '-c',
+    'blue,green',
+    'supabase functions serve',
+    `expo start --web --port ${WEB_PORT}`,
+  ]);
+} else {
+  // Remote: Edge Functions already deployed, only start Expo web
+  console.log(`🚀 Starting: expo start --web (API → remote)\n`);
+  spawnProcess('expo', ['start', '--web', '--port', WEB_PORT]);
 }
-writeEnvLocal(envVars, { managedKeys: MANAGED_ENV_KEYS });
-console.log(`📝 .env.local written (${MANAGED_ENV_KEYS.length} managed vars, env=${e2eEnv})`);
-
-// ─── Log ────────────────────────────────────────────────────────────────────
-
-console.log(`🌐 E2E Base URL: ${E2E_BASE_URL} (from playwright.config.ts)`);
-console.log(`📡 Supabase URL: [configured]`);
-console.log(`🔑 Supabase Key: [configured]`);
-console.log(`🗄️  DATABASE_URL: [configured]\n`);
-
-// ─── Start vercel dev (frontend + API) ──────────────────────────────────────
-
-const port = new URL(E2E_BASE_URL).port || '3000';
-const childEnv = buildChildEnv(config);
-
-spawnVercelDev({ port, childEnv });

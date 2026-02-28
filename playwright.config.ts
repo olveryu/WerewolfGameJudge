@@ -7,10 +7,10 @@ import { defineConfig, devices } from '@playwright/test';
  * - webServer (via env inheritance)
  * - test runtime (ui.ts reads process.env.E2E_BASE_URL)
  *
- * Default: http://localhost:3000 (vercel dev default)
+ * Default: http://localhost:8081 (Expo Metro web default)
  * Override: E2E_BASE_URL=https://... npx playwright test
  */
-const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
+const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
 
 // Export to process.env so ui.ts and webServer can access it
 process.env.E2E_BASE_URL = E2E_BASE_URL;
@@ -22,7 +22,8 @@ process.env.E2E_BASE_URL = E2E_BASE_URL;
  *   E2E_ENV=local npx playwright test   # Use local Supabase (127.0.0.1:54321)
  *   E2E_ENV=remote npx playwright test  # Use remote Supabase
  *
- * Configuration is loaded from env/e2e.{local,remote}.json by scripts/run-e2e-web.mjs
+ * Configuration is loaded from env/e2e.{local,remote}.json by scripts/run-e2e-web.mjs.
+ * Local mode starts Edge Functions + Expo web; remote mode starts Expo web only.
  *
  * CONNECTION_REFUSED HANDLING:
  *   If tests fail with ERR_CONNECTION_REFUSED:

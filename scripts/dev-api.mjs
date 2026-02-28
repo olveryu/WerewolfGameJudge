@@ -1,58 +1,53 @@
 #!/usr/bin/env node
 /**
- * API-only Dev Server — starts `vercel dev` WITHOUT Expo/Metro.
+ * Edge Functions Dev Server — starts `supabase functions serve`.
  *
  * Used in the two-process local development workflow:
- *   Terminal 1: `pnpm run web`     → Metro :8081 (frontend, hot-reload)
- *   Terminal 2: `pnpm run dev:api` → vercel dev :3000 (API only)
+ *   Terminal 1: `pnpm run web`          → Metro :8081 (frontend, hot-reload)
+ *   Terminal 2: `pnpm run dev:functions` → supabase functions serve (Edge Functions, hot-reload)
  *
- * Loads Supabase configuration from env/e2e.local.json (same as run-e2e-web.mjs),
- * and writes EXPO_PUBLIC_API_URL=http://localhost:3000 into .env.local so that
- * Metro picks it up for cross-origin API calls.
+ * Loads Supabase configuration from env/e2e.local.json, writes .env.local so
+ * Metro picks up EXPO_PUBLIC_API_URL pointing at the local Supabase gateway.
  *
- * Default: E2E_ENV=local (local Supabase at 127.0.0.1:54321)
+ * Prerequisite: `supabase start` must be running.
  */
 
-import { buildChildEnv, loadConfig, spawnVercelDev, writeEnvLocal } from './lib/devConfig.mjs';
+import {
+  buildGameEngineEsm,
+  loadConfig,
+  LOCAL_FUNCTIONS_URL,
+  MANAGED_ENV_KEYS,
+  spawnProcess,
+  writeEnvLocal,
+} from './lib/devConfig.mjs';
 
 // ---------- Load Supabase config ----------
 
-const e2eEnv = process.env.E2E_ENV || 'local';
-const config = loadConfig(e2eEnv);
+const config = loadConfig('local');
 
 // ---------- Write .env.local ----------
-// Ensures Metro (started separately) picks up the correct Supabase URL
-// AND the cross-origin API_URL pointing at this vercel dev instance.
-
-const API_PORT = process.env.API_PORT || '3000';
-const apiUrl = `http://localhost:${API_PORT}`;
-
-// For API-only mode we only expose EXPO_PUBLIC_* vars (for Metro) + API_URL.
-// Server-side vars are passed directly via childEnv — no need to leak them into .env.local.
-const managedKeys = [
-  'EXPO_PUBLIC_SUPABASE_URL',
-  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
-  'EXPO_PUBLIC_API_URL',
-];
 
 writeEnvLocal(
   {
     EXPO_PUBLIC_SUPABASE_URL: config.EXPO_PUBLIC_SUPABASE_URL,
     EXPO_PUBLIC_SUPABASE_ANON_KEY: config.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-    EXPO_PUBLIC_API_URL: apiUrl,
+    EXPO_PUBLIC_API_URL: LOCAL_FUNCTIONS_URL,
   },
-  { managedKeys },
+  { managedKeys: MANAGED_ENV_KEYS },
 );
 
-console.log(`\n🔧 Two-process dev mode (API-only)`);
+console.log(`\n🔧 Two-process dev mode (Edge Functions only)`);
 console.log(`📝 .env.local written:`);
 console.log(`   EXPO_PUBLIC_SUPABASE_URL=[configured]`);
-console.log(`   EXPO_PUBLIC_API_URL=${apiUrl}`);
-console.log(`📡 API server: ${apiUrl}`);
+console.log(`   EXPO_PUBLIC_API_URL=${LOCAL_FUNCTIONS_URL}`);
 console.log(`🖥️  Start Metro separately: pnpm run web\n`);
 
-// ---------- Start vercel dev (API-only, no frontend) ----------
+// ---------- Build game-engine ESM ----------
 
-const childEnv = buildChildEnv(config);
+buildGameEngineEsm();
 
-spawnVercelDev({ port: API_PORT, childEnv });
+// ---------- Start supabase functions serve ----------
+
+console.log(`\n🚀 Starting: supabase functions serve\n`);
+
+spawnProcess('supabase', ['functions', 'serve']);
