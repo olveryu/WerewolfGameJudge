@@ -252,51 +252,38 @@ const corsHeaders = {
 
 ## 五、本地开发
 
-### 5.1 现有流程
+### 5.1 现有流程（已迁移）
 
-| 命令                | 作用                                            |
-| ------------------- | ----------------------------------------------- |
-| `pnpm run web`      | Metro :8081（前端 hot-reload）                  |
-| `pnpm run dev:api`  | `vercel dev` :3000（API only，写 `.env.local`） |
-| `pnpm run dev:full` | 同时跑上面两个（concurrently）                  |
-| `pnpm run dev`      | `vercel dev` :3000（前端 + API 同域，E2E 用）   |
+| 命令                     | 作用                                                                     |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `pnpm run web`           | Metro :8081（前端 hot-reload）                                           |
+| `pnpm run dev:functions` | `supabase functions serve`（Edge Functions hot-reload，写 `.env.local`） |
+| `pnpm run dev`           | concurrently 跑 Edge Functions + Expo web（E2E / 日常开发用）            |
 
-### 5.2 迁移后流程
+### 5.2 实现细节
 
-`vercel dev` 不再提供 API，改为 `supabase functions serve`：
+`supabase functions serve` 通过本地 Supabase API gateway 提供 Edge Functions（`http://127.0.0.1:54321/functions/v1`）。
 
-| 命令                        | 作用                                                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `pnpm run web`              | **不变**，Metro :8081                                                                                         |
-| `pnpm run dev:api`（新）    | `supabase functions serve --no-verify-jwt --env-file .env.local`，启动 Edge Function 本地运行，默认端口 54321 |
-| `pnpm run dev:full`（更新） | concurrently 跑 Metro + supabase functions serve                                                              |
-| `pnpm run dev`（更新）      | 需要同时跑前端 + Edge Function                                                                                |
+**已完成改动**：
 
-**改动清单**：
+1. **`scripts/lib/devConfig.mjs`** — 移除 `spawnVercelDev` / `buildChildEnv`，新增 `spawnProcess` / `buildGameEngineEsm`
+2. **`scripts/dev-api.mjs`** — 写 `.env.local` → build ESM → `supabase functions serve`
+3. **`scripts/run-e2e-web.mjs`** — 写 `.env.local` → build ESM → concurrently: Edge Functions + Expo web
+4. **`scripts/deploy.sh`** — build ESM → `supabase functions deploy game`
 
-1. **`scripts/dev-api.mjs`** — 重写或新建 `scripts/dev-edge.mjs`：
-   - 从 `env/e2e.local.json` 读配置
-   - 写 `.env.local`（含 `EXPO_PUBLIC_API_URL=http://localhost:54321/functions/v1`）
-   - 先执行 game-engine ESM build（`pnpm --filter @werewolf/game-engine run build:esm`）
-   - 然后 `spawn('supabase', ['functions', 'serve', '--no-verify-jwt', '--env-file', '.env.local'])`
-
-2. **`package.json` scripts**：
+5. **`package.json` scripts**：
 
    ```json
    {
-     "dev:api": "node scripts/dev-edge.mjs",
-     "dev:full": "concurrently -n edge,web -c blue,green \"pnpm run dev:api\" \"pnpm run web\"",
-     "dev": "node scripts/run-e2e-web.mjs"
+     "dev": "node scripts/run-e2e-web.mjs",
+     "dev:functions": "node scripts/dev-api.mjs"
    }
    ```
 
-3. **E2E 本地运行**（`pnpm run dev` + `pnpm exec playwright test`）：
-   - `scripts/run-e2e-web.mjs` 也需要改为启动 `supabase functions serve` + Expo Web（而不是 `vercel dev`）
-   - 或者保持 `vercel dev` 只服务前端静态文件，API 走 `supabase functions serve`
-
-4. **`supabase functions serve` 需要 Supabase CLI**：
-   - 本地开发前置条件增加：`brew install supabase/tap/supabase`（macOS）
-   - CI runner 需要 `npx supabase ...` 或安装 CLI
+6. **前置条件**：
+   - `supabase start` 必须先运行（提供本地 DB + Auth + Realtime）
+   - Supabase CLI：`brew install supabase/tap/supabase`（macOS）
+   - CI runner 使用 `supabase/setup-cli@v1` action
 
 ### 5.3 本地 Supabase 兼容
 
@@ -313,7 +300,7 @@ git push → Vercel Git Integration → scripts/build.sh（编译 game-engine CJ
 
 - `scripts/build.sh` 编译 game-engine + Expo Web → 输出到 `dist/`
 - Vercel 自动部署 `dist/`（前端）+ `api/`（Serverless Functions）
-- E2E 在 CI 中用 `vercel dev` 启动前端+API
+- E2E 在 CI 中由 `run-e2e-web.mjs` 启动 Edge Functions + Expo web
 
 ### 6.2 迁移后 CI 流程
 
@@ -475,7 +462,7 @@ git push (main) ──> │  GitHub CI  │ ──> quality → deploy-edge-func
 **验证（灰度）**：
 
 - `.env` 设置 `EXPO_PUBLIC_API_URL` 指向 Edge Function
-- 本地 `pnpm run dev:full` 全流程测试
+- 本地 `pnpm run dev` 全流程测试
 - `pnpm run quality` 全跑
 - E2E 测试全通过
 - 合并到 main → 线上观察 1-2 局游戏
@@ -497,9 +484,8 @@ git push (main) ──> │  GitHub CI  │ ──> quality → deploy-edge-func
 **时间：~15 min**
 
 - 删除 `.github/workflows/warm-api.yml`
-- 更新 `scripts/dev-api.mjs` → `scripts/dev-edge.mjs`（见第五节）
-- `scripts/run-e2e-web.mjs` 适配 Edge Function
-- `package.json` 更新 `dev:api` / `dev:full` scripts
+- 更新 dev scripts（已完成：`dev:functions` / `dev` 改用 `supabase functions serve`）
+- `package.json` 已更新 scripts
 - 更新文档：`copilot-instructions.md`、`services.instructions.md`
 - 在 `game` function 中加 `/game/health` 子路由
 

@@ -4,43 +4,45 @@
  * Single source of truth for:
  * - Required env field list
  * - Loading & validating config from env/*.json
- * - Building child process env for vercel dev
  * - Writing managed vars to .env.local
- * - Spawning vercel dev with signal forwarding
+ * - Spawning child processes with signal forwarding
  *
  * Consumed by: run-e2e-web.mjs, dev-api.mjs
  */
 
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const ROOT_DIR = join(__dirname, '..', '..');
+export const ROOT_DIR = join(__dirname, '..', '..');
 
 /**
  * All env fields that MUST be present in env/e2e.*.json.
- * Add new fields here — both scripts pick them up automatically.
+ * Edge Functions auto-inject DB URL via supabase CLI — only client-facing vars needed.
  */
-const REQUIRED_FIELDS = [
-  'EXPO_PUBLIC_SUPABASE_URL',
-  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
-  'SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'DATABASE_URL',
-];
+const REQUIRED_FIELDS = ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY'];
 
 /**
  * Keys written into .env.local (managed section).
- * Vercel dev / Metro reads these; non-managed lines are preserved.
+ * Metro reads EXPO_PUBLIC_* at bundle time; non-managed lines are preserved.
  */
-export const MANAGED_ENV_KEYS = [...REQUIRED_FIELDS];
+export const MANAGED_ENV_KEYS = [
+  'EXPO_PUBLIC_SUPABASE_URL',
+  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+  'EXPO_PUBLIC_API_URL',
+];
+
+/**
+ * Supabase Edge Functions base URL for local development.
+ * `supabase functions serve` routes through the local API gateway.
+ */
+export const LOCAL_FUNCTIONS_URL = 'http://127.0.0.1:54321/functions/v1';
 
 // ─── loadConfig ──────────────────────────────────────────────────────────────
 
@@ -92,32 +94,6 @@ export function loadConfig(envName, opts = {}) {
   return config;
 }
 
-// ─── buildChildEnv ───────────────────────────────────────────────────────────
-
-/**
- * Build environment variables object for the vercel dev child process.
- *
- * Vercel CLI 50.x does NOT inject .env.local into serverless function workers,
- * so we must pass all required vars explicitly.
- *
- * @param {Record<string, string>} config - validated config
- * @param {Record<string, string>} [extra] - additional vars to merge
- * @returns {Record<string, string>}
- */
-export function buildChildEnv(config, extra = {}) {
-  const env = { ...process.env };
-
-  for (const key of REQUIRED_FIELDS) {
-    env[key] = config[key];
-  }
-
-  // Force official npm registry (avoids hanging on corporate proxies)
-  env.npm_config_registry = 'https://registry.npmjs.org/';
-
-  Object.assign(env, extra);
-  return env;
-}
-
 // ─── writeEnvLocal ───────────────────────────────────────────────────────────
 
 /**
@@ -148,32 +124,38 @@ export function writeEnvLocal(vars, opts = {}) {
   writeFileSync(envLocalPath, finalContent, 'utf-8');
 }
 
-// ─── spawnVercelDev ──────────────────────────────────────────────────────────
+// ─── buildGameEngineEsm ─────────────────────────────────────────────────────
 
 /**
- * Spawn `vercel dev` with signal forwarding and exit propagation.
+ * Build game-engine ESM bundle (required by supabase functions serve).
+ */
+export function buildGameEngineEsm() {
+  console.log('🔧 Building game-engine ESM bundle...');
+  execSync('pnpm --filter @werewolf/game-engine run build:esm', {
+    cwd: ROOT_DIR,
+    stdio: 'inherit',
+  });
+}
+
+// ─── spawnProcess ────────────────────────────────────────────────────────────
+
+/**
+ * Spawn a child process with signal forwarding and exit propagation.
  *
- * @param {{ port: string, childEnv: Record<string, string> }} opts
+ * @param {string} command - executable name
+ * @param {string[]} args - command arguments
+ * @param {{ cwd?: string }} opts
  * @returns {import('node:child_process').ChildProcess}
  */
-export function spawnVercelDev({ port, childEnv }) {
-  const vercelArgs = ['dev', '--listen', port, '--yes'];
-
-  if (process.env.VERCEL_TOKEN) {
-    vercelArgs.push('--token', process.env.VERCEL_TOKEN);
-  }
-
-  console.log(`🚀 Starting: vercel ${vercelArgs.join(' ')}\n`);
-
-  const child = spawn('vercel', vercelArgs, {
-    cwd: ROOT_DIR,
-    env: childEnv,
+export function spawnProcess(command, args, opts = {}) {
+  const child = spawn(command, args, {
+    cwd: opts.cwd ?? ROOT_DIR,
     stdio: 'inherit',
     shell: true,
   });
 
   child.on('error', (err) => {
-    console.error(`❌ Failed to start vercel dev:`, err.message);
+    console.error(`❌ Failed to start ${command}:`, err.message);
     process.exit(1);
   });
 

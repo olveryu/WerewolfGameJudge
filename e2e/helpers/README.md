@@ -9,7 +9,7 @@ Layered test helpers and Page Objects for Playwright E2E tests.
 | Layer                     | Role                                                                                    |
 | ------------------------- | --------------------------------------------------------------------------------------- |
 | `playwright.config.ts`    | **DEFINES** `E2E_BASE_URL` (default: `http://localhost:8081`), exports to `process.env` |
-| `scripts/run-e2e-web.mjs` | **READS** from `process.env.E2E_BASE_URL` (fail-fast if not set)                        |
+| `scripts/run-e2e-web.mjs` | **WRITES** `.env.local`, starts Edge Functions + Expo web                               |
 | `e2e/helpers/ui.ts`       | **READS** from `process.env.E2E_BASE_URL` (fail-fast if not set)                        |
 
 **Rule: NEVER hardcode `http://localhost:8081` in E2E code. Only `playwright.config.ts` may have a default.**

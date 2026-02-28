@@ -22,7 +22,7 @@ const CONNECTION_REFUSED_SIGNATURE = 'ERR_CONNECTION_REFUSED';
 /**
  * Get the E2E base URL from environment.
  *
- * Single source of truth: process.env.E2E_BASE_URL (set by run-e2e-web.mjs)
+ * Single source of truth: process.env.E2E_BASE_URL (set by playwright.config.ts)
  * REQUIRED: E2E_BASE_URL must be set. Throws if not set (fail-fast, never silent fallback).
  */
 function getBaseURL(): string {

@@ -24,8 +24,7 @@
     "e2e:night": "playwright test --reporter=list night-2p night-6p restart",
     "e2e:ui": "playwright test --ui",
     "dev": "node scripts/run-e2e-web.mjs",
-    "dev:api": "node scripts/dev-api.mjs",
-    "dev:full": "concurrently -n api,web -c blue,green \"pnpm run dev:api\" \"pnpm run web\"",
+    "dev:functions": "node scripts/dev-api.mjs",
     "deploy": "bash scripts/deploy.sh",
     "release": "bash scripts/release.sh",
     "prepare": "husky"
