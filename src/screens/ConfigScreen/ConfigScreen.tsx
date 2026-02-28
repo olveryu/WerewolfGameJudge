@@ -474,6 +474,11 @@ export const ConfigScreen: React.FC = () => {
         }
         return { ...prev, [variantPickerSlotId]: variantId };
       });
+      // Auto-select the slot when user picks a variant
+      setSelection((prev) => {
+        if (prev[variantPickerSlotId]) return prev; // already selected, no-op
+        return { ...prev, [variantPickerSlotId]: true };
+      });
       setSelectedTemplate('__custom__');
     },
     [variantPickerSlotId],
