@@ -30,6 +30,11 @@ if (isSupabaseConfigured()) {
       detectSessionInUrl: false,
       flowType: 'pkce', // More reliable for mobile browsers
     },
+    realtime: {
+      // Offload heartbeat to Web Worker so it keeps running when the browser
+      // throttles timers in backgrounded tabs. Prevents silent WebSocket drops.
+      worker: true,
+    },
   });
   supabaseLog.debug('Client initialized, isBrowser:', isBrowser);
 } else {
