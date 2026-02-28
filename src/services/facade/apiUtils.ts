@@ -5,7 +5,6 @@
  * 被 gameActions 和 seatActions 共用。不包含业务逻辑。
  */
 
-import * as Sentry from '@sentry/react-native';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 
@@ -42,7 +41,7 @@ export function applyOptimisticUpdate(
  * - 发送 JSON POST 请求
  * - 处理 non-JSON 错误页（502/503）
  * - 成功时 applySnapshot；失败时 rollbackOptimistic
- * - 网络错误自动 Sentry 上报 + rollback
+ * - 网络错误自动 warn + rollback
  *
  * @param path - API 路径（如 '/api/game/assign'）
  * @param body - JSON body
@@ -87,8 +86,8 @@ export async function callApiOnce(
     // TypeError is NOT rethrown because fetch() throws TypeError for network failures.
     if (e instanceof ReferenceError) throw e;
     const err = e as { message?: string };
-    facadeLog.error(`${label} failed`, { path, error: err?.message ?? String(e) });
-    Sentry.captureException(e);
+    facadeLog.warn(`${label} network error`, { path, error: err?.message ?? String(e) });
+    // Network/fetch errors are expected (offline, DNS, timeout) — no Sentry
     // 网络错误 → 回滚乐观更新
     if (store) store.rollbackOptimistic();
     return { success: false, reason: 'NETWORK_ERROR' };
