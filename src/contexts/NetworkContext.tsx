@@ -5,7 +5,6 @@
  * 管理网络错误状态，提供 reportNetworkError / retryLastOperation。
  * 不包含游戏业务逻辑，不直接调用 Supabase。
  */
-import * as Sentry from '@sentry/react-native';
 import React, { createContext, useCallback, useMemo, useRef, useState } from 'react';
 
 import { showAlert } from '@/utils/alert';
@@ -60,8 +59,8 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
       log.extend('Network').debug(' Retry successful');
       retryFnRef.current = null;
     } catch (error) {
-      log.extend('Network').error(' Retry failed:', error);
-      Sentry.captureException(error);
+      log.extend('Network').warn(' Retry failed:', error);
+      // Retry failure is expected (still offline / transient) — no Sentry
     } finally {
       setIsConnecting(false);
     }

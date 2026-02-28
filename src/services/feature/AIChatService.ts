@@ -193,7 +193,7 @@ export async function* streamChatMessage(
     });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw error;
-    Sentry.captureException(error);
+    chatLog.warn('Streaming fetch failed (network)', error);
     yield { type: 'error', content: '网络请求失败，请检查网络后重试' };
     return;
   }
@@ -206,6 +206,9 @@ export async function* streamChatMessage(
     } else if (response.status === 429) {
       chatLog.warn('Rate limited by AI service');
       yield { type: 'error', content: '请求太频繁，请稍后再试' };
+    } else if (response.status === 502 || response.status === 503) {
+      chatLog.warn('Upstream unavailable', response.status);
+      yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };
     } else {
       Sentry.captureException(new Error(`Streaming API error: HTTP ${response.status}`));
       yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };

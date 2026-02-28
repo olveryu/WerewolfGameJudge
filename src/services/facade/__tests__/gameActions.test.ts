@@ -312,7 +312,8 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe('NETWORK_ERROR');
-    expect(Sentry.captureException).toHaveBeenCalled();
+    // Network errors are expected — should NOT report to Sentry
+    expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
   it('should rollback optimistic on network error', async () => {
