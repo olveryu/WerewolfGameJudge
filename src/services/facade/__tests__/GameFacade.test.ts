@@ -155,7 +155,7 @@ describe('GameFacade', () => {
 
       expect(result).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/seat'),
+        expect.stringContaining('/game/seat'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"action":"sit"'),
@@ -267,7 +267,7 @@ describe('GameFacade', () => {
 
       expect(result).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/seat'),
+        expect.stringContaining('/game/seat'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"action":"sit"'),
@@ -571,7 +571,7 @@ describe('GameFacade', () => {
       await facade.assignRoles();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/assign'),
+        expect.stringContaining('/game/assign'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"roomCode":"ABCD"'),
@@ -653,7 +653,7 @@ describe('GameFacade', () => {
       await facade.markViewedRole(2);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/view-role'),
+        expect.stringContaining('/game/view-role'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"seat":2'),
@@ -705,7 +705,7 @@ describe('GameFacade', () => {
       expect(result.success).toBe(true);
       // Should use HTTP API (unified path)
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/view-role'),
+        expect.stringContaining('/game/view-role'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -769,7 +769,7 @@ describe('GameFacade', () => {
       await facade.startNight();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/start'),
+        expect.stringContaining('/game/start'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"roomCode":"ABCD"'),
@@ -870,7 +870,7 @@ describe('GameFacade', () => {
 
       expect(result.success).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/action'),
+        expect.stringContaining('/game/night/action'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"role":"seer"'),
@@ -928,7 +928,7 @@ describe('GameFacade', () => {
 
       expect(result.success).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/wolf-vote'),
+        expect.stringContaining('/game/night/wolf-vote'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"voterSeat":1'),
@@ -983,7 +983,7 @@ describe('GameFacade', () => {
       await facade.endNight();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/end'),
+        expect.stringContaining('/game/night/end'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1035,7 +1035,7 @@ describe('GameFacade', () => {
 
       expect(result.success).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/audio-gate'),
+        expect.stringContaining('/game/night/audio-gate'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1266,7 +1266,7 @@ describe('GameFacade', () => {
       expect(mockAudioServiceInstance.playRoleBeginningAudio).toHaveBeenCalledWith('wolf');
       // Should call audio-ack API to release gate + trigger progression
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/audio-ack'),
+        expect.stringContaining('/game/night/audio-ack'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1282,7 +1282,7 @@ describe('GameFacade', () => {
 
       // Gate should still be released via finally → postAudioAck → HTTP API
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/audio-ack'),
+        expect.stringContaining('/game/night/audio-ack'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1333,7 +1333,7 @@ describe('GameFacade', () => {
       expect(mockAudioServiceInstance.playRoleBeginningAudio).not.toHaveBeenCalled();
       // Gate released via postAudioAck → HTTP API
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/audio-ack'),
+        expect.stringContaining('/game/night/audio-ack'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1439,7 +1439,7 @@ describe('GameFacade', () => {
       expect(mockAudioServiceInstance.playRoleBeginningAudio).toHaveBeenCalledWith('wolf');
       // Should have retried postAudioAck
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/night/audio-ack'),
+        expect.stringContaining('/game/night/audio-ack'),
         expect.objectContaining({ method: 'POST' }),
       );
     });

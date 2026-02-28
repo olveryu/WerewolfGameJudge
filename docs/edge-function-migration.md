@@ -399,79 +399,120 @@ git push (main) ──> │  GitHub CI  │ ──> quality → deploy-edge-func
 
 ## 七、实施步骤
 
-### Phase 1：准备（不影响现有功能）
+> **总预估时间：4-6 小时**（不含等待 CI 和灰度观察）
+>
+> 按 commit 粒度拆分，每个 commit 可独立提交，任一步失败不影响现有线上功能。
 
-1. **game-engine ESM bundle**
-   - `packages/game-engine/package.json` 添加 `"build:esm"` script
-   - 输出到 `supabase/functions/_shared/game-engine/index.js`
-   - 验证 bundle 大小 < 10 MB
-   - `.gitignore` 添加 `supabase/functions/_shared/game-engine/`（与 CJS `dist/` 一致，CI 现场编译）
+### Phase 1：准备（不影响现有功能）— 约 2-3 小时
 
-2. **创建 Edge Function 代码**
-   - `supabase/functions/game/index.ts`：URL 路由 dispatcher + CORS
-   - `supabase/functions/_shared/db.ts`：postgres.js 连接（基于 `SUPABASE_DB_URL`）
-   - `supabase/functions/_shared/gameStateManager.ts`：从 `api/_lib/` 复用，改 import 路径
-   - 其余 `_shared/` 文件从 `api/_lib/` 迁移
-   - `supabase/functions/game/deno.json`：per-function 依赖配置（推荐方式，`import_map.json` 已是 legacy）
+#### Commit 1：`feat(game-engine): add ESM build for Edge Functions`
 
-3. **config.toml 配置**
+**时间：~20 min**
 
-   ```toml
-   [functions.game]
-   verify_jwt = false
-   ```
+- `packages/game-engine/package.json` 添加 `"build:esm"` script：
+  ```json
+  "build:esm": "esbuild src/index.ts --bundle --format=esm --outfile=../../supabase/functions/_shared/game-engine/index.js"
+  ```
+- `.gitignore` 添加 `supabase/functions/_shared/game-engine/`
+- 运行 `pnpm --filter @werewolf/game-engine run build:esm`，验证产物生成 & 大小 < 10 MB
+- `pnpm run quality` 确认无破坏
 
-   > 不需要 `import_map` 字段——Deno 自动从 function 目录发现 `deno.json`。
+#### Commit 2：`feat(edge): add game Edge Function with all handlers`
 
-4. **`supabase/functions/game/deno.json`**
+**时间：~1.5-2 小时**（主要工作量在这里）
 
-   ```json
-   {
-     "imports": {
-       "postgres": "npm:postgres@3"
-     }
-   }
-   ```
+核心移植，1082 行 Vercel handler 代码 → Deno Edge Function：
 
-   使 `_shared/db.ts` 中 `import postgres from 'postgres'` 可以解析。
+- 创建 `supabase/functions/game/index.ts`：
+  - `Deno.serve()` 入口
+  - CORS preflight 处理（参考 `groq-proxy` 已有模式）
+  - URL pathname 解析 → dispatcher 路由到各 handler
+- 创建 `supabase/functions/game/deno.json`：
+  ```json
+  { "imports": { "postgres": "npm:postgres@3" } }
+  ```
+- 创建 `supabase/functions/_shared/` 文件（从 `api/_lib/` 复制+改写）：
+  - `db.ts` — `DATABASE_URL` → `SUPABASE_DB_URL`，`process.env` → `Deno.env.get()`
+  - `gameStateManager.ts` — 改 import 路径，Vercel resp API → Web Response
+  - `handlerContext.ts` — 改 import 路径
+  - `responseStatus.ts` — 原样
+  - `types.ts` — 删除 `VercelRequest`/`VercelResponse` 类型，改用 Web 标准 `Request`/`Response`
+  - `cors.ts` — 简化为 CORS headers 常量（参考 `groq-proxy`）
+- 从 `api/game/[action].ts` 和 `api/game/night/[action].ts` 复制各 handler 函数到 `game/index.ts`（或拆为子模块 `game/handlers/`）
+- 所有 `import { ... } from '@werewolf/game-engine'` → `import { ... } from '../_shared/game-engine/index.js'`
+- 更新 `supabase/config.toml`：添加 `[functions.game]` 区块
 
-   > Supabase 官方推荐每个 function 有自己的 `deno.json`，确保部署时依赖隔离。共享的根级 `import_map.json` 只适合本地开发。
+**验证**：
 
-5. **本地测试**
-   - `supabase functions serve --no-verify-jwt` 启动本地 Edge Function
-   - 用 curl 验证所有子路由
+- `pnpm --filter @werewolf/game-engine run build:esm`
+- `supabase functions serve --no-verify-jwt`
+- 用 curl 逐一测试所有 20 个子路由
 
-### Phase 2：部署 + 灰度
+#### Commit 3：`ci(edge): add Edge Function deploy job`
 
-6. **部署 Edge Function**
-   - `supabase functions deploy game`
-   - `verify_jwt = false` 已在 config.toml 中配置，deploy 命令无需 `--no-verify-jwt` flag
-   - 用 curl 验证生产环境 Edge Function
+**时间：~20 min**
 
-7. **客户端灰度切换**
-   - 通过环境变量 `EXPO_PUBLIC_API_URL` 控制
-   - 开发环境先切到 Edge Function URL
-   - 路径前缀从 `/api/game/...` 调整为 `/game/...`
-   - E2E 测试全部通过后切生产
+- `.github/workflows/ci.yml` 添加 `deploy-edge-functions` job（见第六节）
+- `scripts/build.sh` 添加 ESM build 步骤
+- GitHub repo 添加 Secrets：`SUPABASE_ACCESS_TOKEN`、`SUPABASE_PROJECT_REF`
 
-### Phase 3：清理
+**验证**：push 到 branch → 确认 CI job 跑通 → `supabase functions deploy game` 成功
 
-8. **删除 Vercel handler**
-   - `api/game/`、`api/_lib/`、`api/health.ts`
-   - `vercel.json` 中可移除 API 相关配置
+### Phase 2：部署 + 灰度切换 — 约 1-1.5 小时
 
-9. **删除 keep-warm cron**
-   - `.github/workflows/warm-api.yml`
+#### Commit 4：`feat(client): switch API to Edge Functions`
 
-10. **更新 CI + 文档**
+**时间：~40 min**
 
-- CI 改动详见第六节
-- 本地开发改动详见第五节
-- `copilot-instructions.md` 更新架构边界描述（「Vercel Serverless」→「Supabase Edge Functions」）
-- `services.instructions.md` 同步更新（第 5 行「服务端业务逻辑由 Vercel Serverless 执行」）
+- `src/config/api.ts`：更新 `API_BASE_URL` 默认值为 Edge Function URL
+- `src/services/facade/apiUtils.ts`：
+  - fetch headers 添加 `'x-region': 'us-west-1'`
+  - 更新 JSDoc 注释中的路径示例
+- `src/services/facade/gameActions.ts`：20 处 path 去掉 `/api` 前缀
+- `src/services/facade/seatActions.ts`：1 处 path 去掉 `/api` 前缀
+- `src/services/facade/__tests__/` 测试断言跟随更新（~20 处）
 
-11. **更新 health check**
-    - 新建 Edge Function 或在 `game` function 中加 `/game/health` 子路由
+**验证（灰度）**：
+
+- `.env` 设置 `EXPO_PUBLIC_API_URL` 指向 Edge Function
+- 本地 `pnpm run dev:full` 全流程测试
+- `pnpm run quality` 全跑
+- E2E 测试全通过
+- 合并到 main → 线上观察 1-2 局游戏
+
+### Phase 3：清理 — 约 30 min
+
+> **等 Phase 2 线上运行稳定（建议至少 1 周）后再执行**
+
+#### Commit 5：`chore: remove Vercel API handlers`
+
+**时间：~15 min**
+
+- 删除 `api/game/`、`api/_lib/`、`api/health.ts`、`api/tsconfig.json`
+- 删除 `api/__tests__/` 服务端测试（或迁移为 Edge Function 测试）
+- `vercel.json` 移除 API 相关 rewrites/headers 配置
+
+#### Commit 6：`chore: cleanup warm-api, update CI and docs`
+
+**时间：~15 min**
+
+- 删除 `.github/workflows/warm-api.yml`
+- 更新 `scripts/dev-api.mjs` → `scripts/dev-edge.mjs`（见第五节）
+- `scripts/run-e2e-web.mjs` 适配 Edge Function
+- `package.json` 更新 `dev:api` / `dev:full` scripts
+- 更新文档：`copilot-instructions.md`、`services.instructions.md`
+- 在 `game` function 中加 `/game/health` 子路由
+
+### 时间汇总
+
+| Phase           | Commits       | 预估时间 | 风险                     |
+| --------------- | ------------- | -------- | ------------------------ |
+| Phase 1（准备） | Commit 1-3    | 2-3h     | 零风险，不影响线上       |
+| Phase 2（灰度） | Commit 4      | 1-1.5h   | 低风险，可秒级回滚       |
+| Phase 3（清理） | Commit 5-6    | 0.5h     | 零风险（Phase 2 已验证） |
+| **总计**        | **6 commits** | **4-6h** |                          |
+
+> Phase 1-2 可以在同一天完成。Phase 3 建议 Phase 2 上线稳定运行 1 周后再做。
 
 ## 八、回退方案
 

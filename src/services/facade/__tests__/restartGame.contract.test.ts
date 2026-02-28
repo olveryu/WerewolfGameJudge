@@ -4,7 +4,7 @@
  * Phase 2: restartGame 已迁移到 HTTP API
  *
  * 验收标准：
- * 1. 调用正确 API endpoint（/api/game/restart）
+ * 1. 调用正确 API endpoint（/game/restart）
  * 2. 传递正确 request body（roomCode）
  * 3. 权限检查：仅 Host 可调用（facade-level gate）
  * 4. 返回 API 响应
@@ -94,7 +94,7 @@ describe('restartGame Contract (HTTP API)', () => {
   // ===========================================================================
 
   describe('API Call', () => {
-    it('should call /api/game/restart with roomCode', async () => {
+    it('should call /game/restart with roomCode', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
@@ -104,7 +104,7 @@ describe('restartGame Contract (HTTP API)', () => {
       await facade.restartGame();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/restart'),
+        expect.stringContaining('/game/restart'),
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"roomCode":"1234"'),
@@ -196,7 +196,7 @@ describe('restartGame Contract (HTTP API)', () => {
 
   describe('Server-side behavior (documented, not tested here)', () => {
     it('NOTE: restart is handled server-side, state pushed via postgres_changes', () => {
-      // 服务端 /api/game/restart 负责：
+      // 服务端 /game/restart 负责：
       // 1. 调用 handleRestartGame handler
       // 2. 写入 DB → postgres_changes 推送新状态到所有客户端
       // 这些行为由 API route 测试验证，不在 facade 测试中
