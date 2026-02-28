@@ -124,6 +124,31 @@ export function writeEnvLocal(vars, opts = {}) {
   writeFileSync(envLocalPath, finalContent, 'utf-8');
 }
 
+// ─── ensureSupabaseRunning ───────────────────────────────────────────────────
+
+/**
+ * Ensure local Supabase stack is running (idempotent).
+ *
+ * Checks `supabase status` — if not running, runs `supabase start`.
+ * Requires Docker and supabase CLI to be installed.
+ */
+export function ensureSupabaseRunning() {
+  try {
+    execSync('supabase status', { cwd: ROOT_DIR, stdio: 'ignore' });
+    console.log('✅ Supabase is already running');
+  } catch {
+    console.log('🐳 Supabase not running — starting...');
+    try {
+      execSync('supabase start', { cwd: ROOT_DIR, stdio: 'inherit' });
+      console.log('✅ Supabase started');
+    } catch (err) {
+      console.error('❌ Failed to start Supabase. Is Docker running? Is supabase CLI installed?');
+      console.error('   Install: brew install supabase/tap/supabase');
+      process.exit(1);
+    }
+  }
+}
+
 // ─── buildGameEngineEsm ─────────────────────────────────────────────────────
 
 /**
