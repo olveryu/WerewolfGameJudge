@@ -17,6 +17,7 @@
 
 import {
   buildGameEngineEsm,
+  ensureSupabaseRunning,
   loadConfig,
   LOCAL_FUNCTIONS_URL,
   MANAGED_ENV_KEYS,
@@ -68,6 +69,9 @@ console.log(`📡 API: ${apiUrl}\n`);
 // ─── Build & Start ──────────────────────────────────────────────────────────
 
 if (e2eEnv === 'local') {
+  // Ensure local Supabase stack is running (idempotent)
+  ensureSupabaseRunning();
+
   // Build game-engine ESM bundle for Edge Functions
   buildGameEngineEsm();
 
@@ -79,8 +83,8 @@ if (e2eEnv === 'local') {
     'edge,web',
     '-c',
     'blue,green',
-    'supabase functions serve',
-    `expo start --web --port ${WEB_PORT}`,
+    '"supabase functions serve"',
+    `"expo start --web --port ${WEB_PORT}"`,
   ]);
 } else {
   // Remote: Edge Functions already deployed, only start Expo web

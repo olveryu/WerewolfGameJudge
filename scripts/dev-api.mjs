@@ -14,6 +14,7 @@
 
 import {
   buildGameEngineEsm,
+  ensureSupabaseRunning,
   loadConfig,
   LOCAL_FUNCTIONS_URL,
   MANAGED_ENV_KEYS,
@@ -41,6 +42,10 @@ console.log(`📝 .env.local written:`);
 console.log(`   EXPO_PUBLIC_SUPABASE_URL=[configured]`);
 console.log(`   EXPO_PUBLIC_API_URL=${LOCAL_FUNCTIONS_URL}`);
 console.log(`🖥️  Start Metro separately: pnpm run web\n`);
+
+// ---------- Ensure Supabase is running ----------
+
+ensureSupabaseRunning();
 
 // ---------- Build game-engine ESM ----------
 
