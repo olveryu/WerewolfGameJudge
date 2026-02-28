@@ -21,6 +21,13 @@ import { realtimeLog } from '@/utils/logger';
 /** Status change listener */
 type ConnectionStatusListener = (status: ConnectionStatus) => void;
 
+/**
+ * Minimum background duration (ms) that triggers a full channel rejoin.
+ * Mobile browsers freeze JS timers and WebSocket heartbeats when backgrounded;
+ * after ~10 s the connection is likely stale even if the socket object reports OPEN.
+ */
+const BACKGROUND_REJOIN_THRESHOLD_MS = 10_000;
+
 // =============================================================================
 // Service Implementation
 // =============================================================================
@@ -39,6 +46,16 @@ export class RealtimeService {
   // Browser offline/online event handlers (bound for cleanup)
   #handleBrowserOffline: (() => void) | null = null;
   #handleBrowserOnline: (() => void) | null = null;
+
+  // Visibility-based rejoin: saved joinRoom params for automatic reconnection
+  #lastRoomCode: string | null = null;
+  #lastUserId: string | null = null;
+  #lastCallbacks: { onDbStateChange?: (state: GameState, revision: number) => void } | null = null;
+
+  // Visibility change tracking
+  #backgroundedAt: number | null = null;
+  #handleVisibilityChange: (() => void) | null = null;
+  #isRejoining = false;
 
   constructor() {}
 
@@ -160,8 +177,16 @@ export class RealtimeService {
 
     realtimeLog.info(' Joined room:', roomCode);
 
+    // Save params for visibility-based rejoin
+    this.#lastRoomCode = roomCode;
+    this.#lastUserId = _userId;
+    this.#lastCallbacks = callbacks;
+
     // Listen for browser offline/online events for instant disconnect detection.
     this.#subscribeBrowserNetworkEvents();
+
+    // Listen for page visibility changes (mobile browser background/foreground).
+    this.#subscribeVisibilityChange();
   }
 
   /**
@@ -220,11 +245,91 @@ export class RealtimeService {
     }
   }
 
+  // =========================================================================
+  // Page Visibility — detect mobile browser background/foreground
+  // =========================================================================
+
+  /**
+   * Subscribe to `visibilitychange` to detect when a mobile browser freezes
+   * the tab. When the page returns to foreground after ≥ BACKGROUND_REJOIN_THRESHOLD_MS,
+   * tear down the stale channel and do a full rejoin so the WebSocket is fresh.
+   */
+  #subscribeVisibilityChange(): void {
+    this.#unsubscribeVisibilityChange();
+    if (typeof document === 'undefined') return;
+
+    this.#handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        this.#backgroundedAt = Date.now();
+        return;
+      }
+
+      // visible
+      const bg = this.#backgroundedAt;
+      this.#backgroundedAt = null;
+      if (bg == null) return;
+
+      const elapsed = Date.now() - bg;
+      if (elapsed < BACKGROUND_REJOIN_THRESHOLD_MS) {
+        realtimeLog.debug(
+          `Page foregrounded after ${Math.round(elapsed / 1000)}s — below threshold, skipping rejoin`,
+        );
+        return;
+      }
+
+      realtimeLog.info(
+        `Page foregrounded after ${Math.round(elapsed / 1000)}s — triggering channel rejoin`,
+      );
+      void this.#rejoinAfterBackground();
+    };
+
+    document.addEventListener('visibilitychange', this.#handleVisibilityChange);
+  }
+
+  #unsubscribeVisibilityChange(): void {
+    if (this.#handleVisibilityChange && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.#handleVisibilityChange);
+      this.#handleVisibilityChange = null;
+    }
+    this.#backgroundedAt = null;
+  }
+
+  /**
+   * Tear down stale channel and rejoin with saved params.
+   * Called when page returns from background after threshold.
+   */
+  async #rejoinAfterBackground(): Promise<void> {
+    if (this.#isRejoining) {
+      realtimeLog.debug('rejoinAfterBackground: already in progress, skipping');
+      return;
+    }
+    const roomCode = this.#lastRoomCode;
+    const userId = this.#lastUserId;
+    const callbacks = this.#lastCallbacks;
+    if (!roomCode || !userId || !callbacks) {
+      realtimeLog.warn('rejoinAfterBackground: no saved join params, skipping');
+      return;
+    }
+
+    this.#isRejoining = true;
+    try {
+      // joinRoom() internally calls leaveRoom() first, which tears down the stale channel
+      await this.joinRoom(roomCode, userId, callbacks);
+      realtimeLog.info('rejoinAfterBackground: successfully rejoined');
+    } catch (e) {
+      realtimeLog.warn('rejoinAfterBackground: rejoin failed, status → Disconnected', e);
+      this.#setConnectionStatus(ConnectionStatus.Disconnected);
+    } finally {
+      this.#isRejoining = false;
+    }
+  }
+
   /**
    * Leave the current room
    */
   async leaveRoom(): Promise<void> {
     this.#unsubscribeBrowserNetworkEvents();
+    this.#unsubscribeVisibilityChange();
     if (this.#channel) {
       await this.#channel.unsubscribe();
       // removeChannel cleans up the channel from supabase client's internal tracking
@@ -232,6 +337,10 @@ export class RealtimeService {
       this.#channel = null;
     }
     this.#onDbStateChange = null;
+    // Clear saved join params so stale rejoin cannot fire after explicit leave
+    this.#lastRoomCode = null;
+    this.#lastUserId = null;
+    this.#lastCallbacks = null;
     this.#setConnectionStatus(ConnectionStatus.Disconnected);
     realtimeLog.info(' Left room');
   }
