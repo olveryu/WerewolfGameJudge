@@ -7,6 +7,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "build:esm": "esbuild src/index.ts --bundle --format=esm --outfile=../../supabase/functions/_shared/game-engine/index.js",
     "test": "jest --no-coverage --forceExit"
   }
 }
