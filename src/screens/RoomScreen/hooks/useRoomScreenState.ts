@@ -698,7 +698,7 @@ export function useRoomScreenState(
     const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
     setSpeakingOrderText(`🎙️ 从 ${startSeat} 号开始 ${direction}发言`);
 
-    const timer = setTimeout(() => setSpeakingOrderText(undefined), 20_000);
+    const timer = setTimeout(() => setSpeakingOrderText(undefined), 60_000);
     return () => clearTimeout(timer);
   }, [roomStatus, isAudioPlaying]);
 
