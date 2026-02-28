@@ -43,7 +43,7 @@ export function applyOptimisticUpdate(
  * - 成功时 applySnapshot；失败时 rollbackOptimistic
  * - 网络错误自动 warn + rollback
  *
- * @param path - API 路径（如 '/api/game/assign'）
+ * @param path - API 路径（如 '/game/assign'）
  * @param body - JSON body
  * @param label - 日志标签（如 'callGameControlApi'）
  * @param store - GameStore（用于 optimistic response apply）
@@ -57,7 +57,10 @@ export async function callApiOnce(
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-region': 'us-west-1',
+      },
       body: JSON.stringify(body),
     });
 
