@@ -42,7 +42,7 @@ async function callSeatApi(
   optimisticFn?: (state: GameState) => GameState,
 ): Promise<SeatApiResponse> {
   applyOptimisticUpdate(store, optimisticFn);
-  return callApiOnce('/api/game/seat', { roomCode, ...body }, 'callSeatApi', store);
+  return callApiOnce('/game/seat', { roomCode, ...body }, 'callSeatApi', store);
 }
 
 // =============================================================================

@@ -46,6 +46,9 @@ env/e2e.remote.json
 # typescript
 *.tsbuildinfo
 
+# Edge Function ESM bundle (built from game-engine)
+supabase/functions/_shared/game-engine/
+
 # generated native folders
 /ios
 /android
