@@ -142,7 +142,7 @@ export async function assignRoles(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/assign',
+    '/game/assign',
     {
       roomCode,
     },
@@ -162,7 +162,7 @@ export async function markViewedRole(
   const { roomCode } = conn;
 
   const result = await callGameControlApi(
-    '/api/game/view-role',
+    '/game/view-role',
     {
       roomCode,
       uid: ctx.myUid,
@@ -198,7 +198,7 @@ export async function startNight(
   const { roomCode } = conn;
 
   const result = await callGameControlApi(
-    '/api/game/start',
+    '/game/start',
     {
       roomCode,
     },
@@ -236,7 +236,7 @@ export async function updateTemplate(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/update-template',
+    '/game/update-template',
     {
       roomCode,
       templateRoles: template.roles,
@@ -263,7 +263,7 @@ export async function restartGame(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/restart',
+    '/game/restart',
     {
       roomCode,
     },
@@ -287,7 +287,7 @@ export async function setRoleRevealAnimation(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/set-animation',
+    '/game/set-animation',
     {
       roomCode,
       animation,
@@ -314,7 +314,7 @@ export async function shareNightReview(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/share-review',
+    '/game/share-review',
     {
       roomCode,
       allowedSeats,
@@ -342,7 +342,7 @@ export async function submitAction(
   const { roomCode } = conn;
 
   const result = await callGameControlApi(
-    '/api/game/night/action',
+    '/game/night/action',
     {
       roomCode,
       seat,
@@ -378,7 +378,7 @@ export async function submitWolfVote(
   const { roomCode } = conn;
 
   const result = await callGameControlApi(
-    '/api/game/night/wolf-vote',
+    '/game/night/wolf-vote',
     {
       roomCode,
       voterSeat,
@@ -414,7 +414,7 @@ export async function endNight(
   const { roomCode } = conn;
 
   const result = await callGameControlApi(
-    '/api/game/night/end',
+    '/game/night/end',
     {
       roomCode,
     },
@@ -447,7 +447,7 @@ export async function setAudioPlaying(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/night/audio-gate',
+    '/game/night/audio-gate',
     {
       roomCode,
       isPlaying,
@@ -475,7 +475,7 @@ export async function clearRevealAcks(
   const { roomCode } = conn;
 
   const result = await callGameControlApi(
-    '/api/game/night/reveal-ack',
+    '/game/night/reveal-ack',
     {
       roomCode,
     },
@@ -507,7 +507,7 @@ export async function submitGroupConfirmAck(
   facadeLog.debug('submitGroupConfirmAck called', { seat });
 
   const result = await callGameControlApi(
-    '/api/game/night/group-confirm-ack',
+    '/game/night/group-confirm-ack',
     { roomCode, seat, uid: myUid },
     ctx.store,
   );
@@ -536,7 +536,7 @@ export async function setWolfRobotHunterStatusViewed(
   const { roomCode } = conn;
 
   const result = await callGameControlApi(
-    '/api/game/night/wolf-robot-viewed',
+    '/game/night/wolf-robot-viewed',
     {
       roomCode,
       seat,
@@ -572,7 +572,7 @@ export async function postAudioAck(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/night/audio-ack',
+    '/game/night/audio-ack',
     {
       roomCode,
     },
@@ -596,7 +596,7 @@ export async function postProgression(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/night/progression',
+    '/game/night/progression',
     {
       roomCode,
     },
@@ -622,7 +622,7 @@ export async function fillWithBots(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/fill-bots',
+    '/game/fill-bots',
     {
       roomCode,
     },
@@ -644,7 +644,7 @@ export async function markAllBotsViewed(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/mark-bots-viewed',
+    '/game/mark-bots-viewed',
     {
       roomCode,
     },
@@ -669,7 +669,7 @@ export async function clearAllSeats(
   const { roomCode } = conn;
 
   return callGameControlApi(
-    '/api/game/clear-seats',
+    '/game/clear-seats',
     {
       roomCode,
     },

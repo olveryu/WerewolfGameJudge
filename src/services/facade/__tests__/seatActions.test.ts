@@ -3,8 +3,8 @@
  *
  * 测试座位操作编排层（迁移后）：
  * - 统一 HTTP API 调用（Host / Player 不再有区别）
- * - takeSeat / takeSeatWithAck → fetch POST /api/game/seat
- * - leaveSeat / leaveSeatWithAck → fetch POST /api/game/seat
+ * - takeSeat / takeSeatWithAck → fetch POST /game/seat
+ * - leaveSeat / leaveSeatWithAck → fetch POST /game/seat
  * - NOT_CONNECTED guard（无 roomCode / uid 时）
  * - NETWORK_ERROR 处理
  *
@@ -89,10 +89,10 @@ describe('seatActions (HTTP API)', () => {
 
       expect(result).toEqual({ success: true });
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/seat'),
+        expect.stringContaining('/game/seat'),
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-region': 'us-west-1' },
           body: JSON.stringify({
             roomCode: 'ABCD',
             action: 'sit',
@@ -218,7 +218,7 @@ describe('seatActions (HTTP API)', () => {
 
       expect(result).toEqual({ success: true });
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/game/seat'),
+        expect.stringContaining('/game/seat'),
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({

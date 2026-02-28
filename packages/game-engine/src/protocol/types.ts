@@ -37,7 +37,7 @@ export interface ProtocolAction {
  * 音频效果描述符
  *
  * 服务端内联推进时产生，写入 `GameState.pendingAudioEffects`。
- * Host 设备消费队列播放音频，播放完成后 POST `/api/game/night/audio-ack` 清除。
+ * Host 设备消费队列播放音频，播放完成后 POST `/game/night/audio-ack` 清除。
  * Non-Host 设备忽略。
  */
 export interface AudioEffect {
@@ -252,13 +252,13 @@ export interface GameState {
   /**
    * 服务端推进时写入的待播放音频列表。
    *
-   * Host 设备消费并按序播放，播放完成后 POST `/api/game/night/audio-ack` 清除。
+   * Host 设备消费并按序播放，播放完成后 POST `/game/night/audio-ack` 清除。
    * Non-Host 设备忽略。
    *
    * 生命周期：
    * - 写入：服务端内联推进（action → advance/endNight）时从 sideEffects 提取
    * - 消费：Host 设备监听 state 变化 → 检测非空 → 播放 → POST ack 清除
-   * - 清除：`/api/game/night/audio-ack` 清空数组 + 设 isAudioPlaying=false
+   * - 清除：`/game/night/audio-ack` 清空数组 + 设 isAudioPlaying=false
    */
   pendingAudioEffects?: AudioEffect[];
 
