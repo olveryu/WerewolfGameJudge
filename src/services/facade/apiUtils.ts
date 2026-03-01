@@ -7,6 +7,7 @@
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { secureRng } from '@werewolf/game-engine/utils/random';
 
 import { API_BASE_URL } from '@/config/api';
 import { facadeLog } from '@/utils/logger';
@@ -95,4 +96,52 @@ export async function callApiOnce(
     if (store) store.rollbackOptimistic();
     return { success: false, reason: 'NETWORK_ERROR' };
   }
+}
+
+// =============================================================================
+// Retry wrapper (DRY — shared by gameActions & seatActions)
+// =============================================================================
+
+/** 最大客户端重试次数 */
+const MAX_CLIENT_RETRIES = 2;
+
+/**
+ * 带透明重试的 API 调用
+ *
+ * 封装 callApiOnce + 乐观更新 + 重试循环，供 gameActions / seatActions 共用。
+ * 瞬时错误（CONFLICT_RETRY / INTERNAL_ERROR）透明重试最多 MAX_CLIENT_RETRIES 次，
+ * 退避 + 随机抖动。NETWORK_ERROR / SERVER_ERROR 不重试（已在 callApiOnce 中 rollback）。
+ */
+export async function callApiWithRetry(
+  path: string,
+  body: Record<string, unknown>,
+  label: string,
+  store?: GameStore,
+  optimisticFn?: (state: GameState) => GameState,
+): Promise<ApiResponse> {
+  applyOptimisticUpdate(store, optimisticFn);
+
+  for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
+    const result = await callApiOnce(path, body, label, store);
+
+    // 网络/服务端错误已在 callApiOnce 中 rollback，不重试
+    if (result.reason === 'NETWORK_ERROR' || result.reason === 'SERVER_ERROR') {
+      return result;
+    }
+
+    // 瞬时错误 → 透明重试（退避 + 随机抖动）
+    const isRetryable = result.reason === 'CONFLICT_RETRY' || result.reason === 'INTERNAL_ERROR';
+    if (isRetryable && attempt < MAX_CLIENT_RETRIES) {
+      const delay = 100 * (attempt + 1) + secureRng() * 50;
+      facadeLog.warn(`${result.reason}, client retrying`, { path, attempt: attempt + 1 });
+      await new Promise((r) => setTimeout(r, delay));
+      continue;
+    }
+
+    return result;
+  }
+
+  // 重试耗尽 → 回滚乐观更新
+  if (store) store.rollbackOptimistic();
+  return { success: false, reason: 'CONFLICT_RETRY' };
 }

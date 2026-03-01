@@ -28,12 +28,11 @@ import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { secureRng } from '@werewolf/game-engine/utils/random';
 
 import type { AudioService } from '@/services/infra/AudioService';
 import { facadeLog } from '@/utils/logger';
 
-import { type ApiResponse, applyOptimisticUpdate, callApiOnce } from './apiUtils';
+import { type ApiResponse, callApiWithRetry } from './apiUtils';
 
 /**
  * gameActions 依赖的上下文接口
@@ -69,34 +68,7 @@ async function callGameControlApi(
   store?: GameStore,
   optimisticFn?: (state: GameState) => GameState,
 ): Promise<GameControlApiResponse> {
-  const MAX_CLIENT_RETRIES = 2;
-
-  // 乐观更新：fetch 前立即渲染预测 state
-  applyOptimisticUpdate(store, optimisticFn);
-
-  for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
-    const result = await callApiOnce(path, body, 'callGameControlApi', store);
-
-    // 网络/服务端错误已在 callApiOnce 中处理
-    if (result.reason === 'NETWORK_ERROR' || result.reason === 'SERVER_ERROR') {
-      return result;
-    }
-
-    // 乐观锁冲突或服务端瞬时错误 → 客户端透明重试（退避 + 随机抖动）
-    const isRetryable = result.reason === 'CONFLICT_RETRY' || result.reason === 'INTERNAL_ERROR';
-    if (isRetryable && attempt < MAX_CLIENT_RETRIES) {
-      const delay = 100 * (attempt + 1) + secureRng() * 50;
-      facadeLog.warn(`${result.reason}, client retrying`, { path, attempt: attempt + 1 });
-      await new Promise((r) => setTimeout(r, delay));
-      continue;
-    }
-
-    return result;
-  }
-
-  // 重试耗尽 → 回滚乐观更新
-  if (store) store.rollbackOptimistic();
-  return { success: false, reason: 'CONFLICT_RETRY' };
+  return callApiWithRetry(path, body, 'callGameControlApi', store, optimisticFn);
 }
 
 // ---------------------------------------------------------------------------

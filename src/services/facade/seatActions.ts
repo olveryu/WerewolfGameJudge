@@ -9,11 +9,10 @@
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
-import { secureRng } from '@werewolf/game-engine/utils/random';
 
 import { facadeLog } from '@/utils/logger';
 
-import { type ApiResponse, applyOptimisticUpdate, callApiOnce } from './apiUtils';
+import { type ApiResponse, callApiWithRetry } from './apiUtils';
 
 /**
  * Seat Actions 依赖的上下文接口
@@ -44,33 +43,7 @@ async function callSeatApi(
   store?: GameStore,
   optimisticFn?: (state: GameState) => GameState,
 ): Promise<SeatApiResponse> {
-  const MAX_CLIENT_RETRIES = 2;
-
-  applyOptimisticUpdate(store, optimisticFn);
-
-  for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
-    const result = await callApiOnce('/game/seat', { roomCode, ...body }, 'callSeatApi', store);
-
-    // 网络/服务端错误已在 callApiOnce 中处理
-    if (result.reason === 'NETWORK_ERROR' || result.reason === 'SERVER_ERROR') {
-      return result;
-    }
-
-    // 瞬时错误 → 透明重试（退避 + 随机抖动）
-    const isRetryable = result.reason === 'CONFLICT_RETRY' || result.reason === 'INTERNAL_ERROR';
-    if (isRetryable && attempt < MAX_CLIENT_RETRIES) {
-      const delay = 100 * (attempt + 1) + secureRng() * 50;
-      facadeLog.warn(`${result.reason}, seat retry`, { attempt: attempt + 1 });
-      await new Promise((r) => setTimeout(r, delay));
-      continue;
-    }
-
-    return result;
-  }
-
-  // 重试耗尽 → 回滚乐观更新
-  if (store) store.rollbackOptimistic();
-  return { success: false, reason: 'CONFLICT_RETRY' };
+  return callApiWithRetry('/game/seat', { roomCode, ...body }, 'callSeatApi', store, optimisticFn);
 }
 
 // =============================================================================
