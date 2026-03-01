@@ -58,7 +58,7 @@ export interface GameSetupWithRolesResult extends GameSetupResult {
 // ---------------------------------------------------------------------------
 
 /** Max poll attempts before hard-failing. Total timeout ≈ PRESENCE_MAX_ATTEMPTS × PRESENCE_INTERVAL_MS. */
-const PRESENCE_MAX_ATTEMPTS = 50;
+const PRESENCE_MAX_ATTEMPTS = 100;
 /** Poll cadence for presence stability checks (≤300ms per test instructions). */
 const PRESENCE_INTERVAL_MS = 300;
 

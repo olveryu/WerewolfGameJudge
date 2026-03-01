@@ -480,7 +480,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       expect(fetchStateFromDBMock).toHaveBeenCalledTimes(1);
 
       // Receive state with GameStatus.Ongoing status — active phase uses 8s stale threshold.
-      // (Idle phases like GameStatus.Unseated use 60s threshold, which is too long for this test.)
+      // (Idle phases like GameStatus.Unseated use 10s threshold.)
       const mockState = {
         roomCode: 'TEST',
         hostUid: 'host-1',
