@@ -8,7 +8,8 @@
  * 4. （可选）内联推进：runInlineProgression 循环
  * 5. 用 state_revision 做乐观锁写回 DB
  *
- * 差异：process.env → Deno.env.get()，Vercel resp → Web Response。
+ * 使用 supabase-js（PostgREST HTTP API）替代 postgres.js 直连，
+ * 彻底消除 Supabase Free tier 连接池耗尽问题。
  */
 
 import {
@@ -18,7 +19,7 @@ import {
   runInlineProgression,
 } from '../_shared/game-engine/index.js';
 
-import { getDb, jsonb } from './db.ts';
+import { supabaseAdmin } from './supabaseAdmin.ts';
 import type { GameActionResult, ProcessResult } from './types.ts';
 
 /**
@@ -45,27 +46,22 @@ export async function processGameAction(
   inlineProgression?: InlineProgressionOptions,
 ): Promise<GameActionResult> {
   try {
-    const sql = getDb();
     const MAX_RETRIES = 3;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      // Step 1: 读 DB（直连 Postgres，~5-15ms）
-      const rows = await sql`
-        SELECT game_state, state_revision
-        FROM rooms
-        WHERE code = ${roomCode}
-        LIMIT 1
-      `;
+      // Step 1: 读 DB（PostgREST HTTP，无持久连接）
+      const { data: row, error: readError } = await supabaseAdmin
+        .from('rooms')
+        .select('game_state, state_revision')
+        .eq('code', roomCode)
+        .single();
 
-      if (rows.length === 0 || !rows[0].game_state) {
+      if (readError || !row?.game_state) {
         return { success: false, reason: 'ROOM_NOT_FOUND' };
       }
 
-      // postgres.js + Supavisor (prepare:false) 可能将 jsonb 作为字符串返回
-      const rawState = rows[0].game_state;
-      const currentState: GameState =
-        typeof rawState === 'string' ? JSON.parse(rawState) : rawState;
-      const currentRevision = (rows[0].state_revision as number) ?? 0;
+      const currentState: GameState = row.game_state as GameState;
+      const currentRevision = (row.state_revision as number) ?? 0;
 
       // Step 2: 调用 game-engine 纯函数
       const result = process(currentState, currentRevision);
@@ -113,18 +109,30 @@ export async function processGameAction(
 
       newState = normalizeState(newState);
 
-      // Step 4: 乐观锁写回 DB（直连 Postgres，~5-15ms）
-      const writeRows = await sql`
-        UPDATE rooms
-        SET game_state = ${jsonb(newState)},
-            state_revision = ${currentRevision + 1},
-            updated_at = ${new Date().toISOString()}
-        WHERE code = ${roomCode}
-          AND state_revision = ${currentRevision}
-        RETURNING state_revision
-      `;
+      // Step 4: 乐观锁写回 DB（PostgREST HTTP，无持久连接）
+      // .eq('state_revision', currentRevision) 确保只有当前 revision 才能写入。
+      // 无匹配行时 data 为空数组 — 等效于 SQL RETURNING 0 行。
+      const { data: writeRows, error: writeError } = await supabaseAdmin
+        .from('rooms')
+        .update({
+          game_state: newState,
+          state_revision: currentRevision + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('code', roomCode)
+        .eq('state_revision', currentRevision)
+        .select('state_revision');
 
-      if (writeRows.length === 0) {
+      if (writeError) {
+        console.error('[processGameAction] DB write error:', writeError.message);
+        return {
+          success: false,
+          reason: 'INTERNAL_ERROR',
+          error: writeError.message,
+        } as GameActionResult;
+      }
+
+      if (!writeRows || writeRows.length === 0) {
         // 乐观锁冲突 → 重试（重新读 DB + 重新计算）
         if (attempt < MAX_RETRIES) {
           await new Promise((r) => setTimeout(r, 50 * attempt));

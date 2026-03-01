@@ -49,10 +49,8 @@ export default defineConfig({
   /* Retry on CI only - helps with transient connection issues */
   retries: process.env.CI ? 2 : 0,
 
-  /* CI: serialize within each shard to stay under Supabase Free-tier Realtime
-   * limits (100 msg/s, 200 concurrent connections). 4 shards × 1 worker keeps
-   * total concurrent connections low enough to avoid dropped postgres_changes. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Use all available workers for parallel tests */
+  workers: process.env.CI ? 3 : undefined,
 
   /* Reporter to use */
   reporter: 'html',
