@@ -467,27 +467,22 @@ git push (main) ──> │  GitHub CI  │ ──> quality → deploy-edge-func
 - E2E 测试全通过
 - 合并到 main → 线上观察 1-2 局游戏
 
-### Phase 3：清理 — 约 30 min
+### Phase 3：清理 — ✅ 已完成
 
-> **等 Phase 2 线上运行稳定（建议至少 1 周）后再执行**
+> Phase 2 稳定运行后执行。已于迁移完成后执行。
 
-#### Commit 5：`chore: remove Vercel API handlers`
+#### Commit 5：`chore: remove Vercel API handlers` ✅
 
-**时间：~15 min**
+- 删除 `api/` 整个目录（handlers、\_lib、tests、tsconfig）
+- `jest.config.js` 移除 `api` root
+- `vercel.json` 简化 rewrites（移除 `(?!api/)` 排除模式）
+- `package.json` 移除 `postgres` 依赖
 
-- 删除 `api/game/`、`api/_lib/`、`api/health.ts`、`api/tsconfig.json`
-- 删除 `api/__tests__/` 服务端测试（或迁移为 Edge Function 测试）
-- `vercel.json` 移除 API 相关 rewrites/headers 配置
+#### Commit 6：`chore: add health sub-route, update docs` ✅
 
-#### Commit 6：`chore: cleanup warm-api, update CI and docs`
-
-**时间：~15 min**
-
-- 删除 `.github/workflows/warm-api.yml`
-- 更新 dev scripts（已完成：`dev:functions` / `dev` 改用 `supabase functions serve`）
-- `package.json` 已更新 scripts
-- 更新文档：`copilot-instructions.md`、`services.instructions.md`
-- 在 `game` function 中加 `/game/health` 子路由
+- 在 `game` Edge Function 中加 `/game/health` GET 子路由
+- 更新 `copilot-instructions.md`：Vercel Serverless → Supabase Edge Functions
+- 更新本文档标记完成
 
 ### 时间汇总
 
@@ -498,13 +493,12 @@ git push (main) ──> │  GitHub CI  │ ──> quality → deploy-edge-func
 | Phase 3（清理） | Commit 5-6    | 0.5h     | 零风险（Phase 2 已验证） |
 | **总计**        | **6 commits** | **4-6h** |                          |
 
-> Phase 1-2 可以在同一天完成。Phase 3 建议 Phase 2 上线稳定运行 1 周后再做。
+> Phase 1-2 可以在同一天完成。Phase 3 已完成。
 
 ## 八、回退方案
 
-- Vercel handler 代码不立即删除（Phase 3 在确认稳定后执行）
-- 客户端通过 `EXPO_PUBLIC_API_URL` 环境变量一键切回 Vercel
-- 回退操作：改环境变量 → 重新部署前端 → 完成
+- Vercel handler 代码已在 Phase 3 删除，如需回退可从 git 历史恢复
+- Edge Functions 已稳定运行，回退概率极低
 
 ## 九、待确认事项
 

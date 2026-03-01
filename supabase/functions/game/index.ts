@@ -567,6 +567,14 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Health check — lightweight GET that returns 200 without touching the DB.
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      if (url.pathname.endsWith('/health')) {
+        return jsonResponse({ status: 'ok' }, 200);
+      }
+    }
+
     if (req.method !== 'POST') {
       return jsonResponse({ success: false, reason: 'METHOD_NOT_ALLOWED' }, 405);
     }
