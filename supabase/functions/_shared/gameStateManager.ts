@@ -147,9 +147,8 @@ export async function processGameAction(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[processGameAction] Unhandled error:', message, err);
-    // Strip error details in production to avoid leaking internals
-    const isProd = Deno.env.get('DENO_DEPLOYMENT_ID') !== undefined;
-    const error = isProd ? undefined : message;
-    return { success: false, reason: 'INTERNAL_ERROR', error } as GameActionResult;
+    // Always include error message for debugging — Edge Functions are internal,
+    // not publicly browseable. Error visibility is critical for CI diagnosis.
+    return { success: false, reason: 'INTERNAL_ERROR', error: message } as GameActionResult;
   }
 }

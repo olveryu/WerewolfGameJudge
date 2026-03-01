@@ -82,10 +82,11 @@ async function callGameControlApi(
       return result;
     }
 
-    // 乐观锁冲突 → 客户端透明重试（退避 + 随机抖动）
-    if (result.reason === 'CONFLICT_RETRY' && attempt < MAX_CLIENT_RETRIES) {
+    // 乐观锁冲突或服务端瞬时错误 → 客户端透明重试（退避 + 随机抖动）
+    const isRetryable = result.reason === 'CONFLICT_RETRY' || result.reason === 'INTERNAL_ERROR';
+    if (isRetryable && attempt < MAX_CLIENT_RETRIES) {
       const delay = 100 * (attempt + 1) + secureRng() * 50;
-      facadeLog.warn('CONFLICT_RETRY, client retrying', { path, attempt: attempt + 1 });
+      facadeLog.warn(`${result.reason}, client retrying`, { path, attempt: attempt + 1 });
       await new Promise((r) => setTimeout(r, delay));
       continue;
     }

@@ -18,7 +18,9 @@ const sql = postgres(connectionString, {
   // Edge Runtime 单连接即可（worker 复用）
   max: 1,
   idle_timeout: 60,
-  connect_timeout: 10,
+  // 30s connect timeout — Supabase free tier can be slow under concurrent load
+  // (CI runs 6 parallel shards, each spawning multiple Edge Function isolates)
+  connect_timeout: 30,
   // Supavisor transaction mode 需要 prepare: false
   prepare: false,
 });

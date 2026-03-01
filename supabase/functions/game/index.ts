@@ -566,41 +566,51 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  if (req.method !== 'POST') {
-    return jsonResponse({ success: false, reason: 'METHOD_NOT_ALLOWED' }, 405);
-  }
+  try {
+    if (req.method !== 'POST') {
+      return jsonResponse({ success: false, reason: 'METHOD_NOT_ALLOWED' }, 405);
+    }
 
-  // Parse route from URL pathname
-  // URL patterns: /game/<action> or /game/night/<action>
-  const url = new URL(req.url);
-  const segments = url.pathname.split('/').filter(Boolean);
+    // Parse route from URL pathname
+    // URL patterns: /game/<action> or /game/night/<action>
+    const url = new URL(req.url);
+    const segments = url.pathname.split('/').filter(Boolean);
 
-  // Expected: ["game", action] or ["game", "night", action]
-  // Also handle: ["functions", "v1", "game", action] (full Supabase URL)
-  let gameIdx = segments.indexOf('game');
-  if (gameIdx === -1) {
-    return jsonResponse({ success: false, reason: 'UNKNOWN_ACTION' }, 404);
-  }
-
-  const remaining = segments.slice(gameIdx + 1);
-
-  if (remaining.length === 1) {
-    // /game/<action>
-    const handler = GAME_ROUTES[remaining[0]];
-    if (!handler) {
+    // Expected: ["game", action] or ["game", "night", action]
+    // Also handle: ["functions", "v1", "game", action] (full Supabase URL)
+    const gameIdx = segments.indexOf('game');
+    if (gameIdx === -1) {
       return jsonResponse({ success: false, reason: 'UNKNOWN_ACTION' }, 404);
     }
-    return handler(req);
-  }
 
-  if (remaining.length === 2 && remaining[0] === 'night') {
-    // /game/night/<action>
-    const handler = NIGHT_ROUTES[remaining[1]];
-    if (!handler) {
-      return jsonResponse({ success: false, reason: 'UNKNOWN_NIGHT_ACTION' }, 404);
+    const remaining = segments.slice(gameIdx + 1);
+
+    if (remaining.length === 1) {
+      // /game/<action>
+      const handler = GAME_ROUTES[remaining[0]];
+      if (!handler) {
+        return jsonResponse({ success: false, reason: 'UNKNOWN_ACTION' }, 404);
+      }
+      return await handler(req);
     }
-    return handler(req);
-  }
 
-  return jsonResponse({ success: false, reason: 'UNKNOWN_ACTION' }, 404);
+    if (remaining.length === 2 && remaining[0] === 'night') {
+      // /game/night/<action>
+      const handler = NIGHT_ROUTES[remaining[1]];
+      if (!handler) {
+        return jsonResponse({ success: false, reason: 'UNKNOWN_NIGHT_ACTION' }, 404);
+      }
+      return await handler(req);
+    }
+
+    return jsonResponse({ success: false, reason: 'UNKNOWN_ACTION' }, 404);
+  } catch (err) {
+    // Global catch — prevents Deno from returning a raw 500 without CORS headers.
+    // All handler-level errors should be caught by processGameAction; this is a
+    // last-resort safety net for unexpected throws (e.g. req.json() SyntaxError,
+    // runtime errors before processGameAction is reached).
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[game] Unhandled error in request handler:', message, err);
+    return jsonResponse({ success: false, reason: 'INTERNAL_ERROR', error: message }, 500);
+  }
 });
