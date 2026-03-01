@@ -49,8 +49,10 @@ export default defineConfig({
   /* Retry on CI only - helps with transient connection issues */
   retries: process.env.CI ? 2 : 0,
 
-  /* Use all available workers for parallel tests */
-  workers: process.env.CI ? 3 : undefined,
+  /* Use all available workers for parallel tests.
+   * CI: limit to 2 to reduce concurrent Supabase Realtime connections —
+   * too many postgres_changes subscribers cause event drops. */
+  workers: process.env.CI ? 2 : undefined,
 
   /* Reporter to use */
   reporter: 'html',
