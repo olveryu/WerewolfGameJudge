@@ -70,7 +70,7 @@ export function setupDiagnostics(page: Page, label: string): DiagnosticData {
       data.errorResponses.push(errLine);
       console.warn('[PW response]', errLine);
       // Log response body for API errors to identify rejection reason
-      if (resp.url().includes('/api/')) {
+      if (resp.url().includes('/api/') || resp.url().includes('/functions/')) {
         void resp
           .json()
           .then((body) => {
