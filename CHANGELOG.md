@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.4.0] - 2026-03-01
+
+- fix(services): force reconnect on foreground to eliminate stale WebSocket delay
+- chore: add health sub-route, update docs
+- chore: remove Vercel API handlers
+- fix(game-engine): replace postgres.js with supabase-js to eliminate connection pool exhaustion
+- fix(e2e): enhance diagnostics to log response bodies for API and function errors
+- fix(e2e): serialize ci workers to stay under supabase realtime free-tier limits
+- Revert "fix(e2e): reduce idle stale threshold and ci concurrency for reliable postgres_changes"
+- fix(e2e): reduce idle stale threshold and ci concurrency for reliable postgres_changes
+- refactor(services): extract callApiWithRetry to apiUtils (DRY)
+- fix(ci): improve Edge Function error handling and e2e reliability
+- fix(ci): e2e depends on deploy-edge-functions to avoid race
+- perf(auth): use getSession instead of getUser for profile metadata
+- ci: trigger edge function deploy
+- refactor(scripts): one-command dev with auto supabase start
+- ci: remove Vercel references from workflows
+- refactor(scripts): migrate dev scripts from Vercel to Supabase Edge Functions
+- fix(lint): add --no-warn-ignored to lint-staged eslint command
+- feat(edge): migrate API from Vercel Serverless to Supabase Edge Functions
+- feat(client): switch API paths to Edge Functions
+- ci(edge): add Edge Function deploy job
+- feat(edge): add game Edge Function with all handlers
+- feat(game-engine): add ESM build for Edge Functions
+- feat(migration): implement migration to Supabase Edge Functions with ESM build and handlers
+- feat(docs): add migration plan for Vercel Serverless to Supabase Edge Functions
+- feat(config): auto-select slot when user picks a variant
+- fix(template): replace 'hunter' with 'knight' in preset templates
+- fix: suppress Sentry noise for expected network/upstream errors
+- refactor(room): use SDK worker + isConnected() for background reconnect
+- fix(room): extend speaking order display to 60 seconds
+- fix(room): rejoin realtime channel after mobile browser background
+- fix(room): suppress Sentry noise for channel-closed retry race
+
 ## [1.3.0] - 2026-02-27
 
 - fix(room): speaking order not visible to host after restart
