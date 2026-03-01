@@ -28,15 +28,13 @@ import { gameRoomLog } from '@/utils/logger';
  * Active phases (ongoing / ready / ended): 8s — state changes frequently,
  * a dropped postgres_changes notification must be recovered quickly.
  *
- * Idle phases (unseated / seated / assigned): 10s — state changes are rare
- * and user-initiated (seat / assign), but Supabase postgres_changes is
- * at-most-once, so a moderately short threshold ensures faster recovery
- * when a notification is silently dropped (e.g. under concurrent CI load).
- * Real disconnections are still caught instantly by Layer 0
+ * Idle phases (unseated / seated / assigned): 60s — state changes are rare
+ * and user-initiated (seat / assign), so a longer threshold avoids unnecessary
+ * DB reads. Real disconnections are still caught instantly by Layer 0
  * (browser offline) and Layer 1 (Supabase SDK reconnect).
  */
 const STALE_THRESHOLD_ACTIVE_MS = 8_000;
-const STALE_THRESHOLD_IDLE_MS = 10_000;
+const STALE_THRESHOLD_IDLE_MS = 60_000;
 
 /** Phases where state changes frequently and require fast stale detection. */
 const ACTIVE_STATUSES = new Set<GameStatus>([
