@@ -128,16 +128,13 @@ export class RealtimeService {
     const subscribePromise = new Promise<void>((resolve, reject) => {
       let resolved = false;
 
-      // 15s timeout — Supabase Realtime can be slow under concurrent CI load
-      // (6 shards × multiple browser contexts competing for WebSocket slots).
-      // 8s was too aggressive and caused frequent CI failures.
       const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
           this.#setConnectionStatus(ConnectionStatus.Disconnected);
-          reject(new Error('RealtimeService: subscribe timeout after 15s'));
+          reject(new Error('RealtimeService: subscribe timeout after 8s'));
         }
-      }, 15000);
+      }, 8000);
 
       this.#channel!.subscribe((status) => {
         if (status === 'SUBSCRIBED') {

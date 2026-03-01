@@ -1,5 +1,5 @@
 {
   "imports": {
-    "postgres": "npm:postgres@3"
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2"
   }
 }
