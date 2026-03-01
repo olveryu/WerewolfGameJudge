@@ -49,7 +49,8 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 ### 发版 & 部署
 
 - `pnpm run release` — bump 版本号 → 更新 CHANGELOG → commit → git tag → push。每次发版必须通过此脚本。
-- `git push` 自动触发 **Vercel Git Integration**（执行 `scripts/build.sh`）完成生产部署，同时触发 **GitHub CI**（quality + E2E）。
+- `git push` 自动触发 **Vercel Git Integration**（执行 `scripts/build.sh`）完成前端部署，同时触发 **GitHub CI**（quality + deploy-edge-functions + E2E）。
+- 游戏 API 由 **Supabase Edge Functions** 承载，CI `deploy-edge-functions` job 自动部署。
 - `scripts/deploy.sh` — 仅用于 Vercel 自动部署故障时的应急手动部署，日常不使用。
 
 ---
@@ -98,7 +99,7 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ## 不可协商规则
 
-- **服务端是唯一的游戏逻辑权威。** Vercel Serverless 负责读-算-写-广播。客户端完全平等。
+- **服务端是唯一的游戏逻辑权威。** Supabase Edge Functions 负责读-算-写-广播。客户端完全平等。
 - **"Host" 只是 UI 角色标记。** `isHost` 决定按钮可见性和音频播放。Host 设备同时也是玩家。
 - **仅 Night-1 范围。** 禁止跨夜状态/规则。
 - **`GameState` 是单一真相。** 所有信息公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift/PRIVATE_EFFECT。
@@ -112,8 +113,9 @@ React Native (Expo SDK 54) 狼人杀裁判辅助 app。Supabase 负责房间发�
 
 ## 架构边界
 
-- **Vercel Serverless** — 游戏逻辑（读 DB → game-engine → 写 DB + 乐观锁 → Realtime 广播）。
+- **Supabase Edge Functions** — 游戏逻辑（读 DB via supabase-js PostgREST → game-engine → 写 DB + 乐观锁 → Realtime 广播）。
 - **Supabase** — 房间生命周期、presence、auth、realtime transport、game_state 持久化。
+- **Vercel** — 仅承载前端静态资源（Expo Web build）。
 - **客户端** — HTTP API 提交 + Realtime 接收 + `applySnapshot` + 音频播放（Host）。
 - 所有客户端完全平等。禁止 P2P 消息。断线恢复统一读 DB。
 
