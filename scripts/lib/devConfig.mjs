@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export const ROOT_DIR = join(__dirname, '..', '..');
+const ROOT_DIR = join(__dirname, '..', '..');
 
 /**
  * All env fields that MUST be present in env/e2e.*.json.

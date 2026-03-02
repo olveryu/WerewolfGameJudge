@@ -151,6 +151,3 @@ export function hasNightAction(roleId: string): boolean {
 // ============================================================
 // Seer Check
 // ============================================================
-
-// Re-export SeerCheckResult from types.ts (single source of truth)
-export type { SeerCheckResult } from './spec/types';

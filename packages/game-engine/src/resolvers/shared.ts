@@ -98,7 +98,7 @@ export function createIdentityCheckResolver(
  * - mirrorSeer: 反转
  * - drunkSeer: 随机（外部传入）
  */
-export type CheckResultTransformer = (normalResult: '好人' | '狼人') => '好人' | '狼人';
+type CheckResultTransformer = (normalResult: '好人' | '狼人') => '好人' | '狼人';
 
 /**
  * 创建 seer-family check resolver（seer / mirrorSeer / drunkSeer）
