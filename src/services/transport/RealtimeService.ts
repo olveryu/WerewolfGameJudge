@@ -22,10 +22,11 @@ import { realtimeLog } from '@/utils/logger';
 type ConnectionStatusListener = (status: ConnectionStatus) => void;
 
 /**
- * Minimum background duration (ms) that triggers a forced reconnect.
+ * Minimum background duration (ms) that triggers a reconnection check.
  * Mobile browsers freeze JS timers and WebSocket heartbeats when backgrounded;
- * after ~3 s the connection is likely stale even if the socket object reports OPEN.
- * SDK heartbeat is 25 s — we cannot wait that long to discover a dead socket.
+ * after ~3 s the connection may be stale even if the socket object reports OPEN.
+ * The actual data recovery is handled by the upper-layer foreground DB fetch;
+ * this threshold only controls when we ask the SDK to re-establish transport.
  */
 const BACKGROUND_REJOIN_THRESHOLD_MS = 3_000;
 
@@ -285,22 +286,26 @@ export class RealtimeService {
   }
 
   /**
-   * Force reconnect after returning from background.
+   * Check and recover WebSocket connection after returning from background.
    *
-   * Mobile OSes kill TCP connections while the tab is backgrounded, but
-   * `WebSocket.readyState` still reports OPEN until the next heartbeat
-   * times out (~25 s). We cannot trust `isConnected()` here.
+   * `worker: true` keeps SDK heartbeats running in a Web Worker, so the
+   * connection usually survives short background periods. If the OS did
+   * kill the socket, `isConnected()` returns false and we call `connect()`.
    *
-   * The Phoenix / Supabase community pattern is to unconditionally
-   * `disconnect()` + `connect()`. The SDK automatically rejoins all
-   * existing channels after `connect()`, so no manual re-subscribe needed.
+   * Data recovery is not handled here — the upper-layer foreground DB fetch
+   * (in useConnectionSync) immediately reads the latest state from DB on
+   * every foreground event, regardless of WebSocket state.
    */
   #reconnectIfNeeded(): void {
     if (!supabase) return;
 
-    realtimeLog.info('reconnectIfNeeded: force disconnect + reconnect');
+    if (supabase.realtime.isConnected()) {
+      realtimeLog.debug('reconnectIfNeeded: SDK reports connected, no action needed');
+      return;
+    }
+
+    realtimeLog.info('reconnectIfNeeded: SDK reports disconnected, calling connect()');
     this.#setConnectionStatus(ConnectionStatus.Connecting);
-    supabase.realtime.disconnect();
     supabase.realtime.connect();
     // SDK will re-subscribe existing channels automatically.
     // The subscribe status callback will fire SUBSCRIBED → sets Live.
