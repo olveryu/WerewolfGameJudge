@@ -165,6 +165,7 @@ export function useConnectionSync(
     // Page Visibility API: mobile browsers freeze WebSocket when backgrounded
     // but may not fire an 'offline' event. When the tab becomes visible again,
     // run an immediate staleness check instead of waiting for the next 3s tick.
+    // The foreground DB fetch (below) handles actual data recovery.
     const onVisibilityChange = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         gameRoomLog.debug('Page became visible — running immediate stale check');
@@ -209,6 +210,33 @@ export function useConnectionSync(
       gameRoomLog.warn('Auto-heal fetchStateFromDB failed:', e);
     });
   }, [isStateStale, connectionStatus, roomRecord, facade, lastStateReceivedAt]);
+
+  // ── 前台恢复立即 DB 拉取 ──
+  // 移动端切后台时 WebSocket 可能被 OS 杀掉，但 `worker: true` 大概率保活。
+  // 无论连接是否中断，切回前台后立即从 DB 读取最新状态，保证 ~1s 内数据同步。
+  // 独立于 auto-heal（auto-heal 仅在长时间 stale 后触发），用自己的冷却。
+  const lastForegroundFetchRef = useRef<number>(0);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (!roomRecord) return;
+
+    const FOREGROUND_FETCH_COOLDOWN_MS = 3_000;
+
+    const onForeground = () => {
+      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - lastForegroundFetchRef.current < FOREGROUND_FETCH_COOLDOWN_MS) return;
+      lastForegroundFetchRef.current = now;
+
+      gameRoomLog.info('Foreground: immediately fetching state from DB');
+      facade.fetchStateFromDB().catch((e) => {
+        gameRoomLog.warn('Foreground fetchStateFromDB failed:', e);
+      });
+    };
+
+    document.addEventListener('visibilitychange', onForeground);
+    return () => document.removeEventListener('visibilitychange', onForeground);
+  }, [roomRecord, facade]);
 
   return useMemo(
     () => ({
