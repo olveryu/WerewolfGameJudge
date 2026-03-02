@@ -80,8 +80,10 @@ test.describe('Network reconnect during night', () => {
 
         // Soft check: WebSocket heartbeat may take time to detect network loss.
         // Like db-recovery.spec.ts, don't hard-fail if indicator doesn't appear immediately.
-        const disconnectedIndicator = disconnectPage.getByText('🔴 连接断开', { exact: true });
-        const sawDisconnected = await disconnectedIndicator
+        const disconnectedBanner = disconnectPage.getByText('连接断开，正在重连...', {
+          exact: true,
+        });
+        const sawDisconnected = await disconnectedBanner
           .waitFor({ state: 'visible', timeout: 15_000 })
           .then(() => true)
           .catch(() => false);
@@ -100,15 +102,25 @@ test.describe('Network reconnect during night', () => {
       });
 
       // Step 3: Wait 10 seconds (simulating real-world disconnect)
-      // Browser offline event should trigger instant disconnect detection.
+      // SDK heartbeat timeout (~25s) will detect the disconnect.
       await test.step('wait 10s while disconnected', async () => {
         await disconnectPage.waitForTimeout(10_000);
 
-        const disconnectedIndicator = disconnectPage.getByText('🔴 连接断开', { exact: true });
-        await expect(
-          disconnectedIndicator,
-          'Disconnect indicator should be visible after 10s offline',
-        ).toBeVisible({ timeout: 5_000 });
+        const disconnectedBanner = disconnectPage.getByText('连接断开，正在重连...', {
+          exact: true,
+        });
+        // After L0 (browser offline) removal, disconnect detection relies on
+        // SDK heartbeat (~25s). After 10s offline the banner may or may not be
+        // visible yet — soft-check only.
+        const sawDisconnected = await disconnectedBanner
+          .waitFor({ state: 'visible', timeout: 20_000 })
+          .then(() => true)
+          .catch(() => false);
+
+        await testInfo.attach('disconnect-after-10s.txt', {
+          body: `Disconnect banner visible after wait: ${sawDisconnected}`,
+          contentType: 'text/plain',
+        });
 
         await disconnectPage.screenshot().then((s) =>
           testInfo.attach('reconnect-02b-after-10s.png', {
@@ -122,14 +134,11 @@ test.describe('Network reconnect during night', () => {
       await test.step('reconnect player', async () => {
         await disconnectContext.setOffline(false);
 
-        // Wait for connection to restore
+        // Wait for connection to restore (banner disappears when Live)
         await waitForRoomScreenReady(disconnectPage, {
           role: 'joiner',
           liveTimeoutMs: 30_000,
         });
-
-        const liveIndicator = disconnectPage.getByText('🟢 已连接', { exact: true });
-        await expect(liveIndicator).toBeVisible({ timeout: 5_000 });
 
         await disconnectPage.screenshot().then((s) =>
           testInfo.attach('reconnect-03-reconnected.png', {
@@ -247,8 +256,8 @@ test.describe('Network reconnect during night', () => {
       await test.step('disconnect host', async () => {
         await hostContext.setOffline(true);
 
-        const disconnectedIndicator = hostPage.getByText('🔴 连接断开', { exact: true });
-        const sawDisconnected = await disconnectedIndicator
+        const disconnectedBanner = hostPage.getByText('连接断开，正在重连...', { exact: true });
+        const sawDisconnected = await disconnectedBanner
           .waitFor({ state: 'visible', timeout: 15_000 })
           .then(() => true)
           .catch(() => false);
@@ -270,11 +279,17 @@ test.describe('Network reconnect during night', () => {
       await test.step('wait 10s while disconnected', async () => {
         await hostPage.waitForTimeout(10_000);
 
-        const disconnectedIndicator = hostPage.getByText('🔴 连接断开', { exact: true });
-        await expect(
-          disconnectedIndicator,
-          'Host disconnect indicator should be visible after 10s offline',
-        ).toBeVisible({ timeout: 5_000 });
+        const disconnectedBanner = hostPage.getByText('连接断开，正在重连...', { exact: true });
+        // SDK heartbeat ~25s — soft-check after 10s
+        const sawDisconnected = await disconnectedBanner
+          .waitFor({ state: 'visible', timeout: 20_000 })
+          .then(() => true)
+          .catch(() => false);
+
+        await testInfo.attach('host-disconnect-after-10s.txt', {
+          body: `Disconnect banner visible after wait: ${sawDisconnected}`,
+          contentType: 'text/plain',
+        });
 
         await hostPage.screenshot().then((s) =>
           testInfo.attach('host-reconnect-02b-after-10s.png', {
@@ -288,14 +303,11 @@ test.describe('Network reconnect during night', () => {
       await test.step('reconnect host', async () => {
         await hostContext.setOffline(false);
 
-        // Host now has connection bar — use joiner role to wait for live status
+        // Wait for connection to restore (banner disappears when Live)
         await waitForRoomScreenReady(hostPage, {
           role: 'joiner',
           liveTimeoutMs: 30_000,
         });
-
-        const liveIndicator = hostPage.getByText('🟢 已连接', { exact: true });
-        await expect(liveIndicator).toBeVisible({ timeout: 5_000 });
 
         await hostPage.screenshot().then((s) =>
           testInfo.attach('host-reconnect-03-reconnected.png', {

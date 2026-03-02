@@ -224,7 +224,7 @@ Handles app entry stabilization: hydration, login, home screen readiness.
 |                       |                                                                                  |
 | --------------------- | -------------------------------------------------------------------------------- |
 | **Precondition**      | Logged in, on home screen                                                        |
-| **Success condition** | Room screen visible + joiner is live (🟢 已连接)                                 |
+| **Success condition** | Room screen visible + joiner is live (disconnected banner hidden)                |
 | **Recovery actions**  | Delegates to `waitForRoomScreenReady(role='joiner')` which handles 强制同步 loop |
 | **Timeout behavior**  | Inherits from waitForRoomScreenReady                                             |
 
@@ -252,9 +252,9 @@ Specialized waits for RoomScreen after creation or joining.
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | **Options**                    | `role`: 'host' \| 'joiner' <br> `maxRetries`: number (default 3) <br> `liveTimeoutMs`: number (default 20s) |
 | **Success condition (host)**   | Room header "房间 XXXX" visible                                                                             |
-| **Success condition (joiner)** | Room header visible + "🟢 已连接" status                                                                    |
+| **Success condition (joiner)** | Room header visible + disconnected banner hidden                                                            |
 | **Recovery actions (host)**    | Click 重试 if room load times out                                                                           |
-| **Recovery actions (joiner)**  | 1. Click 重试 for room load <br> 2. Click 强制同步 if 🔴 连接断开 <br> 3. Poll until 🟢 已连接              |
+| **Recovery actions (joiner)**  | 1. Click 重试 for room load <br> 2. Poll until disconnected banner disappears                               |
 | **Timeout behavior**           | Throws after maxRetries (room) or liveTimeoutMs (joiner sync)                                               |
 
 ---
