@@ -58,14 +58,7 @@ export interface BottomActionPanelStyles {
 
 export interface ConnectionStatusBarStyles {
   container: ViewStyle;
-  statusLive: ViewStyle;
-  statusSyncing: ViewStyle;
-  statusConnecting: ViewStyle;
-  statusDisconnected: ViewStyle;
-  statusText: TextStyle;
-  syncButton: ViewStyle;
-  syncButtonDisabled: ViewStyle;
-  syncButtonText: TextStyle;
+  text: TextStyle;
 }
 
 export interface ControlledSeatBannerStyles {
@@ -340,43 +333,16 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         justifyContent: 'center',
         paddingVertical: spacing.tight,
         paddingHorizontal: spacing.medium,
-        backgroundColor: colors.surface,
+        backgroundColor: colors.error + '20',
         borderRadius: borderRadius.large,
         marginHorizontal: spacing.medium,
         marginTop: spacing.small,
         ...shadows.sm,
       },
-      statusLive: {
-        backgroundColor: colors.success + '20',
-      },
-      statusSyncing: {
-        backgroundColor: colors.warning + '20',
-      },
-      statusConnecting: {
-        backgroundColor: colors.info + '20',
-      },
-      statusDisconnected: {
-        backgroundColor: colors.error + '20',
-      },
-      statusText: {
+      text: {
         fontSize: typography.secondary,
-        color: colors.text,
+        color: colors.error,
         fontWeight: typography.weights.medium,
-      },
-      syncButton: {
-        marginLeft: spacing.medium,
-        paddingHorizontal: spacing.medium,
-        paddingVertical: spacing.tight,
-        backgroundColor: colors.primary,
-        borderRadius: borderRadius.small,
-      },
-      syncButtonDisabled: {
-        backgroundColor: colors.textMuted,
-      },
-      syncButtonText: {
-        fontSize: typography.secondary,
-        color: colors.textInverse,
-        fontWeight: typography.weights.semibold,
       },
     }),
 

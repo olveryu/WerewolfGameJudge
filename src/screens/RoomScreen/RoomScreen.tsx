@@ -90,7 +90,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     fillWithBots,
     markAllBotsViewed,
     clearAllSeats,
-    requestSnapshot,
     setControlledSeat,
     // Initialization
     isInitialized,
@@ -259,12 +258,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       </View>
 
-      {/* Connection Status Bar */}
-      <ConnectionStatusBar
-        status={connectionStatus}
-        onForceSync={() => requestSnapshot()}
-        styles={componentStyles.connectionStatusBar}
-      />
+      {/* Connection Status Bar — only visible when disconnected */}
+      <ConnectionStatusBar status={connectionStatus} styles={componentStyles.connectionStatusBar} />
 
       {/* Night Progress Indicator - only show during ongoing game */}
       {nightProgress && (

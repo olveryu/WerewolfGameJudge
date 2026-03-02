@@ -2,12 +2,8 @@ import { expect, Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 
-const ROOM_STATUS_TEXT = {
-  live: '🟢 已连接',
-  disconnected: '🔴 连接断开',
-  connecting: '⏳ 连接中...',
-  forceSync: '强制同步',
-} as const;
+/** Text shown in the disconnected banner */
+const DISCONNECTED_BANNER_TEXT = '连接断开，正在重连...';
 
 /**
  * Options for waitForRoomScreenReady
@@ -53,23 +49,10 @@ async function waitForJoinerLive(page: Page, liveTimeoutMs: number): Promise<voi
   const pollInterval = 300;
 
   while (Date.now() - startTime < liveTimeoutMs) {
-    const liveIndicator = page.getByText(ROOM_STATUS_TEXT.live, { exact: true });
-    if (await liveIndicator.isVisible().catch(() => false)) {
+    // Live = disconnected banner is not visible (component returns null)
+    const disconnectedBanner = page.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
+    if (!(await disconnectedBanner.isVisible().catch(() => false))) {
       return;
-    }
-
-    const disconnectedIndicator = page.getByText(ROOM_STATUS_TEXT.disconnected, { exact: true });
-    const connectingIndicator = page.getByText(ROOM_STATUS_TEXT.connecting, { exact: true });
-    const isNotLive =
-      (await disconnectedIndicator.isVisible().catch(() => false)) ||
-      (await connectingIndicator.isVisible().catch(() => false));
-    if (isNotLive) {
-      const forceSyncBtn = page.locator(`[data-testid="${TESTIDS.forceSyncButton}"]`);
-      if (await forceSyncBtn.isVisible().catch(() => false)) {
-        await forceSyncBtn.click();
-        // Wait a moment for the sync to take effect
-        await page.waitForTimeout(1000);
-      }
     }
 
     await page.waitForTimeout(pollInterval);
@@ -82,8 +65,8 @@ async function waitForJoinerLive(page: Page, liveTimeoutMs: number): Promise<voi
  * Wait for RoomScreen to be ready.
  *
  * For host: Just waits for room header "房间 XXXX" to be visible.
- * For joiner: Also waits for connection status to be "🟢 已连接",
- *             with automatic retry via "强制同步" if disconnected.
+ * For joiner: Also waits for the disconnected banner to disappear
+ *             (i.e. connection is live and banner is not rendered).
  *
  * @param page - Playwright page
  * @param opts - Options for role, retries, and timeouts
