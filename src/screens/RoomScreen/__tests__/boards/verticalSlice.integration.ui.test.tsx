@@ -187,7 +187,6 @@ describe('Vertical Slice: real state → UI rendering', () => {
       // Connection
       stateRevision: 1,
       lastStateReceivedAt: Date.now(),
-      isStateStale: false,
 
       // Actions
       initializeRoom: jest.fn(),
@@ -304,7 +303,6 @@ describe('Vertical Slice: real state → UI rendering', () => {
 
       stateRevision: 1,
       lastStateReceivedAt: Date.now(),
-      isStateStale: false,
 
       initializeRoom: jest.fn(),
       joinRoom: jest.fn().mockResolvedValue(true),

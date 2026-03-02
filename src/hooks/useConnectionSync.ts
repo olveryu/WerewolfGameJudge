@@ -1,58 +1,25 @@
 /**
- * useConnectionSync - Connection status tracking + auto-recovery
+ * useConnectionSync - Connection status tracking + foreground DB fetch
  *
  * Manages:
  * - RealtimeService connection status subscription
  * - Foreground DB fetch (immediate data recovery on tab visible)
- * - State staleness detection + automatic self-healing via DB fallback
  *
- * Self-healing: When a client's WebSocket stays connected but a
- * postgres_changes notification is silently dropped (at-most-once), the
- * staleness detector automatically reads the latest state from DB.
- * Host and Player use the same recovery path (server-authoritative).
+ * Recovery strategy: Supabase SDK handles WebSocket lifecycle (heartbeat +
+ * auto-reconnect). When the user switches back to the app, we immediately
+ * read the latest state from DB to cover any broadcasts missed while
+ * backgrounded. This is the standard community pattern for Supabase
+ * Realtime apps.
  *
- * 订阅 RealtimeService 连接状态并派生 staleness。
+ * 订阅 RealtimeService 连接状态并提供前台 DB 拉取。
  * 不直接修改游戏状态，不包含业务校验逻辑。
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { gameRoomLog } from '@/utils/logger';
-
-/**
- * How long without a state update before we consider the state stale.
- *
- * Active phases (ongoing / ready / ended): 8s — state changes frequently,
- * a dropped postgres_changes notification must be recovered quickly.
- *
- * Idle phases (unseated / seated / assigned): 60s — state changes are rare
- * and user-initiated (seat / assign), so a longer threshold avoids unnecessary
- * DB reads. Real disconnections are still caught instantly by the browser
- * offline event and Supabase SDK heartbeat + reconnect.
- */
-const STALE_THRESHOLD_ACTIVE_MS = 8_000;
-const STALE_THRESHOLD_IDLE_MS = 60_000;
-
-/** Phases where state changes frequently and require fast stale detection. */
-const ACTIVE_STATUSES = new Set<GameStatus>([
-  GameStatus.Ongoing,
-  GameStatus.Ready,
-  GameStatus.Ended,
-]);
-
-function getStaleThreshold(gameStatus: GameStatus | null): number {
-  if (gameStatus && ACTIVE_STATUSES.has(gameStatus)) return STALE_THRESHOLD_ACTIVE_MS;
-  return STALE_THRESHOLD_IDLE_MS;
-}
-
-/** How often we check staleness and potentially trigger auto-heal. */
-const STALE_CHECK_INTERVAL_MS = 3_000;
-
-/** Minimum gap between consecutive auto-heal requests (prevents spam). */
-const AUTO_HEAL_COOLDOWN_MS = 8_000;
 
 interface ConnectionSyncState {
   connectionStatus: ConnectionStatus;
@@ -61,8 +28,7 @@ interface ConnectionSyncState {
   setStateRevision: (rev: number) => void;
   lastStateReceivedAt: number | null;
   setLastStateReceivedAt: (ts: number | null) => void;
-  isStateStale: boolean;
-  /** Call when a state update is received to reset staleness tracking */
+  /** Call when a state update is received to update lastStateReceivedAt */
   onStateReceived: () => void;
 }
 
@@ -70,21 +36,17 @@ interface ConnectionSyncState {
 export type ConnectionSyncActions = Pick<ConnectionSyncState, 'setConnectionStatus'>;
 
 /**
- * Tracks connection status and handles Player auto-recovery after reconnect.
+ * Tracks connection status and provides foreground DB fetch for data recovery.
  */
 export function useConnectionSync(
   facade: IGameFacade,
   roomRecord: { roomNumber: string } | null,
-  gameStatus: GameStatus | null,
 ): ConnectionSyncState {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
     ConnectionStatus.Disconnected,
   );
   const [stateRevision, setStateRevision] = useState(0);
   const [lastStateReceivedAt, setLastStateReceivedAt] = useState<number | null>(null);
-
-  // Track when connection last transitioned to ConnectionStatus.Live (for auto-heal grace period)
-  const connectionLiveAtRef = useRef<number>(0);
 
   // Called when a state update is received
   const onStateReceived = useCallback(() => {
@@ -95,82 +57,13 @@ export function useConnectionSync(
   useEffect(() => {
     const unsubscribe = facade.addConnectionStatusListener((status) => {
       setConnectionStatus(status);
-      if (status === ConnectionStatus.Live) {
-        connectionLiveAtRef.current = Date.now();
-      }
     });
     return unsubscribe;
   }, [facade]);
 
-  // 一致性提示：状态是否可能过时
-  const [isStateStale, setIsStateStale] = useState(true);
-  useEffect(() => {
-    const check = () => {
-      if (connectionStatus !== ConnectionStatus.Live) {
-        setIsStateStale(true);
-        return;
-      }
-      if (!lastStateReceivedAt) {
-        setIsStateStale(true);
-        return;
-      }
-      setIsStateStale(Date.now() - lastStateReceivedAt > getStaleThreshold(gameStatus));
-    };
-    check();
-    const id = setInterval(check, STALE_CHECK_INTERVAL_MS);
-
-    // Page Visibility API: mobile browsers freeze WebSocket when backgrounded
-    // but may not fire an 'offline' event. When the tab becomes visible again,
-    // run an immediate staleness check instead of waiting for the next 3s tick.
-    // The foreground DB fetch (below) handles actual data recovery.
-    const onVisibilityChange = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        gameRoomLog.debug('Page became visible — running immediate stale check');
-        check();
-      }
-    };
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', onVisibilityChange);
-    }
-
-    return () => {
-      clearInterval(id);
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', onVisibilityChange);
-      }
-    };
-  }, [connectionStatus, lastStateReceivedAt, gameStatus]);
-
-  // ── 自动自愈：连接正常但漏收广播时，从 DB 直接读取最新状态 ──
-  // Supabase postgres_changes 是 at-most-once，单条消息丢失不会触发断线重连。
-  // 此 effect 在 staleness 检测到后自动从 DB 读取。
-  const lastAutoHealRef = useRef<number>(0);
-  useEffect(() => {
-    if (!isStateStale) return;
-    if (connectionStatus !== ConnectionStatus.Live) return;
-    if (!roomRecord) return;
-    // Only auto-heal when we previously received state (baseline established).
-    if (!lastStateReceivedAt) return;
-    // Grace period: don't auto-heal right after connection goes live — the
-    // foreground DB fetch already handles that window.
-    const now = Date.now();
-    if (now - connectionLiveAtRef.current < AUTO_HEAL_COOLDOWN_MS) return;
-
-    if (now - lastAutoHealRef.current < AUTO_HEAL_COOLDOWN_MS) {
-      return;
-    }
-    lastAutoHealRef.current = now;
-
-    gameRoomLog.info('Auto-heal: state stale while connected, fetching from DB');
-    facade.fetchStateFromDB().catch((e) => {
-      gameRoomLog.warn('Auto-heal fetchStateFromDB failed:', e);
-    });
-  }, [isStateStale, connectionStatus, roomRecord, facade, lastStateReceivedAt]);
-
   // ── 前台恢复立即 DB 拉取 ──
   // 移动端切后台时 WebSocket 可能被 OS 杀掉，但 `worker: true` 大概率保活。
   // 无论连接是否中断，切回前台后立即从 DB 读取最新状态，保证 ~1s 内数据同步。
-  // 独立于 auto-heal（auto-heal 仅在长时间 stale 后触发），用自己的冷却。
   const lastForegroundFetchRef = useRef<number>(0);
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -202,9 +95,8 @@ export function useConnectionSync(
       setStateRevision,
       lastStateReceivedAt,
       setLastStateReceivedAt,
-      isStateStale,
       onStateReceived,
     }),
-    [connectionStatus, stateRevision, lastStateReceivedAt, isStateStale, onStateReceived],
+    [connectionStatus, stateRevision, lastStateReceivedAt, onStateReceived],
   );
 }
