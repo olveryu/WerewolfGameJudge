@@ -95,7 +95,7 @@ jobs:
         run: cp env/e2e.remote.example.json env/e2e.remote.json
 
       - name: Run E2E tests (shard ${{ matrix.shard }}/6)
-        run: pnpm exec playwright test --shard=${{ matrix.shard }}/6 --reporter=list --reporter=blob
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/6 --workers=1 --reporter=list --reporter=blob
         env:
           E2E_ENV: remote
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
