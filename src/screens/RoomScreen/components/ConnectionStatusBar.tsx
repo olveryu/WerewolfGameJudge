@@ -1,11 +1,11 @@
 /**
- * ConnectionStatusBar - 连接状态指示器（Memoized）
+ * ConnectionStatusBar - 断线横幅（Memoized）
  *
- * 显示连接状态 + 强制同步按钮（非 Host 玩家用）。
- * 渲染 UI 并通过回调上报 onForceSync，不 import service，不包含业务逻辑判断。
+ * 仅在非 Live 状态时显示 "连接断开，正在重连..." 横幅。
+ * Live 时不渲染任何内容。社区标准做法：只在出问题时提示。
  */
 import React, { memo } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
@@ -15,74 +15,19 @@ import { type ConnectionStatusBarStyles } from './styles';
 interface ConnectionStatusBarProps {
   /** Current connection state */
   status: ConnectionStatus;
-  /** Callback for force sync button */
-  onForceSync?: () => void;
   /** Pre-created styles from parent */
   styles: ConnectionStatusBarStyles;
 }
 
 /**
- * Connection status bar shown to non-host players
+ * Disconnection banner — only rendered when not connected.
  */
-const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
-  status,
-  onForceSync,
-  styles,
-}) => {
-  const getStatusStyle = () => {
-    switch (status) {
-      case ConnectionStatus.Live:
-        return styles.statusLive;
-      case ConnectionStatus.Syncing:
-        return styles.statusSyncing;
-      case ConnectionStatus.Connecting:
-        return styles.statusConnecting;
-      case ConnectionStatus.Disconnected:
-        return styles.statusDisconnected;
-      default:
-        return undefined;
-    }
-  };
-
-  const getStatusText = () => {
-    switch (status) {
-      case ConnectionStatus.Live:
-        return '🟢 已连接';
-      case ConnectionStatus.Syncing:
-        return '🔄 同步中...';
-      case ConnectionStatus.Connecting:
-        return '⏳ 连接中...';
-      case ConnectionStatus.Disconnected:
-        return '🔴 连接断开';
-      default:
-        return '';
-    }
-  };
-
-  const showSyncButton =
-    status === ConnectionStatus.Disconnected ||
-    status === ConnectionStatus.Syncing ||
-    status === ConnectionStatus.Connecting;
-  const isSyncing = status === ConnectionStatus.Syncing || status === ConnectionStatus.Connecting;
+const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ status, styles }) => {
+  if (status === ConnectionStatus.Live) return null;
 
   return (
-    <View style={[styles.container, getStatusStyle()]} testID={TESTIDS.connectionStatusContainer}>
-      <Text style={styles.statusText}>{getStatusText()}</Text>
-      {showSyncButton && onForceSync && (
-        <TouchableOpacity
-          onPress={() => {
-            // Always report intent; caller decides whether to act
-            // Syncing state is visible in UI, orchestrator can ignore if needed
-            onForceSync();
-          }}
-          style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
-          activeOpacity={isSyncing ? 1 : 0.7}
-          accessibilityState={{ disabled: isSyncing }}
-          testID={TESTIDS.forceSyncButton}
-        >
-          <Text style={styles.syncButtonText}>{isSyncing ? '同步中' : '强制同步'}</Text>
-        </TouchableOpacity>
-      )}
+    <View style={styles.container} testID={TESTIDS.connectionStatusContainer}>
+      <Text style={styles.text}>连接断开，正在重连...</Text>
     </View>
   );
 };

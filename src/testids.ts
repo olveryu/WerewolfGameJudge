@@ -51,7 +51,6 @@ export const TESTIDS = {
   roomHeader: 'room-header',
   roomSettingsButton: 'room-settings-button',
   connectionStatusContainer: 'connection-status-container',
-  forceSyncButton: 'force-sync-button',
 
   // ActionMessage / BottomActionPanel
   actionMessage: 'action-message',

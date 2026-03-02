@@ -16,7 +16,6 @@ describe('testids.ts contract (stability + legacy compatibility)', () => {
       ['roomScreenRoot', TESTIDS.roomScreenRoot],
       ['roomHeader', TESTIDS.roomHeader],
       ['connectionStatusContainer', TESTIDS.connectionStatusContainer],
-      ['forceSyncButton', TESTIDS.forceSyncButton],
     ];
 
     for (const [, value] of stableIds) {
