@@ -16,7 +16,7 @@ import type { AudioAsset } from './types';
 // ---------------------------------------------------------------------------
 
 /** Per-role audio pair: beginning narration + ending narration. */
-export interface RoleAudioEntry {
+interface RoleAudioEntry {
   readonly begin: AudioAsset;
   readonly end: AudioAsset;
 }

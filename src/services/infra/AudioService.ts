@@ -20,7 +20,6 @@ import { WebAudioStrategy } from './audio/WebAudioStrategy';
 
 // Re-export for backward compatibility (consumers import from AudioService)
 export { _AUDIO_END_ROLE_IDS, _AUDIO_ROLE_IDS } from './audio/audioRegistry';
-export type { AudioAsset } from './audio/types';
 export { audioAssetToUrl } from './audio/types';
 
 const isWeb = Platform.OS === 'web';

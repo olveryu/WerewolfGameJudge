@@ -24,7 +24,7 @@ export interface ApiResponse {
  * Apply optimistic update before fetch.
  * Call once before a request (or retry loop).
  */
-export function applyOptimisticUpdate(
+function applyOptimisticUpdate(
   store: GameStore | undefined,
   optimisticFn: ((state: GameState) => GameState) | undefined,
 ): void {
@@ -49,7 +49,7 @@ export function applyOptimisticUpdate(
  * @param label - 日志标签（如 'callGameControlApi'）
  * @param store - GameStore（用于 optimistic response apply）
  */
-export async function callApiOnce(
+async function callApiOnce(
   path: string,
   body: Record<string, unknown>,
   label: string,
