@@ -8,6 +8,8 @@
  * 管理单一 Supabase Realtime Channel 生命周期（subscribe/unsubscribe），
  * 监听 postgres_changes（rooms 表 UPDATE）获取 state 变更。
  * 连接状态通过 subscribe status callback + browser offline/online 事件检测。
+ * 断线恢复由 SDK 内置心跳 + 重连处理（`worker: true` 保活）。
+ * 数据恢复由上层 useConnectionSync 的前台 DB 拉取 + staleness auto-heal 处理。
  * 不进行客户端广播，不包含游戏逻辑，不持久化游戏状态。
  */
 
@@ -20,15 +22,6 @@ import { realtimeLog } from '@/utils/logger';
 
 /** Status change listener */
 type ConnectionStatusListener = (status: ConnectionStatus) => void;
-
-/**
- * Minimum background duration (ms) that triggers a reconnection check.
- * Mobile browsers freeze JS timers and WebSocket heartbeats when backgrounded;
- * after ~3 s the connection may be stale even if the socket object reports OPEN.
- * The actual data recovery is handled by the upper-layer foreground DB fetch;
- * this threshold only controls when we ask the SDK to re-establish transport.
- */
-const BACKGROUND_REJOIN_THRESHOLD_MS = 3_000;
 
 // =============================================================================
 // Service Implementation
@@ -48,10 +41,6 @@ export class RealtimeService {
   // Browser offline/online event handlers (bound for cleanup)
   #handleBrowserOffline: (() => void) | null = null;
   #handleBrowserOnline: (() => void) | null = null;
-
-  // Visibility change tracking
-  #backgroundedAt: number | null = null;
-  #handleVisibilityChange: (() => void) | null = null;
 
   constructor() {}
 
@@ -175,9 +164,6 @@ export class RealtimeService {
 
     // Listen for browser offline/online events for instant disconnect detection.
     this.#subscribeBrowserNetworkEvents();
-
-    // Listen for page visibility changes (mobile browser background/foreground).
-    this.#subscribeVisibilityChange();
   }
 
   /**
@@ -236,87 +222,11 @@ export class RealtimeService {
     }
   }
 
-  // =========================================================================
-  // Page Visibility — detect mobile browser background/foreground
-  // =========================================================================
-
-  /**
-   * Subscribe to `visibilitychange` to detect when a mobile browser freezes
-   * the tab. When the page returns to foreground after ≥ BACKGROUND_REJOIN_THRESHOLD_MS,
-   * tear down the stale channel and do a full rejoin so the WebSocket is fresh.
-   */
-  #subscribeVisibilityChange(): void {
-    this.#unsubscribeVisibilityChange();
-    if (typeof document === 'undefined') return;
-
-    this.#handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        this.#backgroundedAt = Date.now();
-        return;
-      }
-
-      // visible
-      const bg = this.#backgroundedAt;
-      this.#backgroundedAt = null;
-      if (bg == null) return;
-
-      const elapsed = Date.now() - bg;
-      if (elapsed < BACKGROUND_REJOIN_THRESHOLD_MS) {
-        realtimeLog.debug(
-          `Page foregrounded after ${Math.round(elapsed / 1000)}s — below threshold, skipping rejoin`,
-        );
-        return;
-      }
-
-      realtimeLog.info(
-        `Page foregrounded after ${Math.round(elapsed / 1000)}s — checking connection`,
-      );
-      this.#reconnectIfNeeded();
-    };
-
-    document.addEventListener('visibilitychange', this.#handleVisibilityChange);
-  }
-
-  #unsubscribeVisibilityChange(): void {
-    if (this.#handleVisibilityChange && typeof document !== 'undefined') {
-      document.removeEventListener('visibilitychange', this.#handleVisibilityChange);
-      this.#handleVisibilityChange = null;
-    }
-    this.#backgroundedAt = null;
-  }
-
-  /**
-   * Check and recover WebSocket connection after returning from background.
-   *
-   * `worker: true` keeps SDK heartbeats running in a Web Worker, so the
-   * connection usually survives short background periods. If the OS did
-   * kill the socket, `isConnected()` returns false and we call `connect()`.
-   *
-   * Data recovery is not handled here — the upper-layer foreground DB fetch
-   * (in useConnectionSync) immediately reads the latest state from DB on
-   * every foreground event, regardless of WebSocket state.
-   */
-  #reconnectIfNeeded(): void {
-    if (!supabase) return;
-
-    if (supabase.realtime.isConnected()) {
-      realtimeLog.debug('reconnectIfNeeded: SDK reports connected, no action needed');
-      return;
-    }
-
-    realtimeLog.info('reconnectIfNeeded: SDK reports disconnected, calling connect()');
-    this.#setConnectionStatus(ConnectionStatus.Connecting);
-    supabase.realtime.connect();
-    // SDK will re-subscribe existing channels automatically.
-    // The subscribe status callback will fire SUBSCRIBED → sets Live.
-  }
-
   /**
    * Leave the current room
    */
   async leaveRoom(): Promise<void> {
     this.#unsubscribeBrowserNetworkEvents();
-    this.#unsubscribeVisibilityChange();
     if (this.#channel) {
       await this.#channel.unsubscribe();
       // removeChannel cleans up the channel from supabase client's internal tracking
