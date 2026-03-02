@@ -67,8 +67,8 @@ test.describe('DB state recovery after network interruption', () => {
       await joinerContext.setOffline(true);
 
       // Step 4: Wait for the disconnect to register
-      const disconnectedIndicator = joinerPage.getByText('🔴 连接断开', { exact: true });
-      const isDisconnected = await disconnectedIndicator
+      const disconnectedBanner = joinerPage.getByText('连接断开，正在重连...', { exact: true });
+      const isDisconnected = await disconnectedBanner
         .waitFor({ state: 'visible', timeout: 10_000 })
         .then(() => true)
         .catch(() => false);
