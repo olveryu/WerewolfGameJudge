@@ -7,9 +7,9 @@
  *
  * 管理单一 Supabase Realtime Channel 生命周期（subscribe/unsubscribe），
  * 监听 postgres_changes（rooms 表 UPDATE）获取 state 变更。
- * 连接状态通过 subscribe status callback + browser offline/online 事件检测。
+ * 连接状态通过 subscribe status callback 检测。
  * 断线恢复由 SDK 内置心跳 + 重连处理（`worker: true` 保活）。
- * 数据恢复由上层 useConnectionSync 的前台 DB 拉取 + staleness auto-heal 处理。
+ * 数据恢复由上层 useConnectionSync 的前台 DB 拉取处理。
  * 不进行客户端广播，不包含游戏逻辑，不持久化游戏状态。
  */
 
@@ -37,10 +37,6 @@ export class RealtimeService {
 
   /** Callback for DB state changes (postgres_changes) */
   #onDbStateChange: ((state: GameState, revision: number) => void) | null = null;
-
-  // Browser offline/online event handlers (bound for cleanup)
-  #handleBrowserOffline: (() => void) | null = null;
-  #handleBrowserOnline: (() => void) | null = null;
 
   constructor() {}
 
@@ -161,9 +157,6 @@ export class RealtimeService {
     await subscribePromise;
 
     realtimeLog.info(' Joined room:', roomCode);
-
-    // Listen for browser offline/online events for instant disconnect detection.
-    this.#subscribeBrowserNetworkEvents();
   }
 
   /**
@@ -179,54 +172,10 @@ export class RealtimeService {
     }
   }
 
-  // =========================================================================
-  // Browser network event detection
-  // =========================================================================
-
-  /**
-   * Subscribe to browser offline/online events for instant disconnect detection.
-   * Supabase Phoenix heartbeat is ~30s; the browser `offline` event fires
-   * immediately when the OS network stack reports a loss.
-   */
-  #subscribeBrowserNetworkEvents(): void {
-    this.#unsubscribeBrowserNetworkEvents();
-
-    if (typeof globalThis.addEventListener !== 'function') return;
-
-    this.#handleBrowserOffline = () => {
-      realtimeLog.info('Browser offline event — setting disconnected');
-      this.#setConnectionStatus(ConnectionStatus.Disconnected);
-    };
-
-    this.#handleBrowserOnline = () => {
-      // Only transition to ConnectionStatus.Connecting if we were disconnected.
-      // The Supabase channel reconnect callback will move to syncing → live.
-      if (this.#connectionStatus === ConnectionStatus.Disconnected) {
-        realtimeLog.info('Browser online event — setting connecting');
-        this.#setConnectionStatus(ConnectionStatus.Connecting);
-      }
-    };
-
-    globalThis.addEventListener('offline', this.#handleBrowserOffline);
-    globalThis.addEventListener('online', this.#handleBrowserOnline);
-  }
-
-  #unsubscribeBrowserNetworkEvents(): void {
-    if (this.#handleBrowserOffline) {
-      globalThis.removeEventListener('offline', this.#handleBrowserOffline);
-      this.#handleBrowserOffline = null;
-    }
-    if (this.#handleBrowserOnline) {
-      globalThis.removeEventListener('online', this.#handleBrowserOnline);
-      this.#handleBrowserOnline = null;
-    }
-  }
-
   /**
    * Leave the current room
    */
   async leaveRoom(): Promise<void> {
-    this.#unsubscribeBrowserNetworkEvents();
     if (this.#channel) {
       await this.#channel.unsubscribe();
       // removeChannel cleans up the channel from supabase client's internal tracking

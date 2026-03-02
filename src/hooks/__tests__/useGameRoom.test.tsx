@@ -15,7 +15,6 @@ import { GameFacadeProvider } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { IGameFacade } from '@/services/types/IGameFacade';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
@@ -243,7 +242,7 @@ describe('useGameRoom - ACK reason transparency', () => {
   });
 
   describe('Player auto-recovery', () => {
-    it('should expose lastStateReceivedAt and isStateStale', () => {
+    it('should expose lastStateReceivedAt', () => {
       const mockFacade = createMockFacade();
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -252,9 +251,8 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-      // Initially null and stale (no state received)
+      // Initially null (no state received)
       expect(result.current.lastStateReceivedAt).toBeNull();
-      expect(result.current.isStateStale).toBe(true);
     });
 
     it('should update lastStateReceivedAt when state is received', async () => {
@@ -296,83 +294,6 @@ describe('useGameRoom - ACK reason transparency', () => {
       // Now should have timestamp
       expect(result.current.lastStateReceivedAt).not.toBeNull();
       expect(typeof result.current.lastStateReceivedAt).toBe('number');
-    });
-  });
-
-  // =========================================================================
-  // Auto-heal: 连接正常但漏收广播时，staleness 检测自动从 DB 读取
-  // =========================================================================
-  describe('auto-heal (fake-timers)', () => {
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    it('should auto-heal when state is stale while connected (dropped broadcast)', async () => {
-      const fetchStateFromDBMock = jest.fn().mockResolvedValue(true);
-      let statusListener: ((status: ConnectionStatus) => void) | null = null;
-      let stateListener: ((state: any) => void) | null = null;
-
-      const mockFacade = createMockFacade({
-        fetchStateFromDB: fetchStateFromDBMock,
-        isHostPlayer: jest.fn().mockReturnValue(false), // Player mode
-        addListener: jest.fn().mockImplementation((fn) => {
-          stateListener = fn;
-          return () => {};
-        }),
-        addConnectionStatusListener: jest.fn().mockImplementation((fn) => {
-          statusListener = fn;
-          return () => {};
-        }),
-      });
-
-      const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
-      );
-
-      const { result } = renderHook(() => useGameRoom(), { wrapper });
-
-      await act(async () => {
-        await result.current.joinRoom('TEST');
-      });
-
-      // Connect — sets connectionLiveAtRef
-      act(() => {
-        statusListener?.(ConnectionStatus.Live);
-      });
-
-      // Receive state with GameStatus.Ongoing — active phase uses 8s stale threshold.
-      // (Idle phases like GameStatus.Unseated use 60s threshold, which is too long for this test.)
-      const mockState = {
-        roomCode: 'TEST',
-        hostUid: 'host-1',
-        status: GameStatus.Ongoing,
-        templateRoles: ['villager'],
-        players: {},
-        currentStepIndex: 0,
-        isAudioPlaying: false,
-        actions: [],
-        pendingRevealAcks: [],
-      };
-      await act(async () => {
-        stateListener?.(mockState);
-      });
-
-      expect(fetchStateFromDBMock).not.toHaveBeenCalled();
-
-      // Advance past AUTO_HEAL_COOLDOWN_MS (8s) grace period from connection
-      // AND past STALE_THRESHOLD_ACTIVE_MS (8s) so state becomes stale.
-      // State received at t≈0. Stale check interval fires every 3s.
-      // At t=9000: diff ≈ 9000 > 8000 → stale. Grace: 9000 > 8000 → auto-heal fires.
-      await act(async () => {
-        jest.advanceTimersByTime(20000); // generous margin
-      });
-
-      // Auto-heal should have fired (state stale + connected + grace period passed)
-      expect(fetchStateFromDBMock).toHaveBeenCalledTimes(1);
     });
   });
 });

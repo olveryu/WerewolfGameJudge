@@ -77,9 +77,8 @@ interface UseGameRoomResult {
   // Connection (from useConnectionSync)
   connectionStatus: ConnectionStatus;
 
-  // Sync status (Player reconnection)
+  // Sync status
   lastStateReceivedAt: number | null;
-  isStateStale: boolean;
 
   // Status (from useRoomLifecycle)
   loading: boolean;
@@ -147,8 +146,8 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Sub-hooks
   // =========================================================================
 
-  // Connection status + Player auto-recovery
-  const connection = useConnectionSync(facade, roomRecord, gameState?.status ?? null);
+  // Connection status + foreground DB fetch
+  const connection = useConnectionSync(facade, roomRecord);
 
   // BGM state management
   const bgm = useBgmControl(isHost, gameState?.status ?? null, gameState?.isAudioPlaying ?? false);
@@ -281,7 +280,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     // Connection
     connectionStatus: connection.connectionStatus,
     lastStateReceivedAt: connection.lastStateReceivedAt,
-    isStateStale: connection.isStateStale,
     // Lifecycle
     loading: lifecycle.loading,
     error: lifecycle.error,

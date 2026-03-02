@@ -211,7 +211,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
 
     // Connection
     lastStateReceivedAt: Date.now(),
-    isStateStale: false,
 
     // Debug mode - effectiveSeat/effectiveRole are used in RoomScreen
     isDebugMode: false,
