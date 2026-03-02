@@ -619,6 +619,7 @@ Deno.serve(async (req) => {
     // runtime errors before processGameAction is reached).
     const message = err instanceof Error ? err.message : String(err);
     console.error('[game] Unhandled error in request handler:', message, err);
-    return jsonResponse({ success: false, reason: 'INTERNAL_ERROR', error: message }, 500);
+    // Return generic error to client — never expose internal error details.
+    return jsonResponse({ success: false, reason: 'INTERNAL_ERROR' }, 500);
   }
 });

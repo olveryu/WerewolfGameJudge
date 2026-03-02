@@ -12,8 +12,8 @@ export const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-/** Build a JSON Response with CORS headers */
-export function jsonResponse(body: unknown, status: number): Response {
+/** Build a JSON Response with CORS headers. Typed to prevent accidental Error serialization. */
+export function jsonResponse(body: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
