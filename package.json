@@ -12,6 +12,7 @@
     "test:all": "pnpm -r --include-workspace-root run test",
     "test:watch": "jest --watch",
     "e2e": "playwright test --reporter=list",
+    "e2e:shard": "E2E_ENV=remote pnpm exec playwright test --reporter=list --shard",
     "e2e:core": "pnpm exec playwright test --workers=1 --reporter=line --trace=on --max-failures=1",
     "e2e:remote": "E2E_ENV=remote pnpm exec playwright test --workers=1 --reporter=line --trace=on --max-failures=1",
     "typecheck": "tsc -p tsconfig.json --noEmit",
