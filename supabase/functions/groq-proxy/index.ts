@@ -60,12 +60,11 @@ Deno.serve(async (req) => {
       status: groqResponse.status,
     });
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      },
-    );
+    console.error('[groq-proxy] Unhandled error:', error);
+    // Return generic error to client — never expose internal error details.
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 });
