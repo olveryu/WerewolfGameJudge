@@ -357,10 +357,10 @@ describe('useGameActions - game state queries', () => {
   });
 });
 
-describe('useGameActions - notifyIfFailed', () => {
+describe('useGameActions - handleMutationResult', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('should alert with default reason when reason is missing', async () => {
+  it('should alert with default reason when reason is missing (alert strategy)', async () => {
     const facade = createMockFacade({
       clearAllSeats: jest.fn().mockResolvedValue({ success: false }),
     });
@@ -370,5 +370,50 @@ describe('useGameActions - notifyIfFailed', () => {
     await act(() => result.current.clearAllSeats());
 
     expect(mockShowAlert).toHaveBeenCalledWith('全员起立失败', '请稍后重试');
+  });
+
+  it('should alert on NETWORK_ERROR even with state-driven strategy', async () => {
+    const facade = createMockFacade({
+      submitAction: jest.fn().mockResolvedValue({ success: false, reason: 'NETWORK_ERROR' }),
+    });
+    const deps = createDeps({
+      facade,
+      debug: createMockDebug({ effectiveSeat: 1, effectiveRole: 'wolf' }),
+    });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    await act(() => result.current.submitAction(2));
+
+    expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '网络错误，请稍后重试');
+  });
+
+  it('should alert on SERVER_ERROR even with state-driven strategy', async () => {
+    const facade = createMockFacade({
+      submitAction: jest.fn().mockResolvedValue({ success: false, reason: 'SERVER_ERROR' }),
+    });
+    const deps = createDeps({
+      facade,
+      debug: createMockDebug({ effectiveSeat: 1, effectiveRole: 'wolf' }),
+    });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    await act(() => result.current.submitAction(2));
+
+    expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '服务器错误，请稍后重试');
+  });
+
+  it('should NOT alert on business rejection with state-driven strategy', async () => {
+    const facade = createMockFacade({
+      submitAction: jest.fn().mockResolvedValue({ success: false, reason: 'invalid_action' }),
+    });
+    const deps = createDeps({
+      facade,
+      debug: createMockDebug({ effectiveSeat: 1, effectiveRole: 'wolf' }),
+    });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    await act(() => result.current.submitAction(2));
+
+    expect(mockShowAlert).not.toHaveBeenCalled();
   });
 });

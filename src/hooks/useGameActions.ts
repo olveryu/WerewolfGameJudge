@@ -24,14 +24,41 @@ import type { BgmControlState } from './useBgmControl';
 import type { DebugModeState } from './useDebugMode';
 
 /**
- * 公用的 API 失败通知 — 所有重试耗尽后向用户显示提示
+ * Mutation 结果统一处理 — 按错误类型分层通知用户
+ *
+ * - 网络/基础设施错误（NETWORK_ERROR / SERVER_ERROR）：请求未到服务器，始终弹 alert
+ * - 业务拒绝：按 onBusinessError 策略处理
+ *   - 'alert'（默认）：弹 alert（适用于大多数 host 操作）
+ *   - 'state-driven'：不弹，由 state effect 驱动 UX（如 submitAction 的 actionRejected）
+ *   - 'silent'：不弹（后台操作）
  *
  * 用于 useGameActions 内用户发起的操作。
  * 不用于后台/系统操作（audio-ack / progression 等）。
  */
-function notifyIfFailed(result: { success: boolean; reason?: string }, actionLabel: string): void {
+type ErrorStrategy = 'alert' | 'state-driven' | 'silent';
+
+function handleMutationResult(
+  result: { success: boolean; reason?: string },
+  actionLabel: string,
+  onBusinessError: ErrorStrategy = 'alert',
+): void {
   if (result.success) return;
-  showAlert(`${actionLabel}失败`, result.reason ?? '请稍后重试');
+  const { reason } = result;
+
+  // 网络/基础设施错误 → 请求没到服务器，始终弹 alert
+  if (reason === 'NETWORK_ERROR' || reason === 'SERVER_ERROR') {
+    showAlert(
+      `${actionLabel}失败`,
+      reason === 'NETWORK_ERROR' ? '网络错误，请稍后重试' : '服务器错误，请稍后重试',
+    );
+    return;
+  }
+
+  // 业务拒绝 → 按策略
+  if (onBusinessError === 'alert') {
+    showAlert(`${actionLabel}失败`, reason ?? '请稍后重试');
+  }
+  // 'state-driven' / 'silent' → 不弹
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -95,7 +122,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const assignRoles = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
     const result = await facade.assignRoles();
-    notifyIfFailed(result, '分配角色');
+    handleMutationResult(result, '分配角色');
   }, [facade]);
 
   // Start game (host only) - uses startNight + BGM
@@ -105,7 +132,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     // Start BGM if enabled
     bgm.startBgmIfEnabled();
     const result = await facade.startNight();
-    notifyIfFailed(result, '开始游戏');
+    handleMutationResult(result, '开始游戏');
   }, [facade, bgm]);
 
   // Restart game (host only)
@@ -116,14 +143,14 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     // Clear controlled seat on restart
     debug.setControlledSeat(null);
     const result = await facade.restartGame();
-    notifyIfFailed(result, '重新开始');
+    handleMutationResult(result, '重新开始');
   }, [facade, bgm, debug]);
 
   // Clear all seats (host only)
   const clearAllSeats = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
     const result = await facade.clearAllSeats();
-    notifyIfFailed(result, '全员起立');
+    handleMutationResult(result, '全员起立');
   }, [facade]);
 
   // Share night review to selected seats (host only)
@@ -131,7 +158,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     async (allowedSeats: number[]): Promise<void> => {
       if (!facade.isHostPlayer()) return;
       const result = await facade.shareNightReview(allowedSeats);
-      notifyIfFailed(result, '分享详细信息');
+      handleMutationResult(result, '分享详细信息');
     },
     [facade],
   );
@@ -167,17 +194,19 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     const seat = debug.controlledSeat ?? mySeatNumber;
     if (seat === null) return;
     const result = await facade.markViewedRole(seat);
-    notifyIfFailed(result, '查看身份');
+    handleMutationResult(result, '查看身份');
   }, [debug.controlledSeat, mySeatNumber, facade]);
 
   // Submit action (uses effectiveSeat/effectiveRole for debug bot control)
+  // Business rejection UX is handled by the state-driven actionRejected effect
+  // in useActionOrchestrator. Network/server errors handled by handleMutationResult.
   const submitAction = useCallback(
     async (target: number | null, extra?: unknown): Promise<void> => {
       const seat = debug.effectiveSeat;
       const role = debug.effectiveRole;
       if (seat === null || !role) return;
       const result = await facade.submitAction(seat, role, target, extra);
-      notifyIfFailed(result, '提交行动');
+      handleMutationResult(result, '提交行动', 'state-driven');
     },
     [debug.effectiveSeat, debug.effectiveRole, facade],
   );
@@ -185,7 +214,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(async (): Promise<void> => {
     const result = await facade.submitRevealAck();
-    notifyIfFailed(result, '确认揭示');
+    handleMutationResult(result, '确认揭示');
   }, [facade]);
 
   // Group confirm acknowledge (piperHypnotizedReveal)
@@ -194,7 +223,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     const seat = debug.effectiveSeat;
     if (seat === null) return;
     const result = await facade.submitGroupConfirmAck(seat);
-    notifyIfFailed(result, '确认催眠');
+    handleMutationResult(result, '确认催眠');
   }, [debug.effectiveSeat, facade]);
 
   // WolfRobot hunter status viewed gate
@@ -202,7 +231,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const sendWolfRobotHunterStatusViewed = useCallback(
     async (seat: number): Promise<void> => {
       const result = await facade.sendWolfRobotHunterStatusViewed(seat);
-      notifyIfFailed(result, '确认猎人状态');
+      handleMutationResult(result, '确认猎人状态');
     },
     [facade],
   );
