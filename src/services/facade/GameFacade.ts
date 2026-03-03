@@ -199,6 +199,25 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
+   * Dead Channel Recovery.
+   *
+   * Tears down the dead Supabase Realtime channel, creates a fresh one with
+   * the same room/callbacks, then fetches latest state from DB.
+   * Called by useConnectionSync when Disconnected persists beyond threshold.
+   */
+  async reconnectChannel(): Promise<void> {
+    facadeLog.info('reconnectChannel: starting dead channel recovery');
+    try {
+      await this.#realtimeService.rejoinCurrentRoom();
+      await this.fetchStateFromDB();
+      facadeLog.info('reconnectChannel: recovery complete');
+    } catch (e) {
+      facadeLog.error('reconnectChannel: recovery failed', e);
+      throw e;
+    }
+  }
+
+  /**
    * 获取当前 外部 listener 数量（仅用于测试/调试）。
    * 排除 constructor 内部的 pendingAudioEffects reactive 订阅（固定 1 个）。
    */
