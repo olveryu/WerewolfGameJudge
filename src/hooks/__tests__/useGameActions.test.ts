@@ -15,6 +15,9 @@ jest.mock('@/utils/alert', () => ({
   showAlert: (...args: unknown[]) => mockShowAlert(...args),
 }));
 
+// Toast is mapped via moduleNameMapper → __mocks__/react-native-toast-message.ts
+import Toast from 'react-native-toast-message';
+
 // ---- Factory helpers ----
 
 function createMockFacade(overrides: Record<string, unknown> = {}) {
@@ -360,7 +363,7 @@ describe('useGameActions - game state queries', () => {
 describe('useGameActions - handleMutationResult', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('should alert with default reason when reason is missing (alert strategy)', async () => {
+  it('should alert with default reason when reason is missing (showAlert callback)', async () => {
     const facade = createMockFacade({
       clearAllSeats: jest.fn().mockResolvedValue({ success: false }),
     });
@@ -372,7 +375,7 @@ describe('useGameActions - handleMutationResult', () => {
     expect(mockShowAlert).toHaveBeenCalledWith('全员起立失败', '请稍后重试');
   });
 
-  it('should alert on NETWORK_ERROR even with state-driven strategy', async () => {
+  it('should alert on NETWORK_ERROR even without onBusinessError callback', async () => {
     const facade = createMockFacade({
       submitAction: jest.fn().mockResolvedValue({ success: false, reason: 'NETWORK_ERROR' }),
     });
@@ -387,7 +390,7 @@ describe('useGameActions - handleMutationResult', () => {
     expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '网络错误，请稍后重试');
   });
 
-  it('should alert on SERVER_ERROR even with state-driven strategy', async () => {
+  it('should alert on SERVER_ERROR even without onBusinessError callback', async () => {
     const facade = createMockFacade({
       submitAction: jest.fn().mockResolvedValue({ success: false, reason: 'SERVER_ERROR' }),
     });
@@ -402,7 +405,7 @@ describe('useGameActions - handleMutationResult', () => {
     expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '服务器错误，请稍后重试');
   });
 
-  it('should NOT alert on business rejection with state-driven strategy', async () => {
+  it('should NOT alert on business rejection without onBusinessError callback', async () => {
     const facade = createMockFacade({
       submitAction: jest.fn().mockResolvedValue({ success: false, reason: 'invalid_action' }),
     });
@@ -415,5 +418,35 @@ describe('useGameActions - handleMutationResult', () => {
     await act(() => result.current.submitAction(2));
 
     expect(mockShowAlert).not.toHaveBeenCalled();
+  });
+
+  it('should show toast on business rejection with toastError callback (submitRevealAck)', async () => {
+    const facade = createMockFacade({
+      submitRevealAck: jest.fn().mockResolvedValue({ success: false, reason: 'already_acked' }),
+    });
+    const deps = createDeps({ facade });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    await act(() => result.current.submitRevealAck());
+
+    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(Toast.show).toHaveBeenCalledWith({
+      type: 'error',
+      text1: '确认揭示失败',
+      text2: 'already_acked',
+    });
+  });
+
+  it('should alert on NETWORK_ERROR even with toastError callback', async () => {
+    const facade = createMockFacade({
+      submitRevealAck: jest.fn().mockResolvedValue({ success: false, reason: 'NETWORK_ERROR' }),
+    });
+    const deps = createDeps({ facade });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    await act(() => result.current.submitRevealAck());
+
+    expect(mockShowAlert).toHaveBeenCalledWith('确认揭示失败', '网络错误，请稍后重试');
+    expect(Toast.show).not.toHaveBeenCalled();
   });
 });
