@@ -235,4 +235,12 @@ export interface IGameFacade {
    * @returns 取消订阅函数
    */
   addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void;
+
+  /**
+   * Dead Channel Recovery: 销毁死掉的 Realtime channel 并重建。
+   * 当 Supabase SDK 放弃重连（反复 CHANNEL_ERROR / TIMED_OUT）时，
+   * 由 useConnectionSync 的 dead channel detector 自动触发。
+   * 内部流程：rejoinCurrentRoom → fetchStateFromDB → markAsLive。
+   */
+  reconnectChannel(): Promise<void>;
 }

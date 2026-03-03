@@ -23,6 +23,13 @@ import { realtimeLog } from '@/utils/logger';
 /** Status change listener */
 type ConnectionStatusListener = (status: ConnectionStatus) => void;
 
+/** Cached joinRoom params for rejoinCurrentRoom (dead channel recovery) */
+interface JoinRoomParams {
+  roomCode: string;
+  userId: string;
+  onDbStateChange?: (state: GameState, revision: number) => void;
+}
+
 // =============================================================================
 // Service Implementation
 // =============================================================================
@@ -37,6 +44,9 @@ export class RealtimeService {
 
   /** Callback for DB state changes (postgres_changes) */
   #onDbStateChange: ((state: GameState, revision: number) => void) | null = null;
+
+  /** Cached joinRoom params for dead channel recovery */
+  #lastJoinParams: JoinRoomParams | null = null;
 
   constructor() {}
 
@@ -87,6 +97,13 @@ export class RealtimeService {
     this.#setConnectionStatus(ConnectionStatus.Connecting);
 
     this.#onDbStateChange = callbacks.onDbStateChange || null;
+
+    // Cache params for dead channel recovery (rejoinCurrentRoom)
+    this.#lastJoinParams = {
+      roomCode,
+      userId: _userId,
+      onDbStateChange: callbacks.onDbStateChange,
+    };
 
     // Create single postgres_changes channel
     realtimeLog.info(` Creating channel for db-room:${roomCode}`);
@@ -173,6 +190,25 @@ export class RealtimeService {
   }
 
   /**
+   * Rejoin the current room by tearing down the dead channel and creating a new one.
+   *
+   * Dead Channel Recovery: Supabase SDK gives up reconnecting after repeated
+   * CHANNEL_ERROR / TIMED_OUT (mobile background cycles). This method uses the
+   * cached joinRoom params to destroy the dead channel and rebuild from scratch.
+   *
+   * @throws Error if no previous joinRoom params cached (never joined / already left)
+   */
+  async rejoinCurrentRoom(): Promise<void> {
+    if (!this.#lastJoinParams) {
+      throw new Error('RealtimeService: cannot rejoin — no cached joinRoom params');
+    }
+    const { roomCode, userId, onDbStateChange } = this.#lastJoinParams;
+    realtimeLog.info('Dead channel recovery: rejoinCurrentRoom', { roomCode });
+    // joinRoom internally calls leaveRoom first, then creates a fresh channel
+    await this.joinRoom(roomCode, userId, { onDbStateChange });
+  }
+
+  /**
    * Leave the current room
    */
   async leaveRoom(): Promise<void> {
@@ -183,6 +219,7 @@ export class RealtimeService {
       this.#channel = null;
     }
     this.#onDbStateChange = null;
+    this.#lastJoinParams = null;
     this.#setConnectionStatus(ConnectionStatus.Disconnected);
     realtimeLog.info(' Left room');
   }

@@ -19,7 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
-import { gameRoomLog } from '@/utils/logger';
+import { connectionSyncLog } from '@/utils/logger';
 
 interface ConnectionSyncState {
   connectionStatus: ConnectionStatus;
@@ -77,15 +77,57 @@ export function useConnectionSync(
       if (now - lastForegroundFetchRef.current < FOREGROUND_FETCH_COOLDOWN_MS) return;
       lastForegroundFetchRef.current = now;
 
-      gameRoomLog.info('Foreground: immediately fetching state from DB');
+      connectionSyncLog.info('Foreground: immediately fetching state from DB');
       facade.fetchStateFromDB().catch((e) => {
-        gameRoomLog.warn('Foreground fetchStateFromDB failed:', e);
+        connectionSyncLog.warn('Foreground fetchStateFromDB failed:', e);
       });
     };
 
     document.addEventListener('visibilitychange', onForeground);
     return () => document.removeEventListener('visibilitychange', onForeground);
   }, [roomRecord, facade]);
+
+  // ── Dead Channel Detector ──
+  // Supabase SDK gives up reconnecting after repeated CHANNEL_ERROR / TIMED_OUT
+  // (common on mobile background/foreground cycles). When Disconnected persists
+  // beyond DEAD_CHANNEL_THRESHOLD_MS without SDK self-healing, tear down the
+  // dead channel and rebuild from scratch.
+  const deadChannelRetriesRef = useRef(0);
+  const MAX_DEAD_CHANNEL_RETRIES = 3;
+  const DEAD_CHANNEL_THRESHOLD_MS = 5_000;
+
+  useEffect(() => {
+    if (!roomRecord) return;
+
+    if (connectionStatus === ConnectionStatus.Live) {
+      // Channel is healthy — reset retry counter
+      deadChannelRetriesRef.current = 0;
+      return;
+    }
+
+    if (connectionStatus !== ConnectionStatus.Disconnected) return;
+    if (deadChannelRetriesRef.current >= MAX_DEAD_CHANNEL_RETRIES) {
+      connectionSyncLog.warn('Dead channel detector: max retries reached, giving up', {
+        retries: deadChannelRetriesRef.current,
+      });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      // Re-check: still Disconnected after threshold?
+      // (connectionStatus is captured in closure — if it changed, this effect
+      // would have been cleaned up and re-run)
+      deadChannelRetriesRef.current += 1;
+      connectionSyncLog.info('Dead channel detector: triggering reconnectChannel', {
+        attempt: deadChannelRetriesRef.current,
+      });
+      facade.reconnectChannel().catch((e) => {
+        connectionSyncLog.error('Dead channel detector: reconnectChannel failed', e);
+      });
+    }, DEAD_CHANNEL_THRESHOLD_MS);
+
+    return () => clearTimeout(timer);
+  }, [connectionStatus, roomRecord, facade]);
 
   return useMemo(
     () => ({

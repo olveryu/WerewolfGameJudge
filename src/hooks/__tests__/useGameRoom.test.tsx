@@ -62,6 +62,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     wasAudioInterrupted: false,
     resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
     shareNightReview: jest.fn().mockResolvedValue({ success: true }),
+    reconnectChannel: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   });
 
@@ -338,6 +339,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     wasAudioInterrupted: false,
     resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
     shareNightReview: jest.fn().mockResolvedValue({ success: true }),
+    reconnectChannel: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   });
 
@@ -625,6 +627,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     wasAudioInterrupted: false,
     resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
     shareNightReview: jest.fn().mockResolvedValue({ success: true }),
+    reconnectChannel: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   });
 

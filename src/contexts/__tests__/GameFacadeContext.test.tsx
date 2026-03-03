@@ -41,6 +41,7 @@ function createFakeFacade(): IGameFacade {
     wasAudioInterrupted: false,
     resumeAfterRejoin: async () => {},
     shareNightReview: async () => ({ success: true }),
+    reconnectChannel: async () => {},
   };
 }
 
