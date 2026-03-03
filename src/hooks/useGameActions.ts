@@ -15,6 +15,7 @@
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback } from 'react';
+import Toast from 'react-native-toast-message';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -27,20 +28,25 @@ import type { DebugModeState } from './useDebugMode';
  * Mutation 结果统一处理 — 按错误类型分层通知用户
  *
  * - 网络/基础设施错误（NETWORK_ERROR / SERVER_ERROR）：请求未到服务器，始终弹 alert
- * - 业务拒绝：按 onBusinessError 策略处理
- *   - 'alert'（默认）：弹 alert（适用于大多数 host 操作）
- *   - 'state-driven'：不弹，由 state effect 驱动 UX（如 submitAction 的 actionRejected）
- *   - 'silent'：不弹（后台操作）
+ * - 业务拒绝：交给 onBusinessError 回调处理
+ *   - 传 showAlert → 弹 alert（适用于大多数 host 操作）
+ *   - 传 toastError → 轻量 toast（适用于 ack/gate 等轻量操作）
+ *   - 不传 → 静默（state-driven / 后台操作）
  *
  * 用于 useGameActions 内用户发起的操作。
  * 不用于后台/系统操作（audio-ack / progression 等）。
  */
-type ErrorStrategy = 'alert' | 'state-driven' | 'silent';
+type BusinessErrorHandler = (title: string, message: string) => void;
+
+/** 轻量 toast 错误提示 — 作为 onBusinessError 回调传入 handleMutationResult */
+function toastError(title: string, message: string): void {
+  Toast.show({ type: 'error', text1: title, text2: message });
+}
 
 function handleMutationResult(
   result: { success: boolean; reason?: string },
   actionLabel: string,
-  onBusinessError: ErrorStrategy = 'alert',
+  onBusinessError?: BusinessErrorHandler,
 ): void {
   if (result.success) return;
   const { reason } = result;
@@ -54,11 +60,8 @@ function handleMutationResult(
     return;
   }
 
-  // 业务拒绝 → 按策略
-  if (onBusinessError === 'alert') {
-    showAlert(`${actionLabel}失败`, reason ?? '请稍后重试');
-  }
-  // 'state-driven' / 'silent' → 不弹
+  // 业务拒绝 → 交给调用方
+  onBusinessError?.(`${actionLabel}失败`, reason ?? '请稍后重试');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -122,7 +125,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const assignRoles = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
     const result = await facade.assignRoles();
-    handleMutationResult(result, '分配角色');
+    handleMutationResult(result, '分配角色', showAlert);
   }, [facade]);
 
   // Start game (host only) - uses startNight + BGM
@@ -132,7 +135,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     // Start BGM if enabled
     bgm.startBgmIfEnabled();
     const result = await facade.startNight();
-    handleMutationResult(result, '开始游戏');
+    handleMutationResult(result, '开始游戏', showAlert);
   }, [facade, bgm]);
 
   // Restart game (host only)
@@ -143,14 +146,14 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     // Clear controlled seat on restart
     debug.setControlledSeat(null);
     const result = await facade.restartGame();
-    handleMutationResult(result, '重新开始');
+    handleMutationResult(result, '重新开始', showAlert);
   }, [facade, bgm, debug]);
 
   // Clear all seats (host only)
   const clearAllSeats = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
     const result = await facade.clearAllSeats();
-    handleMutationResult(result, '全员起立');
+    handleMutationResult(result, '全员起立', showAlert);
   }, [facade]);
 
   // Share night review to selected seats (host only)
@@ -158,7 +161,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     async (allowedSeats: number[]): Promise<void> => {
       if (!facade.isHostPlayer()) return;
       const result = await facade.shareNightReview(allowedSeats);
-      handleMutationResult(result, '分享详细信息');
+      handleMutationResult(result, '分享详细信息', toastError);
     },
     [facade],
   );
@@ -194,7 +197,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     const seat = debug.controlledSeat ?? mySeatNumber;
     if (seat === null) return;
     const result = await facade.markViewedRole(seat);
-    handleMutationResult(result, '查看身份');
+    handleMutationResult(result, '查看身份', toastError);
   }, [debug.controlledSeat, mySeatNumber, facade]);
 
   // Submit action (uses effectiveSeat/effectiveRole for debug bot control)
@@ -206,7 +209,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
       const role = debug.effectiveRole;
       if (seat === null || !role) return;
       const result = await facade.submitAction(seat, role, target, extra);
-      handleMutationResult(result, '提交行动', 'state-driven');
+      handleMutationResult(result, '提交行动');
     },
     [debug.effectiveSeat, debug.effectiveRole, facade],
   );
@@ -214,7 +217,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(async (): Promise<void> => {
     const result = await facade.submitRevealAck();
-    handleMutationResult(result, '确认揭示');
+    handleMutationResult(result, '确认揭示', toastError);
   }, [facade]);
 
   // Group confirm acknowledge (piperHypnotizedReveal)
@@ -223,7 +226,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     const seat = debug.effectiveSeat;
     if (seat === null) return;
     const result = await facade.submitGroupConfirmAck(seat);
-    handleMutationResult(result, '确认催眠');
+    handleMutationResult(result, '确认催眠', toastError);
   }, [debug.effectiveSeat, facade]);
 
   // WolfRobot hunter status viewed gate
@@ -231,7 +234,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const sendWolfRobotHunterStatusViewed = useCallback(
     async (seat: number): Promise<void> => {
       const result = await facade.sendWolfRobotHunterStatusViewed(seat);
-      handleMutationResult(result, '确认猎人状态');
+      handleMutationResult(result, '确认猎人状态', toastError);
     },
     [facade],
   );

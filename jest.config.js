@@ -29,5 +29,6 @@ module.exports = {
       '<rootDir>/__mocks__/@react-native-async-storage/async-storage.ts',
     '^@expo/vector-icons$': '<rootDir>/__mocks__/@expo/vector-icons.tsx',
     '^@sentry/react-native$': '<rootDir>/__mocks__/@sentry/react-native.ts',
+    '^react-native-toast-message$': '<rootDir>/__mocks__/react-native-toast-message.ts',
   },
 };
