@@ -15,13 +15,9 @@
 import {
   checkNightmareBlockGuard,
   handleSubmitAction,
-  handleSubmitWolfVote,
 } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
-import type {
-  SubmitActionIntent,
-  SubmitWolfVoteIntent,
-} from '@werewolf/game-engine/engine/intents/types';
+import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
@@ -281,7 +277,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
     expect(result.reason).toBe('forbidden_while_audio_playing');
   });
 
-  it('forbidden_while_audio_playing beats wolf-specific gates (submitWolfVote)', () => {
+  it('forbidden_while_audio_playing beats wolf-specific gates (submitAction wolfKill step)', () => {
     const state = createMinimalState({
       isAudioPlaying: true,
       currentStepId: 'wolfKill' as SchemaId,
@@ -290,15 +286,15 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
       },
     });
     const context = createContext(state);
-    const intent: SubmitWolfVoteIntent = {
-      type: 'SUBMIT_WOLF_VOTE',
-      payload: { seat: 0, target: 1 },
+    const intent: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 0, role: 'wolf', target: 1, extra: {} },
     };
 
-    const result = handleSubmitWolfVote(intent, context);
+    const result = handleSubmitAction(intent, context);
 
     expect(result.success).toBe(false);
-    // Audio gate must fire before not_wolf_participant
+    // Audio gate must fire before role_mismatch
     expect(result.reason).toBe('forbidden_while_audio_playing');
   });
 });
@@ -392,12 +388,12 @@ describe('Gate Contract: duplicate submit idempotency', () => {
       },
     });
     const context1 = createContext(state1);
-    const intent1: SubmitWolfVoteIntent = {
-      type: 'SUBMIT_WOLF_VOTE',
-      payload: { seat: 1, target: 0 },
+    const intent1: SubmitActionIntent = {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: 1, role: 'wolf', target: 0, extra: {} },
     };
 
-    const result1 = handleSubmitWolfVote(intent1, context1);
+    const result1 = handleSubmitAction(intent1, context1);
     expect(result1.success).toBe(true);
 
     // After progression: step advanced to seerCheck
@@ -412,7 +408,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const context2 = createContext(state2);
 
     // Second wolf vote (step has advanced past wolfKill)
-    const result2 = handleSubmitWolfVote(intent1, context2);
+    const result2 = handleSubmitAction(intent1, context2);
     expect(result2.success).toBe(false);
     expect(result2.reason).toBe('step_mismatch');
   });

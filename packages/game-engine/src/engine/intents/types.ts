@@ -112,14 +112,6 @@ export interface SubmitActionIntent {
   };
 }
 
-export interface SubmitWolfVoteIntent {
-  type: 'SUBMIT_WOLF_VOTE';
-  payload: {
-    seat: number;
-    target: number;
-  };
-}
-
 // =============================================================================
 // 玩家状态 Intent
 // =============================================================================

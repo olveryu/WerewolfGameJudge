@@ -16,7 +16,7 @@
  * 不使用全局单例（已移除 getInstance/resetInstance）。
  *
  * 子模块划分：
- * - gameActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction/submitWolfVote）
+ * - gameActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction）
  * - seatActions.ts: 座位操作编排（takeSeat/leaveSeat + player ACK 等待逻辑）
  */
 
@@ -586,19 +586,6 @@ export class GameFacade implements IGameFacade {
     extra?: unknown,
   ): Promise<{ success: boolean; reason?: string }> {
     return gameActions.submitAction(this.#getActionsContext(), seat, role, target, extra);
-  }
-
-  /**
-   * 提交狼人投票（HTTP API）
-   *
-   * Host 和 Player 统一走 HTTP API。
-   * 推进和 Timer 管理由 gameActions.submitWolfVote 内部触发（仅 Host）。
-   */
-  async submitWolfVote(
-    voterSeat: number,
-    targetSeat: number,
-  ): Promise<{ success: boolean; reason?: string }> {
-    return gameActions.submitWolfVote(this.#getActionsContext(), voterSeat, targetSeat);
   }
 
   /**

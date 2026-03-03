@@ -598,7 +598,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   // =============================================================================
 
   describe('chain interaction', () => {
-    it('wolfVote confirm → submitWolfVote called', async () => {
+    it('wolfVote confirm → submitAction called', async () => {
       await chainWolfVoteConfirm(
         harness,
         setMock,
@@ -654,8 +654,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         7,
       );
 
-      // Step 2: wolfVote (nightmare wolf voting) → confirm → submitWolfVote called
-      const { submitWolfVote } = await coverageChainWolfVote(
+      // Step 2: wolfVote (nightmare wolf voting) → confirm → submitAction called
+      const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
         harness,
         setMock,
         renderRoom,
@@ -669,7 +669,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         ]),
         1,
       );
-      expect(submitWolfVote).toHaveBeenCalledTimes(1);
+      expect(wolfVoteAction).toHaveBeenCalledTimes(1);
 
       // Step 3: actionRejected (blocked seer with REAL interaction)
       // CRITICAL: parameter-level assertion on rejectedEvents message (prevent identity drift)
@@ -727,8 +727,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(seerSubmit).toHaveBeenCalled();
 
-      // Step 9: wolfVoteEmpty → press confirm → submitWolfVote(-1) called
-      const { submitWolfVote: emptyVote } = await coverageChainWolfVoteEmpty(
+      // Step 9: wolfVoteEmpty → press confirm → submitAction(null) called
+      const { submitAction: emptyVote } = await coverageChainWolfVoteEmpty(
         harness,
         setMock,
         renderRoom,
@@ -741,7 +741,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [7, 'nightmare'],
         ]),
       );
-      expect(emptyVote).toHaveBeenCalledWith(-1);
+      expect(emptyVote).toHaveBeenCalledWith(null);
 
       // Use literal coverage requirements
       harness.assertCoverage([

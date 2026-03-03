@@ -51,7 +51,6 @@ interface UseActionOrchestratorParams {
 
   // ── Submission callbacks ──
   submitAction: (targetSeat: number | null, extra?: unknown) => Promise<void>;
-  submitWolfVote: (targetSeat: number) => Promise<void>;
   submitRevealAckSafe: (role: RevealKind) => void;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   submitGroupConfirmAck: () => void;
@@ -101,7 +100,6 @@ export function useActionOrchestrator({
   setFirstSwapSeat,
   setSecondSeat,
   submitAction,
-  submitWolfVote,
   submitRevealAckSafe,
   sendWolfRobotHunterStatusViewed,
   submitGroupConfirmAck,
@@ -151,7 +149,7 @@ export function useActionOrchestrator({
       try {
         await submitAction(targetSeat, extra);
         // Submission success/failure UX is handled by the state-driven
-        // `gameState.actionRejected` effect below (covers submitAction + submitWolfVote).
+        // `gameState.actionRejected` effect below.
         return true;
       } finally {
         markActionSubmitting(false);
@@ -376,7 +374,9 @@ export function useActionOrchestrator({
               () => {
                 if (actionSubmittingRef.current) return;
                 markActionSubmitting(true);
-                void Promise.resolve(submitWolfVote(intent.targetSeat)).finally(() => {
+                void Promise.resolve(
+                  submitAction(intent.targetSeat === -1 ? null : intent.targetSeat),
+                ).finally(() => {
                   markActionSubmitting(false);
                 });
               },
@@ -741,7 +741,6 @@ export function useActionOrchestrator({
       sendWolfRobotHunterStatusViewed,
       submitAction,
       submitRevealAckSafe,
-      submitWolfVote,
       submitGroupConfirmAck,
       actorSeatForUi,
       multiSelectedSeats,

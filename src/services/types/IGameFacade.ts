@@ -177,14 +177,6 @@ export interface IGameFacade {
   ): Promise<{ success: boolean; reason?: string }>;
 
   /**
-   * 提交狼人投票
-   */
-  submitWolfVote(
-    voterSeat: number,
-    targetSeat: number,
-  ): Promise<{ success: boolean; reason?: string }>;
-
-  /**
    * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）
    */
   submitRevealAck(): Promise<{ success: boolean; reason?: string }>;

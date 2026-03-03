@@ -237,7 +237,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     shareNightReview: jest.fn().mockResolvedValue(undefined),
     setRoleRevealAnimation: jest.fn().mockResolvedValue(undefined),
     submitAction: jest.fn().mockResolvedValue(undefined),
-    submitWolfVote: jest.fn().mockResolvedValue(undefined),
     hasWolfVoted: jest.fn().mockReturnValue(false),
     viewedRole: jest.fn(),
     submitRevealAck: jest.fn().mockResolvedValue(undefined),
@@ -421,7 +420,7 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
 //
 // Usage in board tests:
 //   import { chainWolfVoteConfirm, chainSkipConfirm, ... } from '@/screens/RoomScreen/__tests__/harness';
-//   it('wolfVote confirm → submitWolfVote called', async () => {
+//   it('wolfVote confirm → submitAction called', async () => {
 //     await chainWolfVoteConfirm(harness, mockUseGameRoomReturn, ...);
 //   });
 // =============================================================================
@@ -432,12 +431,12 @@ const _ROOM_PROPS = {
 };
 
 /**
- * Chain interaction: wolfVote confirm → submitWolfVote called
+ * Chain interaction: wolfVote confirm → submitAction called
  *
  * Flow: render wolf step → tap seat → wolfVote dialog → press "确定"
- *       → assert submitWolfVote was called with correct targetSeat
+ *       → assert submitAction was called with correct targetSeat
  *
- * @returns The submitWolfVote mock for further assertions if needed
+ * @returns The submitAction mock for further assertions if needed
  */
 export async function chainWolfVoteConfirm(
   harness: RoomScreenTestHarness,
@@ -448,7 +447,7 @@ export async function chainWolfVoteConfirm(
   wolfAssignments: Map<number, RoleId>,
   targetSeat: number,
 ): Promise<jest.Mock> {
-  const submitWolfVote = jest.fn().mockResolvedValue(undefined);
+  const submitAction = jest.fn().mockResolvedValue(undefined);
   mockSetter(
     createGameRoomMock({
       schemaId: 'wolfKill',
@@ -456,7 +455,7 @@ export async function chainWolfVoteConfirm(
       myRole: wolfRole,
       mySeatNumber: wolfSeat,
       roleAssignments: wolfAssignments,
-      hookOverrides: { submitWolfVote },
+      hookOverrides: { submitAction },
     }),
   );
 
@@ -467,13 +466,13 @@ export async function chainWolfVoteConfirm(
   tapSeat(result.getByTestId, targetSeat);
   await waitFor(() => expect(harness.hasSeen('wolfVote')).toBe(true));
 
-  // Chain: press "确定" → submitWolfVote called
+  // Chain: press "确定" → submitAction called
   harness.pressButtonOnType('wolfVote', '确定');
-  expect(submitWolfVote).toHaveBeenCalledTimes(1);
-  expect(submitWolfVote).toHaveBeenCalledWith(targetSeat);
+  expect(submitAction).toHaveBeenCalledTimes(1);
+  expect(submitAction).toHaveBeenCalledWith(targetSeat);
 
   result.unmount();
-  return submitWolfVote;
+  return submitAction;
 }
 
 /**
@@ -658,8 +657,8 @@ export async function chainWolfRobotHunterStatus(
 // =============================================================================
 
 /**
- * Coverage chain: wolfVote → press "确定" → assert submitWolfVote called
- * Returns { submitWolfVote } for payload assertions.
+ * Coverage chain: wolfVote → press "确定" → assert submitAction called
+ * Returns { submitAction } for payload assertions.
  */
 export async function coverageChainWolfVote(
   harness: RoomScreenTestHarness,
@@ -669,8 +668,8 @@ export async function coverageChainWolfVote(
   wolfSeat: number,
   wolfAssignments: Map<number, RoleId>,
   targetSeat: number,
-): Promise<{ submitWolfVote: jest.Mock }> {
-  const submitWolfVote = jest.fn().mockResolvedValue(undefined);
+): Promise<{ submitAction: jest.Mock }> {
+  const submitAction = jest.fn().mockResolvedValue(undefined);
   mockSetter(
     createGameRoomMock({
       schemaId: 'wolfKill',
@@ -678,7 +677,7 @@ export async function coverageChainWolfVote(
       myRole: wolfRole,
       mySeatNumber: wolfSeat,
       roleAssignments: wolfAssignments,
-      hookOverrides: { submitWolfVote },
+      hookOverrides: { submitAction },
     }),
   );
 
@@ -690,11 +689,11 @@ export async function coverageChainWolfVote(
 
   // Chain: press "确定" on wolfVote dialog
   harness.pressPrimaryOnType('wolfVote');
-  expect(submitWolfVote).toHaveBeenCalledTimes(1);
-  expect(submitWolfVote).toHaveBeenCalledWith(targetSeat);
+  expect(submitAction).toHaveBeenCalledTimes(1);
+  expect(submitAction).toHaveBeenCalledWith(targetSeat);
 
   result.unmount();
-  return { submitWolfVote };
+  return { submitAction };
 }
 
 /**
@@ -1079,9 +1078,9 @@ export async function coverageChainSeatActionConfirm(
 
 /**
  * Coverage chain: wolfVoteEmpty → press "空刀" bottom button → wolfVoteEmpty dialog
- * → press "确定" → submitWolfVote(-1) called
+ * → press "确定" → submitAction(null) called
  *
- * Returns { submitWolfVote } for payload assertions.
+ * Returns { submitAction } for payload assertions.
  */
 export async function coverageChainWolfVoteEmpty(
   harness: RoomScreenTestHarness,
@@ -1090,8 +1089,8 @@ export async function coverageChainWolfVoteEmpty(
   wolfRole: RoleId,
   wolfSeat: number,
   wolfAssignments: Map<number, RoleId>,
-): Promise<{ submitWolfVote: jest.Mock }> {
-  const submitWolfVote = jest.fn().mockResolvedValue(undefined);
+): Promise<{ submitAction: jest.Mock }> {
+  const submitAction = jest.fn().mockResolvedValue(undefined);
   mockSetter(
     createGameRoomMock({
       schemaId: 'wolfKill',
@@ -1099,7 +1098,7 @@ export async function coverageChainWolfVoteEmpty(
       myRole: wolfRole,
       mySeatNumber: wolfSeat,
       roleAssignments: wolfAssignments,
-      hookOverrides: { submitWolfVote },
+      hookOverrides: { submitAction },
     }),
   );
 
@@ -1116,13 +1115,13 @@ export async function coverageChainWolfVoteEmpty(
   fireEvent.press(emptyButton);
   await waitFor(() => expect(harness.hasSeen('wolfVoteEmpty')).toBe(true));
 
-  // Chain: press "确定" → submitWolfVote(-1) called
+  // Chain: press "确定" → submitAction(null) called (empty knife)
   harness.pressPrimaryOnType('wolfVoteEmpty');
-  expect(submitWolfVote).toHaveBeenCalledTimes(1);
-  expect(submitWolfVote).toHaveBeenCalledWith(-1);
+  expect(submitAction).toHaveBeenCalledTimes(1);
+  expect(submitAction).toHaveBeenCalledWith(null);
 
   result.unmount();
-  return { submitWolfVote };
+  return { submitAction };
 }
 
 /**

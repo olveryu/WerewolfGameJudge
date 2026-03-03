@@ -902,64 +902,6 @@ describe('GameFacade', () => {
   });
 
   // ===========================================================================
-  // PR5: submitWolfVote tests
-  // ===========================================================================
-
-  describe('submitWolfVote (PR5)', () => {
-    const originalFetch = global.fetch;
-
-    beforeEach(async () => {
-      await facade.createRoom('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-    });
-
-    afterEach(() => {
-      global.fetch = originalFetch;
-    });
-
-    it('should call HTTP API for both Host and Player', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: true }),
-      });
-
-      const result = await facade.submitWolfVote(1, 0);
-
-      expect(result.success).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/night/wolf-vote'),
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('"voterSeat":1'),
-        }),
-      );
-    });
-
-    it('should return failure reason from API', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
-      });
-
-      const result = await facade.submitWolfVote(1, 0);
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
-    });
-
-    it('should return NETWORK_ERROR on fetch failure', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
-
-      const result = await facade.submitWolfVote(1, 0);
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('NETWORK_ERROR');
-    });
-  });
-
-  // ===========================================================================
   // PR6: endNight tests
   // ===========================================================================
 

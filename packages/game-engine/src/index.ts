@@ -86,11 +86,7 @@ export {
 } from './resolvers/types';
 
 // === Engine ===
-export {
-  handleSubmitAction,
-  handleSubmitWolfVote,
-  handleViewedRole,
-} from './engine/handlers/actionHandler';
+export { handleSubmitAction, handleViewedRole } from './engine/handlers/actionHandler';
 export {
   handleAssignRoles,
   handleFillWithBots,
@@ -124,7 +120,6 @@ export type {
   LeaveMySeatIntent,
   SetAudioPlayingIntent,
   SubmitActionIntent,
-  SubmitWolfVoteIntent,
 } from './engine/intents/types';
 export { gameReducer } from './engine/reducer';
 export type { StateAction } from './engine/reducer/types';

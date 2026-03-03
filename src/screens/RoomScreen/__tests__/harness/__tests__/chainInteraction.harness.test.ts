@@ -199,7 +199,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   it('chain: press confirm on wolfVote → callback fires → next dialog appears', () => {
-    const submitWolfVote = jest.fn();
+    const submitAction = jest.fn();
 
     // Simulate: wolfVote dialog appears
     mockShowAlert('狼人投票', '1号狼人 确定要猎杀3号玩家吗？', [
@@ -207,7 +207,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
       {
         text: '确定',
         onPress: () => {
-          submitWolfVote(2); // seat index 2 = player 3
+          submitAction(2); // seat index 2 = player 3
         },
       },
     ]);
@@ -215,8 +215,8 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     // Test: press confirm
     harness.pressButtonOnType('wolfVote', '确定');
 
-    // Assert: submitWolfVote was called with correct target
-    expect(submitWolfVote).toHaveBeenCalledWith(2);
+    // Assert: submitAction was called with correct target
+    expect(submitAction).toHaveBeenCalledWith(2);
   });
 
   it('chain: witch save prompt → press 知道了 → next prompt appears', () => {

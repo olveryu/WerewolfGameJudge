@@ -51,7 +51,6 @@ describe('useGameRoom - ACK reason transparency', () => {
     clearAllSeats: jest.fn().mockResolvedValue({ success: true }),
     markViewedRole: jest.fn().mockResolvedValue({ success: true }),
     submitAction: jest.fn().mockResolvedValue({ success: true }),
-    submitWolfVote: jest.fn().mockResolvedValue({ success: true }),
     submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
     submitGroupConfirmAck: jest.fn().mockResolvedValue({ success: true }),
     endNight: jest.fn().mockResolvedValue({ success: true }),
@@ -328,7 +327,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     clearAllSeats: jest.fn().mockResolvedValue({ success: true }),
     markViewedRole: jest.fn().mockResolvedValue({ success: true }),
     submitAction: jest.fn().mockResolvedValue({ success: true }),
-    submitWolfVote: jest.fn().mockResolvedValue({ success: true }),
     submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
     submitGroupConfirmAck: jest.fn().mockResolvedValue({ success: true }),
     endNight: jest.fn().mockResolvedValue({ success: true }),
@@ -454,79 +452,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     expect(submitActionMock).toHaveBeenCalledWith(1, 'wolf', 5, undefined);
     // NOT called with Host's seat and role
     expect(submitActionMock).not.toHaveBeenCalledWith(0, 'villager', 5, undefined);
-  });
-
-  it('submitWolfVote should use effectiveSeat when controlledSeat is set', async () => {
-    const submitWolfVoteMock = jest.fn().mockResolvedValue({ success: true });
-    let stateListener: ((state: any) => void) | null = null;
-
-    // Use GameStatus.Assigned status to avoid triggering nightPlan logic in hook
-    // Players must be Record<number, ...> for toLocalState adapter
-    const mockState = {
-      roomCode: 'TEST',
-      hostUid: 'host-uid',
-      status: GameStatus.Assigned as const,
-      templateRoles: ['villager', 'wolf'],
-      players: {
-        0: {
-          uid: 'host-uid',
-          seatNumber: 0,
-          displayName: 'Host',
-          role: 'villager',
-          hasViewedRole: true,
-        },
-        1: {
-          uid: 'bot-1',
-          seatNumber: 1,
-          displayName: 'Bot 1',
-          role: 'wolf',
-          hasViewedRole: true,
-          isBot: true,
-        },
-      },
-      currentStepIndex: -1,
-      isAudioPlaying: false,
-      actions: [],
-      pendingRevealAcks: [],
-      debugMode: { botsEnabled: true },
-      currentNightResults: {},
-    };
-
-    const mockFacade = createMockFacade({
-      addListener: jest.fn().mockImplementation((fn) => {
-        stateListener = fn;
-        return () => {};
-      }),
-      getState: jest.fn().mockReturnValue(mockState),
-      getMySeatNumber: jest.fn().mockReturnValue(0),
-      submitWolfVote: submitWolfVoteMock,
-    });
-
-    const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
-    );
-
-    const { result } = renderHook(() => useGameRoom(), { wrapper });
-
-    // Trigger state update through listener
-    await act(async () => {
-      stateListener?.(mockState);
-    });
-
-    // Set controlledSeat to 1 (bot seat)
-    await act(async () => {
-      result.current.setControlledSeat(1);
-    });
-
-    // Submit wolf vote - should use effectiveSeat=1
-    await act(async () => {
-      await result.current.submitWolfVote(5);
-    });
-
-    // Verify facade.submitWolfVote was called with bot's seat
-    expect(submitWolfVoteMock).toHaveBeenCalledWith(1, 5);
-    // NOT called with Host's seat
-    expect(submitWolfVoteMock).not.toHaveBeenCalledWith(0, 5);
   });
 
   it('sendWolfRobotHunterStatusViewed should use effectiveSeat when controlledSeat is set', async () => {
@@ -689,7 +614,6 @@ describe('useGameRoom - rejoin continue overlay', () => {
     clearAllSeats: jest.fn().mockResolvedValue({ success: true }),
     markViewedRole: jest.fn().mockResolvedValue({ success: true }),
     submitAction: jest.fn().mockResolvedValue({ success: true }),
-    submitWolfVote: jest.fn().mockResolvedValue({ success: true }),
     submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
     submitGroupConfirmAck: jest.fn().mockResolvedValue({ success: true }),
     endNight: jest.fn().mockResolvedValue({ success: true }),

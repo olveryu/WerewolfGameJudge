@@ -125,13 +125,6 @@ export interface ActionRequestBody {
   extra?: unknown;
 }
 
-/** POST /game/night/wolf-vote */
-export interface WolfVoteRequestBody {
-  roomCode: string;
-  voterSeat: number;
-  targetSeat: number;
-}
-
 /** POST /game/night/end */
 export interface EndNightRequestBody {
   roomCode: string;

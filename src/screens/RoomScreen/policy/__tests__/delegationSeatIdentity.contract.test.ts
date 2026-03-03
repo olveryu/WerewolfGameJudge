@@ -194,28 +194,6 @@ describe('Delegation Seat Identity Contract', () => {
     });
 
     /**
-     * submitWolfVote must use effectiveSeat, not mySeatNumber
-     */
-    it('submitWolfVote should use effectiveSeat', () => {
-      const content = readFileContent('src/hooks/useGameActions.ts');
-
-      // Find submitWolfVote definition
-      const submitWolfVoteRegex = /const\s+submitWolfVote\s*=\s*useCallback/g;
-      const match = submitWolfVoteRegex.exec(content);
-
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        const block = content.substring(startIndex, startIndex + 200);
-
-        // Should use effectiveSeat (may be prefixed with debug. after sub-hook extraction)
-        expect(block).toMatch(/seat\s*=\s*(debug\.)?effectiveSeat/);
-        expect(block).not.toMatch(/seat\s*=\s*mySeatNumber/);
-      }
-    });
-
-    /**
      * P0 Contract: sendWolfRobotHunterStatusViewed takes seat param directly
      * (caller must pass effectiveSeat). Verify JSDoc / comment signals this.
      */

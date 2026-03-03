@@ -12,7 +12,7 @@
  *   /game/start, /game/update-template, /game/view-role
  *   /game/night/action, /game/night/audio-ack, /game/night/audio-gate,
  *   /game/night/end, /game/night/group-confirm-ack, /game/night/progression,
- *   /game/night/reveal-ack, /game/night/wolf-robot-viewed, /game/night/wolf-vote
+ *   /game/night/reveal-ack, /game/night/wolf-robot-viewed
  *
  * 负责请求解析与分派，不直接操作 DB / state（委托 gameStateManager），不播放音频。
  */
@@ -38,7 +38,6 @@ import {
   handleShareNightReview,
   handleStartNight,
   handleSubmitAction,
-  handleSubmitWolfVote,
   handleUpdateTemplate,
   handleViewedRole,
   isWolfVoteAllComplete,
@@ -49,7 +48,6 @@ import {
   type SetAudioPlayingIntent,
   type StateAction,
   type SubmitActionIntent,
-  type SubmitWolfVoteIntent,
 } from '../_shared/game-engine/index.js';
 
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
@@ -67,7 +65,6 @@ import type {
   UpdateTemplateRequestBody,
   ViewRoleRequestBody,
   WolfRobotViewedRequestBody,
-  WolfVoteRequestBody,
 } from '../_shared/types.ts';
 
 // ---------------------------------------------------------------------------
@@ -280,7 +277,40 @@ const handleAction: HandlerFn = async (req) => {
         type: 'SUBMIT_ACTION',
         payload: { seat, role, target, extra },
       };
-      return handleSubmitAction(intent, handlerCtx);
+      const actionResult = handleSubmitAction(intent, handlerCtx);
+      if (!actionResult.success) return actionResult;
+
+      // Wolf vote timer: if this was a wolfVote step, manage the 5s countdown timer.
+      // Previously this logic lived in a dedicated /game/night/wolf-vote handler;
+      // now unified into the single action endpoint.
+      const stepId = state.currentStepId;
+      if (stepId) {
+        const schema = SCHEMAS[stepId as SchemaId];
+        if (schema?.kind === 'wolfVote') {
+          let tempState = state;
+          for (const action of actionResult.actions) {
+            tempState = gameReducer(tempState, action);
+          }
+
+          const allVoted = isWolfVoteAllComplete(tempState);
+          const hasExistingTimer = tempState.wolfVoteDeadline != null;
+          const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, Date.now());
+
+          const actions = [...actionResult.actions];
+          if (timerAction.type === 'set') {
+            actions.push({
+              type: 'SET_WOLF_VOTE_DEADLINE' as const,
+              payload: { deadline: timerAction.deadline },
+            });
+          } else if (timerAction.type === 'clear') {
+            actions.push({ type: 'CLEAR_WOLF_VOTE_DEADLINE' as const });
+          }
+
+          return { ...actionResult, actions };
+        }
+      }
+
+      return actionResult;
     },
     { enabled: true },
   );
@@ -428,55 +458,6 @@ const handleWolfRobotViewed: HandlerFn = async (req) => {
   return jsonResponse(result, resultToStatus(result));
 };
 
-const handleWolfVote: HandlerFn = async (req) => {
-  const body = (await req.json()) as WolfVoteRequestBody;
-  const { roomCode, voterSeat, targetSeat } = body;
-
-  if (!roomCode || typeof voterSeat !== 'number' || typeof targetSeat !== 'number') {
-    return missingParams();
-  }
-
-  const result = await processGameAction(
-    roomCode,
-    (state: GameState) => {
-      const handlerCtx = buildHandlerContext(state, state.hostUid);
-      const intent: SubmitWolfVoteIntent = {
-        type: 'SUBMIT_WOLF_VOTE',
-        payload: { seat: voterSeat, target: targetSeat },
-      };
-      const voteResult = handleSubmitWolfVote(intent, handlerCtx);
-      if (!voteResult.success) return voteResult;
-
-      // Apply vote actions locally to check timer decision
-      let tempState = state;
-      for (const action of voteResult.actions) {
-        tempState = gameReducer(tempState, action);
-      }
-
-      // Wolf vote timer decision (based on post-vote state)
-      const allVoted = isWolfVoteAllComplete(tempState);
-      const hasExistingTimer = tempState.wolfVoteDeadline != null;
-      const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, Date.now());
-
-      // Add timer actions to the result
-      const actions = [...voteResult.actions];
-      if (timerAction.type === 'set') {
-        actions.push({
-          type: 'SET_WOLF_VOTE_DEADLINE' as const,
-          payload: { deadline: timerAction.deadline },
-        });
-      } else if (timerAction.type === 'clear') {
-        actions.push({ type: 'CLEAR_WOLF_VOTE_DEADLINE' as const });
-      }
-
-      return { ...voteResult, actions };
-    },
-    { enabled: true },
-  );
-
-  return jsonResponse(result, resultToStatus(result));
-};
-
 const handleGroupConfirmAck: HandlerFn = async (req) => {
   const body = (await req.json()) as GroupConfirmAckRequestBody;
   const { roomCode, seat, uid } = body;
@@ -553,7 +534,6 @@ const NIGHT_ROUTES: Record<string, HandlerFn> = {
   progression: handleProgression,
   'reveal-ack': handleRevealAck,
   'wolf-robot-viewed': handleWolfRobotViewed,
-  'wolf-vote': handleWolfVote,
 };
 
 // ---------------------------------------------------------------------------

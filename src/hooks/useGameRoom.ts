@@ -107,7 +107,6 @@ interface UseGameRoomResult {
   setRoleRevealAnimation: (animation: RoleRevealAnimation) => Promise<void>;
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
-  submitWolfVote: (target: number) => Promise<void>;
   submitRevealAck: () => Promise<void>;
   submitGroupConfirmAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
@@ -304,7 +303,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     setRoleRevealAnimation: actions.setRoleRevealAnimation,
     viewedRole: actions.viewedRole,
     submitAction: actions.submitAction,
-    submitWolfVote: actions.submitWolfVote,
     submitRevealAck: actions.submitRevealAck,
     submitGroupConfirmAck: actions.submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed: actions.sendWolfRobotHunterStatusViewed,
