@@ -29,8 +29,7 @@ import type { DebugModeState } from './useDebugMode';
  *
  * - 网络/基础设施错误（NETWORK_ERROR / SERVER_ERROR）：请求未到服务器，始终弹 alert
  * - 业务拒绝：交给 onBusinessError 回调处理
- *   - 传 showAlert → 弹 alert（适用于大多数 host 操作）
- *   - 传 toastError → 轻量 toast（适用于 ack/gate 等轻量操作）
+ *   - 传 toastError → 轻量 toast（业务错误统一展示方式）
  *   - 不传 → 静默（state-driven / 后台操作）
  *
  * 用于 useGameActions 内用户发起的操作。
@@ -125,7 +124,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const assignRoles = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
     const result = await facade.assignRoles();
-    handleMutationResult(result, '分配角色', showAlert);
+    handleMutationResult(result, '分配角色', toastError);
   }, [facade]);
 
   // Start game (host only) - uses startNight + BGM
@@ -135,7 +134,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     // Start BGM if enabled
     bgm.startBgmIfEnabled();
     const result = await facade.startNight();
-    handleMutationResult(result, '开始游戏', showAlert);
+    handleMutationResult(result, '开始游戏', toastError);
   }, [facade, bgm]);
 
   // Restart game (host only)
@@ -146,14 +145,14 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     // Clear controlled seat on restart
     debug.setControlledSeat(null);
     const result = await facade.restartGame();
-    handleMutationResult(result, '重新开始', showAlert);
+    handleMutationResult(result, '重新开始', toastError);
   }, [facade, bgm, debug]);
 
   // Clear all seats (host only)
   const clearAllSeats = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
     const result = await facade.clearAllSeats();
-    handleMutationResult(result, '全员起立', showAlert);
+    handleMutationResult(result, '全员起立', toastError);
   }, [facade]);
 
   // Share night review to selected seats (host only)
