@@ -88,7 +88,7 @@ describe('useGameActions - game control', () => {
     expect(deps.facade.updateTemplate).not.toHaveBeenCalled();
   });
 
-  it('assignRoles should call facade and notify on failure', async () => {
+  it('assignRoles should call facade and toast on failure', async () => {
     const facade = createMockFacade({
       assignRoles: jest.fn().mockResolvedValue({ success: false, reason: '人数不足' }),
     });
@@ -97,7 +97,12 @@ describe('useGameActions - game control', () => {
 
     await act(() => result.current.assignRoles());
 
-    expect(mockShowAlert).toHaveBeenCalledWith('分配角色失败', '人数不足');
+    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(Toast.show).toHaveBeenCalledWith({
+      type: 'error',
+      text1: '分配角色失败',
+      text2: '人数不足',
+    });
   });
 
   it('assignRoles should NOT alert on success', async () => {
@@ -363,7 +368,7 @@ describe('useGameActions - game state queries', () => {
 describe('useGameActions - handleMutationResult', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('should alert with default reason when reason is missing (showAlert callback)', async () => {
+  it('should toast with default reason when reason is missing (toastError callback)', async () => {
     const facade = createMockFacade({
       clearAllSeats: jest.fn().mockResolvedValue({ success: false }),
     });
@@ -372,7 +377,12 @@ describe('useGameActions - handleMutationResult', () => {
 
     await act(() => result.current.clearAllSeats());
 
-    expect(mockShowAlert).toHaveBeenCalledWith('全员起立失败', '请稍后重试');
+    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(Toast.show).toHaveBeenCalledWith({
+      type: 'error',
+      text1: '全员起立失败',
+      text2: '请稍后重试',
+    });
   });
 
   it('should alert on NETWORK_ERROR even without onBusinessError callback', async () => {
