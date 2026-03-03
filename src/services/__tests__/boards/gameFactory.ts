@@ -9,20 +9,14 @@
  * 单一真相：GameState（= GameState）
  */
 
-import {
-  handleSubmitAction,
-  handleSubmitWolfVote,
-} from '@werewolf/game-engine/engine/handlers/actionHandler';
+import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import {
   handleAdvanceNight,
   handleEndNight,
 } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
 import type { HandlerContext, HandlerResult } from '@werewolf/game-engine/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
-import type {
-  SubmitActionIntent,
-  SubmitWolfVoteIntent,
-} from '@werewolf/game-engine/engine/intents/types';
+import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer';
 import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
@@ -282,14 +276,16 @@ export function createGame(
       }
 
       case 'WOLF_VOTE': {
-        const intent: SubmitWolfVoteIntent = {
-          type: 'SUBMIT_WOLF_VOTE',
+        const intent: SubmitActionIntent = {
+          type: 'SUBMIT_ACTION',
           payload: {
             seat: msg.seat,
-            target: msg.target,
+            role: state.players[msg.seat]?.role ?? 'wolf',
+            target: msg.target === -1 ? null : msg.target,
+            extra: {},
           },
         };
-        const result = handleSubmitWolfVote(intent, context);
+        const result = handleSubmitAction(intent, context);
         return executeHandler(result);
       }
 

@@ -50,7 +50,6 @@ import {
   shareNightReview,
   startNight,
   submitAction,
-  submitWolfVote,
   updateTemplate,
 } from '@/services/facade/gameActions';
 
@@ -366,7 +365,6 @@ describe('gameActions thin wrappers — NOT_CONNECTED guard', () => {
 
   it.each([
     ['submitAction', (ctx: any) => submitAction(ctx, 0, 'wolf', 1)],
-    ['submitWolfVote', (ctx: any) => submitWolfVote(ctx, 0, 1)],
     ['endNight', (ctx: any) => endNight(ctx)],
     ['setAudioPlaying', (ctx: any) => setAudioPlaying(ctx, true)],
     ['clearRevealAcks', (ctx: any) => clearRevealAcks(ctx)],

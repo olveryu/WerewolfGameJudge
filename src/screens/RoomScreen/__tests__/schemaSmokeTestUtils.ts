@@ -102,7 +102,6 @@ export function makeBaseUseGameRoomReturn({
     restartGame: jest.fn(),
 
     submitAction: jest.fn(),
-    submitWolfVote: jest.fn(),
 
     hasWolfVoted: () => false,
     getWolfVoteSummary: () => '0/0 狼人已投票',

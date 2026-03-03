@@ -110,7 +110,6 @@ jest.mock('../../../hooks/useGameRoom', () => {
       restartGame: jest.fn(),
 
       submitAction: mockSubmitAction,
-      submitWolfVote: jest.fn(),
 
       hasWolfVoted: () => false,
       requestSnapshot: jest.fn(),

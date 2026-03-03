@@ -30,7 +30,6 @@ function createMockFacade(overrides: Record<string, unknown> = {}) {
     setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
     markViewedRole: jest.fn().mockResolvedValue({ success: true }),
     submitAction: jest.fn().mockResolvedValue({ success: true }),
-    submitWolfVote: jest.fn().mockResolvedValue({ success: true }),
     submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
     postProgression: jest.fn().mockResolvedValue(undefined),
@@ -238,24 +237,6 @@ describe('useGameActions - player night actions', () => {
     await act(() => result.current.submitAction(4));
 
     expect(deps.facade.submitAction).not.toHaveBeenCalled();
-  });
-
-  it('submitWolfVote should use effectiveSeat', async () => {
-    const deps = createDeps({ debug: createMockDebug({ effectiveSeat: 3 }) });
-    const { result } = renderHook(() => useGameActions(deps));
-
-    await act(() => result.current.submitWolfVote(6));
-
-    expect(deps.facade.submitWolfVote).toHaveBeenCalledWith(3, 6);
-  });
-
-  it('submitWolfVote should skip when effectiveSeat is null', async () => {
-    const deps = createDeps({ debug: createMockDebug({ effectiveSeat: null }) });
-    const { result } = renderHook(() => useGameActions(deps));
-
-    await act(() => result.current.submitWolfVote(6));
-
-    expect(deps.facade.submitWolfVote).not.toHaveBeenCalled();
   });
 
   it('submitRevealAck should call facade', async () => {

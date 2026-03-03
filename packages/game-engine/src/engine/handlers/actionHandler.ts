@@ -2,7 +2,7 @@
  * Action Handler - 夜晚行动处理器（Host-only）
  *
  * 职责：
- * - 处理 SUBMIT_ACTION / SUBMIT_WOLF_VOTE / VIEWED_ROLE intent
+ * - 处理 SUBMIT_ACTION / VIEWED_ROLE intent
  * - 调用 resolver 验证行动合法性并计算结果
  * - Nightmare 阻断的统一守卫（single-point guard）
  *
@@ -19,8 +19,7 @@ import type { ProtocolAction } from '../../protocol/types';
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput, ResolverContext, ResolverResult } from '../../resolvers/types';
 import { newRejectionId } from '../../utils/id';
-import { getEngineLogger } from '../../utils/logger';
-import type { SubmitActionIntent, SubmitWolfVoteIntent, ViewedRoleIntent } from '../intents/types';
+import type { SubmitActionIntent, ViewedRoleIntent } from '../intents/types';
 import type {
   ActionRejectedAction,
   ApplyResolverResultAction,
@@ -30,8 +29,6 @@ import type {
 } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
 import { STANDARD_SIDE_EFFECTS } from './types';
-
-const actionHandlerLog = getEngineLogger().extend('ActionHandler');
 
 /**
  * 非 null 的 state 类型（通过 validation 后使用）
@@ -605,142 +602,6 @@ function buildSuccessResult(
     actions,
     sideEffects: STANDARD_SIDE_EFFECTS,
   };
-}
-
-/**
- * 处理狼人投票
- *
- * PR5: WOLF_VOTE (Night-1 only)
- * 完整 gate 链：
- * 1. host_only
- * 2. no_state
- * 3. invalid_status (must be ongoing)
- * 4. forbidden_while_audio_playing
- * 5. invalid_step (currentStepId 必须存在且对应 wolfVote schema)
- * 6. not_seated (voter seat 必须有玩家)
- * 7. not_wolf_participant (voter 必须参与 wolf vote)
- * 8. invalid_target (target 必须在 players 范围内)
- * 9. target_not_seated (target seat 必须有玩家)
- *
- * 注意：不做 notSelf/notWolf 限制（中立裁判规则）
- */
-export function handleSubmitWolfVote(
-  intent: SubmitWolfVoteIntent,
-  context: HandlerContext,
-): HandlerResult {
-  const { seat, target } = intent.payload;
-
-  const normalizeWolfVoteRejection = (
-    result: HandlerResult,
-    mappedReason?: string,
-  ): HandlerResult => {
-    if (result.success) return result;
-
-    const state = context.state;
-    const voterUid = state?.players?.[seat]?.uid;
-    if (!state || !voterUid) return result;
-
-    const reason = mappedReason ?? result.reason ?? 'invalid_action';
-
-    const rejectAction: ActionRejectedAction = {
-      type: 'ACTION_REJECTED',
-      payload: {
-        // Use the stable schemaId for wolf vote (single source of truth)
-        // so UI dedupe and logs key off a consistent identifier.
-        action: 'wolfKill',
-        reason,
-        targetUid: voterUid,
-        rejectionId: newRejectionId(),
-      },
-    };
-
-    return {
-      success: false,
-      reason,
-      actions: [rejectAction],
-      sideEffects: [{ type: 'BROADCAST_STATE' }],
-    };
-  };
-
-  // NOTE: "Delete the custom path" big step (without changing wire protocol):
-  // We keep SUBMIT_WOLF_VOTE intent on-wire, but validate it through the existing
-  // schema-first resolver pipeline by delegating to `wolfKillResolver`.
-  // This reduces drift risk: immune / empty knife / other invariants now live in one place.
-  //
-  // IMPORTANT: We still keep one extra gate here:
-  // - not_wolf_participant (meeting-specific rule)
-  // Everything else is validated by `handleSubmitAction` (state/status/audio/step/seat/role).
-
-  // Guards needed to safely resolve voterRole (gates 1-3 duplicated from
-  // validateActionPreconditions — acceptable since they're trivial checks
-  // and keeping the canonical gate order avoids confusing rejection reasons).
-  if (!context.state) {
-    return normalizeWolfVoteRejection({ success: false, reason: 'no_state', actions: [] });
-  }
-  if (context.state.status !== GameStatus.Ongoing) {
-    return normalizeWolfVoteRejection({ success: false, reason: 'invalid_status', actions: [] });
-  }
-  if (context.state.isAudioPlaying) {
-    return normalizeWolfVoteRejection({
-      success: false,
-      reason: 'forbidden_while_audio_playing',
-      actions: [],
-    });
-  }
-
-  // Early return: voter seat must have a player with a role.
-  const voterRole = context.state.players[seat]?.role;
-  if (!voterRole) {
-    return normalizeWolfVoteRejection({ success: false, reason: 'not_seated', actions: [] });
-  }
-
-  // Remaining preconditions (step → seat → role match).
-  const validation = validateActionPreconditions(context, seat, voterRole);
-  if (!validation.valid) {
-    return normalizeWolfVoteRejection(
-      (validation as { valid: false; result: HandlerResult }).result,
-    );
-  }
-
-  // Meeting-specific gate: voter must participate in wolf vote.
-  if (!doesRoleParticipateInWolfVote(voterRole)) {
-    actionHandlerLog.warn('[wolfVote] not_wolf_participant', {
-      seat,
-      voterRole,
-      currentStepId: context.state?.currentStepId ?? null,
-    });
-    return normalizeWolfVoteRejection({
-      success: false,
-      reason: 'not_wolf_participant',
-      actions: [],
-    });
-  }
-
-  // Delegate to the unified action pipeline with the voter's *actual* role.
-  const delegateIntent: SubmitActionIntent = {
-    type: 'SUBMIT_ACTION',
-    payload: {
-      seat,
-      role: voterRole,
-      // wolfKill supports empty knife via target = null.
-      // Map target=-1 to null for empty knife.
-      target: target === -1 ? null : target,
-    },
-  };
-
-  const delegated = handleSubmitAction(delegateIntent, context);
-  if (!delegated.success) {
-    // Broadcast whatever the unified pipeline produced.
-    return normalizeWolfVoteRejection(delegated);
-  }
-
-  // IMPORTANT:
-  // Do NOT write wolfVotesBySeat here.
-  // The single source of truth for wolf vote results is the resolver pipeline
-  // (wolfKillResolver -> APPLY_RESOLVER_RESULT(updates)).
-  // If we "optimistically" write wolfVotesBySeat here, a later resolver rejection
-  // (e.g. immuneToWolfKill target) would still lock the UI as "already voted".
-  return delegated;
 }
 
 /**

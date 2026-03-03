@@ -2,7 +2,7 @@
  * Cancel Paths UI Test
  *
  * Tests the CANCEL button behavior for all dialog types that have cancel buttons.
- * Verifies that pressing cancel does NOT call submitAction/submitWolfVote.
+ * Verifies that pressing cancel does NOT call submitAction.
  *
  * This is a cross-board test - not tied to a specific board configuration.
  * It covers a gap where nearly all board tests only test the confirm path.
@@ -91,12 +91,12 @@ describe('Cancel Paths (cross-board)', () => {
   });
 
   // ===========================================================================
-  // wolfVote cancel → submitWolfVote NOT called
+  // wolfVote cancel → submitAction NOT called
   // ===========================================================================
 
   describe('wolfVote cancel', () => {
-    it('pressing cancel on wolfVote dialog does NOT call submitWolfVote', async () => {
-      const submitWolfVote = jest.fn().mockResolvedValue(undefined);
+    it('pressing cancel on wolfVote dialog does NOT call submitAction', async () => {
+      const submitAction = jest.fn().mockResolvedValue(undefined);
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
@@ -108,7 +108,7 @@ describe('Cancel Paths (cross-board)', () => {
           [6, 'wolf'],
           [7, 'wolf'],
         ]),
-        hookOverrides: { submitWolfVote },
+        hookOverrides: { submitAction },
       });
 
       const { getByTestId } = renderRoom();
@@ -121,17 +121,17 @@ describe('Cancel Paths (cross-board)', () => {
       // Press cancel
       harness.pressButtonOnType('wolfVote', '取消');
 
-      expect(submitWolfVote).not.toHaveBeenCalled();
+      expect(submitAction).not.toHaveBeenCalled();
     });
   });
 
   // ===========================================================================
-  // wolfVoteEmpty cancel → submitWolfVote NOT called
+  // wolfVoteEmpty cancel → submitAction NOT called
   // ===========================================================================
 
   describe('wolfVoteEmpty cancel', () => {
-    it('pressing cancel on wolfVoteEmpty dialog does NOT call submitWolfVote', async () => {
-      const submitWolfVote = jest.fn().mockResolvedValue(undefined);
+    it('pressing cancel on wolfVoteEmpty dialog does NOT call submitAction', async () => {
+      const submitAction = jest.fn().mockResolvedValue(undefined);
       mockUseGameRoomReturn = createGameRoomMock({
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
@@ -143,7 +143,7 @@ describe('Cancel Paths (cross-board)', () => {
           [6, 'wolf'],
           [7, 'wolf'],
         ]),
-        hookOverrides: { submitWolfVote },
+        hookOverrides: { submitAction },
       });
 
       const { getByTestId, getByText } = renderRoom();
@@ -158,7 +158,7 @@ describe('Cancel Paths (cross-board)', () => {
       // Press cancel
       harness.pressButtonOnType('wolfVoteEmpty', '取消');
 
-      expect(submitWolfVote).not.toHaveBeenCalled();
+      expect(submitAction).not.toHaveBeenCalled();
     });
   });
 

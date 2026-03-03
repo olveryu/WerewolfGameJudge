@@ -114,7 +114,6 @@ describe('RoomScreen hooks boundary constraints', () => {
 
       // Should NOT import action-related functions
       expect(content).not.toMatch(/submitAction/);
-      expect(content).not.toMatch(/submitWolfVote/);
       expect(content).not.toMatch(/performSeerAction/);
     });
   });
@@ -144,9 +143,8 @@ describe('RoomScreen hooks boundary constraints', () => {
       // Intent Layer: must export getActionIntent function
       expect(content).toMatch(/getActionIntent/);
 
-      // Intent Layer: must NOT call submitAction / submitWolfVote directly
+      // Intent Layer: must NOT call submitAction directly
       expect(content).not.toMatch(/submitAction\s*\(/);
-      expect(content).not.toMatch(/submitWolfVote\s*\(/);
 
       // Intent Layer: must NOT show dialogs (those are in useRoomActionDialogs)
       expect(content).not.toMatch(/showAlert\s*\(/);

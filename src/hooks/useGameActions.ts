@@ -4,7 +4,7 @@
  * Manages:
  * - Host-only game flow: updateTemplate, assignRoles, startGame, restartGame
  * - Role reveal animation and audio playing control
- * - Player night actions: viewedRole, submitAction, submitWolfVote
+ * - Player night actions: viewedRole, submitAction
  * - Reveal ack and wolfRobot hunter status gates
  * - Game state queries: getLastNightInfo, hasWolfVoted
  *
@@ -52,7 +52,6 @@ interface GameActionsState {
   // Player night actions
   viewedRole: () => Promise<void>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
-  submitWolfVote: (target: number) => Promise<void>;
   submitRevealAck: () => Promise<void>;
   submitGroupConfirmAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
@@ -183,17 +182,6 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     [debug.effectiveSeat, debug.effectiveRole, facade],
   );
 
-  // Submit wolf vote (uses effectiveSeat for debug bot control)
-  const submitWolfVote = useCallback(
-    async (target: number): Promise<void> => {
-      const seat = debug.effectiveSeat;
-      if (seat === null) return;
-      const result = await facade.submitWolfVote(seat, target);
-      notifyIfFailed(result, '狼人投票');
-    },
-    [debug.effectiveSeat, facade],
-  );
-
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(async (): Promise<void> => {
     const result = await facade.submitRevealAck();
@@ -273,7 +261,6 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     setAudioPlaying,
     viewedRole,
     submitAction,
-    submitWolfVote,
     submitRevealAck,
     submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed,

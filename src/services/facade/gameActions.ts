@@ -5,7 +5,7 @@
  *
  * 职责：
  * - Host-only 游戏控制方法（assignRoles/startNight/restartGame 等）→ HTTP API
- * - 夜晚行动方法（submitAction/submitWolfVote）→ HTTP API
+ * - 夜晚行动方法（submitAction）→ HTTP API
  * - 任意玩家动作（markViewedRole）→ HTTP API
  * - 夜晚控制（endNight/setAudioPlaying/postAudioAck/postProgression）→ HTTP API
  *
@@ -328,44 +328,6 @@ export async function submitAction(
 
   if (!result.success) {
     facadeLog.warn('submitAction failed', { reason: result.reason, seat, role, target });
-    return { success: false, reason: result.reason };
-  }
-
-  return { success: true };
-}
-
-/**
- * 提交狼人投票（HTTP API）
- *
- * Night-1 only. 服务端内联推进自动处理 deadline + 步骤推进。
- */
-export async function submitWolfVote(
-  ctx: GameActionsContext,
-  voterSeat: number,
-  targetSeat: number,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('submitWolfVote called', { voterSeat, targetSeat });
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  const result = await callGameControlApi(
-    '/game/night/wolf-vote',
-    {
-      roomCode,
-      voterSeat,
-      targetSeat,
-    },
-    ctx.store,
-  );
-
-  if (!result.success) {
-    facadeLog.warn('submitWolfVote failed', {
-      voterSeat,
-      targetSeat,
-      reason: result.reason,
-    });
     return { success: false, reason: result.reason };
   }
 

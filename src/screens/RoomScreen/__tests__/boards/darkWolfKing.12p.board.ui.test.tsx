@@ -372,7 +372,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   // =============================================================================
 
   describe('chain interaction', () => {
-    it('wolfVote confirm → submitWolfVote called', async () => {
+    it('wolfVote confirm → submitAction called', async () => {
       await chainWolfVoteConfirm(
         harness,
         setMock,
@@ -411,8 +411,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // Step 1: actionPrompt (seer)
       await coverageChainActionPrompt(harness, setMock, renderRoom, 'seerCheck', 'seer', 'seer', 8);
 
-      // Step 2: wolfVote → press confirm → submitWolfVote(1) called
-      const { submitWolfVote } = await coverageChainWolfVote(
+      // Step 2: wolfVote → press confirm → submitAction(1) called
+      const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
         harness,
         setMock,
         renderRoom,
@@ -426,7 +426,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         ]),
         1,
       );
-      expect(submitWolfVote).toHaveBeenCalledWith(1);
+      expect(wolfVoteAction).toHaveBeenCalledWith(1);
 
       // Step 3: confirmTrigger (darkWolfKing) → press primary + assertNoLoop
       await coverageChainConfirmTrigger(
@@ -470,8 +470,8 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(seerSubmit).toHaveBeenCalled();
 
-      // Step 8: wolfVoteEmpty → press confirm → submitWolfVote(-1) called
-      const { submitWolfVote: emptyVote } = await coverageChainWolfVoteEmpty(
+      // Step 8: wolfVoteEmpty → press confirm → submitAction(null) called
+      const { submitAction: emptyVote } = await coverageChainWolfVoteEmpty(
         harness,
         setMock,
         renderRoom,
@@ -484,7 +484,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [7, 'darkWolfKing'],
         ]),
       );
-      expect(emptyVote).toHaveBeenCalledWith(-1);
+      expect(emptyVote).toHaveBeenCalledWith(null);
 
       // Final: literal coverage requirements
       harness.assertCoverage([

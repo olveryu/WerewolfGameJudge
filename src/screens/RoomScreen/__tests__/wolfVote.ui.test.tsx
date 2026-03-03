@@ -29,7 +29,7 @@ jest.mock('react-native-safe-area-context', () => {
 });
 
 // Mock the room hook: provide minimal state to render PlayerGrid and accept taps
-const mockSubmitWolfVote = jest.fn();
+const mockSubmitAction = jest.fn();
 const mockRequestSnapshot = jest.fn();
 
 type UseGameRoomReturn = any;
@@ -110,8 +110,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     assignRoles: jest.fn(),
     startGame: jest.fn(),
     restartGame: jest.fn(),
-    submitAction: jest.fn(),
-    submitWolfVote: mockSubmitWolfVote,
+    submitAction: mockSubmitAction,
     hasWolfVoted: () => false,
     requestSnapshot: mockRequestSnapshot,
     viewedRole: jest.fn(),
@@ -209,7 +208,7 @@ describe('RoomScreen wolf vote UI', () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
   });
 
-  it('wolf vote dialog -> confirm triggers submitWolfVote', () => {
+  it('wolf vote dialog -> confirm triggers submitAction', () => {
     // Regression guard for dialog copy + confirm wiring.
     // (This is stable and independent from RN press bubbling quirks in tests.)
 
@@ -219,7 +218,7 @@ describe('RoomScreen wolf vote UI', () => {
     dialogs.showWolfVoteDialog(
       '1号狼人',
       2,
-      () => mockSubmitWolfVote(2),
+      () => mockSubmitAction(2),
       undefined,
       (() => {
         const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
@@ -240,7 +239,7 @@ describe('RoomScreen wolf vote UI', () => {
     const confirmBtn = buttons.find((b) => b.text === '确定');
     expect(confirmBtn).toBeDefined();
     confirmBtn?.onPress?.();
-    expect(mockSubmitWolfVote).toHaveBeenCalledWith(2);
+    expect(mockSubmitAction).toHaveBeenCalledWith(2);
   });
 
   it('tap seat tile -> triggers intent and shows wolf vote dialog (E2E)', async () => {
@@ -279,11 +278,11 @@ describe('RoomScreen wolf vote UI', () => {
     const confirmBtn = buttons.find((b) => b.text === '确定');
     expect(confirmBtn).toBeDefined();
     confirmBtn?.onPress?.();
-    expect(mockSubmitWolfVote).toHaveBeenCalledWith(2);
+    expect(mockSubmitAction).toHaveBeenCalledWith(2);
   });
 
   it('forbidden target role is NOT disabled in UI; still opens confirm dialog and submits vote intent', async () => {
-    let submitWolfVoteMock: jest.Mock | null = null;
+    let submitActionMock: jest.Mock | null = null;
 
     // Plan A (server-authoritative): UI does not disable schema-external targets.
     // If a forbidden role is tapped, we still open confirm dialog and submit.
@@ -305,15 +304,15 @@ describe('RoomScreen wolf vote UI', () => {
         }),
         role: 'spiritKnight',
       });
-      const submitWolfVote = mockSubmitWolfVote;
-      submitWolfVoteMock = submitWolfVote;
+      const submitAction = mockSubmitAction;
+      submitActionMock = submitAction;
 
       return makeBaseUseGameRoomReturn({
         gameState: {
           ...base.gameState,
           players,
         },
-        submitWolfVote,
+        submitAction,
         currentSchema: (() => {
           const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
           return getSchema('wolfKill');
@@ -369,9 +368,9 @@ describe('RoomScreen wolf vote UI', () => {
       confirmBtn?.onPress?.();
     });
 
-    expect(submitWolfVoteMock).not.toBeNull();
-    const submitWolfVoteSpy = submitWolfVoteMock as unknown as jest.Mock;
-    expect(submitWolfVoteSpy).toHaveBeenCalledWith(2);
+    expect(submitActionMock).not.toBeNull();
+    const submitActionSpy = submitActionMock as unknown as jest.Mock;
+    expect(submitActionSpy).toHaveBeenCalledWith(2);
   });
 });
 
@@ -389,7 +388,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
   });
 
-  it('tap seat → wolfVote dialog → press 确定 → submitWolfVote called with correct target', async () => {
+  it('tap seat → wolfVote dialog → press 确定 → submitAction called with correct target', async () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
 
     const props: any = {
@@ -419,11 +418,11 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
       harness.pressButtonOnType('wolfVote', '确定');
     });
 
-    // submitWolfVote should be called with the target seat index
-    expect(mockSubmitWolfVote).toHaveBeenCalledWith(2);
+    // submitAction should be called with the target seat index
+    expect(mockSubmitAction).toHaveBeenCalledWith(2);
   });
 
-  it('tap seat → wolfVote dialog → press 取消 → submitWolfVote NOT called', async () => {
+  it('tap seat → wolfVote dialog → press 取消 → submitAction NOT called', async () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
 
     const props: any = {
@@ -445,12 +444,12 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
       harness.expectSeen('wolfVote');
     });
 
-    // Press cancel — submitWolfVote must NOT be called
+    // Press cancel — submitAction must NOT be called
     await act(async () => {
       harness.pressButtonOnType('wolfVote', '取消');
     });
 
-    expect(mockSubmitWolfVote).not.toHaveBeenCalled();
+    expect(mockSubmitAction).not.toHaveBeenCalled();
   });
 
   it('harness getLastEvent returns the wolfVote dialog with correct metadata', async () => {
