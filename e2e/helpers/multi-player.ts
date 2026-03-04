@@ -61,11 +61,17 @@ export interface GameSetupWithRolesResult extends GameSetupResult {
 const PRESENCE_MAX_ATTEMPTS = 50;
 /** Poll cadence for presence stability checks (≤300ms per test instructions). */
 const PRESENCE_INTERVAL_MS = 300;
+/** At this attempt, reload host page to force a fresh DB fetch (escalation). */
+const PRESENCE_ESCALATION_ATTEMPT = 25;
 
 /**
  * Hard gate: Wait for all joiner presence to be reflected on the host page.
  *
  * Polls for "准备看牌" button visibility (only appears when all seats are filled).
+ * Uses "retry with escalation": at the halfway point, reloads the host page to
+ * force a fresh `joinRoom → fetchStateFromDB` cycle, compensating for Supabase
+ * Realtime broadcast delays in CI environments.
+ *
  * Throws with diagnostic info if presence does not stabilize within the timeout.
  *
  * @param hostPage - The host's Playwright page
@@ -78,6 +84,12 @@ async function waitForPresenceStable(
   roomCode: string,
 ): Promise<void> {
   for (let attempt = 1; attempt <= PRESENCE_MAX_ATTEMPTS; attempt++) {
+    // Escalation: reload host page at halfway point to force DB fetch
+    if (attempt === PRESENCE_ESCALATION_ATTEMPT) {
+      await hostPage.reload();
+      await waitForRoomScreenReady(hostPage, { role: 'host' });
+    }
+
     // Poll cadence: ping joiner pages to keep connections alive
     for (const joinerPage of joinerPages) {
       await joinerPage.locator('body').count();
