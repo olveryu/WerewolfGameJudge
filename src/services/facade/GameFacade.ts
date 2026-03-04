@@ -101,6 +101,9 @@ export class GameFacade implements IGameFacade {
   /** Browser 'online' event handler: 网络恢复时重试 postAudioAck（Web 平台兜底 SDK 未触发 Live 事件） */
   #onlineRetryHandler: (() => void) | null = null;
 
+  /** check+listen 模式的延迟重试 timer（navigator.onLine 已为 true 时立即调度） */
+  #onlineRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
   /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
@@ -452,11 +455,13 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
-   * 注册 window 'online' 事件监听，网络恢复时重试 postAudioAck。
+   * 注册 audio-ack 重试：check + listen 模式（社区标准 offline-first 模式）。
    *
-   * 场景：setOffline(false) / 真实网络恢复后 WebSocket 从 SDK 角度仍然存活
-   * （无 Disconnected→Live 事件），但 HTTP 请求已恢复。
-   * 浏览器 'online' 事件可零延迟感知网络恢复。
+   * 1. 若 `navigator.onLine === true` → 延迟 500ms 后直接执行重试（避免同步递归）
+   * 2. 若离线 → 挂 `window.addEventListener('online', ...)` 等待网络恢复
+   *
+   * 解决时序竞争：online 事件可能在 registerOnlineRetry() 调用之前已经触发，
+   * 此时仅靠 listener 永远收不到事件 → 用 navigator.onLine 检测兜底。
    *
    * 原生端 WebSocket 会真正断开 → status listener 已覆盖，此处仅 Web 平台需要。
    */
@@ -464,7 +469,7 @@ export class GameFacade implements IGameFacade {
     this.#unregisterOnlineRetry();
     if (typeof globalThis.window?.addEventListener !== 'function') return;
 
-    this.#onlineRetryHandler = () => {
+    const doRetry = () => {
       if (!this.#pendingAudioAckRetry || !this.#isHost || this.#aborted) return;
 
       facadeLog.info('Online event postAudioAck retry triggered');
@@ -499,10 +504,24 @@ export class GameFacade implements IGameFacade {
           });
       }
     };
+
+    // Check: 已在线 → 延迟重试（避免同步递归 + 给 event loop 让步）
+    if (globalThis.navigator?.onLine) {
+      facadeLog.info('navigator.onLine=true, scheduling immediate ack retry');
+      this.#onlineRetryTimer = setTimeout(doRetry, 500);
+      return;
+    }
+
+    // Listen: 离线 → 等待 online 事件
+    this.#onlineRetryHandler = doRetry;
     globalThis.window.addEventListener('online', this.#onlineRetryHandler);
   }
 
   #unregisterOnlineRetry(): void {
+    if (this.#onlineRetryTimer !== null) {
+      clearTimeout(this.#onlineRetryTimer);
+      this.#onlineRetryTimer = null;
+    }
     if (this.#onlineRetryHandler !== null) {
       if (typeof globalThis.window?.removeEventListener === 'function') {
         globalThis.window.removeEventListener('online', this.#onlineRetryHandler);
