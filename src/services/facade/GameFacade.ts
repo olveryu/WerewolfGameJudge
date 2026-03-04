@@ -111,6 +111,14 @@ export class GameFacade implements IGameFacade {
   #onlineFetchHandler: (() => void) | null = null;
 
   /**
+   * 外部 listener 的 unsubscribe 函数集合。
+   * addListener() 注册，leaveRoom/createRoom/joinRoom 时自动清除。
+   * Web 上 NativeStackNavigator 不保证 screen unmount（navigate 只隐藏），
+   * 因此不能依赖 useEffect cleanup 清除 store listeners，必须在会话边界主动清理。
+   */
+  #externalUnsubscribes = new Set<() => void>();
+
+  /**
    * L1 重连检测：是否已经历过首次 Live 事件。
    * 构造器中的 status listener 用此标志区分「初始连接」与「重连」。
    * 每次 createRoom / joinRoom 重置为 false（fresh join 的首次 Live 不应触发 fetchStateFromDB）。
@@ -168,9 +176,12 @@ export class GameFacade implements IGameFacade {
     const unsub = this.#store.subscribe((_state, _rev) => {
       fn(this.#store.getState());
     });
-    return () => {
+    const wrappedUnsub = () => {
       unsub();
+      this.#externalUnsubscribes.delete(wrappedUnsub);
     };
+    this.#externalUnsubscribes.add(wrappedUnsub);
+    return wrappedUnsub;
   }
 
   getState(): GameState | null {
@@ -235,6 +246,18 @@ export class GameFacade implements IGameFacade {
     return this.#store.getListenerCount() - 1;
   }
 
+  /**
+   * 清除所有通过 addListener() 注册的外部 store listeners。
+   * 在会话边界（leaveRoom/createRoom/joinRoom）调用。
+   */
+  #clearExternalListeners(): void {
+    for (const unsub of this.#externalUnsubscribes) {
+      unsub();
+    }
+    // unsub() 内部已 delete，但 defensive clear
+    this.#externalUnsubscribes.clear();
+  }
+
   // =========================================================================
   // Foreground Recovery（前台恢复 — 双通道兜底）
   // =========================================================================
@@ -250,6 +273,8 @@ export class GameFacade implements IGameFacade {
     this.#pendingAudioAckRetry = false;
     this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
     this.#unregisterOnlineRetry();
+    // 清除上一个会话可能残留的外部 listeners
+    this.#clearExternalListeners();
     this.#isHost = true;
     this.#myUid = hostUid;
     this.#roomCode = roomCode;
@@ -261,7 +286,6 @@ export class GameFacade implements IGameFacade {
     // 加入频道（所有客户端统一监听 postgres_changes onDbStateChange）
     await this.#realtimeService.joinRoom(roomCode, hostUid, {
       onDbStateChange: (state: GameState, revision: number) => {
-        facadeLog.debug('[DIAG] DB state change → applySnapshot, revision:', revision);
         this.#store.applySnapshot(state, revision);
         this.#realtimeService.markAsLive();
       },
@@ -293,6 +317,8 @@ export class GameFacade implements IGameFacade {
     this.#pendingAudioAckRetry = false;
     this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
     this.#unregisterOnlineRetry();
+    // 清除上一个会话可能残留的外部 listeners
+    this.#clearExternalListeners();
     this.#isHost = isHost;
     this.#myUid = uid;
     this.#roomCode = roomCode;
@@ -305,7 +331,6 @@ export class GameFacade implements IGameFacade {
     // 1. Subscribe first（社区标准：不丢 gap 期间的事件）
     await this.#realtimeService.joinRoom(roomCode, uid, {
       onDbStateChange: (state: GameState, revision: number) => {
-        facadeLog.debug('[DIAG] DB state change → applySnapshot, revision:', revision);
         this.#store.applySnapshot(state, revision);
         this.#realtimeService.markAsLive();
       },
@@ -659,6 +684,8 @@ export class GameFacade implements IGameFacade {
     this.#audioService.clearPreloaded();
 
     await this.#realtimeService.leaveRoom();
+    // 清除外部 listeners（Web 上 screen 可能不 unmount，不能依赖 useEffect cleanup）
+    this.#clearExternalListeners();
     this.#store.reset();
     this.#myUid = null;
     this.#isHost = false;
@@ -843,7 +870,6 @@ export class GameFacade implements IGameFacade {
     try {
       const dbState = await this.#roomService.getGameState(roomCode);
       if (dbState) {
-        facadeLog.debug('[DIAG] fetchStateFromDB → applySnapshot, revision:', dbState.revision);
         this.#store.applySnapshot(dbState.state, dbState.revision);
         this.#realtimeService.markAsLive();
         return true;

@@ -78,10 +78,10 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
     expect(facade.getListenerCount()).toBe(0);
   });
 
-  it('should preserve listeners after leaveRoom (reset does not clear listeners)', async () => {
+  it('should clear external listeners after leaveRoom', async () => {
     const facade = createTestFacade();
 
-    // 订阅但不取消（模拟组件未正确 cleanup）
+    // 订阅但不取消（模拟 Web 上 screen 不 unmount 的场景）
     facade.addListener(() => {});
     facade.addListener(() => {});
 
@@ -90,9 +90,8 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
     // 调用 leaveRoom
     await facade.leaveRoom();
 
-    // 当前设计：reset() 不清除 listeners，这是预期行为
-    // 因为 React useEffect 的 listener 生命周期独立于 store
-    expect(facade.getListenerCount()).toBe(2);
+    // leaveRoom 主动清除所有外部 listeners，防止 Web 上 screen 不 unmount 导致泄漏
+    expect(facade.getListenerCount()).toBe(0);
   });
 
   it('should allow unsubscribe to be called multiple times safely', async () => {
@@ -111,7 +110,7 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
     expect(facade.getListenerCount()).toBe(0);
   });
 
-  it('should notify listeners with null state on leaveRoom', async () => {
+  it('should not notify external listeners after leaveRoom (cleared before reset)', async () => {
     const facade = createTestFacade();
     const listener = jest.fn();
 
@@ -122,7 +121,8 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
 
     await facade.leaveRoom();
 
-    // reset() 会通知 listeners state 变为 null
-    expect(listener).toHaveBeenCalledWith(null);
+    // leaveRoom 先清除外部 listeners，再调用 store.reset()
+    // 外部 listener 不应收到 reset 的 null 通知
+    expect(listener).not.toHaveBeenCalled();
   });
 });
