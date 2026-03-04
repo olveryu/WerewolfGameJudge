@@ -1463,5 +1463,174 @@ describe('GameFacade', () => {
 
       expect(global.fetch).not.toHaveBeenCalled();
     });
+
+    // =========================================================================
+    // Online event ack retry fallback (Web platform)
+    // =========================================================================
+    describe('online event retry (Web platform)', () => {
+      // jest-expo 环境中 globalThis.window 不是真正浏览器 window，
+      // 需要 patch addEventListener/removeEventListener 来模拟 Web 平台行为
+      const onlineListeners: Set<EventListener> = new Set();
+      let origAddEventListener: typeof globalThis.window.addEventListener | undefined;
+      let origRemoveEventListener: typeof globalThis.window.removeEventListener | undefined;
+
+      beforeEach(() => {
+        onlineListeners.clear();
+        origAddEventListener = globalThis.window?.addEventListener;
+        origRemoveEventListener = globalThis.window?.removeEventListener;
+        // Patch: 只拦截 'online' 事件
+        (globalThis.window as any).addEventListener = (type: string, listener: EventListener) => {
+          if (type === 'online') onlineListeners.add(listener);
+        };
+        (globalThis.window as any).removeEventListener = (
+          type: string,
+          listener: EventListener,
+        ) => {
+          if (type === 'online') onlineListeners.delete(listener);
+        };
+      });
+
+      afterEach(() => {
+        // Restore original (may be undefined in RN env)
+        if (origAddEventListener) {
+          globalThis.window.addEventListener = origAddEventListener;
+        } else {
+          delete (globalThis.window as any).addEventListener;
+        }
+        if (origRemoveEventListener) {
+          globalThis.window.removeEventListener = origRemoveEventListener;
+        } else {
+          delete (globalThis.window as any).removeEventListener;
+        }
+      });
+
+      /** Simulate browser 'online' event */
+      const fireOnlineEvent = () => {
+        onlineListeners.forEach((fn) => fn(new Event('online')));
+      };
+
+      /** Helper: trigger ack failure to set #pendingAudioAckRetry + register online listener */
+      const triggerAckFailureAndSettle = async () => {
+        retryStore.applySnapshot(
+          {
+            roomCode: 'RTRY',
+            hostUid: 'host-uid',
+            status: GameStatus.Ongoing,
+            templateRoles: [],
+            numberOfPlayers: 6,
+            players: {},
+            currentStepId: 'wolfKill',
+            currentStepIndex: 0,
+            nightSteps: ['wolfKill'],
+            isAudioPlaying: true,
+            pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+            seerLabelMap: {},
+          } as any,
+          20,
+        );
+        // Let microtasks settle (audio play + ack attempt + online listener registration)
+        await new Promise((r) => setTimeout(r, 50));
+      };
+
+      it('should retry postAudioAck via online event when status listener does not fire', async () => {
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+        await setupRetryFacade();
+        await triggerAckFailureAndSettle();
+
+        // Switch fetch to succeed for the online-event retry
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          headers: { get: () => 'application/json' },
+          json: () => Promise.resolve({ success: true }),
+        });
+
+        // Fire browser 'online' event (no status listener fired!)
+        fireOnlineEvent();
+        await new Promise((r) => setTimeout(r, 50));
+
+        // Should have retried postAudioAck
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/game/night/audio-ack'),
+          expect.objectContaining({ method: 'POST' }),
+        );
+      });
+
+      it('should re-register online listener when retry fails', async () => {
+        // All fetches reject
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+        await setupRetryFacade();
+        await triggerAckFailureAndSettle();
+
+        // First online event — retry still fails → should re-register
+        fireOnlineEvent();
+        await new Promise((r) => setTimeout(r, 50));
+
+        // onlineListeners should still have a listener (re-registered after failure)
+        expect(onlineListeners.size).toBe(1);
+
+        // Second online event with success — should work
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          headers: { get: () => 'application/json' },
+          json: () => Promise.resolve({ success: true }),
+        });
+        fireOnlineEvent();
+        await new Promise((r) => setTimeout(r, 50));
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/game/night/audio-ack'),
+          expect.objectContaining({ method: 'POST' }),
+        );
+      });
+
+      it('should unregister online listener when status listener fires first', async () => {
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+        await setupRetryFacade();
+        await triggerAckFailureAndSettle();
+
+        // Status listener fires first — mock fetch to succeed
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          headers: { get: () => 'application/json' },
+          json: () => Promise.resolve({ success: true }),
+        });
+        statusListeners.forEach((l) => l(ConnectionStatus.Live));
+        await new Promise((r) => setTimeout(r, 50));
+
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/game/night/audio-ack'),
+          expect.objectContaining({ method: 'POST' }),
+        );
+        (global.fetch as jest.Mock).mockClear();
+
+        // Online event fires after — should NOT retry (listener already unregistered)
+        fireOnlineEvent();
+        await new Promise((r) => setTimeout(r, 50));
+
+        expect(global.fetch).not.toHaveBeenCalled();
+      });
+
+      it('should unregister online listener on leaveRoom', async () => {
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+        const f = await setupRetryFacade();
+        await triggerAckFailureAndSettle();
+
+        // Leave room — should unregister online listener
+        await f.leaveRoom();
+
+        // Switch fetch to spy
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          headers: { get: () => 'application/json' },
+          json: () => Promise.resolve({ success: true }),
+        });
+
+        // Online event fires — should NOT retry (listener cleared)
+        fireOnlineEvent();
+        await new Promise((r) => setTimeout(r, 50));
+
+        expect(global.fetch).not.toHaveBeenCalled();
+      });
+    }); // end: online event retry (Web platform)
   });
 });

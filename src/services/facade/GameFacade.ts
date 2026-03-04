@@ -98,6 +98,9 @@ export class GameFacade implements IGameFacade {
    */
   #pendingAudioAckRetry = false;
 
+  /** Browser 'online' event handler: 网络恢复时重试 postAudioAck（Web 平台兜底 SDK 未触发 Live 事件） */
+  #onlineRetryHandler: (() => void) | null = null;
+
   /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
@@ -122,6 +125,7 @@ export class GameFacade implements IGameFacade {
       if (status !== ConnectionStatus.Live) return;
       if (!this.#isHost) return;
       if (!this.#pendingAudioAckRetry) return;
+      this.#unregisterOnlineRetry();
       this.#pendingAudioAckRetry = false;
 
       // 优先重播断线时未播完的音频（pendingAudioEffects 仍在 store 中）
@@ -238,6 +242,7 @@ export class GameFacade implements IGameFacade {
     this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
     this.#wasAudioInterrupted = false; // Reset rejoin audio guard
     this.#pendingAudioAckRetry = false;
+    this.#unregisterOnlineRetry();
     this.#isHost = true;
     this.#myUid = hostUid;
     this.#roomCode = roomCode;
@@ -276,6 +281,7 @@ export class GameFacade implements IGameFacade {
     this.#aborted = false;
     this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
     this.#pendingAudioAckRetry = false;
+    this.#unregisterOnlineRetry();
     this.#isHost = isHost;
     this.#myUid = uid;
     this.#roomCode = roomCode;
@@ -435,8 +441,73 @@ export class GameFacade implements IGameFacade {
             reason: ackResult.reason,
           });
           this.#pendingAudioAckRetry = true;
+          this.#registerOnlineRetry();
         }
       }
+    }
+  }
+
+  // =========================================================================
+  // Audio-ack online retry (fallback for missed SDK reconnect events)
+  // =========================================================================
+
+  /**
+   * 注册 window 'online' 事件监听，网络恢复时重试 postAudioAck。
+   *
+   * 场景：setOffline(false) / 真实网络恢复后 WebSocket 从 SDK 角度仍然存活
+   * （无 Disconnected→Live 事件），但 HTTP 请求已恢复。
+   * 浏览器 'online' 事件可零延迟感知网络恢复。
+   *
+   * 原生端 WebSocket 会真正断开 → status listener 已覆盖，此处仅 Web 平台需要。
+   */
+  #registerOnlineRetry(): void {
+    this.#unregisterOnlineRetry();
+    if (typeof globalThis.window?.addEventListener !== 'function') return;
+
+    this.#onlineRetryHandler = () => {
+      if (!this.#pendingAudioAckRetry || !this.#isHost || this.#aborted) return;
+
+      facadeLog.info('Online event postAudioAck retry triggered');
+      this.#unregisterOnlineRetry();
+      this.#pendingAudioAckRetry = false;
+
+      const state = this.#store.getState();
+      const effects = state?.pendingAudioEffects;
+      if (effects && effects.length > 0) {
+        facadeLog.info('Replaying audio effects after online event', {
+          effectCount: effects.length,
+        });
+        void this.#playPendingAudioEffects(effects);
+      } else {
+        void gameActions
+          .postAudioAck(this.#getActionsContext())
+          .then((result) => {
+            if (!result.success) {
+              facadeLog.warn('Online event postAudioAck retry failed, re-registering', {
+                reason: result.reason,
+              });
+              this.#pendingAudioAckRetry = true;
+              this.#registerOnlineRetry();
+            } else {
+              facadeLog.info('Online event postAudioAck retry succeeded');
+            }
+          })
+          .catch((err) => {
+            facadeLog.error('Online event postAudioAck retry threw, re-registering', err);
+            this.#pendingAudioAckRetry = true;
+            this.#registerOnlineRetry();
+          });
+      }
+    };
+    globalThis.window.addEventListener('online', this.#onlineRetryHandler);
+  }
+
+  #unregisterOnlineRetry(): void {
+    if (this.#onlineRetryHandler !== null) {
+      if (typeof globalThis.window?.removeEventListener === 'function') {
+        globalThis.window.removeEventListener('online', this.#onlineRetryHandler);
+      }
+      this.#onlineRetryHandler = null;
     }
   }
 
@@ -457,6 +528,7 @@ export class GameFacade implements IGameFacade {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this.#aborted = true;
     this.#pendingAudioAckRetry = false;
+    this.#unregisterOnlineRetry();
 
     const mySeat = this.getMySeatNumber();
 
