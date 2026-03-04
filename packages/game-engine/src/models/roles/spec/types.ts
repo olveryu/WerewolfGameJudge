@@ -42,7 +42,7 @@ export enum Team {
  * - All wolf-faction roles (wolf, gargoyle, wolfQueen, etc.) → '狼人'
  * - All other roles (villager, god, third-party) → '好人'
  */
-export type SeerCheckResult = '好人' | '狼人';
+type SeerCheckResult = '好人' | '狼人';
 
 /**
  * Get seer check result for a team.
