@@ -187,6 +187,11 @@ export const useGameRoom = (): UseGameRoomResult => {
   // =========================================================================
   // Facade state subscription → identity derivation
   // =========================================================================
+
+  // Destructure stable setter refs so the effect doesn't re-run when
+  // connectionStatus changes (which rebuilds the connection useMemo object).
+  const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;
+
   useEffect(() => {
     const unsubscribe = facade.addListener((snapshot) => {
       if (snapshot) {
@@ -200,9 +205,9 @@ export const useGameRoom = (): UseGameRoomResult => {
         setIsHost(facade.isHostPlayer());
         setMyUid(facade.getMyUid());
         setMySeatNumber(facade.getMySeatNumber());
-        connection.setStateRevision(facade.getStateRevision());
+        setStateRevision(facade.getStateRevision());
         // Notify connection sync (resets throttle + clears timer)
-        connection.onStateReceived();
+        onStateReceived();
 
         // Host rejoin to ongoing game → show "continue game" overlay
         // wasAudioInterrupted is a one-shot flag set during joinRoom(isHost=true) DB restore,
@@ -219,12 +224,12 @@ export const useGameRoom = (): UseGameRoomResult => {
         setIsHost(false);
         setMyUid(null);
         setMySeatNumber(null);
-        connection.setStateRevision(0);
-        connection.setLastStateReceivedAt(null);
+        setStateRevision(0);
+        setLastStateReceivedAt(null);
       }
     });
     return unsubscribe;
-  }, [facade, connection]);
+  }, [facade, setStateRevision, onStateReceived, setLastStateReceivedAt]);
 
   // =========================================================================
   // Rejoin recovery
