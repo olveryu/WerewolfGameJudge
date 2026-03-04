@@ -273,8 +273,6 @@ export class GameFacade implements IGameFacade {
     this.#pendingAudioAckRetry = false;
     this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
     this.#unregisterOnlineRetry();
-    // 清除上一个会话可能残留的外部 listeners
-    this.#clearExternalListeners();
     this.#isHost = true;
     this.#myUid = hostUid;
     this.#roomCode = roomCode;
@@ -317,8 +315,6 @@ export class GameFacade implements IGameFacade {
     this.#pendingAudioAckRetry = false;
     this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
     this.#unregisterOnlineRetry();
-    // 清除上一个会话可能残留的外部 listeners
-    this.#clearExternalListeners();
     this.#isHost = isHost;
     this.#myUid = uid;
     this.#roomCode = roomCode;
