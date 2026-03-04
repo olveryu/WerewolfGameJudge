@@ -80,7 +80,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     facade,
     authService,
     roomService,
-    connection,
+    connection: { setConnectionStatus },
     setGameState,
     setIsHost,
     setMyUid,
@@ -295,21 +295,21 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   // Force sync: read latest state from DB (reliable, bypasses broadcast channel)
   const requestSnapshot = useCallback(async (): Promise<boolean> => {
     try {
-      connection.setConnectionStatus(ConnectionStatus.Syncing);
+      setConnectionStatus(ConnectionStatus.Syncing);
       const result = await facade.fetchStateFromDB();
       if (result) {
-        connection.setConnectionStatus(ConnectionStatus.Live);
+        setConnectionStatus(ConnectionStatus.Live);
       } else {
-        connection.setConnectionStatus(ConnectionStatus.Disconnected);
+        setConnectionStatus(ConnectionStatus.Disconnected);
       }
       return result;
     } catch (err) {
       gameRoomLog.error('Force sync fetchStateFromDB failed:', err);
       Sentry.captureException(err);
-      connection.setConnectionStatus(ConnectionStatus.Disconnected);
+      setConnectionStatus(ConnectionStatus.Disconnected);
       return false;
     }
-  }, [facade, connection]);
+  }, [facade, setConnectionStatus]);
 
   // Clear seat error (BUG-2 fix)
   const clearLastSeatError = useCallback(() => {
