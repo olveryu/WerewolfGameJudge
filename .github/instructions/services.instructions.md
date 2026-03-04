@@ -73,5 +73,9 @@ expo-audio `AudioPlayer` 等原生资源被替换时必须 track 旧实例，在
 - **UI**：只读 `isAudioPlaying`。禁止 useEffect 播放音频、禁止 UI toggle `setAudioPlaying`。
 - `isAudioPlaying` 是事实状态，唯一修改途径：`SET_AUDIO_PLAYING` action。禁止其他 action "顺便"设置。
 - **Rejoin 恢复**：`joinRoom(isHost=true)` 从 DB 恢复 → `ContinueGameOverlay` 用户手势（Web autoplay 需手势解锁）→ `resumeAfterRejoin()` 重播当前 step 音频 → `postAudioAck`。禁止 useEffect 自动触发。
+- **Audio-ack 断线重试**（两层互斥）：
+  - **L1: Status listener** — WebSocket 真正断开后 SDK 重连 → `ConnectionStatus.Live` → 重试 `postAudioAck`。覆盖真实网络断开。
+  - **L2: Browser `online` event** — `window.addEventListener('online', ...)` 零延迟感知网络恢复 → 重试 `postAudioAck`。覆盖 WebSocket 未断但 HTTP 断了的场景（如 Playwright `setOffline`、短暂 DNS 故障）。仅 Web 平台（`typeof globalThis.window?.addEventListener === 'function'` 能力检查），原生端由 L1 覆盖。
+  - 两层谁先触发清除对方，`leaveRoom` / `createRoom` / `joinRoom` 统一清理。
 
 ```
