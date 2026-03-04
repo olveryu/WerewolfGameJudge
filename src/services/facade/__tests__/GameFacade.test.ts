@@ -1678,6 +1678,113 @@ describe('GameFacade', () => {
           expect.objectContaining({ method: 'POST' }),
         );
       });
+
+      it('should retry via poll fallback when online event never fires', async () => {
+        // Use fake timers to control the 5s poll interval without waiting
+        jest.useFakeTimers();
+
+        // navigator.onLine starts false → listener path + poll started
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+        await setupRetryFacade();
+
+        // Inline trigger: applySnapshot → store subscription → playPendingAudioEffects → ack fail
+        retryStore.applySnapshot(
+          {
+            roomCode: 'RTRY',
+            hostUid: 'host-uid',
+            status: GameStatus.Ongoing,
+            templateRoles: [],
+            numberOfPlayers: 6,
+            players: {},
+            currentStepId: 'wolfKill',
+            currentStepIndex: 0,
+            nightSteps: ['wolfKill'],
+            isAudioPlaying: true,
+            pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+            seerLabelMap: {},
+          } as any,
+          20,
+        );
+        // Advance to let audio play + ack fail + registerOnlineRetry
+        await jest.advanceTimersByTimeAsync(100);
+
+        // Online listener registered
+        expect(onlineListeners.size).toBe(1);
+
+        // Simulate: network restored but online event never fires (CI headless Chromium scenario)
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          headers: { get: () => 'application/json' },
+          json: () => Promise.resolve({ success: true }),
+        });
+        Object.defineProperty(globalThis.navigator, 'onLine', {
+          value: true,
+          writable: true,
+          configurable: true,
+        });
+
+        // Advance to poll interval (5s) — poll sees navigator.onLine=true → triggers retry
+        await jest.advanceTimersByTimeAsync(5_000);
+
+        jest.useRealTimers();
+
+        // Poll fallback should have triggered ack retry
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/game/night/audio-ack'),
+          expect.objectContaining({ method: 'POST' }),
+        );
+      });
+
+      it('should clear poll fallback on leaveRoom', async () => {
+        jest.useFakeTimers();
+
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+        const f = await setupRetryFacade();
+
+        // Inline trigger
+        retryStore.applySnapshot(
+          {
+            roomCode: 'RTRY',
+            hostUid: 'host-uid',
+            status: GameStatus.Ongoing,
+            templateRoles: [],
+            numberOfPlayers: 6,
+            players: {},
+            currentStepId: 'wolfKill',
+            currentStepIndex: 0,
+            nightSteps: ['wolfKill'],
+            isAudioPlaying: true,
+            pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+            seerLabelMap: {},
+          } as any,
+          20,
+        );
+        await jest.advanceTimersByTimeAsync(100);
+
+        expect(onlineListeners.size).toBe(1);
+
+        // Leave room — should clear everything including poll
+        await f.leaveRoom();
+
+        // Switch fetch to spy
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          headers: { get: () => 'application/json' },
+          json: () => Promise.resolve({ success: true }),
+        });
+        Object.defineProperty(globalThis.navigator, 'onLine', {
+          value: true,
+          writable: true,
+          configurable: true,
+        });
+
+        // Advance past poll interval — should NOT trigger (cleared by leaveRoom)
+        await jest.advanceTimersByTimeAsync(5_000);
+
+        jest.useRealTimers();
+
+        expect(global.fetch).not.toHaveBeenCalled();
+      });
     }); // end: online event retry (Web platform)
   });
 });

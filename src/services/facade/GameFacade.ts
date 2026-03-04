@@ -104,6 +104,9 @@ export class GameFacade implements IGameFacade {
   /** check+listen 模式的延迟重试 timer（navigator.onLine 已为 true 时立即调度） */
   #onlineRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** Periodic poll fallback: 每 POLL_INTERVAL_MS 检查 navigator.onLine 并重试（防止 online 事件丢失） */
+  #onlineRetryPollTimer: ReturnType<typeof setInterval> | null = null;
+
   /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
@@ -455,13 +458,20 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
-   * 注册 audio-ack 重试：check + listen 模式（社区标准 offline-first 模式）。
+  /** Poll interval for periodic ack retry fallback (ms) */
+  static readonly #pollIntervalMs = 5_000;
+
+  /**
+   * 注册 audio-ack 重试：check + listen + poll 三层模式。
    *
    * 1. 若 `navigator.onLine === true` → 延迟 500ms 后直接执行重试（避免同步递归）
    * 2. 若离线 → 挂 `window.addEventListener('online', ...)` 等待网络恢复
+   * 3. 无论 1/2，额外启动 POLL_INTERVAL_MS 周期轮询兜底（防止 online 事件在
+   *    CI headless Chromium 等环境中丢失）
    *
    * 解决时序竞争：online 事件可能在 registerOnlineRetry() 调用之前已经触发，
    * 此时仅靠 listener 永远收不到事件 → 用 navigator.onLine 检测兜底。
+   * 周期轮询是最终安全网：即使 check 和 listen 都未触发，5s 后 poll 仍会重试。
    *
    * 原生端 WebSocket 会真正断开 → status listener 已覆盖，此处仅 Web 平台需要。
    */
@@ -515,12 +525,40 @@ export class GameFacade implements IGameFacade {
     // Listen: 离线 → 等待 online 事件
     this.#onlineRetryHandler = doRetry;
     globalThis.window.addEventListener('online', this.#onlineRetryHandler);
+
+    // Poll fallback: 无论 check/listen 哪条路径，额外启动周期轮询兜底
+    // 覆盖 online 事件在 CI headless Chromium 等环境中偶尔不触发的情况
+    this.#startPollFallback(doRetry);
+  }
+
+  /**
+   * 启动周期轮询兜底。仅在 #registerOnlineRetry 内部调用。
+   * 每 POLL_INTERVAL_MS 检查 navigator.onLine，为 true 时触发 doRetry。
+   */
+  #startPollFallback(doRetry: () => void): void {
+    // check 路径已设置 500ms timer → 不需要额外 poll（timer 会先触发）
+    if (this.#onlineRetryTimer !== null) return;
+
+    this.#onlineRetryPollTimer = setInterval(() => {
+      if (!this.#pendingAudioAckRetry || !this.#isHost || this.#aborted) {
+        this.#unregisterOnlineRetry();
+        return;
+      }
+      if (globalThis.navigator?.onLine) {
+        facadeLog.info('Poll fallback: navigator.onLine=true, triggering ack retry');
+        doRetry();
+      }
+    }, GameFacade.#pollIntervalMs);
   }
 
   #unregisterOnlineRetry(): void {
     if (this.#onlineRetryTimer !== null) {
       clearTimeout(this.#onlineRetryTimer);
       this.#onlineRetryTimer = null;
+    }
+    if (this.#onlineRetryPollTimer !== null) {
+      clearInterval(this.#onlineRetryPollTimer);
+      this.#onlineRetryPollTimer = null;
     }
     if (this.#onlineRetryHandler !== null) {
       if (typeof globalThis.window?.removeEventListener === 'function') {
