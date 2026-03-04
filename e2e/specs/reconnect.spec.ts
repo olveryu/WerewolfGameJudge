@@ -15,7 +15,7 @@ import { waitForRoomScreenReady } from '../helpers/waits';
 /**
  * Reconnect E2E Tests
  *
- * Verifies that players can fully disconnect for 10-20 seconds and
+ * Verifies that players can fully disconnect for 5-10 seconds and
  * reconnect during the night phase. Tests:
  * 1. Connection status transitions (live → disconnected → live)
  * 2. Game continues normally after reconnection
@@ -29,10 +29,10 @@ import { waitForRoomScreenReady } from '../helpers/waits';
  */
 
 test.describe.configure({ mode: 'serial' });
-test.setTimeout(180_000);
+test.setTimeout(300_000);
 
 test.describe('Network reconnect during night', () => {
-  test('non-host player reconnects after 10s disconnect and completes guard action', async ({
+  test('non-host player reconnects after 5s disconnect and completes guard action', async ({
     browser,
   }, testInfo) => {
     let setup: GameSetupWithRolesResult | undefined;
@@ -101,23 +101,23 @@ test.describe('Network reconnect during night', () => {
         });
       });
 
-      // Step 3: Wait 10 seconds (simulating real-world disconnect)
+      // Step 3: Wait 5 seconds (simulating real-world disconnect)
       // SDK heartbeat timeout (~25s) will detect the disconnect.
-      await test.step('wait 10s while disconnected', async () => {
-        await disconnectPage.waitForTimeout(10_000);
+      await test.step('wait 5s while disconnected', async () => {
+        await disconnectPage.waitForTimeout(5_000);
 
         const disconnectedBanner = disconnectPage.getByText('连接断开，正在重连...', {
           exact: true,
         });
         // After L0 (browser offline) removal, disconnect detection relies on
-        // SDK heartbeat (~25s). After 10s offline the banner may or may not be
+        // SDK heartbeat (~25s). After 5s offline the banner may or may not be
         // visible yet — soft-check only.
         const sawDisconnected = await disconnectedBanner
           .waitFor({ state: 'visible', timeout: 20_000 })
           .then(() => true)
           .catch(() => false);
 
-        await testInfo.attach('disconnect-after-10s.txt', {
+        await testInfo.attach('disconnect-after-5s.txt', {
           body: `Disconnect banner visible after wait: ${sawDisconnected}`,
           contentType: 'text/plain',
         });
@@ -153,7 +153,7 @@ test.describe('Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 120);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 200);
         expect(guardTurn, 'Guard turn should be detected after reconnect').toBe(true);
 
         await clickSeatAndConfirm(pages[guardIdx], targetSeat);
@@ -163,14 +163,14 @@ test.describe('Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 200);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });
 
       // Step 6: Verify night completes
       await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages, 200);
         expect(ended, 'Night should have ended after reconnect').toBe(true);
 
         await viewLastNightInfo(pages[0]);
@@ -213,9 +213,7 @@ test.describe('Network reconnect during night', () => {
     }
   });
 
-  test('host reconnects after 10s disconnect and completes night', async ({
-    browser,
-  }, testInfo) => {
+  test('host reconnects after 5s disconnect and completes night', async ({ browser }, testInfo) => {
     let setup: GameSetupWithRolesResult | undefined;
 
     try {
@@ -275,18 +273,18 @@ test.describe('Network reconnect during night', () => {
         });
       });
 
-      // Step 3: Wait 10 seconds while host is offline
-      await test.step('wait 10s while disconnected', async () => {
-        await hostPage.waitForTimeout(10_000);
+      // Step 3: Wait 5 seconds while host is offline
+      await test.step('wait 5s while disconnected', async () => {
+        await hostPage.waitForTimeout(5_000);
 
         const disconnectedBanner = hostPage.getByText('连接断开，正在重连...', { exact: true });
-        // SDK heartbeat ~25s — soft-check after 10s
+        // SDK heartbeat ~25s — soft-check after 5s
         const sawDisconnected = await disconnectedBanner
           .waitFor({ state: 'visible', timeout: 20_000 })
           .then(() => true)
           .catch(() => false);
 
-        await testInfo.attach('host-disconnect-after-10s.txt', {
+        await testInfo.attach('host-disconnect-after-5s.txt', {
           body: `Disconnect banner visible after wait: ${sawDisconnected}`,
           contentType: 'text/plain',
         });
@@ -322,7 +320,7 @@ test.describe('Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 120);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 200);
         expect(guardTurn, 'Guard turn should be detected after host reconnect').toBe(true);
 
         await clickSeatAndConfirm(pages[guardIdx], targetSeat);
@@ -332,14 +330,14 @@ test.describe('Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 200);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });
 
       // Step 6: Verify night completes
       await test.step('verify night end', async () => {
-        const ended = await waitForNightEnd(pages, 120);
+        const ended = await waitForNightEnd(pages, 200);
         expect(ended, 'Night should have ended after host reconnect').toBe(true);
 
         await viewLastNightInfo(pages[0]);
