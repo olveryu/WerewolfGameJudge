@@ -1473,11 +1473,13 @@ describe('GameFacade', () => {
       const onlineListeners: Set<EventListener> = new Set();
       let origAddEventListener: typeof globalThis.window.addEventListener | undefined;
       let origRemoveEventListener: typeof globalThis.window.removeEventListener | undefined;
+      let origNavigatorOnLine: boolean | undefined;
 
       beforeEach(() => {
         onlineListeners.clear();
         origAddEventListener = globalThis.window?.addEventListener;
         origRemoveEventListener = globalThis.window?.removeEventListener;
+        origNavigatorOnLine = globalThis.navigator?.onLine;
         // Patch: 只拦截 'online' 事件
         (globalThis.window as any).addEventListener = (type: string, listener: EventListener) => {
           if (type === 'online') onlineListeners.add(listener);
@@ -1488,6 +1490,12 @@ describe('GameFacade', () => {
         ) => {
           if (type === 'online') onlineListeners.delete(listener);
         };
+        // Default: navigator.onLine = false (offline → listener path)
+        Object.defineProperty(globalThis.navigator, 'onLine', {
+          value: false,
+          writable: true,
+          configurable: true,
+        });
       });
 
       afterEach(() => {
@@ -1501,6 +1509,12 @@ describe('GameFacade', () => {
           globalThis.window.removeEventListener = origRemoveEventListener;
         } else {
           delete (globalThis.window as any).removeEventListener;
+        }
+        if (origNavigatorOnLine !== undefined) {
+          Object.defineProperty(globalThis.navigator, 'onLine', {
+            value: origNavigatorOnLine,
+            configurable: true,
+          });
         }
       });
 
@@ -1630,6 +1644,39 @@ describe('GameFacade', () => {
         await new Promise((r) => setTimeout(r, 50));
 
         expect(global.fetch).not.toHaveBeenCalled();
+      });
+
+      it('should retry via timer when navigator.onLine is already true (check+listen)', async () => {
+        // Simulate: online event already fired before registerOnlineRetry() is called
+        // → navigator.onLine = true but no 'online' event will fire again
+        Object.defineProperty(globalThis.navigator, 'onLine', {
+          value: true,
+          writable: true,
+          configurable: true,
+        });
+
+        global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
+        await setupRetryFacade();
+        await triggerAckFailureAndSettle();
+
+        // No online listener should be registered (using timer path instead)
+        expect(onlineListeners.size).toBe(0);
+
+        // Switch fetch to succeed for the timer-based retry
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          headers: { get: () => 'application/json' },
+          json: () => Promise.resolve({ success: true }),
+        });
+
+        // Wait for the 500ms timer to fire
+        await new Promise((r) => setTimeout(r, 600));
+
+        // Should have retried postAudioAck via timer (not online event)
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/game/night/audio-ack'),
+          expect.objectContaining({ method: 'POST' }),
+        );
       });
     }); // end: online event retry (Web platform)
   });
