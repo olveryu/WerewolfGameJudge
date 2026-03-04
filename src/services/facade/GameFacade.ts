@@ -111,6 +111,13 @@ export class GameFacade implements IGameFacade {
   #onlineFetchHandler: (() => void) | null = null;
 
   /**
+   * L1 重连检测：是否已经历过首次 Live 事件。
+   * 构造器中的 status listener 用此标志区分「初始连接」与「重连」。
+   * 每次 createRoom / joinRoom 重置为 false（fresh join 的首次 Live 不应触发 fetchStateFromDB）。
+   */
+  #hasBeenLive = false;
+
+  /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
   constructor(deps: GameFacadeDeps) {
@@ -131,11 +138,10 @@ export class GameFacade implements IGameFacade {
 
     // Universal: SDK 重连后立即从 DB 拉取最新 state，补全断线期间错过的广播。
     // 对所有玩家生效（host + non-host），是 subscribe+fetch 社区标准模式在 L1 层的实现。
-    let hasBeenLive = false;
     this.#realtimeService.addStatusListener((status) => {
       if (status !== ConnectionStatus.Live) return;
-      if (!hasBeenLive) {
-        hasBeenLive = true;
+      if (!this.#hasBeenLive) {
+        this.#hasBeenLive = true;
         return;
       }
       facadeLog.info('SDK reconnected: fetching latest state from DB');
@@ -150,32 +156,7 @@ export class GameFacade implements IGameFacade {
       this.#unregisterOnlineRetry();
       this.#pendingAudioAckRetry = false;
 
-      // 优先重播断线时未播完的音频（pendingAudioEffects 仍在 store 中）
-      const state = this.#store.getState();
-      const effects = state?.pendingAudioEffects;
-      if (effects && effects.length > 0) {
-        facadeLog.info('Replaying audio effects after reconnect', {
-          effectCount: effects.length,
-        });
-        // #playPendingAudioEffects finally 块会 postAudioAck
-        void this.#playPendingAudioEffects(effects);
-      } else {
-        // 无 effects 可重播，兜底直接重试 ack
-        facadeLog.info('Retrying postAudioAck after reconnect (no effects to replay)');
-        void gameActions
-          .postAudioAck(this.#getActionsContext())
-          .then((result) => {
-            if (!result.success) {
-              facadeLog.warn('postAudioAck retry still failed, will retry on next reconnect', {
-                reason: result.reason,
-              });
-              this.#pendingAudioAckRetry = true;
-            }
-          })
-          .catch((err) => {
-            facadeLog.error('postAudioAck retry threw', err);
-          });
-      }
+      this.#retryPendingAudioAck('reconnect');
     });
   }
 
@@ -264,6 +245,7 @@ export class GameFacade implements IGameFacade {
     this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
     this.#wasAudioInterrupted = false; // Reset rejoin audio guard
     this.#pendingAudioAckRetry = false;
+    this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
     this.#unregisterOnlineRetry();
     this.#isHost = true;
     this.#myUid = hostUid;
@@ -276,7 +258,7 @@ export class GameFacade implements IGameFacade {
     // 加入频道（所有客户端统一监听 postgres_changes onDbStateChange）
     await this.#realtimeService.joinRoom(roomCode, hostUid, {
       onDbStateChange: (state: GameState, revision: number) => {
-        facadeLog.debug('DB state change → applySnapshot, revision:', revision);
+        facadeLog.debug('[DIAG] DB state change → applySnapshot, revision:', revision);
         this.#store.applySnapshot(state, revision);
         this.#realtimeService.markAsLive();
       },
@@ -306,6 +288,7 @@ export class GameFacade implements IGameFacade {
     this.#aborted = false;
     this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
     this.#pendingAudioAckRetry = false;
+    this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
     this.#unregisterOnlineRetry();
     this.#isHost = isHost;
     this.#myUid = uid;
@@ -319,7 +302,7 @@ export class GameFacade implements IGameFacade {
     // 1. Subscribe first（社区标准：不丢 gap 期间的事件）
     await this.#realtimeService.joinRoom(roomCode, uid, {
       onDbStateChange: (state: GameState, revision: number) => {
-        facadeLog.debug('DB state change → applySnapshot, revision:', revision);
+        facadeLog.debug('[DIAG] DB state change → applySnapshot, revision:', revision);
         this.#store.applySnapshot(state, revision);
         this.#realtimeService.markAsLive();
       },
@@ -476,6 +459,49 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
+  // Shared: ack retry execution (used by L2 status listener + L3a online handler)
+  // =========================================================================
+
+  /**
+   * 重连后重试 pending audio ack：检查 pendingAudioEffects → 重播或直接 postAudioAck。
+   *
+   * 调用方（L2 status listener / L3a online handler）负责清除 #pendingAudioAckRetry
+   * 和 online retry 注册。此方法仅执行重试逻辑。
+   *
+   * @param trigger - 日志标识触发来源
+   * @param onRetryFailed - ack 直接重试失败时的回调（让调用方决定是否 re-register online retry）
+   */
+  #retryPendingAudioAck(trigger: string, onRetryFailed?: () => void): void {
+    const state = this.#store.getState();
+    const effects = state?.pendingAudioEffects;
+    if (effects && effects.length > 0) {
+      facadeLog.info(`Replaying audio effects after ${trigger}`, {
+        effectCount: effects.length,
+      });
+      // #playPendingAudioEffects finally 块会 postAudioAck
+      void this.#playPendingAudioEffects(effects);
+    } else {
+      facadeLog.info(`Retrying postAudioAck after ${trigger} (no effects to replay)`);
+      void gameActions
+        .postAudioAck(this.#getActionsContext())
+        .then((result) => {
+          if (!result.success) {
+            facadeLog.warn(`postAudioAck retry failed (${trigger}), will retry`, {
+              reason: result.reason,
+            });
+            this.#pendingAudioAckRetry = true;
+            onRetryFailed?.();
+          }
+        })
+        .catch((err) => {
+          facadeLog.error(`postAudioAck retry threw (${trigger})`, err);
+          this.#pendingAudioAckRetry = true;
+          onRetryFailed?.();
+        });
+    }
+  }
+
+  // =========================================================================
   // Audio-ack online retry (fallback for missed SDK reconnect events)
   // =========================================================================
 
@@ -508,33 +534,7 @@ export class GameFacade implements IGameFacade {
       this.#unregisterOnlineRetry();
       this.#pendingAudioAckRetry = false;
 
-      const state = this.#store.getState();
-      const effects = state?.pendingAudioEffects;
-      if (effects && effects.length > 0) {
-        facadeLog.info('Replaying audio effects after online event', {
-          effectCount: effects.length,
-        });
-        void this.#playPendingAudioEffects(effects);
-      } else {
-        void gameActions
-          .postAudioAck(this.#getActionsContext())
-          .then((result) => {
-            if (!result.success) {
-              facadeLog.warn('Online event postAudioAck retry failed, re-registering', {
-                reason: result.reason,
-              });
-              this.#pendingAudioAckRetry = true;
-              this.#registerOnlineRetry();
-            } else {
-              facadeLog.info('Online event postAudioAck retry succeeded');
-            }
-          })
-          .catch((err) => {
-            facadeLog.error('Online event postAudioAck retry threw, re-registering', err);
-            this.#pendingAudioAckRetry = true;
-            this.#registerOnlineRetry();
-          });
-      }
+      this.#retryPendingAudioAck('online event', () => this.#registerOnlineRetry());
     };
 
     // Check: 已在线 → 延迟重试（避免同步递归 + 给 event loop 让步）
@@ -840,6 +840,7 @@ export class GameFacade implements IGameFacade {
     try {
       const dbState = await this.#roomService.getGameState(roomCode);
       if (dbState) {
+        facadeLog.debug('[DIAG] fetchStateFromDB → applySnapshot, revision:', dbState.revision);
         this.#store.applySnapshot(dbState.state, dbState.revision);
         this.#realtimeService.markAsLive();
         return true;
