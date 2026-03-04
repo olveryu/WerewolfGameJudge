@@ -1499,6 +1499,8 @@ describe('GameFacade', () => {
       });
 
       afterEach(() => {
+        // Safety: ensure fake timers don't leak to subsequent describe blocks
+        jest.useRealTimers();
         // Restore original (may be undefined in RN env)
         if (origAddEventListener) {
           globalThis.window.addEventListener = origAddEventListener;
@@ -1579,8 +1581,8 @@ describe('GameFacade', () => {
         fireOnlineEvent();
         await new Promise((r) => setTimeout(r, 50));
 
-        // onlineListeners should still have a listener (re-registered after failure)
-        expect(onlineListeners.size).toBe(1);
+        // 1 L3 universal fetch handler + 1 re-registered ack retry listener
+        expect(onlineListeners.size).toBe(2);
 
         // Second online event with success — should work
         global.fetch = jest.fn().mockResolvedValue({
@@ -1659,8 +1661,8 @@ describe('GameFacade', () => {
         await setupRetryFacade();
         await triggerAckFailureAndSettle();
 
-        // No online listener should be registered (using timer path instead)
-        expect(onlineListeners.size).toBe(0);
+        // No ack retry online listener (timer path); only L3 universal fetch handler
+        expect(onlineListeners.size).toBe(1);
 
         // Switch fetch to succeed for the timer-based retry
         global.fetch = jest.fn().mockResolvedValue({
@@ -1708,8 +1710,8 @@ describe('GameFacade', () => {
         // Advance to let audio play + ack fail + registerOnlineRetry
         await jest.advanceTimersByTimeAsync(100);
 
-        // Online listener registered
-        expect(onlineListeners.size).toBe(1);
+        // 1 L3 universal fetch handler + 1 ack retry online listener
+        expect(onlineListeners.size).toBe(2);
 
         // Simulate: network restored but online event never fires (CI headless Chromium scenario)
         global.fetch = jest.fn().mockResolvedValue({
@@ -1761,7 +1763,8 @@ describe('GameFacade', () => {
         );
         await jest.advanceTimersByTimeAsync(100);
 
-        expect(onlineListeners.size).toBe(1);
+        // 1 L3 universal fetch handler + 1 ack retry online listener
+        expect(onlineListeners.size).toBe(2);
 
         // Leave room — should clear everything including poll
         await f.leaveRoom();
@@ -1786,5 +1789,210 @@ describe('GameFacade', () => {
         expect(global.fetch).not.toHaveBeenCalled();
       });
     }); // end: online event retry (Web platform)
+  });
+
+  // ===========================================================================
+  // Universal reconnect → fetchStateFromDB (L1 gap fix)
+  // ===========================================================================
+  describe('universal reconnect DB fetch', () => {
+    let statusListeners: Array<(status: string) => void>;
+    let reconnectRoomService: ReturnType<typeof mockRoomService>;
+
+    const setupReconnectFacade = async (isHost: boolean) => {
+      statusListeners = [];
+      const reconnectRealtimeService = {
+        joinRoom: jest.fn().mockResolvedValue(undefined),
+        leaveRoom: jest.fn().mockResolvedValue(undefined),
+        markAsLive: jest.fn(),
+        addStatusListener: jest.fn().mockImplementation((listener: (s: string) => void) => {
+          statusListeners.push(listener);
+          return () => {
+            statusListeners = statusListeners.filter((l) => l !== listener);
+          };
+        }),
+      };
+
+      reconnectRoomService = {
+        upsertGameState: jest.fn().mockResolvedValue(undefined),
+        getGameState: jest.fn().mockResolvedValue({
+          state: {
+            roomCode: 'UNIV',
+            hostUid: 'host-uid',
+            status: GameStatus.Ongoing,
+            templateRoles: [],
+            numberOfPlayers: 3,
+            players: {},
+            currentStepId: 'guard',
+            currentStepIndex: 0,
+            nightSteps: ['guard', 'wolfKill'],
+            isAudioPlaying: false,
+            pendingAudioEffects: [],
+            seerLabelMap: {},
+          },
+          revision: 5,
+        }),
+      } as any;
+
+      const store = new GameStore();
+      const f = new GameFacade({
+        store,
+        realtimeService: reconnectRealtimeService as any,
+        audioService: mockAudioServiceInstance as any,
+        roomService: reconnectRoomService,
+      });
+
+      if (isHost) {
+        await f.createRoom('UNIV', 'host-uid', mockTemplate);
+      } else {
+        await f.joinRoom('UNIV', 'joiner-uid', false);
+      }
+
+      return f;
+    };
+
+    it('should fetch state from DB when non-host reconnects (initial Live → Disconnected → Live)', async () => {
+      await setupReconnectFacade(false);
+      reconnectRoomService.getGameState.mockClear();
+
+      // First Live = initial connection, should NOT fetch
+      statusListeners.forEach((l) => l(ConnectionStatus.Live));
+      await new Promise((r) => setTimeout(r, 10));
+      expect(reconnectRoomService.getGameState).not.toHaveBeenCalled();
+
+      // Simulate disconnect
+      statusListeners.forEach((l) => l(ConnectionStatus.Disconnected));
+
+      // Second Live = reconnection, SHOULD fetch
+      statusListeners.forEach((l) => l(ConnectionStatus.Live));
+      await new Promise((r) => setTimeout(r, 10));
+      expect(reconnectRoomService.getGameState).toHaveBeenCalledWith('UNIV');
+    });
+
+    it('should fetch state from DB when host reconnects too', async () => {
+      await setupReconnectFacade(true);
+      reconnectRoomService.getGameState.mockClear();
+
+      // First Live = initial, skip
+      statusListeners.forEach((l) => l(ConnectionStatus.Live));
+      await new Promise((r) => setTimeout(r, 10));
+      expect(reconnectRoomService.getGameState).not.toHaveBeenCalled();
+
+      // Disconnect → Live = reconnection
+      statusListeners.forEach((l) => l(ConnectionStatus.Disconnected));
+      statusListeners.forEach((l) => l(ConnectionStatus.Live));
+      await new Promise((r) => setTimeout(r, 10));
+      expect(reconnectRoomService.getGameState).toHaveBeenCalledWith('UNIV');
+    });
+
+    it('should NOT fetch on the very first Live event (initial connection)', async () => {
+      await setupReconnectFacade(false);
+      reconnectRoomService.getGameState.mockClear();
+
+      statusListeners.forEach((l) => l(ConnectionStatus.Live));
+      await new Promise((r) => setTimeout(r, 10));
+      expect(reconnectRoomService.getGameState).not.toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================================================
+  // L3 Universal: browser online → fetchStateFromDB
+  // ===========================================================================
+  describe('L3 universal online fetch', () => {
+    let onlineListeners: Set<() => void>;
+    let l3RoomService: ReturnType<typeof mockRoomService>;
+
+    beforeEach(() => {
+      onlineListeners = new Set();
+      globalThis.window = {
+        ...globalThis.window,
+        addEventListener: jest.fn((event: string, handler: () => void) => {
+          if (event === 'online') onlineListeners.add(handler);
+        }),
+        removeEventListener: jest.fn((event: string, handler: () => void) => {
+          if (event === 'online') onlineListeners.delete(handler);
+        }),
+      } as any;
+    });
+
+    const setupL3Facade = async (isHost: boolean) => {
+      l3RoomService = {
+        upsertGameState: jest.fn().mockResolvedValue(undefined),
+        getGameState: jest.fn().mockResolvedValue({
+          state: {
+            roomCode: 'L3RM',
+            hostUid: 'host-uid',
+            status: GameStatus.Ongoing,
+            templateRoles: [],
+            numberOfPlayers: 3,
+            players: {},
+            currentStepId: 'guard',
+            currentStepIndex: 0,
+            nightSteps: ['guard', 'wolfKill'],
+            isAudioPlaying: false,
+            pendingAudioEffects: [],
+            seerLabelMap: {},
+          },
+          revision: 5,
+        }),
+      } as any;
+
+      const store = new GameStore();
+      const f = new GameFacade({
+        store,
+        realtimeService: mockRealtimeService as any,
+        audioService: mockAudioServiceInstance as any,
+        roomService: l3RoomService,
+      });
+
+      if (isHost) {
+        await f.createRoom('L3RM', 'host-uid', mockTemplate);
+      } else {
+        await f.joinRoom('L3RM', 'joiner-uid', false);
+      }
+
+      return f;
+    };
+
+    it('should register online listener on joinRoom and fetch DB on online event', async () => {
+      await setupL3Facade(false);
+      l3RoomService.getGameState.mockClear();
+
+      // online listener should be registered
+      expect(onlineListeners.size).toBeGreaterThanOrEqual(1);
+
+      // Fire online event
+      onlineListeners.forEach((h) => h());
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(l3RoomService.getGameState).toHaveBeenCalledWith('L3RM');
+    });
+
+    it('should register online listener on createRoom', async () => {
+      await setupL3Facade(true);
+      l3RoomService.getGameState.mockClear();
+
+      expect(onlineListeners.size).toBeGreaterThanOrEqual(1);
+
+      onlineListeners.forEach((h) => h());
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(l3RoomService.getGameState).toHaveBeenCalledWith('L3RM');
+    });
+
+    it('should unregister online listener on leaveRoom', async () => {
+      const f = await setupL3Facade(false);
+      l3RoomService.getGameState.mockClear();
+
+      const listenersBefore = onlineListeners.size;
+      expect(listenersBefore).toBeGreaterThanOrEqual(1);
+
+      await f.leaveRoom();
+
+      // Fire online event after leave — should NOT fetch
+      onlineListeners.forEach((h) => h());
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(l3RoomService.getGameState).not.toHaveBeenCalled();
+    });
   });
 });

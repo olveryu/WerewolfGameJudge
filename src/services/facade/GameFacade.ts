@@ -107,6 +107,9 @@ export class GameFacade implements IGameFacade {
   /** Periodic poll fallback: 每 POLL_INTERVAL_MS 检查 navigator.onLine 并重试（防止 online 事件丢失） */
   #onlineRetryPollTimer: ReturnType<typeof setInterval> | null = null;
 
+  /** L3 通用：browser online 事件 → fetchStateFromDB（所有玩家，独立于 host-only ack 重试） */
+  #onlineFetchHandler: (() => void) | null = null;
+
   /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
@@ -124,6 +127,19 @@ export class GameFacade implements IGameFacade {
       // Avoid reacting during rejoin overlay (resumeAfterRejoin handles that path)
       if (this.#wasAudioInterrupted) return;
       void this.#playPendingAudioEffects(state.pendingAudioEffects);
+    });
+
+    // Universal: SDK 重连后立即从 DB 拉取最新 state，补全断线期间错过的广播。
+    // 对所有玩家生效（host + non-host），是 subscribe+fetch 社区标准模式在 L1 层的实现。
+    let hasBeenLive = false;
+    this.#realtimeService.addStatusListener((status) => {
+      if (status !== ConnectionStatus.Live) return;
+      if (!hasBeenLive) {
+        hasBeenLive = true;
+        return;
+      }
+      facadeLog.info('SDK reconnected: fetching latest state from DB');
+      void this.fetchStateFromDB();
     });
 
     // Retry: 断线期间 postAudioAck 失败 → 重连 live 后重播音频 + 重试 ack
@@ -268,6 +284,9 @@ export class GameFacade implements IGameFacade {
 
     // 新建房间无需从 DB 读快照（本地已初始化），channel 已 SUBSCRIBED，直接标记 Live
     this.#realtimeService.markAsLive();
+
+    // L3 通用：注册 online 事件 → fetchStateFromDB（Web 平台 SDK 不触发 Live 时的兜底）
+    this.#registerOnlineFetch();
   }
 
   /**
@@ -327,6 +346,9 @@ export class GameFacade implements IGameFacade {
     // Player 无 DB 状态：正常 — 状态将通过 broadcast 到达
     // 但必须 markAsLive，否则 connectionStatus 卡在 'syncing'，auto-heal 无法触发
     this.#realtimeService.markAsLive();
+
+    // L3 通用：注册 online 事件 → fetchStateFromDB（Web 平台 SDK 不触发 Live 时的兜底）
+    this.#registerOnlineFetch();
 
     return { success: true };
   }
@@ -569,6 +591,40 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
+  // L3 Universal: browser online → fetchStateFromDB
+  // =========================================================================
+
+  /**
+   * 注册 browser online 事件监听 → fetchStateFromDB。
+   *
+   * 对所有玩家生效（host + non-host）。覆盖 Web 平台 setOffline(false) 恢复后
+   * SDK 未触发 Live 事件的边缘场景。与 L1 status listener fetch 互补 —
+   * 两者可能同时触发，fetchStateFromDB 幂等无害。
+   *
+   * 在 createRoom / joinRoom 注册，leaveRoom 注销。
+   */
+  #registerOnlineFetch(): void {
+    this.#unregisterOnlineFetch();
+    if (typeof globalThis.window?.addEventListener !== 'function') return;
+
+    this.#onlineFetchHandler = () => {
+      if (this.#aborted) return;
+      facadeLog.info('Browser online event: fetching latest state from DB');
+      void this.fetchStateFromDB();
+    };
+    globalThis.window.addEventListener('online', this.#onlineFetchHandler);
+  }
+
+  #unregisterOnlineFetch(): void {
+    if (this.#onlineFetchHandler !== null) {
+      if (typeof globalThis.window?.removeEventListener === 'function') {
+        globalThis.window.removeEventListener('online', this.#onlineFetchHandler);
+      }
+      this.#onlineFetchHandler = null;
+    }
+  }
+
+  // =========================================================================
   // Progression (Host-only, wolf vote deadline)
   // =========================================================================
 
@@ -586,6 +642,7 @@ export class GameFacade implements IGameFacade {
     this.#aborted = true;
     this.#pendingAudioAckRetry = false;
     this.#unregisterOnlineRetry();
+    this.#unregisterOnlineFetch();
 
     const mySeat = this.getMySeatNumber();
 
