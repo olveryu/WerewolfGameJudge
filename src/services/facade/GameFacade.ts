@@ -168,10 +168,8 @@ export class GameFacade implements IGameFacade {
     const unsub = this.#store.subscribe((_state, _rev) => {
       fn(this.#store.getState());
     });
-    facadeLog.info('[DIAG] addListener: listenerCount =', this.getListenerCount());
     return () => {
       unsub();
-      facadeLog.info('[DIAG] removeListener: listenerCount =', this.getListenerCount());
     };
   }
 
@@ -323,12 +321,6 @@ export class GameFacade implements IGameFacade {
         this.#wasAudioInterrupted = dbState.state.status === GameStatus.Ongoing;
       }
       this.#store.applySnapshot(dbState.state, dbState.revision);
-      facadeLog.info(
-        '[DIAG] joinRoom applySnapshot, rev:',
-        dbState.revision,
-        'listeners:',
-        this.getListenerCount(),
-      );
       this.#realtimeService.markAsLive();
     } else if (isHost) {
       // Host rejoin 无 DB 状态：无法恢复
