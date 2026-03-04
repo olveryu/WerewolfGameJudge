@@ -193,6 +193,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;
 
   useEffect(() => {
+    gameRoomLog.info('[DIAG] useGameRoom effect SUBSCRIBE');
     const unsubscribe = facade.addListener((snapshot) => {
       if (snapshot) {
         gameRoomLog.debug('[facade] State update from facade', {
@@ -228,7 +229,10 @@ export const useGameRoom = (): UseGameRoomResult => {
         setLastStateReceivedAt(null);
       }
     });
-    return unsubscribe;
+    return () => {
+      gameRoomLog.info('[DIAG] useGameRoom effect CLEANUP');
+      unsubscribe();
+    };
   }, [facade, setStateRevision, onStateReceived, setLastStateReceivedAt]);
 
   // =========================================================================
