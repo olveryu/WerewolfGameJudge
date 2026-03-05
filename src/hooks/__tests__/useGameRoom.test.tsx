@@ -16,14 +16,6 @@ import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
-// useFocusEffect requires NavigationContainer; mock it as useEffect for unit tests
-jest.mock('@react-navigation/native', () => {
-  const React = require('react');
-  return {
-    useFocusEffect: (cb: () => void) => React.useEffect(cb, [cb]),
-  };
-});
-
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
 
@@ -37,6 +29,7 @@ describe('useGameRoom - ACK reason transparency', () => {
   // Create a mock facade for testing
   const createMockFacade = (overrides: Partial<IGameFacade> = {}): IGameFacade => ({
     addListener: jest.fn().mockReturnValue(() => {}),
+    subscribe: jest.fn().mockReturnValue(() => {}),
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(false),
     getMyUid: jest.fn().mockReturnValue('player-uid'),
@@ -264,25 +257,8 @@ describe('useGameRoom - ACK reason transparency', () => {
     });
 
     it('should update lastStateReceivedAt when state is received', async () => {
-      let stateListener: ((state: any) => void) | null = null;
+      let onStoreChange: (() => void) | null = null;
 
-      const mockFacade = createMockFacade({
-        addListener: jest.fn().mockImplementation((fn) => {
-          stateListener = fn;
-          return () => {};
-        }),
-      });
-
-      const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
-      );
-
-      const { result } = renderHook(() => useGameRoom(), { wrapper });
-
-      // Initially null
-      expect(result.current.lastStateReceivedAt).toBeNull();
-
-      // Simulate receiving state
       const mockState = {
         roomCode: 'TEST',
         hostUid: 'host-1',
@@ -295,8 +271,23 @@ describe('useGameRoom - ACK reason transparency', () => {
         pendingRevealAcks: [],
       };
 
+      const mockFacade = createMockFacade({
+        subscribe: jest.fn().mockImplementation((cb) => {
+          onStoreChange = cb;
+          return () => {};
+        }),
+        getState: jest.fn().mockReturnValue(mockState),
+      });
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      );
+
+      const { result } = renderHook(() => useGameRoom(), { wrapper });
+
+      // Trigger store notification so the side-effect useEffect runs
       await act(async () => {
-        stateListener?.(mockState);
+        onStoreChange?.();
       });
 
       // Now should have timestamp
@@ -314,6 +305,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
   // Create a mock facade for testing
   const createMockFacade = (overrides: Partial<IGameFacade> = {}): IGameFacade => ({
     addListener: jest.fn().mockReturnValue(() => {}),
+    subscribe: jest.fn().mockReturnValue(() => {}),
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(true),
     getMyUid: jest.fn().mockReturnValue('host-uid'),
@@ -386,7 +378,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
   it('submitAction should use effectiveSeat and effectiveRole when controlledSeat is set', async () => {
     const submitActionMock = jest.fn().mockResolvedValue({ success: true });
-    let stateListener: ((state: any) => void) | null = null;
 
     // Mock state with Host at seat 0 (villager) and bot at seat 1 (wolf)
     // Use GameStatus.Assigned status to avoid triggering nightPlan logic in hook
@@ -420,10 +411,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     };
 
     const mockFacade = createMockFacade({
-      addListener: jest.fn().mockImplementation((fn) => {
-        stateListener = fn;
-        return () => {};
-      }),
+      subscribe: jest.fn().mockReturnValue(() => {}),
       getState: jest.fn().mockReturnValue(mockState),
       getMySeatNumber: jest.fn().mockReturnValue(0),
       submitAction: submitActionMock,
@@ -435,11 +423,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-    // Trigger state update through listener (this populates mySeatNumber from localState)
-    await act(async () => {
-      stateListener?.(mockState);
-    });
-
+    // useSyncExternalStore reads getState() synchronously — state is already populated
     // Initially: effectiveSeat = 0 (mySeatNumber), effectiveRole = 'villager'
     expect(result.current.effectiveSeat).toBe(0);
     expect(result.current.effectiveRole).toBe('villager');
@@ -466,7 +450,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
   it('sendWolfRobotHunterStatusViewed should use effectiveSeat when controlledSeat is set', async () => {
     const sendWolfRobotHunterStatusViewedMock = jest.fn().mockResolvedValue({ success: true });
-    let stateListener: ((state: any) => void) | null = null;
 
     const mockState = {
       roomCode: 'TEST',
@@ -499,10 +482,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     };
 
     const mockFacade = createMockFacade({
-      addListener: jest.fn().mockImplementation((fn) => {
-        stateListener = fn;
-        return () => {};
-      }),
+      subscribe: jest.fn().mockReturnValue(() => {}),
       getState: jest.fn().mockReturnValue(mockState),
       getMySeatNumber: jest.fn().mockReturnValue(0),
       sendWolfRobotHunterStatusViewed: sendWolfRobotHunterStatusViewedMock,
@@ -513,10 +493,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
-
-    await act(async () => {
-      stateListener?.(mockState);
-    });
 
     // Set controlledSeat to 1 (wolfRobot bot seat)
     await act(async () => {
@@ -537,8 +513,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
   });
 
   it('effectiveRole should be null when effectiveSeat has no player', async () => {
-    let stateListener: ((state: any) => void) | null = null;
-
     // Use GameStatus.Assigned status to avoid triggering nightPlan logic in hook
     // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
@@ -565,10 +539,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     };
 
     const mockFacade = createMockFacade({
-      addListener: jest.fn().mockImplementation((fn) => {
-        stateListener = fn;
-        return () => {};
-      }),
       getState: jest.fn().mockReturnValue(mockState),
       getMySeatNumber: jest.fn().mockReturnValue(0),
     });
@@ -578,11 +548,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
-
-    // Trigger state update through listener
-    await act(async () => {
-      stateListener?.(mockState);
-    });
 
     // Set controlledSeat to empty seat 1
     await act(async () => {
@@ -602,6 +567,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
   /** Create a mock facade (duplicated from outer describe, which scopes it) */
   const createMockFacade = (overrides: Partial<IGameFacade> = {}): IGameFacade => ({
     addListener: jest.fn().mockReturnValue(() => {}),
+    subscribe: jest.fn().mockReturnValue(() => {}),
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(false),
     getMyUid: jest.fn().mockReturnValue('player-uid'),
@@ -694,12 +660,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
   };
 
   it('should set needsContinueOverlay=true when host + ongoing + wasAudioInterrupted', async () => {
-    let stateListener: ((state: unknown) => void) | undefined;
     const mockFacade = createMockFacade({
-      addListener: jest.fn().mockImplementation((fn) => {
-        stateListener = fn;
-        return () => {};
-      }),
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
@@ -713,20 +674,13 @@ describe('useGameRoom - rejoin continue overlay', () => {
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-    await act(async () => {
-      stateListener?.(ongoingGameState);
-    });
-
+    // useSyncExternalStore reads getState() on initial render;
+    // useEffect sets overlay within renderHook's internal act.
     expect(result.current.needsContinueOverlay).toBe(true);
   });
 
   it('should NOT set overlay when wasAudioInterrupted=false', async () => {
-    let stateListener: ((state: unknown) => void) | undefined;
     const mockFacade = createMockFacade({
-      addListener: jest.fn().mockImplementation((fn) => {
-        stateListener = fn;
-        return () => {};
-      }),
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: false,
       getState: jest.fn().mockReturnValue(ongoingGameState),
@@ -740,20 +694,11 @@ describe('useGameRoom - rejoin continue overlay', () => {
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-    await act(async () => {
-      stateListener?.(ongoingGameState);
-    });
-
     expect(result.current.needsContinueOverlay).toBe(false);
   });
 
   it('should NOT set overlay for non-host player', async () => {
-    let stateListener: ((state: unknown) => void) | undefined;
     const mockFacade = createMockFacade({
-      addListener: jest.fn().mockImplementation((fn) => {
-        stateListener = fn;
-        return () => {};
-      }),
       isHostPlayer: jest.fn().mockReturnValue(false),
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
@@ -767,20 +712,11 @@ describe('useGameRoom - rejoin continue overlay', () => {
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-    await act(async () => {
-      stateListener?.(ongoingGameState);
-    });
-
     expect(result.current.needsContinueOverlay).toBe(false);
   });
 
   it('resumeAfterRejoin should close overlay and call facade.resumeAfterRejoin', async () => {
-    let stateListener: ((state: unknown) => void) | undefined;
     const mockFacade = createMockFacade({
-      addListener: jest.fn().mockImplementation((fn) => {
-        stateListener = fn;
-        return () => {};
-      }),
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
@@ -794,10 +730,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-    // Trigger overlay
-    await act(async () => {
-      stateListener?.(ongoingGameState);
-    });
+    // Overlay set on initial render via useEffect (getState returns ongoing state)
     expect(result.current.needsContinueOverlay).toBe(true);
 
     // Call resume
@@ -810,12 +743,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
   });
 
   it('dismissContinueOverlay should close overlay without calling facade', async () => {
-    let stateListener: ((state: unknown) => void) | undefined;
     const mockFacade = createMockFacade({
-      addListener: jest.fn().mockImplementation((fn) => {
-        stateListener = fn;
-        return () => {};
-      }),
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
@@ -829,10 +757,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-    // Trigger overlay
-    await act(async () => {
-      stateListener?.(ongoingGameState);
-    });
+    // Overlay set on initial render
     expect(result.current.needsContinueOverlay).toBe(true);
 
     // Dismiss without resuming

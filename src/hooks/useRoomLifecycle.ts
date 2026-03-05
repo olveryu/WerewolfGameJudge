@@ -65,9 +65,6 @@ interface RoomLifecycleDeps {
   authService: AuthService;
   roomService: RoomService;
   connection: ConnectionSyncActions;
-  setGameState: (state: null) => void;
-  setIsHost: (isHost: boolean) => void;
-  setMyUid: (uid: string | null) => void;
   setRoomRecord: (record: RoomRecord | null) => void;
 }
 
@@ -81,9 +78,6 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     authService,
     roomService,
     connection: { setConnectionStatus },
-    setGameState,
-    setIsHost,
-    setMyUid,
     setRoomRecord,
   } = deps;
 
@@ -170,9 +164,6 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
             setError('房间状态已过期，请重新创建房间');
             return false;
           }
-          // 立即同步 identity，避免 useConnectionSync 在 facade listener 触发前误判
-          setIsHost(true);
-          setMyUid(playerUid);
           gameRoomLog.debug('Host rejoin successful');
           return true;
         }
@@ -199,7 +190,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         setLoading(false);
       }
     },
-    [facade, authService, roomService, setIsHost, setMyUid, setRoomRecord],
+    [facade, authService, roomService, setRoomRecord],
   );
 
   // Leave the current room
@@ -209,12 +200,11 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     try {
       await facade.leaveRoom();
       setRoomRecord(null);
-      setGameState(null);
     } catch (err) {
       gameRoomLog.error(' Error leaving room:', err);
       Sentry.captureException(err);
     }
-  }, [facade, setGameState, setRoomRecord]);
+  }, [facade, setRoomRecord]);
 
   // =========================================================================
   // Seat actions

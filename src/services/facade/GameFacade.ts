@@ -171,6 +171,10 @@ export class GameFacade implements IGameFacade {
     return unsub;
   }
 
+  subscribe(onStoreChange: () => void): () => void {
+    return this.#store.subscribe(() => onStoreChange());
+  }
+
   getState(): GameState | null {
     return this.#store.getState();
   }
