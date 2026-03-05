@@ -265,6 +265,7 @@ export const HomeScreen: React.FC = () => {
             onPress={handleEnterRoomPress}
             testID={TESTIDS.homeEnterRoomButton}
             styles={styles}
+            colors={colors}
           />
           <MenuItem
             icon={<Ionicons name="add-circle-outline" size={22} color={colors.text} />}
@@ -274,6 +275,7 @@ export const HomeScreen: React.FC = () => {
             onPress={handleCreateRoomPress}
             testID={TESTIDS.homeCreateRoomButton}
             styles={styles}
+            colors={colors}
           />
           <View style={styles.divider} />
           <MenuItem
@@ -284,6 +286,7 @@ export const HomeScreen: React.FC = () => {
             onPress={handleReturnLastGamePress}
             testID={TESTIDS.homeReturnLastGameButton}
             styles={styles}
+            colors={colors}
           />
           <MenuItem
             icon={<Ionicons name="settings-outline" size={22} color={colors.text} />}
@@ -291,6 +294,7 @@ export const HomeScreen: React.FC = () => {
             subtitle="应用偏好设置"
             onPress={handleNavigateSettings}
             styles={styles}
+            colors={colors}
           />
         </View>
 

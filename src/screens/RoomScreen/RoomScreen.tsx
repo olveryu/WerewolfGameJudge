@@ -183,17 +183,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           />
           <Text style={[styles.loadingText, styles.errorMessageText]}>{displayMessage}</Text>
           <View style={styles.retryButtonRow}>
-            <TouchableOpacity
-              style={[styles.errorBackButton, { backgroundColor: colors.primary }]}
-              onPress={handleRetry}
-            >
+            <TouchableOpacity style={styles.errorBackButton} onPress={handleRetry}>
               <Text style={styles.errorBackButtonText}>重试</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.errorBackButton}
+              style={styles.errorSecondaryButton}
               onPress={() => navigation.navigate('Home')}
             >
-              <Text style={styles.errorBackButtonText}>返回首页</Text>
+              <Text style={styles.errorSecondaryButtonText}>返回首页</Text>
             </TouchableOpacity>
           </View>
         </View>

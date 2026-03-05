@@ -4,8 +4,12 @@
  * 显示 icon + 标题 + 可选副标题，通过 onPress 上报点击意图。
  * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
+import { Ionicons } from '@expo/vector-icons';
 import React, { memo, type ReactNode } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
+
+import { type ThemeColors } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 import { type HomeScreenStyles } from './styles';
 
@@ -17,6 +21,7 @@ interface MenuItemProps {
   onPress: () => void;
   testID?: string;
   styles: HomeScreenStyles;
+  colors: ThemeColors;
 }
 
 const MenuItemComponent: React.FC<MenuItemProps> = ({
@@ -27,6 +32,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   onPress,
   testID,
   styles,
+  colors,
 }) => {
   return (
     <TouchableOpacity
@@ -43,7 +49,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
         <Text style={styles.menuTitle}>{title}</Text>
         {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
       </View>
-      <Text style={styles.menuArrow}>›</Text>
+      <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.textMuted} />
     </TouchableOpacity>
   );
 };

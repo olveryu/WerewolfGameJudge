@@ -8,10 +8,12 @@
 import React, { memo, type ReactNode } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { spacing } from '@/theme';
+
 import { type ActionButtonStyles } from './styles';
 
 const localStyles = StyleSheet.create({
-  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  iconRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.tight },
 });
 
 interface ActionButtonProps {

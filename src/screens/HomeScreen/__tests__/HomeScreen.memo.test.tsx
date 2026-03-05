@@ -76,7 +76,6 @@ describe('HomeScreen Performance Optimizations', () => {
         'menuContent',
         'menuTitle',
         'menuSubtitle',
-        'menuArrow',
         'divider',
         'modalOverlay',
         'modalContent',
@@ -158,6 +157,7 @@ describe('HomeScreen Performance Optimizations', () => {
               onPress={() => {}}
               testID="menu-item"
               styles={styles}
+              colors={mockColors}
             />
           </View>
         );
@@ -210,6 +210,7 @@ describe('HomeScreen Performance Optimizations', () => {
               onPress={() => {}}
               testID="menu-item"
               styles={styles}
+              colors={mockColors}
             />
           </View>
         );

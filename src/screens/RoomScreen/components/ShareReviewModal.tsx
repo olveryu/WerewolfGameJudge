@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 interface SeatInfo {
   /** 0-based seat index */
@@ -180,13 +180,13 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       marginBottom: spacing.tight,
     },
     seatRowSelected: {
-      backgroundColor: `${colors.primary}15`,
+      backgroundColor: `${colors.primary}20`,
     },
     checkbox: {
       width: spacing.large,
       height: spacing.large,
       borderRadius: borderRadius.small,
-      borderWidth: 2,
+      borderWidth: fixed.borderWidthThick,
       borderColor: colors.border,
       justifyContent: 'center',
       alignItems: 'center',

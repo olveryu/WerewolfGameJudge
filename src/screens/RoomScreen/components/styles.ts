@@ -28,7 +28,6 @@ export interface BoardInfoCardStyles {
   boardInfoContainer: ViewStyle;
   headerRow: ViewStyle;
   boardInfoTitle: TextStyle;
-  collapseIcon: TextStyle;
   boardInfoContent: ViewStyle;
   roleCategory: ViewStyle;
   roleCategoryLabel: TextStyle;
@@ -192,10 +191,6 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         fontSize: typography.body,
         fontWeight: typography.weights.bold,
         color: colors.text,
-      },
-      collapseIcon: {
-        fontSize: typography.secondary,
-        color: colors.textSecondary,
       },
       boardInfoContent: {
         marginTop: spacing.small,

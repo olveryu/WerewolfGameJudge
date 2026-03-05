@@ -8,7 +8,15 @@ import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import {
+  borderRadius,
+  fixed,
+  shadows,
+  spacing,
+  type ThemeColors,
+  typography,
+  useColors,
+} from '@/theme';
 
 export interface AlertButton {
   text: string;
@@ -118,6 +126,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
       padding: spacing.large,
       minWidth: spacing.xxlarge * 6, // ~280
       maxWidth: screenWidth * 0.85,
+      ...shadows.lg,
     },
     title: {
       fontSize: typography.subtitle,
@@ -147,6 +156,8 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     cancelButton: {
       backgroundColor: colors.surfaceHover,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
     },
     destructiveButton: {
       backgroundColor: colors.error,

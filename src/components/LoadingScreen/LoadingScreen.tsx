@@ -111,6 +111,5 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: typography.secondary,
-    opacity: 0.7,
   },
 });

@@ -19,7 +19,7 @@ import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { spacing, useColors } from '@/theme';
+import { useColors } from '@/theme';
 
 import {
   createConfigScreenStyles,
@@ -207,7 +207,7 @@ export const ConfigScreen: React.FC = () => {
           <ScrollView
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: spacing.large }}
+            contentContainerStyle={styles.scrollContent}
           >
             {/* Card B — stepper + role sections */}
             <View style={styles.cardB}>
