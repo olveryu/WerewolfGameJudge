@@ -9,7 +9,7 @@
 import { Platform, Share } from 'react-native';
 
 /** Build the room URL from the current origin (web) or production URL (native). */
-function buildRoomUrl(roomNumber: string): string {
+export function buildRoomUrl(roomNumber: string): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     return `${window.location.origin}/room/${roomNumber}`;
   }

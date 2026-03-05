@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,6 +36,7 @@ import { HostMenuDropdown } from './components/HostMenuDropdown';
 import { NightProgressIndicator } from './components/NightProgressIndicator';
 import { NightReviewModal } from './components/NightReviewModal';
 import { PlayerGrid } from './components/PlayerGrid';
+import { QRCodeModal } from './components/QRCodeModal';
 import { RoleCardModal } from './components/RoleCardModal';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
@@ -43,7 +44,8 @@ import { createRoomScreenComponentStyles } from './components/styles';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
 import { buildNightReviewData } from './NightReview.helpers';
 import { createRoomScreenStyles } from './RoomScreen.styles';
-import { shareOrCopyRoomLink } from './shareRoom';
+import { shareQRCodeImage } from './shareQRCode';
+import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -52,7 +54,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const styles = useMemo(() => createRoomScreenStyles(colors), [colors]);
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
 
+  // ─── QR Code Modal state ──────────────────────────────────────────────
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+
   const handleShareRoom = useCallback(() => {
+    setQrModalVisible(true);
+  }, []);
+
+  const handleCopyLink = useCallback(() => {
     void shareOrCopyRoomLink(route.params.roomNumber)
       .then((result) => {
         if (result === 'copied') {
@@ -69,6 +78,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         showAlert('分享失败', '无法复制链接，请手动分享房间号');
       });
   }, [route.params.roomNumber]);
+
+  const handleShareQRImage = useCallback(
+    (getBase64: () => Promise<string>) => {
+      void shareQRCodeImage(getBase64, route.params.roomNumber).catch((e) => {
+        roomScreenLog.error('Share QR image failed:', e);
+        Sentry.captureException(e);
+        showAlert('分享失败', '无法分享二维码图片');
+      });
+    },
+    [route.params.roomNumber],
+  );
 
   const {
     // Route params
@@ -219,7 +239,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity onPress={handleShareRoom} activeOpacity={0.6}>
             <Text style={styles.headerSubtitle}>
-              {gameState.template.roles.length}人局 · 复制链接
+              {gameState.template.roles.length}人局 · 分享房间
             </Text>
           </TouchableOpacity>
         </View>
@@ -498,6 +518,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onClose={closeShareReview}
         />
       )}
+
+      {/* QR Code Modal — 房间二维码分享 */}
+      <QRCodeModal
+        visible={qrModalVisible}
+        roomNumber={roomNumber}
+        roomUrl={buildRoomUrl(roomNumber)}
+        onShareImage={handleShareQRImage}
+        onCopyLink={handleCopyLink}
+        onClose={() => setQrModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };

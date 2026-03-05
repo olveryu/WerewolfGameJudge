@@ -30,5 +30,8 @@ module.exports = {
     '^@expo/vector-icons$': '<rootDir>/__mocks__/@expo/vector-icons.tsx',
     '^@sentry/react-native$': '<rootDir>/__mocks__/@sentry/react-native.ts',
     '^react-native-toast-message$': '<rootDir>/__mocks__/react-native-toast-message.ts',
+    '^expo-file-system$': '<rootDir>/__mocks__/expo-file-system.ts',
+    '^expo-sharing$': '<rootDir>/__mocks__/expo-sharing.ts',
+    '^react-native-qrcode-svg$': '<rootDir>/__mocks__/react-native-qrcode-svg.tsx',
   },
 };
