@@ -51,6 +51,10 @@ interface UseActionOrchestratorParams {
   isAudioPlaying: boolean;
   myUid: string | null;
 
+  // ── Rejoin overlay ──
+  /** When true, ContinueGameOverlay is visible — suppress auto-trigger to avoid z-order conflict. */
+  needsContinueOverlay: boolean;
+
   // ── Magician state (owned by RoomScreen, passed in + out) ──
   firstSwapSeat: number | null;
   setFirstSwapSeat: (v: number | null) => void;
@@ -102,6 +106,7 @@ export function useActionOrchestrator({
   imActioner,
   isAudioPlaying,
   myUid,
+  needsContinueOverlay,
   firstSwapSeat,
   setFirstSwapSeat,
   setSecondSeat,
@@ -690,8 +695,8 @@ export function useActionOrchestrator({
       return;
     }
 
-    // 音频播放中禁止自动触发 intent（gate 由 Facade 层管理）
-    if (!imActioner || isAudioPlaying) return;
+    // 音频播放中 / 继续游戏弹窗可见时禁止自动触发 intent
+    if (!imActioner || isAudioPlaying || needsContinueOverlay) return;
 
     const autoIntent = getAutoTriggerIntent();
     if (!autoIntent) return;
@@ -724,6 +729,7 @@ export function useActionOrchestrator({
   }, [
     imActioner,
     isAudioPlaying,
+    needsContinueOverlay,
     effectiveRole,
     actorSeatForUi,
     firstSwapSeat,
