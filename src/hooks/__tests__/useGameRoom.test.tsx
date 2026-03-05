@@ -16,6 +16,11 @@ import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
+// useIsFocused must return true in tests (simulates focused screen)
+jest.mock('@react-navigation/native', () => ({
+  useIsFocused: () => true,
+}));
+
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
 
