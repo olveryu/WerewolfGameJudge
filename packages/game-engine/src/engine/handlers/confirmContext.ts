@@ -14,13 +14,8 @@
  */
 
 import type { SchemaId } from '../../models/roles/spec';
-import type { GameState } from '../../protocol/types';
 import type { SetConfirmStatusAction } from '../reducer/types';
-
-/**
- * 非 null 的 state 类型
- */
-type NonNullState = NonNullable<GameState>;
+import type { NonNullState } from './types';
 
 /** hunterConfirm / darkWolfKingConfirm stepId → role 映射 */
 const CONFIRM_STEP_ROLE: Record<string, 'hunter' | 'darkWolfKing'> = {

@@ -42,7 +42,7 @@ import type {
 } from '../reducer/types';
 import type { GameState } from '../store/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
-import type { HandlerContext, HandlerResult } from './types';
+import type { HandlerContext, HandlerResult, SideEffect } from './types';
 import { STANDARD_SIDE_EFFECTS } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
 
@@ -202,7 +202,7 @@ export function handleStartNight(
   }
 
   // 构建 sideEffects：先广播 + 保存，然后播放夜晚开始音频 + 第一步音频
-  const sideEffects: HandlerResult['sideEffects'] = [
+  const sideEffects: SideEffect[] = [
     { type: 'BROADCAST_STATE' },
     { type: 'SAVE_STATE' },
     // 夜晚开始背景音

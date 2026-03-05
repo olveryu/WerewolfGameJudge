@@ -43,13 +43,8 @@ const nightFlowLog = getEngineLogger().extend('NightFlow');
 
 import { GameStatus } from '../../models/GameStatus';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
-import type { HandlerContext, HandlerResult } from './types';
+import type { HandlerContext, HandlerResult, NonNullState, SideEffect } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
-
-/**
- * 非 null 的 state 类型
- */
-type NonNullState = NonNullable<HandlerContext['state']>;
 
 // =============================================================================
 // Gate Validation
@@ -491,10 +486,7 @@ export function handleAdvanceNight(
   // 音频播放：当前步骤的结束音频 + 下一步的开始音频
   // 按顺序添加到 sideEffects，Facade 会按顺序播放
   const currentStepId = state.currentStepId;
-  const sideEffects: HandlerResult['sideEffects'] = [
-    { type: 'BROADCAST_STATE' },
-    { type: 'SAVE_STATE' },
-  ];
+  const sideEffects: SideEffect[] = [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }];
 
   // 1) 当前步骤的结束音频
   if (currentStepId) {

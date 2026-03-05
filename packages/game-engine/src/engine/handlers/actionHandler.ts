@@ -27,13 +27,8 @@ import type {
   RecordActionAction,
   StateAction,
 } from '../reducer/types';
-import type { HandlerContext, HandlerResult } from './types';
+import type { HandlerContext, HandlerResult, NonNullState } from './types';
 import { STANDARD_SIDE_EFFECTS } from './types';
-
-/**
- * 非 null 的 state 类型（通过 validation 后使用）
- */
-type NonNullState = NonNullable<HandlerContext['state']>;
 
 /**
  * 构建 Resolver 上下文

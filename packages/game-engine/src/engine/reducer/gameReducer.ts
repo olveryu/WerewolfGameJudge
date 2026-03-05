@@ -12,6 +12,7 @@
 import { GameStatus } from '../../models/GameStatus';
 import type { ResolvedRoleRevealAnimation } from '../../types/RoleRevealAnimation';
 import { resolveRandomAnimation } from '../../types/RoleRevealAnimation';
+import type { Complete } from '../state/normalize';
 import type { GameState } from '../store/types';
 import type {
   ActionRejectedAction,
@@ -94,7 +95,14 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
   }
 
   return {
-    ...state,
+    // ── 保留字段（跨局不变） ──────────────────────────────
+    roomCode: state.roomCode,
+    hostUid: state.hostUid,
+    templateRoles: state.templateRoles,
+    roleRevealAnimation: state.roleRevealAnimation,
+    debugMode: state.debugMode,
+
+    // ── 重置字段 ─────────────────────────────────────────
     players,
     status: GameStatus.Seated, // v1: 重置到 seated，不是 unseated
     currentStepIndex: -1, // 与 buildInitialGameState 一致
@@ -105,6 +113,8 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
     lastNightDeaths: undefined,
     witchContext: undefined,
     seerReveal: undefined,
+    mirrorSeerReveal: undefined,
+    drunkSeerReveal: undefined,
     psychicReveal: undefined,
     gargoyleReveal: undefined,
     pureWhiteReveal: undefined,
@@ -117,23 +127,18 @@ function handleRestartGame(state: GameState, action: RestartGameAction): GameSta
     nightmareBlockedSeat: undefined,
     wolfKillDisabled: undefined,
     pendingRevealAcks: [],
-    // 重开时清除上局残留的 reveal / 音频 / 计时器 / UI 状态
-    mirrorSeerReveal: undefined,
-    drunkSeerReveal: undefined,
     pendingAudioEffects: undefined,
     wolfVoteDeadline: undefined,
     ui: undefined,
-    // 重开时更新 nonce 和 resolved 动画
-    roleRevealRandomNonce: newNonce,
-    resolvedRoleRevealAnimation: resolvedAnimation,
-    // 重开时清除详细信息分享权限
     nightReviewAllowedSeats: undefined,
-    // 重开时清除上局残留的 seer 标签
     seerLabelMap: undefined,
-    // 重开时清除吹笛者相关状态
     hypnotizedSeats: undefined,
     piperRevealAcks: undefined,
-  };
+
+    // ── 重开时更新 nonce 和 resolved 动画 ─────────────────
+    roleRevealRandomNonce: newNonce,
+    resolvedRoleRevealAnimation: resolvedAnimation,
+  } satisfies Complete<GameState>;
 }
 
 function handlePlayerJoin(state: GameState, action: PlayerJoinAction): GameState {
