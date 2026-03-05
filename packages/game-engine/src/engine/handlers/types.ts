@@ -41,7 +41,7 @@ export interface HandlerResult {
   actions: StateAction[];
 
   /** 副作用（如需要播放音频、发送消息等） */
-  sideEffects?: SideEffect[];
+  sideEffects?: readonly SideEffect[];
 }
 
 /**
@@ -60,7 +60,12 @@ export type SideEffect =
  * 大多数 handler 的 sideEffects 都是这对组合。
  * 包含 PLAY_AUDIO 的 handler 应自行构造完整列表。
  */
-export const STANDARD_SIDE_EFFECTS: SideEffect[] = [
+export const STANDARD_SIDE_EFFECTS: readonly SideEffect[] = Object.freeze([
   { type: 'BROADCAST_STATE' },
   { type: 'SAVE_STATE' },
-];
+] as const);
+
+/**
+ * 非 null 的 GameState 类型（通过 handler validation 后使用）
+ */
+export type NonNullState = NonNullable<HandlerContext['state']>;

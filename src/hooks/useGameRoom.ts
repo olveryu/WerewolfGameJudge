@@ -14,6 +14,7 @@
  * 不直接调用 Supabase，不包含业务 callback 逻辑（应在子 hooks 中）。
  */
 
+import { useFocusEffect } from '@react-navigation/native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
@@ -22,7 +23,7 @@ import type {
   ResolvedRoleRevealAnimation,
   RoleRevealAnimation,
 } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
@@ -192,46 +193,48 @@ export const useGameRoom = (): UseGameRoomResult => {
   // connectionStatus changes (which rebuilds the connection useMemo object).
   const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;
 
-  useEffect(() => {
-    const unsubscribe = facade.addListener((snapshot) => {
-      if (snapshot) {
-        gameRoomLog.debug('[facade] State update from facade', {
-          roomCode: snapshot.roomCode,
-          status: snapshot.status,
-        });
-        const localState = toLocalState(snapshot);
-        setGameState(localState);
-        // 从 facade 派生 identity
-        setIsHost(facade.isHostPlayer());
-        setMyUid(facade.getMyUid());
-        setMySeatNumber(facade.getMySeatNumber());
-        setStateRevision(facade.getStateRevision());
-        // Notify connection sync (resets throttle + clears timer)
-        onStateReceived();
+  useFocusEffect(
+    useCallback(() => {
+      const unsubscribe = facade.addListener((snapshot) => {
+        if (snapshot) {
+          gameRoomLog.debug('[facade] State update from facade', {
+            roomCode: snapshot.roomCode,
+            status: snapshot.status,
+          });
+          const localState = toLocalState(snapshot);
+          setGameState(localState);
+          // 从 facade 派生 identity
+          setIsHost(facade.isHostPlayer());
+          setMyUid(facade.getMyUid());
+          setMySeatNumber(facade.getMySeatNumber());
+          setStateRevision(facade.getStateRevision());
+          // Notify connection sync (resets throttle + clears timer)
+          onStateReceived();
 
-        // Host rejoin to ongoing game → show "continue game" overlay
-        // wasAudioInterrupted is a one-shot flag set during joinRoom(isHost=true) DB restore,
-        // cleared after resumeAfterRejoin(). setState(true) is idempotent.
-        if (
-          facade.isHostPlayer() &&
-          snapshot.status === GameStatus.Ongoing &&
-          facade.wasAudioInterrupted
-        ) {
-          setShowContinueOverlay(true);
+          // Host rejoin to ongoing game → show "continue game" overlay
+          // wasAudioInterrupted is a one-shot flag set during joinRoom(isHost=true) DB restore,
+          // cleared after resumeAfterRejoin(). setState(true) is idempotent.
+          if (
+            facade.isHostPlayer() &&
+            snapshot.status === GameStatus.Ongoing &&
+            facade.wasAudioInterrupted
+          ) {
+            setShowContinueOverlay(true);
+          }
+        } else {
+          setGameState(null);
+          setIsHost(false);
+          setMyUid(null);
+          setMySeatNumber(null);
+          setStateRevision(0);
+          setLastStateReceivedAt(null);
         }
-      } else {
-        setGameState(null);
-        setIsHost(false);
-        setMyUid(null);
-        setMySeatNumber(null);
-        setStateRevision(0);
-        setLastStateReceivedAt(null);
-      }
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [facade, setStateRevision, onStateReceived, setLastStateReceivedAt]);
+      });
+      return () => {
+        unsubscribe();
+      };
+    }, [facade, setStateRevision, onStateReceived, setLastStateReceivedAt]),
+  );
 
   // =========================================================================
   // Rejoin recovery

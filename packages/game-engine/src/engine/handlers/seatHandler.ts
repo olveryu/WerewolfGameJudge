@@ -18,6 +18,7 @@ import {
   REASON_NOT_SEATED,
   REASON_SEAT_TAKEN,
 } from '../../protocol/reasonCodes';
+import { forEachSeatedPlayer } from '../../utils/playerHelpers';
 import type { ClearAllSeatsIntent, JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
 import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
@@ -199,11 +200,9 @@ export function handleClearAllSeats(
   }
 
   const actions: PlayerLeaveAction[] = [];
-  for (const [seatKey, player] of Object.entries(state.players)) {
-    if (player !== null) {
-      actions.push({ type: 'PLAYER_LEAVE', payload: { seat: Number(seatKey) } });
-    }
-  }
+  forEachSeatedPlayer(state.players, (seat) => {
+    actions.push({ type: 'PLAYER_LEAVE', payload: { seat } });
+  });
 
   return {
     success: true,

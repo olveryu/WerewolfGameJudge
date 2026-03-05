@@ -104,7 +104,7 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
 /**
  * 从 sideEffects 提取 AudioEffect[]
  */
-function extractAudioEffects(sideEffects: SideEffect[] | undefined): AudioEffect[] {
+function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): AudioEffect[] {
   if (!sideEffects) return [];
   return sideEffects
     .filter(

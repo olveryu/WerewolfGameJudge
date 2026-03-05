@@ -1,43 +1,28 @@
 /**
- * ConfigScreen - 游戏配置与房间创建
+ * ConfigScreen - 游戏配置与房间创建（Render-only）
  *
- * 角色列表由 FACTION_GROUPS + ROLE_SPECS 数据驱动。性能优化同 HomeScreen。
- * 负责编排子组件、调用 service/navigation/showAlert。
+ * 角色列表由 FACTION_GROUPS + ROLE_SPECS 数据驱动。
+ * 所有状态/回调由 useConfigScreenState hook 提供。
+ * 纯函数 helpers 在 configHelpers.ts。
  * 不使用硬编码样式值，不使用 console.*。
  */
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
-import { Faction, isValidRoleId, ROLE_SPECS, RoleId } from '@werewolf/game-engine/models/roles';
-import {
-  createCustomTemplate,
-  findMatchingPresetName,
-  PRESET_TEMPLATES,
-  validateTemplateRoles,
-} from '@werewolf/game-engine/models/Template';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import React, { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { spacing, useColors } from '@/theme';
-import { showAlert } from '@/utils/alert';
-import { configLog } from '@/utils/logger';
 
 import {
   createConfigScreenStyles,
-  type DropdownOption,
-  type FactionColorKey,
-  type FactionTabItem,
   FactionTabs,
   RoleChip,
   RoleInfoSheet,
@@ -47,120 +32,8 @@ import {
   TemplatePicker,
   VariantPicker,
 } from './components';
-import { buildInitialSelection, FACTION_GROUPS } from './configData';
-
-// ============================================
-// Helper functions
-// ============================================
-
-const getInitialSelection = (): Record<string, boolean> => buildInitialSelection();
-
-const selectionToRoles = (
-  selection: Record<string, boolean>,
-  variantOverrides?: Record<string, string>,
-): RoleId[] => {
-  const roles: RoleId[] = [];
-  Object.entries(selection).forEach(([key, selected]) => {
-    if (selected) {
-      const baseRoleId = key.replace(/\d+$/, '');
-      const roleId = variantOverrides?.[baseRoleId] ?? baseRoleId;
-      if (isValidRoleId(roleId)) {
-        roles.push(roleId);
-      }
-    }
-  });
-  return roles;
-};
-
-/**
- * Reverse lookup: variantId → base slot roleId.
- * Built once from FACTION_GROUPS at module level.
- */
-const VARIANT_TO_BASE: ReadonlyMap<string, string> = (() => {
-  const map = new Map<string, string>();
-  for (const group of FACTION_GROUPS) {
-    for (const section of group.sections) {
-      for (const slot of section.roles) {
-        if (slot.variants) {
-          for (const v of slot.variants) {
-            map.set(v, slot.roleId);
-          }
-        }
-      }
-    }
-  }
-  return map;
-})();
-
-/**
- * Reconstruct selection + variantOverrides from stored templateRoles.
- *
- * Variant roleIds (e.g. drunkSeer) are mapped back to their base slot (mirrorSeer)
- * for selection keys, and stored in variantOverrides for display.
- */
-const restoreFromTemplateRoles = (
-  templateRoles: RoleId[],
-): { selection: Record<string, boolean>; variantOverrides: Record<string, string> } => {
-  const selection = getInitialSelection();
-  Object.keys(selection).forEach((key) => {
-    selection[key] = false;
-  });
-  const overrides: Record<string, string> = {};
-  const baseCounts: Record<string, number> = {};
-  templateRoles.forEach((role) => {
-    const baseId = VARIANT_TO_BASE.get(role) ?? role;
-    if (VARIANT_TO_BASE.has(role)) {
-      overrides[baseId] = role;
-    }
-    baseCounts[baseId] = (baseCounts[baseId] || 0) + 1;
-  });
-  Object.entries(baseCounts).forEach(([baseRole, count]) => {
-    for (let i = 0; i < count; i++) {
-      const key = i === 0 ? baseRole : `${baseRole}${i}`;
-      if (key in selection) selection[key] = true;
-    }
-  });
-  return { selection, variantOverrides: overrides };
-};
-
-/** Map Faction enum to FactionColorKey for chip coloring */
-const FACTION_COLOR_MAP: Record<string, FactionColorKey> = {
-  [Faction.Wolf]: 'wolf',
-  [Faction.God]: 'god',
-  [Faction.Villager]: 'villager',
-  [Faction.Special]: 'neutral',
-};
-
-/** Compute total selected role count */
-const computeTotalCount = (selection: Record<string, boolean>): number => {
-  let total = 0;
-  Object.values(selection).forEach((selected) => {
-    if (selected) total++;
-  });
-  return total;
-};
-
-/** Expand a RoleSlot into an array of {key, label} for rendering chips */
-const expandSlotToChipEntries = (
-  slot: {
-    roleId: string;
-    count?: number;
-    variants?: string[];
-  },
-  variantOverrides?: Record<string, string>,
-): { key: string; label: string; hasVariants: boolean }[] => {
-  const count = slot.count ?? 1;
-  const activeRoleId = variantOverrides?.[slot.roleId] ?? slot.roleId;
-  const spec = isValidRoleId(activeRoleId) ? ROLE_SPECS[activeRoleId] : undefined;
-  const label = spec?.displayName ?? activeRoleId;
-  const hasVariants = !!slot.variants && slot.variants.length > 0;
-
-  return Array.from({ length: count }, (_, i) => ({
-    key: i === 0 ? slot.roleId : `${slot.roleId}${i}`,
-    label,
-    hasVariants,
-  }));
-};
+import { expandSlotToChipEntries, FACTION_COLOR_MAP } from './configHelpers';
+import { useConfigScreenState } from './useConfigScreenState';
 
 // ============================================
 // Main Component
@@ -171,492 +44,72 @@ type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
 export const ConfigScreen: React.FC = () => {
   const colors = useColors();
-  // Create styles once and pass to all sub-components
   const styles = useMemo(() => createConfigScreenStyles(colors), [colors]);
 
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConfigRouteProp>();
   const existingRoomNumber = route.params?.existingRoomNumber;
-  const isEditMode = !!existingRoomNumber;
-
-  const { settingsService, authService, roomService } = useServices();
-
-  const [selection, setSelection] = useState(getInitialSelection);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isLoading, setIsLoading] = useState(isEditMode);
-  const [roleRevealAnimation, setRoleRevealAnimation] = useState<RoleRevealAnimation>('random');
-  const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
-  const [bgmEnabled, setBgmEnabled] = useState(true);
-  const [overflowVisible, setOverflowVisible] = useState(false);
-  const [variantOverrides, setVariantOverrides] = useState<Record<string, string>>({});
 
   const facade = useGameFacade();
-  const totalCount = useMemo(() => computeTotalCount(selection), [selection]);
+  const { settingsService, authService, roomService } = useServices();
 
-  // Load settings (animation + BGM) for new rooms
-  useEffect(() => {
-    if (!existingRoomNumber) {
-      const lastChoice = settingsService.getRoleRevealAnimation();
-      setRoleRevealAnimation(lastChoice);
-      setBgmEnabled(settingsService.isBgmEnabled());
-    }
-  }, [existingRoomNumber, settingsService]);
-
-  // Load current room's roles when in edit mode
-  useEffect(() => {
-    configLog.debug(
-      ' useEffect triggered, isEditMode:',
-      isEditMode,
-      'existingRoomNumber:',
-      existingRoomNumber,
-    );
-    if (!isEditMode || !existingRoomNumber) {
-      configLog.debug(' Skipping load - not in edit mode or no room number');
-      return;
-    }
-
-    const loadCurrentRoles = () => {
-      configLog.debug(' Loading room:', existingRoomNumber);
-      try {
-        const state = facade.getState();
-        configLog.debug(' State loaded:', state ? 'success' : 'not found');
-        if (state?.templateRoles && state.templateRoles.length > 0) {
-          const restored = restoreFromTemplateRoles(state.templateRoles);
-          setSelection(restored.selection);
-          setVariantOverrides(restored.variantOverrides);
-          const matchedPreset = findMatchingPresetName(state.templateRoles);
-          setSelectedTemplate(matchedPreset ?? '__custom__');
-        }
-        if (state?.roleRevealAnimation) {
-          setRoleRevealAnimation(state.roleRevealAnimation);
-        }
-        setBgmEnabled(settingsService.isBgmEnabled());
-      } catch (error) {
-        configLog.error(' Failed to load room:', error);
-        Sentry.captureException(error);
-      } finally {
-        configLog.debug(' Setting isLoading=false');
-        setIsLoading(false);
-      }
-    };
-
-    loadCurrentRoles();
-  }, [isEditMode, existingRoomNumber, facade, settingsService]);
-
-  // Reset transient states when screen regains focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      setIsCreating(false);
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-  // ============================================
-  // Stable callback handlers
-  // ============================================
-
-  const handleGoBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate('Home');
-    }
-  }, [navigation]);
-
-  const toggleRole = useCallback((key: string) => {
-    setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
-    setSelectedTemplate('__custom__');
-  }, []);
-
-  const handlePresetSelect = useCallback((presetName: string) => {
-    const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
-    if (!preset) return;
-    const restored = restoreFromTemplateRoles(preset.roles);
-    setSelection(restored.selection);
-    setVariantOverrides(restored.variantOverrides);
-  }, []);
-
-  const handleClearSelection = useCallback(() => {
-    setSelection((prev) => {
-      const cleared: Record<string, boolean> = {};
-      Object.keys(prev).forEach((k) => (cleared[k] = false));
-      return cleared;
-    });
-    setSelectedTemplate('__custom__');
-  }, []);
-
-  const creatingRef = useRef(false);
-  const handleCreateRoom = useCallback(async () => {
-    if (creatingRef.current || isLoading) return;
-    creatingRef.current = true;
-
-    const roles = selectionToRoles(selection, variantOverrides);
-    if (roles.length === 0) {
-      showAlert('配置提示', '请至少选择一个角色');
-      creatingRef.current = false;
-      return;
-    }
-
-    const validationError = validateTemplateRoles(roles);
-    if (validationError) {
-      showAlert('配置不合法', validationError);
-      creatingRef.current = false;
-      return;
-    }
-
-    setIsCreating(true);
-    try {
-      const template = createCustomTemplate(roles);
-
-      await settingsService.setBgmEnabled(bgmEnabled);
-
-      if (isEditMode && existingRoomNumber) {
-        const result = await facade.updateTemplate(template);
-        if (!result.success) {
-          showAlert('更新失败', result.reason ?? '更新房间设置失败，请重试');
-          return;
-        }
-        await facade.setRoleRevealAnimation(roleRevealAnimation);
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        } else {
-          navigation.navigate('Home');
-        }
-      } else {
-        await settingsService.setRoleRevealAnimation(roleRevealAnimation);
-        // Create room record in DB first — get confirmed/final roomNumber
-        await authService.waitForInit();
-        const hostUid = authService.getCurrentUserId();
-        if (!hostUid) {
-          showAlert('需要登录', '请先登录后再创建房间');
-          return;
-        }
-        const record = await roomService.createRoom(hostUid, undefined, undefined, (roomCode) =>
-          buildInitialGameState(roomCode, hostUid, template),
-        );
-        const roomNumber = record.roomNumber;
-        await AsyncStorage.setItem(LAST_ROOM_NUMBER_KEY, roomNumber);
-        navigation.navigate('Room', {
-          roomNumber,
-          isHost: true,
-          template,
-          roleRevealAnimation,
-        });
-      }
-    } catch (e) {
-      configLog.error('Room create/join failed', e);
-      Sentry.captureException(e);
-      showAlert(
-        isEditMode ? '更新失败' : '创建失败',
-        isEditMode ? '更新房间失败，请重试' : '创建房间失败，请重试',
-      );
-    } finally {
-      setIsCreating(false);
-      creatingRef.current = false;
-    }
-  }, [
-    selection,
-    navigation,
-    isEditMode,
+  const state = useConfigScreenState({
     existingRoomNumber,
+    navigation,
     facade,
-    roleRevealAnimation,
     settingsService,
-    bgmEnabled,
-    isLoading,
     authService,
     roomService,
+    colors,
+  });
+
+  const {
+    isEditMode,
+    isDisabled,
+    isLoading,
+    isCreating,
+    selection,
+    totalCount,
     variantOverrides,
-  ]);
-
-  // Template dropdown options (short display names, strip "12人" suffix)
-  const templateOptions: DropdownOption[] = useMemo(
-    () =>
-      PRESET_TEMPLATES.map((p) => ({
-        value: p.name,
-        label: p.name.replace(/\d+人$/, ''),
-      })),
-    [],
-  );
-
-  // 5 种动画 + 随机 + 无动画
-  const animationOptions: DropdownOption[] = useMemo(
-    () => [
-      { value: 'random', label: '随机' },
-      { value: 'roulette', label: '轮盘' },
-      { value: 'roleHunt', label: '猎场' },
-      { value: 'scratch', label: '刮刮卡' },
-      { value: 'tarot', label: '塔罗牌' },
-      { value: 'gachaMachine', label: '扭蛋机' },
-      { value: 'cardPick', label: '抽牌' },
-      { value: 'none', label: '无动画' },
-    ],
-    [],
-  );
-
-  const bgmOptions: DropdownOption[] = useMemo(
-    () => [
-      { value: 'on', label: '开' },
-      { value: 'off', label: '关' },
-    ],
-    [],
-  );
-
-  const handleTemplateChange = useCallback(
-    (templateName: string) => {
-      setSelectedTemplate(templateName);
-      if (templateName !== '__custom__') {
-        handlePresetSelect(templateName);
-      }
-    },
-    [handlePresetSelect],
-  );
-
-  const handleAnimationChange = useCallback((v: string) => {
-    setRoleRevealAnimation(v as RoleRevealAnimation);
-  }, []);
-
-  const handleBgmChange = useCallback((v: string) => {
-    setBgmEnabled(v === 'on');
-  }, []);
-
-  // ============================================
-  // Variant picker
-  // ============================================
-
-  const [variantPickerSlotId, setVariantPickerSlotId] = useState<string | null>(null);
-
-  // ============================================
-  // Role info sheet (long-press on non-variant chips)
-  // ============================================
-
-  const [roleInfoId, setRoleInfoId] = useState<string | null>(null);
-
-  const handleChipInfoPress = useCallback((key: string) => {
-    // Strip trailing digits for variant entries (e.g. 'seer1' → 'seer')
-    const roleId = key.replace(/\d+$/, '');
-    setRoleInfoId(roleId);
-  }, []);
-
-  const handleCloseRoleInfo = useCallback(() => {
-    setRoleInfoId(null);
-  }, []);
-
-  /** Find the slot config for a given roleId key (strips number suffix to get base roleId) */
-  const findSlotForKey = useCallback((key: string) => {
-    const baseRoleId = key.replace(/\d+$/, '');
-    for (const group of FACTION_GROUPS) {
-      for (const section of group.sections) {
-        for (const slot of section.roles) {
-          if (slot.roleId === baseRoleId && slot.variants && slot.variants.length > 0) {
-            return slot;
-          }
-        }
-      }
-    }
-    return null;
-  }, []);
-
-  const handleChipLongPress = useCallback((key: string) => {
-    const baseRoleId = key.replace(/\d+$/, '');
-    setVariantPickerSlotId(baseRoleId);
-  }, []);
-
-  const handleVariantSelect = useCallback(
-    (variantId: string) => {
-      if (!variantPickerSlotId) return;
-      setVariantOverrides((prev) => {
-        if (variantId === variantPickerSlotId) {
-          // Selecting the base role — remove override
-          const next = { ...prev };
-          delete next[variantPickerSlotId];
-          return next;
-        }
-        return { ...prev, [variantPickerSlotId]: variantId };
-      });
-      // Auto-select the slot when user picks a variant
-      setSelection((prev) => {
-        if (prev[variantPickerSlotId]) return prev; // already selected, no-op
-        return { ...prev, [variantPickerSlotId]: true };
-      });
-      setSelectedTemplate('__custom__');
-    },
-    [variantPickerSlotId],
-  );
-
-  const variantPickerVisible = variantPickerSlotId !== null;
-  const variantPickerSlot = variantPickerSlotId ? findSlotForKey(variantPickerSlotId) : null;
-  const variantPickerIds = variantPickerSlot
-    ? [variantPickerSlot.roleId, ...variantPickerSlot.variants!]
-    : [];
-  const variantPickerActive = variantPickerSlotId
-    ? (variantOverrides[variantPickerSlotId] ?? variantPickerSlotId)
-    : '';
-
-  const handleCloseVariantPicker = useCallback(() => {
-    setVariantPickerSlotId(null);
-  }, []);
-
-  // ============================================
-  // Active faction tab
-  // ============================================
-
-  const [activeTab, setActiveTab] = useState<string>(FACTION_GROUPS[0]?.faction ?? '');
-
-  const handleTabPress = useCallback((key: string) => {
-    setActiveTab(key);
-  }, []);
-
-  // ============================================
-  // Settings sheet (Animation + BGM)
-  // ============================================
-
-  const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
-
-  const handleOpenSettings = useCallback(() => {
-    setSettingsSheetVisible(true);
-  }, []);
-
-  const handleCloseSettings = useCallback(() => {
-    setSettingsSheetVisible(false);
-  }, []);
-
-  // ============================================
-  // Template dropdown (title-style trigger in header)
-  // ============================================
-
-  const [templateDropdownVisible, setTemplateDropdownVisible] = useState(false);
-
-  const handleOpenTemplateDropdown = useCallback(() => {
-    setTemplateDropdownVisible(true);
-  }, []);
-
-  const handleCloseTemplateDropdown = useCallback(() => {
-    setTemplateDropdownVisible(false);
-  }, []);
-
-  const handleSelectTemplate = useCallback(
-    (value: string) => {
-      handleTemplateChange(value);
-      setTemplateDropdownVisible(false);
-    },
-    [handleTemplateChange],
-  );
-
-  const selectedTemplateLabel = useMemo(() => {
-    if (selectedTemplate === '__custom__') return '自定义';
-    const opt = templateOptions.find((o) => o.value === selectedTemplate);
-    return opt?.label ?? selectedTemplate;
-  }, [selectedTemplate, templateOptions]);
-
-  // ============================================
-  // Bulk role stepper
-  // ============================================
-
-  /** Count how many of a bulk role are currently selected */
-  const getBulkCount = useCallback(
-    (roleId: string, maxCount: number): number => {
-      let count = 0;
-      for (let i = 0; i < maxCount; i++) {
-        const key = i === 0 ? roleId : `${roleId}${i}`;
-        if (selection[key]) count++;
-      }
-      return count;
-    },
-    [selection],
-  );
-
-  const handleBulkCountChange = useCallback((roleId: string, newCount: number) => {
-    setSelection((prev) => {
-      const next = { ...prev };
-      // Find maxCount from FACTION_GROUPS
-      let maxCount = 1;
-      for (const group of FACTION_GROUPS) {
-        for (const section of group.sections) {
-          for (const slot of section.roles) {
-            if (slot.roleId === roleId) maxCount = slot.count ?? 1;
-          }
-        }
-      }
-      // Set first `newCount` keys to true, rest to false
-      for (let i = 0; i < maxCount; i++) {
-        const key = i === 0 ? roleId : `${roleId}${i}`;
-        next[key] = i < newCount;
-      }
-      return next;
-    });
-    setSelectedTemplate('__custom__');
-  }, []);
-
-  /** Map faction to accent color for UI */
-  const getFactionAccentColor = useCallback(
-    (faction: Faction): string => {
-      switch (faction) {
-        case Faction.Wolf:
-          return colors.wolf;
-        case Faction.God:
-          return colors.god;
-        case Faction.Villager:
-          return colors.villager;
-        case Faction.Special:
-          return colors.third;
-        default:
-          return colors.primary;
-      }
-    },
-    [colors],
-  );
-
-  /** Count selected roles in a faction group */
-  const getFactionSelectedCount = useCallback(
-    (group: (typeof FACTION_GROUPS)[number]): number => {
-      let count = 0;
-      for (const section of group.sections) {
-        for (const slot of section.roles) {
-          const slotCount = slot.count ?? 1;
-          for (let i = 0; i < slotCount; i++) {
-            const key = i === 0 ? slot.roleId : `${slot.roleId}${i}`;
-            if (selection[key]) count++;
-          }
-        }
-      }
-      return count;
-    },
-    [selection],
-  );
-
-  /** Build tab items for FactionTabs */
-  const tabItems: FactionTabItem[] = useMemo(
-    () =>
-      FACTION_GROUPS.map((group) => {
-        const accentColor = getFactionAccentColor(group.faction);
-        return {
-          key: group.faction,
-          icon: (
-            <Ionicons
-              name={group.iconName as keyof typeof Ionicons.glyphMap}
-              size={14}
-              color={accentColor}
-            />
-          ),
-          title: group.title,
-          count: getFactionSelectedCount(group),
-          accentColor,
-        };
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selection, getFactionAccentColor, getFactionSelectedCount],
-  );
-
-  /** The currently active faction group */
-  const activeGroup = useMemo(
-    () => FACTION_GROUPS.find((g) => g.faction === activeTab) ?? FACTION_GROUPS[0],
-    [activeTab],
-  );
-
-  // activeFactionColorKey removed — section-level faction is used per-section in render
-
-  const isDisabled = isCreating || isLoading;
+    overflowVisible,
+    setOverflowVisible,
+    handleGoBack,
+    handleCreateRoom,
+    toggleRole,
+    handleClearSelection,
+    selectedTemplateLabel,
+    templateOptions,
+    templateDropdownVisible,
+    handleOpenTemplateDropdown,
+    handleCloseTemplateDropdown,
+    handleSelectTemplate,
+    selectedTemplate,
+    roleRevealAnimation,
+    bgmEnabled,
+    animationOptions,
+    bgmOptions,
+    settingsSheetVisible,
+    handleOpenSettings,
+    handleCloseSettings,
+    handleAnimationChange,
+    handleBgmChange,
+    variantPickerVisible,
+    variantPickerIds,
+    variantPickerActive,
+    handleChipLongPress,
+    handleVariantSelect,
+    handleCloseVariantPicker,
+    roleInfoId,
+    handleChipInfoPress,
+    handleCloseRoleInfo,
+    tabItems,
+    activeTab,
+    activeGroup,
+    handleTabPress,
+    getBulkCount,
+    handleBulkCountChange,
+    getFactionAccentColor,
+  } = state;
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>

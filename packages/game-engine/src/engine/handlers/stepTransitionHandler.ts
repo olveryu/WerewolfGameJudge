@@ -27,6 +27,7 @@ import type { ProtocolAction } from '../../protocol/types';
 import { getRoleAfterSwap } from '../../resolvers/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { getEngineLogger } from '../../utils/logger';
+import { buildSeatRoleMap, findSeatByRole } from '../../utils/playerHelpers';
 import type { NightActions, RoleSeatMap } from '../DeathCalculator';
 import { calculateDeaths } from '../DeathCalculator';
 import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
@@ -43,13 +44,8 @@ const nightFlowLog = getEngineLogger().extend('NightFlow');
 
 import { GameStatus } from '../../models/GameStatus';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
-import type { HandlerContext, HandlerResult } from './types';
+import type { HandlerContext, HandlerResult, NonNullState, SideEffect } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
-
-/**
- * 非 null 的 state 类型
- */
-type NonNullState = NonNullable<HandlerContext['state']>;
 
 // =============================================================================
 // Gate Validation
@@ -161,10 +157,7 @@ function buildRoleSeatMap(state: NonNullState): RoleSeatMap {
   const swappedSeats = state.currentNightResults?.swappedSeats;
 
   // Build original players map once (seat → roleId)
-  const players = new Map<number, RoleId>();
-  for (const [seatStr, player] of Object.entries(state.players)) {
-    if (player?.role) players.set(Number.parseInt(seatStr, 10), player.role);
-  }
+  const players = buildSeatRoleMap(state.players);
 
   // Build effective role → seat mapping (swap-aware)
   const effectiveRoleSeatMap = new Map<RoleId, number>();
@@ -212,14 +205,6 @@ function findActionBySchemaId(
 /**
  * 根据 roleId 从 state.players 中找到座位号
  */
-function findSeatByRoleId(state: NonNullState, roleId: RoleId): number | null {
-  for (const [seatStr, player] of Object.entries(state.players)) {
-    if (player?.role === roleId) {
-      return Number.parseInt(seatStr, 10);
-    }
-  }
-  return null;
-}
 
 /**
  * 创建 UI Hint Action
@@ -246,7 +231,7 @@ function maybeCreateUiHintAction(
   const schema = SCHEMAS[stepId];
 
   // DEBUG: Log the hint decision inputs
-  const nextActorSeat = findSeatByRoleId(state, roleId);
+  const nextActorSeat = findSeatByRole(state.players, roleId);
   nightFlowLog.debug('[UI Hint] evaluating', {
     stepId,
     roleId,
@@ -491,10 +476,7 @@ export function handleAdvanceNight(
   // 音频播放：当前步骤的结束音频 + 下一步的开始音频
   // 按顺序添加到 sideEffects，Facade 会按顺序播放
   const currentStepId = state.currentStepId;
-  const sideEffects: HandlerResult['sideEffects'] = [
-    { type: 'BROADCAST_STATE' },
-    { type: 'SAVE_STATE' },
-  ];
+  const sideEffects: SideEffect[] = [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }];
 
   // 1) 当前步骤的结束音频
   if (currentStepId) {

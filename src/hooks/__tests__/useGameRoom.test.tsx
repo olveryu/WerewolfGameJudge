@@ -16,6 +16,14 @@ import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
+// useFocusEffect requires NavigationContainer; mock it as useEffect for unit tests
+jest.mock('@react-navigation/native', () => {
+  const React = require('react');
+  return {
+    useFocusEffect: (cb: () => void) => React.useEffect(cb, [cb]),
+  };
+});
+
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
 

@@ -81,7 +81,7 @@ export class AudioService {
   }
 
   async playNightBeginAudio(): Promise<void> {
-    return this.#strategy.play(NIGHT_AUDIO, 'night');
+    return this.playNightAudio();
   }
 
   async playNightEndAudio(): Promise<void> {
