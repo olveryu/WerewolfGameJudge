@@ -19,6 +19,7 @@ import type { ProtocolAction } from '../../protocol/types';
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput, ResolverContext, ResolverResult } from '../../resolvers/types';
 import { newRejectionId } from '../../utils/id';
+import { buildSeatRoleMap } from '../../utils/playerHelpers';
 import type { SubmitActionIntent, ViewedRoleIntent } from '../intents/types';
 import type {
   ActionRejectedAction,
@@ -39,12 +40,7 @@ function buildResolverContext(
   actorRoleId: RoleId,
 ): ResolverContext {
   // 构建 players: seat -> role
-  const players = new Map<number, RoleId>();
-  for (const [seatStr, player] of Object.entries(state.players)) {
-    if (player?.role) {
-      players.set(Number.parseInt(seatStr, 10), player.role);
-    }
-  }
+  const players = buildSeatRoleMap(state.players);
 
   // FAIL-FAST: currentNightResults must exist when status === GameStatus.Ongoing
   if (!state.currentNightResults) {

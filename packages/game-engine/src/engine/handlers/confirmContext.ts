@@ -14,6 +14,7 @@
  */
 
 import type { SchemaId } from '../../models/roles/spec';
+import { findSeatByRole } from '../../utils/playerHelpers';
 import type { SetConfirmStatusAction } from '../reducer/types';
 import type { NonNullState } from './types';
 
@@ -38,13 +39,7 @@ function computeConfirmStatus(
   state: NonNullState,
 ): { role: 'hunter' | 'darkWolfKing'; canShoot: boolean } {
   // 找到该角色的座位号
-  let roleSeat: number | null = null;
-  for (const [seatStr, player] of Object.entries(state.players)) {
-    if (player?.role === role) {
-      roleSeat = Number.parseInt(seatStr, 10);
-      break;
-    }
-  }
+  const roleSeat = findSeatByRole(state.players, role);
 
   // Fail-closed: 如果找不到角色座位，canShoot = false（异常态不应发技能）
   if (roleSeat === null) {
