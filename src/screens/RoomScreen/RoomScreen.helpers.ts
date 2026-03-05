@@ -14,7 +14,11 @@ import {
   getRoleSpec,
   isWolfRole,
 } from '@werewolf/game-engine/models/roles';
-import { type ActionSchema, TargetConstraint } from '@werewolf/game-engine/models/roles/spec';
+import {
+  type ActionSchema,
+  SCHEMAS,
+  TargetConstraint,
+} from '@werewolf/game-engine/models/roles/spec';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 
@@ -88,8 +92,8 @@ export interface SeatViewModel {
   disabledReason?: string;
   /** Show ✅ badge on seat tile (e.g. player has viewed role during assigned phase). */
   showReadyBadge?: boolean;
-  /** Wolf vote target for this seat (visible to wolf-faction only during wolf meeting). */
-  wolfVoteTarget?: number;
+  /** Pre-formatted wolf vote badge text (visible to wolf-faction only during wolf meeting). */
+  wolfVoteBadge?: string;
 }
 
 // =============================================================================
@@ -210,6 +214,14 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
     wolfVotes,
     currentStepIndex: gameState.currentStepIndex,
   };
+}
+
+/**
+ * Format a wolf vote entry into badge text.
+ * -1 → schema-defined empty knife text; ≥0 → "刀{seat+1}".
+ */
+function formatWolfVoteBadge(vote: number): string {
+  return vote === -1 ? SCHEMAS.wolfKill.ui!.emptyVoteText! : `刀${vote + 1}`;
 }
 
 /**
@@ -389,10 +401,10 @@ export function buildSeatViewModels(
 
     // ✅ badge: assigned/ready → "已查看身份"
     // groupConfirm ack → "已确认催眠"
-    // wolfVoteTarget badge 已包含"已投票"语义，两者互斥
-    const hasWolfVoteTarget = isWolf && wolfVotesBySeat != null && String(seat) in wolfVotesBySeat;
+    // wolfVoteBadge 已包含"已投票"语义，两者互斥
+    const hasWolfVoteBadge = isWolf && wolfVotesBySeat != null && String(seat) in wolfVotesBySeat;
     const readyBadge =
-      !hasWolfVoteTarget &&
+      !hasWolfVoteBadge &&
       ((options?.showReadyBadges && player != null && (player.hasViewedRole ?? false)) ||
         (options?.groupConfirmAcks?.includes(seat) ?? false));
 
@@ -416,7 +428,9 @@ export function buildSeatViewModels(
         (options?.multiSelectedSeats?.includes(seat) ?? false),
       disabledReason,
       showReadyBadge: readyBadge,
-      wolfVoteTarget: hasWolfVoteTarget ? wolfVotesBySeat[String(seat)] : undefined,
+      wolfVoteBadge: hasWolfVoteBadge
+        ? formatWolfVoteBadge(wolfVotesBySeat[String(seat)])
+        : undefined,
     };
   });
 }
