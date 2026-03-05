@@ -33,6 +33,13 @@ export interface IGameFacade {
    */
   getState(): GameState | null;
 
+  /**
+   * Subscribe to store change notifications (for useSyncExternalStore).
+   * @param onStoreChange - React re-render trigger; do NOT read state inside.
+   * @returns Unsubscribe function.
+   */
+  subscribe(onStoreChange: () => void): () => void;
+
   // === Identity ===
   /** 当前用户是否是 Host */
   isHostPlayer(): boolean;

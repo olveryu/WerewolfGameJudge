@@ -14,7 +14,6 @@
  * 不直接调用 Supabase，不包含业务 callback 逻辑（应在子 hooks 中）。
  */
 
-import { useFocusEffect } from '@react-navigation/native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
@@ -23,7 +22,7 @@ import type {
   ResolvedRoleRevealAnimation,
   RoleRevealAnimation,
 } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
@@ -133,12 +132,6 @@ export const useGameRoom = (): UseGameRoomResult => {
   const facade = useGameFacade();
   const { roomService, authService } = useServices();
 
-  // Identity state (set by facade listener)
-  const [gameState, setGameState] = useState<LocalGameState | null>(null);
-  const [isHost, setIsHost] = useState(false);
-  const [myUid, setMyUid] = useState<string | null>(null);
-  const [mySeatNumber, setMySeatNumber] = useState<number | null>(null);
-
   // roomRecord is owned here so both useConnectionSync and useRoomLifecycle can use it
   const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
 
@@ -149,11 +142,53 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Connection status + foreground DB fetch
   const connection = useConnectionSync(facade, roomRecord);
 
-  // BGM state management
-  const bgm = useBgmControl(isHost, gameState?.status ?? null, gameState?.isAudioPlaying ?? false);
-
   // Rejoin overlay state: shown when Host rejoins an ongoing game
   const [showContinueOverlay, setShowContinueOverlay] = useState(false);
+
+  // =========================================================================
+  // Facade state subscription (useSyncExternalStore — React 18+ standard)
+  // =========================================================================
+
+  const subscribe = useCallback((cb: () => void) => facade.subscribe(cb), [facade]);
+  const getSnapshot = useCallback(() => facade.getState(), [facade]);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot);
+
+  // Derive local state (pure computation, zero useState for identity)
+  const gameState = useMemo(() => (snapshot ? toLocalState(snapshot) : null), [snapshot]);
+  const isHost = snapshot !== null && facade.isHostPlayer();
+  const myUid = snapshot !== null ? facade.getMyUid() : null;
+  const mySeatNumber = snapshot !== null ? facade.getMySeatNumber() : null;
+
+  // Side effects: sync metadata + rejoin overlay
+  const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;
+
+  useEffect(() => {
+    if (snapshot) {
+      gameRoomLog.debug('[facade] State update from facade', {
+        roomCode: snapshot.roomCode,
+        status: snapshot.status,
+      });
+      setStateRevision(facade.getStateRevision());
+      onStateReceived();
+
+      // Host rejoin to ongoing game → show "continue game" overlay
+      // wasAudioInterrupted is a one-shot flag set during joinRoom(isHost=true) DB restore,
+      // cleared after resumeAfterRejoin(). setState(true) is idempotent.
+      if (
+        facade.isHostPlayer() &&
+        snapshot.status === GameStatus.Ongoing &&
+        facade.wasAudioInterrupted
+      ) {
+        setShowContinueOverlay(true);
+      }
+    } else {
+      setStateRevision(0);
+      setLastStateReceivedAt(null);
+    }
+  }, [snapshot, facade, setStateRevision, onStateReceived, setLastStateReceivedAt]);
+
+  // BGM state management (needs isHost + gameState derived above)
+  const bgm = useBgmControl(isHost, gameState?.status ?? null, gameState?.isAudioPlaying ?? false);
 
   // Debug mode: bot control
   const debug = useDebugMode(facade, mySeatNumber, gameState);
@@ -161,18 +196,12 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Night-phase derived values (pure computation)
   const nightDerived = useNightDerived(gameState);
 
-  // Stable setGameState(null) callback for lifecycle.leaveRoom
-  const clearGameState = useCallback(() => setGameState(null), []);
-
   // Room lifecycle: creation/joining/leaving + seats
   const lifecycle = useRoomLifecycle({
     facade,
     authService,
     roomService,
     connection,
-    setGameState: clearGameState,
-    setIsHost,
-    setMyUid,
     setRoomRecord,
   });
 
@@ -184,57 +213,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     mySeatNumber,
     gameState,
   });
-
-  // =========================================================================
-  // Facade state subscription → identity derivation
-  // =========================================================================
-
-  // Destructure stable setter refs so the effect doesn't re-run when
-  // connectionStatus changes (which rebuilds the connection useMemo object).
-  const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;
-
-  useFocusEffect(
-    useCallback(() => {
-      const unsubscribe = facade.addListener((snapshot) => {
-        if (snapshot) {
-          gameRoomLog.debug('[facade] State update from facade', {
-            roomCode: snapshot.roomCode,
-            status: snapshot.status,
-          });
-          const localState = toLocalState(snapshot);
-          setGameState(localState);
-          // 从 facade 派生 identity
-          setIsHost(facade.isHostPlayer());
-          setMyUid(facade.getMyUid());
-          setMySeatNumber(facade.getMySeatNumber());
-          setStateRevision(facade.getStateRevision());
-          // Notify connection sync (resets throttle + clears timer)
-          onStateReceived();
-
-          // Host rejoin to ongoing game → show "continue game" overlay
-          // wasAudioInterrupted is a one-shot flag set during joinRoom(isHost=true) DB restore,
-          // cleared after resumeAfterRejoin(). setState(true) is idempotent.
-          if (
-            facade.isHostPlayer() &&
-            snapshot.status === GameStatus.Ongoing &&
-            facade.wasAudioInterrupted
-          ) {
-            setShowContinueOverlay(true);
-          }
-        } else {
-          setGameState(null);
-          setIsHost(false);
-          setMyUid(null);
-          setMySeatNumber(null);
-          setStateRevision(0);
-          setLastStateReceivedAt(null);
-        }
-      });
-      return () => {
-        unsubscribe();
-      };
-    }, [facade, setStateRevision, onStateReceived, setLastStateReceivedAt]),
-  );
 
   // =========================================================================
   // Rejoin recovery

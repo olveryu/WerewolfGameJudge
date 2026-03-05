@@ -47,6 +47,7 @@ jest.mock('../../../services/infra/AuthService');
 const createMockFacade = (): IGameFacade =>
   ({
     addListener: jest.fn(() => jest.fn()),
+    subscribe: jest.fn(() => jest.fn()),
     getState: jest.fn(() => null),
     isHostPlayer: jest.fn(() => false),
     getMyUid: jest.fn(() => null),

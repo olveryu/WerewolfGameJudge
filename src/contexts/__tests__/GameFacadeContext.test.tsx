@@ -8,6 +8,7 @@ import type { IGameFacade } from '@/services/types/IGameFacade';
 function createFakeFacade(): IGameFacade {
   return {
     addListener: () => () => {},
+    subscribe: () => () => {},
     getState: () => null,
     isHostPlayer: () => false,
     getMyUid: () => 'u1',
