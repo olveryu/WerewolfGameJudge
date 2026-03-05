@@ -301,7 +301,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         borderTopWidth: 1,
         borderTopColor: colors.borderLight,
         // Upward shadow
-        boxShadow: '0 -3px 12px rgba(0, 0, 0, 0.08)',
+        ...shadows.upward,
       },
       message: {
         textAlign: 'center',
