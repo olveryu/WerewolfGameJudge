@@ -52,6 +52,10 @@ export interface SchemaUi {
   readonly confirmText?: string;
   /** How chooseSeat intent should behave when it represents a reveal flow. */
   readonly revealKind?: RevealKind;
+  /** Reveal dialog title prefix (e.g. '查验结果', '通灵结果'). Schema-driven, replaces client-side mapping. */
+  readonly revealTitlePrefix?: string;
+  /** True when the reveal result is a plain '好人'/'狼人' string displayed as-is, false when it needs getRoleDisplayName(). */
+  readonly revealResultIsCheckResult?: boolean;
   /** Bottom action button text (skip / empty vote / blocked hint etc). */
   readonly bottomActionText?: string;
   /** Wolf vote "empty knife" button text (wolfVote only). */

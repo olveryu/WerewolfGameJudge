@@ -20,7 +20,7 @@ export interface WitchStepResultsExtra {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RevealKind mapping tables (exhaustive via `satisfies Record<RevealKind, …>`)
+// Reveal: GameState key mapping (exhaustive via `satisfies Record<RevealKind, …>`)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Maps RevealKind → GameState field name that holds the reveal data. */
@@ -35,28 +35,6 @@ const REVEAL_STATE_KEY = {
   wolfRobot: 'wolfRobotReveal',
 } as const satisfies Record<RevealKind, string>;
 
-/** Maps RevealKind → dialog title prefix shown to the player. */
-const REVEAL_TITLE_PREFIX = {
-  seer: '查验结果',
-  mirrorSeer: '查验结果',
-  drunkSeer: '查验结果',
-  psychic: '通灵结果',
-  gargoyle: '石像鬼探查',
-  pureWhite: '纯白查验',
-  wolfWitch: '狼巫查验',
-  wolfRobot: '学习结果',
-} as const satisfies Record<RevealKind, string>;
-
-/**
- * RevealKinds whose result is a plain '好人'/'狼人' string (displayed as-is).
- * Others show getRoleDisplayName(result).
- */
-const CHECK_RESULT_REVEAL_KINDS: ReadonlySet<RevealKind> = new Set([
-  'seer',
-  'mirrorSeer',
-  'drunkSeer',
-]);
-
 /** Read reveal data from GameState for a given RevealKind. */
 export function getRevealDataFromState(
   state: LocalGameState,
@@ -70,14 +48,33 @@ export function getRevealDataFromState(
     | undefined;
 }
 
-/** Get the dialog title prefix for a reveal kind. */
-export function getRevealTitlePrefix(kind: RevealKind): string {
-  return REVEAL_TITLE_PREFIX[kind];
+// ─────────────────────────────────────────────────────────────────────────────
+// Reveal: schema-driven UI metadata
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Reveal dialog UI metadata extracted from schema. */
+export interface RevealUi {
+  /** Dialog title prefix (e.g. '查验结果', '通灵结果'). */
+  readonly titlePrefix: string;
+  /** Whether the result is a plain '好人'/'狼人' string displayed as-is. */
+  readonly isCheckResult: boolean;
 }
 
-/** Whether the reveal result should be displayed as-is (true) or via getRoleDisplayName (false). */
-export function isCheckResultReveal(kind: RevealKind): boolean {
-  return CHECK_RESULT_REVEAL_KINDS.has(kind);
+/**
+ * Read reveal dialog UI metadata from the current ActionSchema.
+ *
+ * Returns `revealTitlePrefix` and `revealResultIsCheckResult` from `schema.ui`,
+ * the single source of truth (defined in game-engine SCHEMAS).
+ * Returns null if the schema has no reveal UI fields.
+ */
+export function getRevealUiFromSchema(schema: ActionSchema | null): RevealUi | null {
+  if (!schema || schema.kind === 'compound') return null;
+  const { revealTitlePrefix, revealResultIsCheckResult } = schema.ui ?? {};
+  if (!revealTitlePrefix) return null;
+  return {
+    titlePrefix: revealTitlePrefix,
+    isCheckResult: revealResultIsCheckResult ?? false,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

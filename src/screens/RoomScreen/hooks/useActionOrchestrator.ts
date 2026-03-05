@@ -30,9 +30,8 @@ import {
   getConfirmTextForSeatAction,
   getConfirmTitleForSchema,
   getRevealDataFromState,
-  getRevealTitlePrefix,
+  getRevealUiFromSchema,
   getSubStepByKey,
-  isCheckResultReveal,
 } from './actionIntentHelpers';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -270,10 +269,11 @@ export function useActionOrchestrator({
             }
 
             if (reveal) {
-              const displayResult = isCheckResultReveal(revealKind)
+              const revealUi = getRevealUiFromSchema(currentSchema);
+              const displayResult = revealUi?.isCheckResult
                 ? reveal.result
                 : getRoleDisplayName(reveal.result);
-              const titlePrefix = getRevealTitlePrefix(revealKind);
+              const titlePrefix = revealUi?.titlePrefix ?? revealKind;
               actionDialogs.showRevealDialog(
                 `${titlePrefix}：${reveal.targetSeat + 1}号是${displayResult}`,
                 '',
