@@ -12,6 +12,9 @@ import { secureRng } from '@werewolf/game-engine/utils/random';
 import { API_BASE_URL } from '@/config/api';
 import { facadeLog } from '@/utils/logger';
 
+/** Default region value for x-region header (Supabase Edge Functions regional routing) */
+const DEFAULT_REGION = 'us-west-1';
+
 /** 标准 API 响应（game control / seat 共用结构） */
 export interface ApiResponse {
   success: boolean;
@@ -60,14 +63,14 @@ async function callApiOnce(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-region': 'us-west-1',
+        'x-region': DEFAULT_REGION,
       },
       body: JSON.stringify(body),
     });
 
-    // Guard: non-JSON error pages (502/503) would throw SyntaxError in .json()
-    if (!res.ok && !res.headers.get('content-type')?.includes('application/json')) {
-      facadeLog.error(`${label} non-JSON error`, { path, status: res.status });
+    // Guard: non-JSON responses (502/503 error pages OR 200+text/html from proxy misconfiguration)
+    if (!res.headers.get('content-type')?.includes('application/json')) {
+      facadeLog.error(`${label} non-JSON response`, { path, status: res.status });
       if (store) store.rollbackOptimistic();
       return { success: false, reason: 'SERVER_ERROR' };
     }

@@ -80,7 +80,7 @@ export class RealtimeService {
    */
   async joinRoom(
     roomCode: string,
-    _userId: string,
+    userId: string,
     callbacks: {
       /** DB state change callback (postgres_changes — sole state sync channel) */
       onDbStateChange?: (state: GameState, revision: number) => void;
@@ -101,7 +101,7 @@ export class RealtimeService {
     // Cache params for dead channel recovery (rejoinCurrentRoom)
     this.#lastJoinParams = {
       roomCode,
-      userId: _userId,
+      userId,
       onDbStateChange: callbacks.onDbStateChange,
     };
 
