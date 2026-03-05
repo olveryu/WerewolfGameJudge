@@ -37,7 +37,7 @@ test.setTimeout(180_000);
  * Returns true if the overlay was visible and dismissed.
  */
 async function dismissContinueOverlayIfVisible(page: Page): Promise<boolean> {
-  const continueBtn = page.locator('[data-testid="continue-game-button"]');
+  const continueBtn = page.locator('[data-testid="alert-button-0"]');
   const isVisible = await continueBtn
     .waitFor({ state: 'visible', timeout: 5_000 })
     .then(() => true)

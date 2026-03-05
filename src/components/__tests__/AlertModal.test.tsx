@@ -12,11 +12,6 @@ describe('AlertModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   describe('Rendering', () => {
@@ -90,10 +85,6 @@ describe('AlertModal', () => {
       fireEvent.press(getByText('OK'));
 
       expect(onClose).toHaveBeenCalled();
-
-      // Advance timers to trigger the setTimeout callback
-      jest.runAllTimers();
-
       expect(onPress).toHaveBeenCalled();
     });
 
@@ -155,7 +146,6 @@ describe('AlertModal', () => {
       );
 
       fireEvent.press(getByText('Cancel'));
-      jest.runAllTimers();
 
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(onCancel).toHaveBeenCalled();

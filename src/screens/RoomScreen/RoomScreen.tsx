@@ -16,6 +16,7 @@ import React, { useCallback, useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AlertModal } from '@/components/AlertModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { RootStackParamList } from '@/navigation/types';
@@ -29,7 +30,6 @@ import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BottomActionPanel } from './components/BottomActionPanel';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
-import { ContinueGameOverlay } from './components/ContinueGameOverlay';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HostControlButtons } from './components/HostControlButtons';
 import { HostMenuDropdown } from './components/HostMenuDropdown';
@@ -428,10 +428,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       </BottomActionPanel>
 
       {/* Continue Game Overlay — shown after Host rejoin to unlock audio */}
-      <ContinueGameOverlay
+      <AlertModal
         visible={needsContinueOverlay}
-        onContinue={resumeAfterRejoin}
-        styles={componentStyles.continueGameOverlay}
+        title="游戏已恢复"
+        message="点击下方按钮继续游戏并恢复音频"
+        buttons={[{ text: '🔊 继续游戏', onPress: resumeAfterRejoin }]}
+        onClose={resumeAfterRejoin}
       />
 
       {/* Seat Confirmation Modal */}

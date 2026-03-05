@@ -63,9 +63,6 @@ export const TESTIDS = {
   seatConfirmOk: 'seat-confirm-ok',
   seatConfirmCancel: 'seat-confirm-cancel',
 
-  // ContinueGameOverlay
-  continueGameButton: 'continue-game-button',
-
   // NightProgressIndicator
   nightProgressIndicator: 'night-progress-indicator',
 
