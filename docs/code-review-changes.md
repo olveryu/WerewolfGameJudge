@@ -26,26 +26,26 @@
 
 ## 变更总览
 
-| #   | 优先级 | Finding                                                     | 文件                                      | 变更类型    | Commit |
-| --- | ------ | ----------------------------------------------------------- | ----------------------------------------- | ----------- | ------ |
-| 1   | P0     | handleRestartGame 缺 `satisfies Complete<GameState>`        | `normalize.ts` + `gameReducer.ts`         | 类型安全    | C1     |
-| 2   | P0     | `useFocusEffect` + 移除 facade listener 追踪                | `useGameRoom.ts` + `GameFacade.ts` + test | 社区标准    | C2     |
-| 3   | P0     | `callApiOnce` 200+text/html 场景未拦截                      | `apiUtils.ts`                             | Bug fix     | C3     |
-| 4   | P1     | `STANDARD_SIDE_EFFECTS` 共享可变数组                        | `handlers/types.ts`                       | 防御性加固  | C1     |
-| 5   | P1     | `NonNullState` 重复定义 4 处                                | `handlers/types.ts` + 4 handler 文件      | DRY         | C1     |
-| 6   | P1     | SettingsService 缺 boolean 字段校验                         | `SettingsService.ts`                      | 防御性加固  | C3     |
-| 7   | P1     | `_userId` 命名有误导                                        | `RealtimeService.ts`                      | 命名修正    | C3     |
-| 8   | P1     | `playNightBeginAudio` 重复实现                              | `AudioService.ts`                         | DRY         | C3     |
-| 9   | P2     | hardcoded rgba in styles.ts                                 | `styles.ts` + `tokens.ts`                 | Theme token | C4     |
-| 10  | P2     | `x-region` 硬编码魔法值                                     | `apiUtils.ts`                             | 命名常量    | C3     |
-| 11  | P1     | Resolver 覆盖率合约测试                                     | 新文件                                    | 测试        | C5     |
-| 12  | P1     | `Object.entries(state.players)` 重复 10 处，替换 7 处       | game-engine 8 文件                        | DRY         | C6     |
-| 13  | P1     | `getListenerCount` 硬编码 `-1`                              | `GameFacade.ts`                           | 防御性加固  | C2     |
-| 14  | P2     | GameFacade 925 行 → 拆分 reconnection manager               | `GameFacade.ts` → 新文件                  | SRP 拆分    | C7     |
-| 15  | P2     | ConfigScreen 877 行 → 拆分 state + helpers                  | `ConfigScreen.tsx` → 新文件               | SRP 拆分    | C8     |
-| 16  | P2     | useActionOrchestrator 818 行 → 提取 intent handlers         | `useActionOrchestrator.ts` → 新文件       | SRP 拆分    | C9     |
-| 17  | P2     | useRoomActions 771 行 → 提取 bottom action builder          | `useRoomActions.ts` → 新文件              | SRP 拆分    | C10    |
-| 18  | P2     | useRoomScreenState 877 行 → 提取 countdown + speaking order | `useRoomScreenState.ts` → 新文件          | SRP 拆分    | C11    |
+| #   | 优先级 | Finding                                                     | 文件                                      | 变更类型     | Commit          |
+| --- | ------ | ----------------------------------------------------------- | ----------------------------------------- | ------------ | --------------- |
+| 1   | P0     | handleRestartGame 缺 `satisfies Complete<GameState>`        | `normalize.ts` + `gameReducer.ts`         | 类型安全     | C1              |
+| 2   | P0     | `useFocusEffect` + 移除 facade listener 追踪                | `useGameRoom.ts` + `GameFacade.ts` + test | 社区标准     | C2              |
+| 3   | P0     | `callApiOnce` 200+text/html 场景未拦截                      | `apiUtils.ts`                             | Bug fix      | C3              |
+| 4   | P1     | `STANDARD_SIDE_EFFECTS` 共享可变数组                        | `handlers/types.ts`                       | 防御性加固   | C1              |
+| 5   | P1     | `NonNullState` 重复定义 4 处                                | `handlers/types.ts` + 4 handler 文件      | DRY          | C1              |
+| 6   | P1     | SettingsService 缺 boolean 字段校验                         | `SettingsService.ts`                      | 防御性加固   | C3              |
+| 7   | P1     | `_userId` 命名有误导                                        | `RealtimeService.ts`                      | 命名修正     | C3              |
+| 8   | P1     | `playNightBeginAudio` 重复实现                              | `AudioService.ts`                         | DRY          | C3              |
+| 9   | P2     | hardcoded rgba in styles.ts                                 | `styles.ts` + `tokens.ts`                 | Theme token  | C4              |
+| 10  | P2     | `x-region` 硬编码魔法值                                     | `apiUtils.ts`                             | 命名常量     | C3              |
+| 11  | P1     | Resolver 覆盖率合约测试                                     | 新文件                                    | 测试         | C5              |
+| 12  | P1     | `Object.entries(state.players)` 重复 10 处，替换 7 处       | game-engine 8 文件                        | DRY          | C6              |
+| 13  | P1     | `getListenerCount` 硬编码 `-1`                              | `GameFacade.ts`                           | 防御性加固   | C2              |
+| 14  | P2     | ~~GameFacade 903 行 → 拆分 reconnection manager~~           | ~~`GameFacade.ts` → 新文件~~              | ~~SRP 拆分~~ | ~~C7~~ **跳过** |
+| 15  | P2     | ConfigScreen 877 行 → 拆分 state + helpers                  | `ConfigScreen.tsx` → 新文件               | SRP 拆分     | C8              |
+| 16  | P2     | useActionOrchestrator 818 行 → 提取 pure utility helpers    | `useActionOrchestrator.ts` → 新文件       | SRP 拆分     | C9（调整）      |
+| 17  | P2     | useRoomActions 771 行 → 提取 bottom action builder          | `useRoomActions.ts` → 新文件              | SRP 拆分     | C10             |
+| 18  | P2     | useRoomScreenState 878 行 → 提取 countdown + speaking order | `useRoomScreenState.ts` → 新文件          | SRP 拆分     | C11             |
 
 ---
 
@@ -947,46 +947,22 @@ export function forEachSeatedPlayer(
 
 ---
 
-## 变更 #14 — P2: GameFacade 925 行 → 拆分 reconnection manager (C7)
+## 变更 #14 — ~~P2: GameFacade 903 行 → 拆分 reconnection manager (C7)~~ **跳过**
 
-### 问题
+### 原始问题
 
 GameFacade 承担了房间生命周期 + 音频编排 + 断连恢复 + API 委派 4 大职责，超过 400 行信号线。
 
-### 拆分方案
+### 跳过理由（社区惯例评审）
 
-**提取 `reconnectionManager.ts`（~220 行）**：
+评审后决定 **不执行** 此拆分，理由如下：
 
-| 方法                       | 行数 | 说明                              |
-| -------------------------- | ---- | --------------------------------- |
-| `#playPendingAudioEffects` | ~49  | Host-only reactive 音频消费       |
-| `#retryPendingAudioAck`    | ~47  | ack 重试执行                      |
-| `#registerOnlineRetry`     | ~30  | L3 online event → ack 重试        |
-| `#startPollFallback`       | ~20  | navigator.onLine poll             |
-| `#unregisterOnlineRetry`   | ~30  | 清理 online handler + timer       |
-| `#registerOnlineFetch`     | ~20  | L3 通用 online → fetchStateFromDB |
-| `#unregisterOnlineFetch`   | ~15  | 清理                              |
-
-新模块签名：
-
-```typescript
-export class ReconnectionManager {
-  constructor(deps: {
-    store: GameStore;
-    audioService: IAudioService;
-    realtimeService: RealtimeService;
-    roomService: Pick<RoomService, 'getGameState'>;
-    getIsHost: () => boolean;
-    getRoomCode: () => string | null;
-    getAborted: () => boolean;
-  }) {}
-  // ... 上述方法变为 public
-}
-```
-
-GameFacade constructor 中 2 个 `realtimeService.addStatusListener` 回调逻辑也移入 `ReconnectionManager`。
-
-**拆分后 GameFacade ~700 行**，主要剩下：房间生命周期 + thin delegate + identity。
+1. **耦合太深** — reconnection 的 8 个 mutable 字段（`#pendingAudioAckRetry`、`#onlineRetryHandler`、`#hasBeenLive` 等）在 `createRoom`/`joinRoom`/`leaveRoom`/constructor 中混合 reset，不构成独立生命周期
+2. **提取需要反向引用** — `#retryPendingAudioAck` 调 `#playPendingAudioEffects` + `gameActions.postAudioAck`，`constructor` 的 status listener 调 `fetchStateFromDB`。提取后需传入 5-6 个回调，形成双向依赖
+3. **无独立复用场景** — reconnection 逻辑绑定 GameFacade 实例，不可能被其他模块使用
+4. **独立测试无新增收益** — `GameFacade.test.ts`（1998 行）已完整覆盖 L1-L3 所有 reconnection 路径
+5. **代码已组织良好** — 文件内已有清晰的 section headers（`// Audio-ack online retry`、`// L3 Universal` 等），可读性已达标
+6. **Facade 是 aggregation pattern** — OOP Facade 在 Redux middleware / MobX stores 中 800-1000 行很常见。~170 行 thin delegates 已通过 `gameActions.ts` / `seatActions.ts` 做了实质拆分
 
 ---
 
@@ -1021,44 +997,37 @@ settings sheet, template dropdown, bulk role stepper
 
 ---
 
-## 变更 #16 — P2: useActionOrchestrator 818 行 → 提取 intent handlers (C9)
+## 变更 #16 — P2: useActionOrchestrator 818 行 → 提取 pure utility helpers (C9，方案调整)
 
 ### 问题
 
-`handleActionIntent` 的 switch 语句占 **505 行**，每个 case 分支独立。
+`handleActionIntent` 的 switch 语句占 **494 行**，11 个 case。
 
-### 拆分方案
+### 调整说明
 
-**新建 `actionIntentHandlers.ts`** — 按 intent type 提取纯函数：
+原方案计划将整个 switch 的 11 个 case body 提取为跨文件的 handler map。评审发现：
+
+- 494 行 switch 的每个 case 都读 hook 闭包变量（`gameStateRef`、`effectiveSeat`、`actionDialogs.*`、多个 setter），跨文件需传入 ~25 个参数
+- 社区惯例中这种 "god context" 接口是 code smell，overhead > benefit
+- React 社区中 named functions within hook 是更惯用的模式
+
+### 调整后方案
+
+**仅提取不依赖 React 状态的 utility 函数 → `actionIntentHelpers.ts`（~100 行）**：
 
 ```typescript
-// 每个 handler 接收统一的 context 对象
-interface IntentHandlerContext {
-  gameContext: GameContext;
-  actionDeps: ActionDeps;
-  state: LocalGameState;
-  // ... 其他共享依赖
-}
-
-export const INTENT_HANDLERS: Record<
-  IntentType,
-  (ctx: IntentHandlerContext, intent: ActionIntent) => void
-> = {
-  magicianFirst: handleMagicianFirst,
-  reveal: handleReveal, // ~95 lines
-  wolfVote: handleWolfVote, // ~45 lines
-  actionConfirm: handleActionConfirm, // ~75 lines
-  skip: handleSkip, // ~40 lines
-  actionPrompt: handleActionPrompt,
-  confirmTrigger: handleConfirmTrigger,
-  wolfRobotViewHunterStatus: handleWolfRobotViewHunterStatus, // ~50 lines
-  multiSelectToggle: handleMultiSelectToggle,
-  multiSelectConfirm: handleMultiSelectConfirm,
-  groupConfirmAck: handleGroupConfirmAck,
-};
+// actionIntentHelpers.ts - pure functions, no React state dependency
+export function getConfirmTitleForSchema(schema: ActionSchema): string;
+export function getConfirmTextForSeatAction(schema: ActionSchema, seat: number): string;
+export function buildWitchStepResults(...): WitchStepResults;
+export function getSubStepByKey(schema: ActionSchema, key: string): InlineSubStepSchema | undefined;
 ```
 
-**useActionOrchestrator.ts 简化为 ~310 行**（local state + refs + rejection effect + auto-trigger + dispatcher）。
+switch case bodies 保持在 hook 内部，但重命名为命名函数提升可读性。
+
+**useActionOrchestrator.ts 818 → ~720 行**（utility 函数移出），**actionIntentHelpers.ts ~100 行**（NEW）。
+
+收益：utility 函数可独立纯函数单测 + switch 可读性提升。
 
 ---
 
@@ -1193,12 +1162,9 @@ export function useSpeakingOrder(
 | `packages/game-engine/src/engine/handlers/witchContext.ts`          | 使用 `findSeatByRole`                      |
 | `packages/game-engine/src/engine/handlers/seatHandler.ts`           | 使用 `forEachSeatedPlayer`（L202）         |
 
-### C7: reconnection manager extraction
+### ~~C7: reconnection manager extraction~~ — 跳过
 
-| 文件                                         | 修改类型               |
-| -------------------------------------------- | ---------------------- |
-| `src/services/facade/reconnectionManager.ts` | **新文件**（~220 行）  |
-| `src/services/facade/GameFacade.ts`          | 委托 reconnection 逻辑 |
+> 评审后决定不执行。详见变更 #14 跳过理由。
 
 ### C8: ConfigScreen split
 
@@ -1208,12 +1174,12 @@ export function useSpeakingOrder(
 | `src/screens/ConfigScreen/useConfigScreenState.ts` | **新文件**（~480 行）         |
 | `src/screens/ConfigScreen/ConfigScreen.tsx`        | 简化为 render-only（~280 行） |
 
-### C9: action intent handlers extraction
+### C9: action intent helpers extraction（方案调整）
 
-| 文件                                                    | 修改类型                     |
-| ------------------------------------------------------- | ---------------------------- |
-| `src/screens/RoomScreen/hooks/actionIntentHandlers.ts`  | **新文件**（~510 行）        |
-| `src/screens/RoomScreen/hooks/useActionOrchestrator.ts` | 简化为 dispatcher（~310 行） |
+| 文件                                                    | 修改类型                          |
+| ------------------------------------------------------- | --------------------------------- |
+| `src/screens/RoomScreen/hooks/actionIntentHelpers.ts`   | **新文件**（~100 行纯函数）       |
+| `src/screens/RoomScreen/hooks/useActionOrchestrator.ts` | utility 函数移出（818 → ~720 行） |
 
 ### C10: bottom action builder extraction
 
@@ -1240,4 +1206,13 @@ export function useSpeakingOrder(
 2. `pnpm run test:all` — 全量单测
 3. `pnpm run quality` — 完整质量流水线
 
-C7-C11（SRP 拆分）额外验证：4. `npx knip --no-exit-code` — 确认无新增 unused exports 5. E2E smoke test — 确认 UI 功能不受影响
+C8-C11（SRP 拆分，C7 跳过）额外验证：4. `npx knip --no-exit-code` — 确认无新增 unused exports 5. E2E smoke test — 确认 UI 功能不受影响
+
+### 执行顺序（风险递增）
+
+| 顺序 | Commit | 风险  | 新文件 | 行数变化               |
+| ---- | ------ | ----- | ------ | ---------------------- |
+| 1    | C11    | 极低  | 2      | 878 → ~790 + 50 + 50   |
+| 2    | C8     | 低    | 2      | 877 → ~280 + 480 + 110 |
+| 3    | C10    | 低-中 | 1      | 771 → ~540 + 230       |
+| 4    | C9     | 中    | 1      | 818 → ~720 + 100       |
