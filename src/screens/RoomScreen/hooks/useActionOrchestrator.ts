@@ -15,7 +15,7 @@ import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName, getWolfKillImmuneRoleIds } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema, InlineSubStepSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -23,6 +23,13 @@ import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { roomScreenLog } from '@/utils/logger';
+
+import {
+  buildWitchStepResults,
+  getConfirmTextForSeatAction,
+  getConfirmTitleForSchema,
+  getSubStepByKey,
+} from './actionIntentHelpers';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -165,47 +172,11 @@ export function useActionOrchestrator({
     | { targets: readonly [number, number] }
     | { confirmed: boolean };
 
-  /**
-   * Get a compound sub-step by key (e.g., 'save', 'poison' for witchAction).
-   */
-  const getSubStepByKey = useCallback(
-    (stepKey: string | undefined): InlineSubStepSchema | null => {
-      if (!stepKey || currentSchema?.kind !== 'compound') return null;
-      const compound = currentSchema;
-      return compound.steps.find((s) => s.key === stepKey) ?? null;
-    },
-    [currentSchema],
-  );
-
-  /**
-   * Build witch action extra with stepResults protocol.
-   */
-  const buildWitchStepResults = useCallback(
-    (opts: { saveTarget: number | null; poisonTarget: number | null }): ActionExtra => {
-      return { stepResults: { save: opts.saveTarget, poison: opts.poisonTarget } };
-    },
-    [],
-  );
-
   const proceedWithActionTyped = useCallback(
     async (targetSeat: number | null, extra?: ActionExtra): Promise<boolean> => {
       return proceedWithAction(targetSeat, extra);
     },
     [proceedWithAction],
-  );
-
-  // UI-only helpers: keep confirm copy schema-driven
-  const getConfirmTitleForSchema = useCallback((): string => {
-    return currentSchema?.kind === 'chooseSeat' ? currentSchema.ui!.confirmTitle! : '确认行动';
-  }, [currentSchema]);
-
-  const getConfirmTextForSeatAction = useCallback(
-    (targetSeat: number): string => {
-      return currentSchema?.kind === 'chooseSeat'
-        ? currentSchema.ui!.confirmText!
-        : `是否对${targetSeat + 1}号玩家使用技能？`;
-    },
-    [currentSchema],
   );
 
   const confirmThenAct = useCallback(
@@ -214,8 +185,8 @@ export function useActionOrchestrator({
       onAccepted: () => Promise<void> | void,
       opts?: { title?: string; message?: string },
     ) => {
-      const title = opts?.title ?? getConfirmTitleForSchema();
-      const message = opts?.message ?? getConfirmTextForSeatAction(targetSeat);
+      const title = opts?.title ?? getConfirmTitleForSchema(currentSchema);
+      const message = opts?.message ?? getConfirmTextForSeatAction(currentSchema, targetSeat);
 
       actionDialogs.showConfirmDialog(title, message, async () => {
         const accepted = await proceedWithActionTyped(targetSeat);
@@ -223,7 +194,7 @@ export function useActionOrchestrator({
         await onAccepted();
       });
     },
-    [actionDialogs, getConfirmTextForSeatAction, getConfirmTitleForSchema, proceedWithActionTyped],
+    [actionDialogs, currentSchema, proceedWithActionTyped],
   );
 
   // ─── Rejection effect ────────────────────────────────────────────────────
@@ -428,7 +399,7 @@ export function useActionOrchestrator({
               );
             }, 0);
           } else {
-            const stepSchema = getSubStepByKey(intent.stepKey);
+            const stepSchema = getSubStepByKey(currentSchema, intent.stepKey);
             let extra: ActionExtra | undefined;
             let targetToSubmit: number | null;
 
@@ -480,7 +451,7 @@ export function useActionOrchestrator({
             break;
           }
 
-          const skipStepSchema = getSubStepByKey(intent.stepKey);
+          const skipStepSchema = getSubStepByKey(currentSchema, intent.stepKey);
           let skipExtra: ActionExtra | undefined;
           let skipSeat: number | null = null;
 
@@ -731,11 +702,9 @@ export function useActionOrchestrator({
       effectiveSeat,
       firstSwapSeat,
       actionDialogs,
-      buildWitchStepResults,
       confirmThenAct,
       currentSchema,
       currentActionRole,
-      getSubStepByKey,
       pendingHunterStatusViewed,
       proceedWithActionTyped,
       sendWolfRobotHunterStatusViewed,
