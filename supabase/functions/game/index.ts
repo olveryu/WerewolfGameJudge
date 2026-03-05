@@ -329,12 +329,12 @@ const handleAudioAck: HandlerFn = async (req) => {
   const result = await processGameAction(
     roomCode,
     (state) => {
-      // Guard: no-op if audio is already not playing and no pending effects
+      // Guard: idempotent no-op if audio is already not playing and no pending effects
       if (
         !state.isAudioPlaying &&
         (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0)
       ) {
-        return { success: false, reason: 'no_audio_playing', actions: [] };
+        return { success: true, actions: [] };
       }
       return {
         success: true,
@@ -381,7 +381,29 @@ const handleEnd: HandlerFn = async (req) => {
   const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, state.hostUid);
     const intent: EndNightIntent = { type: 'END_NIGHT' };
-    return handleEndNight(intent, handlerCtx);
+    const handlerResult = handleEndNight(intent, handlerCtx);
+    if (!handlerResult.success) return handlerResult;
+
+    // 提取 PLAY_AUDIO sideEffects → 转化为 state actions（与 handleStart 一致）
+    const audioEffects: AudioEffect[] = (handlerResult.sideEffects ?? [])
+      .filter(
+        (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
+          e.type === 'PLAY_AUDIO',
+      )
+      .map((e) => ({ audioKey: e.audioKey, isEndAudio: e.isEndAudio }));
+
+    if (audioEffects.length > 0) {
+      const extraActions: StateAction[] = [
+        { type: 'SET_PENDING_AUDIO_EFFECTS', payload: { effects: audioEffects } },
+        { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: true } },
+      ];
+      return {
+        ...handlerResult,
+        actions: [...handlerResult.actions, ...extraActions],
+      };
+    }
+
+    return handlerResult;
   });
 
   return jsonResponse(result, resultToStatus(result));

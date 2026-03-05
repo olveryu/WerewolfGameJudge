@@ -65,6 +65,10 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
   const abortControllerRef = useRef<AbortController | null>(null);
   const loadingRef = useRef(false);
   const drainTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const typewriterTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cooldownRef = useRef(cooldownRemaining);
+  cooldownRef.current = cooldownRemaining;
   // Ref to access latest messages inside callbacks without stale closure
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -80,15 +84,19 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
       });
   }, []);
 
-  // ── Persist messages ───────────────────────────────
+  // ── Persist messages (debounced 500ms) ─────────────────────
   useEffect(() => {
     if (messages.length > 0) {
-      AsyncStorage.setItem(
-        STORAGE_KEY_MESSAGES,
-        JSON.stringify(messages.slice(-MAX_PERSISTED_MESSAGES)),
-      ).catch((e) => {
-        chatLog.warn('Failed to persist messages:', e);
-      });
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        AsyncStorage.setItem(
+          STORAGE_KEY_MESSAGES,
+          JSON.stringify(messages.slice(-MAX_PERSISTED_MESSAGES)),
+        ).catch((e) => {
+          chatLog.warn('Failed to persist messages:', e);
+        });
+        saveTimerRef.current = null;
+      }, 500);
     }
   }, [messages]);
 
@@ -108,6 +116,14 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         clearInterval(drainTimerRef.current);
         drainTimerRef.current = null;
       }
+      if (typewriterTimerRef.current) {
+        clearInterval(typewriterTimerRef.current);
+        typewriterTimerRef.current = null;
+      }
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -124,7 +140,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text || loadingRef.current) return;
-      if (cooldownRemaining > 0) return;
+      if (cooldownRef.current > 0) return;
       if (!isAIChatReady()) {
         showAlert('AI 助手', 'AI 助手暂不可用');
         return;
@@ -193,6 +209,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         };
 
         typewriterTimer = setInterval(flushBuffer, TYPEWRITER_INTERVAL_MS);
+        typewriterTimerRef.current = typewriterTimer;
 
         for await (const chunk of streamChatMessage(
           contextMessages,
@@ -200,14 +217,20 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
           controller.signal,
         )) {
           if (controller.signal.aborted) {
-            if (typewriterTimer) clearInterval(typewriterTimer);
+            if (typewriterTimer) {
+              clearInterval(typewriterTimer);
+              typewriterTimerRef.current = null;
+            }
             return;
           }
 
           if (chunk.type === 'delta') {
             fullContent += chunk.content;
           } else if (chunk.type === 'error') {
-            if (typewriterTimer) clearInterval(typewriterTimer);
+            if (typewriterTimer) {
+              clearInterval(typewriterTimer);
+              typewriterTimerRef.current = null;
+            }
             setMessages((prev) => prev.filter((m) => m.id !== assistantId));
             showAlert('发送失败', chunk.content);
             break;
@@ -216,7 +239,10 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         }
 
         // Drain remaining buffer via typewriter (don't show final content instantly)
-        if (typewriterTimer) clearInterval(typewriterTimer);
+        if (typewriterTimer) {
+          clearInterval(typewriterTimer);
+          typewriterTimerRef.current = null;
+        }
         if (fullContent) {
           const finalContent = fullContent.replaceAll(/<think>[\s\S]*?<\/think>/g, '').trim();
 
@@ -255,6 +281,11 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') {
+          // Clear typewriter timer on abort to prevent leak
+          if (typewriterTimerRef.current) {
+            clearInterval(typewriterTimerRef.current);
+            typewriterTimerRef.current = null;
+          }
           // Remove empty placeholder on abort
           setMessages((prev) => {
             const msg = prev.find((m) => m.id === assistantId);
@@ -276,7 +307,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         setIsStreaming(false);
       }
     },
-    [cooldownRemaining, facade],
+    [facade],
   );
 
   // ── Public actions ─────────────────────────────────
