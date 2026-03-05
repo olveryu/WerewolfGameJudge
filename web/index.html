@@ -234,8 +234,14 @@
         window.__pwaInstallPrompt = e;
       });
 
-      // 微信 WebView 检测：引导用户用外部浏览器打开（localhost 排除，方便开发调试）
-      if (/MicroMessenger/i.test(navigator.userAgent) && location.hostname !== 'localhost') {
+      // 微信 WebView 检测：引导用户用外部浏览器打开
+      // - 小程序 web-view 内（UA 含 miniProgram 或 __wxjs_environment）不拦截
+      // - localhost 排除，方便开发调试
+      var ua = navigator.userAgent;
+      var isWechat = /MicroMessenger/i.test(ua);
+      var isMiniProgram =
+        /miniProgram/i.test(ua) || window.__wxjs_environment === 'miniprogram';
+      if (isWechat && !isMiniProgram && location.hostname !== 'localhost') {
         var guide = document.getElementById('wechat-guide');
         if (guide) guide.style.display = 'flex';
       }
