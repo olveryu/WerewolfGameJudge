@@ -115,7 +115,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           roleId={seat.player?.role ?? null}
           showBotRole={showBotRoles && seat.player?.isBot === true}
           showReadyBadge={seat.showReadyBadge === true}
-          wolfVoteTarget={seat.wolfVoteTarget}
+          wolfVoteBadge={seat.wolfVoteBadge}
           styles={seatTileStyles}
           onPress={handleSeatPress}
           onLongPress={handleSeatLongPress}

@@ -27,10 +27,7 @@ import { roomScreenLog } from '@/utils/logger';
 import type { WitchStepResultsExtra } from './actionIntentHelpers';
 import {
   buildWitchStepResults,
-  getConfirmTextForSeatAction,
-  getConfirmTitleForSchema,
   getRevealDataFromState,
-  getRevealUiFromSchema,
   getSubStepByKey,
 } from './actionIntentHelpers';
 
@@ -191,8 +188,8 @@ export function useActionOrchestrator({
       onAccepted: () => Promise<void> | void,
       opts?: { title?: string; message?: string },
     ) => {
-      const title = opts?.title ?? getConfirmTitleForSchema(currentSchema);
-      const message = opts?.message ?? getConfirmTextForSeatAction(currentSchema, targetSeat);
+      const title = opts?.title ?? currentSchema!.ui!.confirmTitle!;
+      const message = opts?.message ?? currentSchema!.ui!.confirmText!;
 
       actionDialogs.showConfirmDialog(title, message, async () => {
         const accepted = await proceedWithActionTyped(targetSeat);
@@ -269,11 +266,12 @@ export function useActionOrchestrator({
             }
 
             if (reveal) {
-              const revealUi = getRevealUiFromSchema(currentSchema);
-              const displayResult = revealUi?.isCheckResult
-                ? reveal.result
-                : getRoleDisplayName(reveal.result);
-              const titlePrefix = revealUi?.titlePrefix ?? revealKind;
+              const ui = currentSchema?.kind !== 'compound' ? currentSchema?.ui : undefined;
+              const displayResult =
+                ui?.revealResultFormat === 'factionCheck'
+                  ? reveal.result
+                  : getRoleDisplayName(reveal.result);
+              const titlePrefix = ui?.revealTitlePrefix ?? revealKind;
               actionDialogs.showRevealDialog(
                 `${titlePrefix}：${reveal.targetSeat + 1}号是${displayResult}`,
                 '',
@@ -352,7 +350,7 @@ export function useActionOrchestrator({
             // so the UI reflects the second seat selection visually.
             setTimeout(() => {
               actionDialogs.showConfirmDialog(
-                currentSchema?.ui?.confirmTitle ?? '确认行动',
+                currentSchema!.ui!.confirmTitle!,
                 intent.message ?? '',
                 () => {
                   setFirstSwapSeat(null);
@@ -401,7 +399,7 @@ export function useActionOrchestrator({
             });
 
             actionDialogs.showConfirmDialog(
-              stepSchema?.ui?.confirmTitle ?? currentSchema?.ui?.confirmTitle ?? '确认行动',
+              stepSchema?.ui?.confirmTitle ?? currentSchema!.ui!.confirmTitle!,
               stepSchema?.ui?.confirmText ?? intent.message ?? '',
               () => void proceedWithActionTyped(targetToSubmit, extra),
             );
@@ -618,8 +616,7 @@ export function useActionOrchestrator({
           roomScreenLog.debug('[handleActionIntent] multiSelectConfirm', { targets });
 
           // Schema-driven confirm dialog
-          const confirmCopy =
-            currentSchema?.ui?.confirmText ?? `确认选择 ${targets.length} 名玩家？`;
+          const confirmCopy = currentSchema!.ui!.confirmText!;
           const targetLabels = targets.map((s) => `${s + 1}号`).join('、');
 
           actionDialogs.showConfirmDialog(confirmCopy, `已选择: ${targetLabels}`, async () => {
@@ -639,10 +636,10 @@ export function useActionOrchestrator({
           let personalMessage: string;
           if (isHypnotized) {
             const seatsText = hypnotizedSeats.map((s) => `${s + 1}号`).join('、');
-            const template = gcSchema?.ui?.hypnotizedText ?? '你已被催眠';
+            const template = gcSchema!.ui!.hypnotizedText!;
             personalMessage = template.replace('{seats}', seatsText);
           } else {
-            personalMessage = gcSchema?.ui?.notHypnotizedText ?? '你未被催眠';
+            personalMessage = gcSchema!.ui!.notHypnotizedText!;
           }
 
           roomScreenLog.debug('[handleActionIntent] groupConfirmAck', { personalMessage });
@@ -651,7 +648,7 @@ export function useActionOrchestrator({
             submitGroupConfirmAck();
           };
 
-          const buttonLabel = gcSchema?.ui?.confirmButtonText ?? '我知道了';
+          const buttonLabel = gcSchema!.ui!.confirmButtonText!;
           actionDialogs.showRoleActionPrompt('催眠信息', personalMessage, doAck, buttonLabel);
           break;
         }

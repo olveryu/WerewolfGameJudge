@@ -54,8 +54,12 @@ export interface SchemaUi {
   readonly revealKind?: RevealKind;
   /** Reveal dialog title prefix (e.g. '查验结果', '通灵结果'). Schema-driven, replaces client-side mapping. */
   readonly revealTitlePrefix?: string;
-  /** True when the reveal result is a plain '好人'/'狼人' string displayed as-is, false when it needs getRoleDisplayName(). */
-  readonly revealResultIsCheckResult?: boolean;
+  /**
+   * How the reveal result should be formatted for display.
+   * - `'factionCheck'`: result is a plain '好人'/'狼人' string, displayed as-is.
+   * - `'roleName'`: result is a roleId, needs `getRoleDisplayName()` conversion.
+   */
+  readonly revealResultFormat?: 'factionCheck' | 'roleName';
   /** Bottom action button text (skip / empty vote / blocked hint etc). */
   readonly bottomActionText?: string;
   /** Wolf vote "empty knife" button text (wolfVote only). */

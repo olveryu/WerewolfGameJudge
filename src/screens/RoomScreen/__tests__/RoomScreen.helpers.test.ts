@@ -535,7 +535,7 @@ describe('buildSeatViewModels', () => {
     });
   });
 
-  describe('wolfVoteTarget badge', () => {
+  describe('wolfVoteBadge', () => {
     const createWolfVoteState = (
       wolfVotesBySeat: Record<string, number> | undefined,
     ): LocalGameState => ({
@@ -588,38 +588,38 @@ describe('buildSeatViewModels', () => {
       status: GameStatus.Ongoing,
     });
 
-    it('should populate wolfVoteTarget when showWolves=true and wolf has voted', () => {
+    it('should populate wolfVoteBadge when showWolves=true and wolf has voted', () => {
       const state = createWolfVoteState({ '0': 2 }); // seat 0 voted for seat 2
       const seats = buildSeatViewModels(state, 0, true, null);
 
-      // Wolf seat 0 should show vote target
-      expect(seats[0].wolfVoteTarget).toBe(2);
-      // Non-wolf seats should not have wolfVoteTarget
-      expect(seats[1].wolfVoteTarget).toBeUndefined();
-      expect(seats[2].wolfVoteTarget).toBeUndefined();
+      // Wolf seat 0 should show formatted badge
+      expect(seats[0].wolfVoteBadge).toBe('刀3');
+      // Non-wolf seats should not have wolfVoteBadge
+      expect(seats[1].wolfVoteBadge).toBeUndefined();
+      expect(seats[2].wolfVoteBadge).toBeUndefined();
     });
 
-    it('should NOT populate wolfVoteTarget when showWolves=false', () => {
+    it('should NOT populate wolfVoteBadge when showWolves=false', () => {
       const state = createWolfVoteState({ '0': 2 });
       const seats = buildSeatViewModels(state, 0, false, null);
 
       // Even though wolf voted, showWolves=false hides it
-      expect(seats[0].wolfVoteTarget).toBeUndefined();
+      expect(seats[0].wolfVoteBadge).toBeUndefined();
     });
 
-    it('should show wolfVoteTarget=-1 for empty knife vote', () => {
+    it('should show schema emptyVoteText for empty knife vote', () => {
       const state = createWolfVoteState({ '0': -1 }); // seat 0 voted empty knife
       const seats = buildSeatViewModels(state, 0, true, null);
 
-      expect(seats[0].wolfVoteTarget).toBe(-1);
+      expect(seats[0].wolfVoteBadge).toBe('空刀');
     });
 
-    it('wolfVoteTarget and showReadyBadge should be mutually exclusive', () => {
+    it('wolfVoteBadge and showReadyBadge should be mutually exclusive', () => {
       const state = createWolfVoteState({ '0': 2 });
       const seats = buildSeatViewModels(state, 0, true, null);
 
-      // Wolf seat 0 has wolfVoteTarget → showReadyBadge must be false
-      expect(seats[0].wolfVoteTarget).toBe(2);
+      // Wolf seat 0 has wolfVoteBadge → showReadyBadge must be false
+      expect(seats[0].wolfVoteBadge).toBe('刀3');
       expect(seats[0].showReadyBadge).toBe(false);
     });
   });

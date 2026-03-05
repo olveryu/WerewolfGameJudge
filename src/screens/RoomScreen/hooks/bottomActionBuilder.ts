@@ -257,7 +257,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
       buttons: [
         {
           key: 'groupConfirmAck',
-          label: currentSchema.ui?.bottomActionText ?? '催眠状态',
+          label: currentSchema.ui!.bottomActionText!,
           intent: { type: 'groupConfirmAck', targetSeat: -1 },
         },
       ],
@@ -271,7 +271,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
 
     // Confirm button (only when at least 1 target selected)
     if (count > 0) {
-      const rawLabel = currentSchema.ui?.confirmButtonText ?? '确认({count}人)';
+      const rawLabel = currentSchema.ui!.confirmButtonText!;
       buttons.push({
         key: 'multiConfirm',
         label: rawLabel.replace('{count}', String(count)),

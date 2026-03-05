@@ -79,8 +79,8 @@ export interface SeatTileProps {
   showBotRole: boolean; // isHost && debugMode?.botsEnabled && isBot
   /** Show ✅ ready badge (e.g. player has viewed role during assigned phase). */
   showReadyBadge: boolean;
-  /** Wolf vote target for this seat (≥ 0 = seat, -1 = empty knife). Visible to wolf-faction only. */
-  wolfVoteTarget?: number;
+  /** Pre-formatted wolf vote badge text. Visible to wolf-faction only. */
+  wolfVoteBadge?: string;
   // Styles (created once in PlayerGrid)
   styles: SeatTileStyles;
   onPress: (seat: number, disabledReason?: string) => void;
@@ -106,7 +106,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   roleId,
   showBotRole,
   showReadyBadge,
-  wolfVoteTarget,
+  wolfVoteBadge,
   styles,
   onPress,
   onLongPress,
@@ -229,10 +229,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
         {showReadyBadge && hasPlayer && <Text style={styles.readyBadge}>✅</Text>}
 
-        {wolfVoteTarget != null && hasPlayer && (
-          <Text style={styles.wolfVoteBadge}>
-            {wolfVoteTarget === -1 ? '空刀' : `刀${wolfVoteTarget + 1}`}
-          </Text>
+        {wolfVoteBadge != null && hasPlayer && (
+          <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
         )}
       </TouchableOpacity>
 
