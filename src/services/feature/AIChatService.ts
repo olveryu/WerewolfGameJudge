@@ -1,9 +1,9 @@
 /**
- * AI Chat Service - Groq (Llama 4 Scout) via Supabase Edge Function
+ * AI Chat Service - Gemini (3.1 Flash Lite) via Supabase Edge Function
  *
- * 通过 Supabase Edge Function 代理 Groq API，API key 仅存在服务端。
- * 免费额度：30K TPM, 1K RPD（TPM 比 Qwen3 高 5 倍）
- * 文档: https://console.groq.com/docs/models
+ * 通过 Supabase Edge Function 代理 Gemini API（OpenAI 兼容层），API key 仅存在服务端。
+ * 免费额度：250K TPM, 500 RPD, 15 RPM
+ * 文档: https://ai.google.dev/gemini-api/docs/rate-limits
  *
  * 负责调用 Edge Function 代理、管理对话历史、流式解析 SSE 响应。
  * 不直接访问第三方 API，不存储 API key，不操作游戏状态。
@@ -18,9 +18,9 @@ import { log } from '@/utils/logger';
 const chatLog = log.extend('AIChatService');
 
 const API_CONFIG = {
-  /** Edge Function endpoint（代理到 Groq） */
-  baseURL: `${SUPABASE_URL}/functions/v1/groq-proxy`,
-  model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+  /** Edge Function endpoint（代理到 Gemini） */
+  baseURL: `${SUPABASE_URL}/functions/v1/gemini-proxy`,
+  model: 'gemini-3.1-flash-lite-preview',
   maxTokens: 512,
 };
 
@@ -143,7 +143,7 @@ interface StreamChunk {
 /**
  * 流式发送聊天消息到 AI（SSE，通过 Edge Function 代理）
  *
- * 使用 Supabase Edge Function 代理 Groq streaming endpoint，逐 token 返回。
+ * 使用 Supabase Edge Function 代理 Gemini streaming endpoint，逐 token 返回。
  * 调用者用 `for await (const chunk of streamChatMessage(...))` 消费。
  *
  * @param messages 聊天消息历史

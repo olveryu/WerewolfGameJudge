@@ -54,26 +54,26 @@ Go to **Authentication > Email Templates** to customize:
 
 ## Edge Functions
 
-### groq-proxy — AI 聊天代理
+### gemini-proxy — AI 聊天代理
 
-客户端通过 Supabase Edge Function 代理 Groq API，避免在前端暴露 API Key。
+客户端通过 Supabase Edge Function 代理 Gemini API（OpenAI 兼容层），避免在前端暴露 API Key。
 
 ```bash
-# 设置 GROQ API Key（服务端密钥，不会暴露到客户端）
-supabase secrets set GROQ_API_KEY=<your-groq-api-key>
+# 设置 Gemini API Key（服务端密钥，不会暴露到客户端）
+supabase secrets set GEMINI_API_KEY=<your-gemini-api-key>
 
 # 部署 Edge Function
-supabase functions deploy groq-proxy
+supabase functions deploy gemini-proxy
 ```
 
 验证部署：
 
 ```bash
 supabase functions list
-# 应看到 groq-proxy 状态为 Active
+# 应看到 gemini-proxy 状态为 Active
 ```
 
-> 客户端只需 Supabase URL + anon key 即可调用，无需知道 GROQ API Key。
+> 客户端只需 Supabase URL + anon key 即可调用，无需知道 Gemini API Key。
 
 ## Environment Setup
 

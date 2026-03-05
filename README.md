@@ -237,17 +237,17 @@ pnpm run release -- minor     # minor / major
 
 ## 📊 技术栈 | Tech Stack
 
-| 类别 Category  | 技术 Technology                              |
-| -------------- | -------------------------------------------- |
-| **Frontend**   | React Native + Expo                          |
-| **Language**   | TypeScript ~5.9                              |
-| **Backend**    | Supabase (Realtime, Auth, Edge Functions)    |
-| **AI**         | Groq (Llama 4 Scout) via Edge Function proxy |
-| **Monitoring** | Sentry (crash reporting)                     |
-| **Images**     | expo-image (disk cache + transitions)        |
-| **Testing**    | Jest + Testing Library + Playwright          |
-| **Deployment** | Vercel Serverless (API + Web auto-deploy)    |
-| **State**      | @werewolf/game-engine (monorepo shared pkg)  |
+| 类别 Category  | 技术 Technology                                 |
+| -------------- | ----------------------------------------------- |
+| **Frontend**   | React Native + Expo                             |
+| **Language**   | TypeScript ~5.9                                 |
+| **Backend**    | Supabase (Realtime, Auth, Edge Functions)       |
+| **AI**         | Gemini (3.1 Flash Lite) via Edge Function proxy |
+| **Monitoring** | Sentry (crash reporting)                        |
+| **Images**     | expo-image (disk cache + transitions)           |
+| **Testing**    | Jest + Testing Library + Playwright             |
+| **Deployment** | Vercel Serverless (API + Web auto-deploy)       |
+| **State**      | @werewolf/game-engine (monorepo shared pkg)     |
 
 ---
 
