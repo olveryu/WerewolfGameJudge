@@ -13,14 +13,9 @@
  */
 
 import type { SchemaId } from '../../models/roles/spec';
-import type { GameState } from '../../protocol/types';
 import type { SetWitchContextAction } from '../reducer/types';
 import { resolveWolfVotes } from '../resolveWolfVotes';
-
-/**
- * 非 null 的 state 类型
- */
-type NonNullState = NonNullable<GameState>;
+import type { NonNullState } from './types';
 
 /**
  * 计算女巫上下文（纯函数）

@@ -17,7 +17,7 @@ import type { GameState } from '../../protocol/types';
  * Effect: adding a new field to GameState without listing it in
  * normalizeState's return → TS error (missing property).
  */
-type Complete<T> = Record<keyof T, unknown>;
+export type Complete<T> = Record<keyof T, unknown>;
 
 /**
  * 规范化座位键记录（canonicalize），确保所有 key 都是 string。
