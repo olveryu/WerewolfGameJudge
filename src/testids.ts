@@ -87,6 +87,10 @@ export const TESTIDS = {
   shareReviewButton: 'share-review-button',
   shareReviewModal: 'share-review-modal',
 
+  // QRCodeModal
+  qrCodeModal: 'qr-code-modal',
+  qrCodeShareButton: 'qr-code-share-button',
+
   // RoleRevealEffects
   // Used by: RoleRevealEffects components, unit tests
   roleRevealModal: 'role-reveal-modal',
