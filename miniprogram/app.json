@@ -1,0 +1,8 @@
+{
+  "pages": ["pages/index/index"],
+  "window": {
+    "navigationBarTitleText": "狼人杀电子法官",
+    "navigationBarBackgroundColor": "#6366F1",
+    "navigationBarTextStyle": "white"
+  }
+}
