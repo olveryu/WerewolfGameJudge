@@ -107,6 +107,12 @@ export class GameFacade implements IGameFacade {
   /** Periodic poll fallback: 每 POLL_INTERVAL_MS 检查 navigator.onLine 并重试（防止 online 事件丢失） */
   #onlineRetryPollTimer: ReturnType<typeof setInterval> | null = null;
 
+  /** 连续重试计数（指数退避 + 上限防止无限轮询） */
+  #onlineRetryAttempt = 0;
+
+  /** 最大重试次数（超过后停止重试，等待用户手动刷新） */
+  static readonly #maxOnlineRetries = 5;
+
   /** L3 通用：browser online 事件 → fetchStateFromDB（所有玩家，独立于 host-only ack 重试） */
   #onlineFetchHandler: (() => void) | null = null;
 
@@ -155,6 +161,7 @@ export class GameFacade implements IGameFacade {
       if (!this.#pendingAudioAckRetry) return;
       this.#unregisterOnlineRetry();
       this.#pendingAudioAckRetry = false;
+      this.#onlineRetryAttempt = 0;
 
       this.#retryPendingAudioAck('reconnect');
     });
@@ -256,6 +263,7 @@ export class GameFacade implements IGameFacade {
     this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
     this.#wasAudioInterrupted = false; // Reset rejoin audio guard
     this.#pendingAudioAckRetry = false;
+    this.#onlineRetryAttempt = 0;
     this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
     this.#unregisterOnlineRetry();
     this.#isHost = true;
@@ -298,6 +306,7 @@ export class GameFacade implements IGameFacade {
     this.#aborted = false;
     this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
     this.#pendingAudioAckRetry = false;
+    this.#onlineRetryAttempt = 0;
     this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
     this.#unregisterOnlineRetry();
     this.#isHost = isHost;
@@ -452,8 +461,9 @@ export class GameFacade implements IGameFacade {
         }
       }
     } finally {
-      this.#isPlayingEffects = false;
       // 无论成功/失败/中断，都 POST audio-ack 释放 gate
+      // 注意：#isPlayingEffects 在 ack 完成后才释放，防止 ack 在途期间
+      // applySnapshot 触发 store subscription 导致重入（CRIT-01）
       if (!this.#aborted) {
         const ackResult = await gameActions.postAudioAck(this.#getActionsContext());
         if (!ackResult.success) {
@@ -464,6 +474,7 @@ export class GameFacade implements IGameFacade {
           this.#registerOnlineRetry();
         }
       }
+      this.#isPlayingEffects = false;
     }
   }
 
@@ -539,6 +550,16 @@ export class GameFacade implements IGameFacade {
     const doRetry = () => {
       if (!this.#pendingAudioAckRetry || !this.#isHost || this.#aborted) return;
 
+      // 指数退避上限：超过最大重试次数后停止，避免无限 HTTP 轮询
+      if (this.#onlineRetryAttempt >= GameFacade.#maxOnlineRetries) {
+        facadeLog.warn(
+          `Online ack retry exhausted (${GameFacade.#maxOnlineRetries} attempts), giving up`,
+        );
+        this.#unregisterOnlineRetry();
+        return;
+      }
+      this.#onlineRetryAttempt++;
+
       facadeLog.info('Online event postAudioAck retry triggered');
       this.#unregisterOnlineRetry();
       this.#pendingAudioAckRetry = false;
@@ -546,10 +567,13 @@ export class GameFacade implements IGameFacade {
       this.#retryPendingAudioAck('online event', () => this.#registerOnlineRetry());
     };
 
-    // Check: 已在线 → 延迟重试（避免同步递归 + 给 event loop 让步）
+    // Check: 已在线 → 指数退避延迟重试（避免同步递归 + 给 event loop 让步）
     if (globalThis.navigator?.onLine) {
-      facadeLog.info('navigator.onLine=true, scheduling immediate ack retry');
-      this.#onlineRetryTimer = setTimeout(doRetry, 500);
+      const delay = Math.min(500 * Math.pow(2, this.#onlineRetryAttempt), 16_000);
+      facadeLog.info(
+        `navigator.onLine=true, scheduling ack retry (attempt=${this.#onlineRetryAttempt}, delay=${delay}ms)`,
+      );
+      this.#onlineRetryTimer = setTimeout(doRetry, delay);
       return;
     }
 
@@ -650,6 +674,7 @@ export class GameFacade implements IGameFacade {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this.#aborted = true;
     this.#pendingAudioAckRetry = false;
+    this.#onlineRetryAttempt = 0;
     this.#unregisterOnlineRetry();
     this.#unregisterOnlineFetch();
 

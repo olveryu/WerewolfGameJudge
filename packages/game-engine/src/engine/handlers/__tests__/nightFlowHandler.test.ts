@@ -661,7 +661,7 @@ describe('nightFlowHandler', () => {
         if (action.type === 'SET_AUDIO_PLAYING') {
           expect(action.payload.isPlaying).toBe(true);
         }
-        expect(result.sideEffects).toEqual([{ type: 'BROADCAST_STATE' }]);
+        expect(result.sideEffects).toEqual([{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }]);
       });
 
       it('should set isAudioPlaying to false', () => {

@@ -201,6 +201,16 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
   cleanup(): void {
     this.stop();
 
+    // stop() 仅 pause（为 reuse 保留），cleanup 语义是释放全部资源
+    if (this.#player) {
+      try {
+        this.#player.remove();
+      } catch {
+        // ignore — player may already be released
+      }
+      this.#player = null;
+    }
+
     if (this.#subscription) {
       try {
         this.#subscription.remove();

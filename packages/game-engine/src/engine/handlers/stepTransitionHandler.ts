@@ -624,6 +624,6 @@ export function handleSetAudioPlaying(
   return {
     success: true,
     actions: [setAudioAction],
-    sideEffects: [{ type: 'BROADCAST_STATE' }],
+    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
   };
 }

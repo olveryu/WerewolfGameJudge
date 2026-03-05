@@ -12,7 +12,7 @@
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -129,6 +129,7 @@ export const AIChatBubble: React.FC = () => {
   const [notepadOpen, setNotepadOpen] = useState(false);
 
   // ── Message renderer ───────────────────────────────
+  const lastMessageId = useMemo(() => chat.messages.at(-1)?.id, [chat.messages]);
   const renderMessage = useCallback(
     ({ item }: { item: DisplayMessage }) => {
       const isUser = item.role === 'user';
@@ -138,11 +139,11 @@ export const AIChatBubble: React.FC = () => {
           colors={colors}
           bubbleStyle={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}
           textStyle={[styles.messageText, isUser && styles.userText]}
-          isStreaming={chat.isStreaming && item.id === chat.messages.at(-1)?.id}
+          isStreaming={chat.isStreaming && item.id === lastMessageId}
         />
       );
     },
-    [styles, colors, chat.isStreaming, chat.messages],
+    [styles, colors, chat.isStreaming, lastMessageId],
   );
 
   // Web drag style

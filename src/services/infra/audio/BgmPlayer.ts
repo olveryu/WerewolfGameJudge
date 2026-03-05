@@ -45,6 +45,7 @@ export class BgmPlayer {
         audio.play().catch((err) => {
           audioLog.warn('Web BGM play() rejected (autoplay policy?):', err);
           this.#isPlaying = false;
+          this.#webElement = null; // 清除残留引用，允许后续 start() 重试
         });
         audioLog.debug('BGM started successfully (Web HTML Audio)');
         return;

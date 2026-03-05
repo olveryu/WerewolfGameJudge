@@ -128,8 +128,7 @@ export async function processGameAction(
         return {
           success: false,
           reason: 'INTERNAL_ERROR',
-          error: writeError.message,
-        } as GameActionResult;
+        };
       }
 
       if (!writeRows || writeRows.length === 0) {
@@ -155,8 +154,7 @@ export async function processGameAction(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[processGameAction] Unhandled error:', message, err);
-    // Always include error message for debugging — Edge Functions are internal,
-    // not publicly browseable. Error visibility is critical for CI diagnosis.
-    return { success: false, reason: 'INTERNAL_ERROR', error: message } as GameActionResult;
+    // 服务端日志已含完整错误信息，HTTP response 不泄漏内部细节
+    return { success: false, reason: 'INTERNAL_ERROR' };
   }
 }
