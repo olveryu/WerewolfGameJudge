@@ -127,69 +127,6 @@
         }
       }
 
-      /* 微信 WebView 引导蒙层 */
-      #wechat-guide {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.92);
-        z-index: 99999;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        text-align: center;
-        padding: 24px;
-        box-sizing: border-box;
-      }
-
-      #wechat-guide .guide-arrow {
-        position: absolute;
-        top: 16px;
-        right: 24px;
-        font-size: 48px;
-        animation: bounce-arrow 1.5s ease-in-out infinite;
-      }
-
-      #wechat-guide .guide-icon {
-        font-size: 64px;
-        margin-bottom: 24px;
-      }
-
-      #wechat-guide .guide-title {
-        font-size: 20px;
-        font-weight: 600;
-        margin-bottom: 12px;
-      }
-
-      #wechat-guide .guide-desc {
-        font-size: 15px;
-        color: rgba(255, 255, 255, 0.7);
-        line-height: 1.6;
-        max-width: 280px;
-      }
-
-      #wechat-guide .guide-steps {
-        margin-top: 24px;
-        text-align: left;
-        font-size: 16px;
-        line-height: 2;
-      }
-
-      @keyframes bounce-arrow {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-10px);
-        }
-      }
-
       /* 禁用选择和长按菜单 */
       * {
         -webkit-touch-callout: none;
@@ -207,18 +144,6 @@
     </style>
   </head>
   <body>
-    <!-- 微信 WebView 引导 - 提示用户用外部浏览器打开 -->
-    <div id="wechat-guide">
-      <div class="guide-arrow">↗</div>
-      <div class="guide-icon">🌐</div>
-      <div class="guide-title">请使用浏览器打开</div>
-      <div class="guide-desc">微信内置浏览器功能受限，请使用外部浏览器以获得最佳体验</div>
-      <div class="guide-steps">
-        ① 点击右上角 <strong>⋯</strong> 菜单<br />
-        ② 选择「<strong>在浏览器中打开</strong>」
-      </div>
-    </div>
-
     <!-- 启动画面 -->
     <div id="splash-screen">
       <img src="/assets/pwa/icon-192.png" alt="狼人杀电子法官" />
@@ -233,18 +158,6 @@
         e.preventDefault();
         window.__pwaInstallPrompt = e;
       });
-
-      // 微信 WebView 检测：引导用户用外部浏览器打开
-      // - 小程序 web-view 内（UA 含 miniProgram 或 __wxjs_environment）不拦截
-      // - localhost 排除，方便开发调试
-      var ua = navigator.userAgent;
-      var isWechat = /MicroMessenger/i.test(ua);
-      var isMiniProgram =
-        /miniProgram/i.test(ua) || window.__wxjs_environment === 'miniprogram';
-      if (isWechat && !isMiniProgram && location.hostname !== 'localhost') {
-        var guide = document.getElementById('wechat-guide');
-        if (guide) guide.style.display = 'flex';
-      }
 
       // 动态视口高度（修复移动浏览器 100vh 不准，Safari/Chrome 地址栏收缩）
       (function () {
