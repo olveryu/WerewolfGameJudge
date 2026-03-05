@@ -24,11 +24,15 @@ import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomAct
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { roomScreenLog } from '@/utils/logger';
 
+import type { WitchStepResultsExtra } from './actionIntentHelpers';
 import {
   buildWitchStepResults,
   getConfirmTextForSeatAction,
   getConfirmTitleForSchema,
+  getRevealDataFromState,
+  getRevealTitlePrefix,
   getSubStepByKey,
+  isCheckResultReveal,
 } from './actionIntentHelpers';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,7 +72,6 @@ interface UseActionOrchestratorParams {
 
   // ── Intent helpers (from useRoomActions) ──
   getAutoTriggerIntent: () => ActionIntent | null;
-  findVotingWolfSeat: () => number | null;
 
   // ── Dialog layer ──
   actionDialogs: UseRoomActionDialogsResult;
@@ -113,7 +116,6 @@ export function useActionOrchestrator({
   multiSelectedSeats,
   setMultiSelectedSeats,
   getAutoTriggerIntent,
-  findVotingWolfSeat: _findVotingWolfSeat,
   actionDialogs,
 }: UseActionOrchestratorParams): UseActionOrchestratorResult {
   // ─── Local state ─────────────────────────────────────────────────────────
@@ -154,7 +156,13 @@ export function useActionOrchestrator({
       markActionSubmitting(true);
       roomScreenLog.debug('[proceedWithAction] Submitting', { targetSeat });
       try {
-        await submitAction(targetSeat, extra);
+        // Only pass extra when defined to preserve call-site arity for consumers
+        // that distinguish submitAction(seat) from submitAction(seat, undefined).
+        if (extra !== undefined) {
+          await submitAction(targetSeat, extra);
+        } else {
+          await submitAction(targetSeat);
+        }
         // Submission success/failure UX is handled by the state-driven
         // `gameState.actionRejected` effect below.
         return true;
@@ -166,9 +174,8 @@ export function useActionOrchestrator({
   );
 
   // ── Action extra typing (UI -> server wire payload) ──
-  type WitchStepResults = { save: number | null; poison: number | null };
   type ActionExtra =
-    | { stepResults: WitchStepResults }
+    | WitchStepResultsExtra
     | { targets: readonly [number, number] }
     | { confirmed: boolean };
 
@@ -248,61 +255,25 @@ export function useActionOrchestrator({
 
           const revealKind = intent.revealKind;
 
-          const getRevealData = (): { targetSeat: number; result: string } | undefined => {
-            const state = gameStateRef.current;
-            if (!state) return undefined;
-            switch (revealKind) {
-              case 'seer':
-                return state.seerReveal;
-              case 'mirrorSeer':
-                return state.mirrorSeerReveal;
-              case 'drunkSeer':
-                return state.drunkSeerReveal;
-              case 'psychic':
-                return state.psychicReveal;
-              case 'gargoyle':
-                return state.gargoyleReveal;
-              case 'pureWhite':
-                return state.pureWhiteReveal;
-              case 'wolfWitch':
-                return state.wolfWitchReveal;
-              case 'wolfRobot':
-                return state.wolfRobotReveal;
-              default:
-                return undefined;
-            }
-          };
-
           confirmThenAct(intent.targetSeat, async () => {
             setPendingRevealDialog(true);
 
-            const maxRetries = 10;
+            const maxRetries = 20;
             const retryInterval = 50;
             let reveal: { targetSeat: number; result: string } | undefined;
 
             for (let i = 0; i < maxRetries; i++) {
               await new Promise((resolve) => setTimeout(resolve, retryInterval));
-              reveal = getRevealData();
+              const state = gameStateRef.current;
+              if (state) reveal = getRevealDataFromState(state, revealKind);
               if (reveal) break;
             }
 
             if (reveal) {
-              const displayResult =
-                revealKind === 'seer' || revealKind === 'mirrorSeer' || revealKind === 'drunkSeer'
-                  ? reveal.result
-                  : getRoleDisplayName(reveal.result);
-              const titlePrefix =
-                revealKind === 'seer' || revealKind === 'mirrorSeer' || revealKind === 'drunkSeer'
-                  ? '查验结果'
-                  : revealKind === 'psychic'
-                    ? '通灵结果'
-                    : revealKind === 'gargoyle'
-                      ? '石像鬼探查'
-                      : revealKind === 'pureWhite'
-                        ? '纯白查验'
-                        : revealKind === 'wolfWitch'
-                          ? '狼巫查验'
-                          : '学习结果';
+              const displayResult = isCheckResultReveal(revealKind)
+                ? reveal.result
+                : getRoleDisplayName(reveal.result);
+              const titlePrefix = getRevealTitlePrefix(revealKind);
               actionDialogs.showRevealDialog(
                 `${titlePrefix}：${reveal.targetSeat + 1}号是${displayResult}`,
                 '',
@@ -313,7 +284,7 @@ export function useActionOrchestrator({
               );
             } else {
               roomScreenLog.warn(
-                ` ${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
+                `${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
               );
               setPendingRevealDialog(false);
             }
@@ -343,13 +314,7 @@ export function useActionOrchestrator({
               `${seat + 1}号狼人`,
               intent.targetSeat,
               () => {
-                if (actionSubmittingRef.current) return;
-                markActionSubmitting(true);
-                void Promise.resolve(
-                  submitAction(intent.targetSeat === -1 ? null : intent.targetSeat),
-                ).finally(() => {
-                  markActionSubmitting(false);
-                });
+                void proceedWithAction(intent.targetSeat === -1 ? null : intent.targetSeat);
               },
               (() => {
                 // Only override for immune targets — normal text comes from schema templates.
@@ -358,7 +323,7 @@ export function useActionOrchestrator({
                 if (currentSchema?.id !== 'wolfKill' || !targetRole) return undefined;
                 const immune = getWolfKillImmuneRoleIds().includes(targetRole);
                 if (!immune) return undefined;
-                const tpl = currentSchema.ui!.voteConfirmTemplate!;
+                const tpl = currentSchema.ui?.voteConfirmTemplate ?? '';
                 const resolved = tpl
                   .replace('{wolf}', `${seat + 1}号狼人`)
                   .replace('{seat}', `${intent.targetSeat + 1}`);
@@ -383,10 +348,12 @@ export function useActionOrchestrator({
           if (effectiveRole === 'magician' && firstSwapSeat !== null) {
             const swapTargets: [number, number] = [firstSwapSeat, intent.targetSeat];
             setSecondSeat(intent.targetSeat);
+            // setTimeout(0) ensures setSecondSeat triggers re-render before dialog shows,
+            // so the UI reflects the second seat selection visually.
             setTimeout(() => {
               actionDialogs.showConfirmDialog(
-                currentSchema!.ui!.confirmTitle!,
-                intent.message!,
+                currentSchema?.ui?.confirmTitle ?? '确认行动',
+                intent.message ?? '',
                 () => {
                   setFirstSwapSeat(null);
                   setSecondSeat(null);
@@ -434,8 +401,8 @@ export function useActionOrchestrator({
             });
 
             actionDialogs.showConfirmDialog(
-              stepSchema?.ui?.confirmTitle ?? currentSchema!.ui!.confirmTitle!,
-              stepSchema?.ui?.confirmText ?? intent.message!,
+              stepSchema?.ui?.confirmTitle ?? currentSchema?.ui?.confirmTitle ?? '确认行动',
+              stepSchema?.ui?.confirmText ?? intent.message ?? '',
               () => void proceedWithActionTyped(targetToSubmit, extra),
             );
           }
@@ -656,14 +623,8 @@ export function useActionOrchestrator({
           const targetLabels = targets.map((s) => `${s + 1}号`).join('、');
 
           actionDialogs.showConfirmDialog(confirmCopy, `已选择: ${targetLabels}`, async () => {
-            markActionSubmitting(true);
-            try {
-              // Submit with extra.targets for multiChooseSeat
-              await submitAction(null, { targets });
-              setMultiSelectedSeats([]);
-            } finally {
-              markActionSubmitting(false);
-            }
+            const accepted = await proceedWithAction(null, { targets });
+            if (accepted) setMultiSelectedSeats([]);
           });
           break;
         }
@@ -708,7 +669,6 @@ export function useActionOrchestrator({
       pendingHunterStatusViewed,
       proceedWithActionTyped,
       sendWolfRobotHunterStatusViewed,
-      submitAction,
       submitRevealAckSafe,
       submitGroupConfirmAck,
       actorSeatForUi,
@@ -717,7 +677,7 @@ export function useActionOrchestrator({
       setFirstSwapSeat,
       setSecondSeat,
       controlledSeat,
-      markActionSubmitting,
+      proceedWithAction,
     ],
   );
 

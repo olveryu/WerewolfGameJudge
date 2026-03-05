@@ -456,13 +456,8 @@ export function useRoomScreenState(
     [gameState, hasWolfVoted],
   );
 
-  const {
-    getActionIntent,
-    getAutoTriggerIntent,
-    findVotingWolfSeat,
-    getWolfStatusLine,
-    getBottomAction,
-  } = useRoomActions(gameContext, actionDeps);
+  const { getActionIntent, getAutoTriggerIntent, getWolfStatusLine, getBottomAction } =
+    useRoomActions(gameContext, actionDeps);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Dialog Layer
@@ -529,7 +524,6 @@ export function useRoomScreenState(
     multiSelectedSeats,
     setMultiSelectedSeats,
     getAutoTriggerIntent,
-    findVotingWolfSeat,
     actionDialogs,
   });
 
