@@ -13,14 +13,10 @@
  */
 
 import type { SchemaId } from '../../models/roles/spec';
-import type { GameState } from '../../protocol/types';
+import { findSeatByRole } from '../../utils/playerHelpers';
 import type { SetWitchContextAction } from '../reducer/types';
 import { resolveWolfVotes } from '../resolveWolfVotes';
-
-/**
- * 非 null 的 state 类型
- */
-type NonNullState = NonNullable<GameState>;
+import type { NonNullState } from './types';
 
 /**
  * 计算女巫上下文（纯函数）
@@ -56,13 +52,7 @@ function computeWitchContext(state: NonNullState): {
   }
 
   // 2. 查找女巫座位，用于 notSelf 约束
-  let witchSeat = -1;
-  for (const [seatStr, player] of Object.entries(state.players)) {
-    if (player?.role === 'witch') {
-      witchSeat = Number.parseInt(seatStr, 10);
-      break;
-    }
-  }
+  const witchSeat = findSeatByRole(state.players, 'witch') ?? -1;
 
   // 3. Schema-first: witchAction.steps[0] (save) 有 notSelf 约束
   // canSave 必须为 false 当：

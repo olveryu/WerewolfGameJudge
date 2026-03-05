@@ -16,7 +16,6 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { createSeededRng } from '@werewolf/game-engine/utils/random';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Toast from 'react-native-toast-message';
 
@@ -35,7 +34,7 @@ import {
   toGameRoomLike,
 } from '../RoomScreen.helpers';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
-import { generateSpeakOrder, useRoomHostDialogs } from '../useRoomHostDialogs';
+import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { useRoomSeatDialogs } from '../useRoomSeatDialogs';
 import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
@@ -44,6 +43,8 @@ import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
 import { useRoomActions } from './useRoomActions';
 import { useRoomInit } from './useRoomInit';
+import { useSpeakingOrder } from './useSpeakingOrder';
+import { useWolfVoteCountdown } from './useWolfVoteCountdown';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -186,52 +187,12 @@ export function useRoomScreenState(
   const [shareReviewVisible, setShareReviewVisible] = useState(false);
 
   // ── Wolf vote countdown tick ─────────────────────────────────────────────
-  const [countdownTick, setCountdownTick] = useState(0);
-  const wolfVoteDeadline = gameState?.wolfVoteDeadline;
-  const postProgressionFiredRef = useRef(false);
-
-  // Reset fire-guard when deadline changes (new deadline = new countdown)
-  useEffect(() => {
-    postProgressionFiredRef.current = false;
-  }, [wolfVoteDeadline]);
-
-  useEffect(() => {
-    if (wolfVoteDeadline == null) return;
-    // Guard: only fire postProgression while game is ongoing.
-    // On host rejoin with status `ended`, stale wolfVoteDeadline may still exist
-    // and be expired — without this guard it would fire immediately and get 400.
-    if (roomStatus !== GameStatus.Ongoing) return;
-
-    // Already expired on mount — fire postProgression immediately (once)
-    if (Date.now() >= wolfVoteDeadline) {
-      if (isHost && !postProgressionFiredRef.current) {
-        postProgressionFiredRef.current = true;
-        fireAndForget(
-          postProgression(),
-          '[postProgression] countdown expired fire failed',
-          roomScreenLog,
-        );
-      }
-      return;
-    }
-
-    const interval = setInterval(() => {
-      if (Date.now() >= wolfVoteDeadline) {
-        clearInterval(interval);
-        // Host triggers server-side progression when countdown expires
-        if (isHost && !postProgressionFiredRef.current) {
-          postProgressionFiredRef.current = true;
-          fireAndForget(
-            postProgression(),
-            '[postProgression] countdown interval fire failed',
-            roomScreenLog,
-          );
-        }
-      }
-      setCountdownTick((t) => t + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [wolfVoteDeadline, isHost, postProgression, roomStatus]);
+  const countdownTick = useWolfVoteCountdown({
+    wolfVoteDeadline: gameState?.wolfVoteDeadline,
+    isHost,
+    roomStatus,
+    postProgression,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Simple hooks
@@ -666,39 +627,10 @@ export function useRoomScreenState(
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Speaking order (shown in BoardInfoCard for 20s after night ends)
+  // Speaking order (shown in BoardInfoCard after night ends)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const [speakingOrderText, setSpeakingOrderText] = useState<string | undefined>();
-  const speakingOrderShownRef = useRef(false);
-  // Ref to read gameState inside effect without adding it as a dependency
-  // (gameState object reference changes on every broadcast, which would cancel the 20s timer)
-  const gameStateRef = useRef(gameState);
-  useEffect(() => {
-    gameStateRef.current = gameState;
-  }, [gameState]);
-
-  useEffect(() => {
-    // Reset when leaving ended status (e.g. restart)
-    if (roomStatus !== GameStatus.Ended) {
-      speakingOrderShownRef.current = false;
-      setSpeakingOrderText(undefined);
-      return;
-    }
-    if (!gameStateRef.current || isAudioPlaying || speakingOrderShownRef.current) {
-      return;
-    }
-    speakingOrderShownRef.current = true;
-
-    const seed = gameStateRef.current.roleRevealRandomNonce ?? gameStateRef.current.roomCode;
-    const rng = createSeededRng(seed);
-    const playerCount = gameStateRef.current.template.roles.length;
-    const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
-    setSpeakingOrderText(`🎙️ 从 ${startSeat} 号开始 ${direction}发言`);
-
-    const timer = setTimeout(() => setSpeakingOrderText(undefined), 60_000);
-    return () => clearTimeout(timer);
-  }, [roomStatus, isAudioPlaying]);
+  const speakingOrderText = useSpeakingOrder({ roomStatus, isAudioPlaying, gameState });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Action message builder

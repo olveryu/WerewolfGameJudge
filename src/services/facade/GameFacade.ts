@@ -111,14 +111,6 @@ export class GameFacade implements IGameFacade {
   #onlineFetchHandler: (() => void) | null = null;
 
   /**
-   * 外部 listener 的 unsubscribe 函数集合。
-   * addListener() 注册，leaveRoom/createRoom/joinRoom 时自动清除。
-   * Web 上 NativeStackNavigator 不保证 screen unmount（navigate 只隐藏），
-   * 因此不能依赖 useEffect cleanup 清除 store listeners，必须在会话边界主动清理。
-   */
-  #externalUnsubscribes = new Set<() => void>();
-
-  /**
    * L1 重连检测：是否已经历过首次 Live 事件。
    * 构造器中的 status listener 用此标志区分「初始连接」与「重连」。
    * 每次 createRoom / joinRoom 重置为 false（fresh join 的首次 Live 不应触发 fetchStateFromDB）。
@@ -176,12 +168,7 @@ export class GameFacade implements IGameFacade {
     const unsub = this.#store.subscribe((_state, _rev) => {
       fn(this.#store.getState());
     });
-    const wrappedUnsub = () => {
-      unsub();
-      this.#externalUnsubscribes.delete(wrappedUnsub);
-    };
-    this.#externalUnsubscribes.add(wrappedUnsub);
-    return wrappedUnsub;
+    return unsub;
   }
 
   getState(): GameState | null {
@@ -239,23 +226,17 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * 获取当前 外部 listener 数量（仅用于测试/调试）。
-   * 排除 constructor 内部的 pendingAudioEffects reactive 订阅（固定 1 个）。
+   * Constructor 注册的内部 store listener 数量。
+   * 若在 constructor 中新增/删除 store.subscribe()，必须同步更新此值。
    */
-  getListenerCount(): number {
-    return this.#store.getListenerCount() - 1;
-  }
+  static readonly #internalStoreListenerCount = 1;
 
   /**
-   * 清除所有通过 addListener() 注册的外部 store listeners。
-   * 在会话边界（leaveRoom/createRoom/joinRoom）调用。
+   * 获取当前 外部 listener 数量（仅用于测试/调试）。
+   * 排除 constructor 内部的 reactive 订阅。
    */
-  #clearExternalListeners(): void {
-    for (const unsub of this.#externalUnsubscribes) {
-      unsub();
-    }
-    // unsub() 内部已 delete，但 defensive clear
-    this.#externalUnsubscribes.clear();
+  getListenerCount(): number {
+    return this.#store.getListenerCount() - GameFacade.#internalStoreListenerCount;
   }
 
   // =========================================================================
@@ -680,8 +661,6 @@ export class GameFacade implements IGameFacade {
     this.#audioService.clearPreloaded();
 
     await this.#realtimeService.leaveRoom();
-    // 清除外部 listeners（Web 上 screen 可能不 unmount，不能依赖 useEffect cleanup）
-    this.#clearExternalListeners();
     this.#store.reset();
     this.#myUid = null;
     this.#isHost = false;
