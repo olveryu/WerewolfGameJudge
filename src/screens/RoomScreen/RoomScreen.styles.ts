@@ -36,7 +36,6 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.large,
     },
     errorBackButton: {
-      marginTop: spacing.large,
       paddingHorizontal: spacing.large,
       paddingVertical: spacing.medium,
       backgroundColor: colors.primary,
@@ -44,6 +43,19 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     },
     errorBackButtonText: {
       color: colors.textInverse,
+      fontSize: typography.body,
+      fontWeight: typography.weights.semibold,
+    },
+    errorSecondaryButton: {
+      paddingHorizontal: spacing.large,
+      paddingVertical: spacing.medium,
+      backgroundColor: colors.surfaceHover,
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+    },
+    errorSecondaryButtonText: {
+      color: colors.textSecondary,
       fontSize: typography.body,
       fontWeight: typography.weights.semibold,
     },

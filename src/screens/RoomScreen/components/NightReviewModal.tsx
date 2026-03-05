@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
 
@@ -118,7 +118,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       paddingLeft: spacing.small,
     },
     divider: {
-      height: 1,
+      height: fixed.divider,
       backgroundColor: colors.border,
       marginVertical: spacing.medium,
     },

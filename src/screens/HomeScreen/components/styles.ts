@@ -30,7 +30,6 @@ export interface HomeScreenStyles {
   menuContent: ViewStyle;
   menuTitle: TextStyle;
   menuSubtitle: TextStyle;
-  menuArrow: TextStyle;
   divider: ViewStyle;
   modalOverlay: ViewStyle;
   modalContent: ViewStyle;
@@ -122,14 +121,14 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     userAvatarImage: {
       width: componentSizes.avatar.sm,
       height: componentSizes.avatar.sm,
-      borderRadius: borderRadius.small,
+      borderRadius: borderRadius.medium,
       marginRight: spacing.small,
       overflow: 'hidden',
     },
     userAvatarPlaceholder: {
       width: componentSizes.avatar.sm,
       height: componentSizes.avatar.sm,
-      borderRadius: borderRadius.full,
+      borderRadius: borderRadius.medium,
       backgroundColor: colors.border,
       justifyContent: 'center',
       alignItems: 'center',
@@ -181,11 +180,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     menuSubtitle: {
       fontSize: typography.secondary,
       color: colors.textSecondary,
-      marginTop: 2,
-    },
-    menuArrow: {
-      fontSize: typography.heading,
-      color: colors.textMuted,
+      marginTop: spacing.micro,
     },
     divider: {
       height: fixed.divider,
@@ -284,19 +279,24 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       opacity: 0.8,
     },
     input: {
+      height: spacing.xxlarge,
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
-      padding: spacing.medium,
+      paddingHorizontal: spacing.medium,
       fontSize: typography.body,
       color: colors.text,
-      marginBottom: spacing.small,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      marginBottom: spacing.medium,
     },
     passwordWrapper: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
-      marginBottom: spacing.small,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      marginBottom: spacing.medium,
     },
     passwordInput: {
       marginBottom: 0,

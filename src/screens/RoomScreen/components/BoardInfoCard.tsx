@@ -4,8 +4,12 @@
  * 显示角色配置概览（狼/神/民数量）。点击角色名可查看该角色技能。
  * 渲染 UI、处理折叠交互并通过回调上报 onRolePress intent，不 import service，不包含业务逻辑判断。
  */
+import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
+
+import { useColors } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 import type { RoleDisplayItem } from '../RoomScreen.helpers';
 import { type BoardInfoCardStyles } from './styles';
@@ -91,6 +95,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   speakingOrderText,
   styles,
 }) => {
+  const colors = useColors();
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
   const [userHasInteracted, setUserHasInteracted] = useState(false);
 
@@ -110,7 +115,11 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
     <View style={styles.boardInfoContainer}>
       <TouchableOpacity style={styles.headerRow} onPress={handleToggle} activeOpacity={0.7}>
         <Text style={styles.boardInfoTitle}>板子配置 ({playerCount}人局)</Text>
-        <Text style={styles.collapseIcon}>{isCollapsed ? '▼' : '▲'}</Text>
+        <Ionicons
+          name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+          size={componentSizes.icon.sm}
+          color={colors.textSecondary}
+        />
       </TouchableOpacity>
 
       {!isCollapsed && (

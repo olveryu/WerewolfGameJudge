@@ -107,6 +107,7 @@ export interface ConfigScreenStyles {
   stepperCount: TextStyle;
   // Scroll area
   scrollView: ViewStyle;
+  scrollContent: ViewStyle;
   // Loading
   loadingContainer: ViewStyle;
   loadingText: TextStyle;
@@ -418,7 +419,9 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
 
     // ── Role chip (inside card) ────────────────
     chip: {
-      width: '30%',
+      flexBasis: '28%',
+      flexGrow: 1,
+      maxWidth: '32%',
       paddingVertical: componentSizes.chip.paddingV,
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
@@ -461,10 +464,9 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     cardBFooterHint: {
       fontSize: typography.caption,
-      color: colors.textSecondary,
+      color: colors.textMuted,
       textAlign: 'center',
       marginBottom: spacing.small,
-      opacity: 0.5,
     },
 
     // ── Card B: stepper + role sections (merged card) ──
@@ -538,6 +540,9 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     // ── Scroll area ─────────────────────────────
     scrollView: {
       flex: 1,
+    },
+    scrollContent: {
+      paddingBottom: spacing.large,
     },
 
     // ── Loading ─────────────────────────────────

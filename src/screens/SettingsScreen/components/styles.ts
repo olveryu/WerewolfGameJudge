@@ -451,6 +451,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       marginTop: spacing.small,
     },
     themeOption: {
+      flexBasis: '22%',
       flexGrow: 1,
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.small,
