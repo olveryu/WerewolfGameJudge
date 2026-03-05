@@ -94,6 +94,21 @@ export class SettingsService {
             );
             merged.roleRevealAnimation = DEFAULT_SETTINGS.roleRevealAnimation;
           }
+          // Validate boolean fields (guard against corrupted persisted data)
+          if (typeof merged.bgmEnabled !== 'boolean') {
+            settingsServiceLog.warn(
+              'Invalid persisted bgmEnabled, resetting to default:',
+              merged.bgmEnabled,
+            );
+            merged.bgmEnabled = DEFAULT_SETTINGS.bgmEnabled;
+          }
+          if (typeof merged.hasSeenAssistantHint !== 'boolean') {
+            settingsServiceLog.warn(
+              'Invalid persisted hasSeenAssistantHint, resetting to default:',
+              merged.hasSeenAssistantHint,
+            );
+            merged.hasSeenAssistantHint = DEFAULT_SETTINGS.hasSeenAssistantHint;
+          }
           this.#settings = merged;
         }
       }
