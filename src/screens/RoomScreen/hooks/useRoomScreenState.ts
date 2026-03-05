@@ -514,6 +514,7 @@ export function useRoomScreenState(
     imActioner,
     isAudioPlaying,
     myUid,
+    needsContinueOverlay,
     firstSwapSeat,
     setFirstSwapSeat,
     setSecondSeat,
