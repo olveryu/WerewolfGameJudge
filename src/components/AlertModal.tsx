@@ -114,25 +114,23 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     alertBox: {
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.xlarge,
-      padding: spacing.xlarge,
+      borderRadius: borderRadius.large,
+      padding: spacing.large,
       minWidth: spacing.xxlarge * 6, // ~280
       maxWidth: screenWidth * 0.85,
-      alignItems: 'center',
     },
     title: {
-      fontSize: typography.heading,
+      fontSize: typography.subtitle,
       fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',
       marginBottom: spacing.small,
     },
     message: {
-      fontSize: typography.body,
+      fontSize: typography.secondary,
       color: colors.textSecondary,
       textAlign: 'center',
       marginBottom: spacing.large,
-      lineHeight: typography.body * 1.5,
     },
     buttonContainer: {
       marginTop: spacing.small,
@@ -141,11 +139,10 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     button: {
       backgroundColor: colors.primary,
-      borderRadius: borderRadius.full,
+      borderRadius: borderRadius.medium,
       paddingVertical: spacing.medium,
-      paddingHorizontal: spacing.xlarge,
+      paddingHorizontal: spacing.large,
       alignItems: 'center',
-      minWidth: spacing.xxlarge * 4, // ~160
       ...(buttonCount === 2 ? { flex: 1 } : {}),
     },
     cancelButton: {
@@ -157,7 +154,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     buttonText: {
       fontSize: typography.body,
       color: colors.textInverse,
-      fontWeight: typography.weights.bold,
+      fontWeight: typography.weights.semibold,
     },
     cancelButtonText: {
       color: colors.textSecondary,
