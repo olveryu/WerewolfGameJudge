@@ -14,6 +14,7 @@
  * 不直接调用 Supabase，不包含业务 callback 逻辑（应在子 hooks 中）。
  */
 
+import { useIsFocused } from '@react-navigation/native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
@@ -131,6 +132,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // =========================================================================
   const facade = useGameFacade();
   const { roomService, authService } = useServices();
+  const isFocused = useIsFocused();
 
   // roomRecord is owned here so both useConnectionSync and useRoomLifecycle can use it
   const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
@@ -146,10 +148,23 @@ export const useGameRoom = (): UseGameRoomResult => {
   const [showContinueOverlay, setShowContinueOverlay] = useState(false);
 
   // =========================================================================
-  // Facade state subscription (useSyncExternalStore — React 18+ standard)
+  // Facade state subscription (useSyncExternalStore + useIsFocused)
+  //
+  // Web 上 NativeStackNavigator pop 的 screen 用 CSS 隐藏而非 unmount，
+  // 因此 useEffect cleanup 不会执行。用 useIsFocused 控制订阅：
+  // - 聚焦时：真订阅 → state 实时更新
+  // - 失焦时：空订阅 → 0 listener 累积
+  // - 再聚焦时：isFocused 变 → subscribe 变 → React re-subscribe
+  //   → 立即调 getSnapshot() 读最新 state（补上 blur 期间的变更）
   // =========================================================================
 
-  const subscribe = useCallback((cb: () => void) => facade.subscribe(cb), [facade]);
+  const subscribe = useCallback(
+    (cb: () => void) => {
+      if (!isFocused) return () => {}; // 不聚焦 → 空订阅（防止 listener 累积）
+      return facade.subscribe(cb);
+    },
+    [facade, isFocused],
+  );
   const getSnapshot = useCallback(() => facade.getState(), [facade]);
   const snapshot = useSyncExternalStore(subscribe, getSnapshot);
 
@@ -163,6 +178,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;
 
   useEffect(() => {
+    if (!isFocused) return; // 不聚焦的隐藏 screen 不执行副作用
     if (snapshot) {
       gameRoomLog.debug('[facade] State update from facade', {
         roomCode: snapshot.roomCode,
@@ -185,7 +201,7 @@ export const useGameRoom = (): UseGameRoomResult => {
       setStateRevision(0);
       setLastStateReceivedAt(null);
     }
-  }, [snapshot, facade, setStateRevision, onStateReceived, setLastStateReceivedAt]);
+  }, [isFocused, snapshot, facade, setStateRevision, onStateReceived, setLastStateReceivedAt]);
 
   // BGM state management (needs isHost + gameState derived above)
   const bgm = useBgmControl(isHost, gameState?.status ?? null, gameState?.isAudioPlaying ?? false);
@@ -299,7 +315,8 @@ export const useGameRoom = (): UseGameRoomResult => {
     postProgression: actions.postProgression,
     // Rejoin recovery
     resumeAfterRejoin,
-    needsContinueOverlay: showContinueOverlay,
+    // 失焦的隐藏 screen 不渲染 Modal（Web 上 Modal 浮于顶层不受 CSS 隐藏控制）
+    needsContinueOverlay: isFocused && showContinueOverlay,
     dismissContinueOverlay,
   };
 };
