@@ -57,14 +57,8 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   );
 
   const handleButtonPress = (button: AlertButton) => {
-    // First close the modal, then execute the callback
-    // Use setTimeout to ensure modal is fully closed before callback
     onClose();
-    if (button.onPress) {
-      setTimeout(() => {
-        button.onPress?.();
-      }, 0);
-    }
+    button.onPress?.();
   };
 
   return (
@@ -120,23 +114,25 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     alertBox: {
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.large,
+      borderRadius: borderRadius.xlarge,
+      padding: spacing.xlarge,
       minWidth: spacing.xxlarge * 6, // ~280
       maxWidth: screenWidth * 0.85,
+      alignItems: 'center',
     },
     title: {
-      fontSize: typography.subtitle,
+      fontSize: typography.heading,
       fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',
       marginBottom: spacing.small,
     },
     message: {
-      fontSize: typography.secondary,
+      fontSize: typography.body,
       color: colors.textSecondary,
       textAlign: 'center',
       marginBottom: spacing.large,
+      lineHeight: typography.body * 1.5,
     },
     buttonContainer: {
       marginTop: spacing.small,
@@ -145,10 +141,11 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     button: {
       backgroundColor: colors.primary,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       paddingVertical: spacing.medium,
-      paddingHorizontal: spacing.large,
+      paddingHorizontal: spacing.xlarge,
       alignItems: 'center',
+      minWidth: spacing.xxlarge * 4, // ~160
       ...(buttonCount === 2 ? { flex: 1 } : {}),
     },
     cancelButton: {
@@ -160,7 +157,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     buttonText: {
       fontSize: typography.body,
       color: colors.textInverse,
-      fontWeight: typography.weights.semibold,
+      fontWeight: typography.weights.bold,
     },
     cancelButtonText: {
       color: colors.textSecondary,
