@@ -229,6 +229,6 @@ describe('RoomScreen skip action UI', () => {
       confirmBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith(null, undefined);
+    expect(mockSubmitAction).toHaveBeenCalledWith(null);
   });
 });
