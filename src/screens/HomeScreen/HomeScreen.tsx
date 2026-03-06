@@ -313,11 +313,11 @@ export const HomeScreen: React.FC = () => {
         onPress: () => navigation.navigate('Settings'),
       });
     }
-    if (user && !user.isAnonymous && !user.displayName) {
+    if (user && !user.isAnonymous) {
       all.push({
         id: 'nickname',
         icon: '✏️',
-        title: '设置你的昵称',
+        title: '个性化你的昵称和头像',
         subtitle: '让队友在房间里认出你',
         onPress: () => navigation.navigate('Settings'),
       });
@@ -349,38 +349,19 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.topBarLogo}>🐺</Text>
             <Text style={styles.topBarTitle}>狼人杀法官</Text>
           </View>
-          <View style={styles.topBarActions}>
-            <TouchableOpacity
-              style={styles.topBarButton}
-              onPress={handleProfilePress}
-              activeOpacity={0.7}
-              testID={TESTIDS.homeUserBar}
-              accessibilityLabel={user ? userName : '登录'}
-            >
-              {user && !user.isAnonymous ? (
-                <Avatar value={user.uid} size={componentSizes.icon.lg} avatarUrl={user.avatarUrl} />
-              ) : (
-                <Ionicons
-                  name="person-circle-outline"
-                  size={componentSizes.icon.lg}
-                  color={colors.textSecondary}
-                />
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.topBarButton}
-              onPress={handleNavigateSettings}
-              activeOpacity={0.7}
-              accessibilityLabel="设置"
-              testID={TESTIDS.homeSettingsButton}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={componentSizes.icon.md}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.topBarButton}
+            onPress={handleNavigateSettings}
+            activeOpacity={0.7}
+            accessibilityLabel="设置"
+            testID={TESTIDS.homeSettingsButton}
+          >
+            <Ionicons
+              name="settings-outline"
+              size={componentSizes.icon.md}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Hidden testID anchors for E2E login flow compatibility */}
@@ -399,8 +380,27 @@ export const HomeScreen: React.FC = () => {
 
         {/* ── Greeting ────────────────────────────────── */}
         <View style={styles.greeting}>
-          <Text style={styles.greetingName}>{greetingText}</Text>
-          <Text style={styles.greetingSub}>{user ? '准备好主持了吗？' : '登录后开始游戏'}</Text>
+          <View style={styles.greetingTextColumn}>
+            <Text style={styles.greetingName}>{greetingText}</Text>
+            <Text style={styles.greetingSub}>{user ? '准备好主持了吗？' : '登录后开始游戏'}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.greetingAvatar}
+            onPress={handleProfilePress}
+            activeOpacity={0.7}
+            testID={TESTIDS.homeUserBar}
+            accessibilityLabel={user ? userName : '登录'}
+          >
+            {user && !user.isAnonymous ? (
+              <Avatar value={user.uid} size={componentSizes.avatar.lg} avatarUrl={user.avatarUrl} />
+            ) : (
+              <Ionicons
+                name="person-circle-outline"
+                size={componentSizes.avatar.lg}
+                color={colors.textSecondary}
+              />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* ── Hero Card — Create Room ─────────────────── */}
