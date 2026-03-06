@@ -46,6 +46,7 @@ export const TemplatePicker = memo(function TemplatePicker({
           onStartShouldSetResponder={() => true}
           onTouchEnd={(e) => e.stopPropagation()}
         >
+          <View style={styles.settingsSheetHandle} />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>选择板子</Text>
             <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>

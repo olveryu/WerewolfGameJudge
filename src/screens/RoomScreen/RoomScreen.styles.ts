@@ -70,9 +70,10 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.medium,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surface + 'CC',
       borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
+      overflow: 'hidden',
     },
     backButton: {
       width: componentSizes.avatar.md,

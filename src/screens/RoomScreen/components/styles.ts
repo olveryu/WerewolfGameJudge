@@ -277,7 +277,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
 
     bottomActionPanel: StyleSheet.create<BottomActionPanelStyles>({
       container: {
-        backgroundColor: colors.surface,
+        backgroundColor: colors.surface + 'CC',
         borderTopLeftRadius: borderRadius.large,
         borderTopRightRadius: borderRadius.large,
         paddingTop: spacing.medium,
@@ -285,6 +285,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         paddingBottom: spacing.medium,
         borderTopWidth: 1,
         borderTopColor: colors.borderLight,
+        overflow: 'hidden',
         // Upward shadow
         ...shadows.upward,
       },
