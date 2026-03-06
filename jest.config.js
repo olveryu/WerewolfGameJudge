@@ -34,5 +34,6 @@ module.exports = {
     '^expo-sharing$': '<rootDir>/__mocks__/expo-sharing.ts',
     '^react-native-qrcode-svg$': '<rootDir>/__mocks__/react-native-qrcode-svg.tsx',
     '^react-native-view-shot$': '<rootDir>/__mocks__/react-native-view-shot.ts',
+    '^html-to-image$': '<rootDir>/__mocks__/html-to-image.ts',
   },
 };
