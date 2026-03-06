@@ -6,13 +6,36 @@
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
 
 import { TESTIDS } from '@/testids';
 import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
 import { fixed } from '@/theme/tokens';
+
+/**
+ * Capture the share card View as a base64-encoded PNG.
+ *
+ * - Native: `captureRef` from react-native-view-shot.
+ * - Web: `html2canvas` directly — react-native-view-shot's `captureRef` calls
+ *   `findNodeHandle` which is unsupported on web.  html2canvas is already a
+ *   transitive dependency of react-native-view-shot.
+ */
+async function captureShareCard(ref: React.RefObject<View | null>): Promise<string> {
+  if (Platform.OS === 'web') {
+    const html2canvas = (await import('html2canvas')).default;
+    const node = ref.current as unknown as HTMLElement;
+    if (!node) throw new Error('Share card ref not ready');
+    const canvas = await html2canvas(node, { backgroundColor: null });
+    const dataUrl = canvas.toDataURL('image/png');
+    // Strip "data:image/png;base64," prefix → raw base64
+    const prefix = 'base64,';
+    const idx = dataUrl.indexOf(prefix);
+    return idx >= 0 ? dataUrl.slice(idx + prefix.length) : dataUrl;
+  }
+  return captureRef(ref, { format: 'png', result: 'base64', quality: 1 });
+}
 
 interface QRCodeModalProps {
   visible: boolean;
@@ -46,10 +69,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   const shareCardRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
 
-  const getBase64 = useCallback(
-    () => captureRef(shareCardRef, { format: 'png', result: 'base64', quality: 1 }),
-    [],
-  );
+  const getBase64 = useCallback(() => captureShareCard(shareCardRef), []);
 
   const handleShare = useCallback(() => {
     if (isSharing) return;
