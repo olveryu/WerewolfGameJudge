@@ -1,9 +1,9 @@
 /**
- * InstallMenuItem - PWA 安装到主屏幕菜单项 + 引导 Modal
+ * InstallMenuItem - PWA 安装到主屏幕菜单项 + iOS 引导 Modal
  *
  * Android/桌面 Chrome：点击直接触发系统安装弹窗。
  * iOS 浏览器（Safari / Chrome）：点击弹出引导 Modal，按浏览器类型显示对应步骤。
- * 微信内置浏览器：点击弹出引导 Modal，提示「在浏览器中打开」。
+ * 微信内置浏览器：HTML 蒙层已拦截（web/index.html），此组件不渲染。
  * 已安装 / 不支持：不渲染。
  * 渲染 UI 并调用 usePWAInstall hook，不 import service，不包含业务逻辑判断。
  */
@@ -22,13 +22,13 @@ interface InstallMenuItemProps {
 }
 
 const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colors }) => {
-  const { mode, iosBrowser, wechatOS, install } = usePWAInstall();
+  const { mode, iosBrowser, install } = usePWAInstall();
   const [showGuide, setShowGuide] = useState(false);
 
   const handlePress = useCallback(async () => {
     if (mode === 'prompt') {
       await install();
-    } else if (mode === 'ios-guide' || mode === 'wechat-guide') {
+    } else if (mode === 'ios-guide') {
       setShowGuide(true);
     }
   }, [mode, install]);
@@ -39,78 +39,6 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
 
   if (mode === 'hidden') return null;
 
-  const renderGuideSteps = () => {
-    if (mode === 'wechat-guide') {
-      const browserName = wechatOS === 'ios' ? 'Safari' : '浏览器';
-      return (
-        <>
-          <View style={styles.guideStepRow}>
-            <Text style={styles.guideStepNumber}>①</Text>
-            <Text style={styles.guideStepText}>
-              点击右上角 <Ionicons name="ellipsis-horizontal" size={16} color={colors.primary} />{' '}
-              菜单
-            </Text>
-          </View>
-          <View style={styles.guideStepRow}>
-            <Text style={styles.guideStepNumber}>②</Text>
-            <Text style={styles.guideStepText}>选择「在{browserName}中打开」</Text>
-          </View>
-          <View style={styles.guideStepRow}>
-            <Text style={styles.guideStepNumber}>③</Text>
-            <Text style={styles.guideStepText}>在{browserName}中点击「安装到主屏幕」</Text>
-          </View>
-        </>
-      );
-    }
-
-    if (iosBrowser === 'chrome') {
-      return (
-        <>
-          <View style={styles.guideStepRow}>
-            <Text style={styles.guideStepNumber}>①</Text>
-            <Text style={styles.guideStepText}>
-              点击右上角 <Ionicons name="share-outline" size={16} color={colors.primary} /> 分享按钮
-            </Text>
-          </View>
-          <View style={styles.guideStepRow}>
-            <Text style={styles.guideStepNumber}>②</Text>
-            <Text style={styles.guideStepText}>选择「添加到主屏幕」</Text>
-          </View>
-          <View style={styles.guideStepRow}>
-            <Text style={styles.guideStepNumber}>③</Text>
-            <Text style={styles.guideStepText}>点击「添加」确认</Text>
-          </View>
-        </>
-      );
-    }
-
-    // Safari (default)
-    return (
-      <>
-        <View style={styles.guideStepRow}>
-          <Text style={styles.guideStepNumber}>①</Text>
-          <Text style={styles.guideStepText}>
-            点击底部工具栏的 <Ionicons name="share-outline" size={16} color={colors.primary} />{' '}
-            分享按钮
-          </Text>
-        </View>
-        <View style={styles.guideStepRow}>
-          <Text style={styles.guideStepNumber}>②</Text>
-          <Text style={styles.guideStepText}>滚动菜单，找到「添加到主屏幕」</Text>
-        </View>
-        <View style={styles.guideStepRow}>
-          <Text style={styles.guideStepNumber}>③</Text>
-          <Text style={styles.guideStepText}>点击右上角「添加」确认</Text>
-        </View>
-      </>
-    );
-  };
-
-  const guideSubtitle =
-    mode === 'wechat-guide'
-      ? '微信浏览器不支持直接安装，请先在系统浏览器中打开'
-      : '按以下步骤操作，即可像 App 一样使用';
-
   return (
     <>
       <TouchableOpacity style={styles.footerLink} onPress={handlePress} activeOpacity={0.7}>
@@ -118,14 +46,54 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
         <Text style={styles.footerLinkText}>安装到主屏幕</Text>
       </TouchableOpacity>
 
-      {/* 浏览器引导 Modal（iOS / WeChat） */}
+      {/* iOS 浏览器引导 Modal */}
       <Modal visible={showGuide} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>添加到主屏幕</Text>
-            <Text style={styles.modalSubtitle}>{guideSubtitle}</Text>
+            <Text style={styles.modalSubtitle}>按以下步骤操作，即可像 App 一样使用</Text>
 
-            <View style={styles.guideSteps}>{renderGuideSteps()}</View>
+            <View style={styles.guideSteps}>
+              {iosBrowser === 'chrome' ? (
+                /* Chrome on iOS */
+                <>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>①</Text>
+                    <Text style={styles.guideStepText}>
+                      点击右上角 <Ionicons name="share-outline" size={16} color={colors.primary} />{' '}
+                      分享按钮
+                    </Text>
+                  </View>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>②</Text>
+                    <Text style={styles.guideStepText}>选择「添加到主屏幕」</Text>
+                  </View>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>③</Text>
+                    <Text style={styles.guideStepText}>点击「添加」确认</Text>
+                  </View>
+                </>
+              ) : (
+                /* Safari (default) */
+                <>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>①</Text>
+                    <Text style={styles.guideStepText}>
+                      点击底部工具栏的{' '}
+                      <Ionicons name="share-outline" size={16} color={colors.primary} /> 分享按钮
+                    </Text>
+                  </View>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>②</Text>
+                    <Text style={styles.guideStepText}>滚动菜单，找到「添加到主屏幕」</Text>
+                  </View>
+                  <View style={styles.guideStepRow}>
+                    <Text style={styles.guideStepNumber}>③</Text>
+                    <Text style={styles.guideStepText}>点击右上角「添加」确认</Text>
+                  </View>
+                </>
+              )}
+            </View>
 
             <TouchableOpacity
               style={styles.primaryButton}
