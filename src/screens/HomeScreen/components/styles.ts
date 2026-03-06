@@ -14,18 +14,13 @@ export interface HomeScreenStyles {
   container: ViewStyle;
   scrollView: ViewStyle;
   scrollContent: ViewStyle;
-  // Top Bar (brand only)
+  // Top Bar (brand + avatar + settings)
   topBar: ViewStyle;
   topBarBrand: ViewStyle;
   topBarLogo: TextStyle;
   topBarTitle: TextStyle;
+  topBarActions: ViewStyle;
   topBarButton: ViewStyle;
-  // Greeting (text + avatar)
-  greeting: ViewStyle;
-  greetingTextColumn: ViewStyle;
-  greetingAvatar: ViewStyle;
-  greetingName: TextStyle;
-  greetingSub: TextStyle;
   // User identity (login state, keep testIDs for E2E)
   loginPrompt: ViewStyle;
   loginPromptText: TextStyle;
@@ -131,46 +126,19 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
+    topBarActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
+    },
     topBarButton: {
       width: componentSizes.avatar.md,
       height: componentSizes.avatar.md,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       backgroundColor: colors.background,
       justifyContent: 'center',
       alignItems: 'center',
-    },
-    // ── Greeting ─────────────────────────────────────────────
-    greeting: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.screenH,
-      paddingTop: spacing.medium,
-      paddingBottom: spacing.small,
-    },
-    greetingTextColumn: {
-      flex: 1,
-    },
-    greetingAvatar: {
-      width: componentSizes.avatar.lg,
-      height: componentSizes.avatar.lg,
-      borderRadius: borderRadius.full,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginLeft: spacing.medium,
       overflow: 'hidden',
-    },
-    greetingName: {
-      fontSize: typography.heading,
-      lineHeight: typography.lineHeights.heading,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-    },
-    greetingSub: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textMuted,
-      marginTop: spacing.tight,
     },
     // ── User identity (hidden helpers for testIDs / E2E) ─────
     loginPrompt: {
@@ -366,7 +334,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     secondaryButton: {
       backgroundColor: colors.background,
       padding: spacing.medium,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       alignItems: 'center',
       marginTop: spacing.small,
     },
@@ -396,7 +364,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       padding: spacing.medium,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       alignItems: 'center',
       marginTop: spacing.small,
     },

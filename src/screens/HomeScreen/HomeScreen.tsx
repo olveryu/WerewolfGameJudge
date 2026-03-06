@@ -1,7 +1,7 @@
 /**
  * HomeScreen - 主页入口（登录、加入房间、创建房间）
  *
- * Apple HIG 风格布局：TopBar 品牌+图标 → Greeting → Hero Card → Action Row → Footer。
+ * Apple HIG 风格布局：TopBar 品牌+头像+设置 → Hero Card → Action Row → TipCards → Footer。
  * 性能优化：styles factory 集中创建一次，通过 props 传入子组件；handlers 用 useCallback 稳定化。
  * 负责编排子组件、调用 service/navigation/showAlert。
  * 不使用硬编码样式值，不使用 console.*。
@@ -39,14 +39,6 @@ import { homeLog } from '@/utils/logger';
 import { createHomeScreenStyles, InstallMenuItem, JoinRoomModal, TipCard } from './components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
-
-/** Time-of-day greeting (Apple Fitness style) */
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour >= 6 && hour < 12) return '早上好';
-  if (hour >= 12 && hour < 18) return '下午好';
-  return '晚上好';
-}
 
 export const HomeScreen: React.FC = () => {
   const { colors } = useTheme();
@@ -124,13 +116,6 @@ export const HomeScreen: React.FC = () => {
     }
     return '用户';
   }, [user]);
-
-  /** Greeting line: "早上好，严振宇" or "欢迎使用" */
-  const greetingText = useMemo(() => {
-    if (!user) return '欢迎使用';
-    if (user.isAnonymous) return getGreeting();
-    return `${getGreeting()}，${userName}`;
-  }, [user, userName]);
 
   const requireAuth = useCallback(
     (action: () => void) => {
@@ -349,19 +334,42 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.topBarLogo}>🐺</Text>
             <Text style={styles.topBarTitle}>狼人杀法官</Text>
           </View>
-          <TouchableOpacity
-            style={styles.topBarButton}
-            onPress={handleNavigateSettings}
-            activeOpacity={0.7}
-            accessibilityLabel="设置"
-            testID={TESTIDS.homeSettingsButton}
-          >
-            <Ionicons
-              name="settings-outline"
-              size={componentSizes.icon.md}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
+          <View style={styles.topBarActions}>
+            <TouchableOpacity
+              style={styles.topBarButton}
+              onPress={handleProfilePress}
+              activeOpacity={0.7}
+              testID={TESTIDS.homeUserBar}
+              accessibilityLabel={user ? userName : '登录'}
+            >
+              {user && !user.isAnonymous ? (
+                <Avatar
+                  value={user.uid}
+                  size={componentSizes.avatar.sm}
+                  avatarUrl={user.avatarUrl}
+                />
+              ) : (
+                <Ionicons
+                  name="person-circle-outline"
+                  size={componentSizes.icon.lg}
+                  color={colors.textSecondary}
+                />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.topBarButton}
+              onPress={handleNavigateSettings}
+              activeOpacity={0.7}
+              accessibilityLabel="设置"
+              testID={TESTIDS.homeSettingsButton}
+            >
+              <Ionicons
+                name="settings-outline"
+                size={componentSizes.icon.md}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Hidden testID anchors for E2E login flow compatibility */}
@@ -377,31 +385,6 @@ export const HomeScreen: React.FC = () => {
             {userName}
           </Text>
         )}
-
-        {/* ── Greeting ────────────────────────────────── */}
-        <View style={styles.greeting}>
-          <View style={styles.greetingTextColumn}>
-            <Text style={styles.greetingName}>{greetingText}</Text>
-            <Text style={styles.greetingSub}>{user ? '准备好主持了吗？' : '登录后开始游戏'}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.greetingAvatar}
-            onPress={handleProfilePress}
-            activeOpacity={0.7}
-            testID={TESTIDS.homeUserBar}
-            accessibilityLabel={user ? userName : '登录'}
-          >
-            {user && !user.isAnonymous ? (
-              <Avatar value={user.uid} size={componentSizes.avatar.lg} avatarUrl={user.avatarUrl} />
-            ) : (
-              <Ionicons
-                name="person-circle-outline"
-                size={componentSizes.avatar.lg}
-                color={colors.textSecondary}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
 
         {/* ── Hero Card — Create Room ─────────────────── */}
         <PressableScale
