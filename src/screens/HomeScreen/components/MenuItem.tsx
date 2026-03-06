@@ -6,8 +6,9 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, type ReactNode } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { PressableScale } from '@/components/PressableScale';
 import { type ThemeColors } from '@/theme';
 import { componentSizes } from '@/theme/tokens';
 
@@ -35,12 +36,12 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   colors,
 }) => {
   return (
-    <TouchableOpacity
+    <PressableScale
       testID={testID}
       style={[styles.menuItem, disabled && styles.menuItemDisabled]}
       onPress={onPress}
       disabled={disabled}
-      activeOpacity={0.7}
+      activeScale={disabled ? 1 : 0.97}
     >
       <View style={styles.menuIcon}>
         {typeof icon === 'string' ? <Text style={styles.menuIconText}>{icon}</Text> : icon}
@@ -50,7 +51,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
         {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
       </View>
       <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.textMuted} />
-    </TouchableOpacity>
+    </PressableScale>
   );
 };
 

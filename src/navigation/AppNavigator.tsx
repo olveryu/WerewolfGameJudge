@@ -93,12 +93,21 @@ export const AppNavigator: React.FC = () => {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
+          animation: 'default',
         }}
       >
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: '狼人杀' }} />
-        <Stack.Screen name="Config" component={ConfigScreen} options={{ title: '创建房间' }} />
+        <Stack.Screen
+          name="Config"
+          component={ConfigScreen}
+          options={{ title: '创建房间', presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
         <Stack.Screen name="Room" component={RoomScreen} options={{ title: '房间' }} />
-        <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: '设置' }} />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: '设置', presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

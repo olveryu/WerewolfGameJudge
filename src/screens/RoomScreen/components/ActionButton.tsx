@@ -6,8 +6,9 @@
  * 不 import service，不包含业务逻辑判断，不使用 disabled={true}。
  */
 import React, { memo, type ReactNode } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { PressableScale } from '@/components/PressableScale';
 import { spacing } from '@/theme';
 
 import { type ActionButtonStyles } from './styles';
@@ -43,11 +44,13 @@ const ActionButtonComponent: React.FC<ActionButtonProps> = ({
   styles,
 }) => {
   return (
-    <TouchableOpacity
+    <PressableScale
       style={[styles.actionButton, disabled && styles.disabledButton, styleOverride]}
-      onPress={() => onPress({ disabled })}
+      onPress={onPress}
+      disabled={disabled}
+      fireWhenDisabled
+      activeScale={disabled ? 1 : 0.97}
       testID={testID}
-      activeOpacity={disabled ? 1 : 0.7}
       accessibilityState={{ disabled }}
     >
       {icon ? (
@@ -58,7 +61,7 @@ const ActionButtonComponent: React.FC<ActionButtonProps> = ({
       ) : (
         <Text style={styles.buttonText}>{label}</Text>
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 };
 

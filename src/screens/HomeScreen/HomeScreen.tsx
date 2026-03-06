@@ -10,10 +10,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Modal, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
+import { PressableScale } from '@/components/PressableScale';
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
@@ -255,39 +256,54 @@ export const HomeScreen: React.FC = () => {
           styles={styles}
         />
 
-        {/* Menu */}
-        <View style={styles.menu}>
-          <MenuItem
-            icon={<Ionicons name="log-in-outline" size={22} color={colors.text} />}
-            title={isJoining ? '进入中...' : '进入房间'}
-            subtitle="输入房间号进入游戏"
-            disabled={authLoading}
+        {/* Hero CTA — Create Room */}
+        <PressableScale
+          onPress={handleCreateRoomPress}
+          disabled={authLoading}
+          style={styles.heroCta}
+          testID={TESTIDS.homeCreateRoomButton}
+          haptic
+        >
+          {isCreating ? (
+            <ActivityIndicator color={colors.textInverse} size="small" />
+          ) : (
+            <Ionicons name="add-circle-outline" size={22} color={colors.textInverse} />
+          )}
+          <Text style={styles.heroCtaText}>{isCreating ? '创建中...' : '创建房间'}</Text>
+        </PressableScale>
+
+        {/* Action Row — Enter Room + Return to Last Game */}
+        <View style={styles.actionRow}>
+          <PressableScale
             onPress={handleEnterRoomPress}
+            disabled={authLoading}
+            style={[styles.actionCard, authLoading && styles.actionCardDisabled]}
             testID={TESTIDS.homeEnterRoomButton}
-            styles={styles}
-            colors={colors}
-          />
-          <MenuItem
-            icon={<Ionicons name="add-circle-outline" size={22} color={colors.text} />}
-            title={isCreating ? '创建中...' : '创建房间'}
-            subtitle="开始新的一局游戏"
-            disabled={authLoading}
-            onPress={handleCreateRoomPress}
-            testID={TESTIDS.homeCreateRoomButton}
-            styles={styles}
-            colors={colors}
-          />
-          <View style={styles.divider} />
-          <MenuItem
-            icon={<Ionicons name="arrow-undo-outline" size={22} color={colors.text} />}
-            title="返回上局"
-            subtitle={lastRoomNumber ? `房间 ${lastRoomNumber}` : '没有上局记录'}
-            disabled={authLoading}
+          >
+            <View style={styles.actionCardIcon}>
+              <Ionicons name="log-in-outline" size={22} color={colors.text} />
+            </View>
+            <Text style={styles.actionCardTitle}>{isJoining ? '进入中...' : '进入房间'}</Text>
+            <Text style={styles.actionCardSubtitle}>输入房间号</Text>
+          </PressableScale>
+          <PressableScale
             onPress={handleReturnLastGamePress}
+            disabled={authLoading}
+            style={[styles.actionCard, authLoading && styles.actionCardDisabled]}
             testID={TESTIDS.homeReturnLastGameButton}
-            styles={styles}
-            colors={colors}
-          />
+          >
+            <View style={styles.actionCardIcon}>
+              <Ionicons name="arrow-undo-outline" size={22} color={colors.text} />
+            </View>
+            <Text style={styles.actionCardTitle}>返回上局</Text>
+            <Text style={styles.actionCardSubtitle}>
+              {lastRoomNumber ? `房间 ${lastRoomNumber}` : '无记录'}
+            </Text>
+          </PressableScale>
+        </View>
+
+        {/* Settings */}
+        <View style={styles.menu}>
           <MenuItem
             icon={<Ionicons name="settings-outline" size={22} color={colors.text} />}
             title="设置"
