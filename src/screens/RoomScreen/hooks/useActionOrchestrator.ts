@@ -657,6 +657,11 @@ export function useActionOrchestrator({
           actionDialogs.showRoleActionPrompt('催眠信息', personalMessage, doAck, buttonLabel);
           break;
         }
+
+        default: {
+          const _exhaustiveCheck: never = intent.type;
+          throw new Error(`[FAIL-FAST] Unhandled ActionIntentType: ${_exhaustiveCheck}`);
+        }
       }
     },
     [
