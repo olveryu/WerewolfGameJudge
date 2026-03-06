@@ -65,7 +65,7 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
           </ScrollView>
 
           {/* Close button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose} accessibilityLabel="关闭">
             <Text style={styles.closeButtonText}>关闭</Text>
           </TouchableOpacity>
         </View>

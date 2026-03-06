@@ -42,6 +42,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
       onPress={onPress}
       disabled={disabled}
       activeScale={disabled ? 1 : 0.97}
+      accessibilityLabel={title}
     >
       <View style={styles.menuIcon}>
         {typeof icon === 'string' ? <Text style={styles.menuIconText}>{icon}</Text> : icon}

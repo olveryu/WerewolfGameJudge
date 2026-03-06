@@ -51,6 +51,7 @@ const ActionButtonComponent: React.FC<ActionButtonProps> = ({
       fireWhenDisabled
       activeScale={disabled ? 1 : 0.97}
       testID={testID}
+      accessibilityLabel={label}
       accessibilityState={{ disabled }}
     >
       {icon ? (

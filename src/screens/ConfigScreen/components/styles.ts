@@ -162,6 +162,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     headerBtnText: {
       fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
       color: colors.text,
     },
     headerCenter: {
@@ -174,6 +175,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     headerTitle: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
@@ -206,6 +208,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     overflowMenuItemText: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.text,
       fontWeight: typography.weights.medium,
     },
@@ -245,16 +248,19 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     templatePillText: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     templatePillArrow: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       marginLeft: spacing.tight,
     },
     playerCount: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.textSecondary,
       fontWeight: typography.weights.medium,
     },
@@ -264,6 +270,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     clearBtnText: {
       fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.error,
     },
 
@@ -288,6 +295,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     bottomCreateBtnText: {
       color: colors.textInverse,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
     },
 
@@ -306,6 +314,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     settingsLabel: {
       fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
       marginBottom: spacing.tight,
     },
@@ -322,11 +331,13 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     settingsSelectorText: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.text,
       flex: 1,
     },
     settingsSelectorArrow: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       marginLeft: spacing.tight,
     },
@@ -352,6 +363,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     tabLabel: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       fontWeight: typography.weights.semibold,
       color: colors.textMuted,
       marginBottom: spacing.tight,
@@ -363,6 +375,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     tabBadgeText: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
@@ -398,6 +411,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     settingsSheetTitle: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       marginBottom: spacing.medium,
@@ -409,6 +423,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     sectionTitle: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       marginBottom: spacing.small,
@@ -459,6 +474,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     chipText: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       fontWeight: typography.weights.medium,
       color: colors.textSecondary,
     },
@@ -471,6 +487,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     cardBFooterHint: {
       fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
       textAlign: 'center',
       marginBottom: spacing.small,
@@ -501,6 +518,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     stepperLabel: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.text,
       fontWeight: typography.weights.semibold,
     },
@@ -531,6 +549,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     stepperBtnText: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
     },
     stepperBtnTextDisabled: {
@@ -538,6 +557,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     stepperCount: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.bold,
       color: colors.text,
       minWidth: spacing.large,
@@ -561,6 +581,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     loadingText: {
       marginTop: spacing.medium,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.textSecondary,
     },
 
@@ -570,6 +591,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     settingsChipGroupLabel: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       fontWeight: typography.weights.medium,
       marginBottom: spacing.small,
@@ -597,6 +619,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     settingsChipText: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       fontWeight: typography.weights.medium,
       textAlign: 'center',
@@ -630,6 +653,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     modalTitle: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.text,
     },
@@ -638,6 +662,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     modalCloseBtnText: {
       fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
       color: colors.textSecondary,
     },
     modalOption: {
@@ -654,6 +679,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     modalOptionText: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.text,
     },
     modalOptionTextSelected: {
@@ -662,6 +688,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     modalOptionCheck: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.primary,
     },
 
@@ -688,6 +715,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     variantPickerTitle: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       paddingHorizontal: layout.screenPaddingH,
@@ -726,11 +754,13 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     },
     variantPickerOptionName: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     variantPickerOptionDesc: {
       fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
       marginTop: spacing.tight / 2,
     },
@@ -738,8 +768,8 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
     // ── Role info sheet ──────────────────────────
     roleInfoDesc: {
       fontSize: typography.body,
-      color: colors.textSecondary,
       lineHeight: typography.body * 1.6,
+      color: colors.textSecondary,
       paddingHorizontal: layout.screenPaddingH,
       paddingBottom: spacing.large,
     },

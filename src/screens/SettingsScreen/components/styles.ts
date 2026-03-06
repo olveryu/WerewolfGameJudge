@@ -5,6 +5,7 @@
  */
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
+import { createAuthBaseStyles } from '@/components/auth/authStyles';
 import { borderRadius, shadows, spacing, ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
@@ -113,11 +114,13 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     backBtnText: {
       fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
       color: colors.text,
     },
     title: {
       flex: 1,
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       textAlign: 'center',
@@ -138,6 +141,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     cardTitle: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       marginBottom: spacing.medium,
@@ -150,10 +154,12 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     accountLabel: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
     },
     accountValue: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.text,
       fontFamily: 'monospace',
     },
@@ -174,6 +180,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     statusText: {
       fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.success,
     },
     logoutBtn: {
@@ -185,6 +192,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     logoutBtnText: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.error,
       fontWeight: typography.weights.medium,
     },
@@ -196,10 +204,12 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     infoLabel: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
     },
     infoValue: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.text,
     },
     // Profile section
@@ -228,6 +238,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     avatarPlaceholderIcon: {
       fontSize: typography.display,
+      lineHeight: typography.lineHeights.display,
     },
     avatarEditBadge: {
       position: 'absolute',
@@ -244,6 +255,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     avatarEditIcon: {
       fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
     },
     nameRow: {
       flexDirection: 'row',
@@ -252,11 +264,13 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     userName: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     editIcon: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
     },
     editNameRow: {
       flexDirection: 'row',
@@ -270,6 +284,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       borderRadius: borderRadius.medium,
       paddingHorizontal: spacing.small,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.text,
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
@@ -283,6 +298,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     saveBtnText: {
       color: colors.textInverse,
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       fontWeight: typography.weights.medium,
     },
     cancelBtn: {
@@ -292,107 +308,25 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     cancelBtnText: {
       color: colors.textSecondary,
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
     },
-    // Auth form (AuthStyles-compatible)
+    // Auth form (base + SettingsScreen overrides)
+    ...createAuthBaseStyles(colors),
     formContainer: {
       paddingVertical: spacing.medium,
     },
     formTitle: {
-      fontSize: typography.subtitle,
-      fontWeight: typography.weights.semibold,
-      color: colors.text,
-      textAlign: 'center',
+      ...createAuthBaseStyles(colors).formTitle,
       marginBottom: spacing.large,
-    },
-    formSubtitle: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginTop: spacing.tight,
-      marginBottom: spacing.large,
-    },
-    input: {
-      height: spacing.xxlarge,
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-      paddingHorizontal: spacing.medium,
-      fontSize: typography.body,
-      color: colors.text,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      marginBottom: spacing.medium,
-    },
-    passwordWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      marginBottom: spacing.medium,
-    },
-    passwordInput: {
-      marginBottom: 0,
-      flex: 1,
-    },
-    eyeButton: {
-      paddingHorizontal: spacing.small,
-      justifyContent: 'center',
-      alignItems: 'center',
     },
     emailDomainDropdown: {
+      ...createAuthBaseStyles(colors).emailDomainDropdown,
       marginTop: -spacing.small,
       marginBottom: spacing.medium,
-      backgroundColor: colors.surface,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      borderRadius: borderRadius.medium,
-      overflow: 'hidden',
-    },
-    emailDomainItem: {
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.borderLight,
-    },
-    emailDomainText: {
-      fontSize: typography.secondary,
-      color: colors.text,
     },
     errorText: {
-      color: colors.error,
-      fontSize: typography.secondary,
-      textAlign: 'center',
+      ...createAuthBaseStyles(colors).errorText,
       marginBottom: spacing.medium,
-    },
-    primaryButton: {
-      backgroundColor: colors.primary,
-      height: spacing.xxlarge,
-      borderRadius: borderRadius.medium,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: spacing.medium,
-    },
-    primaryButtonText: {
-      color: colors.textInverse,
-      fontSize: typography.body,
-      fontWeight: typography.weights.semibold,
-    },
-    secondaryButton: {
-      alignItems: 'center',
-      paddingVertical: spacing.small,
-    },
-    secondaryButtonText: {
-      color: colors.textSecondary,
-      fontSize: typography.secondary,
-    },
-    linkButton: {
-      alignItems: 'center',
-      paddingVertical: spacing.small,
-    },
-    linkButtonText: {
-      color: colors.primary,
-      fontSize: typography.secondary,
     },
     outlineButton: {
       backgroundColor: colors.background,
@@ -407,23 +341,8 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     outlineButtonText: {
       color: colors.text,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.medium,
-    },
-    buttonDisabled: {
-      opacity: 0.6,
-    },
-    buttonCaption: {
-      fontSize: typography.caption,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginTop: spacing.tight,
-    },
-    buttonCaptionInverse: {
-      fontSize: typography.caption,
-      color: colors.textInverse,
-      textAlign: 'center',
-      marginTop: spacing.tight,
-      opacity: 0.8,
     },
     // Theme section
     themeSection: {
@@ -437,10 +356,12 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     themeLabel: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.text,
     },
     themeValue: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.primary,
       fontWeight: typography.weights.medium,
     },
@@ -466,6 +387,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     themeOptionText: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.text,
       textAlign: 'center',
     },
@@ -482,10 +404,12 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     aboutLabel: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
     },
     aboutValue: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.text,
     },
     aboutLink: {
@@ -498,10 +422,12 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     aboutLinkText: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.primary,
     },
     aboutLinkIcon: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.textMuted,
     },
     bottomSpacer: {

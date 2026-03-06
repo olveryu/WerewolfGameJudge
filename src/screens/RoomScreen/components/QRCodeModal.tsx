@@ -129,7 +129,12 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+            accessibilityLabel="关闭"
+          >
             <Text style={styles.closeButtonText}>关闭</Text>
           </TouchableOpacity>
         </TouchableOpacity>

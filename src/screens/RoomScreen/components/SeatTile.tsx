@@ -30,6 +30,13 @@ import { componentSizes, fixed } from '@/theme/tokens';
 // Re-export for PlayerGrid
 export const GRID_COLUMNS = 4;
 
+/** Adaptive column count based on screen width (tablet-friendly). */
+export function getGridColumns(screenWidth: number): number {
+  if (screenWidth >= 768) return 6;
+  if (screenWidth >= 600) return 5;
+  return GRID_COLUMNS;
+}
+
 /**
  * Pre-computed styles for SeatTile.
  * Created once in PlayerGrid and passed to all SeatTile instances.
@@ -188,7 +195,9 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(seat)}>
       <TouchableOpacity
         testID={TESTIDS.seatTilePressable(seat)}
-        accessibilityLabel={TESTIDS.seatTilePressable(seat)}
+        accessibilityLabel={
+          playerDisplayName ? `座位${seat + 1} ${playerDisplayName}` : `座位${seat + 1}`
+        }
         style={[
           styles.playerTile,
           isMySpot && styles.mySpotTile,

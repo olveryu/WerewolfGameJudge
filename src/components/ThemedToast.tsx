@@ -37,11 +37,13 @@ const styles = StyleSheet.create({
   },
   text1: {
     fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
     fontWeight: typography.weights.semibold,
     flexShrink: 1,
   },
   text2: {
     fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
     flexShrink: 1,
   },
 });

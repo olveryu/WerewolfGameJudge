@@ -10,7 +10,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
@@ -37,8 +44,9 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export const HomeScreen: React.FC = () => {
   const { colors } = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
   // Create styles once and pass to all sub-components
-  const styles = useMemo(() => createHomeScreenStyles(colors), [colors]);
+  const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [colors, screenWidth]);
 
   const navigation = useNavigation<NavigationProp>();
   const { user, signOut, loading: authLoading, error: authError } = useAuth();

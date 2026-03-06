@@ -8,7 +8,7 @@
  */
 import React, { useCallback, useState } from 'react';
 import { useMemo } from 'react';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
@@ -26,7 +26,8 @@ interface AuthGateOverlayProps {
 
 export const AuthGateOverlay: React.FC<AuthGateOverlayProps> = ({ onSuccess, onCancel }) => {
   const colors = useColors();
-  const styles = useMemo(() => createHomeScreenStyles(colors), [colors]);
+  const { width: screenWidth } = useWindowDimensions();
+  const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [colors, screenWidth]);
 
   const [showEmailForm, setShowEmailForm] = useState(false);
   const { loading: authLoading, error: authError } = useAuth();
