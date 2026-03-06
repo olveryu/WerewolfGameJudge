@@ -22,6 +22,18 @@ export interface HomeScreenStyles {
   userAvatarPlaceholder: ViewStyle;
   userAvatarIcon: TextStyle;
   userNameText: TextStyle;
+  // Hero CTA
+  heroCta: ViewStyle;
+  heroCtaText: TextStyle;
+  heroCtaIcon: ViewStyle;
+  // Action Row (dual compact cards)
+  actionRow: ViewStyle;
+  actionCard: ViewStyle;
+  actionCardDisabled: ViewStyle;
+  actionCardIcon: ViewStyle;
+  actionCardTitle: TextStyle;
+  actionCardSubtitle: TextStyle;
+  // Menu (settings list item)
   menu: ViewStyle;
   menuItem: ViewStyle;
   menuItemDisabled: ViewStyle;
@@ -143,6 +155,67 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       color: colors.textInverse,
       marginLeft: spacing.small,
     },
+    // Hero CTA — full-width pill primary button
+    heroCta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      marginHorizontal: spacing.medium,
+      marginBottom: spacing.medium,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.large,
+      borderRadius: borderRadius.full,
+      gap: spacing.small,
+      ...shadows.md,
+    },
+    heroCtaText: {
+      fontSize: typography.subtitle,
+      fontWeight: typography.weights.semibold,
+      color: colors.textInverse,
+    },
+    heroCtaIcon: {
+      marginRight: spacing.tight,
+    },
+    // Action Row — dual compact cards
+    actionRow: {
+      flexDirection: 'row',
+      marginHorizontal: spacing.medium,
+      marginBottom: spacing.medium,
+      gap: spacing.small,
+    },
+    actionCard: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      padding: spacing.medium,
+      alignItems: 'center',
+      gap: spacing.small,
+      ...shadows.sm,
+    },
+    actionCardDisabled: {
+      opacity: 0.4,
+    },
+    actionCardIcon: {
+      width: componentSizes.button.md,
+      height: componentSizes.button.md,
+      borderRadius: borderRadius.medium,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    actionCardTitle: {
+      fontSize: typography.secondary,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+      textAlign: 'center',
+    },
+    actionCardSubtitle: {
+      fontSize: typography.captionSmall,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    // Menu — settings list
     menu: {
       backgroundColor: colors.surface,
       marginHorizontal: spacing.medium,

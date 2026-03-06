@@ -403,7 +403,6 @@ export function useRoomScreenState(
       Toast.show({
         type: 'info',
         text1: '💡 右下角小助手可以记笔记、问规则',
-        position: 'bottom',
         visibilityTime: 5000,
       });
       void settingsService.setHasSeenAssistantHint(true);
