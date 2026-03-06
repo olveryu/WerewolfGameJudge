@@ -13,7 +13,6 @@
  * - tarot: 塔罗牌抽取动画
  * - gachaMachine: 扭蛋机动画
  * - cardPick: 抽牌动画
- * - sealBreak: 封印解除动画
  * - none: 无动画（简单卡片）
  * - random: 随机选择（Host 解析后广播）
  */
@@ -24,7 +23,6 @@ export type RoleRevealAnimation =
   | 'tarot'
   | 'gachaMachine'
   | 'cardPick'
-  | 'sealBreak'
   | 'none'
   | 'random';
 
@@ -40,7 +38,6 @@ export type ResolvedRoleRevealAnimation =
   | 'tarot'
   | 'gachaMachine'
   | 'cardPick'
-  | 'sealBreak'
   | 'none';
 
 /**
@@ -52,8 +49,7 @@ export type RandomizableAnimation =
   | 'scratch'
   | 'tarot'
   | 'gachaMachine'
-  | 'cardPick'
-  | 'sealBreak';
+  | 'cardPick';
 
 /**
  * 可随机选择的动画数组（用于 random 解析）
@@ -65,7 +61,6 @@ export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
   'tarot',
   'gachaMachine',
   'cardPick',
-  'sealBreak',
 ] as const;
 
 /**
