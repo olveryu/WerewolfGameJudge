@@ -331,18 +331,25 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginLeft: spacing.tight,
     },
 
-    // ── Faction tab bar (inside cardA, no own card styling) ──
+    // ── Faction tab bar (Segmented Control style) ──
     tabBar: {
       flexDirection: 'row',
-      paddingTop: spacing.tight,
+      backgroundColor: colors.surfaceHover,
+      borderRadius: borderRadius.full,
+      padding: spacing.micro,
+      marginTop: spacing.tight,
     },
     tab: {
       flex: 1,
       alignItems: 'center',
-      paddingVertical: spacing.small + spacing.tight,
+      paddingVertical: spacing.small,
+      borderRadius: borderRadius.full,
       position: 'relative' as const,
     },
-    tabActive: {},
+    tabActive: {
+      backgroundColor: colors.surface,
+      ...shadows.sm,
+    },
     tabLabel: {
       fontSize: typography.secondary,
       fontWeight: typography.weights.semibold,
@@ -360,12 +367,12 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       color: colors.text,
     },
     tabIndicator: {
+      // Hidden in Segmented Control style — active state shown via tabActive bg
       position: 'absolute' as const,
       bottom: 0,
-      left: spacing.medium,
-      right: spacing.medium,
-      height: fixed.borderWidthThick + 0.5,
-      borderRadius: fixed.borderWidth,
+      left: 0,
+      right: 0,
+      height: 0,
     },
 
     // ── Settings sheet (Animation + BGM) ──────

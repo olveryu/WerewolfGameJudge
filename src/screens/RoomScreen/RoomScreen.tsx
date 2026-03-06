@@ -12,8 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { BlurView } from 'expo-blur';
 import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AlertModal } from '@/components/AlertModal';
@@ -21,7 +22,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { spacing, useColors } from '@/theme';
+import { spacing, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -50,7 +51,7 @@ import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
-  const colors = useColors();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createRoomScreenStyles(colors), [colors]);
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
 
@@ -224,6 +225,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     <SafeAreaView style={styles.container} testID={TESTIDS.roomScreenRoot}>
       {/* Header */}
       <View style={styles.header} testID={TESTIDS.roomHeader}>
+        <BlurView intensity={60} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
         <TouchableOpacity
           onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}
           style={styles.backButton}
@@ -336,6 +338,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         message={actionMessage}
         showMessage={!isAudioPlaying && (imActioner || roomStatus === GameStatus.Ended)}
         styles={componentStyles.bottomActionPanel}
+        isDark={isDark}
       >
         {/* Actioner: schema-driven bottom action buttons */}
         {(() => {
