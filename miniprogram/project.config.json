@@ -1,5 +1,5 @@
 {
-  "appid": "wx38c3ad4a9c3483ae",
+  "appid": "wx6b205cd272cdc826",
   "compileType": "miniprogram",
   "libVersion": "3.7.3",
   "packOptions": {
@@ -19,7 +19,18 @@
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
-    }
+    },
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
   "condition": {},
   "editorSetting": {
@@ -27,5 +38,6 @@
     "tabSize": 2
   },
   "description": "狼人杀电子法官 - 微信小程序壳",
-  "projectname": "werewolf-judge-miniprogram"
+  "projectname": "werewolf-judge-miniprogram",
+  "simulatorPluginLibVersion": {}
 }

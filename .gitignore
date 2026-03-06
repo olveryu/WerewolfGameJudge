@@ -62,3 +62,6 @@ storybook-static
 .vercel
 test-output.txt
 package-lock.json
+
+# WeChat DevTools local config
+miniprogram/project.private.config.json
