@@ -30,7 +30,7 @@ Sentry.init({
   // Disable in development to avoid noise
   enabled: !__DEV__,
   environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
-  tracesSampleRate: 0.2,
+  tracesSampleRate: 0.5,
 });
 
 // Keep splash screen visible while app initializes

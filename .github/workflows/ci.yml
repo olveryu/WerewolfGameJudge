@@ -70,7 +70,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.E2E_ENABLED == 'true'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs: [quality, deploy-edge-functions]
     strategy:
       fail-fast: false
