@@ -17,6 +17,7 @@
  * 负责请求解析与分派，不直接操作 DB / state（委托 gameStateManager），不播放音频。
  */
 
+import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 import {
   type AudioEffect,
   decideWolfVoteTimerAction,
@@ -49,8 +50,6 @@ import {
   type StateAction,
   type SubmitActionIntent,
 } from '../_shared/game-engine/index.js';
-
-import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 import { processGameAction } from '../_shared/gameStateManager.ts';
 import { buildHandlerContext } from '../_shared/handlerContext.ts';
 import { resultToStatus } from '../_shared/responseStatus.ts';
