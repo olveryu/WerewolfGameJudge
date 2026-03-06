@@ -339,7 +339,7 @@ export const HomeScreen: React.FC = () => {
               style={styles.topBarButton}
               onPress={handleProfilePress}
               activeOpacity={0.7}
-              testID={TESTIDS.homeUserBar}
+              testID={user ? TESTIDS.homeUserBar : TESTIDS.homeLoginButton}
               accessibilityLabel={user ? userName : '登录'}
             >
               {user && !user.isAnonymous ? (
@@ -372,14 +372,6 @@ export const HomeScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Hidden testID anchors for E2E login flow compatibility */}
-        {!user && (
-          <View style={styles.loginPrompt}>
-            <Text style={styles.loginPromptText} testID={TESTIDS.homeLoginButton}>
-              点击登录
-            </Text>
-          </View>
-        )}
         {user && (
           <Text style={styles.userNameHidden} testID={TESTIDS.homeUserName}>
             {userName}
