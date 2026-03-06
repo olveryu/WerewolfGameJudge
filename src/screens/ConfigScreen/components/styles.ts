@@ -45,8 +45,7 @@ export interface ConfigScreenStyles {
   tab: ViewStyle;
   tabActive: ViewStyle;
   tabLabel: TextStyle;
-  tabBadge: ViewStyle;
-  tabBadgeText: TextStyle;
+  tabLabelActive: TextStyle;
   tabIndicator: ViewStyle;
   // Card B (stepper + role sections)
   cardB: ViewStyle;
@@ -342,42 +341,31 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       marginLeft: spacing.tight,
     },
 
-    // ── Faction tab bar (Segmented Control style) ──
+    // ── Faction tab bar (iOS 17 tinted pill style) ──
     tabBar: {
       flexDirection: 'row',
-      backgroundColor: colors.surfaceHover,
-      borderRadius: borderRadius.full,
-      padding: spacing.micro,
-      marginTop: spacing.tight,
+      gap: spacing.tight,
+      padding: spacing.tight,
     },
     tab: {
       flex: 1,
       alignItems: 'center',
-      paddingVertical: spacing.small,
-      borderRadius: borderRadius.full,
+      justifyContent: 'center',
+      paddingVertical: spacing.small + spacing.tight,
+      borderRadius: borderRadius.medium,
       position: 'relative' as const,
     },
     tabActive: {
-      backgroundColor: colors.surface,
       ...shadows.sm,
     },
     tabLabel: {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
-      fontWeight: typography.weights.semibold,
+      fontWeight: typography.weights.medium,
       color: colors.textMuted,
-      marginBottom: spacing.tight,
     },
-    tabBadge: {
-      paddingHorizontal: spacing.small + spacing.tight,
-      paddingVertical: spacing.tight / 2,
-      borderRadius: borderRadius.full,
-    },
-    tabBadgeText: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
+    tabLabelActive: {
       fontWeight: typography.weights.bold,
-      color: colors.text,
     },
     tabIndicator: {
       // Hidden in Segmented Control style — active state shown via tabActive bg
