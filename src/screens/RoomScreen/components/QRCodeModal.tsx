@@ -8,6 +8,7 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { captureRef } from 'react-native-view-shot';
 
 import { TESTIDS } from '@/testids';
 import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
@@ -42,17 +43,15 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const qrRef = useRef<{ toDataURL: (cb: (data: string) => void) => void }>(null);
+  const shareCardRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
 
   const getBase64 = useCallback(
     () =>
-      new Promise<string>((resolve, reject) => {
-        if (!qrRef.current) {
-          reject(new Error('QR ref not ready'));
-          return;
-        }
-        qrRef.current.toDataURL((data: string) => resolve(data));
+      captureRef(shareCardRef, {
+        format: 'png',
+        result: 'base64',
+        quality: 1,
       }),
     [],
   );
@@ -76,30 +75,25 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
         <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={undefined}>
           <Text style={styles.title}>分享房间</Text>
 
-          {/* QR Code */}
-          <View style={styles.qrContainer}>
-            {/* react-native-qrcode-svg renders SVG on native, but toDataURL
-                needs getRef for sharing. On web we skip sharing support. */}
-            <QRCode
-              value={roomUrl}
-              size={QR_SIZE}
-              color={colors.primary}
-              backgroundColor={colors.surface}
-              ecl="H"
-              logo={appLogo}
-              logoSize={QR_LOGO_SIZE}
-              logoMargin={QR_LOGO_MARGIN}
-              logoBackgroundColor={colors.surface}
-              logoBorderRadius={QR_LOGO_SIZE / 4}
-              getRef={(ref: { toDataURL: (cb: (data: string) => void) => void } | null) => {
-                // react-native-qrcode-svg uses getRef prop instead of React.forwardRef
-                (qrRef as React.MutableRefObject<typeof ref>).current = ref;
-              }}
-            />
+          {/* Share card: captured as image via react-native-view-shot */}
+          <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
+            <View style={styles.qrContainer}>
+              <QRCode
+                value={roomUrl}
+                size={QR_SIZE}
+                color={colors.primary}
+                backgroundColor={colors.surface}
+                ecl="H"
+                logo={appLogo}
+                logoSize={QR_LOGO_SIZE}
+                logoMargin={QR_LOGO_MARGIN}
+                logoBackgroundColor={colors.surface}
+                logoBorderRadius={QR_LOGO_SIZE / 4}
+              />
+            </View>
+            <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
+            <Text style={styles.hint}>扫一扫二维码 加入房间</Text>
           </View>
-
-          <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
-          <Text style={styles.hint}>扫一扫二维码 加入房间</Text>
 
           {/* Action buttons */}
           <View style={styles.buttonRow}>
@@ -151,6 +145,13 @@ function createStyles(colors: ThemeColors) {
       fontWeight: typography.weights.bold,
       color: colors.text,
       marginBottom: spacing.medium,
+    },
+    shareCard: {
+      backgroundColor: colors.surface,
+      alignItems: 'center' as const,
+      paddingHorizontal: spacing.large,
+      paddingTop: spacing.medium,
+      paddingBottom: spacing.small,
     },
     qrContainer: {
       padding: spacing.medium,
