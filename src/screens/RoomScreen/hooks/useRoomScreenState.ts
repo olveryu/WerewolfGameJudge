@@ -43,6 +43,7 @@ import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
 import { useRoomActions } from './useRoomActions';
 import { useRoomInit } from './useRoomInit';
+import { useRoomModals } from './useRoomModals';
 import { useSpeakingOrder } from './useSpeakingOrder';
 import { useWolfVoteCountdown } from './useWolfVoteCountdown';
 
@@ -183,8 +184,6 @@ export function useRoomScreenState(
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const [pendingSeat, setPendingSeat] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
-  const [nightReviewVisible, setNightReviewVisible] = useState(false);
-  const [shareReviewVisible, setShareReviewVisible] = useState(false);
 
   // ── Wolf vote countdown tick ─────────────────────────────────────────────
   const countdownTick = useWolfVoteCountdown({
@@ -549,30 +548,30 @@ export function useRoomScreenState(
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Role card modal
+  // Modal / dialog state (role card, skill preview, night review, share review)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const [roleCardVisible, setRoleCardVisible] = useState(false);
-  const [shouldPlayRevealAnimation, setShouldPlayRevealAnimation] = useState(false);
-
-  const handleRoleCardClose = useCallback(() => {
-    setRoleCardVisible(false);
-    setShouldPlayRevealAnimation(false);
-  }, []);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Skill preview modal (BoardInfoCard role chip tap)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const [skillPreviewRoleId, setSkillPreviewRoleId] = useState<RoleId | null>(null);
-
-  const handleSkillPreviewOpen = useCallback((roleId: string) => {
-    setSkillPreviewRoleId(roleId as RoleId);
-  }, []);
-
-  const handleSkillPreviewClose = useCallback(() => {
-    setSkillPreviewRoleId(null);
-  }, []);
+  const {
+    roleCardVisible,
+    shouldPlayRevealAnimation,
+    setRoleCardVisible,
+    setShouldPlayRevealAnimation,
+    handleRoleCardClose,
+    skillPreviewRoleId,
+    handleSkillPreviewOpen,
+    handleSkillPreviewClose,
+    nightReviewVisible,
+    openNightReview,
+    closeNightReview,
+    shareReviewVisible,
+    closeShareReview,
+    handleShareNightReview,
+    showLastNightInfo,
+  } = useRoomModals({
+    isHost,
+    getLastNightInfo: getLastNightInfoFn,
+    shareNightReview,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Interaction Dispatcher
@@ -748,57 +747,16 @@ export function useRoomScreenState(
     dismissContinueOverlay,
 
     // ── Last night info (all players) ──
-    showLastNightInfo: useCallback(() => {
-      showAlert('提示', '请在警长竞选结束后再查看，请勿作弊', [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定查看',
-          onPress: () => {
-            const info = getLastNightInfoFn();
-            showAlert('昨夜信息', info, [{ text: '知道了', style: 'default' }]);
-          },
-        },
-      ]);
-    }, [getLastNightInfoFn]),
+    showLastNightInfo,
 
     // ── Night review modal ──
     nightReviewVisible,
-    openNightReview: useCallback(() => {
-      if (isHost) {
-        // Host: choose between viewing or sharing
-        showAlert('详细信息', '选择操作', [
-          {
-            text: '自己查看',
-            onPress: () => setNightReviewVisible(true),
-          },
-          {
-            text: '分享给玩家',
-            onPress: () => setShareReviewVisible(true),
-          },
-          { text: '取消', style: 'cancel' },
-        ]);
-      } else {
-        // Non-host: confirm before viewing (anti-cheat reminder)
-        showAlert('提示', '请确保你是裁判或观战玩家，再查看详细信息', [
-          { text: '取消', style: 'cancel' },
-          {
-            text: '确定查看',
-            onPress: () => setNightReviewVisible(true),
-          },
-        ]);
-      }
-    }, [isHost]),
-    closeNightReview: useCallback(() => setNightReviewVisible(false), []),
+    openNightReview,
+    closeNightReview,
 
     // ── Share review modal ──
     shareReviewVisible,
-    closeShareReview: useCallback(() => setShareReviewVisible(false), []),
-    shareNightReview: useCallback(
-      async (allowedSeats: number[]) => {
-        await shareNightReview(allowedSeats);
-        setShareReviewVisible(false);
-      },
-      [shareNightReview],
-    ),
+    closeShareReview,
+    shareNightReview: handleShareNightReview,
   };
 }
