@@ -24,6 +24,13 @@ interface QRCodeModalProps {
 
 /** QR 码尺寸（逻辑像素） */
 const QR_SIZE = 200;
+/** QR 中心 logo 尺寸 */
+const QR_LOGO_SIZE = 44;
+/** QR 中心 logo 外边距（白色背景区域） */
+const QR_LOGO_MARGIN = 4;
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Metro require for local PNG asset
+const appLogo = require('../../../../assets/pwa/icon-192.png') as number;
 
 const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   visible,
@@ -76,8 +83,14 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
             <QRCode
               value={roomUrl}
               size={QR_SIZE}
-              color={colors.text}
+              color={colors.primary}
               backgroundColor={colors.surface}
+              ecl="H"
+              logo={appLogo}
+              logoSize={QR_LOGO_SIZE}
+              logoMargin={QR_LOGO_MARGIN}
+              logoBackgroundColor={colors.surface}
+              logoBorderRadius={QR_LOGO_SIZE / 4}
               getRef={(ref: { toDataURL: (cb: (data: string) => void) => void } | null) => {
                 // react-native-qrcode-svg uses getRef prop instead of React.forwardRef
                 (qrRef as React.MutableRefObject<typeof ref>).current = ref;
@@ -86,6 +99,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
           </View>
 
           <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
+          <Text style={styles.hint}>扫一扫二维码 加入房间</Text>
 
           {/* Action buttons */}
           <View style={styles.buttonRow}>
@@ -150,6 +164,11 @@ function createStyles(colors: ThemeColors) {
       fontSize: typography.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.text,
+      marginBottom: spacing.tight,
+    },
+    hint: {
+      fontSize: typography.secondary,
+      color: colors.textSecondary,
       marginBottom: spacing.large,
     },
     buttonRow: {
