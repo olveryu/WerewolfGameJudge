@@ -39,6 +39,9 @@ jobs:
       - name: Test
         run: pnpm run test:all
 
+      - name: Build game-engine ESM (needed by Deno tests)
+        run: pnpm --filter @werewolf/game-engine run build:esm
+
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
