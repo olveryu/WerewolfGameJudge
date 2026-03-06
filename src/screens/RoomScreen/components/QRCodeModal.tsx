@@ -6,7 +6,7 @@
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
 
@@ -93,18 +93,21 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
           {/* Share card: captured as image via react-native-view-shot */}
           <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
             <View style={styles.qrContainer}>
-              <QRCode
-                value={roomUrl}
-                size={QR_SIZE}
-                color={colors.primary}
-                backgroundColor={colors.surface}
-                ecl="H"
-                logo={appLogo}
-                logoSize={QR_LOGO_SIZE}
-                logoMargin={QR_LOGO_MARGIN}
-                logoBackgroundColor={colors.surface}
-                logoBorderRadius={QR_LOGO_SIZE / 4}
-              />
+              {/* Logo is overlaid as a separate View instead of using the
+                  library's logo prop, because html2canvas cannot render
+                  SVG <image> elements embedded by react-native-qrcode-svg. */}
+              <View style={styles.qrWrapper}>
+                <QRCode
+                  value={roomUrl}
+                  size={QR_SIZE}
+                  color={colors.primary}
+                  backgroundColor={colors.surface}
+                  ecl="H"
+                />
+                <View style={styles.logoContainer}>
+                  <Image source={appLogo} style={styles.logoImage} />
+                </View>
+              </View>
             </View>
             <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
             <Text style={styles.hint}>扫一扫二维码 加入房间</Text>
@@ -175,6 +178,27 @@ function createStyles(colors: ThemeColors) {
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       marginBottom: spacing.medium,
+    },
+    qrWrapper: {
+      position: 'relative' as const,
+      width: QR_SIZE,
+      height: QR_SIZE,
+    },
+    logoContainer: {
+      position: 'absolute' as const,
+      top: (QR_SIZE - QR_LOGO_SIZE - QR_LOGO_MARGIN * 2) / 2,
+      left: (QR_SIZE - QR_LOGO_SIZE - QR_LOGO_MARGIN * 2) / 2,
+      width: QR_LOGO_SIZE + QR_LOGO_MARGIN * 2,
+      height: QR_LOGO_SIZE + QR_LOGO_MARGIN * 2,
+      backgroundColor: colors.surface,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      borderRadius: QR_LOGO_SIZE / 4,
+    },
+    logoImage: {
+      width: QR_LOGO_SIZE,
+      height: QR_LOGO_SIZE,
+      borderRadius: QR_LOGO_SIZE / 4,
     },
     roomNumber: {
       fontSize: typography.subtitle,
