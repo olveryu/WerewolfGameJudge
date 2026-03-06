@@ -97,6 +97,7 @@ export interface SetAnimationRequestBody {
     | 'tarot'
     | 'gachaMachine'
     | 'cardPick'
+    | 'sealBreak'
     | 'none'
     | 'random';
 }
