@@ -39,6 +39,13 @@ jobs:
       - name: Test
         run: pnpm run test:all
 
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Deno Edge Function tests
+        run: deno test --no-check --allow-env --allow-net --allow-read supabase/functions/
+
   deploy-edge-functions:
     runs-on: ubuntu-latest
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
