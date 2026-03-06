@@ -100,7 +100,7 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
     primaryButton: {
       backgroundColor: colors.primary,
       height: spacing.xxlarge,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: spacing.medium,
@@ -132,7 +132,7 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
     outlineButton: {
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       alignItems: 'center',
       marginBottom: spacing.medium,
     },
