@@ -4,7 +4,7 @@
  * Created once in HomeScreen and passed to all sub-components.
  * This avoids redundant StyleSheet.create calls per component.
  */
-import { type ImageStyle, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
+import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import { createAuthBaseStyles } from '@/components/auth/authStyles';
 import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
@@ -13,20 +13,27 @@ import { componentSizes, fixed } from '@/theme/tokens';
 export interface HomeScreenStyles {
   container: ViewStyle;
   scrollView: ViewStyle;
-  header: ViewStyle;
-  logo: TextStyle;
-  title: TextStyle;
-  subtitle: TextStyle;
-  userBar: ViewStyle;
-  userAvatar: TextStyle;
-  userAvatarImage: ImageStyle;
-  userAvatarPlaceholder: ViewStyle;
-  userAvatarIcon: TextStyle;
-  userNameText: TextStyle;
-  // Hero CTA
-  heroCta: ViewStyle;
-  heroCtaText: TextStyle;
-  heroCtaIcon: ViewStyle;
+  // Top Bar (brand + action icons)
+  topBar: ViewStyle;
+  topBarBrand: ViewStyle;
+  topBarLogo: TextStyle;
+  topBarTitle: TextStyle;
+  topBarActions: ViewStyle;
+  topBarButton: ViewStyle;
+  // Greeting
+  greeting: ViewStyle;
+  greetingName: TextStyle;
+  greetingSub: TextStyle;
+  // User identity (login state, keep testIDs for E2E)
+  loginPrompt: ViewStyle;
+  loginPromptText: TextStyle;
+  userNameHidden: TextStyle;
+  // Hero Card (create room — primary accent)
+  heroCard: ViewStyle;
+  heroCardContent: ViewStyle;
+  heroCardTitle: TextStyle;
+  heroCardSubtitle: TextStyle;
+  heroCardArrow: ViewStyle;
   // Action Row (dual compact cards)
   actionRow: ViewStyle;
   actionCard: ViewStyle;
@@ -34,16 +41,7 @@ export interface HomeScreenStyles {
   actionCardIcon: ViewStyle;
   actionCardTitle: TextStyle;
   actionCardSubtitle: TextStyle;
-  // Menu (settings list item)
-  menu: ViewStyle;
-  menuItem: ViewStyle;
-  menuItemDisabled: ViewStyle;
-  menuIcon: ViewStyle;
-  menuIconText: TextStyle;
-  menuContent: ViewStyle;
-  menuTitle: TextStyle;
-  menuSubtitle: TextStyle;
-  divider: ViewStyle;
+  // Modal
   modalOverlay: ViewStyle;
   modalContent: ViewStyle;
   modalTitle: TextStyle;
@@ -98,94 +96,109 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     scrollView: {
       flex: 1,
     },
-    header: {
+    // ── Top Bar ──────────────────────────────────────────────
+    topBar: {
+      flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: spacing.medium,
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.screenH,
+      paddingTop: spacing.small,
+      paddingBottom: spacing.small,
     },
-    logo: {
-      fontSize: 64,
-      marginBottom: spacing.medium,
+    topBarBrand: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
     },
-    title: {
-      fontSize: typography.hero,
-      lineHeight: typography.lineHeights.hero,
+    topBarLogo: {
+      fontSize: 28,
+    },
+    topBarTitle: {
+      fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
-    subtitle: {
+    topBarActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
+    },
+    topBarButton: {
+      width: componentSizes.button.sm,
+      height: componentSizes.button.sm,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    // ── Greeting ─────────────────────────────────────────────
+    greeting: {
+      paddingHorizontal: spacing.screenH,
+      paddingTop: spacing.large,
+      paddingBottom: spacing.medium,
+    },
+    greetingName: {
+      fontSize: typography.heading,
+      lineHeight: typography.lineHeights.heading,
+      fontWeight: typography.weights.bold,
+      color: colors.text,
+    },
+    greetingSub: {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
       color: colors.textMuted,
       marginTop: spacing.tight,
-      letterSpacing: 2,
     },
-    userBar: {
+    // ── User identity (hidden helpers for testIDs / E2E) ─────
+    loginPrompt: {
+      display: 'none',
+    },
+    loginPromptText: {
+      display: 'none',
+    },
+    userNameHidden: {
+      display: 'none',
+    },
+    // ── Hero Card ────────────────────────────────────────────
+    heroCard: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.primary,
-      marginHorizontal: spacing.medium,
+      marginHorizontal: spacing.screenH,
       marginBottom: spacing.medium,
       padding: spacing.medium,
       borderRadius: borderRadius.large,
       ...shadows.md,
     },
-    userAvatar: {
-      fontSize: 28,
-      marginRight: spacing.small,
+    heroCardContent: {
+      flex: 1,
+      gap: spacing.tight,
     },
-    userAvatarImage: {
-      width: componentSizes.avatar.sm,
-      height: componentSizes.avatar.sm,
-      borderRadius: borderRadius.medium,
-      marginRight: spacing.small,
-      overflow: 'hidden',
-    },
-    userAvatarPlaceholder: {
-      width: componentSizes.avatar.sm,
-      height: componentSizes.avatar.sm,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.border,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: spacing.small,
-    },
-    userAvatarIcon: {
-      fontSize: 20,
-    },
-    userNameText: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
-      color: colors.textInverse,
-      marginLeft: spacing.small,
-    },
-    // Hero CTA — full-width pill primary button
-    heroCta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.primary,
-      marginHorizontal: spacing.medium,
-      marginBottom: spacing.medium,
-      paddingVertical: spacing.medium,
-      paddingHorizontal: spacing.large,
-      borderRadius: borderRadius.full,
-      gap: spacing.small,
-      ...shadows.md,
-    },
-    heroCtaText: {
+    heroCardTitle: {
       fontSize: typography.subtitle,
       lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.textInverse,
     },
-    heroCtaIcon: {
-      marginRight: spacing.tight,
+    heroCardSubtitle: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.textInverse,
+      opacity: 0.8,
     },
-    // Action Row — dual compact cards
+    heroCardArrow: {
+      width: componentSizes.button.md,
+      height: componentSizes.button.md,
+      borderRadius: borderRadius.full,
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    // ── Action Row ───────────────────────────────────────────
     actionRow: {
       flexDirection: 'row',
-      marginHorizontal: spacing.medium,
+      marginHorizontal: spacing.screenH,
       marginBottom: spacing.medium,
       gap: spacing.small,
     },
@@ -222,53 +235,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       color: colors.textSecondary,
       textAlign: 'center',
     },
-    // Menu — settings list
-    menu: {
-      backgroundColor: colors.surface,
-      marginHorizontal: spacing.medium,
-      borderRadius: borderRadius.large,
-      ...shadows.md,
-    },
-    menuItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: spacing.medium,
-    },
-    menuItemDisabled: {
-      opacity: 0.4,
-    },
-    menuIcon: {
-      width: componentSizes.button.md,
-      height: componentSizes.button.md,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    menuIconText: {
-      fontSize: 20,
-    },
-    menuContent: {
-      flex: 1,
-      marginLeft: spacing.medium,
-    },
-    menuTitle: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
-      color: colors.text,
-    },
-    menuSubtitle: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
-      marginTop: spacing.micro,
-    },
-    divider: {
-      height: fixed.divider,
-      backgroundColor: colors.borderLight,
-      marginHorizontal: spacing.medium,
-    },
+    // ── Modal ────────────────────────────────────────────────
     modalOverlay: {
       flex: 1,
       backgroundColor: colors.overlay,

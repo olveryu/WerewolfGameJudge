@@ -72,10 +72,10 @@ describe('HomeScreen', () => {
       expect(getByText('狼人杀法官')).toBeTruthy();
     });
 
-    it('should render settings menu item', () => {
-      const { getByText } = render(<HomeScreen />);
+    it('should render settings button in top bar', () => {
+      const { getByTestId } = render(<HomeScreen />);
 
-      expect(getByText('设置')).toBeTruthy();
+      expect(getByTestId('home-settings-button')).toBeTruthy();
     });
   });
 
@@ -104,9 +104,9 @@ describe('HomeScreen', () => {
     });
 
     it('should navigate to Settings screen when settings is pressed', () => {
-      const { getByText } = render(<HomeScreen />);
+      const { getByTestId } = render(<HomeScreen />);
 
-      fireEvent.press(getByText('设置'));
+      fireEvent.press(getByTestId('home-settings-button'));
 
       expect(mockNavigate).toHaveBeenCalledWith('Settings');
     });
