@@ -8,3 +8,4 @@ export { InstallMenuItem } from './InstallMenuItem';
 export { JoinRoomModal } from './JoinRoomModal';
 export type { HomeScreenStyles } from './styles';
 export { createHomeScreenStyles } from './styles';
+export { TipCard } from './TipCard';

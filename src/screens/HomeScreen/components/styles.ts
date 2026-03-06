@@ -13,6 +13,7 @@ import { componentSizes, fixed } from '@/theme/tokens';
 export interface HomeScreenStyles {
   container: ViewStyle;
   scrollView: ViewStyle;
+  scrollContent: ViewStyle;
   // Top Bar (brand + action icons)
   topBar: ViewStyle;
   topBarBrand: ViewStyle;
@@ -74,6 +75,13 @@ export interface HomeScreenStyles {
   emailDomainText: TextStyle;
   buttonCaption: TextStyle;
   buttonCaptionInverse: TextStyle;
+  // Tip Card (contextual tips between action row and footer)
+  tipCard: ViewStyle;
+  tipCardIcon: TextStyle;
+  tipCardBody: ViewStyle;
+  tipCardTitle: TextStyle;
+  tipCardSub: TextStyle;
+  tipCardClose: ViewStyle;
   // Footer
   footer: ViewStyle;
   footerText: TextStyle;
@@ -95,6 +103,9 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     scrollView: {
       flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
     },
     // ── Top Bar ──────────────────────────────────────────────
     topBar: {
@@ -125,18 +136,18 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       gap: spacing.tight,
     },
     topBarButton: {
-      width: componentSizes.button.sm,
-      height: componentSizes.button.sm,
-      borderRadius: borderRadius.full,
-      backgroundColor: colors.surface,
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
+      borderRadius: borderRadius.medium,
+      backgroundColor: colors.background,
       justifyContent: 'center',
       alignItems: 'center',
     },
     // ── Greeting ─────────────────────────────────────────────
     greeting: {
       paddingHorizontal: spacing.screenH,
-      paddingTop: spacing.large,
-      paddingBottom: spacing.medium,
+      paddingTop: spacing.medium,
+      paddingBottom: spacing.small,
     },
     greetingName: {
       fontSize: typography.heading,
@@ -188,8 +199,8 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       opacity: 0.8,
     },
     heroCardArrow: {
-      width: componentSizes.button.md,
-      height: componentSizes.button.md,
+      width: componentSizes.button.sm,
+      height: componentSizes.button.sm,
       borderRadius: borderRadius.full,
       backgroundColor: 'rgba(255,255,255,0.2)',
       justifyContent: 'center',
@@ -234,6 +245,39 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       lineHeight: typography.lineHeights.captionSmall,
       color: colors.textSecondary,
       textAlign: 'center',
+    },
+    // ── Tip Card ─────────────────────────────────────────────
+    tipCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: spacing.screenH,
+      marginBottom: spacing.medium,
+      padding: spacing.medium,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      gap: spacing.small,
+    },
+    tipCardIcon: {
+      fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
+    },
+    tipCardBody: {
+      flex: 1,
+    },
+    tipCardTitle: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+    },
+    tipCardSub: {
+      fontSize: typography.captionSmall,
+      lineHeight: typography.lineHeights.captionSmall,
+      color: colors.textSecondary,
+      marginTop: spacing.tight / 2,
+    },
+    tipCardClose: {
+      padding: spacing.tight,
     },
     // ── Modal ────────────────────────────────────────────────
     modalOverlay: {
@@ -353,8 +397,9 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     footer: {
       alignItems: 'center',
-      paddingVertical: spacing.xlarge,
-      paddingBottom: spacing.xxlarge,
+      marginTop: 'auto',
+      paddingVertical: spacing.medium,
+      paddingBottom: spacing.large,
     },
     footerText: {
       fontSize: typography.caption,

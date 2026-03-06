@@ -62,16 +62,19 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
   return (
     <TouchableOpacity
       testID={TESTIDS.configFactionTab(tab.key)}
-      style={[styles.tab, isActive && styles.tabActive]}
+      style={[
+        styles.tab,
+        isActive && { backgroundColor: tab.accentColor + '25' },
+        isActive && styles.tabActive,
+      ]}
       onPress={handlePress}
       activeOpacity={0.7}
     >
-      <Text style={[styles.tabLabel, { color: tab.accentColor }]}>
-        {tab.icon} {tab.title}
+      <Text
+        style={[styles.tabLabel, { color: tab.accentColor }, isActive && styles.tabLabelActive]}
+      >
+        {tab.icon} {tab.title} · {tab.count}
       </Text>
-      <View style={[styles.tabBadge, { backgroundColor: tab.accentColor + '20' }]}>
-        <Text style={[styles.tabBadgeText, { color: tab.accentColor }]}>{tab.count}</Text>
-      </View>
       {isActive && <View style={[styles.tabIndicator, { backgroundColor: tab.accentColor }]} />}
     </TouchableOpacity>
   );

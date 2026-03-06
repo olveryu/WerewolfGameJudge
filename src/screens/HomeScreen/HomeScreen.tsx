@@ -36,7 +36,7 @@ import { componentSizes } from '@/theme/tokens';
 import { showAlert } from '@/utils/alert';
 import { homeLog } from '@/utils/logger';
 
-import { createHomeScreenStyles, InstallMenuItem, JoinRoomModal } from './components';
+import { createHomeScreenStyles, InstallMenuItem, JoinRoomModal, TipCard } from './components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -60,6 +60,7 @@ export const HomeScreen: React.FC = () => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
+  const [dismissedTips, setDismissedTips] = useState<Set<string>>(new Set());
 
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
@@ -273,9 +274,75 @@ export const HomeScreen: React.FC = () => {
     }
   }, [user, userName, signOut]);
 
+  // ============================================
+  // Contextual tip card (session-only dismiss)
+  // ============================================
+
+  /** Build list of applicable tips based on user state, filtering out dismissed ones. */
+  const activeTips = useMemo(() => {
+    const all: {
+      id: string;
+      icon: string;
+      title: string;
+      subtitle: string;
+      onPress?: () => void;
+      dismissable?: boolean;
+    }[] = [];
+    all.push({
+      id: 'share',
+      icon: '📤',
+      title: '邀请朋友？试试分享二维码',
+      subtitle: '在房间内点击「分享房间」生成二维码',
+      dismissable: false,
+    });
+    if (!user) {
+      all.push({
+        id: 'login',
+        icon: '👤',
+        title: '登录后解锁全部功能',
+        subtitle: '创建房间、设置昵称头像需要登录',
+        onPress: () => setShowLoginModal(true),
+      });
+    }
+    if (user?.isAnonymous) {
+      all.push({
+        id: 'upgrade',
+        icon: '✉️',
+        title: '升级为邮箱账户',
+        subtitle: '绑定邮箱后可设置昵称和头像',
+        onPress: () => navigation.navigate('Settings'),
+      });
+    }
+    if (user && !user.isAnonymous && !user.displayName) {
+      all.push({
+        id: 'nickname',
+        icon: '✏️',
+        title: '设置你的昵称',
+        subtitle: '让队友在房间里认出你',
+        onPress: () => navigation.navigate('Settings'),
+      });
+    }
+    all.push({
+      id: 'theme',
+      icon: '🎨',
+      title: '试试切换主题',
+      subtitle: '8 种主题风格等你探索',
+      onPress: () => navigation.navigate('Settings'),
+    });
+    return all.filter((tip) => tip.dismissable === false || !dismissedTips.has(tip.id));
+  }, [dismissedTips, user, navigation]);
+
+  const handleDismissTip = useCallback((tipId: string) => {
+    setDismissedTips((prev) => new Set(prev).add(tipId));
+  }, []);
+
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.homeScreenRoot}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── Top Bar ─────────────────────────────────── */}
         <View style={styles.topBar}>
           <View style={styles.topBarBrand}>
@@ -352,7 +419,11 @@ export const HomeScreen: React.FC = () => {
             <ActivityIndicator color={colors.textInverse} size="small" />
           ) : (
             <View style={styles.heroCardArrow}>
-              <Ionicons name="add" size={componentSizes.icon.lg} color={colors.textInverse} />
+              <Ionicons
+                name="chevron-forward"
+                size={componentSizes.icon.md}
+                color={colors.textInverse}
+              />
             </View>
           )}
         </PressableScale>
@@ -386,6 +457,22 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </PressableScale>
         </View>
+
+        {/* ── Contextual Tips ────────────────────────── */}
+        {activeTips.map((tip) => (
+          <TipCard
+            key={tip.id}
+            tipId={tip.id}
+            icon={tip.icon}
+            title={tip.title}
+            subtitle={tip.subtitle}
+            onPress={tip.onPress}
+            onDismiss={tip.dismissable !== false ? handleDismissTip : undefined}
+            styles={styles}
+            colors={colors}
+            testID={TESTIDS.homeTipCard}
+          />
+        ))}
 
         {/* Footer with author and version */}
         <View style={styles.footer}>
