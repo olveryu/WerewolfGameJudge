@@ -24,7 +24,6 @@ export default tseslint.config(
       'web/',
       'scripts/',
       'supabase/',
-      'miniprogram/',
     ],
   },
 

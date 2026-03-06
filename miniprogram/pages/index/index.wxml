@@ -1,5 +1,0 @@
-<!--
-  web-view 全屏嵌入 Vercel 上的 Expo Web 应用。
-  业务域名必须在微信公众平台 → 开发管理 → 开发设置 → 业务域名 中配置。
--->
-<web-view src="https://werewolf-judge.vercel.app"></web-view>
