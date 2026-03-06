@@ -149,6 +149,8 @@ export const spacing = {
   xlarge: scale(primitiveSpace[9]),
   /** 48px - 特大间距 */
   xxlarge: scale(primitiveSpace[11]),
+  /** 20px - 屏幕水平边距（区别于卡片内距 medium=16） */
+  screenH: scale(primitiveSpace[7]),
 } as const;
 
 /**
@@ -189,6 +191,31 @@ export const typography = {
     medium: '500' as TextStyle['fontWeight'],
     semibold: '600' as TextStyle['fontWeight'],
     bold: '700' as TextStyle['fontWeight'],
+  },
+
+  /** 行高（与字号语义层一一对应） */
+  lineHeights: {
+    captionSmall: scale(14),
+    caption: scale(16),
+    secondary: scale(20),
+    body: scale(24),
+    subtitle: scale(26),
+    title: scale(28),
+    heading: scale(34),
+    hero: scale(42),
+    display: scale(50),
+  },
+
+  /** 字间距 */
+  letterSpacing: {
+    /** 大标题收紧 */
+    tight: -0.5,
+    /** 正文 */
+    normal: 0,
+    /** caption / button label 展开 */
+    wide: 0.5,
+    /** display / hero 收紧 */
+    hero: -1,
   },
 } as const;
 
@@ -328,11 +355,11 @@ export function crossPlatformTextShadow(
  */
 export const shadows = {
   none: {} as ViewStyle,
-  sm: { boxShadow: '0px 1px 2px rgba(0,0,0,0.05)' } as ViewStyle,
-  md: { boxShadow: '0px 2px 4px rgba(0,0,0,0.1)' } as ViewStyle,
-  lg: { boxShadow: '0px 4px 8px rgba(0,0,0,0.15)' } as ViewStyle,
+  sm: { boxShadow: '0px 1px 3px rgba(0,0,0,0.08)' } as ViewStyle,
+  md: { boxShadow: '0px 2px 8px rgba(0,0,0,0.12)' } as ViewStyle,
+  lg: { boxShadow: '0px 8px 24px rgba(0,0,0,0.16)' } as ViewStyle,
   /** Upward shadow for bottom panels */
-  upward: { boxShadow: '0px -3px 12px rgba(0,0,0,0.08)' } as ViewStyle,
+  upward: { boxShadow: '0px -4px 16px rgba(0,0,0,0.10)' } as ViewStyle,
 } as const;
 
 // ============================================================================
@@ -350,7 +377,7 @@ export const layout = {
   /** 标签栏高度 */
   tabBarHeight: componentSizes.tabBar,
   /** 屏幕水平内边距 */
-  screenPaddingH: spacing.medium,
+  screenPaddingH: spacing.screenH,
   /** 屏幕垂直内边距 */
   screenPaddingV: spacing.large,
   /** 卡片内边距 */

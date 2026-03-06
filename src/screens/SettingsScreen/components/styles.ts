@@ -180,7 +180,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       marginTop: spacing.medium,
       padding: spacing.medium,
       backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       alignItems: 'center',
     },
     logoutBtnText: {
