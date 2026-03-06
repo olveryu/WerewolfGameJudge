@@ -5,7 +5,8 @@
  * - 组合 gameActions / seatActions 子模块
  * - 管理生命周期和身份状态
  * - 对外暴露统一的 public API
- * - 音频编排（执行 SideEffect: PLAY_AUDIO）
+ * - 委托音频编排给 AudioOrchestrator
+ * - 委托断线恢复给 ConnectionRecoveryManager
  *
  * 实例化方式：
  * - 由 composition root（App.tsx）通过 `new GameFacade(deps)` 创建
@@ -18,6 +19,8 @@
  * 子模块划分：
  * - gameActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction）
  * - seatActions.ts: 座位操作编排（takeSeat/leaveSeat + player ACK 等待逻辑）
+ * - AudioOrchestrator.ts: Host 音频编排 + ack 重试
+ * - ConnectionRecoveryManager.ts: 通用断线恢复（L1/L3）
  */
 
 import * as Sentry from '@sentry/react-native';
@@ -25,11 +28,9 @@ import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildI
 import { GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getStepSpec } from '@werewolf/game-engine/models/roles/spec/nightSteps';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { AudioEffect, GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverride';
 
 import { AudioService } from '@/services/infra/AudioService';
 import { RoomService } from '@/services/infra/RoomService';
@@ -38,6 +39,8 @@ import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFac
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { facadeLog } from '@/utils/logger';
 
+import { AudioOrchestrator } from './AudioOrchestrator';
+import { ConnectionRecoveryManager } from './ConnectionRecoveryManager';
 // 子模块
 import type { GameActionsContext } from './gameActions';
 import * as gameActions from './gameActions';
@@ -66,6 +69,8 @@ export class GameFacade implements IGameFacade {
   readonly #realtimeService: RealtimeService;
   readonly #audioService: AudioService;
   readonly #roomService: RoomService;
+  readonly #audioOrchestrator: AudioOrchestrator;
+  readonly #connectionRecovery: ConnectionRecoveryManager;
   #isHost = false;
   #myUid: string | null = null;
   /** Cached roomCode: survives store.reset(), used by fetchStateFromDB fallback */
@@ -73,55 +78,10 @@ export class GameFacade implements IGameFacade {
 
   /**
    * Abort flag: set to true when leaving room.
-   * Used to abort ongoing async operations (e.g., audio queue in #playPendingAudioEffects).
+   * Used to abort ongoing async operations (e.g., audio queue in AudioOrchestrator).
    * Reset to false when creating/joining a new room.
    */
   #aborted = false;
-
-  /**
-   * 防止 #playPendingAudioEffects 重入。
-   * 同一批 pendingAudioEffects 只播放一次。
-   */
-  #isPlayingEffects = false;
-
-  /**
-   * 标记 Host rejoin 时音频是否被中断（缓存中 isAudioPlaying === true）。
-   * 用于 UI 层判断是否需要重播当前步骤音频。
-   * @see resumeAfterRejoin
-   */
-  #wasAudioInterrupted = false;
-
-  /**
-   * 断线时 postAudioAck 失败 → 设为 true。
-   * 重连后（status → live）且仍为 Host 时自动重试 postAudioAck。
-   * leaveRoom / createRoom / joinRoom 重置。
-   */
-  #pendingAudioAckRetry = false;
-
-  /** Browser 'online' event handler: 网络恢复时重试 postAudioAck（Web 平台兜底 SDK 未触发 Live 事件） */
-  #onlineRetryHandler: (() => void) | null = null;
-
-  /** check+listen 模式的延迟重试 timer（navigator.onLine 已为 true 时立即调度） */
-  #onlineRetryTimer: ReturnType<typeof setTimeout> | null = null;
-
-  /** Periodic poll fallback: 每 POLL_INTERVAL_MS 检查 navigator.onLine 并重试（防止 online 事件丢失） */
-  #onlineRetryPollTimer: ReturnType<typeof setInterval> | null = null;
-
-  /** 连续重试计数（指数退避 + 上限防止无限轮询） */
-  #onlineRetryAttempt = 0;
-
-  /** 最大重试次数（超过后停止重试，等待用户手动刷新） */
-  static readonly #maxOnlineRetries = 5;
-
-  /** L3 通用：browser online 事件 → fetchStateFromDB（所有玩家，独立于 host-only ack 重试） */
-  #onlineFetchHandler: (() => void) | null = null;
-
-  /**
-   * L1 重连检测：是否已经历过首次 Live 事件。
-   * 构造器中的 status listener 用此标志区分「初始连接」与「重连」。
-   * 每次 createRoom / joinRoom 重置为 false（fresh join 的首次 Live 不应触发 fetchStateFromDB）。
-   */
-  #hasBeenLive = false;
 
   /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
@@ -132,38 +92,20 @@ export class GameFacade implements IGameFacade {
     this.#audioService = deps.audioService;
     this.#roomService = deps.roomService;
 
-    // Reactive: 监听 state 中 pendingAudioEffects 出现 → Host 播放 → postAudioAck
-    this.#store.subscribe((state) => {
-      if (!state) return;
-      if (!this.#isHost) return;
-      if (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0) return;
-      // Avoid reacting during rejoin overlay (resumeAfterRejoin handles that path)
-      if (this.#wasAudioInterrupted) return;
-      void this.#playPendingAudioEffects(state.pendingAudioEffects);
+    // Audio orchestration: reactive playback + ack retry
+    this.#audioOrchestrator = new AudioOrchestrator({
+      store: deps.store,
+      audioService: deps.audioService,
+      addStatusListener: (fn) => deps.realtimeService.addStatusListener(fn),
+      getActionsContext: () => this.#getActionsContext(),
+      isHost: () => this.#isHost,
+      isAborted: () => this.#aborted,
     });
 
-    // Universal: SDK 重连后立即从 DB 拉取最新 state，补全断线期间错过的广播。
-    // 对所有玩家生效（host + non-host），是 subscribe+fetch 社区标准模式在 L1 层的实现。
-    this.#realtimeService.addStatusListener((status) => {
-      if (status !== ConnectionStatus.Live) return;
-      if (!this.#hasBeenLive) {
-        this.#hasBeenLive = true;
-        return;
-      }
-      facadeLog.info('SDK reconnected: fetching latest state from DB');
-      void this.fetchStateFromDB();
-    });
-
-    // Retry: 断线期间 postAudioAck 失败 → 重连 live 后重播音频 + 重试 ack
-    this.#realtimeService.addStatusListener((status) => {
-      if (status !== ConnectionStatus.Live) return;
-      if (!this.#isHost) return;
-      if (!this.#pendingAudioAckRetry) return;
-      this.#unregisterOnlineRetry();
-      this.#pendingAudioAckRetry = false;
-      this.#onlineRetryAttempt = 0;
-
-      this.#retryPendingAudioAck('reconnect');
+    // Connection recovery: L1 SDK reconnect + L3 browser online → fetchStateFromDB
+    this.#connectionRecovery = new ConnectionRecoveryManager({
+      addStatusListener: (fn) => deps.realtimeService.addStatusListener(fn),
+      fetchStateFromDB: () => this.fetchStateFromDB(),
     });
   }
 
@@ -251,21 +193,13 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
-  // Foreground Recovery（前台恢复 — 双通道兜底）
-  // =========================================================================
-
-  // =========================================================================
   // Room Lifecycle
   // =========================================================================
 
   async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
-    this.#aborted = false; // Reset abort flag when creating new room
-    this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
-    this.#wasAudioInterrupted = false; // Reset rejoin audio guard
-    this.#pendingAudioAckRetry = false;
-    this.#onlineRetryAttempt = 0;
-    this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
-    this.#unregisterOnlineRetry();
+    this.#aborted = false;
+    this.#audioOrchestrator.reset();
+    this.#connectionRecovery.reset();
     this.#isHost = true;
     this.#myUid = hostUid;
     this.#roomCode = roomCode;
@@ -286,7 +220,7 @@ export class GameFacade implements IGameFacade {
     this.#realtimeService.markAsLive();
 
     // L3 通用：注册 online 事件 → fetchStateFromDB（Web 平台 SDK 不触发 Live 时的兜底）
-    this.#registerOnlineFetch();
+    this.#connectionRecovery.registerOnlineFetch();
   }
 
   /**
@@ -304,11 +238,8 @@ export class GameFacade implements IGameFacade {
     isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }> {
     this.#aborted = false;
-    this.#isPlayingEffects = false; // Reset audio queue guard (may be stale from previous room)
-    this.#pendingAudioAckRetry = false;
-    this.#onlineRetryAttempt = 0;
-    this.#hasBeenLive = false; // Reset L1 reconnect detection for fresh join
-    this.#unregisterOnlineRetry();
+    this.#audioOrchestrator.reset();
+    this.#connectionRecovery.reset();
     this.#isHost = isHost;
     this.#myUid = uid;
     this.#roomCode = roomCode;
@@ -316,7 +247,7 @@ export class GameFacade implements IGameFacade {
 
     // Host rejoin: 预设 guard，阻断 subscribe 阶段收到 pendingAudioEffects 时 reactive 误播
     // （非 ongoing 状态无 pendingAudioEffects，pre-set 无害；DB fetch 后按实际状态修正）
-    if (isHost) this.#wasAudioInterrupted = true;
+    if (isHost) this.#audioOrchestrator.setWasAudioInterrupted(true);
 
     // 1. Subscribe first（社区标准：不丢 gap 期间的事件）
     await this.#realtimeService.joinRoom(roomCode, uid, {
@@ -333,13 +264,13 @@ export class GameFacade implements IGameFacade {
       if (isHost) {
         // 在 applySnapshot 之前修正：applySnapshot 同步触发 listener，
         // listener 检查 wasAudioInterrupted 决定是否弹 overlay。
-        this.#wasAudioInterrupted = dbState.state.status === GameStatus.Ongoing;
+        this.#audioOrchestrator.setWasAudioInterrupted(dbState.state.status === GameStatus.Ongoing);
       }
       this.#store.applySnapshot(dbState.state, dbState.revision);
       this.#realtimeService.markAsLive();
     } else if (isHost) {
       // Host rejoin 无 DB 状态：无法恢复
-      this.#wasAudioInterrupted = false;
+      this.#audioOrchestrator.setWasAudioInterrupted(false);
       this.#isHost = false;
       this.#myUid = null;
       return { success: false, reason: 'no_db_state' };
@@ -349,7 +280,7 @@ export class GameFacade implements IGameFacade {
     this.#realtimeService.markAsLive();
 
     // L3 通用：注册 online 事件 → fetchStateFromDB（Web 平台 SDK 不触发 Live 时的兜底）
-    this.#registerOnlineFetch();
+    this.#connectionRecovery.registerOnlineFetch();
 
     return { success: true };
   }
@@ -359,302 +290,16 @@ export class GameFacade implements IGameFacade {
    * UI 层读取此值决定"继续游戏"overlay 是否需要重播当前步骤音频。
    */
   get wasAudioInterrupted(): boolean {
-    return this.#wasAudioInterrupted;
+    return this.#audioOrchestrator.wasAudioInterrupted;
   }
 
   /**
    * Host rejoin + 用户点击"继续游戏"后调用。
    * 触发 user gesture → 解锁 Web AudioContext。
-   *
-   * 行为：
-   * 1. 如果 BGM 设置开启 → 启动 BGM（由 useGameRoom 调用）
-   * 2. 如果断开时音频正在播放 → 重播当前步骤的 begin 音频
-   * 3. 音频结束后 POST audio-ack 解锁 gate
-   *
-   * 注意：isAudioPlaying 从 DB 保持为 true，不需要再 setAudioPlaying(true)。
+   * 委托给 AudioOrchestrator 处理音频重播和 ack。
    */
   async resumeAfterRejoin(): Promise<void> {
-    // Early clear — 阻断 listener 重新设 overlay + 防止多次点击重入
-    if (!this.#wasAudioInterrupted) return;
-    this.#wasAudioInterrupted = false;
-
-    const state = this.#store.getState();
-    if (!state) return;
-
-    try {
-      // 如果音频没在播放（DB 中 isAudioPlaying=false），只需恢复 BGM（caller 已处理）
-      // 服务端内联推进会自动处理后续步骤
-      if (!state.isAudioPlaying) {
-        return;
-      }
-
-      // 重播当前步骤音频（isAudioPlaying 已从 DB 保持为 true，gate 已激活）
-      if (state.currentStepId) {
-        const stepSpec = getStepSpec(state.currentStepId);
-        if (stepSpec) {
-          facadeLog.info('Replaying current step audio after rejoin', {
-            stepId: state.currentStepId,
-            audioKey: stepSpec.audioKey,
-          });
-          try {
-            const resolvedKey = resolveSeerAudioKey(stepSpec.audioKey, state.seerLabelMap);
-            await this.#audioService.playRoleBeginningAudio(resolvedKey);
-          } finally {
-            // 音频完成（或失败）后，POST audio-ack 释放 gate + 触发推进
-            await gameActions.postAudioAck(this.#getActionsContext());
-          }
-        } else {
-          // 无 stepSpec（不该发生），兜底释放 gate
-          await gameActions.postAudioAck(this.#getActionsContext());
-        }
-      } else {
-        // 无 currentStepId，兜底释放 gate
-        await gameActions.postAudioAck(this.#getActionsContext());
-      }
-    } catch (e) {
-      // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
-      facadeLog.error('resumeAfterRejoin failed', e);
-      Sentry.captureException(e);
-    }
-  }
-
-  // =========================================================================
-  // Reactive Audio Effects (Host-only)
-  // =========================================================================
-
-  /**
-   * Host 响应式播放 pendingAudioEffects 队列。
-   *
-   * 触发源：store subscription 检测到 state.pendingAudioEffects 非空。
-   * 播放完成后调用 postAudioAck 释放 isAudioPlaying gate + 触发推进。
-   *
-   * 防重入：isPlayingEffects flag。
-   * 中断：aborted flag（leaveRoom 时设置）。
-   */
-  async #playPendingAudioEffects(effects: AudioEffect[]): Promise<void> {
-    if (this.#isPlayingEffects) return;
-    this.#isPlayingEffects = true;
-
-    try {
-      for (const effect of effects) {
-        if (this.#aborted) break;
-        try {
-          if (effect.isEndAudio) {
-            await this.#audioService.playRoleEndingAudio(effect.audioKey);
-          } else if (effect.audioKey === 'night') {
-            await this.#audioService.playNightAudio();
-          } else if (effect.audioKey === 'night_end') {
-            // 音频时序：天亮语音前立即停 BGM，避免 BGM 与"天亮了"语音重叠。
-            // 注意：useBgmControl 中也有 stopBgm，但那是生命周期清理（ended && !isAudioPlaying），
-            // 触发时机晚于此处。两者职责不同，stopBgm() 幂等，重复调用无副作用。
-            this.#audioService.stopBgm();
-            await this.#audioService.playNightEndAudio();
-          } else {
-            await this.#audioService.playRoleBeginningAudio(effect.audioKey);
-          }
-        } catch (e) {
-          // 单个音频失败不阻断队列（与 resumeAfterRejoin 一致）
-          facadeLog.warn('Audio effect playback failed, continuing', {
-            audioKey: effect.audioKey,
-            error: e,
-          });
-        }
-      }
-    } finally {
-      // 无论成功/失败/中断，都 POST audio-ack 释放 gate
-      // 注意：#isPlayingEffects 在 ack 完成后才释放，防止 ack 在途期间
-      // applySnapshot 触发 store subscription 导致重入（CRIT-01）
-      if (!this.#aborted) {
-        const ackResult = await gameActions.postAudioAck(this.#getActionsContext());
-        if (!ackResult.success) {
-          facadeLog.warn('postAudioAck failed during playback, will retry on reconnect', {
-            reason: ackResult.reason,
-          });
-          this.#pendingAudioAckRetry = true;
-          this.#registerOnlineRetry();
-        }
-      }
-      this.#isPlayingEffects = false;
-    }
-  }
-
-  // =========================================================================
-  // Shared: ack retry execution (used by L2 status listener + L3a online handler)
-  // =========================================================================
-
-  /**
-   * 重连后重试 pending audio ack：检查 pendingAudioEffects → 重播或直接 postAudioAck。
-   *
-   * 调用方（L2 status listener / L3a online handler）负责清除 #pendingAudioAckRetry
-   * 和 online retry 注册。此方法仅执行重试逻辑。
-   *
-   * @param trigger - 日志标识触发来源
-   * @param onRetryFailed - ack 直接重试失败时的回调（让调用方决定是否 re-register online retry）
-   */
-  #retryPendingAudioAck(trigger: string, onRetryFailed?: () => void): void {
-    const state = this.#store.getState();
-    const effects = state?.pendingAudioEffects;
-    if (effects && effects.length > 0) {
-      facadeLog.info(`Replaying audio effects after ${trigger}`, {
-        effectCount: effects.length,
-      });
-      // #playPendingAudioEffects finally 块会 postAudioAck
-      void this.#playPendingAudioEffects(effects);
-    } else {
-      facadeLog.info(`Retrying postAudioAck after ${trigger} (no effects to replay)`);
-      void gameActions
-        .postAudioAck(this.#getActionsContext())
-        .then((result) => {
-          if (!result.success) {
-            facadeLog.warn(`postAudioAck retry failed (${trigger}), will retry`, {
-              reason: result.reason,
-            });
-            this.#pendingAudioAckRetry = true;
-            onRetryFailed?.();
-          }
-        })
-        .catch((err) => {
-          facadeLog.error(`postAudioAck retry threw (${trigger})`, err);
-          this.#pendingAudioAckRetry = true;
-          onRetryFailed?.();
-        });
-    }
-  }
-
-  // =========================================================================
-  // Audio-ack online retry (fallback for missed SDK reconnect events)
-  // =========================================================================
-
-  /**
-  /** Poll interval for periodic ack retry fallback (ms) */
-  static readonly #pollIntervalMs = 5_000;
-
-  /**
-   * 注册 audio-ack 重试：check + listen + poll 三层模式。
-   *
-   * 1. 若 `navigator.onLine === true` → 延迟 500ms 后直接执行重试（避免同步递归）
-   * 2. 若离线 → 挂 `window.addEventListener('online', ...)` 等待网络恢复
-   * 3. 无论 1/2，额外启动 POLL_INTERVAL_MS 周期轮询兜底（防止 online 事件在
-   *    CI headless Chromium 等环境中丢失）
-   *
-   * 解决时序竞争：online 事件可能在 registerOnlineRetry() 调用之前已经触发，
-   * 此时仅靠 listener 永远收不到事件 → 用 navigator.onLine 检测兜底。
-   * 周期轮询是最终安全网：即使 check 和 listen 都未触发，5s 后 poll 仍会重试。
-   *
-   * 原生端 WebSocket 会真正断开 → status listener 已覆盖，此处仅 Web 平台需要。
-   */
-  #registerOnlineRetry(): void {
-    this.#unregisterOnlineRetry();
-    if (typeof globalThis.window?.addEventListener !== 'function') return;
-
-    const doRetry = () => {
-      if (!this.#pendingAudioAckRetry || !this.#isHost || this.#aborted) return;
-
-      // 指数退避上限：超过最大重试次数后停止，避免无限 HTTP 轮询
-      if (this.#onlineRetryAttempt >= GameFacade.#maxOnlineRetries) {
-        facadeLog.warn(
-          `Online ack retry exhausted (${GameFacade.#maxOnlineRetries} attempts), giving up`,
-        );
-        this.#unregisterOnlineRetry();
-        return;
-      }
-      this.#onlineRetryAttempt++;
-
-      facadeLog.info('Online event postAudioAck retry triggered');
-      this.#unregisterOnlineRetry();
-      this.#pendingAudioAckRetry = false;
-
-      this.#retryPendingAudioAck('online event', () => this.#registerOnlineRetry());
-    };
-
-    // Check: 已在线 → 指数退避延迟重试（避免同步递归 + 给 event loop 让步）
-    if (globalThis.navigator?.onLine) {
-      const delay = Math.min(500 * Math.pow(2, this.#onlineRetryAttempt), 16_000);
-      facadeLog.info(
-        `navigator.onLine=true, scheduling ack retry (attempt=${this.#onlineRetryAttempt}, delay=${delay}ms)`,
-      );
-      this.#onlineRetryTimer = setTimeout(doRetry, delay);
-      return;
-    }
-
-    // Listen: 离线 → 等待 online 事件
-    this.#onlineRetryHandler = doRetry;
-    globalThis.window.addEventListener('online', this.#onlineRetryHandler);
-
-    // Poll fallback: 无论 check/listen 哪条路径，额外启动周期轮询兜底
-    // 覆盖 online 事件在 CI headless Chromium 等环境中偶尔不触发的情况
-    this.#startPollFallback(doRetry);
-  }
-
-  /**
-   * 启动周期轮询兜底。仅在 #registerOnlineRetry 内部调用。
-   * 每 POLL_INTERVAL_MS 检查 navigator.onLine，为 true 时触发 doRetry。
-   */
-  #startPollFallback(doRetry: () => void): void {
-    // check 路径已设置 500ms timer → 不需要额外 poll（timer 会先触发）
-    if (this.#onlineRetryTimer !== null) return;
-
-    this.#onlineRetryPollTimer = setInterval(() => {
-      if (!this.#pendingAudioAckRetry || !this.#isHost || this.#aborted) {
-        this.#unregisterOnlineRetry();
-        return;
-      }
-      if (globalThis.navigator?.onLine) {
-        facadeLog.info('Poll fallback: navigator.onLine=true, triggering ack retry');
-        doRetry();
-      }
-    }, GameFacade.#pollIntervalMs);
-  }
-
-  #unregisterOnlineRetry(): void {
-    if (this.#onlineRetryTimer !== null) {
-      clearTimeout(this.#onlineRetryTimer);
-      this.#onlineRetryTimer = null;
-    }
-    if (this.#onlineRetryPollTimer !== null) {
-      clearInterval(this.#onlineRetryPollTimer);
-      this.#onlineRetryPollTimer = null;
-    }
-    if (this.#onlineRetryHandler !== null) {
-      if (typeof globalThis.window?.removeEventListener === 'function') {
-        globalThis.window.removeEventListener('online', this.#onlineRetryHandler);
-      }
-      this.#onlineRetryHandler = null;
-    }
-  }
-
-  // =========================================================================
-  // L3 Universal: browser online → fetchStateFromDB
-  // =========================================================================
-
-  /**
-   * 注册 browser online 事件监听 → fetchStateFromDB。
-   *
-   * 对所有玩家生效（host + non-host）。覆盖 Web 平台 setOffline(false) 恢复后
-   * SDK 未触发 Live 事件的边缘场景。与 L1 status listener fetch 互补 —
-   * 两者可能同时触发，fetchStateFromDB 幂等无害。
-   *
-   * 在 createRoom / joinRoom 注册，leaveRoom 注销。
-   */
-  #registerOnlineFetch(): void {
-    this.#unregisterOnlineFetch();
-    if (typeof globalThis.window?.addEventListener !== 'function') return;
-
-    this.#onlineFetchHandler = () => {
-      if (this.#aborted) return;
-      facadeLog.info('Browser online event: fetching latest state from DB');
-      void this.fetchStateFromDB();
-    };
-    globalThis.window.addEventListener('online', this.#onlineFetchHandler);
-  }
-
-  #unregisterOnlineFetch(): void {
-    if (this.#onlineFetchHandler !== null) {
-      if (typeof globalThis.window?.removeEventListener === 'function') {
-        globalThis.window.removeEventListener('online', this.#onlineFetchHandler);
-      }
-      this.#onlineFetchHandler = null;
-    }
+    return this.#audioOrchestrator.resumeAfterRejoin();
   }
 
   // =========================================================================
@@ -673,10 +318,9 @@ export class GameFacade implements IGameFacade {
   async leaveRoom(): Promise<void> {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this.#aborted = true;
-    this.#pendingAudioAckRetry = false;
-    this.#onlineRetryAttempt = 0;
-    this.#unregisterOnlineRetry();
-    this.#unregisterOnlineFetch();
+    this.#audioOrchestrator.reset();
+    this.#connectionRecovery.setAborted(true);
+    this.#connectionRecovery.dispose();
 
     const mySeat = this.getMySeatNumber();
 
@@ -694,7 +338,6 @@ export class GameFacade implements IGameFacade {
     this.#myUid = null;
     this.#isHost = false;
     this.#roomCode = null;
-    this.#wasAudioInterrupted = false;
   }
 
   // =========================================================================
