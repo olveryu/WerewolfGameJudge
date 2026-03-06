@@ -23,7 +23,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
-import { Avatar } from '@/components/Avatar';
 import { PressableScale } from '@/components/PressableScale';
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
@@ -342,19 +341,11 @@ export const HomeScreen: React.FC = () => {
               testID={user ? TESTIDS.homeUserBar : TESTIDS.homeLoginButton}
               accessibilityLabel={user ? userName : '登录'}
             >
-              {user && !user.isAnonymous ? (
-                <Avatar
-                  value={user.uid}
-                  size={componentSizes.avatar.sm}
-                  avatarUrl={user.avatarUrl}
-                />
-              ) : (
-                <Ionicons
-                  name="person-circle-outline"
-                  size={componentSizes.icon.lg}
-                  color={colors.textSecondary}
-                />
-              )}
+              <Ionicons
+                name="person-circle-outline"
+                size={componentSizes.icon.lg}
+                color={colors.textSecondary}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.topBarButton}
