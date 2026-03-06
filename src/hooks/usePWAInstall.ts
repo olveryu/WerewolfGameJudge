@@ -19,17 +19,22 @@ declare global {
   }
 }
 
-type PWAInstallMode = 'prompt' | 'ios-guide' | 'hidden';
+type PWAInstallMode = 'prompt' | 'ios-guide' | 'wechat-guide' | 'hidden';
 
 /** iOS 浏览器类型，用于展示对应的引导步骤 */
 type IOSBrowser = 'safari' | 'chrome' | 'other';
 
+/** 微信内的 OS 类型，用于展示对应的「在浏览器中打开」步骤 */
+type WeChatOS = 'ios' | 'android';
+
 interface PWAInstallResult {
-  /** 当前安装模式：prompt（可一键安装）、ios-guide（需引导）、hidden（不显示） */
+  /** 当前安装模式：prompt（可一键安装）、ios-guide（需引导）、wechat-guide（微信引导跳转浏览器）、hidden（不显示） */
   mode: PWAInstallMode;
   /** iOS 浏览器类型（仅 ios-guide 模式有意义），用于展示对应引导步骤 */
   iosBrowser: IOSBrowser | null;
-  /** 触发安装。prompt 模式调用系统弹窗；ios-guide 模式由调用方展示引导 UI */
+  /** 微信内 OS 类型（仅 wechat-guide 模式有意义），用于展示对应引导步骤 */
+  wechatOS: WeChatOS | null;
+  /** 触发安装。prompt 模式调用系统弹窗；ios-guide / wechat-guide 模式由调用方展示引导 UI */
   install: () => Promise<void>;
 }
 
@@ -46,7 +51,27 @@ function isStandalone(): boolean {
 }
 
 /**
- * 检测 iOS 浏览器（排除微信 WebView，因为有独立引导蒙层）
+ * 检测微信内置浏览器（WebView）
+ */
+function isWeChatBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /MicroMessenger/i.test(navigator.userAgent);
+}
+
+/**
+ * 检测微信内的 OS 类型
+ */
+function detectWeChatOS(): WeChatOS {
+  if (typeof navigator === 'undefined') return 'android';
+  const ua = navigator.userAgent;
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return isIOS ? 'ios' : 'android';
+}
+
+/**
+ * 检测 iOS 浏览器（排除微信 WebView，因为微信有独立引导流程）
  */
 function isIOSBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -54,7 +79,6 @@ function isIOSBrowser(): boolean {
   const isIOS =
     /iPad|iPhone|iPod/.test(ua) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  // 仅排除微信（有独立蒙层引导），Chrome/Firefox on iOS 均支持添加到主屏幕
   const isNotWeChat = !/MicroMessenger/i.test(ua);
   return isIOS && isNotWeChat;
 }
@@ -74,11 +98,19 @@ function detectIOSBrowser(): IOSBrowser {
 export function usePWAInstall(): PWAInstallResult {
   const [mode, setMode] = useState<PWAInstallMode>('hidden');
   const [iosBrowser, setIOSBrowser] = useState<IOSBrowser | null>(null);
+  const [wechatOS, setWeChatOS] = useState<WeChatOS | null>(null);
 
   useEffect(() => {
     // 非 Web 平台或已安装，不显示
     if (Platform.OS !== 'web' || isStandalone()) {
       setMode('hidden');
+      return;
+    }
+
+    // 微信内置浏览器：引导用户跳转系统浏览器
+    if (isWeChatBrowser()) {
+      setMode('wechat-guide');
+      setWeChatOS(detectWeChatOS());
       return;
     }
 
@@ -120,5 +152,5 @@ export function usePWAInstall(): PWAInstallResult {
     }
   }, [mode]);
 
-  return { mode, iosBrowser, install };
+  return { mode, iosBrowser, wechatOS, install };
 }
