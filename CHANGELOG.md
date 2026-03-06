@@ -5,6 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.5.0] - 2026-03-06
+
+- chore(config): remove redundant keep-alive workflow
+- feat(alert): implement alert blocking mechanism to manage overlay interactions
+- style(web): reduce wechat overlay opacity to 0.75
+- feat(web): restore wechat browser overlay guide
+- feat(hooks): add wechat-guide mode to usePWAInstall
+- fix(room): overlay logo with View instead of SVG image prop
+- fix(room): use html2canvas directly on web for QR share
+- fix(room): use captureRef directly for all platforms
+- fix(room): add web support for QR share card capture
+- fix(room): capture full share card with react-native-view-shot
+- feat(room): enhance QR code with brand colors, logo, and hint text
+- chore: remove wechat miniprogram files
+- Revert "fix(miniprogram): update WeChat app ID and enhance project configuration"
+- fix(miniprogram): update WeChat app ID and enhance project configuration
+- chore(config): ignore miniprogram/ in eslint
+- fix(web): remove wechat browser overlay entirely
+- feat(vscode): add settings for miniprogram path configuration
+- fix(web): skip wechat overlay inside miniprogram web-view
+- feat(miniprogram): add wechat mini program web-view shell
+- feat(room): add QR code sharing modal
+- style(theme): replace hardcoded values with design tokens and Ionicons
+- fix(hooks): guard useSyncExternalStore with useIsFocused to prevent listener leak
+- style(AlertModal): update styles for improved UI consistency and readability
+- feat: enhance game state management and audio handling; add groq-proxy function
+- feat(services): migrate AI chat from Groq to Gemini 3.1 Flash Lite
+- refactor(room): consolidate ContinueGameOverlay into AlertModal
+- fix(hooks): suppress auto-trigger intent while ContinueGameOverlay is visible
+- refactor(hooks): remove dead fallbacks and make UI text schema-driven
+- refactor(hooks): streamline action submission and enhance reveal data handling
+- refactor(hooks): harden actionIntent helpers & unify submission paths
+- fix(hooks): use useSyncExternalStore for facade subscription
+- docs(config): add reusable code review prompt templates
+- Merge pull request #6 from olveryu/feature/optimize_1
+- refactor(hooks): extract actionIntentHelpers from useActionOrchestrator
+- refactor(hooks): extract buildBottomAction from useRoomActions
+- refactor(config): extract useConfigScreenState and configHelpers from ConfigScreen
+- refactor(hooks): extract useWolfVoteCountdown and useSpeakingOrder from useRoomScreenState
+- refactor(game-engine): extract player iteration helpers to reduce Object.entries boilerplate
+- test(game-engine): add resolver coverage contract test and wolfQueen resolver test
+- refactor(theme): extract upward shadow token from hardcoded rgba
+- fix(services): defensive hardening (content-type guard, boolean validation, naming)
+- refactor(hooks): replace useEffect with useFocusEffect and remove listener tracking
+- fix(game-engine): type-safety & DRY improvements
+- docs: add code review change plan (18 findings, 11 commits)
+- chore: remove unused 'concurrently' dependency from package.json and pnpm-lock.yaml refactor(types): change SeerCheckResult to a local type in types.ts refactor(index): remove unused type exports in store/index.ts
+- refactor(facade): remove redundant external listener cleanup on room join
+- feat(facade): implement external listener management to prevent memory leaks on leaveRoom
+- feat(hooks): add diagnostic logging for subscription and cleanup in useGameRoom
+- fix(hooks): update connection status handling to use setConnectionStatus
+- refactor(facade): optimize connection state handling and remove diagnostic logs
+- feat(facade): enhance listener management with diagnostic logging on add/remove
+- fix(services): universal reconnect fetch + DRY ack retry + hasBeenLive reset
+- feat(facade): implement online event listener to fetch state from DB on reconnection
+- feat(facade): add periodic poll fallback for audio acknowledgment retries
+- feat(facade): implement check+listen retry mechanism for audio acknowledgment
+- docs(services): add audio-ack retry and reconnect recovery architecture
+- test(e2e): update reconnect tests to reflect 5-10 seconds disconnect duration feat(facade): implement online event retry for audio acknowledgment on network recovery test(facade): add tests for online event retry behavior in GameFacade
+- refactor(hooks): unify business errors to toast, reserve alert for infra errors
+- refactor(hooks): replace ErrorStrategy enum with callback in handleMutationResult
+- fix(night): unify mutation error handling with handleMutationResult
+- feat(services): dead channel recovery for Supabase Realtime
+- refactor(night): merge submitWolfVote into submitAction unified pipeline
+- ci: allow workflow_dispatch to run full pipeline
+- fix(security): prevent stack trace exposure in Edge Function responses
+- fix(game-engine): add esbuild as explicit devDependency
+- chore: remove dead code detected by knip
+- fix(e2e): update reconnect specs to match simplified ConnectionStatusBar
+- refactor(ui): simplify ConnectionStatusBar to disconnected-only banner
+- refactor(services): simplify to 2-layer reconnection (SDK + foreground fetch)
+- refactor(services): simplify reconnection to 4 layers (remove L2+L3)
+- fix(services): replace force reconnect with foreground DB fetch
+
 ## [1.4.0] - 2026-03-01
 
 - fix(services): force reconnect on foreground to eliminate stale WebSocket delay
