@@ -51,7 +51,7 @@ describe('HomeScreen Performance Optimizations', () => {
   let styles: HomeScreenStyles;
 
   beforeAll(() => {
-    styles = createHomeScreenStyles(mockColors);
+    styles = createHomeScreenStyles(mockColors, 375);
   });
 
   describe('createHomeScreenStyles', () => {
@@ -108,8 +108,8 @@ describe('HomeScreen Performance Optimizations', () => {
 
     it('should return same reference for same colors input', () => {
       // This verifies the pattern works - styles created once and reused
-      const styles1 = createHomeScreenStyles(mockColors);
-      const styles2 = createHomeScreenStyles(mockColors);
+      const styles1 = createHomeScreenStyles(mockColors, 375);
+      const styles2 = createHomeScreenStyles(mockColors, 375);
       // Different calls create different objects (expected behavior)
       // The optimization is that we call it ONCE in parent and pass down
       expect(styles1).not.toBe(styles2);

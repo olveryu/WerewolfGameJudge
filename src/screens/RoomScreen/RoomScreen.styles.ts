@@ -28,6 +28,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     loadingText: {
       marginTop: spacing.medium,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.textSecondary,
     },
     errorMessageText: {
@@ -44,6 +45,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     errorBackButtonText: {
       color: colors.textInverse,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
     },
     errorSecondaryButton: {
@@ -57,6 +59,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     errorSecondaryButtonText: {
       color: colors.textSecondary,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
     },
     retryButtonRow: {
@@ -86,6 +89,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     backButtonText: {
       color: colors.text,
       fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
     },
     headerCenter: {
       flex: 1,
@@ -93,11 +97,13 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     },
     headerTitle: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
     headerSubtitle: {
       fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
       marginTop: spacing.tight / 2,
     },

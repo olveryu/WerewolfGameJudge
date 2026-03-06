@@ -49,7 +49,11 @@ export const TemplatePicker = memo(function TemplatePicker({
           <View style={styles.settingsSheetHandle} />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>选择板子</Text>
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose}>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={onClose}
+              accessibilityLabel="关闭"
+            >
               <Ionicons
                 name="close"
                 size={typography.title}

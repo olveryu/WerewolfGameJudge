@@ -108,6 +108,7 @@ jest.mock('./src/theme', () => {
       xxlarge: 48,
     },
     typography: {
+      captionSmall: 10,
       caption: 12,
       secondary: 14,
       body: 16,
@@ -121,6 +122,23 @@ jest.mock('./src/theme', () => {
         medium: '500',
         semibold: '600',
         bold: '700',
+      },
+      lineHeights: {
+        captionSmall: 14,
+        caption: 16,
+        secondary: 20,
+        body: 24,
+        subtitle: 26,
+        title: 28,
+        heading: 34,
+        hero: 42,
+        display: 50,
+      },
+      letterSpacing: {
+        tight: -0.5,
+        normal: 0,
+        wide: 0.5,
+        hero: -1,
       },
     },
     borderRadius: {

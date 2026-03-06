@@ -139,6 +139,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       buttonText: {
         color: colors.textInverse,
         fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
         fontWeight: typography.weights.semibold,
       },
     }),
@@ -159,6 +160,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       buttonText: {
         color: colors.textInverse,
         fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
         fontWeight: typography.weights.semibold,
       },
     }),
@@ -167,6 +169,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       actionMessage: {
         textAlign: 'center',
         fontSize: typography.body,
+        lineHeight: typography.lineHeights.body,
         color: colors.text,
         marginTop: spacing.medium,
         marginBottom: spacing.small,
@@ -189,6 +192,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       boardInfoTitle: {
         fontSize: typography.body,
+        lineHeight: typography.lineHeights.body,
         fontWeight: typography.weights.bold,
         color: colors.text,
       },
@@ -202,6 +206,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       roleCategoryLabel: {
         fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
         fontWeight: typography.weights.semibold,
         color: colors.textSecondary,
         width: spacing.xxlarge * 2 + spacing.tight, // ~70
@@ -209,8 +214,8 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       roleCategoryText: {
         flex: 1,
         fontSize: typography.secondary,
-        color: colors.text,
         lineHeight: typography.title, // ~20
+        color: colors.text,
       },
       roleChipRow: {
         flex: 1,
@@ -226,8 +231,8 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       roleChipText: {
         fontSize: typography.secondary,
-        color: colors.primary,
         lineHeight: typography.title, // ~20
+        color: colors.primary,
       },
       roleChipWolf: {
         borderWidth: 1,
@@ -265,11 +270,12 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       speakingOrderText: {
         fontSize: typography.secondary,
-        color: colors.primary,
         lineHeight: typography.title,
+        color: colors.primary,
       },
       speakingOrderSubText: {
         fontSize: typography.caption,
+        lineHeight: typography.lineHeights.caption,
         color: colors.textMuted,
         marginTop: spacing.tight / 2,
       },
@@ -292,10 +298,10 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       message: {
         textAlign: 'center',
         fontSize: typography.body,
+        lineHeight: typography.body * 1.4,
         color: colors.text,
         marginBottom: spacing.small,
         paddingHorizontal: spacing.small,
-        lineHeight: typography.body * 1.4,
       },
       buttonRow: {
         flexDirection: 'row',
@@ -327,6 +333,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       text: {
         fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
         color: colors.error,
         fontWeight: typography.weights.medium,
       },
@@ -363,12 +370,14 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       text: {
         fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
         color: colors.text,
         fontWeight: typography.weights.semibold,
         flex: 1,
       },
       hintText: {
         fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
         color: colors.text,
         fontWeight: typography.weights.semibold,
       },
@@ -380,6 +389,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       releaseButtonText: {
         fontSize: typography.caption,
+        lineHeight: typography.lineHeights.caption,
         color: colors.text,
         fontWeight: typography.weights.semibold,
       },
@@ -400,6 +410,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       triggerText: {
         fontSize: typography.heading,
+        lineHeight: typography.lineHeights.heading,
         color: colors.text,
         fontWeight: typography.weights.bold,
       },
@@ -424,6 +435,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       menuItemText: {
         fontSize: typography.body,
+        lineHeight: typography.lineHeights.body,
         color: colors.text,
       },
       menuItemDanger: {
@@ -457,11 +469,13 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       stepText: {
         fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
         fontWeight: typography.weights.semibold,
         color: colors.text,
       },
       roleText: {
         fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
         color: colors.textSecondary,
       },
       progressBarContainer: {
@@ -493,12 +507,14 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       },
       modalTitle: {
         fontSize: typography.title,
+        lineHeight: typography.lineHeights.title,
         fontWeight: typography.weights.bold,
         color: colors.text,
         marginBottom: spacing.small,
       },
       modalMessage: {
         fontSize: typography.body,
+        lineHeight: typography.lineHeights.body,
         color: colors.textSecondary,
         marginBottom: spacing.large,
         textAlign: 'center',
@@ -525,11 +541,13 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
       modalCancelText: {
         color: colors.textSecondary,
         fontSize: typography.body,
+        lineHeight: typography.lineHeights.body,
         fontWeight: typography.weights.semibold,
       },
       modalConfirmText: {
         color: colors.textInverse,
         fontSize: typography.body,
+        lineHeight: typography.lineHeights.body,
         fontWeight: typography.weights.semibold,
       },
     }),

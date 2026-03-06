@@ -6,6 +6,7 @@
  */
 import { type ImageStyle, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
+import { createAuthBaseStyles } from '@/components/auth/authStyles';
 import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
@@ -87,7 +88,7 @@ export interface HomeScreenStyles {
   guideStepText: TextStyle;
 }
 
-export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
+export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number): HomeScreenStyles {
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -107,11 +108,13 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     title: {
       fontSize: typography.hero,
+      lineHeight: typography.lineHeights.hero,
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
     subtitle: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textMuted,
       marginTop: spacing.tight,
       letterSpacing: 2,
@@ -151,6 +154,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     userNameText: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
       color: colors.textInverse,
       marginLeft: spacing.small,
@@ -171,6 +175,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     heroCtaText: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.textInverse,
     },
@@ -206,12 +211,14 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     actionCardTitle: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       textAlign: 'center',
     },
     actionCardSubtitle: {
       fontSize: typography.captionSmall,
+      lineHeight: typography.lineHeights.captionSmall,
       color: colors.textSecondary,
       textAlign: 'center',
     },
@@ -247,11 +254,13 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     menuTitle: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
       color: colors.text,
     },
     menuSubtitle: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       marginTop: spacing.micro,
     },
@@ -272,16 +281,18 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
       borderRadius: borderRadius.xlarge,
       padding: spacing.large,
       width: '100%',
-      maxWidth: 340,
+      maxWidth: Math.min(400, screenWidth * 0.85),
     },
     modalTitle: {
       fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
       fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',
     },
     modalSubtitle: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       textAlign: 'center',
       marginTop: spacing.tight,
@@ -305,6 +316,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     codeDigitText: {
       fontSize: typography.hero,
+      lineHeight: typography.lineHeights.hero,
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
@@ -315,6 +327,8 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     modalButtonFlex: {
       flex: 1,
     },
+    // Auth shared styles (base + HomeScreen overrides)
+    ...createAuthBaseStyles(colors),
     primaryButton: {
       backgroundColor: colors.primary,
       padding: spacing.medium,
@@ -324,6 +338,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     primaryButtonText: {
       color: colors.textInverse,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
     },
     secondaryButton: {
@@ -336,58 +351,14 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     secondaryButtonText: {
       color: colors.textSecondary,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.medium,
     },
-    buttonCaption: {
-      fontSize: typography.caption,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginTop: spacing.tight,
-    },
-    buttonCaptionInverse: {
-      fontSize: typography.caption,
-      color: colors.textInverse,
-      textAlign: 'center',
-      marginTop: spacing.tight,
-      opacity: 0.8,
-    },
-    input: {
-      height: spacing.xxlarge,
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-      paddingHorizontal: spacing.medium,
-      fontSize: typography.body,
-      color: colors.text,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      marginBottom: spacing.medium,
-    },
-    passwordWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      marginBottom: spacing.medium,
-    },
-    passwordInput: {
-      marginBottom: 0,
-      flex: 1,
-    },
-    eyeButton: {
-      paddingHorizontal: spacing.small,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    errorText: {
-      color: colors.error,
-      fontSize: typography.secondary,
-      textAlign: 'center',
-      marginBottom: spacing.small,
-    },
-    buttonDisabled: {
-      opacity: 0.6,
+    formTitle: {
+      ...createAuthBaseStyles(colors).formTitle,
+      fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
+      fontWeight: typography.weights.bold,
     },
     linkButton: {
       padding: spacing.small,
@@ -396,6 +367,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     linkButtonText: {
       color: colors.primary,
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       fontWeight: typography.weights.medium,
     },
     outlineButton: {
@@ -409,43 +381,8 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     outlineButtonText: {
       color: colors.textSecondary,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.medium,
-    },
-    // Auth shared aliases (AuthStyles-compatible)
-    formContainer: {
-      // No extra wrapper needed — parent modal provides padding
-    },
-    formTitle: {
-      fontSize: typography.title,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-      textAlign: 'center',
-    },
-    formSubtitle: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginTop: spacing.tight,
-      marginBottom: spacing.large,
-    },
-    emailDomainDropdown: {
-      marginTop: -spacing.tight,
-      marginBottom: spacing.small,
-      backgroundColor: colors.surface,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      borderRadius: borderRadius.medium,
-      overflow: 'hidden',
-    },
-    emailDomainItem: {
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.borderLight,
-    },
-    emailDomainText: {
-      fontSize: typography.secondary,
-      color: colors.text,
     },
     footer: {
       alignItems: 'center',
@@ -454,6 +391,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     footerText: {
       fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
     },
     footerLink: {
@@ -464,6 +402,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     footerLinkText: {
       fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.primary,
     },
     guideSteps: {
@@ -477,9 +416,11 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     },
     guideStepNumber: {
       fontSize: typography.heading,
+      lineHeight: typography.lineHeights.heading,
     },
     guideStepText: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.text,
       flex: 1,
     },

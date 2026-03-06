@@ -82,12 +82,18 @@ const AvatarComponent: React.FC<AvatarProps> = ({
         contentFit="cover"
         transition={200}
         cachePolicy="disk"
+        accessibilityLabel="头像"
       />
     );
   }
 
   return (
-    <Image source={localImageSource as ImageSourcePropType} style={imageStyle} resizeMode="cover" />
+    <Image
+      source={localImageSource as ImageSourcePropType}
+      style={imageStyle}
+      resizeMode="cover"
+      accessibilityLabel="头像"
+    />
   );
 };
 

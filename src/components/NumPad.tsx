@@ -36,6 +36,13 @@ const getLabel = (key: string): string => {
   return key;
 };
 
+/** Get accessibility label for a key */
+const getAccessibilityLabel = (key: string): string => {
+  if (key === 'clear') return '清除';
+  if (key === 'del') return '退格';
+  return `数字${key}`;
+};
+
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
@@ -116,6 +123,7 @@ const NumPadComponent: React.FC<NumPadProps> = ({
         ]}
         onPress={() => handlePress(key)}
         activeOpacity={disabled ? 1 : 0.7}
+        accessibilityLabel={getAccessibilityLabel(key)}
         accessibilityState={{ disabled }}
         testID={TESTIDS.numpadKey(key)}
       >

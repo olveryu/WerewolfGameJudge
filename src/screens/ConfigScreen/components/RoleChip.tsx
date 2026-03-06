@@ -75,6 +75,8 @@ export const RoleChip = memo<RoleChipProps>(
         onPress={() => onToggle(id)}
         onLongPress={handleLongPress}
         activeOpacity={0.7}
+        accessibilityLabel={label}
+        accessibilityState={{ selected }}
       >
         <Text
           style={[

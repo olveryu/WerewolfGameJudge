@@ -91,7 +91,11 @@ export const Dropdown = memo<DropdownProps>(
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{label || '选择'}</Text>
-                <TouchableOpacity style={styles.modalCloseBtn} onPress={handleClose}>
+                <TouchableOpacity
+                  style={styles.modalCloseBtn}
+                  onPress={handleClose}
+                  accessibilityLabel="关闭"
+                >
                   <Ionicons
                     name="close"
                     size={typography.title}

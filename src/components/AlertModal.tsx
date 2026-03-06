@@ -130,6 +130,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     title: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',
@@ -137,6 +138,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     message: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       textAlign: 'center',
       marginBottom: spacing.large,
@@ -164,6 +166,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     buttonText: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.textInverse,
       fontWeight: typography.weights.semibold,
     },
