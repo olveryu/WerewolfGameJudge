@@ -22,8 +22,7 @@ export interface HomeScreenStyles {
   topBarActions: ViewStyle;
   topBarButton: ViewStyle;
   // User identity (login state, keep testIDs for E2E)
-  loginPrompt: ViewStyle;
-  loginPromptText: TextStyle;
+
   userNameHidden: TextStyle;
   // Hero Card (create room — primary accent)
   heroCard: ViewStyle;
@@ -140,15 +139,12 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       alignItems: 'center',
       overflow: 'hidden',
     },
-    // ── User identity (hidden helpers for testIDs / E2E) ─────
-    loginPrompt: {
-      display: 'none',
-    },
-    loginPromptText: {
-      display: 'none',
-    },
+
     userNameHidden: {
-      display: 'none',
+      position: 'absolute',
+      width: 1,
+      height: 1,
+      overflow: 'hidden',
     },
     // ── Hero Card ────────────────────────────────────────────
     heroCard: {

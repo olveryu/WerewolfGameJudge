@@ -19,7 +19,7 @@ test.describe('Home Screen', () => {
     const home = new HomePage(app.page);
     await home.clickSettings();
 
-    await expect(app.page.getByText('账户')).toBeVisible({ timeout: 5000 });
+    await expect(app.page.getByText('设置', { exact: true })).toBeVisible({ timeout: 5000 });
   });
 
   test('can access join room dialog', async ({ app }) => {
