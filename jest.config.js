@@ -33,5 +33,6 @@ module.exports = {
     '^expo-file-system$': '<rootDir>/__mocks__/expo-file-system.ts',
     '^expo-sharing$': '<rootDir>/__mocks__/expo-sharing.ts',
     '^react-native-qrcode-svg$': '<rootDir>/__mocks__/react-native-qrcode-svg.tsx',
+    '^react-native-view-shot$': '<rootDir>/__mocks__/react-native-view-shot.ts',
   },
 };
