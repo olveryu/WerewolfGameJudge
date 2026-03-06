@@ -90,7 +90,12 @@ export async function takeSeatWithAck(
     },
     ctx.store,
     // 乐观预测：立即显示玩家入座（同时清除旧座位）
+    // 跳过已被其他人占据的座位，避免服务端拒绝前的头像闪现
     (state) => {
+      const occupant = state.players[seatNumber];
+      if (occupant && occupant.uid !== ctx.myUid) {
+        return state; // 座位已被他人占据，不做乐观更新
+      }
       const updatedPlayers = { ...state.players };
       // 移除同一 uid 的旧座位
       for (const [seat, player] of Object.entries(updatedPlayers)) {
