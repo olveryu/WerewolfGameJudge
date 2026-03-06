@@ -245,7 +245,7 @@ export function createHomeScreenStyles(colors: ThemeColors): HomeScreenStyles {
     primaryButton: {
       backgroundColor: colors.primary,
       padding: spacing.medium,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       alignItems: 'center',
     },
     primaryButtonText: {

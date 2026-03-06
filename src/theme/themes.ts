@@ -122,7 +122,7 @@ const lightTheme: Theme = {
 
     text: '#09090B',
     textSecondary: '#52525B',
-    textMuted: '#A1A1AA',
+    textMuted: '#78788C',
     textInverse: '#FFFFFF',
 
     border: '#E4E4E7',
@@ -310,7 +310,7 @@ const sandTheme: Theme = {
 
     text: '#3D2B1F',
     textSecondary: '#6B5744',
-    textMuted: '#A08C76',
+    textMuted: '#8A7760',
     textInverse: '#FFFFFF',
 
     border: '#D9CCBB',
