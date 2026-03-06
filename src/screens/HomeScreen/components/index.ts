@@ -6,7 +6,5 @@
  */
 export { InstallMenuItem } from './InstallMenuItem';
 export { JoinRoomModal } from './JoinRoomModal';
-export { MenuItem } from './MenuItem';
 export type { HomeScreenStyles } from './styles';
 export { createHomeScreenStyles } from './styles';
-export { UserBar } from './UserBar';

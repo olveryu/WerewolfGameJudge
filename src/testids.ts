@@ -30,6 +30,7 @@ export const TESTIDS = {
   homeUserName: 'home-user-name',
   homeLoginButton: 'home-login-button', // "点击登录" area
   homeAnonLoginButton: 'home-anon-login-button', // "👤 匿名登录" button in modal
+  homeSettingsButton: 'home-settings-button', // Top bar settings icon
 
   configScreenRoot: 'config-screen-root',
   configBackButton: 'config-back-button',

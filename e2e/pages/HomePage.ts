@@ -27,7 +27,7 @@ export class HomePage {
   }
 
   private get settingsButton() {
-    return this.page.getByText('设置', { exact: true });
+    return this.page.locator(`[data-testid="${TESTIDS.homeSettingsButton}"]`);
   }
 
   // ---------------------------------------------------------------------------
