@@ -55,11 +55,6 @@ cp assets/pwa/*.png dist/assets/pwa/
 cp web/manifest.json dist/
 cp web/sw.js dist/
 
-# 微信小程序业务域名验证文件（文件名从微信公众平台下载后放入 web/ 目录）
-for wxfile in web/*.txt; do
-  [ -f "$wxfile" ] && cp "$wxfile" dist/ && echo "✅ 复制微信验证文件: $(basename "$wxfile")"
-done
-
 # 字体路径修复：Expo 将字体放在 node_modules/ 路径下，Vercel 不提供该路径
 FONT_SRC="dist/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts"
 FONT_DST="dist/assets/fonts"
