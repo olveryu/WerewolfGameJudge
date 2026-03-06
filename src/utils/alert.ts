@@ -17,6 +17,26 @@ interface AlertButton {
 type AlertListener = (config: AlertConfig | null) => void;
 let alertListener: AlertListener | null = null;
 
+/**
+ * When blocked, showAlert() is a no-op.
+ * Used by the "继续游戏" overlay to prevent lower-priority alerts
+ * (e.g. 行动提示) from covering the continue-game button.
+ */
+let alertBlocked = false;
+
+/**
+ * Block or unblock showAlert(). While blocked:
+ * - New calls to showAlert() are silently dropped.
+ * - The current visible alert (if any) is dismissed immediately.
+ */
+export const setAlertBlocked = (blocked: boolean) => {
+  alertBlocked = blocked;
+  if (blocked) {
+    // Dismiss any currently visible alert
+    alertListener?.(null);
+  }
+};
+
 export interface AlertConfig {
   title: string;
   message?: string;
@@ -32,6 +52,8 @@ export const setAlertListener = (listener: AlertListener | null) => {
  * Uses custom modal for consistent UI across all platforms
  */
 export const showAlert = (title: string, message?: string, buttons?: AlertButton[]) => {
+  if (alertBlocked) return;
+
   const alertButtons = buttons || [{ text: '确定' }];
 
   // Use custom modal if listener is set (preferred for consistent UI)

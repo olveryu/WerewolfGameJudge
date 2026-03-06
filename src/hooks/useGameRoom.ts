@@ -30,6 +30,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { RoomRecord } from '@/services/infra/RoomService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
+import { setAlertBlocked } from '@/utils/alert';
 import { gameRoomLog } from '@/utils/logger';
 
 import { toLocalState } from './adapters/toLocalState';
@@ -195,6 +196,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         snapshot.status === GameStatus.Ongoing &&
         facade.wasAudioInterrupted
       ) {
+        setAlertBlocked(true);
         setShowContinueOverlay(true);
       }
     } else {
@@ -235,6 +237,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // =========================================================================
 
   const resumeAfterRejoin = useCallback(() => {
+    setAlertBlocked(false);
     setShowContinueOverlay(false);
     bgm.startBgmIfEnabled();
     // Fire-and-forget: 音频后台播放，overlay 已立即消失
@@ -242,6 +245,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   }, [facade, bgm]);
 
   const dismissContinueOverlay = useCallback(() => {
+    setAlertBlocked(false);
     setShowContinueOverlay(false);
   }, []);
 
