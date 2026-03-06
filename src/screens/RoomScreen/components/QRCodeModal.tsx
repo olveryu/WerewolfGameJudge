@@ -6,13 +6,36 @@
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
 
 import { TESTIDS } from '@/testids';
 import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
 import { fixed } from '@/theme/tokens';
+
+/**
+ * Capture the share card View as a base64-encoded PNG.
+ *
+ * - Native: react-native-view-shot `captureRef` (efficient, pixel-perfect).
+ * - Web: `html-to-image` converts the DOM node to a data URI, then strip the
+ *   prefix so downstream functions receive raw base64 consistently.
+ */
+async function captureShareCard(ref: React.RefObject<View | null>): Promise<string> {
+  if (Platform.OS === 'web') {
+    const { toPng } = await import('html-to-image');
+    // In React Native Web, View ref.current IS the underlying HTMLElement
+    const node = ref.current as unknown as HTMLElement;
+    if (!node) throw new Error('Share card ref not ready');
+    const dataUrl = await toPng(node, { pixelRatio: 2 });
+    // Strip "data:image/png;base64," prefix → raw base64
+    const prefix = 'base64,';
+    const idx = dataUrl.indexOf(prefix);
+    return idx >= 0 ? dataUrl.slice(idx + prefix.length) : dataUrl;
+  }
+  if (!ref.current) throw new Error('Share card ref not ready');
+  return captureRef(ref as React.RefObject<View>, { format: 'png', result: 'base64', quality: 1 });
+}
 
 interface QRCodeModalProps {
   visible: boolean;
@@ -46,15 +69,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   const shareCardRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
 
-  const getBase64 = useCallback(
-    () =>
-      captureRef(shareCardRef, {
-        format: 'png',
-        result: 'base64',
-        quality: 1,
-      }),
-    [],
-  );
+  const getBase64 = useCallback(() => captureShareCard(shareCardRef), []);
 
   const handleShare = useCallback(() => {
     if (isSharing) return;
