@@ -14,15 +14,16 @@ export interface HomeScreenStyles {
   container: ViewStyle;
   scrollView: ViewStyle;
   scrollContent: ViewStyle;
-  // Top Bar (brand + action icons)
+  // Top Bar (brand only)
   topBar: ViewStyle;
   topBarBrand: ViewStyle;
   topBarLogo: TextStyle;
   topBarTitle: TextStyle;
-  topBarActions: ViewStyle;
   topBarButton: ViewStyle;
-  // Greeting
+  // Greeting (text + avatar)
   greeting: ViewStyle;
+  greetingTextColumn: ViewStyle;
+  greetingAvatar: ViewStyle;
   greetingName: TextStyle;
   greetingSub: TextStyle;
   // User identity (login state, keep testIDs for E2E)
@@ -130,11 +131,6 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
-    topBarActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.tight,
-    },
     topBarButton: {
       width: componentSizes.avatar.md,
       height: componentSizes.avatar.md,
@@ -145,9 +141,24 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     // ── Greeting ─────────────────────────────────────────────
     greeting: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
       paddingHorizontal: spacing.screenH,
       paddingTop: spacing.medium,
       paddingBottom: spacing.small,
+    },
+    greetingTextColumn: {
+      flex: 1,
+    },
+    greetingAvatar: {
+      width: componentSizes.avatar.lg,
+      height: componentSizes.avatar.lg,
+      borderRadius: borderRadius.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: spacing.medium,
+      overflow: 'hidden',
     },
     greetingName: {
       fontSize: typography.heading,
