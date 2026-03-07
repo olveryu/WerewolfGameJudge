@@ -12,6 +12,7 @@
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleEmoji, isValidRoleId } from '@werewolf/game-engine/models/roles';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -452,13 +453,20 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 
   return (
     <View testID={`${testIDPrefix}-container`} style={styles.container}>
-      {/* Fog background */}
+      {/* Immersive dark background */}
+      <LinearGradient
+        colors={['#0a0e0c', '#060f0a', '#0a0e0c']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      />
+      {/* Fog overlay */}
       <Animated.View style={[styles.fogOverlay, fogStyle]} />
 
       {/* Hint text */}
       {phase === 'hunting' && !reducedMotion && (
         <Animated.View style={[styles.hintContainer, hintStyle]}>
-          <Text style={styles.hintText}>👻 找到你的角色！</Text>
+          <Text style={styles.hintText}>👻 在幽灵中找到你的角色，点击捕获！</Text>
         </Animated.View>
       )}
 

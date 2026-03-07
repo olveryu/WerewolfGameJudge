@@ -9,8 +9,11 @@
  * Performance: Memoized, receives pre-created styles from parent.
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
+import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
+
+import { useColors } from '@/theme';
 
 import { type HostMenuDropdownStyles } from './styles';
 
@@ -41,6 +44,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   onClearAllSeats,
   styles,
 }) => {
+  const colors = useColors();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleOpenMenu = useCallback(() => {
@@ -84,7 +88,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
             onPress={handleOpenMenu}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.triggerText}>⋮</Text>
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
           </TouchableOpacity>
 
           <Modal
