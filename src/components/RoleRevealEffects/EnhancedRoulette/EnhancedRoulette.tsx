@@ -57,21 +57,68 @@ const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟'];
 const TOP_BULB_IDS = ['t1', 't2', 't3', 't4', 't5', 't6'] as const;
 const BOTTOM_BULB_IDS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'] as const;
 
-// ─── Decorative bulb ────────────────────────────────────────────────────
-const Bulb: React.FC<{ on: boolean; color?: string; size?: number }> = ({
-  on,
-  color = SLOT_COLORS.bulbOn,
-  size = 8,
-}) => {
-  const dynamicStyle = {
-    width: size,
-    height: size,
-    borderRadius: size / 2,
-    backgroundColor: on ? color : SLOT_COLORS.bulbOff,
-    boxShadow: on ? `0 0 ${size / 2}px ${color}` : 'none',
-  };
-  return <View style={[styles.bulb, dynamicStyle]} />;
-};
+// ─── Decorative bulb (Reanimated, zero JS-thread re-renders) ────────────
+/**
+ * Self-animating bulb driven by a `useSharedValue` + `withRepeat`.
+ * Each instance uses a staggered `delay` to create a pseudo-random flicker
+ * pattern entirely on the UI thread — no `setInterval` / `setState`.
+ */
+const AnimatedBulb: React.FC<{
+  phase: 'spinning' | 'stopping' | 'revealed';
+  reducedMotion: boolean;
+  color?: string;
+  size?: number;
+  delay: number;
+}> = React.memo(({ phase, reducedMotion, color = SLOT_COLORS.bulbOn, size = 8, delay }) => {
+  const anim = useSharedValue(0);
+
+  useEffect(() => {
+    if (phase === 'spinning' && !reducedMotion) {
+      anim.value = withDelay(
+        delay,
+        withRepeat(
+          withSequence(withTiming(1, { duration: 120 }), withTiming(0, { duration: 100 })),
+          -1,
+        ),
+      );
+    } else if (phase === 'stopping') {
+      anim.value = withTiming(1, { duration: 100 });
+    } else {
+      anim.value = 0;
+    }
+  }, [phase, reducedMotion, delay, anim]);
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: anim.value,
+  }));
+
+  return (
+    <View
+      style={[
+        styles.bulb,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: SLOT_COLORS.bulbOff,
+        },
+      ]}
+    >
+      <Animated.View
+        style={[
+          styles.bulbGlow,
+          {
+            borderRadius: size / 2,
+            backgroundColor: color,
+            boxShadow: `0 0 ${size / 2}px ${color}`,
+          },
+          glowStyle,
+        ]}
+      />
+    </View>
+  );
+});
+AnimatedBulb.displayName = 'AnimatedBulb';
 
 // ─── Self-animating emoji particle ──────────────────────────────────────
 interface EmojiParticleConfig {
@@ -107,10 +154,8 @@ const EmojiParticle: React.FC<EmojiParticleConfig> = React.memo(
 );
 EmojiParticle.displayName = 'EmojiParticle';
 
-// ─── Bulb pattern helpers ───────────────────────────────────────────────
-const BULB_COUNT = 12;
-const generateRandomBulbPattern = (threshold = 0.5): boolean[] =>
-  new Array(BULB_COUNT).fill(false).map(() => Math.random() > threshold);
+/** Staggered delays (ms) per bulb for pseudo-random flicker (UI-thread only). */
+const BULB_DELAYS: readonly number[] = [0, 67, 34, 89, 12, 56, 23, 78, 45, 90, 8, 61];
 
 // ─── Props ──────────────────────────────────────────────────────────────
 interface EnhancedRouletteProps extends RoleRevealEffectProps {
@@ -133,7 +178,6 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
   const [phase, setPhase] = useState<'spinning' | 'stopping' | 'revealed'>('spinning');
   const [shuffledRoles, setShuffledRoles] = useState<RoleData[]>([]);
-  const [bulbPattern, setBulbPattern] = useState<boolean[]>([]);
   const [particles, setParticles] = useState<EmojiParticleConfig[]>([]);
 
   // ── Shared values ──
@@ -154,20 +198,6 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
   const theme = alignmentThemes[role.alignment];
   const centeringOffset = config.itemHeight;
-
-  // ── Bulb pattern init ──
-  useEffect(() => {
-    setBulbPattern(generateRandomBulbPattern());
-  }, []);
-
-  // ── Bulb animation during spinning ──
-  useEffect(() => {
-    if (phase !== 'spinning' || reducedMotion) return;
-    const interval = setInterval(() => {
-      setBulbPattern(generateRandomBulbPattern(0.3));
-    }, 150);
-    return () => clearInterval(interval);
-  }, [phase, reducedMotion]);
 
   // ── Frame glow pulsing ──
   useEffect(() => {
@@ -236,7 +266,6 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   // ── After bounce completes ──
   const afterBounce = useCallback(() => {
     if (enableHaptics) triggerHaptic('heavy', true);
-    setBulbPattern(new Array(BULB_COUNT).fill(true));
     createParticles();
 
     // Short delay then transition to revealed
@@ -392,10 +421,12 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
             <Text style={styles.slotTitle}>🎰 JACKPOT 🎰</Text>
             <View style={styles.bulbRow}>
               {TOP_BULB_IDS.map((id, i) => (
-                <Bulb
+                <AnimatedBulb
                   key={id}
-                  on={bulbPattern[i] ?? false}
+                  phase={phase}
+                  reducedMotion={reducedMotion}
                   color={i % 2 === 0 ? SLOT_COLORS.neonPink : SLOT_COLORS.neonBlue}
+                  delay={BULB_DELAYS[i]}
                 />
               ))}
             </View>
@@ -476,10 +507,12 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           <View style={styles.bottomPanel}>
             <View style={styles.bulbRow}>
               {BOTTOM_BULB_IDS.map((id, i) => (
-                <Bulb
+                <AnimatedBulb
                   key={id}
-                  on={bulbPattern[6 + i] ?? false}
+                  phase={phase}
+                  reducedMotion={reducedMotion}
                   color={i % 2 === 0 ? SLOT_COLORS.neonGreen : SLOT_COLORS.gold}
+                  delay={BULB_DELAYS[6 + i]}
                 />
               ))}
             </View>
@@ -590,6 +623,10 @@ const styles = StyleSheet.create({
   },
   bulb: {
     marginHorizontal: 4,
+    overflow: 'hidden',
+  },
+  bulbGlow: {
+    ...StyleSheet.absoluteFillObject,
   },
   screw: {
     position: 'absolute',
