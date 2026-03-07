@@ -37,3 +37,18 @@ export function darken(hex: string, amount: number): string {
   const [r, g, b] = parseHex(hex);
   return toHex(r * (1 - amount), g * (1 - amount), b * (1 - amount));
 }
+
+/**
+ * Append an alpha channel to a hex color string.
+ *
+ * @param hex  Base color in `#RRGGBB` or `#RGB` format
+ * @param opacity  Alpha value from 0.0 (fully transparent) to 1.0 (fully opaque)
+ * @returns `#RRGGBBAA` string (e.g. `withAlpha('#FF0000', 0.12)` → `'#FF00001F'`)
+ */
+export function withAlpha(hex: string, opacity: number): string {
+  const alpha = Math.round(Math.max(0, Math.min(1, opacity)) * 255)
+    .toString(16)
+    .padStart(2, '0')
+    .toUpperCase();
+  return `${hex}${alpha}`;
+}
