@@ -40,7 +40,6 @@ import {
   endNight,
   fillWithBots,
   markAllBotsViewed,
-  markViewedRole,
   postAudioAck,
   postProgression,
   restartGame,
@@ -150,36 +149,15 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     global.fetch = mockFetchSuccess({ success: false, reason: 'INVALID_STATUS' });
     const ctx = createMockCtx();
 
-    // Use markViewedRole which has optimisticFn
-    const result = await markViewedRole(ctx, 0);
+    const result = await assignRoles(ctx);
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe('INVALID_STATUS');
     expect(ctx.store.rollbackOptimistic).toHaveBeenCalled();
   });
 
-  it('should apply optimistic update before fetch', async () => {
-    let optimisticApplied = false;
-    const store = createMockStore();
-    (store.applyOptimistic as jest.Mock).mockImplementation(() => {
-      optimisticApplied = true;
-    });
-
-    global.fetch = jest.fn().mockImplementation(async () => {
-      // At fetch time, optimistic should already be applied
-      expect(optimisticApplied).toBe(true);
-      return {
-        ok: true,
-        headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: true }),
-      };
-    });
-
-    const ctx = { ...createMockCtx(), store };
-    await markViewedRole(ctx, 3);
-
-    expect(store.applyOptimistic).toHaveBeenCalled();
-  });
+  // Optimistic update before fetch is tested via seatActions.test.ts
+  // (callApiWithRetry's optimistic plumbing is shared by gameActions & seatActions)
 
   // =========================================================================
   // Non-JSON error (502/503 gateway error)
@@ -211,7 +189,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     });
 
     const ctx = createMockCtx();
-    await markViewedRole(ctx, 0);
+    await assignRoles(ctx);
 
     expect(ctx.store.rollbackOptimistic).toHaveBeenCalled();
   });
@@ -289,7 +267,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     });
 
     const ctx = createMockCtx();
-    const resultPromise = markViewedRole(ctx, 0);
+    const resultPromise = assignRoles(ctx);
 
     await jest.advanceTimersByTimeAsync(2000);
     await resultPromise;
@@ -319,7 +297,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     global.fetch = jest.fn().mockRejectedValue(new TypeError('network error'));
     const ctx = createMockCtx();
 
-    await markViewedRole(ctx, 0);
+    await assignRoles(ctx);
 
     expect(ctx.store.rollbackOptimistic).toHaveBeenCalled();
   });

@@ -79,7 +79,7 @@ interface GameActionsState {
   setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
 
   // Player night actions
-  viewedRole: () => Promise<void>;
+  viewedRole: () => Promise<{ success: boolean; reason?: string }>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitRevealAck: () => Promise<void>;
   submitGroupConfirmAck: () => Promise<void>;
@@ -189,14 +189,15 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   // Player night actions
   // =========================================================================
 
-  // Mark role as viewed
+  // Mark role as viewed (pessimistic — POST must succeed before UI shows card)
   // Debug mode: when delegating (controlledSeat !== null), mark the bot's seat as viewed
   // Normal mode: mark my own seat as viewed
-  const viewedRole = useCallback(async (): Promise<void> => {
+  const viewedRole = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
     const seat = debug.controlledSeat ?? mySeatNumber;
-    if (seat === null) return;
+    if (seat === null) return { success: false, reason: 'NO_SEAT' };
     const result = await facade.markViewedRole(seat);
     handleMutationResult(result, '查看身份', toastError);
+    return result;
   }, [debug.controlledSeat, mySeatNumber, facade]);
 
   // Submit action (uses effectiveSeat/effectiveRole for debug bot control)

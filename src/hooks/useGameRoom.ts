@@ -107,7 +107,7 @@ interface UseGameRoomResult {
   clearAllSeats: () => Promise<void>;
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
   setRoleRevealAnimation: (animation: RoleRevealAnimation) => Promise<void>;
-  viewedRole: () => Promise<void>;
+  viewedRole: () => Promise<{ success: boolean; reason?: string }>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitRevealAck: () => Promise<void>;
   submitGroupConfirmAck: () => Promise<void>;

@@ -60,7 +60,7 @@ interface UseInteractionDispatcherParams {
   showEnterSeatDialog: (seat: number) => void;
   showLeaveSeatDialog: (seat: number) => void;
   handleLeaveRoom: () => void;
-  viewedRole: () => Promise<void>;
+  viewedRole: () => Promise<{ success: boolean; reason?: string }>;
 
   // ── Host dialogs ──
   handleSettingsPress: () => void;
@@ -234,14 +234,27 @@ export function useInteractionDispatcher({
               {
                 const effectivePlayer =
                   effectiveSeat === null ? null : gameState?.players.get(effectiveSeat);
-                const needAnimation = !(effectivePlayer?.hasViewedRole ?? false);
-                setShouldPlayRevealAnimation(needAnimation);
-                setRoleCardVisible(true);
-                if (needAnimation) {
-                  void viewedRole().catch((err) => {
-                    roomScreenLog.error('[roleCard] viewedRole failed', err);
-                    Sentry.captureException(err);
-                  });
+                const alreadyViewed = effectivePlayer?.hasViewedRole ?? false;
+                if (alreadyViewed) {
+                  // 已看过 → 直接弹卡，无动画，无 POST
+                  setShouldPlayRevealAnimation(false);
+                  setRoleCardVisible(true);
+                } else {
+                  // 首次看牌 → 先 POST 成功再弹卡（pessimistic update）
+                  void (async () => {
+                    try {
+                      const result = await viewedRole();
+                      if (!result.success) {
+                        // handleMutationResult 已在 viewedRole 内处理了用户提示
+                        return;
+                      }
+                      setShouldPlayRevealAnimation(true);
+                      setRoleCardVisible(true);
+                    } catch (err) {
+                      roomScreenLog.error('[roleCard] viewedRole failed', err);
+                      Sentry.captureException(err);
+                    }
+                  })();
                 }
               }
               return;
