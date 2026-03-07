@@ -99,13 +99,15 @@ export function useConnectionSync(
       const currentStatus = connectionStatusRef.current;
       if (currentStatus === ConnectionStatus.Disconnected) {
         // Channel dead → full recovery: rebuild WS channel + fetch DB
-        connectionSyncLog.info('Foreground: channel disconnected, triggering reconnectChannel');
-        facade.reconnectChannel().catch((e) => {
+        connectionSyncLog.info('Foreground: channel disconnected, triggering reconnectChannel', {
+          layer: 'L4',
+        });
+        facade.reconnectChannel('foreground').catch((e) => {
           connectionSyncLog.error('Foreground reconnectChannel failed', e);
         });
       } else {
         // Channel alive → just fetch DB to cover missed broadcasts
-        connectionSyncLog.info('Foreground: fetching state from DB');
+        connectionSyncLog.info('Foreground: fetching state from DB', { layer: 'L4' });
         facade.fetchStateFromDB().catch((e) => {
           connectionSyncLog.warn('Foreground fetchStateFromDB failed:', e);
         });
@@ -131,11 +133,12 @@ export function useConnectionSync(
 
       connectionSyncLog.info('Browser online event: resetting retries and reconnecting', {
         currentStatus,
+        layer: 'L3',
       });
       deadChannelRetriesRef.current = 0;
 
       // 无论是 Disconnected（dead channel）还是其他非 Live 状态，都尝试重建
-      facade.reconnectChannel().catch((e) => {
+      facade.reconnectChannel('online').catch((e) => {
         connectionSyncLog.error('Online event reconnectChannel failed', e);
       });
     };
@@ -185,12 +188,13 @@ export function useConnectionSync(
       deadChannelRetriesRef.current += 1;
       connectionSyncLog.info('Dead channel detector: triggering reconnectChannel', {
         attempt: deadChannelRetriesRef.current,
+        layer: 'L5',
         nextDelay: Math.min(
           DEAD_CHANNEL_BASE_MS * Math.pow(2, deadChannelRetriesRef.current),
           DEAD_CHANNEL_MAX_MS,
         ),
       });
-      facade.reconnectChannel().catch((e) => {
+      facade.reconnectChannel('deadChannel').catch((e) => {
         connectionSyncLog.error('Dead channel detector: reconnectChannel failed', e);
       });
     }, delay);

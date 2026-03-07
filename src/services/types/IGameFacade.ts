@@ -248,6 +248,11 @@ export interface IGameFacade {
    * 当 Supabase SDK 放弃重连（反复 CHANNEL_ERROR / TIMED_OUT）时，
    * 由 useConnectionSync 的 dead channel detector 自动触发。
    * 内部流程：rejoinCurrentRoom → fetchStateFromDB → markAsLive。
+   *
+   * @param trigger - 触发来源，用于可观测性日志
    */
-  reconnectChannel(): Promise<void>;
+  reconnectChannel(trigger?: ReconnectTrigger): Promise<void>;
 }
+
+/** Trigger source for reconnectChannel — used in observability logs */
+export type ReconnectTrigger = 'deadChannel' | 'foreground' | 'online' | 'sdkReconnect';
