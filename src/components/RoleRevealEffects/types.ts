@@ -39,7 +39,8 @@ export type RevealEffectType =
   | 'scratch'
   | 'tarot'
   | 'gachaMachine'
-  | 'cardPick';
+  | 'cardPick'
+  | 'sealBreak';
 
 /**
  * Common props for all reveal effect components
