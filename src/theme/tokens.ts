@@ -321,6 +321,9 @@ export const fixed = {
 
   /** 键盘避让额外间距 */
   keyboardOffset: 24,
+
+  /** TouchableOpacity 按下态透明度 */
+  activeOpacity: 0.7,
 } as const;
 
 // ============================================================================

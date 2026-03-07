@@ -8,7 +8,7 @@ import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { withAlpha } from '@/theme';
+import { fixed, withAlpha } from '@/theme';
 
 import { ConfigScreenStyles } from './styles';
 
@@ -43,7 +43,7 @@ export const RoleStepper = memo<RoleStepperProps>(
               testID={TESTIDS.configStepperDec(roleId)}
               style={[styles.stepperBtn, count <= 0 && styles.stepperBtnDisabled]}
               onPress={handleDecrement}
-              activeOpacity={count <= 0 ? 1 : 0.6}
+              activeOpacity={count <= 0 ? 1 : fixed.activeOpacity}
               accessibilityState={{ disabled: count <= 0 }}
             >
               <Text
@@ -66,7 +66,7 @@ export const RoleStepper = memo<RoleStepperProps>(
               testID={TESTIDS.configStepperInc(roleId)}
               style={[styles.stepperBtn, count >= maxCount && styles.stepperBtnDisabled]}
               onPress={handleIncrement}
-              activeOpacity={count >= maxCount ? 1 : 0.6}
+              activeOpacity={count >= maxCount ? 1 : fixed.activeOpacity}
               accessibilityState={{ disabled: count >= maxCount }}
             >
               <Text

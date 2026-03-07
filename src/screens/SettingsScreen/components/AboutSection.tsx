@@ -9,7 +9,7 @@ import { memo, useCallback } from 'react';
 import { Linking, Text, TouchableOpacity, View } from 'react-native';
 
 import { APP_VERSION } from '@/config/version';
-import { typography, useColors } from '@/theme';
+import { fixed, typography, useColors } from '@/theme';
 
 import { SettingsScreenStyles } from './styles';
 
@@ -45,13 +45,21 @@ export const AboutSection = memo<AboutSectionProps>(({ styles }) => {
       </View>
 
       {/* GitHub */}
-      <TouchableOpacity style={styles.aboutLink} onPress={handleOpenGitHub} activeOpacity={0.6}>
+      <TouchableOpacity
+        style={styles.aboutLink}
+        onPress={handleOpenGitHub}
+        activeOpacity={fixed.activeOpacity}
+      >
         <Text style={styles.aboutLinkText}>GitHub 仓库</Text>
         <Ionicons name="open-outline" style={styles.aboutLinkIcon} />
       </TouchableOpacity>
 
       {/* Feedback */}
-      <TouchableOpacity style={styles.aboutLink} onPress={handleOpenIssues} activeOpacity={0.6}>
+      <TouchableOpacity
+        style={styles.aboutLink}
+        onPress={handleOpenIssues}
+        activeOpacity={fixed.activeOpacity}
+      >
         <Text style={styles.aboutLinkText}>反馈 / 报告问题</Text>
         <Ionicons name="open-outline" style={styles.aboutLinkIcon} />
       </TouchableOpacity>

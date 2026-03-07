@@ -9,7 +9,7 @@ import React, { memo, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { useColors } from '@/theme';
-import { componentSizes } from '@/theme/tokens';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 import type { RoleDisplayItem } from '../RoomScreen.helpers';
 import { type BoardInfoCardStyles } from './styles';
@@ -71,7 +71,7 @@ function RoleChipRow({
         <TouchableOpacity
           key={item.roleId}
           style={[styles.roleChip, styles[CHIP_STYLE_MAP[faction]]]}
-          activeOpacity={0.6}
+          activeOpacity={fixed.activeOpacity}
           onPress={() => onRolePress?.(item.roleId)}
         >
           <Text style={[styles.roleChipText, styles[TEXT_STYLE_MAP[faction]]]}>
@@ -164,7 +164,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
                 {villagerCount > 0 && (
                   <TouchableOpacity
                     style={[styles.roleChip, styles.roleChipVillager]}
-                    activeOpacity={0.6}
+                    activeOpacity={fixed.activeOpacity}
                     onPress={() => onRolePress?.('villager')}
                   >
                     <Text style={[styles.roleChipText, styles.roleChipTextVillager]}>
@@ -176,7 +176,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
                   <TouchableOpacity
                     key={item.roleId}
                     style={[styles.roleChip, styles.roleChipVillager]}
-                    activeOpacity={0.6}
+                    activeOpacity={fixed.activeOpacity}
                     onPress={() => onRolePress?.(item.roleId)}
                   >
                     <Text style={[styles.roleChipText, styles.roleChipTextVillager]}>
