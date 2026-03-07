@@ -14,7 +14,7 @@ import { ConnectionStatus } from '@/services/types/IGameFacade';
 let mockSubscribeCallback: ((status: string) => void) | null = null;
 
 const mockUnsubscribe = jest.fn().mockResolvedValue(undefined);
-const mockRemoveChannel = jest.fn();
+const mockRemoveChannel = jest.fn().mockResolvedValue('ok');
 const mockDisconnect = jest.fn();
 
 const mockChannel: Record<string, any> = {
