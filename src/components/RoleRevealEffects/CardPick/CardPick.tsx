@@ -336,7 +336,9 @@ export const CardPick: React.FC<CardPickProps> = ({
       {(phase === 'spreading' || phase === 'waiting') && (
         <View style={styles.promptContainer}>
           <Animated.Text style={[styles.promptText, { color: TABLE_COLORS.accent }]}>
-            {aliveCount === 1 ? '最后一张牌' : `还剩 ${aliveCount} 张，选一张`}
+            {aliveCount === 1
+              ? '🃏 最后一张牌，点击翻开'
+              : `🃏 还剩 ${aliveCount} 张牌，点击选一张`}
           </Animated.Text>
         </View>
       )}

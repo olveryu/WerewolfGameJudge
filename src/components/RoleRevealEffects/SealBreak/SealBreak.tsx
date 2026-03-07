@@ -14,12 +14,13 @@ import {
   Circle,
   Group,
   Line,
-  LinearGradient,
+  LinearGradient as SkiaLinearGradient,
   Path,
   Rect,
   vec,
 } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
@@ -345,13 +346,20 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
 
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
+      {/* Immersive dark background */}
+      <LinearGradient
+        colors={['#0a0810', '#100c1a', '#0a0810']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      />
       {/* Skia canvas layer: seal + cracks + particles */}
       <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
         <Animated.View style={[StyleSheet.absoluteFill, sealStyle]}>
           <Canvas style={StyleSheet.absoluteFill}>
             {/* Background aura glow */}
             <Circle cx={cx} cy={cy} r={sealRadius * 1.6}>
-              <LinearGradient
+              <SkiaLinearGradient
                 start={vec(cx, cy - sealRadius * 1.6)}
                 end={vec(cx, cy + sealRadius * 1.6)}
                 colors={[SEAL_COLORS.auraInner, SEAL_COLORS.auraOuter]}
@@ -361,7 +369,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
             {/* Seal disc — wax gradient */}
             <Circle cx={cx} cy={cy} r={sealRadius} color={SEAL_COLORS.waxMid} />
             <Circle cx={cx} cy={cy} r={sealRadius}>
-              <LinearGradient
+              <SkiaLinearGradient
                 start={vec(cx - sealRadius, cy - sealRadius)}
                 end={vec(cx + sealRadius, cy + sealRadius)}
                 colors={[SEAL_COLORS.waxLight, SEAL_COLORS.waxDark]}
@@ -486,8 +494,18 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
 
       {/* Hint text */}
       {phase === 'appear' && (
-        <View style={styles.hint}>
-          <Text style={styles.hintText}>🔮 封印解除中…</Text>
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>🔮 封印凝聚中…</Text>
+        </View>
+      )}
+      {(phase === 'pulse' || phase === 'cracking') && (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>🔮 点击封印解除！</Text>
+        </View>
+      )}
+      {phase === 'shatter' && (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>✨ 封印已破！</Text>
         </View>
       )}
 
