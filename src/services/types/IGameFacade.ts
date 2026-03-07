@@ -3,6 +3,10 @@
  *
  * facade 统一接口，覆盖房间生命周期、座位、游戏控制和夜晚行动。
  * Facade 只做编排，不写业务逻辑。
+ *
+ * 由 5 个 segment interface 组合而成（见 segments/）：
+ * ILifecycleFacade & ISeatFacade & IGameControlFacade &
+ * INightActionFacade & ISyncFacade
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -256,3 +260,35 @@ export interface IGameFacade {
 
 /** Trigger source for reconnectChannel — used in observability logs */
 export type ReconnectTrigger = 'deadChannel' | 'foreground' | 'online' | 'sdkReconnect';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Segment union equivalence assertion
+// ─────────────────────────────────────────────────────────────────────────────
+
+import type {
+  IGameControlFacade,
+  ILifecycleFacade,
+  INightActionFacade,
+  ISeatFacade,
+  ISyncFacade,
+} from './segments';
+
+/**
+ * Union of all 5 segment interfaces — must be structurally identical
+ * to IGameFacade. If they drift, the type assertions below will fail.
+ */
+type SegmentUnion = ILifecycleFacade &
+  ISeatFacade &
+  IGameControlFacade &
+  INightActionFacade &
+  ISyncFacade;
+
+// Bi-directional structural check: IGameFacade ↔ SegmentUnion
+type AssertFacadeExtendsUnion = IGameFacade extends SegmentUnion ? true : never;
+type AssertUnionExtendsFacade = SegmentUnion extends IGameFacade ? true : never;
+
+// Force evaluation — unused types are lazy; these variables force TS to check
+const _checkA: AssertFacadeExtendsUnion = true;
+const _checkB: AssertUnionExtendsFacade = true;
+void _checkA;
+void _checkB;
