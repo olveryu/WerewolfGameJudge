@@ -30,6 +30,7 @@ interface HostMenuDropdownProps {
   onFillWithBots: () => void;
   onMarkAllBotsViewed: () => void;
   onClearAllSeats: () => void;
+  onSettings: () => void;
   /** Pre-created styles from parent */
   styles: HostMenuDropdownStyles;
 }
@@ -42,6 +43,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   onFillWithBots,
   onMarkAllBotsViewed,
   onClearAllSeats,
+  onSettings,
   styles,
 }) => {
   const colors = useColors();
@@ -70,13 +72,18 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     onClearAllSeats();
   }, [onClearAllSeats]);
 
+  const handleSettings = useCallback(() => {
+    setMenuOpen(false);
+    onSettings();
+  }, [onSettings]);
+
   // Don't render if not visible
   if (!visible) {
     return <View style={styles.triggerButton} />;
   }
 
-  // Check if we have dropdown items (excluding restart which is shown separately)
-  const hasDropdownItems = showFillWithBots || showMarkAllBotsViewed || showClearAllSeats;
+  // Settings is always available for host, plus optional debug/management items
+  const hasDropdownItems = true;
 
   return (
     <View style={styles.headerRightContainer}>
@@ -103,28 +110,35 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
               onPress={handleCloseMenu}
             >
               <View style={styles.menuContainer}>
-                {showFillWithBots && (
-                  <TouchableOpacity style={styles.menuItem} onPress={handleFillWithBots}>
-                    <Text style={styles.menuItemText}>🤖 填充机器人</Text>
-                  </TouchableOpacity>
-                )}
+                {/* Settings — always visible for host */}
+                <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
+                  <Text style={styles.menuItemText}>⚙️ 设置</Text>
+                </TouchableOpacity>
 
-                {showMarkAllBotsViewed && (
+                {showClearAllSeats && (
                   <>
-                    {showFillWithBots && <View style={styles.separator} />}
-                    <TouchableOpacity style={styles.menuItem} onPress={handleMarkAllBotsViewed}>
-                      <Text style={styles.menuItemText}>👁️ 标记机器人已查看</Text>
+                    <View style={styles.separator} />
+                    <TouchableOpacity style={styles.menuItem} onPress={handleClearAllSeats}>
+                      <Text style={styles.menuItemText}>🪑 全员起立</Text>
                     </TouchableOpacity>
                   </>
                 )}
 
-                {showClearAllSeats && (
+                {/* Bot actions — at bottom */}
+                {showFillWithBots && (
                   <>
-                    {(showFillWithBots || showMarkAllBotsViewed) && (
-                      <View style={styles.separator} />
-                    )}
-                    <TouchableOpacity style={styles.menuItem} onPress={handleClearAllSeats}>
-                      <Text style={styles.menuItemText}>🪑 全员起立</Text>
+                    <View style={styles.separator} />
+                    <TouchableOpacity style={styles.menuItem} onPress={handleFillWithBots}>
+                      <Text style={styles.menuItemText}>🤖 填充机器人</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {showMarkAllBotsViewed && (
+                  <>
+                    <View style={styles.separator} />
+                    <TouchableOpacity style={styles.menuItem} onPress={handleMarkAllBotsViewed}>
+                      <Text style={styles.menuItemText}>👁️ 标记机器人已查看</Text>
                     </TouchableOpacity>
                   </>
                 )}

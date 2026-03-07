@@ -10,7 +10,6 @@ export { RoleChip } from './RoleChip';
 export { RoleInfoSheet } from './RoleInfoSheet';
 export { RoleStepper } from './RoleStepper';
 export { Section } from './Section';
-export { SettingsSheet } from './SettingsSheet';
 export type { ConfigScreenStyles } from './styles';
 export { createConfigScreenStyles } from './styles';
 export { TemplatePicker } from './TemplatePicker';

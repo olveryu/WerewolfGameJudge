@@ -281,31 +281,6 @@ export function useConfigScreenState({
     [],
   );
 
-  const animationOptions: DropdownOption[] = useMemo(
-    () => [
-      { value: 'random', label: '随机' },
-      { value: 'roulette', label: '轮盘' },
-      { value: 'roleHunt', label: '猎场' },
-      { value: 'scratch', label: '刮卡' },
-      { value: 'tarot', label: '塔罗' },
-      { value: 'gachaMachine', label: '扭蛋' },
-      { value: 'cardPick', label: '抽牌' },
-      { value: 'sealBreak', label: '封印' },
-      { value: 'chainShatter', label: '锁链' },
-      { value: 'fateGears', label: '齿轮' },
-      { value: 'none', label: '关闭' },
-    ],
-    [],
-  );
-
-  const bgmOptions: DropdownOption[] = useMemo(
-    () => [
-      { value: 'on', label: '开' },
-      { value: 'off', label: '关' },
-    ],
-    [],
-  );
-
   const handleTemplateChange = useCallback(
     (templateName: string) => {
       setSelectedTemplate(templateName);
@@ -569,8 +544,6 @@ export function useConfigScreenState({
     // Settings
     roleRevealAnimation,
     bgmEnabled,
-    animationOptions,
-    bgmOptions,
     settingsSheetVisible,
     handleOpenSettings,
     handleCloseSettings,
