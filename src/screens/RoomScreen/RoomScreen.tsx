@@ -22,7 +22,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { spacing, useTheme } from '@/theme';
+import { fixed, spacing, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { isAbortError } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
@@ -243,7 +243,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <TouchableOpacity onPress={handleDebugTitleTap} activeOpacity={1}>
             <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleShareRoom} activeOpacity={0.6}>
+          <TouchableOpacity onPress={handleShareRoom} activeOpacity={fixed.activeOpacity}>
             <Text style={styles.headerSubtitle}>
               {gameState.template.roles.length}人局 · 分享房间
             </Text>

@@ -9,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { fixed } from '@/theme';
+
 import { EmailDomainDropdown } from './EmailDomainDropdown';
 import { type EmailFormProps } from './types';
 
@@ -89,7 +91,7 @@ export const EmailForm = memo<EmailFormProps>(
           <TouchableOpacity
             style={styles.eyeButton}
             onPress={togglePasswordVisibility}
-            activeOpacity={0.6}
+            activeOpacity={fixed.activeOpacity}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
