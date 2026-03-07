@@ -66,9 +66,6 @@ export interface BottomActionPanelStyles {
 export interface ConnectionStatusBarStyles {
   container: ViewStyle;
   text: TextStyle;
-  subtitleText: TextStyle;
-  retryButton: ViewStyle;
-  retryButtonText: TextStyle;
 }
 
 export interface ControlledSeatBannerStyles {
@@ -345,28 +342,6 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         lineHeight: typography.lineHeights.secondary,
         color: colors.error,
         fontWeight: typography.weights.medium,
-      },
-      subtitleText: {
-        width: '100%',
-        textAlign: 'center',
-        fontSize: typography.caption,
-        lineHeight: typography.lineHeights.caption,
-        color: colors.error,
-        opacity: 0.8,
-        marginTop: spacing.micro,
-      },
-      retryButton: {
-        marginLeft: spacing.small,
-        paddingVertical: spacing.micro,
-        paddingHorizontal: spacing.small,
-        backgroundColor: withAlpha(colors.error, 0.188),
-        borderRadius: borderRadius.medium,
-      },
-      retryButtonText: {
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
-        color: colors.error,
-        fontWeight: typography.weights.semibold,
       },
     }),
 

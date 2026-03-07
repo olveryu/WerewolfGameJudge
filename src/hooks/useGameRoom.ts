@@ -78,10 +78,6 @@ interface UseGameRoomResult {
 
   // Connection (from useConnectionSync)
   connectionStatus: ConnectionStatus;
-  /** True when auto-reconnect retries exhausted — show manual retry button */
-  retriesExhausted: boolean;
-  /** User-triggered reconnect — resets retry counter and rebuilds channel */
-  manualReconnect: () => void;
 
   // Sync status
   lastStateReceivedAt: number | null;
@@ -290,8 +286,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     currentStepId: nightDerived.currentStepId,
     // Connection
     connectionStatus: connection.connectionStatus,
-    retriesExhausted: connection.retriesExhausted,
-    manualReconnect: connection.manualReconnect,
     lastStateReceivedAt: connection.lastStateReceivedAt,
     // Lifecycle
     loading: lifecycle.loading,

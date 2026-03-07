@@ -30,10 +30,6 @@ interface ConnectionSyncState {
   setLastStateReceivedAt: (ts: number | null) => void;
   /** Call when a state update is received to update lastStateReceivedAt */
   onStateReceived: () => void;
-  /** True when L5 dead channel auto-retries are exhausted (user action needed) */
-  retriesExhausted: boolean;
-  /** Manual reconnect triggered by user tap — resets retry counter */
-  manualReconnect: () => void;
 }
 
 /** Subset of ConnectionSyncState used by useRoomLifecycle for status updates */
@@ -81,19 +77,7 @@ export function useConnectionSync(
 
   // Shared ref: declared before both foreground + dead-channel effects so both can access it.
   const deadChannelRetriesRef = useRef(0);
-  const [retriesExhausted, setRetriesExhausted] = useState(false);
-  const MAX_DEAD_CHANNEL_RETRIES = 3;
   const DEAD_CHANNEL_THRESHOLD_MS = 5_000;
-
-  // Manual reconnect: user taps the retry button
-  const manualReconnect = useCallback(() => {
-    connectionSyncLog.info('Manual reconnect triggered by user');
-    deadChannelRetriesRef.current = 0;
-    setRetriesExhausted(false);
-    facade.reconnectChannel().catch((e) => {
-      connectionSyncLog.error('Manual reconnectChannel failed', e);
-    });
-  }, [facade]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -107,9 +91,8 @@ export function useConnectionSync(
       if (now - lastForegroundFetchRef.current < FOREGROUND_FETCH_COOLDOWN_MS) return;
       lastForegroundFetchRef.current = now;
 
-      // Reset dead channel retries so L5 detector gets fresh attempts after foreground
+      // Reset dead channel retries counter (diagnostic only)
       deadChannelRetriesRef.current = 0;
-      setRetriesExhausted(false);
 
       const currentStatus = connectionStatusRef.current;
       if (currentStatus === ConnectionStatus.Disconnected) {
@@ -148,7 +131,6 @@ export function useConnectionSync(
         currentStatus,
       });
       deadChannelRetriesRef.current = 0;
-      setRetriesExhausted(false);
 
       // 无论是 Disconnected（dead channel）还是其他非 Live 状态，都尝试重建
       facade.reconnectChannel().catch((e) => {
@@ -172,18 +154,10 @@ export function useConnectionSync(
     if (connectionStatus === ConnectionStatus.Live) {
       // Channel is healthy — reset retry counter
       deadChannelRetriesRef.current = 0;
-      setRetriesExhausted(false);
       return;
     }
 
     if (connectionStatus !== ConnectionStatus.Disconnected) return;
-    if (deadChannelRetriesRef.current >= MAX_DEAD_CHANNEL_RETRIES) {
-      connectionSyncLog.warn('Dead channel detector: max retries reached, giving up', {
-        retries: deadChannelRetriesRef.current,
-      });
-      setRetriesExhausted(true);
-      return;
-    }
 
     const timer = setTimeout(() => {
       // Re-check: still Disconnected after threshold?
@@ -210,16 +184,7 @@ export function useConnectionSync(
       lastStateReceivedAt,
       setLastStateReceivedAt,
       onStateReceived,
-      retriesExhausted,
-      manualReconnect,
     }),
-    [
-      connectionStatus,
-      stateRevision,
-      lastStateReceivedAt,
-      onStateReceived,
-      retriesExhausted,
-      manualReconnect,
-    ],
+    [connectionStatus, stateRevision, lastStateReceivedAt, onStateReceived],
   );
 }

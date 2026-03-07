@@ -103,8 +103,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isAudioPlaying,
     resolvedRoleRevealAnimation,
     connectionStatus,
-    retriesExhausted,
-    manualReconnect,
     gameRoomError,
     effectiveSeat,
     effectiveRole,
@@ -285,12 +283,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       </View>
 
       {/* Connection Status Bar — only visible when disconnected */}
-      <ConnectionStatusBar
-        status={connectionStatus}
-        retriesExhausted={retriesExhausted}
-        onRetry={manualReconnect}
-        styles={componentStyles.connectionStatusBar}
-      />
+      <ConnectionStatusBar status={connectionStatus} styles={componentStyles.connectionStatusBar} />
 
       {/* Night Progress Indicator - only show during ongoing game */}
       {nightProgress && (
