@@ -243,19 +243,19 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         color: colors.primary,
       },
       roleChipWolf: {
-        borderWidth: 1,
+        borderWidth: fixed.borderWidth,
         borderColor: colors.wolf,
       },
       roleChipGod: {
-        borderWidth: 1,
+        borderWidth: fixed.borderWidth,
         borderColor: colors.god,
       },
       roleChipThird: {
-        borderWidth: 1,
+        borderWidth: fixed.borderWidth,
         borderColor: colors.third,
       },
       roleChipVillager: {
-        borderWidth: 1,
+        borderWidth: fixed.borderWidth,
         borderColor: colors.villager,
       },
       roleChipTextWolf: {
@@ -297,7 +297,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         paddingTop: spacing.medium,
         paddingHorizontal: spacing.medium,
         paddingBottom: spacing.medium,
-        borderTopWidth: 1,
+        borderTopWidth: fixed.borderWidth,
         borderTopColor: colors.borderLight,
         overflow: 'hidden',
         // Upward shadow
