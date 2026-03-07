@@ -196,6 +196,12 @@ export class RealtimeService {
    * CHANNEL_ERROR / TIMED_OUT (mobile background cycles). This method uses the
    * cached joinRoom params to destroy the dead channel and rebuild from scratch.
    *
+   * Key: `supabase.realtime.disconnect()` forces the underlying WebSocket closed
+   * before creating a new channel. Without this, the SDK reuses a stale transport
+   * and new channel subscribes timeout indefinitely even after network recovery.
+   * The subsequent `joinRoom → channel.subscribe()` triggers `realtime.connect()`
+   * automatically, establishing a fresh WebSocket.
+   *
    * @throws Error if no previous joinRoom params cached (never joined / already left)
    */
   async rejoinCurrentRoom(): Promise<void> {
@@ -204,6 +210,11 @@ export class RealtimeService {
     }
     const { roomCode, userId, onDbStateChange } = this.#lastJoinParams;
     realtimeLog.info('Dead channel recovery: rejoinCurrentRoom', { roomCode });
+
+    // Force-close the stale WebSocket transport so subscribe() opens a fresh one.
+    // Without this, the SDK reuses a dead WS and every subscribe times out.
+    supabase?.realtime.disconnect();
+
     // joinRoom internally calls leaveRoom first, then creates a fresh channel
     await this.joinRoom(roomCode, userId, { onDbStateChange });
   }
