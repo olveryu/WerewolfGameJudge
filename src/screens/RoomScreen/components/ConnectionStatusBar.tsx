@@ -38,9 +38,14 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ stat
   // Stable Animated.Value via lazy useState (avoids useRef.current in render — React 19 lint)
   const [progress] = useState(() => new Animated.Value(0));
 
+  // Coalesce Disconnected/Connecting/Syncing into a single boolean so the
+  // animation effect only re-runs on the Live ↔ non-Live edge, not on every
+  // Disconnected↔Connecting flip during dead-channel retries.
+  const isDisconnected = status !== ConnectionStatus.Live;
+
   // Start / stop the sliding animation based on connection status
   useEffect(() => {
-    if (containerWidth === 0 || status === ConnectionStatus.Live) {
+    if (containerWidth === 0 || !isDisconnected) {
       progress.setValue(0);
       return;
     }
@@ -53,7 +58,7 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ stat
     );
     animation.start();
     return () => animation.stop();
-  }, [progress, containerWidth, status]);
+  }, [progress, containerWidth, isDisconnected]);
 
   const barPixelWidth = containerWidth * BAR_WIDTH_RATIO;
   const translateX = useMemo(
@@ -65,7 +70,7 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ stat
     [progress, barPixelWidth, containerWidth],
   );
 
-  if (status === ConnectionStatus.Live) return null;
+  if (!isDisconnected) return null;
 
   return (
     <View
