@@ -40,3 +40,6 @@ export {
 
 // Types & Themes
 export { type ThemeColors, type ThemeKey } from './themes';
+
+// Color utilities
+export { withAlpha } from './colorUtils';
