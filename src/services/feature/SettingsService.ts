@@ -24,8 +24,6 @@ interface UserSettings {
   themeKey: ThemeKey;
   /** Role reveal animation style (default: 'roulette') */
   roleRevealAnimation: RoleRevealAnimation;
-  /** Whether the user has seen the AI assistant hint toast (default: false) */
-  hasSeenAssistantHint: boolean;
 }
 
 /** Valid theme keys for runtime validation of persisted data */
@@ -59,7 +57,6 @@ const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
   themeKey: 'light',
   roleRevealAnimation: 'random',
-  hasSeenAssistantHint: false,
 };
 
 export class SettingsService {
@@ -103,13 +100,6 @@ export class SettingsService {
               merged.bgmEnabled,
             );
             merged.bgmEnabled = DEFAULT_SETTINGS.bgmEnabled;
-          }
-          if (typeof merged.hasSeenAssistantHint !== 'boolean') {
-            settingsServiceLog.warn(
-              'Invalid persisted hasSeenAssistantHint, resetting to default:',
-              merged.hasSeenAssistantHint,
-            );
-            merged.hasSeenAssistantHint = DEFAULT_SETTINGS.hasSeenAssistantHint;
           }
           this.#settings = merged;
         }
@@ -197,25 +187,6 @@ export class SettingsService {
    */
   async setRoleRevealAnimation(anim: RoleRevealAnimation): Promise<void> {
     this.#settings.roleRevealAnimation = anim;
-    await this.#save();
-  }
-
-  // =========================================================================
-  // Assistant Hint Settings
-  // =========================================================================
-
-  /**
-   * Get whether the user has seen the AI assistant hint toast.
-   */
-  hasSeenAssistantHint(): boolean {
-    return this.#settings.hasSeenAssistantHint;
-  }
-
-  /**
-   * Mark the AI assistant hint as seen and persist.
-   */
-  async setHasSeenAssistantHint(seen: boolean): Promise<void> {
-    this.#settings.hasSeenAssistantHint = seen;
     await this.#save();
   }
 

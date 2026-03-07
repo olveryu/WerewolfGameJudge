@@ -23,10 +23,13 @@ export function getChatHeight(screenHeight: number): number {
   return Math.min(600, Math.max(320, Math.round(screenHeight * 0.55)));
 }
 
+/** Height of the "小助手" label below the bubble */
+export const LABEL_HEIGHT = 18;
+
 /** 默认位置：右下角 */
 export const DEFAULT_POSITION = {
   x: SCREEN_WIDTH - BUBBLE_SIZE - BUBBLE_MARGIN,
-  y: SCREEN_HEIGHT - BUBBLE_SIZE - 60,
+  y: SCREEN_HEIGHT - BUBBLE_SIZE - LABEL_HEIGHT - 60,
 };
 
 // ── DisplayMessage 类型 ─────────────────────────────────
@@ -105,7 +108,7 @@ export const createStyles = (colors: ThemeColors) =>
       left: 0,
       top: 0,
       width: BUBBLE_SIZE,
-      height: BUBBLE_SIZE,
+      alignItems: 'center',
       zIndex: 1000,
       overflow: 'visible',
     },
@@ -120,6 +123,13 @@ export const createStyles = (colors: ThemeColors) =>
     },
     bubbleIcon: {
       fontSize: 28,
+    },
+    bubbleLabel: {
+      fontSize: typography.captionSmall,
+      fontWeight: typography.weights.medium,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      marginTop: 2,
     },
     pulseRing: {
       position: 'absolute',

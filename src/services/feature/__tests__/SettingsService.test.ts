@@ -112,22 +112,6 @@ describe('SettingsService', () => {
     });
   });
 
-  describe('hasSeenAssistantHint', () => {
-    it('defaults to false', () => {
-      expect(service.hasSeenAssistantHint()).toBe(false);
-    });
-
-    it('can set to true and persist', async () => {
-      await service.setHasSeenAssistantHint(true);
-      expect(service.hasSeenAssistantHint()).toBe(true);
-
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-        '@werewolf_settings',
-        expect.stringContaining('"hasSeenAssistantHint":true'),
-      );
-    });
-  });
-
   describe('getAll', () => {
     it('returns all settings', () => {
       const settings = service.getAll();
@@ -135,7 +119,6 @@ describe('SettingsService', () => {
       expect(settings).toHaveProperty('bgmEnabled');
       expect(settings).toHaveProperty('themeKey');
       expect(settings).toHaveProperty('roleRevealAnimation');
-      expect(settings).toHaveProperty('hasSeenAssistantHint');
     });
 
     it('returns a copy (not the original object)', () => {

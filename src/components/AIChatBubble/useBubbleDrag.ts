@@ -14,7 +14,7 @@ const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 import { chatLog } from '@/utils/logger';
 
-import { BUBBLE_MARGIN, BUBBLE_SIZE, DEFAULT_POSITION } from './AIChatBubble.styles';
+import { BUBBLE_MARGIN, BUBBLE_SIZE, DEFAULT_POSITION, LABEL_HEIGHT } from './AIChatBubble.styles';
 
 const STORAGE_KEY_POSITION = '@ai_chat_bubble_position';
 const DRAG_THRESHOLD = 10;
@@ -57,7 +57,7 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
           );
           const clampedY = Math.max(
             BUBBLE_MARGIN + 50,
-            Math.min(screenHeight - BUBBLE_SIZE - BUBBLE_MARGIN, parsed.y),
+            Math.min(screenHeight - BUBBLE_SIZE - LABEL_HEIGHT - BUBBLE_MARGIN, parsed.y),
           );
           setPosition({ x: clampedX, y: clampedY });
         }
@@ -113,7 +113,10 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
         );
         const newY = Math.max(
           BUBBLE_MARGIN + 50,
-          Math.min(screenHeight - BUBBLE_SIZE - BUBBLE_MARGIN, dragStartRef.current.posY + dy),
+          Math.min(
+            screenHeight - BUBBLE_SIZE - LABEL_HEIGHT - BUBBLE_MARGIN,
+            dragStartRef.current.posY + dy,
+          ),
         );
 
         setPosition({ x: newX, y: newY });

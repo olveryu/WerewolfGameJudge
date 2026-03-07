@@ -195,6 +195,7 @@ export const AIChatBubble: React.FC = () => {
         >
           <Text style={styles.bubbleIcon}>🐺</Text>
         </TouchableOpacity>
+        <Text style={styles.bubbleLabel}>小助手</Text>
       </Animated.View>
 
       {/* ── Chat Modal ──────────────────────────────── */}
