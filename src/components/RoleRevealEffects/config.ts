@@ -186,6 +186,56 @@ export const CONFIG = {
   },
 
   // =====================================================
+  // Chain Shatter (锁链击碎)
+  // =====================================================
+  chainShatter: {
+    /** Lock body width as fraction of screen width */
+    lockWidthRatio: 0.24,
+    /** Required tap hits to shatter */
+    requiredHits: 6,
+    /** Shard count on shatter (matching demo's 20-piece explosion) */
+    shardCount: 20,
+    /** Combo timeout — hit count decays if gap exceeds this (ms) */
+    comboTimeout: 800,
+    /** Chain + lock appear duration (ms) */
+    chainAppearDuration: 800,
+    /** Crack line fade duration (ms) */
+    crackFadeDuration: 500,
+    /** Shatter explosion duration (ms) */
+    shatterDuration: 1000,
+    /** Card scale-in duration (ms) */
+    cardRevealDuration: 400,
+    /** Auto-shatter timeout if user stops tapping (ms) */
+    autoShatterTimeout: 8000,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 0,
+  },
+
+  // =====================================================
+  // Fate Gears (命运齿轮)
+  // =====================================================
+  fateGears: {
+    /** Main gear outer radius as fraction of screen width */
+    outerGearRadiusRatio: 0.22,
+    /** Number of teeth on the main gear */
+    outerTeethCount: 16,
+    /** Gears appear + scale-in duration (ms) */
+    gearsAppearDuration: 800,
+    /** Idle rotation speed (radians per second) */
+    idleRotationSpeed: 0.3,
+    /** Alignment tolerance in radians (~8.6°) */
+    alignTolerance: 0.15,
+    /** Snap-to-alignment duration (ms) */
+    snapDuration: 300,
+    /** Card scale-in duration (ms) */
+    cardRevealDuration: 400,
+    /** Auto-align timeout if user doesn't drag (ms) */
+    autoAlignTimeout: 8000,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 0,
+  },
+
+  // =====================================================
   // Alignment reveal effects (阵营特效)
   // =====================================================
   alignmentEffects: {

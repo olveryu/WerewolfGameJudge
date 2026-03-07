@@ -25,6 +25,8 @@ export type RoleRevealAnimation =
   | 'gachaMachine'
   | 'cardPick'
   | 'sealBreak'
+  | 'chainShatter'
+  | 'fateGears'
   | 'none'
   | 'random';
 
@@ -41,6 +43,8 @@ export type ResolvedRoleRevealAnimation =
   | 'gachaMachine'
   | 'cardPick'
   | 'sealBreak'
+  | 'chainShatter'
+  | 'fateGears'
   | 'none';
 
 /**
@@ -53,7 +57,9 @@ export type RandomizableAnimation =
   | 'tarot'
   | 'gachaMachine'
   | 'cardPick'
-  | 'sealBreak';
+  | 'sealBreak'
+  | 'chainShatter'
+  | 'fateGears';
 
 /**
  * 可随机选择的动画数组（用于 random 解析）
@@ -66,6 +72,8 @@ export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
   'gachaMachine',
   'cardPick',
   'sealBreak',
+  'chainShatter',
+  'fateGears',
 ] as const;
 
 /**

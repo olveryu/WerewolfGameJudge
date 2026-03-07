@@ -282,6 +282,8 @@ export function useConfigScreenState({
       { value: 'gachaMachine', label: '扭蛋机' },
       { value: 'cardPick', label: '抽牌' },
       { value: 'sealBreak', label: '封印解除' },
+      { value: 'chainShatter', label: '锁链击碎' },
+      { value: 'fateGears', label: '命运齿轮' },
       { value: 'none', label: '无动画' },
     ],
     [],
