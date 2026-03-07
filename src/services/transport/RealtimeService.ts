@@ -178,13 +178,12 @@ export class RealtimeService {
 
   /**
    * Mark connection as live (called after receiving state).
-   * Accepts both ConnectionStatus.Syncing (normal flow) and ConnectionStatus.Connecting (DB-fetch recovery).
+   * Only accepts Syncing — channel must be SUBSCRIBED before marking Live.
+   * Connecting is not accepted to prevent false-Live when concurrent fetchStateFromDB
+   * succeeds before channel subscription completes.
    */
   markAsLive(): void {
-    if (
-      this.#connectionStatus === ConnectionStatus.Syncing ||
-      this.#connectionStatus === ConnectionStatus.Connecting
-    ) {
+    if (this.#connectionStatus === ConnectionStatus.Syncing) {
       this.#setConnectionStatus(ConnectionStatus.Live);
     }
   }
