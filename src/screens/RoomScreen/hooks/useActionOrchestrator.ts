@@ -24,6 +24,8 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
+import type { ExecutorContext } from '../executors';
+import { dispatchIntent } from '../executors';
 import type { WitchStepResultsExtra } from './actionIntentHelpers';
 import {
   buildWitchStepResults,
@@ -238,6 +240,35 @@ export function useActionOrchestrator({
 
   const handleActionIntent = useCallback(
     async (intent: ActionIntent) => {
+      // ── Executor registry lookup (new, gradually replaces switch) ─────────
+      const ctx: ExecutorContext = {
+        gameState,
+        gameStateRef,
+        currentSchema,
+        currentActionRole,
+        effectiveSeat,
+        effectiveRole,
+        controlledSeat,
+        actorSeatForUi,
+        firstSwapSeat,
+        setFirstSwapSeat,
+        setSecondSeat,
+        multiSelectedSeats,
+        setMultiSelectedSeats,
+        proceedWithAction,
+        confirmThenAct,
+        submitRevealAckSafe,
+        sendWolfRobotHunterStatusViewed,
+        submitGroupConfirmAck,
+        setPendingRevealDialog,
+        pendingHunterStatusViewed,
+        setPendingHunterStatusViewed,
+        actionDialogs,
+      };
+
+      if (await dispatchIntent(intent, ctx)) return;
+
+      // ── Legacy switch (cases migrated to executors will be removed) ───────
       switch (intent.type) {
         case 'magicianFirst':
           roomScreenLog.debug('[handleActionIntent] magicianFirst', {
