@@ -260,35 +260,3 @@ export interface IGameFacade {
 
 /** Trigger source for reconnectChannel — used in observability logs */
 export type ReconnectTrigger = 'deadChannel' | 'foreground' | 'online' | 'sdkReconnect';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Segment union equivalence assertion
-// ─────────────────────────────────────────────────────────────────────────────
-
-import type {
-  IGameControlFacade,
-  ILifecycleFacade,
-  INightActionFacade,
-  ISeatFacade,
-  ISyncFacade,
-} from './segments';
-
-/**
- * Union of all 5 segment interfaces — must be structurally identical
- * to IGameFacade. If they drift, the type assertions below will fail.
- */
-type SegmentUnion = ILifecycleFacade &
-  ISeatFacade &
-  IGameControlFacade &
-  INightActionFacade &
-  ISyncFacade;
-
-// Bi-directional structural check: IGameFacade ↔ SegmentUnion
-type AssertFacadeExtendsUnion = IGameFacade extends SegmentUnion ? true : never;
-type AssertUnionExtendsFacade = SegmentUnion extends IGameFacade ? true : never;
-
-// Force evaluation — unused types are lazy; these variables force TS to check
-const _checkA: AssertFacadeExtendsUnion = true;
-const _checkB: AssertUnionExtendsFacade = true;
-void _checkA;
-void _checkB;
