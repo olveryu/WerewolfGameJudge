@@ -22,6 +22,7 @@ import {
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { showAlert } from '@/utils/alert';
+import { isAbortError } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -151,6 +152,7 @@ export function useInteractionDispatcher({
       });
       if (intent) {
         void handleActionIntent(intent).catch((err) => {
+          if (isAbortError(err)) return;
           roomScreenLog.error('[handleActionTap] Unhandled error in handleActionIntent', err);
           Sentry.captureException(err);
         });
@@ -257,8 +259,12 @@ export function useInteractionDispatcher({
                       setShouldPlayRevealAnimation(true);
                       setIsLoadingRole(false);
                     } catch (err) {
-                      roomScreenLog.error('[roleCard] viewedRole failed', err);
-                      Sentry.captureException(err);
+                      if (isAbortError(err)) {
+                        roomScreenLog.warn('[roleCard] viewedRole aborted');
+                      } else {
+                        roomScreenLog.error('[roleCard] viewedRole failed', err);
+                        Sentry.captureException(err);
+                      }
                       setRoleCardVisible(false);
                       setIsLoadingRole(false);
                     }
@@ -294,6 +300,7 @@ export function useInteractionDispatcher({
           });
           if (result.intent) {
             void handleActionIntent(result.intent).catch((err) => {
+              if (isAbortError(err)) return;
               roomScreenLog.error('[ACTION_FLOW] Unhandled error in handleActionIntent', err);
               Sentry.captureException(err);
             });
@@ -346,6 +353,7 @@ export function useInteractionDispatcher({
             );
           } else {
             void sendWolfRobotHunterStatusViewed(effectiveSeat).catch((err) => {
+              if (isAbortError(err)) return;
               roomScreenLog.error('[HUNTER_STATUS_VIEWED] Failed', err);
               Sentry.captureException(err);
             });

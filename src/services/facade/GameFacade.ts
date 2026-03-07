@@ -37,6 +37,7 @@ import { RoomService } from '@/services/infra/RoomService';
 import { RealtimeService } from '@/services/transport/RealtimeService';
 import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { isAbortError } from '@/utils/errorUtils';
 import { facadeLog } from '@/utils/logger';
 
 import { AudioOrchestrator } from './AudioOrchestrator';
@@ -523,8 +524,12 @@ export class GameFacade implements IGameFacade {
       }
       return false;
     } catch (e) {
-      facadeLog.warn('fetchStateFromDB failed', e);
-      Sentry.captureException(e);
+      if (isAbortError(e)) {
+        facadeLog.warn('fetchStateFromDB aborted', e);
+      } else {
+        facadeLog.warn('fetchStateFromDB failed', e);
+        Sentry.captureException(e);
+      }
       return false;
     }
   }
