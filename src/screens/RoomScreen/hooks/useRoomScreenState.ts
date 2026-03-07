@@ -1,13 +1,9 @@
 /**
- * useRoomScreenState - Composition hook that wires all RoomScreen sub-hooks together
+ * useRoomScreenState — Composition root that wires all RoomScreen sub-hooks together.
  *
- * Calls all sub-hooks in dependency order (useGameRoom → useRoomInit → useRoomActions → …),
- * owns local UI state (magician seats, modals, countdown, isStartingGame), computes derived
- * data (seatViewModels, roleStats, wolfVotesMap, actorIdentity), owns side-effects (countdown
- * timer, seat error alert, restart reset, delegation warning), and returns a flat bag of values
- * consumed by RoomScreen JSX. Does not render JSX, does not import components, does not own
- * styles (that stays in the component), and does not contain business logic (delegated to
- * sub-hooks).
+ * Calls hooks in dependency order and returns a flat bag consumed by RoomScreen JSX.
+ * Identity → actioner → derived → actions → orchestrator → dialogs → interaction.
+ * Does not render JSX, own styles, or contain business logic.
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -49,10 +45,6 @@ import { useWolfVoteCountdown } from './useWolfVoteCountdown';
 
 /** Stable empty Map to avoid new reference on every render when gameState is null */
 const EMPTY_ACTIONS: Map<RoleId, RoleAction> = new Map();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** Errors that cannot be recovered by retrying — auto-redirect to Home */
 const FATAL_ROOM_ERRORS = new Set(['房间不存在', '房间状态已过期，请重新创建房间']);
@@ -182,14 +174,7 @@ export function useRoomScreenState(
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
   // ── Settings sheet (delegated to useRoomSettings) ─────────────────────────
-  const {
-    settingsSheetVisible,
-    bgmEnabled,
-    handleOpenSettings,
-    handleCloseSettings,
-    handleAnimationChange,
-    handleBgmChange,
-  } = useRoomSettings({ settingsService, setRoleRevealAnimation });
+  const roomSettings = useRoomSettings({ settingsService, setRoleRevealAnimation });
 
   // ── Wolf vote countdown tick ─────────────────────────────────────────────
   const countdownTick = useWolfVoteCountdown({
@@ -205,7 +190,7 @@ export function useRoomScreenState(
 
   const { handleDebugTitleTap } = useHiddenDebugTrigger();
 
-  const { isInitialized, loadingMessage, showRetryButton, handleRetry } = useRoomInit({
+  const init = useRoomInit({
     roomNumber,
     isHostParam,
     template,
@@ -350,19 +335,7 @@ export function useRoomScreenState(
   // Derived view models (delegated to useRoomDerived)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const {
-    seatViewModels,
-    roleCounts,
-    wolfRoles,
-    godRoles,
-    specialRoles,
-    villagerCount,
-    wolfRoleItems,
-    godRoleItems,
-    specialRoleItems,
-    villagerRoleItems,
-    actionMessage,
-  } = useRoomDerived({
+  const derived = useRoomDerived({
     gameState,
     currentSchema,
     currentActionRole,
@@ -577,30 +550,17 @@ export function useRoomScreenState(
     requestSnapshot,
     setControlledSeat,
 
-    // ── Initialization ──
-    isInitialized,
-    loadingMessage,
-    showRetryButton,
-    handleRetry,
+    // ── Initialization (from useRoomInit) ──
+    ...init,
 
     // ── Auth gate (first-time direct URL user) ──
     needsAuth,
     clearNeedsAuth,
 
-    // ── Derived view models ──
-    seatViewModels,
-    roleCounts,
-    wolfRoles,
-    godRoles,
-    specialRoles,
-    villagerCount,
-    wolfRoleItems,
-    godRoleItems,
-    specialRoleItems,
-    villagerRoleItems,
+    // ── Derived view models (from useRoomDerived) ──
+    ...derived,
     nightProgress,
     speakingOrderText,
-    actionMessage,
 
     // ── Actioner ──
     imActioner,
@@ -654,12 +614,7 @@ export function useRoomScreenState(
     closeShareReview,
     shareNightReview: handleShareNightReview,
 
-    // ── Settings sheet ──
-    settingsSheetVisible,
-    bgmEnabled,
-    handleOpenSettings,
-    handleCloseSettings,
-    handleAnimationChange,
-    handleBgmChange,
+    // ── Settings sheet (from useRoomSettings) ──
+    ...roomSettings,
   };
 }
