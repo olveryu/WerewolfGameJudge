@@ -16,6 +16,7 @@ import { EnhancedRoulette } from './EnhancedRoulette';
 import { GachaMachine } from './GachaMachine';
 import { RoleHunt } from './RoleHunt';
 import { ScratchReveal } from './ScratchReveal';
+import { SealBreak } from './SealBreak';
 import { TarotDraw } from './TarotDraw';
 import type { RoleData, RoleRevealAnimatorProps } from './types';
 
@@ -84,6 +85,8 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
         return <GachaMachine {...commonProps} />;
       case 'cardPick':
         return <CardPick {...commonProps} remainingCards={remainingCards} />;
+      case 'sealBreak':
+        return <SealBreak {...commonProps} />;
       default:
         // Default to roleHunt if unknown effect type
         return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;
