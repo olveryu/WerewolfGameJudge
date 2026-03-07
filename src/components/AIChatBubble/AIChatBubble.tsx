@@ -324,7 +324,7 @@ export const AIChatBubble: React.FC = () => {
               >
                 {(() => {
                   if (chat.isLoading) {
-                    return <ActivityIndicator size="small" color="#fff" />;
+                    return <ActivityIndicator size="small" color={colors.textInverse} />;
                   }
                   if (chat.cooldownRemaining > 0) {
                     return <Text style={styles.sendButtonText}>{chat.cooldownRemaining}</Text>;

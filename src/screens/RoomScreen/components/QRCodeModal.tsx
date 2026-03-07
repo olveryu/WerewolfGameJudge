@@ -6,7 +6,7 @@
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Image, Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
 
@@ -148,18 +148,18 @@ export const QRCodeModal = memo(QRCodeModalComponent);
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 function createStyles(colors: ThemeColors) {
-  return {
+  return StyleSheet.create({
     overlay: {
       flex: 1,
       backgroundColor: colors.overlay,
-      justifyContent: 'center' as const,
-      alignItems: 'center' as const,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     modalBox: {
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xlarge,
       padding: spacing.xlarge,
-      alignItems: 'center' as const,
+      alignItems: 'center',
       minWidth: 280,
       ...shadows.md,
     },
@@ -171,7 +171,7 @@ function createStyles(colors: ThemeColors) {
     },
     shareCard: {
       backgroundColor: colors.surface,
-      alignItems: 'center' as const,
+      alignItems: 'center',
       paddingHorizontal: spacing.large,
       paddingTop: spacing.medium,
       paddingBottom: spacing.small,
@@ -185,19 +185,19 @@ function createStyles(colors: ThemeColors) {
       marginBottom: spacing.medium,
     },
     qrWrapper: {
-      position: 'relative' as const,
+      position: 'relative',
       width: QR_SIZE,
       height: QR_SIZE,
     },
     logoContainer: {
-      position: 'absolute' as const,
+      position: 'absolute',
       top: (QR_SIZE - QR_LOGO_SIZE - QR_LOGO_MARGIN * 2) / 2,
       left: (QR_SIZE - QR_LOGO_SIZE - QR_LOGO_MARGIN * 2) / 2,
       width: QR_LOGO_SIZE + QR_LOGO_MARGIN * 2,
       height: QR_LOGO_SIZE + QR_LOGO_MARGIN * 2,
       backgroundColor: colors.surface,
-      justifyContent: 'center' as const,
-      alignItems: 'center' as const,
+      justifyContent: 'center',
+      alignItems: 'center',
       borderRadius: QR_LOGO_SIZE / 4,
     },
     logoImage: {
@@ -217,7 +217,7 @@ function createStyles(colors: ThemeColors) {
       marginBottom: spacing.large,
     },
     buttonRow: {
-      flexDirection: 'row' as const,
+      flexDirection: 'row',
       gap: spacing.small,
       marginBottom: spacing.small,
     },
@@ -226,7 +226,7 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.large,
       paddingVertical: spacing.medium,
       borderRadius: borderRadius.medium,
-      alignItems: 'center' as const,
+      alignItems: 'center',
     },
     shareButtonText: {
       color: colors.textInverse,
@@ -243,7 +243,7 @@ function createStyles(colors: ThemeColors) {
       borderRadius: borderRadius.medium,
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
-      alignItems: 'center' as const,
+      alignItems: 'center',
     },
     copyButtonText: {
       color: colors.text,
@@ -258,5 +258,5 @@ function createStyles(colors: ThemeColors) {
       color: colors.textSecondary,
       fontSize: typography.secondary,
     },
-  };
+  });
 }

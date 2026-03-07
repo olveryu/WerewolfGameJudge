@@ -93,7 +93,11 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({
   inverted = false,
 }) => {
   const textColor = inverted ? colors.textInverse : colors.text;
-  const baseStyle = { fontSize: typography.secondary, color: textColor, lineHeight: 20 };
+  const baseStyle = {
+    fontSize: typography.secondary,
+    color: textColor,
+    lineHeight: typography.lineHeights.secondary,
+  };
   const boldStyle = { fontWeight: typography.weights.bold };
   const codeStyle = {
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
@@ -219,7 +223,7 @@ const localStyles = StyleSheet.create({
   headerText: {
     fontWeight: typography.weights.bold,
     marginTop: spacing.tight,
-    marginBottom: 2,
+    marginBottom: spacing.micro,
   },
   emptyLine: {
     height: spacing.small,
@@ -227,7 +231,7 @@ const localStyles = StyleSheet.create({
   listItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 2,
+    marginBottom: spacing.micro,
     paddingLeft: spacing.tight,
   },
   listText: {
