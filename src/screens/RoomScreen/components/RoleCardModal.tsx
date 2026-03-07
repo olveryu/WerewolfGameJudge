@@ -20,7 +20,7 @@ import {
 } from '@werewolf/game-engine/models/roles';
 import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import React, { useCallback, useState } from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
+import { Modal } from 'react-native';
 
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
@@ -85,9 +85,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   if (isLoading) {
     return (
       <Modal visible transparent animationType="fade" statusBarTranslucent>
-        <View style={loadingStyles.overlay}>
-          <LoadingScreen fullScreen={false} message="正在确认身份…" />
-        </View>
+        <LoadingScreen message="正在确认身份…" />
       </Modal>
     );
   }
@@ -137,12 +135,3 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
 };
 
 export const RoleCardModal = React.memo(RoleCardModalInner);
-
-const loadingStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.85)',
-  },
-});

@@ -348,13 +348,18 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
       {/* Hints */}
       {phase === 'ready' && (
-        <View style={styles.hint}>
-          <Text style={styles.hintText}>🎯 点击转盘抽蛋!</Text>
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>🎯 点击转盘抽取身份蛋!</Text>
+        </View>
+      )}
+      {(phase === 'spinning' || phase === 'dropping') && (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>🎰 扭蛋掉落中…</Text>
         </View>
       )}
       {phase === 'waiting' && (
-        <View style={styles.hint}>
-          <Text style={styles.hintText}>✨ 点击扭蛋打开!</Text>
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>✨ 点击扭蛋查看身份!</Text>
         </View>
       )}
 

@@ -48,6 +48,9 @@ const VALID_ROLE_REVEAL_ANIMATIONS: ReadonlySet<string> = new Set<RoleRevealAnim
   'tarot',
   'gachaMachine',
   'cardPick',
+  'sealBreak',
+  'chainShatter',
+  'fateGears',
   'none',
   'random',
 ]);

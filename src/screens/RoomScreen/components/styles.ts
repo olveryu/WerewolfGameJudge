@@ -58,6 +58,9 @@ export interface BottomActionPanelStyles {
 export interface ConnectionStatusBarStyles {
   container: ViewStyle;
   text: TextStyle;
+  subtitleText: TextStyle;
+  retryButton: ViewStyle;
+  retryButtonText: TextStyle;
 }
 
 export interface ControlledSeatBannerStyles {
@@ -321,6 +324,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
     connectionStatusBar: StyleSheet.create<ConnectionStatusBarStyles>({
       container: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: spacing.tight,
@@ -336,6 +340,28 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         lineHeight: typography.lineHeights.secondary,
         color: colors.error,
         fontWeight: typography.weights.medium,
+      },
+      subtitleText: {
+        width: '100%',
+        textAlign: 'center',
+        fontSize: typography.caption,
+        lineHeight: typography.lineHeights.caption,
+        color: colors.error,
+        opacity: 0.8,
+        marginTop: spacing.micro,
+      },
+      retryButton: {
+        marginLeft: spacing.small,
+        paddingVertical: spacing.micro,
+        paddingHorizontal: spacing.small,
+        backgroundColor: colors.error + '30',
+        borderRadius: borderRadius.medium,
+      },
+      retryButtonText: {
+        fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
+        color: colors.error,
+        fontWeight: typography.weights.semibold,
       },
     }),
 
@@ -403,8 +429,10 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         minWidth: 60,
       },
       triggerButton: {
-        width: componentSizes.avatar.sm,
-        height: componentSizes.avatar.sm,
+        width: componentSizes.avatar.md,
+        height: componentSizes.avatar.md,
+        borderRadius: borderRadius.medium,
+        backgroundColor: colors.background,
         justifyContent: 'center',
         alignItems: 'center',
       },
