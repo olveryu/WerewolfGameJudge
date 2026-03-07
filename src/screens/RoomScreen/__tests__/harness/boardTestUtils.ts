@@ -195,6 +195,8 @@ export function createGameRoomMock(options: GameStateMockOptions) {
 
     roomRecord: null,
     connectionStatus: ConnectionStatus.Live,
+    retriesExhausted: false,
+    manualReconnect: jest.fn(),
     isHost,
     roomStatus: GameStatus.Ongoing,
     currentActionRole,
