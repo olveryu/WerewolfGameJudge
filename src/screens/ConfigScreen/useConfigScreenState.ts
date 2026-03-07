@@ -11,7 +11,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { Faction } from '@werewolf/game-engine/models/roles';
 import {
@@ -30,7 +29,7 @@ import type { RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { ThemeColors } from '@/theme';
 import { showAlert } from '@/utils/alert';
-import { isAbortError } from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
 import type { DropdownOption, FactionTabItem } from './components';
@@ -126,12 +125,7 @@ export function useConfigScreenState({
         }
         setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
-        if (isAbortError(error)) {
-          configLog.warn('Failed to load room (aborted)');
-        } else {
-          configLog.error(' Failed to load room:', error);
-          Sentry.captureException(error);
-        }
+        handleError(error, { label: '加载房间', logger: configLog, alertTitle: false });
       } finally {
         configLog.debug(' Setting isLoading=false');
         setIsLoading(false);
@@ -241,16 +235,11 @@ export function useConfigScreenState({
         });
       }
     } catch (e) {
-      if (isAbortError(e)) {
-        configLog.warn('Room create/join aborted', e);
-      } else {
-        configLog.error('Room create/join failed', e);
-        Sentry.captureException(e);
-      }
-      showAlert(
-        isEditMode ? '更新失败' : '创建失败',
-        isEditMode ? '更新房间失败，请重试' : '创建房间失败，请重试',
-      );
+      handleError(e, {
+        label: isEditMode ? '更新房间' : '创建房间',
+        logger: configLog,
+        alertMessage: isEditMode ? '更新房间失败，请重试' : '创建房间失败，请重试',
+      });
     } finally {
       setIsCreating(false);
       creatingRef.current = false;

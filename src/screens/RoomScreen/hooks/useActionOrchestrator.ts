@@ -11,7 +11,6 @@
  * GameState directly.
  */
 
-import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName, getWolfKillImmuneRoleIds } from '@werewolf/game-engine/models/roles';
@@ -22,7 +21,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { isAbortError } from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 import type { WitchStepResultsExtra } from './actionIntentHelpers';
@@ -581,17 +580,12 @@ export function useActionOrchestrator({
             try {
               await sendWolfRobotHunterStatusViewed(effectiveSeat);
             } catch (error) {
-              if (isAbortError(error)) {
-                roomScreenLog.warn('[wolfRobotViewHunterStatus] Aborted');
-                return;
-              }
-              roomScreenLog.error('[wolfRobotViewHunterStatus] Failed to send confirmation', error);
-              Sentry.captureException(error);
-              actionDialogs.showRoleActionPrompt(
-                '确认失败',
-                '状态确认发送失败，请稍后重试。如问题持续，请联系房主。',
-                () => {},
-              );
+              handleError(error, {
+                label: '狼人机器人确认犵人状态',
+                logger: roomScreenLog,
+                alertTitle: '确认失败',
+                alertMessage: '状态确认发送失败，请稍后重试。如问题持续，请联系房主。',
+              });
             } finally {
               setPendingHunterStatusViewed(false);
             }
@@ -733,9 +727,7 @@ export function useActionOrchestrator({
     roomScreenLog.debug(` Triggering: key=${key}, intent=${autoIntent.type}`);
     lastAutoIntentKeyRef.current = key;
     void handleActionIntent(autoIntent).catch((err) => {
-      if (isAbortError(err)) return;
-      roomScreenLog.error('[auto-trigger] unhandled rejection', err);
-      Sentry.captureException(err);
+      handleError(err, { label: 'auto-trigger', logger: roomScreenLog, alertTitle: false });
     });
   }, [
     imActioner,
