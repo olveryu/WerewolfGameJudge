@@ -25,12 +25,7 @@ import { showAlert } from '@/utils/alert';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
-import {
-  buildSeatViewModels,
-  getRoleStats,
-  getWolfVoteSummary,
-  toGameRoomLike,
-} from '../RoomScreen.helpers';
+import { getWolfVoteSummary, toGameRoomLike } from '../RoomScreen.helpers';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { useRoomSeatDialogs } from '../useRoomSeatDialogs';
@@ -40,6 +35,7 @@ import { useHiddenDebugTrigger } from './useHiddenDebugTrigger';
 import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
 import { useRoomActions } from './useRoomActions';
+import { useRoomDerived } from './useRoomDerived';
 import { useRoomIdentity } from './useRoomIdentity';
 import { useRoomInit } from './useRoomInit';
 import { useRoomModals } from './useRoomModals';
@@ -302,77 +298,6 @@ export function useRoomScreenState(
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Derived view models
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const currentSchemaConstraints = useMemo(() => {
-    if (!currentSchema) return undefined;
-    if (
-      currentSchema.kind === 'chooseSeat' ||
-      currentSchema.kind === 'swap' ||
-      currentSchema.kind === 'multiChooseSeat'
-    ) {
-      return currentSchema.constraints;
-    }
-    return undefined;
-  }, [currentSchema]);
-
-  const seatViewModels = useMemo(() => {
-    if (!gameState) return [];
-
-    const skipConstraints =
-      currentSchema?.id === 'wolfRobotLearn' && gameState.wolfRobotReveal != null;
-
-    return buildSeatViewModels(gameState, actorSeatForUi, showWolves, firstSwapSeat, {
-      schemaConstraints: imActioner && !skipConstraints ? currentSchemaConstraints : undefined,
-      secondSelectedSeat: secondSeat,
-      multiSelectedSeats,
-      showReadyBadges: roomStatus === GameStatus.Assigned || roomStatus === GameStatus.Ready,
-      groupConfirmAcks:
-        currentSchema?.kind === 'groupConfirm' ? (gameState.piperRevealAcks ?? []) : undefined,
-    });
-  }, [
-    gameState,
-    actorSeatForUi,
-    showWolves,
-    firstSwapSeat,
-    secondSeat,
-    multiSelectedSeats,
-    imActioner,
-    currentSchemaConstraints,
-    currentSchema?.id,
-    currentSchema?.kind,
-    roomStatus,
-  ]);
-
-  const {
-    roleCounts,
-    wolfRoles,
-    godRoles,
-    specialRoles,
-    villagerCount,
-    wolfRoleItems,
-    godRoleItems,
-    specialRoleItems,
-    villagerRoleItems,
-  } = useMemo(() => {
-    if (!gameState) {
-      return {
-        roleCounts: {},
-        wolfRoles: [],
-        godRoles: [],
-        specialRoles: [],
-        villagerCount: 0,
-        wolfRoleItems: [],
-        godRoleItems: [],
-        specialRoleItems: [],
-        villagerRoleItems: [],
-      };
-    }
-    return getRoleStats(gameState.template.roles);
-  }, [gameState]);
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // Side effects
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -446,6 +371,36 @@ export function useRoomScreenState(
 
   const { getActionIntent, getAutoTriggerIntent, getWolfStatusLine, getBottomAction } =
     useRoomActions(gameContext, actionDeps);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Derived view models (delegated to useRoomDerived)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const {
+    seatViewModels,
+    roleCounts,
+    wolfRoles,
+    godRoles,
+    specialRoles,
+    villagerCount,
+    wolfRoleItems,
+    godRoleItems,
+    specialRoleItems,
+    villagerRoleItems,
+    actionMessage,
+  } = useRoomDerived({
+    gameState,
+    currentSchema,
+    currentActionRole,
+    roomStatus,
+    actorSeatForUi,
+    showWolves,
+    imActioner,
+    firstSwapSeat,
+    secondSeat,
+    multiSelectedSeats,
+    getWolfStatusLine,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Dialog Layer
@@ -617,33 +572,6 @@ export function useRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   const speakingOrderText = useSpeakingOrder({ roomStatus, isAudioPlaying, gameState });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Action message builder
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const actionMessage = useMemo(() => {
-    if (!currentActionRole) return '';
-    if (!currentSchema?.ui?.prompt) {
-      throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
-    }
-
-    const isWolfRobotHunterGateActive =
-      currentSchema.id === 'wolfRobotLearn' &&
-      gameState?.wolfRobotReveal?.learnedRoleId === 'hunter' &&
-      !gameState?.wolfRobotHunterStatusViewed;
-
-    const baseMessage = isWolfRobotHunterGateActive
-      ? (currentSchema.ui.hunterGatePrompt ?? currentSchema.ui.prompt)
-      : currentSchema.ui.prompt;
-
-    const wolfStatusLine = getWolfStatusLine();
-    if (wolfStatusLine) {
-      return `${baseMessage}\n${wolfStatusLine}`;
-    }
-
-    return baseMessage;
-  }, [gameState, currentActionRole, currentSchema, getWolfStatusLine]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Return bag
