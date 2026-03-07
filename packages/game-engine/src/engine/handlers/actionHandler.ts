@@ -10,9 +10,7 @@
  * VIEWED_ROLE handling lives in viewedRoleHandler.ts.
  */
 
-import type { RoleId } from '../../models/roles';
-import type { SchemaId } from '../../models/roles/spec';
-import { SCHEMAS } from '../../models/roles/spec';
+import { type RoleId, type SchemaId, SCHEMAS } from '../../models';
 import type { ProtocolAction } from '../../protocol/types';
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput, ResolverContext, ResolverResult } from '../../resolvers/types';

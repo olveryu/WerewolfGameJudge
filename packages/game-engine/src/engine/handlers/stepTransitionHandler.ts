@@ -13,16 +13,24 @@
  * 不手动推进 index（`++` 兜底策略禁止）。
  */
 
+import {
+  GameStatus,
+  getWolfRoleIds,
+  type NightPlanStep,
+  ROLE_SPECS,
+  type RoleId,
+  type SchemaId,
+  SCHEMAS,
+} from '../../models';
 import type { WitchAction } from '../../models/actions/WitchAction';
 import { makeWitchNone, makeWitchPoison, makeWitchSave } from '../../models/actions/WitchAction';
-import type { RoleId } from '../../models/roles';
-import { getWolfRoleIds, ROLE_SPECS } from '../../models/roles';
-import type { SchemaId } from '../../models/roles/spec';
-import { getStepSpec } from '../../models/roles/spec/nightSteps';
-import { buildNightPlan, type NightPlanStep } from '../../models/roles/spec/plan';
-import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '../../models/roles/spec/schema.types';
-import { SCHEMAS } from '../../models/roles/spec/schemas';
-import type { RoleSpec } from '../../models/roles/spec/spec.types';
+import {
+  BLOCKED_UI_DEFAULTS,
+  buildNightPlan,
+  getStepSpec,
+  type RoleSpec,
+  type SchemaUi,
+} from '../../models/roles/spec';
 import type { ProtocolAction } from '../../protocol/types';
 import { getRoleAfterSwap } from '../../resolvers/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
@@ -42,7 +50,6 @@ import { resolveWolfVotes } from '../resolveWolfVotes';
 
 const nightFlowLog = getEngineLogger().extend('NightFlow');
 
-import { GameStatus } from '../../models/GameStatus';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
 import type { HandlerContext, HandlerResult, NonNullState, SideEffect } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';

@@ -8,14 +8,9 @@
  */
 
 // ⚠️ 以现有 repo 导出路径为准
-import type { GameStatus } from '../models/GameStatus';
-import type { RoleId } from '../models/roles';
-import type { SchemaId } from '../models/roles/spec';
+import type { GameStatus, RoleId, SchemaId } from '../models';
 import type { CurrentNightResults } from '../resolvers/types';
-import type {
-  ResolvedRoleRevealAnimation,
-  RoleRevealAnimation,
-} from '../types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '../types';
 
 // =============================================================================
 // 协议动作记录（ProtocolAction）— 线安全、稳定

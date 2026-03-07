@@ -9,7 +9,7 @@
  * 推进决策与执行由服务端 runInlineProgression 负责（见 inlineProgression.ts）。
  */
 
-import { doesRoleParticipateInWolfVote } from '../../models/roles';
+import { doesRoleParticipateInWolfVote } from '../../models';
 import type { GameState } from '../../protocol/types';
 
 /** 狼人投票倒计时毫秒数 */

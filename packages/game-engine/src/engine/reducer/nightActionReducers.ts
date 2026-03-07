@@ -5,7 +5,7 @@
  * No IO, no random, no time dependencies.
  */
 
-import { GameStatus } from '../../models/GameStatus';
+import { GameStatus } from '../../models';
 import type { GameState } from '../store/types';
 import type {
   ActionRejectedAction,
