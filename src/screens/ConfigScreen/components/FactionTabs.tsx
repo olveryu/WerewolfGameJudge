@@ -8,6 +8,7 @@ import { memo, type ReactNode, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
+import { withAlpha } from '@/theme';
 
 import { ConfigScreenStyles } from './styles';
 
@@ -64,7 +65,7 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
       testID={TESTIDS.configFactionTab(tab.key)}
       style={[
         styles.tab,
-        isActive && { backgroundColor: tab.accentColor + '25' },
+        isActive && { backgroundColor: withAlpha(tab.accentColor, 0.145) },
         isActive && styles.tabActive,
       ]}
       onPress={handlePress}

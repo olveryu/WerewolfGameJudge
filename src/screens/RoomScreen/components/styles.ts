@@ -9,7 +9,7 @@
  */
 import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, shadows, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 // ─── Per-component style interfaces ─────────────────────────────────────────
@@ -286,7 +286,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
 
     bottomActionPanel: StyleSheet.create<BottomActionPanelStyles>({
       container: {
-        backgroundColor: colors.surface + 'CC',
+        backgroundColor: withAlpha(colors.surface, 0.8),
         borderTopLeftRadius: borderRadius.large,
         borderTopRightRadius: borderRadius.large,
         paddingTop: spacing.medium,
@@ -329,7 +329,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         justifyContent: 'center',
         paddingVertical: spacing.tight,
         paddingHorizontal: spacing.medium,
-        backgroundColor: colors.error + '20',
+        backgroundColor: withAlpha(colors.error, 0.125),
         borderRadius: borderRadius.large,
         marginHorizontal: spacing.medium,
         marginTop: spacing.small,
@@ -354,7 +354,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         marginLeft: spacing.small,
         paddingVertical: spacing.micro,
         paddingHorizontal: spacing.small,
-        backgroundColor: colors.error + '30',
+        backgroundColor: withAlpha(colors.error, 0.188),
         borderRadius: borderRadius.medium,
       },
       retryButtonText: {
@@ -370,7 +370,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.warning + '20',
+        backgroundColor: withAlpha(colors.warning, 0.125),
         borderWidth: fixed.borderWidth,
         borderColor: colors.warning,
         paddingVertical: spacing.small,
@@ -384,7 +384,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: colors.warning + '20',
+        backgroundColor: withAlpha(colors.warning, 0.125),
         borderWidth: fixed.borderWidth,
         borderColor: colors.warning,
         paddingVertical: spacing.small,

@@ -7,7 +7,15 @@
  */
 import { StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
-import { borderRadius, layout, shadows, spacing, ThemeColors, typography } from '@/theme';
+import {
+  borderRadius,
+  layout,
+  shadows,
+  spacing,
+  ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface ConfigScreenStyles {
@@ -441,23 +449,23 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       justifyContent: 'center',
     },
     chipSelected: {
-      backgroundColor: colors.primary + '20',
+      backgroundColor: withAlpha(colors.primary, 0.125),
       borderColor: colors.primary,
     },
     chipSelectedWolf: {
-      backgroundColor: colors.wolf + '20',
+      backgroundColor: withAlpha(colors.wolf, 0.125),
       borderColor: colors.wolf,
     },
     chipSelectedGod: {
-      backgroundColor: colors.god + '20',
+      backgroundColor: withAlpha(colors.god, 0.125),
       borderColor: colors.god,
     },
     chipSelectedVillager: {
-      backgroundColor: colors.villager + '20',
+      backgroundColor: withAlpha(colors.villager, 0.125),
       borderColor: colors.villager,
     },
     chipSelectedNeutral: {
-      backgroundColor: colors.third + '20',
+      backgroundColor: withAlpha(colors.third, 0.125),
       borderColor: colors.third,
     },
     chipText: {
@@ -470,7 +478,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       fontWeight: typography.weights.semibold,
     },
     chipVariant: {
-      borderColor: colors.primary + '80',
+      borderColor: withAlpha(colors.primary, 0.502),
       borderWidth: fixed.borderWidthThick,
     },
     cardBFooterHint: {
@@ -602,7 +610,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       backgroundColor: colors.background,
     },
     settingsChipSelected: {
-      backgroundColor: colors.primary + '20',
+      backgroundColor: withAlpha(colors.primary, 0.125),
       borderColor: colors.primary,
     },
     settingsChipText: {
@@ -663,7 +671,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       borderBottomColor: colors.border,
     },
     modalOptionSelected: {
-      backgroundColor: colors.primaryLight + '20',
+      backgroundColor: withAlpha(colors.primaryLight, 0.125),
     },
     modalOptionText: {
       fontSize: typography.body,
@@ -716,7 +724,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       paddingVertical: spacing.medium,
     },
     variantPickerOptionSelected: {
-      backgroundColor: colors.primary + '10',
+      backgroundColor: withAlpha(colors.primary, 0.063),
     },
     variantPickerRadio: {
       width: 20,

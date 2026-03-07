@@ -8,6 +8,7 @@ import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
+import { withAlpha } from '@/theme';
 
 import { ConfigScreenStyles } from './styles';
 
@@ -34,7 +35,9 @@ export const RoleStepper = memo<RoleStepperProps>(
     return (
       <View style={styles.stepperRow}>
         <Text style={styles.stepperLabel}>{label}</Text>
-        <View style={[styles.stepperPill, count > 0 && { borderColor: accentColor + '40' }]}>
+        <View
+          style={[styles.stepperPill, count > 0 && { borderColor: withAlpha(accentColor, 0.251) }]}
+        >
           <View style={styles.stepperControls}>
             <TouchableOpacity
               testID={TESTIDS.configStepperDec(roleId)}
