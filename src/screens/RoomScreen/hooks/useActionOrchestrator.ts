@@ -1,10 +1,10 @@
 /**
  * useActionOrchestrator.ts - Night action intent handler & auto-trigger orchestrator
  *
- * Processes ActionIntent (the big switch: reveal, wolfVote, actionConfirm, skip, etc.),
- * manages action submission helpers (proceedWithAction, confirmThenAct, buildWitchStepResults),
- * runs auto-trigger effect (idempotent intent auto-fire on step changes), surfaces Host
- * ACTION_REJECTED via alert, and owns pendingRevealDialog / pendingHunterStatusViewed gate state.
+ * Dispatches ActionIntent to the executor registry, manages action submission
+ * helpers (proceedWithAction, confirmThenAct), runs auto-trigger effect
+ * (idempotent intent auto-fire on step changes), surfaces Host ACTION_REJECTED
+ * via alert, and owns pendingRevealDialog / pendingHunterStatusViewed gate state.
  * Does not import services directly (all actions come via params), does not contain policy /
  * interaction dispatch logic (that's useInteractionDispatcher), does not render UI or hold JSX,
  * does not own seat tap / interaction context / dispatchInteraction, and does not modify
@@ -24,7 +24,6 @@ import { roomScreenLog } from '@/utils/logger';
 
 import type { ExecutorContext } from '../executors';
 import { dispatchIntent } from '../executors';
-import type { WitchStepResultsExtra } from './actionIntentHelpers';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -169,19 +168,6 @@ export function useActionOrchestrator({
     [submitAction, markActionSubmitting],
   );
 
-  // ── Action extra typing (UI -> server wire payload) ──
-  type ActionExtra =
-    | WitchStepResultsExtra
-    | { targets: readonly [number, number] }
-    | { confirmed: boolean };
-
-  const proceedWithActionTyped = useCallback(
-    async (targetSeat: number | null, extra?: ActionExtra): Promise<boolean> => {
-      return proceedWithAction(targetSeat, extra);
-    },
-    [proceedWithAction],
-  );
-
   const confirmThenAct = useCallback(
     (
       targetSeat: number,
@@ -192,12 +178,12 @@ export function useActionOrchestrator({
       const message = opts?.message ?? currentSchema!.ui!.confirmText!;
 
       actionDialogs.showConfirmDialog(title, message, async () => {
-        const accepted = await proceedWithActionTyped(targetSeat);
+        const accepted = await proceedWithAction(targetSeat);
         if (!accepted) return;
         await onAccepted();
       });
     },
-    [actionDialogs, currentSchema, proceedWithActionTyped],
+    [actionDialogs, currentSchema, proceedWithAction],
   );
 
   // ─── Rejection effect ────────────────────────────────────────────────────
@@ -229,11 +215,10 @@ export function useActionOrchestrator({
     actionDialogs.showActionRejectedAlert(rejected.reason);
   }, [gameState?.actionRejected, gameState?.players, myUid, effectiveSeat, actionDialogs]);
 
-  // ─── Intent handler (the big switch) ─────────────────────────────────────
+  // ─── Intent handler (executor dispatch) ──────────────────────────────────
 
   const handleActionIntent = useCallback(
     async (intent: ActionIntent) => {
-      // ── Executor registry lookup (new, gradually replaces switch) ─────────
       const ctx: ExecutorContext = {
         gameState,
         gameStateRef,
@@ -259,223 +244,11 @@ export function useActionOrchestrator({
         actionDialogs,
       };
 
-      if (await dispatchIntent(intent, ctx)) return;
-
-      // ── Legacy switch (remaining cases will be migrated in C10) ────────────
-      switch (intent.type) {
-        case 'actionPrompt': {
-          const hint = gameState?.ui?.currentActorHint;
-          const hintApplies = hint && effectiveRole && hint.targetRoleIds.includes(effectiveRole);
-          roomScreenLog.debug('[actionPrompt] UI Hint check', {
-            hint: hint
-              ? {
-                  kind: hint.kind,
-                  targetRoleIds: hint.targetRoleIds,
-                  bottomAction: hint.bottomAction,
-                }
-              : null,
-            effectiveRole,
-            hintApplies,
-            'gameState.ui': gameState?.ui,
-          });
-          if (hintApplies && hint.promptOverride) {
-            actionDialogs.showRoleActionPrompt(
-              hint.promptOverride.title!,
-              hint.promptOverride.text!,
-              () => {},
-            );
-            break;
-          }
-
-          if (currentSchema?.kind === 'compound' && currentSchema.id === 'witchAction') {
-            const witchCtx = gameState?.witchContext;
-            if (!witchCtx) return;
-            actionDialogs.showWitchInfoPrompt(witchCtx, currentSchema, () => {});
-            break;
-          }
-
-          if (currentSchema?.kind === 'confirm') {
-            if (!currentSchema.ui?.prompt) {
-              throw new Error(
-                `[FAIL-FAST] Missing schema.ui.prompt for confirm schema: ${currentActionRole}`,
-              );
-            }
-            actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
-            break;
-          }
-
-          if (!currentSchema?.ui?.prompt) {
-            throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
-          }
-          actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
-          break;
-        }
-
-        case 'confirmTrigger': {
-          if (!gameState) break;
-
-          if (
-            !currentSchema?.ui?.statusDialogTitle ||
-            !currentSchema?.ui?.canShootText ||
-            !currentSchema?.ui?.cannotShootText
-          ) {
-            throw new Error(
-              `[RoomScreen] confirmTrigger schema missing status dialog UI fields for ${currentSchema?.id}`,
-            );
-          }
-
-          const confirmStatus = gameState.confirmStatus;
-          let canShoot = true;
-
-          if (effectiveRole === 'hunter') {
-            if (confirmStatus?.role === 'hunter') {
-              canShoot = confirmStatus.canShoot;
-            }
-          } else if (effectiveRole === 'darkWolfKing') {
-            if (confirmStatus?.role === 'darkWolfKing') {
-              canShoot = confirmStatus.canShoot;
-            }
-          }
-
-          const dialogTitle = currentSchema.ui.statusDialogTitle;
-          const statusMessage = canShoot
-            ? currentSchema.ui.canShootText
-            : currentSchema.ui.cannotShootText;
-
-          if (effectiveSeat === null) {
-            roomScreenLog.warn(
-              '[confirmTrigger] Cannot submit confirm action without seat (effectiveSeat is null)',
-            );
-            return;
-          }
-          actionDialogs.showRoleActionPrompt(
-            dialogTitle,
-            statusMessage,
-            () => void proceedWithActionTyped(effectiveSeat, { confirmed: true } as ActionExtra),
-          );
-          break;
-        }
-
-        case 'wolfRobotViewHunterStatus': {
-          if (!gameState?.wolfRobotReveal) break;
-
-          if (pendingHunterStatusViewed) {
-            roomScreenLog.debug('[wolfRobotViewHunterStatus] Skipping - pending submission');
-            break;
-          }
-
-          if (currentSchema?.id !== 'wolfRobotLearn') {
-            throw new Error(
-              `[RoomScreen] wolfRobotViewHunterStatus intent received but currentSchema is ${currentSchema?.id}, expected wolfRobotLearn`,
-            );
-          }
-
-          const dialogTitle = currentSchema.ui?.hunterGateDialogTitle;
-          const canShootText = currentSchema.ui?.hunterGateCanShootText;
-          const cannotShootText = currentSchema.ui?.hunterGateCannotShootText;
-
-          if (!dialogTitle || !canShootText || !cannotShootText) {
-            throw new Error(
-              '[RoomScreen] wolfRobotLearn schema missing hunterGate UI fields - schema-driven UI requires these',
-            );
-          }
-
-          const canShoot = gameState.wolfRobotReveal.canShootAsHunter === true;
-          const statusMessage = canShoot ? canShootText : cannotShootText;
-
-          actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, async () => {
-            if (effectiveSeat === null) {
-              roomScreenLog.warn(
-                '[wolfRobotViewHunterStatus] Cannot submit without seat (effectiveSeat is null)',
-              );
-              return;
-            }
-            setPendingHunterStatusViewed(true);
-            try {
-              await sendWolfRobotHunterStatusViewed(effectiveSeat);
-            } catch (error) {
-              handleError(error, {
-                label: '狼人机器人确认犵人状态',
-                logger: roomScreenLog,
-                alertTitle: '确认失败',
-                alertMessage: '状态确认发送失败，请稍后重试。如问题持续，请联系房主。',
-              });
-            } finally {
-              setPendingHunterStatusViewed(false);
-            }
-          });
-          break;
-        }
-
-        case 'multiSelectToggle': {
-          const seat = intent.targetSeat;
-          roomScreenLog.debug('[handleActionIntent] multiSelectToggle', { seat });
-          const current = multiSelectedSeats;
-          if (current.includes(seat)) {
-            setMultiSelectedSeats(current.filter((s) => s !== seat));
-          } else {
-            const max =
-              currentSchema?.kind === 'multiChooseSeat' ? currentSchema.maxTargets : undefined;
-            if (max != null && current.length >= max) {
-              roomScreenLog.debug('[multiSelectToggle] maxTargets reached, ignoring', { max });
-              break;
-            }
-            setMultiSelectedSeats([...current, seat]);
-          }
-          break;
-        }
-
-        case 'multiSelectConfirm': {
-          const targets = intent.targets;
-          if (!targets || targets.length === 0) {
-            roomScreenLog.warn('[handleActionIntent] multiSelectConfirm with no targets');
-            return;
-          }
-          roomScreenLog.debug('[handleActionIntent] multiSelectConfirm', { targets });
-
-          // Schema-driven confirm dialog
-          const confirmCopy = currentSchema!.ui!.confirmText!;
-          const targetLabels = targets.map((s) => `${s + 1}号`).join('、');
-
-          actionDialogs.showConfirmDialog(confirmCopy, `已选择: ${targetLabels}`, async () => {
-            const accepted = await proceedWithAction(null, { targets });
-            if (accepted) setMultiSelectedSeats([]);
-          });
-          break;
-        }
-
-        case 'groupConfirmAck': {
-          // Compute personal hypnotize message inline (like confirmTrigger reads confirmStatus)
-          const mySeat = actorSeatForUi;
-          const hypnotizedSeats = gameState?.hypnotizedSeats ?? [];
-          const isHypnotized = mySeat !== null && hypnotizedSeats.includes(mySeat);
-          const gcSchema = currentSchema?.kind === 'groupConfirm' ? currentSchema : null;
-
-          let personalMessage: string;
-          if (isHypnotized) {
-            const seatsText = hypnotizedSeats.map((s) => `${s + 1}号`).join('、');
-            const template = gcSchema!.ui!.hypnotizedText!;
-            personalMessage = template.replace('{seats}', seatsText);
-          } else {
-            personalMessage = gcSchema!.ui!.notHypnotizedText!;
-          }
-
-          roomScreenLog.debug('[handleActionIntent] groupConfirmAck', { personalMessage });
-
-          const doAck = () => {
-            submitGroupConfirmAck();
-          };
-
-          const buttonLabel = gcSchema!.ui!.confirmButtonText!;
-          actionDialogs.showRoleActionPrompt('催眠信息', personalMessage, doAck, buttonLabel);
-          break;
-        }
-
-        default:
-          // 5 intent types (reveal, magicianFirst, wolfVote, actionConfirm, skip)
-          // are handled by executors above; remaining types will be migrated in C10,
-          // at which point this switch is eliminated entirely.
-          throw new Error(`[FAIL-FAST] Unhandled ActionIntentType: ${String(intent.type)}`);
+      const handled = await dispatchIntent(intent, ctx);
+      if (!handled) {
+        throw new Error(
+          `[FAIL-FAST] No executor registered for ActionIntentType: ${String(intent.type)}`,
+        );
       }
     },
     [
@@ -488,7 +261,6 @@ export function useActionOrchestrator({
       currentSchema,
       currentActionRole,
       pendingHunterStatusViewed,
-      proceedWithActionTyped,
       sendWolfRobotHunterStatusViewed,
       submitRevealAckSafe,
       submitGroupConfirmAck,
