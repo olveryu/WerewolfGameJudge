@@ -1,13 +1,13 @@
 /**
  * SealBreak - 封印解除揭示动画（Skia + Reanimated 4）
  *
- * 动画流程：发光蜡封圆盘出现 → 裂纹从中心放射扩展（Skia Path） →
- * 封印爆碎（碎片粒子四散 + 屏幕闪光） → Skia canvas 淡出 →
- * RoleCardContent 放大显示 → AlignmentRevealOverlay 阵营特效。
+ * 视觉设计：中央深红蜡封圆盘 + 外圈旋转符文魔法阵 + 内聚能量粒子。
+ * 交互：长按封印中心灌注能量，环形进度从 0→100%，裂纹随进度扩展，
+ * 松手进度缓慢回退。满能后白光爆闪 → 碎片四散 → 角色卡放大显示。
  *
- * Skia 负责：封印圆盘 + 符文装饰 + 裂纹 path + 碎片粒子 + 光效。
+ * Skia 负责：封印圆盘 + 符文环 + 裂纹 path + 能量粒子 + 碎片。
  * Reanimated 负责：驱动所有 shared value + 阶段切换。
- * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
+ * 不 import service，不含业务逻辑。
  */
 import {
   Canvas,
@@ -22,7 +22,7 @@ import {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
@@ -45,7 +45,10 @@ import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
-const SEAL_COLORS = {
+/** Background gradient: deep crimson-black to complement gold seal glow */
+const BG_GRADIENT = ['#0a0810', '#100c1a', '#0a0810'] as const;
+
+const COLORS = {
   /** Wax seal base */
   waxDark: '#8B1A1A',
   waxMid: '#B22222',
@@ -61,45 +64,37 @@ const SEAL_COLORS = {
   /** Background glow */
   auraInner: 'rgba(255, 215, 0, 0.3)',
   auraOuter: 'rgba(139, 26, 26, 0.0)',
-};
+  /** Progress ring color */
+  progressRing: '#FFD700',
+  progressRingBg: 'rgba(255, 215, 0, 0.15)',
+  /** Energy particle */
+  energyParticle: 'rgba(255, 215, 0, 0.6)',
+  /** Charging glow around seal */
+  chargeGlow: 'rgba(255, 200, 50, 0.4)',
+} as const;
 
-/** Timing config */
-const TIMING = {
-  /** Seal fade-in + pulse duration */
-  sealAppear: 800,
-  /** Rune glow pulse cycle */
-  runePulse: 1200,
-  /** Crack propagation duration */
-  crackGrow: 1200,
-  /** Shatter explosion duration */
-  shatter: 600,
-  /** Card scale-in duration */
-  cardReveal: 400,
-  /** Total auto-play wait before crack starts */
-  waitBeforeCrack: 1000,
-  /** Number of crack lines */
-  crackCount: 8,
-  /** Number of shard particles */
-  shardCount: 24,
-  /** Seal radius as fraction of screen width */
-  sealRadiusRatio: 0.28,
-};
+const SB = CONFIG.sealBreak;
 
-// ─── Shard (pre-computed trajectory) ────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────
 interface ShardData {
   id: number;
-  /** Angle in radians from center */
   angle: number;
-  /** Travel distance */
   distance: number;
-  /** Rotation speed multiplier */
-  spin: number;
-  /** Size */
   size: number;
-  /** Color */
   color: string;
 }
 
+interface EnergyParticle {
+  id: number;
+  /** Starting angle on the outer ring */
+  startAngle: number;
+  /** Speed multiplier */
+  speed: number;
+  /** Orbit radius offset */
+  radiusOffset: number;
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────
 function generateShards(count: number): ShardData[] {
   const result: ShardData[] = [];
   for (let i = 0; i < count; i++) {
@@ -108,15 +103,26 @@ function generateShards(count: number): ShardData[] {
       id: i,
       angle,
       distance: 120 + Math.random() * 200,
-      spin: 360 + Math.random() * 720,
       size: 6 + Math.random() * 12,
-      color: SEAL_COLORS.shardColors[i % SEAL_COLORS.shardColors.length],
+      color: COLORS.shardColors[i % COLORS.shardColors.length],
     });
   }
   return result;
 }
 
-// ─── Crack path builder ─────────────────────────────────────────────────
+function generateEnergyParticles(count: number): EnergyParticle[] {
+  const result: EnergyParticle[] = [];
+  for (let i = 0; i < count; i++) {
+    result.push({
+      id: i,
+      startAngle: ((Math.PI * 2) / count) * i,
+      speed: 0.8 + Math.random() * 0.4,
+      radiusOffset: Math.random() * 0.3,
+    });
+  }
+  return result;
+}
+
 function buildCrackPaths(cx: number, cy: number, radius: number, count: number): string[] {
   const paths: string[] = [];
   for (let i = 0; i < count; i++) {
@@ -135,7 +141,25 @@ function buildCrackPaths(cx: number, cy: number, radius: number, count: number):
   return paths;
 }
 
-// ─── Shard particle (worklet-driven, no render-time .value reads) ────────
+/** Build an SVG arc path segment for the progress ring. */
+function buildArcPath(
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number,
+): string {
+  const sA = startAngle - Math.PI / 2; // rotate so top = 0
+  const eA = endAngle - Math.PI / 2;
+  const x1 = cx + r * Math.cos(sA);
+  const y1 = cy + r * Math.sin(sA);
+  const x2 = cx + r * Math.cos(eA);
+  const y2 = cy + r * Math.sin(eA);
+  const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+  return `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 ${largeArc} 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+}
+
+// ─── Shard particle (worklet-driven) ────────────────────────────────────
 interface ShardParticleProps {
   shard: ShardData;
   cx: number;
@@ -158,7 +182,107 @@ const ShardParticle: React.FC<ShardParticleProps> = ({ shard, cx, cy, progress }
   );
 };
 
+// ─── Energy particle (converges toward seal as charge increases) ────────
+interface EnergyParticleComponentProps {
+  particle: EnergyParticle;
+  cx: number;
+  cy: number;
+  outerRadius: number;
+  charge: SharedValue<number>;
+  rotationOffset: SharedValue<number>;
+}
+
+const EnergyParticleComponent: React.FC<EnergyParticleComponentProps> = ({
+  particle,
+  cx,
+  cy,
+  outerRadius,
+  charge,
+  rotationOffset,
+}) => {
+  const currentAngle = useDerivedValue(
+    () => particle.startAngle + rotationOffset.value * particle.speed,
+  );
+  // As charge grows, particles spiral inward from outer edge toward seal rim
+  const currentRadius = useDerivedValue(
+    () =>
+      outerRadius * (1.4 + particle.radiusOffset) -
+      charge.value * outerRadius * (0.5 + particle.radiusOffset),
+  );
+  const px = useDerivedValue(() => cx + Math.cos(currentAngle.value) * currentRadius.value - 3);
+  const py = useDerivedValue(() => cy + Math.sin(currentAngle.value) * currentRadius.value - 3);
+  const particleOpacity = useDerivedValue(() =>
+    interpolate(charge.value, [0, 0.1, 0.5], [0, 0.5, 0.9]),
+  );
+
+  return (
+    <Group opacity={particleOpacity}>
+      <Circle cx={px} cy={py} r={3} color={COLORS.energyParticle} />
+    </Group>
+  );
+};
+
+// ─── Progress ring segment (lights up when charge exceeds threshold) ────
+interface ProgressSegmentProps {
+  path: string;
+  threshold: number;
+  charge: SharedValue<number>;
+}
+
+const ProgressSegment: React.FC<ProgressSegmentProps> = ({ path, threshold, charge }) => {
+  const segEnd = useDerivedValue(() => (charge.value > threshold ? 1 : 0));
+  const segOpacity = useDerivedValue(() =>
+    charge.value > threshold
+      ? interpolate(charge.value, [threshold, Math.min(threshold + 0.05, 1)], [0.5, 1])
+      : 0,
+  );
+
+  return (
+    <Path
+      path={path}
+      color={COLORS.progressRing}
+      style="stroke"
+      strokeWidth={4}
+      strokeCap="round"
+      start={0}
+      end={segEnd}
+      opacity={segOpacity}
+    />
+  );
+};
+
+// ─── Outer rune symbol (extracted to avoid hook-in-callback violation) ──
+interface OuterRuneSymbolProps {
+  symbol: string;
+  baseAngle: number;
+  cx: number;
+  cy: number;
+  orbitR: number;
+  runeRotation: SharedValue<number>;
+}
+
+const OuterRuneSymbol: React.FC<OuterRuneSymbolProps> = ({
+  symbol,
+  baseAngle,
+  cx,
+  cy,
+  orbitR,
+  runeRotation,
+}) => {
+  const animStyle = useAnimatedStyle(() => {
+    const a = baseAngle + runeRotation.value;
+    return {
+      left: cx + Math.cos(a) * orbitR - 10,
+      top: cy + Math.sin(a) * orbitR - 10,
+    };
+  });
+
+  return <Animated.Text style={[styles.outerRuneText, animStyle]}>{symbol}</Animated.Text>;
+};
+
 // ─── Main component ─────────────────────────────────────────────────────
+type Phase = 'appear' | 'idle' | 'charging' | 'shatter' | 'revealed';
+
 export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   role,
   onComplete,
@@ -177,32 +301,44 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
 
   const cx = screenWidth / 2;
   const cy = screenHeight / 2;
-  const sealRadius = screenWidth * TIMING.sealRadiusRatio;
+  const sealRadius = screenWidth * SB.sealRadiusRatio;
 
-  const [phase, setPhase] = useState<'appear' | 'pulse' | 'cracking' | 'shatter' | 'revealed'>(
-    'appear',
-  );
+  // ── Config-driven tuning params (converted to per-ms rates) ──
+  const chargeRate = 1 / SB.chargeDuration; // per ms
+  const decayRate = SB.decayRate / 1000; // per ms
+
+  const [phase, setPhase] = useState<Phase>('appear');
   const onCompleteCalledRef = useRef(false);
+  const shatterTriggeredRef = useRef(false);
 
-  // ── Pre-computed geometry (stable across re-renders) ──
-  const [shards] = useState(() => generateShards(TIMING.shardCount));
-  const [crackSVGs] = useState(() => buildCrackPaths(cx, cy, sealRadius, TIMING.crackCount));
+  // ── Charging state (JS-side for requestAnimationFrame loop) ──
+  const chargeRef = useRef(0);
+  const isPresentRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+  const lastFrameRef = useRef(0);
+  const lastHapticRef = useRef(0);
+
+  // ── Pre-computed geometry ──
+  const [shards] = useState(() => generateShards(SB.shardCount));
+  const [crackSVGs] = useState(() => buildCrackPaths(cx, cy, sealRadius, SB.crackCount));
+  const [energyParticles] = useState(() => generateEnergyParticles(SB.energyParticleCount));
 
   // ── Shared values ──
   const sealScale = useSharedValue(0);
   const sealOpacity = useSharedValue(0);
-  const runeGlow = useSharedValue(0);
-  const crackProgress = useSharedValue(0);
+  const charge = useSharedValue(0); // 0 -> 1 = charging progress
+  const crackProgress = useSharedValue(0); // follows charge
   const shatterProgress = useSharedValue(0);
   const canvasOpacity = useSharedValue(1);
   const cardScale = useSharedValue(0);
   const cardOpacity = useSharedValue(0);
   const flashOpacity = useSharedValue(0);
+  const runeRotation = useSharedValue(0);
+  const energyRotation = useSharedValue(0);
+  const chargeGlowOpacity = useSharedValue(0);
 
   // ── Phase transitions ──
-  const enterRevealed = useCallback(() => {
-    setPhase('revealed');
-  }, []);
+  const enterRevealed = useCallback(() => setPhase('revealed'), []);
 
   const handleGlowComplete = useCallback(() => {
     if (onCompleteCalledRef.current) return;
@@ -210,10 +346,103 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     onComplete();
   }, [onComplete]);
 
-  // ── Animation sequence (auto-play) ──
+  // ── Trigger final shatter ──
+  const triggerShatter = useCallback(() => {
+    if (shatterTriggeredRef.current) return;
+    shatterTriggeredRef.current = true;
+
+    setPhase('shatter');
+    if (enableHaptics) triggerHaptic('heavy', true);
+
+    // Flash
+    flashOpacity.value = withSequence(
+      withTiming(0.7, { duration: 100 }),
+      withTiming(0, { duration: 400 }),
+    );
+
+    // Explode shards
+    shatterProgress.value = withTiming(1, {
+      duration: SB.shatterDuration,
+      easing: Easing.out(Easing.cubic),
+    });
+
+    // Fade canvas out
+    canvasOpacity.value = withDelay(200, withTiming(0, { duration: 300 }));
+
+    // Card reveal
+    cardScale.value = withDelay(
+      300,
+      withTiming(
+        1,
+        {
+          duration: SB.cardRevealDuration,
+          easing: Easing.out(Easing.back(1.15)),
+        },
+        (finished) => {
+          'worklet';
+          if (finished) runOnJS(enterRevealed)();
+        },
+      ),
+    );
+    cardOpacity.value = withDelay(300, withTiming(1, { duration: SB.cardRevealDuration }));
+  }, [
+    enableHaptics,
+    flashOpacity,
+    shatterProgress,
+    canvasOpacity,
+    cardScale,
+    cardOpacity,
+    enterRevealed,
+  ]);
+
+  // ── Charging animation loop (requestAnimationFrame on JS thread) ──
+  const updateCharge = useCallback(
+    (timestamp: number) => {
+      if (shatterTriggeredRef.current) return;
+
+      const dt = lastFrameRef.current ? timestamp - lastFrameRef.current : 16;
+      lastFrameRef.current = timestamp;
+
+      let newCharge = chargeRef.current;
+      if (isPresentRef.current) {
+        newCharge = Math.min(1, newCharge + chargeRate * dt);
+
+        // Haptic ticks while charging
+        if (enableHaptics && timestamp - lastHapticRef.current > SB.hapticTickInterval) {
+          lastHapticRef.current = timestamp;
+          triggerHaptic('light', true);
+        }
+      } else {
+        newCharge = Math.max(0, newCharge - decayRate * dt);
+      }
+
+      chargeRef.current = newCharge;
+      charge.value = newCharge;
+      crackProgress.value = newCharge;
+      chargeGlowOpacity.value = newCharge * 0.8;
+
+      // Full charge -> shatter
+      if (newCharge >= 1) {
+        triggerShatter();
+        return;
+      }
+
+      rafRef.current = requestAnimationFrame(updateCharge);
+    },
+    [
+      charge,
+      chargeRate,
+      crackProgress,
+      chargeGlowOpacity,
+      decayRate,
+      enableHaptics,
+      triggerShatter,
+    ],
+  );
+
+  // ── Appear animation + continuous rune rotation ──
   useEffect(() => {
     if (reducedMotion) {
-      // Reduced motion: skip to card directly
       cardScale.value = 1;
       cardOpacity.value = 1;
       canvasOpacity.value = 0;
@@ -221,98 +450,82 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
       return;
     }
 
-    // Phase 1: Seal appears
-    sealOpacity.value = withTiming(1, { duration: TIMING.sealAppear / 2 });
-    sealScale.value = withTiming(1, {
-      duration: TIMING.sealAppear,
-      easing: Easing.out(Easing.back(1.2)),
+    // Seal appears
+    sealOpacity.value = withTiming(1, { duration: SB.sealAppearDuration / 2 });
+    sealScale.value = withTiming(
+      1,
+      {
+        duration: SB.sealAppearDuration,
+        easing: Easing.out(Easing.back(1.2)),
+      },
+      (finished) => {
+        'worklet';
+        if (finished) runOnJS(setPhase)('idle');
+      },
+    );
+
+    // Continuous rune ring rotation (slow, decorative)
+    runeRotation.value = withTiming(Math.PI * 20, {
+      duration: 60000,
+      easing: Easing.linear,
     });
 
-    // Phase 2: Rune pulse
-    runeGlow.value = withDelay(
-      TIMING.sealAppear,
-      withSequence(
-        withTiming(1, { duration: TIMING.runePulse / 2, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0.3, { duration: TIMING.runePulse / 2, easing: Easing.inOut(Easing.sin) }),
-      ),
-    );
-
-    // Phase 3: Cracks grow
-    const crackStart = TIMING.waitBeforeCrack;
-    crackProgress.value = withDelay(
-      crackStart,
-      withTiming(1, {
-        duration: TIMING.crackGrow,
-        easing: Easing.in(Easing.quad),
-      }),
-    );
-
-    // Update phase to cracking
-    const crackTimer = setTimeout(() => {
-      setPhase('cracking');
-      if (enableHaptics) triggerHaptic('light', true);
-    }, crackStart);
-
-    // Phase 4: Shatter
-    const shatterStart = crackStart + TIMING.crackGrow;
-    const shatterTimer = setTimeout(() => {
-      setPhase('shatter');
-      if (enableHaptics) triggerHaptic('heavy', true);
-
-      // Flash
-      flashOpacity.value = withSequence(
-        withTiming(0.6, { duration: 100 }),
-        withTiming(0, { duration: 400 }),
-      );
-
-      // Explode shards
-      shatterProgress.value = withTiming(1, {
-        duration: TIMING.shatter,
-        easing: Easing.out(Easing.cubic),
-      });
-
-      // Fade canvas out
-      canvasOpacity.value = withDelay(200, withTiming(0, { duration: 300 }));
-
-      // Scale card in
-      cardScale.value = withDelay(
-        300,
-        withTiming(
-          1,
-          {
-            duration: TIMING.cardReveal,
-            easing: Easing.out(Easing.back(1.15)),
-          },
-          (finished) => {
-            'worklet';
-            if (finished) runOnJS(enterRevealed)();
-          },
-        ),
-      );
-      cardOpacity.value = withDelay(300, withTiming(1, { duration: TIMING.cardReveal }));
-    }, shatterStart);
-
-    return () => {
-      clearTimeout(crackTimer);
-      clearTimeout(shatterTimer);
-    };
+    // Energy particle orbit
+    energyRotation.value = withTiming(Math.PI * 40, {
+      duration: 60000,
+      easing: Easing.linear,
+    });
   }, [
     reducedMotion,
-    enableHaptics,
     sealOpacity,
     sealScale,
-    runeGlow,
-    crackProgress,
-    shatterProgress,
-    canvasOpacity,
     cardScale,
     cardOpacity,
-    flashOpacity,
-    enterRevealed,
+    canvasOpacity,
+    runeRotation,
+    energyRotation,
   ]);
 
+  // ── Start/stop charging loop when phase allows ──
+  useEffect(() => {
+    if (phase === 'idle' || phase === 'charging') {
+      lastFrameRef.current = 0;
+      rafRef.current = requestAnimationFrame(updateCharge);
+    }
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [phase, updateCharge]);
+
+  // ── Auto-shatter timeout ──
+  useEffect(() => {
+    if (phase !== 'idle' && phase !== 'charging') return;
+    const timer = setTimeout(() => {
+      if (!shatterTriggeredRef.current) {
+        // Force full charge then shatter
+        charge.value = withTiming(1, { duration: 800 }, (finished) => {
+          'worklet';
+          if (finished) runOnJS(triggerShatter)();
+        });
+        crackProgress.value = withTiming(1, { duration: 800 });
+      }
+    }, SB.autoShatterTimeout);
+    return () => clearTimeout(timer);
+  }, [phase, charge, crackProgress, triggerShatter]);
+
+  // ── Press handlers ──
+  const handlePressIn = useCallback(() => {
+    if (phase !== 'idle' && phase !== 'charging') return;
+    isPresentRef.current = true;
+    if (phase === 'idle') setPhase('charging');
+  }, [phase]);
+
+  const handlePressOut = useCallback(() => {
+    isPresentRef.current = false;
+  }, []);
+
   // ── Animated styles ──
-  const sealStyle = useAnimatedStyle(() => ({
+  const sealContainerStyle = useAnimatedStyle(() => ({
     transform: [{ scale: sealScale.value }],
     opacity: sealOpacity.value,
   }));
@@ -330,9 +543,13 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     opacity: flashOpacity.value,
   }));
 
-  // ── Rune symbols (decorative) ──
+  const chargeGlowStyle = useAnimatedStyle(() => ({
+    opacity: chargeGlowOpacity.value,
+  }));
+
+  // ── Rune symbols around the inner ring ──
   const runeSymbols = useMemo(() => {
-    const symbols = ['☽', '✦', '⚝', '◈', '✧', '☿'];
+    const symbols = ['\u263D', '\u2726', '\u269D', '\u25C8', '\u2727', '\u263F'];
     return symbols.map((s, i) => {
       const angle = ((Math.PI * 2) / symbols.length) * i - Math.PI / 2;
       const r = sealRadius * 0.65;
@@ -344,168 +561,288 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     });
   }, [cx, cy, sealRadius]);
 
+  // ── Outer rune ring symbols (rotate with runeRotation) ──
+  const outerRuneData = useMemo(() => {
+    const symbols = [
+      '\u16A0',
+      '\u16A2',
+      '\u16A6',
+      '\u16A8',
+      '\u16B1',
+      '\u16B2',
+      '\u16B7',
+      '\u16B9',
+      '\u16BA',
+      '\u16BE',
+      '\u16C1',
+      '\u16C3',
+    ];
+    return symbols.map((s, i) => ({
+      symbol: s,
+      baseAngle: ((Math.PI * 2) / symbols.length) * i,
+    }));
+  }, []);
+
+  // ── Progress ring arc segments ──
+  const progressArcSegments = useMemo(() => {
+    const segmentCount = 36;
+    const gap = 0.02;
+    const segAngle = (Math.PI * 2) / segmentCount;
+    const ringRadius = sealRadius * 1.2;
+    return Array.from({ length: segmentCount }, (_, i) => ({
+      path: buildArcPath(cx, cy, ringRadius, i * segAngle + gap, (i + 1) * segAngle - gap),
+      index: i,
+      threshold: i / segmentCount,
+    }));
+  }, [cx, cy, sealRadius]);
+
+  // ── Charge percentage display ──
+  const [chargePercent, setChargePercent] = useState(0);
+  useEffect(() => {
+    if (phase !== 'charging' && phase !== 'idle') return;
+    const interval = setInterval(() => {
+      setChargePercent(Math.round(chargeRef.current * 100));
+    }, 50);
+    return () => clearInterval(interval);
+  }, [phase]);
+
+  // ── Outer rune orbit radius ──
+  const orbitR = sealRadius * 1.45;
+
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
       {/* Immersive dark background */}
       <LinearGradient
-        colors={['#0a0810', '#100c1a', '#0a0810']}
+        colors={[...BG_GRADIENT]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
-      {/* Skia canvas layer: seal + cracks + particles */}
-      <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
-        <Animated.View style={[StyleSheet.absoluteFill, sealStyle]}>
-          <Canvas style={StyleSheet.absoluteFill}>
-            {/* Background aura glow */}
-            <Circle cx={cx} cy={cy} r={sealRadius * 1.6}>
-              <SkiaLinearGradient
-                start={vec(cx, cy - sealRadius * 1.6)}
-                end={vec(cx, cy + sealRadius * 1.6)}
-                colors={[SEAL_COLORS.auraInner, SEAL_COLORS.auraOuter]}
-              />
-            </Circle>
 
-            {/* Seal disc — wax gradient */}
-            <Circle cx={cx} cy={cy} r={sealRadius} color={SEAL_COLORS.waxMid} />
-            <Circle cx={cx} cy={cy} r={sealRadius}>
-              <SkiaLinearGradient
-                start={vec(cx - sealRadius, cy - sealRadius)}
-                end={vec(cx + sealRadius, cy + sealRadius)}
-                colors={[SEAL_COLORS.waxLight, SEAL_COLORS.waxDark]}
-              />
-            </Circle>
+      {/* Pressable area for long-press */}
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        testID={`${testIDPrefix}-press-area`}
+      >
+        {/* Skia canvas layer */}
+        <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
+          <Animated.View style={[StyleSheet.absoluteFill, sealContainerStyle]}>
+            <Canvas style={StyleSheet.absoluteFill}>
+              {/* Background aura glow */}
+              <Circle cx={cx} cy={cy} r={sealRadius * 1.6}>
+                <SkiaLinearGradient
+                  start={vec(cx, cy - sealRadius * 1.6)}
+                  end={vec(cx, cy + sealRadius * 1.6)}
+                  colors={[COLORS.auraInner, COLORS.auraOuter]}
+                />
+              </Circle>
 
-            {/* Seal rim */}
-            <Circle
-              cx={cx}
-              cy={cy}
-              r={sealRadius - 2}
-              style="stroke"
-              strokeWidth={4}
-              color={SEAL_COLORS.waxDark}
-            />
-            <Circle
-              cx={cx}
-              cy={cy}
-              r={sealRadius * 0.85}
-              style="stroke"
-              strokeWidth={2}
-              color={SEAL_COLORS.rune}
-              opacity={0.3}
-            />
+              {/* Progress ring background (subtle) */}
+              {progressArcSegments.map((seg) => (
+                <Path
+                  key={`ring-bg-${seg.index}`}
+                  path={seg.path}
+                  color={COLORS.progressRingBg}
+                  style="stroke"
+                  strokeWidth={4}
+                  strokeCap="round"
+                />
+              ))}
 
-            {/* Decorative cross in center */}
-            <Line
-              p1={vec(cx - sealRadius * 0.3, cy)}
-              p2={vec(cx + sealRadius * 0.3, cy)}
-              color={SEAL_COLORS.rune}
-              strokeWidth={3}
-              style="stroke"
-            />
-            <Line
-              p1={vec(cx, cy - sealRadius * 0.3)}
-              p2={vec(cx, cy + sealRadius * 0.3)}
-              color={SEAL_COLORS.rune}
-              strokeWidth={3}
-              style="stroke"
-            />
+              {/* Seal disc — wax gradient */}
+              <Circle cx={cx} cy={cy} r={sealRadius} color={COLORS.waxMid} />
+              <Circle cx={cx} cy={cy} r={sealRadius}>
+                <SkiaLinearGradient
+                  start={vec(cx - sealRadius, cy - sealRadius)}
+                  end={vec(cx + sealRadius, cy + sealRadius)}
+                  colors={[COLORS.waxLight, COLORS.waxDark]}
+                />
+              </Circle>
 
-            {/* Inner circle for rune ring */}
-            <Circle
-              cx={cx}
-              cy={cy}
-              r={sealRadius * 0.5}
-              style="stroke"
-              strokeWidth={1.5}
-              color={SEAL_COLORS.rune}
-              opacity={0.4}
-            />
-
-            {/* Crack lines (drawn progressively via crackProgress) */}
-            {crackSVGs.map((svg, i) => (
-              <Path
-                key={`crack-${i}`}
-                path={svg}
-                color={SEAL_COLORS.crack}
-                style="stroke"
-                strokeWidth={2.5}
-                strokeCap="round"
-                start={0}
-                end={crackProgress}
-              />
-            ))}
-            {/* Crack glow layer */}
-            {crackSVGs.map((svg, i) => (
-              <Path
-                key={`crack-glow-${i}`}
-                path={svg}
-                color={SEAL_COLORS.crackGlow}
-                style="stroke"
-                strokeWidth={6}
-                strokeCap="round"
-                start={0}
-                end={crackProgress}
-                opacity={0.5}
-              />
-            ))}
-          </Canvas>
-
-          {/* Rune symbols (RN Text for emoji rendering) */}
-          {runeSymbols.map((r, i) => (
-            <Text
-              key={`rune-${i}`}
-              style={[
-                styles.runeText,
-                {
-                  left: r.x - 12,
-                  top: r.y - 12,
-                  color: SEAL_COLORS.rune,
-                  textShadowColor: SEAL_COLORS.runeGlow,
-                },
-              ]}
-            >
-              {r.symbol}
-            </Text>
-          ))}
-        </Animated.View>
-
-        {/* Shard particles (separate canvas so they can animate independently) */}
-        {phase === 'shatter' && (
-          <Canvas style={StyleSheet.absoluteFill}>
-            {shards.map((shard) => (
-              <ShardParticle
-                key={`shard-${shard.id}`}
-                shard={shard}
+              {/* Seal rim */}
+              <Circle
                 cx={cx}
                 cy={cy}
-                progress={shatterProgress}
+                r={sealRadius - 2}
+                style="stroke"
+                strokeWidth={4}
+                color={COLORS.waxDark}
+              />
+              <Circle
+                cx={cx}
+                cy={cy}
+                r={sealRadius * 0.85}
+                style="stroke"
+                strokeWidth={2}
+                color={COLORS.rune}
+                opacity={0.3}
+              />
+
+              {/* Decorative cross in center */}
+              <Line
+                p1={vec(cx - sealRadius * 0.3, cy)}
+                p2={vec(cx + sealRadius * 0.3, cy)}
+                color={COLORS.rune}
+                strokeWidth={3}
+                style="stroke"
+              />
+              <Line
+                p1={vec(cx, cy - sealRadius * 0.3)}
+                p2={vec(cx, cy + sealRadius * 0.3)}
+                color={COLORS.rune}
+                strokeWidth={3}
+                style="stroke"
+              />
+
+              {/* Inner rune circle */}
+              <Circle
+                cx={cx}
+                cy={cy}
+                r={sealRadius * 0.5}
+                style="stroke"
+                strokeWidth={1.5}
+                color={COLORS.rune}
+                opacity={0.4}
+              />
+
+              {/* Progress ring segments (light up as charge increases) */}
+              {progressArcSegments.map((seg) => (
+                <ProgressSegment
+                  key={`ring-${seg.index}`}
+                  path={seg.path}
+                  threshold={seg.threshold}
+                  charge={charge}
+                />
+              ))}
+
+              {/* Crack lines (progressive with charge) */}
+              {crackSVGs.map((svg, i) => (
+                <Path
+                  key={`crack-${i}`}
+                  path={svg}
+                  color={COLORS.crack}
+                  style="stroke"
+                  strokeWidth={2.5}
+                  strokeCap="round"
+                  start={0}
+                  end={crackProgress}
+                />
+              ))}
+              {/* Crack glow layer */}
+              {crackSVGs.map((svg, i) => (
+                <Path
+                  key={`crack-glow-${i}`}
+                  path={svg}
+                  color={COLORS.crackGlow}
+                  style="stroke"
+                  strokeWidth={6}
+                  strokeCap="round"
+                  start={0}
+                  end={crackProgress}
+                  opacity={0.5}
+                />
+              ))}
+
+              {/* Energy particles (converge as charge grows) */}
+              {energyParticles.map((p) => (
+                <EnergyParticleComponent
+                  key={`ep-${p.id}`}
+                  particle={p}
+                  cx={cx}
+                  cy={cy}
+                  outerRadius={sealRadius}
+                  charge={charge}
+                  rotationOffset={energyRotation}
+                />
+              ))}
+            </Canvas>
+
+            {/* Rune symbols (inner ring, RN Text for emoji rendering) */}
+            {runeSymbols.map((r, i) => (
+              <Text
+                key={`rune-${i}`}
+                style={[
+                  styles.runeText,
+                  {
+                    left: r.x - 12,
+                    top: r.y - 12,
+                    color: COLORS.rune,
+                    textShadowColor: COLORS.runeGlow,
+                  },
+                ]}
+              >
+                {r.symbol}
+              </Text>
+            ))}
+
+            {/* Outer rotating rune symbols */}
+            {outerRuneData.map((r, i) => (
+              <OuterRuneSymbol
+                key={`outer-rune-${i}`}
+                symbol={r.symbol}
+                baseAngle={r.baseAngle}
+                cx={cx}
+                cy={cy}
+                orbitR={orbitR}
+                runeRotation={runeRotation}
               />
             ))}
-          </Canvas>
-        )}
-      </Animated.View>
+          </Animated.View>
 
-      {/* Flash overlay */}
-      <Animated.View
-        style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]}
-        pointerEvents="none"
-      />
+          {/* Shard particles (after shatter) */}
+          {phase === 'shatter' && (
+            <Canvas style={StyleSheet.absoluteFill}>
+              {shards.map((shard) => (
+                <ShardParticle
+                  key={`shard-${shard.id}`}
+                  shard={shard}
+                  cx={cx}
+                  cy={cy}
+                  progress={shatterProgress}
+                />
+              ))}
+            </Canvas>
+          )}
+        </Animated.View>
+
+        {/* Charge glow overlay */}
+        <Animated.View style={[styles.chargeGlow, chargeGlowStyle]} pointerEvents="none" />
+
+        {/* Flash overlay */}
+        <Animated.View
+          style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]}
+          pointerEvents="none"
+        />
+      </Pressable>
+
+      {/* Charge percentage (only while charging) */}
+      {phase === 'charging' && (
+        <View style={styles.percentContainer} pointerEvents="none">
+          <Text style={styles.percentText}>{chargePercent}%</Text>
+        </View>
+      )}
 
       {/* Hint text */}
       {phase === 'appear' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🔮 封印凝聚中…</Text>
+          <Text style={styles.hintText}>{'\uD83D\uDD2E'} 封印凝聚中…</Text>
         </View>
       )}
-      {(phase === 'pulse' || phase === 'cracking') && (
+      {phase === 'idle' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🔮 点击封印解除！</Text>
+          <Text style={styles.hintText}>{'\uD83D\uDD2E'} 长按封印注入能量！</Text>
+        </View>
+      )}
+      {phase === 'charging' && (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>{'\uD83D\uDD2E'} 持续按住…能量灌注中…</Text>
         </View>
       )}
       {phase === 'shatter' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>✨ 封印已破！</Text>
+          <Text style={styles.hintText}>{'\u2728'} 封印已破！</Text>
         </View>
       )}
 
@@ -542,6 +879,10 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   flash: { ...StyleSheet.absoluteFillObject },
+  chargeGlow: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: COLORS.chargeGlow,
+  },
   hint: { position: 'absolute', bottom: 80 },
   hintText: {
     fontSize: 22,
@@ -557,6 +898,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
+  },
+  outerRuneText: {
+    position: 'absolute',
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'rgba(255, 215, 0, 0.5)',
+    textShadowColor: 'rgba(255, 215, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
+  },
+  percentContainer: {
+    position: 'absolute',
+    bottom: 130,
+    alignSelf: 'center',
+  },
+  percentText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.progressRing,
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   cardWrapper: {
     ...StyleSheet.absoluteFillObject,

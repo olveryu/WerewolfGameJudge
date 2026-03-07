@@ -429,8 +429,10 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         minWidth: 60,
       },
       triggerButton: {
-        width: componentSizes.avatar.sm,
-        height: componentSizes.avatar.sm,
+        width: componentSizes.avatar.md,
+        height: componentSizes.avatar.md,
+        borderRadius: borderRadius.medium,
+        backgroundColor: colors.background,
         justifyContent: 'center',
         alignItems: 'center',
       },

@@ -165,12 +165,6 @@ export const CONFIG = {
   sealBreak: {
     /** Seal appear + scale-in duration (ms) */
     sealAppearDuration: 800,
-    /** Rune glow pulse cycle (ms) */
-    runePulseDuration: 1200,
-    /** Crack propagation duration (ms) */
-    crackGrowDuration: 1200,
-    /** Wait before crack starts (ms) */
-    waitBeforeCrack: 1000,
     /** Shatter explosion duration (ms) */
     shatterDuration: 600,
     /** Card scale-in duration (ms) */
@@ -181,6 +175,16 @@ export const CONFIG = {
     shardCount: 24,
     /** Seal radius as fraction of screen width */
     sealRadiusRatio: 0.28,
+    /** Continuous press duration to reach full charge (ms) */
+    chargeDuration: 2500,
+    /** Charge decay rate when released (fraction per second, e.g. 0.4 = 40%/s) */
+    decayRate: 0.4,
+    /** Auto-shatter timeout if user doesn't fully charge (ms) */
+    autoShatterTimeout: 10000,
+    /** Number of energy particles spiraling toward seal */
+    energyParticleCount: 16,
+    /** Haptic tick interval during charging (ms) */
+    hapticTickInterval: 200,
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 0,
   },
