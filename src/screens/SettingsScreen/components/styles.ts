@@ -91,9 +91,6 @@ export interface SettingsScreenStyles {
   aboutRow: ViewStyle;
   aboutLabel: TextStyle;
   aboutValue: TextStyle;
-  aboutLink: ViewStyle;
-  aboutLinkText: TextStyle;
-  aboutLinkIcon: TextStyle;
   bottomSpacer: ViewStyle;
 }
 
@@ -414,24 +411,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
       color: colors.text,
-    },
-    aboutLink: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: spacing.small + spacing.tight,
-      borderTopWidth: fixed.borderWidth,
-      borderTopColor: colors.borderLight,
-    },
-    aboutLinkText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.primary,
-    },
-    aboutLinkIcon: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      color: colors.textMuted,
     },
     bottomSpacer: {
       height: spacing.xlarge,
