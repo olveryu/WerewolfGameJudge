@@ -182,7 +182,25 @@ jest.mock('./src/theme', () => {
       minTouchTarget: 44,
       maxContentWidth: 600,
       keyboardOffset: 24,
+      activeOpacity: 0.7,
     },
+    withAlpha: (hex: string, opacity: number) => {
+      const alpha = Math.round(opacity * 255)
+        .toString(16)
+        .toUpperCase()
+        .padStart(2, '0');
+      return hex + alpha;
+    },
+    createSharedStyles: (colors: Record<string, string>) => ({
+      iconButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 12,
+        backgroundColor: colors.background || '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+    }),
   };
 });
 
