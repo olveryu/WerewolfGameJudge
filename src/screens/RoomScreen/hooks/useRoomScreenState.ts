@@ -39,6 +39,7 @@ import { useRoomDerived } from './useRoomDerived';
 import { useRoomIdentity } from './useRoomIdentity';
 import { useRoomInit } from './useRoomInit';
 import { useRoomModals } from './useRoomModals';
+import { useRoomSettings } from './useRoomSettings';
 import { useSpeakingOrder } from './useSpeakingOrder';
 import { useWolfVoteCountdown } from './useWolfVoteCountdown';
 
@@ -180,42 +181,15 @@ export function useRoomScreenState(
   const [pendingSeat, setPendingSeat] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
-  // ── Settings sheet (Animation + BGM) ─────────────────────────────────────
-  const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
-  const [bgmEnabled, setBgmEnabled] = useState(() => settingsService.isBgmEnabled());
-
-  const handleOpenSettings = useCallback(() => {
-    setSettingsSheetVisible(true);
-  }, []);
-
-  const handleCloseSettings = useCallback(() => {
-    setSettingsSheetVisible(false);
-  }, []);
-
-  const handleAnimationChange = useCallback(
-    (v: string) => {
-      const anim = v as RoleRevealAnimation;
-      fireAndForget(
-        setRoleRevealAnimation(anim).then(() => settingsService.setRoleRevealAnimation(anim)),
-        '[handleAnimationChange] failed',
-        roomScreenLog,
-      );
-    },
-    [setRoleRevealAnimation, settingsService],
-  );
-
-  const handleBgmChange = useCallback(
-    (v: string) => {
-      const enabled = v === 'on';
-      setBgmEnabled(enabled);
-      fireAndForget(
-        settingsService.setBgmEnabled(enabled),
-        '[handleBgmChange] failed',
-        roomScreenLog,
-      );
-    },
-    [settingsService],
-  );
+  // ── Settings sheet (delegated to useRoomSettings) ─────────────────────────
+  const {
+    settingsSheetVisible,
+    bgmEnabled,
+    handleOpenSettings,
+    handleCloseSettings,
+    handleAnimationChange,
+    handleBgmChange,
+  } = useRoomSettings({ settingsService, setRoleRevealAnimation });
 
   // ── Wolf vote countdown tick ─────────────────────────────────────────────
   const countdownTick = useWolfVoteCountdown({
