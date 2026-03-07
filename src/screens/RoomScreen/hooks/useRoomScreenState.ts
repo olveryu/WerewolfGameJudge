@@ -25,7 +25,6 @@ import { showAlert } from '@/utils/alert';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
-import { getActorIdentity, isActorIdentityValid } from '../policy';
 import {
   buildSeatViewModels,
   getRoleStats,
@@ -41,6 +40,7 @@ import { useHiddenDebugTrigger } from './useHiddenDebugTrigger';
 import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
 import { useRoomActions } from './useRoomActions';
+import { useRoomIdentity } from './useRoomIdentity';
 import { useRoomInit } from './useRoomInit';
 import { useRoomModals } from './useRoomModals';
 import { useSpeakingOrder } from './useSpeakingOrder';
@@ -267,7 +267,7 @@ export function useRoomScreenState(
   }, [gameRoomError, navigation]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Actor Identity
+  // Actor Identity (delegated to useRoomIdentity)
   // ═══════════════════════════════════════════════════════════════════════════
 
   const wolfVotesMap = useMemo(() => {
@@ -280,41 +280,13 @@ export function useRoomScreenState(
     return map;
   }, [gameState?.currentNightResults]);
 
-  const actorIdentity = useMemo(
-    () =>
-      getActorIdentity({
-        mySeatNumber,
-        myRole,
-        effectiveSeat,
-        effectiveRole,
-        controlledSeat,
-      }),
-    [mySeatNumber, myRole, effectiveSeat, effectiveRole, controlledSeat],
-  );
-
-  const { actorSeatForUi, actorRoleForUi, isDelegating } = actorIdentity;
-
-  // FAIL-FAST: Log warning when delegating but identity is invalid
-  useEffect(() => {
-    if (isDelegating && !isActorIdentityValid(actorIdentity)) {
-      roomScreenLog.warn('[ActorIdentity] Invalid delegation state detected', {
-        controlledSeat,
-        effectiveSeat,
-        effectiveRole,
-        actorSeatForUi,
-        actorRoleForUi,
-        hint: 'effectiveSeat should equal controlledSeat when delegating',
-      });
-    }
-  }, [
-    isDelegating,
-    actorIdentity,
-    controlledSeat,
+  const { actorSeatForUi, actorRoleForUi, isDelegating } = useRoomIdentity({
+    mySeatNumber,
+    myRole,
     effectiveSeat,
     effectiveRole,
-    actorSeatForUi,
-    actorRoleForUi,
-  ]);
+    controlledSeat,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Actioner state
