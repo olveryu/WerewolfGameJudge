@@ -30,6 +30,10 @@ interface ConnectionSyncState {
   setLastStateReceivedAt: (ts: number | null) => void;
   /** Call when a state update is received to update lastStateReceivedAt */
   onStateReceived: () => void;
+  /** True when L5 dead channel auto-retries are exhausted (user action needed) */
+  retriesExhausted: boolean;
+  /** Manual reconnect triggered by user tap — resets retry counter */
+  manualReconnect: () => void;
 }
 
 /** Subset of ConnectionSyncState used by useRoomLifecycle for status updates */
@@ -77,8 +81,19 @@ export function useConnectionSync(
 
   // Shared ref: declared before both foreground + dead-channel effects so both can access it.
   const deadChannelRetriesRef = useRef(0);
+  const [retriesExhausted, setRetriesExhausted] = useState(false);
   const MAX_DEAD_CHANNEL_RETRIES = 3;
   const DEAD_CHANNEL_THRESHOLD_MS = 5_000;
+
+  // Manual reconnect: user taps the retry button
+  const manualReconnect = useCallback(() => {
+    connectionSyncLog.info('Manual reconnect triggered by user');
+    deadChannelRetriesRef.current = 0;
+    setRetriesExhausted(false);
+    facade.reconnectChannel().catch((e) => {
+      connectionSyncLog.error('Manual reconnectChannel failed', e);
+    });
+  }, [facade]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -94,6 +109,7 @@ export function useConnectionSync(
 
       // Reset dead channel retries so L5 detector gets fresh attempts after foreground
       deadChannelRetriesRef.current = 0;
+      setRetriesExhausted(false);
 
       const currentStatus = connectionStatusRef.current;
       if (currentStatus === ConnectionStatus.Disconnected) {
@@ -127,6 +143,7 @@ export function useConnectionSync(
     if (connectionStatus === ConnectionStatus.Live) {
       // Channel is healthy — reset retry counter
       deadChannelRetriesRef.current = 0;
+      setRetriesExhausted(false);
       return;
     }
 
@@ -135,6 +152,7 @@ export function useConnectionSync(
       connectionSyncLog.warn('Dead channel detector: max retries reached, giving up', {
         retries: deadChannelRetriesRef.current,
       });
+      setRetriesExhausted(true);
       return;
     }
 
@@ -163,7 +181,16 @@ export function useConnectionSync(
       lastStateReceivedAt,
       setLastStateReceivedAt,
       onStateReceived,
+      retriesExhausted,
+      manualReconnect,
     }),
-    [connectionStatus, stateRevision, lastStateReceivedAt, onStateReceived],
+    [
+      connectionStatus,
+      stateRevision,
+      lastStateReceivedAt,
+      onStateReceived,
+      retriesExhausted,
+      manualReconnect,
+    ],
   );
 }
