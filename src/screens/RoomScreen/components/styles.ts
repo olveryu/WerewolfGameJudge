@@ -66,6 +66,8 @@ export interface BottomActionPanelStyles {
 export interface ConnectionStatusBarStyles {
   container: ViewStyle;
   text: TextStyle;
+  progressBarTrack: ViewStyle;
+  progressBar: ViewStyle;
 }
 
 export interface ControlledSeatBannerStyles {
@@ -335,6 +337,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         borderRadius: borderRadius.large,
         marginHorizontal: spacing.medium,
         marginTop: spacing.small,
+        overflow: 'hidden',
         ...shadows.sm,
       },
       text: {
@@ -342,6 +345,18 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         lineHeight: typography.lineHeights.secondary,
         color: colors.error,
         fontWeight: typography.weights.medium,
+      },
+      progressBarTrack: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+      },
+      progressBar: {
+        height: 2,
+        backgroundColor: withAlpha(colors.error, 0.5),
+        borderRadius: 1,
       },
     }),
 
