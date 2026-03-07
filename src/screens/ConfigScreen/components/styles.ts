@@ -9,6 +9,7 @@ import { StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
 import {
   borderRadius,
+  createSharedStyles,
   layout,
   shadows,
   spacing,
@@ -160,12 +161,7 @@ export const createConfigScreenStyles = (colors: ThemeColors): ConfigScreenStyle
       borderBottomColor: colors.border,
     },
     headerBtn: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
+      ...createSharedStyles(colors).iconButton,
     },
     headerBtnText: {
       fontSize: typography.title,

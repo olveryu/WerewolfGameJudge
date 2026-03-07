@@ -6,7 +6,15 @@
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
 import { createAuthBaseStyles } from '@/components/auth/authStyles';
-import { borderRadius, shadows, spacing, ThemeColors, typography, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  createSharedStyles,
+  shadows,
+  spacing,
+  ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface SettingsScreenStyles {
@@ -105,12 +113,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       borderBottomColor: colors.border,
     },
     backBtn: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
+      ...createSharedStyles(colors).iconButton,
     },
     backBtnText: {
       fontSize: typography.title,
