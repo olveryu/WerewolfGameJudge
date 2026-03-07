@@ -78,17 +78,31 @@ if [ -d dist/_expo/static/js/web ]; then
   echo "✅ JS bundle 移至 assets/js/（规避 Vercel _expo 限制）"
 fi
 
-# 使用自定义 index.html（保留 Expo 生成的 JS bundle 引用）
+# 使用自定义 index.html（保留 Expo 生成的所有 JS bundle 引用）
 if [ -f dist/index.html ]; then
-  # 从原始 index.html 提取 bundle 文件名
-  JS_FILE=$(grep -oE '/_expo/static/js/web/[^"]+\.js' dist/index.html | head -1 | sed 's|.*/_expo/static/js/web/||')
-  if [ -z "$JS_FILE" ]; then
-    JS_FILE=$(ls dist/assets/js/index-*.js 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+  # 从原始 index.html 提取所有 bundle 引用（保持 Expo 输出顺序：runtime → common → index）
+  SCRIPT_TAGS=""
+  JS_COUNT=0
+  while IFS= read -r jsref; do
+    fname=$(echo "$jsref" | sed 's|.*/_expo/static/js/web/||')
+    SCRIPT_TAGS="${SCRIPT_TAGS}    <script src=\"/assets/js/${fname}\" defer></script>\n"
+    JS_COUNT=$((JS_COUNT + 1))
+  done < <(grep -oE '/_expo/static/js/web/[^"]+\.js' dist/index.html)
+
+  # fallback：如果 Expo HTML 中没有引用（不应发生），尝试从文件系统获取
+  if [ "$JS_COUNT" -eq 0 ]; then
+    for jsfile in dist/assets/js/index-*.js; do
+      fname=$(basename "$jsfile")
+      SCRIPT_TAGS="    <script src=\"/assets/js/${fname}\" defer></script>\n"
+      JS_COUNT=1
+      break
+    done
   fi
-  if [ -n "$JS_FILE" ]; then
+
+  if [ "$JS_COUNT" -gt 0 ]; then
     cp web/index.html dist/index.html
-    perl -i -pe "s|</body>|    <script src=\"/assets/js/$JS_FILE\" defer></script>\n  </body>|" dist/index.html
-    echo "✅ 自定义 index.html，JS bundle: /assets/js/$JS_FILE"
+    perl -i -pe "s|</body>|${SCRIPT_TAGS}  </body>|" dist/index.html
+    echo "✅ 自定义 index.html，注入 ${JS_COUNT} 个 JS bundle"
   fi
 fi
 
