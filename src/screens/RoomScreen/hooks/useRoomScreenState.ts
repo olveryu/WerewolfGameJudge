@@ -17,7 +17,6 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Toast from 'react-native-toast-message';
 
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
@@ -429,24 +428,6 @@ export function useRoomScreenState(
   useEffect(() => {
     setMultiSelectedSeats([]);
   }, [currentStepId]);
-
-  // Show one-time hint toast for the AI assistant bubble (bottom-right)
-  // 6s delay avoids collision with the registration toast (5s visibilityTime)
-  useEffect(() => {
-    if (!isInitialized) return;
-    if (settingsService.hasSeenAssistantHint()) return;
-
-    const timer = setTimeout(() => {
-      Toast.show({
-        type: 'info',
-        text1: '💡 右下角小助手可以记笔记、问规则',
-        visibilityTime: 5000,
-      });
-      void settingsService.setHasSeenAssistantHint(true);
-    }, 6000);
-
-    return () => clearTimeout(timer);
-  }, [isInitialized, settingsService]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Intent Layer: useRoomActions
