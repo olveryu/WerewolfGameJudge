@@ -131,6 +131,35 @@ export function useConnectionSync(
     return () => document.removeEventListener('visibilitychange', onForeground);
   }, [roomRecord, facade]);
 
+  // ── L3 补充：browser online 事件 → reconnectChannel ──
+  // ConnectionRecoveryManager 的 L3 handler 仅调 fetchStateFromDB()，不重建 WS channel。
+  // 当 Dead Channel Detector 3 次重试耗尽后 status 卡在 Disconnected，
+  // fetchStateFromDB → markAsLive 只接受 Syncing/Connecting → Live，对 Disconnected 是 no-op。
+  // 此 handler 在 online 事件触发时重置 retry 计数并 reconnectChannel()，补上缺口。
+  useEffect(() => {
+    if (typeof globalThis.window?.addEventListener !== 'function') return;
+    if (!roomRecord) return;
+
+    const onOnline = () => {
+      const currentStatus = connectionStatusRef.current;
+      if (currentStatus === ConnectionStatus.Live) return; // 已连接，无需重连
+
+      connectionSyncLog.info('Browser online event: resetting retries and reconnecting', {
+        currentStatus,
+      });
+      deadChannelRetriesRef.current = 0;
+      setRetriesExhausted(false);
+
+      // 无论是 Disconnected（dead channel）还是其他非 Live 状态，都尝试重建
+      facade.reconnectChannel().catch((e) => {
+        connectionSyncLog.error('Online event reconnectChannel failed', e);
+      });
+    };
+
+    globalThis.window.addEventListener('online', onOnline);
+    return () => globalThis.window.removeEventListener('online', onOnline);
+  }, [roomRecord, facade]);
+
   // ── Dead Channel Detector ──
   // Supabase SDK gives up reconnecting after repeated CHANNEL_ERROR / TIMED_OUT
   // (common on mobile background/foreground cycles). When Disconnected persists
