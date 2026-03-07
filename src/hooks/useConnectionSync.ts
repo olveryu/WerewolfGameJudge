@@ -61,10 +61,25 @@ export function useConnectionSync(
     return unsubscribe;
   }, [facade]);
 
-  // ── 前台恢复立即 DB 拉取 ──
+  // ── 前台恢复：DB 拉取 + Dead Channel 重连 ──
   // 移动端切后台时 WebSocket 可能被 OS 杀掉，但 `worker: true` 大概率保活。
-  // 无论连接是否中断，切回前台后立即从 DB 读取最新状态，保证 ~1s 内数据同步。
+  // 切回前台后：
+  //   - 连接正常（Live）→ 仅 fetchStateFromDB 补漏广播
+  //   - 连接已断（Disconnected）→ reconnectChannel 重建 WS + fetchStateFromDB
+  //   - 同时重置 deadChannelRetriesRef，给 Dead Channel Detector 新的重试机会
   const lastForegroundFetchRef = useRef<number>(0);
+  // Ref mirror: allows visibilitychange callback to read current status
+  // without adding connectionStatus to the effect deps (avoids re-registering listener).
+  const connectionStatusRef = useRef(connectionStatus);
+  useEffect(() => {
+    connectionStatusRef.current = connectionStatus;
+  }, [connectionStatus]);
+
+  // Shared ref: declared before both foreground + dead-channel effects so both can access it.
+  const deadChannelRetriesRef = useRef(0);
+  const MAX_DEAD_CHANNEL_RETRIES = 3;
+  const DEAD_CHANNEL_THRESHOLD_MS = 5_000;
+
   useEffect(() => {
     if (typeof document === 'undefined') return;
     if (!roomRecord) return;
@@ -77,10 +92,23 @@ export function useConnectionSync(
       if (now - lastForegroundFetchRef.current < FOREGROUND_FETCH_COOLDOWN_MS) return;
       lastForegroundFetchRef.current = now;
 
-      connectionSyncLog.info('Foreground: immediately fetching state from DB');
-      facade.fetchStateFromDB().catch((e) => {
-        connectionSyncLog.warn('Foreground fetchStateFromDB failed:', e);
-      });
+      // Reset dead channel retries so L5 detector gets fresh attempts after foreground
+      deadChannelRetriesRef.current = 0;
+
+      const currentStatus = connectionStatusRef.current;
+      if (currentStatus === ConnectionStatus.Disconnected) {
+        // Channel dead → full recovery: rebuild WS channel + fetch DB
+        connectionSyncLog.info('Foreground: channel disconnected, triggering reconnectChannel');
+        facade.reconnectChannel().catch((e) => {
+          connectionSyncLog.error('Foreground reconnectChannel failed', e);
+        });
+      } else {
+        // Channel alive → just fetch DB to cover missed broadcasts
+        connectionSyncLog.info('Foreground: fetching state from DB');
+        facade.fetchStateFromDB().catch((e) => {
+          connectionSyncLog.warn('Foreground fetchStateFromDB failed:', e);
+        });
+      }
     };
 
     document.addEventListener('visibilitychange', onForeground);
@@ -92,9 +120,6 @@ export function useConnectionSync(
   // (common on mobile background/foreground cycles). When Disconnected persists
   // beyond DEAD_CHANNEL_THRESHOLD_MS without SDK self-healing, tear down the
   // dead channel and rebuild from scratch.
-  const deadChannelRetriesRef = useRef(0);
-  const MAX_DEAD_CHANNEL_RETRIES = 3;
-  const DEAD_CHANNEL_THRESHOLD_MS = 5_000;
 
   useEffect(() => {
     if (!roomRecord) return;
