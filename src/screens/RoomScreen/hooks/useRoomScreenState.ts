@@ -553,8 +553,10 @@ export function useRoomScreenState(
   const {
     roleCardVisible,
     shouldPlayRevealAnimation,
+    isLoadingRole,
     setRoleCardVisible,
     setShouldPlayRevealAnimation,
+    setIsLoadingRole,
     handleRoleCardClose,
     skillPreviewRoleId,
     handleSkillPreviewOpen,
@@ -597,6 +599,7 @@ export function useRoomScreenState(
     showEnterSeatDialog,
     showLeaveSeatDialog,
     setShouldPlayRevealAnimation,
+    setIsLoadingRole,
     setRoleCardVisible,
     setControlledSeat,
     setPendingRevealDialog,
@@ -733,6 +736,7 @@ export function useRoomScreenState(
     // ── Role card modal ──
     roleCardVisible,
     shouldPlayRevealAnimation,
+    isLoadingRole,
     handleRoleCardClose,
 
     // ── Skill preview modal ──

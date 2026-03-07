@@ -20,7 +20,9 @@ import {
 } from '@werewolf/game-engine/models/roles';
 import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import React, { useCallback, useState } from 'react';
+import { Modal, StyleSheet, View } from 'react-native';
 
+import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import {
   createRoleData,
@@ -42,6 +44,8 @@ const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager' | 'third'> = {
 interface RoleCardModalProps {
   /** 是否显示弹窗 */
   visible: boolean;
+  /** 正在请求服务端确认，显示 loading 动画 */
+  isLoading?: boolean;
   /** 当前角色（effectiveRole，支持接管模式） */
   roleId: RoleId;
   /** Host 解析后的动画类型（不含 random） */
@@ -62,6 +66,7 @@ interface RoleCardModalProps {
 
 const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   visible,
+  isLoading,
   roleId,
   resolvedAnimation,
   shouldPlayAnimation,
@@ -75,6 +80,17 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   const handleAnimationComplete = useCallback(() => {
     setAnimationDone(true);
   }, []);
+
+  // ── Loading state：等待服务端确认 ──
+  if (isLoading) {
+    return (
+      <Modal visible transparent animationType="fade" statusBarTranslucent>
+        <View style={loadingStyles.overlay}>
+          <LoadingScreen fullScreen={false} message="正在确认身份…" />
+        </View>
+      </Modal>
+    );
+  }
 
   // 如果动画是 none 或不需要播放动画，直接显示静态卡片
   // 动画播完后也切到静态卡片（带"我知道了"按钮）
@@ -121,3 +137,12 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
 };
 
 export const RoleCardModal = React.memo(RoleCardModalInner);
+
+const loadingStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.85)',
+  },
+});
