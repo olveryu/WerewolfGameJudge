@@ -152,6 +152,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Role card modal
     roleCardVisible,
     shouldPlayRevealAnimation,
+    isLoadingRole,
     handleRoleCardClose,
     // Skill preview modal
     skillPreviewRoleId,
@@ -470,9 +471,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
 
       {/* Role Card Modal */}
-      {roleCardVisible && effectiveRole && (
+      {(roleCardVisible || isLoadingRole) && effectiveRole && (
         <RoleCardModal
           visible={roleCardVisible}
+          isLoading={isLoadingRole}
           roleId={effectiveRole}
           resolvedAnimation={resolvedRoleRevealAnimation}
           shouldPlayAnimation={shouldPlayRevealAnimation}

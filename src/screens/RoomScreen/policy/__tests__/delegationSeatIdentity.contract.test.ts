@@ -354,7 +354,7 @@ describe('Delegation Seat Identity Contract', () => {
         const block = content.substring(startIndex, startIndex + 1500);
 
         // Should check effectiveRole for render condition, NOT myRole
-        expect(block).toMatch(/roleCardVisible\s*&&\s*\n?\s*effectiveRole\s*&&/);
+        expect(block).toMatch(/roleCardVisible.*&&\s*\n?\s*effectiveRole\s*&&/);
         expect(block).not.toMatch(/roleCardVisible\s*&&\s*\n?\s*myRole\s*&&/);
 
         // RoleCardSimple should use effectiveRole

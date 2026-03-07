@@ -77,6 +77,7 @@ interface UseInteractionDispatcherParams {
   setPendingRevealDialog: (v: boolean) => void;
   setRoleCardVisible: (v: boolean) => void;
   setShouldPlayRevealAnimation: (v: boolean) => void;
+  setIsLoadingRole: (v: boolean) => void;
 }
 
 interface UseInteractionDispatcherResult {
@@ -126,6 +127,7 @@ export function useInteractionDispatcher({
   setPendingRevealDialog,
   setRoleCardVisible,
   setShouldPlayRevealAnimation,
+  setIsLoadingRole,
 }: UseInteractionDispatcherParams): UseInteractionDispatcherResult {
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
 
@@ -240,19 +242,25 @@ export function useInteractionDispatcher({
                   setShouldPlayRevealAnimation(false);
                   setRoleCardVisible(true);
                 } else {
-                  // 首次看牌 → 先 POST 成功再弹卡（pessimistic update）
+                  // 首次看牌 → 立即弹 loading → POST 成功后切换为角色卡
+                  setIsLoadingRole(true);
+                  setRoleCardVisible(true);
                   void (async () => {
                     try {
                       const result = await viewedRole();
                       if (!result.success) {
                         // handleMutationResult 已在 viewedRole 内处理了用户提示
+                        setRoleCardVisible(false);
+                        setIsLoadingRole(false);
                         return;
                       }
                       setShouldPlayRevealAnimation(true);
-                      setRoleCardVisible(true);
+                      setIsLoadingRole(false);
                     } catch (err) {
                       roomScreenLog.error('[roleCard] viewedRole failed', err);
                       Sentry.captureException(err);
+                      setRoleCardVisible(false);
+                      setIsLoadingRole(false);
                     }
                   })();
                 }
@@ -385,6 +393,7 @@ export function useInteractionDispatcher({
       setPendingRevealDialog,
       setRoleCardVisible,
       setShouldPlayRevealAnimation,
+      setIsLoadingRole,
     ],
   );
 

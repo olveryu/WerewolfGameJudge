@@ -26,8 +26,10 @@ export interface RoomModalsState {
   // ── Role card modal ──
   roleCardVisible: boolean;
   shouldPlayRevealAnimation: boolean;
+  isLoadingRole: boolean;
   setRoleCardVisible: (v: boolean) => void;
   setShouldPlayRevealAnimation: (v: boolean) => void;
+  setIsLoadingRole: (v: boolean) => void;
   handleRoleCardClose: () => void;
 
   // ── Skill preview modal ──
@@ -57,10 +59,12 @@ export function useRoomModals({
   // ── Role card modal ──
   const [roleCardVisible, setRoleCardVisible] = useState(false);
   const [shouldPlayRevealAnimation, setShouldPlayRevealAnimation] = useState(false);
+  const [isLoadingRole, setIsLoadingRole] = useState(false);
 
   const handleRoleCardClose = useCallback(() => {
     setRoleCardVisible(false);
     setShouldPlayRevealAnimation(false);
+    setIsLoadingRole(false);
   }, []);
 
   // ── Skill preview modal ──
@@ -135,8 +139,10 @@ export function useRoomModals({
   return {
     roleCardVisible,
     shouldPlayRevealAnimation,
+    isLoadingRole,
     setRoleCardVisible,
     setShouldPlayRevealAnimation,
+    setIsLoadingRole,
     handleRoleCardClose,
     skillPreviewRoleId,
     handleSkillPreviewOpen,
