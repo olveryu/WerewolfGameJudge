@@ -160,32 +160,6 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Seal Break (封印解除)
-  // =====================================================
-  sealBreak: {
-    /** Seal appear + scale-in duration (ms) */
-    sealAppearDuration: 800,
-    /** Rune glow pulse cycle (ms) */
-    runePulseDuration: 1200,
-    /** Crack propagation duration (ms) */
-    crackGrowDuration: 1200,
-    /** Wait before crack starts (ms) */
-    waitBeforeCrack: 1000,
-    /** Shatter explosion duration (ms) */
-    shatterDuration: 600,
-    /** Card scale-in duration (ms) */
-    cardRevealDuration: 400,
-    /** Number of radial crack lines */
-    crackCount: 8,
-    /** Number of shard particles */
-    shardCount: 24,
-    /** Seal radius as fraction of screen width */
-    sealRadiusRatio: 0.28,
-    /** Hold duration after reveal before calling onComplete (ms) */
-    revealHoldDuration: 0,
-  },
-
-  // =====================================================
   // Alignment reveal effects (阵营特效)
   // =====================================================
   alignmentEffects: {
