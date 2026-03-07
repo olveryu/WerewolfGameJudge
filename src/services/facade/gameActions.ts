@@ -1,30 +1,14 @@
 /**
- * Game Actions - 游戏 HTTP API 业务编排
+ * Game Actions — 游戏 HTTP API 业务编排（声明式）
  *
- * 拆分自 GameFacade.ts（纯重构 PR，无行为变更）
+ * 使用 defineGameAction 工厂将原本手动的 debug-log → guard → callApi 模式
+ * 替换为声明式定义。每个动作只声明 name / path / 可选的 body / optimistic / after。
  *
- * 职责：
- * - Host-only 游戏控制方法（assignRoles/startNight/restartGame 等）→ HTTP API
- * - 夜晚行动方法（submitAction）→ HTTP API
- * - 任意玩家动作（markViewedRole）→ HTTP API
- * - 夜晚控制（endNight/setAudioPlaying/postAudioAck/postProgression）→ HTTP API
- *
- * 客户端只发 roomCode + 业务参数，不发 hostUid。
- * 服务端从 DB 中的 state.hostUid 做鉴权（buildHandlerContext(state, state.hostUid)）。
- *
- * 服务端内联推进（inline progression）在 action 处理后自动执行。
- * 客户端不再驱动推进循环，只需：
- * - 提交操作 → 服务端返回 pendingAudioEffects
- * - 播放音频 → POST audio-ack → 服务端继续推进
- * - wolf vote deadline 到期 → POST progression
- *
- * 禁止：
- * - 业务逻辑/校验规则（全部在 handler / 服务端）
- * - 直接修改 state（全部在 reducer / 服务端）
+ * 职责同 defineGameAction.ts。
+ * 禁止：业务逻辑/校验规则（全部在 handler / 服务端），直接修改 state。
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
@@ -32,7 +16,7 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import type { AudioService } from '@/services/infra/AudioService';
 import { facadeLog } from '@/utils/logger';
 
-import { type ApiResponse, callApiWithRetry } from './apiUtils';
+import { defineGameAction } from './defineGameAction';
 
 /**
  * gameActions 依赖的上下文接口
@@ -47,557 +31,181 @@ export interface GameActionsContext {
 }
 
 // =============================================================================
-// Game Control API (HTTP — Phase 2)
+// Host-only: 房间 / 模板管理
 // =============================================================================
 
-/** Game Control API 响应（alias for readability within this file） */
-type GameControlApiResponse = ApiResponse;
+/** Host: 分配角色 */
+export const assignRoles = defineGameAction({
+  name: 'assignRoles',
+  path: '/game/assign',
+});
 
-/**
- * 调用 Game Control API（内置客户端重试）
- *
- * 服务端乐观锁冲突返回 CONFLICT_RETRY 时，客户端透明重试（最多 2 次），
- * 配合服务端 3 次重试，有效重试上限为 3×3 = 9 次。
- *
- * 支持客户端乐观更新：传入 `optimisticFn` 在 fetch 前即时渲染预测 state，
- * 服务端响应后 applySnapshot 覆盖；失败时 rollbackOptimistic。
- */
-async function callGameControlApi(
-  path: string,
-  body: Record<string, unknown>,
-  store?: GameStore,
-  optimisticFn?: (state: GameState) => GameState,
-): Promise<GameControlApiResponse> {
-  return callApiWithRetry(path, body, 'callGameControlApi', store, optimisticFn);
-}
+/** Host: 更新模板（乐观更新） */
+export const updateTemplate = defineGameAction<[GameTemplate]>({
+  name: 'updateTemplate',
+  path: '/game/update-template',
+  body: (template) => ({ templateRoles: template.roles }),
+  optimistic: (template) => (state) => ({ ...state, templateRoles: template.roles }),
+});
 
-// ---------------------------------------------------------------------------
-// Connection guard (DRY)
-// ---------------------------------------------------------------------------
-const NOT_CONNECTED = { success: false, reason: 'NOT_CONNECTED' } as const;
+/** Host: 设置开牌动画（乐观更新） */
+export const setRoleRevealAnimation = defineGameAction<[RoleRevealAnimation]>({
+  name: 'setRoleRevealAnimation',
+  path: '/game/set-animation',
+  body: (animation) => ({ animation }),
+  optimistic: (animation) => (state) => ({ ...state, roleRevealAnimation: animation }),
+});
 
-/**
- * Extract roomCode + 当前用户 uid from context.
- *
- * 仅用于任意玩家可调用的动作（markViewedRole），uid 来自 ctx.myUid（调用者自身）。
- * Host-only 动作统一使用 getRoomCodeOrFail（只需 roomCode，服务端从 state 读取 hostUid）。
- * 返回 null 表示未连接，调用方应返回 NOT_CONNECTED。
- */
-function getConnectionOrFail(ctx: GameActionsContext): { roomCode: string; myUid: string } | null {
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) return null;
-  return { roomCode, myUid: ctx.myUid };
-}
+/** Host: 重新开始游戏 */
+export const restartGame = defineGameAction({
+  name: 'restartGame',
+  path: '/game/restart',
+});
 
-/**
- * Extract roomCode from game state.
- *
- * 用于 host-only 动作和夜晚动作。服务端从 state.hostUid 做鉴权，客户端无需发送 hostUid。
- * 与 getConnectionOrFail 不同：后者还读取 ctx.myUid（调用者自身），适用于 view-role 等任意玩家动作。
- * 返回 null 表示未连接，调用方应返回 NOT_CONNECTED。
- */
-function getRoomCodeOrFail(ctx: GameActionsContext): { roomCode: string } | null {
-  const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode) return null;
-  return { roomCode };
-}
-
-/**
- * Host: 分配角色（HTTP API）
- */
-export async function assignRoles(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('assignRoles called');
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  return callGameControlApi(
-    '/game/assign',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-}
-
-/**
- * Host/Player: 标记某座位已查看角色（HTTP API）
- */
-export async function markViewedRole(
-  ctx: GameActionsContext,
-  seat: number,
-): Promise<{ success: boolean; reason?: string }> {
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  const result = await callGameControlApi(
-    '/game/view-role',
-    {
-      roomCode,
-      uid: ctx.myUid,
-      seat,
-    },
-    ctx.store,
-  );
-  return result;
-}
-
-/**
- * Host: 开始夜晚（HTTP API）
- *
- * ready → ongoing. 音频 sideEffects 由客户端按序播放。
- */
-export async function startNight(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('startNight called');
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  const result = await callGameControlApi(
-    '/game/start',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-
-  if (!result.success) {
-    return result;
-  }
-
-  // Fire-and-forget: preload audio for all template roles before night flow starts.
-  const stateAfterStart = ctx.store.getState();
-  if (stateAfterStart?.templateRoles) {
-    ctx.audioService.preloadForRoles(stateAfterStart.templateRoles as RoleId[]).catch((err) => {
-      facadeLog.warn('preloadForRoles failed (non-critical):', err);
-    });
-  }
-
-  return { success: true };
-}
-
-/**
- * Host: 更新模板（HTTP API）
- *
- * 仅在"准备看牌前"（unseated | seated）允许
- */
-export async function updateTemplate(
-  ctx: GameActionsContext,
-  template: GameTemplate,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('updateTemplate called');
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  return callGameControlApi(
-    '/game/update-template',
-    {
-      roomCode,
-      templateRoles: template.roles,
-    },
-    ctx.store,
-    // 乐观预测：立即更新模板角色列表
-    (state) => ({ ...state, templateRoles: template.roles }),
-  );
-}
-
-/**
- * Host: 重新开始游戏（HTTP API）
- *
- * RESTART_GAME（任意状态 → unseated）
- * 服务端重置 state → postgres_changes 推送新状态到所有客户端。
- */
-export async function restartGame(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('restartGame called');
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  return callGameControlApi(
-    '/game/restart',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-}
-
-/**
- * Host: 设置开牌动画（HTTP API）
- *
- * Host 在房间内选择开牌动画，所有玩家统一使用
- */
-export async function setRoleRevealAnimation(
-  ctx: GameActionsContext,
-  animation: RoleRevealAnimation,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('setRoleRevealAnimation called', { animation });
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  return callGameControlApi(
-    '/game/set-animation',
-    {
-      roomCode,
-      animation,
-    },
-    ctx.store,
-    // 乐观预测：立即更新动画设置
-    (state) => ({ ...state, roleRevealAnimation: animation }),
-  );
-}
-
-/**
- * Host: 分享「详细信息」给指定座位（HTTP API）
- *
- * ended 阶段 Host 选择允许查看夜晚行动详情的座位列表。
- */
-export async function shareNightReview(
-  ctx: GameActionsContext,
-  allowedSeats: number[],
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('shareNightReview called', { allowedSeats });
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  return callGameControlApi(
-    '/game/share-review',
-    {
-      roomCode,
-      allowedSeats,
-    },
-    ctx.store,
-  );
-}
-
-/**
- * 提交夜晚行动（HTTP API）
- *
- * Night-1 only. 成功后服务端自动评估并执行夜晚推进。
- */
-export async function submitAction(
-  ctx: GameActionsContext,
-  seat: number,
-  role: RoleId,
-  target: number | null,
-  extra?: unknown,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('submitAction called', { seat, role, target });
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  const result = await callGameControlApi(
-    '/game/night/action',
-    {
-      roomCode,
-      seat,
-      role,
-      target,
-      extra,
-    },
-    ctx.store,
-  );
-
-  if (!result.success) {
-    facadeLog.warn('submitAction failed', { reason: result.reason, seat, role, target });
-    return { success: false, reason: result.reason };
-  }
-
-  return { success: true };
-}
-
-/**
- * Host: 结束夜晚，进行死亡结算（HTTP API）
- *
- * 保留：作为手动触发 endNight 的 fallback。
- */
-export async function endNight(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('endNight called');
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  const result = await callGameControlApi(
-    '/game/night/end',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-
-  if (!result.success) {
-    facadeLog.warn('endNight failed', { reason: result.reason });
-    return { success: false, reason: result.reason };
-  }
-
-  return { success: true };
-}
-
-/**
- * Host: 设置音频播放状态（HTTP API）
- *
- * PR7: 音频时序控制
- * - 当音频开始播放时，调用 setAudioPlaying(true)
- * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
- */
-export async function setAudioPlaying(
-  ctx: GameActionsContext,
-  isPlaying: boolean,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('setAudioPlaying called', { isPlaying });
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  return callGameControlApi(
-    '/game/night/audio-gate',
-    {
-      roomCode,
-      isPlaying,
-    },
-    ctx.store,
-  );
-}
+/** Host: 全员起立 */
+export const clearAllSeats = defineGameAction({
+  name: 'clearAllSeats',
+  path: '/game/clear-seats',
+});
 
 // =============================================================================
-// Reveal Ack 处理
+// 角色查看
 // =============================================================================
 
-/**
- * Host: 清除 pending reveal acks 并推进夜晚（HTTP API）
- *
- * 当用户确认 reveal 弹窗后调用
- */
-export async function clearRevealAcks(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('clearRevealAcks called');
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  const result = await callGameControlApi(
-    '/game/night/reveal-ack',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-
-  if (!result.success) {
-    facadeLog.warn('clearRevealAcks failed', { reason: result.reason });
-    return { success: false, reason: result.reason };
-  }
-
-  return { success: true };
-}
-
-/**
- * Player: 提交 groupConfirm ack（HTTP API）
- *
- * 当所有玩家看到催眠确认提示后，每位玩家点击"我知道了"调用此方法。
- * 服务端收到所有玩家 ack 后自动推进夜晚步骤。
- */
-export async function submitGroupConfirmAck(
-  ctx: GameActionsContext,
-  seat: number,
-): Promise<{ success: boolean; reason?: string }> {
-  const conn = getConnectionOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode, myUid } = conn;
-
-  facadeLog.debug('submitGroupConfirmAck called', { seat });
-
-  const result = await callGameControlApi(
-    '/game/night/group-confirm-ack',
-    { roomCode, seat, uid: myUid },
-    ctx.store,
-  );
-
-  if (!result.success) {
-    facadeLog.warn('submitGroupConfirmAck failed', { reason: result.reason, seat });
-    return { success: false, reason: result.reason };
-  }
-
-  return { success: true };
-}
-
-/**
- * Host/Player: 设置机械狼查看猎人状态（HTTP API）
- *
- * 当机械狼学到猎人后查看状态按钮被点击时调用
- */
-export async function setWolfRobotHunterStatusViewed(
-  ctx: GameActionsContext,
-  seat: number,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('setWolfRobotHunterStatusViewed called', { seat });
-
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  const result = await callGameControlApi(
-    '/game/night/wolf-robot-viewed',
-    {
-      roomCode,
-      seat,
-    },
-    ctx.store,
-  );
-
-  if (!result.success) {
-    facadeLog.warn('setWolfRobotHunterStatusViewed failed', { reason: result.reason, seat });
-    return { success: false, reason: result.reason };
-  }
-
-  return { success: true };
-}
+/** Host/Player: 标记某座位已查看角色 */
+export const markViewedRole = defineGameAction<[number]>({
+  name: 'markViewedRole',
+  path: '/game/view-role',
+  needsUid: true,
+  body: (seat) => ({ seat }),
+});
 
 // =============================================================================
-// Audio Ack & Progression（音频确认 + 手动推进触发）
+// 夜晚流程
 // =============================================================================
 
-/**
- * Host: 音频播放完毕后确认（HTTP API）
- *
- * 客户端播放完 pendingAudioEffects 后调用。
- * 服务端清除 effects + isAudioPlaying，然后执行内联推进。
- */
-export async function postAudioAck(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('postAudioAck called');
+/** Host: 开始夜晚（成功后 preload 音频） */
+export const startNight = defineGameAction({
+  name: 'startNight',
+  path: '/game/start',
+  after: (ctx, result) => {
+    if (!result.success) return;
+    const stateAfterStart = ctx.store.getState();
+    if (stateAfterStart?.templateRoles) {
+      ctx.audioService
+        .preloadForRoles(stateAfterStart.templateRoles as RoleId[])
+        .catch((err: unknown) => {
+          facadeLog.warn('preloadForRoles failed (non-critical):', err);
+        });
+    }
+  },
+});
 
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+/** Host: 分享夜晚详情给指定座位 */
+export const shareNightReview = defineGameAction<[number[]]>({
+  name: 'shareNightReview',
+  path: '/game/share-review',
+  body: (allowedSeats) => ({ allowedSeats }),
+});
 
-  return callGameControlApi(
-    '/game/night/audio-ack',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-}
+/** 提交夜晚行动 */
+export const submitAction = defineGameAction<[number, RoleId, number | null, unknown?]>({
+  name: 'submitAction',
+  path: '/game/night/action',
+  body: (seat, role, target, extra) => ({ seat, role, target, extra }),
+  after: (_ctx, result, seat, role, target) => {
+    if (!result.success) {
+      facadeLog.warn('submitAction failed', { reason: result.reason, seat, role, target });
+    }
+  },
+});
 
-/**
- * Host: 触发服务端推进（HTTP API）
- *
- * 用于 wolf vote deadline 到期时客户端触发推进。
- * 服务端执行内联推进（evaluate + advance/endNight 循环）。
- */
-export async function postProgression(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  facadeLog.debug('postProgression called');
+/** Host: 结束夜晚 */
+export const endNight = defineGameAction({
+  name: 'endNight',
+  path: '/game/night/end',
+  after: (_ctx, result) => {
+    if (!result.success) {
+      facadeLog.warn('endNight failed', { reason: result.reason });
+    }
+  },
+});
 
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  return callGameControlApi(
-    '/game/night/progression',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-}
-
-// =============================================================================
-// Debug Mode: Fill With Bots（调试模式：填充机器人）
-// =============================================================================
-
-/**
- * Host: 填充机器人（Debug-only, HTTP API）
- *
- * 为所有空座位创建 bot player，设置 debugMode.botsEnabled = true。
- * 仅在 status === Unseated 时可用。
- */
-export async function fillWithBots(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  return callGameControlApi(
-    '/game/fill-bots',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-}
-
-/**
- * Host: 标记所有机器人已查看角色（Debug-only, HTTP API）
- *
- * 仅对 isBot === true 的玩家设置 hasViewedRole = true。
- * 仅在 debugMode.botsEnabled === true && status === Assigned 时可用。
- */
-export async function markAllBotsViewed(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
-
-  return callGameControlApi(
-    '/game/mark-bots-viewed',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-}
+/** Host: 设置音频播放状态 */
+export const setAudioPlaying = defineGameAction<[boolean]>({
+  name: 'setAudioPlaying',
+  path: '/game/night/audio-gate',
+  body: (isPlaying) => ({ isPlaying }),
+});
 
 // =============================================================================
-// Clear All Seats（全员起立）
+// Reveal / Group-Confirm Ack
 // =============================================================================
 
-/**
- * Host: 全员起立（HTTP API）
- *
- * 清空所有已入座玩家。仅在 status === Unseated | Seated 时可用。
- */
-export async function clearAllSeats(
-  ctx: GameActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
-  const conn = getRoomCodeOrFail(ctx);
-  if (!conn) return NOT_CONNECTED;
-  const { roomCode } = conn;
+/** Host: 清除 pending reveal acks 并推进 */
+export const clearRevealAcks = defineGameAction({
+  name: 'clearRevealAcks',
+  path: '/game/night/reveal-ack',
+  after: (_ctx, result) => {
+    if (!result.success) {
+      facadeLog.warn('clearRevealAcks failed', { reason: result.reason });
+    }
+  },
+});
 
-  return callGameControlApi(
-    '/game/clear-seats',
-    {
-      roomCode,
-    },
-    ctx.store,
-  );
-}
+/** Player: 提交 groupConfirm ack */
+export const submitGroupConfirmAck = defineGameAction<[number]>({
+  name: 'submitGroupConfirmAck',
+  path: '/game/night/group-confirm-ack',
+  needsUid: true,
+  body: (seat) => ({ seat }),
+  after: (_ctx, result, seat) => {
+    if (!result.success) {
+      facadeLog.warn('submitGroupConfirmAck failed', { reason: result.reason, seat });
+    }
+  },
+});
+
+/** Host/Player: 机械狼查看猎人状态 */
+export const setWolfRobotHunterStatusViewed = defineGameAction<[number]>({
+  name: 'setWolfRobotHunterStatusViewed',
+  path: '/game/night/wolf-robot-viewed',
+  body: (seat) => ({ seat }),
+  after: (_ctx, result, seat) => {
+    if (!result.success) {
+      facadeLog.warn('setWolfRobotHunterStatusViewed failed', { reason: result.reason, seat });
+    }
+  },
+});
+
+// =============================================================================
+// Audio Ack & Progression
+// =============================================================================
+
+/** Host: 音频播放完毕后确认 */
+export const postAudioAck = defineGameAction({
+  name: 'postAudioAck',
+  path: '/game/night/audio-ack',
+});
+
+/** Host: 触发服务端推进 */
+export const postProgression = defineGameAction({
+  name: 'postProgression',
+  path: '/game/night/progression',
+});
+
+// =============================================================================
+// Debug Mode
+// =============================================================================
+
+/** Host: 填充机器人（Debug-only） */
+export const fillWithBots = defineGameAction({
+  name: 'fillWithBots',
+  path: '/game/fill-bots',
+});
+
+/** Host: 标记所有机器人已查看角色（Debug-only） */
+export const markAllBotsViewed = defineGameAction({
+  name: 'markAllBotsViewed',
+  path: '/game/mark-bots-viewed',
+});
