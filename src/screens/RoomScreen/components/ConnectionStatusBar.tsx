@@ -6,7 +6,7 @@
  * 社区标准做法：indeterminate progress bar（类似 Slack/Discord）表示持续重连中。
  */
 import React, { memo, useEffect, useMemo, useState } from 'react';
-import { Animated, Text, View } from 'react-native';
+import { Animated, Platform, Text, View } from 'react-native';
 
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
@@ -20,6 +20,8 @@ interface ConnectionStatusBarProps {
   styles: ConnectionStatusBarStyles;
 }
 
+/** Web does not support native driver for Animated — falls back to JS driver */
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 /** Width of the sliding bar relative to container width */
 const BAR_WIDTH_RATIO = 0.3;
 /** Full cycle duration for the sliding animation */
@@ -53,7 +55,7 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ stat
       Animated.timing(progress, {
         toValue: 1,
         duration: ANIMATION_DURATION_MS,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     );
     animation.start();
