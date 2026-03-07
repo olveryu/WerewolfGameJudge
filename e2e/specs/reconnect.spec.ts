@@ -374,4 +374,306 @@ test.describe('Network reconnect during night', () => {
       }
     }
   });
+
+  test('player recovers after 30s extended disconnect', async ({ browser }, testInfo) => {
+    let setup: GameSetupWithRolesResult | undefined;
+
+    try {
+      // Step 1: Setup 3-player game with guard
+      setup = await setupNPlayerGameWithRoles(browser, {
+        playerCount: 3,
+        configureTemplate: async (config) =>
+          config.configureCustomTemplate({
+            wolves: 1,
+            villagers: 1,
+            goodRoles: ['guard'],
+          }),
+      });
+
+      const { fixture, roleMap } = setup;
+      const pages = fixture.pages;
+
+      const guardIdx = findRolePageIndex(roleMap, '守卫');
+      const wolfIdx = findRolePageIndex(roleMap, '狼人');
+      const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+      expect(guardIdx).not.toBe(-1);
+      expect(wolfIdx).not.toBe(-1);
+
+      // Disconnect a non-host player. Prefer villager since they have no active
+      // role turn, minimizing interference with the night flow.
+      const disconnectIdx =
+        villagerIdx !== -1 && villagerIdx !== 0 ? villagerIdx : guardIdx !== 0 ? guardIdx : 1;
+      const disconnectContext = fixture.contexts[disconnectIdx];
+      const disconnectPage = pages[disconnectIdx];
+
+      await test.step('screenshot: pre-disconnect state', async () => {
+        await disconnectPage.screenshot().then((s) =>
+          testInfo.attach('long-offline-01-pre-disconnect.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
+      });
+
+      // Step 2: Disconnect the player
+      await test.step('disconnect player for 30s', async () => {
+        await disconnectContext.setOffline(true);
+
+        // Soft check: banner may take time to appear due to SDK heartbeat
+        const disconnectedBanner = disconnectPage.getByText('连接断开，正在重连...', {
+          exact: true,
+        });
+        const sawDisconnected = await disconnectedBanner
+          .waitFor({ state: 'visible', timeout: 15_000 })
+          .then(() => true)
+          .catch(() => false);
+
+        await testInfo.attach('long-offline-disconnect-detected.txt', {
+          body: `Disconnect indicator visible: ${sawDisconnected}`,
+          contentType: 'text/plain',
+        });
+
+        await disconnectPage.screenshot().then((s) =>
+          testInfo.attach('long-offline-02-disconnected.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
+      });
+
+      // Step 3: Wait 30 seconds — long enough to trigger dead channel detection (≥5s)
+      // and heartbeat timeout (~25s). This exercises L5 dead channel recovery.
+      await test.step('wait 30s while disconnected', async () => {
+        await disconnectPage.waitForTimeout(30_000);
+
+        await disconnectPage.screenshot().then((s) =>
+          testInfo.attach('long-offline-03-after-30s.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
+      });
+
+      // Step 4: Restore network and verify reconnection
+      await test.step('reconnect player after extended offline', async () => {
+        await disconnectContext.setOffline(false);
+
+        // Extended timeout: dead channel recovery may need extra time to
+        // tear down and rebuild the channel after long disconnect.
+        await waitForRoomScreenReady(disconnectPage, {
+          role: 'joiner',
+          liveTimeoutMs: 45_000,
+        });
+
+        await disconnectPage.screenshot().then((s) =>
+          testInfo.attach('long-offline-04-reconnected.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
+      });
+
+      // Step 5: Drive night flow — guard protects, then wolf votes
+      await test.step('guard protects', async () => {
+        const targetSeat =
+          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
+
+        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 200);
+        expect(guardTurn, 'Guard turn should be detected after extended reconnect').toBe(true);
+
+        await clickSeatAndConfirm(pages[guardIdx], targetSeat);
+      });
+
+      await test.step('wolf votes', async () => {
+        const targetSeat =
+          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
+
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 200);
+        expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
+        await driveWolfVote(pages, [wolfIdx], targetSeat);
+      });
+
+      // Step 6: Verify night completes
+      await test.step('verify night end', async () => {
+        const ended = await waitForNightEnd(pages, 200);
+        expect(ended, 'Night should have ended after extended reconnect').toBe(true);
+
+        await viewLastNightInfo(pages[0]);
+
+        const peaceful = await isTextVisible(pages[0], '平安夜');
+        const death = await isTextVisible(pages[0], '死亡');
+        expect(peaceful || death, 'Night result should show').toBe(true);
+
+        await pages[0].screenshot().then((s) =>
+          testInfo.attach('long-offline-05-night-result.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
+      });
+
+      await testInfo.attach('long-offline-summary.txt', {
+        body: [
+          `Guard page index: ${guardIdx}`,
+          `Wolf page index: ${wolfIdx}`,
+          `Disconnected page index: ${disconnectIdx}`,
+          `Disconnect role: ${roleMap.get(disconnectIdx)?.displayName ?? 'unknown'}`,
+          `Offline duration: 30s`,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+    } finally {
+      if (setup) {
+        for (const ctx of setup.fixture.contexts) {
+          await ctx.setOffline(false).catch(() => {});
+        }
+        for (const ctx of setup.fixture.contexts) {
+          await ctx.close().catch(() => {});
+        }
+      }
+    }
+  });
+
+  test('player recovers after rapid online/offline flapping (5 cycles)', async ({
+    browser,
+  }, testInfo) => {
+    let setup: GameSetupWithRolesResult | undefined;
+
+    try {
+      // Step 1: Setup 3-player game with guard
+      setup = await setupNPlayerGameWithRoles(browser, {
+        playerCount: 3,
+        configureTemplate: async (config) =>
+          config.configureCustomTemplate({
+            wolves: 1,
+            villagers: 1,
+            goodRoles: ['guard'],
+          }),
+      });
+
+      const { fixture, roleMap } = setup;
+      const pages = fixture.pages;
+
+      const guardIdx = findRolePageIndex(roleMap, '守卫');
+      const wolfIdx = findRolePageIndex(roleMap, '狼人');
+      const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+      expect(guardIdx).not.toBe(-1);
+      expect(wolfIdx).not.toBe(-1);
+
+      // Disconnect a non-host player
+      const disconnectIdx = guardIdx !== 0 ? guardIdx : villagerIdx !== -1 ? villagerIdx : 1;
+      const disconnectContext = fixture.contexts[disconnectIdx];
+      const disconnectPage = pages[disconnectIdx];
+
+      await test.step('screenshot: pre-flap state', async () => {
+        await disconnectPage.screenshot().then((s) =>
+          testInfo.attach('flap-01-pre.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
+      });
+
+      // Step 2: Rapid online/offline flapping — 5 cycles
+      const FLAP_CYCLES = 5;
+      const FLAP_OFFLINE_MS = 1_000;
+      const FLAP_ONLINE_MS = 1_000;
+
+      await test.step(`rapid flap: ${FLAP_CYCLES} cycles`, async () => {
+        for (let cycle = 1; cycle <= FLAP_CYCLES; cycle++) {
+          await disconnectContext.setOffline(true);
+          await disconnectPage.waitForTimeout(FLAP_OFFLINE_MS);
+          await disconnectContext.setOffline(false);
+          if (cycle < FLAP_CYCLES) {
+            await disconnectPage.waitForTimeout(FLAP_ONLINE_MS);
+          }
+        }
+
+        await disconnectPage.screenshot().then((s) =>
+          testInfo.attach('flap-02-after-cycles.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
+      });
+
+      // Step 3: Ensure final state is online and wait for live status
+      await test.step('stabilize after flapping', async () => {
+        // Ensure definitively online
+        await disconnectContext.setOffline(false);
+
+        await waitForRoomScreenReady(disconnectPage, {
+          role: 'joiner',
+          liveTimeoutMs: 30_000,
+        });
+
+        await disconnectPage.screenshot().then((s) =>
+          testInfo.attach('flap-03-stabilized.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
+      });
+
+      // Step 4: Drive night flow — guard protects, then wolf votes
+      await test.step('guard protects', async () => {
+        const targetSeat =
+          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
+
+        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 200);
+        expect(guardTurn, 'Guard turn should be detected after flap recovery').toBe(true);
+
+        await clickSeatAndConfirm(pages[guardIdx], targetSeat);
+      });
+
+      await test.step('wolf votes', async () => {
+        const targetSeat =
+          villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
+
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 200);
+        expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
+        await driveWolfVote(pages, [wolfIdx], targetSeat);
+      });
+
+      // Step 5: Verify night completes
+      await test.step('verify night end', async () => {
+        const ended = await waitForNightEnd(pages, 200);
+        expect(ended, 'Night should have ended after flap recovery').toBe(true);
+
+        await viewLastNightInfo(pages[0]);
+
+        const peaceful = await isTextVisible(pages[0], '平安夜');
+        const death = await isTextVisible(pages[0], '死亡');
+        expect(peaceful || death, 'Night result should show').toBe(true);
+
+        await pages[0].screenshot().then((s) =>
+          testInfo.attach('flap-04-night-result.png', {
+            body: s,
+            contentType: 'image/png',
+          }),
+        );
+      });
+
+      await testInfo.attach('flap-summary.txt', {
+        body: [
+          `Guard page index: ${guardIdx}`,
+          `Wolf page index: ${wolfIdx}`,
+          `Disconnected page index: ${disconnectIdx}`,
+          `Flap cycles: ${FLAP_CYCLES}`,
+          `Offline per cycle: ${FLAP_OFFLINE_MS}ms`,
+          `Online per cycle: ${FLAP_ONLINE_MS}ms`,
+        ].join('\n'),
+        contentType: 'text/plain',
+      });
+    } finally {
+      if (setup) {
+        for (const ctx of setup.fixture.contexts) {
+          await ctx.setOffline(false).catch(() => {});
+        }
+        for (const ctx of setup.fixture.contexts) {
+          await ctx.close().catch(() => {});
+        }
+      }
+    }
+  });
 });
