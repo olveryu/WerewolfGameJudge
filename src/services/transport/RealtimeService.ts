@@ -225,6 +225,23 @@ export class RealtimeService {
     // Without this, the SDK reuses a dead WS and every subscribe times out.
     supabase?.realtime.disconnect();
 
+    // SDK bug workaround: disconnect() sets internal state to 'disconnecting'
+    // synchronously, then transitions to 'disconnected' asynchronously (via
+    // WebSocket onclose or a 100ms fallback timer). If we call joinRoom()
+    // immediately, subscribe() → connect() bails because isDisconnecting()===true,
+    // and no new WebSocket is ever created — every subscribe hangs until our 8s timeout.
+    // Poll until the SDK finishes the transition (typically <100ms).
+    const DISCONNECT_POLL_MS = 50;
+    const DISCONNECT_TIMEOUT_MS = 2_000;
+    const disconnectStart = Date.now();
+    while (supabase?.realtime.isDisconnecting?.()) {
+      if (Date.now() - disconnectStart > DISCONNECT_TIMEOUT_MS) {
+        realtimeLog.warn('rejoinCurrentRoom: disconnect timeout — proceeding anyway');
+        break;
+      }
+      await new Promise((r) => setTimeout(r, DISCONNECT_POLL_MS));
+    }
+
     // joinRoom internally calls leaveRoom first, then creates a fresh channel
     await this.joinRoom(roomCode, userId, { onDbStateChange });
   }
