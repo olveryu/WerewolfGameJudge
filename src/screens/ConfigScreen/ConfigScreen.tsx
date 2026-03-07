@@ -15,6 +15,7 @@ import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { SettingsSheet } from '@/components/SettingsSheet';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { RootStackParamList } from '@/navigation/types';
@@ -28,7 +29,6 @@ import {
   RoleInfoSheet,
   RoleStepper,
   Section,
-  SettingsSheet,
   TemplatePicker,
   VariantPicker,
 } from './components';
@@ -86,8 +86,6 @@ export const ConfigScreen: React.FC = () => {
     selectedTemplate,
     roleRevealAnimation,
     bgmEnabled,
-    animationOptions,
-    bgmOptions,
     settingsSheetVisible,
     handleOpenSettings,
     handleCloseSettings,
@@ -296,11 +294,11 @@ export const ConfigScreen: React.FC = () => {
         onClose={handleCloseSettings}
         roleRevealAnimation={roleRevealAnimation}
         bgmValue={bgmEnabled ? 'on' : 'off'}
-        animationOptions={animationOptions}
-        bgmOptions={bgmOptions}
         onAnimationChange={handleAnimationChange}
         onBgmChange={handleBgmChange}
-        styles={styles}
+        animationTestIDPrefix={TESTIDS.configAnimation}
+        bgmTestIDPrefix={TESTIDS.configBgm}
+        overlayTestID={TESTIDS.configSettingsOverlay}
       />
 
       {/* Template Dropdown Modal */}

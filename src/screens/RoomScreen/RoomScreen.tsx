@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AlertModal } from '@/components/AlertModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { SettingsSheet } from '@/components/SettingsSheet';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { fixed, spacing, useTheme } from '@/theme';
@@ -172,6 +173,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     shareReviewVisible,
     closeShareReview,
     shareNightReview,
+    // Settings sheet
+    settingsSheetVisible,
+    bgmEnabled,
+    handleOpenSettings,
+    handleCloseSettings,
+    handleAnimationChange,
+    handleBgmChange,
   } = useRoomScreenState(route.params, navigation);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
@@ -278,6 +286,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               Sentry.captureException(err);
             })
           }
+          onSettings={handleOpenSettings}
           styles={componentStyles.hostMenuDropdown}
         />
       </View>
@@ -536,6 +545,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onShareImage={handleShareQRImage}
         onCopyLink={handleCopyLink}
         onClose={() => setQrModalVisible(false)}
+      />
+
+      {/* Settings Sheet — Host 可调动画和 BGM 设置 */}
+      <SettingsSheet
+        visible={settingsSheetVisible}
+        onClose={handleCloseSettings}
+        roleRevealAnimation={resolvedRoleRevealAnimation}
+        bgmValue={bgmEnabled ? 'on' : 'off'}
+        onAnimationChange={handleAnimationChange}
+        onBgmChange={handleBgmChange}
       />
     </SafeAreaView>
   );
