@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
 import type { LocalGameState } from '@/types/GameStateTypes';
+import { isAbortError } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
 import type { WitchStepResultsExtra } from './actionIntentHelpers';
@@ -580,6 +581,10 @@ export function useActionOrchestrator({
             try {
               await sendWolfRobotHunterStatusViewed(effectiveSeat);
             } catch (error) {
+              if (isAbortError(error)) {
+                roomScreenLog.warn('[wolfRobotViewHunterStatus] Aborted');
+                return;
+              }
               roomScreenLog.error('[wolfRobotViewHunterStatus] Failed to send confirmation', error);
               Sentry.captureException(error);
               actionDialogs.showRoleActionPrompt(
@@ -728,6 +733,7 @@ export function useActionOrchestrator({
     roomScreenLog.debug(` Triggering: key=${key}, intent=${autoIntent.type}`);
     lastAutoIntentKeyRef.current = key;
     void handleActionIntent(autoIntent).catch((err) => {
+      if (isAbortError(err)) return;
       roomScreenLog.error('[auto-trigger] unhandled rejection', err);
       Sentry.captureException(err);
     });

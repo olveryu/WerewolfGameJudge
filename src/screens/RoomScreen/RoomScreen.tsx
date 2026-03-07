@@ -24,6 +24,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { spacing, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
+import { isAbortError } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
 import { ActionButton } from './components/ActionButton';
@@ -260,18 +261,21 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           onFillWithBots={() =>
             void fillWithBots().catch((err) => {
+              if (isAbortError(err)) return;
               roomScreenLog.error('[fillWithBots] failed', err);
               Sentry.captureException(err);
             })
           }
           onMarkAllBotsViewed={() =>
             void markAllBotsViewed().catch((err) => {
+              if (isAbortError(err)) return;
               roomScreenLog.error('[markAllBotsViewed] failed', err);
               Sentry.captureException(err);
             })
           }
           onClearAllSeats={() =>
             void clearAllSeats().catch((err) => {
+              if (isAbortError(err)) return;
               roomScreenLog.error('[clearAllSeats] failed', err);
               Sentry.captureException(err);
             })

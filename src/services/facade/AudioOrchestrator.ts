@@ -17,6 +17,7 @@ import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverrid
 
 import type { AudioService } from '@/services/infra/AudioService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
+import { isAbortError } from '@/utils/errorUtils';
 import { facadeLog } from '@/utils/logger';
 
 import type { GameActionsContext } from './gameActions';
@@ -188,8 +189,12 @@ export class AudioOrchestrator {
       }
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
-      facadeLog.error('resumeAfterRejoin failed', e);
-      Sentry.captureException(e);
+      if (isAbortError(e)) {
+        facadeLog.warn('resumeAfterRejoin aborted', e);
+      } else {
+        facadeLog.error('resumeAfterRejoin failed', e);
+        Sentry.captureException(e);
+      }
     }
   }
 

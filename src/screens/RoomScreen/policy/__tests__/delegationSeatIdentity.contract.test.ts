@@ -553,7 +553,7 @@ describe('Delegation Seat Identity Contract', () => {
 
       if (match) {
         const startIndex = match.index;
-        const block = content.substring(startIndex, startIndex + 2000);
+        const block = content.substring(startIndex, startIndex + 2500);
 
         // Must gate on pendingHunterStatusViewed (prevent duplicate submission)
         expect(block).toMatch(/pendingHunterStatusViewed/);

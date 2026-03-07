@@ -20,6 +20,22 @@ export function getErrorMessage(e: unknown, fallback = '请稍后重试'): strin
 }
 
 /**
+ * Detect fetch AbortError (browser tab backgrounded / network blip / duplicate navigation).
+ *
+ * Handles two shapes:
+ * - Standard `Error` instance with `name === 'AbortError'`
+ * - Supabase `PostgrestError` plain object `{ message, code, details, hint }`
+ *   where `message` contains the string "AbortError"
+ */
+export function isAbortError(err: unknown): boolean {
+  if (err instanceof Error) return err.name === 'AbortError';
+  if (err != null && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message).includes('AbortError');
+  }
+  return false;
+}
+
+/**
  * Fire-and-forget a promise with unified error handling (log + Sentry).
  *
  * Replaces the repetitive pattern:
@@ -37,9 +53,13 @@ export function getErrorMessage(e: unknown, fallback = '请稍后重试'): strin
 export function fireAndForget(
   promise: Promise<unknown>,
   label: string,
-  logger: Pick<ReturnType<typeof LoggerType.extend>, 'error'>,
+  logger: Pick<ReturnType<typeof LoggerType.extend>, 'error' | 'warn'>,
 ): void {
   void promise.catch((err: unknown) => {
+    if (isAbortError(err)) {
+      logger.warn(label, '(aborted)', err);
+      return;
+    }
     logger.error(label, err);
     Sentry.captureException(err);
   });

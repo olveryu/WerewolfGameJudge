@@ -3,6 +3,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
 
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
+import { isAbortError } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 import { withTimeout } from '@/utils/withTimeout';
 
@@ -33,8 +34,12 @@ export class AuthService {
       // No automatic anonymous sign-in for first-time users.
       // They will see the login modal (with anonymous + email options) when they try to act.
     } catch (error) {
-      authLog.error(' Auto sign in failed:', error);
-      Sentry.captureException(error);
+      if (isAbortError(error)) {
+        authLog.warn('Auto sign in aborted');
+      } else {
+        authLog.error(' Auto sign in failed:', error);
+        Sentry.captureException(error);
+      }
     }
   }
 

@@ -24,7 +24,7 @@ import type { RoomRecord, RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
-import { getErrorMessage } from '@/utils/errorUtils';
+import { getErrorMessage, isAbortError } from '@/utils/errorUtils';
 import { gameRoomLog } from '@/utils/logger';
 
 import type { ConnectionSyncActions } from './useConnectionSync';
@@ -118,8 +118,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return true;
       } catch (err) {
         const message = getErrorMessage(err, '房间初始化失败，请重试');
-        gameRoomLog.error('[initializeRoom] Failed', { error: message, roomNumber });
-        Sentry.captureException(err);
+        if (isAbortError(err)) {
+          gameRoomLog.warn('[initializeRoom] Aborted', { roomNumber });
+        } else {
+          gameRoomLog.error('[initializeRoom] Failed', { error: message, roomNumber });
+          Sentry.captureException(err);
+        }
         setError(message);
         return false;
       } finally {
@@ -178,8 +182,8 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         // Expected error — warn only, do not pollute Sentry.
         const isChannelClosed =
           err instanceof Error && err.message.includes('channel closed before subscribe');
-        if (isChannelClosed) {
-          gameRoomLog.warn('joinRoom aborted (channel closed by retry):', message);
+        if (isChannelClosed || isAbortError(err)) {
+          gameRoomLog.warn('joinRoom aborted (channel closed / network abort):', message);
         } else {
           gameRoomLog.error('Player joinRoom failed:', message, err);
           Sentry.captureException(err);
@@ -201,8 +205,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       await facade.leaveRoom();
       setRoomRecord(null);
     } catch (err) {
-      gameRoomLog.error(' Error leaving room:', err);
-      Sentry.captureException(err);
+      if (isAbortError(err)) {
+        gameRoomLog.warn('Error leaving room (aborted):', err);
+      } else {
+        gameRoomLog.error(' Error leaving room:', err);
+        Sentry.captureException(err);
+      }
     }
   }, [facade, setRoomRecord]);
 
@@ -219,9 +227,13 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return await facade.takeSeat(seatNumber, displayName ?? undefined, avatarUrl ?? undefined);
       } catch (err) {
-        gameRoomLog.error(' Error taking seat:', err);
-        Sentry.captureException(err);
-        showAlert('入座失败', '请稍后重试');
+        if (isAbortError(err)) {
+          gameRoomLog.warn('Error taking seat (aborted):', err);
+        } else {
+          gameRoomLog.error(' Error taking seat:', err);
+          Sentry.captureException(err);
+          showAlert('入座失败', '请稍后重试');
+        }
         return false;
       }
     },
@@ -233,9 +245,13 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     try {
       await facade.leaveSeat();
     } catch (err) {
-      gameRoomLog.error(' Error leaving seat:', err);
-      Sentry.captureException(err);
-      showAlert('离座失败', '请稍后重试');
+      if (isAbortError(err)) {
+        gameRoomLog.warn('Error leaving seat (aborted):', err);
+      } else {
+        gameRoomLog.error(' Error leaving seat:', err);
+        Sentry.captureException(err);
+        showAlert('离座失败', '请稍后重试');
+      }
     }
   }, [facade]);
 
@@ -259,8 +275,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return result;
       } catch (err) {
-        gameRoomLog.error(' Error taking seat with ack:', err);
-        Sentry.captureException(err);
+        if (isAbortError(err)) {
+          gameRoomLog.warn('Error taking seat with ack (aborted):', err);
+        } else {
+          gameRoomLog.error(' Error taking seat with ack:', err);
+          Sentry.captureException(err);
+        }
         return { success: false, reason: String(err) };
       }
     },
@@ -272,8 +292,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     try {
       return await facade.leaveSeatWithAck();
     } catch (err) {
-      gameRoomLog.error(' Error leaving seat with ack:', err);
-      Sentry.captureException(err);
+      if (isAbortError(err)) {
+        gameRoomLog.warn('Error leaving seat with ack (aborted):', err);
+      } else {
+        gameRoomLog.error(' Error leaving seat with ack:', err);
+        Sentry.captureException(err);
+      }
       return { success: false, reason: String(err) };
     }
   }, [facade]);
@@ -294,8 +318,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       }
       return result;
     } catch (err) {
-      gameRoomLog.error('Force sync fetchStateFromDB failed:', err);
-      Sentry.captureException(err);
+      if (isAbortError(err)) {
+        gameRoomLog.warn('Force sync aborted:', err);
+      } else {
+        gameRoomLog.error('Force sync fetchStateFromDB failed:', err);
+        Sentry.captureException(err);
+      }
       setConnectionStatus(ConnectionStatus.Disconnected);
       return false;
     }
