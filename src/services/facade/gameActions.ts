@@ -142,16 +142,6 @@ export async function markViewedRole(
       seat,
     },
     ctx.store,
-    // 乐观预测：立即显示已看牌
-    (state) => ({
-      ...state,
-      players: {
-        ...state.players,
-        [seat]: state.players[seat]
-          ? { ...state.players[seat]!, hasViewedRole: true }
-          : state.players[seat],
-      },
-    }),
   );
   return result;
 }
