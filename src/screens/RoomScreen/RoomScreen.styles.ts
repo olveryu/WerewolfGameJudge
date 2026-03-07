@@ -9,10 +9,18 @@
 
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  createSharedStyles,
+  spacing,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 export function createRoomScreenStyles(colors: ThemeColors) {
+  const shared = createSharedStyles(colors);
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -79,12 +87,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       overflow: 'hidden',
     },
     backButton: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
+      ...shared.iconButton,
     },
     backButtonText: {
       color: colors.text,

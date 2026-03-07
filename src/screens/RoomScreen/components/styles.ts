@@ -9,7 +9,15 @@
  */
 import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  createSharedStyles,
+  shadows,
+  spacing,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 // ─── Per-component style interfaces ─────────────────────────────────────────
@@ -125,6 +133,7 @@ interface RoomScreenComponentStyles {
 // ─── Factory ────────────────────────────────────────────────────────────────
 
 export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreenComponentStyles {
+  const shared = createSharedStyles(colors);
   return {
     actionButton: StyleSheet.create<ActionButtonStyles>({
       actionButton: {
@@ -429,12 +438,7 @@ export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreen
         minWidth: 60,
       },
       triggerButton: {
-        width: componentSizes.avatar.md,
-        height: componentSizes.avatar.md,
-        borderRadius: borderRadius.medium,
-        backgroundColor: colors.background,
-        justifyContent: 'center',
-        alignItems: 'center',
+        ...shared.iconButton,
       },
       triggerText: {
         fontSize: typography.heading,

@@ -7,7 +7,14 @@
 import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import { createAuthBaseStyles } from '@/components/auth/authStyles';
-import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
+import {
+  borderRadius,
+  createSharedStyles,
+  shadows,
+  spacing,
+  type ThemeColors,
+  typography,
+} from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface HomeScreenStyles {
@@ -90,6 +97,7 @@ export interface HomeScreenStyles {
 }
 
 export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number): HomeScreenStyles {
+  const shared = createSharedStyles(colors);
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -131,12 +139,8 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       gap: spacing.small,
     },
     topBarButton: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
+      ...shared.iconButton,
       borderRadius: borderRadius.full,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
       overflow: 'hidden',
     },
 

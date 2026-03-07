@@ -43,3 +43,6 @@ export { type ThemeColors, type ThemeKey } from './themes';
 
 // Color utilities
 export { withAlpha } from './colorUtils';
+
+// Shared style bases
+export { createSharedStyles } from './sharedStyles';
