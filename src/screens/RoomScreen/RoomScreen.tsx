@@ -10,7 +10,6 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { BlurView } from 'expo-blur';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -25,7 +24,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { fixed, spacing, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
-import { isAbortError } from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 import { ActionButton } from './components/ActionButton';
@@ -76,18 +75,24 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         // 'cancelled' → user dismissed intentionally, no alert needed
       })
       .catch((e) => {
-        roomScreenLog.error('Share room failed:', e);
-        Sentry.captureException(e);
-        showAlert('分享失败', '无法复制链接，请手动分享房间号');
+        handleError(e, {
+          label: '分享房间',
+          logger: roomScreenLog,
+          alertTitle: '分享失败',
+          alertMessage: '无法复制链接，请手动分享房间号',
+        });
       });
   }, [route.params.roomNumber]);
 
   const handleShareQRImage = useCallback(
     (getBase64: () => Promise<string>) => {
       void shareQRCodeImage(getBase64, route.params.roomNumber).catch((e) => {
-        roomScreenLog.error('Share QR image failed:', e);
-        Sentry.captureException(e);
-        showAlert('分享失败', '无法分享二维码图片');
+        handleError(e, {
+          label: '分享二维码',
+          logger: roomScreenLog,
+          alertTitle: '分享失败',
+          alertMessage: '无法分享二维码图片',
+        });
       });
     },
     [route.params.roomNumber],
@@ -267,23 +272,25 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           }
           onFillWithBots={() =>
             void fillWithBots().catch((err) => {
-              if (isAbortError(err)) return;
-              roomScreenLog.error('[fillWithBots] failed', err);
-              Sentry.captureException(err);
+              handleError(err, { label: 'fillWithBots', logger: roomScreenLog, alertTitle: false });
             })
           }
           onMarkAllBotsViewed={() =>
             void markAllBotsViewed().catch((err) => {
-              if (isAbortError(err)) return;
-              roomScreenLog.error('[markAllBotsViewed] failed', err);
-              Sentry.captureException(err);
+              handleError(err, {
+                label: 'markAllBotsViewed',
+                logger: roomScreenLog,
+                alertTitle: false,
+              });
             })
           }
           onClearAllSeats={() =>
             void clearAllSeats().catch((err) => {
-              if (isAbortError(err)) return;
-              roomScreenLog.error('[clearAllSeats] failed', err);
-              Sentry.captureException(err);
+              handleError(err, {
+                label: 'clearAllSeats',
+                logger: roomScreenLog,
+                alertTitle: false,
+              });
             })
           }
           onSettings={handleOpenSettings}
