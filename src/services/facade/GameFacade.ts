@@ -85,6 +85,14 @@ export class GameFacade implements IGameFacade {
   #aborted = false;
 
   /**
+   * Promise dedup: prevents concurrent reconnectChannel() calls from trampling each other.
+   * Multiple triggers (Dead Channel Detector, foreground handler, online handler) can fire
+   * simultaneously — only the first creates the actual reconnect; others await the same promise.
+   * Auto-cleared in .finally().
+   */
+  #reconnectPromise: Promise<void> | null = null;
+
+  /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
   constructor(deps: GameFacadeDeps) {
@@ -166,8 +174,24 @@ export class GameFacade implements IGameFacade {
    * Tears down the dead Supabase Realtime channel, creates a fresh one with
    * the same room/callbacks, then fetches latest state from DB.
    * Called by useConnectionSync when Disconnected persists beyond threshold.
+   *
+   * Promise dedup: multiple triggers can fire concurrently (Dead Channel Detector,
+   * foreground handler, online handler). Only the first creates the actual reconnect;
+   * subsequent callers await the same promise to avoid WebSocket trampling.
    */
   async reconnectChannel(): Promise<void> {
+    if (this.#aborted) return;
+    if (this.#reconnectPromise) {
+      facadeLog.info('reconnectChannel: already in progress, deduping');
+      return this.#reconnectPromise;
+    }
+    this.#reconnectPromise = this.#doReconnectChannel().finally(() => {
+      this.#reconnectPromise = null;
+    });
+    return this.#reconnectPromise;
+  }
+
+  async #doReconnectChannel(): Promise<void> {
     facadeLog.info('reconnectChannel: starting dead channel recovery');
     try {
       await this.#realtimeService.rejoinCurrentRoom();
@@ -199,6 +223,7 @@ export class GameFacade implements IGameFacade {
 
   async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     this.#aborted = false;
+    this.#reconnectPromise = null;
     this.#audioOrchestrator.reset();
     this.#connectionRecovery.reset();
     this.#isHost = true;
@@ -239,6 +264,7 @@ export class GameFacade implements IGameFacade {
     isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }> {
     this.#aborted = false;
+    this.#reconnectPromise = null;
     this.#audioOrchestrator.reset();
     this.#connectionRecovery.reset();
     this.#isHost = isHost;
@@ -319,6 +345,7 @@ export class GameFacade implements IGameFacade {
   async leaveRoom(): Promise<void> {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this.#aborted = true;
+    this.#reconnectPromise = null;
     this.#audioOrchestrator.reset();
     this.#connectionRecovery.setAborted(true);
     this.#connectionRecovery.dispose();

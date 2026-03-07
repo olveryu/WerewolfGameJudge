@@ -77,7 +77,9 @@ export function useConnectionSync(
 
   // Shared ref: declared before both foreground + dead-channel effects so both can access it.
   const deadChannelRetriesRef = useRef(0);
-  const DEAD_CHANNEL_THRESHOLD_MS = 5_000;
+  const DEAD_CHANNEL_BASE_MS = 5_000;
+  const DEAD_CHANNEL_MAX_MS = 60_000;
+  const MAX_DEAD_CHANNEL_RETRIES = 10;
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -116,8 +118,8 @@ export function useConnectionSync(
 
   // ── L3 补充：browser online 事件 → reconnectChannel ──
   // ConnectionRecoveryManager 的 L3 handler 仅调 fetchStateFromDB()，不重建 WS channel。
-  // 当 Dead Channel Detector 3 次重试耗尽后 status 卡在 Disconnected，
-  // fetchStateFromDB → markAsLive 只接受 Syncing/Connecting → Live，对 Disconnected 是 no-op。
+  // 当 Dead Channel Detector 重试耗尽后 status 卡在 Disconnected，
+  // fetchStateFromDB → markAsLive 只接受 Syncing → Live，对 Disconnected 是 no-op。
   // 此 handler 在 online 事件触发时重置 retry 计数并 reconnectChannel()，补上缺口。
   useEffect(() => {
     if (typeof globalThis.window?.addEventListener !== 'function') return;
@@ -159,6 +161,23 @@ export function useConnectionSync(
 
     if (connectionStatus !== ConnectionStatus.Disconnected) return;
 
+    // Retry limit: stop after MAX_DEAD_CHANNEL_RETRIES to avoid infinite reconnect storm
+    if (deadChannelRetriesRef.current >= MAX_DEAD_CHANNEL_RETRIES) {
+      connectionSyncLog.warn(
+        'Dead channel retries exhausted, waiting for manual action or online event',
+        {
+          attempt: deadChannelRetriesRef.current,
+        },
+      );
+      return;
+    }
+
+    // Exponential backoff: 5s, 10s, 20s, 40s, ... capped at 60s
+    const delay = Math.min(
+      DEAD_CHANNEL_BASE_MS * Math.pow(2, deadChannelRetriesRef.current),
+      DEAD_CHANNEL_MAX_MS,
+    );
+
     const timer = setTimeout(() => {
       // Re-check: still Disconnected after threshold?
       // (connectionStatus is captured in closure — if it changed, this effect
@@ -166,11 +185,15 @@ export function useConnectionSync(
       deadChannelRetriesRef.current += 1;
       connectionSyncLog.info('Dead channel detector: triggering reconnectChannel', {
         attempt: deadChannelRetriesRef.current,
+        nextDelay: Math.min(
+          DEAD_CHANNEL_BASE_MS * Math.pow(2, deadChannelRetriesRef.current),
+          DEAD_CHANNEL_MAX_MS,
+        ),
       });
       facade.reconnectChannel().catch((e) => {
         connectionSyncLog.error('Dead channel detector: reconnectChannel failed', e);
       });
-    }, DEAD_CHANNEL_THRESHOLD_MS);
+    }, delay);
 
     return () => clearTimeout(timer);
   }, [connectionStatus, roomRecord, facade]);
