@@ -13,9 +13,7 @@
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName, getWolfKillImmuneRoleIds } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
-import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
@@ -27,11 +25,6 @@ import { roomScreenLog } from '@/utils/logger';
 import type { ExecutorContext } from '../executors';
 import { dispatchIntent } from '../executors';
 import type { WitchStepResultsExtra } from './actionIntentHelpers';
-import {
-  buildWitchStepResults,
-  getRevealDataFromState,
-  getSubStepByKey,
-} from './actionIntentHelpers';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -268,218 +261,8 @@ export function useActionOrchestrator({
 
       if (await dispatchIntent(intent, ctx)) return;
 
-      // ── Legacy switch (cases migrated to executors will be removed) ───────
+      // ── Legacy switch (remaining cases will be migrated in C10) ────────────
       switch (intent.type) {
-        case 'magicianFirst':
-          roomScreenLog.debug('[handleActionIntent] magicianFirst', {
-            targetSeat: intent.targetSeat,
-          });
-          setFirstSwapSeat(intent.targetSeat);
-          actionDialogs.showMagicianFirstAlert(intent.targetSeat, currentSchema!);
-          break;
-
-        case 'reveal': {
-          if (!gameState) return;
-          if (!intent.revealKind) {
-            roomScreenLog.warn(' reveal intent missing revealKind');
-            return;
-          }
-
-          const revealKind = intent.revealKind;
-
-          confirmThenAct(intent.targetSeat, async () => {
-            setPendingRevealDialog(true);
-
-            const maxRetries = 20;
-            const retryInterval = 50;
-            let reveal: { targetSeat: number; result: string } | undefined;
-
-            for (let i = 0; i < maxRetries; i++) {
-              await new Promise((resolve) => setTimeout(resolve, retryInterval));
-              const state = gameStateRef.current;
-              if (state) reveal = getRevealDataFromState(state, revealKind);
-              if (reveal) break;
-            }
-
-            if (reveal) {
-              const ui = currentSchema?.kind !== 'compound' ? currentSchema?.ui : undefined;
-              const displayResult =
-                ui?.revealResultFormat === 'factionCheck'
-                  ? reveal.result
-                  : getRoleDisplayName(reveal.result);
-              const titlePrefix = ui?.revealTitlePrefix ?? revealKind;
-              actionDialogs.showRevealDialog(
-                `${titlePrefix}：${reveal.targetSeat + 1}号是${displayResult}`,
-                '',
-                () => {
-                  submitRevealAckSafe(revealKind);
-                  setPendingRevealDialog(false);
-                },
-              );
-            } else {
-              roomScreenLog.warn(
-                `${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
-              );
-              setPendingRevealDialog(false);
-            }
-          });
-          break;
-        }
-
-        case 'wolfVote':
-          {
-            const seat = intent.wolfSeat ?? effectiveSeat;
-            roomScreenLog.info('[handleActionIntent] wolfVote:', {
-              'intent.wolfSeat': intent.wolfSeat,
-              effectiveSeat,
-              effectiveRole,
-              controlledSeat,
-              seat,
-              targetSeat: intent.targetSeat,
-            });
-            if (seat === null) {
-              roomScreenLog.warn(
-                '[handleActionIntent] wolfVote: effectiveSeat is null, cannot submit.',
-                { effectiveSeat, effectiveRole, controlledSeat },
-              );
-              return;
-            }
-            actionDialogs.showWolfVoteDialog(
-              `${seat + 1}号狼人`,
-              intent.targetSeat,
-              () => {
-                void proceedWithAction(intent.targetSeat === -1 ? null : intent.targetSeat);
-              },
-              (() => {
-                // Only override for immune targets — normal text comes from schema templates.
-                if (intent.targetSeat < 0) return undefined;
-                const targetRole = gameStateRef.current?.players?.get(intent.targetSeat)?.role;
-                if (currentSchema?.id !== 'wolfKill' || !targetRole) return undefined;
-                const immune = getWolfKillImmuneRoleIds().includes(targetRole);
-                if (!immune) return undefined;
-                const tpl = currentSchema.ui?.voteConfirmTemplate ?? '';
-                const resolved = tpl
-                  .replace('{wolf}', `${seat + 1}号狼人`)
-                  .replace('{seat}', `${intent.targetSeat + 1}`);
-                return `${resolved}\n（提示：该角色免疫狼刀，服务端会拒绝）`;
-              })(),
-              currentSchema!,
-            );
-          }
-          break;
-
-        case 'actionConfirm':
-          roomScreenLog.debug('[actionConfirm] Processing:', {
-            effectiveRole,
-            effectiveSeat,
-            firstSwapSeat,
-            schemaKind: currentSchema?.kind,
-            schemaId: currentSchema?.id,
-            'intent.targetSeat': intent.targetSeat,
-            'intent.stepKey': intent.stepKey,
-          });
-
-          if (effectiveRole === 'magician' && firstSwapSeat !== null) {
-            const swapTargets: [number, number] = [firstSwapSeat, intent.targetSeat];
-            setSecondSeat(intent.targetSeat);
-            // setTimeout(0) ensures setSecondSeat triggers re-render before dialog shows,
-            // so the UI reflects the second seat selection visually.
-            setTimeout(() => {
-              actionDialogs.showConfirmDialog(
-                currentSchema!.ui!.confirmTitle!,
-                intent.message ?? '',
-                () => {
-                  setFirstSwapSeat(null);
-                  setSecondSeat(null);
-                  void proceedWithActionTyped(null, { targets: swapTargets });
-                },
-                () => {
-                  setFirstSwapSeat(null);
-                  setSecondSeat(null);
-                },
-              );
-            }, 0);
-          } else {
-            const stepSchema = getSubStepByKey(currentSchema, intent.stepKey);
-            let extra: ActionExtra | undefined;
-            let targetToSubmit: number | null;
-
-            if (currentSchema?.kind === 'compound') {
-              if (effectiveSeat === null) {
-                roomScreenLog.warn(
-                  '[actionConfirm] Cannot submit compound action without seat (effectiveSeat is null)',
-                );
-                return;
-              }
-              targetToSubmit = effectiveSeat;
-              if (stepSchema?.key === 'save') {
-                extra = buildWitchStepResults({
-                  saveTarget: intent.targetSeat,
-                  poisonTarget: null,
-                });
-              } else if (stepSchema?.key === 'poison') {
-                extra = buildWitchStepResults({
-                  saveTarget: null,
-                  poisonTarget: intent.targetSeat,
-                });
-              }
-            } else {
-              targetToSubmit = intent.targetSeat;
-            }
-
-            roomScreenLog.debug('[actionConfirm] Submitting:', {
-              schemaKind: currentSchema?.kind,
-              targetToSubmit,
-              'intent.targetSeat': intent.targetSeat,
-              extra,
-            });
-
-            actionDialogs.showConfirmDialog(
-              stepSchema?.ui?.confirmTitle ?? currentSchema!.ui!.confirmTitle!,
-              stepSchema?.ui?.confirmText ?? intent.message ?? '',
-              () => void proceedWithActionTyped(targetToSubmit, extra),
-            );
-          }
-          break;
-
-        case 'skip': {
-          if (currentSchema?.kind === 'confirm') {
-            actionDialogs.showConfirmDialog(
-              '确认跳过',
-              intent.message || BLOCKED_UI_DEFAULTS.skipButtonText,
-              () => void proceedWithActionTyped(null, { confirmed: false } as ActionExtra),
-            );
-            break;
-          }
-
-          const skipStepSchema = getSubStepByKey(currentSchema, intent.stepKey);
-          let skipExtra: ActionExtra | undefined;
-          let skipSeat: number | null = null;
-
-          if (intent.stepKey === 'skipAll' || currentSchema?.kind === 'compound') {
-            if (effectiveSeat === null) {
-              roomScreenLog.warn(
-                '[skip] Cannot submit compound skip without seat (effectiveSeat is null)',
-              );
-              return;
-            }
-            skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });
-            skipSeat = effectiveSeat;
-          }
-
-          const skipConfirmText = skipStepSchema?.ui?.confirmText || intent.message;
-          if (!skipConfirmText) {
-            throw new Error(`[FAIL-FAST] Missing confirmText for skip action: ${intent.stepKey}`);
-          }
-
-          actionDialogs.showConfirmDialog(
-            '确认跳过',
-            skipConfirmText,
-            () => void proceedWithActionTyped(skipSeat, skipExtra),
-          );
-          break;
-        }
-
         case 'actionPrompt': {
           const hint = gameState?.ui?.currentActorHint;
           const hintApplies = hint && effectiveRole && hint.targetRoleIds.includes(effectiveRole);
@@ -688,10 +471,11 @@ export function useActionOrchestrator({
           break;
         }
 
-        default: {
-          const _exhaustiveCheck: never = intent.type;
-          throw new Error(`[FAIL-FAST] Unhandled ActionIntentType: ${_exhaustiveCheck}`);
-        }
+        default:
+          // 5 intent types (reveal, magicianFirst, wolfVote, actionConfirm, skip)
+          // are handled by executors above; remaining types will be migrated in C10,
+          // at which point this switch is eliminated entirely.
+          throw new Error(`[FAIL-FAST] Unhandled ActionIntentType: ${String(intent.type)}`);
       }
     },
     [
