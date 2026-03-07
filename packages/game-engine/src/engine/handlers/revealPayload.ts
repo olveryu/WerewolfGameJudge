@@ -6,9 +6,7 @@
  * Adding a new RevealKind forces a compile error in REVEAL_HANDLERS.
  */
 
-import type { RevealKind } from '../../models/roles';
-import type { SchemaId } from '../../models/roles/spec';
-import { SCHEMAS } from '../../models/roles/spec';
+import { type RevealKind, type SchemaId, SCHEMAS } from '../../models';
 import type { ResolverResult } from '../../resolvers/types';
 import type { ApplyResolverResultAction } from '../reducer/types';
 

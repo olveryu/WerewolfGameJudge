@@ -9,8 +9,7 @@
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
  */
 
-import type { RoleId } from '../models/roles';
-import type { SchemaId } from '../models/roles/spec/schemas';
+import type { RoleId, SchemaId } from '../models';
 
 /**
  * Current night's accumulated results.

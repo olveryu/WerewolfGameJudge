@@ -5,7 +5,7 @@
  * When all players have viewed, reducer transitions status → GameStatus.Ready.
  */
 
-import { GameStatus } from '../../models/GameStatus';
+import { GameStatus } from '../../models';
 import type { ViewedRoleIntent } from '../intents/types';
 import type { PlayerViewedRoleAction } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';

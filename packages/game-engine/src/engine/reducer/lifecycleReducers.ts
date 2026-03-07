@@ -5,9 +5,8 @@
  * No IO, no random, no time dependencies.
  */
 
-import { GameStatus } from '../../models/GameStatus';
-import type { ResolvedRoleRevealAnimation } from '../../types/RoleRevealAnimation';
-import { resolveRandomAnimation } from '../../types/RoleRevealAnimation';
+import { GameStatus } from '../../models';
+import { type ResolvedRoleRevealAnimation, resolveRandomAnimation } from '../../types';
 import type { Complete } from '../state/normalize';
 import type { GameState } from '../store/types';
 import type {

@@ -5,11 +5,14 @@
  * Exported `isSkipAction` and `checkNightmareBlockGuard` are also consumed by tests.
  */
 
-import { GameStatus } from '../../models/GameStatus';
-import type { RoleId } from '../../models/roles';
-import { doesRoleParticipateInWolfVote } from '../../models/roles';
-import type { SchemaId } from '../../models/roles/spec';
-import { BLOCKED_UI_DEFAULTS, NIGHT_STEPS, SCHEMAS } from '../../models/roles/spec';
+import {
+  doesRoleParticipateInWolfVote,
+  GameStatus,
+  type RoleId,
+  type SchemaId,
+  SCHEMAS,
+} from '../../models';
+import { BLOCKED_UI_DEFAULTS, NIGHT_STEPS } from '../../models/roles/spec';
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput } from '../../resolvers/types';
 import type { HandlerResult } from './types';
