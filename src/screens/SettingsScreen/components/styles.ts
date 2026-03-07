@@ -6,7 +6,7 @@
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 
 import { createAuthBaseStyles } from '@/components/auth/authStyles';
-import { borderRadius, shadows, spacing, ThemeColors, typography } from '@/theme';
+import { borderRadius, shadows, spacing, ThemeColors, typography, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface SettingsScreenStyles {
@@ -166,7 +166,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     statusBadge: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.success + '20',
+      backgroundColor: withAlpha(colors.success, 0.125),
       paddingHorizontal: spacing.small,
       paddingVertical: spacing.tight,
       borderRadius: borderRadius.full,
@@ -383,7 +383,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     themeOptionActive: {
       borderColor: colors.primary,
-      backgroundColor: colors.primary + '20',
+      backgroundColor: withAlpha(colors.primary, 0.125),
     },
     themeOptionText: {
       fontSize: typography.secondary,

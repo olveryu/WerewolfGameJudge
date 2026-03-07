@@ -9,7 +9,7 @@
 
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 export function createRoomScreenStyles(colors: ThemeColors) {
@@ -73,7 +73,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.medium,
-      backgroundColor: colors.surface + 'CC',
+      backgroundColor: withAlpha(colors.surface, 0.8),
       borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
       overflow: 'hidden',

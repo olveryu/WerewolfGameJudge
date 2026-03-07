@@ -7,7 +7,7 @@
 
 import { Dimensions, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, shadows, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 // ── 布局常量 ──────────────────────────────────────────────
@@ -376,16 +376,16 @@ export const createStyles = (colors: ThemeColors) =>
       gap: spacing.tight,
     },
     notepadCardWolf: {
-      backgroundColor: colors.wolf + '18',
+      backgroundColor: withAlpha(colors.wolf, 0.094),
     },
     notepadCardGod: {
-      backgroundColor: colors.god + '18',
+      backgroundColor: withAlpha(colors.god, 0.094),
     },
     notepadCardVillager: {
-      backgroundColor: colors.villager + '18',
+      backgroundColor: withAlpha(colors.villager, 0.094),
     },
     notepadCardThird: {
-      backgroundColor: colors.third + '18',
+      backgroundColor: withAlpha(colors.third, 0.094),
     },
     notepadCardHeader: {
       flexDirection: 'row',
@@ -418,16 +418,16 @@ export const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
     },
     notepadRoleBadgeWolf: {
-      backgroundColor: colors.wolf + '30',
+      backgroundColor: withAlpha(colors.wolf, 0.188),
     },
     notepadRoleBadgeGod: {
-      backgroundColor: colors.god + '30',
+      backgroundColor: withAlpha(colors.god, 0.188),
     },
     notepadRoleBadgeVillager: {
-      backgroundColor: colors.villager + '30',
+      backgroundColor: withAlpha(colors.villager, 0.188),
     },
     notepadRoleBadgeThird: {
-      backgroundColor: colors.third + '30',
+      backgroundColor: withAlpha(colors.third, 0.188),
     },
     notepadRoleBadgeText: {
       fontSize: typography.caption,
@@ -456,7 +456,7 @@ export const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
     },
     notepadHandTagActive: {
-      backgroundColor: colors.primary + '30',
+      backgroundColor: withAlpha(colors.primary, 0.188),
     },
     notepadHandTagText: {
       fontSize: typography.caption,
@@ -501,16 +501,16 @@ export const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
     },
     notepadPopoverTagSelectedWolf: {
-      backgroundColor: colors.wolf + '30',
+      backgroundColor: withAlpha(colors.wolf, 0.188),
     },
     notepadPopoverTagSelectedGod: {
-      backgroundColor: colors.god + '30',
+      backgroundColor: withAlpha(colors.god, 0.188),
     },
     notepadPopoverTagSelectedVillager: {
-      backgroundColor: colors.villager + '30',
+      backgroundColor: withAlpha(colors.villager, 0.188),
     },
     notepadPopoverTagSelectedThird: {
-      backgroundColor: colors.third + '30',
+      backgroundColor: withAlpha(colors.third, 0.188),
     },
     notepadPopoverTagText: {
       fontSize: typography.body,

@@ -24,7 +24,7 @@ import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 
 import { Avatar } from '@/components/Avatar';
 import { TESTIDS } from '@/testids';
-import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 // Re-export for PlayerGrid
@@ -331,17 +331,17 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
     avatarOverlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: colors.primary + '4D',
+      backgroundColor: withAlpha(colors.primary, 0.302),
       borderRadius: borderRadius.large,
     },
     wolfOverlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: colors.wolf + '66',
+      backgroundColor: withAlpha(colors.wolf, 0.4),
       borderRadius: borderRadius.large,
     },
     selectedOverlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: colors.primaryDark + '66',
+      backgroundColor: withAlpha(colors.primaryDark, 0.4),
       borderRadius: borderRadius.large,
     },
     mySeatBadge: {
