@@ -555,6 +555,18 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           <EmojiParticle key={p.id} {...p} />
         ))}
       </View>
+
+      {/* Hint text */}
+      {phase === 'spinning' && (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>🎰 老虎机转动中…</Text>
+        </View>
+      )}
+      {phase === 'stopping' && (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.hintText}>🎰 即将揭晓…</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -720,6 +732,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     pointerEvents: 'none',
+  },
+  hint: {
+    position: 'absolute',
+    bottom: 80,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  hintText: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: typography.body,
+    fontWeight: '600',
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 4),
   },
   particle: {
     position: 'absolute',

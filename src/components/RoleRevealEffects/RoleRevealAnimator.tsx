@@ -6,13 +6,15 @@
  * 渲染动画并按 effectType 分发到对应效果组件。不 import service，不含业务逻辑。
  */
 import React, { useEffect, useState } from 'react';
-import { AccessibilityInfo, Modal, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Modal, StyleSheet, Text, View } from 'react-native';
 
 import { useColors } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { CardPick } from './CardPick';
+import { ChainShatter } from './ChainShatter';
 import { EnhancedRoulette } from './EnhancedRoulette';
+import { FateGears } from './FateGears';
 import { GachaMachine } from './GachaMachine';
 import { RoleHunt } from './RoleHunt';
 import { ScratchReveal } from './ScratchReveal';
@@ -87,6 +89,10 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
         return <CardPick {...commonProps} remainingCards={remainingCards} />;
       case 'sealBreak':
         return <SealBreak {...commonProps} />;
+      case 'chainShatter':
+        return <ChainShatter {...commonProps} />;
+      case 'fateGears':
+        return <FateGears {...commonProps} />;
       default:
         // Default to roleHunt if unknown effect type
         return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;
@@ -101,7 +107,13 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
       statusBarTranslucent
       testID={`${testIDPrefix}-modal`}
     >
-      <View style={[styles.container, { backgroundColor: colors.overlay }]}>{renderEffect()}</View>
+      <View style={[styles.container, { backgroundColor: colors.overlay }]}>
+        {/* Unified title — tells user this is identity reveal */}
+        <View style={styles.titleContainer} pointerEvents="none">
+          <Text style={styles.titleText}>🎭 身份揭示</Text>
+        </View>
+        {renderEffect()}
+      </View>
     </Modal>
   );
 };
@@ -123,5 +135,22 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     overflow: 'visible', // Allow child effects to render outside bounds
+  },
+  titleContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  titleText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+    letterSpacing: 2,
   },
 });
