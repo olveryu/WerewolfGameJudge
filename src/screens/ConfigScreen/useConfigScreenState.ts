@@ -281,6 +281,7 @@ export function useConfigScreenState({
       { value: 'tarot', label: '塔罗牌' },
       { value: 'gachaMachine', label: '扭蛋机' },
       { value: 'cardPick', label: '抽牌' },
+      { value: 'sealBreak', label: '封印解除' },
       { value: 'none', label: '无动画' },
     ],
     [],
