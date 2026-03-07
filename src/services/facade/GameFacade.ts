@@ -31,11 +31,16 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
+import { randomHex } from '@werewolf/game-engine/utils/id';
 
 import { AudioService } from '@/services/infra/AudioService';
 import { RoomService } from '@/services/infra/RoomService';
 import { RealtimeService } from '@/services/transport/RealtimeService';
-import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
+import type {
+  FacadeStateListener,
+  IGameFacade,
+  ReconnectTrigger,
+} from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { isAbortError } from '@/utils/errorUtils';
 import { facadeLog } from '@/utils/logger';
@@ -91,6 +96,12 @@ export class GameFacade implements IGameFacade {
    * Auto-cleared in .finally().
    */
   #reconnectPromise: Promise<void> | null = null;
+
+  /**
+   * Session ID: generated per joinRoom/createRoom, used in all reconnection logs
+   * to correlate events belonging to the same connection session.
+   */
+  #sessionId: string | null = null;
 
   /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
@@ -179,26 +190,53 @@ export class GameFacade implements IGameFacade {
    * foreground handler, online handler). Only the first creates the actual reconnect;
    * subsequent callers await the same promise to avoid WebSocket trampling.
    */
-  async reconnectChannel(): Promise<void> {
+  async reconnectChannel(trigger?: ReconnectTrigger): Promise<void> {
     if (this.#aborted) return;
     if (this.#reconnectPromise) {
-      facadeLog.info('reconnectChannel: already in progress, deduping');
+      facadeLog.info('reconnectChannel: already in progress, deduping', {
+        trigger,
+        sessionId: this.#sessionId,
+      });
       return this.#reconnectPromise;
     }
-    this.#reconnectPromise = this.#doReconnectChannel().finally(() => {
+    this.#reconnectPromise = this.#doReconnectChannel(trigger).finally(() => {
       this.#reconnectPromise = null;
     });
     return this.#reconnectPromise;
   }
 
-  async #doReconnectChannel(): Promise<void> {
-    facadeLog.info('reconnectChannel: starting dead channel recovery');
+  async #doReconnectChannel(trigger?: ReconnectTrigger): Promise<void> {
+    const layer =
+      trigger === 'deadChannel'
+        ? 'L5'
+        : trigger === 'foreground'
+          ? 'L4'
+          : trigger === 'online'
+            ? 'L3'
+            : undefined;
+    const startMs = Date.now();
+    facadeLog.info('reconnectChannel: starting dead channel recovery', {
+      trigger,
+      layer,
+      sessionId: this.#sessionId,
+    });
     try {
       await this.#realtimeService.rejoinCurrentRoom();
       await this.fetchStateFromDB();
-      facadeLog.info('reconnectChannel: recovery complete');
+      facadeLog.info('reconnectChannel: recovery complete', {
+        trigger,
+        layer,
+        elapsed: Date.now() - startMs,
+        sessionId: this.#sessionId,
+      });
     } catch (e) {
-      facadeLog.error('reconnectChannel: recovery failed', e);
+      facadeLog.error('reconnectChannel: recovery failed', {
+        trigger,
+        layer,
+        elapsed: Date.now() - startMs,
+        sessionId: this.#sessionId,
+        error: e,
+      });
       throw e;
     }
   }
@@ -224,6 +262,7 @@ export class GameFacade implements IGameFacade {
   async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     this.#aborted = false;
     this.#reconnectPromise = null;
+    this.#sessionId = randomHex(8);
     this.#audioOrchestrator.reset();
     this.#connectionRecovery.reset();
     this.#isHost = true;
@@ -265,6 +304,7 @@ export class GameFacade implements IGameFacade {
   ): Promise<{ success: boolean; reason?: string }> {
     this.#aborted = false;
     this.#reconnectPromise = null;
+    this.#sessionId = randomHex(8);
     this.#audioOrchestrator.reset();
     this.#connectionRecovery.reset();
     this.#isHost = isHost;
@@ -346,6 +386,7 @@ export class GameFacade implements IGameFacade {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this.#aborted = true;
     this.#reconnectPromise = null;
+    this.#sessionId = null;
     this.#audioOrchestrator.reset();
     this.#connectionRecovery.setAborted(true);
     this.#connectionRecovery.dispose();

@@ -102,6 +102,8 @@ export class AudioOrchestrator {
       this.#pendingAudioAckRetry = false;
       this.#onlineRetryAttempt = 0;
 
+      facadeLog.info('SDK reconnected: retrying pending audio ack', { layer: 'L2' });
+
       this.#retryPendingAudioAck('reconnect');
     });
   }
@@ -336,7 +338,10 @@ export class AudioOrchestrator {
       }
       this.#onlineRetryAttempt++;
 
-      facadeLog.info('Online event postAudioAck retry triggered');
+      facadeLog.info('Online event postAudioAck retry triggered', {
+        layer: 'L3a',
+        attempt: this.#onlineRetryAttempt,
+      });
       this.#unregisterOnlineRetry();
       this.#pendingAudioAckRetry = false;
 

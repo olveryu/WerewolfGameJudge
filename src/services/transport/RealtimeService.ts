@@ -204,6 +204,17 @@ export class RealtimeService {
    * @throws Error if no previous joinRoom params cached (never joined / already left)
    */
   async rejoinCurrentRoom(): Promise<void> {
+    // Guard: skip if already connecting/syncing to avoid redundant teardown
+    if (
+      this.#connectionStatus === ConnectionStatus.Connecting ||
+      this.#connectionStatus === ConnectionStatus.Syncing
+    ) {
+      realtimeLog.info('rejoinCurrentRoom: skipped (already in progress)', {
+        status: this.#connectionStatus,
+      });
+      return;
+    }
+
     if (!this.#lastJoinParams) {
       throw new Error('RealtimeService: cannot rejoin — no cached joinRoom params');
     }

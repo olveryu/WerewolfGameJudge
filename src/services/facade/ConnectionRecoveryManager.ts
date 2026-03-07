@@ -33,17 +33,20 @@ export class ConnectionRecoveryManager {
   /** Abort flag: set by facade when leaving room */
   #aborted = false;
 
+  /** Unsubscribe the L1 status listener registered in constructor */
+  #unsubscribeStatusListener: (() => void) | null = null;
+
   constructor(deps: ConnectionRecoveryDeps) {
     this.#deps = deps;
 
     // L1: SDK reconnect → fetchStateFromDB（所有玩家通用）
-    deps.addStatusListener((status) => {
+    this.#unsubscribeStatusListener = deps.addStatusListener((status) => {
       if (status !== ('Live' as ConnectionStatus)) return;
       if (!this.#hasBeenLive) {
         this.#hasBeenLive = true;
         return;
       }
-      facadeLog.info('SDK reconnected: fetching latest state from DB');
+      facadeLog.info('SDK reconnected: fetching latest state from DB', { layer: 'L1' });
       void deps.fetchStateFromDB();
     });
   }
@@ -67,6 +70,8 @@ export class ConnectionRecoveryManager {
   /** Cleanup all handlers (leaveRoom) */
   dispose(): void {
     this.unregisterOnlineFetch();
+    this.#unsubscribeStatusListener?.();
+    this.#unsubscribeStatusListener = null;
   }
 
   // =========================================================================
@@ -88,7 +93,7 @@ export class ConnectionRecoveryManager {
 
     this.#onlineFetchHandler = () => {
       if (this.#aborted) return;
-      facadeLog.info('Browser online event: fetching latest state from DB');
+      facadeLog.info('Browser online event: fetching latest state from DB', { layer: 'L3' });
       void this.#deps.fetchStateFromDB();
     };
     globalThis.window.addEventListener('online', this.#onlineFetchHandler);
