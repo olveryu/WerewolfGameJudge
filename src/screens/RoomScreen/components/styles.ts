@@ -134,47 +134,43 @@ interface RoomScreenComponentStyles {
 
 export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreenComponentStyles {
   const shared = createSharedStyles(colors);
+
+  // ── ActionButton / DangerButton shared base ──
+  const actionButtonBase: ViewStyle = {
+    minHeight: componentSizes.button.md,
+    paddingHorizontal: spacing.large,
+    paddingVertical: spacing.small,
+    borderRadius: borderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+  const disabledButtonBase: ViewStyle = {
+    backgroundColor: colors.textMuted,
+  };
+  const buttonTextBase: TextStyle = {
+    color: colors.textInverse,
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    fontWeight: typography.weights.semibold,
+  };
+
   return {
     actionButton: StyleSheet.create<ActionButtonStyles>({
       actionButton: {
+        ...actionButtonBase,
         backgroundColor: colors.primary,
-        minHeight: componentSizes.button.md,
-        paddingHorizontal: spacing.large,
-        paddingVertical: spacing.small,
-        borderRadius: borderRadius.full,
-        alignItems: 'center',
-        justifyContent: 'center',
       },
-      disabledButton: {
-        backgroundColor: colors.textMuted,
-      },
-      buttonText: {
-        color: colors.textInverse,
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
-        fontWeight: typography.weights.semibold,
-      },
+      disabledButton: disabledButtonBase,
+      buttonText: buttonTextBase,
     }),
 
     dangerActionButton: StyleSheet.create<ActionButtonStyles>({
       actionButton: {
+        ...actionButtonBase,
         backgroundColor: colors.error,
-        minHeight: componentSizes.button.md,
-        paddingHorizontal: spacing.large,
-        paddingVertical: spacing.small,
-        borderRadius: borderRadius.full,
-        alignItems: 'center',
-        justifyContent: 'center',
       },
-      disabledButton: {
-        backgroundColor: colors.textMuted,
-      },
-      buttonText: {
-        color: colors.textInverse,
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
-        fontWeight: typography.weights.semibold,
-      },
+      disabledButton: disabledButtonBase,
+      buttonText: buttonTextBase,
     }),
 
     actionMessage: StyleSheet.create<ActionMessageStyles>({
