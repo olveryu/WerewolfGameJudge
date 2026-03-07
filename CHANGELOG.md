@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.6.0] - 2026-03-07
+
+- refactor(config): remove GitHub and Issues links from About section
+- feat(room): add persistent "小助手" label below AI chat bubble
+- feat(room): add SettingsSheet to RoomScreen via HostMenuDropdown
+- test(e2e): add 3 reconnection E2E enhancements
+- fix(room): await removeChannel to prevent rejoin race + fix animation loop on web
+- feat(connection): enhance foreground recovery logic for DB fetch and channel reconnection
+- fix(services): await SDK disconnect before rejoin to prevent subscribe timeout
+- fix(services): reconnect audit P2 fixes, observability, and unit tests
+- fix(services): harden reconnection mechanism against races and retry storms
+- fix(realtime): disconnect stale WebSocket before dead channel rejoin
+- fix(connection): stabilize progress bar animation during status flips
+- feat(connection): add indeterminate progress bar to disconnection banner
+- refactor(hooks): remove retriesExhausted + infinite 5s dead channel retry
+- fix(hooks): reconnect dead channel on browser online event
+- test(setup): add withAlpha/createSharedStyles/activeOpacity to theme mock
+- refactor(theme): misc token fixes — SimpleMarkdown, QRCodeModal, AIChatBubble
+- refactor(room): replace hardcoded borderWidth: 1 with fixed.borderWidth
+- refactor(theme): unify activeOpacity to fixed.activeOpacity (0.7)
+- refactor(room): extract ActionButton/DangerButton shared base styles
+- refactor(theme): extract shared iconButton base into createSharedStyles
+- refactor(theme): replace hex opacity concatenations with withAlpha()
+- feat(theme): add withAlpha() color utility + unit tests
+- fix(services): skip sentry reporting for AbortError across all network call sites
+- feat(ui): merge feature/new_animation — new animations, SealBreak, menu unification
+- feat(ui): unify menu button style, shorten animation labels, align SealBreak conventions
+- feat(room): add manual reconnect button when auto-retry exhausted
+- fix(ui): fix loading screen logo vertical offset in role reveal
+- feat(ui): unify animation backgrounds and enhance role reveal hints
+- feat(models): add ChainShatter and FateGears role reveal animations
+- fix(build): inject all Expo script tags instead of only the first
+- Revert "Revert "Revert "Revert "feat(night): add SealBreak role reveal effect""""
+- Revert "Revert "Revert "feat(night): add SealBreak role reveal effect"""
+- Revert "Revert "feat(night): add SealBreak role reveal effect""
+- perf(roulette): replace setState-driven bulbs with Reanimated shared values
+- fix(hooks): reconnect dead channel on foreground after long background
+- feat(room): show loading overlay while confirming role view
+- refactor(gameActions): update viewedRole to return success status and reason
+- Revert "feat(night): add SealBreak role reveal effect"
+- feat(night): add SealBreak role reveal effect
+- revert: remove unrelated files from previous commit
+- style(home): always show generic icon instead of avatar in topbar
+- refactor(animation): remove 'constellation' from RoleRevealAnimation types
+- fix(e2e): move homeLoginButton testID to visible TopBar avatar
+- style(home): remove greeting, add avatar to TopBar, unify button radius
+- style(home): refine header layout and tip conditions
+- style(home,config): add contextual tip cards, simplify faction tabs
+- refactor(home): redesign HomeScreen to Apple HIG layout
+- feat(theme): phase-4 finalization — a11y, responsive, dedup, lineHeight
+- feat(theme): phase-3 quality upgrade
+- feat(theme): phase-2 interaction layer
+- style(theme): phase-1 token basics & button unification
+- fix(ci): build game-engine ESM before Deno tests
+- docs: add trust model rule to copilot instructions
+- test(game-engine): add Deno tests for Edge Function handlers
+- refactor(game-engine): modularize Edge Function into handler modules
+- refactor(room): extract useRoomModals from useRoomScreenState
+- refactor(services): extract AudioOrchestrator + ConnectionRecoveryManager from GameFacade
+- chore(config): add supabase/ to ESLint scope
+- chore(config): quick wins - coverage threshold, sentry rate, e2e gate, assertNever
+- feat(seat): skip occupied seats during optimistic updates in takeSeatWithAck
+
 ## [1.5.0] - 2026-03-06
 
 - chore(config): remove redundant keep-alive workflow
