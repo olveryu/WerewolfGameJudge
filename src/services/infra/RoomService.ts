@@ -15,11 +15,10 @@
  * - updated_at: timestamptz
  */
 
-import * as Sentry from '@sentry/react-native';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
-import { isAbortError } from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
 import { roomLog } from '@/utils/logger';
 import { generateRoomCode } from '@/utils/roomCode';
 
@@ -134,12 +133,7 @@ export class RoomService {
 
     if (error || !data) {
       if (error) {
-        if (isAbortError(error)) {
-          roomLog.warn('getRoom aborted for room', roomNumber);
-        } else {
-          roomLog.error('getRoom DB error for room', roomNumber, ':', error.message);
-          Sentry.captureException(error);
-        }
+        handleError(error, { label: 'getRoom', logger: roomLog, alertTitle: false });
       }
       return null;
     }
@@ -170,12 +164,7 @@ export class RoomService {
     const { error } = await supabase!.from('rooms').delete().eq('code', roomNumber);
 
     if (error) {
-      if (isAbortError(error)) {
-        roomLog.warn('deleteRoom aborted for room:', roomNumber);
-      } else {
-        roomLog.error('Failed to delete room:', error);
-        Sentry.captureException(error);
-      }
+      handleError(error, { label: 'deleteRoom', logger: roomLog, alertTitle: false });
     }
   }
 
