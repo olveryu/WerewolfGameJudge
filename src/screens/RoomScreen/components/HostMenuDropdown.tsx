@@ -20,6 +20,8 @@ import { type HostMenuDropdownStyles } from './styles';
 interface HostMenuDropdownProps {
   /** Whether to show the menu (Host only) */
   visible: boolean;
+  /** Show settings option (only before game starts) */
+  showSettings: boolean;
   /** Show fill with bots option (in dropdown) */
   showFillWithBots: boolean;
   /** Show mark all bots viewed option (in dropdown) */
@@ -37,6 +39,7 @@ interface HostMenuDropdownProps {
 
 const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   visible,
+  showSettings,
   showFillWithBots,
   showMarkAllBotsViewed,
   showClearAllSeats,
@@ -82,8 +85,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     return <View style={styles.triggerButton} />;
   }
 
-  // Settings is always available for host, plus optional debug/management items
-  const hasDropdownItems = true;
+  const hasDropdownItems =
+    showSettings || showFillWithBots || showMarkAllBotsViewed || showClearAllSeats;
 
   return (
     <View style={styles.headerRightContainer}>
@@ -110,10 +113,12 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
               onPress={handleCloseMenu}
             >
               <View style={styles.menuContainer}>
-                {/* Settings — always visible for host */}
-                <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
-                  <Text style={styles.menuItemText}>⚙️ 设置</Text>
-                </TouchableOpacity>
+                {/* Settings — only before game starts */}
+                {showSettings && (
+                  <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
+                    <Text style={styles.menuItemText}>⚙️ 设置</Text>
+                  </TouchableOpacity>
+                )}
 
                 {showClearAllSeats && (
                   <>

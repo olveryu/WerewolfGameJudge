@@ -113,7 +113,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     nightReviewAllowedSeats: undefined,
     seerLabelMap: undefined,
     hypnotizedSeats: undefined,
-    piperRevealAcks: undefined,
+    piperRevealAcks: [],
     convertedSeat: undefined,
     conversionRevealAcks: [],
 
