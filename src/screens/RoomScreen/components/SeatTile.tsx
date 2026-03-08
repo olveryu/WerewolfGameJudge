@@ -27,8 +27,7 @@ import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
-// Re-export for PlayerGrid
-export const GRID_COLUMNS = 4;
+const GRID_COLUMNS = 4;
 
 /** Adaptive column count based on screen width (tablet-friendly). */
 export function getGridColumns(screenWidth: number): number {

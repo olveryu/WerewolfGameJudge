@@ -3,10 +3,6 @@
  *
  * facade 统一接口，覆盖房间生命周期、座位、游戏控制和夜晚行动。
  * Facade 只做编排，不写业务逻辑。
- *
- * 由 5 个 segment interface 组合而成（见 segments/）：
- * ILifecycleFacade & ISeatFacade & IGameControlFacade &
- * INightActionFacade & ISyncFacade
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
