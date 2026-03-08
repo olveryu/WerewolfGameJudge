@@ -111,7 +111,7 @@ export function writeEnvLocal(vars, opts = {}) {
     .map((k) => `${k}=${vars[k]}`)
     .join('\n');
 
-  // Preserve non-managed vars (e.g. GROQ key)
+  // Preserve non-managed vars (e.g. Gemini key)
   let preserved = '';
   if (existsSync(envLocalPath)) {
     preserved = readFileSync(envLocalPath, 'utf-8')

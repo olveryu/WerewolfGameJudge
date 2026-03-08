@@ -87,18 +87,18 @@ _The 🐺 floating button at the bottom-right is your personal Werewolf consulta
 
 ### 核心原则 | Core Principles
 
-| 原则                                             | Principle                                                         |
-| ------------------------------------------------ | ----------------------------------------------------------------- |
-| ✅ 服务端（Vercel Serverless）是唯一游戏逻辑权威 | Server (Vercel Serverless) is the single authority for game logic |
-| ✅ 所有客户端完全平等，Host 只是 UI 角色标记     | All clients are equal; Host is a UI role only                     |
-| ✅ Supabase 负责传输/发现/身份/状态持久化        | Supabase handles transport/discovery/identity/state persistence   |
-| ✅ `GameState` 是单一真相                        | `GameState` is the single source of truth                         |
-| ✅ UI 层按 `myRole` 过滤显示                     | UI filters display based on `myRole`                              |
+| 原则                                                   | Principle                                                               |
+| ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| ✅ 服务端（Supabase Edge Functions）是唯一游戏逻辑权威 | Server (Supabase Edge Functions) is the single authority for game logic |
+| ✅ 所有客户端完全平等，Host 只是 UI 角色标记           | All clients are equal; Host is a UI role only                           |
+| ✅ Supabase 负责传输/发现/身份/状态持久化              | Supabase handles transport/discovery/identity/state persistence         |
+| ✅ `GameState` 是单一真相                              | `GameState` is the single source of truth                               |
+| ✅ UI 层按 `myRole` 过滤显示                           | UI filters display based on `myRole`                                    |
 
 ### 系统架构 | System Architecture
 
 ```
-Vercel Serverless (游戏逻辑权威)      Vercel Serverless (Game Logic Authority)
+Supabase Edge Functions (游戏逻辑权威)  Supabase Edge Functions (Game Logic Authority)
     │                                     │
     ├─ 读 DB + game-engine 计算           ├─ Read DB + game-engine compute
     ├─ 写 DB (乐观锁)                    ├─ Write DB (optimistic lock)
@@ -246,7 +246,8 @@ pnpm run release -- minor     # minor / major
 | **Monitoring** | Sentry (crash reporting)                        |
 | **Images**     | expo-image (disk cache + transitions)           |
 | **Testing**    | Jest + Testing Library + Playwright             |
-| **Deployment** | Vercel Serverless (API + Web auto-deploy)       |
+| **Game API**   | Supabase Edge Functions (game logic authority)  |
+| **Deployment** | Vercel (Web static hosting, auto-deploy)        |
 | **State**      | @werewolf/game-engine (monorepo shared pkg)     |
 
 ---

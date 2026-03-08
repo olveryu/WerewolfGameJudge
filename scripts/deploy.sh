@@ -28,7 +28,9 @@ pnpm --filter @werewolf/game-engine run build:esm
 echo ""
 echo "🚀 部署 Edge Functions..."
 supabase functions deploy game --project-ref abmzjezdvpzyeooqhhsn
+supabase functions deploy gemini-proxy --project-ref abmzjezdvpzyeooqhhsn
 
 echo ""
 echo "✅ 部署完成！"
-echo "📡 https://abmzjezdvpzyeooqhhsn.supabase.co/functions/v1/game"
+echo "📡 game:         https://abmzjezdvpzyeooqhhsn.supabase.co/functions/v1/game"
+echo "📡 gemini-proxy: https://abmzjezdvpzyeooqhhsn.supabase.co/functions/v1/gemini-proxy"

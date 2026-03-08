@@ -1,5 +1,7 @@
 # Vercel Serverless → Supabase Edge Functions 迁移方案
 
+> ⚠️ **已完成** — 迁移已于 2025 年完成，本文档仅作历史参考。
+
 ## 一、动机
 
 当前游戏操作链路：客户端 → Vercel Serverless (pdx1) → Supavisor → Postgres → 返回。  

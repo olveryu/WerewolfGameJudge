@@ -35,24 +35,23 @@ This will create:
 
 Some auth settings must be configured manually in the Dashboard:
 
-### Enable Auth Providers
+### Enable Anonymous Sign-ins
 
-1. Go to **Authentication > Providers**
-2. Enable **Email** provider:
-   - ✅ Enable Email Signup
-   - ✅ Confirm email (optional, can disable for testing)
-3. Enable **Anonymous Sign-ins**:
-   - Go to **Authentication > Settings**
-   - ✅ Enable anonymous sign-ins
+1. Go to **Authentication > Settings**
+2. Enable **Anonymous Sign-ins**
+3. Click **Save**
 
-### (Optional) Configure Email Templates
-
-Go to **Authentication > Email Templates** to customize:
-
-- Confirmation email
-- Password reset email
+> ⚠️ 这是必须的，否则玩家无法加入房间。本项目仅使用匿名登录，不需要 Email provider。
 
 ## Edge Functions
+
+### game — 游戏 API
+
+所有游戏逻辑由 `game` Edge Function 承载（服务端权威）。CI 会在 merge 到 main 时自动部署。
+
+```bash
+supabase functions deploy game
+```
 
 ### gemini-proxy — AI 聊天代理
 
@@ -93,7 +92,7 @@ bash scripts/setup-local-env.sh
 | File          | Purpose                                        |
 | ------------- | ---------------------------------------------- |
 | `config.toml` | Supabase CLI configuration                     |
-| `functions/`  | Edge Functions (groq-proxy 等)                 |
+| `functions/`  | Edge Functions (game, gemini-proxy 等)         |
 | `migrations/` | Database migrations (versioned schema changes) |
 
 ## Creating New Migrations
