@@ -15,8 +15,7 @@ import {
 import { BLOCKED_UI_DEFAULTS, NIGHT_STEPS } from '../../models/roles/spec';
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput } from '../../resolvers/types';
-import type { HandlerResult } from './types';
-import type { NonNullState } from './types';
+import type { HandlerResult, NonNullState } from './types';
 
 /**
  * 根据角色获取对应的 SchemaId

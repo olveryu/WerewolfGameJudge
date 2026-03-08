@@ -32,6 +32,28 @@ registerExecutor('multiSelectToggle', multiSelectToggleExecutor);
 registerExecutor('multiSelectConfirm', multiSelectConfirmExecutor);
 registerExecutor('groupConfirmAck', groupConfirmAckExecutor);
 
+// ── Compile-time exhaustive check ──────────────────────────────────────────
+// If a new ActionIntentType is added but not registered above, this will
+// produce a TS error: "Type '...' does not satisfy 'CompleteExecutorMap'."
+import type { CompleteExecutorMap } from './types';
+
+const _exhaustiveCheck = {
+  reveal: revealExecutor,
+  magicianFirst: magicianFirstExecutor,
+  wolfVote: wolfVoteExecutor,
+  actionConfirm: actionConfirmExecutor,
+  skip: skipExecutor,
+  actionPrompt: actionPromptExecutor,
+  confirmTrigger: confirmTriggerExecutor,
+  wolfRobotViewHunterStatus: wolfRobotViewHunterStatusExecutor,
+  multiSelectToggle: multiSelectToggleExecutor,
+  multiSelectConfirm: multiSelectConfirmExecutor,
+  groupConfirmAck: groupConfirmAckExecutor,
+} satisfies CompleteExecutorMap;
+
+// Suppress unused-variable lint — _exhaustiveCheck is intentionally type-only.
+void _exhaustiveCheck;
+
 // ── Public API ─────────────────────────────────────────────────────────────
 export { dispatchIntent } from './registry';
 export type { ExecutorContext, ExecutorMap, IntentExecutor } from './types';
