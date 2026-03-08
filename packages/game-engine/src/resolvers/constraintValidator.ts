@@ -6,10 +6,8 @@
  * validateConstraints），不包含 IO（网络 / 音频 / Alert）。
  */
 
-import type { RoleId } from '../models/roles';
-import { TargetConstraint } from '../models/roles/spec/schema.types';
-import { ROLE_SPECS } from '../models/roles/spec/specs';
-import { Team } from '../models/roles/spec/types';
+import { ROLE_SPECS, type RoleId, Team } from '../models';
+import { TargetConstraint } from '../models/roles/spec';
 
 interface ConstraintValidationContext {
   /** Current actor's seat */

@@ -9,7 +9,7 @@
  *       gargoyle, wolfRobot, spiritKnight, etc.
  */
 
-import { ROLE_SPECS, Team } from '../models/roles';
+import { ROLE_SPECS, Team } from '../models';
 import type { ResolverFn } from './types';
 
 export const nightmareBlockResolver: ResolverFn = (context, input) => {

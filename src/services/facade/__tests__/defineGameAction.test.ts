@@ -1,0 +1,202 @@
+/**
+ * defineGameAction.test.ts — Factory unit tests.
+ *
+ * Verifies:
+ * 1. Simple action (no extra args) → debug-log + callApiWithRetry
+ * 2. Action with body builder → extra fields merged into request
+ * 3. needsUid guard → uid included / NOT_CONNECTED when missing
+ * 4. Optimistic function forwarded to callApiWithRetry
+ * 5. after hook fires on success / failure
+ * 6. NOT_CONNECTED when roomCode is null
+ */
+
+import type { GameStore } from '@werewolf/game-engine/engine/store';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
+
+// ─── Mocks ───────────────────────────────────────────────────────────────────
+
+jest.mock('@sentry/react-native', () => ({
+  captureException: jest.fn(),
+}));
+
+jest.mock('@werewolf/game-engine/utils/random', () => ({
+  secureRng: () => 0.5,
+}));
+
+jest.mock('../../infra/AudioService', () => ({
+  AudioService: jest.fn(),
+}));
+
+// Import after mocks
+import type { GameActionsContext } from '@/services/facade/gameActions';
+
+import { defineGameAction } from '../defineGameAction';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function createMockStore(roomCode: string | null = 'ABCD'): GameStore {
+  const state = roomCode ? ({ roomCode } as unknown as GameState) : null;
+  return {
+    getState: jest.fn(() => state),
+    applyOptimistic: jest.fn(),
+    rollbackOptimistic: jest.fn(),
+    applySnapshot: jest.fn(),
+  } as unknown as GameStore;
+}
+
+function createMockCtx(
+  overrides: Partial<{ roomCode: string | null; myUid: string | null }> = {},
+): GameActionsContext {
+  return {
+    store: createMockStore('roomCode' in overrides ? overrides.roomCode! : 'ABCD'),
+    myUid: 'myUid' in overrides ? overrides.myUid! : 'user-1',
+    getMySeatNumber: () => 0,
+    audioService: {} as GameActionsContext['audioService'],
+  };
+}
+
+function mockFetchSuccess(result: Record<string, unknown> = { success: true }) {
+  return jest.fn().mockResolvedValue({
+    ok: true,
+    headers: { get: () => 'application/json' },
+    json: () => Promise.resolve(result),
+  });
+}
+
+// ─── Tests ───────────────────────────────────────────────────────────────────
+
+describe('defineGameAction', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    jest.restoreAllMocks();
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Basic: no-arg action
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('calls API with roomCode for a simple action', async () => {
+    global.fetch = mockFetchSuccess();
+    const action = defineGameAction({ name: 'test', path: '/game/test' });
+
+    const result = await action(createMockCtx());
+
+    expect(result.success).toBe(true);
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body).toEqual({ roomCode: 'ABCD' });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Body builder
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('merges body builder fields into request', async () => {
+    global.fetch = mockFetchSuccess();
+    const action = defineGameAction<[number, string]>({
+      name: 'withBody',
+      path: '/game/action',
+      body: (seat, role) => ({ seat, role }),
+    });
+
+    await action(createMockCtx(), 3, 'wolf');
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body).toEqual({ roomCode: 'ABCD', seat: 3, role: 'wolf' });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // needsUid
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('includes uid when needsUid is true', async () => {
+    global.fetch = mockFetchSuccess();
+    const action = defineGameAction<[number]>({
+      name: 'viewRole',
+      path: '/game/view-role',
+      needsUid: true,
+      body: (seat) => ({ seat }),
+    });
+
+    await action(createMockCtx({ myUid: 'player-42' }), 5);
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body).toEqual({ roomCode: 'ABCD', uid: 'player-42', seat: 5 });
+  });
+
+  it('returns NOT_CONNECTED when needsUid and myUid is null', async () => {
+    const action = defineGameAction({
+      name: 'viewRole',
+      path: '/game/view-role',
+      needsUid: true,
+    });
+
+    const result = await action(createMockCtx({ myUid: null }));
+
+    expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // NOT_CONNECTED guard
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('returns NOT_CONNECTED when roomCode is null', async () => {
+    const action = defineGameAction({ name: 'test', path: '/game/test' });
+
+    const result = await action(createMockCtx({ roomCode: null }));
+
+    expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Optimistic update
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('forwards optimistic function to callApiWithRetry', async () => {
+    global.fetch = mockFetchSuccess();
+    const optimisticFn = (val: string) => (s: GameState) => ({ ...s, extra: val });
+    const action = defineGameAction<[string]>({
+      name: 'optAction',
+      path: '/game/opt',
+      body: (val) => ({ val }),
+      optimistic: optimisticFn,
+    });
+    const ctx = createMockCtx();
+
+    await action(ctx, 'hello');
+
+    // applyOptimistic is called by callApiWithRetry internals —
+    // here we just verify the fetch was made (optimistic plumbing is tested in gameActions.test.ts)
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // after hook
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('calls after hook with result on success', async () => {
+    global.fetch = mockFetchSuccess({ success: true });
+    const afterFn = jest.fn();
+    const action = defineGameAction({ name: 'test', path: '/game/test', after: afterFn });
+    const ctx = createMockCtx();
+
+    await action(ctx);
+
+    expect(afterFn).toHaveBeenCalledWith(ctx, expect.objectContaining({ success: true }));
+  });
+
+  it('calls after hook with result on failure', async () => {
+    global.fetch = mockFetchSuccess({ success: false, reason: 'BAD' });
+    const afterFn = jest.fn();
+    const action = defineGameAction({ name: 'test', path: '/game/test', after: afterFn });
+    const ctx = createMockCtx();
+
+    await action(ctx);
+
+    expect(afterFn).toHaveBeenCalledWith(
+      ctx,
+      expect.objectContaining({ success: false, reason: 'BAD' }),
+    );
+  });
+});

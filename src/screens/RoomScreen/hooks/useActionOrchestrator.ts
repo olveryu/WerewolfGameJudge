@@ -1,36 +1,29 @@
 /**
  * useActionOrchestrator.ts - Night action intent handler & auto-trigger orchestrator
  *
- * Processes ActionIntent (the big switch: reveal, wolfVote, actionConfirm, skip, etc.),
- * manages action submission helpers (proceedWithAction, confirmThenAct, buildWitchStepResults),
- * runs auto-trigger effect (idempotent intent auto-fire on step changes), surfaces Host
- * ACTION_REJECTED via alert, and owns pendingRevealDialog / pendingHunterStatusViewed gate state.
+ * Dispatches ActionIntent to the executor registry, manages action submission
+ * helpers (proceedWithAction, confirmThenAct), runs auto-trigger effect
+ * (idempotent intent auto-fire on step changes), surfaces Host ACTION_REJECTED
+ * via alert, and owns pendingRevealDialog / pendingHunterStatusViewed gate state.
  * Does not import services directly (all actions come via params), does not contain policy /
  * interaction dispatch logic (that's useInteractionDispatcher), does not render UI or hold JSX,
  * does not own seat tap / interaction context / dispatchInteraction, and does not modify
  * GameState directly.
  */
 
-import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName, getWolfKillImmuneRoleIds } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
-import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { isAbortError } from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import type { WitchStepResultsExtra } from './actionIntentHelpers';
-import {
-  buildWitchStepResults,
-  getRevealDataFromState,
-  getSubStepByKey,
-} from './actionIntentHelpers';
+import type { ExecutorContext } from '../executors';
+import { dispatchIntent } from '../executors';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -175,19 +168,6 @@ export function useActionOrchestrator({
     [submitAction, markActionSubmitting],
   );
 
-  // ── Action extra typing (UI -> server wire payload) ──
-  type ActionExtra =
-    | WitchStepResultsExtra
-    | { targets: readonly [number, number] }
-    | { confirmed: boolean };
-
-  const proceedWithActionTyped = useCallback(
-    async (targetSeat: number | null, extra?: ActionExtra): Promise<boolean> => {
-      return proceedWithAction(targetSeat, extra);
-    },
-    [proceedWithAction],
-  );
-
   const confirmThenAct = useCallback(
     (
       targetSeat: number,
@@ -198,12 +178,12 @@ export function useActionOrchestrator({
       const message = opts?.message ?? currentSchema!.ui!.confirmText!;
 
       actionDialogs.showConfirmDialog(title, message, async () => {
-        const accepted = await proceedWithActionTyped(targetSeat);
+        const accepted = await proceedWithAction(targetSeat);
         if (!accepted) return;
         await onAccepted();
       });
     },
-    [actionDialogs, currentSchema, proceedWithActionTyped],
+    [actionDialogs, currentSchema, proceedWithAction],
   );
 
   // ─── Rejection effect ────────────────────────────────────────────────────
@@ -235,438 +215,40 @@ export function useActionOrchestrator({
     actionDialogs.showActionRejectedAlert(rejected.reason);
   }, [gameState?.actionRejected, gameState?.players, myUid, effectiveSeat, actionDialogs]);
 
-  // ─── Intent handler (the big switch) ─────────────────────────────────────
+  // ─── Intent handler (executor dispatch) ──────────────────────────────────
 
   const handleActionIntent = useCallback(
     async (intent: ActionIntent) => {
-      switch (intent.type) {
-        case 'magicianFirst':
-          roomScreenLog.debug('[handleActionIntent] magicianFirst', {
-            targetSeat: intent.targetSeat,
-          });
-          setFirstSwapSeat(intent.targetSeat);
-          actionDialogs.showMagicianFirstAlert(intent.targetSeat, currentSchema!);
-          break;
+      const ctx: ExecutorContext = {
+        gameState,
+        gameStateRef,
+        currentSchema,
+        currentActionRole,
+        effectiveSeat,
+        effectiveRole,
+        controlledSeat,
+        actorSeatForUi,
+        firstSwapSeat,
+        setFirstSwapSeat,
+        setSecondSeat,
+        multiSelectedSeats,
+        setMultiSelectedSeats,
+        proceedWithAction,
+        confirmThenAct,
+        submitRevealAckSafe,
+        sendWolfRobotHunterStatusViewed,
+        submitGroupConfirmAck,
+        setPendingRevealDialog,
+        pendingHunterStatusViewed,
+        setPendingHunterStatusViewed,
+        actionDialogs,
+      };
 
-        case 'reveal': {
-          if (!gameState) return;
-          if (!intent.revealKind) {
-            roomScreenLog.warn(' reveal intent missing revealKind');
-            return;
-          }
-
-          const revealKind = intent.revealKind;
-
-          confirmThenAct(intent.targetSeat, async () => {
-            setPendingRevealDialog(true);
-
-            const maxRetries = 20;
-            const retryInterval = 50;
-            let reveal: { targetSeat: number; result: string } | undefined;
-
-            for (let i = 0; i < maxRetries; i++) {
-              await new Promise((resolve) => setTimeout(resolve, retryInterval));
-              const state = gameStateRef.current;
-              if (state) reveal = getRevealDataFromState(state, revealKind);
-              if (reveal) break;
-            }
-
-            if (reveal) {
-              const ui = currentSchema?.kind !== 'compound' ? currentSchema?.ui : undefined;
-              const displayResult =
-                ui?.revealResultFormat === 'factionCheck'
-                  ? reveal.result
-                  : getRoleDisplayName(reveal.result);
-              const titlePrefix = ui?.revealTitlePrefix ?? revealKind;
-              actionDialogs.showRevealDialog(
-                `${titlePrefix}：${reveal.targetSeat + 1}号是${displayResult}`,
-                '',
-                () => {
-                  submitRevealAckSafe(revealKind);
-                  setPendingRevealDialog(false);
-                },
-              );
-            } else {
-              roomScreenLog.warn(
-                `${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
-              );
-              setPendingRevealDialog(false);
-            }
-          });
-          break;
-        }
-
-        case 'wolfVote':
-          {
-            const seat = intent.wolfSeat ?? effectiveSeat;
-            roomScreenLog.info('[handleActionIntent] wolfVote:', {
-              'intent.wolfSeat': intent.wolfSeat,
-              effectiveSeat,
-              effectiveRole,
-              controlledSeat,
-              seat,
-              targetSeat: intent.targetSeat,
-            });
-            if (seat === null) {
-              roomScreenLog.warn(
-                '[handleActionIntent] wolfVote: effectiveSeat is null, cannot submit.',
-                { effectiveSeat, effectiveRole, controlledSeat },
-              );
-              return;
-            }
-            actionDialogs.showWolfVoteDialog(
-              `${seat + 1}号狼人`,
-              intent.targetSeat,
-              () => {
-                void proceedWithAction(intent.targetSeat === -1 ? null : intent.targetSeat);
-              },
-              (() => {
-                // Only override for immune targets — normal text comes from schema templates.
-                if (intent.targetSeat < 0) return undefined;
-                const targetRole = gameStateRef.current?.players?.get(intent.targetSeat)?.role;
-                if (currentSchema?.id !== 'wolfKill' || !targetRole) return undefined;
-                const immune = getWolfKillImmuneRoleIds().includes(targetRole);
-                if (!immune) return undefined;
-                const tpl = currentSchema.ui?.voteConfirmTemplate ?? '';
-                const resolved = tpl
-                  .replace('{wolf}', `${seat + 1}号狼人`)
-                  .replace('{seat}', `${intent.targetSeat + 1}`);
-                return `${resolved}\n（提示：该角色免疫狼刀，服务端会拒绝）`;
-              })(),
-              currentSchema!,
-            );
-          }
-          break;
-
-        case 'actionConfirm':
-          roomScreenLog.debug('[actionConfirm] Processing:', {
-            effectiveRole,
-            effectiveSeat,
-            firstSwapSeat,
-            schemaKind: currentSchema?.kind,
-            schemaId: currentSchema?.id,
-            'intent.targetSeat': intent.targetSeat,
-            'intent.stepKey': intent.stepKey,
-          });
-
-          if (effectiveRole === 'magician' && firstSwapSeat !== null) {
-            const swapTargets: [number, number] = [firstSwapSeat, intent.targetSeat];
-            setSecondSeat(intent.targetSeat);
-            // setTimeout(0) ensures setSecondSeat triggers re-render before dialog shows,
-            // so the UI reflects the second seat selection visually.
-            setTimeout(() => {
-              actionDialogs.showConfirmDialog(
-                currentSchema!.ui!.confirmTitle!,
-                intent.message ?? '',
-                () => {
-                  setFirstSwapSeat(null);
-                  setSecondSeat(null);
-                  void proceedWithActionTyped(null, { targets: swapTargets });
-                },
-                () => {
-                  setFirstSwapSeat(null);
-                  setSecondSeat(null);
-                },
-              );
-            }, 0);
-          } else {
-            const stepSchema = getSubStepByKey(currentSchema, intent.stepKey);
-            let extra: ActionExtra | undefined;
-            let targetToSubmit: number | null;
-
-            if (currentSchema?.kind === 'compound') {
-              if (effectiveSeat === null) {
-                roomScreenLog.warn(
-                  '[actionConfirm] Cannot submit compound action without seat (effectiveSeat is null)',
-                );
-                return;
-              }
-              targetToSubmit = effectiveSeat;
-              if (stepSchema?.key === 'save') {
-                extra = buildWitchStepResults({
-                  saveTarget: intent.targetSeat,
-                  poisonTarget: null,
-                });
-              } else if (stepSchema?.key === 'poison') {
-                extra = buildWitchStepResults({
-                  saveTarget: null,
-                  poisonTarget: intent.targetSeat,
-                });
-              }
-            } else {
-              targetToSubmit = intent.targetSeat;
-            }
-
-            roomScreenLog.debug('[actionConfirm] Submitting:', {
-              schemaKind: currentSchema?.kind,
-              targetToSubmit,
-              'intent.targetSeat': intent.targetSeat,
-              extra,
-            });
-
-            actionDialogs.showConfirmDialog(
-              stepSchema?.ui?.confirmTitle ?? currentSchema!.ui!.confirmTitle!,
-              stepSchema?.ui?.confirmText ?? intent.message ?? '',
-              () => void proceedWithActionTyped(targetToSubmit, extra),
-            );
-          }
-          break;
-
-        case 'skip': {
-          if (currentSchema?.kind === 'confirm') {
-            actionDialogs.showConfirmDialog(
-              '确认跳过',
-              intent.message || BLOCKED_UI_DEFAULTS.skipButtonText,
-              () => void proceedWithActionTyped(null, { confirmed: false } as ActionExtra),
-            );
-            break;
-          }
-
-          const skipStepSchema = getSubStepByKey(currentSchema, intent.stepKey);
-          let skipExtra: ActionExtra | undefined;
-          let skipSeat: number | null = null;
-
-          if (intent.stepKey === 'skipAll' || currentSchema?.kind === 'compound') {
-            if (effectiveSeat === null) {
-              roomScreenLog.warn(
-                '[skip] Cannot submit compound skip without seat (effectiveSeat is null)',
-              );
-              return;
-            }
-            skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });
-            skipSeat = effectiveSeat;
-          }
-
-          const skipConfirmText = skipStepSchema?.ui?.confirmText || intent.message;
-          if (!skipConfirmText) {
-            throw new Error(`[FAIL-FAST] Missing confirmText for skip action: ${intent.stepKey}`);
-          }
-
-          actionDialogs.showConfirmDialog(
-            '确认跳过',
-            skipConfirmText,
-            () => void proceedWithActionTyped(skipSeat, skipExtra),
-          );
-          break;
-        }
-
-        case 'actionPrompt': {
-          const hint = gameState?.ui?.currentActorHint;
-          const hintApplies = hint && effectiveRole && hint.targetRoleIds.includes(effectiveRole);
-          roomScreenLog.debug('[actionPrompt] UI Hint check', {
-            hint: hint
-              ? {
-                  kind: hint.kind,
-                  targetRoleIds: hint.targetRoleIds,
-                  bottomAction: hint.bottomAction,
-                }
-              : null,
-            effectiveRole,
-            hintApplies,
-            'gameState.ui': gameState?.ui,
-          });
-          if (hintApplies && hint.promptOverride) {
-            actionDialogs.showRoleActionPrompt(
-              hint.promptOverride.title!,
-              hint.promptOverride.text!,
-              () => {},
-            );
-            break;
-          }
-
-          if (currentSchema?.kind === 'compound' && currentSchema.id === 'witchAction') {
-            const witchCtx = gameState?.witchContext;
-            if (!witchCtx) return;
-            actionDialogs.showWitchInfoPrompt(witchCtx, currentSchema, () => {});
-            break;
-          }
-
-          if (currentSchema?.kind === 'confirm') {
-            if (!currentSchema.ui?.prompt) {
-              throw new Error(
-                `[FAIL-FAST] Missing schema.ui.prompt for confirm schema: ${currentActionRole}`,
-              );
-            }
-            actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
-            break;
-          }
-
-          if (!currentSchema?.ui?.prompt) {
-            throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
-          }
-          actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
-          break;
-        }
-
-        case 'confirmTrigger': {
-          if (!gameState) break;
-
-          if (
-            !currentSchema?.ui?.statusDialogTitle ||
-            !currentSchema?.ui?.canShootText ||
-            !currentSchema?.ui?.cannotShootText
-          ) {
-            throw new Error(
-              `[RoomScreen] confirmTrigger schema missing status dialog UI fields for ${currentSchema?.id}`,
-            );
-          }
-
-          const confirmStatus = gameState.confirmStatus;
-          let canShoot = true;
-
-          if (effectiveRole === 'hunter') {
-            if (confirmStatus?.role === 'hunter') {
-              canShoot = confirmStatus.canShoot;
-            }
-          } else if (effectiveRole === 'darkWolfKing') {
-            if (confirmStatus?.role === 'darkWolfKing') {
-              canShoot = confirmStatus.canShoot;
-            }
-          }
-
-          const dialogTitle = currentSchema.ui.statusDialogTitle;
-          const statusMessage = canShoot
-            ? currentSchema.ui.canShootText
-            : currentSchema.ui.cannotShootText;
-
-          if (effectiveSeat === null) {
-            roomScreenLog.warn(
-              '[confirmTrigger] Cannot submit confirm action without seat (effectiveSeat is null)',
-            );
-            return;
-          }
-          actionDialogs.showRoleActionPrompt(
-            dialogTitle,
-            statusMessage,
-            () => void proceedWithActionTyped(effectiveSeat, { confirmed: true } as ActionExtra),
-          );
-          break;
-        }
-
-        case 'wolfRobotViewHunterStatus': {
-          if (!gameState?.wolfRobotReveal) break;
-
-          if (pendingHunterStatusViewed) {
-            roomScreenLog.debug('[wolfRobotViewHunterStatus] Skipping - pending submission');
-            break;
-          }
-
-          if (currentSchema?.id !== 'wolfRobotLearn') {
-            throw new Error(
-              `[RoomScreen] wolfRobotViewHunterStatus intent received but currentSchema is ${currentSchema?.id}, expected wolfRobotLearn`,
-            );
-          }
-
-          const dialogTitle = currentSchema.ui?.hunterGateDialogTitle;
-          const canShootText = currentSchema.ui?.hunterGateCanShootText;
-          const cannotShootText = currentSchema.ui?.hunterGateCannotShootText;
-
-          if (!dialogTitle || !canShootText || !cannotShootText) {
-            throw new Error(
-              '[RoomScreen] wolfRobotLearn schema missing hunterGate UI fields - schema-driven UI requires these',
-            );
-          }
-
-          const canShoot = gameState.wolfRobotReveal.canShootAsHunter === true;
-          const statusMessage = canShoot ? canShootText : cannotShootText;
-
-          actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, async () => {
-            if (effectiveSeat === null) {
-              roomScreenLog.warn(
-                '[wolfRobotViewHunterStatus] Cannot submit without seat (effectiveSeat is null)',
-              );
-              return;
-            }
-            setPendingHunterStatusViewed(true);
-            try {
-              await sendWolfRobotHunterStatusViewed(effectiveSeat);
-            } catch (error) {
-              if (isAbortError(error)) {
-                roomScreenLog.warn('[wolfRobotViewHunterStatus] Aborted');
-                return;
-              }
-              roomScreenLog.error('[wolfRobotViewHunterStatus] Failed to send confirmation', error);
-              Sentry.captureException(error);
-              actionDialogs.showRoleActionPrompt(
-                '确认失败',
-                '状态确认发送失败，请稍后重试。如问题持续，请联系房主。',
-                () => {},
-              );
-            } finally {
-              setPendingHunterStatusViewed(false);
-            }
-          });
-          break;
-        }
-
-        case 'multiSelectToggle': {
-          const seat = intent.targetSeat;
-          roomScreenLog.debug('[handleActionIntent] multiSelectToggle', { seat });
-          const current = multiSelectedSeats;
-          if (current.includes(seat)) {
-            setMultiSelectedSeats(current.filter((s) => s !== seat));
-          } else {
-            const max =
-              currentSchema?.kind === 'multiChooseSeat' ? currentSchema.maxTargets : undefined;
-            if (max != null && current.length >= max) {
-              roomScreenLog.debug('[multiSelectToggle] maxTargets reached, ignoring', { max });
-              break;
-            }
-            setMultiSelectedSeats([...current, seat]);
-          }
-          break;
-        }
-
-        case 'multiSelectConfirm': {
-          const targets = intent.targets;
-          if (!targets || targets.length === 0) {
-            roomScreenLog.warn('[handleActionIntent] multiSelectConfirm with no targets');
-            return;
-          }
-          roomScreenLog.debug('[handleActionIntent] multiSelectConfirm', { targets });
-
-          // Schema-driven confirm dialog
-          const confirmCopy = currentSchema!.ui!.confirmText!;
-          const targetLabels = targets.map((s) => `${s + 1}号`).join('、');
-
-          actionDialogs.showConfirmDialog(confirmCopy, `已选择: ${targetLabels}`, async () => {
-            const accepted = await proceedWithAction(null, { targets });
-            if (accepted) setMultiSelectedSeats([]);
-          });
-          break;
-        }
-
-        case 'groupConfirmAck': {
-          // Compute personal hypnotize message inline (like confirmTrigger reads confirmStatus)
-          const mySeat = actorSeatForUi;
-          const hypnotizedSeats = gameState?.hypnotizedSeats ?? [];
-          const isHypnotized = mySeat !== null && hypnotizedSeats.includes(mySeat);
-          const gcSchema = currentSchema?.kind === 'groupConfirm' ? currentSchema : null;
-
-          let personalMessage: string;
-          if (isHypnotized) {
-            const seatsText = hypnotizedSeats.map((s) => `${s + 1}号`).join('、');
-            const template = gcSchema!.ui!.hypnotizedText!;
-            personalMessage = template.replace('{seats}', seatsText);
-          } else {
-            personalMessage = gcSchema!.ui!.notHypnotizedText!;
-          }
-
-          roomScreenLog.debug('[handleActionIntent] groupConfirmAck', { personalMessage });
-
-          const doAck = () => {
-            submitGroupConfirmAck();
-          };
-
-          const buttonLabel = gcSchema!.ui!.confirmButtonText!;
-          actionDialogs.showRoleActionPrompt('催眠信息', personalMessage, doAck, buttonLabel);
-          break;
-        }
-
-        default: {
-          const _exhaustiveCheck: never = intent.type;
-          throw new Error(`[FAIL-FAST] Unhandled ActionIntentType: ${_exhaustiveCheck}`);
-        }
+      const handled = await dispatchIntent(intent, ctx);
+      if (!handled) {
+        throw new Error(
+          `[FAIL-FAST] No executor registered for ActionIntentType: ${String(intent.type)}`,
+        );
       }
     },
     [
@@ -679,7 +261,6 @@ export function useActionOrchestrator({
       currentSchema,
       currentActionRole,
       pendingHunterStatusViewed,
-      proceedWithActionTyped,
       sendWolfRobotHunterStatusViewed,
       submitRevealAckSafe,
       submitGroupConfirmAck,
@@ -733,9 +314,7 @@ export function useActionOrchestrator({
     roomScreenLog.debug(` Triggering: key=${key}, intent=${autoIntent.type}`);
     lastAutoIntentKeyRef.current = key;
     void handleActionIntent(autoIntent).catch((err) => {
-      if (isAbortError(err)) return;
-      roomScreenLog.error('[auto-trigger] unhandled rejection', err);
-      Sentry.captureException(err);
+      handleError(err, { label: 'auto-trigger', logger: roomScreenLog, alertTitle: false });
     });
   }, [
     imActioner,

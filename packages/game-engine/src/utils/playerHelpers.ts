@@ -5,7 +5,7 @@
  * 避免每次手动 Number.parseInt(seatStr, 10) 转换 key 类型。
  * 仅包含纯函数，不包含 IO。
  */
-import type { RoleId } from '../models/roles';
+import type { RoleId } from '../models';
 import type { GameState } from '../protocol/types';
 
 type Players = GameState['players'];

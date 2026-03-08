@@ -23,7 +23,6 @@
  * - ConnectionRecoveryManager.ts: 通用断线恢复（L1/L3）
  */
 
-import * as Sentry from '@sentry/react-native';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -42,7 +41,7 @@ import type {
   ReconnectTrigger,
 } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
-import { isAbortError } from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
 
 import { AudioOrchestrator } from './AudioOrchestrator';
@@ -592,12 +591,7 @@ export class GameFacade implements IGameFacade {
       }
       return false;
     } catch (e) {
-      if (isAbortError(e)) {
-        facadeLog.warn('fetchStateFromDB aborted', e);
-      } else {
-        facadeLog.warn('fetchStateFromDB failed', e);
-        Sentry.captureException(e);
-      }
+      handleError(e, { label: 'fetchStateFromDB', logger: facadeLog, alertTitle: false });
       return false;
     }
   }

@@ -16,9 +16,7 @@
  * 不包含 IO、副作用或时间依赖（Date.now 由调用方传入）。
  */
 
-import { GameStatus } from '../models/GameStatus';
-import { SCHEMAS } from '../models/roles';
-import type { SchemaId } from '../models/roles/spec/schemas';
+import { GameStatus, type SchemaId, SCHEMAS } from '../models';
 import type { AudioEffect, GameState } from '../protocol/types';
 import { getEngineLogger } from '../utils/logger';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';

@@ -95,17 +95,27 @@ supabase db push
 
 > ⚠️ 这是必须的，否则玩家无法加入房间。
 
-### 6. 部署 Edge Function（AI 代理）
+### 6. 部署 Edge Functions
+
+#### 6a. 游戏 API（game）
+
+游戏逻辑由 `game` Edge Function 承载（CI 会在 merge 到 main 时自动部署）。首次部署或手动部署：
 
 ```bash
-# 设置 GROQ API key（服务端密钥，不会暴露到客户端）
-supabase secrets set GROQ_API_KEY=gsk_你的key
-
-# 部署 Edge Function
-supabase functions deploy groq-proxy
+supabase functions deploy game
 ```
 
-> AI 聊天功能通过 `groq-proxy` Edge Function 代理 Groq API。客户端只需知道 Supabase URL + anon key。
+#### 6b. AI 代理（gemini-proxy）
+
+```bash
+# 设置 Gemini API key（服务端密钥，不会暴露到客户端）
+supabase secrets set GEMINI_API_KEY=AIza...
+
+# 部署 Edge Function
+supabase functions deploy gemini-proxy
+```
+
+> AI 聊天功能通过 `gemini-proxy` Edge Function 代理 Gemini API（OpenAI 兼容层）。客户端只需知道 Supabase URL + anon key。
 
 ### 7. 获取 API Keys
 
@@ -138,7 +148,7 @@ supabase projects api-keys --project-ref <your-project-ref>
 >
 > `EXPO_PUBLIC_*` 不是 secret —— 会 inline 到 JS bundle，客户端可见。Supabase anon key 是公开的（受 RLS 保护）。
 >
-> `EXPO_PUBLIC_GROQ_API_KEY` 已废弃 —— AI 功能改由 Supabase Edge Function 代理，GROQ API key 存储在服务端 secrets 中。
+> `EXPO_PUBLIC_GROQ_API_KEY` 已废弃 —— AI 功能改由 Supabase Edge Function 代理（`gemini-proxy`），Gemini API key 存储在服务端 secrets 中（`GEMINI_API_KEY`）。
 > `EXPO_PUBLIC_SENTRY_DSN`（Sentry 崩溃报告）在 `.env` 中配置（公开值，与 anon key 同理）。
 
 ### 零配置开始
@@ -157,7 +167,7 @@ pnpm start
 supabase start
 bash scripts/setup-local-env.sh
 # 自动从 supabase status 读取 URL/Key，生成 .env.local
-# 已有的非 Supabase 变量（如 GROQ key）会自动保留
+# 已有的非 Supabase 变量会自动保留
 ```
 
 ---
@@ -198,7 +208,7 @@ pnpm run release -- minor     # 或 minor / major
 ### `deploy.sh` 做了什么
 
 1. 校验 `.env` 存在（已提交到 git，包含生产 Supabase）
-2. 临时移走 `.env.local`（让 `.env` 生效），保留 GROQ key
+2. 临时移走 `.env.local`（让 `.env` 生效），保留 Gemini key
 3. `npx expo export --platform web --clear`
 4. 恢复 `.env.local`（`trap` 保护，即使构建失败也恢复）
 5. 复制 PWA 文件、修复字体路径、注入自定义 `index.html`
@@ -308,22 +318,23 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 
 ## 快速参考
 
-| 操作               | 命令                                                     |
-| ------------------ | -------------------------------------------------------- |
-| **本地开发**       |                                                          |
-| 启动本地 Supabase  | `supabase start`                                         |
-| 停止本地 Supabase  | `supabase stop`                                          |
-| 启动开发服务器     | `pnpm start`                                             |
-| **生产部署**       |                                                          |
-| 发版               | `pnpm run release` (patch) / `pnpm run release -- minor` |
-| 部署               | `git push` 自动触发 Vercel Git Integration               |
-| 应急手动部署       | `pnpm run deploy`（仅 Vercel 自动部署故障时）            |
-| 推送数据库迁移     | `supabase db push`                                       |
-| 部署 Edge Function | `supabase functions deploy groq-proxy`                   |
-| 设置 GROQ 密钥     | `supabase secrets set GROQ_API_KEY=gsk_...`              |
-| 获取 API Keys      | `supabase projects api-keys --project-ref <ref>`         |
-| 查看部署别名       | `vercel alias ls`                                        |
-| 回滚部署           | `vercel alias set <old-url> werewolf-judge.vercel.app`   |
+| 操作              | 命令                                                     |
+| ----------------- | -------------------------------------------------------- |
+| **本地开发**      |                                                          |
+| 启动本地 Supabase | `supabase start`                                         |
+| 停止本地 Supabase | `supabase stop`                                          |
+| 启动开发服务器    | `pnpm start`                                             |
+| **生产部署**      |                                                          |
+| 发版              | `pnpm run release` (patch) / `pnpm run release -- minor` |
+| 部署              | `git push` 自动触发 Vercel Git Integration               |
+| 应急手动部署      | `pnpm run deploy`（仅 Vercel 自动部署故障时）            |
+| 推送数据库迁移    | `supabase db push`                                       |
+| 部署游戏 API      | `supabase functions deploy game`（CI 自动，手动备用）    |
+| 部署 AI 代理      | `supabase functions deploy gemini-proxy`                 |
+| 设置 Gemini 密钥  | `supabase secrets set GEMINI_API_KEY=AIza...`            |
+| 获取 API Keys     | `supabase projects api-keys --project-ref <ref>`         |
+| 查看部署别名      | `vercel alias ls`                                        |
+| 回滚部署          | `vercel alias set <old-url> werewolf-judge.vercel.app`   |
 
 ---
 
@@ -333,5 +344,6 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 | ------------ | ---------------------------------------- |
 | **前端**     | https://werewolf-judge.vercel.app        |
 | **后端**     | https://abmzjezdvpzyeooqhhsn.supabase.co |
-| **AI 代理**  | Edge Function `groq-proxy`               |
+| **游戏 API** | Edge Function `game`                     |
+| **AI 代理**  | Edge Function `gemini-proxy`             |
 | **崩溃监控** | Sentry                                   |

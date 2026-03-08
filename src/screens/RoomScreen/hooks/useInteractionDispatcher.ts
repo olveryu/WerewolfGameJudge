@@ -9,7 +9,6 @@
  * or hold JSX, and does not duplicate any policy logic (single-source-of-truth is policy layer).
  */
 
-import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { useCallback, useMemo } from 'react';
@@ -22,7 +21,7 @@ import {
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { showAlert } from '@/utils/alert';
-import { isAbortError } from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,9 +151,7 @@ export function useInteractionDispatcher({
       });
       if (intent) {
         void handleActionIntent(intent).catch((err) => {
-          if (isAbortError(err)) return;
-          roomScreenLog.error('[handleActionTap] Unhandled error in handleActionIntent', err);
-          Sentry.captureException(err);
+          handleError(err, { label: 'handleActionTap', logger: roomScreenLog, alertTitle: false });
         });
       }
     },
@@ -259,12 +256,11 @@ export function useInteractionDispatcher({
                       setShouldPlayRevealAnimation(true);
                       setIsLoadingRole(false);
                     } catch (err) {
-                      if (isAbortError(err)) {
-                        roomScreenLog.warn('[roleCard] viewedRole aborted');
-                      } else {
-                        roomScreenLog.error('[roleCard] viewedRole failed', err);
-                        Sentry.captureException(err);
-                      }
+                      handleError(err, {
+                        label: '查看角色',
+                        logger: roomScreenLog,
+                        alertTitle: false,
+                      });
                       setRoleCardVisible(false);
                       setIsLoadingRole(false);
                     }
@@ -300,9 +296,7 @@ export function useInteractionDispatcher({
           });
           if (result.intent) {
             void handleActionIntent(result.intent).catch((err) => {
-              if (isAbortError(err)) return;
-              roomScreenLog.error('[ACTION_FLOW] Unhandled error in handleActionIntent', err);
-              Sentry.captureException(err);
+              handleError(err, { label: 'ACTION_FLOW', logger: roomScreenLog, alertTitle: false });
             });
           } else if (result.seat !== undefined) {
             handleActionTap(result.seat);
@@ -353,9 +347,11 @@ export function useInteractionDispatcher({
             );
           } else {
             void sendWolfRobotHunterStatusViewed(effectiveSeat).catch((err) => {
-              if (isAbortError(err)) return;
-              roomScreenLog.error('[HUNTER_STATUS_VIEWED] Failed', err);
-              Sentry.captureException(err);
+              handleError(err, {
+                label: 'HUNTER_STATUS_VIEWED',
+                logger: roomScreenLog,
+                alertTitle: false,
+              });
             });
           }
           return;

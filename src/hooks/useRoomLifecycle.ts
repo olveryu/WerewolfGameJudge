@@ -14,7 +14,6 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Sentry from '@sentry/react-native';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
@@ -23,8 +22,8 @@ import type { AuthService } from '@/services/infra/AuthService';
 import type { RoomRecord, RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
-import { showAlert } from '@/utils/alert';
-import { getErrorMessage, isAbortError } from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
+import { getErrorMessage } from '@/utils/errorUtils';
 import { gameRoomLog } from '@/utils/logger';
 
 import type { ConnectionSyncActions } from './useConnectionSync';
@@ -118,12 +117,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return true;
       } catch (err) {
         const message = getErrorMessage(err, '房间初始化失败，请重试');
-        if (isAbortError(err)) {
-          gameRoomLog.warn('[initializeRoom] Aborted', { roomNumber });
-        } else {
-          gameRoomLog.error('[initializeRoom] Failed', { error: message, roomNumber });
-          Sentry.captureException(err);
-        }
+        handleError(err, { label: '房间初始化', logger: gameRoomLog, alertTitle: false });
         setError(message);
         return false;
       } finally {
@@ -178,16 +172,13 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return true;
       } catch (err) {
         const message = getErrorMessage(err, '加入房间失败，请重试');
-        // Channel closed during retry = user-initiated cancel (old channel torn down by new joinRoom).
-        // Expected error — warn only, do not pollute Sentry.
-        const isChannelClosed =
-          err instanceof Error && err.message.includes('channel closed before subscribe');
-        if (isChannelClosed || isAbortError(err)) {
-          gameRoomLog.warn('joinRoom aborted (channel closed / network abort):', message);
-        } else {
-          gameRoomLog.error('Player joinRoom failed:', message, err);
-          Sentry.captureException(err);
-        }
+        handleError(err, {
+          label: '加入房间',
+          logger: gameRoomLog,
+          alertTitle: false,
+          isExpected: (e) =>
+            e instanceof Error && e.message.includes('channel closed before subscribe'),
+        });
         setError(message);
         return false;
       } finally {
@@ -205,12 +196,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       await facade.leaveRoom();
       setRoomRecord(null);
     } catch (err) {
-      if (isAbortError(err)) {
-        gameRoomLog.warn('Error leaving room (aborted):', err);
-      } else {
-        gameRoomLog.error(' Error leaving room:', err);
-        Sentry.captureException(err);
-      }
+      handleError(err, { label: '离开房间', logger: gameRoomLog, alertTitle: false });
     }
   }, [facade, setRoomRecord]);
 
@@ -227,13 +213,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return await facade.takeSeat(seatNumber, displayName ?? undefined, avatarUrl ?? undefined);
       } catch (err) {
-        if (isAbortError(err)) {
-          gameRoomLog.warn('Error taking seat (aborted):', err);
-        } else {
-          gameRoomLog.error(' Error taking seat:', err);
-          Sentry.captureException(err);
-          showAlert('入座失败', '请稍后重试');
-        }
+        handleError(err, {
+          label: '入座',
+          logger: gameRoomLog,
+          alertTitle: '入座失败',
+          alertMessage: '请稍后重试',
+        });
         return false;
       }
     },
@@ -245,13 +230,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     try {
       await facade.leaveSeat();
     } catch (err) {
-      if (isAbortError(err)) {
-        gameRoomLog.warn('Error leaving seat (aborted):', err);
-      } else {
-        gameRoomLog.error(' Error leaving seat:', err);
-        Sentry.captureException(err);
-        showAlert('离座失败', '请稍后重试');
-      }
+      handleError(err, {
+        label: '离座',
+        logger: gameRoomLog,
+        alertTitle: '离座失败',
+        alertMessage: '请稍后重试',
+      });
     }
   }, [facade]);
 
@@ -275,12 +259,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return result;
       } catch (err) {
-        if (isAbortError(err)) {
-          gameRoomLog.warn('Error taking seat with ack (aborted):', err);
-        } else {
-          gameRoomLog.error(' Error taking seat with ack:', err);
-          Sentry.captureException(err);
-        }
+        handleError(err, { label: '入座(ack)', logger: gameRoomLog, alertTitle: false });
         return { success: false, reason: String(err) };
       }
     },
@@ -292,12 +271,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     try {
       return await facade.leaveSeatWithAck();
     } catch (err) {
-      if (isAbortError(err)) {
-        gameRoomLog.warn('Error leaving seat with ack (aborted):', err);
-      } else {
-        gameRoomLog.error(' Error leaving seat with ack:', err);
-        Sentry.captureException(err);
-      }
+      handleError(err, { label: '离座(ack)', logger: gameRoomLog, alertTitle: false });
       return { success: false, reason: String(err) };
     }
   }, [facade]);
@@ -318,12 +292,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       }
       return result;
     } catch (err) {
-      if (isAbortError(err)) {
-        gameRoomLog.warn('Force sync aborted:', err);
-      } else {
-        gameRoomLog.error('Force sync fetchStateFromDB failed:', err);
-        Sentry.captureException(err);
-      }
+      handleError(err, { label: '同步状态', logger: gameRoomLog, alertTitle: false });
       setConnectionStatus(ConnectionStatus.Disconnected);
       return false;
     }

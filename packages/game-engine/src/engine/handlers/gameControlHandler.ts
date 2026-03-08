@@ -10,10 +10,8 @@
  * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
  */
 
-import { GameStatus } from '../../models/GameStatus';
-import { ROLE_SPECS, type RoleId } from '../../models/roles';
-import { getStepSpec } from '../../models/roles/spec/nightSteps';
-import { buildNightPlan } from '../../models/roles/spec/plan';
+import { GameStatus, ROLE_SPECS, type RoleId } from '../../models';
+import { buildNightPlan, getStepSpec } from '../../models/roles/spec';
 import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { randomHex } from '../../utils/id';

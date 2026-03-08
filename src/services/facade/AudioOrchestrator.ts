@@ -9,7 +9,6 @@
  * 不负责房间生命周期或通用断线恢复（由 ConnectionRecoveryManager 处理）。
  */
 
-import * as Sentry from '@sentry/react-native';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import { getStepSpec } from '@werewolf/game-engine/models/roles/spec/nightSteps';
 import type { AudioEffect } from '@werewolf/game-engine/protocol/types';
@@ -17,7 +16,7 @@ import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverrid
 
 import type { AudioService } from '@/services/infra/AudioService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
-import { isAbortError } from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
 
 import type { GameActionsContext } from './gameActions';
@@ -191,12 +190,7 @@ export class AudioOrchestrator {
       }
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
-      if (isAbortError(e)) {
-        facadeLog.warn('resumeAfterRejoin aborted', e);
-      } else {
-        facadeLog.error('resumeAfterRejoin failed', e);
-        Sentry.captureException(e);
-      }
+      handleError(e, { label: 'resumeAfterRejoin', logger: facadeLog, alertTitle: false });
     }
   }
 
