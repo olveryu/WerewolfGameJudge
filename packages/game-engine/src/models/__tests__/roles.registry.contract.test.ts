@@ -137,7 +137,7 @@ describe('Role Registry Contract Tests', () => {
       for (const roleId of allRoleIds) {
         const spec = getRoleSpec(roleId);
         expect(spec.shortName).toBeTruthy();
-        expect(spec.shortName.length).toBeGreaterThanOrEqual(1);
+        expect(spec.shortName.length).toBe(1);
       }
     });
 

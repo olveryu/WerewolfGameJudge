@@ -230,7 +230,7 @@ function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles
     },
     chip: {
       flexBasis: '22%',
-      flexGrow: 1,
+      flexGrow: 0,
       maxWidth: '24%',
       alignItems: 'center',
       paddingHorizontal: spacing.small,
