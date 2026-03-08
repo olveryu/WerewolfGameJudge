@@ -111,7 +111,7 @@ describe('schema-resolver constraint alignment', () => {
   });
 
   describe('schemas with notWolfFaction constraint', () => {
-    const schemasWithNotWolfFaction = ['wolfWitchCheck'] as const;
+    const schemasWithNotWolfFaction = ['wolfWitchCheck', 'awakenedGargoyleConvert'] as const;
 
     it.each(schemasWithNotWolfFaction)(
       '%s schema should have notWolfFaction constraint',

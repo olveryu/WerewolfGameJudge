@@ -12,27 +12,41 @@ import type { IntentExecutor } from './types';
 export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
   const { gameState, currentSchema, actorSeatForUi, submitGroupConfirmAck, actionDialogs } = ctx;
 
-  // Compute personal hypnotize message inline (like confirmTrigger reads confirmStatus)
   const mySeat = actorSeatForUi;
-  const hypnotizedSeats = gameState?.hypnotizedSeats ?? [];
-  const isHypnotized = mySeat !== null && hypnotizedSeats.includes(mySeat);
   const gcSchema = currentSchema?.kind === 'groupConfirm' ? currentSchema : null;
+  const schemaId = gcSchema?.id;
 
+  // Compute personal message based on schema type
   let personalMessage: string;
-  if (isHypnotized) {
-    const seatsText = hypnotizedSeats.map((s) => `${s + 1}号`).join('、');
-    const template = gcSchema!.ui!.hypnotizedText!;
-    personalMessage = template.replace('{seats}', seatsText);
+  let dialogTitle: string;
+
+  if (schemaId === 'awakenedGargoyleConvertReveal') {
+    // Awakened Gargoyle: single convertedSeat
+    const isConverted = mySeat !== null && gameState?.convertedSeat === mySeat;
+    personalMessage = isConverted
+      ? gcSchema!.ui!.hypnotizedText!
+      : gcSchema!.ui!.notHypnotizedText!;
+    dialogTitle = '转化信息';
   } else {
-    personalMessage = gcSchema!.ui!.notHypnotizedText!;
+    // Piper: hypnotizedSeats array with {seats} placeholder
+    const hypnotizedSeats = gameState?.hypnotizedSeats ?? [];
+    const isHypnotized = mySeat !== null && hypnotizedSeats.includes(mySeat);
+    if (isHypnotized) {
+      const seatsText = hypnotizedSeats.map((s) => `${s + 1}号`).join('、');
+      const template = gcSchema!.ui!.hypnotizedText!;
+      personalMessage = template.replace('{seats}', seatsText);
+    } else {
+      personalMessage = gcSchema!.ui!.notHypnotizedText!;
+    }
+    dialogTitle = '催眠信息';
   }
 
-  roomScreenLog.debug('[handleActionIntent] groupConfirmAck', { personalMessage });
+  roomScreenLog.debug('[handleActionIntent] groupConfirmAck', { schemaId, personalMessage });
 
   const doAck = () => {
     submitGroupConfirmAck();
   };
 
   const buttonLabel = gcSchema!.ui!.confirmButtonText!;
-  actionDialogs.showRoleActionPrompt('催眠信息', personalMessage, doAck, buttonLabel);
+  actionDialogs.showRoleActionPrompt(dialogTitle, personalMessage, doAck, buttonLabel);
 };

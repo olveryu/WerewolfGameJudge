@@ -60,7 +60,10 @@ function isStepComplete(state: GameState): boolean {
   // groupConfirm steps: complete when all seated players have acked.
   const schema = SCHEMAS[stepId as SchemaId];
   if (schema?.kind === 'groupConfirm') {
-    const acks = state.piperRevealAcks ?? [];
+    const acks =
+      stepId === 'awakenedGargoyleConvertReveal'
+        ? (state.conversionRevealAcks ?? [])
+        : (state.piperRevealAcks ?? []);
     // All seated (non-null) players must ack
     const seatedCount = Object.values(state.players).filter((p) => p !== null).length;
     return acks.length >= seatedCount;

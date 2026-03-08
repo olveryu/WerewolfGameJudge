@@ -72,6 +72,18 @@ const NIGHT_STEPS_INTERNAL = [
     roleId: 'wolf',
     audioKey: 'wolf',
   },
+  // 觉醒石像鬼转化是个人行动，在狼刀后、狼美人前执行
+  {
+    id: 'awakenedGargoyleConvert',
+    roleId: 'awakenedGargoyle',
+    audioKey: 'awakenedGargoyle',
+  },
+  {
+    id: 'awakenedGargoyleConvertReveal',
+    roleId: 'awakenedGargoyle',
+    audioKey: 'awakenedGargoyleConvertReveal',
+    audioEndKey: 'awakenedGargoyleConvertReveal',
+  },
   // 狼美人魅惑是个人行动（不是狼人会议），但在狼刀后执行
   {
     id: 'wolfQueenCharm',

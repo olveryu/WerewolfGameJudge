@@ -487,8 +487,8 @@ describe('canSkip behavior alignment', () => {
 // === 6. NIGHT_STEPS order stability ===
 
 describe('NIGHT_STEPS order stability', () => {
-  it('should have exactly 23 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(23);
+  it('should have exactly 25 steps', () => {
+    expect(NIGHT_STEPS).toHaveLength(25);
   });
 
   it('step order should match expected sequence', () => {
@@ -502,6 +502,8 @@ describe('NIGHT_STEPS order stability', () => {
       'silenceElderSilence',
       'votebanElderBan',
       'wolfKill',
+      'awakenedGargoyleConvert',
+      'awakenedGargoyleConvertReveal',
       'wolfQueenCharm',
       'witchAction',
       'hunterConfirm',

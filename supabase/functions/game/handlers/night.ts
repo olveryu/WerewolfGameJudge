@@ -291,13 +291,18 @@ export const handleGroupConfirmAck: HandlerFn = async (req) => {
         return { success: false, reason: 'uid_mismatch', actions: [] };
       }
       // Idempotent: already acked → no-op success
-      const acks = state.piperRevealAcks ?? [];
+      const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
+      const acks = isConversionReveal
+        ? (state.conversionRevealAcks ?? [])
+        : (state.piperRevealAcks ?? []);
       if (acks.includes(seat)) {
         return { success: true, actions: [] };
       }
 
-      // Build action: ack this single seat only
-      const actions: StateAction[] = [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
+      // Build action: ack this single seat only (dispatch to the correct ack field)
+      const actions: StateAction[] = isConversionReveal
+        ? [{ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat } }]
+        : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
 
       return { success: true, actions };
     },

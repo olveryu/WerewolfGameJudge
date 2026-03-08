@@ -37,9 +37,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 16) {
+  if (boards.length !== 17) {
     throw new Error(
-      `Expected exactly 16 presets with name including "12人", but got ${boards.length}. ` +
+      `Expected exactly 17 presets with name including "12人", but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -105,6 +105,9 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
 
   // Gargoyle: chooseSeat confirm + skip
   gargoyle: ['actionConfirm', 'skipConfirm'],
+
+  // AwakenedGargoyle: chooseSeat confirm only (canSkip: false, 强制发动)
+  awakenedGargoyle: ['actionConfirm'],
 
   // Psychic: chooseSeat confirm + skip
   psychic: ['actionConfirm', 'skipConfirm'],
@@ -224,4 +227,5 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   吹笛守卫12人: 'piper.12p.board.ui.test.tsx',
   混子标准12人: 'slacker.12p.board.ui.test.tsx',
   野孩标准12人: 'wildChild.12p.board.ui.test.tsx',
+  唯邻是从12人: 'awakenedGargoyle.12p.board.ui.test.tsx',
 };

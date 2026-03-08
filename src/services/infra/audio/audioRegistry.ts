@@ -51,6 +51,10 @@ export const AUDIO_REGISTRY: Partial<Record<RoleId, RoleAudioEntry>> = {
     begin: require('../../../../assets/audio/gargoyle.mp3'),
     end: require('../../../../assets/audio_end/gargoyle.mp3'),
   },
+  awakenedGargoyle: {
+    begin: require('../../../../assets/audio/awakened_gargoyle.mp3'),
+    end: require('../../../../assets/audio_end/awakened_gargoyle.mp3'),
+  },
   nightmare: {
     begin: require('../../../../assets/audio/nightmare.mp3'),
     end: require('../../../../assets/audio_end/nightmare.mp3'),
@@ -144,6 +148,10 @@ export const STEP_AUDIO: Record<string, RoleAudioEntry> = {
   piperHypnotizedReveal: {
     begin: require('../../../../assets/audio/piper_hypnotized_reveal.mp3'),
     end: require('../../../../assets/audio_end/piper_hypnotized_reveal.mp3'),
+  },
+  awakenedGargoyleConvertReveal: {
+    begin: require('../../../../assets/audio/awakened_gargoyle_convert_reveal.mp3'),
+    end: require('../../../../assets/audio_end/awakened_gargoyle_convert_reveal.mp3'),
   },
 };
 

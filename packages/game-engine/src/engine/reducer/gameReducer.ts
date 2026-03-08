@@ -144,6 +144,14 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return { ...state, piperRevealAcks: [...acks, seat] };
     }
 
+    case 'ADD_CONVERSION_REVEAL_ACK': {
+      const acks = state.conversionRevealAcks ?? [];
+      const seat = action.payload.seat;
+      // Idempotent: ignore duplicate ack
+      if (acks.includes(seat)) return state;
+      return { ...state, conversionRevealAcks: [...acks, seat] };
+    }
+
     default: {
       const _exhaustive: never = action;
       return _exhaustive;
