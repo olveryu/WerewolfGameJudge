@@ -43,6 +43,7 @@ export const TESTIDS = {
   configAnimation: 'config-animation',
   configBgm: 'config-bgm',
   configRoleChip: (id: string) => `config-role-chip-${id}`,
+  configVariantOption: (id: string) => `config-variant-option-${id}`,
   configStepperDec: (roleId: string) => `config-stepper-dec-${roleId}`,
   configStepperInc: (roleId: string) => `config-stepper-inc-${roleId}`,
   configStepperCount: (roleId: string) => `config-stepper-count-${roleId}`,

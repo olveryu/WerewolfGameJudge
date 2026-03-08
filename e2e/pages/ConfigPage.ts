@@ -3,6 +3,19 @@ import { expect, Page } from '@playwright/test';
 import { getVisibleText } from '../helpers/ui';
 
 /**
+ * Variant → base role mapping.
+ *
+ * Variant roles share a chip with their base role in the config UI.
+ * Selecting a variant requires long-pressing the base chip to open the VariantPicker.
+ * Keep in sync with configData.ts `variants` arrays.
+ */
+const VARIANT_TO_BASE: Record<string, string> = {
+  awakenedGargoyle: 'gargoyle',
+  drunkSeer: 'mirrorSeer',
+  wildChild: 'slacker',
+};
+
+/**
  * ConfigPage Page Object
  *
  * Encapsulates all Config Screen interactions:
@@ -99,6 +112,23 @@ export class ConfigPage {
     const chip = this.page.locator(`[data-testid="config-role-chip-${roleId}"]`).first();
     await chip.waitFor({ state: 'attached', timeout: 2000 });
     await chip.click({ force: true });
+  }
+
+  /**
+   * Select a variant role via the VariantPicker.
+   *
+   * Long-presses the base chip to open the variant picker modal,
+   * then clicks the target variant option. The chip auto-selects.
+   */
+  async selectVariant(baseRoleId: string, variantRoleId: string) {
+    const chip = this.page.locator(`[data-testid="config-role-chip-${baseRoleId}"]`).first();
+    await chip.waitFor({ state: 'attached', timeout: 2000 });
+    // Long-press to open variant picker
+    await chip.click({ delay: 600 });
+    // Click the variant option
+    const option = this.page.locator(`[data-testid="config-variant-option-${variantRoleId}"]`);
+    await option.waitFor({ state: 'visible', timeout: 3000 });
+    await option.click();
   }
 
   /** Deselect multiple role chips. Silently skips missing chips. */
@@ -282,9 +312,14 @@ export class ConfigPage {
     } else if (villagerDelta < 0) {
       await this.increaseStepper('villager', -villagerDelta);
     }
-    // Enable good special roles
+    // Enable good special roles (handle variants via VariantPicker)
     for (const roleId of goodRoles) {
-      await this.toggleRole(roleId);
+      const base = VARIANT_TO_BASE[roleId];
+      if (base) {
+        await this.selectVariant(base, roleId);
+      } else {
+        await this.toggleRole(roleId);
+      }
     }
 
     // --- 狼人阵营 ---
@@ -296,16 +331,26 @@ export class ConfigPage {
     } else if (wolfDelta < 0) {
       await this.increaseStepper('wolf', -wolfDelta);
     }
-    // Enable wolf special roles
+    // Enable wolf special roles (handle variants via VariantPicker)
     for (const roleId of wolfRoles) {
-      await this.toggleRole(roleId);
+      const base = VARIANT_TO_BASE[roleId];
+      if (base) {
+        await this.selectVariant(base, roleId);
+      } else {
+        await this.toggleRole(roleId);
+      }
     }
 
     // --- 中立阵营 (if needed) ---
     if (specialRoles.length > 0) {
       await this.switchToFactionTab('Special');
       for (const roleId of specialRoles) {
-        await this.toggleRole(roleId);
+        const base = VARIANT_TO_BASE[roleId];
+        if (base) {
+          await this.selectVariant(base, roleId);
+        } else {
+          await this.toggleRole(roleId);
+        }
       }
     }
   }
