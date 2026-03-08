@@ -263,6 +263,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Host Menu Dropdown - replaces headerSpacer */}
         <HostMenuDropdown
           visible={isHost}
+          showSettings={
+            !isStartingGame &&
+            !isAudioPlaying &&
+            (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated)
+          }
           showFillWithBots={roomStatus === GameStatus.Unseated}
           showMarkAllBotsViewed={isDebugMode && roomStatus === GameStatus.Assigned}
           showClearAllSeats={

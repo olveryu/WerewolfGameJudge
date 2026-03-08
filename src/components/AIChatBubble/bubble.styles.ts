@@ -34,9 +34,14 @@ export function createBubbleStyles(colors: ThemeColors, bubbleSize: number) {
     bubbleLabel: {
       fontSize: typography.captionSmall,
       fontWeight: typography.weights.medium,
-      color: colors.textSecondary,
+      color: '#fff',
       textAlign: 'center' as const,
       marginTop: 2,
+      backgroundColor: colors.primary,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      borderRadius: 6,
+      overflow: 'hidden',
     },
     pulseRing: {
       position: 'absolute',
