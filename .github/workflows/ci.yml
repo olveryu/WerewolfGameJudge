@@ -11,12 +11,33 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  pull-requests: write
 
 jobs:
   quality:
     runs-on: ubuntu-latest
+    outputs:
+      edge_changed: ${{ steps.detect-edge.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect edge function / game-engine changes
+        id: detect-edge
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- supabase/functions/ packages/game-engine/)
+            if [[ -n "$CHANGED" ]]; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              echo "Edge-related files changed:"
+              echo "$CHANGED"
+            else
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: pnpm/action-setup@v4
 
@@ -80,7 +101,11 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    if: always() && needs.quality.result == 'success' && (needs.deploy-edge-functions.result == 'success' || needs.deploy-edge-functions.result == 'skipped')
+    if: |
+      always() &&
+      needs.quality.result == 'success' &&
+      (needs.deploy-edge-functions.result == 'success' || needs.deploy-edge-functions.result == 'skipped') &&
+      !(github.event_name == 'pull_request' && needs.quality.outputs.edge_changed == 'true')
     needs: [quality, deploy-edge-functions]
     strategy:
       fail-fast: false
@@ -174,3 +199,18 @@ jobs:
           echo "## 📊 Playwright Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "👉 [${{ steps.deployment.outputs.page_url }}](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
+
+  warn-edge-changed:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && needs.quality.outputs.edge_changed == 'true'
+    needs: quality
+    steps:
+      - name: Post PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: edge-changed-warning
+          message: |
+            ⚠️ **E2E tests skipped** — this PR modifies `supabase/functions/` or `packages/game-engine/`.
+
+            Edge Functions are only deployed on merge to `main`. E2E will run automatically after merge.
+            To verify locally, use `pnpm exec playwright test --reporter=list` against a local Supabase instance.
