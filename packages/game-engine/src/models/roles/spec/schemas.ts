@@ -290,6 +290,37 @@ export const SCHEMAS = {
     },
   },
 
+  awakenedGargoyleConvert: {
+    id: 'awakenedGargoyleConvert',
+    displayName: '幻惑人心',
+    kind: 'chooseSeat',
+    constraints: [
+      TargetConstraint.NotSelf,
+      TargetConstraint.NotWolfFaction,
+      TargetConstraint.AdjacentToWolfFaction,
+    ],
+    canSkip: false, // 强制发动，不可跳过
+    ui: {
+      confirmTitle: '确认转化',
+      prompt: '请选择狼人阵营相邻的一名神民角色进行转化',
+      confirmText: '确定要转化该玩家吗？',
+    },
+  },
+
+  awakenedGargoyleConvertReveal: {
+    id: 'awakenedGargoyleConvertReveal',
+    displayName: '转化确认',
+    kind: 'groupConfirm',
+    requireAllAcks: true,
+    ui: {
+      prompt: '所有玩家请睁眼，请看手机确认转化信息',
+      bottomActionText: '转化状态',
+      hypnotizedText: '你已被觉醒石像鬼转化为狼人阵营',
+      notHypnotizedText: '你未被转化',
+      confirmButtonText: '我知道了',
+    },
+  },
+
   wolfWitchCheck: {
     id: 'wolfWitchCheck',
     displayName: '查验',

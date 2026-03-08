@@ -108,7 +108,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
           { roleId: 'wolfQueen' },
           { roleId: 'wolfKing' },
           { roleId: 'darkWolfKing' },
-          { roleId: 'gargoyle' },
+          { roleId: 'gargoyle', variants: ['awakenedGargoyle'] },
           { roleId: 'nightmare' },
           { roleId: 'bloodMoon' },
           { roleId: 'wolfRobot' },

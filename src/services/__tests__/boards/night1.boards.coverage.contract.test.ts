@@ -67,6 +67,7 @@ const REQUIRED_ASSERTION_PATTERNS = [
   /\.wolfRobotReveal/,
   /\.pureWhiteReveal/,
   /\.wolfWitchReveal/,
+  /\.convertedSeat/,
   /\.actions\??\./,
   /\.actions\?\.\w+/,
 ];

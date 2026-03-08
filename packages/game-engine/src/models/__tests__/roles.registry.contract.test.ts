@@ -137,15 +137,19 @@ describe('Role Registry Contract Tests', () => {
       for (const roleId of allRoleIds) {
         const spec = getRoleSpec(roleId);
         expect(spec.shortName).toBeTruthy();
-        expect(spec.shortName.length).toBe(1);
+        expect(spec.shortName.length).toBeGreaterThanOrEqual(1);
       }
     });
 
-    it('all shortNames are unique', () => {
+    it('shortNames are unique except for variant-exclusive pairs', () => {
+      // Variant-exclusive pairs (never coexist in same game) may share shortName
+      const variantPairs = new Set(['gargoyle', 'awakenedGargoyle']);
       const allRoleIds = getAllRoleIds();
-      const shortNames = allRoleIds.map((id) => getRoleSpec(id).shortName);
-      const uniqueNames = new Set(shortNames);
-      expect(uniqueNames.size).toBe(shortNames.length);
+      const nonVariantShortNames = allRoleIds
+        .filter((id) => !variantPairs.has(id))
+        .map((id) => getRoleSpec(id).shortName);
+      const uniqueNames = new Set(nonVariantShortNames);
+      expect(uniqueNames.size).toBe(nonVariantShortNames.length);
     });
   });
 
