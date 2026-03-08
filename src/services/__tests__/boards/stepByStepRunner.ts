@@ -307,6 +307,9 @@ function submitActionForStep(
   } else if (stepId === 'piperHypnotizedReveal') {
     // groupConfirm: auto-completes after audio, no action submission needed
     return;
+  } else if (stepId === 'awakenedGargoyleConvertReveal') {
+    // groupConfirm: auto-completes after audio, no action submission needed
+    return;
   } else {
     // 普通 action（seer, guard, nightmare, etc.）
     submitNormalAction(ctx, stepId, roleId, actorSeat, actionValue);

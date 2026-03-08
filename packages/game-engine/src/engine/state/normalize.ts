@@ -132,5 +132,9 @@ export function normalizeState(raw: GameState): GameState {
     // 吹笛者（透传）
     hypnotizedSeats: raw.hypnotizedSeats ?? [],
     piperRevealAcks: raw.piperRevealAcks ?? [],
+
+    // 觉醒石像鬼（透传）
+    convertedSeat: raw.convertedSeat,
+    conversionRevealAcks: raw.conversionRevealAcks ?? [],
   } satisfies Complete<GameState>;
 }

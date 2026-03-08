@@ -118,12 +118,17 @@ export function handleApplyResolverResult(
   const hypnotizedSeats =
     updates && 'hypnotizedSeats' in updates ? updates.hypnotizedSeats : state.hypnotizedSeats;
 
+  // Sync convertedSeat from resolver updates to top-level state
+  const convertedSeat =
+    updates && 'convertedSeat' in updates ? updates.convertedSeat : state.convertedSeat;
+
   return {
     ...state,
     currentNightResults,
     nightmareBlockedSeat,
     wolfKillDisabled,
     hypnotizedSeats,
+    convertedSeat,
     seerReveal: seerReveal ?? state.seerReveal,
     mirrorSeerReveal: mirrorSeerReveal ?? state.mirrorSeerReveal,
     drunkSeerReveal: drunkSeerReveal ?? state.drunkSeerReveal,

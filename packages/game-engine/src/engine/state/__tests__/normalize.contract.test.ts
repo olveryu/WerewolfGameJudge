@@ -49,6 +49,10 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'hypnotizedSeats',
   'piperRevealAcks',
 
+  // 觉醒石像鬼
+  'convertedSeat',
+  'conversionRevealAcks',
+
   // 机械狼伪装上下文
   'wolfRobotContext',
 
@@ -123,6 +127,10 @@ describe('normalizeState contract', () => {
       // 吹笛者
       hypnotizedSeats: [3, 5],
       piperRevealAcks: [3],
+
+      // 觉醒石像鬼
+      convertedSeat: 2,
+      conversionRevealAcks: [0, 1],
 
       // 机械狼伪装上下文
       wolfRobotContext: { learnedSeat: 4, disguisedRole: 'seer' },

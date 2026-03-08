@@ -4,10 +4,10 @@
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
  *
- * 32 roles total:
+ * 33 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder (15)
- * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade (11)
+ * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade (12)
  * - Third-party: slacker, wildChild, piper (3)
  *
  * 提供声明式角色属性定义（faction / team / night1 / wolfMeeting 等），
@@ -318,6 +318,20 @@ export const ROLE_SPECS = {
     night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
+  },
+
+  awakenedGargoyle: {
+    id: 'awakenedGargoyle',
+    displayName: '觉醒石像鬼',
+    shortName: '石',
+    emoji: '🗿🔥',
+    faction: Faction.Wolf,
+    team: Team.Wolf,
+    description:
+      '入狼队参刀，可自爆可自刀。首夜强制发动【幻惑人心】：将与狼人阵营相邻的一名神民角色转化至狼人阵营。被转化者天亮前知晓阵营转变，不入狼队、不可自爆，保留自身技能；其他狼人全出局后失去原技能并主导夜间袭击',
+    night1: { hasAction: true },
+    // 入狼队参刀（区别于普通石像鬼）
+    wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
   },
 
   bloodMoon: {

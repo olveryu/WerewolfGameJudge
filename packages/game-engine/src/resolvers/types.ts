@@ -57,6 +57,9 @@ export interface CurrentNightResults {
 
   /** Seats newly hypnotized by piper this night (1-2 seats) */
   readonly hypnotizedSeats?: readonly number[];
+
+  /** Seat converted by awakenedGargoyle */
+  readonly convertedSeat?: number;
 }
 
 /** Context passed to resolvers */
@@ -128,6 +131,7 @@ export interface ResolverResult {
     readonly silenceTarget?: number; // silenceElder
     readonly votebanTarget?: number; // votebanElder
     readonly hypnotizedTargets?: readonly number[]; // piper - newly hypnotized seats this night
+    readonly convertTarget?: number; // awakenedGargoyle - converted seat
   };
 }
 

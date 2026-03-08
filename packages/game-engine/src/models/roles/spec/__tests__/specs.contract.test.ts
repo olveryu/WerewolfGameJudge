@@ -18,8 +18,8 @@ import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.type
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
-  it('should have exactly 32 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(32);
+  it('should have exactly 33 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(33);
   });
 
   it('every role should have required fields', () => {
@@ -81,6 +81,11 @@ describe('ROLE_SPECS contract', () => {
       expect(ROLE_SPECS.gargoyle.wolfMeeting?.participatesInWolfVote).toBe(false);
     });
 
+    it('awakenedGargoyle should see wolves and participate in vote', () => {
+      expect(ROLE_SPECS.awakenedGargoyle.wolfMeeting?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.awakenedGargoyle.wolfMeeting?.participatesInWolfVote).toBe(true);
+    });
+
     it('wolfRobot should not see wolves and not participate in vote', () => {
       expect(ROLE_SPECS.wolfRobot.wolfMeeting?.canSeeWolves).toBe(false);
       expect(ROLE_SPECS.wolfRobot.wolfMeeting?.participatesInWolfVote).toBe(false);
@@ -121,6 +126,7 @@ describe('ROLE_SPECS contract', () => {
       'wolfRobot', // 0
       'dreamcatcher', // 1
       'gargoyle', // 1
+      'awakenedGargoyle', // new
       'nightmare', // 2
       'guard', // 3
       'silenceElder', // 3.5
@@ -191,6 +197,7 @@ describe('ROLE_SPECS contract', () => {
       'bloodMoon',
       'spiritKnight',
       'wolfWitch',
+      'awakenedGargoyle',
     ];
 
     const loneWolves: RoleId[] = ['gargoyle', 'wolfRobot'];

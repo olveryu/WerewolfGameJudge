@@ -114,6 +114,8 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     seerLabelMap: undefined,
     hypnotizedSeats: undefined,
     piperRevealAcks: undefined,
+    convertedSeat: undefined,
+    conversionRevealAcks: [],
 
     // ── 重开时更新 nonce 和 resolved 动画 ─────────────────
     roleRevealRandomNonce: newNonce,

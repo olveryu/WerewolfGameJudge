@@ -24,6 +24,8 @@ export const BLOCKED_UI_DEFAULTS = {
 export enum TargetConstraint {
   NotSelf = 'NotSelf',
   NotWolfFaction = 'NotWolfFaction',
+  /** Target must be adjacent (±1 seat, circular) to an effective wolf-faction seat (swap-aware). */
+  AdjacentToWolfFaction = 'AdjacentToWolfFaction',
 }
 
 export type RevealKind =

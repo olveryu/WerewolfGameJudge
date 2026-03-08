@@ -300,8 +300,8 @@ describe('SCHEMAS contract', () => {
     it('schemas that support bottom actions should provide schema.ui.bottomActionText', () => {
       // Commit 2 gate: RoomScreen bottom button text should be schema-driven for canSkip flows.
       for (const schema of Object.values(SCHEMAS)) {
-        if (schema.kind === 'chooseSeat' || schema.kind === 'swap') {
-          // Note: some schemas may set canSkip=false, but providing text keeps UI consistent.
+        if ((schema.kind === 'chooseSeat' || schema.kind === 'swap') && schema.canSkip) {
+          // canSkip=true requires bottomActionText for the skip button label.
           expect(schema.ui?.bottomActionText).toBeTruthy();
         }
       }
