@@ -14,9 +14,10 @@
 
 ## 开发工具
 
-| 文档                                   | 说明                                   |
-| -------------------------------------- | -------------------------------------- |
-| [avatar-prompts.md](avatar-prompts.md) | Leonardo.AI 生成角色头像的 prompt 模板 |
+| 文档                                                             | 说明                                   |
+| ---------------------------------------------------------------- | -------------------------------------- |
+| [avatar-prompts.md](avatar-prompts.md)                           | Leonardo.AI 生成角色头像的 prompt 模板 |
+| [reusable-code-review-prompt.md](reusable-code-review-prompt.md) | 通用 AI 代码审查提示词模板             |
 
 ## 部署
 
@@ -26,6 +27,13 @@
 
 ## 历史参考
 
-| 文档                                                                   | 说明                                          |
-| ---------------------------------------------------------------------- | --------------------------------------------- |
-| [server-authoritative-migration.md](server-authoritative-migration.md) | ⚠️ 已完成。服务器权威架构迁移方案（历史参考） |
+> 以下文档记录已完成的迁移/重构方案，仅供追溯，不反映当前架构。
+
+| 文档                                                                   | 说明                                                        |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [server-authoritative-migration.md](server-authoritative-migration.md) | ⚠️ 已完成。服务器权威架构迁移方案                           |
+| [edge-function-migration.md](edge-function-migration.md)               | ⚠️ 已完成。Vercel Serverless → Supabase Edge Functions 迁移 |
+| [refactoring-plan.md](refactoring-plan.md)                             | ⚠️ 已完成。大规模重构方案（25 commits）                     |
+| [refactoring-baseline.md](refactoring-baseline.md)                     | 重构基线指标快照                                            |
+| [code-review-changes.md](code-review-changes.md)                       | 代码审查变更计划（feature/optimize_1）                      |
+| [apple-design-uplift.md](apple-design-uplift.md)                       | Apple 风格 UI 提升方案                                      |
