@@ -4,12 +4,11 @@
  * StateAction 是 reducer 的输入，描述状态变更
  */
 
-import type { RoleId } from '../../models/roles';
-import type { SchemaId } from '../../models/roles/spec';
+import type { RoleId, SchemaId } from '../../models';
 import type { Player, ProtocolAction } from '../../protocol/types';
 import type { AudioEffect } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
-import type { RoleRevealAnimation } from '../../types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '../../types';
 
 // =============================================================================
 // 游戏生命周期动作

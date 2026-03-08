@@ -5,6 +5,64 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./models/*": {
+      "types": "./src/models/*.ts",
+      "default": "./dist/models/*.js"
+    },
+    "./models/roles": {
+      "types": "./src/models/roles/index.ts",
+      "default": "./dist/models/roles/index.js"
+    },
+    "./models/roles/*": {
+      "types": "./src/models/roles/*.ts",
+      "default": "./dist/models/roles/*.js"
+    },
+    "./models/actions/*": {
+      "types": "./src/models/actions/*.ts",
+      "default": "./dist/models/actions/*.js"
+    },
+    "./engine/*": {
+      "types": "./src/engine/*.ts",
+      "default": "./dist/engine/*.js"
+    },
+    "./engine/store": {
+      "types": "./src/engine/store/index.ts",
+      "default": "./dist/engine/store/index.js"
+    },
+    "./engine/store/*": {
+      "types": "./src/engine/store/*.ts",
+      "default": "./dist/engine/store/*.js"
+    },
+    "./engine/state/*": {
+      "types": "./src/engine/state/*.ts",
+      "default": "./dist/engine/state/*.js"
+    },
+    "./engine/reducer/*": {
+      "types": "./src/engine/reducer/*.ts",
+      "default": "./dist/engine/reducer/*.js"
+    },
+    "./protocol/*": {
+      "types": "./src/protocol/*.ts",
+      "default": "./dist/protocol/*.js"
+    },
+    "./types/*": {
+      "types": "./src/types/*.ts",
+      "default": "./dist/types/*.js"
+    },
+    "./resolvers/*": {
+      "types": "./src/resolvers/*.ts",
+      "default": "./dist/resolvers/*.js"
+    },
+    "./utils/*": {
+      "types": "./src/utils/*.ts",
+      "default": "./dist/utils/*.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "build:esm": "esbuild src/index.ts --bundle --format=esm --outfile=../../supabase/functions/_shared/game-engine/index.js",

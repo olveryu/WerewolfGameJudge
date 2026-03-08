@@ -9,7 +9,7 @@
  * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
  */
 
-import { GameStatus } from '../../models/GameStatus';
+import { GameStatus } from '../../models';
 import {
   REASON_GAME_IN_PROGRESS,
   REASON_INVALID_SEAT,

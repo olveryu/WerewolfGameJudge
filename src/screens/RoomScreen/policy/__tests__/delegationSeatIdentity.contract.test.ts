@@ -24,8 +24,14 @@ function readFileContent(relativePath: string): string {
 
 // After refactoring, handleActionIntent logic moved to useActionOrchestrator,
 // and dispatchInteraction logic moved to useInteractionDispatcher.
+// C09 further extracted intent handlers into individual executor files.
 const ORCHESTRATOR_PATH = 'src/screens/RoomScreen/hooks/useActionOrchestrator.ts';
 const DISPATCHER_PATH = 'src/screens/RoomScreen/hooks/useInteractionDispatcher.ts';
+const ACTION_SUBMIT_EXECUTOR_PATH = 'src/screens/RoomScreen/executors/actionSubmitExecutor.ts';
+const SKIP_EXECUTOR_PATH = 'src/screens/RoomScreen/executors/skipExecutor.ts';
+const WOLF_VOTE_EXECUTOR_PATH = 'src/screens/RoomScreen/executors/wolfVoteExecutor.ts';
+const PROMPT_EXECUTOR_PATH = 'src/screens/RoomScreen/executors/promptExecutor.ts';
+const WOLF_ROBOT_EXECUTOR_PATH = 'src/screens/RoomScreen/executors/wolfRobotExecutor.ts';
 
 describe('Delegation Seat Identity Contract', () => {
   describe('handleActionIntent must use effectiveSeat for action submission', () => {
@@ -37,9 +43,9 @@ describe('Delegation Seat Identity Contract', () => {
      * causing witch actions to fail silently.
      */
     it('compound action (witch) should use effectiveSeat, not mySeatNumber', () => {
-      const content = readFileContent(ORCHESTRATOR_PATH);
+      const content = readFileContent(ACTION_SUBMIT_EXECUTOR_PATH);
 
-      // Find the compound action block
+      // Find the compound action block (now in actionSubmitExecutor.ts)
       const compoundBlockRegex = /if\s*\(\s*currentSchema\?\.kind\s*===\s*['"]compound['"]\s*\)/g;
       const matches = [...content.matchAll(compoundBlockRegex)];
 
@@ -69,9 +75,9 @@ describe('Delegation Seat Identity Contract', () => {
      * P0 Contract: skip action (compound) must use effectiveSeat
      */
     it('skip action (compound) should use effectiveSeat, not mySeatNumber', () => {
-      const content = readFileContent(ORCHESTRATOR_PATH);
+      const content = readFileContent(SKIP_EXECUTOR_PATH);
 
-      // Find the skip compound block - look for the compound/skipAll handling specifically
+      // Find the skip compound block (now in skipExecutor.ts)
       const skipCompoundRegex =
         /if\s*\(\s*intent\.stepKey\s*===\s*['"]skipAll['"]\s*\|\|\s*currentSchema\?\.kind\s*===\s*['"]compound['"]\s*\)/g;
       const match = skipCompoundRegex.exec(content);
@@ -97,28 +103,16 @@ describe('Delegation Seat Identity Contract', () => {
      * P0 Contract: confirmTrigger (hunter/darkWolfKing) must use effectiveSeat
      */
     it('confirmTrigger should use effectiveSeat, not mySeatNumber', () => {
-      const content = readFileContent(ORCHESTRATOR_PATH);
+      // confirmTrigger logic now lives in promptExecutor.ts
+      const content = readFileContent(PROMPT_EXECUTOR_PATH);
 
-      // Find the confirmTrigger block - look for the effectiveSeat check specifically
-      // We need to find the section after the canShoot determination
-      const confirmTriggerRegex = /case\s*['"]confirmTrigger['"]:\s*\{/g;
-      const match = confirmTriggerRegex.exec(content);
+      // Should check effectiveSeat === null, NOT mySeatNumber === null
+      expect(content).toMatch(/effectiveSeat\s*===\s*null/);
+      expect(content).not.toMatch(/mySeatNumber\s*===\s*null/);
 
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        // Get next 2500 chars to capture the entire block including the effectiveSeat check
-        const block = content.substring(startIndex, startIndex + 2500);
-
-        // Should check effectiveSeat === null, NOT mySeatNumber === null
-        expect(block).toMatch(/effectiveSeat\s*===\s*null/);
-        expect(block).not.toMatch(/mySeatNumber\s*===\s*null/);
-
-        // Should use effectiveSeat in proceedWithActionTyped, NOT mySeatNumber
-        expect(block).toMatch(/proceedWithActionTyped\s*\(\s*effectiveSeat/);
-        expect(block).not.toMatch(/proceedWithActionTyped\s*\(\s*mySeatNumber/);
-      }
+      // Should use effectiveSeat in proceedWithAction, NOT mySeatNumber
+      expect(content).toMatch(/proceedWithAction\(effectiveSeat/);
+      expect(content).not.toMatch(/proceedWithAction\(mySeatNumber/);
     });
   });
 
@@ -256,56 +250,35 @@ describe('Delegation Seat Identity Contract', () => {
      * instead of letting server reject via actionRejected.
      */
     it('wolfVote should use effectiveSeat as fallback, not findVotingWolfSeat', () => {
-      const content = readFileContent(ORCHESTRATOR_PATH);
+      // wolfVote logic now lives in wolfVoteExecutor.ts
+      const content = readFileContent(WOLF_VOTE_EXECUTOR_PATH);
 
-      // Find the wolfVote case block
-      const wolfVoteRegex = /case\s*['"]wolfVote['"]:\s*\{/g;
-      const match = wolfVoteRegex.exec(content);
+      // Should use effectiveSeat as fallback, NOT findVotingWolfSeat()
+      expect(content).toMatch(/intent\.wolfSeat\s*\?\?\s*effectiveSeat/);
+      expect(content).not.toMatch(/intent\.wolfSeat\s*\?\?\s*findVotingWolfSeat\(\)/);
 
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        // Get next 800 chars to capture the block
-        const block = content.substring(startIndex, startIndex + 800);
-
-        // Should use effectiveSeat as fallback, NOT findVotingWolfSeat()
-        expect(block).toMatch(/intent\.wolfSeat\s*\?\?\s*effectiveSeat/);
-        expect(block).not.toMatch(/intent\.wolfSeat\s*\?\?\s*findVotingWolfSeat\(\)/);
-
-        // Should check seat === null for gate (seat = effectiveSeat fallback), NOT mySeatNumber
-        expect(block).toMatch(/seat\s*===\s*null/);
-        expect(block).not.toMatch(/mySeatNumber\s*===\s*null/);
-      }
+      // Should check seat === null for gate (seat = effectiveSeat fallback), NOT mySeatNumber
+      expect(content).toMatch(/seat\s*===\s*null/);
+      expect(content).not.toMatch(/mySeatNumber\s*===\s*null/);
     });
 
     /**
      * wolfVote log should not reference myRole/mySeatNumber
      */
     it('wolfVote should log effectiveSeat/effectiveRole, not myRole/mySeatNumber', () => {
-      const content = readFileContent(ORCHESTRATOR_PATH);
+      // wolfVote logic now lives in wolfVoteExecutor.ts
+      const content = readFileContent(WOLF_VOTE_EXECUTOR_PATH);
 
-      const wolfVoteRegex = /case\s*['"]wolfVote['"]:\s*\{/g;
-      const match = wolfVoteRegex.exec(content);
+      // Log should include effectiveSeat/effectiveRole
+      expect(content).toMatch(/effectiveSeat/);
+      expect(content).toMatch(/effectiveRole/);
 
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        const block = content.substring(startIndex, startIndex + 1000);
-
-        // Log should include effectiveSeat/effectiveRole
-        expect(block).toMatch(/effectiveSeat/);
-        expect(block).toMatch(/effectiveRole/);
-
-        // Log should NOT use myRole/mySeatNumber in warn message
-        // (they should not appear as gate conditions or logged as the primary identity)
-        const warnRegex = /roomScreenLog\.warn\([^)]+\)/;
-        const warnMatch = warnRegex.exec(block);
-        const warnBlock = warnMatch?.[0] ?? '';
-        expect(warnBlock).not.toMatch(/myRole/);
-        expect(warnBlock).not.toMatch(/mySeatNumber/);
-      }
+      // Log should NOT use myRole/mySeatNumber in warn message
+      const warnRegex = /roomScreenLog\.warn\([^)]+\)/;
+      const warnMatch = warnRegex.exec(content);
+      const warnBlock = warnMatch?.[0] ?? '';
+      expect(warnBlock).not.toMatch(/myRole/);
+      expect(warnBlock).not.toMatch(/mySeatNumber/);
     });
   });
 
@@ -543,33 +516,23 @@ describe('Delegation Seat Identity Contract', () => {
      * 2. Call sendWolfRobotHunterStatusViewed(effectiveSeat) — not mySeatNumber
      */
     it('orchestrator wolfRobotViewHunterStatus uses pendingHunterStatusViewed gate + effectiveSeat', () => {
-      const content = readFileContent(ORCHESTRATOR_PATH);
+      // wolfRobotViewHunterStatus logic now lives in wolfRobotExecutor.ts
+      const content = readFileContent(WOLF_ROBOT_EXECUTOR_PATH);
 
-      // Find the wolfRobotViewHunterStatus case block
-      const regex = /case\s*['"]wolfRobotViewHunterStatus['"]:\s*\{/g;
-      const match = regex.exec(content);
+      // Must gate on pendingHunterStatusViewed (prevent duplicate submission)
+      expect(content).toMatch(/pendingHunterStatusViewed/);
 
-      expect(match).toBeTruthy();
+      // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
+      expect(content).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
 
-      if (match) {
-        const startIndex = match.index;
-        const block = content.substring(startIndex, startIndex + 2500);
+      // Must NOT call sendWolfRobotHunterStatusViewed(mySeatNumber)
+      expect(content).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeatNumber\)/);
 
-        // Must gate on pendingHunterStatusViewed (prevent duplicate submission)
-        expect(block).toMatch(/pendingHunterStatusViewed/);
+      // Must set pendingHunterStatusViewed(true) before the async call
+      expect(content).toMatch(/setPendingHunterStatusViewed\(true\)/);
 
-        // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
-        expect(block).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
-
-        // Must NOT call sendWolfRobotHunterStatusViewed(mySeatNumber)
-        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeatNumber\)/);
-
-        // Must set pendingHunterStatusViewed(true) before the async call
-        expect(block).toMatch(/setPendingHunterStatusViewed\(true\)/);
-
-        // Must reset pendingHunterStatusViewed(false) in finally/catch
-        expect(block).toMatch(/setPendingHunterStatusViewed\(false\)/);
-      }
+      // Must reset pendingHunterStatusViewed(false) in finally/catch
+      expect(content).toMatch(/setPendingHunterStatusViewed\(false\)/);
     });
 
     /**

@@ -8,8 +8,7 @@
  * RULE: If wolfKillDisabled (nightmare blocked a wolf), non-empty vote is REJECTED.
  */
 
-import { getRoleSpec, getWolfKillImmuneRoleIds } from '../models/roles';
-import { isValidRoleId } from '../models/roles';
+import { getRoleSpec, getWolfKillImmuneRoleIds, isValidRoleId } from '../models';
 import { BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
 import type { ResolverFn } from './types';
 

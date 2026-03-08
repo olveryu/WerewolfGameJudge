@@ -1,13 +1,9 @@
 /**
- * useRoomScreenState - Composition hook that wires all RoomScreen sub-hooks together
+ * useRoomScreenState — Composition root that wires all RoomScreen sub-hooks together.
  *
- * Calls all sub-hooks in dependency order (useGameRoom → useRoomInit → useRoomActions → …),
- * owns local UI state (magician seats, modals, countdown, isStartingGame), computes derived
- * data (seatViewModels, roleStats, wolfVotesMap, actorIdentity), owns side-effects (countdown
- * timer, seat error alert, restart reset, delegation warning), and returns a flat bag of values
- * consumed by RoomScreen JSX. Does not render JSX, does not import components, does not own
- * styles (that stays in the component), and does not contain business logic (delegated to
- * sub-hooks).
+ * Calls hooks in dependency order and returns a flat bag consumed by RoomScreen JSX.
+ * Identity → actioner → derived → actions → orchestrator → dialogs → interaction.
+ * Does not render JSX, own styles, or contain business logic.
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,13 +21,7 @@ import { showAlert } from '@/utils/alert';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
-import { getActorIdentity, isActorIdentityValid } from '../policy';
-import {
-  buildSeatViewModels,
-  getRoleStats,
-  getWolfVoteSummary,
-  toGameRoomLike,
-} from '../RoomScreen.helpers';
+import { getWolfVoteSummary, toGameRoomLike } from '../RoomScreen.helpers';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { useRoomSeatDialogs } from '../useRoomSeatDialogs';
@@ -41,8 +31,11 @@ import { useHiddenDebugTrigger } from './useHiddenDebugTrigger';
 import { useInteractionDispatcher } from './useInteractionDispatcher';
 import { useNightProgress } from './useNightProgress';
 import { useRoomActions } from './useRoomActions';
+import { useRoomDerived } from './useRoomDerived';
+import { useRoomIdentity } from './useRoomIdentity';
 import { useRoomInit } from './useRoomInit';
 import { useRoomModals } from './useRoomModals';
+import { useRoomSettings } from './useRoomSettings';
 import { useSpeakingOrder } from './useSpeakingOrder';
 import { useWolfVoteCountdown } from './useWolfVoteCountdown';
 
@@ -52,10 +45,6 @@ import { useWolfVoteCountdown } from './useWolfVoteCountdown';
 
 /** Stable empty Map to avoid new reference on every render when gameState is null */
 const EMPTY_ACTIONS: Map<RoleId, RoleAction> = new Map();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** Errors that cannot be recovered by retrying — auto-redirect to Home */
 const FATAL_ROOM_ERRORS = new Set(['房间不存在', '房间状态已过期，请重新创建房间']);
@@ -184,42 +173,8 @@ export function useRoomScreenState(
   const [pendingSeat, setPendingSeat] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
-  // ── Settings sheet (Animation + BGM) ─────────────────────────────────────
-  const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
-  const [bgmEnabled, setBgmEnabled] = useState(() => settingsService.isBgmEnabled());
-
-  const handleOpenSettings = useCallback(() => {
-    setSettingsSheetVisible(true);
-  }, []);
-
-  const handleCloseSettings = useCallback(() => {
-    setSettingsSheetVisible(false);
-  }, []);
-
-  const handleAnimationChange = useCallback(
-    (v: string) => {
-      const anim = v as RoleRevealAnimation;
-      fireAndForget(
-        setRoleRevealAnimation(anim).then(() => settingsService.setRoleRevealAnimation(anim)),
-        '[handleAnimationChange] failed',
-        roomScreenLog,
-      );
-    },
-    [setRoleRevealAnimation, settingsService],
-  );
-
-  const handleBgmChange = useCallback(
-    (v: string) => {
-      const enabled = v === 'on';
-      setBgmEnabled(enabled);
-      fireAndForget(
-        settingsService.setBgmEnabled(enabled),
-        '[handleBgmChange] failed',
-        roomScreenLog,
-      );
-    },
-    [settingsService],
-  );
+  // ── Settings sheet (delegated to useRoomSettings) ─────────────────────────
+  const roomSettings = useRoomSettings({ settingsService, setRoleRevealAnimation });
 
   // ── Wolf vote countdown tick ─────────────────────────────────────────────
   const countdownTick = useWolfVoteCountdown({
@@ -235,7 +190,7 @@ export function useRoomScreenState(
 
   const { handleDebugTitleTap } = useHiddenDebugTrigger();
 
-  const { isInitialized, loadingMessage, showRetryButton, handleRetry } = useRoomInit({
+  const init = useRoomInit({
     roomNumber,
     isHostParam,
     template,
@@ -267,7 +222,7 @@ export function useRoomScreenState(
   }, [gameRoomError, navigation]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Actor Identity
+  // Actor Identity (delegated to useRoomIdentity)
   // ═══════════════════════════════════════════════════════════════════════════
 
   const wolfVotesMap = useMemo(() => {
@@ -280,41 +235,13 @@ export function useRoomScreenState(
     return map;
   }, [gameState?.currentNightResults]);
 
-  const actorIdentity = useMemo(
-    () =>
-      getActorIdentity({
-        mySeatNumber,
-        myRole,
-        effectiveSeat,
-        effectiveRole,
-        controlledSeat,
-      }),
-    [mySeatNumber, myRole, effectiveSeat, effectiveRole, controlledSeat],
-  );
-
-  const { actorSeatForUi, actorRoleForUi, isDelegating } = actorIdentity;
-
-  // FAIL-FAST: Log warning when delegating but identity is invalid
-  useEffect(() => {
-    if (isDelegating && !isActorIdentityValid(actorIdentity)) {
-      roomScreenLog.warn('[ActorIdentity] Invalid delegation state detected', {
-        controlledSeat,
-        effectiveSeat,
-        effectiveRole,
-        actorSeatForUi,
-        actorRoleForUi,
-        hint: 'effectiveSeat should equal controlledSeat when delegating',
-      });
-    }
-  }, [
-    isDelegating,
-    actorIdentity,
-    controlledSeat,
+  const { actorSeatForUi, actorRoleForUi, isDelegating } = useRoomIdentity({
+    mySeatNumber,
+    myRole,
     effectiveSeat,
     effectiveRole,
-    actorSeatForUi,
-    actorRoleForUi,
-  ]);
+    controlledSeat,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Actioner state
@@ -328,77 +255,6 @@ export function useRoomScreenState(
     wolfVotes: wolfVotesMap,
     actions: gameState?.actions ?? EMPTY_ACTIONS,
   });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Derived view models
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const currentSchemaConstraints = useMemo(() => {
-    if (!currentSchema) return undefined;
-    if (
-      currentSchema.kind === 'chooseSeat' ||
-      currentSchema.kind === 'swap' ||
-      currentSchema.kind === 'multiChooseSeat'
-    ) {
-      return currentSchema.constraints;
-    }
-    return undefined;
-  }, [currentSchema]);
-
-  const seatViewModels = useMemo(() => {
-    if (!gameState) return [];
-
-    const skipConstraints =
-      currentSchema?.id === 'wolfRobotLearn' && gameState.wolfRobotReveal != null;
-
-    return buildSeatViewModels(gameState, actorSeatForUi, showWolves, firstSwapSeat, {
-      schemaConstraints: imActioner && !skipConstraints ? currentSchemaConstraints : undefined,
-      secondSelectedSeat: secondSeat,
-      multiSelectedSeats,
-      showReadyBadges: roomStatus === GameStatus.Assigned || roomStatus === GameStatus.Ready,
-      groupConfirmAcks:
-        currentSchema?.kind === 'groupConfirm' ? (gameState.piperRevealAcks ?? []) : undefined,
-    });
-  }, [
-    gameState,
-    actorSeatForUi,
-    showWolves,
-    firstSwapSeat,
-    secondSeat,
-    multiSelectedSeats,
-    imActioner,
-    currentSchemaConstraints,
-    currentSchema?.id,
-    currentSchema?.kind,
-    roomStatus,
-  ]);
-
-  const {
-    roleCounts,
-    wolfRoles,
-    godRoles,
-    specialRoles,
-    villagerCount,
-    wolfRoleItems,
-    godRoleItems,
-    specialRoleItems,
-    villagerRoleItems,
-  } = useMemo(() => {
-    if (!gameState) {
-      return {
-        roleCounts: {},
-        wolfRoles: [],
-        godRoles: [],
-        specialRoles: [],
-        villagerCount: 0,
-        wolfRoleItems: [],
-        godRoleItems: [],
-        specialRoleItems: [],
-        villagerRoleItems: [],
-      };
-    }
-    return getRoleStats(gameState.template.roles);
-  }, [gameState]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Side effects
@@ -474,6 +330,24 @@ export function useRoomScreenState(
 
   const { getActionIntent, getAutoTriggerIntent, getWolfStatusLine, getBottomAction } =
     useRoomActions(gameContext, actionDeps);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Derived view models (delegated to useRoomDerived)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const derived = useRoomDerived({
+    gameState,
+    currentSchema,
+    currentActionRole,
+    roomStatus,
+    actorSeatForUi,
+    showWolves,
+    imActioner,
+    firstSwapSeat,
+    secondSeat,
+    multiSelectedSeats,
+    getWolfStatusLine,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Dialog Layer
@@ -647,33 +521,6 @@ export function useRoomScreenState(
   const speakingOrderText = useSpeakingOrder({ roomStatus, isAudioPlaying, gameState });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Action message builder
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const actionMessage = useMemo(() => {
-    if (!currentActionRole) return '';
-    if (!currentSchema?.ui?.prompt) {
-      throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
-    }
-
-    const isWolfRobotHunterGateActive =
-      currentSchema.id === 'wolfRobotLearn' &&
-      gameState?.wolfRobotReveal?.learnedRoleId === 'hunter' &&
-      !gameState?.wolfRobotHunterStatusViewed;
-
-    const baseMessage = isWolfRobotHunterGateActive
-      ? (currentSchema.ui.hunterGatePrompt ?? currentSchema.ui.prompt)
-      : currentSchema.ui.prompt;
-
-    const wolfStatusLine = getWolfStatusLine();
-    if (wolfStatusLine) {
-      return `${baseMessage}\n${wolfStatusLine}`;
-    }
-
-    return baseMessage;
-  }, [gameState, currentActionRole, currentSchema, getWolfStatusLine]);
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // Return bag
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -703,30 +550,17 @@ export function useRoomScreenState(
     requestSnapshot,
     setControlledSeat,
 
-    // ── Initialization ──
-    isInitialized,
-    loadingMessage,
-    showRetryButton,
-    handleRetry,
+    // ── Initialization (from useRoomInit) ──
+    ...init,
 
     // ── Auth gate (first-time direct URL user) ──
     needsAuth,
     clearNeedsAuth,
 
-    // ── Derived view models ──
-    seatViewModels,
-    roleCounts,
-    wolfRoles,
-    godRoles,
-    specialRoles,
-    villagerCount,
-    wolfRoleItems,
-    godRoleItems,
-    specialRoleItems,
-    villagerRoleItems,
+    // ── Derived view models (from useRoomDerived) ──
+    ...derived,
     nightProgress,
     speakingOrderText,
-    actionMessage,
 
     // ── Actioner ──
     imActioner,
@@ -780,12 +614,7 @@ export function useRoomScreenState(
     closeShareReview,
     shareNightReview: handleShareNightReview,
 
-    // ── Settings sheet ──
-    settingsSheetVisible,
-    bgmEnabled,
-    handleOpenSettings,
-    handleCloseSettings,
-    handleAnimationChange,
-    handleBgmChange,
+    // ── Settings sheet (from useRoomSettings) ──
+    ...roomSettings,
   };
 }

@@ -5,10 +5,8 @@
  * 仅包含纯函数和常量，不包含 IO。
  */
 
-import { ROLE_SPECS } from '../models/roles';
-import type { SchemaId } from '../models/roles/spec/schemas';
-import { SCHEMAS } from '../models/roles/spec/schemas';
-import { getSeerCheckResultForTeam } from '../models/roles/spec/types';
+import { ROLE_SPECS, type SchemaId, SCHEMAS } from '../models';
+import { getSeerCheckResultForTeam } from '../models/roles/spec';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn, ResolverResult } from './types';
 import { resolveRoleForChecks } from './types';

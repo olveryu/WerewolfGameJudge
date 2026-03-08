@@ -563,7 +563,7 @@ pnpm exec jest --updateSnapshot
 - Resolver 校验**必须**与 `SCHEMAS[*].constraints` 双向一致
 - 新增 `GameState` 字段**必须**同步 `normalizeState`（编译期守卫）
 - `shortName` 全局唯一（单字）
-- `bottomActionText` **必须** 少于4 个汉字
+- `bottomActionText` **必须**不超过 4 个汉字
 - `AUDIO_REGISTRY` 必须覆盖所有 `NIGHT_STEPS` 中出现的 unique `roleId`（合约测试强制）
 - `TargetConstraint` 使用枚举 `TargetConstraint.NotSelf` / `TargetConstraint.NotWolfFaction`，不用字符串
 
