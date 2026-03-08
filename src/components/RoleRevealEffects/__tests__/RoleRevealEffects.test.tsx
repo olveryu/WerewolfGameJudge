@@ -22,7 +22,7 @@ const mockWolfRole: RoleData = createRoleData(
   '狼人',
   'wolf',
   '🐺',
-  '每晚与狼队友共同选择一名玩家猎杀',
+  '每晚与狼队友共同选择一名玩家进行袭击',
 );
 
 const mockGodRole: RoleData = createRoleData(
@@ -30,7 +30,7 @@ const mockGodRole: RoleData = createRoleData(
   '预言家',
   'god',
   '🔮',
-  '每晚可以查验一名玩家的身份',
+  '每晚可查验一名玩家的阵营',
 );
 
 const mockVillagerRole: RoleData = createRoleData(
@@ -38,7 +38,7 @@ const mockVillagerRole: RoleData = createRoleData(
   '普通村民',
   'villager',
   '👤',
-  '没有特殊能力',
+  '没有特殊技能',
 );
 
 describe('RoleRevealEffects', () => {

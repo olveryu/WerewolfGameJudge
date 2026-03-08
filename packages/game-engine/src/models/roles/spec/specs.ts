@@ -26,7 +26,7 @@ export const ROLE_SPECS = {
     emoji: '👤',
     faction: Faction.Villager,
     team: Team.Good,
-    description: '没有特殊能力，依靠推理和投票帮助好人阵营获胜',
+    description: '没有特殊技能，依靠推理和投票帮助好人阵营获胜',
     night1: { hasAction: false },
   },
 
@@ -38,7 +38,7 @@ export const ROLE_SPECS = {
     faction: Faction.Villager,
     team: Team.Good,
     description:
-      '每晚可以查验一名玩家的身份阵营，但查验结果与玩家真实阵营相反。灯影预言家无法知晓自己的真实身份，拿到的身份是预言家',
+      '每晚可查验一名玩家的阵营，但结果与真实阵营相反；自身不知真实身份，以预言家身份示人',
     night1: { hasAction: true },
     displayAs: 'seer',
   },
@@ -51,7 +51,7 @@ export const ROLE_SPECS = {
     faction: Faction.Villager,
     team: Team.Good,
     description:
-      '每晚可以查验一名玩家的身份阵营，但查验结果随机（50%正确/50%错误）。酒鬼预言家无法知晓自己的真实身份，拿到的身份是预言家',
+      '每晚可查验一名玩家的阵营，但结果随机（50%正确/50%错误）；自身不知真实身份，以预言家身份示人',
     night1: { hasAction: true },
     displayAs: 'seer',
   },
@@ -66,7 +66,7 @@ export const ROLE_SPECS = {
     emoji: '🔮',
     faction: Faction.God,
     team: Team.Good,
-    description: '每晚可以查验一名玩家的身份，获知该玩家是好人还是狼人',
+    description: '每晚可查验一名玩家的阵营，获知其是好人还是狼人',
     night1: { hasAction: true },
   },
 
@@ -78,7 +78,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '拥有一瓶解药和一瓶毒药，每晚可以选择救活被狼人袭击的玩家或毒死一名玩家，每瓶药只能使用一次',
+      '拥有一瓶解药和一瓶毒药，每晚可救活被狼人袭击的玩家或毒杀一名玩家；每瓶药限用一次，不能自救',
     night1: { hasAction: true },
     // Night-1-only: "女巫不能自救"规则在 schema.witchAction.save.constraints=['notSelf'] 中定义
   },
@@ -90,7 +90,7 @@ export const ROLE_SPECS = {
     emoji: '🏹',
     faction: Faction.God,
     team: Team.Good,
-    description: '被狼人杀害时，可以开枪带走一名玩家。被女巫毒死则不能开枪',
+    description: '出局时可开枪带走一名玩家；被女巫毒杀则不能开枪',
     night1: { hasAction: true },
   },
 
@@ -102,7 +102,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '每晚可以守护一名玩家使其不被狼人杀害，但不能连续两晚守护同一人。守卫无法防御女巫的毒药',
+      '每晚可守护一名玩家使其免受狼人袭击，不能连续两晚守护同一人；同时被守护和解药救活则仍然出局；无法防御女巫毒药',
     night1: { hasAction: true },
   },
 
@@ -113,7 +113,7 @@ export const ROLE_SPECS = {
     emoji: '🤡',
     faction: Faction.God,
     team: Team.Good,
-    description: '被投票放逐时可以翻牌免死，但之后不能投票和发动技能',
+    description: '被投票放逐时可翻牌免死，此后失去投票权和技能使用权',
     night1: { hasAction: false },
   },
 
@@ -124,7 +124,7 @@ export const ROLE_SPECS = {
     emoji: '🗡️',
     faction: Faction.God,
     team: Team.Good,
-    description: '白天可以翻牌与一名玩家决斗，狼人死；若对方是好人，骑士死',
+    description: '白天可翻牌与一名玩家决斗：对方是狼人则对方出局，对方是好人则自身出局',
     night1: { hasAction: false },
   },
 
@@ -135,7 +135,7 @@ export const ROLE_SPECS = {
     emoji: '🎩',
     faction: Faction.God,
     team: Team.Good,
-    description: '每晚在其他所有人之前行动，交换2个人的号码牌，当晚有效',
+    description: '每晚最先行动，交换两名玩家的号码牌，仅当晚有效',
     night1: { hasAction: true },
   },
 
@@ -147,7 +147,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '从第二晚开始，每晚可选择一名玩家狩猎。若对方是狼人则次日对方出局，若对方是好人则次日猎魔人出局。女巫毒药对猎魔人无效',
+      '从第二夜起，每晚可选择一名玩家狩猎：对方是狼人则对方次日出局，是好人则自身次日出局；免疫女巫毒药',
     // Night-1-only scope: witcher starts from night 2, so no night-1 action
     night1: { hasAction: false },
     flags: { immuneToPoison: true },
@@ -160,7 +160,7 @@ export const ROLE_SPECS = {
     emoji: '👁️',
     faction: Faction.God,
     team: Team.Good,
-    description: '每晚可以查验一名玩家的具体身份牌（不只是阵营）',
+    description: '每晚可查验一名玩家的身份，获知其具体角色名称',
     night1: { hasAction: true },
   },
 
@@ -173,7 +173,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '每晚可以选择一名玩家成为梦游者，梦游者不知道自己正在梦游，且免疫夜间伤害。摄梦人夜间出局则梦游者一并出局，连续两晚成为梦游者也会出局',
+      '每晚可选择一名玩家成为梦游者，梦游者不知情且免疫夜间伤害；自身夜间出局则梦游者一并出局，连续两晚被摄梦也会出局',
     night1: { hasAction: true },
   },
 
@@ -184,7 +184,7 @@ export const ROLE_SPECS = {
     emoji: '⚰️',
     faction: Faction.God,
     team: Team.Good,
-    description: '每晚可以得知上一个白天被放逐的玩家是好人或狼人',
+    description: '每晚可得知上一个白天被放逐玩家的阵营（好人/狼人）',
     // Night-1-only scope: no "last day exile" on first night
     night1: { hasAction: false },
   },
@@ -196,7 +196,7 @@ export const ROLE_SPECS = {
     emoji: '🤍',
     faction: Faction.God,
     team: Team.Good,
-    description: '每晚可以查验一名玩家的具体身份。从第二夜起，查验到狼人则该狼人被查验出局',
+    description: '每晚可查验一名玩家的身份，获知其具体角色名称；从第二夜起，查验到狼人则该狼人出局',
     night1: { hasAction: true },
   },
 
@@ -208,7 +208,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '从第二夜开始，每晚必须选择三名玩家共舞，若三人为不同阵营则人数少的一方死亡。舞者可以选择自己参舞，参舞者当夜免疫狼刀。女巫毒药对舞者无效',
+      '从第二夜起，每晚必须选择三名玩家共舞（可含自身），若三人分属不同阵营则人数少的一方出局；仅当自身参舞时，舞池中三人当夜免疫狼人袭击；免疫女巫毒药',
     // Night-1-only scope: dancer starts from night 2, so no night-1 action
     night1: { hasAction: false },
     flags: { immuneToPoison: true },
@@ -222,7 +222,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '每晚可以禁言一位玩家，被禁言的玩家在发言阶段不能说话只能用肢体动作表达。不能连续两天禁言同一位玩家。禁言情况与死讯同时公布',
+      '每晚可禁言一名玩家，使其次日发言阶段只能用肢体动作表达；不能连续两晚禁言同一人；禁言信息与死讯同时公布',
     night1: { hasAction: true },
   },
 
@@ -234,7 +234,7 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '每晚可以禁票一位玩家，被禁票的玩家在放逐环节不能投票。不能连续两天禁票同一位玩家。禁票情况与死讯同时公布',
+      '每晚可禁票一名玩家，使其次日放逐环节不能投票；不能连续两晚禁票同一人；禁票信息与死讯同时公布',
     night1: { hasAction: true },
   },
 
@@ -248,7 +248,7 @@ export const ROLE_SPECS = {
     emoji: '🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
-    description: '每晚与狼队友共同选择一名玩家猎杀',
+    description: '每晚与狼队友共同选择一名玩家进行袭击',
     night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
   },
@@ -260,8 +260,7 @@ export const ROLE_SPECS = {
     emoji: '👸🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
-    description:
-      '每晚参与袭击后可魅惑一名玩家，狼美人白天出局时被魅惑者随之殉情出局。被魅惑者不知情',
+    description: '每晚可魅惑一名玩家；白天出局时被魅惑者随之殉情出局，被魅惑者不知情',
     night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
     flags: { immuneToWolfKill: true },
@@ -274,7 +273,7 @@ export const ROLE_SPECS = {
     emoji: '👑🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
-    description: '白天可以自爆并带走一名玩家，被带走的玩家无遗言。非自爆出局不能发动技能',
+    description: '白天可自爆并带走一名玩家；非自爆出局时不能发动技能',
     // Day ability only, no night action
     night1: { hasAction: false },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
@@ -287,7 +286,7 @@ export const ROLE_SPECS = {
     emoji: '🌑👑',
     faction: Faction.Wolf,
     team: Team.Wolf,
-    description: '被刀杀时可以开枪带走一名玩家（狼人版猎人）',
+    description: '出局时可开枪带走一名玩家；被女巫毒杀则不能开枪',
     night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
   },
@@ -300,7 +299,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '每晚在所有人行动之前恐惧一名玩家，使其当夜无法使用技能。不能连续两晚恐惧同一名玩家。首夜进行恐惧时与其他狼人不互知身份；若首夜选择到狼人，则狼人阵营当夜不能刀人。',
+      '每晚在多数角色行动之前恐惧一名玩家，使其当夜无法使用技能；不能连续两晚恐惧同一人；首夜行动时尚未与狼队互认；若恐惧到狼人，狼人阵营当夜无法袭击',
     night1: { hasAction: true },
     // 狼人刀人阶段：互知+参刀
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
@@ -314,7 +313,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '每晚可以查验一名玩家的具体身份。当其他所有狼人出局后，可在夜间进行袭击。石像鬼不参与狼人投票。',
+      '与其他狼人互不相认；每晚可查验一名玩家的身份，获知其具体角色名称；其他狼人全部出局后可主导袭击',
     night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
@@ -328,7 +327,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '入狼队参刀，可自爆可自刀。首夜强制发动【幻惑人心】：将与狼人阵营相邻的一名神民角色转化至狼人阵营。被转化者天亮前知晓阵营转变，不入狼队、不可自爆，保留自身技能；其他狼人全出局后失去原技能并主导夜间袭击',
+      '首夜必须选择一名与狼人阵营相邻的玩家转化至狼人阵营；被转化者天亮前知晓转变，不入狼队、不可自爆，保留自身技能；其他狼人全部出局后失去原技能并主导袭击',
     night1: { hasAction: true },
     // 入狼队参刀（区别于普通石像鬼）
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
@@ -342,7 +341,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '血月使徒自爆后的当晚所有好人的技能都将会被封印，若血月使徒是最后一个被放逐出局的狼人，他可以存活到下一个白天天亮之后才出局。',
+      '自爆后的当晚所有好人阵营的技能被封印；若为最后一个被放逐的狼人，可存活至下一个白天天亮后才出局',
     // No night-1 action
     night1: { hasAction: false },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
@@ -356,7 +355,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '与普通狼人互不相认，第一晚最早睁眼学习任一玩家技能并获得其身份，当夜不能使用，下一夜可用。普通狼人全死后带刀，不能自爆（不参与狼人刀人）',
+      '与其他狼人互不相认；首夜可学习一名玩家的技能并获知其身份，当夜不能使用，次夜可用；其他狼人全部出局后可主导袭击，不能自爆',
     night1: { hasAction: true },
     // 永远不互知不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
@@ -370,7 +369,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '每晚可以查验场上除狼人阵营外一名玩家的具体身份。从第二夜起，验到纯白之女则纯白之女被查验出局',
+      '每晚可查验一名非狼人阵营玩家的身份，获知其具体角色名称；从第二夜起，查验到纯白之女则其出局',
     night1: { hasAction: true },
     wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
   },
@@ -383,7 +382,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '永久免疫夜间伤害（无法自刀、吃毒不死）。被预言家查验或女巫毒杀，则次日对方神职死亡（反伤）。不能自爆，只能被放逐或猎人枪杀',
+      '永久免疫夜间伤害（无法被自刀、毒杀不死）；被预言家查验或女巫毒杀时反伤，次日对方出局；不能自爆，只能被放逐或猎人开枪带走',
     // No night action (passive ability)
     night1: { hasAction: false },
     // 互知+参刀
@@ -399,7 +398,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '不入狼队不参与夜间讨论，三名普狼全部出局后可带刀。从第二夜起可询问法官某张牌是否进入舞池，并可选择对某名玩家发动“面具”改变其在共舞中的阵营。女巫毒药对假面无效',
+      '与其他狼人互不相认；从第二夜起可查看一名玩家是否在舞池中，并可赐予一名玩家面具使其共舞结算时阵营反转；其他狼人全部出局后可主导袭击；免疫女巫毒药',
     // Night-1-only scope: masquerade starts from night 2, so no night-1 action
     night1: { hasAction: false },
     // 不入狼队不参刀
@@ -417,7 +416,7 @@ export const ROLE_SPECS = {
     emoji: '😴',
     faction: Faction.Special,
     team: Team.Third, // Before choosing idol; seer sees "好人" (not "第三方")
-    description: '第一晚选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
+    description: '首夜选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
     night1: { hasAction: true },
   },
   wildChild: {
@@ -428,7 +427,7 @@ export const ROLE_SPECS = {
     faction: Faction.Special,
     team: Team.Third,
     description:
-      '第一晚选择一名玩家作为榜样。当榜样被投票出局时，野孩子变为狼人。若野孩子先于榜样死亡，则始终为好人阵营',
+      '首夜选择一名玩家作为榜样；榜样被投票出局时自身变为狼人，若先于榜样出局则始终为好人阵营',
     night1: { hasAction: true },
   },
   piper: {
@@ -439,7 +438,7 @@ export const ROLE_SPECS = {
     faction: Faction.Special,
     team: Team.Third,
     description:
-      '每晚选择1-2名玩家进行催眠。被催眠的玩家会醒来确认身份。当所有存活玩家（除吹笛者外）都被催眠时，吹笛者获胜',
+      '每晚可选择 1~2 名玩家进行催眠，被催眠的玩家会醒来互相确认；当所有其他存活玩家均被催眠时获胜',
     night1: { hasAction: true },
   },
 } as const satisfies Record<string, RoleSpec>;
