@@ -247,9 +247,12 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
     };
   }
 
-  // groupConfirm schema (piperHypnotizedReveal)
+  // groupConfirm schema (piperHypnotizedReveal / awakenedGargoyleConvertReveal)
   if (currentSchema.kind === 'groupConfirm') {
-    const acks = gameState.piperRevealAcks ?? [];
+    const acks =
+      currentSchema.id === 'awakenedGargoyleConvertReveal'
+        ? (gameState.conversionRevealAcks ?? [])
+        : (gameState.piperRevealAcks ?? []);
     if (actorSeatNumber !== null && acks.includes(actorSeatNumber)) {
       return EMPTY;
     }

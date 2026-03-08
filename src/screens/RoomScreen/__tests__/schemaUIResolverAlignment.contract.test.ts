@@ -68,6 +68,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
     { schemaId: 'wolfRobotLearn', roleId: 'wolfRobot' },
     { schemaId: 'slackerChooseIdol', roleId: 'slacker' },
     { schemaId: 'wildChildChooseIdol', roleId: 'wildChild' },
+    { schemaId: 'awakenedGargoyleConvert', roleId: 'awakenedGargoyle' },
   ];
 
   // 无 notSelf 的 schema（允许自指）
@@ -80,6 +81,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
   // 有 notWolfFaction 的 schema（不能选狼阵营，自身为狼阵营所以也不能自指）
   const schemasWithNotWolfFaction: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
     { schemaId: 'wolfWitchCheck', roleId: 'wolfWitch' },
+    { schemaId: 'awakenedGargoyleConvert', roleId: 'awakenedGargoyle' },
   ];
 
   describe('schemas WITH notSelf constraint', () => {
@@ -145,23 +147,28 @@ describe('Schema notSelf constraint - single source of truth', () => {
     );
 
     it.each(schemasWithNotWolfFaction)(
-      '$schemaId: schema.constraints does NOT contain notSelf',
-      ({ schemaId }) => {
-        const constraints = getSchemaConstraints(schemaId);
-        expect(constraints).not.toContain(TargetConstraint.NotSelf);
-      },
-    );
-
-    it.each(schemasWithNotWolfFaction)(
       '$schemaId: resolver REJECTS wolf-faction target (aligned with schema)',
       ({ schemaId, roleId }) => {
         const resolver = RESOLVERS[schemaId];
         expect(resolver).toBeDefined();
 
         const actorSeat = 0;
-        const context = createContext(actorSeat, roleId);
-        // Self-target: wolfWitch is wolf faction, so notWolfFaction rejects
-        const input: ActionInput = { schemaId, target: actorSeat };
+        const wolfTargetSeat = 1;
+        // Place a wolf at non-self seat to isolate NotWolfFaction rejection
+        const players = new Map<number, RoleId>([
+          [0, roleId],
+          [1, 'wolf'],
+          [2, 'villager'],
+        ]);
+        const context: ResolverContext = {
+          actorSeat,
+          actorRoleId: roleId,
+          players,
+          currentNightResults: {},
+          witchState: { canSave: true, canPoison: true },
+          gameState: { isNight1: true },
+        };
+        const input: ActionInput = { schemaId, target: wolfTargetSeat };
 
         const result = resolver!(context, input);
 
@@ -267,6 +274,8 @@ describe('notSelf constraint completeness', () => {
       'nightmareBlock',
       'guardProtect',
       'wolfKill',
+      // AdjacentToWolfFaction
+      'awakenedGargoyleConvert',
       // notWolfFaction
       'wolfWitchCheck',
       // No constraint (can target self)

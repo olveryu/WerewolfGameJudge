@@ -122,7 +122,12 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(`💋 狼美人魅惑了 ${s(wolfQueenAction.targetSeat)}`);
   }
 
-  // 6d. Piper hypnotize
+  // 6d. AwakenedGargoyle convert
+  if (nr.convertedSeat != null) {
+    lines.push(`🗿🔥 觉醒石像鬼转化了 ${s(nr.convertedSeat)}`);
+  }
+
+  // 6e. Piper hypnotize
   if (nr.hypnotizedSeats && nr.hypnotizedSeats.length > 0) {
     const hypnotizedList = (nr.hypnotizedSeats as readonly number[])
       .map((seat) => s(seat))

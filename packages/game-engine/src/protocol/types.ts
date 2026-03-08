@@ -325,6 +325,21 @@ export interface GameState {
    * 进入下一夜时重置为空。
    */
   piperRevealAcks?: readonly number[];
+
+  // --- 觉醒石像鬼（Awakened Gargoyle）---
+  /**
+   * 被转化的座位（Night-1 only）。
+   * 服务端在 awakenedGargoyleConvert resolver 执行后写入。
+   * UI 在 awakenedGargoyleConvertReveal 步骤按 mySeat 过滤，显示转化/未转化信息。
+   */
+  convertedSeat?: number;
+
+  /**
+   * awakenedGargoyleConvertReveal 步骤中已确认（ack）的座位列表。
+   * 所有存活玩家 ack 后，服务端推进到下一步骤。
+   * 进入下一夜时重置为空。
+   */
+  conversionRevealAcks?: readonly number[];
 }
 
 // =============================================================================

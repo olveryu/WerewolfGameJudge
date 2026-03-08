@@ -97,6 +97,8 @@ const schemaToRole: Record<string, string> = {
   wolfQueenCharm: 'wolfQueen',
   nightmareBlock: 'nightmare',
   gargoyleCheck: 'gargoyle',
+  awakenedGargoyleConvert: 'awakenedGargoyle',
+  awakenedGargoyleConvertReveal: 'awakenedGargoyle',
   wolfWitchCheck: 'wolfWitch',
   wolfRobotLearn: 'wolfRobot',
   darkWolfKingConfirm: 'darkWolfKing',

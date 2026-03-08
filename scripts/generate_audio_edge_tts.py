@@ -55,6 +55,7 @@ BEGIN_TEXT: dict[str, str] = {
     "dark_wolf_king": "黑狼王请睁眼，请确认开枪状态。",
     "nightmare": "梦魇请睁眼，请选择要封锁的玩家。",
     "gargoyle": "石像鬼请睁眼，请选择要查验的玩家。",
+    "awakened_gargoyle": "觉醒石像鬼请睁眼，请选择要转化的玩家。",
     "wolf_robot": "机械狼请睁眼，请选择要学习的玩家。",
     "guard": "守卫请睁眼，请选择要守护的玩家。",
     "witch": "女巫请睁眼，请选择要使用的药水。",
@@ -74,6 +75,7 @@ BEGIN_TEXT: dict[str, str] = {
     "voteban_elder": "禁票长老请睁眼，请选择要禁票的玩家。",
     "piper": "吹笛者请睁眼，请选择要催眠的玩家。",
     "piper_hypnotized_reveal": "所有玩家请睁眼，请看手机确认信息。",
+    "awakened_gargoyle_convert_reveal": "所有玩家请睁眼，请看手机确认转化信息。",
 }
 
 END_TEXT: dict[str, str] = {
@@ -82,6 +84,7 @@ END_TEXT: dict[str, str] = {
     "dark_wolf_king": "黑狼王请闭眼。",
     "nightmare": "梦魇请闭眼。",
     "gargoyle": "石像鬼请闭眼。",
+    "awakened_gargoyle": "觉醒石像鬼请闭眼。",
     "wolf_robot": "机械狼请闭眼。",
     "guard": "守卫请闭眼。",
     "witch": "女巫请闭眼。",
@@ -101,6 +104,7 @@ END_TEXT: dict[str, str] = {
     "voteban_elder": "禁票长老请闭眼。",
     "piper": "吹笛者请闭眼。",
     "piper_hypnotized_reveal": "所有玩家请闭眼。",
+    "awakened_gargoyle_convert_reveal": "所有玩家请闭眼。",
 }
 
 
