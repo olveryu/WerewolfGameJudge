@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.7.0] - 2026-03-08
+
+- fix(audio): improve awakened gargoyle TTS narration fluency
+- fix(room): bubble label background, settings alignment & lock
+- feat(game-engine): add awakened gargoyle role with convert + groupConfirm reveal
+- Merge pull request #7 from olveryu/feature/refactor_1
+- docs: remove groq-proxy, unify architecture refs, add gemini-proxy to CI
+- fix(refactor): address self-review findings
+- ci: skip e2e on PRs that modify edge functions or game-engine
+- ci: enable e2e jobs on pull_request events
+- docs(refactor): cleanup dead code and update docs
+- refactor(services): remove IGameFacade union compat layer
+- refactor(imports): migrate remaining deep imports to barrel
+- refactor(imports): migrate deep imports to barrel — models + types
+- refactor(game-engine): split gameReducer by action category
+- refactor(game-engine): split actionHandler by concern
+- refactor(components): split AIChatBubble monolithic styles into sub-files
+- refactor(room): split RoomScreen monolithic styles into per-component files
+- refactor(config): split ConfigScreen monolithic styles into per-component files
+- refactor(services): migrate gameActions to defineGameAction factory
+- refactor(services): add defineGameAction declarative factory
+- refactor(room): consolidate useRoomScreenState after extraction (C14)
+- refactor(room): extract useRoomSettings from useRoomScreenState (C13)
+- refactor(room): extract useRoomDerived from useRoomScreenState (C12)
+- refactor(room): extract useRoomIdentity from useRoomScreenState (C11)
+- refactor(room): extract remaining executors, shrink useActionOrchestrator (C10)
+- refactor(night): extract 4 executors from useActionOrchestrator (C09)
+- feat(room): add IntentExecutor interface and registry skeleton
+- refactor(services): split IGameFacade into segment interfaces
+- refactor(hooks,screens): migrate error handling to errorPipeline
+- refactor(services): migrate error handling to errorPipeline
+- feat(utils): add errorPipeline unified error handler
+- build(game-engine): configure package.json exports subpath mappings
+- docs(refactor): record baseline metrics snapshot
+- test(architecture): add layer boundary contract tests
+- docs(refactor): add comprehensive refactoring plan with commit execution schedule
+
 ## [1.6.0] - 2026-03-07
 
 - refactor(config): remove GitHub and Issues links from About section
