@@ -8,6 +8,8 @@ import { isValidRoleId, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import { memo, useCallback } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
+import { TESTIDS } from '@/testids';
+
 import type { ConfigScreenStyles } from './styles';
 
 interface VariantPickerProps {
@@ -55,6 +57,7 @@ export const VariantPicker = memo(function VariantPicker({
             return (
               <TouchableOpacity
                 key={id}
+                testID={TESTIDS.configVariantOption(id)}
                 style={[
                   styles.variantPickerOption,
                   isSelected && styles.variantPickerOptionSelected,

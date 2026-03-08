@@ -129,7 +129,7 @@ const SAFE_ADVANCE_BUTTONS = ADVANCE_BUTTONS.filter((b) => b !== '不用技能')
  * @param includeSkip If false, excludes "不用技能" to prevent
  *   prematurely skipping a role step. Defaults to true.
  */
-async function tryClickAdvanceButton(page: Page, includeSkip = true): Promise<boolean> {
+export async function tryClickAdvanceButton(page: Page, includeSkip = true): Promise<boolean> {
   const buttons = includeSkip ? ADVANCE_BUTTONS : SAFE_ADVANCE_BUTTONS;
   // Check alert modal first
   const alertModal = page.locator('[data-testid="alert-modal"]');
