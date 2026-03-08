@@ -59,7 +59,7 @@ export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) 
       await sendWolfRobotHunterStatusViewed(effectiveSeat);
     } catch (error) {
       handleError(error, {
-        label: '狼人机器人确认犵人状态',
+        label: '机械狼确认猎人状态',
         logger: roomScreenLog,
         alertTitle: '确认失败',
         alertMessage: '状态确认发送失败，请稍后重试。如问题持续，请联系房主。',

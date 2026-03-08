@@ -79,5 +79,15 @@ export type IntentExecutor = (intent: ActionIntent, ctx: ExecutorContext) => Pro
 
 /**
  * Type-safe mapping from ActionIntentType to its executor function.
+ * Internal: registry is Partial (filled incrementally at module init).
  */
 export type ExecutorMap = Partial<Record<ActionIntentType, IntentExecutor>>;
+
+/**
+ * Compile-time exhaustive check: every ActionIntentType must have an executor.
+ *
+ * If a new variant is added to ActionIntentType without registering an executor
+ * in executors/index.ts, the `satisfies` below will produce a type error.
+ * Usage: see executors/index.ts.
+ */
+export type CompleteExecutorMap = Record<ActionIntentType, IntentExecutor>;

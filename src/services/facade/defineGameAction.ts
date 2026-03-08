@@ -15,7 +15,7 @@ import { type ApiResponse, callApiWithRetry } from './apiUtils';
 import type { GameActionsContext } from './gameActions';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Internal helpers (same as gameActions.ts — will replace originals in C16)
+// Internal helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 const NOT_CONNECTED = { success: false, reason: 'NOT_CONNECTED' } as const;
