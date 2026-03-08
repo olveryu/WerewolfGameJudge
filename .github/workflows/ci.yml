@@ -80,7 +80,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: always() && needs.quality.result == 'success' && (needs.deploy-edge-functions.result == 'success' || needs.deploy-edge-functions.result == 'skipped')
     needs: [quality, deploy-edge-functions]
     strategy:
       fail-fast: false
