@@ -126,7 +126,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       textAlign: 'center',
     },
     placeholder: {
-      width: componentSizes.avatar.md,
+      minWidth: componentSizes.headerAction.minWidth,
     },
     scrollView: {
       flex: 1,

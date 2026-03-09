@@ -382,7 +382,7 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.heroCardSubtitle}>开始一局新游戏</Text>
           </View>
           {isCreating ? (
-            <ActivityIndicator color={colors.textInverse} size="small" />
+            <ActivityIndicator color={colors.primary} size="small" />
           ) : (
             <View style={styles.heroCardArrow}>
               <Ionicons

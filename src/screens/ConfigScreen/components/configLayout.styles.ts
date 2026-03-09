@@ -30,7 +30,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: layout.screenPaddingH,
-    paddingVertical: spacing.small + spacing.tight,
+    paddingVertical: spacing.medium,
     backgroundColor: colors.surface,
     borderBottomWidth: fixed.borderWidth,
     borderBottomColor: colors.border,
@@ -65,7 +65,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   } satisfies ViewStyle,
   overflowMenu: {
     position: 'absolute',
-    top: spacing.small + spacing.tight + componentSizes.avatar.md + spacing.tight,
+    top: spacing.medium + componentSizes.avatar.md + spacing.tight,
     right: layout.screenPaddingH,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.medium,
@@ -156,10 +156,9 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   // ── Bottom create button ────────────────────
   bottomCreateBar: {
     paddingHorizontal: layout.screenPaddingH,
-    paddingVertical: spacing.small + spacing.tight,
+    paddingVertical: spacing.medium,
     backgroundColor: colors.background,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    ...shadows.upward,
   } satisfies ViewStyle,
   bottomCreateBtn: {
     height: componentSizes.button.lg,
