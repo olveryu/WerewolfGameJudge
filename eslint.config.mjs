@@ -203,6 +203,23 @@ export default tseslint.config(
   },
 
   // =========================================================================
+  // Style quality — warn on hardcoded color literals in screens & components
+  // The contract test (noHardcodedStyleValues.contract.test.ts) is the hard CI
+  // gate; this ESLint rule gives immediate editor feedback for color literals.
+  // =========================================================================
+  {
+    files: ['src/screens/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}'],
+    ignores: [
+      'src/components/RoleRevealEffects/**',
+      'src/components/AIChatBubble/**',
+      'src/components/ErrorBoundary.tsx',
+    ],
+    rules: {
+      'react-native/no-color-literals': 'warn',
+    },
+  },
+
+  // =========================================================================
   // Animation components — Animated.Value mutations are expected in RN
   // react-hooks/immutability: `.value = x` on shared values / Animated.Value
   // react-hooks/refs: `useRef(new Animated.Value()).current` is standard RN pattern
