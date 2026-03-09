@@ -141,6 +141,8 @@ function createStyles(colors: ThemeColors) {
     },
     cardWrapper: {
       alignItems: 'center',
+      position: 'relative',
+      zIndex: 1,
     },
     variantBar: {
       flexDirection: 'row',
