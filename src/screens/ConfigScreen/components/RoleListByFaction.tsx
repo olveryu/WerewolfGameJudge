@@ -7,10 +7,10 @@
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { memo, useMemo } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { FactionChip } from '@/components/FactionChip';
 import { useColors, withAlpha } from '@/theme';
-import { fixed } from '@/theme/tokens';
 
 import { type FactionStats, groupRolesByFaction, type TemplateRoleItem } from '../configHelpers';
 import type { TemplatePickerStyles } from './templatePicker.styles';
@@ -43,31 +43,15 @@ function FactionRow({
     <View style={styles.factionRow}>
       <Text style={styles.factionRowLabel}>{label}</Text>
       <View style={styles.factionChipWrap}>
-        {items.map((item) => {
-          const chipStyle = [
-            styles.factionChip,
-            { borderColor: colorToken, backgroundColor: withAlpha(colorToken, 0.08) },
-          ];
-          const textContent = (
-            <Text style={[styles.factionChipText, { color: colorToken }]}>
-              {item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-            </Text>
-          );
-          return onRolePress ? (
-            <TouchableOpacity
-              key={item.roleId}
-              style={chipStyle}
-              activeOpacity={fixed.activeOpacity}
-              onPress={() => onRolePress(item.roleId)}
-            >
-              {textContent}
-            </TouchableOpacity>
-          ) : (
-            <View key={item.roleId} style={chipStyle}>
-              {textContent}
-            </View>
-          );
-        })}
+        {items.map((item) => (
+          <FactionChip
+            key={item.roleId}
+            label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
+            color={colorToken}
+            size="sm"
+            onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
+          />
+        ))}
       </View>
     </View>
   );
@@ -111,6 +95,7 @@ export const RoleListByFaction = memo<RoleListByFactionProps>(({ roles, styles, 
         styles={styles}
         onRolePress={onRolePress}
       />
+      {onRolePress && <Text style={styles.roleListHint}>💡 点击角色名查看能力说明</Text>}
     </View>
   );
 });

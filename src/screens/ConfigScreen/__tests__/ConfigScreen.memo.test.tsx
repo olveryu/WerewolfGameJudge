@@ -111,7 +111,7 @@ describe('ConfigScreen Performance Optimizations', () => {
         'chipSelectedWolf',
         'chipSelectedGod',
         'chipSelectedVillager',
-        'chipSelectedNeutral',
+        'chipSelectedThird',
         'chipText',
         'chipTextSelected',
         'stepperRow',

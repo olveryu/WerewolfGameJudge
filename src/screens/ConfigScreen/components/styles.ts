@@ -77,7 +77,7 @@ export interface ConfigScreenStyles {
   chipSelectedWolf: ViewStyle;
   chipSelectedGod: ViewStyle;
   chipSelectedVillager: ViewStyle;
-  chipSelectedNeutral: ViewStyle;
+  chipSelectedThird: ViewStyle;
   chipText: TextStyle;
   chipTextSelected: TextStyle;
   chipVariant: ViewStyle;

@@ -35,19 +35,10 @@ export interface BoardInfoCardStyles {
   roleCategoryLabel: TextStyle;
   roleCategoryText: TextStyle;
   roleChipRow: ViewStyle;
-  roleChip: ViewStyle;
-  roleChipText: TextStyle;
-  roleChipWolf: ViewStyle;
-  roleChipGod: ViewStyle;
-  roleChipThird: ViewStyle;
-  roleChipVillager: ViewStyle;
-  roleChipTextWolf: TextStyle;
-  roleChipTextGod: TextStyle;
-  roleChipTextThird: TextStyle;
-  roleChipTextVillager: TextStyle;
   speakingOrderContainer: ViewStyle;
   speakingOrderText: TextStyle;
   speakingOrderSubText: TextStyle;
+  boardInfoHint: TextStyle;
 }
 
 export interface BottomActionPanelStyles {

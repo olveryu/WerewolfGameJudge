@@ -8,13 +8,12 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import { FactionChip } from '@/components/FactionChip';
 import { useColors } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
 import type { RoleDisplayItem } from '../RoomScreen.helpers';
 import { type BoardInfoCardStyles } from './styles';
-
-type FactionKey = 'wolf' | 'god' | 'third' | 'villager';
 
 interface BoardInfoCardProps {
   /** Total number of players */
@@ -39,45 +38,28 @@ interface BoardInfoCardProps {
   styles: BoardInfoCardStyles;
 }
 
-const CHIP_STYLE_MAP: Record<FactionKey, keyof BoardInfoCardStyles> = {
-  wolf: 'roleChipWolf',
-  god: 'roleChipGod',
-  third: 'roleChipThird',
-  villager: 'roleChipVillager',
-};
-
-const TEXT_STYLE_MAP: Record<FactionKey, keyof BoardInfoCardStyles> = {
-  wolf: 'roleChipTextWolf',
-  god: 'roleChipTextGod',
-  third: 'roleChipTextThird',
-  villager: 'roleChipTextVillager',
-};
-
-/** Render a row of touchable role chips for a faction category */
+/** Render a row of role chips for a faction category */
 function RoleChipRow({
   items,
   onRolePress,
   styles,
-  faction,
+  color,
 }: {
   items: readonly RoleDisplayItem[];
   onRolePress?: (roleId: string) => void;
   styles: BoardInfoCardStyles;
-  faction: FactionKey;
+  color: string;
 }) {
   return (
     <View style={styles.roleChipRow}>
       {items.map((item) => (
-        <TouchableOpacity
+        <FactionChip
           key={item.roleId}
-          style={[styles.roleChip, styles[CHIP_STYLE_MAP[faction]]]}
-          activeOpacity={fixed.activeOpacity}
-          onPress={() => onRolePress?.(item.roleId)}
-        >
-          <Text style={[styles.roleChipText, styles[TEXT_STYLE_MAP[faction]]]}>
-            {item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-          </Text>
-        </TouchableOpacity>
+          label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
+          color={color}
+          size="md"
+          onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
+        />
       ))}
     </View>
   );
@@ -135,7 +117,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
                 items={wolfRoleItems}
                 onRolePress={onRolePress}
                 styles={styles}
-                faction="wolf"
+                color={colors.wolf}
               />
             </View>
           )}
@@ -146,7 +128,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
                 items={godRoleItems}
                 onRolePress={onRolePress}
                 styles={styles}
-                faction="god"
+                color={colors.god}
               />
             </View>
           )}
@@ -157,7 +139,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
                 items={specialRoleItems}
                 onRolePress={onRolePress}
                 styles={styles}
-                faction="third"
+                color={colors.third}
               />
             </View>
           )}
@@ -166,31 +148,26 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               <Text style={styles.roleCategoryLabel}>👤 村民：</Text>
               <View style={styles.roleChipRow}>
                 {villagerCount > 0 && (
-                  <TouchableOpacity
-                    style={[styles.roleChip, styles.roleChipVillager]}
-                    activeOpacity={fixed.activeOpacity}
-                    onPress={() => onRolePress?.('villager')}
-                  >
-                    <Text style={[styles.roleChipText, styles.roleChipTextVillager]}>
-                      {villagerCount > 1 ? `村民×${villagerCount}` : '村民'}
-                    </Text>
-                  </TouchableOpacity>
+                  <FactionChip
+                    label={villagerCount > 1 ? `村民×${villagerCount}` : '村民'}
+                    color={colors.villager}
+                    size="md"
+                    onPress={onRolePress ? () => onRolePress('villager') : undefined}
+                  />
                 )}
                 {villagerRoleItems.map((item) => (
-                  <TouchableOpacity
+                  <FactionChip
                     key={item.roleId}
-                    style={[styles.roleChip, styles.roleChipVillager]}
-                    activeOpacity={fixed.activeOpacity}
-                    onPress={() => onRolePress?.(item.roleId)}
-                  >
-                    <Text style={[styles.roleChipText, styles.roleChipTextVillager]}>
-                      {item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
-                    </Text>
-                  </TouchableOpacity>
+                    label={item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
+                    color={colors.villager}
+                    size="md"
+                    onPress={onRolePress ? () => onRolePress(item.roleId) : undefined}
+                  />
                 ))}
               </View>
             </View>
           )}
+          <Text style={styles.boardInfoHint}>💡 点击角色名查看能力说明</Text>
         </View>
       )}
 

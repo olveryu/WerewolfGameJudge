@@ -60,7 +60,7 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     backgroundColor: withAlpha(colors.villager, 0.125),
     borderColor: colors.villager,
   } satisfies ViewStyle,
-  chipSelectedNeutral: {
+  chipSelectedThird: {
     backgroundColor: withAlpha(colors.third, 0.125),
     borderColor: colors.third,
   } satisfies ViewStyle,
