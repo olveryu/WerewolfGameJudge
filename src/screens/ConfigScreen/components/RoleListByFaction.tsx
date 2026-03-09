@@ -7,9 +7,10 @@
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { memo, useMemo } from 'react';
-import { Text, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import { useColors, withAlpha } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 import { type FactionStats, groupRolesByFaction, type TemplateRoleItem } from '../configHelpers';
 import type { TemplatePickerStyles } from './templatePicker.styles';
@@ -19,6 +20,8 @@ import type { TemplatePickerStyles } from './templatePicker.styles';
 interface RoleListByFactionProps {
   roles: RoleId[];
   styles: TemplatePickerStyles;
+  /** Callback when a role chip is tapped (reports roleId to parent) */
+  onRolePress?: (roleId: string) => void;
 }
 
 /** Render a single faction group row with chips */
@@ -27,36 +30,50 @@ function FactionRow({
   items,
   colorToken,
   styles,
+  onRolePress,
 }: {
   label: string;
   items: readonly TemplateRoleItem[];
   colorToken: string;
   styles: TemplatePickerStyles;
+  onRolePress?: (roleId: string) => void;
 }) {
   if (items.length === 0) return null;
   return (
     <View style={styles.factionRow}>
       <Text style={styles.factionRowLabel}>{label}</Text>
       <View style={styles.factionChipWrap}>
-        {items.map((item) => (
-          <View
-            key={item.roleId}
-            style={[
-              styles.factionChip,
-              { borderColor: colorToken, backgroundColor: withAlpha(colorToken, 0.08) },
-            ]}
-          >
+        {items.map((item) => {
+          const chipStyle = [
+            styles.factionChip,
+            { borderColor: colorToken, backgroundColor: withAlpha(colorToken, 0.08) },
+          ];
+          const textContent = (
             <Text style={[styles.factionChipText, { color: colorToken }]}>
               {item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName}
             </Text>
-          </View>
-        ))}
+          );
+          return onRolePress ? (
+            <TouchableOpacity
+              key={item.roleId}
+              style={chipStyle}
+              activeOpacity={fixed.activeOpacity}
+              onPress={() => onRolePress(item.roleId)}
+            >
+              {textContent}
+            </TouchableOpacity>
+          ) : (
+            <View key={item.roleId} style={chipStyle}>
+              {textContent}
+            </View>
+          );
+        })}
       </View>
     </View>
   );
 }
 
-export const RoleListByFaction = memo<RoleListByFactionProps>(({ roles, styles }) => {
+export const RoleListByFaction = memo<RoleListByFactionProps>(({ roles, styles, onRolePress }) => {
   const colors = useColors();
 
   const { wolfItems, godItems, villagerItems, thirdItems } = useMemo(
@@ -66,15 +83,34 @@ export const RoleListByFaction = memo<RoleListByFactionProps>(({ roles, styles }
 
   return (
     <View style={styles.roleListContainer}>
-      <FactionRow label="🐺 狼人" items={wolfItems} colorToken={colors.wolf} styles={styles} />
-      <FactionRow label="✨ 神职" items={godItems} colorToken={colors.god} styles={styles} />
+      <FactionRow
+        label="🐺 狼人"
+        items={wolfItems}
+        colorToken={colors.wolf}
+        styles={styles}
+        onRolePress={onRolePress}
+      />
+      <FactionRow
+        label="✨ 神职"
+        items={godItems}
+        colorToken={colors.god}
+        styles={styles}
+        onRolePress={onRolePress}
+      />
       <FactionRow
         label="👤 村民"
         items={villagerItems}
         colorToken={colors.villager}
         styles={styles}
+        onRolePress={onRolePress}
       />
-      <FactionRow label="🎭 特殊" items={thirdItems} colorToken={colors.third} styles={styles} />
+      <FactionRow
+        label="🎭 特殊"
+        items={thirdItems}
+        colorToken={colors.third}
+        styles={styles}
+        onRolePress={onRolePress}
+      />
     </View>
   );
 });

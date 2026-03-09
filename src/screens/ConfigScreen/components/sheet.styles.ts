@@ -154,13 +154,4 @@ export const createSheetStyles = (colors: ThemeColors) => ({
     color: colors.textSecondary,
     marginTop: spacing.tight / 2,
   } satisfies TextStyle,
-
-  // ── Role info sheet ──────────────────────────
-  roleInfoDesc: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.subtitle,
-    color: colors.textSecondary,
-    paddingHorizontal: layout.screenPaddingH,
-    paddingBottom: spacing.large,
-  } satisfies TextStyle,
 });
