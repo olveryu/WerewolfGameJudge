@@ -140,8 +140,8 @@ export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerS
     },
     searchInput: {
       flex: 1,
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
+      fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.text,
       paddingVertical: 0,
     },
