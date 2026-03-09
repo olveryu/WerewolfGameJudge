@@ -49,8 +49,8 @@ export default defineConfig({
   /* Retry on CI only - helps with transient connection issues */
   retries: process.env.CI ? 2 : 0,
 
-  /* Use all available workers for parallel tests */
-  workers: process.env.CI ? 3 : undefined,
+  /* Limit workers on CI to reduce Supabase concurrent connection pressure */
+  workers: process.env.CI ? 2 : undefined,
 
   /* Reporter to use */
   reporter: 'html',

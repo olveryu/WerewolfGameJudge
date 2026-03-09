@@ -547,7 +547,7 @@ async function navigateBackToHome(page: Page): Promise<void> {
  */
 export async function extractRoomNumber(page: Page): Promise<string> {
   const headerLocator = page.locator(`[data-testid="${TESTIDS.roomHeader}"]`);
-  await expect(headerLocator).toBeVisible({ timeout: 5000 });
+  await expect(headerLocator).toBeVisible({ timeout: 15_000 });
   const headerText = await headerLocator.textContent();
   // Match "房间 XXXX" pattern - room number follows "房间 " text
   const match = headerText?.match(/房间\s*(\d{4})/);
