@@ -74,8 +74,11 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
 
   return (
     <Modal visible={true} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <Pressable style={styles.cardWrapper}>
+      <View style={styles.overlay}>
+        {/* Backdrop — sibling (not parent) so clicks don't bubble to card */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+
+        <View style={styles.cardWrapper}>
           <RoleCardContent
             testID="role-card-modal"
             roleId={roleId}
@@ -122,8 +125,8 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
           >
             <Text style={styles.confirmButtonText}>我知道了</Text>
           </TouchableOpacity>
-        </Pressable>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 };

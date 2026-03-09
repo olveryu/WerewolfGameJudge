@@ -266,7 +266,9 @@ export const ConfigScreen: React.FC = () => {
 
       {/* Bottom Create Button */}
       <View style={styles.bottomCreateBar}>
-        <Text style={styles.cardBFooterHint}>长按角色查看技能说明</Text>
+        <Text style={styles.cardBFooterHint}>
+          长按角色查看技能说明{'\n'}粗边框角色有可切换的变体
+        </Text>
         <TouchableOpacity
           style={[styles.bottomCreateBtn, isDisabled && styles.bottomCreateBtnDisabled]}
           onPress={handleCreateRoom}
