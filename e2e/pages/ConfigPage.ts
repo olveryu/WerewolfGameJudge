@@ -61,12 +61,25 @@ export class ConfigPage {
   // Template
   // ---------------------------------------------------------------------------
 
-  /** Click the template dropdown and select a template by name. */
+  /**
+   * Select a template from the opened TemplatePicker modal.
+   *
+   * The new SectionList+Accordion TemplatePicker requires two taps:
+   * 1. Click the card header (template name) to expand the card
+   * 2. Click the "选择此板子" CTA button inside the expanded card
+   * The modal auto-closes after selection.
+   */
   async selectTemplate(name: string) {
-    const dropdown = getVisibleText(this.page, name);
-    await dropdown.scrollIntoViewIfNeeded();
-    await expect(dropdown).toBeVisible({ timeout: 5000 });
-    await dropdown.click();
+    // Step 1: Find the card by template short name and click to expand
+    const cardTitle = getVisibleText(this.page, name);
+    await cardTitle.scrollIntoViewIfNeeded();
+    await expect(cardTitle).toBeVisible({ timeout: 5000 });
+    await cardTitle.click();
+
+    // Step 2: Click the "选择此板子" CTA button that appears in the expanded card
+    const ctaButton = getVisibleText(this.page, '选择此板子');
+    await expect(ctaButton).toBeVisible({ timeout: 3000 });
+    await ctaButton.click();
   }
 
   /**
