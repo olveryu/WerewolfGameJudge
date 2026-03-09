@@ -6,8 +6,8 @@ import { getVisibleText } from '../helpers/ui';
  * Variant → base role mapping.
  *
  * Variant roles share a chip with their base role in the config UI.
- * Selecting a variant requires long-pressing the base chip to open the VariantPicker.
- * Keep in sync with configData.ts `variants` arrays.
+ * Selecting a variant requires long-pressing the base chip to open the role info card,
+ * then clicking the variant pill. Keep in sync with configData.ts `variants` arrays.
  */
 const VARIANT_TO_BASE: Record<string, string> = {
   awakenedGargoyle: 'gargoyle',
@@ -128,20 +128,26 @@ export class ConfigPage {
   }
 
   /**
-   * Select a variant role via the VariantPicker.
+   * Select a variant role via the role info card's variant pills.
    *
-   * Long-presses the base chip to open the variant picker modal,
-   * then clicks the target variant option. The chip auto-selects.
+   * Long-presses the base chip to open the role info card,
+   * then clicks the variant pill and closes the card.
    */
   async selectVariant(baseRoleId: string, variantRoleId: string) {
     const chip = this.page.locator(`[data-testid="config-role-chip-${baseRoleId}"]`).first();
     await chip.waitFor({ state: 'attached', timeout: 2000 });
-    // Long-press to open variant picker
+    // Long-press to open role info card
     await chip.click({ delay: 600 });
-    // Click the variant option
+    // Click the variant pill
     const option = this.page.locator(`[data-testid="config-variant-option-${variantRoleId}"]`);
     await option.waitFor({ state: 'visible', timeout: 3000 });
     await option.click();
+    // Close the role info card by clicking outside (overlay)
+    const overlay = this.page.locator('[data-testid="role-card-modal"]').first();
+    // Press Escape to close the modal
+    await this.page.keyboard.press('Escape');
+    // Wait for modal to close
+    await overlay.waitFor({ state: 'detached', timeout: 2000 }).catch(() => {});
   }
 
   /** Deselect multiple role chips. Silently skips missing chips. */
@@ -325,7 +331,7 @@ export class ConfigPage {
     } else if (villagerDelta < 0) {
       await this.increaseStepper('villager', -villagerDelta);
     }
-    // Enable good special roles (handle variants via VariantPicker)
+    // Enable good special roles (handle variants via role info card)
     for (const roleId of goodRoles) {
       const base = VARIANT_TO_BASE[roleId];
       if (base) {
@@ -344,7 +350,7 @@ export class ConfigPage {
     } else if (wolfDelta < 0) {
       await this.increaseStepper('wolf', -wolfDelta);
     }
-    // Enable wolf special roles (handle variants via VariantPicker)
+    // Enable wolf special roles (handle variants via role info card)
     for (const roleId of wolfRoles) {
       const base = VARIANT_TO_BASE[roleId];
       if (base) {

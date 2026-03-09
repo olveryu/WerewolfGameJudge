@@ -16,4 +16,3 @@ export { createConfigScreenStyles } from './styles';
 export { TemplatePicker } from './TemplatePicker';
 export type { TemplatePickerStyles } from './templatePicker.styles';
 export { createTemplatePickerStyles } from './templatePicker.styles';
-export { VariantPicker } from './VariantPicker';

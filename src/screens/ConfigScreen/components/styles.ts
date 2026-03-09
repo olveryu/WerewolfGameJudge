@@ -83,20 +83,6 @@ export interface ConfigScreenStyles {
   chipVariant: ViewStyle;
   cardBFooterHint: TextStyle;
 
-  // Variant picker modal
-  variantPickerOverlay: ViewStyle;
-  variantPickerContent: ViewStyle;
-  variantPickerHandle: ViewStyle;
-  variantPickerTitle: TextStyle;
-  variantPickerOption: ViewStyle;
-  variantPickerOptionSelected: ViewStyle;
-  variantPickerRadio: ViewStyle;
-  variantPickerRadioSelected: ViewStyle;
-  variantPickerRadioDot: ViewStyle;
-  variantPickerOptionContent: ViewStyle;
-  variantPickerOptionName: TextStyle;
-  variantPickerOptionDesc: TextStyle;
-
   // Role stepper
   stepperRow: ViewStyle;
   stepperLabel: TextStyle;

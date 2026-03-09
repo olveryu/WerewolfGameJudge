@@ -31,7 +31,6 @@ import {
   RoleStepper,
   Section,
   TemplatePicker,
-  VariantPicker,
 } from './components';
 import { expandSlotToChipEntries, FACTION_COLOR_MAP } from './configHelpers';
 import { useConfigScreenState } from './useConfigScreenState';
@@ -91,15 +90,12 @@ export const ConfigScreen: React.FC = () => {
     handleCloseSettings,
     handleAnimationChange,
     handleBgmChange,
-    variantPickerVisible,
-    variantPickerIds,
-    variantPickerActive,
-    handleChipLongPress,
-    handleVariantSelect,
-    handleCloseVariantPicker,
     roleInfoId,
+    roleInfoVariantIds,
+    roleInfoActiveVariant,
     handleChipInfoPress,
     handleCloseRoleInfo,
+    handleRoleInfoVariantSelect,
     tabItems,
     activeTab,
     activeGroup,
@@ -256,7 +252,6 @@ export const ConfigScreen: React.FC = () => {
                             factionColor={sectionFactionColorKey}
                             accentColor={sectionAccentColor}
                             hasVariants={entry.hasVariants}
-                            onVariantPress={entry.hasVariants ? handleChipLongPress : undefined}
                             onInfoPress={handleChipInfoPress}
                           />
                         ))}
@@ -271,9 +266,7 @@ export const ConfigScreen: React.FC = () => {
 
       {/* Bottom Create Button */}
       <View style={styles.bottomCreateBar}>
-        <Text style={styles.cardBFooterHint}>
-          长按角色查看技能说明{'\n'}粗边框角色可长按切换变体
-        </Text>
+        <Text style={styles.cardBFooterHint}>长按角色查看技能说明</Text>
         <TouchableOpacity
           style={[styles.bottomCreateBtn, isDisabled && styles.bottomCreateBtnDisabled]}
           onPress={handleCreateRoom}
@@ -310,22 +303,15 @@ export const ConfigScreen: React.FC = () => {
         styles={styles}
       />
 
-      {/* Variant Picker Modal */}
-      <VariantPicker
-        visible={variantPickerVisible}
-        onClose={handleCloseVariantPicker}
-        variantIds={variantPickerIds}
-        activeVariant={variantPickerActive}
-        onSelect={handleVariantSelect}
-        styles={styles}
-      />
-
-      {/* Role Info Card (tap info icon on any chip) */}
+      {/* Role Info Card (long-press any chip → card with variant pills) */}
       <RoleCardSimple
         visible={roleInfoId !== null}
         roleId={roleInfoId as RoleId | null}
         onClose={handleCloseRoleInfo}
         showRealIdentity
+        variantIds={roleInfoVariantIds}
+        activeVariant={roleInfoActiveVariant}
+        onVariantSelect={handleRoleInfoVariantSelect}
       />
     </SafeAreaView>
   );
