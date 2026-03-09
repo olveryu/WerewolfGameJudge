@@ -37,9 +37,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 17) {
+  if (boards.length !== 18) {
     throw new Error(
-      `Expected exactly 17 presets with name including "12人", but got ${boards.length}. ` +
+      `Expected exactly 18 presets with name including "12人", but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -228,4 +228,5 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   混子标准12人: 'slacker.12p.board.ui.test.tsx',
   野孩标准12人: 'wildChild.12p.board.ui.test.tsx',
   唯邻是从12人: 'awakenedGargoyle.12p.board.ui.test.tsx',
+  孤注一掷12人: 'warden.12p.board.ui.test.tsx',
 };

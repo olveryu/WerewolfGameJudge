@@ -16,7 +16,7 @@ import {
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo } from 'react';
-import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -333,7 +333,13 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
         <>
           <View style={styles.divider} />
           <Text style={styles.skillTitle}>技能介绍</Text>
-          <Text style={styles.description}>{description}</Text>
+          <ScrollView
+            style={styles.descriptionScroll}
+            contentContainerStyle={styles.descriptionScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.description}>{description}</Text>
+          </ScrollView>
         </>
       )}
       {children && <View style={styles.childrenSlot}>{children}</View>}
@@ -422,6 +428,13 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       fontSize: typography.secondary,
       color: colors.textSecondary,
       marginBottom: spacing.tight,
+    },
+    descriptionScroll: {
+      flex: 1,
+      width: '100%',
+    },
+    descriptionScrollContent: {
+      alignItems: 'center',
     },
     description: {
       fontSize: typography.body,
