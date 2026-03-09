@@ -14,7 +14,6 @@ import {
   spacing,
   type ThemeColors,
   typography,
-  withAlpha,
 } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
@@ -111,14 +110,16 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     scrollContent: {
       flexGrow: 1,
     },
-    // ── Top Bar ──────────────────────────────────────────────
+    // ── Top Bar (standard header: surface bg + border-bottom) ──
     topBar: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: spacing.screenH,
-      paddingTop: spacing.small,
-      paddingBottom: spacing.small,
+      paddingVertical: spacing.medium,
+      backgroundColor: colors.surface,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.border,
     },
     topBarBrand: {
       flexDirection: 'row',
@@ -151,15 +152,18 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       height: 1,
       overflow: 'hidden',
     },
-    // ── Hero Card ────────────────────────────────────────────
+    // ── Hero Card (surface bg + primary border) ─────────────
     heroCard: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.primary,
+      backgroundColor: colors.surface,
       marginHorizontal: spacing.screenH,
+      marginTop: spacing.medium,
       marginBottom: spacing.medium,
       padding: spacing.medium,
       borderRadius: borderRadius.large,
+      borderWidth: fixed.borderWidthThick,
+      borderColor: colors.primary,
       ...shadows.md,
     },
     heroCardContent: {
@@ -170,19 +174,18 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       fontSize: typography.subtitle,
       lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
-      color: colors.textInverse,
+      color: colors.text,
     },
     heroCardSubtitle: {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
-      color: colors.textInverse,
-      opacity: 0.8,
+      color: colors.textSecondary,
     },
     heroCardArrow: {
       width: componentSizes.button.sm,
       height: componentSizes.button.sm,
       borderRadius: borderRadius.full,
-      backgroundColor: withAlpha(colors.textInverse, 0.2),
+      backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
     },
