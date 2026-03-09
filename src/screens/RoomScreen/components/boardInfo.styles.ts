@@ -59,37 +59,6 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         flexWrap: 'wrap',
         gap: spacing.tight,
       },
-      roleChip: {
-        paddingHorizontal: spacing.small,
-        paddingVertical: spacing.tight / 2,
-        borderRadius: borderRadius.small,
-        backgroundColor: colors.surfaceHover,
-      },
-      roleChipText: {
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
-        color: colors.primary,
-      },
-      roleChipWolf: {
-        borderWidth: fixed.borderWidth,
-        borderColor: colors.wolf,
-      },
-      roleChipGod: {
-        borderWidth: fixed.borderWidth,
-        borderColor: colors.god,
-      },
-      roleChipThird: {
-        borderWidth: fixed.borderWidth,
-        borderColor: colors.third,
-      },
-      roleChipVillager: {
-        borderWidth: fixed.borderWidth,
-        borderColor: colors.villager,
-      },
-      roleChipTextWolf: { color: colors.wolf },
-      roleChipTextGod: { color: colors.god },
-      roleChipTextThird: { color: colors.third },
-      roleChipTextVillager: { color: colors.villager },
       speakingOrderContainer: {
         marginTop: spacing.small,
         paddingTop: spacing.small,
@@ -106,6 +75,13 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         lineHeight: typography.lineHeights.caption,
         color: colors.textMuted,
         marginTop: spacing.tight / 2,
+      },
+      boardInfoHint: {
+        fontSize: typography.caption,
+        lineHeight: typography.lineHeights.caption,
+        color: colors.textMuted,
+        textAlign: 'center',
+        marginTop: spacing.small,
       },
     }),
 

@@ -8,7 +8,15 @@
  */
 import { isValidRoleId, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import {
   getFactionColor,
@@ -67,7 +75,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   return (
     <Modal visible={true} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={styles.cardWrapper}>
+        <Pressable style={styles.cardWrapper}>
           <RoleCardContent
             testID="role-card-modal"
             roleId={roleId}
@@ -114,7 +122,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
           >
             <Text style={styles.confirmButtonText}>我知道了</Text>
           </TouchableOpacity>
-        </View>
+        </Pressable>
       </TouchableOpacity>
     </Modal>
   );

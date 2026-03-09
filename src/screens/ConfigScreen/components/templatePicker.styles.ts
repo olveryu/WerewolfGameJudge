@@ -63,8 +63,7 @@ export interface TemplatePickerStyles {
   factionRow: ViewStyle;
   factionRowLabel: TextStyle;
   factionChipWrap: ViewStyle;
-  factionChip: ViewStyle;
-  factionChipText: TextStyle;
+  roleListHint: TextStyle;
   // ── Empty state ──
   emptyContainer: ViewStyle;
   emptyText: TextStyle;
@@ -307,16 +306,12 @@ export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerS
       flexWrap: 'wrap',
       gap: spacing.tight,
     },
-    factionChip: {
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.micro,
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-    },
-    factionChipText: {
+    roleListHint: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
-      fontWeight: typography.weights.medium,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: spacing.small,
     },
 
     // ── Empty state ───────────────────────────────

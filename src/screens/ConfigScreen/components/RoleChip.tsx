@@ -12,7 +12,7 @@ import { fixed } from '@/theme/tokens';
 
 import { ConfigScreenStyles } from './styles';
 
-export type FactionColorKey = 'wolf' | 'god' | 'villager' | 'neutral';
+export type FactionColorKey = 'wolf' | 'god' | 'villager' | 'third';
 
 interface RoleChipProps {
   id: string;
@@ -34,7 +34,7 @@ const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
   wolf: 'chipSelectedWolf',
   god: 'chipSelectedGod',
   villager: 'chipSelectedVillager',
-  neutral: 'chipSelectedNeutral',
+  third: 'chipSelectedThird',
 };
 
 export const RoleChip = memo<RoleChipProps>(

@@ -113,7 +113,7 @@ export const FACTION_COLOR_MAP: Record<string, FactionColorKey> = {
   [Faction.Wolf]: 'wolf',
   [Faction.God]: 'god',
   [Faction.Villager]: 'villager',
-  [Faction.Special]: 'neutral',
+  [Faction.Special]: 'third',
 };
 
 /** Compute total selected role count */
