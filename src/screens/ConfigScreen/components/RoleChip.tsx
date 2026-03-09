@@ -9,6 +9,7 @@ import { memo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 
 import { TESTIDS } from '@/testids';
+import { fixed } from '@/theme/tokens';
 
 import { ConfigScreenStyles } from './styles';
 
@@ -74,7 +75,7 @@ export const RoleChip = memo<RoleChipProps>(
         ]}
         onPress={() => onToggle(id)}
         onLongPress={handleLongPress}
-        activeOpacity={0.7}
+        activeOpacity={fixed.activeOpacity}
         accessibilityLabel={label}
         accessibilityState={{ selected }}
       >

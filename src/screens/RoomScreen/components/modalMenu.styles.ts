@@ -27,7 +27,7 @@ export function createModalMenuStyles(colors: ThemeColors): {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'flex-end',
-        minWidth: 60,
+        minWidth: componentSizes.headerAction.minWidth,
       },
       triggerButton: {
         ...shared.iconButton,
@@ -49,7 +49,7 @@ export function createModalMenuStyles(colors: ThemeColors): {
       menuContainer: {
         backgroundColor: colors.surface,
         borderRadius: borderRadius.medium,
-        minWidth: 180,
+        minWidth: componentSizes.menu.minWidth,
         ...shadows.md,
         overflow: 'hidden',
       },

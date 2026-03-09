@@ -72,7 +72,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     paddingVertical: spacing.tight,
     ...shadows.md,
     zIndex: 101,
-    minWidth: 140,
+    minWidth: componentSizes.menu.compactMinWidth,
   } satisfies ViewStyle,
   overflowMenuItem: {
     flexDirection: 'row',
@@ -82,7 +82,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     gap: spacing.small,
   } satisfies ViewStyle,
   overflowMenuItemIcon: {
-    width: 20,
+    width: componentSizes.icon.md,
     textAlign: 'center',
   } satisfies TextStyle,
   overflowMenuItemText: {

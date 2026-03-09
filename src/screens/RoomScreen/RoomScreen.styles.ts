@@ -17,7 +17,7 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 export function createRoomScreenStyles(colors: ThemeColors) {
   const shared = createSharedStyles(colors);
@@ -111,7 +111,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       marginTop: spacing.tight / 2,
     },
     headerSpacer: {
-      minWidth: 60,
+      minWidth: componentSizes.headerAction.minWidth,
     },
     scrollView: {
       flex: 1,

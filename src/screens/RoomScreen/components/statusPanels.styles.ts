@@ -4,7 +4,7 @@
 import { StyleSheet } from 'react-native';
 
 import { borderRadius, shadows, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 import type {
   BottomActionPanelStyles,
@@ -34,7 +34,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       message: {
         textAlign: 'center',
         fontSize: typography.body,
-        lineHeight: typography.body * 1.4,
+        lineHeight: typography.lineHeights.body,
         color: colors.text,
         marginBottom: spacing.small,
         paddingHorizontal: spacing.small,
@@ -80,12 +80,12 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         bottom: 0,
         left: 0,
         right: 0,
-        height: 2,
+        height: componentSizes.progressBar.height,
       },
       progressBar: {
-        height: 2,
+        height: componentSizes.progressBar.height,
         backgroundColor: withAlpha(colors.error, 0.5),
-        borderRadius: 1,
+        borderRadius: componentSizes.progressBar.borderRadius,
       },
     }),
 

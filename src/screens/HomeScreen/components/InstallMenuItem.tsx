@@ -13,6 +13,7 @@ import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { type ThemeColors } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 import { type HomeScreenStyles } from './styles';
 
@@ -41,7 +42,11 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
 
   return (
     <>
-      <TouchableOpacity style={styles.footerLink} onPress={handlePress} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={styles.footerLink}
+        onPress={handlePress}
+        activeOpacity={fixed.activeOpacity}
+      >
         <Ionicons name="download-outline" size={14} color={colors.primary} />
         <Text style={styles.footerLinkText}>安装到主屏幕</Text>
       </TouchableOpacity>
@@ -98,7 +103,7 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={handleCloseGuide}
-              activeOpacity={0.7}
+              activeOpacity={fixed.activeOpacity}
             >
               <Text style={styles.primaryButtonText}>我知道了</Text>
             </TouchableOpacity>

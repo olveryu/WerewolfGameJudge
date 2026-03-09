@@ -8,6 +8,8 @@
 import { memo, useMemo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import { fixed } from '@/theme/tokens';
+
 import { type AuthStyles } from './types';
 
 const EMAIL_DOMAINS = ['@qq.com', '@163.com', '@gmail.com', '@icloud.com', '@outlook.com'];
@@ -38,7 +40,7 @@ export const EmailDomainDropdown = memo<EmailDomainDropdownProps>(({ email, onSe
           key={domain}
           style={styles.emailDomainItem}
           onPress={() => onSelect(localPart + domain)}
-          activeOpacity={0.7}
+          activeOpacity={fixed.activeOpacity}
         >
           <Text style={styles.emailDomainText} numberOfLines={1}>
             {localPart + domain}

@@ -290,11 +290,111 @@ export const componentSizes = {
     paddingV: scale(primitiveSpace[3]),
   },
 
+  /** 拖拽手柄（Bottom Sheet） */
+  handle: {
+    width: scale(primitiveSize[36]),
+    height: scale(4),
+  },
+
+  /** 单选按钮 */
+  radio: {
+    size: scale(primitiveSize[20]),
+    dotSize: scale(10),
+  },
+
+  /** 进度条 */
+  progressBar: {
+    height: 2,
+    borderRadius: 1,
+  },
+
+  /** 弹出菜单 */
+  menu: {
+    minWidth: scale(180),
+    compactMinWidth: scale(140),
+  },
+
+  /** 头部操作区（左/右按钮组） */
+  headerAction: {
+    minWidth: scale(60),
+  },
+
   /** 头部导航栏 */
   header: scale(primitiveSize[56]),
 
   /** 底部标签栏 */
   tabBar: scale(primitiveSize[56]),
+} as const;
+
+// ============================================================================
+// Text Style Presets (结构性：fontSize + lineHeight + fontWeight，不含 color)
+// ============================================================================
+
+/**
+ * 预组合文字样式 — 仅包含结构属性（fontSize / lineHeight / fontWeight）。
+ *
+ * 使用时展开并追加 color：`{ ...textStyles.body, color: colors.text }`
+ * 消除 fontSize + lineHeight 配对不一致的风险。
+ */
+export const textStyles = {
+  caption: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+  },
+  captionSmall: {
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.captionSmall,
+  },
+  secondary: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+  },
+  secondarySemibold: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    fontWeight: typography.weights.semibold,
+  },
+  body: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+  },
+  bodyMedium: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+    fontWeight: typography.weights.medium,
+  },
+  bodySemibold: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+    fontWeight: typography.weights.semibold,
+  },
+  subtitle: {
+    fontSize: typography.subtitle,
+    lineHeight: typography.lineHeights.subtitle,
+  },
+  subtitleSemibold: {
+    fontSize: typography.subtitle,
+    lineHeight: typography.lineHeights.subtitle,
+    fontWeight: typography.weights.semibold,
+  },
+  title: {
+    fontSize: typography.title,
+    lineHeight: typography.lineHeights.title,
+  },
+  titleBold: {
+    fontSize: typography.title,
+    lineHeight: typography.lineHeights.title,
+    fontWeight: typography.weights.bold,
+  },
+  heading: {
+    fontSize: typography.heading,
+    lineHeight: typography.lineHeights.heading,
+  },
+  headingBold: {
+    fontSize: typography.heading,
+    lineHeight: typography.lineHeights.heading,
+    fontWeight: typography.weights.bold,
+  },
 } as const;
 
 // ============================================================================

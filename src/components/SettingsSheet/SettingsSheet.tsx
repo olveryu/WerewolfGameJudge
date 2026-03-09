@@ -126,7 +126,7 @@ export const SettingsSheet = memo(function SettingsSheet({
                     key={opt.value}
                     style={[styles.chip, selected && styles.chipSelected]}
                     onPress={() => handleAnimSelect(opt.value)}
-                    activeOpacity={0.7}
+                    activeOpacity={fixed.activeOpacity}
                     testID={`${animationTestIDPrefix}-option-${opt.value}`}
                   >
                     <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
@@ -149,7 +149,7 @@ export const SettingsSheet = memo(function SettingsSheet({
                     key={opt.value}
                     style={[styles.chip, selected && styles.chipSelected]}
                     onPress={() => handleBgmSelect(opt.value)}
-                    activeOpacity={0.7}
+                    activeOpacity={fixed.activeOpacity}
                     testID={`${bgmTestIDPrefix}-option-${opt.value}`}
                   >
                     <Text style={[styles.chipText, selected && styles.chipTextSelected]}>

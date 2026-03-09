@@ -11,6 +11,7 @@ import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { type ThemeColors } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 import { type HomeScreenStyles } from './styles';
 
@@ -53,7 +54,7 @@ export const TipCard = memo<TipCardProps>(
         <TouchableOpacity
           style={styles.tipCard}
           onPress={onPress}
-          activeOpacity={0.7}
+          activeOpacity={fixed.activeOpacity}
           testID={testID}
         >
           {content}

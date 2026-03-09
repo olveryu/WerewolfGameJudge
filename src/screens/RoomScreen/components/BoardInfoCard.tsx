@@ -113,7 +113,11 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
 
   return (
     <View style={styles.boardInfoContainer}>
-      <TouchableOpacity style={styles.headerRow} onPress={handleToggle} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={styles.headerRow}
+        onPress={handleToggle}
+        activeOpacity={fixed.activeOpacity}
+      >
         <Text style={styles.boardInfoTitle}>板子配置 ({playerCount}人局)</Text>
         <Ionicons
           name={isCollapsed ? 'chevron-down' : 'chevron-up'}

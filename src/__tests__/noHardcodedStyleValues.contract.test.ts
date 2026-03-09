@@ -162,8 +162,7 @@ function findViolations(content: string): Violation[] {
 
 const KNOWN_VIOLATIONS: Record<string, number> = {
   // Emoji fontSize: 28 for 🐺 logo — exempt per instructions
-  // + 'rgba(255,255,255,0.2)' heroCardArrow — TODO: Phase 1 migrate to theme overlay
-  'src/screens/HomeScreen/components/styles.ts': 2,
+  'src/screens/HomeScreen/components/styles.ts': 1,
 
   // TODO: Phase 1 — fontSize: 14 → typography.secondary
   'src/screens/RoomScreen/components/SeatTile.tsx': 1,

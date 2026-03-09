@@ -17,7 +17,15 @@ import {
 } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import {
+  borderRadius,
+  fixed,
+  spacing,
+  type ThemeColors,
+  typography,
+  useColors,
+  withAlpha,
+} from '@/theme';
 
 interface SeatInfo {
   /** 0-based seat index */
@@ -104,7 +112,7 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
                   key={String(seat)}
                   style={[styles.seatRow, isSelected && styles.seatRowSelected]}
                   onPress={() => toggleSeat(seat)}
-                  activeOpacity={0.7}
+                  activeOpacity={fixed.activeOpacity}
                 >
                   <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
                     {isSelected && <Text style={styles.checkmark}>✓</Text>}
@@ -180,7 +188,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       marginBottom: spacing.tight,
     },
     seatRowSelected: {
-      backgroundColor: `${colors.primary}20`,
+      backgroundColor: withAlpha(colors.primary, 0.125),
     },
     checkbox: {
       width: spacing.large,

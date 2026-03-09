@@ -332,7 +332,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       backgroundColor: colors.background,
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
-      height: spacing.xxlarge,
+      height: componentSizes.button.lg,
       borderRadius: borderRadius.full,
       justifyContent: 'center',
       alignItems: 'center',

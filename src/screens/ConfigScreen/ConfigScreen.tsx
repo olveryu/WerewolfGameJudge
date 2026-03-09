@@ -21,6 +21,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { useColors } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 import {
   createConfigScreenStyles,
@@ -123,7 +124,7 @@ export const ConfigScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.templatePill}
             onPress={handleOpenTemplateDropdown}
-            activeOpacity={0.7}
+            activeOpacity={fixed.activeOpacity}
           >
             <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
             <Text style={styles.templatePillArrow}>▾</Text>
@@ -133,7 +134,7 @@ export const ConfigScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.headerBtn}
           onPress={() => setOverflowVisible((v) => !v)}
-          activeOpacity={0.7}
+          activeOpacity={fixed.activeOpacity}
           testID={TESTIDS.configMoreButton}
         >
           <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />

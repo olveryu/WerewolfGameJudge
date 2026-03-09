@@ -124,7 +124,11 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
             >
               <Text style={styles.shareButtonText}>{isSharing ? '分享中...' : '分享图片'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.copyButton} onPress={onCopyLink} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.copyButton}
+              onPress={onCopyLink}
+              activeOpacity={fixed.activeOpacity}
+            >
               <Text style={styles.copyButtonText}>复制链接</Text>
             </TouchableOpacity>
           </View>
@@ -132,7 +136,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
           <TouchableOpacity
             style={styles.closeButton}
             onPress={onClose}
-            activeOpacity={0.7}
+            activeOpacity={fixed.activeOpacity}
             accessibilityLabel="关闭"
           >
             <Text style={styles.closeButtonText}>关闭</Text>
