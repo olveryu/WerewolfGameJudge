@@ -269,9 +269,14 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
       const confirmBtn = alertModal.getByText('确定查看', { exact: true }).first();
       if (await confirmBtn.isVisible().catch(() => false)) {
         await confirmBtn.click({ force: true });
-        // Wait for alert to cycle (hidden then visible with info)
-        await alertModal.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {});
-        await alertModal.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+        // Poll for actual night-result content instead of visibility toggle
+        // (avoids TOCTOU race where the confirmation dialog hasn't closed yet)
+        const RESULT_KEYWORDS = ['平安夜', '玩家死亡', '死亡', '号玩家'];
+        for (let j = 0; j < 20; j++) {
+          const text = (await alertModal.textContent().catch(() => '')) ?? '';
+          if (RESULT_KEYWORDS.some((kw) => text.includes(kw))) return;
+          await hostPage.waitForTimeout(200);
+        }
       }
       return;
     }
@@ -379,16 +384,26 @@ export async function dismissAlert(page: Page): Promise<void> {
 
 /**
  * Click a specific button in the bottom action panel.
+ * Retries up to 3 times, dismissing any stale alert that may obscure the panel.
  * Returns true if the button was found and clicked.
  */
-export async function clickBottomButton(page: Page, label: string): Promise<boolean> {
+export async function clickBottomButton(
+  page: Page,
+  label: string,
+  maxRetries = 3,
+): Promise<boolean> {
   const panel = page.locator('[data-testid="bottom-action-panel"]');
-  const btn = panel.getByText(label, { exact: true }).first();
-  if (await btn.isVisible().catch(() => false)) {
-    await btn.click({ force: true });
-    // Wait for the button to disappear or alert to appear
-    await btn.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
-    return true;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // Dismiss any stale alert that may cover the bottom panel
+    if (attempt > 0) await dismissAlert(page);
+    const btn = panel.getByText(label, { exact: true }).first();
+    if (await btn.isVisible().catch(() => false)) {
+      await btn.click({ force: true });
+      // Wait for the button to disappear or alert to appear
+      await btn.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
+      return true;
+    }
+    await page.waitForTimeout(300);
   }
   return false;
 }

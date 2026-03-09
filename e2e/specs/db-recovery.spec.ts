@@ -198,9 +198,9 @@ test.describe('DB state recovery after network interruption', () => {
         });
       });
 
-      // Step 4: Wait 5s while both are offline
-      await test.step('wait 5s while both offline', async () => {
-        await hostPage.waitForTimeout(5_000);
+      // Step 4: Wait 10s while both are offline (CI needs longer for SDK to notice)
+      await test.step('wait 10s while both offline', async () => {
+        await hostPage.waitForTimeout(10_000);
       });
 
       // Step 5: Restore network on both

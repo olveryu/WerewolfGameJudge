@@ -75,7 +75,7 @@ export async function waitForRoomScreenReady(
   page: Page,
   opts: WaitForRoomScreenReadyOptions = {},
 ): Promise<void> {
-  const { role = 'host', maxRetries = 3, liveTimeoutMs = 20000 } = opts;
+  const { role = 'host', maxRetries = 3, liveTimeoutMs = 30000 } = opts;
 
   await waitForRoomHeaderOrRetry(page, maxRetries);
 
