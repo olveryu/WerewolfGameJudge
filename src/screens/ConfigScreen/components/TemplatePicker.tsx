@@ -1,95 +1,239 @@
 /**
- * TemplatePicker - 模板选择 Modal
+ * TemplatePicker - 板子选择 Modal（SectionList + Accordion 卡片）
  *
- * 底部滑出 Modal，使用 chip 平铺展示预设模板供用户选择。
- * 选中即关闭 Modal。
+ * 底部滑出 Modal，按分类分组展示预设板子。每张卡片支持折叠/展开查看
+ * 完整角色阵营分布。顶部搜索框支持按板子名和角色名实时过滤。
  * 渲染 UI 并通过回调上报 onSelect，不 import service，不包含业务逻辑判断。
  */
 import { Ionicons } from '@expo/vector-icons';
-import { memo, useCallback } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { PRESET_TEMPLATES, type PresetTemplate } from '@werewolf/game-engine/models/Template';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { Modal, SectionList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { spacing, typography } from '@/theme';
+import { typography, useColors } from '@/theme';
 
-import type { DropdownOption } from './Dropdown';
+import {
+  filterTemplates,
+  groupTemplatesByCategory,
+  type TemplateSectionData,
+} from '../configHelpers';
+import { BoardTemplateCard } from './BoardTemplateCard';
 import type { ConfigScreenStyles } from './styles';
+import { createTemplatePickerStyles } from './templatePicker.styles';
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface TemplatePickerProps {
   visible: boolean;
   onClose: () => void;
-  options: DropdownOption[];
   selectedValue: string;
   onSelect: (value: string) => void;
+  /** ConfigScreenStyles kept for backward compat in parent call-site */
   styles: ConfigScreenStyles;
 }
 
 export const TemplatePicker = memo(function TemplatePicker({
   visible,
   onClose,
-  options,
   selectedValue,
   onSelect,
-  styles,
 }: TemplatePickerProps) {
-  const handleSelect = useCallback(
-    (value: string) => {
-      onSelect(value);
-    },
-    [onSelect],
-  );
+  // ── Local state ──────────────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedNames, setExpandedNames] = useState<Set<string>>(new Set());
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-        <View
-          style={styles.modalContent}
-          onStartShouldSetResponder={() => true}
-          onTouchEnd={(e) => e.stopPropagation()}
-        >
-          <View style={styles.settingsSheetHandle} />
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>选择板子</Text>
-            <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={onClose}
-              accessibilityLabel="关闭"
-            >
-              <Ionicons
-                name="close"
-                size={typography.title}
-                color={styles.modalCloseBtnText.color as string}
-              />
-            </TouchableOpacity>
-          </View>
-          <View style={[styles.settingsChipWrap, { padding: spacing.medium }]}>
-            {options.map((option) => {
-              const selected = option.value === selectedValue;
-              return (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.settingsChip,
-                    localStyles.chipNoGrow,
-                    selected && styles.settingsChipSelected,
-                  ]}
-                  onPress={() => handleSelect(option.value)}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[styles.settingsChipText, selected && styles.settingsChipTextSelected]}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      </TouchableOpacity>
+      <TemplatePickerInner
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        expandedNames={expandedNames}
+        setExpandedNames={setExpandedNames}
+        selectedValue={selectedValue}
+        onSelect={onSelect}
+        onClose={onClose}
+      />
     </Modal>
   );
 });
 
-const localStyles = StyleSheet.create({
-  chipNoGrow: { flexGrow: 0 },
+// ─────────────────────────────────────────────────────────────────────────────
+// Inner component — needs useColors() inside Modal render tree
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface TemplatePickerInnerProps {
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+  expandedNames: Set<string>;
+  setExpandedNames: React.Dispatch<React.SetStateAction<Set<string>>>;
+  selectedValue: string;
+  onSelect: (value: string) => void;
+  onClose: () => void;
+}
+
+const TemplatePickerInner = memo(function TemplatePickerInner({
+  searchQuery,
+  setSearchQuery,
+  expandedNames,
+  setExpandedNames,
+  selectedValue,
+  onSelect,
+  onClose,
+}: TemplatePickerInnerProps) {
+  const colors = useColors();
+  const styles = useMemo(() => createTemplatePickerStyles(colors), [colors]);
+
+  // ── Data pipeline ──
+  const filtered = useMemo(() => filterTemplates(PRESET_TEMPLATES, searchQuery), [searchQuery]);
+  const sections = useMemo(() => groupTemplatesByCategory(filtered), [filtered]);
+
+  // ── Handlers ──
+  const handleToggleExpand = useCallback(
+    (name: string) => {
+      setExpandedNames((prev) => {
+        const next = new Set(prev);
+        if (next.has(name)) {
+          next.delete(name);
+        } else {
+          next.add(name);
+        }
+        return next;
+      });
+    },
+    [setExpandedNames],
+  );
+
+  const handleSelect = useCallback(
+    (name: string) => {
+      onSelect(name);
+    },
+    [onSelect],
+  );
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, [setSearchQuery]);
+
+  // ── Renderers ──
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: TemplateSectionData }) => (
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionHeaderText}>{section.title}</Text>
+      </View>
+    ),
+    [styles],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: PresetTemplate }) => (
+      <BoardTemplateCard
+        template={item}
+        isSelected={item.name === selectedValue}
+        isExpanded={expandedNames.has(item.name)}
+        onToggleExpand={handleToggleExpand}
+        onSelect={handleSelect}
+        styles={styles}
+      />
+    ),
+    [selectedValue, expandedNames, handleToggleExpand, handleSelect, styles],
+  );
+
+  const keyExtractor = useCallback((item: PresetTemplate) => item.name, []);
+
+  const ListEmptyComponent = useMemo(
+    () => (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>无匹配板子</Text>
+        <TouchableOpacity onPress={handleClearSearch} style={styles.emptyClearBtn}>
+          <Text style={styles.emptyClearBtnText}>清除搜索</Text>
+        </TouchableOpacity>
+      </View>
+    ),
+    [styles, handleClearSearch],
+  );
+
+  // ── Selected template label for confirmation bar ──
+  const selectedLabel =
+    selectedValue === '__custom__'
+      ? '自定义'
+      : (PRESET_TEMPLATES.find((p) => p.name === selectedValue)?.name ?? selectedValue);
+
+  return (
+    <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={onClose}>
+      <View
+        style={styles.pickerContent}
+        onStartShouldSetResponder={() => true}
+        onTouchEnd={(e) => e.stopPropagation()}
+      >
+        {/* Handle + Header */}
+        <View style={styles.pickerHandle} />
+        <View style={styles.pickerHeader}>
+          <Text style={styles.pickerTitle}>选择板子</Text>
+          <TouchableOpacity
+            style={styles.pickerCloseBtn}
+            onPress={onClose}
+            accessibilityLabel="关闭"
+          >
+            <Ionicons
+              name="close"
+              size={typography.title}
+              color={styles.pickerCloseBtnText.color as string}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Search bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons
+            name="search"
+            size={16}
+            color={colors.textSecondary}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="搜索板子或角色..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+            clearButtonMode="while-editing"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity style={styles.searchClearBtn} onPress={handleClearSearch}>
+              <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* SectionList */}
+        <SectionList<PresetTemplate, TemplateSectionData>
+          sections={sections}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          ListEmptyComponent={ListEmptyComponent}
+          stickySectionHeadersEnabled={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={
+            selectedValue ? styles.sectionListContentWithBar : styles.sectionListContent
+          }
+        />
+
+        {/* Confirmation bar */}
+        {selectedValue && selectedValue !== '__custom__' && (
+          <View style={styles.confirmationBar}>
+            <Text style={styles.confirmationText} numberOfLines={1}>
+              已选: {selectedLabel}
+            </Text>
+            <TouchableOpacity style={styles.confirmationBtn} onPress={onClose}>
+              <Text style={styles.confirmationBtnText}>确认</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
 });
+
+TemplatePickerInner.displayName = 'TemplatePickerInner';
