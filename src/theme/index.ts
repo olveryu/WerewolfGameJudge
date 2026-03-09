@@ -30,11 +30,13 @@ export { ThemeProvider, useColors, useTheme } from './ThemeProvider';
 // Tokens (可直接导入)
 export {
   borderRadius,
+  componentSizes,
   crossPlatformTextShadow,
   fixed,
   layout,
   shadows,
   spacing,
+  textStyles,
   typography,
 } from './tokens';
 

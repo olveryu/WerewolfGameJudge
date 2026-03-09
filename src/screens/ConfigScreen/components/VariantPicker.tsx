@@ -9,6 +9,7 @@ import { memo, useCallback } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
+import { fixed } from '@/theme/tokens';
 
 import type { ConfigScreenStyles } from './styles';
 
@@ -63,7 +64,7 @@ export const VariantPicker = memo(function VariantPicker({
                   isSelected && styles.variantPickerOptionSelected,
                 ]}
                 onPress={() => handleSelect(id)}
-                activeOpacity={0.7}
+                activeOpacity={fixed.activeOpacity}
               >
                 <View
                   style={[

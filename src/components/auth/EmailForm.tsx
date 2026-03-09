@@ -124,7 +124,7 @@ export const EmailForm = memo<EmailFormProps>(
           style={[styles.primaryButton, authLoading && styles.buttonDisabled]}
           onPress={onSubmit}
           disabled={authLoading}
-          activeOpacity={0.7}
+          activeOpacity={fixed.activeOpacity}
         >
           <Text style={styles.primaryButtonText}>{buttonText}</Text>
         </TouchableOpacity>

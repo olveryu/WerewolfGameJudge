@@ -30,6 +30,7 @@ import {
 
 import { useGameFacade } from '@/contexts';
 import { useTheme } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
 import { MessageBubble } from './MessageBubble';
@@ -191,7 +192,7 @@ export const AIChatBubble: React.FC = () => {
         <TouchableOpacity
           style={styles.bubble}
           onPress={chat.handleBubblePress}
-          activeOpacity={0.8}
+          activeOpacity={fixed.activeOpacity}
         >
           <Text style={styles.bubbleIcon}>🐺</Text>
         </TouchableOpacity>
@@ -221,7 +222,7 @@ export const AIChatBubble: React.FC = () => {
                   <TouchableOpacity
                     onPress={() => setNotepadOpen(true)}
                     style={styles.notepadEntryBtn}
-                    activeOpacity={0.7}
+                    activeOpacity={fixed.activeOpacity}
                   >
                     <Text style={styles.notepadEntryBtnText}>📝 笔记</Text>
                   </TouchableOpacity>
@@ -268,7 +269,7 @@ export const AIChatBubble: React.FC = () => {
                 <TouchableOpacity
                   style={[styles.scrollToBottomBtn, { backgroundColor: colors.surface }]}
                   onPress={scrollToBottom}
-                  activeOpacity={0.8}
+                  activeOpacity={fixed.activeOpacity}
                 >
                   <Text style={[styles.scrollToBottomText, { color: colors.text }]}>↓</Text>
                 </TouchableOpacity>

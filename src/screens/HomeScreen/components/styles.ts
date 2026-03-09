@@ -14,6 +14,7 @@ import {
   spacing,
   type ThemeColors,
   typography,
+  withAlpha,
 } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
@@ -181,7 +182,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       width: componentSizes.button.sm,
       height: componentSizes.button.sm,
       borderRadius: borderRadius.full,
-      backgroundColor: 'rgba(255,255,255,0.2)',
+      backgroundColor: withAlpha(colors.textInverse, 0.2),
       justifyContent: 'center',
       alignItems: 'center',
     },

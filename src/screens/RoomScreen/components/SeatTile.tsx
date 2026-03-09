@@ -207,7 +207,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
         onPress={handlePress}
         onLongPress={handleLongPress}
         delayLongPress={500}
-        activeOpacity={disabled || disabledReason ? 1 : 0.7}
+        activeOpacity={disabled || disabledReason ? 1 : fixed.activeOpacity}
       >
         {hasPlayer && (
           <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>

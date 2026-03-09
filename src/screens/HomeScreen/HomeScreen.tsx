@@ -31,7 +31,7 @@ import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { useTheme } from '@/theme';
-import { componentSizes } from '@/theme/tokens';
+import { componentSizes, fixed } from '@/theme/tokens';
 import { showAlert } from '@/utils/alert';
 import { homeLog } from '@/utils/logger';
 
@@ -337,7 +337,7 @@ export const HomeScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.topBarButton}
               onPress={handleProfilePress}
-              activeOpacity={0.7}
+              activeOpacity={fixed.activeOpacity}
               testID={user ? TESTIDS.homeUserBar : TESTIDS.homeLoginButton}
               accessibilityLabel={user ? userName : '登录'}
             >
@@ -350,7 +350,7 @@ export const HomeScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.topBarButton}
               onPress={handleNavigateSettings}
-              activeOpacity={0.7}
+              activeOpacity={fixed.activeOpacity}
               accessibilityLabel="设置"
               testID={TESTIDS.homeSettingsButton}
             >

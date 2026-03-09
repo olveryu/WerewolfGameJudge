@@ -9,6 +9,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 import { withAlpha } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 import { ConfigScreenStyles } from './styles';
 
@@ -69,7 +70,7 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
         isActive && styles.tabActive,
       ]}
       onPress={handlePress}
-      activeOpacity={0.7}
+      activeOpacity={fixed.activeOpacity}
     >
       <Text
         style={[styles.tabLabel, { color: tab.accentColor }, isActive && styles.tabLabelActive]}

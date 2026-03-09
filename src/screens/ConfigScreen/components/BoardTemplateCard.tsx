@@ -13,6 +13,7 @@ import { memo, useCallback, useMemo } from 'react';
 import { LayoutAnimation, Platform, Text, TouchableOpacity, UIManager, View } from 'react-native';
 
 import { useColors, withAlpha } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 import { computeFactionStats, FACTION_COLOR_MAP, getKeyRoles } from '../configHelpers';
 import { FactionStatBadges, RoleListByFaction } from './RoleListByFaction';
@@ -60,7 +61,7 @@ export const BoardTemplateCard = memo<BoardTemplateCardProps>(
         <TouchableOpacity
           style={styles.templateCardHeader}
           onPress={handleToggle}
-          activeOpacity={0.7}
+          activeOpacity={fixed.activeOpacity}
         >
           {/* Row 1: Title + player count */}
           <View style={styles.templateCardTitleRow}>
@@ -117,7 +118,7 @@ export const BoardTemplateCard = memo<BoardTemplateCardProps>(
             <TouchableOpacity
               style={[styles.templateCardCTA, isSelected && styles.templateCardCTASelected]}
               onPress={handleSelect}
-              activeOpacity={0.7}
+              activeOpacity={fixed.activeOpacity}
             >
               <Text
                 style={[

@@ -8,6 +8,7 @@ import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
+import { fixed } from '@/theme/tokens';
 
 import { type LoginOptionsProps } from './types';
 
@@ -18,7 +19,11 @@ export const LoginOptions = memo<LoginOptionsProps>(
         {title != null && <Text style={styles.formTitle}>{title}</Text>}
         {subtitle != null && <Text style={styles.formSubtitle}>{subtitle}</Text>}
 
-        <TouchableOpacity style={styles.primaryButton} onPress={onEmailLogin} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={onEmailLogin}
+          activeOpacity={fixed.activeOpacity}
+        >
           <Text style={styles.primaryButtonText}>📧 邮箱登录/注册</Text>
           <Text style={styles.buttonCaptionInverse}>可自定义头像和昵称</Text>
         </TouchableOpacity>
@@ -27,7 +32,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
           style={[styles.outlineButton, authLoading && styles.buttonDisabled]}
           onPress={onAnonymousLogin}
           disabled={authLoading}
-          activeOpacity={0.7}
+          activeOpacity={fixed.activeOpacity}
           testID={TESTIDS.homeAnonLoginButton}
         >
           <Text style={styles.outlineButtonText}>{authLoading ? '处理中...' : '👤 匿名登录'}</Text>
@@ -35,7 +40,11 @@ export const LoginOptions = memo<LoginOptionsProps>(
         </TouchableOpacity>
 
         {onCancel != null && (
-          <TouchableOpacity style={styles.secondaryButton} onPress={onCancel} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={onCancel}
+            activeOpacity={fixed.activeOpacity}
+          >
             <Text style={styles.secondaryButtonText}>取消</Text>
           </TouchableOpacity>
         )}

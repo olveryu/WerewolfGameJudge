@@ -26,6 +26,7 @@ import { memo, useCallback, useState } from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 import { typography } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 import { ConfigScreenStyles } from './styles';
 
@@ -72,7 +73,7 @@ export const Dropdown = memo<DropdownProps>(
         <TouchableOpacity
           style={styles.settingsSelector}
           onPress={handleOpen}
-          activeOpacity={0.7}
+          activeOpacity={fixed.activeOpacity}
           testID={testID}
         >
           <Text style={styles.settingsSelectorText} numberOfLines={1}>

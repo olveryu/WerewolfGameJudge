@@ -114,7 +114,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     line: {
       fontSize: typography.secondary,
       color: colors.text,
-      lineHeight: typography.secondary * 1.8,
+      lineHeight: typography.lineHeights.subtitle,
       paddingLeft: spacing.small,
     },
     divider: {

@@ -6,7 +6,7 @@
  */
 import { type TextStyle, type ViewStyle } from 'react-native';
 
-import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, componentSizes, spacing, type ThemeColors, typography } from '@/theme';
 import { fixed } from '@/theme/tokens';
 
 import { type AuthStyles } from './types';
@@ -99,7 +99,7 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
     // Buttons
     primaryButton: {
       backgroundColor: colors.primary,
-      height: spacing.xxlarge,
+      height: componentSizes.button.lg,
       borderRadius: borderRadius.full,
       justifyContent: 'center',
       alignItems: 'center',

@@ -50,7 +50,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
       roleCategoryText: {
         flex: 1,
         fontSize: typography.secondary,
-        lineHeight: typography.title, // ~20
+        lineHeight: typography.lineHeights.secondary,
         color: colors.text,
       },
       roleChipRow: {
@@ -67,7 +67,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
       },
       roleChipText: {
         fontSize: typography.secondary,
-        lineHeight: typography.title, // ~20
+        lineHeight: typography.lineHeights.secondary,
         color: colors.primary,
       },
       roleChipWolf: {
@@ -98,7 +98,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
       },
       speakingOrderText: {
         fontSize: typography.secondary,
-        lineHeight: typography.title,
+        lineHeight: typography.lineHeights.secondary,
         color: colors.primary,
       },
       speakingOrderSubText: {

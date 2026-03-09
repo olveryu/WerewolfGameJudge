@@ -10,6 +10,8 @@ import React, { useMemo } from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { fixed } from '@/theme/tokens';
+
 import type { ChatStyles } from './AIChatBubble.styles';
 import { NotepadPanel } from './NotepadPanel';
 import type { UseNotepadReturn } from './useNotepad';
@@ -99,11 +101,15 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
             <TouchableOpacity
               onPress={notepad.clearAll}
               style={styles.notepadHeaderBtn}
-              activeOpacity={0.7}
+              activeOpacity={fixed.activeOpacity}
             >
               <Text style={styles.notepadHeaderBtnText}>🗑️</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={onClose} style={styles.notepadHeaderBtn} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.notepadHeaderBtn}
+              activeOpacity={fixed.activeOpacity}
+            >
               <Text style={styles.notepadHeaderBtnText}>✕</Text>
             </TouchableOpacity>
           </View>

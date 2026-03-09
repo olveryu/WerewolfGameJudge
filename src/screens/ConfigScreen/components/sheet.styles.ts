@@ -95,8 +95,8 @@ export const createSheetStyles = (colors: ThemeColors) => ({
     paddingBottom: spacing.xlarge,
   } satisfies ViewStyle,
   variantPickerHandle: {
-    width: 36,
-    height: 4,
+    width: componentSizes.handle.width,
+    height: componentSizes.handle.height,
     borderRadius: borderRadius.small,
     backgroundColor: colors.border,
     alignSelf: 'center',
@@ -121,8 +121,8 @@ export const createSheetStyles = (colors: ThemeColors) => ({
     backgroundColor: withAlpha(colors.primary, 0.063),
   } satisfies ViewStyle,
   variantPickerRadio: {
-    width: 20,
-    height: 20,
+    width: componentSizes.radio.size,
+    height: componentSizes.radio.size,
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidthThick,
     borderColor: colors.border,
@@ -134,8 +134,8 @@ export const createSheetStyles = (colors: ThemeColors) => ({
     borderColor: colors.primary,
   } satisfies ViewStyle,
   variantPickerRadioDot: {
-    width: 10,
-    height: 10,
+    width: componentSizes.radio.dotSize,
+    height: componentSizes.radio.dotSize,
     borderRadius: borderRadius.full,
     backgroundColor: colors.primary,
   } satisfies ViewStyle,
@@ -158,7 +158,7 @@ export const createSheetStyles = (colors: ThemeColors) => ({
   // ── Role info sheet ──────────────────────────
   roleInfoDesc: {
     fontSize: typography.body,
-    lineHeight: typography.body * 1.6,
+    lineHeight: typography.lineHeights.subtitle,
     color: colors.textSecondary,
     paddingHorizontal: layout.screenPaddingH,
     paddingBottom: spacing.large,

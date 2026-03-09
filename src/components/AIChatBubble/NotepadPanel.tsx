@@ -23,6 +23,8 @@ import {
   View,
 } from 'react-native';
 
+import { fixed } from '@/theme/tokens';
+
 import type { NotepadStyles } from './AIChatBubble.styles';
 import type { NotepadState, RoleTagInfo } from './useNotepad';
 
@@ -95,7 +97,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             onPress={() => onSeatPress(seat)}
             style={styles.seatBtn}
             hitSlop={6}
-            activeOpacity={0.7}
+            activeOpacity={fixed.activeOpacity}
           >
             <Text style={styles.seatNumber}>{seat}</Text>
             <View
@@ -118,7 +120,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             onPress={() => onToggleHand(seat)}
             style={[styles.handTag, hand && styles.handTagActive]}
             hitSlop={6}
-            activeOpacity={0.7}
+            activeOpacity={fixed.activeOpacity}
           >
             <Text style={[styles.handTagText, hand && styles.handTagTextActive]}>上警</Text>
           </TouchableOpacity>
@@ -169,7 +171,7 @@ const RolePickerModal: React.FC<RolePickerModalProps> = React.memo(
                       styles.popoverTag,
                       isSelected && styles[`popoverTagSelected${fKey}` as keyof NotepadStyles],
                     ]}
-                    activeOpacity={0.7}
+                    activeOpacity={fixed.activeOpacity}
                   >
                     <Text
                       style={[
@@ -187,7 +189,7 @@ const RolePickerModal: React.FC<RolePickerModalProps> = React.memo(
               <TouchableOpacity
                 onPress={() => onSelect(seat, null)}
                 style={styles.popoverClearBtn}
-                activeOpacity={0.7}
+                activeOpacity={fixed.activeOpacity}
               >
                 <Text style={styles.popoverClearText}>✕</Text>
               </TouchableOpacity>

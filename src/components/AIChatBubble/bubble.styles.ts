@@ -34,7 +34,7 @@ export function createBubbleStyles(colors: ThemeColors, bubbleSize: number) {
     bubbleLabel: {
       fontSize: typography.captionSmall,
       fontWeight: typography.weights.medium,
-      color: '#fff',
+      color: colors.textInverse,
       textAlign: 'center' as const,
       marginTop: 2,
       backgroundColor: colors.primary,
