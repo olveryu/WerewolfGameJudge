@@ -71,6 +71,7 @@ interface UseGameRoomResult {
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   isAudioPlaying: boolean;
+  roleRevealAnimation: RoleRevealAnimation;
   resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation;
   currentSchemaId: SchemaId | null;
   currentSchema: ActionSchema | null;
@@ -280,6 +281,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     roomStatus,
     currentActionRole: nightDerived.currentActionRole,
     isAudioPlaying: nightDerived.isAudioPlaying,
+    roleRevealAnimation: nightDerived.roleRevealAnimation,
     resolvedRoleRevealAnimation: nightDerived.resolvedRoleRevealAnimation,
     currentSchemaId: nightDerived.currentSchemaId,
     currentSchema: nightDerived.currentSchema,

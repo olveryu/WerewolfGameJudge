@@ -107,6 +107,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isHost,
     roomStatus,
     isAudioPlaying,
+    roleRevealAnimation,
     resolvedRoleRevealAnimation,
     connectionStatus,
     gameRoomError,
@@ -563,7 +564,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       <SettingsSheet
         visible={settingsSheetVisible}
         onClose={handleCloseSettings}
-        roleRevealAnimation={resolvedRoleRevealAnimation}
+        roleRevealAnimation={roleRevealAnimation}
         bgmValue={bgmEnabled ? 'on' : 'off'}
         onAnimationChange={handleAnimationChange}
         onBgmChange={handleBgmChange}
