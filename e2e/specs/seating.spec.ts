@@ -96,6 +96,7 @@ test.describe('Seating', () => {
 
       const room = new RoomPage(page);
       await room.waitForReady('host');
+      await settleAfterRoomReady(page);
 
       // Host manually takes seat 0 (display 1)
       await room.seatAt(0);
@@ -330,7 +331,6 @@ test.describe('Seating', () => {
 
       // Switch to seat 5
       await roomB.seatAt(4);
-      await dismissAnyConfirmAlert(pageB);
 
       // Poll for seat switch to propagate (broadcast round-trip)
       const joinerSeat5 = await pollSeatOccupied(roomB, 5);
