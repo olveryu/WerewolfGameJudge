@@ -7,7 +7,7 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { memo, useCallback } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { spacing, typography } from '@/theme';
 
@@ -67,7 +67,11 @@ export const TemplatePicker = memo(function TemplatePicker({
               return (
                 <TouchableOpacity
                   key={option.value}
-                  style={[styles.settingsChip, selected && styles.settingsChipSelected]}
+                  style={[
+                    styles.settingsChip,
+                    localStyles.chipNoGrow,
+                    selected && styles.settingsChipSelected,
+                  ]}
                   onPress={() => handleSelect(option.value)}
                   activeOpacity={0.7}
                 >
@@ -84,4 +88,8 @@ export const TemplatePicker = memo(function TemplatePicker({
       </TouchableOpacity>
     </Modal>
   );
+});
+
+const localStyles = StyleSheet.create({
+  chipNoGrow: { flexGrow: 0 },
 });

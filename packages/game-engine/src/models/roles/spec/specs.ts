@@ -4,10 +4,10 @@
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
  *
- * 33 roles total:
+ * 34 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder (15)
- * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade (12)
+ * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden (13)
  * - Third-party: slacker, wildChild, piper (3)
  *
  * 提供声明式角色属性定义（faction / team / night1 / wolfMeeting 等），
@@ -404,6 +404,20 @@ export const ROLE_SPECS = {
     // 不入狼队不参刀
     wolfMeeting: { canSeeWolves: false, participatesInWolfVote: false },
     flags: { immuneToPoison: true },
+  },
+
+  warden: {
+    id: 'warden',
+    displayName: '典狱长',
+    shortName: '狱',
+    emoji: '⛓️',
+    faction: Faction.Wolf,
+    team: Team.Wolf,
+    description:
+      '从第二夜起，每晚选择2名玩家进行交易，随后与狼人共同袭击；双方得知对象但不知身份，各自选「交易」或「背叛」：同交易免夜间伤害，同背叛互为当夜技能目标，两人中一人选「交易」、另一人选「背叛」时，选了「交易」的那个人出局；选自身交易时，对方与自身同选则自身出局，不同则对方出局；每人限交易1次',
+    // Night-1-only scope: warden starts from night 2, so no night-1 action
+    night1: { hasAction: false },
+    wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
   },
 
   // ===================================================================
