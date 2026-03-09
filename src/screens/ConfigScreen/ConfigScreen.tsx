@@ -78,7 +78,6 @@ export const ConfigScreen: React.FC = () => {
     toggleRole,
     handleClearSelection,
     selectedTemplateLabel,
-    templateOptions,
     templateDropdownVisible,
     handleOpenTemplateDropdown,
     handleCloseTemplateDropdown,
@@ -305,7 +304,6 @@ export const ConfigScreen: React.FC = () => {
       <TemplatePicker
         visible={templateDropdownVisible}
         onClose={handleCloseTemplateDropdown}
-        options={templateOptions}
         selectedValue={selectedTemplate}
         onSelect={handleSelectTemplate}
         styles={styles}

@@ -32,7 +32,7 @@ import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
-import type { DropdownOption, FactionTabItem } from './components';
+import type { FactionTabItem } from './components';
 import { FACTION_GROUPS } from './configData';
 import {
   computeTotalCount,
@@ -259,16 +259,7 @@ export function useConfigScreenState({
     variantOverrides,
   ]);
 
-  // ── Template dropdown options ────────────────────────────────────────────
-
-  const templateOptions: DropdownOption[] = useMemo(
-    () =>
-      PRESET_TEMPLATES.map((p) => ({
-        value: p.name,
-        label: p.name.replace(/\d+人$/, ''),
-      })),
-    [],
-  );
+  // ── Template label ───────────────────────────────────────────────────────
 
   const handleTemplateChange = useCallback(
     (templateName: string) => {
@@ -397,9 +388,9 @@ export function useConfigScreenState({
 
   const selectedTemplateLabel = useMemo(() => {
     if (selectedTemplate === '__custom__') return '自定义';
-    const opt = templateOptions.find((o) => o.value === selectedTemplate);
-    return opt?.label ?? selectedTemplate;
-  }, [selectedTemplate, templateOptions]);
+    const preset = PRESET_TEMPLATES.find((p) => p.name === selectedTemplate);
+    return preset ? preset.name.replace(/\d+人$/, '') : selectedTemplate;
+  }, [selectedTemplate]);
 
   // ── Bulk role stepper ────────────────────────────────────────────────────
 
@@ -524,7 +515,6 @@ export function useConfigScreenState({
     // Template
     selectedTemplate,
     selectedTemplateLabel,
-    templateOptions,
     templateDropdownVisible,
     handleOpenTemplateDropdown,
     handleCloseTemplateDropdown,

@@ -61,6 +61,9 @@ export {
   findMatchingPresetName,
   type GameTemplate,
   PRESET_TEMPLATES,
+  type PresetTemplate,
+  TEMPLATE_CATEGORY_LABELS,
+  TemplateCategory,
   validateTemplateRoles,
 } from './models/Template';
 

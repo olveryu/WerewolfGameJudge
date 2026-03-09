@@ -7,6 +7,34 @@
 import { getRoleSpec, isValidRoleId, RoleId } from './roles';
 
 // ---------------------------------------------------------------------------
+// Template categories (for grouped display in TemplatePicker)
+// ---------------------------------------------------------------------------
+
+export enum TemplateCategory {
+  /** 经典板（预女猎白等基础阵容） */
+  Classic = 'classic',
+  /** 技能狼板（狼美、狼王、石像等含技能狼） */
+  SkillWolf = 'skillWolf',
+  /** 特色板（血月猎魔、假面舞会等独特机制） */
+  Featured = 'featured',
+  /** 第三方板（混子、吹笛、野孩等含第三方阵营） */
+  ThirdParty = 'thirdParty',
+}
+
+export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
+  [TemplateCategory.Classic]: '经典板',
+  [TemplateCategory.SkillWolf]: '技能狼板',
+  [TemplateCategory.Featured]: '特色板',
+  [TemplateCategory.ThirdParty]: '第三方板',
+};
+
+export interface PresetTemplate {
+  name: string;
+  roles: RoleId[];
+  category: TemplateCategory;
+}
+
+// ---------------------------------------------------------------------------
 // Template validation
 // ---------------------------------------------------------------------------
 
@@ -82,9 +110,10 @@ export const findMatchingPresetName = (roles: RoleId[]): string | null => {
 };
 
 // Predefined templates matching Flutter app
-export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
+export const PRESET_TEMPLATES: PresetTemplate[] = [
   {
     name: '预女猎白12人',
+    category: TemplateCategory.Classic,
     roles: [
       'villager',
       'villager',
@@ -102,6 +131,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '狼美守卫12人',
+    category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
       'villager',
@@ -119,6 +149,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '狼王守卫12人',
+    category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
       'villager',
@@ -136,6 +167,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '石像守墓12人',
+    category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
       'villager',
@@ -153,6 +185,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '梦魇守卫12人',
+    category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
       'villager',
@@ -170,6 +203,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '血月猎魔12人',
+    category: TemplateCategory.Featured,
     roles: [
       'villager',
       'villager',
@@ -187,6 +221,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '狼王摄梦12人',
+    category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
       'villager',
@@ -204,6 +239,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '狼王魔术12人',
+    category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
       'villager',
@@ -221,6 +257,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '机械通灵12人',
+    category: TemplateCategory.Featured,
     roles: [
       'villager',
       'villager',
@@ -238,6 +275,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '恶灵骑士12人',
+    category: TemplateCategory.Featured,
     roles: [
       'villager',
       'villager',
@@ -255,6 +293,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '纯白夜影12人',
+    category: TemplateCategory.Featured,
     roles: [
       'villager',
       'villager',
@@ -272,6 +311,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '灯影预言12人',
+    category: TemplateCategory.Featured,
     roles: [
       'villager',
       'villager',
@@ -289,6 +329,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '假面舞会12人',
+    category: TemplateCategory.Featured,
     roles: [
       'villager',
       'villager',
@@ -306,6 +347,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '吹笛守卫12人',
+    category: TemplateCategory.ThirdParty,
     roles: [
       'villager',
       'villager',
@@ -323,6 +365,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '混子标准12人',
+    category: TemplateCategory.ThirdParty,
     roles: [
       'villager',
       'villager',
@@ -340,6 +383,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '野孩标准12人',
+    category: TemplateCategory.ThirdParty,
     roles: [
       'villager',
       'villager',
@@ -357,6 +401,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '唯邻是从12人',
+    category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
       'villager',
@@ -374,6 +419,7 @@ export const PRESET_TEMPLATES: { name: string; roles: RoleId[] }[] = [
   },
   {
     name: '孤注一掷12人',
+    category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
       'villager',
