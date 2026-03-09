@@ -32,11 +32,13 @@ interface BoardTemplateCardProps {
   isExpanded: boolean;
   onToggleExpand: (name: string) => void;
   onSelect: (name: string) => void;
+  /** Callback when a role chip is tapped (reports roleId to parent) */
+  onRolePress?: (roleId: string) => void;
   styles: TemplatePickerStyles;
 }
 
 export const BoardTemplateCard = memo<BoardTemplateCardProps>(
-  ({ template, isSelected, isExpanded, onToggleExpand, onSelect, styles }) => {
+  ({ template, isSelected, isExpanded, onToggleExpand, onSelect, onRolePress, styles }) => {
     const colors = useColors();
 
     const stats = useMemo(() => computeFactionStats(template.roles), [template.roles]);
@@ -114,7 +116,7 @@ export const BoardTemplateCard = memo<BoardTemplateCardProps>(
         {isExpanded && (
           <View style={styles.templateCardExpanded}>
             <View style={styles.templateCardDivider} />
-            <RoleListByFaction roles={template.roles} styles={styles} />
+            <RoleListByFaction roles={template.roles} styles={styles} onRolePress={onRolePress} />
             <TouchableOpacity
               style={[styles.templateCardCTA, isSelected && styles.templateCardCTASelected]}
               onPress={handleSelect}

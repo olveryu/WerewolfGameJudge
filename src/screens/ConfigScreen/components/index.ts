@@ -8,7 +8,6 @@ export type { FactionTabItem } from './FactionTabs';
 export { FactionTabs } from './FactionTabs';
 export type { FactionColorKey } from './RoleChip';
 export { RoleChip } from './RoleChip';
-export { RoleInfoSheet } from './RoleInfoSheet';
 export { FactionStatBadges, RoleListByFaction } from './RoleListByFaction';
 export { RoleStepper } from './RoleStepper';
 export { Section } from './Section';

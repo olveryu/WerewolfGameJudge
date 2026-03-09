@@ -9,12 +9,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
@@ -27,7 +28,6 @@ import {
   createConfigScreenStyles,
   FactionTabs,
   RoleChip,
-  RoleInfoSheet,
   RoleStepper,
   Section,
   TemplatePicker,
@@ -320,8 +320,13 @@ export const ConfigScreen: React.FC = () => {
         styles={styles}
       />
 
-      {/* Role Info Sheet (long-press on any chip) */}
-      <RoleInfoSheet roleId={roleInfoId} onClose={handleCloseRoleInfo} styles={styles} />
+      {/* Role Info Card (tap info icon on any chip) */}
+      <RoleCardSimple
+        visible={roleInfoId !== null}
+        roleId={roleInfoId as RoleId | null}
+        onClose={handleCloseRoleInfo}
+        showRealIdentity
+      />
     </SafeAreaView>
   );
 };

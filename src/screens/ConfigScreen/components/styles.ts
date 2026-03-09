@@ -96,8 +96,7 @@ export interface ConfigScreenStyles {
   variantPickerOptionContent: ViewStyle;
   variantPickerOptionName: TextStyle;
   variantPickerOptionDesc: TextStyle;
-  // Role info sheet
-  roleInfoDesc: TextStyle;
+
   // Role stepper
   stepperRow: ViewStyle;
   stepperLabel: TextStyle;

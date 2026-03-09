@@ -6,6 +6,7 @@
  * 渲染 UI 并通过回调上报 onSelect，不 import service，不包含业务逻辑判断。
  */
 import { Ionicons } from '@expo/vector-icons';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { PRESET_TEMPLATES, type PresetTemplate } from '@werewolf/game-engine/models/Template';
 import { memo, useCallback, useMemo, useState } from 'react';
 import {
@@ -19,6 +20,7 @@ import {
   View,
 } from 'react-native';
 
+import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { typography, useColors } from '@/theme';
 
 import {
@@ -50,6 +52,15 @@ export const TemplatePicker = memo(function TemplatePicker({
   // ── Local state ──────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedNames, setExpandedNames] = useState<Set<string>>(new Set());
+  const [previewRoleId, setPreviewRoleId] = useState<RoleId | null>(null);
+
+  const handleRolePress = useCallback((roleId: string) => {
+    setPreviewRoleId(roleId as RoleId);
+  }, []);
+
+  const handlePreviewClose = useCallback(() => {
+    setPreviewRoleId(null);
+  }, []);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -61,6 +72,13 @@ export const TemplatePicker = memo(function TemplatePicker({
         selectedValue={selectedValue}
         onSelect={onSelect}
         onClose={onClose}
+        onRolePress={handleRolePress}
+      />
+      <RoleCardSimple
+        visible={previewRoleId !== null}
+        roleId={previewRoleId}
+        onClose={handlePreviewClose}
+        showRealIdentity
       />
     </Modal>
   );
@@ -78,6 +96,7 @@ interface TemplatePickerInnerProps {
   selectedValue: string;
   onSelect: (value: string) => void;
   onClose: () => void;
+  onRolePress: (roleId: string) => void;
 }
 
 const TemplatePickerInner = memo(function TemplatePickerInner({
@@ -88,6 +107,7 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
   selectedValue,
   onSelect,
   onClose,
+  onRolePress,
 }: TemplatePickerInnerProps) {
   const colors = useColors();
   const styles = useMemo(() => createTemplatePickerStyles(colors), [colors]);
@@ -141,10 +161,11 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
         isExpanded={expandedNames.has(item.name)}
         onToggleExpand={handleToggleExpand}
         onSelect={handleSelect}
+        onRolePress={onRolePress}
         styles={styles}
       />
     ),
-    [selectedValue, expandedNames, handleToggleExpand, handleSelect, styles],
+    [selectedValue, expandedNames, handleToggleExpand, handleSelect, onRolePress, styles],
   );
 
   const keyExtractor = useCallback((item: PresetTemplate) => item.name, []);
