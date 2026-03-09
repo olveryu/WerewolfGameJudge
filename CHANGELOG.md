@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.7.1] - 2026-03-09
+
+- fix(e2e): close RoleCardSimple via confirm button instead of Escape
+- fix(config): add zIndex to RoleCardSimple cardWrapper for mobile touch
+- fix(config): sibling-layout modal to fix double-tap dismiss bug
+- refactor(config): extract FactionChip, fix faction color & modal tap
+- refactor(config): merge VariantPicker into RoleCardSimple pill bar
+- feat(config): tap role chip in template picker to preview RoleCardSimple
+- fix(config): use typography.body (16px) for search input to prevent iOS zoom
+- fix(e2e): update ConfigPage.selectTemplate for accordion TemplatePicker
+- style(theme): unify UI across Home/Config/Room/Settings screens
+- refactor(theme): unify visual tokens — activeOpacity, button heights, lineHeights, magic numbers
+- feat(tests): add contract test to enforce design token usage in styles
+- fix(config): prevent search bar tap from closing TemplatePicker modal
+- feat(config): redesign template picker with SectionList accordion cards
+- feat(models): add warden role and 孤注一掷12人 board template
+- fix(e2e): fix awakened gargoyle E2E variant selection and night flow
+- fix(role): standardize role descriptions for consistency
+
 ## [1.7.0] - 2026-03-08
 
 - fix(audio): improve awakened gargoyle TTS narration fluency
