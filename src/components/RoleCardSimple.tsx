@@ -3,9 +3,10 @@
  *
  * 点击"查看身份"后直接显示角色信息，无任何动画。
  * 卡片内容复用 RoleCardContent，本组件仅负责 Modal 包裹 + "我知道了"按钮。
+ * 有变体的角色在卡片下方显示变体切换 pill bar，点击 pill 切换卡片内容并同步回调。
  * 渲染 Modal 与按钮。不 import service，不含业务逻辑，不重复卡片 UI。
  */
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { isValidRoleId, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
@@ -13,7 +14,9 @@ import {
   getFactionColor,
   RoleCardContent,
 } from '@/components/RoleRevealEffects/common/RoleCardContent';
-import { borderRadius, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import { TESTIDS } from '@/testids';
+import { borderRadius, spacing, type ThemeColors, typography, useColors, withAlpha } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 interface RoleCardSimpleProps {
   visible: boolean;
@@ -29,6 +32,15 @@ interface RoleCardSimpleProps {
    * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存板子使用。
    */
   seerLabel?: number;
+  /**
+   * 全部变体 roleId 列表（含 base role）。
+   * 存在且 length > 1 时显示变体切换 pill bar。
+   */
+  variantIds?: string[];
+  /** 当前选中的变体 roleId。 */
+  activeVariant?: string;
+  /** 用户点击 pill 切换变体时的回调。 */
+  onVariantSelect?: (variantId: string) => void;
 }
 
 export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
@@ -37,6 +49,9 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   onClose,
   showRealIdentity,
   seerLabel,
+  variantIds,
+  activeVariant,
+  onVariantSelect,
 }) => {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
@@ -47,6 +62,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   if (!visible || !roleId) return null;
 
   const factionColor = getFactionColor(roleId, colors);
+  const showVariantBar = variantIds && variantIds.length > 1 && onVariantSelect;
 
   return (
     <Modal visible={true} transparent animationType="fade" onRequestClose={onClose}>
@@ -60,6 +76,38 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
             showRealIdentity={showRealIdentity}
             seerLabel={seerLabel}
           />
+
+          {/* Variant pill bar */}
+          {showVariantBar && (
+            <View style={styles.variantBar}>
+              {variantIds.map((id) => {
+                const spec = isValidRoleId(id) ? ROLE_SPECS[id] : undefined;
+                const isActive = id === activeVariant;
+                return (
+                  <TouchableOpacity
+                    key={id}
+                    testID={TESTIDS.configVariantOption(id)}
+                    style={[
+                      styles.variantPill,
+                      isActive && [styles.variantPillActive, { borderColor: factionColor }],
+                    ]}
+                    activeOpacity={fixed.activeOpacity}
+                    onPress={() => onVariantSelect(id)}
+                  >
+                    <Text
+                      style={[
+                        styles.variantPillText,
+                        isActive && [styles.variantPillTextActive, { color: factionColor }],
+                      ]}
+                    >
+                      {spec?.displayName ?? id}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
           <TouchableOpacity
             style={[styles.confirmButton, { backgroundColor: factionColor }]}
             onPress={onClose}
@@ -83,11 +131,37 @@ function createStyles(colors: ThemeColors) {
     cardWrapper: {
       alignItems: 'center',
     },
+    variantBar: {
+      flexDirection: 'row',
+      gap: spacing.small,
+      marginTop: spacing.medium,
+      marginBottom: spacing.small,
+    },
+    variantPill: {
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
+      borderRadius: borderRadius.full,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      backgroundColor: withAlpha(colors.surface, 0.9),
+    },
+    variantPillActive: {
+      backgroundColor: withAlpha(colors.surface, 0.95),
+      borderWidth: fixed.borderWidthThick,
+    },
+    variantPillText: {
+      fontSize: typography.secondary,
+      fontWeight: typography.weights.medium,
+      color: colors.textSecondary,
+    },
+    variantPillTextActive: {
+      fontWeight: typography.weights.semibold,
+    },
     confirmButton: {
       paddingHorizontal: spacing.xlarge,
       paddingVertical: spacing.medium,
       borderRadius: borderRadius.full,
-      marginTop: -spacing.large,
+      marginTop: spacing.small,
     },
     confirmButtonText: {
       color: colors.textInverse,

@@ -21,6 +21,12 @@ jest.mock('../../theme', () => ({
     god: '#6366F1',
     third: '#F59E0B',
   }),
+  withAlpha: (hex: string, opacity: number) => {
+    const alpha = Math.round(opacity * 255)
+      .toString(16)
+      .padStart(2, '0');
+    return `${hex}${alpha}`;
+  },
   spacing: {
     xs: 4,
     sm: 8,

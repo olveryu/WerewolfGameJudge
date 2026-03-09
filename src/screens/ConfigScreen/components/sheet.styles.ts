@@ -1,7 +1,7 @@
 /**
- * Bottom-sheet styles — settings sheet, settings chips, variant picker, role info.
+ * Bottom-sheet styles — settings sheet, settings chips.
  *
- * Used by SettingsSheet, VariantPicker, RoleInfoSheet, and TemplatePicker.
+ * Used by SettingsSheet and TemplatePicker.
  */
 import type { TextStyle, ViewStyle } from 'react-native';
 
@@ -80,78 +80,5 @@ export const createSheetStyles = (colors: ThemeColors) => ({
   settingsChipTextSelected: {
     color: colors.primary,
     fontWeight: typography.weights.semibold,
-  } satisfies TextStyle,
-
-  // ── Variant picker (bottom sheet) ────────────
-  variantPickerOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: colors.overlayLight,
-  } satisfies ViewStyle,
-  variantPickerContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: borderRadius.large,
-    borderTopRightRadius: borderRadius.large,
-    paddingBottom: spacing.xlarge,
-  } satisfies ViewStyle,
-  variantPickerHandle: {
-    width: componentSizes.handle.width,
-    height: componentSizes.handle.height,
-    borderRadius: borderRadius.small,
-    backgroundColor: colors.border,
-    alignSelf: 'center',
-    marginTop: spacing.small,
-    marginBottom: spacing.small,
-  } satisfies ViewStyle,
-  variantPickerTitle: {
-    fontSize: typography.subtitle,
-    lineHeight: typography.lineHeights.subtitle,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-    paddingHorizontal: layout.screenPaddingH,
-    paddingVertical: spacing.medium,
-  } satisfies TextStyle,
-  variantPickerOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: layout.screenPaddingH,
-    paddingVertical: spacing.medium,
-  } satisfies ViewStyle,
-  variantPickerOptionSelected: {
-    backgroundColor: withAlpha(colors.primary, 0.063),
-  } satisfies ViewStyle,
-  variantPickerRadio: {
-    width: componentSizes.radio.size,
-    height: componentSizes.radio.size,
-    borderRadius: borderRadius.full,
-    borderWidth: fixed.borderWidthThick,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.medium,
-  } satisfies ViewStyle,
-  variantPickerRadioSelected: {
-    borderColor: colors.primary,
-  } satisfies ViewStyle,
-  variantPickerRadioDot: {
-    width: componentSizes.radio.dotSize,
-    height: componentSizes.radio.dotSize,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary,
-  } satisfies ViewStyle,
-  variantPickerOptionContent: {
-    flex: 1,
-  } satisfies ViewStyle,
-  variantPickerOptionName: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-  } satisfies TextStyle,
-  variantPickerOptionDesc: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.tight / 2,
   } satisfies TextStyle,
 });

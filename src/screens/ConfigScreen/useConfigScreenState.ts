@@ -279,20 +279,9 @@ export function useConfigScreenState({
     setBgmEnabled(v === 'on');
   }, []);
 
-  // ── Variant picker ───────────────────────────────────────────────────────
+  // ── Role info card (long-press any chip → RoleCardSimple with variant bar) ──
 
-  const [variantPickerSlotId, setVariantPickerSlotId] = useState<string | null>(null);
-
-  const [roleInfoId, setRoleInfoId] = useState<string | null>(null);
-
-  const handleChipInfoPress = useCallback((key: string) => {
-    const roleId = key.replace(/\d+$/, '');
-    setRoleInfoId(roleId);
-  }, []);
-
-  const handleCloseRoleInfo = useCallback(() => {
-    setRoleInfoId(null);
-  }, []);
+  const [roleInfoBaseId, setRoleInfoBaseId] = useState<string | null>(null);
 
   const findSlotForKey = useCallback((key: string) => {
     const baseRoleId = key.replace(/\d+$/, '');
@@ -308,43 +297,45 @@ export function useConfigScreenState({
     return null;
   }, []);
 
-  const handleChipLongPress = useCallback((key: string) => {
+  // The displayed roleId resolves the active variant override
+  const roleInfoId = roleInfoBaseId ? (variantOverrides[roleInfoBaseId] ?? roleInfoBaseId) : null;
+
+  // Variant pill bar data (only for slots that have variants)
+  const roleInfoSlot = roleInfoBaseId ? findSlotForKey(roleInfoBaseId) : null;
+  const roleInfoVariantIds = roleInfoSlot ? [roleInfoSlot.roleId, ...roleInfoSlot.variants!] : [];
+  const roleInfoActiveVariant = roleInfoBaseId
+    ? (variantOverrides[roleInfoBaseId] ?? roleInfoBaseId)
+    : '';
+
+  const handleChipInfoPress = useCallback((key: string) => {
     const baseRoleId = key.replace(/\d+$/, '');
-    setVariantPickerSlotId(baseRoleId);
+    setRoleInfoBaseId(baseRoleId);
   }, []);
 
-  const handleVariantSelect = useCallback(
+  const handleCloseRoleInfo = useCallback(() => {
+    setRoleInfoBaseId(null);
+  }, []);
+
+  /** Switch variant from within the RoleCardSimple pill bar. */
+  const handleRoleInfoVariantSelect = useCallback(
     (variantId: string) => {
-      if (!variantPickerSlotId) return;
+      if (!roleInfoBaseId) return;
       setVariantOverrides((prev) => {
-        if (variantId === variantPickerSlotId) {
+        if (variantId === roleInfoBaseId) {
           const next = { ...prev };
-          delete next[variantPickerSlotId];
+          delete next[roleInfoBaseId];
           return next;
         }
-        return { ...prev, [variantPickerSlotId]: variantId };
+        return { ...prev, [roleInfoBaseId]: variantId };
       });
       setSelection((prev) => {
-        if (prev[variantPickerSlotId]) return prev;
-        return { ...prev, [variantPickerSlotId]: true };
+        if (prev[roleInfoBaseId]) return prev;
+        return { ...prev, [roleInfoBaseId]: true };
       });
       setSelectedTemplate('__custom__');
     },
-    [variantPickerSlotId],
+    [roleInfoBaseId],
   );
-
-  const variantPickerVisible = variantPickerSlotId !== null;
-  const variantPickerSlot = variantPickerSlotId ? findSlotForKey(variantPickerSlotId) : null;
-  const variantPickerIds = variantPickerSlot
-    ? [variantPickerSlot.roleId, ...variantPickerSlot.variants!]
-    : [];
-  const variantPickerActive = variantPickerSlotId
-    ? (variantOverrides[variantPickerSlotId] ?? variantPickerSlotId)
-    : '';
-
-  const handleCloseVariantPicker = useCallback(() => {
-    setVariantPickerSlotId(null);
-  }, []);
 
   // ── Active faction tab ───────────────────────────────────────────────────
 
@@ -529,18 +520,13 @@ export function useConfigScreenState({
     handleAnimationChange,
     handleBgmChange,
 
-    // Variant picker
-    variantPickerVisible,
-    variantPickerIds,
-    variantPickerActive,
-    handleChipLongPress,
-    handleVariantSelect,
-    handleCloseVariantPicker,
-
-    // Role info
+    // Role info (with variant switching)
     roleInfoId,
+    roleInfoVariantIds,
+    roleInfoActiveVariant,
     handleChipInfoPress,
     handleCloseRoleInfo,
+    handleRoleInfoVariantSelect,
 
     // Faction tabs
     tabItems,
