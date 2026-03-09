@@ -8,7 +8,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { PRESET_TEMPLATES, type PresetTemplate } from '@werewolf/game-engine/models/Template';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { Modal, SectionList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  SectionList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { typography, useColors } from '@/theme';
 
@@ -159,12 +168,10 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
       : (PRESET_TEMPLATES.find((p) => p.name === selectedValue)?.name ?? selectedValue);
 
   return (
-    <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={onClose}>
-      <View
-        style={styles.pickerContent}
-        onStartShouldSetResponder={() => true}
-        onTouchEnd={(e) => e.stopPropagation()}
-      >
+    <View style={styles.pickerOverlay}>
+      {/* Backdrop — sibling of content so TextInput taps don't bubble here */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <View style={styles.pickerContent}>
         {/* Handle + Header */}
         <View style={styles.pickerHandle} />
         <View style={styles.pickerHeader}>
@@ -232,7 +239,7 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
           </View>
         )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 });
 
