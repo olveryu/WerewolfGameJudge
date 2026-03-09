@@ -202,6 +202,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     currentStepId: schemaId,
     currentSchemaId: schemaId,
     isAudioPlaying,
+    roleRevealAnimation: 'random',
     resolvedRoleRevealAnimation: null,
     loading: false,
     mySeatNumber,
