@@ -142,12 +142,15 @@ export class ConfigPage {
     const option = this.page.locator(`[data-testid="config-variant-option-${variantRoleId}"]`);
     await option.waitFor({ state: 'visible', timeout: 3000 });
     await option.click();
-    // Close the role info card by clicking outside (overlay)
-    const overlay = this.page.locator('[data-testid="role-card-modal"]').first();
-    // Press Escape to close the modal
-    await this.page.keyboard.press('Escape');
+    // Close the role info card via "我知道了" button.
+    // Why NOT Escape? RN Web Modal onRequestClose doesn't reliably fire
+    // in Playwright/Chromium (same issue documented in setAnimationNone).
+    const confirmBtn = this.page.getByText('我知道了', { exact: true });
+    await confirmBtn.waitFor({ state: 'visible', timeout: 3000 });
+    await confirmBtn.click();
     // Wait for modal to close
-    await overlay.waitFor({ state: 'detached', timeout: 2000 }).catch(() => {});
+    const card = this.page.locator('[data-testid="role-card-modal"]').first();
+    await card.waitFor({ state: 'detached', timeout: 3000 }).catch(() => {});
   }
 
   /** Deselect multiple role chips. Silently skips missing chips. */
