@@ -4,7 +4,7 @@
  * 所有 UI 层非角色类 emoji 的唯一来源。角色 emoji 仍由 specs.ts 的 emoji 字段定义，
  * 本文件管理品牌 / 阵营标签 / 行动前缀 / 系统状态 / 通用 UI 图标。
  *
- * 分层：BRAND / FACTION / ACTION / STATUS / UI / FX
+ * 分层：BRAND / ACTION / STATUS / UI / FX
  * 设计原则：一义一符、禁止跨语义复用。
  * 不含业务逻辑 / 副作用 / 运行时依赖。
  */
@@ -13,15 +13,6 @@
 
 export const BRAND = {
   APP: '🐺',
-} as const;
-
-// ── Faction labels (must NOT overlap with any role emoji) ────
-
-export const FACTION = {
-  WOLF: '🐾',
-  GOD: '✨',
-  VILLAGER: '🏘️',
-  THIRD: '🃏',
 } as const;
 
 // ── Night action prefixes ────────────────────────────────────
