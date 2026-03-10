@@ -12,6 +12,7 @@ import { showAlert } from '@/utils/alert';
 
 // Mock showAlert
 jest.mock('../../../utils/alert', () => ({
+  ...jest.requireActual('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 

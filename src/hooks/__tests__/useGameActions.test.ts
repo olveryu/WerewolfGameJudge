@@ -12,6 +12,7 @@ import { useGameActions } from '@/hooks/useGameActions';
 // Mock showAlert
 const mockShowAlert = jest.fn();
 jest.mock('@/utils/alert', () => ({
+  ...jest.requireActual('@/utils/alert'),
   showAlert: (...args: unknown[]) => mockShowAlert(...args),
 }));
 

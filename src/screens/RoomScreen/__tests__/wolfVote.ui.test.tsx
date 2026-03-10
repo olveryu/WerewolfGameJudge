@@ -9,6 +9,7 @@ import { showAlert } from '@/utils/alert';
 import { createShowAlertMock, RoomScreenTestHarness } from './harness';
 
 jest.mock('../../../utils/alert', () => ({
+  ...jest.requireActual('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 

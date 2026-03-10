@@ -28,7 +28,7 @@ import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { ThemeKey, typography, useTheme } from '@/theme';
-import { showAlert } from '@/utils/alert';
+import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { getAvatarImage } from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
 import { settingsLog } from '@/utils/logger';
@@ -261,7 +261,7 @@ export const SettingsScreen: React.FC = () => {
 
     if (user?.isAnonymous) {
       showAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', [
-        { text: '取消', style: 'cancel' },
+        CANCEL_BUTTON,
         { text: '确定', style: 'destructive', onPress: doSwitch },
       ]);
     } else {

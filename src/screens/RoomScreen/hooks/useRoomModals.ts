@@ -9,7 +9,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { useCallback, useState } from 'react';
 
-import { showAlert } from '@/utils/alert';
+import { CANCEL_BUTTON, DISMISS_BUTTON, showAlert } from '@/utils/alert';
 
 /** useRoomModals 依赖 */
 interface UseRoomModalsDeps {
@@ -125,12 +125,12 @@ export function useRoomModals({
   // ── Last night info ──
   const showLastNightInfo = useCallback(() => {
     showAlert('提示', '请在警长竞选结束后再查看，请勿作弊', [
-      { text: '取消', style: 'cancel' },
+      CANCEL_BUTTON,
       {
         text: '确定查看',
         onPress: () => {
           const info = getLastNightInfo();
-          showAlert('昨夜信息', info, [{ text: '知道了', style: 'default' }]);
+          showAlert('昨夜信息', info, [DISMISS_BUTTON]);
         },
       },
     ]);

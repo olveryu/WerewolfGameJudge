@@ -8,7 +8,10 @@ import { showAlert } from '@/utils/alert';
 
 import { handleError } from '../errorPipeline';
 
-jest.mock('@/utils/alert', () => ({ showAlert: jest.fn() }));
+jest.mock('@/utils/alert', () => ({
+  ...jest.requireActual('@/utils/alert'),
+  showAlert: jest.fn(),
+}));
 
 const mockLogger = {
   warn: jest.fn(),

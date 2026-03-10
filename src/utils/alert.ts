@@ -13,6 +13,17 @@ interface AlertButton {
   style?: 'default' | 'cancel' | 'destructive';
 }
 
+// ── Common button presets (DRY) ──────────────────────────────────────────
+/** "知道了" dismiss button (default style, no action) */
+export const DISMISS_BUTTON: AlertButton = { text: '知道了', style: 'default' } as const;
+/** "取消" cancel button */
+export const CANCEL_BUTTON: AlertButton = { text: '取消', style: 'cancel' } as const;
+/** Create a "确定" confirm button with the given onPress handler */
+export const confirmButton = (onPress: () => void): AlertButton => ({
+  text: '确定',
+  onPress,
+});
+
 // Global alert state for custom modal
 type AlertListener = (config: AlertConfig | null) => void;
 let alertListener: AlertListener | null = null;
