@@ -568,6 +568,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         bgmValue={bgmEnabled ? 'on' : 'off'}
         onAnimationChange={handleAnimationChange}
         onBgmChange={handleBgmChange}
+        resolvedAnimation={resolvedRoleRevealAnimation}
       />
     </SafeAreaView>
   );
