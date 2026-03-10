@@ -47,8 +47,9 @@ Layered test helpers and Page Objects for Playwright E2E tests.
 │    ↓ import                                                      │
 ├───────────────────────────────────────────────────────────────────┤
 │  Orchestrators                                                   │
-│  ├── helpers/diagnostics.ts → dev server diagnostics logging     │
-│  ├── helpers/night-driver.ts → night flow test driver              │
+│  ├── helpers/diagnostics.ts  → dev server diagnostics logging    │
+│  ├── helpers/night-driver.ts → night flow test driver             │
+│  ├── helpers/night-setup.ts  → shared night-role test harness    │
 │  └── helpers/multi-player.ts → N-player game setup               │
 │    ↓ import                                                      │
 ├───────────────────────────────────────────────────────────────────┤
@@ -80,6 +81,7 @@ e2e/
 │   ├── waits.ts               ← room screen readiness waits
 │   ├── diagnostics.ts         ← dev server diagnostics logging
 │   ├── night-driver.ts        ← night flow test driver
+│   ├── night-setup.ts         ← shared night-role test setup/teardown
 │   └── multi-player.ts        ← N-player game setup orchestrator
 └── specs/
     ├── home.spec.ts            ← home navigation smoke

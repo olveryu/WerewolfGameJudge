@@ -84,32 +84,21 @@ async function handleErrorRecovery(page: Page): Promise<boolean> {
 
 /**
  * Wait for transient states to clear.
+ *
+ * Uses Playwright's event-driven `waitFor({ state: 'hidden' })` instead of
+ * polling `.isVisible()` — avoids TOCTOU races and reduces test flakiness.
  * Returns true if any transient state was observed.
  */
 async function waitForTransientToClear(page: Page, maxWaitMs = 10000): Promise<boolean> {
-  const startTime = Date.now();
   let sawTransient = false;
 
-  while (Date.now() - startTime < maxWaitMs) {
-    let foundTransient = false;
-    for (const pattern of TRANSIENT_PATTERNS) {
-      if (
-        await page
-          .getByText(pattern)
-          .isVisible()
-          .catch(() => false)
-      ) {
-        foundTransient = true;
-        sawTransient = true;
-        break;
-      }
+  for (const pattern of TRANSIENT_PATTERNS) {
+    const locator = page.getByText(pattern);
+    const visible = await locator.isVisible().catch(() => false);
+    if (visible) {
+      sawTransient = true;
+      await locator.waitFor({ state: 'hidden', timeout: maxWaitMs }).catch(() => {});
     }
-
-    if (!foundTransient) {
-      return sawTransient;
-    }
-
-    await page.waitForTimeout(200);
   }
 
   return sawTransient;

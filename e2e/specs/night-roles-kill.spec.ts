@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-import { closeAll } from '../fixtures/app.fixture';
-import { type GameSetupWithRolesResult, setupNPlayerGameWithRoles } from '../helpers/multi-player';
 import {
   clickBottomButton,
   clickSeatAndConfirm,
@@ -16,7 +14,7 @@ import {
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
-import { ConfigPage } from '../pages/ConfigPage';
+import { withSetup } from '../helpers/night-setup';
 
 /**
  * Night Roles E2E — Kill / Status effect coverage.
@@ -32,40 +30,7 @@ import { ConfigPage } from '../pages/ConfigPage';
  * Does not modify game state directly or import services/models.
  */
 
-test.describe.configure({ mode: 'serial' });
 test.setTimeout(180_000);
-
-// ============================================================================
-// Helpers local to this file
-// ============================================================================
-
-async function withSetup(
-  browser: import('@playwright/test').Browser,
-  opts: {
-    playerCount: number;
-    configure: (config: ConfigPage) => Promise<void>;
-  },
-  body: (ctx: {
-    setup: GameSetupWithRolesResult;
-    pages: import('@playwright/test').Page[];
-    roleMap: GameSetupWithRolesResult['roleMap'];
-  }) => Promise<void>,
-): Promise<void> {
-  let setup: GameSetupWithRolesResult | undefined;
-  try {
-    setup = await setupNPlayerGameWithRoles(browser, {
-      playerCount: opts.playerCount,
-      configureTemplate: opts.configure,
-    });
-    await body({
-      setup,
-      pages: setup.fixture.pages,
-      roleMap: setup.roleMap,
-    });
-  } finally {
-    if (setup) await closeAll(setup.fixture);
-  }
-}
 
 // ============================================================================
 // Tests
