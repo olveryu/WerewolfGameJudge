@@ -41,6 +41,7 @@ export type ConnectionSyncActions = Pick<ConnectionSyncState, 'setConnectionStat
 export function useConnectionSync(
   facade: IGameFacade,
   roomRecord: { roomNumber: string } | null,
+  onDeadChannelRetriesExhausted?: (context: { attempt: number; roomNumber: string }) => void,
 ): ConnectionSyncState {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
     ConnectionStatus.Disconnected,
@@ -80,6 +81,43 @@ export function useConnectionSync(
   const DEAD_CHANNEL_BASE_MS = 5_000;
   const DEAD_CHANNEL_MAX_MS = 60_000;
   const MAX_DEAD_CHANNEL_RETRIES = 10;
+  const exhaustedNotifiedRef = useRef(false);
+  const recoveryStatsRef = useRef({
+    L3: 0,
+    L4: 0,
+    L5: 0,
+    success: 0,
+    failure: 0,
+  });
+
+  const reconnectWithTelemetry = useCallback(
+    (trigger: 'online' | 'foreground' | 'deadChannel', layer: 'L3' | 'L4' | 'L5') => {
+      recoveryStatsRef.current[layer] += 1;
+      const startedAt = Date.now();
+      facade
+        .reconnectChannel(trigger)
+        .then(() => {
+          recoveryStatsRef.current.success += 1;
+          connectionSyncLog.info('Reconnect succeeded', {
+            trigger,
+            layer,
+            elapsedMs: Date.now() - startedAt,
+            stats: recoveryStatsRef.current,
+          });
+        })
+        .catch((e) => {
+          recoveryStatsRef.current.failure += 1;
+          connectionSyncLog.error('Reconnect failed', {
+            trigger,
+            layer,
+            elapsedMs: Date.now() - startedAt,
+            stats: recoveryStatsRef.current,
+            error: e,
+          });
+        });
+    },
+    [facade],
+  );
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -95,6 +133,7 @@ export function useConnectionSync(
 
       // Reset dead channel retries counter (diagnostic only)
       deadChannelRetriesRef.current = 0;
+      exhaustedNotifiedRef.current = false;
 
       const currentStatus = connectionStatusRef.current;
       if (currentStatus === ConnectionStatus.Disconnected) {
@@ -102,9 +141,7 @@ export function useConnectionSync(
         connectionSyncLog.info('Foreground: channel disconnected, triggering reconnectChannel', {
           layer: 'L4',
         });
-        facade.reconnectChannel('foreground').catch((e) => {
-          connectionSyncLog.error('Foreground reconnectChannel failed', e);
-        });
+        reconnectWithTelemetry('foreground', 'L4');
       } else {
         // Channel alive → just fetch DB to cover missed broadcasts
         connectionSyncLog.info('Foreground: fetching state from DB', { layer: 'L4' });
@@ -116,7 +153,7 @@ export function useConnectionSync(
 
     document.addEventListener('visibilitychange', onForeground);
     return () => document.removeEventListener('visibilitychange', onForeground);
-  }, [roomRecord, facade]);
+  }, [roomRecord, facade, reconnectWithTelemetry]);
 
   // ── L3 补充：browser online 事件 → reconnectChannel ──
   // ConnectionRecoveryManager 的 L3 handler 仅调 fetchStateFromDB()，不重建 WS channel。
@@ -136,16 +173,15 @@ export function useConnectionSync(
         layer: 'L3',
       });
       deadChannelRetriesRef.current = 0;
+      exhaustedNotifiedRef.current = false;
 
       // 无论是 Disconnected（dead channel）还是其他非 Live 状态，都尝试重建
-      facade.reconnectChannel('online').catch((e) => {
-        connectionSyncLog.error('Online event reconnectChannel failed', e);
-      });
+      reconnectWithTelemetry('online', 'L3');
     };
 
     globalThis.window.addEventListener('online', onOnline);
     return () => globalThis.window.removeEventListener('online', onOnline);
-  }, [roomRecord, facade]);
+  }, [roomRecord, facade, reconnectWithTelemetry]);
 
   // ── Dead Channel Detector ──
   // Supabase SDK gives up reconnecting after repeated CHANNEL_ERROR / TIMED_OUT
@@ -159,6 +195,7 @@ export function useConnectionSync(
     if (connectionStatus === ConnectionStatus.Live) {
       // Channel is healthy — reset retry counter
       deadChannelRetriesRef.current = 0;
+      exhaustedNotifiedRef.current = false;
       return;
     }
 
@@ -172,6 +209,14 @@ export function useConnectionSync(
           attempt: deadChannelRetriesRef.current,
         },
       );
+
+      if (!exhaustedNotifiedRef.current && roomRecord) {
+        exhaustedNotifiedRef.current = true;
+        onDeadChannelRetriesExhausted?.({
+          attempt: deadChannelRetriesRef.current,
+          roomNumber: roomRecord.roomNumber,
+        });
+      }
       return;
     }
 
@@ -194,13 +239,11 @@ export function useConnectionSync(
           DEAD_CHANNEL_MAX_MS,
         ),
       });
-      facade.reconnectChannel('deadChannel').catch((e) => {
-        connectionSyncLog.error('Dead channel detector: reconnectChannel failed', e);
-      });
+      reconnectWithTelemetry('deadChannel', 'L5');
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [connectionStatus, roomRecord, facade]);
+  }, [connectionStatus, roomRecord, facade, onDeadChannelRetriesExhausted, reconnectWithTelemetry]);
 
   return useMemo(
     () => ({

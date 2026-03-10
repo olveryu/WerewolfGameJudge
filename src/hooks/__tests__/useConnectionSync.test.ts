@@ -250,6 +250,54 @@ describe('useConnectionSync', () => {
       );
     });
 
+    it('notifies dead-channel exhaustion callback once', () => {
+      const { facade, emitStatus } = createMockFacade();
+      const onDeadChannelRetriesExhausted = jest.fn();
+
+      renderHook(() =>
+        useConnectionSync(facade, { roomNumber: 'ABCD' }, onDeadChannelRetriesExhausted),
+      );
+
+      // Drive retries to exhaustion (10)
+      for (let i = 0; i < 10; i++) {
+        if (i === 0) {
+          act(() => {
+            emitStatus(ConnectionStatus.Disconnected);
+          });
+        }
+        const delay = Math.min(5000 * Math.pow(2, i), 60000);
+        act(() => {
+          jest.advanceTimersByTime(delay);
+        });
+
+        if (i < 9) {
+          act(() => {
+            emitStatus(ConnectionStatus.Connecting);
+          });
+          act(() => {
+            emitStatus(ConnectionStatus.Disconnected);
+          });
+        }
+      }
+
+      // Trigger one more disconnected cycle to hit exhaustion branch
+      act(() => {
+        emitStatus(ConnectionStatus.Connecting);
+      });
+      act(() => {
+        emitStatus(ConnectionStatus.Disconnected);
+      });
+      act(() => {
+        jest.advanceTimersByTime(120000);
+      });
+
+      expect(onDeadChannelRetriesExhausted).toHaveBeenCalledTimes(1);
+      expect(onDeadChannelRetriesExhausted).toHaveBeenCalledWith({
+        attempt: 10,
+        roomNumber: 'ABCD',
+      });
+    });
+
     it('does not trigger when roomRecord is null', () => {
       const { facade, mockReconnectChannel, emitStatus } = createMockFacade();
 

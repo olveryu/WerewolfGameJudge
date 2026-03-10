@@ -30,7 +30,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { RoomRecord } from '@/services/infra/RoomService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { setAlertBlocked } from '@/utils/alert';
+import { setAlertBlocked, showAlert } from '@/utils/alert';
 import { gameRoomLog } from '@/utils/logger';
 
 import { toLocalState } from './adapters/toLocalState';
@@ -143,8 +143,27 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Sub-hooks
   // =========================================================================
 
+  const handleDeadChannelExhausted = useCallback(
+    ({ attempt, roomNumber }: { attempt: number; roomNumber: string }) => {
+      gameRoomLog.warn('Dead channel retries exhausted, showing manual recovery alert', {
+        attempt,
+        roomNumber,
+      });
+      showAlert('连接恢复失败', '网络恢复多次重试仍未成功，请点击“立即重连”再次尝试。', [
+        { text: '稍后再试', style: 'cancel' },
+        {
+          text: '立即重连',
+          onPress: () => {
+            void facade.reconnectChannel('deadChannel');
+          },
+        },
+      ]);
+    },
+    [facade],
+  );
+
   // Connection status + foreground DB fetch
-  const connection = useConnectionSync(facade, roomRecord);
+  const connection = useConnectionSync(facade, roomRecord, handleDeadChannelExhausted);
 
   // Rejoin overlay state: shown when Host rejoins an ongoing game
   const [showContinueOverlay, setShowContinueOverlay] = useState(false);
