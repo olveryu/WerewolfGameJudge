@@ -36,6 +36,7 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Mock utils
 jest.mock('../../../utils/alert', () => ({
+  ...jest.requireActual('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 

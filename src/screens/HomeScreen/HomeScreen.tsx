@@ -33,7 +33,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { useTheme } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
-import { showAlert } from '@/utils/alert';
+import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { homeLog } from '@/utils/logger';
 
 import { createHomeScreenStyles, InstallMenuItem, JoinRoomModal, TipCard } from './components';
@@ -121,7 +121,7 @@ export const HomeScreen: React.FC = () => {
     (action: () => void) => {
       if (!user) {
         showAlert('需要登录', '请先登录后继续', [
-          { text: '取消', style: 'cancel' },
+          CANCEL_BUTTON,
           { text: '登录', onPress: () => setShowLoginModal(true) },
         ]);
         return;
@@ -247,7 +247,7 @@ export const HomeScreen: React.FC = () => {
   const handleProfilePress = useCallback(() => {
     if (user) {
       showAlert(userName, user.isAnonymous ? '匿名登录用户' : user.email || '已登录', [
-        { text: '取消', style: 'cancel' },
+        CANCEL_BUTTON,
         {
           text: '退出登录',
           style: 'destructive',

@@ -41,6 +41,7 @@ jest.mock('expo-image-picker', () => ({
 
 // Mock utils
 jest.mock('../../../utils/alert', () => ({
+  ...jest.requireActual('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 

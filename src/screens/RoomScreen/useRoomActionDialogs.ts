@@ -11,7 +11,7 @@
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback } from 'react';
 
-import { showAlert } from '@/utils/alert';
+import { CANCEL_BUTTON, confirmButton, DISMISS_BUTTON, showAlert } from '@/utils/alert';
 
 /**
  * Witch context for UI display (simplified from WitchContextPayload).
@@ -81,7 +81,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showActionRejectedAlert = useCallback((reason: string) => {
-    showAlert('操作无效', reason, [{ text: '知道了', style: 'default' }]);
+    showAlert('操作无效', reason, [DISMISS_BUTTON]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -91,7 +91,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   const showMagicianFirstAlert = useCallback((seat: number, schema: ActionSchema) => {
     const title = schema.ui!.firstTargetTitle!;
     const body = schema.ui!.firstTargetPromptTemplate!.replace('{seat}', `${seat + 1}`);
-    showAlert(title, body, [{ text: '知道了', style: 'default' }]);
+    showAlert(title, body, [DISMISS_BUTTON]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showRevealDialog = useCallback((title: string, message: string, onConfirm: () => void) => {
-    showAlert(title, message, [{ text: '知道了', onPress: onConfirm }]);
+    showAlert(title, message, [{ ...DISMISS_BUTTON, onPress: onConfirm }]);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -109,8 +109,8 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   const showConfirmDialog = useCallback(
     (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
       showAlert(title, message, [
-        { text: '取消', style: 'cancel', onPress: onCancel },
-        { text: '确定', onPress: onConfirm },
+        { ...CANCEL_BUTTON, onPress: onCancel },
+        confirmButton(onConfirm),
       ]);
     },
     [],
@@ -140,10 +140,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
           .replace('{seat}', `${targetSeat + 1}`);
       }
 
-      showAlert(title, msg, [
-        { text: '取消', style: 'cancel' },
-        { text: '确定', onPress: onConfirm },
-      ]);
+      showAlert(title, msg, [CANCEL_BUTTON, confirmButton(onConfirm)]);
     },
     [],
   );
@@ -165,7 +162,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
           : undefined;
 
       const title = currentSchema.ui!.prompt!;
-      const dismiss = [{ text: '知道了', style: 'default' as const, onPress: onDismiss }];
+      const dismiss = [{ ...DISMISS_BUTTON, onPress: onDismiss }];
 
       // Three scenarios (all schema-driven):
       // 1. killedSeat >= 0 && canSave=true  → promptTemplate: "{seat}号被狼人杀了，是否使用解药？"

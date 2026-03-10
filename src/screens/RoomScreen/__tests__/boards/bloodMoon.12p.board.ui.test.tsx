@@ -35,6 +35,7 @@ import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { showAlert } from '@/utils/alert';
 
 jest.mock('../../../../utils/alert', () => ({
+  ...jest.requireActual('../../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 

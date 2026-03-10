@@ -11,7 +11,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useCallback, useRef } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
-import { showAlert } from '@/utils/alert';
+import { CANCEL_BUTTON, confirmButton, showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomSeatDialogsParams {
@@ -150,10 +150,7 @@ export function useRoomSeatDialogs({
 
   const handleLeaveRoom = useCallback(() => {
     // Always show confirmation dialog regardless of room status
-    showAlert('离开房间？', '', [
-      { text: '取消', style: 'cancel' },
-      { text: '确定', onPress: doLeaveRoom },
-    ]);
+    showAlert('离开房间？', '', [CANCEL_BUTTON, confirmButton(doLeaveRoom)]);
   }, [doLeaveRoom]);
 
   return {

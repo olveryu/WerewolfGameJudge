@@ -70,6 +70,7 @@ function getWolfRobotHunterGatePromptText(): string {
 // =============================================================================
 
 jest.mock('../../../../utils/alert', () => ({
+  ...jest.requireActual('../../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 

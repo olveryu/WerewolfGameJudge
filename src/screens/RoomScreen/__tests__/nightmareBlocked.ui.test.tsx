@@ -18,6 +18,7 @@ import { showAlert } from '@/utils/alert';
 import { makeBaseUseGameRoomReturn, mockNavigation } from './schemaSmokeTestUtils';
 
 jest.mock('../../../utils/alert', () => ({
+  ...jest.requireActual('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
