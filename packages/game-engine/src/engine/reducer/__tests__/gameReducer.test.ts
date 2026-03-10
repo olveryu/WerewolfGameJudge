@@ -15,6 +15,7 @@ import type {
   SetAudioPlayingAction,
   StartNightAction,
   StateAction,
+  UpdatePlayerProfileAction,
 } from '@werewolf/game-engine/engine/reducer/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -1515,6 +1516,82 @@ describe('gameReducer', () => {
 
       expect(newState.nightReviewAllowedSeats).toBeUndefined();
       expect(newState.status).toBe(GameStatus.Seated);
+    });
+  });
+
+  describe('UPDATE_PLAYER_PROFILE', () => {
+    it('should update displayName of seated player', () => {
+      const state = createMinimalState({
+        players: {
+          0: { uid: 'p1', seatNumber: 0, displayName: 'Old', role: null, hasViewedRole: false },
+          1: null,
+          2: null,
+        },
+      });
+      const action: UpdatePlayerProfileAction = {
+        type: 'UPDATE_PLAYER_PROFILE',
+        payload: { seat: 0, displayName: 'NewName' },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.players[0]?.displayName).toBe('NewName');
+    });
+
+    it('should update avatarUrl of seated player', () => {
+      const state = createMinimalState({
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          1: null,
+          2: null,
+        },
+      });
+      const action: UpdatePlayerProfileAction = {
+        type: 'UPDATE_PLAYER_PROFILE',
+        payload: { seat: 0, avatarUrl: 'https://img/new.png' },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.players[0]?.avatarUrl).toBe('https://img/new.png');
+    });
+
+    it('should not modify other player fields', () => {
+      const original = {
+        uid: 'p1',
+        seatNumber: 0,
+        displayName: 'Alice',
+        avatarUrl: 'https://img/old.png',
+        role: 'villager' as const,
+        hasViewedRole: true,
+      };
+      const state = createMinimalState({
+        players: { 0: original, 1: null, 2: null },
+      });
+      const action: UpdatePlayerProfileAction = {
+        type: 'UPDATE_PLAYER_PROFILE',
+        payload: { seat: 0, displayName: 'Bob' },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.players[0]).toEqual({
+        ...original,
+        displayName: 'Bob',
+      });
+    });
+
+    it('should no-op when seat is empty', () => {
+      const state = createMinimalState();
+      const action: UpdatePlayerProfileAction = {
+        type: 'UPDATE_PLAYER_PROFILE',
+        payload: { seat: 0, displayName: 'Ghost' },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.players[0]).toBeNull();
+      expect(newState).toBe(state); // referential identity — no mutation
     });
   });
 });

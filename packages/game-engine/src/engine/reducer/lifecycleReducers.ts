@@ -18,6 +18,7 @@ import type {
   PlayerViewedRoleAction,
   RestartGameAction,
   SetRoleRevealAnimationAction,
+  UpdatePlayerProfileAction,
   UpdateTemplateAction,
 } from './types';
 
@@ -207,6 +208,27 @@ export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): 
     ...state,
     players: { ...state.players, [seat]: null },
     status: state.status === GameStatus.Seated ? GameStatus.Unseated : state.status,
+  };
+}
+
+export function handleUpdatePlayerProfile(
+  state: GameState,
+  action: UpdatePlayerProfileAction,
+): GameState {
+  const { seat, displayName, avatarUrl } = action.payload;
+  const player = state.players[seat];
+  if (!player) return state; // no-op if seat is empty (defensive)
+
+  return {
+    ...state,
+    players: {
+      ...state.players,
+      [seat]: {
+        ...player,
+        ...(displayName !== undefined && { displayName }),
+        ...(avatarUrl !== undefined && { avatarUrl }),
+      },
+    },
   };
 }
 

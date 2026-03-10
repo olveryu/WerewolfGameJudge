@@ -48,6 +48,12 @@ export interface IGameFacade {
   getMyUid(): string | null;
 
   /**
+   * Safety net: update cached uid when auth identity changes.
+   * Ensures facade identity stays in sync with auth state.
+   */
+  updateMyUid(newUid: string): void;
+
+  /**
    * 当前用户座位号
    * 从 state 派生，不自己维护
    */
@@ -161,6 +167,16 @@ export interface IGameFacade {
    * 清空所有座位，仅在 unseated/seated 状态可用
    */
   clearAllSeats(): Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * 同步玩家资料到 GameState（任何在座玩家）
+   * 用户在 Settings 改名/换头像后调用，广播新资料到所有客户端。
+   * 不在座时服务端返回 NOT_SEATED，调用方可静默忽略。
+   */
+  updatePlayerProfile(
+    displayName?: string,
+    avatarUrl?: string,
+  ): Promise<{ success: boolean; reason?: string }>;
 
   /**
    * 分享「详细信息」给指定座位（Host-only, ended 阶段）

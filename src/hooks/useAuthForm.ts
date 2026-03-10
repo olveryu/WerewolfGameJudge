@@ -42,6 +42,7 @@ interface AuthFormResult {
   displayName: string;
   setDisplayName: (v: string) => void;
   isSignUp: boolean;
+  setIsSignUp: (v: boolean) => void;
   // Handlers
   handleEmailAuth: () => Promise<void>;
   handleAnonymousLogin: () => Promise<void>;
@@ -54,7 +55,7 @@ export function useAuthForm({
   logger,
   showSuccessOnLogin,
 }: UseAuthFormOptions): AuthFormResult {
-  const { signInAnonymously, signUpWithEmail, signInWithEmail } = useAuth();
+  const { signInAnonymously, signUpWithEmail, signInWithEmail, user } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,18 +77,24 @@ export function useAuthForm({
 
     try {
       if (isSignUp) {
+        const wasAnonymous = user?.isAnonymous;
         await signUpWithEmail(email, password, displayName || undefined);
-        showAlert('注册成功！');
-        Toast.show({
-          type: 'info',
-          text1: '可在设置中自定义头像和昵称',
-          text2: '点击前往设置 →',
-          visibilityTime: 5000,
-          onPress: () => {
-            Toast.hide();
-            navigateTo('Settings');
-          },
-        });
+        if (wasAnonymous) {
+          // Anonymous → email upgrade: uid preserved, already in Settings
+          showAlert('绑定成功！');
+        } else {
+          showAlert('注册成功！');
+          Toast.show({
+            type: 'info',
+            text1: '可在设置中自定义头像和昵称',
+            text2: '点击前往设置 →',
+            visibilityTime: 5000,
+            onPress: () => {
+              Toast.hide();
+              navigateTo('Settings');
+            },
+          });
+        }
       } else {
         await signInWithEmail(email, password);
         if (showSuccessOnLogin) {
@@ -106,6 +113,7 @@ export function useAuthForm({
     password,
     displayName,
     isSignUp,
+    user?.isAnonymous,
     signUpWithEmail,
     signInWithEmail,
     onSuccess,
@@ -137,6 +145,7 @@ export function useAuthForm({
     displayName,
     setDisplayName,
     isSignUp,
+    setIsSignUp,
     handleEmailAuth,
     handleAnonymousLogin,
     resetForm,

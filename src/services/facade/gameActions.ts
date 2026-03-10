@@ -209,3 +209,15 @@ export const markAllBotsViewed = defineGameAction({
   name: 'markAllBotsViewed',
   path: '/game/mark-bots-viewed',
 });
+
+// =============================================================================
+// 玩家资料同步
+// =============================================================================
+
+/** 同步玩家资料到 GameState（任何在座玩家） */
+export const updatePlayerProfile = defineGameAction<[string?, string?]>({
+  name: 'updatePlayerProfile',
+  path: '/game/update-profile',
+  needsUid: true,
+  body: (displayName, avatarUrl) => ({ displayName, avatarUrl }),
+});

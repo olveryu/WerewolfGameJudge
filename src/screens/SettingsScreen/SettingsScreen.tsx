@@ -8,19 +8,29 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { ThemeKey, typography, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { getAvatarImage } from '@/utils/avatar';
-import { getErrorMessage } from '@/utils/errorUtils';
+import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
 import { settingsLog } from '@/utils/logger';
 
 import {
@@ -47,8 +57,36 @@ export const SettingsScreen: React.FC = () => {
     loading: authLoading,
   } = useAuth();
 
+  const facade = useGameFacade();
+
+  // Room context: subscribe to facade state for reactive canSwitchAccount
+  const subscribe = useCallback((cb: () => void) => facade.subscribe(cb), [facade]);
+  const getSnapshot = useCallback(() => facade.getState(), [facade]);
+  const gameState = useSyncExternalStore(subscribe, getSnapshot);
+  const isInRoom = gameState !== null;
+  const isSeated = facade.getMySeatNumber() !== null;
+  // 角色分配后（Assigned/Ready/Ongoing/Ended）禁止切换账号/绑定邮箱
+  const canSwitchAccount =
+    !isInRoom ||
+    gameState?.status === GameStatus.Unseated ||
+    gameState?.status === GameStatus.Seated;
+
   // Auth form state
   const [showAuthForm, setShowAuthForm] = useState(false);
+
+  // Track anonymous→email upgrade: sync new displayName to GameState
+  const wasAnonymousRef = useRef(user?.isAnonymous);
+  useEffect(() => {
+    const isAnonymous = user?.isAnonymous;
+    if (wasAnonymousRef.current && user && !isAnonymous) {
+      // Just upgraded from anonymous → email; sync profile to GameState if in room
+      settingsLog.info('Anonymous→email upgrade detected, syncing profile to GameState');
+      facade
+        .updatePlayerProfile(user.displayName ?? undefined, user.avatarUrl ?? undefined)
+        .catch((err: unknown) => settingsLog.warn('Profile sync to GameState failed:', err));
+    }
+    wasAnonymousRef.current = isAnonymous;
+  }, [user, facade]);
 
   const handleAuthSuccess = useCallback(() => {
     setShowAuthForm(false);
@@ -62,6 +100,7 @@ export const SettingsScreen: React.FC = () => {
     displayName,
     setDisplayName,
     isSignUp,
+    setIsSignUp,
     handleEmailAuth,
     handleAnonymousLogin,
     resetForm,
@@ -123,8 +162,13 @@ export const SettingsScreen: React.FC = () => {
       if (!result.canceled && result.assets[0]) {
         setUploadingAvatar(true);
         try {
-          await uploadAvatar(result.assets[0].uri);
+          const url = await uploadAvatar(result.assets[0].uri);
           showAlert('头像已更新！');
+
+          // Sync to GameState (if in room & seated, silent failure is fine)
+          facade
+            .updatePlayerProfile(undefined, url)
+            .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
         } catch (e: unknown) {
           // AuthContext already reported to Sentry before re-throwing; avoid double-reporting
           const message = getErrorMessage(e);
@@ -140,7 +184,7 @@ export const SettingsScreen: React.FC = () => {
       settingsLog.warn('Image picker failed:', message, e);
       showAlert('选择图片失败', message);
     }
-  }, [uploadAvatar]);
+  }, [uploadAvatar, facade]);
 
   const handleUpdateName = useCallback(async () => {
     if (!editName.trim()) {
@@ -149,16 +193,22 @@ export const SettingsScreen: React.FC = () => {
     }
 
     try {
-      await updateProfile({ displayName: editName.trim() });
+      const trimmedName = editName.trim();
+      await updateProfile({ displayName: trimmedName });
       setIsEditingName(false);
       showAlert('名字已更新！');
+
+      // Sync to GameState (if in room & seated, silent failure is fine)
+      facade
+        .updatePlayerProfile(trimmedName, undefined)
+        .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed:', err));
     } catch (e: unknown) {
       // AuthContext already reported to Sentry before re-throwing; avoid double-reporting
       const message = getErrorMessage(e);
       settingsLog.error('Update name failed:', message, e);
       showAlert('更新失败', message);
     }
-  }, [editName, updateProfile]);
+  }, [editName, updateProfile, facade]);
 
   const handleCancelAuthForm = useCallback(() => {
     setShowAuthForm(false);
@@ -178,6 +228,47 @@ export const SettingsScreen: React.FC = () => {
     setShowAuthForm(true);
   }, []);
 
+  /** 匿名用户「绑定邮箱」：直接进入注册模式 */
+  const handleShowUpgradeForm = useCallback(() => {
+    setIsSignUp(true);
+    setShowAuthForm(true);
+  }, [setIsSignUp]);
+
+  /** 切换账号：先离座（如在房间内），再登出，弹登录表单 */
+  const handleSwitchAccount = useCallback(() => {
+    const doSwitch = async () => {
+      try {
+        // If seated in a room, leave seat first (simplifies all edge cases)
+        if (isInRoom && isSeated) {
+          const result = await facade.leaveSeatWithAck();
+          if (!result.success) {
+            showAlert('离座失败', translateReasonCode(result.reason));
+            return;
+          }
+        }
+
+        setShowAuthForm(true);
+        setIsSignUp(false);
+        await signOut();
+      } catch (e: unknown) {
+        const message = getErrorMessage(e);
+        settingsLog.error('Account switch failed:', message, e);
+        Sentry.captureException(e);
+        setShowAuthForm(false);
+        showAlert('切换失败', message);
+      }
+    };
+
+    if (user?.isAnonymous) {
+      showAlert('切换账号', '匿名身份将被丢弃，无法找回。确定要切换吗？', [
+        { text: '取消', style: 'cancel' },
+        { text: '确定', style: 'destructive', onPress: doSwitch },
+      ]);
+    } else {
+      doSwitch();
+    }
+  }, [user?.isAnonymous, facade, signOut, setIsSignUp, isInRoom, isSeated]);
+
   const handleThemeChange = useCallback(
     (key: string) => {
       setTheme(key as ThemeKey);
@@ -189,7 +280,33 @@ export const SettingsScreen: React.FC = () => {
   // Render helpers
   // ============================================
 
+  // Whether form should show a custom title
+  const isUpgradeFlow = isAuthenticated && user?.isAnonymous && showAuthForm;
+
   const renderAuthSection = () => {
+    // EmailForm takes priority — both anonymous-upgrade and unauthenticated flows
+    if (showAuthForm) {
+      return (
+        <EmailForm
+          formTitle={isUpgradeFlow ? '绑定邮箱' : undefined}
+          isSignUp={isSignUp}
+          email={email}
+          password={password}
+          displayName={displayName}
+          authError={authError}
+          authLoading={authLoading}
+          onEmailChange={setEmail}
+          onPasswordChange={setPassword}
+          onDisplayNameChange={setDisplayName}
+          onSubmit={handleEmailAuth}
+          onToggleMode={isUpgradeFlow ? undefined : toggleSignUp}
+          onBack={handleCancelAuthForm}
+          styles={styles}
+          colors={colors}
+        />
+      );
+    }
+
     if (isAuthenticated) {
       return (
         <>
@@ -232,31 +349,24 @@ export const SettingsScreen: React.FC = () => {
             </View>
           )}
 
-          <TouchableOpacity style={styles.logoutBtn} onPress={signOut}>
-            <Text style={styles.logoutBtnText}>登出</Text>
-          </TouchableOpacity>
-        </>
-      );
-    }
+          {user?.isAnonymous && canSwitchAccount && (
+            <TouchableOpacity style={styles.logoutBtn} onPress={handleShowUpgradeForm}>
+              <Text style={styles.logoutBtnText}>绑定邮箱</Text>
+            </TouchableOpacity>
+          )}
 
-    if (showAuthForm) {
-      return (
-        <EmailForm
-          isSignUp={isSignUp}
-          email={email}
-          password={password}
-          displayName={displayName}
-          authError={authError}
-          authLoading={authLoading}
-          onEmailChange={setEmail}
-          onPasswordChange={setPassword}
-          onDisplayNameChange={setDisplayName}
-          onSubmit={handleEmailAuth}
-          onToggleMode={toggleSignUp}
-          onBack={handleCancelAuthForm}
-          styles={styles}
-          colors={colors}
-        />
+          {canSwitchAccount && (
+            <TouchableOpacity style={styles.logoutBtn} onPress={handleSwitchAccount}>
+              <Text style={styles.logoutBtnText}>切换账号</Text>
+            </TouchableOpacity>
+          )}
+
+          {!isInRoom && (
+            <TouchableOpacity style={styles.logoutBtn} onPress={signOut}>
+              <Text style={styles.logoutBtnText}>登出</Text>
+            </TouchableOpacity>
+          )}
+        </>
       );
     }
 

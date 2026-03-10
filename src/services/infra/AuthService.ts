@@ -96,6 +96,35 @@ export class AuthService {
     displayName?: string,
   ): Promise<{ userId: string; user: SupabaseUser | null }> {
     this.#ensureConfigured();
+
+    // Check if current user is anonymous — link identity to preserve uid
+    const {
+      data: { session },
+    } = await supabase!.auth.getSession();
+    const isCurrentlyAnonymous = session?.user?.is_anonymous === true;
+
+    if (isCurrentlyAnonymous) {
+      // Supabase identity linking: updateUser on anonymous user converts to
+      // email-authenticated user while preserving the same uid. This keeps
+      // all seat bindings (Player.uid) and host ownership (hostUid) intact.
+      const { data, error } = await supabase!.auth.updateUser({
+        email,
+        password,
+        data: {
+          display_name: displayName || email.split('@')[0],
+        },
+      });
+      if (error) throw error;
+      const userId = data.user?.id;
+      if (!userId) {
+        throw new Error('[FAIL-FAST] signUpWithEmail (link) succeeded but user.id is missing');
+      }
+      authLog.info('Anonymous→email identity linked, uid preserved:', userId);
+      this.#currentUserId = userId;
+      return { userId, user: data.user };
+    }
+
+    // Non-anonymous (or no session): create new account
     const { data, error } = await supabase!.auth.signUp({
       email,
       password,

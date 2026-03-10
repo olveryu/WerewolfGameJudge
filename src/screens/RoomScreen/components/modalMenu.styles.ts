@@ -56,6 +56,9 @@ export function createModalMenuStyles(colors: ThemeColors): {
         overflow: 'hidden',
       },
       menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.small,
         paddingVertical: spacing.medium,
         paddingHorizontal: spacing.large,
       },
