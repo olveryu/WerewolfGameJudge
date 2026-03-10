@@ -48,6 +48,17 @@ jest.mock('../../../utils/avatar', () => ({
   getAvatarImage: jest.fn(() => ({ uri: 'https://example.com/avatar.png' })),
 }));
 
+// Mock GameFacadeContext — SettingsScreen calls facade methods for room state and profile sync
+jest.mock('../../../contexts/GameFacadeContext', () => ({
+  useGameFacade: () => ({
+    getState: jest.fn().mockReturnValue(null),
+    getMySeatNumber: jest.fn().mockReturnValue(null),
+    subscribe: jest.fn().mockReturnValue(() => {}),
+    updateMyUid: jest.fn(),
+    updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
+  }),
+}));
+
 describe('SettingsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();

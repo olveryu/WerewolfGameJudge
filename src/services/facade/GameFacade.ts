@@ -159,6 +159,23 @@ export class GameFacade implements IGameFacade {
     return this.#myUid;
   }
 
+  /**
+   * Safety net: update cached uid when auth identity changes.
+   *
+   * Phase A prevents uid changes during anonymous→register (identity linking).
+   * This covers edge cases like signOut → signIn with a different account
+   * while the room screen remains mounted (modal Settings).
+   */
+  updateMyUid(newUid: string): void {
+    if (this.#myUid && this.#myUid !== newUid) {
+      facadeLog.info('updateMyUid: uid changed', {
+        old: this.#myUid,
+        new: newUid,
+      });
+    }
+    this.#myUid = newUid;
+  }
+
   getMySeatNumber(): number | null {
     const state = this.#store.getState();
     if (!state || !this.#myUid) return null;
@@ -508,6 +525,19 @@ export class GameFacade implements IGameFacade {
    */
   async clearAllSeats(): Promise<{ success: boolean; reason?: string }> {
     return gameActions.clearAllSeats(this.#getActionsContext());
+  }
+
+  /**
+   * 同步玩家资料到 GameState（任何在座玩家）
+   *
+   * 用户在 SettingsScreen 改名/换头像后调用，将新资料广播到所有客户端。
+   * 如果不在座则服务端返回 NOT_SEATED（静默忽略即可）。
+   */
+  async updatePlayerProfile(
+    displayName?: string,
+    avatarUrl?: string,
+  ): Promise<{ success: boolean; reason?: string }> {
+    return gameActions.updatePlayerProfile(this.#getActionsContext(), displayName, avatarUrl);
   }
 
   /**

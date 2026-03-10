@@ -21,11 +21,13 @@ import {
   handleSetRoleRevealAnimation,
   handleShareNightReview,
   handleStartNight,
+  handleUpdatePlayerProfile,
   handleUpdateTemplate,
   handleViewedRole,
   type JoinSeatIntent,
   type LeaveMySeatIntent,
   type StateAction,
+  type UpdatePlayerProfileIntent,
 } from '../../_shared/game-engine/index.js';
 import { processGameAction } from '../../_shared/gameStateManager.ts';
 import { buildHandlerContext } from '../../_shared/handlerContext.ts';
@@ -35,6 +37,7 @@ import type {
   SetAnimationRequestBody,
   ShareReviewRequestBody,
   StartRequestBody,
+  UpdateProfileRequestBody,
   UpdateTemplateRequestBody,
   ViewRoleRequestBody,
 } from '../../_shared/types.ts';
@@ -197,6 +200,25 @@ export const handleShareReview: HandlerFn = async (req) => {
   const result = await processGameAction(roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, state.hostUid);
     return handleShareNightReview({ type: 'SHARE_NIGHT_REVIEW', allowedSeats }, handlerCtx);
+  });
+  return jsonResponse(result, resultToStatus(result));
+};
+
+export const handleUpdateProfile: HandlerFn = async (req) => {
+  const body = (await req.json()) as UpdateProfileRequestBody;
+  const { roomCode, uid, displayName, avatarUrl } = body;
+
+  if (!roomCode || !uid) {
+    return missingParams();
+  }
+
+  const result = await processGameAction(roomCode, (state: GameState) => {
+    const handlerCtx = buildHandlerContext(state, uid);
+    const intent: UpdatePlayerProfileIntent = {
+      type: 'UPDATE_PLAYER_PROFILE',
+      payload: { uid, displayName, avatarUrl },
+    };
+    return handleUpdatePlayerProfile(intent, handlerCtx);
   });
   return jsonResponse(result, resultToStatus(result));
 };

@@ -5,9 +5,14 @@
 import {
   handleJoinSeat,
   handleLeaveMySeat,
+  handleUpdatePlayerProfile,
 } from '@werewolf/game-engine/engine/handlers/seatHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
-import type { JoinSeatIntent, LeaveMySeatIntent } from '@werewolf/game-engine/engine/intents/types';
+import type {
+  JoinSeatIntent,
+  LeaveMySeatIntent,
+  UpdatePlayerProfileIntent,
+} from '@werewolf/game-engine/engine/intents/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import {
@@ -355,5 +360,89 @@ describe('handleLeaveMySeat', () => {
     expect(result.success).toBe(true);
     expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+  });
+});
+
+describe('handleUpdatePlayerProfile', () => {
+  const makeIntent = (
+    overrides?: Partial<UpdatePlayerProfileIntent['payload']>,
+  ): UpdatePlayerProfileIntent => ({
+    type: 'UPDATE_PLAYER_PROFILE',
+    payload: {
+      uid: 'player-1',
+      displayName: 'NewName',
+      ...overrides,
+    },
+  });
+
+  it('should fail when state is null', () => {
+    const context = createContext(null);
+    const result = handleUpdatePlayerProfile(makeIntent(), context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe(REASON_NO_STATE);
+  });
+
+  it('should fail when uid is missing', () => {
+    const state = createMinimalState();
+    const context = createContext(state);
+    const result = handleUpdatePlayerProfile(makeIntent({ uid: '' }), context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe(REASON_NOT_AUTHENTICATED);
+  });
+
+  it('should fail when user is not seated', () => {
+    const state = createMinimalState();
+    const context = createContext(state, { mySeat: null });
+    const result = handleUpdatePlayerProfile(makeIntent(), context);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe(REASON_NOT_SEATED);
+  });
+
+  it('should succeed and produce UPDATE_PLAYER_PROFILE action when seated', () => {
+    const state = createMinimalState({
+      players: {
+        0: { uid: 'player-1', seatNumber: 0, displayName: 'Old', role: null, hasViewedRole: false },
+        1: null,
+        2: null,
+      },
+    });
+    const context = createContext(state, { mySeat: 0 });
+    const intent = makeIntent({ displayName: 'Alice', avatarUrl: 'https://img/a.png' });
+
+    const result = handleUpdatePlayerProfile(intent, context);
+
+    expect(result.success).toBe(true);
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toEqual({
+      type: 'UPDATE_PLAYER_PROFILE',
+      payload: { seat: 0, displayName: 'Alice', avatarUrl: 'https://img/a.png' },
+    });
+    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+  });
+
+  it('should pass only displayName when avatarUrl is undefined', () => {
+    const state = createMinimalState({
+      players: {
+        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
+        1: null,
+        2: null,
+      },
+    });
+    const context = createContext(state, { mySeat: 0 });
+    const intent = makeIntent({ displayName: 'Bob', avatarUrl: undefined });
+
+    const result = handleUpdatePlayerProfile(intent, context);
+
+    expect(result.success).toBe(true);
+    const action = result.actions[0];
+    expect(action.type).toBe('UPDATE_PLAYER_PROFILE');
+    expect(action).toEqual({
+      type: 'UPDATE_PLAYER_PROFILE',
+      payload: { seat: 0, displayName: 'Bob', avatarUrl: undefined },
+    });
   });
 });

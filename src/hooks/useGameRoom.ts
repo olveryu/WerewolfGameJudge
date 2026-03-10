@@ -26,6 +26,7 @@ import type {
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useGameFacade } from '@/contexts';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RoomRecord } from '@/services/infra/RoomService';
 import type { ConnectionStatus } from '@/services/types/IGameFacade';
@@ -135,9 +136,22 @@ export const useGameRoom = (): UseGameRoomResult => {
   const facade = useGameFacade();
   const { roomService, authService } = useServices();
   const isFocused = useIsFocused();
+  const { user } = useAuthContext();
 
   // roomRecord is owned here so both useConnectionSync and useRoomLifecycle can use it
   const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
+
+  // =========================================================================
+  // Phase C safety net: keep facade uid in sync with auth state.
+  // Phase A prevents uid change during anonymous→register, but if uid
+  // changes for any other reason (e.g. sign-out → sign-in while room
+  // screen is mounted via Settings modal), we patch facade immediately.
+  // =========================================================================
+  useEffect(() => {
+    if (user?.uid) {
+      facade.updateMyUid(user.uid);
+    }
+  }, [user?.uid, facade]);
 
   // =========================================================================
   // Sub-hooks

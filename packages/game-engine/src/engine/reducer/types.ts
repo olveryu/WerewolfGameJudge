@@ -62,6 +62,18 @@ export interface PlayerLeaveAction {
   };
 }
 
+/**
+ * 更新在座玩家的显示资料（displayName / avatarUrl）
+ */
+export interface UpdatePlayerProfileAction {
+  type: 'UPDATE_PLAYER_PROFILE';
+  payload: {
+    seat: number;
+    displayName?: string;
+    avatarUrl?: string;
+  };
+}
+
 // =============================================================================
 // 游戏阶段动作
 // =============================================================================
@@ -387,6 +399,7 @@ export type StateAction =
   // 座位
   | PlayerJoinAction
   | PlayerLeaveAction
+  | UpdatePlayerProfileAction
   // 游戏阶段
   | AssignRolesAction
   | StartNightAction

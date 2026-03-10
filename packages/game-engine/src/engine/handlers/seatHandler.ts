@@ -19,8 +19,17 @@ import {
   REASON_SEAT_TAKEN,
 } from '../../protocol/reasonCodes';
 import { forEachSeatedPlayer } from '../../utils/playerHelpers';
-import type { ClearAllSeatsIntent, JoinSeatIntent, LeaveMySeatIntent } from '../intents/types';
-import type { PlayerJoinAction, PlayerLeaveAction } from '../reducer/types';
+import type {
+  ClearAllSeatsIntent,
+  JoinSeatIntent,
+  LeaveMySeatIntent,
+  UpdatePlayerProfileIntent,
+} from '../intents/types';
+import type {
+  PlayerJoinAction,
+  PlayerLeaveAction,
+  UpdatePlayerProfileAction,
+} from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
 import { STANDARD_SIDE_EFFECTS } from './types';
 
@@ -207,6 +216,47 @@ export function handleClearAllSeats(
   return {
     success: true,
     actions,
+    sideEffects: STANDARD_SIDE_EFFECTS,
+  };
+}
+
+/**
+ * 更新在座玩家的显示资料（displayName / avatarUrl）
+ *
+ * 任何在座玩家均可调用（更新自己的资料）。
+ * mySeat 由 context 提供（通过 uid 查找），不需要客户端传 seat。
+ */
+export function handleUpdatePlayerProfile(
+  intent: UpdatePlayerProfileIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const { uid, displayName, avatarUrl } = intent.payload;
+  const { state, mySeat } = context;
+
+  if (!state) {
+    return { success: false, reason: REASON_NO_STATE, actions: [] };
+  }
+
+  if (!uid) {
+    return { success: false, reason: REASON_NOT_AUTHENTICATED, actions: [] };
+  }
+
+  if (mySeat === null) {
+    return { success: false, reason: REASON_NOT_SEATED, actions: [] };
+  }
+
+  const action: UpdatePlayerProfileAction = {
+    type: 'UPDATE_PLAYER_PROFILE',
+    payload: {
+      seat: mySeat,
+      displayName,
+      avatarUrl,
+    },
+  };
+
+  return {
+    success: true,
+    actions: [action],
     sideEffects: STANDARD_SIDE_EFFECTS,
   };
 }

@@ -8,7 +8,8 @@
  * 支持的路由：
  *   /game/assign, /game/clear-seats, /game/fill-bots, /game/mark-bots-viewed,
  *   /game/restart, /game/seat, /game/set-animation, /game/share-review,
- *   /game/start, /game/update-template, /game/view-role
+ *   /game/start, /game/update-profile,
+ *   /game/update-template, /game/view-role
  *   /game/night/action, /game/night/audio-ack, /game/night/audio-gate,
  *   /game/night/end, /game/night/group-confirm-ack, /game/night/progression,
  *   /game/night/reveal-ack, /game/night/wolf-robot-viewed
@@ -27,6 +28,7 @@ import {
   handleSetAnimation,
   handleShareReview,
   handleStart,
+  handleUpdateProfile,
   handleUpdateTemplateRoute,
   handleViewRole,
 } from './handlers/gameControl.ts';
@@ -56,6 +58,7 @@ const GAME_ROUTES: Record<string, HandlerFn> = {
   'set-animation': handleSetAnimation,
   'share-review': handleShareReview,
   start: handleStart,
+  'update-profile': handleUpdateProfile,
   'update-template': handleUpdateTemplateRoute,
   'view-role': handleViewRole,
 };

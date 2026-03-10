@@ -347,7 +347,6 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       padding: spacing.medium,
       borderRadius: borderRadius.full,
       alignItems: 'center',
-      marginTop: spacing.small,
     },
     secondaryButtonText: {
       color: colors.textSecondary,

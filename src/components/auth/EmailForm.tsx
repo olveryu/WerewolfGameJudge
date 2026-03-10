@@ -16,6 +16,7 @@ import { type EmailFormProps } from './types';
 
 export const EmailForm = memo<EmailFormProps>(
   ({
+    formTitle,
     isSignUp,
     email,
     password,
@@ -54,7 +55,7 @@ export const EmailForm = memo<EmailFormProps>(
 
     return (
       <View style={styles.formContainer}>
-        <Text style={styles.formTitle}>{isSignUp ? '注册账号' : '邮箱登录'}</Text>
+        <Text style={styles.formTitle}>{formTitle ?? (isSignUp ? '注册账号' : '邮箱登录')}</Text>
 
         <TextInput
           style={styles.input}
@@ -129,11 +130,13 @@ export const EmailForm = memo<EmailFormProps>(
           <Text style={styles.primaryButtonText}>{buttonText}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.linkButton} onPress={onToggleMode}>
-          <Text style={styles.linkButtonText}>
-            {isSignUp ? '已有账号？去登录' : '没有账号？去注册'}
-          </Text>
-        </TouchableOpacity>
+        {onToggleMode && (
+          <TouchableOpacity style={styles.linkButton} onPress={onToggleMode}>
+            <Text style={styles.linkButtonText}>
+              {isSignUp ? '已有账号？去登录' : '没有账号？去注册'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity style={styles.secondaryButton} onPress={onBack}>
           <Text style={styles.secondaryButtonText}>返回</Text>

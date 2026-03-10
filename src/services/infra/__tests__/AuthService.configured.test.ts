@@ -18,6 +18,7 @@ const mockGetSession = jest.fn();
 const mockGetUser = jest.fn();
 const mockSignOut = jest.fn();
 const mockUpdateUser = jest.fn();
+const mockSignUp = jest.fn();
 
 jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
@@ -32,6 +33,7 @@ jest.mock('../supabaseClient', () => ({
       getUser: (...args: unknown[]) => mockGetUser(...args),
       signOut: (...args: unknown[]) => mockSignOut(...args),
       updateUser: (...args: unknown[]) => mockUpdateUser(...args),
+      signUp: (...args: unknown[]) => mockSignUp(...args),
     },
   },
 }));
@@ -277,6 +279,147 @@ describe('AuthService (configured)', () => {
       await service.waitForInit();
 
       await expect(service.updateProfile({ displayName: 'name' })).rejects.toThrow('forbidden');
+    });
+  });
+
+  describe('signUpWithEmail', () => {
+    it('should use updateUser (identity linking) when current user is anonymous', async () => {
+      // First getSession (autoSignIn) → anonymous session
+      mockGetSession.mockResolvedValue({
+        data: {
+          session: {
+            user: { id: 'anon-uid', is_anonymous: true },
+          },
+        },
+      });
+      mockUpdateUser.mockResolvedValue({
+        data: { user: { id: 'anon-uid' } },
+        error: null,
+      });
+
+      const service = new AuthService();
+      await service.waitForInit();
+
+      const result = await service.signUpWithEmail('test@example.com', 'pass123', 'Alice');
+
+      // updateUser should be called (identity linking), not signUp
+      expect(mockUpdateUser).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'pass123',
+        data: { display_name: 'Alice' },
+      });
+      expect(mockSignUp).not.toHaveBeenCalled();
+      // uid should be preserved (same as anonymous uid)
+      expect(result.userId).toBe('anon-uid');
+      expect(service.getCurrentUserId()).toBe('anon-uid');
+    });
+
+    it('should use signUp when current user is not anonymous', async () => {
+      // No session → non-anonymous path
+      mockGetSession.mockResolvedValue({ data: { session: null } });
+      mockSignUp.mockResolvedValue({
+        data: { user: { id: 'new-uid' } },
+        error: null,
+      });
+
+      const service = new AuthService();
+      await service.waitForInit();
+
+      const result = await service.signUpWithEmail('test@example.com', 'pass123', 'Bob');
+
+      expect(mockSignUp).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'pass123',
+        options: {
+          data: { display_name: 'Bob' },
+          emailRedirectTo: undefined,
+        },
+      });
+      expect(result.userId).toBe('new-uid');
+    });
+
+    it('should use signUp when session exists but is_anonymous is false', async () => {
+      mockGetSession.mockResolvedValue({
+        data: {
+          session: {
+            user: { id: 'email-uid', is_anonymous: false },
+          },
+        },
+      });
+      mockSignUp.mockResolvedValue({
+        data: { user: { id: 'new-uid' } },
+        error: null,
+      });
+
+      const service = new AuthService();
+      await service.waitForInit();
+
+      const result = await service.signUpWithEmail('test@example.com', 'pass123');
+
+      expect(mockUpdateUser).not.toHaveBeenCalled();
+      expect(mockSignUp).toHaveBeenCalled();
+      expect(result.userId).toBe('new-uid');
+    });
+
+    it('should throw when updateUser returns error during identity linking', async () => {
+      mockGetSession.mockResolvedValue({
+        data: {
+          session: { user: { id: 'anon-uid', is_anonymous: true } },
+        },
+      });
+      mockUpdateUser.mockResolvedValue({
+        data: { user: null },
+        error: new Error('email already taken'),
+      });
+
+      const service = new AuthService();
+      await service.waitForInit();
+
+      await expect(service.signUpWithEmail('taken@example.com', 'pass123')).rejects.toThrow(
+        'email already taken',
+      );
+    });
+
+    it('should throw FAIL-FAST when identity linking succeeds but user.id is missing', async () => {
+      mockGetSession.mockResolvedValue({
+        data: {
+          session: { user: { id: 'anon-uid', is_anonymous: true } },
+        },
+      });
+      mockUpdateUser.mockResolvedValue({
+        data: { user: null },
+        error: null,
+      });
+
+      const service = new AuthService();
+      await service.waitForInit();
+
+      await expect(service.signUpWithEmail('test@example.com', 'pass123')).rejects.toThrow(
+        'FAIL-FAST',
+      );
+    });
+
+    it('should default displayName to email prefix when not provided', async () => {
+      mockGetSession.mockResolvedValue({
+        data: {
+          session: { user: { id: 'anon-uid', is_anonymous: true } },
+        },
+      });
+      mockUpdateUser.mockResolvedValue({
+        data: { user: { id: 'anon-uid' } },
+        error: null,
+      });
+
+      const service = new AuthService();
+      await service.waitForInit();
+
+      await service.signUpWithEmail('alice@example.com', 'pass123');
+
+      expect(mockUpdateUser).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { display_name: 'alice' },
+        }),
+      );
     });
   });
 });

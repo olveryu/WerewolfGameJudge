@@ -21,6 +21,7 @@ import {
   handlePlayerViewedRole,
   handleRestartGame,
   handleSetRoleRevealAnimation,
+  handleUpdatePlayerProfile,
   handleUpdateTemplate,
 } from './lifecycleReducers';
 import {
@@ -57,6 +58,8 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handlePlayerJoin(state, action);
     case 'PLAYER_LEAVE':
       return handlePlayerLeave(state, action);
+    case 'UPDATE_PLAYER_PROFILE':
+      return handleUpdatePlayerProfile(state, action);
     case 'ASSIGN_ROLES':
       return handleAssignRoles(state, action);
     case 'PLAYER_VIEWED_ROLE':

@@ -108,6 +108,7 @@ export {
   handleClearAllSeats,
   handleJoinSeat,
   handleLeaveMySeat,
+  handleUpdatePlayerProfile,
 } from './engine/handlers/seatHandler';
 export {
   handleAdvanceNight,
@@ -123,6 +124,7 @@ export type {
   LeaveMySeatIntent,
   SetAudioPlayingIntent,
   SubmitActionIntent,
+  UpdatePlayerProfileIntent,
 } from './engine/intents/types';
 export { gameReducer } from './engine/reducer';
 export type { StateAction } from './engine/reducer/types';

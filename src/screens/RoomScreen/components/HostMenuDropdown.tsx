@@ -14,9 +14,11 @@ import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { useColors } from '@/theme';
-import { componentSizes } from '@/theme/tokens';
+import { componentSizes, spacing } from '@/theme/tokens';
 
 import { type HostMenuDropdownStyles } from './styles';
+
+const MENU_ICON_SIZE = spacing.large;
 
 interface HostMenuDropdownProps {
   /** Whether to show the menu (Host only) */
@@ -157,7 +159,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                 {/* Game Settings — only before game starts */}
                 {showSettings && (
                   <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
-                    <Text style={styles.menuItemText}>⚙️ 游戏设置</Text>
+                    <Ionicons name="settings-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                    <Text style={styles.menuItemText}>游戏设置</Text>
                   </TouchableOpacity>
                 )}
 
@@ -166,7 +169,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                   <>
                     {showSettings && <View style={styles.separator} />}
                     <TouchableOpacity style={styles.menuItem} onPress={handleUserSettings}>
-                      <Text style={styles.menuItemText}>👤 用户设置</Text>
+                      <Ionicons name="person-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                      <Text style={styles.menuItemText}>用户设置</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -175,7 +179,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                   <>
                     <View style={styles.separator} />
                     <TouchableOpacity style={styles.menuItem} onPress={handleClearAllSeats}>
-                      <Text style={styles.menuItemText}>🪑 全员起立</Text>
+                      <Ionicons name="exit-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                      <Text style={styles.menuItemText}>全员起立</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -185,7 +190,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                   <>
                     <View style={styles.separator} />
                     <TouchableOpacity style={styles.menuItem} onPress={handleFillWithBots}>
-                      <Text style={styles.menuItemText}>🤖 填充机器人</Text>
+                      <Ionicons name="people-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                      <Text style={styles.menuItemText}>填充机器人</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -194,7 +200,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                   <>
                     <View style={styles.separator} />
                     <TouchableOpacity style={styles.menuItem} onPress={handleMarkAllBotsViewed}>
-                      <Text style={styles.menuItemText}>👁️ 标记机器人已查看</Text>
+                      <Ionicons name="eye-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                      <Text style={styles.menuItemText}>标记机器人已查看</Text>
                     </TouchableOpacity>
                   </>
                 )}

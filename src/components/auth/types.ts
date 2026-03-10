@@ -41,6 +41,8 @@ export interface AuthStyles {
 
 /** EmailForm props — 两端共享 */
 export interface EmailFormProps {
+  /** 覆盖表单标题（匿名绑定邮箱时传 '绑定邮箱'）。缺省走 isSignUp 判断。 */
+  formTitle?: string;
   isSignUp: boolean;
   email: string;
   password: string;
@@ -51,7 +53,7 @@ export interface EmailFormProps {
   onPasswordChange: (text: string) => void;
   onDisplayNameChange: (text: string) => void;
   onSubmit: () => void;
-  onToggleMode: () => void;
+  onToggleMode?: () => void;
   onBack: () => void;
   styles: AuthStyles;
   colors: ThemeColors;

@@ -112,6 +112,14 @@ export interface ClearSeatsRequestBody {
   roomCode: string;
 }
 
+/** POST /game/update-profile */
+export interface UpdateProfileRequestBody {
+  roomCode: string;
+  uid: string;
+  displayName?: string;
+  avatarUrl?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Night Flow API
 // ---------------------------------------------------------------------------

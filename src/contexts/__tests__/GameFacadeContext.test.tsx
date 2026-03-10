@@ -43,6 +43,8 @@ function createFakeFacade(): IGameFacade {
     resumeAfterRejoin: async () => {},
     shareNightReview: async () => ({ success: true }),
     reconnectChannel: async () => {},
+    updateMyUid: () => {},
+    updatePlayerProfile: async () => ({ success: true }),
   };
 }
 
