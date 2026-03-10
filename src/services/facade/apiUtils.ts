@@ -9,11 +9,8 @@ import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { secureRng } from '@werewolf/game-engine/utils/random';
 
-import { API_BASE_URL } from '@/config/api';
+import { API_BASE_URL, API_REGION, API_TIMEOUT_MS } from '@/config/api';
 import { facadeLog } from '@/utils/logger';
-
-/** Default region value for x-region header (Supabase Edge Functions regional routing) */
-const DEFAULT_REGION = 'us-west-1';
 
 /** 标准 API 响应（game control / seat 共用结构） */
 export interface ApiResponse {
@@ -58,19 +55,35 @@ async function callApiOnce(
   label: string,
   store?: GameStore,
 ): Promise<ApiResponse> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   try {
+    const requestId =
+      typeof globalThis.crypto?.randomUUID === 'function'
+        ? globalThis.crypto.randomUUID()
+        : `req_${Date.now()}_${Math.floor(secureRng() * 1_000_000)}`;
+    const abortController = new AbortController();
+    timeoutHandle = setTimeout(() => abortController.abort(), API_TIMEOUT_MS);
+
     const res = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-region': DEFAULT_REGION,
+        'x-region': API_REGION,
+        'x-request-id': requestId,
       },
+      signal: abortController.signal,
       body: JSON.stringify(body),
     });
+    clearTimeout(timeoutHandle);
 
     // Guard: non-JSON responses (502/503 error pages OR 200+text/html from proxy misconfiguration)
     if (!res.headers.get('content-type')?.includes('application/json')) {
-      facadeLog.error(`${label} non-JSON response`, { path, status: res.status });
+      facadeLog.error(`${label} non-JSON response`, {
+        path,
+        status: res.status,
+        requestId,
+        region: API_REGION,
+      });
       if (store) store.rollbackOptimistic();
       return { success: false, reason: 'SERVER_ERROR' };
     }
@@ -92,12 +105,29 @@ async function callApiOnce(
     // Rethrow programming errors (ReferenceError = always a code bug).
     // TypeError is NOT rethrown because fetch() throws TypeError for network failures.
     if (e instanceof ReferenceError) throw e;
+    const abortLikeError =
+      (typeof DOMException !== 'undefined' &&
+        e instanceof DOMException &&
+        e.name === 'AbortError') ||
+      (typeof e === 'object' &&
+        e !== null &&
+        'name' in e &&
+        (e as { name?: string }).name === 'AbortError');
+    if (abortLikeError) {
+      facadeLog.warn(`${label} timeout`, { path, timeoutMs: API_TIMEOUT_MS, region: API_REGION });
+      if (store) store.rollbackOptimistic();
+      return { success: false, reason: 'TIMEOUT' };
+    }
     const err = e as { message?: string };
     facadeLog.warn(`${label} network error`, { path, error: err?.message ?? String(e) });
     // Network/fetch errors are expected (offline, DNS, timeout) — no Sentry
     // 网络错误 → 回滚乐观更新
     if (store) store.rollbackOptimistic();
     return { success: false, reason: 'NETWORK_ERROR' };
+  } finally {
+    if (timeoutHandle !== null) {
+      clearTimeout(timeoutHandle);
+    }
   }
 }
 
@@ -128,7 +158,11 @@ export async function callApiWithRetry(
     const result = await callApiOnce(path, body, label, store);
 
     // 网络/服务端错误已在 callApiOnce 中 rollback，不重试
-    if (result.reason === 'NETWORK_ERROR' || result.reason === 'SERVER_ERROR') {
+    if (
+      result.reason === 'NETWORK_ERROR' ||
+      result.reason === 'SERVER_ERROR' ||
+      result.reason === 'TIMEOUT'
+    ) {
       return result;
     }
 

@@ -76,21 +76,45 @@ const NIGHT_ROUTES: Record<string, HandlerFn> = {
 // ---------------------------------------------------------------------------
 
 Deno.serve(async (req) => {
+  const requestId = req.headers.get('x-request-id') ?? crypto.randomUUID();
+  const region = req.headers.get('x-region') ?? 'unknown';
+  const startedAt = Date.now();
+
   // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    console.log('[game] request start', {
+      requestId,
+      method: req.method,
+      url: req.url,
+      region,
+    });
+
     // Health check — lightweight GET that returns 200 without touching the DB.
     if (req.method === 'GET') {
       const url = new URL(req.url);
       if (url.pathname.endsWith('/health')) {
+        console.log('[game] request end', {
+          requestId,
+          status: 200,
+          elapsedMs: Date.now() - startedAt,
+          route: 'health',
+          region,
+        });
         return jsonResponse({ status: 'ok' }, 200);
       }
     }
 
     if (req.method !== 'POST') {
+      console.warn('[game] method not allowed', {
+        requestId,
+        method: req.method,
+        elapsedMs: Date.now() - startedAt,
+        region,
+      });
       return jsonResponse({ success: false, reason: 'METHOD_NOT_ALLOWED' }, 405);
     }
 
@@ -103,6 +127,12 @@ Deno.serve(async (req) => {
     // Also handle: ["functions", "v1", "game", action] (full Supabase URL)
     const gameIdx = segments.indexOf('game');
     if (gameIdx === -1) {
+      console.warn('[game] unknown action: game segment missing', {
+        requestId,
+        path: url.pathname,
+        elapsedMs: Date.now() - startedAt,
+        region,
+      });
       return jsonResponse({ success: false, reason: 'UNKNOWN_ACTION' }, 404);
     }
 
@@ -112,25 +142,65 @@ Deno.serve(async (req) => {
       // /game/<action>
       const handler = GAME_ROUTES[remaining[0]];
       if (!handler) {
+        console.warn('[game] unknown action route', {
+          requestId,
+          action: remaining[0],
+          elapsedMs: Date.now() - startedAt,
+          region,
+        });
         return jsonResponse({ success: false, reason: 'UNKNOWN_ACTION' }, 404);
       }
-      return await handler(req);
+      const response = await handler(req);
+      console.log('[game] request end', {
+        requestId,
+        status: response.status,
+        route: `game/${remaining[0]}`,
+        elapsedMs: Date.now() - startedAt,
+        region,
+      });
+      return response;
     }
 
     if (remaining.length === 2 && remaining[0] === 'night') {
       // /game/night/<action>
       const handler = NIGHT_ROUTES[remaining[1]];
       if (!handler) {
+        console.warn('[game] unknown night action route', {
+          requestId,
+          action: remaining[1],
+          elapsedMs: Date.now() - startedAt,
+          region,
+        });
         return jsonResponse({ success: false, reason: 'UNKNOWN_NIGHT_ACTION' }, 404);
       }
-      return await handler(req);
+      const response = await handler(req);
+      console.log('[game] request end', {
+        requestId,
+        status: response.status,
+        route: `game/night/${remaining[1]}`,
+        elapsedMs: Date.now() - startedAt,
+        region,
+      });
+      return response;
     }
 
+    console.warn('[game] unknown action path shape', {
+      requestId,
+      path: url.pathname,
+      elapsedMs: Date.now() - startedAt,
+      region,
+    });
     return jsonResponse({ success: false, reason: 'UNKNOWN_ACTION' }, 404);
   } catch (err) {
     // Global catch — prevents Deno from returning a raw 500 without CORS headers.
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[game] Unhandled error in request handler:', message, err);
+    console.error('[game] unhandled error', {
+      requestId,
+      message,
+      elapsedMs: Date.now() - startedAt,
+      region,
+      err,
+    });
     return jsonResponse({ success: false, reason: 'INTERNAL_ERROR' }, 500);
   }
 });
