@@ -1,0 +1,31 @@
+name: Cleanup Branch Caches
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cleanup caches for closed branch
+        run: |
+          echo "Fetching cache list for branch $BRANCH"
+          cacheKeysForPR=$(gh cache list --ref "refs/pull/$PR_NUMBER/merge" --limit 100 --json key --jq '.[].key')
+
+          echo "Deleting caches..."
+          for key in $cacheKeysForPR; do
+            echo "  Deleting $key"
+            gh cache delete "$key" || true
+          done
+
+          echo "Done"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
