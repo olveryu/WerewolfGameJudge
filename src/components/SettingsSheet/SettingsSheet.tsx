@@ -1,7 +1,7 @@
 /**
  * SettingsSheet — 共享设置面板（动画 + BGM）
  *
- * 底部滑出 Modal，动画和 BGM 均使用 chip 平铺选择。
+ * 底部滑出 Modal，动画和 BGM 分组卡片化展示，chip 选择使用 PressableScale 弹簧微动效。
  * 纯 UI 组件：接收当前值和回调，不 import service，不包含业务逻辑。
  * 选项列表由组件内部拥有（ANIMATION_OPTIONS / BGM_OPTIONS），外部不需要传入。
  * 自带基于 theme tokens 的样式，可在 ConfigScreen 和 RoomScreen 中复用。
@@ -11,23 +11,20 @@ import {
   Modal,
   StyleSheet,
   Text,
-  TextStyle,
+  type TextStyle,
   TouchableOpacity,
   View,
-  ViewStyle,
+  type ViewStyle,
 } from 'react-native';
 
 import { borderRadius, layout, spacing, typography, useColors, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
+import { SettingsChipGroup, type SettingsOption } from './SettingsChipGroup';
+
 // ---------------------------------------------------------------------------
 // Constants — 选项列表由组件拥有，保证单一来源
 // ---------------------------------------------------------------------------
-
-interface SettingsOption {
-  value: string;
-  label: string;
-}
 
 export const ANIMATION_OPTIONS: readonly SettingsOption[] = [
   { value: 'random', label: '随机' },
@@ -115,51 +112,23 @@ export const SettingsSheet = memo(function SettingsSheet({
           <View style={styles.handle} />
           <Text style={styles.title}>设置</Text>
 
-          {/* Animation chips */}
-          <View style={styles.chipGroup}>
-            <Text style={styles.chipGroupLabel}>动画</Text>
-            <View style={styles.chipWrap}>
-              {ANIMATION_OPTIONS.map((opt) => {
-                const selected = opt.value === roleRevealAnimation;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.chip, selected && styles.chipSelected]}
-                    onPress={() => handleAnimSelect(opt.value)}
-                    activeOpacity={fixed.activeOpacity}
-                    testID={`${animationTestIDPrefix}-option-${opt.value}`}
-                  >
-                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          <SettingsChipGroup
+            label="动画"
+            options={ANIMATION_OPTIONS}
+            selectedValue={roleRevealAnimation}
+            onSelect={handleAnimSelect}
+            styles={styles.animGroup}
+            testIDPrefix={animationTestIDPrefix}
+          />
 
-          {/* BGM chips */}
-          <View style={styles.chipGroup}>
-            <Text style={styles.chipGroupLabel}>BGM</Text>
-            <View style={styles.chipWrap}>
-              {BGM_OPTIONS.map((opt) => {
-                const selected = opt.value === bgmValue;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.chip, selected && styles.chipSelected]}
-                    onPress={() => handleBgmSelect(opt.value)}
-                    activeOpacity={fixed.activeOpacity}
-                    testID={`${bgmTestIDPrefix}-option-${opt.value}`}
-                  >
-                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          <SettingsChipGroup
+            label="BGM"
+            options={BGM_OPTIONS}
+            selectedValue={bgmValue}
+            onSelect={handleBgmSelect}
+            styles={styles.bgmGroup}
+            testIDPrefix={bgmTestIDPrefix}
+          />
         </View>
       </TouchableOpacity>
     </Modal>
@@ -167,16 +136,13 @@ export const SettingsSheet = memo(function SettingsSheet({
 });
 
 // ---------------------------------------------------------------------------
-// Styles (theme-aware, mirrors ConfigScreen SettingsSheet styles)
+// Styles (theme-aware)
 // ---------------------------------------------------------------------------
 
-interface SettingsSheetStyles {
-  overlay: ViewStyle;
-  content: ViewStyle;
-  handle: ViewStyle;
-  title: TextStyle;
-  chipGroup: ViewStyle;
-  chipGroupLabel: TextStyle;
+/** Shared chip styles used by both animation and BGM groups */
+interface ChipGroupStyles {
+  groupCard: ViewStyle;
+  groupLabel: TextStyle;
   chipWrap: ViewStyle;
   chip: ViewStyle;
   chipSelected: ViewStyle;
@@ -184,8 +150,56 @@ interface SettingsSheetStyles {
   chipTextSelected: TextStyle;
 }
 
+interface SettingsSheetStyles {
+  overlay: ViewStyle;
+  content: ViewStyle;
+  handle: ViewStyle;
+  title: TextStyle;
+  animGroup: ChipGroupStyles;
+  bgmGroup: ChipGroupStyles;
+}
+
+/** Base chip styles shared between animation and BGM groups */
+function createBaseChipStyles(colors: ReturnType<typeof useColors>) {
+  return {
+    groupLabel: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.textSecondary,
+      fontWeight: typography.weights.medium,
+      marginBottom: spacing.small,
+    } as TextStyle,
+    chip: {
+      alignItems: 'center',
+      paddingHorizontal: spacing.small,
+      paddingVertical: componentSizes.chip.paddingV,
+      borderRadius: borderRadius.full,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    } as ViewStyle,
+    chipSelected: {
+      backgroundColor: withAlpha(colors.primary, 0.125),
+      borderColor: colors.primary,
+    } as ViewStyle,
+    chipText: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.textSecondary,
+      fontWeight: typography.weights.medium,
+      textAlign: 'center',
+    } as TextStyle,
+    chipTextSelected: {
+      color: colors.primary,
+      fontWeight: typography.weights.semibold,
+    } as TextStyle,
+  };
+}
+
 function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles {
-  return StyleSheet.create<SettingsSheetStyles>({
+  const baseChip = createBaseChipStyles(colors);
+
+  const sheetStyles = StyleSheet.create({
     overlay: {
       flex: 1,
       backgroundColor: colors.overlayLight,
@@ -213,47 +227,61 @@ function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles
       color: colors.text,
       marginBottom: spacing.medium,
     },
-    chipGroup: {
+    // ── Group cards ──
+    groupCard: {
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.medium,
+      padding: spacing.medium,
       marginBottom: spacing.medium,
     },
-    chipGroupLabel: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
-      fontWeight: typography.weights.medium,
-      marginBottom: spacing.small,
-    },
-    chipWrap: {
+    // ── Animation: 4-column grid ──
+    animChipWrap: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: spacing.small,
     },
-    chip: {
+    animChip: {
+      ...baseChip.chip,
       flexBasis: '22%',
       flexGrow: 0,
       maxWidth: '24%',
-      alignItems: 'center',
-      paddingHorizontal: spacing.small,
-      paddingVertical: componentSizes.chip.paddingV,
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      backgroundColor: colors.background,
     },
-    chipSelected: {
-      backgroundColor: withAlpha(colors.primary, 0.125),
-      borderColor: colors.primary,
+    // ── BGM: 2-column grid ──
+    bgmChipWrap: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.small,
     },
-    chipText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
-      fontWeight: typography.weights.medium,
-      textAlign: 'center',
-    },
-    chipTextSelected: {
-      color: colors.primary,
-      fontWeight: typography.weights.semibold,
+    bgmChip: {
+      ...baseChip.chip,
+      flexBasis: '47%',
+      flexGrow: 0,
+      maxWidth: '49%',
     },
   });
+
+  return {
+    overlay: sheetStyles.overlay,
+    content: sheetStyles.content,
+    handle: sheetStyles.handle,
+    title: sheetStyles.title,
+    animGroup: {
+      groupCard: sheetStyles.groupCard,
+      groupLabel: baseChip.groupLabel,
+      chipWrap: sheetStyles.animChipWrap,
+      chip: sheetStyles.animChip,
+      chipSelected: baseChip.chipSelected,
+      chipText: baseChip.chipText,
+      chipTextSelected: baseChip.chipTextSelected,
+    },
+    bgmGroup: {
+      groupCard: sheetStyles.groupCard,
+      groupLabel: baseChip.groupLabel,
+      chipWrap: sheetStyles.bgmChipWrap,
+      chip: sheetStyles.bgmChip,
+      chipSelected: baseChip.chipSelected,
+      chipText: baseChip.chipText,
+      chipTextSelected: baseChip.chipTextSelected,
+    },
+  };
 }
