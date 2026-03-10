@@ -1,4 +1,4 @@
-name: Cleanup Old Rooms
+name: Daily Cleanup
 
 on:
   schedule:
@@ -36,4 +36,26 @@ jobs:
             done
           else
             echo "✅ No rooms older than 24 hours found"
+          fi
+
+      - name: Delete anonymous users inactive for 14 days
+        run: |
+          # Call RPC function to clean up stale anonymous users
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/cleanup_anonymous_users")
+
+          # Extract HTTP status code and body
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | sed '$d')
+
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Deleted $body anonymous user(s) inactive for 14+ days"
+          else
+            echo "❌ Failed to cleanup anonymous users (HTTP $http_code)"
+            echo "$body"
+            exit 1
           fi
