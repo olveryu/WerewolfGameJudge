@@ -105,7 +105,7 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
               onPress={handleCloseGuide}
               activeOpacity={fixed.activeOpacity}
             >
-              <Text style={styles.primaryButtonText}>我知道了</Text>
+              <Text style={styles.primaryButtonText}>知道了</Text>
             </TouchableOpacity>
           </View>
         </View>

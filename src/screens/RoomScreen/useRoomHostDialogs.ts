@@ -84,11 +84,11 @@ export const useRoomHostDialogs = ({
         seatedCount,
         totalSeats,
       });
-      showAlert('无法开始游戏', '有座位尚未被占用。', [{ text: '知道了', style: 'default' }]);
+      showAlert('无法开始游戏', '还有空位未入座', [{ text: '知道了', style: 'default' }]);
       return;
     }
 
-    showAlert('允许看牌？', '所有座位已被占用。将洗牌并分配角色。', [
+    showAlert('分配角色？', '所有座位已满，将洗牌并分配角色', [
       { text: '取消', style: 'cancel' },
       {
         text: '确定',
@@ -118,7 +118,7 @@ export const useRoomHostDialogs = ({
   }, [markSubmitting, setIsStartingGame, startGame]);
 
   const showStartGameDialog = useCallback(() => {
-    showAlert('开始游戏？', '请将您的手机音量调整到最大。', [
+    showAlert('开始游戏？', '请将手机音量调到最大', [
       { text: '取消', style: 'cancel' },
       {
         text: '确定',
@@ -130,7 +130,7 @@ export const useRoomHostDialogs = ({
   }, [handleStartGame]);
 
   const showRestartDialog = useCallback(() => {
-    showAlert('重新开始游戏？', '使用相同板子开始新一局游戏。', [
+    showAlert('重新开始游戏？', '使用相同配置开始新一局', [
       { text: '取消', style: 'cancel' },
       {
         text: '确定',

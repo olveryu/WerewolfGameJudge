@@ -36,9 +36,9 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   onCancel,
   styles,
 }) => {
-  const title = modalType === 'enter' ? '入座' : '站起';
+  const title = modalType === 'enter' ? '入座' : '离座';
   const message =
-    modalType === 'enter' ? `确定在${seatNumber}号位入座?` : `确定从${seatNumber}号位站起?`;
+    modalType === 'enter' ? `确定在${seatNumber}号位入座？` : `确定从${seatNumber}号位离座？`;
 
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>

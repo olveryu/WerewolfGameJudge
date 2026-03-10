@@ -56,7 +56,7 @@ export const wolfVoteExecutor: IntentExecutor = (intent, ctx) => {
       const resolved = tpl
         .replace('{wolf}', `${seat + 1}号狼人`)
         .replace('{seat}', `${intent.targetSeat + 1}`);
-      return `${resolved}\n（提示：该角色免疫狼刀，服务端会拒绝）`;
+      return `${resolved}\n（该角色免疫狼人袭击）`;
     })(),
     currentSchema!,
   );

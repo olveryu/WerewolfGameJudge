@@ -173,7 +173,7 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
   const ListEmptyComponent = useMemo(
     () => (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>无匹配板子</Text>
+        <Text style={styles.emptyText}>没有匹配的模板</Text>
         <TouchableOpacity onPress={handleClearSearch} style={styles.emptyClearBtn}>
           <Text style={styles.emptyClearBtnText}>清除搜索</Text>
         </TouchableOpacity>
@@ -196,7 +196,7 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
         {/* Handle + Header */}
         <View style={styles.pickerHandle} />
         <View style={styles.pickerHeader}>
-          <Text style={styles.pickerTitle}>选择板子</Text>
+          <Text style={styles.pickerTitle}>选择模板</Text>
           <TouchableOpacity
             style={styles.pickerCloseBtn}
             onPress={onClose}
@@ -220,7 +220,7 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="搜索板子或角色..."
+            placeholder="搜索模板或角色…"
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}

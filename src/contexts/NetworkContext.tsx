@@ -68,7 +68,7 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
 
   const reportNetworkError = useCallback(
     (error: Error, retryFn?: () => Promise<void>) => {
-      const errorMsg = error.message || '网络请求失败';
+      const errorMsg = error.message || '网络异常';
       log.extend('Network').error(' Error reported:', errorMsg);
 
       setLastError(errorMsg);
@@ -90,10 +90,10 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
       let message = errorMsg;
       if (isTimeout) {
         title = '请求超时';
-        message = '服务器响应超时，可能是网络不稳定。';
+        message = '服务器响应超时，可能是网络不稳定';
       } else if (isNetworkError) {
-        title = '网络错误';
-        message = '网络连接不稳定，请检查网络设置。';
+        title = '网络异常';
+        message = '网络连接不稳定，请检查网络设置';
       }
 
       if (!retryDialogShownRef.current) {

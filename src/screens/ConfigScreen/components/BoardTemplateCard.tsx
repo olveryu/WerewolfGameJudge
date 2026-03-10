@@ -128,7 +128,7 @@ export const BoardTemplateCard = memo<BoardTemplateCardProps>(
                   isSelected && styles.templateCardCTATextSelected,
                 ]}
               >
-                {isSelected ? '已选择 ✓' : '选择此板子'}
+                {isSelected ? '已选择 ✓' : '选择此模板'}
               </Text>
             </TouchableOpacity>
           </View>

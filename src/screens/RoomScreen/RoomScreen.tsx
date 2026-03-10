@@ -463,7 +463,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               onPress={(meta) => {
                 // Policy decision: disabled button shows alert
                 if (meta.disabled) {
-                  showAlert('等待房主点击"准备看牌"分配角色');
+                  showAlert('等待房主分配角色…');
                 }
               }}
               styles={componentStyles.actionButton}

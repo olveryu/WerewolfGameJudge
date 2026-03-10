@@ -1,7 +1,7 @@
 /**
  * ConnectionStatusBar - 断线横幅 + indeterminate 进度条（Memoized）
  *
- * 仅在非 Live 状态时显示 "连接断开，正在重连..." 及底部滑动进度条。
+ * 仅在非 Live 状态时显示 "连接断开，正在重连…" 及底部滑动进度条。
  * Dead channel detector 会无限 5s 重试，无需手动重试按钮。
  * 社区标准做法：indeterminate progress bar（类似 Slack/Discord）表示持续重连中。
  */
@@ -80,7 +80,7 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ stat
       testID={TESTIDS.connectionStatusContainer}
       onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
     >
-      <Text style={styles.text}>连接断开，正在重连...</Text>
+      <Text style={styles.text}>连接断开，正在重连…</Text>
       <View style={styles.progressBarTrack}>
         <Animated.View
           style={[styles.progressBar, { width: barPixelWidth, transform: [{ translateX }] }]}

@@ -101,7 +101,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
         onPress={handleToggle}
         activeOpacity={fixed.activeOpacity}
       >
-        <Text style={styles.boardInfoTitle}>板子配置 ({playerCount}人局)</Text>
+        <Text style={styles.boardInfoTitle}>角色配置（{playerCount}人局）</Text>
         <Ionicons
           name={isCollapsed ? 'chevron-down' : 'chevron-up'}
           size={componentSizes.icon.sm}
@@ -176,7 +176,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
       {speakingOrderText != null && (
         <View style={styles.speakingOrderContainer}>
           <Text style={styles.speakingOrderText}>{speakingOrderText}</Text>
-          <Text style={styles.speakingOrderSubText}>没上警则跳到下一位</Text>
+          <Text style={styles.speakingOrderSubText}>未参与竞选的玩家自动跳过</Text>
         </View>
       )}
     </View>

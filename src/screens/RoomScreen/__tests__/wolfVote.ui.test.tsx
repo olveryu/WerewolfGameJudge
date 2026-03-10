@@ -353,7 +353,7 @@ describe('RoomScreen wolf vote UI', () => {
 
     // Verify immune warning is appended
     const alertMsg = (showAlert as jest.Mock).mock.calls[0][1] as string;
-    expect(alertMsg).toContain('免疫狼刀');
+    expect(alertMsg).toContain('免疫狼人袭击');
 
     // Confirm vote
     const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{

@@ -197,7 +197,7 @@ export const ConfigScreen: React.FC = () => {
       </View>
 
       {isLoading ? (
-        <LoadingScreen message="加载中..." fullScreen={false} />
+        <LoadingScreen message="加载中…" fullScreen={false} />
       ) : (
         <>
           {/* Active tab content */}
@@ -269,9 +269,7 @@ export const ConfigScreen: React.FC = () => {
 
       {/* Bottom Create Button */}
       <View style={styles.bottomCreateBar}>
-        <Text style={styles.cardBFooterHint}>
-          长按角色查看技能说明{'\n'}粗边框角色有可切换的变体
-        </Text>
+        <Text style={styles.cardBFooterHint}>长按角色查看技能说明{'\n'}粗边框角色可切换子角色</Text>
         <TouchableOpacity
           style={[styles.bottomCreateBtn, isDisabled && styles.bottomCreateBtnDisabled]}
           onPress={handleCreateRoom}

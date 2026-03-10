@@ -123,7 +123,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
             style={[styles.confirmButton, { backgroundColor: factionColor }]}
             onPress={onClose}
           >
-            <Text style={styles.confirmButtonText}>我知道了</Text>
+            <Text style={styles.confirmButtonText}>知道了</Text>
           </TouchableOpacity>
         </View>
       </View>

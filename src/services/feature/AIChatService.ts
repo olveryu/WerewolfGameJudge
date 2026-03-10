@@ -12,6 +12,7 @@
 import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
+import { NETWORK_ERROR, RATE_LIMIT_ERROR } from '@/config/errorMessages';
 import { isSupabaseConfigured, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config/supabase';
 import { log } from '@/utils/logger';
 
@@ -194,7 +195,7 @@ export async function* streamChatMessage(
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw error;
     chatLog.warn('Streaming fetch failed (network)', error);
-    yield { type: 'error', content: '网络请求失败，请检查网络后重试' };
+    yield { type: 'error', content: NETWORK_ERROR };
     return;
   }
 
@@ -205,7 +206,7 @@ export async function* streamChatMessage(
       yield { type: 'error', content: 'AI 服务认证失败，请联系管理员' };
     } else if (response.status === 429) {
       chatLog.warn('Rate limited by AI service');
-      yield { type: 'error', content: '请求太频繁，请稍后再试' };
+      yield { type: 'error', content: RATE_LIMIT_ERROR };
     } else if (response.status === 502 || response.status === 503) {
       chatLog.warn('Upstream unavailable', response.status);
       yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };

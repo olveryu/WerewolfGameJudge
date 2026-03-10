@@ -260,7 +260,7 @@ export const SettingsScreen: React.FC = () => {
     };
 
     if (user?.isAnonymous) {
-      showAlert('切换账号', '匿名身份将被丢弃，无法找回。确定要切换吗？', [
+      showAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', [
         { text: '取消', style: 'cancel' },
         { text: '确定', style: 'destructive', onPress: doSwitch },
       ]);

@@ -38,7 +38,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     ]);
 
     // Dialog 2
-    mockShowAlert('确认跳过', '确定不使用技能吗？', [
+    mockShowAlert('跳过本次行动？', '确定不使用技能吗？', [
       { text: '取消', style: 'cancel' },
       { text: '确定', onPress: cb2 },
     ]);
@@ -115,7 +115,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
       { text: '取消' },
       { text: '确定', onPress: wolfCb },
     ]);
-    mockShowAlert('确认跳过', '确定不使用技能吗？', [
+    mockShowAlert('跳过本次行动？', '确定不使用技能吗？', [
       { text: '取消' },
       { text: '确定', onPress: skipCb },
     ]);
@@ -172,7 +172,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
   it('getLastEvent returns the most recent event', () => {
     mockShowAlert('狼人投票', '消息1', [{ text: '确定' }]);
-    mockShowAlert('确认跳过', '消息2', [{ text: '确定' }]);
+    mockShowAlert('跳过本次行动？', '消息2', [{ text: '确定' }]);
 
     const last = harness.getLastEvent();
     expect(last).not.toBeNull();
@@ -181,7 +181,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
   it('getLastEventOfType finds the last event of a specific type', () => {
     mockShowAlert('狼人投票', '第一次', [{ text: '确定' }]);
-    mockShowAlert('确认跳过', '跳过', [{ text: '确定' }]);
+    mockShowAlert('跳过本次行动？', '跳过', [{ text: '确定' }]);
     mockShowAlert('狼人投票', '第二次', [{ text: '确定' }]);
 
     const last = harness.getLastEventOfType('wolfVote');
@@ -190,7 +190,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
   });
 
   it('getLastEventOfType returns null when type not found', () => {
-    mockShowAlert('确认跳过', '跳过', [{ text: '确定' }]);
+    mockShowAlert('跳过本次行动？', '跳过', [{ text: '确定' }]);
     expect(harness.getLastEventOfType('wolfVote')).toBeNull();
   });
 

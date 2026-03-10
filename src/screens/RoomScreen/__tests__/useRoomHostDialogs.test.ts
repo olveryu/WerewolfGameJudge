@@ -84,7 +84,7 @@ describe('useRoomHostDialogs', () => {
         result.current.showPrepareToFlipDialog();
       });
 
-      expect(mockShowAlert).toHaveBeenCalledWith('无法开始游戏', '有座位尚未被占用。', [
+      expect(mockShowAlert).toHaveBeenCalledWith('无法开始游戏', '还有空位未入座', [
         { text: '知道了', style: 'default' },
       ]);
     });
@@ -109,8 +109,8 @@ describe('useRoomHostDialogs', () => {
       });
 
       expect(mockShowAlert).toHaveBeenCalledWith(
-        '允许看牌？',
-        '所有座位已被占用。将洗牌并分配角色。',
+        '分配角色？',
+        '所有座位已满，将洗牌并分配角色',
         expect.arrayContaining([
           expect.objectContaining({ text: '确定' }),
           expect.objectContaining({ text: '取消', style: 'cancel' }),
@@ -141,7 +141,7 @@ describe('useRoomHostDialogs', () => {
 
       expect(mockShowAlert).toHaveBeenCalledWith(
         '重新开始游戏？',
-        '使用相同板子开始新一局游戏。',
+        '使用相同配置开始新一局',
         expect.arrayContaining([
           expect.objectContaining({ text: '确定' }),
           expect.objectContaining({ text: '取消', style: 'cancel' }),

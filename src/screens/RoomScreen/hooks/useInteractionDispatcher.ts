@@ -220,7 +220,7 @@ export function useInteractionDispatcher({
 
         case 'ALERT':
           roomScreenLog.debug('[dispatchInteraction] ALERT', { title: result.title });
-          showAlert(result.title, result.message, [{ text: '好' }]);
+          showAlert(result.title, result.message, [{ text: '知道了' }]);
           return;
 
         case 'SHOW_DIALOG':

@@ -197,7 +197,7 @@ export const AIChatBubble: React.FC = () => {
         >
           <Text style={styles.bubbleIcon}>{BRAND.APP}</Text>
         </TouchableOpacity>
-        <Text style={styles.bubbleLabel}>小助手</Text>
+        <Text style={styles.bubbleLabel}>助手</Text>
       </Animated.View>
 
       {/* ── Chat Modal ──────────────────────────────── */}
@@ -301,7 +301,7 @@ export const AIChatBubble: React.FC = () => {
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="输入消息..."
+                placeholder="输入消息…"
                 placeholderTextColor={colors.textMuted}
                 value={chat.inputText}
                 onChangeText={chat.setInputText}

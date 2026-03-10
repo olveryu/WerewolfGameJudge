@@ -10,7 +10,7 @@ import {
   waitForNightEnd,
   waitForRoleTurn,
 } from '../helpers/night-driver';
-import { waitForRoomScreenReady } from '../helpers/waits';
+import { DISCONNECTED_BANNER_TEXT, waitForRoomScreenReady } from '../helpers/waits';
 
 /**
  * Reconnect E2E Tests
@@ -80,7 +80,7 @@ test.describe('Network reconnect during night', () => {
 
         // Soft check: WebSocket heartbeat may take time to detect network loss.
         // Like db-recovery.spec.ts, don't hard-fail if indicator doesn't appear immediately.
-        const disconnectedBanner = disconnectPage.getByText('连接断开，正在重连...', {
+        const disconnectedBanner = disconnectPage.getByText(DISCONNECTED_BANNER_TEXT, {
           exact: true,
         });
         const sawDisconnected = await disconnectedBanner
@@ -106,7 +106,7 @@ test.describe('Network reconnect during night', () => {
       await test.step('wait 5s while disconnected', async () => {
         await disconnectPage.waitForTimeout(5_000);
 
-        const disconnectedBanner = disconnectPage.getByText('连接断开，正在重连...', {
+        const disconnectedBanner = disconnectPage.getByText(DISCONNECTED_BANNER_TEXT, {
           exact: true,
         });
         // After L0 (browser offline) removal, disconnect detection relies on
@@ -254,7 +254,7 @@ test.describe('Network reconnect during night', () => {
       await test.step('disconnect host', async () => {
         await hostContext.setOffline(true);
 
-        const disconnectedBanner = hostPage.getByText('连接断开，正在重连...', { exact: true });
+        const disconnectedBanner = hostPage.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
         const sawDisconnected = await disconnectedBanner
           .waitFor({ state: 'visible', timeout: 15_000 })
           .then(() => true)
@@ -277,7 +277,7 @@ test.describe('Network reconnect during night', () => {
       await test.step('wait 5s while disconnected', async () => {
         await hostPage.waitForTimeout(5_000);
 
-        const disconnectedBanner = hostPage.getByText('连接断开，正在重连...', { exact: true });
+        const disconnectedBanner = hostPage.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
         // SDK heartbeat ~25s — soft-check after 5s
         const sawDisconnected = await disconnectedBanner
           .waitFor({ state: 'visible', timeout: 20_000 })
@@ -420,7 +420,7 @@ test.describe('Network reconnect during night', () => {
         await disconnectContext.setOffline(true);
 
         // Soft check: banner may take time to appear due to SDK heartbeat
-        const disconnectedBanner = disconnectPage.getByText('连接断开，正在重连...', {
+        const disconnectedBanner = disconnectPage.getByText(DISCONNECTED_BANNER_TEXT, {
           exact: true,
         });
         const sawDisconnected = await disconnectedBanner

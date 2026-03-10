@@ -62,7 +62,7 @@ export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) 
         label: '机械狼确认猎人状态',
         logger: roomScreenLog,
         alertTitle: '确认失败',
-        alertMessage: '状态确认发送失败，请稍后重试。如问题持续，请联系房主。',
+        alertMessage: '确认失败，请稍后重试',
       });
     } finally {
       setPendingHunterStatusViewed(false);

@@ -37,7 +37,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
           testID={TESTIDS.homeAnonLoginButton}
         >
           <Text style={styles.outlineButtonText}>
-            {authLoading ? '处理中...' : `${UI.USER} 匿名登录`}
+            {authLoading ? '处理中…' : `${UI.USER} 匿名登录`}
           </Text>
           {!authLoading && <Text style={styles.buttonCaption}>随机分配头像和昵称</Text>}
         </TouchableOpacity>
