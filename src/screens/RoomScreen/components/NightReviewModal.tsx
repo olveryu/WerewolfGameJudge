@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 
+import { STATUS } from '@/config/emojiTokens';
 import { TESTIDS } from '@/testids';
 import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
@@ -42,7 +43,7 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
 
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             {/* Fair play reminder */}
-            <Text style={styles.disclaimer}>⚠️ 请自觉，不要作弊</Text>
+            <Text style={styles.disclaimer}>{STATUS.WARNING} 请自觉，不要作弊</Text>
 
             {/* Action summary section */}
             <Text style={styles.sectionTitle}>行动摘要</Text>

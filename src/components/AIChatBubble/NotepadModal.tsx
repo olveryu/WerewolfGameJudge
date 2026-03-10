@@ -1,7 +1,7 @@
 /**
  * NotepadModal - 全屏笔记弹窗
  *
- * 在 AI Chat Bubble 的 📝 按钮触发后全屏展示单列笔记面板。
+ * 在 AI Chat Bubble 的笔记按钮触发后全屏展示单列笔记面板。
  * 头部包含标题、清空按钮和关闭按钮。底部显示角色阵营图例。
  * 接收 useNotepad 返回值作为 props，不直接调用 service / AsyncStorage。
  */
@@ -10,6 +10,7 @@ import React, { useMemo } from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { UI } from '@/config/emojiTokens';
 import { fixed } from '@/theme/tokens';
 
 import type { ChatStyles } from './AIChatBubble.styles';
@@ -96,14 +97,14 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       <SafeAreaView style={styles.notepadModal}>
         {/* Header */}
         <View style={styles.notepadHeader}>
-          <Text style={styles.notepadHeaderTitle}>📝 笔记</Text>
+          <Text style={styles.notepadHeaderTitle}>{UI.NOTE} 笔记</Text>
           <View style={styles.notepadHeaderButtons}>
             <TouchableOpacity
               onPress={notepad.clearAll}
               style={styles.notepadHeaderBtn}
               activeOpacity={fixed.activeOpacity}
             >
-              <Text style={styles.notepadHeaderBtnText}>🗑️</Text>
+              <Text style={styles.notepadHeaderBtnText}>{UI.DELETE}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onClose}
@@ -128,7 +129,7 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
 
         {/* Public note area — side-by-side */}
         <View style={styles.notepadPublicSection}>
-          <Text style={styles.notepadPublicLabel}>📋 记录</Text>
+          <Text style={styles.notepadPublicLabel}>{UI.RECORD} 记录</Text>
           <View style={styles.notepadPublicRow}>
             <TextInput
               style={styles.notepadPublicInput}

@@ -23,6 +23,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 
 import { Avatar } from '@/components/Avatar';
+import { STATUS, UI } from '@/config/emojiTokens';
 import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
@@ -235,7 +236,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
         {isMySpot && hasPlayer && <Text style={styles.mySeatBadge}>我</Text>}
 
-        {showReadyBadge && hasPlayer && <Text style={styles.readyBadge}>✅</Text>}
+        {showReadyBadge && hasPlayer && <Text style={styles.readyBadge}>{STATUS.READY}</Text>}
 
         {wolfVoteBadge != null && hasPlayer && (
           <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
@@ -249,7 +250,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       {hasPlayer ? (
         <>
           <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
-            {isBot ? '🤖 ' : ''}
+            {isBot ? `${UI.BOT} ` : ''}
             {playerDisplayName}
           </Text>
           {botRoleDisplayName && (

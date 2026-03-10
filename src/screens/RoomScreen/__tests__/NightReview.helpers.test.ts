@@ -45,7 +45,7 @@ describe('NightReview.helpers', () => {
   describe('buildActionLines', () => {
     it('returns peaceful night when no deaths and no actions', () => {
       const lines = buildActionLines(makeGameState());
-      expect(lines).toEqual(['✅ 昨夜平安夜']);
+      expect(lines).toEqual(['🌙 昨夜平安夜']);
     });
 
     it('shows wolf votes', () => {

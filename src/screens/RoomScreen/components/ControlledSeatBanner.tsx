@@ -11,6 +11,8 @@
 import React, { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import { UI } from '@/config/emojiTokens';
+
 import { type ControlledSeatBannerStyles } from './styles';
 
 interface ControlledSeatBannerProps {
@@ -36,7 +38,7 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   if (mode === 'hint') {
     return (
       <View style={styles.hintContainer}>
-        <Text style={styles.hintText}>💡 长按座位可接管机器人</Text>
+        <Text style={styles.hintText}>{UI.HINT} 长按座位可接管机器人</Text>
       </View>
     );
   }
@@ -50,7 +52,7 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.text}>
-        🎮 正在操控 {controlledSeat + 1} 号位（{botDisplayName}）
+        {UI.GAMEPAD} 正在操控 {controlledSeat + 1} 号位（{botDisplayName}）
       </Text>
       <TouchableOpacity style={styles.releaseButton} onPress={onRelease}>
         <Text style={styles.releaseButtonText}>退出</Text>

@@ -7,8 +7,9 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName, getRoleEmoji } from '@werewolf/game-engine/models/roles';
 
+import { ACTION, STATUS } from '@/config/emojiTokens';
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,72 +60,80 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     const voteDesc = entries
       .map(([voter, target]) => `${s(Number(voter))}→${s(target)}`)
       .join('，');
-    lines.push(`🐺 狼人投票：${voteDesc}`);
+    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人投票：${voteDesc}`);
   }
 
   if (nr.wolfKillDisabled) {
-    lines.push('🐺 狼人刀空（被梦魇封锁）');
+    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人刀空（被梦魇封锁）`);
   }
 
   // 2. Nightmare block
   if (nr.blockedSeat != null) {
-    lines.push(`😈 梦魇封锁了 ${s(nr.blockedSeat)}`);
+    lines.push(`${getRoleEmoji('nightmare' as RoleId)} 梦魇封锁了 ${s(nr.blockedSeat)}`);
   }
 
   // 3. Guard
   if (nr.guardedSeat != null) {
-    lines.push(`🛡️ 守卫守护了 ${s(nr.guardedSeat)}`);
+    lines.push(`${ACTION.GUARD} 守卫守护了 ${s(nr.guardedSeat)}`);
   }
 
   // 3a. SilenceElder
   if (nr.silencedSeat != null) {
-    lines.push(`🤫 禁言长老禁言了 ${s(nr.silencedSeat)}`);
+    lines.push(`${getRoleEmoji('silenceElder' as RoleId)} 禁言长老禁言了 ${s(nr.silencedSeat)}`);
   }
 
   // 3b. VotebanElder
   if (nr.votebannedSeat != null) {
-    lines.push(`🚫 禁票长老禁票了 ${s(nr.votebannedSeat)}`);
+    lines.push(`${getRoleEmoji('votebanElder' as RoleId)} 禁票长老禁票了 ${s(nr.votebannedSeat)}`);
   }
 
   // 4. Witch
   if (nr.savedSeat != null) {
-    lines.push(`💊 女巫救了 ${s(nr.savedSeat)}`);
+    lines.push(`${ACTION.SAVE} 女巫救了 ${s(nr.savedSeat)}`);
   }
   if (nr.poisonedSeat != null) {
-    lines.push(`☠️ 女巫毒了 ${s(nr.poisonedSeat)}`);
+    lines.push(`${ACTION.POISON} 女巫毒了 ${s(nr.poisonedSeat)}`);
   }
 
   // 5. Dreamcatcher
   if (nr.dreamingSeat != null) {
-    lines.push(`🌙 摄梦人守护了 ${s(nr.dreamingSeat)}`);
+    lines.push(`${getRoleEmoji('dreamcatcher' as RoleId)} 摄梦人守护了 ${s(nr.dreamingSeat)}`);
   }
 
   // 6. Magician swap
   if (nr.swappedSeats) {
-    lines.push(`🎩 魔术师交换了 ${s(nr.swappedSeats[0])} 和 ${s(nr.swappedSeats[1])}`);
+    lines.push(
+      `${getRoleEmoji('magician' as RoleId)} 魔术师交换了 ${s(nr.swappedSeats[0])} 和 ${s(nr.swappedSeats[1])}`,
+    );
   }
 
   // 6a. Slacker idol (from actions Map)
   const slackerAction = gameState.actions.get('slacker' as RoleId);
   if (slackerAction && slackerAction.kind === 'target') {
-    lines.push(`🎭 混子选择了 ${s(slackerAction.targetSeat)} 为榜样`);
+    lines.push(
+      `${getRoleEmoji('slacker' as RoleId)} 混子选择了 ${s(slackerAction.targetSeat)} 为榜样`,
+    );
   }
 
   // 6b. WildChild idol (from actions Map)
   const wildChildAction = gameState.actions.get('wildChild' as RoleId);
   if (wildChildAction && wildChildAction.kind === 'target') {
-    lines.push(`👦 野孩子选择了 ${s(wildChildAction.targetSeat)} 为榜样`);
+    lines.push(
+      `${getRoleEmoji('wildChild' as RoleId)} 野孩子选择了 ${s(wildChildAction.targetSeat)} 为榜样`,
+    );
   }
 
   // 6c. WolfQueen charm (from actions Map)
   const wolfQueenAction = gameState.actions.get('wolfQueen' as RoleId);
   if (wolfQueenAction && wolfQueenAction.kind === 'target') {
-    lines.push(`💋 狼美人魅惑了 ${s(wolfQueenAction.targetSeat)}`);
+    lines.push(`${ACTION.CHARM} 狼美人魅惑了 ${s(wolfQueenAction.targetSeat)}`);
   }
 
   // 6d. AwakenedGargoyle convert
   if (nr.convertedSeat != null) {
-    lines.push(`🗿🔥 觉醒石像鬼转化了 ${s(nr.convertedSeat)}`);
+    lines.push(
+      `${getRoleEmoji('awakenedGargoyle' as RoleId)} 觉醒石像鬼转化了 ${s(nr.convertedSeat)}`,
+    );
   }
 
   // 6e. Piper hypnotize
@@ -132,7 +141,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     const hypnotizedList = (nr.hypnotizedSeats as readonly number[])
       .map((seat) => s(seat))
       .join('、');
-    lines.push(`🪈 吹笛者催眠了 ${hypnotizedList}`);
+    lines.push(`${getRoleEmoji('piper' as RoleId)} 吹笛者催眠了 ${hypnotizedList}`);
   }
 
   // 7. Check reveals (seer family + others)
@@ -149,14 +158,16 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   for (const { key, label } of revealFields) {
     const reveal = gameState[key];
     if (reveal) {
-      lines.push(`🔍 ${label}查验 ${s(reveal.targetSeat)}：${reveal.result}`);
+      lines.push(`${ACTION.CHECK} ${label}查验 ${s(reveal.targetSeat)}：${reveal.result}`);
     }
   }
 
   // 8. WolfRobot learn
   if (gameState.wolfRobotReveal) {
     const wr = gameState.wolfRobotReveal;
-    lines.push(`🤖 机械狼学习了 ${s(wr.targetSeat)}（${getRoleDisplayName(wr.learnedRoleId)}）`);
+    lines.push(
+      `${ACTION.LEARN} 机械狼学习了 ${s(wr.targetSeat)}（${getRoleDisplayName(wr.learnedRoleId)}）`,
+    );
   }
 
   // 9. Hunter / DarkWolfKing canShoot status
@@ -164,22 +175,30 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   const hunterSeat = findSeatByRole(gameState.players, 'hunter' as RoleId);
   if (hunterSeat !== undefined) {
     const canShoot = nr.poisonedSeat !== hunterSeat;
-    lines.push(canShoot ? '🔫 猎人可以发动技能' : '🔫 猎人不能发动技能（被女巫毒杀）');
+    lines.push(
+      canShoot
+        ? `${ACTION.SHOOT} 猎人可以发动技能`
+        : `${ACTION.SHOOT} 猎人不能发动技能（被女巫毒杀）`,
+    );
   }
 
   const darkWolfKingSeat = findSeatByRole(gameState.players, 'darkWolfKing' as RoleId);
   if (darkWolfKingSeat !== undefined) {
     const canShoot = nr.poisonedSeat !== darkWolfKingSeat;
-    lines.push(canShoot ? '👑 黑狼王可以发动技能' : '👑 黑狼王不能发动技能（被女巫毒杀）');
+    lines.push(
+      canShoot
+        ? `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王可以发动技能`
+        : `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王不能发动技能（被女巫毒杀）`,
+    );
   }
 
   // 10. Final deaths
   const deaths = gameState.lastNightDeaths;
   if (deaths.length === 0) {
-    lines.push('✅ 昨夜平安夜');
+    lines.push(`${STATUS.PEACEFUL_NIGHT} 昨夜平安夜`);
   } else {
     const deathList = deaths.map((d) => s(d)).join('、');
-    lines.push(`💀 死亡：${deathList}`);
+    lines.push(`${STATUS.DEATH} 死亡：${deathList}`);
   }
 
   return lines;
