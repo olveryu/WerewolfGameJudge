@@ -98,12 +98,14 @@ export class RoomPage {
     await this.page.getByText('确定', { exact: true }).click();
     // Wait for role assignment broadcast to arrive ("查看身份" becomes enabled)
     // instead of fixed timeout — server-authoritative mode has variable latency.
-    await expect(this.page.getByText('查看身份', { exact: true })).toBeEnabled({ timeout: 15_000 });
+    await expect(this.page.getByRole('button', { name: '查看身份' })).toBeEnabled({
+      timeout: 15_000,
+    });
   }
 
   /** Click "查看身份" → wait for flip → click "我知道了". */
   async viewAndDismissRole() {
-    const viewBtn = this.page.getByText('查看身份', { exact: true });
+    const viewBtn = this.page.getByRole('button', { name: '查看身份' });
     await expect(viewBtn).toBeVisible({ timeout: 15_000 });
 
     for (let attempt = 1; attempt <= 50; attempt++) {
@@ -176,7 +178,7 @@ export class RoomPage {
       '吹笛者',
     ];
 
-    const viewBtn = this.page.getByText('查看身份', { exact: true });
+    const viewBtn = this.page.getByRole('button', { name: '查看身份' });
     await expect(viewBtn).toBeVisible({ timeout: 15_000 });
 
     for (let attempt = 1; attempt <= 50; attempt++) {
