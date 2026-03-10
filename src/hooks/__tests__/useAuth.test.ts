@@ -1,6 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
+// This test exercises the real AuthProvider — undo the global mock from jest.setup.ts
+jest.unmock('../../contexts/AuthContext');
+
 import { useAuthContext as useAuth, type User } from '@/contexts/AuthContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';

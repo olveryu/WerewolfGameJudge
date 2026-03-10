@@ -31,6 +31,8 @@ export function createModalMenuStyles(colors: ThemeColors): {
       },
       triggerButton: {
         ...shared.iconButton,
+        borderRadius: borderRadius.full,
+        overflow: 'hidden',
       },
       triggerText: {
         fontSize: typography.heading,
