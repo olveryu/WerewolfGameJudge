@@ -99,7 +99,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     marginHorizontal: layout.screenPaddingH,
     marginTop: spacing.small,
     overflow: 'hidden',
-    ...shadows.sm,
+    ...shadows.md,
   } satisfies ViewStyle,
   cardADivider: {
     height: fixed.divider,
@@ -158,7 +158,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     paddingHorizontal: layout.screenPaddingH,
     paddingVertical: spacing.medium,
     backgroundColor: colors.background,
-    ...shadows.upward,
+    ...shadows.lgUpward,
   } satisfies ViewStyle,
   bottomCreateBtn: {
     height: componentSizes.button.lg,
@@ -166,6 +166,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    ...shadows.md,
   } satisfies ViewStyle,
   bottomCreateBtnDisabled: {
     opacity: fixed.disabledOpacity,
@@ -182,9 +183,9 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     backgroundColor: colors.surface,
     borderRadius: borderRadius.large,
     marginHorizontal: layout.screenPaddingH,
-    marginTop: spacing.small,
+    marginTop: spacing.medium,
     paddingBottom: spacing.small + spacing.tight,
-    ...shadows.sm,
+    ...shadows.md,
   } satisfies ViewStyle,
   cardBDivider: {
     height: fixed.divider,

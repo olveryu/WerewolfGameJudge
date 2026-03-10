@@ -14,6 +14,7 @@ import {
   spacing,
   type ThemeColors,
   typography,
+  withAlpha,
 } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
@@ -152,28 +153,26 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       height: 1,
       overflow: 'hidden',
     },
-    // ── Hero Card (surface bg + primary border) ─────────────
+    // ── Hero Card (surface bg + elevated shadow, unified with action cards) ──
     heroCard: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.surface,
       marginHorizontal: spacing.screenH,
       marginTop: spacing.medium,
-      marginBottom: spacing.medium,
+      marginBottom: spacing.large,
       padding: spacing.medium,
       borderRadius: borderRadius.large,
-      borderWidth: fixed.borderWidthThick,
-      borderColor: colors.primary,
-      ...shadows.md,
+      ...shadows.lg,
     },
     heroCardContent: {
       flex: 1,
       gap: spacing.tight,
     },
     heroCardTitle: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.semibold,
+      fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
+      fontWeight: typography.weights.bold,
       color: colors.text,
     },
     heroCardSubtitle: {
@@ -182,9 +181,9 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       color: colors.textSecondary,
     },
     heroCardArrow: {
-      width: componentSizes.button.sm,
-      height: componentSizes.button.sm,
-      borderRadius: borderRadius.full,
+      width: componentSizes.button.md,
+      height: componentSizes.button.md,
+      borderRadius: borderRadius.large,
       backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
@@ -193,7 +192,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     actionRow: {
       flexDirection: 'row',
       marginHorizontal: spacing.screenH,
-      marginBottom: spacing.medium,
+      marginBottom: spacing.large,
       gap: spacing.small,
     },
     actionCard: {
@@ -203,7 +202,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       padding: spacing.medium,
       alignItems: 'center',
       gap: spacing.small,
-      ...shadows.sm,
+      ...shadows.md,
     },
     actionCardDisabled: {
       opacity: fixed.disabledOpacity,
@@ -212,20 +211,20 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       width: componentSizes.button.md,
       height: componentSizes.button.md,
       borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
+      backgroundColor: withAlpha(colors.primary, 0.06),
       justifyContent: 'center',
       alignItems: 'center',
     },
     actionCardTitle: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
+      fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       textAlign: 'center',
     },
     actionCardSubtitle: {
-      fontSize: typography.captionSmall,
-      lineHeight: typography.lineHeights.captionSmall,
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
       textAlign: 'center',
     },
@@ -234,7 +233,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       flexDirection: 'row',
       alignItems: 'center',
       marginHorizontal: spacing.screenH,
-      marginBottom: spacing.medium,
+      marginBottom: spacing.small,
       padding: spacing.medium,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
@@ -244,6 +243,13 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     tipCardIcon: {
       fontSize: typography.title,
       lineHeight: typography.lineHeights.title,
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      backgroundColor: withAlpha(colors.primary, 0.08),
+      borderRadius: borderRadius.medium,
+      overflow: 'hidden',
     },
     tipCardBody: {
       flex: 1,
@@ -255,8 +261,8 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       color: colors.text,
     },
     tipCardSub: {
-      fontSize: typography.captionSmall,
-      lineHeight: typography.lineHeights.captionSmall,
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
       marginTop: spacing.micro,
     },

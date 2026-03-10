@@ -29,7 +29,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         borderTopWidth: fixed.borderWidth,
         borderTopColor: colors.borderLight,
         overflow: 'hidden',
-        ...shadows.upward,
+        ...shadows.lgUpward,
       },
       message: {
         textAlign: 'center',

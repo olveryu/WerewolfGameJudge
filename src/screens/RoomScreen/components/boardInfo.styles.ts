@@ -19,7 +19,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         borderRadius: borderRadius.large,
         padding: spacing.medium,
         marginBottom: spacing.medium,
-        ...shadows.sm,
+        ...shadows.md,
       },
       headerRow: {
         flexDirection: 'row',
@@ -27,8 +27,8 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         alignItems: 'center',
       },
       boardInfoTitle: {
-        fontSize: typography.body,
-        lineHeight: typography.lineHeights.body,
+        fontSize: typography.subtitle,
+        lineHeight: typography.lineHeights.subtitle,
         fontWeight: typography.weights.bold,
         color: colors.text,
       },
