@@ -8,7 +8,6 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
 
 import { facadeLog } from '@/utils/logger';
 
@@ -32,8 +31,9 @@ type SeatApiResponse = ApiResponse;
 /**
  * 调用座位 API（内置客户端重试）
  *
- * 支持客户端乐观更新：传入 `optimisticFn` 在 fetch 前即时渲染预测 state，
- * 服务端响应后 applySnapshot 覆盖；失败时 rollbackOptimistic。
+ * 座位操作不做客户端乐观更新：低频操作（点一次等结果），
+ * 靠 HTTP 响应的 applySnapshot 即时渲染（~100-300ms 延迟可接受）。
+ * 乐观更新曾导致服务端拒绝 / 广播竞态时客户端 state 脱轨。
  *
  * 服务端瞬时错误（CONFLICT_RETRY / INTERNAL_ERROR）透明重试最多 2 次。
  */
@@ -41,9 +41,8 @@ async function callSeatApi(
   roomCode: string,
   body: Record<string, unknown>,
   store?: GameStore,
-  optimisticFn?: (state: GameState) => GameState,
 ): Promise<SeatApiResponse> {
-  return callApiWithRetry('/game/seat', { roomCode, ...body }, 'callSeatApi', store, optimisticFn);
+  return callApiWithRetry('/game/seat', { roomCode, ...body }, 'callSeatApi', store);
 }
 
 // =============================================================================
@@ -89,31 +88,6 @@ export async function takeSeatWithAck(
       avatarUrl,
     },
     ctx.store,
-    // 乐观预测：立即显示玩家入座（同时清除旧座位）
-    // 跳过已被其他人占据的座位，避免服务端拒绝前的头像闪现
-    (state) => {
-      const occupant = state.players[seatNumber];
-      if (occupant && occupant.uid !== ctx.myUid) {
-        return state; // 座位已被他人占据，不做乐观更新
-      }
-      const updatedPlayers = { ...state.players };
-      // 移除同一 uid 的旧座位
-      for (const [seat, player] of Object.entries(updatedPlayers)) {
-        if (player && player.uid === ctx.myUid) {
-          updatedPlayers[Number(seat)] = null;
-          break;
-        }
-      }
-      // 设置新座位
-      updatedPlayers[seatNumber] = {
-        uid: ctx.myUid!,
-        seatNumber,
-        displayName,
-        avatarUrl,
-        hasViewedRole: false,
-      };
-      return { ...state, players: updatedPlayers };
-    },
   );
 }
 
@@ -147,16 +121,5 @@ export async function leaveSeatWithAck(
       uid,
     },
     ctx.store,
-    // 乐观预测：立即移除玩家座位
-    (state) => {
-      const updatedPlayers = { ...state.players };
-      for (const [seat, player] of Object.entries(updatedPlayers)) {
-        if (player && player.uid === uid) {
-          updatedPlayers[Number(seat)] = null;
-          break;
-        }
-      }
-      return { ...state, players: updatedPlayers };
-    },
   );
 }

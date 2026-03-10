@@ -94,7 +94,7 @@ export function useRoomSeatDialogs({
     const seat = pendingSeat;
     roomScreenLog.debug('[SeatDialogs] Taking seat', { seat });
 
-    // Close modal immediately — optimistic update already applied by takeSeat
+    // Close modal immediately — server response applySnapshot will update seat state
     setSeatModalVisible(false);
     setPendingSeat(null);
 
@@ -129,7 +129,7 @@ export function useRoomSeatDialogs({
     submittingRef.current = true;
     roomScreenLog.debug('[SeatDialogs] Leaving seat', { seat: pendingSeat });
 
-    // Close modal immediately — optimistic update already applied by leaveSeat
+    // Close modal immediately — server response applySnapshot will update seat state
     setSeatModalVisible(false);
     setPendingSeat(null);
 
