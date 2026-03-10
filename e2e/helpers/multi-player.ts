@@ -146,7 +146,7 @@ async function viewRolesForAll(pages: Page[]): Promise<void> {
  * and retry after a brief wait for the next broadcast to arrive.
  */
 export async function viewRoleWithRetry(page: Page, maxRetries = 50): Promise<void> {
-  const viewBtn = page.getByText('查看身份', { exact: true });
+  const viewBtn = page.getByRole('button', { name: '查看身份' });
   await expect(viewBtn).toBeVisible({ timeout: 15_000 });
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
