@@ -122,7 +122,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     alertBox: {
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
+      borderRadius: borderRadius.xlarge,
       padding: spacing.large,
       minWidth: spacing.xxlarge * 6, // ~280
       maxWidth: screenWidth * 0.85,
@@ -150,7 +150,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     button: {
       backgroundColor: colors.primary,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.large,
       alignItems: 'center',

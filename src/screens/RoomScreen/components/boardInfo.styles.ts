@@ -74,7 +74,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         fontSize: typography.caption,
         lineHeight: typography.lineHeights.caption,
         color: colors.textMuted,
-        marginTop: spacing.tight / 2,
+        marginTop: spacing.micro,
       },
       boardInfoHint: {
         fontSize: typography.caption,

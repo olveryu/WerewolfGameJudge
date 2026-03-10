@@ -9,6 +9,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, ThemeColors, typography, useColors } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 interface NumPadProps {
   /** Current value (max 4 digits) */
@@ -64,6 +65,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     buttonText: {
       fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
       fontWeight: typography.weights.semibold,
       color: colors.text,
     },
@@ -72,10 +74,11 @@ const createStyles = (colors: ThemeColors) =>
     },
     specialButtonText: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.textSecondary,
     },
     buttonDisabled: {
-      opacity: 0.5,
+      opacity: fixed.disabledOpacity,
     },
   });
 
@@ -122,7 +125,7 @@ const NumPadComponent: React.FC<NumPadProps> = ({
           disabled && styles.buttonDisabled,
         ]}
         onPress={() => handlePress(key)}
-        activeOpacity={disabled ? 1 : 0.7}
+        activeOpacity={disabled ? 1 : fixed.activeOpacity}
         accessibilityLabel={getAccessibilityLabel(key)}
         accessibilityState={{ disabled }}
         testID={TESTIDS.numpadKey(key)}

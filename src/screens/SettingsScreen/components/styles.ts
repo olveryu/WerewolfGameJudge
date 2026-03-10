@@ -104,7 +104,8 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: spacing.medium,
+      paddingHorizontal: spacing.screenH,
+      paddingVertical: spacing.medium,
       backgroundColor: colors.surface,
       borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
@@ -121,7 +122,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       flex: 1,
       fontSize: typography.subtitle,
       lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.semibold,
+      fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',
     },

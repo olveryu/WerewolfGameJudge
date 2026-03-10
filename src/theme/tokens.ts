@@ -424,6 +424,9 @@ export const fixed = {
 
   /** TouchableOpacity 按下态透明度 */
   activeOpacity: 0.7,
+
+  /** 通用禁用态静态 opacity */
+  disabledOpacity: 0.4,
 } as const;
 
 // ============================================================================

@@ -65,7 +65,12 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
           </ScrollView>
 
           {/* Close button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose} accessibilityLabel="关闭">
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            activeOpacity={fixed.activeOpacity}
+            accessibilityLabel="关闭"
+          >
             <Text style={styles.closeButtonText}>关闭</Text>
           </TouchableOpacity>
         </View>
@@ -91,6 +96,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     },
     title: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',
@@ -101,12 +107,14 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     },
     sectionTitle: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
       color: colors.primary,
       marginBottom: spacing.small,
     },
     disclaimer: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       textAlign: 'center',
       marginBottom: spacing.medium,
@@ -114,7 +122,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     line: {
       fontSize: typography.secondary,
       color: colors.text,
-      lineHeight: typography.lineHeights.subtitle,
+      lineHeight: typography.lineHeights.secondary,
       paddingLeft: spacing.small,
     },
     divider: {
@@ -125,12 +133,13 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     closeButton: {
       marginTop: spacing.medium,
       backgroundColor: colors.primary,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       paddingVertical: spacing.medium,
       alignItems: 'center',
     },
     closeButtonText: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.textInverse,
       fontWeight: typography.weights.semibold,
     },

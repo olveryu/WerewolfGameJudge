@@ -38,7 +38,7 @@ const SIZE_CHIP: Record<ChipSize, ViewStyle> = {
   },
   md: {
     paddingHorizontal: spacing.small,
-    paddingVertical: spacing.tight / 2,
+    paddingVertical: spacing.micro,
   },
 };
 

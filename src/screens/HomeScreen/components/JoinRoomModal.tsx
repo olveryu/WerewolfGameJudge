@@ -8,6 +8,7 @@ import React, { memo, useMemo } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { NumPad } from '@/components/NumPad';
+import { fixed } from '@/theme/tokens';
 
 import { type HomeScreenStyles } from './styles';
 
@@ -69,7 +70,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
                 isLoading && styles.buttonDisabled,
               ]}
               onPress={onCancel}
-              activeOpacity={isLoading ? 1 : 0.7}
+              activeOpacity={isLoading ? 1 : fixed.activeOpacity}
               accessibilityState={{ disabled: isLoading }}
             >
               <Text style={styles.secondaryButtonText}>取消</Text>
@@ -81,7 +82,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
                 isLoading && styles.buttonDisabled,
               ]}
               onPress={onJoin}
-              activeOpacity={isLoading ? 1 : 0.7}
+              activeOpacity={isLoading ? 1 : fixed.activeOpacity}
               accessibilityState={{ disabled: isLoading }}
             >
               <Text style={styles.primaryButtonText}>{isLoading ? '加入中...' : '加入'}</Text>

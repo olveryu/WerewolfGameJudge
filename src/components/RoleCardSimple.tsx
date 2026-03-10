@@ -164,6 +164,7 @@ function createStyles(colors: ThemeColors) {
     },
     variantPillText: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       fontWeight: typography.weights.medium,
       color: colors.textSecondary,
     },
@@ -179,6 +180,7 @@ function createStyles(colors: ThemeColors) {
     confirmButtonText: {
       color: colors.textInverse,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
     },
   });

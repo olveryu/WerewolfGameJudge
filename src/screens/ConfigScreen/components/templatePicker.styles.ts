@@ -99,10 +99,10 @@ export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerS
     pickerHandle: {
       width: componentSizes.button.sm + spacing.tight,
       height: spacing.tight,
-      borderRadius: spacing.tight / 2,
+      borderRadius: spacing.micro,
       backgroundColor: colors.border,
       alignSelf: 'center',
-      marginVertical: spacing.small + spacing.tight / 2,
+      marginVertical: spacing.small + spacing.micro,
     },
     pickerHeader: {
       flexDirection: 'row',
