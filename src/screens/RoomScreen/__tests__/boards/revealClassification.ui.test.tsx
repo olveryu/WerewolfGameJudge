@@ -87,14 +87,11 @@ describe('Reveal Dialog Classification', () => {
     });
 
     it('action prompt with 预言家 is classified as actionPrompt, not seerReveal', () => {
-      // The classification rules have priority: seerReveal matches "预言家" in title,
-      // but actionPrompt also matches "预言家". seerReveal rule comes first.
+      // Title ends with '行动' → seerReveal rule excludes it, falls through to actionPrompt.
       mockShowAlert('预言家请行动', '请选择要查验的玩家', [{ text: '知道了' }]);
-      // This should match seerReveal since it has higher priority and "预言家" in title
       const event = harness.getLastEvent();
       expect(event).not.toBeNull();
-      // The classification matches first rule — document actual behavior
-      expect(event!.type).toBe('seerReveal');
+      expect(event!.type).toBe('actionPrompt');
     });
   });
 });

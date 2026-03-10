@@ -246,7 +246,7 @@ export function handleRestartGame(
 }
 
 /**
- * 处理更新模板（仅“准备看牌前”：unseated | seated）
+ * 处理更新模板（仅“分配角色前”：unseated | seated）
  *
  * Host 编辑房间配置时调用。
  */
@@ -258,7 +258,7 @@ export function handleUpdateTemplate(
   if (!guard.ok) return guard.result;
   const { state } = guard;
 
-  // 验证：仅允许“准备看牌前”修改（unseated/seated）。
+  // 验证：仅允许“分配角色前”修改（unseated/seated）。
   // 一旦进入 assigned/ready/ongoing/ended，修改会造成状态机与玩家认知漂移，因此强制要求先 RESTART_GAME。
   const canUpdateTemplateBeforeView =
     state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
@@ -266,7 +266,7 @@ export function handleUpdateTemplate(
     return {
       success: false,
       reason:
-        '只能在“准备看牌”前修改设置（未入座/已入座阶段）。如果已经不是该阶段，请先点击“重新开始”回到准备阶段再修改。',
+        '只能在“分配角色”前修改设置（未入座/已入座阶段）。如果已经不是该阶段，请先点击“重新开始”回到准备阶段再修改。',
       actions: [],
     };
   }

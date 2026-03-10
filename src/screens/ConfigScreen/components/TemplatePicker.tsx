@@ -1,8 +1,8 @@
 /**
- * TemplatePicker - 板子选择 Modal（SectionList + Accordion 卡片）
+ * TemplatePicker - 模板选择 Modal（SectionList + Accordion 卡片）
  *
- * 底部滑出 Modal，按分类分组展示预设板子。每张卡片支持折叠/展开查看
- * 完整角色阵营分布。顶部搜索框支持按板子名和角色名实时过滤。
+ * 底部滑出 Modal，按分类分组展示预设模板。每张卡片支持折叠/展开查看
+ * 完整角色阵营分布。顶部搜索框支持按模板名和角色名实时过滤。
  * 渲染 UI 并通过回调上报 onSelect，不 import service，不包含业务逻辑判断。
  */
 import { Ionicons } from '@expo/vector-icons';

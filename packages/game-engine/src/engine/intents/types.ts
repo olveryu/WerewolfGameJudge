@@ -70,7 +70,7 @@ export interface RestartGameIntent {
 
 /**
  * 更新模板 Intent（Host-only）
- * 前置条件：status === Unseated | Seated（准备看牌前）
+ * 前置条件：status === Unseated | Seated（分配角色前）
  * 用于 Host 编辑房间配置
  */
 export interface UpdateTemplateIntent {

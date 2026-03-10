@@ -58,10 +58,10 @@ export class RoomPage {
     await expect(this.page.getByText('我')).toBeVisible({ timeout: 10_000 });
   }
 
-  /** Click own seat and confirm "站起" dialog. */
+  /** Click own seat and confirm "离座" dialog. */
   async standUp(seat: number) {
     await this.getSeatTile(seat).click();
-    await expect(this.page.getByText('站起', { exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(this.page.getByText('离座', { exact: true })).toBeVisible({ timeout: 5000 });
     await this.page.getByText('确定', { exact: true }).click();
     // Wait for "我" badge to disappear, confirming stand-up broadcast arrived
     await expect(this.page.getByText('我')).not.toBeVisible({ timeout: 5000 });
@@ -89,12 +89,12 @@ export class RoomPage {
   // Game Flow
   // ---------------------------------------------------------------------------
 
-  /** Click "准备看牌" and confirm the dialog. Wait for role assignment to propagate. */
+  /** Click "分配角色" and confirm the dialog. Wait for role assignment to propagate. */
   async prepareRoles() {
-    const btn = this.page.getByText('准备看牌');
+    const btn = this.page.getByText('分配角色');
     await expect(btn).toBeVisible({ timeout: 5000 });
     await btn.click();
-    await expect(this.page.getByText('允许看牌？')).toBeVisible({ timeout: 3000 });
+    await expect(this.page.getByText('分配角色？')).toBeVisible({ timeout: 3000 });
     await this.page.getByText('确定', { exact: true }).click();
     // Wait for role assignment broadcast to arrive ("查看身份" becomes enabled)
     // instead of fixed timeout — server-authoritative mode has variable latency.
@@ -103,7 +103,7 @@ export class RoomPage {
     });
   }
 
-  /** Click "查看身份" → wait for flip → click "我知道了". */
+  /** Click "查看身份" → wait for flip → click "知道了". */
   async viewAndDismissRole() {
     const viewBtn = this.page.getByRole('button', { name: '查看身份' });
     await expect(viewBtn).toBeVisible({ timeout: 15_000 });
@@ -111,8 +111,8 @@ export class RoomPage {
     for (let attempt = 1; attempt <= 50; attempt++) {
       await viewBtn.click();
 
-      const okBtn = this.page.getByText('我知道了', { exact: true });
-      const waitAlert = this.page.getByText('等待房主点击"准备看牌"分配角色');
+      const okBtn = this.page.getByText('知道了', { exact: true });
+      const waitAlert = this.page.getByText('等待房主分配角色…');
 
       const appeared = await Promise.race([
         okBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'roleCard' as const),
@@ -132,11 +132,11 @@ export class RoomPage {
       // Poll cadence for retry loop
       await this.page.waitForTimeout(300);
     }
-    throw new Error('viewAndDismissRole: "我知道了" never appeared after retries.');
+    throw new Error('viewAndDismissRole: "知道了" never appeared after retries.');
   }
 
   /**
-   * Click "查看身份" → capture role displayName from RoleCardSimple → click "我知道了".
+   * Click "查看身份" → capture role displayName from RoleCardSimple → click "知道了".
    *
    * Same retry logic as viewAndDismissRole but reads the visible role name
    * before dismissing. Returns the Chinese displayName (e.g. "狼人", "预言家").
@@ -184,8 +184,8 @@ export class RoomPage {
     for (let attempt = 1; attempt <= 50; attempt++) {
       await viewBtn.click();
 
-      const okBtn = this.page.getByText('我知道了', { exact: true });
-      const waitAlert = this.page.getByText('等待房主点击"准备看牌"分配角色');
+      const okBtn = this.page.getByText('知道了', { exact: true });
+      const waitAlert = this.page.getByText('等待房主分配角色…');
 
       const appeared = await Promise.race([
         okBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'roleCard' as const),
@@ -229,7 +229,7 @@ export class RoomPage {
       // Poll cadence for retry loop
       await this.page.waitForTimeout(300);
     }
-    throw new Error('viewRoleAndCapture: "我知道了" never appeared after retries.');
+    throw new Error('viewRoleAndCapture: "知道了" never appeared after retries.');
   }
 
   /** Click "开始游戏" and confirm dialog. */
@@ -250,8 +250,8 @@ export class RoomPage {
     await btn.click();
     await expect(this.page.getByText('重新开始游戏？')).toBeVisible({ timeout: 3000 });
     await this.page.getByText('确定', { exact: true }).click();
-    // Wait for restart broadcast — "准备看牌" reappears when status resets
-    await expect(this.page.getByText('准备看牌')).toBeVisible({ timeout: 15_000 });
+    // Wait for restart broadcast — "分配角色" reappears when status resets
+    await expect(this.page.getByText('分配角色')).toBeVisible({ timeout: 15_000 });
   }
 
   /** Click the settings button to open config in edit mode. */

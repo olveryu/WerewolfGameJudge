@@ -33,7 +33,7 @@ test.setTimeout(180_000);
 
 /**
  * Drive a single player through the groupConfirm ack flow for convert reveal:
- * dismiss any existing alert → click "转化状态" → read personal message alert → click "我知道了".
+ * dismiss any existing alert → click "转化状态" → read personal message alert → click "知道了".
  *
  * Returns the personal message text shown in the alert.
  */
@@ -52,8 +52,8 @@ async function driveConvertRevealAck(page: import('@playwright/test').Page): Pro
   await alertModal.waitFor({ state: 'visible', timeout: 5000 });
   const alertText = (await alertModal.textContent().catch(() => '')) ?? '';
 
-  // Click "我知道了" to ack
-  const ackBtn = alertModal.getByText('我知道了', { exact: true }).first();
+  // Click "知道了" to ack
+  const ackBtn = alertModal.getByText('知道了', { exact: true }).first();
   if (await ackBtn.isVisible().catch(() => false)) {
     await ackBtn.click({ force: true });
     await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});

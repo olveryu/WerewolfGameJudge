@@ -66,7 +66,7 @@ export class ConfigPage {
    *
    * The new SectionList+Accordion TemplatePicker requires two taps:
    * 1. Click the card header (template name) to expand the card
-   * 2. Click the "选择此板子" CTA button inside the expanded card
+   * 2. Click the "选择此模板" CTA button inside the expanded card
    * The modal auto-closes after selection.
    */
   async selectTemplate(name: string) {
@@ -76,8 +76,8 @@ export class ConfigPage {
     await expect(cardTitle).toBeVisible({ timeout: 5000 });
     await cardTitle.click();
 
-    // Step 2: Click the "选择此板子" CTA button that appears in the expanded card
-    const ctaButton = getVisibleText(this.page, '选择此板子');
+    // Step 2: Click the "选择此模板" CTA button that appears in the expanded card
+    const ctaButton = getVisibleText(this.page, '选择此模板');
     await expect(ctaButton).toBeVisible({ timeout: 3000 });
     await ctaButton.click();
   }
@@ -91,7 +91,7 @@ export class ConfigPage {
     await expect(dropdown).toBeVisible({ timeout: 5000 });
     await dropdown.click();
     // Wait for the modal to appear
-    await expect(this.page.getByText('选择板子')).toBeVisible({ timeout: 3000 });
+    await expect(this.page.getByText('选择模板')).toBeVisible({ timeout: 3000 });
   }
 
   /** Expect template pill to be visible (config screen identity check). */
@@ -142,10 +142,10 @@ export class ConfigPage {
     const option = this.page.locator(`[data-testid="config-variant-option-${variantRoleId}"]`);
     await option.waitFor({ state: 'visible', timeout: 3000 });
     await option.click();
-    // Close the role info card via "我知道了" button.
+    // Close the role info card via "知道了" button.
     // Why NOT Escape? RN Web Modal onRequestClose doesn't reliably fire
     // in Playwright/Chromium (same issue documented in setAnimationNone).
-    const confirmBtn = this.page.getByText('我知道了', { exact: true });
+    const confirmBtn = this.page.getByText('知道了', { exact: true });
     await confirmBtn.waitFor({ state: 'visible', timeout: 3000 });
     await confirmBtn.click();
     // Wait for modal to close
@@ -211,7 +211,7 @@ export class ConfigPage {
   // ---------------------------------------------------------------------------
 
   /**
-   * Disable role reveal animation so E2E tests see the static "我知道了" card.
+   * Disable role reveal animation so E2E tests see the static "知道了" card.
    *
    * Uses stable testID selectors only (no text/position/coordinate hacks):
    * - `config-more-btn` → open overflow menu
@@ -263,7 +263,7 @@ export class ConfigPage {
    * - 狼人阵营 tab: reduce wolf 4→1
    */
   async configure2Player() {
-    // Disable animation so role viewing uses static "我知道了" card
+    // Disable animation so role viewing uses static "知道了" card
     await this.setAnimationNone();
 
     // 好人阵营 tab is active by default
@@ -283,7 +283,7 @@ export class ConfigPage {
    * - 狼人阵营 tab: reduce wolf 4→2
    */
   async configure6Player() {
-    // Disable animation so role viewing uses static "我知道了" card
+    // Disable animation so role viewing uses static "知道了" card
     await this.setAnimationNone();
 
     // 好人阵营 tab is active by default

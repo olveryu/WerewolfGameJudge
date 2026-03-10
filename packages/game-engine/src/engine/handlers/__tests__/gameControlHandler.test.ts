@@ -422,7 +422,7 @@ describe('handleUpdateTemplate', () => {
       const result = handleUpdateTemplate(updateIntent, context);
 
       expect(result.success).toBe(false);
-      expect(result.reason).toContain('只能在“准备看牌”前修改设置');
+      expect(result.reason).toContain('只能在\u201c分配角色\u201d前修改设置');
       expect(result.actions).toHaveLength(0);
     },
   );

@@ -131,7 +131,7 @@ test.describe('Night Roles — Kill / Status', () => {
         const hunterTurn = await waitForRoleTurn(pages[hunterIdx], ['发动状态'], pages, 120);
         expect(hunterTurn, 'Hunter turn should be detected').toBe(true);
 
-        // Dismiss the "行动提示" alert before interacting with bottom buttons
+        // Dismiss the "夜间行动" alert before interacting with bottom buttons
         await dismissAlert(pages[hunterIdx]);
 
         // Click "发动状态"
@@ -271,7 +271,7 @@ test.describe('Night Roles — Kill / Status', () => {
         const dwkTurn = await waitForRoleTurn(pages[dwkIdx], ['发动状态'], pages, 120);
         expect(dwkTurn, 'DarkWolfKing turn should be detected').toBe(true);
 
-        // Dismiss the "行动提示" alert before interacting with bottom buttons
+        // Dismiss the "夜间行动" alert before interacting with bottom buttons
         await dismissAlert(pages[dwkIdx]);
 
         // Click "发动状态"

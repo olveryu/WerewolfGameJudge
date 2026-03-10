@@ -18,7 +18,7 @@ describe('NightProgressIndicator', () => {
       <NightProgressIndicator currentStep={3} totalSteps={12} styles={mockStyles} />,
     );
 
-    expect(getByText(/3\/12/)).toBeTruthy();
+    expect(getByText(/第3步 \/ 共12步/)).toBeTruthy();
   });
 
   it('should render role name when provided', () => {
@@ -32,7 +32,7 @@ describe('NightProgressIndicator', () => {
       />,
     );
 
-    expect(getByText(/5\/10/)).toBeTruthy();
+    expect(getByText(/第5步 \/ 共10步/)).toBeTruthy();
     expect(getByText(roleName)).toBeTruthy();
   });
 
@@ -42,7 +42,7 @@ describe('NightProgressIndicator', () => {
       <NightProgressIndicator currentStep={1} totalSteps={8} styles={mockStyles} />,
     );
 
-    expect(getByText(/1\/8/)).toBeTruthy();
+    expect(getByText(/第1步 \/ 共8步/)).toBeTruthy();
     // Should not have any role text element
     expect(queryByText(roleName)).toBeNull();
   });
@@ -66,7 +66,7 @@ describe('NightProgressIndicator', () => {
       />,
     );
 
-    expect(getByText(/1\/12/)).toBeTruthy();
+    expect(getByText(/第1步 \/ 共12步/)).toBeTruthy();
     expect(getByText(roleName)).toBeTruthy();
   });
 
@@ -81,7 +81,7 @@ describe('NightProgressIndicator', () => {
       />,
     );
 
-    expect(getByText(/12\/12/)).toBeTruthy();
+    expect(getByText(/第12步 \/ 共12步/)).toBeTruthy();
     expect(getByText(roleName)).toBeTruthy();
   });
 
@@ -90,9 +90,9 @@ describe('NightProgressIndicator', () => {
       <NightProgressIndicator currentStep={3} totalSteps={5} styles={mockStyles} />,
     );
 
-    expect(getByText(/3\/5/)).toBeTruthy();
+    expect(getByText(/第3步 \/ 共5步/)).toBeTruthy();
 
     rerender(<NightProgressIndicator currentStep={7} totalSteps={15} styles={mockStyles} />);
-    expect(getByText(/7\/15/)).toBeTruthy();
+    expect(getByText(/第7步 \/ 共15步/)).toBeTruthy();
   });
 });

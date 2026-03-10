@@ -42,7 +42,7 @@ async function drivePiperHypnotize(
   page: import('@playwright/test').Page,
   targetSeats: number[],
 ): Promise<boolean> {
-  // Dismiss any existing alert (e.g. "行动提示" action prompt)
+  // Dismiss any existing alert (e.g. "夜间行动" action prompt)
   await dismissAlert(page);
 
   // Click each target seat to toggle selection
@@ -80,12 +80,12 @@ async function drivePiperHypnotize(
 
 /**
  * Drive a single player through the groupConfirm ack flow:
- * dismiss any existing alert → click "催眠状态" → read personal message alert → click "我知道了".
+ * dismiss any existing alert → click "催眠状态" → read personal message alert → click "知道了".
  *
  * Returns the personal message text shown in the alert.
  */
 async function driveGroupConfirmAck(page: import('@playwright/test').Page): Promise<string> {
-  // Dismiss any existing alert (e.g. piper's "行动提示" actionPrompt)
+  // Dismiss any existing alert (e.g. piper's "夜间行动" actionPrompt)
   await dismissAlert(page);
 
   // Click "催眠状态" button in bottom panel
@@ -99,8 +99,8 @@ async function driveGroupConfirmAck(page: import('@playwright/test').Page): Prom
   await alertModal.waitFor({ state: 'visible', timeout: 5000 });
   const alertText = (await alertModal.textContent().catch(() => '')) ?? '';
 
-  // Click "我知道了" to ack
-  const ackBtn = alertModal.getByText('我知道了', { exact: true }).first();
+  // Click "知道了" to ack
+  const ackBtn = alertModal.getByText('知道了', { exact: true }).first();
   if (await ackBtn.isVisible().catch(() => false)) {
     await ackBtn.click({ force: true });
     await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});

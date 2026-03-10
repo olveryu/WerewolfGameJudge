@@ -87,7 +87,7 @@ export function useAuthForm({
           Toast.show({
             type: 'info',
             text1: '可在设置中自定义头像和昵称',
-            text2: '点击前往设置 →',
+            text2: '前往设置自定义',
             visibilityTime: 5000,
             onPress: () => {
               Toast.hide();

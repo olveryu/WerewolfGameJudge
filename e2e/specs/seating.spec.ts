@@ -115,9 +115,9 @@ test.describe('Seating', () => {
       // "我" badge should be visible
       await room.expectMyBadgeVisible();
 
-      // Click own seat → should show "站起" modal (not "入座")
+      // Click own seat → should show "离座" modal (not "入座")
       await room.getSeatTile(0).click();
-      await expect(page.getByText('站起', { exact: true })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText('离座', { exact: true })).toBeVisible({ timeout: 5000 });
 
       // Dismiss
       await page

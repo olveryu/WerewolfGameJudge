@@ -67,7 +67,7 @@ const PRESENCE_ESCALATION_ATTEMPT = 25;
 /**
  * Hard gate: Wait for all joiner presence to be reflected on the host page.
  *
- * Polls for "准备看牌" button visibility (only appears when all seats are filled).
+ * Polls for "分配角色" button visibility (only appears when all seats are filled).
  * Uses "retry with escalation": at the halfway point, reloads the host page to
  * force a fresh `joinRoom → fetchStateFromDB` cycle, compensating for Supabase
  * Realtime broadcast delays in CI environments.
@@ -97,7 +97,7 @@ async function waitForPresenceStable(
     await hostPage.waitForTimeout(PRESENCE_INTERVAL_MS);
 
     const isPrepareVisible = await hostPage
-      .getByText('准备看牌')
+      .getByText('分配角色')
       .isVisible()
       .catch(() => false);
     if (isPrepareVisible) return;
@@ -105,7 +105,7 @@ async function waitForPresenceStable(
 
   // Hard fail: collect diagnostics for debugging
   const visibleTexts: string[] = [];
-  for (const text of ['准备看牌', '等待玩家', '开始游戏']) {
+  for (const text of ['分配角色', '等待玩家', '开始游戏']) {
     const visible = await hostPage
       .getByText(text)
       .isVisible()
@@ -122,7 +122,7 @@ async function waitForPresenceStable(
       `Expected ${joinerPages.length + 1} players seated. ` +
       `Visible seat tiles: ${seatCount}. ` +
       `Visible UI texts: [${visibleTexts.join(', ')}]. ` +
-      `"准备看牌" button never appeared — presence not stable.`,
+      `"分配角色" button never appeared — presence not stable.`,
   );
 }
 
@@ -152,9 +152,9 @@ export async function viewRoleWithRetry(page: Page, maxRetries = 50): Promise<vo
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     await viewBtn.click();
 
-    // Race: either "我知道了" (role card modal) or "等待房主" (disabled alert)
-    const okBtn = page.getByText('我知道了', { exact: true });
-    const waitAlert = page.getByText('等待房主点击"准备看牌"分配角色');
+    // Race: either "知道了" (role card modal) or "等待房主" (disabled alert)
+    const okBtn = page.getByText('知道了', { exact: true });
+    const waitAlert = page.getByText('等待房主分配角色…');
 
     const appeared = await Promise.race([
       okBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => 'roleCard' as const),
@@ -181,7 +181,7 @@ export async function viewRoleWithRetry(page: Page, maxRetries = 50): Promise<vo
   }
 
   throw new Error(
-    `viewRoleWithRetry: "我知道了" never appeared after ${maxRetries} attempts. ` +
+    `viewRoleWithRetry: "知道了" never appeared after ${maxRetries} attempts. ` +
       'The assigned status broadcast may not have arrived.',
   );
 }

@@ -20,7 +20,7 @@ let alertListener: AlertListener | null = null;
 /**
  * When blocked, showAlert() is a no-op.
  * Used by the "继续游戏" overlay to prevent lower-priority alerts
- * (e.g. 行动提示) from covering the continue-game button.
+ * (e.g. 夜间行动) from covering the continue-game button.
  */
 let alertBlocked = false;
 

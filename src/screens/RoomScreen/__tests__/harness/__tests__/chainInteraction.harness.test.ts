@@ -126,7 +126,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
   });
 
   it('pressButtonOnType throws when type not seen', () => {
-    mockShowAlert('行动提示', '请预言家行动', [{ text: '知道了' }]);
+    mockShowAlert('预言家行动', '请预言家行动', [{ text: '知道了' }]);
     expect(() => harness.pressButtonOnType('wolfVote', '确定')).toThrow(
       /No dialog of type 'wolfVote' found/,
     );

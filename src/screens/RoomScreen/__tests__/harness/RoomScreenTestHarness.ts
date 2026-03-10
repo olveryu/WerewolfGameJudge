@@ -120,11 +120,21 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   },
   {
     type: 'drunkSeerReveal',
-    match: (t, m) => (t.includes('预言家') || t.includes('查验结果')) && m.includes('酒鬼'),
+    match: (t, m) =>
+      !t.endsWith('行动') && (t.includes('预言家') || t.includes('查验结果')) && m.includes('酒鬼'),
   },
-  { type: 'seerReveal', match: (t) => t.includes('预言家') || t.includes('查验结果') },
-  { type: 'psychicReveal', match: (t) => t.includes('通灵师') || t.includes('通灵结果') },
-  { type: 'gargoyleReveal', match: (t) => t.includes('石像鬼') },
+  {
+    type: 'seerReveal',
+    match: (t) => !t.endsWith('行动') && (t.includes('预言家') || t.includes('查验结果')),
+  },
+  {
+    type: 'psychicReveal',
+    match: (t) => !t.endsWith('行动') && (t.includes('通灵师') || t.includes('通灵结果')),
+  },
+  {
+    type: 'gargoyleReveal',
+    match: (t) => !t.endsWith('行动') && t.includes('石像鬼'),
+  },
   // wolfRobotHunterStatus: schema-driven title/message for wolfRobotLearn hunter gate.
   {
     type: 'wolfRobotHunterStatus',
@@ -138,7 +148,9 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   },
   {
     type: 'wolfRobotReveal',
-    match: (t) => t.includes('机械狼') || t.includes('你学习了') || t.includes('学习结果'),
+    match: (t) =>
+      !t.endsWith('行动') &&
+      (t.includes('机械狼') || t.includes('你学习了') || t.includes('学习结果')),
   },
 
   // Magician
