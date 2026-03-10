@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 
+import { UI } from '@/config/emojiTokens';
 import { ThemeColors } from '@/theme';
 import { fixed } from '@/theme/tokens';
 
@@ -36,7 +37,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
     if (isAnonymous) {
       return (
         <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarPlaceholderIcon}>👤</Text>
+          <Text style={styles.avatarPlaceholderIcon}>{UI.USER}</Text>
         </View>
       );
     }
@@ -65,7 +66,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
               <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
             )}
             <View style={styles.avatarEditBadge}>
-              <Text style={styles.avatarEditIcon}>📷</Text>
+              <Text style={styles.avatarEditIcon}>{UI.CAMERA}</Text>
             </View>
           </View>
         )}

@@ -11,6 +11,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { createSeededRng } from '@werewolf/game-engine/utils/random';
 import { useEffect, useRef, useState } from 'react';
 
+import { STATUS } from '@/config/emojiTokens';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 import { generateSpeakOrder } from '../useRoomHostDialogs';
@@ -55,7 +56,7 @@ export function useSpeakingOrder({
     const rng = createSeededRng(seed);
     const playerCount = gameStateRef.current.template.roles.length;
     const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
-    setSpeakingOrderText(`🎙️ 从 ${startSeat} 号开始 ${direction}发言`);
+    setSpeakingOrderText(`${STATUS.SPEAKING} 从 ${startSeat} 号开始 ${direction}发言`);
 
     const timer = setTimeout(() => setSpeakingOrderText(undefined), 60_000);
     return () => clearTimeout(timer);

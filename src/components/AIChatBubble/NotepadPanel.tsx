@@ -1,7 +1,7 @@
 /**
  * NotepadPanel - 笔记面板（全屏 NotepadModal 内嵌单列 12 行）
  *
- * 显示玩家卡片列表：每行包含座位号🎭（可点击选角色）+ 角色徽标 + 上警标签 + 笔记输入。
+ * 显示玩家卡片列表：每行包含座位号（可点击选角色）+ 角色徽标 + 上警标签 + 笔记输入。
  * 点击座位号弹出角色选择气泡，选中后在座位号旁显示角色徽标。
  * 卡片背景色随角色猜测自动变化（狼人/神职/平民/第三方 4 色区分）。
  * 接收 notepad 状态和操作回调（来自 useNotepad），接收 styles prop。
@@ -23,6 +23,7 @@ import {
   View,
 } from 'react-native';
 
+import { UI } from '@/config/emojiTokens';
 import { fixed } from '@/theme/tokens';
 
 import type { NotepadStyles } from './AIChatBubble.styles';
@@ -112,7 +113,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
                   factionKey && styles[`roleBadgeText${factionKey}` as keyof NotepadStyles],
                 ]}
               >
-                {selectedTag ? selectedTag.shortName : '🎭'}
+                {selectedTag ? selectedTag.shortName : UI.ROLE_PLACEHOLDER}
               </Text>
             </View>
           </TouchableOpacity>

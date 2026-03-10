@@ -12,6 +12,7 @@ import * as Sentry from '@sentry/react-native';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { STATUS } from '@/config/emojiTokens';
 import { log } from '@/utils/logger';
 
 const errorLog = log.extend('ErrorBoundary');
@@ -55,7 +56,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <View style={styles.container}>
-          <Text style={styles.emoji}>😵</Text>
+          <Text style={styles.emoji}>{STATUS.ERROR}</Text>
           <Text style={styles.title}>出了点问题</Text>
           <Text style={styles.message}>应用遇到了问题，请点击重试</Text>
           <TouchableOpacity style={styles.button} onPress={this.#handleRetry}>

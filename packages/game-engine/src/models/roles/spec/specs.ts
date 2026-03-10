@@ -34,7 +34,7 @@ export const ROLE_SPECS = {
     id: 'mirrorSeer',
     displayName: '灯影预言家',
     shortName: '灯',
-    emoji: '🔮',
+    emoji: '🪞',
     faction: Faction.Villager,
     team: Team.Good,
     description:
@@ -283,7 +283,7 @@ export const ROLE_SPECS = {
     id: 'darkWolfKing',
     displayName: '黑狼王',
     shortName: '黑',
-    emoji: '🌑👑',
+    emoji: '🖤🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
     description: '出局时可开枪带走一名玩家；被女巫毒杀则不能开枪',

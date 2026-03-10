@@ -9,6 +9,7 @@ import React, { memo, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
+import { FACTION, UI } from '@/config/emojiTokens';
 import { useColors } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
@@ -112,7 +113,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
         <View style={styles.boardInfoContent}>
           {wolfRoleItems.length > 0 && (
             <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>🐺 狼人：</Text>
+              <Text style={styles.roleCategoryLabel}>{FACTION.WOLF} 狼人：</Text>
               <RoleChipRow
                 items={wolfRoleItems}
                 onRolePress={onRolePress}
@@ -123,7 +124,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
           )}
           {godRoleItems.length > 0 && (
             <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>✨ 神职：</Text>
+              <Text style={styles.roleCategoryLabel}>{FACTION.GOD} 神职：</Text>
               <RoleChipRow
                 items={godRoleItems}
                 onRolePress={onRolePress}
@@ -134,7 +135,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
           )}
           {specialRoleItems.length > 0 && (
             <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>🎭 特殊：</Text>
+              <Text style={styles.roleCategoryLabel}>{FACTION.THIRD} 特殊：</Text>
               <RoleChipRow
                 items={specialRoleItems}
                 onRolePress={onRolePress}
@@ -145,7 +146,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
           )}
           {(villagerCount > 0 || villagerRoleItems.length > 0) && (
             <View style={styles.roleCategory}>
-              <Text style={styles.roleCategoryLabel}>👤 村民：</Text>
+              <Text style={styles.roleCategoryLabel}>{FACTION.VILLAGER} 村民：</Text>
               <View style={styles.roleChipRow}>
                 {villagerCount > 0 && (
                   <FactionChip
@@ -167,7 +168,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               </View>
             </View>
           )}
-          <Text style={styles.boardInfoHint}>💡 点击角色名查看能力说明</Text>
+          <Text style={styles.boardInfoHint}>{UI.HINT} 点击角色名查看能力说明</Text>
         </View>
       )}
 

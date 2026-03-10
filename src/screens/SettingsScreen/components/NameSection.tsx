@@ -7,6 +7,7 @@
 import { memo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { UI } from '@/config/emojiTokens';
 import { ThemeColors } from '@/theme';
 
 import { SettingsScreenStyles } from './styles';
@@ -64,7 +65,7 @@ export const NameSection = memo<NameSectionProps>(
     return (
       <TouchableOpacity style={styles.nameRow} onPress={onStartEdit}>
         <Text style={styles.userName}>{displayName || '点击设置名字'}</Text>
-        <Text style={styles.editIcon}>✏️</Text>
+        <Text style={styles.editIcon}>{UI.EDIT}</Text>
       </TouchableOpacity>
     );
   },

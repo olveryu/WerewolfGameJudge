@@ -20,6 +20,7 @@ import { AlertModal } from '@/components/AlertModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { SettingsSheet } from '@/components/SettingsSheet';
+import { UI } from '@/config/emojiTokens';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import type { ThemeColors } from '@/theme';
@@ -536,7 +537,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         visible={needsContinueOverlay}
         title="游戏已恢复"
         message="点击下方按钮继续游戏并恢复音频"
-        buttons={[{ text: '🔊 继续游戏', onPress: resumeAfterRejoin }]}
+        buttons={[{ text: `${UI.AUDIO} 继续游戏`, onPress: resumeAfterRejoin }]}
         onClose={resumeAfterRejoin}
       />
 

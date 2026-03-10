@@ -29,6 +29,7 @@ import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { CELEBRATION_EMOJIS } from '@/config/emojiTokens';
 import { crossPlatformTextShadow, spacing, typography, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
@@ -53,7 +54,6 @@ const SLOT_COLORS = {
   reelWindowBorder: '#333',
 };
 
-const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟'];
 const TOP_BULB_IDS = ['t1', 't2', 't3', 't4', 't5', 't6'] as const;
 const BOTTOM_BULB_IDS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'] as const;
 

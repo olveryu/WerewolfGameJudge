@@ -7,6 +7,7 @@
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import { UI } from '@/config/emojiTokens';
 import { TESTIDS } from '@/testids';
 import { fixed } from '@/theme/tokens';
 
@@ -24,7 +25,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
           onPress={onEmailLogin}
           activeOpacity={fixed.activeOpacity}
         >
-          <Text style={styles.primaryButtonText}>📧 邮箱登录/注册</Text>
+          <Text style={styles.primaryButtonText}>{UI.EMAIL} 邮箱登录/注册</Text>
           <Text style={styles.buttonCaptionInverse}>可自定义头像和昵称</Text>
         </TouchableOpacity>
 
@@ -35,7 +36,9 @@ export const LoginOptions = memo<LoginOptionsProps>(
           activeOpacity={fixed.activeOpacity}
           testID={TESTIDS.homeAnonLoginButton}
         >
-          <Text style={styles.outlineButtonText}>{authLoading ? '处理中...' : '👤 匿名登录'}</Text>
+          <Text style={styles.outlineButtonText}>
+            {authLoading ? '处理中...' : `${UI.USER} 匿名登录`}
+          </Text>
           {!authLoading && <Text style={styles.buttonCaption}>随机分配头像和昵称</Text>}
         </TouchableOpacity>
 

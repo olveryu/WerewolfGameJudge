@@ -28,6 +28,7 @@ import {
   View,
 } from 'react-native';
 
+import { BRAND, UI } from '@/config/emojiTokens';
 import { useGameFacade } from '@/contexts';
 import { useTheme } from '@/theme';
 import { fixed } from '@/theme/tokens';
@@ -194,7 +195,7 @@ export const AIChatBubble: React.FC = () => {
           onPress={chat.handleBubblePress}
           activeOpacity={fixed.activeOpacity}
         >
-          <Text style={styles.bubbleIcon}>🐺</Text>
+          <Text style={styles.bubbleIcon}>{BRAND.APP}</Text>
         </TouchableOpacity>
         <Text style={styles.bubbleLabel}>小助手</Text>
       </Animated.View>
@@ -216,7 +217,7 @@ export const AIChatBubble: React.FC = () => {
           <View style={[styles.chatWindow, { height: chatHeight }]}>
             {/* Header */}
             <View style={styles.chatHeader}>
-              <Text style={styles.chatTitle}>🐺 狼人杀助手</Text>
+              <Text style={styles.chatTitle}>狼人杀助手</Text>
               <View style={styles.headerButtons}>
                 {isInRoom && (
                   <TouchableOpacity
@@ -224,11 +225,11 @@ export const AIChatBubble: React.FC = () => {
                     style={styles.notepadEntryBtn}
                     activeOpacity={fixed.activeOpacity}
                   >
-                    <Text style={styles.notepadEntryBtnText}>📝 笔记</Text>
+                    <Text style={styles.notepadEntryBtnText}>{UI.NOTE} 笔记</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity onPress={chat.handleClearHistory} style={styles.headerBtn}>
-                  <Text style={styles.headerBtnText}>🗑️</Text>
+                  <Text style={styles.headerBtnText}>{UI.DELETE}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => chat.setIsOpen(false)} style={styles.headerBtn}>
                   <Text style={styles.headerBtnText}>✕</Text>
@@ -252,7 +253,7 @@ export const AIChatBubble: React.FC = () => {
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>
-                      👋 你好！我是狼人杀助手{'\n'}
+                      {UI.GREETING} 你好！我是狼人杀助手{'\n'}
                       可以问我游戏规则、策略建议等
                     </Text>
                   </View>

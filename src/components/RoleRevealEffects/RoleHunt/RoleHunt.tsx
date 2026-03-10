@@ -33,6 +33,7 @@ import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { CELEBRATION_EMOJIS } from '@/config/emojiTokens';
 import { useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
@@ -259,8 +260,6 @@ function generateGhosts(targetRole: RoleData, allRoles: RoleData[]): GhostData[]
     offsetY: (Math.random() - 0.5) * 24,
   }));
 }
-
-const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟', '🏆'];
 
 // ─── Main component ─────────────────────────────────────────────────────
 export const RoleHunt: React.FC<RoleHuntProps> = ({
