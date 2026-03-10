@@ -287,17 +287,41 @@ describe('GameFacade', () => {
       expect(result).toBe(false);
     });
 
-    it('should optimistically update mySeat before server response', async () => {
+    it('should update mySeat after server response with snapshot', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: true }),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            state: {
+              roomCode: 'ABCD',
+              hostUid: 'host-uid',
+              status: GameStatus.Unseated,
+              templateRoles: [],
+              players: {
+                0: null,
+                1: {
+                  uid: 'player-uid',
+                  seatNumber: 1,
+                  displayName: 'Player One',
+                  hasViewedRole: false,
+                },
+              },
+              currentStepIndex: -1,
+              isAudioPlaying: false,
+              actions: [],
+              pendingRevealAcks: [],
+            },
+            revision: 2,
+          }),
       });
 
       await facade.takeSeat(1, 'Player One');
 
-      // 乐观更新：mySeat 在 fetch 前即更新（无需等 STATE_UPDATE）
+      // 座位操作不做乐观更新，靠 HTTP 响应的 applySnapshot 渲染
       expect(facade.getMySeatNumber()).toBe(1);
+      expect(facade.getStateRevision()).toBe(2);
     });
   });
 

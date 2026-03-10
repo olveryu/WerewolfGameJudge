@@ -346,23 +346,28 @@ describe('seatActions (HTTP API)', () => {
       expect(mockStore.applySnapshot).toHaveBeenCalledWith(mockState, 3);
     });
 
-    it('should apply optimistic state before fetch', async () => {
+    it('should NOT apply optimistic state (seat ops rely on server snapshot)', async () => {
       global.fetch = mockFetchSuccess({ success: true, state: { roomCode: 'ABCD' }, revision: 2 });
       const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
       const ctx = createMockCtx({ store: mockStore as any });
 
       await takeSeatWithAck(ctx, 1, 'Alice');
 
-      expect(mockStore.applyOptimistic).toHaveBeenCalledTimes(1);
+      expect(mockStore.applyOptimistic).toHaveBeenCalledTimes(0);
+      // Server response snapshot is still applied
+      expect(mockStore.applySnapshot).toHaveBeenCalledTimes(1);
     });
 
-    it('should rollback optimistic state on server rejection', async () => {
+    it('should NOT rollback on server rejection (no optimistic to rollback)', async () => {
       global.fetch = mockFetchSuccess({ success: false, reason: 'seat_taken' });
       const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
       const ctx = createMockCtx({ store: mockStore as any });
 
       await takeSeatWithAck(ctx, 1, 'Alice');
 
+      expect(mockStore.applyOptimistic).toHaveBeenCalledTimes(0);
+      // rollbackOptimistic is still called by callApiOnce on failure,
+      // but it's a no-op since applyOptimistic was never called
       expect(mockStore.rollbackOptimistic).toHaveBeenCalledTimes(1);
     });
   });
