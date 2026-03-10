@@ -24,10 +24,12 @@ Layered test helpers and Page Objects for Playwright E2E tests.
 
 ### Environment Variables
 
-| Variable       | Purpose                              | Default                 |
-| -------------- | ------------------------------------ | ----------------------- |
-| `E2E_ENV`      | Supabase config: `local` or `remote` | `local`                 |
-| `E2E_BASE_URL` | Web server URL for tests             | `http://localhost:8081` |
+| Variable                     | Purpose                               | Default                 |
+| ---------------------------- | ------------------------------------- | ----------------------- |
+| `E2E_ENV`                    | Supabase config: `local` or `remote`  | `local`                 |
+| `E2E_BASE_URL`               | Web server URL for tests              | `http://localhost:8081` |
+| `EXPO_PUBLIC_API_REGION`     | Edge Function `x-region` header value | `us-west-1`             |
+| `EXPO_PUBLIC_API_TIMEOUT_MS` | API request timeout (ms)              | `8000`                  |
 
 ---
 
@@ -95,6 +97,7 @@ e2e/
     ├── night-roles-protect.spec.ts ← night role protection tests
     ├── night-verify.spec.ts    ← night verification tests
     ├── db-recovery.spec.ts     ← DB-backed state recovery
+   ├── offline-recovery-canary.spec.ts ← minimal offline/online recovery health check
     ├── rejoin.spec.ts          ← host & player rejoin mid-game
     ├── restart.spec.ts         ← restart + settings change
     └── room-lifecycle.spec.ts  ← room lifecycle management

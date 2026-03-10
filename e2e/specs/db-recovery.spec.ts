@@ -198,12 +198,7 @@ test.describe('DB state recovery after network interruption', () => {
         });
       });
 
-      // Step 4: Wait 10s while both are offline (CI needs longer for SDK to notice)
-      await test.step('wait 10s while both offline', async () => {
-        await hostPage.waitForTimeout(10_000);
-      });
-
-      // Step 5: Restore network on both
+      // Step 4: Restore network on both（使用后续 waitForRoomScreenReady 事件驱动等待）
       await test.step('reconnect both host and player', async () => {
         await hostContext.setOffline(false);
         await joinerContext.setOffline(false);
@@ -226,13 +221,13 @@ test.describe('DB state recovery after network interruption', () => {
         );
       });
 
-      // Step 6: Continue night flow to completion
+      // Step 5: Continue night flow to completion
       const nightResult = await runNightFlowLoop(fixture.pages, testInfo, {
         maxIterations: 80,
         screenshotInterval: 10,
       });
 
-      // Step 7: Verify night ended
+      // Step 6: Verify night ended
       const room = new RoomPage(hostPage);
       const hasLastNightBtn = await room.isLastNightInfoVisible();
       const nightEnded =
