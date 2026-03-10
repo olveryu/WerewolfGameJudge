@@ -118,7 +118,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
             <TouchableOpacity
               style={[styles.shareButton, isSharing && styles.buttonDisabled]}
               onPress={handleShare}
-              activeOpacity={isSharing ? 1 : 0.7}
+              activeOpacity={isSharing ? 1 : fixed.activeOpacity}
               accessibilityState={{ disabled: isSharing }}
               testID={TESTIDS.qrCodeShareButton}
             >
@@ -169,6 +169,7 @@ function createStyles(colors: ThemeColors) {
     },
     title: {
       fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
       fontWeight: typography.weights.bold,
       color: colors.text,
       marginBottom: spacing.medium,
@@ -202,21 +203,23 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.surface,
       justifyContent: 'center',
       alignItems: 'center',
-      borderRadius: QR_LOGO_SIZE / 4,
+      borderRadius: borderRadius.medium,
     },
     logoImage: {
       width: QR_LOGO_SIZE,
       height: QR_LOGO_SIZE,
-      borderRadius: QR_LOGO_SIZE / 4,
+      borderRadius: borderRadius.medium,
     },
     roomNumber: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.text,
       marginBottom: spacing.tight,
     },
     hint: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       marginBottom: spacing.large,
     },
@@ -229,22 +232,23 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.primary,
       paddingHorizontal: spacing.large,
       paddingVertical: spacing.medium,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       alignItems: 'center',
     },
     shareButtonText: {
       color: colors.textInverse,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
     },
     buttonDisabled: {
-      opacity: 0.6,
+      opacity: fixed.disabledOpacity,
     },
     copyButton: {
       backgroundColor: colors.surfaceHover,
       paddingHorizontal: spacing.large,
       paddingVertical: spacing.medium,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       alignItems: 'center',
@@ -252,6 +256,7 @@ function createStyles(colors: ThemeColors) {
     copyButtonText: {
       color: colors.text,
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       fontWeight: typography.weights.semibold,
     },
     closeButton: {
@@ -261,6 +266,7 @@ function createStyles(colors: ThemeColors) {
     closeButtonText: {
       color: colors.textSecondary,
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
     },
   });
 }

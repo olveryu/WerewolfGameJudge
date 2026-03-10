@@ -71,7 +71,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
       {/* Host: Settings */}
       {showSettings && (
         <ActionButton
-          label="设置"
+          label="房间配置"
           icon={<Ionicons name="settings-outline" size={14} color={colors.textInverse} />}
           onPress={() => onSettingsPress()}
           styleOverride={settingsStyleOverride}

@@ -57,6 +57,15 @@ jest.mock('../../theme', () => ({
       semibold: '600',
       bold: '700',
     },
+    lineHeights: {
+      caption: 16,
+      captionSmall: 14,
+      secondary: 20,
+      body: 22,
+      subtitle: 24,
+      title: 28,
+      heading: 32,
+    },
   },
   borderRadius: {
     md: 8,
@@ -82,6 +91,8 @@ jest.mock('../../theme', () => ({
     minTouchTarget: 44,
     maxContentWidth: 600,
     keyboardOffset: 24,
+    activeOpacity: 0.7,
+    disabledOpacity: 0.4,
   },
 }));
 

@@ -206,7 +206,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       ...shadows.sm,
     },
     actionCardDisabled: {
-      opacity: 0.4,
+      opacity: fixed.disabledOpacity,
     },
     actionCardIcon: {
       width: componentSizes.button.md,
@@ -239,6 +239,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
       gap: spacing.small,
+      ...shadows.sm,
     },
     tipCardIcon: {
       fontSize: typography.title,
@@ -257,7 +258,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       fontSize: typography.captionSmall,
       lineHeight: typography.lineHeights.captionSmall,
       color: colors.textSecondary,
-      marginTop: spacing.tight / 2,
+      marginTop: spacing.micro,
     },
     tipCardClose: {
       padding: spacing.tight,

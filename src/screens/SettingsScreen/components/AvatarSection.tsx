@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 
 import { ThemeColors } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
 import { SettingsScreenStyles } from './styles';
 
@@ -43,7 +44,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
     return (
       <TouchableOpacity
         onPress={onPickAvatar}
-        activeOpacity={uploadingAvatar ? 1 : 0.7}
+        activeOpacity={uploadingAvatar ? 1 : fixed.activeOpacity}
         accessibilityState={{ disabled: uploadingAvatar }}
       >
         {uploadingAvatar ? (

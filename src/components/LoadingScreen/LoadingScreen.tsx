@@ -111,5 +111,6 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
   },
 });

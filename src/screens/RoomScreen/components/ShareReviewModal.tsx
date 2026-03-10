@@ -126,7 +126,11 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
           </ScrollView>
 
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={onClose}
+              activeOpacity={fixed.activeOpacity}
+            >
               <Text style={styles.cancelButtonText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -164,6 +168,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     },
     title: {
       fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',
@@ -171,6 +176,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     },
     subtitle: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       textAlign: 'center',
       marginBottom: spacing.medium,
@@ -206,11 +212,13 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     },
     checkmark: {
       fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
       color: colors.textInverse,
       fontWeight: typography.weights.bold,
     },
     seatLabel: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.text,
     },
     buttonRow: {
@@ -220,27 +228,29 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     cancelButton: {
       flex: 1,
       backgroundColor: colors.surfaceHover,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       paddingVertical: spacing.medium,
       alignItems: 'center',
     },
     cancelButtonText: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.textSecondary,
       fontWeight: typography.weights.semibold,
     },
     confirmButton: {
       flex: 1,
       backgroundColor: colors.primary,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       paddingVertical: spacing.medium,
       alignItems: 'center',
     },
     confirmButtonDisabled: {
-      opacity: 0.5,
+      opacity: fixed.disabledOpacity,
     },
     confirmButtonText: {
       fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
       color: colors.textInverse,
       fontWeight: typography.weights.semibold,
     },

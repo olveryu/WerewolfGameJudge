@@ -168,7 +168,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
   } satisfies ViewStyle,
   bottomCreateBtnDisabled: {
-    opacity: 0.5,
+    opacity: fixed.disabledOpacity,
   } satisfies ViewStyle,
   bottomCreateBtnText: {
     color: colors.textInverse,

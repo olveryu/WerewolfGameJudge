@@ -99,8 +99,8 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
     borderColor: colors.border,
-    paddingHorizontal: spacing.tight / 2,
-    paddingVertical: spacing.tight / 2,
+    paddingHorizontal: spacing.micro,
+    paddingVertical: spacing.micro,
   } satisfies ViewStyle,
   stepperControls: {
     flexDirection: 'row',
@@ -115,7 +115,7 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
   } satisfies ViewStyle,
   stepperBtnDisabled: {
-    opacity: 0.25,
+    opacity: fixed.disabledOpacity,
   } satisfies ViewStyle,
   stepperBtnText: {
     fontSize: typography.subtitle,

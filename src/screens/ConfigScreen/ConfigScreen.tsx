@@ -272,7 +272,7 @@ export const ConfigScreen: React.FC = () => {
         <TouchableOpacity
           style={[styles.bottomCreateBtn, isDisabled && styles.bottomCreateBtnDisabled]}
           onPress={handleCreateRoom}
-          activeOpacity={isDisabled ? 1 : 0.7}
+          activeOpacity={isDisabled ? 1 : fixed.activeOpacity}
           accessibilityState={{ disabled: isDisabled }}
         >
           {isCreating ? (
