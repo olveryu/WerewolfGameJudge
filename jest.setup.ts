@@ -311,6 +311,32 @@ jest.mock('./src/navigation/navigationRef', () => ({
 }));
 
 // ---------------------------------------------------------------------------
+// AuthContext mock — provides a default anonymous user globally.
+// Individual tests can override via jest.mock() if needed.
+// ---------------------------------------------------------------------------
+jest.mock('./src/contexts/AuthContext', () => ({
+  __esModule: true,
+  useAuthContext: () => ({
+    user: {
+      uid: 'test-uid',
+      email: null,
+      displayName: 'TestPlayer',
+      avatarUrl: null,
+      isAnonymous: true,
+    },
+    loading: false,
+    error: null,
+    isAuthenticated: true,
+    signInAnonymously: jest.fn(),
+    signUpWithEmail: jest.fn(),
+    signInWithEmail: jest.fn(),
+    updateProfile: jest.fn(),
+    uploadAvatar: jest.fn(),
+    signOut: jest.fn(),
+  }),
+}));
+
+// ---------------------------------------------------------------------------
 // ServiceContext mock — provides default mock services globally.
 // Individual tests can override via jest.mock() or by wrapping with a real
 // ServiceProvider + custom services.

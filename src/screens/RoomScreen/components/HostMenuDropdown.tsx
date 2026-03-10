@@ -14,14 +14,17 @@ import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { useColors } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 import { type HostMenuDropdownStyles } from './styles';
 
 interface HostMenuDropdownProps {
   /** Whether to show the menu (Host only) */
   visible: boolean;
-  /** Show settings option (only before game starts) */
+  /** Show game settings option (only before game starts) */
   showSettings: boolean;
+  /** Show user settings option */
+  showUserSettings: boolean;
   /** Show fill with bots option (in dropdown) */
   showFillWithBots: boolean;
   /** Show mark all bots viewed option (in dropdown) */
@@ -33,6 +36,7 @@ interface HostMenuDropdownProps {
   onMarkAllBotsViewed: () => void;
   onClearAllSeats: () => void;
   onSettings: () => void;
+  onUserSettings: () => void;
   /** Pre-created styles from parent */
   styles: HostMenuDropdownStyles;
 }
@@ -40,6 +44,7 @@ interface HostMenuDropdownProps {
 const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   visible,
   showSettings,
+  showUserSettings,
   showFillWithBots,
   showMarkAllBotsViewed,
   showClearAllSeats,
@@ -47,6 +52,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   onMarkAllBotsViewed,
   onClearAllSeats,
   onSettings,
+  onUserSettings,
   styles,
 }) => {
   const colors = useColors();
@@ -80,13 +86,48 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     onSettings();
   }, [onSettings]);
 
+  const handleUserSettings = useCallback(() => {
+    setMenuOpen(false);
+    onUserSettings();
+  }, [onUserSettings]);
+
   // Don't render if not visible
   if (!visible) {
     return <View style={styles.triggerButton} />;
   }
 
   const hasDropdownItems =
-    showSettings || showFillWithBots || showMarkAllBotsViewed || showClearAllSeats;
+    showSettings ||
+    showUserSettings ||
+    showFillWithBots ||
+    showMarkAllBotsViewed ||
+    showClearAllSeats;
+
+  // Only user settings — render direct icon button, no dropdown
+  const isUserSettingsOnly =
+    showUserSettings &&
+    !showSettings &&
+    !showFillWithBots &&
+    !showMarkAllBotsViewed &&
+    !showClearAllSeats;
+
+  if (isUserSettingsOnly) {
+    return (
+      <View style={styles.headerRightContainer}>
+        <TouchableOpacity
+          style={styles.triggerButton}
+          onPress={onUserSettings}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons
+            name="person-circle-outline"
+            size={componentSizes.icon.lg}
+            color={colors.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.headerRightContainer}>
@@ -113,11 +154,21 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
               onPress={handleCloseMenu}
             >
               <View style={styles.menuContainer}>
-                {/* Settings — only before game starts */}
+                {/* Game Settings — only before game starts */}
                 {showSettings && (
                   <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
-                    <Text style={styles.menuItemText}>⚙️ 设置</Text>
+                    <Text style={styles.menuItemText}>⚙️ 游戏设置</Text>
                   </TouchableOpacity>
+                )}
+
+                {/* User Settings — navigate to Settings screen */}
+                {showUserSettings && (
+                  <>
+                    {showSettings && <View style={styles.separator} />}
+                    <TouchableOpacity style={styles.menuItem} onPress={handleUserSettings}>
+                      <Text style={styles.menuItemText}>👤 用户设置</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
 
                 {showClearAllSeats && (

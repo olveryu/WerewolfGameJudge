@@ -17,7 +17,7 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import { fixed } from '@/theme/tokens';
 
 export function createRoomScreenStyles(colors: ThemeColors) {
   const shared = createSharedStyles(colors);
@@ -104,14 +104,31 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       fontWeight: typography.weights.bold,
       color: colors.text,
     },
-    headerSubtitle: {
+    headerSubtitleRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginTop: spacing.micro,
+    },
+    headerStatusText: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      fontWeight: typography.weights.semibold,
+    },
+    headerSeparator: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
-      marginTop: spacing.micro,
     },
-    headerSpacer: {
-      minWidth: componentSizes.headerAction.minWidth,
+    headerShareLink: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.primary,
+    },
+    headerRight: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.small,
     },
     scrollView: {
       flex: 1,
