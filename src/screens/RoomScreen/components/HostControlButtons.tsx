@@ -5,7 +5,6 @@
  * 渲染 UI 并通过回调上报 onPress，不 import service，不包含业务逻辑判断。
  * 样式由父组件通过 props 注入（actionStyles / dangerStyles），不自建 StyleSheet。
  */
-import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useMemo } from 'react';
 
 import { TESTIDS } from '@/testids';
@@ -72,7 +71,6 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
       {showSettings && (
         <ActionButton
           label="房间配置"
-          icon={<Ionicons name="settings-outline" size={14} color={colors.textInverse} />}
           onPress={() => onSettingsPress()}
           styleOverride={settingsStyleOverride}
           testID={TESTIDS.roomSettingsButton}

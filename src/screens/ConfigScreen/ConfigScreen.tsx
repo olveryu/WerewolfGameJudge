@@ -132,6 +132,7 @@ export const ConfigScreen: React.FC = () => {
           onPress={() => setOverflowVisible((v) => !v)}
           activeOpacity={fixed.activeOpacity}
           testID={TESTIDS.configMoreButton}
+          accessibilityLabel="更多选项"
         >
           <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
         </TouchableOpacity>
@@ -153,6 +154,7 @@ export const ConfigScreen: React.FC = () => {
                 handleClearSelection();
               }}
               testID={TESTIDS.configOverflowReset}
+              accessibilityLabel="重置配置"
             >
               <Ionicons
                 name="trash-outline"
@@ -169,6 +171,7 @@ export const ConfigScreen: React.FC = () => {
                 handleOpenSettings();
               }}
               testID={TESTIDS.configOverflowSettings}
+              accessibilityLabel="设置"
             >
               <Ionicons
                 name="settings-outline"

@@ -466,6 +466,8 @@ export const shadows = {
   lg: { boxShadow: '0px 8px 24px rgba(0,0,0,0.16)' } as ViewStyle,
   /** Upward shadow for bottom panels */
   upward: { boxShadow: '0px -4px 16px rgba(0,0,0,0.10)' } as ViewStyle,
+  /** Strong upward shadow for primary bottom action panels */
+  lgUpward: { boxShadow: '0px -8px 24px rgba(0,0,0,0.16)' } as ViewStyle,
 } as const;
 
 // ============================================================================

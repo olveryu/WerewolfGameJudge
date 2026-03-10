@@ -387,7 +387,7 @@ export const HomeScreen: React.FC = () => {
             <View style={styles.heroCardArrow}>
               <Ionicons
                 name="chevron-forward"
-                size={componentSizes.icon.md}
+                size={componentSizes.icon.lg}
                 color={colors.textInverse}
               />
             </View>
