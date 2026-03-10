@@ -317,7 +317,7 @@ export const SCHEMAS = {
       bottomActionText: '转化状态',
       hypnotizedText: '你已被觉醒石像鬼转化为狼人阵营',
       notHypnotizedText: '你未被转化',
-      confirmButtonText: '我知道了',
+      confirmButtonText: '知道了',
     },
   },
 
@@ -432,7 +432,7 @@ export const SCHEMAS = {
       bottomActionText: '催眠状态',
       hypnotizedText: '你已被吹笛者催眠，当前被催眠的座位：{seats}',
       notHypnotizedText: '你未被催眠',
-      confirmButtonText: '我知道了',
+      confirmButtonText: '知道了',
     },
   },
 } as const satisfies Record<string, ActionSchema>;

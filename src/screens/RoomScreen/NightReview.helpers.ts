@@ -64,7 +64,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   }
 
   if (nr.wolfKillDisabled) {
-    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人刀空（被梦魇封锁）`);
+    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人空刀（被梦魇封锁）`);
   }
 
   // 2. Nightmare block

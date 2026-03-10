@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { setupNPlayerGame } from '../helpers/multi-player';
-import { waitForRoomScreenReady } from '../helpers/waits';
+import { DISCONNECTED_BANNER_TEXT, waitForRoomScreenReady } from '../helpers/waits';
 import { RoomPage } from '../pages/RoomPage';
 
 /**
@@ -29,7 +29,7 @@ test.describe('offline recovery canary', () => {
       await test.step('joiner goes offline', async () => {
         await joinerContext.setOffline(true);
         await joinerPage
-          .getByText('连接断开，正在重连...', { exact: true })
+          .getByText(DISCONNECTED_BANNER_TEXT, { exact: true })
           .waitFor({ state: 'visible', timeout: 15_000 })
           .catch(() => {});
       });

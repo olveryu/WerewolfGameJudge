@@ -117,7 +117,7 @@ describe('NightReview.helpers', () => {
       const lines = buildActionLines(
         makeGameState({ currentNightResults: { wolfKillDisabled: true } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('狼人刀空'));
+      expect(lines).toContainEqual(expect.stringContaining('狼人空刀'));
     });
 
     it('shows slacker idol choice', () => {

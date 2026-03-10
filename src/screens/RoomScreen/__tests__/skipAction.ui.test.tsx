@@ -218,7 +218,7 @@ describe('RoomScreen skip action UI', () => {
     });
 
     // Confirm the *skip confirm* alert (auto-intent prompts may also call showAlert)
-    const skipCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认跳过');
+    const skipCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '跳过本次行动？');
     expect(skipCall).toBeDefined();
 
     const buttons = (skipCall as any)[2] as Array<{ text: string; onPress?: () => void }>;

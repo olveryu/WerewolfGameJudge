@@ -81,7 +81,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
       {/* Host: Prepare to Flip */}
       {showPrepareToFlip && (
         <ActionButton
-          label="准备看牌"
+          label="分配角色"
           disabled={disabled}
           onPress={(meta) => {
             if (!meta.disabled) onPrepareToFlipPress();

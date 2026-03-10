@@ -43,7 +43,7 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
 
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             {/* Fair play reminder */}
-            <Text style={styles.disclaimer}>{STATUS.WARNING} 请自觉，不要作弊</Text>
+            <Text style={styles.disclaimer}>{STATUS.WARNING} 仅供裁判及观战者参考</Text>
 
             {/* Action summary section */}
             <Text style={styles.sectionTitle}>行动摘要</Text>

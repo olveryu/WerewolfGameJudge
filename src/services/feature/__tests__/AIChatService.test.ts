@@ -68,7 +68,7 @@ describe('AIChatService - streamChatMessage', () => {
 
     expect(result.value).toEqual({
       type: 'error',
-      content: '网络请求失败，请检查网络后重试',
+      content: '网络异常，请检查网络后重试',
     });
   });
 
@@ -107,7 +107,7 @@ describe('AIChatService - streamChatMessage', () => {
     const gen = streamChatMessage([{ role: 'user', content: 'test' }]);
     const result = await gen.next();
 
-    expect(result.value).toEqual({ type: 'error', content: '请求太频繁，请稍后再试' });
+    expect(result.value).toEqual({ type: 'error', content: '请求太频繁，请稍后重试' });
   });
 
   it('yields error on HTTP 500', async () => {

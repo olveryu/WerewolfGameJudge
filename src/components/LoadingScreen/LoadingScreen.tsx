@@ -26,7 +26,7 @@ interface LoadingScreenProps {
  * 统一的加载界面组件
  * 带有 logo 脉冲动画，与 PWA 启动画面保持一致
  */
-export function LoadingScreen({ message = '加载中...', fullScreen = true }: LoadingScreenProps) {
+export function LoadingScreen({ message = '加载中…', fullScreen = true }: LoadingScreenProps) {
   const { colors } = useTheme();
   const pulseAnimRef = useRef(new Animated.Value(1));
   // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: read Animated.Value from ref during render to bind into styles.

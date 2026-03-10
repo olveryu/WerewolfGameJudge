@@ -27,7 +27,7 @@ export function getChatHeight(screenHeight: number): number {
   return Math.min(600, Math.max(320, Math.round(screenHeight * 0.55)));
 }
 
-/** Height of the "小助手" label below the bubble */
+/** Height of the "助手" label below the bubble */
 export const LABEL_HEIGHT = 18;
 
 /** 默认位置：右下角 */

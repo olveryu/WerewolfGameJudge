@@ -48,8 +48,8 @@ describe('mapAuthError', () => {
   });
 
   it('maps network errors', () => {
-    expect(mapAuthError('network error')).toBe('网络连接失败，请检查网络后重试');
-    expect(mapAuthError('fetch failed')).toBe('网络连接失败，请检查网络后重试');
+    expect(mapAuthError('network error')).toBe('网络异常，请检查网络后重试');
+    expect(mapAuthError('fetch failed')).toBe('网络异常，请检查网络后重试');
   });
 
   it('falls back to generic Chinese message for unknown English errors', () => {

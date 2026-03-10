@@ -139,14 +139,14 @@ describe('RoleCardSimple', () => {
 
   it('shows close button', () => {
     const { getByText } = render(<RoleCardSimple {...defaultProps} />);
-    expect(getByText('我知道了')).toBeTruthy();
+    expect(getByText('知道了')).toBeTruthy();
   });
 
   it('calls onClose when close button is pressed', () => {
     const onClose = jest.fn();
     const { getByText } = render(<RoleCardSimple {...defaultProps} onClose={onClose} />);
 
-    fireEvent.press(getByText('我知道了'));
+    fireEvent.press(getByText('知道了'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 

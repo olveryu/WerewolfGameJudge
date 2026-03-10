@@ -69,7 +69,7 @@ export function useRoomInit({
   gameRoomError,
 }: UseRoomInitParams): UseRoomInitResult {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('加载房间...');
+  const [loadingMessage, setLoadingMessage] = useState('加载房间…');
   const [showRetryButton, setShowRetryButton] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   // Guard: prevent concurrent initialization from useEffect re-triggers
@@ -87,7 +87,7 @@ export function useRoomInit({
     initInProgressRef.current = true;
 
     const initRoom = async () => {
-      setLoadingMessage('正在初始化...');
+      setLoadingMessage('正在初始化…');
 
       // Guard: template must be a real GameTemplate object, not a URL-parsed string.
       // On refresh, URL params may produce isHost=true + template="[object Object]".
@@ -99,7 +99,7 @@ export function useRoomInit({
 
       if (hasValidTemplate) {
         // Host initializes room (DB record already created before navigation)
-        setLoadingMessage('正在初始化房间...');
+        setLoadingMessage('正在初始化房间…');
         roomScreenLog.debug('[useRoomInit] Host initializing room', {
           roomNumber,
           roleCount: template.roles.length,
@@ -129,7 +129,7 @@ export function useRoomInit({
         roomScreenLog.debug('[useRoomInit] Host init complete');
       } else {
         // Player joins existing room via RealtimeService
-        setLoadingMessage('正在加入房间...');
+        setLoadingMessage('正在加入房间…');
         roomScreenLog.debug('[useRoomInit] Player joining room', { roomNumber });
         const joined = await joinRoom(roomNumber);
 
@@ -180,7 +180,7 @@ export function useRoomInit({
             isInitialized,
             hasGameState,
           });
-          setLoadingMessage('等待房主上线...（房主可能不在房间内）');
+          setLoadingMessage('等待房主上线…');
         } else {
           roomScreenLog.warn('[useRoomInit] Loading timeout — init incomplete', {
             isInitialized,
@@ -199,7 +199,7 @@ export function useRoomInit({
     setIsInitialized(false);
     setShowRetryButton(false);
     initInProgressRef.current = false;
-    setLoadingMessage('重试中...');
+    setLoadingMessage('重试中…');
     // 递增 retryKey 强制触发 useEffect 重试（即使 isInitialized 已经是 false）
     setRetryKey((prev) => prev + 1);
   }, []);

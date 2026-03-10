@@ -110,7 +110,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
               </View>
             </View>
             <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
-            <Text style={styles.hint}>扫一扫二维码 加入房间</Text>
+            <Text style={styles.hint}>扫一扫二维码，加入房间</Text>
           </View>
 
           {/* Action buttons */}
@@ -122,7 +122,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
               accessibilityState={{ disabled: isSharing }}
               testID={TESTIDS.qrCodeShareButton}
             >
-              <Text style={styles.shareButtonText}>{isSharing ? '分享中...' : '分享图片'}</Text>
+              <Text style={styles.shareButtonText}>{isSharing ? '分享中…' : '分享图片'}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.copyButton}

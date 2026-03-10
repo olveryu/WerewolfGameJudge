@@ -85,7 +85,7 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
               activeOpacity={isLoading ? 1 : fixed.activeOpacity}
               accessibilityState={{ disabled: isLoading }}
             >
-              <Text style={styles.primaryButtonText}>{isLoading ? '加入中...' : '加入'}</Text>
+              <Text style={styles.primaryButtonText}>{isLoading ? '加入中…' : '加入'}</Text>
             </TouchableOpacity>
           </View>
         </View>

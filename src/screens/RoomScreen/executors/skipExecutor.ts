@@ -17,7 +17,7 @@ export const skipExecutor: IntentExecutor = (intent, ctx) => {
 
   if (currentSchema?.kind === 'confirm') {
     actionDialogs.showConfirmDialog(
-      '确认跳过',
+      '跳过本次行动？',
       intent.message || BLOCKED_UI_DEFAULTS.skipButtonText,
       () => void proceedWithAction(null, { confirmed: false }),
     );
@@ -43,7 +43,7 @@ export const skipExecutor: IntentExecutor = (intent, ctx) => {
   }
 
   actionDialogs.showConfirmDialog(
-    '确认跳过',
+    '跳过本次行动？',
     skipConfirmText,
     () => void proceedWithAction(skipSeat, skipExtra),
   );

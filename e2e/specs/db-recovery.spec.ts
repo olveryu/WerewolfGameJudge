@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { setupNPlayerGame } from '../helpers/multi-player';
-import { waitForRoomScreenReady } from '../helpers/waits';
+import { DISCONNECTED_BANNER_TEXT, waitForRoomScreenReady } from '../helpers/waits';
 import { runNightFlowLoop } from '../pages/NightFlowPage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -67,7 +67,7 @@ test.describe('DB state recovery after network interruption', () => {
       await joinerContext.setOffline(true);
 
       // Step 4: Wait for the disconnect to register
-      const disconnectedBanner = joinerPage.getByText('连接断开，正在重连...', { exact: true });
+      const disconnectedBanner = joinerPage.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
       const isDisconnected = await disconnectedBanner
         .waitFor({ state: 'visible', timeout: 10_000 })
         .then(() => true)
@@ -173,7 +173,7 @@ test.describe('DB state recovery after network interruption', () => {
         await joinerContext.setOffline(true);
 
         // Soft check: disconnect banner may take time to appear
-        const joinerBanner = joinerPage.getByText('连接断开，正在重连...', { exact: true });
+        const joinerBanner = joinerPage.getByText(DISCONNECTED_BANNER_TEXT, { exact: true });
         const joinerSawDisconnect = await joinerBanner
           .waitFor({ state: 'visible', timeout: 15_000 })
           .then(() => true)

@@ -397,7 +397,7 @@ describe('useGameActions - handleMutationResult', () => {
 
     await act(() => result.current.submitAction(2));
 
-    expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '网络错误，请稍后重试');
+    expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '网络异常，请检查网络后重试');
   });
 
   it('should alert on SERVER_ERROR even without onBusinessError callback', async () => {
@@ -412,7 +412,7 @@ describe('useGameActions - handleMutationResult', () => {
 
     await act(() => result.current.submitAction(2));
 
-    expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '服务器错误，请稍后重试');
+    expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '服务暂时不可用，请稍后重试');
   });
 
   it('should NOT alert on business rejection without onBusinessError callback', async () => {
@@ -456,7 +456,7 @@ describe('useGameActions - handleMutationResult', () => {
 
     await act(() => result.current.submitRevealAck());
 
-    expect(mockShowAlert).toHaveBeenCalledWith('确认揭示失败', '网络错误，请稍后重试');
+    expect(mockShowAlert).toHaveBeenCalledWith('确认揭示失败', '网络异常，请检查网络后重试');
     expect(Toast.show).not.toHaveBeenCalled();
   });
 });

@@ -183,14 +183,14 @@ export function useConfigScreenState({
 
     const roles = selectionToRoles(selection, variantOverrides);
     if (roles.length === 0) {
-      showAlert('配置提示', '请至少选择一个角色');
+      showAlert('配置有误', '请至少选择一个角色');
       creatingRef.current = false;
       return;
     }
 
     const validationError = validateTemplateRoles(roles);
     if (validationError) {
-      showAlert('配置不合法', validationError);
+      showAlert('配置有误', validationError);
       creatingRef.current = false;
       return;
     }
