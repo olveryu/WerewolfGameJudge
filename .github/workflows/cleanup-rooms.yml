@@ -11,6 +11,10 @@ permissions: {}
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    env:
+      ANON_CLEANUP_BATCH_SIZE: 1000
+      ANON_CLEANUP_MAX_BATCHES: 20
+      ANON_CLEANUP_DAILY_THRESHOLD: 5000
     steps:
       - name: Delete rooms older than 24 hours
         run: |
@@ -40,22 +44,43 @@ jobs:
 
       - name: Delete anonymous users inactive for 14 days
         run: |
-          # Call RPC function to clean up stale anonymous users
-          response=$(curl -s -w "\n%{http_code}" \
-            -X POST \
-            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -H "Content-Type: application/json" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/cleanup_anonymous_users")
+          total_deleted=0
 
-          # Extract HTTP status code and body
-          http_code=$(echo "$response" | tail -1)
-          body=$(echo "$response" | sed '$d')
+          for ((i=1; i<=ANON_CLEANUP_MAX_BATCHES; i++)); do
+            response=$(curl -s -w "\n%{http_code}" \
+              -X POST \
+              -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"p_limit\": ${ANON_CLEANUP_BATCH_SIZE}}" \
+              "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/cleanup_anonymous_users")
 
-          if [ "$http_code" -eq 200 ]; then
-            echo "✅ Deleted $body anonymous user(s) inactive for 14+ days"
-          else
-            echo "❌ Failed to cleanup anonymous users (HTTP $http_code)"
-            echo "$body"
+            http_code=$(echo "$response" | tail -1)
+            body=$(echo "$response" | sed '$d')
+
+            if [ "$http_code" -ne 200 ]; then
+              echo "❌ Failed to cleanup anonymous users (HTTP $http_code)"
+              echo "$body"
+              exit 1
+            fi
+
+            batch_deleted=$(echo "$body" | tr -d '[:space:]')
+            if ! [[ "$batch_deleted" =~ ^[0-9]+$ ]]; then
+              echo "❌ Unexpected RPC response body: $body"
+              exit 1
+            fi
+
+            total_deleted=$((total_deleted + batch_deleted))
+            echo "Batch $i: deleted $batch_deleted anonymous user(s)"
+
+            if [ "$batch_deleted" -eq 0 ]; then
+              break
+            fi
+          done
+
+          echo "✅ Total deleted $total_deleted anonymous user(s) inactive for 14+ days"
+
+          if [ "$total_deleted" -gt "$ANON_CLEANUP_DAILY_THRESHOLD" ]; then
+            echo "❌ Anomaly: deleted $total_deleted anonymous users, exceeding threshold $ANON_CLEANUP_DAILY_THRESHOLD"
             exit 1
           fi
