@@ -293,6 +293,20 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
+  it('should return TIMEOUT on AbortError', async () => {
+    const abortError = Object.assign(new Error('The operation was aborted.'), {
+      name: 'AbortError',
+    });
+    global.fetch = jest.fn().mockRejectedValue(abortError);
+    const ctx = createMockCtx();
+
+    const result = await assignRoles(ctx);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('TIMEOUT');
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
   it('should rollback optimistic on network error', async () => {
     global.fetch = jest.fn().mockRejectedValue(new TypeError('network error'));
     const ctx = createMockCtx();

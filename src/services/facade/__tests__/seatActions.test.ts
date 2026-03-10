@@ -92,7 +92,11 @@ describe('seatActions (HTTP API)', () => {
         expect.stringContaining('/game/seat'),
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-region': 'us-west-1' },
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            'x-region': 'us-west-1',
+            'x-request-id': expect.any(String),
+          }),
           body: JSON.stringify({
             roomCode: 'ABCD',
             action: 'sit',
