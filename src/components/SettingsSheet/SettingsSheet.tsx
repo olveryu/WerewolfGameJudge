@@ -1,14 +1,17 @@
 /**
  * SettingsSheet — 共享设置面板（动画 + BGM）
  *
- * 底部滑出 Modal，动画和 BGM 分组卡片化展示，chip 选择使用 PressableScale 弹簧微动效。
+ * 底部滑出 Modal，动画区使用 SettingsOptionGroup（图标 + 名称 + 短描述卡片），
+ * BGM 区使用 SettingsChipGroup（简洁 chip）。两区共享选中态视觉语言（primary 边框 + 淡紫填充）。
  * 纯 UI 组件：接收当前值和回调，不 import service，不包含业务逻辑。
- * 选项列表由组件内部拥有（ANIMATION_OPTIONS / BGM_OPTIONS），外部不需要传入。
+ * 选项列表由 animationOptions.ts 配置驱动，外部不需要传入。
  * 自带基于 theme tokens 的样式，可在 ConfigScreen 和 RoomScreen 中复用。
  */
+import { Ionicons } from '@expo/vector-icons';
 import { memo, useCallback, useMemo } from 'react';
 import {
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   type TextStyle,
@@ -20,25 +23,13 @@ import {
 import { borderRadius, layout, spacing, typography, useColors, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
+import { ANIMATION_OPTIONS } from './animationOptions';
 import { SettingsChipGroup, type SettingsOption } from './SettingsChipGroup';
+import { SettingsOptionGroup } from './SettingsOptionGroup';
 
 // ---------------------------------------------------------------------------
-// Constants — 选项列表由组件拥有，保证单一来源
+// Constants — BGM 选项列表由组件拥有
 // ---------------------------------------------------------------------------
-
-export const ANIMATION_OPTIONS: readonly SettingsOption[] = [
-  { value: 'random', label: '随机' },
-  { value: 'roulette', label: '轮盘' },
-  { value: 'roleHunt', label: '猎场' },
-  { value: 'scratch', label: '刮卡' },
-  { value: 'tarot', label: '塔罗' },
-  { value: 'gachaMachine', label: '扭蛋' },
-  { value: 'cardPick', label: '抽牌' },
-  { value: 'sealBreak', label: '封印' },
-  { value: 'chainShatter', label: '锁链' },
-  { value: 'fateGears', label: '齿轮' },
-  { value: 'none', label: '关闭' },
-] as const;
 
 export const BGM_OPTIONS: readonly SettingsOption[] = [
   { value: 'on', label: '开' },
@@ -56,7 +47,9 @@ export interface SettingsSheetProps {
   bgmValue: string;
   onAnimationChange: (value: string) => void;
   onBgmChange: (value: string) => void;
-  /** testID prefix for animation chips (default: 'settings-animation') */
+  /** 当选中"随机"时，实际解析出的动画 value（如 'roulette'），用于显示"本局: X" */
+  resolvedAnimation?: string;
+  /** testID prefix for animation cards (default: 'settings-animation') */
   animationTestIDPrefix?: string;
   /** testID prefix for BGM chips (default: 'settings-bgm') */
   bgmTestIDPrefix?: string;
@@ -75,6 +68,7 @@ export const SettingsSheet = memo(function SettingsSheet({
   bgmValue,
   onAnimationChange,
   onBgmChange,
+  resolvedAnimation,
   animationTestIDPrefix = 'settings-animation',
   bgmTestIDPrefix = 'settings-bgm',
   overlayTestID,
@@ -110,16 +104,34 @@ export const SettingsSheet = memo(function SettingsSheet({
           onTouchEnd={(e) => e.stopPropagation()}
         >
           <View style={styles.handle} />
-          <Text style={styles.title}>设置</Text>
+          <View style={styles.header}>
+            <Text style={styles.title}>设置</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeButton}
+              hitSlop={{
+                top: spacing.small,
+                bottom: spacing.small,
+                left: spacing.small,
+                right: spacing.small,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="关闭设置"
+            >
+              <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
 
-          <SettingsChipGroup
-            label="动画"
-            options={ANIMATION_OPTIONS}
-            selectedValue={roleRevealAnimation}
-            onSelect={handleAnimSelect}
-            styles={styles.animGroup}
-            testIDPrefix={animationTestIDPrefix}
-          />
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+            <SettingsOptionGroup
+              label="动画"
+              options={ANIMATION_OPTIONS}
+              selectedValue={roleRevealAnimation}
+              onSelect={handleAnimSelect}
+              resolvedAnimation={resolvedAnimation}
+              testIDPrefix={animationTestIDPrefix}
+            />
+          </ScrollView>
 
           <SettingsChipGroup
             label="BGM"
@@ -139,7 +151,7 @@ export const SettingsSheet = memo(function SettingsSheet({
 // Styles (theme-aware)
 // ---------------------------------------------------------------------------
 
-/** Shared chip styles used by both animation and BGM groups */
+/** Shared chip styles used by BGM group */
 interface ChipGroupStyles {
   groupCard: ViewStyle;
   groupLabel: TextStyle;
@@ -154,12 +166,13 @@ interface SettingsSheetStyles {
   overlay: ViewStyle;
   content: ViewStyle;
   handle: ViewStyle;
+  header: ViewStyle;
   title: TextStyle;
-  animGroup: ChipGroupStyles;
+  closeButton: ViewStyle;
   bgmGroup: ChipGroupStyles;
 }
 
-/** Base chip styles shared between animation and BGM groups */
+/** Base chip styles for BGM group */
 function createBaseChipStyles(colors: ReturnType<typeof useColors>) {
   return {
     groupLabel: {
@@ -211,6 +224,7 @@ function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles
       borderTopRightRadius: borderRadius.large,
       paddingHorizontal: layout.screenPaddingH,
       paddingBottom: spacing.xlarge,
+      maxHeight: '85%',
     },
     handle: {
       width: componentSizes.button.sm + spacing.tight,
@@ -220,12 +234,20 @@ function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles
       alignSelf: 'center',
       marginVertical: spacing.small + spacing.tight / 2,
     },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.medium,
+    },
     title: {
       fontSize: typography.subtitle,
       lineHeight: typography.lineHeights.subtitle,
       fontWeight: typography.weights.semibold,
       color: colors.text,
-      marginBottom: spacing.medium,
+    },
+    closeButton: {
+      padding: spacing.tight,
     },
     // ── Group cards ──
     groupCard: {
@@ -233,18 +255,6 @@ function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles
       borderRadius: borderRadius.medium,
       padding: spacing.medium,
       marginBottom: spacing.medium,
-    },
-    // ── Animation: 4-column grid ──
-    animChipWrap: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.small,
-    },
-    animChip: {
-      ...baseChip.chip,
-      flexBasis: '22%',
-      flexGrow: 0,
-      maxWidth: '24%',
     },
     // ── BGM: 2-column grid ──
     bgmChipWrap: {
@@ -264,16 +274,9 @@ function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles
     overlay: sheetStyles.overlay,
     content: sheetStyles.content,
     handle: sheetStyles.handle,
+    header: sheetStyles.header,
     title: sheetStyles.title,
-    animGroup: {
-      groupCard: sheetStyles.groupCard,
-      groupLabel: baseChip.groupLabel,
-      chipWrap: sheetStyles.animChipWrap,
-      chip: sheetStyles.animChip,
-      chipSelected: baseChip.chipSelected,
-      chipText: baseChip.chipText,
-      chipTextSelected: baseChip.chipTextSelected,
-    },
+    closeButton: sheetStyles.closeButton,
     bgmGroup: {
       groupCard: sheetStyles.groupCard,
       groupLabel: baseChip.groupLabel,
