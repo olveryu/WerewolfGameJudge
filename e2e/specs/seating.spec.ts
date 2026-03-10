@@ -41,40 +41,48 @@ async function dismissAnyConfirmAlert(page: import('@playwright/test').Page) {
 }
 
 /**
- * Poll until host sees a seat become occupied (non-empty).
+ * Wait until host sees a seat become occupied (non-empty).
+ * Uses Playwright's `expect.poll()` for built-in retry, timeout, and error reporting.
  */
 async function pollSeatOccupied(
   room: RoomPage,
   displayNumber: number,
   maxPollMs = 10000,
-): Promise<ReturnType<RoomPage['collectSeatState']>> {
-  const pollInterval = 250;
-  const startTime = Date.now();
+): Promise<Awaited<ReturnType<RoomPage['collectSeatState']>>> {
   let state = await room.collectSeatState(displayNumber);
-  while (Date.now() - startTime < maxPollMs) {
-    state = await room.collectSeatState(displayNumber);
-    if (!state.isEmpty && state.hasPlayerName) return state;
-    await new Promise((r) => setTimeout(r, pollInterval));
-  }
+  await expect
+    .poll(
+      () =>
+        room
+          .collectSeatState(displayNumber)
+          .then((s) => (state = s) && !s.isEmpty && s.hasPlayerName),
+      {
+        timeout: maxPollMs,
+        intervals: [250],
+        message: `Seat ${displayNumber} did not become occupied within ${maxPollMs}ms`,
+      },
+    )
+    .toBeTruthy();
   return state;
 }
 
 /**
- * Poll until host sees a seat become empty.
+ * Wait until host sees a seat become empty.
+ * Uses Playwright's `expect.poll()` for built-in retry, timeout, and error reporting.
  */
 async function pollSeatEmpty(
   room: RoomPage,
   displayNumber: number,
   maxPollMs = 10000,
-): Promise<ReturnType<RoomPage['collectSeatState']>> {
-  const pollInterval = 250;
-  const startTime = Date.now();
+): Promise<Awaited<ReturnType<RoomPage['collectSeatState']>>> {
   let state = await room.collectSeatState(displayNumber);
-  while (Date.now() - startTime < maxPollMs) {
-    state = await room.collectSeatState(displayNumber);
-    if (state.isEmpty) return state;
-    await new Promise((r) => setTimeout(r, pollInterval));
-  }
+  await expect
+    .poll(() => room.collectSeatState(displayNumber).then((s) => (state = s) && s.isEmpty), {
+      timeout: maxPollMs,
+      intervals: [250],
+      message: `Seat ${displayNumber} did not become empty within ${maxPollMs}ms`,
+    })
+    .toBeTruthy();
   return state;
 }
 
