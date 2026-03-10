@@ -59,7 +59,7 @@ function getStatusLabel(status: GameStatus): string {
     case GameStatus.Unseated:
       return '等待入座';
     case GameStatus.Seated:
-      return '等待分配';
+      return '等待房主发牌';
     case GameStatus.Assigned:
       return '查看身份';
     case GameStatus.Ready:
@@ -105,7 +105,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (result === 'copied') {
           showAlert('已复制', '房间链接已复制到剪贴板');
         } else if (result === 'failed') {
-          showAlert('分享失败', '无法复制链接，请手动分享房间号');
+          showAlert('链接分享失败', '无法复制链接，请手动分享房间号');
         }
         // 'shared' → system share sheet already provided feedback
         // 'cancelled' → user dismissed intentionally, no alert needed
@@ -114,7 +114,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         handleError(e, {
           label: '分享房间',
           logger: roomScreenLog,
-          alertTitle: '分享失败',
+          alertTitle: '链接分享失败',
           alertMessage: '无法复制链接，请手动分享房间号',
         });
       });
@@ -126,7 +126,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         handleError(e, {
           label: '分享二维码',
           logger: roomScreenLog,
-          alertTitle: '分享失败',
+          alertTitle: '二维码分享失败',
           alertMessage: '无法分享二维码图片',
         });
       });
@@ -458,7 +458,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {(roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
           effectiveSeat !== null && (
             <ActionButton
-              label="查看身份"
+              label="等待发牌…"
               disabled
               onPress={(meta) => {
                 // Policy decision: disabled button shows alert

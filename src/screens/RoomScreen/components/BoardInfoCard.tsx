@@ -1,5 +1,5 @@
 /**
- * BoardInfoCard - 板子信息卡片（可折叠，Memoized）
+ * BoardInfoCard - 角色配置信息卡片（可折叠，Memoized）
  *
  * 显示角色配置概览（狼/神/民数量）。点击角色名可查看该角色技能。
  * 渲染 UI、处理折叠交互并通过回调上报 onRolePress intent，不 import service，不包含业务逻辑判断。

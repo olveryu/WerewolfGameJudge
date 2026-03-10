@@ -504,7 +504,7 @@ export function generateQuickQuestions(state: GameState | null, mySeat: number |
     }
   };
 
-  // 1. 固定 — 板子角色技能介绍
+  // 1. 固定 — 本局角色技能介绍
   if (state?.templateRoles && state.templateRoles.length > 0) {
     add('本局角色技能介绍？');
   }

@@ -254,7 +254,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
   const villagerItemMap = new Map<string, RoleDisplayItem>();
   let villagerCount = 0;
 
-  // 板子配置是法官视角，使用真实角色 spec（不走 displayAs 伪装）
+  // 角色配置是法官视角，使用真实角色 spec（不走 displayAs 伪装）
   roles.forEach((role) => {
     const spec = getRoleSpec(role);
     if (!spec) return;

@@ -26,7 +26,7 @@ export function buildPlayerContext(state: GameState | null, mySeat: number | nul
     totalPlayers: Object.values(state.players).filter(Boolean).length,
   };
 
-  // 板子配置（公开信息）
+  // 角色配置（公开信息）
   if (state.templateRoles && state.templateRoles.length > 0) {
     context.boardRoleDetails = state.templateRoles.map((roleId) => {
       const roleSpec = ROLE_SPECS[roleId];

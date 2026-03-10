@@ -57,8 +57,8 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <View style={styles.container}>
           <Text style={styles.emoji}>{STATUS.ERROR}</Text>
-          <Text style={styles.title}>出了点问题</Text>
-          <Text style={styles.message}>应用遇到了问题，请点击重试</Text>
+          <Text style={styles.title}>应用出现问题</Text>
+          <Text style={styles.message}>请点击下方按钮重试</Text>
           <TouchableOpacity style={styles.button} onPress={this.#handleRetry}>
             <Text style={styles.buttonText}>重试</Text>
           </TouchableOpacity>

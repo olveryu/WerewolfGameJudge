@@ -73,7 +73,7 @@ export async function isTextVisible(page: Page, text: string, exact = false): Pr
 
 /** Click a seat tile and confirm via alert. Returns true if confirmed. */
 export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<boolean> {
-  // Dismiss any existing alert (e.g. "行动提示" action prompt) before clicking
+  // Dismiss any existing alert (e.g. "夜间行动" action prompt) before clicking
   await dismissAlert(page);
 
   const tile = page.locator(`[data-testid="seat-tile-pressable-${seatIdx}"]`);
@@ -319,7 +319,7 @@ export async function driveWolfVote(
 export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): Promise<void> {
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx];
-    // Dismiss any existing alert (e.g. "行动提示") before interacting
+    // Dismiss any existing alert (e.g. "夜间行动") before interacting
     await dismissAlert(wPage);
 
     await wPage
@@ -421,7 +421,7 @@ export async function driveMagicianSwap(
   seat1: number,
   seat2: number,
 ): Promise<boolean> {
-  // Dismiss any existing alert (e.g. "行动提示") before interacting with seats
+  // Dismiss any existing alert (e.g. "夜间行动") before interacting with seats
   await dismissAlert(page);
 
   // Click first seat → triggers "已选择第一位玩家" info alert

@@ -75,7 +75,7 @@ export interface GameTemplate {
   roles: RoleId[];
 }
 
-// Create custom template (roles are NOT shuffled here - shuffling happens at "准备看牌")
+// Create custom template (roles are NOT shuffled here - shuffling happens at "分配角色")
 export const createCustomTemplate = (roles: RoleId[]): GameTemplate => {
   return {
     name: '',

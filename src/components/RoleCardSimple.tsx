@@ -37,7 +37,7 @@ interface RoleCardSimpleProps {
   showRealIdentity?: boolean;
   /**
    * 双预言家编号（1 或 2），由 seerLabelMap 派生。
-   * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存板子使用。
+   * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存配置使用。
    */
   seerLabel?: number;
   /**

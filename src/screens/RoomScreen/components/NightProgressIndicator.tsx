@@ -38,7 +38,7 @@ const NightProgressIndicatorComponent: React.FC<NightProgressIndicatorProps> = (
     <View style={styles.container} testID={TESTIDS.nightProgressIndicator}>
       <View style={styles.headerRow}>
         <Text style={styles.stepText}>
-          步骤 {currentStep}/{totalSteps}
+          第{currentStep}步 / 共{totalSteps}步
         </Text>
         {currentRoleName && <Text style={styles.roleText}>{currentRoleName}</Text>}
       </View>

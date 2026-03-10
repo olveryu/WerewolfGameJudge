@@ -337,7 +337,7 @@ describe('AIChatService - streamChatMessage', () => {
 
     const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
     const systemMsg = body.messages[0].content;
-    expect(systemMsg).toContain('板子配置');
+    expect(systemMsg).toContain('角色配置');
     expect(systemMsg).toContain('狼人');
     expect(systemMsg).toContain('预言家');
     expect(systemMsg).toContain('每晚可以杀一名玩家');

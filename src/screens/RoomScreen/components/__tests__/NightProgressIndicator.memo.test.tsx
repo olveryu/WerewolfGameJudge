@@ -129,7 +129,7 @@ describe('NightProgressIndicator memo optimization', () => {
       />,
     );
 
-    expect(getByText('步骤 3/7')).toBeTruthy();
+    expect(getByText('第3步 / 共7步')).toBeTruthy();
     expect(getByText('守卫')).toBeTruthy();
   });
 
@@ -138,7 +138,7 @@ describe('NightProgressIndicator memo optimization', () => {
       <NightProgressIndicator currentStep={0} totalSteps={0} styles={indicatorStyles} />,
     );
 
-    expect(getByText('步骤 0/0')).toBeTruthy();
+    expect(getByText('第0步 / 共0步')).toBeTruthy();
   });
 
   it('should use same styles reference across parent re-renders', () => {

@@ -55,7 +55,7 @@ export interface GameContext {
   myRoleName?: string;
   /** 总人数 */
   totalPlayers?: number;
-  /** 板子中每个角色的详细技能描述（公开信息） */
+  /** 本局每个角色的详细技能描述（公开信息） */
   boardRoleDetails?: Array<{ name: string; description: string }>;
 }
 
@@ -105,7 +105,7 @@ function buildGameContextPrompt(context: GameContext): string {
         uniqueRoles.set(r.name, r.description);
       }
     });
-    lines.push(`- 板子配置: ${[...uniqueRoles.keys()].join('、')}`);
+    lines.push(`- 角色配置: ${[...uniqueRoles.keys()].join('、')}`);
     lines.push(`- 本局角色技能:`);
     uniqueRoles.forEach((desc, name) => {
       lines.push(`  - ${name}: ${desc}`);
@@ -117,7 +117,7 @@ function buildGameContextPrompt(context: GameContext): string {
   return lines.join('\n');
 }
 
-// 优化1: 移除 getRolesDescription，改用板子上下文中的角色
+// 优化1: 移除 getRolesDescription，改用角色配置上下文中的角色
 
 // 优化3+4: 精简 System Prompt，移除跟进问题要求
 const SYSTEM_PROMPT = `你是狼人杀游戏助手。职责：规则解答、策略建议、争议裁决。

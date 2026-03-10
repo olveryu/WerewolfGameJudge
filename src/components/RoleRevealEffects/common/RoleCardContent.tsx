@@ -59,12 +59,12 @@ interface RoleCardContentProps {
   children?: React.ReactNode;
   /**
    * 为 true 时跳过 displayAs 映射，显示角色真实身份。
-   * 用于裁判视角的技能预览（板子配置 chip）。默认 false（玩家翻牌看伪装身份）。
+   * 用于裁判视角的技能预览（角色配置 chip）。默认 false（玩家翻牌看伪装身份）。
    */
   showRealIdentity?: boolean;
   /**
    * 双预言家编号（1 或 2），由 seerLabelMap 派生。
-   * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存板子使用。
+   * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存配置使用。
    */
   seerLabel?: number;
   /**

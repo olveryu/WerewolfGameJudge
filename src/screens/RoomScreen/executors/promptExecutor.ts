@@ -7,6 +7,8 @@
  * confirmed action via proceedWithAction.
  */
 
+import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+
 import { roomScreenLog } from '@/utils/logger';
 
 import type { IntentExecutor } from './types';
@@ -50,14 +52,18 @@ export const actionPromptExecutor: IntentExecutor = (_intent, ctx) => {
         `[FAIL-FAST] Missing schema.ui.prompt for confirm schema: ${currentActionRole}`,
       );
     }
-    actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
+    const confirmTitle = currentActionRole
+      ? `${getRoleDisplayName(currentActionRole)}行动`
+      : '夜间行动';
+    actionDialogs.showRoleActionPrompt(confirmTitle, currentSchema.ui.prompt, () => {});
     return;
   }
 
   if (!currentSchema?.ui?.prompt) {
     throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
   }
-  actionDialogs.showRoleActionPrompt('行动提示', currentSchema.ui.prompt, () => {});
+  const title = currentActionRole ? `${getRoleDisplayName(currentActionRole)}行动` : '夜间行动';
+  actionDialogs.showRoleActionPrompt(title, currentSchema.ui.prompt, () => {});
 };
 
 export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {

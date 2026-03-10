@@ -389,7 +389,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         style={[styles.container, { backgroundColor: colors.background }]}
       >
         <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: colors.text }]}>准备中...</Text>
+          <Text style={[styles.loadingText, { color: colors.text }]}>准备中…</Text>
         </View>
       </View>
     );
