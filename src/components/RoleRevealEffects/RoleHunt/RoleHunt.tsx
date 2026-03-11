@@ -47,7 +47,7 @@ const HUNT_COLORS = {
   /** Hit flash */
   hitFlash: 'rgba(100, 255, 150, 0.6)',
   /** Hint text */
-  hintText: 'rgba(200, 210, 240, 0.7)',
+  hintText: 'rgba(255, 255, 255, 0.85)',
   /** Ghost name text */
   ghostName: '#E8ECFF',
 };
@@ -278,6 +278,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   const config = CONFIG.roleHunt;
 
   const [phase, setPhase] = useState<'hunting' | 'capturing' | 'revealing' | 'revealed'>('hunting');
+  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
   const [ghostStates, setGhostStates] = useState<
     Record<number, 'floating' | 'captured-miss' | 'captured-hit' | 'hidden'>
   >({});
@@ -318,6 +319,10 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   // Auto-select: if user doesn't find the target in time, auto-capture it
   useEffect(() => {
     if (reducedMotion) return;
+    const warningTimer = setTimeout(
+      () => setAutoTimeoutWarning(true),
+      config.autoSelectTimeout - 2000,
+    );
     autoSelectTimerRef.current = setTimeout(() => {
       if (phase !== 'hunting') return;
       const target = ghosts.find((g) => g.isTarget);
@@ -327,7 +332,9 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
     }, config.autoSelectTimeout);
 
     return () => {
+      clearTimeout(warningTimer);
       if (autoSelectTimerRef.current) clearTimeout(autoSelectTimerRef.current);
+      setAutoTimeoutWarning(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
@@ -465,8 +472,13 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       {/* Hint text */}
       {phase === 'hunting' && !reducedMotion && (
         <Animated.View style={[styles.hintContainer, hintStyle]}>
-          <Text style={styles.hintText}>👻 在幽灵中找到你的角色，点击捕获！</Text>
+          <Text style={styles.hintText}>👻 在幽灵中找到你的角色，点击捕获</Text>
         </Animated.View>
+      )}
+      {autoTimeoutWarning && phase === 'hunting' && (
+        <View style={styles.hintContainer} pointerEvents="none">
+          <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
+        </View>
       )}
 
       {/* Ghosts — Flexbox grid, never overflows */}
@@ -537,7 +549,7 @@ const styles = StyleSheet.create({
   },
   hintContainer: {
     position: 'absolute',
-    top: '8%',
+    bottom: 80,
     alignSelf: 'center',
     zIndex: 10,
   },
@@ -546,6 +558,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: HUNT_COLORS.hintText,
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  autoTimeoutWarning: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255, 200, 50, 0.9)',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   ghostGrid: {
     ...StyleSheet.absoluteFillObject,

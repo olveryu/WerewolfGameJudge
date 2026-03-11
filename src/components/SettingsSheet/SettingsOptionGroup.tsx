@@ -128,8 +128,9 @@ function createOptionGroupStyles(colors: ReturnType<typeof useColors>): OptionGr
       minHeight: componentSizes.button.lg,
     },
     cardSelected: {
-      backgroundColor: withAlpha(colors.primary, 0.08),
+      backgroundColor: withAlpha(colors.primary, 0.12),
       borderColor: colors.primary,
+      borderWidth: 1.5,
     },
     cardNone: {
       // "关闭"项不额外改背景，仅文字 muted
@@ -171,6 +172,20 @@ function createOptionGroupStyles(colors: ReturnType<typeof useColors>): OptionGr
       marginTop: spacing.tight,
       fontWeight: typography.weights.medium,
     },
+    operationBadge: {
+      marginTop: spacing.tight,
+      backgroundColor: withAlpha(colors.textMuted, 0.15),
+      borderRadius: borderRadius.small,
+      paddingHorizontal: spacing.tight,
+      paddingVertical: 1,
+      alignSelf: 'center',
+    },
+    operationBadgeText: {
+      fontSize: typography.captionSmall,
+      lineHeight: typography.lineHeights.captionSmall,
+      color: colors.textMuted,
+      fontWeight: typography.weights.medium,
+    },
   });
 
   return {
@@ -189,6 +204,8 @@ function createOptionGroupStyles(colors: ReturnType<typeof useColors>): OptionGr
       descSelected: sheet.descSelected,
       descNone: sheet.descNone,
       resolvedHint: sheet.resolvedHint,
+      operationBadge: sheet.operationBadge,
+      operationBadgeText: sheet.operationBadgeText,
     },
   };
 }

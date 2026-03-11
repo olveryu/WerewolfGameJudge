@@ -559,7 +559,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       {/* Hint text */}
       {phase === 'spinning' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🎰 老虎机转动中…</Text>
+          <Text style={styles.hintText}>🎰 轮盘转动中…</Text>
         </View>
       )}
       {phase === 'stopping' && (

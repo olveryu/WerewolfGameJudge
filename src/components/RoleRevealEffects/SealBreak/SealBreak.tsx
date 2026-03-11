@@ -308,6 +308,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   const decayRate = SB.decayRate / 1000; // per ms
 
   const [phase, setPhase] = useState<Phase>('appear');
+  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
   const onCompleteCalledRef = useRef(false);
   const shatterTriggeredRef = useRef(false);
 
@@ -500,6 +501,10 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   // ── Auto-shatter timeout ──
   useEffect(() => {
     if (phase !== 'idle' && phase !== 'charging') return;
+    const warningTimer = setTimeout(
+      () => setAutoTimeoutWarning(true),
+      SB.autoShatterTimeout - 2000,
+    );
     const timer = setTimeout(() => {
       if (!shatterTriggeredRef.current) {
         // Force full charge then shatter
@@ -510,7 +515,11 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
         crackProgress.value = withTiming(1, { duration: 800 });
       }
     }, SB.autoShatterTimeout);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(warningTimer);
+      clearTimeout(timer);
+      setAutoTimeoutWarning(false);
+    };
   }, [phase, charge, crackProgress, triggerShatter]);
 
   // ── Press handlers ──
@@ -832,12 +841,17 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
       )}
       {phase === 'idle' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>{'\uD83D\uDD2E'} 长按封印注入能量！</Text>
+          <Text style={styles.hintText}>{'🔮'} 长按封印蓄力破除</Text>
         </View>
       )}
       {phase === 'charging' && (
         <View style={styles.hint} pointerEvents="none">
           <Text style={styles.hintText}>{'\uD83D\uDD2E'} 持续按住…能量灌注中…</Text>
+        </View>
+      )}
+      {autoTimeoutWarning && (phase === 'idle' || phase === 'charging') && (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
         </View>
       )}
       {phase === 'shatter' && (
@@ -887,8 +901,16 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: 22,
     fontWeight: '700',
-    color: 'rgba(255, 215, 0, 0.8)',
+    color: 'rgba(255, 255, 255, 0.85)',
     textShadowColor: 'rgba(139, 26, 26, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  autoTimeoutWarning: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255, 200, 50, 0.9)',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },

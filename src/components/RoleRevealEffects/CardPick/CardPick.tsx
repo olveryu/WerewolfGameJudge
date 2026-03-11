@@ -11,7 +11,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -90,6 +90,7 @@ export const CardPick: React.FC<CardPickProps> = ({
   const [phase, setPhase] = useState<'spreading' | 'waiting' | 'picking' | 'flipping' | 'revealed'>(
     'spreading',
   );
+  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const onCompleteCalledRef = useRef(false);
 
@@ -284,11 +285,19 @@ export const CardPick: React.FC<CardPickProps> = ({
       (i) => !removedIndices.has(i),
     );
     if (aliveIndices.length === 0) return;
+    const warningTimer = setTimeout(
+      () => setAutoTimeoutWarning(true),
+      config.autoSelectTimeout - 2000,
+    );
     const timer = setTimeout(() => {
       const randomIndex = aliveIndices[Math.floor(Math.random() * aliveIndices.length)];
       handleCardSelect(randomIndex);
     }, config.autoSelectTimeout);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(warningTimer);
+      clearTimeout(timer);
+      setAutoTimeoutWarning(false);
+    };
   }, [
     phase,
     reducedMotion,
@@ -336,10 +345,13 @@ export const CardPick: React.FC<CardPickProps> = ({
       {(phase === 'spreading' || phase === 'waiting') && (
         <View style={styles.promptContainer}>
           <Animated.Text style={[styles.promptText, { color: TABLE_COLORS.accent }]}>
-            {aliveCount === 1
-              ? '🃏 最后一张牌，点击翻开'
-              : `🃏 还剩 ${aliveCount} 张牌，点击选一张`}
+            {aliveCount === 1 ? '🃏 最后一张，点击翻开' : `🃏 还剩 ${aliveCount} 张，点选一张`}
           </Animated.Text>
+        </View>
+      )}
+      {autoTimeoutWarning && phase === 'waiting' && (
+        <View style={styles.promptContainer} pointerEvents="none">
+          <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
         </View>
       )}
 
@@ -579,7 +591,7 @@ const styles = StyleSheet.create({
   },
   promptContainer: {
     position: 'absolute',
-    top: 60,
+    bottom: 80,
     alignItems: 'center',
     zIndex: 10,
   },
@@ -587,5 +599,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     letterSpacing: 1,
+  },
+  autoTimeoutWarning: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255, 200, 50, 0.9)',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 });
