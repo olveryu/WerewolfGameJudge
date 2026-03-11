@@ -1,10 +1,10 @@
 /**
  * FactionTabs - 阵营分段标签栏（Memoized）
  *
- * 显示阵营 icon + 标题 + 计数角标，选中态带色下划线。
+ * 显示阵营标题 + 计数角标，选中态带色下划线。
  * 渲染 UI 并通过回调上报 onTabChange，不 import service，不包含业务逻辑判断。
  */
-import { memo, type ReactNode, useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
@@ -15,7 +15,6 @@ import { ConfigScreenStyles } from './styles';
 
 export interface FactionTabItem {
   key: string;
-  icon: ReactNode;
   title: string;
   count: number;
   accentColor: string;
@@ -75,7 +74,7 @@ const FactionTab = memo<FactionTabProps>(({ tab, isActive, onPress, styles }) =>
       <Text
         style={[styles.tabLabel, { color: tab.accentColor }, isActive && styles.tabLabelActive]}
       >
-        {tab.icon} {tab.title} · {tab.count}
+        {tab.title} · {tab.count}
       </Text>
       {isActive && <View style={[styles.tabIndicator, { backgroundColor: tab.accentColor }]} />}
     </TouchableOpacity>
