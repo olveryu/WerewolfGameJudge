@@ -510,6 +510,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             {isHost && roomStatus === GameStatus.Ended && !isAudioPlaying && (
               <ActionButton
                 label="昨夜信息"
+                testID={TESTIDS.lastNightInfoButton}
                 onPress={() => showLastNightInfo()}
                 styles={componentStyles.dangerActionButton}
               />
