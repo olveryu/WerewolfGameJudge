@@ -290,15 +290,15 @@ test.describe('Night Roles — Protection / Immunity', () => {
         // Wait for witch's turn — she was targeted, should see self-save rejection
         const witchTurn = await waitForRoleTurn(
           pages[witchIdx],
-          ['被狼人袭击', '无法对自己使用解药', '毒药'],
+          ['被狼人袭击', '无法自救', '毒药'],
           pages,
           120,
         );
         expect(witchTurn).toBe(true);
 
-        // Read the prompt — should mention "无法对自己使用解药"
+        // Read the prompt — should mention "无法自救"
         const alertText = await readAlertText(pages[witchIdx]);
-        expect(alertText).toContain('无法对自己使用解药');
+        expect(alertText).toContain('无法自救');
         await dismissAlert(pages[witchIdx]);
 
         // Witch skips (no save, no poison)
