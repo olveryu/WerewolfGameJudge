@@ -8,7 +8,6 @@
  * Does not render JSX, does not import RN components, does not own styles.
  */
 
-import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
@@ -19,7 +18,7 @@ import {
   validateTemplateRoles,
 } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import type { RootStackParamList } from '@/navigation/types';
@@ -458,11 +457,6 @@ export function useConfigScreenState({
         const accentColor = getFactionAccentColor(group.faction);
         return {
           key: group.faction,
-          icon: React.createElement(Ionicons, {
-            name: group.iconName as keyof typeof Ionicons.glyphMap,
-            size: 14,
-            color: accentColor,
-          }),
           title: group.title,
           count: getFactionSelectedCount(group),
           accentColor,

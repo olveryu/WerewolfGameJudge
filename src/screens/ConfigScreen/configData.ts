@@ -47,8 +47,6 @@ interface RoleSection {
 
 interface FactionGroup {
   title: string;
-  /** Ionicons icon name for the faction tab */
-  iconName: string;
   faction: Faction;
   sections: RoleSection[];
 }
@@ -60,7 +58,6 @@ interface FactionGroup {
 export const FACTION_GROUPS: FactionGroup[] = [
   {
     title: '好人阵营',
-    iconName: 'shield-outline',
     faction: Faction.Villager, // covers both Villager & God faction visually
     sections: [
       {
@@ -95,7 +92,6 @@ export const FACTION_GROUPS: FactionGroup[] = [
   },
   {
     title: '狼人阵营',
-    iconName: 'paw-outline',
     faction: Faction.Wolf,
     sections: [
       {
@@ -122,7 +118,6 @@ export const FACTION_GROUPS: FactionGroup[] = [
   },
   {
     title: '第三方阵营',
-    iconName: 'git-compare-outline',
     faction: Faction.Special,
     sections: [
       {
