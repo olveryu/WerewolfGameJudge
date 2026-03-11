@@ -7,6 +7,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GameStatus } from '@werewolf/game-engine/models';
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import type { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { Team } from '@werewolf/game-engine/models/roles/spec/types';
@@ -85,6 +86,7 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
   const templateRoles = gameState?.templateRoles;
   const roomCode = gameState?.roomCode ?? null;
   const storageKey = getStorageKey(roomCode);
+  const status = gameState?.status;
 
   // ── Derive role tags from templateRoles (schema-driven) ──
   const roleTags = useMemo<readonly RoleTagInfo[]>(() => {
@@ -160,6 +162,27 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     },
     [storageKey],
   );
+
+  // ── Detect game restart: status transitions back to Seated ────
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    if (
+      prev !== undefined &&
+      prev !== GameStatus.Unseated &&
+      prev !== GameStatus.Seated &&
+      status === GameStatus.Seated
+    ) {
+      chatLog.info('Game restarted, clearing notepad');
+      setState(emptyState());
+      if (storageKey) {
+        AsyncStorage.removeItem(storageKey).catch((e) => {
+          chatLog.warn('Failed to clear notepad on restart:', e);
+        });
+      }
+    }
+    prevStatusRef.current = status;
+  }, [status, storageKey]);
 
   // ── Actions ──────────────────────────────────────────
 
