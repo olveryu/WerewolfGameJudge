@@ -194,6 +194,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   const gravity = screenHeight * 0.15;
 
   const [phase, setPhase] = useState<Phase>('appear');
+  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
   const [cracks, setCracks] = useState<CrackData[]>([]);
   const hitCountRef = useRef(0);
   const [hitCountDisplay, setHitCountDisplay] = useState(0);
@@ -284,10 +285,18 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   // ── Auto-shatter timeout ──
   useEffect(() => {
     if (phase !== 'idle' && phase !== 'hitting') return;
+    const warningTimer = setTimeout(
+      () => setAutoTimeoutWarning(true),
+      CS.autoShatterTimeout - 2000,
+    );
     const timer = setTimeout(() => {
       if (phase === 'idle' || phase === 'hitting') triggerShatter();
     }, CS.autoShatterTimeout);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(warningTimer);
+      clearTimeout(timer);
+      setAutoTimeoutWarning(false);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
@@ -586,8 +595,13 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       {(phase === 'idle' || phase === 'hitting') && (
         <View style={styles.hint} pointerEvents="none">
           <Text style={styles.hintText}>
-            ⛓️ 连续点击屏幕击碎锁链！{hitsRemaining > 0 ? `（剩余 ${hitsRemaining} 击）` : ''}
+            ⛓️ 连续点击击碎锁链{hitsRemaining > 0 ? `（剩 ${hitsRemaining} 次）` : ''}
           </Text>
+        </View>
+      )}
+      {autoTimeoutWarning && (phase === 'idle' || phase === 'hitting') && (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
         </View>
       )}
       {phase === 'shatter' && (
@@ -655,7 +669,15 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: 20,
     fontWeight: '700',
-    color: COLORS.hitText,
+    color: 'rgba(255, 255, 255, 0.85)',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  autoTimeoutWarning: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255, 200, 50, 0.9)',
     textShadowColor: 'rgba(0, 0, 0, 0.6)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,

@@ -55,7 +55,7 @@ const GACHA_COLORS = {
   dialArmBg: '#888',
   dialKnobBg: '#E74C3C',
   dialKnobBorder: '#C0392B',
-  hintTextColor: '#D35400',
+  hintTextColor: 'rgba(255, 255, 255, 0.85)',
   capsuleTopBg: '#FF69B4',
   capsuleBottomBg: '#FFF',
   capsuleRingBg: '#EEE',
@@ -349,7 +349,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       {/* Hints */}
       {phase === 'ready' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🎯 点击转盘抽取身份蛋!</Text>
+          <Text style={styles.hintText}>🎯 点击旋钮开始</Text>
         </View>
       )}
       {(phase === 'spinning' || phase === 'dropping') && (
@@ -359,7 +359,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       )}
       {phase === 'waiting' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>✨ 点击扭蛋查看身份!</Text>
+          <Text style={styles.hintText}>✨ 点击扭蛋打开</Text>
         </View>
       )}
 
@@ -544,6 +544,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: GACHA_COLORS.hintTextColor,
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 
   capsule: { position: 'absolute', width: 80, height: 80 },

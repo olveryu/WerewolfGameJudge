@@ -292,7 +292,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       {phase === 'waiting' && (
         <View style={styles.promptContainer}>
           <Animated.Text style={[styles.promptText, { color: TAROT_COLORS.gold }]}>
-            🔮 选择一张塔罗牌，揭示你的身份
+            🔮 选择一张塔罗牌
           </Animated.Text>
         </View>
       )}
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   },
   promptContainer: {
     position: 'absolute',
-    top: 60,
+    bottom: 80,
     alignItems: 'center',
   },
   promptText: {

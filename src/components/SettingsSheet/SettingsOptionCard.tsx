@@ -13,6 +13,7 @@ import { Text, type TextStyle, View, type ViewStyle } from 'react-native';
 import { PressableScale } from '@/components/PressableScale';
 
 import type { AnimationOptionConfig } from './animationOptions';
+import { OPERATION_TYPE_LABELS } from './animationOptions';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,6 +31,8 @@ export interface SettingsOptionCardStyles {
   descSelected: TextStyle;
   descNone: TextStyle;
   resolvedHint: TextStyle;
+  operationBadge: ViewStyle;
+  operationBadgeText: TextStyle;
 }
 
 interface SettingsOptionCardProps {
@@ -113,6 +116,13 @@ export const SettingsOptionCard = memo<SettingsOptionCardProps>(function Setting
       <Text style={descStyle} numberOfLines={2}>
         {option.shortDesc}
       </Text>
+      {option.operationType != null && (
+        <View style={styles.operationBadge}>
+          <Text style={styles.operationBadgeText}>
+            {OPERATION_TYPE_LABELS[option.operationType]}
+          </Text>
+        </View>
+      )}
       {option.isRandom && selected && resolvedHint != null && (
         <Text style={styles.resolvedHint} numberOfLines={1}>
           {resolvedHint}

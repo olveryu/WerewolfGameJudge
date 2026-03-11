@@ -69,7 +69,7 @@ const COLORS = {
   snapAligned: 'rgba(78, 205, 196, 0.5)',
   snapMissed: 'rgba(255, 100, 50, 0.3)',
   /** Hint text */
-  hintText: 'rgba(200, 200, 255, 0.9)',
+  hintText: 'rgba(255, 255, 255, 0.85)',
   hintAligned: '#4ECDC4',
 } as const;
 
@@ -274,6 +274,7 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
   const [targetAngle] = useState(() => Math.PI * 0.6 + Math.random() * Math.PI * 0.8);
 
   const [phase, setPhase] = useState<Phase>('appear');
+  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
   const [snapFeedback, setSnapFeedback] = useState<{ aligned: boolean } | null>(null);
   const onCompleteCalledRef = useRef(false);
 
@@ -452,6 +453,7 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
   // ── Auto-align timeout ──
   useEffect(() => {
     if (phase !== 'idle' && phase !== 'dragging') return;
+    const warningTimer = setTimeout(() => setAutoTimeoutWarning(true), FG.autoAlignTimeout - 2000);
     const timer = setTimeout(() => {
       if (phase === 'idle' || phase === 'dragging') {
         setPhase('aligned');
@@ -474,7 +476,11 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
         setTimeout(() => triggerReveal(), FG.snapDuration + 100);
       }
     }, FG.autoAlignTimeout);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(warningTimer);
+      clearTimeout(timer);
+      setAutoTimeoutWarning(false);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
@@ -602,7 +608,7 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
                 style={[styles.centeredOverlay, { top: cy + outerR + 30 }]}
                 pointerEvents="none"
               >
-                <Text style={styles.instructionText}>旋转齿轮对齐 ▶ 标记</Text>
+                <Text style={styles.instructionText}>拖拽齿轮对准 ▶ 标记</Text>
               </View>
             )}
           </Animated.View>
@@ -618,17 +624,22 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
       {/* Hint text */}
       {phase === 'appear' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>⚙️ 命运齿轮启动中…</Text>
+          <Text style={styles.hintText}>⚙️ 齿轮启动中…</Text>
         </View>
       )}
       {(phase === 'idle' || phase === 'dragging') && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>⚙️ 拖拽齿轮对准标记！</Text>
+          <Text style={styles.hintText}>⚙️ 拖拽齿轮对准 ▶ 标记</Text>
+        </View>
+      )}
+      {autoTimeoutWarning && (phase === 'idle' || phase === 'dragging') && (
+        <View style={styles.hint} pointerEvents="none">
+          <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
         </View>
       )}
       {phase === 'aligned' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={[styles.hintText, { color: COLORS.hintAligned }]}>✨ 命运已定！</Text>
+          <Text style={[styles.hintText, { color: COLORS.hintAligned }]}>✨ 对准成功！</Text>
         </View>
       )}
 
@@ -673,13 +684,21 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 12,
-    color: 'rgba(200, 200, 255, 0.5)',
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   hint: { position: 'absolute', bottom: 80 },
   hintText: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.hintText,
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  autoTimeoutWarning: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255, 200, 50, 0.9)',
     textShadowColor: 'rgba(0, 0, 0, 0.6)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,

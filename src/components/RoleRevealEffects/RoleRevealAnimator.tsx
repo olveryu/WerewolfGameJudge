@@ -5,10 +5,10 @@
  * 所有效果在动画中直接显示完整 RoleCardContent 样式。
  * 渲染动画并按 effectType 分发到对应效果组件。不 import service，不含业务逻辑。
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Modal, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useColors } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { CardPick } from './CardPick';
@@ -20,7 +20,15 @@ import { RoleHunt } from './RoleHunt';
 import { ScratchReveal } from './ScratchReveal';
 import { SealBreak } from './SealBreak';
 import { TarotDraw } from './TarotDraw';
-import type { RoleData, RoleRevealAnimatorProps } from './types';
+import type { RevealEffectType, RoleData, RoleRevealAnimatorProps } from './types';
+
+/** 自动播放的效果类型（无需手动操作） */
+const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set(['roulette']);
+
+/** 根据效果类型选择标题：手动操作类引导用户操作，自动类告知即将揭晓 */
+function getTitleForEffect(effectType: RevealEffectType): string {
+  return AUTO_EFFECTS.has(effectType) ? '🎭 你的身份即将揭晓' : '🎭 完成下方操作，揭晓你的身份';
+}
 
 export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
   visible,
@@ -33,8 +41,9 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
   enableHaptics = true,
   testIDPrefix = 'role-reveal',
 }) => {
-  const colors = useColors();
+  const insets = useSafeAreaInsets();
   const [systemReducedMotion, setSystemReducedMotion] = useState(false);
+  const titleText = useMemo(() => getTitleForEffect(effectType), [effectType]);
 
   // Check system reduced motion preference
   useEffect(() => {
@@ -107,10 +116,10 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
       statusBarTranslucent
       testID={`${testIDPrefix}-modal`}
     >
-      <View style={[styles.container, { backgroundColor: colors.overlay }]}>
+      <View style={styles.container}>
         {/* Unified title — tells user this is identity reveal */}
-        <View style={styles.titleContainer} pointerEvents="none">
-          <Text style={styles.titleText}>🎭 身份揭示</Text>
+        <View style={[styles.titleContainer, { top: insets.top + 8 }]} pointerEvents="none">
+          <Text style={styles.titleText}>{titleText}</Text>
         </View>
         {renderEffect()}
       </View>
@@ -135,19 +144,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     overflow: 'visible', // Allow child effects to render outside bounds
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
   },
   titleContainer: {
     position: 'absolute',
-    top: 50,
+    top: 50, // overridden inline with safe area insets
     left: 0,
     right: 0,
     alignItems: 'center',
     zIndex: 100,
+    paddingHorizontal: 24,
   },
   titleText: {
     fontSize: 18,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    overflow: 'hidden',
     textShadowColor: 'rgba(0, 0, 0, 0.6)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,

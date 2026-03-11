@@ -446,7 +446,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
               {/* Hint text */}
               <View style={styles.hintContainer}>
-                <Text style={styles.hintText}>刮开查看角色</Text>
+                <Text style={styles.hintText}>🧤 滑动手指刮开银层</Text>
                 <Text style={styles.hintIcon}>👆</Text>
               </View>
             </View>
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
   hintText: {
     fontSize: typography.title,
     fontWeight: '600',
-    color: 'rgba(0,0,0,0.4)',
+    color: 'rgba(0,0,0,0.5)',
     ...crossPlatformTextShadow('rgba(255,255,255,0.5)', 1, 1, 2),
   },
   hintIcon: {
