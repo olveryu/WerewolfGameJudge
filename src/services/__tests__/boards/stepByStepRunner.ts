@@ -70,7 +70,7 @@ export function sendMessageOrThrow(
  *
  * 支持的值类型：
  * - number: 目标座位
- * - null: 空刀/不行动
+ * - null: 放弃袭击/不行动
  * - { save: number | null; poison: number | null }: 女巫 compound action
  * - { targets: number[] }: 魔术师交换
  * - { confirmed: boolean }: 确认类 action
@@ -317,7 +317,7 @@ function submitActionForStep(
 }
 
 /**
- * 提交狼刀 action
+ * 提交袭击 action
  */
 function submitWolfKillAction(
   ctx: GameContext,
@@ -328,7 +328,7 @@ function submitWolfKillAction(
   const target = typeof actionValue === 'number' ? actionValue : null;
   const state = ctx.getGameState();
 
-  // 所有参与狼刀的狼投票（fail-fast）
+  // 所有参与袭击的狼投票（fail-fast）
   // 注意：只有 participatesInWolfVote=true 的角色才发送 WOLF_VOTE
   if (target !== null) {
     for (const [seatStr, player] of Object.entries(state.players)) {
@@ -348,7 +348,7 @@ function submitWolfKillAction(
     }
   }
 
-  // 找到 lead wolf seat（参与狼刀的第一个狼）
+  // 找到 lead wolf seat（参与袭击的第一个狼）
   let leadWolfSeat = actorSeat;
   let leadWolfRole: RoleId = 'wolf';
   for (const [seatStr, player] of Object.entries(state.players)) {

@@ -78,7 +78,7 @@ describe('Reveal Dialog Classification', () => {
 
   describe('no misclassification', () => {
     it('wolf vote title is NOT classified as reveal', () => {
-      mockShowAlert('狼人投票', '确定要猎杀1号玩家吗？', [
+      mockShowAlert('狼人投票', '确定袭击1号？', [
         { text: '取消', style: 'cancel' },
         { text: '确定' },
       ]);

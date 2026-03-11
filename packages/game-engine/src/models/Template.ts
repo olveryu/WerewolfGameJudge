@@ -442,7 +442,7 @@ export const getTemplateRoomInfo = (template: GameTemplate): string => {
   const villagerCount = template.roles.filter((r) => r === 'villager').length;
   const wolfCount = template.roles.filter((r) => r === 'wolf').length;
 
-  let info = `村民x${villagerCount}, 普狼x${wolfCount}, `;
+  let info = `村民x${villagerCount}, 狼人x${wolfCount}, `;
 
   const specialRoles = template.roles.filter((r) => r !== 'wolf' && r !== 'villager');
   // 板子配置是法官视角，使用真实角色名

@@ -1,7 +1,7 @@
 /**
  * Night-1 Integration Test: Guard Blocks Wolf Kill
  *
- * 主题：守卫守护与狼刀的互动。
+ * 主题：守卫守护与袭击的互动。
  *
  * 模板：狼王守卫12人
  * 固定 seat-role assignment:
@@ -14,7 +14,7 @@
  *   seat 11: guard
  *
  * 核心规则：
- * - 守卫守护的目标免疫狼刀
+ * - 守卫守护的目标免疫袭击
  * - witchContext.killedSeat 在守卫挡刀时的取值需要固化
  *
  * 架构：intents → handlers → reducer → GameState
@@ -55,10 +55,10 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
   });
 
   describe('守卫守护成功挡刀', () => {
-    it('守卫守护狼刀目标，该目标不死', () => {
+    it('守卫守护袭击目标，该目标不死', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 守卫守 seat 0，狼刀 seat 0
+      // 守卫守 seat 0，袭击 seat 0
       const result = executeFullNight(ctx, {
         guard: 0, // 守 seat 0
         wolf: 0, // 刀 seat 0
@@ -75,10 +75,10 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       expect(ctx.getGameState().currentNightResults?.guardedSeat).toBe(0);
     });
 
-    it('守卫守护非狼刀目标，狼刀目标死亡', () => {
+    it('守卫守护非袭击目标，袭击目标死亡', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 守卫守 seat 1，狼刀 seat 0
+      // 守卫守 seat 1，袭击 seat 0
       const result = executeFullNight(ctx, {
         guard: 1, // 守 seat 1
         wolf: 0, // 刀 seat 0
@@ -94,7 +94,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
   });
 
   describe('守卫不守护', () => {
-    it('守卫空守时，狼刀正常生效', () => {
+    it('守卫空守时，袭击正常生效', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
@@ -121,7 +121,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
     it('守卫守护 + 女巫救同一目标：按"同守同救必死"规则，目标死亡', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 守卫守 seat 0，女巫救 seat 0，狼刀 seat 0
+      // 守卫守 seat 0，女巫救 seat 0，袭击 seat 0
       const result = executeFullNight(ctx, {
         guard: 0,
         wolf: 0,
@@ -138,7 +138,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
     it('守卫守护 A + 女巫救 B：只有女巫救的 B 生效（如果 B 被刀）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 守卫守 seat 1，狼刀 seat 0，女巫救 seat 0
+      // 守卫守 seat 1，袭击 seat 0，女巫救 seat 0
       const result = executeFullNight(ctx, {
         guard: 1, // 守 seat 1（不是被刀的）
         wolf: 0, // 刀 seat 0

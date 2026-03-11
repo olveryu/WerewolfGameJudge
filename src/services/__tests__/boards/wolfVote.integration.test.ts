@@ -42,7 +42,7 @@ describe('WolfVote Integration Tests', () => {
     it('多狼投票后 wolfVotesBySeat 正确记录所有投票', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
 
-      // 运行夜晚：所有狼刀座位 0
+      // 运行夜晚：所有狼袭击座位 0
       executeFullNight(ctx, {
         wolf: 0,
         darkWolfKing: { confirmed: true },
@@ -65,12 +65,12 @@ describe('WolfVote Integration Tests', () => {
       expect(wolfVotesBySeat!['7']).toBe(0);
     });
 
-    it('空刀时 wolfVotesBySeat 记录 -1', () => {
+    it('放弃袭击时 wolfVotesBySeat 记录 -1', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
 
-      // 运行夜晚：狼空刀
+      // 运行夜晚：狼放弃袭击
       executeFullNight(ctx, {
-        wolf: null, // 空刀
+        wolf: null, // 放弃袭击
         darkWolfKing: { confirmed: true },
         seer: 0,
         witch: { save: null, poison: null },
@@ -78,12 +78,12 @@ describe('WolfVote Integration Tests', () => {
         magician: { targets: [] },
       });
 
-      // 验证空刀记录
+      // 验证放弃袭击记录
       const state = ctx.getGameState();
       const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat;
 
-      // 空刀时 lead wolf 的投票应该记录为 -1
-      // 注意：当前实现中，空刀时只有 lead wolf 发送 ACTION，其他狼不发 WOLF_VOTE
+      // 放弃袭击时 lead wolf 的投票应该记录为 -1
+      // 注意：当前实现中，放弃袭击时只有 lead wolf 发送 ACTION，其他狼不发 WOLF_VOTE
       // 所以可能只有 lead wolf 有记录
       expect(wolfVotesBySeat).toBeDefined();
       // At least the lead wolf should have a record
@@ -106,7 +106,7 @@ describe('WolfVote Integration Tests', () => {
 
       // 夜晚应该正常结束
       expect(result.completed).toBe(true);
-      // 座位 2 应该死亡（被狼刀）
+      // 座位 2 应该死亡（被袭击）
       expect(result.deaths).toContain(2);
     });
   });
@@ -292,14 +292,14 @@ describe('WolfVote Integration Tests', () => {
       expect(state.currentNightResults?.wolfKillDisabled).toBeFalsy();
     });
 
-    it('nightmare 封锁后通过逐步执行完成夜晚，被封锁狼空刀', () => {
+    it('nightmare 封锁后通过逐步执行完成夜晚，被封锁狼放弃袭击', () => {
       const ctx = createGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
 
       // 完整运行夜晚：nightmare 封锁座位 4（第一个狼）
       // 注意：被封锁的狼只能 skip（非 skip action 会被 reject）
       const result = executeFullNight(ctx, {
         nightmare: 4, // 封锁座位 4
-        wolf: null, // 狼空刀（被封锁只能 skip）
+        wolf: null, // 狼放弃袭击（被封锁只能 skip）
         seer: 2,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },

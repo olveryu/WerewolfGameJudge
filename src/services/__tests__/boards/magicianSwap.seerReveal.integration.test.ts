@@ -89,10 +89,10 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       });
       expect(swapResult.success).toBe(true);
 
-      // 推进到 seerCheck，处理中间步骤（狼刀空刀）
+      // 推进到 seerCheck，处理中间步骤（狼放弃袭击）
       advanceToStep(ctx, 'seerCheck', (stepId) => {
         if (stepId === 'wolfKill') {
-          // 狼空刀
+          // 狼放弃袭击
           ctx.sendPlayerMessage({
             type: 'WOLF_VOTE',
             seat: 1,

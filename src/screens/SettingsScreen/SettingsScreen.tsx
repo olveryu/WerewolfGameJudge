@@ -163,7 +163,7 @@ export const SettingsScreen: React.FC = () => {
         setUploadingAvatar(true);
         try {
           const url = await uploadAvatar(result.assets[0].uri);
-          showAlert('头像已更新！');
+          showAlert('头像已更新');
 
           // Sync to GameState (if in room & seated, silent failure is fine)
           facade
@@ -196,7 +196,7 @@ export const SettingsScreen: React.FC = () => {
       const trimmedName = editName.trim();
       await updateProfile({ displayName: trimmedName });
       setIsEditingName(false);
-      showAlert('名字已更新！');
+      showAlert('昵称已更新');
 
       // Sync to GameState (if in room & seated, silent failure is fine)
       facade

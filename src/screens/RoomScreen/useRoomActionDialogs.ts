@@ -165,8 +165,8 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       const dismiss = [{ ...DISMISS_BUTTON, onPress: onDismiss }];
 
       // Three scenarios (all schema-driven):
-      // 1. killedSeat >= 0 && canSave=true  → promptTemplate: "{seat}号被狼人杀了，是否使用解药？"
-      // 2. killedSeat >= 0 && canSave=false → cannotSavePrompt: "你被狼人杀了…"
+      // 1. killedSeat >= 0 && canSave=true  → promptTemplate: "{seat}号被狼人袭击，是否使用解药？"
+      // 2. killedSeat >= 0 && canSave=false → cannotSavePrompt: "你被狼人袭击…"
       // 3. killedSeat < 0                   → poisonPrompt: "如要使用毒药，请点击座位。"
       if (ctx.killedSeat >= 0) {
         if (ctx.canSave) {

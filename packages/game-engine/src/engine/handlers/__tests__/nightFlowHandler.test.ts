@@ -322,7 +322,7 @@ describe('nightFlowHandler', () => {
 
     describe('Happy path: death calculation', () => {
       it('should produce END_NIGHT action with empty deaths when no wolf kill', () => {
-        // 没有狼投票 = 空刀 = 无死亡
+        // 没有狼投票 = 放弃袭击 = 无死亡
         // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
@@ -369,8 +369,8 @@ describe('nightFlowHandler', () => {
         }
       });
 
-      it('should return empty deaths on tie vote (空刀)', () => {
-        // 两只狼投不同目标 = 平票 = 空刀
+      it('should return empty deaths on tie vote (放弃袭击)', () => {
+        // 两只狼投不同目标 = 平票 = 放弃袭击
         // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
@@ -387,7 +387,7 @@ describe('nightFlowHandler', () => {
         const action = result.actions[0];
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // 平票 = 空刀 = 无死亡
+          // 平票 = 放弃袭击 = 无死亡
           expect(action.payload.deaths).toEqual([]);
         }
       });
@@ -416,7 +416,7 @@ describe('nightFlowHandler', () => {
       });
 
       it('should respect guard protection (no death)', () => {
-        // 狼刀 4 号，守卫守 4 号
+        // 袭击 4 号，守卫守 4 号
         // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
@@ -455,7 +455,7 @@ describe('nightFlowHandler', () => {
 
       it('should apply magician swap to spiritKnight identity in death calc (wolf kills swapped seat)', () => {
         // 场景: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
-        // 狼刀 seat 2（swap 后 seat 2 是 villager 身份）→ seat 2 死亡
+        // 袭击 seat 2（swap 后 seat 2 是 villager 身份）→ seat 2 死亡
         // processMagicianSwap: seat 2 dead → swap → seat 4 dead, seat 2 alive
         // 灵骑能力跟着身份走到 seat 4，seat 2 不再是灵骑 → 不免疫
         const context: HandlerContext = {
@@ -565,7 +565,7 @@ describe('nightFlowHandler', () => {
       });
 
       it('should not change roleSeatMap when no magician swap (backward compatible)', () => {
-        // 无 swap 时行为不变：spiritKnight 在 seat 2，狼刀杀 villager seat 4
+        // 无 swap 时行为不变：spiritKnight 在 seat 2，袭击杀 villager seat 4
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -591,7 +591,7 @@ describe('nightFlowHandler', () => {
         const action = result.actions[0];
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // 狼刀杀 villager → seat 4 死亡
+          // 袭击杀 villager → seat 4 死亡
           expect(action.payload.deaths).toEqual([4]);
         }
       });

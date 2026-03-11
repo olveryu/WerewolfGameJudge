@@ -187,7 +187,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
 
       const result = resolver!(context, input);
 
-      // 狼刀是中立的，可以刀任意座位
+      // 袭击是中立的，可以袭击任意座位
       expect(result.valid).toBe(true);
     });
   });
@@ -366,7 +366,7 @@ describe('Nightmare blocking behavior', () => {
   /**
    * Wolf kill when wolfKillDisabled:
    * - Non-empty vote (target) → REJECTED
-   * - Empty vote (空刀) → allowed
+   * - Empty vote (放弃袭击) → allowed
    */
   describe('wolfKillDisabled behavior', () => {
     it('wolfKillDisabled + non-empty vote → valid=false', () => {
@@ -382,7 +382,7 @@ describe('Nightmare blocking behavior', () => {
       expect(result.rejectReason).toBeDefined();
     });
 
-    it('wolfKillDisabled + empty vote (空刀) → valid=true', () => {
+    it('wolfKillDisabled + empty vote (放弃袭击) → valid=true', () => {
       const resolver = RESOLVERS.wolfKill;
       const wolfSeat = 7;
       const context = createContext(wolfSeat, 'wolf', {

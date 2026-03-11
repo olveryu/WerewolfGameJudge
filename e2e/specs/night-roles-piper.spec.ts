@@ -178,7 +178,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
         // === Wolf kills villager ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
           expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
           await driveWolfVote(pages, [wolfIdx], villagerSeat);
         });
@@ -263,7 +263,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
         // === Wolf kills ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
           expect(wolfTurn).toBe(true);
           await driveWolfVote(pages, [wolfIdx], killTarget);
         });
@@ -336,7 +336,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
         // === Wolf kills villager ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
           expect(wolfTurn).toBe(true);
           await driveWolfVote(pages, [wolfIdx], villagerSeat);
         });

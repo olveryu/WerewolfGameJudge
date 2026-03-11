@@ -99,7 +99,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   { type: 'actionRejected', match: (t) => t === '操作无效' },
 
   // Wolf vote
-  { type: 'wolfVoteEmpty', match: (t, m) => t === '狼人投票' && m.includes('空刀') },
+  { type: 'wolfVoteEmpty', match: (t, m) => t === '狼人投票' && m.includes('放弃袭击') },
   { type: 'wolfVote', match: (t) => t === '狼人投票' },
 
   // Witch save flow
@@ -107,7 +107,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Schema-driven: title is '女巫请行动', body contains promptTemplate or cannotSavePrompt text
   {
     type: 'witchSavePrompt',
-    match: (t, m) => t.includes('女巫') && (m.includes('被狼人杀了') || m.includes('解药')),
+    match: (t, m) => t.includes('女巫') && (m.includes('被狼人袭击') || m.includes('解药')),
   },
 
   // Witch poison flow

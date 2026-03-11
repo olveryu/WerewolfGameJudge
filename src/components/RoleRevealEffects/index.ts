@@ -9,7 +9,7 @@
  *
  * function MyScreen() {
  *   const [showReveal, setShowReveal] = useState(false);
- *   const role = createRoleData('wolf', '狼人', 'wolf', '🐺', '每晚与狼队友共同选择一名玩家猎杀');
+ *   const role = createRoleData('wolf', '狼人', 'wolf', '🐺', '每晚与狼队友共同选择一名玩家袭击');
  *
  *   return (
  *     <RoleRevealAnimator

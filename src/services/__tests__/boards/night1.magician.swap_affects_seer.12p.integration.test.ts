@@ -58,7 +58,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       // 交换后：seat 0 = wolf 身份, seat 4 = villager 身份
       const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
-        wolf: 1, // 狼刀 seat 1
+        wolf: 1, // 袭击 seat 1
         witch: { save: null, poison: null },
         seer: 0, // seer 查 seat 0（交换后是 wolf 身份）
       });
@@ -119,15 +119,15 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
   });
 
   describe('Swap 交换死亡命运（核心规则）', () => {
-    it('交换后狼刀 seat 0，因 swap 规则 seat 4 死（死亡命运交换）', () => {
+    it('交换后袭击 seat 0，因 swap 规则 seat 4 死（死亡命运交换）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 交换 seat 0 与 seat 4
-      // 狼刀 seat 0
+      // 袭击 seat 0
       // 根据规则：魔术师交换死亡命运，所以 seat 4 死
       const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
-        wolf: 0, // 狼刀 seat 0
+        wolf: 0, // 袭击 seat 0
         witch: { save: null, poison: null },
         seer: 1,
       });
@@ -143,7 +143,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
 
       const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
-        wolf: null, // 空刀
+        wolf: null, // 放弃袭击
         witch: { save: null, poison: 4 }, // 毒 seat 4
         seer: 1,
       });
@@ -157,7 +157,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
     it('swap 双方都被杀死时，不交换（都死）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 狼刀 seat 0，女巫毒 seat 4
+      // 袭击 seat 0，女巫毒 seat 4
       const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
         wolf: 0, // 刀 seat 0

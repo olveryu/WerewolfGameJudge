@@ -30,7 +30,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
 
 const defaultDeps = {
   hasWolfVoted: () => false,
-  getWolfVoteSummary: () => '0/0 狼人已投票',
+  getWolfVoteSummary: () => '0/0 狼人已确认',
   getWitchContext: () => null,
 };
 

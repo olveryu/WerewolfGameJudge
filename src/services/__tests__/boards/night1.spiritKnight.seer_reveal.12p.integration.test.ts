@@ -116,7 +116,7 @@ describe('Night-1: 恶灵骑士12人 - Seer Reveal (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: 8, // 守护 seer
-        wolf: 8, // 狼刀 seer
+        wolf: 8, // 袭击 seer
         witch: { save: null, poison: null },
         seer: 4, // 查验 wolf
       });

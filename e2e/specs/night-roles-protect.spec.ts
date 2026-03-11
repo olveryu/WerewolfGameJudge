@@ -68,7 +68,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         await clickSeatAndConfirm(pages[guardIdx], targetSeat);
 
         // Wait for wolf's turn, wolf kills same target
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
 
@@ -108,14 +108,14 @@ test.describe('Night Roles — Protection / Immunity', () => {
         const killTarget = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
 
         // Wait for wolf's turn
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget);
 
-        // Wait for witch's turn — she sees "被狼人杀了" + save button
+        // Wait for witch's turn — she sees "被狼人袭击" + save button
         const witchTurn = await waitForRoleTurn(
           pages[witchIdx],
-          ['被狼人杀了', '解药'],
+          ['被狼人袭击', '解药'],
           pages,
           120,
         );
@@ -194,7 +194,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         await clickSeatAndConfirm(pages[dcIdx], targetSeat);
 
         // Wolf kills same target
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
 
@@ -244,7 +244,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         await clickSeatAndConfirm(pages[dcIdx], dreamSeat);
 
         // Wolf kills villager2 (different target → no protection)
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killSeat);
 
@@ -283,14 +283,14 @@ test.describe('Night Roles — Protection / Immunity', () => {
         const witchSeat = roleMap.get(witchIdx)!.seat;
 
         // Wolf kills the witch
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], witchSeat);
 
         // Wait for witch's turn — she was targeted, should see self-save rejection
         const witchTurn = await waitForRoleTurn(
           pages[witchIdx],
-          ['被狼人杀了', '无法对自己使用解药', '毒药'],
+          ['被狼人袭击', '无法对自己使用解药', '毒药'],
           pages,
           120,
         );
@@ -347,7 +347,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         // Wait for wolf kill step
         const wolfTurn = await waitForRoleTurn(
           pages[allWolfIndices[0]],
-          ['猎杀', '选择'],
+          ['袭击', '选择'],
           pages,
           120,
         );
@@ -411,7 +411,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         // Wolf kills a villager
         const wolfTurn = await waitForRoleTurn(
           pages[allWolfIndices[0]],
-          ['猎杀', '选择'],
+          ['袭击', '选择'],
           pages,
           120,
         );
@@ -421,7 +421,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         // Witch's turn — dismiss save info, then poison spiritKnight
         const witchTurn = await waitForRoleTurn(
           pages[witchIdx],
-          ['被狼人杀了', '解药', '毒药'],
+          ['被狼人袭击', '解药', '毒药'],
           pages,
           120,
         );
@@ -476,14 +476,14 @@ test.describe('Night Roles — Protection / Immunity', () => {
         await clickSeatAndConfirm(pages[dcIdx], villagerSeat);
 
         // Wolf kills the dreamcatcher
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], dcSeat);
 
         // Witch skips (don't save DC)
         const witchTurn = await waitForRoleTurn(
           pages[witchIdx],
-          ['被狼人杀了', '解药', '毒药'],
+          ['被狼人袭击', '解药', '毒药'],
           pages,
           120,
         );

@@ -97,7 +97,7 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
         expect(wolves + villagers + gods + thirdParty).toBe(preset.roles.length);
       });
 
-      it('不应该有重复的特殊角色（除村民和普狼外）', () => {
+      it('不应该有重复的特殊角色（除村民和狼人外）', () => {
         const specialRoles = getSpecialRoles(preset.roles);
         const roleSet = new Set(specialRoles);
         expect(roleSet.size).toBe(specialRoles.length);

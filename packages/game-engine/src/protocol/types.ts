@@ -261,13 +261,13 @@ export interface GameState {
   /**
    * UI hint for current step - Server writes, UI reads only (no derivation).
    *
-   * 职责：允许 Host 向特定角色广播"提前提示"（如被封锁/狼刀被禁用）。
+   * 职责：允许 Host 向特定角色广播“提前提示”（如被封锁/袭击被禁用）。
    * Host 通过 resolver/handler 判定后写入，进入下一 step 或阻断解除时清空。
    *
    * UI 规则：
    * - targetRoleIds 决定"谁能看到"这个 hint（UI 按 myRole 过滤）
    * - bottomAction === 'skipOnly' → 底部只显示 skip
-   * - bottomAction === 'wolfEmptyOnly' → 底部只显示空刀
+   * - bottomAction === 'wolfEmptyOnly' → 底部只显示放弃袭击
    * - promptOverride 存在 → 替换 actionPrompt 文案
    * - message 用于 banner/提示/按钮文案
    */

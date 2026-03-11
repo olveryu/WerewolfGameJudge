@@ -35,7 +35,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
 
 const defaultDeps = {
   hasWolfVoted: () => false,
-  getWolfVoteSummary: () => '0/2 狼人已投票',
+  getWolfVoteSummary: () => '0/2 狼人已确认',
   getWitchContext: () => null,
 };
 
@@ -71,7 +71,7 @@ describe('useRoomActions wolf vote (server-authoritative)', () => {
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
-      expect(bottomAction.buttons[0].label).toBe('空刀');
+      expect(bottomAction.buttons[0].label).toBe('放弃袭击');
     });
   });
 

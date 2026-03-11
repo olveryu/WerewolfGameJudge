@@ -21,7 +21,7 @@ import { withSetup } from '../helpers/night-setup';
  *
  * Tests roles that produce kills or confirm kill-related status:
  * - Witch poison → double death
- * - Wolf empty kill (空刀) → 平安夜
+ * - Wolf empty kill (放弃袭击) → 平安夜
  * - Hunter / DarkWolfKing canShoot confirmation
  * - WolfQueen charm
  * - Hunter poisoned → cannotShoot
@@ -66,14 +66,14 @@ test.describe('Night Roles — Kill / Status', () => {
         const poisonTargetSeat = villagers[1]?.[1].seat ?? 1;
 
         // Drive wolf kill
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
         // Wait for witch's turn
         const witchTurn = await waitForRoleTurn(
           pages[witchIdx],
-          ['被狼人杀了', '解药', '毒药'],
+          ['被狼人袭击', '解药', '毒药'],
           pages,
           120,
         );
@@ -123,7 +123,7 @@ test.describe('Night Roles — Kill / Status', () => {
 
         // Drive wolf kill (target anyone except wolf)
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName !== '狼人');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 
@@ -153,7 +153,7 @@ test.describe('Night Roles — Kill / Status', () => {
   // --------------------------------------------------------------------------
   // Wolf empty kill → 平安夜
   // --------------------------------------------------------------------------
-  test('wolf empty kill (空刀) → 平安夜', async ({ browser }) => {
+  test('wolf empty kill (放弃袭击) → 平安夜', async ({ browser }) => {
     await withSetup(
       browser,
       {
@@ -167,10 +167,10 @@ test.describe('Night Roles — Kill / Status', () => {
         const wolfIndices = findAllRolePageIndices(roleMap, '狼人');
 
         // Wait for wolf's turn
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
 
-        // Choose 空刀
+        // Choose 放弃袭击
         await driveWolfEmptyVote(pages, wolfIndices);
 
         // Night should end with 平安夜
@@ -215,7 +215,7 @@ test.describe('Night Roles — Kill / Status', () => {
           ([, info]) => info.displayName === '普通村民',
         );
         const firstWolf = allWolfIndices[0];
-        const wolfTurn = await waitForRoleTurn(pages[firstWolf], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[firstWolf], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
@@ -263,7 +263,7 @@ test.describe('Night Roles — Kill / Status', () => {
         const killTarget = [...roleMap.entries()].find(
           ([, info]) => info.displayName === '普通村民',
         );
-        const wolfTurn = await waitForRoleTurn(pages[dwkIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[dwkIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [dwkIdx], killTarget ? killTarget[1].seat : 0);
 
@@ -320,14 +320,14 @@ test.describe('Night Roles — Kill / Status', () => {
         const killSeat = villagers[0]?.[1].seat ?? 0;
 
         // Wolf kills a villager
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killSeat);
 
         // Wait for witch's turn — dismiss save prompt, then poison hunter
         const witchTurn = await waitForRoleTurn(
           pages[witchIdx],
-          ['被狼人杀了', '解药', '毒药'],
+          ['被狼人袭击', '解药', '毒药'],
           pages,
           120,
         );

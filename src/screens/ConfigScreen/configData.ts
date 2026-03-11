@@ -121,7 +121,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
     ],
   },
   {
-    title: '中立阵营',
+    title: '第三方阵营',
     iconName: 'git-compare-outline',
     faction: Faction.Special,
     sections: [

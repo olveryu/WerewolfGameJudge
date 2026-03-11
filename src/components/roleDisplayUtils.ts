@@ -17,5 +17,5 @@ export const getFactionName = (roleId: RoleId): string => {
   const spec = getRoleSpec(roleId);
   if (spec?.faction === Faction.God) return '神职阵营';
   if (spec?.faction === Faction.Special) return '第三方阵营';
-  return '平民阵营';
+  return '好人阵营';
 };

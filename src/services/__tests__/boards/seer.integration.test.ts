@@ -42,11 +42,11 @@ describe('Seer Integration', () => {
   function advanceToSeerStep(ctx: ReturnType<typeof createGame>): boolean {
     // 第一步是 wolfKill
     if (ctx.getGameState().currentStepId === 'wolfKill') {
-      // 狼空刀
+      // 狼放弃袭击
       ctx.sendPlayerMessage({
         type: 'WOLF_VOTE',
         seat: 1,
-        target: -1, // 空刀
+        target: -1, // 放弃袭击
       });
       ctx.sendPlayerMessage({
         type: 'ACTION',
@@ -174,7 +174,7 @@ describe('Seer Integration', () => {
 
         const currentStep = ctx.getGameState().currentStepId;
 
-        // 如果是 wolfKill，需要提交狼刀
+        // 如果是 wolfKill，需要提交袭击
         if (currentStep === 'wolfKill') {
           ctx.sendPlayerMessage({
             type: 'WOLF_VOTE',

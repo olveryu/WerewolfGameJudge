@@ -99,7 +99,7 @@ describe('isWolfVoteAllComplete', () => {
     expect(isWolfVoteAllComplete(state)).toBe(true);
   });
 
-  it('空刀(-1)视为已投票', () => {
+  it('放弃袭击(-1)视为已投票', () => {
     const state = createWolfKillState({
       currentNightResults: {
         wolfVotesBySeat: { '0': -1, '1': 3 },

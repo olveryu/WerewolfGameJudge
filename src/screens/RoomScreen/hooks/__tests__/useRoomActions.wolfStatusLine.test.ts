@@ -28,7 +28,7 @@ function makeContext(partial: Partial<GameContext>): GameContext {
 function makeDeps(partial: Partial<ActionDeps>): ActionDeps {
   return {
     hasWolfVoted: () => false,
-    getWolfVoteSummary: () => '1/3 狼人已投票',
+    getWolfVoteSummary: () => '1/3 狼人已确认',
     getWitchContext: () => null,
     ...partial,
   };
@@ -68,11 +68,11 @@ describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
     });
     const deps = makeDeps({
       hasWolfVoted: () => false,
-      getWolfVoteSummary: () => '0/3 狼人已投票',
+      getWolfVoteSummary: () => '0/3 狼人已确认',
     });
 
     const { result } = renderHook(() => useRoomActions(ctx, deps));
-    expect(result.current.getWolfStatusLine()).toBe('0/3 狼人已投票');
+    expect(result.current.getWolfStatusLine()).toBe('0/3 狼人已确认');
   });
 
   it('adds suffix when I have voted (or seat is null)', () => {
@@ -84,10 +84,10 @@ describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
     });
     const deps = makeDeps({
       hasWolfVoted: () => true,
-      getWolfVoteSummary: () => '1/3 狼人已投票',
+      getWolfVoteSummary: () => '1/3 狼人已确认',
     });
 
     const { result } = renderHook(() => useRoomActions(ctx, deps));
-    expect(result.current.getWolfStatusLine()).toBe('1/3 狼人已投票（可点击改票或取消）');
+    expect(result.current.getWolfStatusLine()).toBe('1/3 狼人已确认（可点击改票或取消）');
   });
 });

@@ -55,7 +55,7 @@ export interface ActionDeps {
   /** Check if wolf has voted */
   hasWolfVoted: (seatNumber: number) => boolean;
 
-  /** UI-only: precomputed wolf-vote summary string (e.g. "1/3 狼人已投票"). */
+  /** UI-only: precomputed wolf-vote summary string (e.g. "1/3 狼人已确认"). */
   getWolfVoteSummary: () => string;
   /**
    * Get witch context from gameState (UI filters by myRole)
@@ -331,7 +331,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (deadline != null) {
       const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       if (remaining > 0) {
-        return `${base}（${remaining}s 后确认）`;
+        return `${base}（${remaining}秒后确认）`;
       }
     }
 

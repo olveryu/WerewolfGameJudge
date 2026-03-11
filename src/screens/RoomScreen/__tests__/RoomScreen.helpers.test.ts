@@ -593,7 +593,7 @@ describe('buildSeatViewModels', () => {
       const seats = buildSeatViewModels(state, 0, true, null);
 
       // Wolf seat 0 should show formatted badge
-      expect(seats[0].wolfVoteBadge).toBe('刀3');
+      expect(seats[0].wolfVoteBadge).toBe('袭击3号');
       // Non-wolf seats should not have wolfVoteBadge
       expect(seats[1].wolfVoteBadge).toBeUndefined();
       expect(seats[2].wolfVoteBadge).toBeUndefined();
@@ -611,7 +611,7 @@ describe('buildSeatViewModels', () => {
       const state = createWolfVoteState({ '0': -1 }); // seat 0 voted empty knife
       const seats = buildSeatViewModels(state, 0, true, null);
 
-      expect(seats[0].wolfVoteBadge).toBe('空刀');
+      expect(seats[0].wolfVoteBadge).toBe('放弃袭击');
     });
 
     it('wolfVoteBadge and showReadyBadge should be mutually exclusive', () => {
@@ -619,7 +619,7 @@ describe('buildSeatViewModels', () => {
       const seats = buildSeatViewModels(state, 0, true, null);
 
       // Wolf seat 0 has wolfVoteBadge → showReadyBadge must be false
-      expect(seats[0].wolfVoteBadge).toBe('刀3');
+      expect(seats[0].wolfVoteBadge).toBe('袭击3号');
       expect(seats[0].showReadyBadge).toBe(false);
     });
   });
@@ -804,7 +804,7 @@ describe('getWolfVoteSummary', () => {
     };
   }
 
-  it('should return "0/0 狼人已投票" when there are no wolves', () => {
+  it('should return "0/0 狼人已确认" when there are no wolves', () => {
     const room = makeRoom(
       [
         [0, 'villager'],
@@ -812,7 +812,7 @@ describe('getWolfVoteSummary', () => {
       ],
       new Map(),
     );
-    expect(getWolfVoteSummary(room)).toBe('0/0 狼人已投票');
+    expect(getWolfVoteSummary(room)).toBe('0/0 狼人已确认');
   });
 
   it('should count only wolves that participate in wolfVote', () => {
@@ -826,7 +826,7 @@ describe('getWolfVoteSummary', () => {
       new Map(),
     );
     // wolf + nightmare participate, wolfRobot does not
-    expect(getWolfVoteSummary(room)).toBe('0/2 狼人已投票');
+    expect(getWolfVoteSummary(room)).toBe('0/2 狼人已确认');
   });
 
   it('should count voted wolves correctly', () => {
@@ -840,10 +840,10 @@ describe('getWolfVoteSummary', () => {
         [0, 2], // wolf seat 0 voted
       ]),
     );
-    expect(getWolfVoteSummary(room)).toBe('1/2 狼人已投票');
+    expect(getWolfVoteSummary(room)).toBe('1/2 狼人已确认');
   });
 
-  it('should return "2/2 狼人已投票" when all wolves voted', () => {
+  it('should return "2/2 狼人已确认" when all wolves voted', () => {
     const room = makeRoom(
       [
         [0, 'wolf'],
@@ -855,7 +855,7 @@ describe('getWolfVoteSummary', () => {
         [1, 2],
       ]),
     );
-    expect(getWolfVoteSummary(room)).toBe('2/2 狼人已投票');
+    expect(getWolfVoteSummary(room)).toBe('2/2 狼人已确认');
   });
 
   it('should handle null player entries', () => {
@@ -869,7 +869,7 @@ describe('getWolfVoteSummary', () => {
       wolfVotes: new Map([[1, 0]]),
       currentStepIndex: 0,
     };
-    expect(getWolfVoteSummary(room)).toBe('1/1 狼人已投票');
+    expect(getWolfVoteSummary(room)).toBe('1/1 狼人已确认');
   });
 });
 

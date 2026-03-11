@@ -323,7 +323,7 @@ export function useRoomScreenState(
     () => ({
       hasWolfVoted,
       getWolfVoteSummary: () =>
-        gameState ? getWolfVoteSummary(toGameRoomLike(gameState)) : '0/0 狼人已投票',
+        gameState ? getWolfVoteSummary(toGameRoomLike(gameState)) : '0/0 狼人已确认',
       getWitchContext: () => gameState?.witchContext ?? null,
     }),
     [gameState, hasWolfVoted],

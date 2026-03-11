@@ -218,14 +218,14 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
 
 /**
  * Format a wolf vote entry into badge text.
- * -1 → schema-defined empty knife text; ≥0 → "刀{seat+1}".
+ * -1 → schema-defined empty knife text; ≥0 → "袭击{seat+1}号".
  */
 function formatWolfVoteBadge(vote: number): string {
-  return vote === -1 ? SCHEMAS.wolfKill.ui!.emptyVoteText! : `刀${vote + 1}`;
+  return vote === -1 ? SCHEMAS.wolfKill.ui!.emptyVoteText! : `袭击${vote + 1}号`;
 }
 
 /**
- * Get wolf vote summary for display (e.g. "2/3 狼人已投票")
+ * Get wolf vote summary for display (e.g. "2/3 狼人已确认")
  */
 export function getWolfVoteSummary(room: GameRoomLike): string {
   const wolfSeats: number[] = [];
@@ -237,7 +237,7 @@ export function getWolfVoteSummary(room: GameRoomLike): string {
   wolfSeats.sort((a, b) => a - b);
 
   const voted = wolfSeats.filter((seat) => room.wolfVotes.has(seat));
-  return `${voted.length}/${wolfSeats.length} 狼人已投票`;
+  return `${voted.length}/${wolfSeats.length} 狼人已确认`;
 }
 
 /**

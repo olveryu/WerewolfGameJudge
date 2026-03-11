@@ -60,7 +60,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 1, // 狼刀 seat 1
+        wolf: 1, // 袭击 seat 1
         wolfQueen: 0, // 魅惑 seat 0
         witch: { save: null, poison: null },
         seer: 4,
@@ -138,7 +138,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
     it('被魅惑者被刀时，只有被魅惑者死（单向链接）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // wolfQueen 魅惑 seat 0，狼刀 seat 0
+      // wolfQueen 魅惑 seat 0，袭击 seat 0
       // 根据当前规则（单向链接），只有 seat 0 死
       const result = executeFullNight(ctx, {
         guard: null,
@@ -160,7 +160,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
       // wolfQueen 魅惑 seat 0，女巫毒 wolfQueen(7)
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: null, // 空刀
+        wolf: null, // 放弃袭击
         wolfQueen: 0, // 魅惑 seat 0
         witch: { save: null, poison: 7 }, // 毒 wolfQueen
         seer: 4,
@@ -173,14 +173,14 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
     });
   });
 
-  describe('WolfQueen 魅惑不影响狼刀其他目标', () => {
-    it('wolfQueen 魅惑 A，狼刀 B，只有 B 死', () => {
+  describe('WolfQueen 魅惑不影响袭击其他目标', () => {
+    it('wolfQueen 魅惑 A，袭击 B，只有 B 死', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,
         wolf: 1, // 刀 seat 1
-        wolfQueen: 0, // 魅惑 seat 0（不同于狼刀目标）
+        wolfQueen: 0, // 魅惑 seat 0（不同于袭击目标）
         witch: { save: null, poison: null },
         seer: 4,
       });
