@@ -1078,7 +1078,7 @@ export async function coverageChainSeatActionConfirm(
 }
 
 /**
- * Coverage chain: wolfVoteEmpty → press "空刀" bottom button → wolfVoteEmpty dialog
+ * Coverage chain: wolfVoteEmpty → press "放弃袭击" bottom button → wolfVoteEmpty dialog
  * → press "确定" → submitAction(null) called
  *
  * Returns { submitAction } for payload assertions.

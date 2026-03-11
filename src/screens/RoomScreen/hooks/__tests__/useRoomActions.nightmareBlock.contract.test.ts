@@ -50,7 +50,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
 
 const defaultDeps: ActionDeps = {
   hasWolfVoted: () => false,
-  getWolfVoteSummary: () => '0/2 狼人已投票',
+  getWolfVoteSummary: () => '0/2 狼人已确认',
   getWitchContext: () => null,
 };
 
@@ -156,7 +156,7 @@ describe('B) 狼人投票 - UI 返回正常 wolfVote intent', () => {
   });
 
   describe('getBottomAction', () => {
-    it('狼人底部按钮 → 正常显示"空刀"按钮', () => {
+    it('狼人底部按钮 → 正常显示"放弃袭击"按钮', () => {
       const ctx = makeContext({
         currentSchema: getSchema('wolfKill'),
         actorRole: 'wolf',
@@ -169,7 +169,7 @@ describe('B) 狼人投票 - UI 返回正常 wolfVote intent', () => {
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
-      expect(bottomAction.buttons[0].label).toBe('空刀');
+      expect(bottomAction.buttons[0].label).toBe('放弃袭击');
       expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
       expect(bottomAction.buttons[0].intent.targetSeat).toBe(-1); // empty vote
     });

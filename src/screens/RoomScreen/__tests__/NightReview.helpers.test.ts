@@ -56,7 +56,7 @@ describe('NightReview.helpers', () => {
           },
         }),
       );
-      expect(lines[0]).toContain('狼人投票');
+      expect(lines[0]).toContain('狼人袭击');
       expect(lines[0]).toContain('3号→5号');
       expect(lines[0]).toContain('4号→5号');
     });
@@ -70,8 +70,8 @@ describe('NightReview.helpers', () => {
       const lines = buildActionLines(
         makeGameState({ currentNightResults: { savedSeat: 3, poisonedSeat: 5 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('女巫救了 4号'));
-      expect(lines).toContainEqual(expect.stringContaining('女巫毒了 6号'));
+      expect(lines).toContainEqual(expect.stringContaining('女巫使用解药救了 4号'));
+      expect(lines).toContainEqual(expect.stringContaining('女巫使用毒药毒杀了 6号'));
     });
 
     it('shows nightmare block', () => {
@@ -81,7 +81,7 @@ describe('NightReview.helpers', () => {
 
     it('shows dreamcatcher protection', () => {
       const lines = buildActionLines(makeGameState({ currentNightResults: { dreamingSeat: 2 } }));
-      expect(lines).toContainEqual(expect.stringContaining('摄梦人守护了 3号'));
+      expect(lines).toContainEqual(expect.stringContaining('摄梦人摄梦了 3号'));
     });
 
     it('shows magician swap', () => {
@@ -117,7 +117,7 @@ describe('NightReview.helpers', () => {
       const lines = buildActionLines(
         makeGameState({ currentNightResults: { wolfKillDisabled: true } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('狼人空刀'));
+      expect(lines).toContainEqual(expect.stringContaining('狼人放弃袭击'));
     });
 
     it('shows slacker idol choice', () => {

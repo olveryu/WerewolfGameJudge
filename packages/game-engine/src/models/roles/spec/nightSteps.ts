@@ -39,7 +39,7 @@ const NIGHT_STEPS_INTERNAL = [
     audioKey: 'wildChild',
   },
 
-  // === 守护/查验类（狼刀前）===
+  // === 守护/查验类（袭击前）===
   {
     id: 'nightmareBlock',
     roleId: 'nightmare',
@@ -72,7 +72,7 @@ const NIGHT_STEPS_INTERNAL = [
     roleId: 'wolf',
     audioKey: 'wolf',
   },
-  // 觉醒石像鬼转化是个人行动，在狼刀后、狼美人前执行
+  // 觉醒石像鬼转化是个人行动，在袭击后、狼美人前执行
   {
     id: 'awakenedGargoyleConvert',
     roleId: 'awakenedGargoyle',
@@ -84,7 +84,7 @@ const NIGHT_STEPS_INTERNAL = [
     audioKey: 'awakenedGargoyleConvertReveal',
     audioEndKey: 'awakenedGargoyleConvertReveal',
   },
-  // 狼美人魅惑是个人行动（不是狼人会议），但在狼刀后执行
+  // 狼美人魅惑是个人行动（不是狼人会议），但在袭击后执行
   {
     id: 'wolfQueenCharm',
     roleId: 'wolfQueen',

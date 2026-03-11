@@ -54,25 +54,16 @@ const UI_TEXT = {
     '守卫',
     '猎人',
     '请选择',
-    '请选择猎杀对象',
+    '请选择袭击目标',
     '请选择查验对象',
   ] as const,
 
   /** Button labels that advance the night flow */
-  advanceButtons: [
-    '知道了',
-    '确定',
-    '不用技能',
-    '投票空刀',
-    '空刀',
-    '发动状态',
-    '查看技能状态',
-  ] as const,
+  advanceButtons: ['知道了', '确定', '不用技能', '放弃袭击', '发动状态', '查看技能状态'] as const,
 
   /** Action message patterns indicating a seat-target selection is needed */
   targetSelection: [
-    '请选择要猎杀的玩家',
-    '请选择猎杀对象',
+    '请选择袭击目标',
     '请选择查验对象',
     '请选择守护对象',
     '请选择救人',
@@ -95,8 +86,8 @@ const UI_TEXT = {
   wolfVoteConfirmTitle: '狼人投票',
 } as const;
 
-/** Regex pattern for wolf vote progress (e.g. "1/2 狼人已投票"). */
-const VOTE_COUNT_PATTERN = String.raw`\d+/\d+ 狼人已投票`;
+/** Regex pattern for wolf vote progress (e.g. "1/2 狼人已确认"). */
+const VOTE_COUNT_PATTERN = String.raw`\d+/\d+ 狼人已确认`;
 
 const WOLF_VOTE_STUCK_THRESHOLD = 8;
 const NO_PROGRESS_THRESHOLD = 35;
@@ -204,8 +195,8 @@ async function handlePostClick(
   state: NightFlowState,
   pageLabel: string,
 ): Promise<boolean> {
-  if (buttonText === '投票空刀') {
-    // After clicking '投票空刀', a wolf vote confirm AlertModal should appear.
+  if (buttonText === '放弃袭击') {
+    // After clicking '放弃袭击', a wolf vote confirm AlertModal should appear.
     // Wait for alert to appear; the next iteration will click '确定'.
     await page
       .locator('[data-testid="alert-modal"]')
@@ -232,12 +223,12 @@ async function executeAction(
   state: NightFlowState,
   pageLabel: string,
 ): Promise<boolean> {
-  const isVoteButton = buttonText === '投票空刀' || buttonText === '确定';
+  const isVoteButton = buttonText === '放弃袭击' || buttonText === '确定';
   if (isVoteButton && (await shouldSkipWolfVoteButton(page, state, pageLabel))) {
     return false;
   }
 
-  // Strategy: try within bottom-action-panel first (for buttons like 投票空刀),
+  // Strategy: try within bottom-action-panel first (for buttons like 放弃袭击),
   // then try page-level getByText.
   // RN Web renders Text as <div>, so locator('text=') may not work with exact match.
   const panel = page.locator('[data-testid="bottom-action-panel"]');
@@ -338,7 +329,7 @@ async function tryClickSeatTarget(
   const text = (await actionMsgLocator.textContent().catch(() => '')) ?? '';
   if (!UI_TEXT.targetSelection.some((p) => text.includes(p))) return false;
 
-  const isWolfVote = text.includes('猎杀') || text.includes('狼人已投票');
+  const isWolfVote = text.includes('袭击') || text.includes('狼人已确认');
   if (isWolfVote && state.wolfVotedPages.has(pageLabel)) return false;
 
   const mySeat = await getMySeat(page);

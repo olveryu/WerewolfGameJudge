@@ -93,7 +93,7 @@ describe('witchActionResolver', () => {
       expect(result.rejectReason).toContain('解药');
     });
 
-    it('应该拒绝救非狼刀目标', () => {
+    it('应该拒绝救非袭击目标', () => {
       const ctx = createContext({
         currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });
@@ -105,7 +105,7 @@ describe('witchActionResolver', () => {
       expect(result.rejectReason).toContain('被狼人袭击');
     });
 
-    it('应该接受救被狼刀目标', () => {
+    it('应该接受救被袭击目标', () => {
       const ctx = createContext({
         currentNightResults: { wolfVotesBySeat: { '1': 0 } },
       });

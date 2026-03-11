@@ -14,7 +14,7 @@
  *   seat 11: guard
  *
  * 核心规则（来自 DeathCalculator.processSpiritKnightReflection）：
- * - Spirit Knight 免疫狼刀（wolf kill has no effect）
+ * - Spirit Knight 免疫袭击（wolf kill has no effect）
  * - Seer 查验 Spirit Knight → Seer 死亡（反伤）
  * - Witch 毒 Spirit Knight → Witch 死亡，Spirit Knight 免疫（反伤 + 免疫）
  *
@@ -61,7 +61,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 0, // 狼刀 villager(0)
+        wolf: 0, // 袭击 villager(0)
         witch: { save: null, poison: null },
         seer: 7, // 查验 spiritKnight
       });
@@ -80,7 +80,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
       // 核心断言 3：spiritKnight(7) 不死
       expect(result.deaths).not.toContain(7);
 
-      // 额外断言：villager(0) 被狼刀也死了
+      // 额外断言：villager(0) 被袭击也死了
       expect(result.deaths).toContain(0);
 
       // 完整死亡列表
@@ -107,7 +107,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
       // seer(8) 不反伤死亡
       expect(result.deaths).not.toContain(8);
 
-      // 只有被狼刀的 villager(0) 死亡
+      // 只有被袭击的 villager(0) 死亡
       expect(result.deaths).toEqual([0]);
     });
   });
@@ -118,7 +118,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: null, // 空刀
+        wolf: null, // 放弃袭击
         witch: { save: null, poison: 7 }, // 毒 spiritKnight
         seer: 4, // 查验 wolf，不触发反伤
       });
@@ -144,7 +144,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: null, // 空刀
+        wolf: null, // 放弃袭击
         witch: { save: null, poison: 0 }, // 毒 villager(0)
         seer: 4,
       });
@@ -165,7 +165,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
 
   describe('Wolf 刀 spiritKnight → 禁选（免疫实现）', () => {
     /**
-     * spiritKnight 的狼刀免疫是通过"禁选"实现的（immuneToWolfKill flag）。
+     * spiritKnight 的袭击免疫是通过“禁选”实现的（immuneToWolfKill flag）。
      * 狼人在投票时就无法选择 spiritKnight，而不是事后结算时免疫。
      * 此测试验证狼人选择其他目标时的正常流程。
      */
@@ -174,7 +174,7 @@ describe('Night-1: 恶灵骑士12人 - Spirit Knight Reflection (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 0, // 狼刀 villager（spiritKnight 是禁选目标）
+        wolf: 0, // 袭击 villager（spiritKnight 是禁选目标）
         witch: { save: null, poison: null },
         seer: 1, // 查验 villager
       });

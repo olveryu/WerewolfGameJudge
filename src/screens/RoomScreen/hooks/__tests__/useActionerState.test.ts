@@ -91,7 +91,7 @@ describe('useActionerState', () => {
       expect(result.current.showWolves).toBe(true);
     });
 
-    it('狼人已投票时 imActioner 仍为 true（允许改票）', () => {
+    it('狼人已确认时 imActioner 仍为 true（允许改票）', () => {
       const wolfVotes = new Map<number, number>();
       wolfVotes.set(1, 0); // seat 1 voted for seat 0
 

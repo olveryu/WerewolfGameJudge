@@ -158,7 +158,7 @@ WerewolfGameJudge/
 | `src/services/engine/intents/`            | 1       | 237        | 18 种 intent 类型定义                                                                                                                                        |
 | `src/services/engine/state/`              | 1       | 119        | normalizeState                                                                                                                                               |
 | `src/services/engine/DeathCalculator.ts`  | 1       | 348        | 死亡计算                                                                                                                                                     |
-| `src/services/engine/resolveWolfVotes.ts` | 1       | 50         | 狼刀投票解算                                                                                                                                                 |
+| `src/services/engine/resolveWolfVotes.ts` | 1       | 50         | 袭击投票解算                                                                                                                                                 |
 | `src/services/night/resolvers/`           | ~15     | ~1,100     | 13 个 resolver + constraintValidator + types                                                                                                                 |
 | `src/services/protocol/`                  | 2       | ~300       | types + reasonCodes                                                                                                                                          |
 | `src/types/RoleRevealAnimation.ts`        | 1       | 86         | 纯类型 + hash 函数                                                                                                                                           |
@@ -759,7 +759,7 @@ const result = await processGameAction(roomCode, (state) => {
 3. → hostActions.submitWolfVote(ctx, voterSeat, targetSeat)
 4.   → handleSubmitWolfVote(intent, handlerCtx) [纯函数]
 5.     → 快速验证 → 解析 voter 真实 role → 委托 handleSubmitAction
-6.     → 特殊：target=-1 映射为 null（空刀）
+6.     → 特殊：target=-1 映射为 null（放弃袭击）
 7.   → processHandlerResult
 8.   → Wolf vote timer 逻辑：
 9.     decideWolfVoteTimerAction(allVoted, hasTimer, now)
@@ -862,7 +862,7 @@ api/game/night/
   roomCode: "1234",
   hostUid: "abc",
   voterSeat: 2,
-  targetSeat: 5       // -1 表示空刀
+  targetSeat: 5       // -1 表示放弃袭击
 }
 // → handleSubmitWolfVote
 // → 返回 { success, state?, wolfVoteTimer?: 'set'|'clear'|'noop' }

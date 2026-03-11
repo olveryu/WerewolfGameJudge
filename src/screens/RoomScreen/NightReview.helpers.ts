@@ -60,11 +60,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     const voteDesc = entries
       .map(([voter, target]) => `${s(Number(voter))}→${s(target)}`)
       .join('，');
-    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人投票：${voteDesc}`);
+    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人袭击：${voteDesc}`);
   }
 
   if (nr.wolfKillDisabled) {
-    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人空刀（被梦魇封锁）`);
+    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人放弃袭击（被梦魇封锁）`);
   }
 
   // 2. Nightmare block
@@ -89,15 +89,15 @@ export function buildActionLines(gameState: LocalGameState): string[] {
 
   // 4. Witch
   if (nr.savedSeat != null) {
-    lines.push(`${ACTION.SAVE} 女巫救了 ${s(nr.savedSeat)}`);
+    lines.push(`${ACTION.SAVE} 女巫使用解药救了 ${s(nr.savedSeat)}`);
   }
   if (nr.poisonedSeat != null) {
-    lines.push(`${ACTION.POISON} 女巫毒了 ${s(nr.poisonedSeat)}`);
+    lines.push(`${ACTION.POISON} 女巫使用毒药毒杀了 ${s(nr.poisonedSeat)}`);
   }
 
   // 5. Dreamcatcher
   if (nr.dreamingSeat != null) {
-    lines.push(`${getRoleEmoji('dreamcatcher' as RoleId)} 摄梦人守护了 ${s(nr.dreamingSeat)}`);
+    lines.push(`${getRoleEmoji('dreamcatcher' as RoleId)} 摄梦人摄梦了 ${s(nr.dreamingSeat)}`);
   }
 
   // 6. Magician swap

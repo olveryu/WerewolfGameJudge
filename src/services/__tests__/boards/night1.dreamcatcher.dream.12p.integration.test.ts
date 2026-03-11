@@ -74,16 +74,16 @@ describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
       expect(dreamAction!.actorSeat).toBe(11); // dreamcatcher 在 seat 11
       expect(dreamAction!.targetSeat).toBe(0); // 守护 seat 0
 
-      // 被狼刀的 seat 1 死亡
+      // 被袭击的 seat 1 死亡
       expect(result.deaths).toEqual([1]);
     });
 
-    it('dreamcatcher 守护被狼刀目标(1)，该目标免疫死亡', () => {
+    it('dreamcatcher 守护被袭击目标(1)，该目标免疫死亡', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         dreamcatcher: 1, // 守护 villager(1)
-        wolf: 1, // 狼刀 villager(1)
+        wolf: 1, // 袭击 villager(1)
         witch: { save: null, poison: null },
         seer: 4,
       });
@@ -96,7 +96,7 @@ describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
       expect(dreamAction).toBeDefined();
       expect(dreamAction!.targetSeat).toBe(1);
 
-      // 被守护者免疫狼刀，无人死亡
+      // 被守护者免疫袭击，无人死亡
       expect(result.deaths).toEqual([]);
     });
   });
@@ -129,7 +129,7 @@ describe('Night-1: 狼王摄梦12人 - Dreamcatcher (12p)', () => {
 
       const result = executeFullNight(ctx, {
         dreamcatcher: 0, // 守护 villager(0)
-        wolf: null, // 空刀
+        wolf: null, // 放弃袭击
         witch: { save: null, poison: 11 }, // 毒 dreamcatcher
         seer: 4,
       });

@@ -16,7 +16,7 @@
  * 核心规则（nightmare block 语义）：
  * - **被阻断玩家提交非 skip action → 服务端 reject**（actionHandler 层 checkNightmareBlockGuard）
  * - **被阻断玩家提交 skip（target: null）→ 有效但无效果**
- * - 若 nightmare 选中狼阵营玩家：wolfKillDisabled === true，狼刀无效
+ * - 若 nightmare 选中狼阵营玩家：wolfKillDisabled === true，袭击无效
  *
  * 架构：intents → handlers → reducer → GameState
  */
@@ -211,7 +211,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       // 推进到 witch 步骤
       executeStepsUntil(ctx, 'witchAction', {
         guard: null,
-        wolf: 0, // 狼刀 seat 0
+        wolf: 0, // 袭击 seat 0
       });
       ctx.assertStep('witchAction');
 
@@ -277,7 +277,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
   });
 
   describe('Nightmare 不行动', () => {
-    it('nightmare 空选，狼刀正常生效', () => {
+    it('nightmare 空选，袭击正常生效', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 

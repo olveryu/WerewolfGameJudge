@@ -79,8 +79,8 @@ export const SCHEMAS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '是否使用解药？',
-          promptTemplate: '{seat}号被狼人杀了，是否使用解药？',
-          cannotSavePrompt: '你被狼人杀了，无法对自己使用解药，可以对别人用毒药或者不用技能。',
+          promptTemplate: '{seat}号被狼人袭击，是否使用解药？',
+          cannotSavePrompt: '你被狼人袭击，无法自救，可使用毒药或不用技能。',
           confirmText: '确定使用解药吗？',
           bottomActionText: '不用技能',
         },
@@ -181,7 +181,7 @@ export const SCHEMAS = {
 
   hunterConfirm: {
     id: 'hunterConfirm',
-    displayName: '确认发动状态',
+    displayName: '技能发动确认',
     kind: 'confirm',
     canSkip: true,
     ui: {
@@ -227,7 +227,7 @@ export const SCHEMAS = {
   // === Wolf actions ===
   wolfKill: {
     id: 'wolfKill',
-    displayName: '狼刀',
+    displayName: '袭击',
     kind: 'wolfVote',
     constraints: [], // Neutral judge: wolves can target ANY seat
     meeting: {
@@ -236,12 +236,12 @@ export const SCHEMAS = {
       allowEmptyVote: true,
     },
     ui: {
-      prompt: '请选择要猎杀的玩家',
+      prompt: '请选择袭击目标',
       confirmTitle: '狼人投票',
-      confirmText: '确定要猎杀该玩家吗？',
-      emptyVoteText: '空刀',
-      voteConfirmTemplate: '{wolf} 确定要猎杀{seat}号玩家吗？',
-      emptyVoteConfirmTemplate: '{wolf} 确定投票空刀吗？',
+      confirmText: '确定袭击该玩家？',
+      emptyVoteText: '放弃袭击',
+      voteConfirmTemplate: '{wolf} 确定袭击{seat}号？',
+      emptyVoteConfirmTemplate: '{wolf} 确定放弃袭击？',
     },
   },
 
@@ -267,8 +267,8 @@ export const SCHEMAS = {
     canSkip: true,
     ui: {
       confirmTitle: '确认行动',
-      prompt: '请选择要封锁的玩家，如不使用请点击「不用技能」',
-      confirmText: '确定要封锁该玩家吗？',
+      prompt: '请选择要恐惧的玩家，如不使用请点击「不用技能」',
+      confirmText: '确定要恐惧该玩家吗？',
       bottomActionText: '不用技能',
     },
   },
@@ -364,7 +364,7 @@ export const SCHEMAS = {
 
   darkWolfKingConfirm: {
     id: 'darkWolfKingConfirm',
-    displayName: '确认发动状态',
+    displayName: '技能发动确认',
     kind: 'confirm',
     canSkip: true,
     ui: {

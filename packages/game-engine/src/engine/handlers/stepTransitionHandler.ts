@@ -271,7 +271,7 @@ function maybeCreateUiHintAction(
           bottomAction: 'wolfEmptyOnly',
           promptOverride: {
             title: blockedTitle,
-            text: '今晚狼队无法刀人', // Wolf 特殊文案：狼刀被禁用
+            text: '今晚狼队无法刀人', // Wolf 特殊文案：袭击被禁用
           },
         },
       },

@@ -22,7 +22,7 @@ import type { NonNullState } from './types';
  * 计算女巫上下文（纯函数）
  *
  * 在进入 witchAction 步骤前调用，统一计算：
- * - killedSeat: 狼刀目标（-1 表示无人死亡）
+ * - killedSeat: 袭击目标（-1 表示无人死亡）
  * - canSave: 是否可以使用解药
  * - canPoison: 是否可以使用毒药
  *
@@ -34,7 +34,7 @@ function computeWitchContext(state: NonNullState): {
   canSave: boolean;
   canPoison: boolean;
 } {
-  // 1. 计算狼刀目标（killedSeat）
+  // 1. 计算袭击目标（killedSeat）
   let killedSeat = -1;
 
   if (!state.wolfKillDisabled) {

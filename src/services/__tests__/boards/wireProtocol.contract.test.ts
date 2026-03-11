@@ -326,7 +326,7 @@ describe('Wire Protocol Contract', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      // 运行夜晚：狼刀座位 2
+      // 运行夜晚：袭击座位 2
       executeFullNight(ctx, {
         wolf: 2,
         seer: 4,
@@ -355,13 +355,13 @@ describe('Wire Protocol Contract', () => {
       expect(wolfKillAction!.target).toBe(2);
     });
 
-    it('wolfKill 步骤：空刀时 target === null（或不发 WOLF_VOTE）', () => {
+    it('wolfKill 步骤：放弃袭击时 target === null（或不发 WOLF_VOTE）', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      // 运行夜晚：狼空刀（target 为 null）
+      // 运行夜晚：狼放弃袭击（target 为 null）
       executeFullNight(ctx, {
-        wolf: null, // 空刀
+        wolf: null, // 放弃袭击
         seer: 4,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
@@ -371,7 +371,7 @@ describe('Wire Protocol Contract', () => {
       const captured = ctx.getCapturedMessages();
       const wolfVotes = findWolfVoteMessages(captured, 'wolfKill');
 
-      // 空刀时不应该发送 WOLF_VOTE（或者发送 target=-1）
+      // 放弃袭击时不应该发送 WOLF_VOTE（或者发送 target=-1）
       // 当前实现是不发送 WOLF_VOTE
       expect(wolfVotes.length).toBe(0);
 
@@ -441,7 +441,7 @@ describe('Wire Protocol Contract', () => {
     function advanceToSeerCheck(ctx: ReturnType<typeof createGame>): void {
       // 第一步是 wolfKill
       if (ctx.getGameState().currentStepId === 'wolfKill') {
-        // 狼空刀
+        // 狼放弃袭击
         ctx.sendPlayerMessage({
           type: 'WOLF_VOTE',
           seat: 1,

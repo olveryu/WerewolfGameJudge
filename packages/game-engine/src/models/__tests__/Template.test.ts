@@ -156,7 +156,7 @@ describe('Template - getTemplateRoomInfo', () => {
     const info = getTemplateRoomInfo(template);
 
     expect(info).toContain('村民x4');
-    expect(info).toContain('普狼x4');
+    expect(info).toContain('狼人x4');
     expect(info).toContain('预言家');
     expect(info).toContain('女巫');
     expect(info).toContain('猎人');
@@ -179,7 +179,7 @@ describe('Template - getTemplateRoomInfo', () => {
     const info = getTemplateRoomInfo(template);
 
     expect(info).toContain('狼美人');
-    expect(info).toContain('普狼x2');
+    expect(info).toContain('狼人x2');
   });
 
   it('should handle template with no villagers', () => {
@@ -188,7 +188,7 @@ describe('Template - getTemplateRoomInfo', () => {
     const info = getTemplateRoomInfo(template);
 
     expect(info).toContain('村民x0');
-    expect(info).toContain('普狼x2');
+    expect(info).toContain('狼人x2');
   });
 });
 

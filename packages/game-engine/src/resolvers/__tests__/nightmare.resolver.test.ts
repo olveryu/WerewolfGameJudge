@@ -99,7 +99,7 @@ describe('nightmareBlockResolver', () => {
   describe('wolf block rule: ANY wolf (team=wolf) triggers wolfKillDisabled', () => {
     // ALL wolf-faction roles trigger wolfKillDisabled
     describe('所有狼阵营角色 (team=wolf) → 触发禁刀', () => {
-      it('封锁 wolf 时应该禁用狼刀', () => {
+      it('封锁 wolf 时应该禁用袭击', () => {
         const ctx = createContext();
         const input = createInput(2); // block wolf
 
@@ -110,7 +110,7 @@ describe('nightmareBlockResolver', () => {
         expect(result.updates?.wolfKillDisabled).toBe(true);
       });
 
-      it('封锁 nightmare (梦魇自己也是狼) 时应该禁用狼刀', () => {
+      it('封锁 nightmare (梦魇自己也是狼) 时应该禁用袭击', () => {
         const ctx = createContext();
         const input = createInput(5); // block nightmare (self)
 
@@ -120,7 +120,7 @@ describe('nightmareBlockResolver', () => {
         expect(result.updates?.wolfKillDisabled).toBe(true);
       });
 
-      it('封锁 wolfQueen 时应该禁用狼刀', () => {
+      it('封锁 wolfQueen 时应该禁用袭击', () => {
         const ctx = createContext();
         const input = createInput(8); // block wolfQueen
 
@@ -130,7 +130,7 @@ describe('nightmareBlockResolver', () => {
         expect(result.updates?.wolfKillDisabled).toBe(true);
       });
 
-      it('封锁 darkWolfKing 时应该禁用狼刀', () => {
+      it('封锁 darkWolfKing 时应该禁用袭击', () => {
         const ctx = createContext();
         const input = createInput(9); // block darkWolfKing
 
@@ -140,7 +140,7 @@ describe('nightmareBlockResolver', () => {
         expect(result.updates?.wolfKillDisabled).toBe(true);
       });
 
-      it('封锁 gargoyle 时也应该禁用狼刀 (任意狼阵营)', () => {
+      it('封锁 gargoyle 时也应该禁用袭击 (任意狼阵营)', () => {
         const ctx = createContext();
         const input = createInput(6); // block gargoyle
 
@@ -151,7 +151,7 @@ describe('nightmareBlockResolver', () => {
         expect(result.updates?.wolfKillDisabled).toBe(true);
       });
 
-      it('封锁 wolfRobot 时也应该禁用狼刀 (任意狼阵营)', () => {
+      it('封锁 wolfRobot 时也应该禁用袭击 (任意狼阵营)', () => {
         const ctx = createContext();
         const input = createInput(7); // block wolfRobot
 
@@ -165,7 +165,7 @@ describe('nightmareBlockResolver', () => {
 
     // Non-wolves → do NOT trigger wolfKillDisabled
     describe('非狼阵营 → 不触发禁刀', () => {
-      it('封锁村民时不应禁用狼刀', () => {
+      it('封锁村民时不应禁用袭击', () => {
         const ctx = createContext();
         const input = createInput(0); // block villager
 
@@ -175,7 +175,7 @@ describe('nightmareBlockResolver', () => {
         expect(result.updates?.wolfKillDisabled).toBeUndefined();
       });
 
-      it('封锁预言家时不应禁用狼刀', () => {
+      it('封锁预言家时不应禁用袭击', () => {
         const ctx = createContext();
         const input = createInput(4); // block seer
 

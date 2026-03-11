@@ -229,7 +229,7 @@ describe('RoomScreen wolf vote UI', () => {
 
     expect(showAlert).toHaveBeenCalledWith(
       '狼人投票',
-      expect.stringContaining('确定要猎杀3号玩家吗？'),
+      expect.stringContaining('确定袭击3号'),
       expect.any(Array),
     );
 
@@ -258,7 +258,7 @@ describe('RoomScreen wolf vote UI', () => {
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 
     // Ensure we're in the actionable state and the UI finished initial render
-    await findByText(/请选择要猎杀的玩家/);
+    await findByText(/请选择袭击目标/);
 
     // Tap seat 3 (index 2)
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
@@ -267,7 +267,7 @@ describe('RoomScreen wolf vote UI', () => {
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
         '狼人投票',
-        expect.stringContaining('确定要猎杀3号玩家吗？'),
+        expect.stringContaining('确定袭击3号'),
         expect.any(Array),
       );
     });
@@ -334,7 +334,7 @@ describe('RoomScreen wolf vote UI', () => {
 
     const rendered = render(<RoomScreen {...props} />);
     const { findByTestId, findByText } = rendered;
-    await findByText(/请选择要猎杀的玩家/);
+    await findByText(/请选择袭击目标/);
 
     // Ignore any alerts from initial render/auto intent.
     (showAlert as jest.Mock).mockClear();
@@ -347,7 +347,7 @@ describe('RoomScreen wolf vote UI', () => {
     await waitFor(() => {
       expect(showAlert).toHaveBeenCalledWith(
         '狼人投票',
-        expect.stringContaining('确定要猎杀3号玩家吗？'),
+        expect.stringContaining('确定袭击3号'),
         expect.any(Array),
       );
     });
@@ -402,7 +402,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 
     // Wait for action prompt to render
-    await findByText(/请选择要猎杀的玩家/);
+    await findByText(/请选择袭击目标/);
     harness.clear(); // Discard auto-trigger events
 
     // Tap seat 3 (index 2)
@@ -435,7 +435,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 
-    await findByText(/请选择要猎杀的玩家/);
+    await findByText(/请选择袭击目标/);
     harness.clear();
 
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
@@ -465,7 +465,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 
-    await findByText(/请选择要猎杀的玩家/);
+    await findByText(/请选择袭击目标/);
     harness.clear();
 
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(4));

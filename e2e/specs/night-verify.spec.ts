@@ -64,7 +64,7 @@ test.describe('Night Verification', () => {
       const wolfAction = wolfPage.locator('[data-testid="action-message"]');
       await wolfAction.waitFor({ state: 'visible', timeout: 30_000 });
       const actionText = await wolfAction.textContent();
-      expect(actionText).toContain('猎杀');
+      expect(actionText).toContain('袭击');
 
       // Wolf clicks the villager's seat
       const confirmed = await clickSeatAndConfirm(wolfPage, villagerSeat);

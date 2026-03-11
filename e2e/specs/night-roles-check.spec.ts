@@ -59,7 +59,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfIdx).not.toBe(-1);
 
         // Drive wolf kill first
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
 
         // Wolf kills villager (or seer if only 2 non-wolves)
@@ -110,7 +110,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Drive wolf kill
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName !== '狼人');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 
@@ -168,7 +168,7 @@ test.describe('Night Roles — Check / Reveal', () => {
           ([, info]) => info.displayName === '普通村民',
         );
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, wolfIndices, killTarget ? killTarget[1].seat : 0);
 
@@ -225,7 +225,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Drive wolf kill
         const firstWolf = allWolfIndices[0];
-        const wolfTurn = await waitForRoleTurn(pages[firstWolf], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[firstWolf], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
@@ -288,7 +288,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         await driveMagicianSwap(pages[magIdx], wolfSeat, villagerSeat);
 
         // Wolf kills another villager (the one NOT swapped)
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
@@ -353,7 +353,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         const wolfTurn = await waitForRoleTurn(
           pages[allWolfIndices[0]],
-          ['猎杀', '选择'],
+          ['袭击', '选择'],
           pages,
           120,
         );
@@ -413,7 +413,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         await driveMagicianSwap(pages[magIdx], wolfSeat, villagerSeat);
 
         // Wolf kills villager2
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
@@ -470,7 +470,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         // Wolf kills a villager
         const wolfTurn = await waitForRoleTurn(
           pages[allWolfIndices[0]],
-          ['猎杀', '选择'],
+          ['袭击', '选择'],
           pages,
           120,
         );
@@ -534,7 +534,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         const killTarget = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
 
         // Drive wolf kill
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, wolfIndices, killTarget);
 
@@ -590,7 +590,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         const killTarget = pureWhiteIdx !== -1 ? roleMap.get(pureWhiteIdx)!.seat : 0;
 
         // Drive wolf kill (kill pureWhite so villager survives for wolfWitch to check)
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, wolfIndices, killTarget);
 
@@ -647,7 +647,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         // wolfRobot does NOT participate in wolf vote
         // Drive wolf kill with only generic wolves
         const wolfIndices = findAllRolePageIndices(roleMap, '狼人');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['猎杀', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, wolfIndices, killSeat);
 

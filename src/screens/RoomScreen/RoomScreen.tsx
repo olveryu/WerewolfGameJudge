@@ -59,7 +59,7 @@ function getStatusLabel(status: GameStatus): string {
     case GameStatus.Unseated:
       return '等待入座';
     case GameStatus.Seated:
-      return '等待房主发牌';
+      return '等待房主分配角色';
     case GameStatus.Assigned:
       return '查看身份';
     case GameStatus.Ready:
@@ -458,7 +458,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {(roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
           effectiveSeat !== null && (
             <ActionButton
-              label="等待发牌…"
+              label="等待分配角色…"
               disabled
               onPress={(meta) => {
                 // Policy decision: disabled button shows alert

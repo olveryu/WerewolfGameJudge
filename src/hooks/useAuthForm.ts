@@ -29,7 +29,7 @@ interface UseAuthFormOptions {
   onSuccess: () => void;
   /** Named logger for the calling screen */
   logger: Logger;
-  /** Show '登录成功！' toast on email sign-in (Settings: true, Home: false) */
+  /** Show '登录成功' toast on email sign-in (Settings: true, Home: false) */
   showSuccessOnLogin?: boolean;
 }
 
@@ -81,9 +81,9 @@ export function useAuthForm({
         await signUpWithEmail(email, password, displayName || undefined);
         if (wasAnonymous) {
           // Anonymous → email upgrade: uid preserved, already in Settings
-          showAlert('绑定成功！');
+          showAlert('绑定成功');
         } else {
-          showAlert('注册成功！');
+          showAlert('注册成功');
           Toast.show({
             type: 'info',
             text1: '可在设置中自定义头像和昵称',
@@ -98,7 +98,7 @@ export function useAuthForm({
       } else {
         await signInWithEmail(email, password);
         if (showSuccessOnLogin) {
-          showAlert('登录成功！');
+          showAlert('登录成功');
         }
       }
       onSuccess();

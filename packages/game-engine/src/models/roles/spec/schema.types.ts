@@ -79,7 +79,7 @@ export interface SchemaUi {
   /**
    * Template string with {seat} placeholder for dynamic prompts.
    * Used when prompt needs runtime context (e.g., witch save showing killed seat).
-   * Example: "{seat}号被狼人杀了，是否使用解药？"
+   * Example: "{seat}号被狼人袭击，是否使用解药？"
    */
   readonly promptTemplate?: string;
 
@@ -186,7 +186,7 @@ interface MeetingConfig {
 
   /**
    * Whether an empty vote (no target) is allowed.
-   * - true: wolves can choose to "空刀"
+   * - true: wolves can choose to "放弃袭击"
    * - false: must select a target
    */
   readonly allowEmptyVote: boolean;

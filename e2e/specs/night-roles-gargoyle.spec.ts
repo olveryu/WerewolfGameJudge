@@ -124,7 +124,7 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Wolf (gargoyle) kills villager ===
         await test.step('gargoyle kills villager via wolf vote', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[gargoyleIdx], ['猎杀', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[gargoyleIdx], ['袭击', '选择'], pages, 120);
           expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
           await driveWolfVote(pages, [gargoyleIdx], killTargetSeat);
         });
@@ -221,7 +221,7 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Wolves kill villager ===
         await test.step('wolves kill villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['猎杀', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
           expect(wolfTurn).toBe(true);
           // Both wolf-faction players participate in wolf meeting
           await driveWolfVote(pages, [wolfIdx, gargoyleIdx], killTargetSeat);

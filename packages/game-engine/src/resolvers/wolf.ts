@@ -1,9 +1,9 @@
 /**
  * Wolf Kill Resolver (SERVER-ONLY, 纯函数)
  *
- * 职责：校验狼刀行动合法性 + 计算刀人结果，
- * 提供狼刀校验与 wolfKillDisabled 检查（nightmare 阻断）。
- * 不包含 IO（网络 / 音频 / Alert），不添加 notSelf/notWolf 约束（狼刀是中立的，可刀任意座位）。
+ * 职责：校验袭击行动合法性 + 计算袭击结果，
+ * 提供袭击校验与 wolfKillDisabled 检查（nightmare 阻断）。
+ * 不包含 IO（网络 / 音频 / Alert），不添加 notSelf/notWolf 约束（袭击是中立的，可袭击任意座位）。
  *
  * RULE: If wolfKillDisabled (nightmare blocked a wolf), non-empty vote is REJECTED.
  */
@@ -16,7 +16,7 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
   const { players, currentNightResults, actorSeat } = context;
   const target = input.target;
 
-  // 空刀 (empty knife): schema allows this via allowEmptyVote: true
+  // 放弃袭击 (empty kill): schema allows this via allowEmptyVote: true
   // This is always valid, even when wolfKillDisabled
   if (target === undefined || target === null) {
     return {
@@ -66,7 +66,7 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
     const targetRoleName = targetRoleSpec?.displayName ?? targetRoleId;
     return {
       valid: false,
-      rejectReason: `${targetRoleName}免疫狼刀，不能选为目标`,
+      rejectReason: `${targetRoleName}免疫袭击，不能选为目标`,
     };
   }
 

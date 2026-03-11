@@ -154,7 +154,7 @@
 | **UI 目标限制**    | 所有座位                          |                          |
 | **失败原因**       | 无（canSkip=true）                |                          |
 
-### 8. wolfKill (狼刀)
+### 8. wolfKill (袭击)
 
 | 属性                        | 值                                                                          | 说明                                                                                             |
 | --------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -163,14 +163,14 @@
 | **constraints**             | `[]`                                                                        | 中立裁判：可刀任意座位                                                                           |
 | **meeting.canSeeEachOther** | `true`                                                                      | 狼人互相可见                                                                                     |
 | **meeting.resolution**      | `majority`                                                                  | 多数投票生效                                                                                     |
-| **meeting.allowEmptyVote**  | `true`                                                                      | 可空刀                                                                                           |
-| **prompt**                  | "请选择要猎杀的玩家"                                                        |                                                                                                  |
-| **emptyVoteText**           | "空刀"                                                                      |                                                                                                  |
+| **meeting.allowEmptyVote**  | `true`                                                                      | 可放弃袭击                                                                                       |
+| **prompt**                  | "请选择袭击目标"                                                            |                                                                                                  |
+| **emptyVoteText**           | "放弃袭击"                                                                  |                                                                                                  |
 | **revealKind**              | 无                                                                          |                                                                                                  |
 | **wolfKillDisabled**        | ✅ 检查                                                                     | 梦魇封狼则无法杀人                                                                               |
 | **结果落点**                | `currentNightResults.wolfKillTarget`, `currentNightResults.wolfVotesBySeat` |                                                                                                  |
 | **UI 目标限制**             | 所有座位（含狼队友/自己）                                                   |                                                                                                  |
-| **Host 权威拒绝**           | ✅                                                                          | 免疫狼刀目标会被 Host/Resolver 拒绝，并通过 `actionRejected` 统一弹“操作无效”提示（UI 不做禁用） |
+| **Host 权威拒绝**           | ✅                                                                          | 免疫袭击目标会被 Host/Resolver 拒绝，并通过 `actionRejected` 统一弹“操作无效”提示（UI 不做禁用） |
 | **失败原因**                | `目标玩家不存在`                                                            |                                                                                                  |
 
 ### 9. wolfQueenCharm (狼美人)
@@ -515,7 +515,7 @@ With Audio: 23/23 (100%)
 | pureWhite            | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | gargoyle             | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | wolfWitch            | `['notWolfFaction']` | 狼人阵营座位禁用       | ❌ 无（来自 schema）                                                            |
-| wolf（狼刀）         | `[]`                 | UI 不禁用任何目标      | ❌ 无（改为 Host/Resolver 权威拒绝免疫目标，UI 统一用 `actionRejected` 弹提示） |
+| wolf（袭击）         | `[]`                 | UI 不禁用任何目标      | ❌ 无（改为 Host/Resolver 权威拒绝免疫目标，UI 统一用 `actionRejected` 弹提示） |
 | witch（save/poison） | save: `['notSelf']`  | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | slacker              | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | wildChild            | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
@@ -525,7 +525,7 @@ With Audio: 23/23 (100%)
 
 ### 当前约定（替代 UX-only）：Host/Resolver 权威拒绝 + UI 统一提示
 
-- **UI 行为**：狼刀阶段不在座位上做 `immuneToWolfKill` 的禁用/灰显（避免 UI 维护 schema 外规则导致 drift）。
+- **UI 行为**：袭击阶段不在座位上做 `immuneToWolfKill` 的禁用/灰显（避免 UI 维护 schema 外规则导致 drift）。
 - **Host 行为**：提交免疫目标时，Host/Resolver 返回拒绝，并写入 `actionRejected` 广播。
 - **提示入口**：`RoomScreen` 监听 `gameState.actionRejected`，弹出“操作无效”（reason 为具体原因）。
 - **测试覆盖**：

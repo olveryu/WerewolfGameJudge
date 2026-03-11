@@ -48,13 +48,13 @@ function createInput(target: number | undefined): ActionInput {
 
 describe('wolfKillResolver', () => {
   describe('validation', () => {
-    it('应该允许空刀 (target = undefined)，与 schema allowEmptyVote 对齐', () => {
+    it('应该允许放弃袭击 (target = undefined)，与 schema allowEmptyVote 对齐', () => {
       const ctx = createContext();
       const input = createInput(undefined);
 
       const result = wolfKillResolver(ctx, input);
 
-      // 空刀是允许的 (schema.meeting.allowEmptyVote: true)
+      // 放弃袭击是允许的 (schema.meeting.allowEmptyVote: true)
       expect(result.valid).toBe(true);
       expect(result.result).toEqual({}); // No kill target
     });
@@ -113,7 +113,7 @@ describe('wolfKillResolver', () => {
   });
 
   describe('wolfKillDisabled', () => {
-    it('狼刀被禁用时提交非空投票应该被拒绝', () => {
+    it('袭击被禁用时提交非空投票应该被拒绝', () => {
       const ctx = createContext({
         currentNightResults: { wolfKillDisabled: true },
       });
@@ -125,7 +125,7 @@ describe('wolfKillResolver', () => {
       expect(result.rejectReason).toBeDefined();
     });
 
-    it('狼刀被禁用时可以空刀', () => {
+    it('袭击被禁用时可以放弃袭击', () => {
       const ctx = createContext({
         currentNightResults: { wolfKillDisabled: true },
       });

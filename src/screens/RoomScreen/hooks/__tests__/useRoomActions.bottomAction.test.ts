@@ -53,7 +53,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
     const { result } = renderHook(() =>
       useRoomActions(ctx, {
         hasWolfVoted: () => false,
-        getWolfVoteSummary: () => '0/0 狼人已投票',
+        getWolfVoteSummary: () => '0/0 狼人已确认',
         getWitchContext: () => null,
       }),
     );
@@ -69,7 +69,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
     const wolfVoteSchema: ActionSchema = {
       id: 'wolfVote',
       kind: 'wolfVote',
-      displayName: '狼刀',
+      displayName: '袭击',
       constraints: [],
       meeting: {
         canSeeEachOther: true,
@@ -80,7 +80,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
         prompt: 'x',
         confirmTitle: 'x',
         confirmText: 'x',
-        emptyVoteText: '空刀',
+        emptyVoteText: '放弃袭击',
       },
     };
 
@@ -88,7 +88,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
     const { result } = renderHook(() =>
       useRoomActions(ctx, {
         hasWolfVoted: () => false,
-        getWolfVoteSummary: () => '1/3 狼人已投票',
+        getWolfVoteSummary: () => '1/3 狼人已确认',
         getWitchContext: () => null,
       }),
     );
@@ -97,7 +97,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
       buttons: [
         {
           key: 'wolfEmpty',
-          label: '空刀',
+          label: '放弃袭击',
           intent: {
             type: 'wolfVote',
             targetSeat: -1,
@@ -127,7 +127,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
     const { result } = renderHook(() =>
       useRoomActions(ctx, {
         hasWolfVoted: () => true,
-        getWolfVoteSummary: () => '0/0 狼人已投票',
+        getWolfVoteSummary: () => '0/0 狼人已确认',
         getWitchContext: () => null,
       }),
     );
@@ -139,7 +139,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
     const wolfVoteSchema: ActionSchema = {
       id: 'wolfVote',
       kind: 'wolfVote',
-      displayName: '狼刀',
+      displayName: '袭击',
       constraints: [],
       meeting: {
         canSeeEachOther: true,
@@ -150,7 +150,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
         prompt: 'x',
         confirmTitle: 'x',
         confirmText: 'x',
-        emptyVoteText: '空刀',
+        emptyVoteText: '放弃袭击',
       },
     };
 
@@ -161,7 +161,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
     const { result } = renderHook(() =>
       useRoomActions(ctx, {
         hasWolfVoted: () => false,
-        getWolfVoteSummary: () => '0/2 狼人已投票',
+        getWolfVoteSummary: () => '0/2 狼人已确认',
         getWitchContext: () => null,
       }),
     );
@@ -171,7 +171,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
     expect(bottomAction.buttons).toHaveLength(1);
     expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
     expect(bottomAction.buttons[0].intent.targetSeat).toBe(-1);
-    expect(bottomAction.buttons[0].label).toBe('空刀');
+    expect(bottomAction.buttons[0].label).toBe('放弃袭击');
   });
 });
 

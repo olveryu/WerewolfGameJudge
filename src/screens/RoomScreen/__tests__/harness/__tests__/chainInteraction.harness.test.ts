@@ -32,7 +32,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     const cb2 = jest.fn();
 
     // Dialog 1
-    mockShowAlert('狼人投票', '1号狼人 确定要猎杀3号玩家吗？', [
+    mockShowAlert('狼人投票', '1号狼人 确定袭击3号？', [
       { text: '取消', style: 'cancel' },
       { text: '确定', onPress: cb1 },
     ]);
@@ -59,7 +59,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
   it('pressButton succeeds when button exists', () => {
     const cb = jest.fn();
-    mockShowAlert('狼人投票', '确定要猎杀吗？', [{ text: '取消' }, { text: '确定', onPress: cb }]);
+    mockShowAlert('狼人投票', '确定袭击吗？', [{ text: '取消' }, { text: '确定', onPress: cb }]);
 
     harness.pressButton('确定');
     expect(cb).toHaveBeenCalledTimes(1);
@@ -70,7 +70,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
   });
 
   it('pressButton throws when button label not found', () => {
-    mockShowAlert('狼人投票', '确定要猎杀吗？', [{ text: '取消' }, { text: '确定' }]);
+    mockShowAlert('狼人投票', '确定袭击吗？', [{ text: '取消' }, { text: '确定' }]);
 
     expect(() => harness.pressButton('不存在的按钮')).toThrow(
       /Button "不存在的按钮" not found.*狼人投票/,
@@ -111,7 +111,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     const wolfCb = jest.fn();
     const skipCb = jest.fn();
 
-    mockShowAlert('狼人投票', '确定要猎杀5号吗？', [
+    mockShowAlert('狼人投票', '确定袭击5号吗？', [
       { text: '取消' },
       { text: '确定', onPress: wolfCb },
     ]);
@@ -138,7 +138,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
 
   it('pressPrimaryOnType presses the primary (non-cancel) button of matching type', () => {
     const cb = jest.fn();
-    mockShowAlert('狼人投票', '确定要猎杀5号吗？', [
+    mockShowAlert('狼人投票', '确定袭击5号？', [
       { text: '取消', style: 'cancel' },
       { text: '确定', onPress: cb },
     ]);
@@ -202,7 +202,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     const submitAction = jest.fn();
 
     // Simulate: wolfVote dialog appears
-    mockShowAlert('狼人投票', '1号狼人 确定要猎杀3号玩家吗？', [
+    mockShowAlert('狼人投票', '1号狼人 确定袭击3号？', [
       { text: '取消', style: 'cancel' },
       {
         text: '确定',
@@ -223,7 +223,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     let dismissed = false;
 
     // Simulate: witch save prompt (title contains '玩家死亡' → witchSavePrompt)
-    mockShowAlert('女巫请行动', '3号被狼人杀了，是否使用解药？', [
+    mockShowAlert('女巫请行动', '3号被狼人袭击，是否使用解药？', [
       {
         text: '知道了',
         onPress: () => {

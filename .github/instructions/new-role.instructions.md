@@ -176,7 +176,7 @@ newRoleAction: {
 // ---- confirm 类（查看发动状态）----
 newRoleConfirm: {
   id: 'newRoleConfirm',
-  displayName: '确认发动状态',
+  displayName: '技能发动确认',
   kind: 'confirm',
   canSkip: true,
   ui: {
@@ -413,7 +413,7 @@ newRoleSecondStep: {
 
 - 神职 → `好人阵营` → `神职` section
 - 技能狼 → `狼人阵营` → `技能狼` section
-- 第三方 → `中立阵营` → `第三方` section
+- 第三方 → `第三方阵营` → `第三方` section
 
 ### 步骤 9 — Resolver 单测
 

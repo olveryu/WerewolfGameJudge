@@ -85,7 +85,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
 
       // Step 1: 按顺序执行到 wolfRobotLearn 步骤（使用统一 runner）
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
-        wolf: 0, // 狼刀 villager seat 0
+        wolf: 0, // 袭击 villager seat 0
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
       });
@@ -156,7 +156,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // Step 1: 按顺序执行到 wolfRobotLearn 步骤
       // 女巫在前面毒 wolfRobot
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
-        wolf: 0, // 狼刀 villager seat 0
+        wolf: 0, // 袭击 villager seat 0
         witch: { save: null, poison: WOLF_ROBOT_SEAT }, // 女巫毒 wolfRobot
         hunter: { confirmed: true },
       });
@@ -207,7 +207,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // 核心断言: wolfRobot seat 被毒死
       expect(deaths).toContain(WOLF_ROBOT_SEAT);
 
-      // 被狼刀的 villager seat 0 也死亡
+      // 被袭击的 villager seat 0 也死亡
       expect(deaths).toContain(0);
 
       // 回归断言：毒杀不应影响 wolfRobotReveal / wolfRobotContext 的存在性
@@ -226,7 +226,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // Step 1: 按顺序执行到 wolfRobotLearn 步骤
       // 女巫不毒
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
-        wolf: 0, // 狼刀 villager seat 0
+        wolf: 0, // 袭击 villager seat 0
         witch: { save: null, poison: null }, // 女巫不毒
         hunter: { confirmed: true },
       });
@@ -277,7 +277,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // 核心断言: wolfRobot seat 不在死亡列表中（仍存活）
       expect(deaths).not.toContain(WOLF_ROBOT_SEAT);
 
-      // 被狼刀的 villager seat 0 死亡
+      // 被袭击的 villager seat 0 死亡
       expect(deaths).toContain(0);
 
       // wolfRobotReveal 仍存在

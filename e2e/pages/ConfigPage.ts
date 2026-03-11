@@ -106,7 +106,7 @@ export class ConfigPage {
 
   /**
    * Switch to a faction tab.
-   * @param faction - Tab key: 'Villager' (好人阵营), 'Wolf' (狼人阵营), 'Special' (中立阵营)
+   * @param faction - Tab key: 'Villager' (好人阵营), 'Wolf' (狼人阵营), 'Special' (第三方阵营)
    */
   async switchToFactionTab(faction: 'Villager' | 'Wolf' | 'Special') {
     const tab = this.page.locator(`[data-testid="config-faction-tab-${faction}"]`);
@@ -363,7 +363,7 @@ export class ConfigPage {
       }
     }
 
-    // --- 中立阵营 (if needed) ---
+    // --- 第三方阵营 (if needed) ---
     if (specialRoles.length > 0) {
       await this.switchToFactionTab('Special');
       for (const roleId of specialRoles) {

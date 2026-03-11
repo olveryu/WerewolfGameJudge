@@ -260,11 +260,11 @@ describe('查验对齐 (swap 后身份)', () => {
 
 describe('死亡结算对齐 (swap 规则)', () => {
   /**
-   * 场景: 狼刀杀 A，magician swap [A, B]
+   * 场景: 袭击 A，magician swap [A, B]
    * 预期: 死亡落在 B（交换死亡状态）
    */
 
-  it('狼刀杀 A, swap [A,B] → B 死亡', () => {
+  it('袭击 A, swap [A,B] → B 死亡', () => {
     const deaths = calculateDeaths(
       {
         wolfKill: 0, // 杀 A
@@ -286,7 +286,7 @@ describe('死亡结算对齐 (swap 规则)', () => {
     expect(deaths).toContain(1);
   });
 
-  it('狼刀杀 B, swap [A,B] → A 死亡', () => {
+  it('袭击 B, swap [A,B] → A 死亡', () => {
     const deaths = calculateDeaths(
       {
         wolfKill: 1, // 杀 B
@@ -308,7 +308,7 @@ describe('死亡结算对齐 (swap 规则)', () => {
     expect(deaths).not.toContain(1);
   });
 
-  it('狼刀杀 C (未被 swap) → C 死亡，A/B 不受影响', () => {
+  it('袭击 C (未被 swap) → C 死亡，A/B 不受影响', () => {
     const deaths = calculateDeaths(
       {
         wolfKill: 2, // 杀 C
