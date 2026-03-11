@@ -53,6 +53,7 @@ export const TESTIDS = {
   roomBackButton: 'room-back-button',
   roomHeader: 'room-header',
   roomSettingsButton: 'room-settings-button',
+  prepareToFlipButton: 'prepare-to-flip-button',
   connectionStatusContainer: 'connection-status-container',
 
   // ActionMessage / BottomActionPanel

@@ -97,7 +97,7 @@ async function waitForPresenceStable(
     await hostPage.waitForTimeout(PRESENCE_INTERVAL_MS);
 
     const isPrepareVisible = await hostPage
-      .getByText('分配角色')
+      .getByTestId('prepare-to-flip-button')
       .isVisible()
       .catch(() => false);
     if (isPrepareVisible) return;
