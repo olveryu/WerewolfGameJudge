@@ -83,6 +83,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
         <ActionButton
           label="分配角色"
           disabled={disabled}
+          testID={TESTIDS.prepareToFlipButton}
           onPress={(meta) => {
             if (!meta.disabled) onPrepareToFlipPress();
           }}

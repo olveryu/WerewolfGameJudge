@@ -91,7 +91,7 @@ export class RoomPage {
 
   /** Click "分配角色" and confirm the dialog. Wait for role assignment to propagate. */
   async prepareRoles() {
-    const btn = this.page.getByText('分配角色');
+    const btn = this.page.getByTestId('prepare-to-flip-button');
     await expect(btn).toBeVisible({ timeout: 5000 });
     await btn.click();
     await expect(this.page.getByText('分配角色？')).toBeVisible({ timeout: 3000 });
@@ -251,7 +251,7 @@ export class RoomPage {
     await expect(this.page.getByText('重新开始游戏？')).toBeVisible({ timeout: 3000 });
     await this.page.getByText('确定', { exact: true }).click();
     // Wait for restart broadcast — "分配角色" reappears when status resets
-    await expect(this.page.getByText('分配角色')).toBeVisible({ timeout: 15_000 });
+    await expect(this.page.getByTestId('prepare-to-flip-button')).toBeVisible({ timeout: 15_000 });
   }
 
   /** Click the settings button to open config in edit mode. */
