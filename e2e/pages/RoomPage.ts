@@ -55,7 +55,7 @@ export class RoomPage {
     await expect(this.page.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
     await this.page.getByText('确定', { exact: true }).click();
     // Wait for seat broadcast to arrive — "我" badge confirms the seat is taken
-    await expect(this.page.getByText('我')).toBeVisible({ timeout: 10_000 });
+    await expect(this.page.getByText('我', { exact: true })).toBeVisible({ timeout: 10_000 });
   }
 
   /** Click own seat and confirm "离座" dialog. */
@@ -64,12 +64,12 @@ export class RoomPage {
     await expect(this.page.getByText('离座', { exact: true })).toBeVisible({ timeout: 5000 });
     await this.page.getByText('确定', { exact: true }).click();
     // Wait for "我" badge to disappear, confirming stand-up broadcast arrived
-    await expect(this.page.getByText('我')).not.toBeVisible({ timeout: 5000 });
+    await expect(this.page.getByText('我', { exact: true })).not.toBeVisible({ timeout: 5000 });
   }
 
   /** Check if "我" badge is visible anywhere. */
   async expectMyBadgeVisible() {
-    await expect(this.page.getByText('我')).toBeVisible({ timeout: 3000 });
+    await expect(this.page.getByText('我', { exact: true })).toBeVisible({ timeout: 3000 });
   }
 
   /**
@@ -234,21 +234,23 @@ export class RoomPage {
 
   /** Click "开始游戏" and confirm dialog. */
   async startGame() {
-    const btn = this.page.getByText('开始游戏');
+    const btn = this.page.getByTestId('start-game-button');
     // All players must complete viewRole before this button appears —
     // server-authoritative broadcast propagation can take several seconds.
     await expect(btn).toBeVisible({ timeout: 15_000 });
     await btn.click();
-    await expect(this.page.getByText('开始游戏？')).toBeVisible({ timeout: 3000 });
+    await expect(this.page.getByText('开始游戏？', { exact: true })).toBeVisible({ timeout: 3000 });
     await this.page.getByText('确定', { exact: true }).click();
   }
 
   /** Click "重新开始" (重开) and confirm dialog. */
   async restart() {
-    const btn = this.page.getByText('重新开始');
+    const btn = this.page.getByTestId('restart-button');
     await expect(btn).toBeVisible({ timeout: 5000 });
     await btn.click();
-    await expect(this.page.getByText('重新开始游戏？')).toBeVisible({ timeout: 3000 });
+    await expect(this.page.getByText('重新开始游戏？', { exact: true })).toBeVisible({
+      timeout: 3000,
+    });
     await this.page.getByText('确定', { exact: true }).click();
     // Wait for restart broadcast — "分配角色" reappears when status resets
     await expect(this.page.getByTestId('prepare-to-flip-button')).toBeVisible({ timeout: 15_000 });
@@ -262,7 +264,7 @@ export class RoomPage {
   /** Check if "昨夜信息" button is visible (night ended indicator). */
   async isLastNightInfoVisible(): Promise<boolean> {
     return this.page
-      .getByText('昨夜信息')
+      .getByTestId('last-night-info-button')
       .waitFor({ state: 'visible', timeout: 3000 })
       .then(() => true)
       .catch(() => false);

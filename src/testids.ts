@@ -54,6 +54,9 @@ export const TESTIDS = {
   roomHeader: 'room-header',
   roomSettingsButton: 'room-settings-button',
   prepareToFlipButton: 'prepare-to-flip-button',
+  startGameButton: 'start-game-button',
+  restartButton: 'restart-button',
+  lastNightInfoButton: 'last-night-info-button',
   connectionStatusContainer: 'connection-status-container',
 
   // ActionMessage / BottomActionPanel

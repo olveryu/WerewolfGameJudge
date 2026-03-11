@@ -60,6 +60,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
         <ActionButton
           label="重新开始"
           disabled={disabled}
+          testID={TESTIDS.restartButton}
           onPress={(meta) => {
             if (!meta.disabled) onRestartPress();
           }}
@@ -96,6 +97,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
         <ActionButton
           label="开始游戏"
           disabled={disabled}
+          testID={TESTIDS.startGameButton}
           onPress={(meta) => {
             if (!meta.disabled) onStartGamePress();
           }}

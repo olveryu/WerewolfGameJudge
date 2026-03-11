@@ -260,7 +260,7 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
   for (let i = 0; i < 3; i++) {
     await dismissAlert(hostPage);
     // Check if "昨夜信息" is visible now
-    const infoBtn = hostPage.getByText('昨夜信息').first();
+    const infoBtn = hostPage.getByTestId('last-night-info-button');
     if (await infoBtn.isVisible().catch(() => false)) {
       await infoBtn.click({ force: true });
       // Wait for confirmation dialog ("请在警长竞选结束后再查看，请勿作弊")
@@ -282,8 +282,7 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
     }
     // Wait for "昨夜信息" button to appear before next attempt
     await hostPage
-      .getByText('昨夜信息')
-      .first()
+      .getByTestId('last-night-info-button')
       .waitFor({ state: 'visible', timeout: 2000 })
       .catch(() => {});
   }
