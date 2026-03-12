@@ -168,7 +168,7 @@ const AnimatedGhost: React.FC<AnimatedGhostProps> = React.memo(
           <Pressable onPress={handlePress} style={styles.ghostTouchable}>
             <View style={styles.ghostBody}>
               {badgeSource ? (
-                <Image source={badgeSource} style={styles.ghostBadge} />
+                <Image source={badgeSource} resizeMode="contain" style={styles.ghostBadge} />
               ) : (
                 <Text style={styles.ghostFallbackEmoji}>{'👻'}</Text>
               )}

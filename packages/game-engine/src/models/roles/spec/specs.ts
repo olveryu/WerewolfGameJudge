@@ -476,7 +476,11 @@ export function getRoleDisplayAs(roleId: RoleId): RoleId | undefined {
   return spec.displayAs as RoleId | undefined;
 }
 
-/** Get the emoji icon for a role. Falls back to '❓' for unknown roleIds. */
+/**
+ * Get the emoji icon for a role (text character).
+ * 用于纯文本场景（NightReview 行动摘要等）。
+ * 卡片 UI 场景请使用 `getRoleBadge()` 获取 PNG badge image。
+ */
 export function getRoleEmoji(roleId: RoleId): string {
   return ROLE_SPECS[roleId].emoji;
 }

@@ -14,8 +14,9 @@
  */
 
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, dirname } from 'node:path';
 import { parseArgs } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 import {
@@ -45,32 +46,18 @@ const NO_OVERWRITE = args['no-overwrite'];
 const CACHE_DIR = join(OUTDIR, '.cache');
 
 // ---------------------------------------------------------------------------
-// Load ROLE_SPECS from game-engine (read TS source, parse minimally)
+// Load ROLE_SPECS from game-engine dist (pre-built JS)
 // ---------------------------------------------------------------------------
-function loadRoleSpecs() {
-  const specsPath = resolve('packages/game-engine/src/models/roles/spec/specs.ts');
-  const src = readFileSync(specsPath, 'utf-8');
-
-  const roleIdRegex = /^\s{2}(\w+):\s*\{/gm;
-  const roleIds = [];
-  let m;
-  while ((m = roleIdRegex.exec(src)) !== null) {
-    roleIds.push(m[1]);
-  }
-
-  return roleIds.map((id) => {
-    const blockStart = src.indexOf(`  ${id}: {`);
-    const blockEnd = src.indexOf('\n  }', blockStart);
-    const block = src.substring(blockStart, blockEnd);
-
-    const factionMatch = block.match(/faction:\s*Faction\.(\w+)/);
-    const faction = factionMatch ? factionMatch[1] : 'Unknown';
-
-    const nameMatch = block.match(/displayName:\s*'([^']+)'/);
-    const displayName = nameMatch ? nameMatch[1] : id;
-
-    return { id, faction, displayName };
-  });
+async function loadRoleSpecs() {
+  const scriptDir = dirname(fileURLToPath(import.meta.url));
+  const specsModule = await import(
+    resolve(scriptDir, '../packages/game-engine/dist/models/roles/spec/specs.js')
+  );
+  return Object.entries(specsModule.ROLE_SPECS).map(([id, spec]) => ({
+    id,
+    faction: spec.faction,
+    displayName: spec.displayName,
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +135,7 @@ async function main() {
   const startTime = Date.now();
   console.log('🎨 Badge Generator (Fluent Emoji 3D) — loading roles...');
 
-  const roles = loadRoleSpecs();
+  const roles = await loadRoleSpecs();
   console.log(`   Found ${roles.length} roles in ROLE_SPECS`);
 
   // Validate

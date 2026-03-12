@@ -304,10 +304,16 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
       {revealMode ? (
         <Animated.Image
           source={badgeSource}
+          resizeMode="contain"
           style={[styles.roleIconImage, styles.roleIconRevealImage, emojiAnimStyle]}
         />
       ) : (
-        <Image source={badgeSource} style={styles.roleIconImage} />
+        <Image
+          source={badgeSource}
+          resizeMode="contain"
+          style={styles.roleIconImage}
+          testID="role-badge"
+        />
       )}
 
       {revealMode ? (
