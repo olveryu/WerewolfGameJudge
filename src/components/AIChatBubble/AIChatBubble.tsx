@@ -11,6 +11,7 @@
  * 渲染聊天 UI，通过 useAIChat hook 交互。不直接 import service，不直接调用 API。
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -28,9 +29,11 @@ import {
   View,
 } from 'react-native';
 
-import { BRAND, UI } from '@/config/emojiTokens';
+import { BRAND } from '@/config/emojiTokens';
+import { UI_ICONS } from '@/config/iconTokens';
 import { useGameFacade } from '@/contexts';
 import { useTheme } from '@/theme';
+import { typography } from '@/theme';
 import { fixed } from '@/theme/tokens';
 
 import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
@@ -213,7 +216,11 @@ export const AIChatBubble: React.FC = () => {
               <Text style={styles.chatTitle}>狼人杀助手</Text>
               <View style={styles.headerButtons}>
                 <TouchableOpacity onPress={chat.handleClearHistory} style={styles.headerBtn}>
-                  <Text style={styles.headerBtnText}>{UI.DELETE}</Text>
+                  <Ionicons
+                    name={UI_ICONS.DELETE}
+                    size={typography.body}
+                    style={styles.headerBtnText}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => chat.setIsOpen(false)} style={styles.headerBtn}>
                   <Text style={styles.headerBtnText}>✕</Text>
@@ -237,8 +244,8 @@ export const AIChatBubble: React.FC = () => {
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>
-                      {UI.GREETING} 你好！我是狼人杀助手{'\n'}
-                      可以问我游戏规则、策略建议等
+                      <Ionicons name={UI_ICONS.GREETING} size={typography.secondary} />
+                      {' 你好！我是狼人杀助手\n可以问我游戏规则、策略建议等'}
                     </Text>
                   </View>
                 }

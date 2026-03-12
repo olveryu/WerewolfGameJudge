@@ -24,7 +24,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
 import { PressableScale } from '@/components/PressableScale';
-import { BRAND, UI } from '@/config/emojiTokens';
+import { BRAND } from '@/config/emojiTokens';
+import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
@@ -267,7 +268,7 @@ export const HomeScreen: React.FC = () => {
   const activeTips = useMemo(() => {
     const all: {
       id: string;
-      icon: string;
+      icon: IoniconsName;
       title: string;
       subtitle: string;
       onPress?: () => void;
@@ -275,7 +276,7 @@ export const HomeScreen: React.FC = () => {
     }[] = [];
     all.push({
       id: 'share',
-      icon: UI.SHARE,
+      icon: UI_ICONS.SHARE,
       title: '邀请朋友？试试分享二维码',
       subtitle: '在房间内点击「分享房间」生成二维码',
       dismissable: false,
@@ -283,7 +284,7 @@ export const HomeScreen: React.FC = () => {
     if (!user) {
       all.push({
         id: 'login',
-        icon: UI.USER,
+        icon: UI_ICONS.USER,
         title: '登录后解锁全部功能',
         subtitle: '创建房间、设置昵称头像需要登录',
         onPress: () => setShowLoginModal(true),
@@ -292,7 +293,7 @@ export const HomeScreen: React.FC = () => {
     if (user?.isAnonymous) {
       all.push({
         id: 'upgrade',
-        icon: '✉️',
+        icon: UI_ICONS.EMAIL,
         title: '升级为邮箱账户',
         subtitle: '绑定邮箱后可设置昵称和头像',
         onPress: () => navigation.navigate('Settings'),
@@ -301,7 +302,7 @@ export const HomeScreen: React.FC = () => {
     if (user && !user.isAnonymous) {
       all.push({
         id: 'nickname',
-        icon: UI.EDIT,
+        icon: UI_ICONS.EDIT,
         title: '个性化你的昵称和头像',
         subtitle: '让队友在房间里认出你',
         onPress: () => navigation.navigate('Settings'),
@@ -309,7 +310,7 @@ export const HomeScreen: React.FC = () => {
     }
     all.push({
       id: 'theme',
-      icon: UI.THEME,
+      icon: UI_ICONS.THEME,
       title: '试试切换主题',
       subtitle: '8 种主题风格可选',
       onPress: () => navigation.navigate('Settings'),

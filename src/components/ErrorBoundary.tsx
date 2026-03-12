@@ -8,11 +8,12 @@
  * 样式例外：使用硬编码颜色/间距，因为 ErrorBoundary 是 class component，
  * 在 ThemeProvider crash 时无法调用 useColors()，必须自包含 fallback 样式。
  */
+import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { STATUS } from '@/config/emojiTokens';
+import { STATUS_ICONS } from '@/config/iconTokens';
 import { log } from '@/utils/logger';
 
 const errorLog = log.extend('ErrorBoundary');
@@ -56,7 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <View style={styles.container}>
-          <Text style={styles.emoji}>{STATUS.ERROR}</Text>
+          <Ionicons name={STATUS_ICONS.ERROR} size={48} color="#FF6B6B" style={styles.emoji} />
           <Text style={styles.title}>应用出现问题</Text>
           <Text style={styles.message}>请点击下方按钮重试</Text>
           <TouchableOpacity style={styles.button} onPress={this.#handleRetry}>
@@ -79,7 +80,6 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   emoji: {
-    fontSize: 48,
     marginBottom: 16,
   },
   title: {

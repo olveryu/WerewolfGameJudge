@@ -4,11 +4,12 @@
  * 接收父组件 styles，通过回调上报编辑/保存/取消意图。
  * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
+import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { UI } from '@/config/emojiTokens';
-import { ThemeColors } from '@/theme';
+import { UI_ICONS } from '@/config/iconTokens';
+import { ThemeColors, typography } from '@/theme';
 
 import { SettingsScreenStyles } from './styles';
 
@@ -65,7 +66,7 @@ export const NameSection = memo<NameSectionProps>(
     return (
       <TouchableOpacity style={styles.nameRow} onPress={onStartEdit}>
         <Text style={styles.userName}>{displayName || '点击设置名字'}</Text>
-        <Text style={styles.editIcon}>{UI.EDIT}</Text>
+        <Ionicons name={UI_ICONS.EDIT} size={typography.secondary} style={styles.editIcon} />
       </TouchableOpacity>
     );
   },

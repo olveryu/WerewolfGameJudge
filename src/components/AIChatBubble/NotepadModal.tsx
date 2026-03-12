@@ -6,11 +6,13 @@
  * 接收 useNotepad 返回值作为 props，不直接调用 service / AsyncStorage。
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { UI } from '@/config/emojiTokens';
+import { UI_ICONS } from '@/config/iconTokens';
+import { typography } from '@/theme';
 import { fixed } from '@/theme/tokens';
 
 import type { ChatStyles } from './AIChatBubble.styles';
@@ -97,14 +99,21 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       <SafeAreaView style={styles.notepadModal}>
         {/* Header */}
         <View style={styles.notepadHeader}>
-          <Text style={styles.notepadHeaderTitle}>{UI.NOTE} 笔记</Text>
+          <Text style={styles.notepadHeaderTitle}>
+            <Ionicons name={UI_ICONS.NOTE} size={typography.subtitle} />
+            {' 笔记'}
+          </Text>
           <View style={styles.notepadHeaderButtons}>
             <TouchableOpacity
               onPress={notepad.clearAll}
               style={styles.notepadHeaderBtn}
               activeOpacity={fixed.activeOpacity}
             >
-              <Text style={styles.notepadHeaderBtnText}>{UI.DELETE}</Text>
+              <Ionicons
+                name={UI_ICONS.DELETE}
+                size={typography.body}
+                style={styles.notepadHeaderBtnText}
+              />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onClose}
@@ -129,7 +138,10 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
 
         {/* Public note area — side-by-side */}
         <View style={styles.notepadPublicSection}>
-          <Text style={styles.notepadPublicLabel}>{UI.RECORD} 记录</Text>
+          <Text style={styles.notepadPublicLabel}>
+            <Ionicons name={UI_ICONS.RECORD} size={typography.secondary} />
+            {' 记录'}
+          </Text>
           <View style={styles.notepadPublicRow}>
             <TextInput
               style={styles.notepadPublicInput}

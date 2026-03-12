@@ -5,6 +5,7 @@
  * 入场/离场动画（slide up + bounce / fade out + shrink）。
  * 渲染 UI 并通过回调上报 onPress，不 import service / showAlert，不包含业务逻辑判断。
  */
+import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
@@ -23,7 +24,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 
 import { Avatar } from '@/components/Avatar';
-import { STATUS, UI } from '@/config/emojiTokens';
+import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import { borderRadius, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
@@ -236,7 +237,13 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
         {isMySpot && hasPlayer && <Text style={styles.mySeatBadge}>我</Text>}
 
-        {showReadyBadge && hasPlayer && <Text style={styles.readyBadge}>{STATUS.READY}</Text>}
+        {showReadyBadge && hasPlayer && (
+          <Ionicons
+            name={STATUS_ICONS.READY}
+            size={componentSizes.icon.sm}
+            style={styles.readyBadge}
+          />
+        )}
 
         {wolfVoteBadge != null && hasPlayer && (
           <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
@@ -250,7 +257,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       {hasPlayer ? (
         <>
           <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
-            {isBot ? `${UI.BOT} ` : ''}
+            {isBot && <Ionicons name={UI_ICONS.BOT} size={typography.caption} />}
+            {isBot && ' '}
             {playerDisplayName}
           </Text>
           {botRoleDisplayName && (
@@ -361,8 +369,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       position: 'absolute',
       bottom: spacing.tight + spacing.micro,
       left: spacing.tight + spacing.micro,
-      // Emoji fontSize 例外：✅ 属于 Emoji 渲染尺寸，不走 typography token
-      fontSize: 14,
+      color: colors.success,
     },
     wolfVoteBadge: {
       position: 'absolute',

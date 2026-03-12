@@ -80,7 +80,7 @@ export interface HomeScreenStyles {
   buttonCaptionInverse: TextStyle;
   // Tip Card (contextual tips between action row and footer)
   tipCard: ViewStyle;
-  tipCardIcon: TextStyle;
+  tipCardIcon: ViewStyle;
   tipCardBody: ViewStyle;
   tipCardTitle: TextStyle;
   tipCardSub: TextStyle;
@@ -241,12 +241,10 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       ...shadows.sm,
     },
     tipCardIcon: {
-      fontSize: typography.title,
-      lineHeight: typography.lineHeights.title,
       width: componentSizes.avatar.md,
       height: componentSizes.avatar.md,
-      textAlign: 'center',
-      textAlignVertical: 'center',
+      justifyContent: 'center',
+      alignItems: 'center',
       backgroundColor: withAlpha(colors.primary, 0.08),
       borderRadius: borderRadius.medium,
       overflow: 'hidden',

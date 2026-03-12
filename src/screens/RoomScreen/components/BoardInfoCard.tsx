@@ -9,7 +9,7 @@ import React, { memo, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
-import { UI } from '@/config/emojiTokens';
+import { UI_ICONS } from '@/config/iconTokens';
 import { useColors } from '@/theme';
 import { componentSizes, fixed } from '@/theme/tokens';
 
@@ -187,7 +187,10 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               </View>
             </View>
           )}
-          <Text style={styles.boardInfoHint}>{UI.HINT} 点击角色名查看能力说明</Text>
+          <Text style={styles.boardInfoHint}>
+            <Ionicons name={UI_ICONS.HINT} size={componentSizes.icon.xs} color={colors.textMuted} />
+            {' 点击角色名查看能力说明'}
+          </Text>
         </View>
       )}
 

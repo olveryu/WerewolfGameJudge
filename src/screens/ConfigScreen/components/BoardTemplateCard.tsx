@@ -13,7 +13,7 @@ import { memo, useCallback, useMemo } from 'react';
 import { LayoutAnimation, Platform, Text, TouchableOpacity, UIManager, View } from 'react-native';
 
 import { useColors, withAlpha } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { fixed, typography } from '@/theme/tokens';
 
 import { computeFactionStats, FACTION_COLOR_MAP, getKeyRoles } from '../configHelpers';
 import { FactionStatBadges, RoleListByFaction } from './RoleListByFaction';
@@ -128,7 +128,8 @@ export const BoardTemplateCard = memo<BoardTemplateCardProps>(
                   isSelected && styles.templateCardCTATextSelected,
                 ]}
               >
-                {isSelected ? '已选择 ✓' : '选择此模板'}
+                {isSelected ? '已选择 ' : '选择此模板'}
+                {isSelected && <Ionicons name="checkmark" size={typography.secondary} />}
               </Text>
             </TouchableOpacity>
           </View>
