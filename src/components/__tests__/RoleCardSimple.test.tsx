@@ -131,11 +131,8 @@ describe('RoleCardSimple', () => {
   });
 
   it('renders role badge image', () => {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { UNSAFE_getByType } = render(<RoleCardSimple {...defaultProps} />);
-    // Badge is now an Image, not emoji text
-    const { Image } = require('react-native');
-    expect(UNSAFE_getByType(Image)).toBeTruthy();
+    const { getByTestId } = render(<RoleCardSimple {...defaultProps} />);
+    expect(getByTestId('role-badge')).toBeTruthy();
   });
 
   it('shows skill description section', () => {

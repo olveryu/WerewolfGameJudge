@@ -3,8 +3,6 @@
     "displayName": "普通村民",
     "faction": "Villager",
     "png": {
-      "64": "png/64/role_villager.png",
-      "96": "png/96/role_villager.png",
       "128": "png/128/role_villager.png"
     }
   },
@@ -12,8 +10,6 @@
     "displayName": "灯影预言家",
     "faction": "Villager",
     "png": {
-      "64": "png/64/role_mirrorSeer.png",
-      "96": "png/96/role_mirrorSeer.png",
       "128": "png/128/role_mirrorSeer.png"
     }
   },
@@ -21,8 +17,6 @@
     "displayName": "酒鬼预言家",
     "faction": "Villager",
     "png": {
-      "64": "png/64/role_drunkSeer.png",
-      "96": "png/96/role_drunkSeer.png",
       "128": "png/128/role_drunkSeer.png"
     }
   },
@@ -30,8 +24,6 @@
     "displayName": "预言家",
     "faction": "God",
     "png": {
-      "64": "png/64/role_seer.png",
-      "96": "png/96/role_seer.png",
       "128": "png/128/role_seer.png"
     }
   },
@@ -39,8 +31,6 @@
     "displayName": "女巫",
     "faction": "God",
     "png": {
-      "64": "png/64/role_witch.png",
-      "96": "png/96/role_witch.png",
       "128": "png/128/role_witch.png"
     }
   },
@@ -48,8 +38,6 @@
     "displayName": "猎人",
     "faction": "God",
     "png": {
-      "64": "png/64/role_hunter.png",
-      "96": "png/96/role_hunter.png",
       "128": "png/128/role_hunter.png"
     }
   },
@@ -57,8 +45,6 @@
     "displayName": "守卫",
     "faction": "God",
     "png": {
-      "64": "png/64/role_guard.png",
-      "96": "png/96/role_guard.png",
       "128": "png/128/role_guard.png"
     }
   },
@@ -66,8 +52,6 @@
     "displayName": "白痴",
     "faction": "God",
     "png": {
-      "64": "png/64/role_idiot.png",
-      "96": "png/96/role_idiot.png",
       "128": "png/128/role_idiot.png"
     }
   },
@@ -75,8 +59,6 @@
     "displayName": "骑士",
     "faction": "God",
     "png": {
-      "64": "png/64/role_knight.png",
-      "96": "png/96/role_knight.png",
       "128": "png/128/role_knight.png"
     }
   },
@@ -84,8 +66,6 @@
     "displayName": "魔术师",
     "faction": "God",
     "png": {
-      "64": "png/64/role_magician.png",
-      "96": "png/96/role_magician.png",
       "128": "png/128/role_magician.png"
     }
   },
@@ -93,8 +73,6 @@
     "displayName": "猎魔人",
     "faction": "God",
     "png": {
-      "64": "png/64/role_witcher.png",
-      "96": "png/96/role_witcher.png",
       "128": "png/128/role_witcher.png"
     }
   },
@@ -102,8 +80,6 @@
     "displayName": "通灵师",
     "faction": "God",
     "png": {
-      "64": "png/64/role_psychic.png",
-      "96": "png/96/role_psychic.png",
       "128": "png/128/role_psychic.png"
     }
   },
@@ -111,8 +87,6 @@
     "displayName": "摄梦人",
     "faction": "God",
     "png": {
-      "64": "png/64/role_dreamcatcher.png",
-      "96": "png/96/role_dreamcatcher.png",
       "128": "png/128/role_dreamcatcher.png"
     }
   },
@@ -120,8 +94,6 @@
     "displayName": "守墓人",
     "faction": "God",
     "png": {
-      "64": "png/64/role_graveyardKeeper.png",
-      "96": "png/96/role_graveyardKeeper.png",
       "128": "png/128/role_graveyardKeeper.png"
     }
   },
@@ -129,8 +101,6 @@
     "displayName": "纯白之女",
     "faction": "God",
     "png": {
-      "64": "png/64/role_pureWhite.png",
-      "96": "png/96/role_pureWhite.png",
       "128": "png/128/role_pureWhite.png"
     }
   },
@@ -138,8 +108,6 @@
     "displayName": "舞者",
     "faction": "God",
     "png": {
-      "64": "png/64/role_dancer.png",
-      "96": "png/96/role_dancer.png",
       "128": "png/128/role_dancer.png"
     }
   },
@@ -147,8 +115,6 @@
     "displayName": "禁言长老",
     "faction": "God",
     "png": {
-      "64": "png/64/role_silenceElder.png",
-      "96": "png/96/role_silenceElder.png",
       "128": "png/128/role_silenceElder.png"
     }
   },
@@ -156,8 +122,6 @@
     "displayName": "禁票长老",
     "faction": "God",
     "png": {
-      "64": "png/64/role_votebanElder.png",
-      "96": "png/96/role_votebanElder.png",
       "128": "png/128/role_votebanElder.png"
     }
   },
@@ -165,8 +129,6 @@
     "displayName": "狼人",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_wolf.png",
-      "96": "png/96/role_wolf.png",
       "128": "png/128/role_wolf.png"
     }
   },
@@ -174,8 +136,6 @@
     "displayName": "狼美人",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_wolfQueen.png",
-      "96": "png/96/role_wolfQueen.png",
       "128": "png/128/role_wolfQueen.png"
     }
   },
@@ -183,8 +143,6 @@
     "displayName": "白狼王",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_wolfKing.png",
-      "96": "png/96/role_wolfKing.png",
       "128": "png/128/role_wolfKing.png"
     }
   },
@@ -192,8 +150,6 @@
     "displayName": "黑狼王",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_darkWolfKing.png",
-      "96": "png/96/role_darkWolfKing.png",
       "128": "png/128/role_darkWolfKing.png"
     }
   },
@@ -201,8 +157,6 @@
     "displayName": "梦魇",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_nightmare.png",
-      "96": "png/96/role_nightmare.png",
       "128": "png/128/role_nightmare.png"
     }
   },
@@ -210,8 +164,6 @@
     "displayName": "石像鬼",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_gargoyle.png",
-      "96": "png/96/role_gargoyle.png",
       "128": "png/128/role_gargoyle.png"
     }
   },
@@ -219,8 +171,6 @@
     "displayName": "觉醒石像鬼",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_awakenedGargoyle.png",
-      "96": "png/96/role_awakenedGargoyle.png",
       "128": "png/128/role_awakenedGargoyle.png"
     }
   },
@@ -228,8 +178,6 @@
     "displayName": "血月使徒",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_bloodMoon.png",
-      "96": "png/96/role_bloodMoon.png",
       "128": "png/128/role_bloodMoon.png"
     }
   },
@@ -237,8 +185,6 @@
     "displayName": "机械狼",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_wolfRobot.png",
-      "96": "png/96/role_wolfRobot.png",
       "128": "png/128/role_wolfRobot.png"
     }
   },
@@ -246,8 +192,6 @@
     "displayName": "狼巫",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_wolfWitch.png",
-      "96": "png/96/role_wolfWitch.png",
       "128": "png/128/role_wolfWitch.png"
     }
   },
@@ -255,8 +199,6 @@
     "displayName": "恶灵骑士",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_spiritKnight.png",
-      "96": "png/96/role_spiritKnight.png",
       "128": "png/128/role_spiritKnight.png"
     }
   },
@@ -264,8 +206,6 @@
     "displayName": "假面",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_masquerade.png",
-      "96": "png/96/role_masquerade.png",
       "128": "png/128/role_masquerade.png"
     }
   },
@@ -273,8 +213,6 @@
     "displayName": "典狱长",
     "faction": "Wolf",
     "png": {
-      "64": "png/64/role_warden.png",
-      "96": "png/96/role_warden.png",
       "128": "png/128/role_warden.png"
     }
   },
@@ -282,8 +220,6 @@
     "displayName": "混子",
     "faction": "Special",
     "png": {
-      "64": "png/64/role_slacker.png",
-      "96": "png/96/role_slacker.png",
       "128": "png/128/role_slacker.png"
     }
   },
@@ -291,8 +227,6 @@
     "displayName": "野孩子",
     "faction": "Special",
     "png": {
-      "64": "png/64/role_wildChild.png",
-      "96": "png/96/role_wildChild.png",
       "128": "png/128/role_wildChild.png"
     }
   },
@@ -300,8 +234,6 @@
     "displayName": "吹笛者",
     "faction": "Special",
     "png": {
-      "64": "png/64/role_piper.png",
-      "96": "png/96/role_piper.png",
       "128": "png/128/role_piper.png"
     }
   }

@@ -88,11 +88,15 @@
   </head>
   <body>
     <h1>🐺 角色徽章 Fluent Emoji 3D</h1>
-    <p class="sub">34 roles × 3 sizes (64 / 96 / 128 px)</p>
+    <p class="sub" id="subtitle"></p>
     <div id="app"></div>
     <script>
       (async () => {
         const manifest = await fetch('../manifest.json').then((r) => r.json());
+        const roleIds = Object.keys(manifest);
+        const sampleSizes = Object.keys(manifest[roleIds[0]].png);
+        document.getElementById('subtitle').textContent =
+          `${roleIds.length} roles × ${sampleSizes.length} size${sampleSizes.length > 1 ? 's' : ''} (${sampleSizes.join(' / ')} px)`;
         const factionOrder = ['God', 'Villager', 'Wolf', 'Special'];
         const factionLabels = { God: '神职', Villager: '村民', Wolf: '狼人', Special: '第三方' };
         const factionColors = {
@@ -128,13 +132,11 @@
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
-        <img src="../${role.png[128]}" alt="${role.displayName}">
+        <img src="../${role.png[128] || Object.values(role.png)[0]}" alt="${role.displayName}">
         <div class="name">${role.displayName}</div>
         <div class="id">${role.id}</div>
         <div class="size-row">
-          <img src="../${role.png[64]}" width="32" height="32" title="64px">
-          <img src="../${role.png[96]}" width="48" height="48" title="96px">
-          <img src="../${role.png[128]}" width="64" height="64" title="128px">
+          ${sampleSizes.map((s) => `<img src="../${role.png[s]}" width="${Math.round(s * 0.5)}" height="${Math.round(s * 0.5)}" title="${s}px">`).join('\n          ')}
         </div>`;
             grid.appendChild(card);
           }
