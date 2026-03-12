@@ -73,6 +73,7 @@ export const SettingsScreen: React.FC = () => {
 
   // Auth form state
   const [showAuthForm, setShowAuthForm] = useState(false);
+  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
@@ -90,6 +91,7 @@ export const SettingsScreen: React.FC = () => {
 
   const handleAuthSuccess = useCallback(() => {
     setShowAuthForm(false);
+    setIsSwitchingAccount(false);
   }, []);
 
   const {
@@ -212,6 +214,7 @@ export const SettingsScreen: React.FC = () => {
 
   const handleCancelAuthForm = useCallback(() => {
     setShowAuthForm(false);
+    setIsSwitchingAccount(false);
     resetForm();
   }, [resetForm]);
 
@@ -234,7 +237,7 @@ export const SettingsScreen: React.FC = () => {
     setShowAuthForm(true);
   }, [setIsSignUp]);
 
-  /** 切换账号：先离座（如在房间内），再登出，弹登录表单 */
+  /** 切换账号：先离座（如在房间内），弹登录表单，登录成功后旧 session 由 Supabase 原子替换 */
   const handleSwitchAccount = useCallback(() => {
     const doSwitch = async () => {
       try {
@@ -247,14 +250,15 @@ export const SettingsScreen: React.FC = () => {
           }
         }
 
+        setIsSwitchingAccount(true);
         setShowAuthForm(true);
         setIsSignUp(false);
-        await signOut();
       } catch (e: unknown) {
         const message = getErrorMessage(e);
         settingsLog.error('Account switch failed:', message, e);
         Sentry.captureException(e);
         setShowAuthForm(false);
+        setIsSwitchingAccount(false);
         showAlert('切换失败', message);
       }
     };
@@ -267,7 +271,25 @@ export const SettingsScreen: React.FC = () => {
     } else {
       doSwitch();
     }
-  }, [user?.isAnonymous, facade, signOut, setIsSignUp, isInRoom, isSeated]);
+  }, [user?.isAnonymous, facade, setIsSignUp, isInRoom, isSeated]);
+
+  /**
+   * 切换账号模式下的表单提交：先 signOut 再走正常 auth 流程。
+   * signInWithPassword 可原子替换 session，但 signUp 在匿名用户下会触发 identity linking，
+   * 所以统一先 signOut 确保语义正确。
+   */
+  const handleSwitchAuthSubmit = useCallback(async () => {
+    try {
+      await signOut();
+    } catch (e: unknown) {
+      const message = getErrorMessage(e);
+      settingsLog.error('Sign-out before switch failed:', message, e);
+      Sentry.captureException(e);
+      showAlert('切换失败', message);
+      return;
+    }
+    await handleEmailAuth();
+  }, [signOut, handleEmailAuth]);
 
   const handleThemeChange = useCallback(
     (key: string) => {
@@ -281,7 +303,7 @@ export const SettingsScreen: React.FC = () => {
   // ============================================
 
   // Whether form should show a custom title
-  const isUpgradeFlow = isAuthenticated && user?.isAnonymous && showAuthForm;
+  const isUpgradeFlow = isAuthenticated && user?.isAnonymous && showAuthForm && !isSwitchingAccount;
 
   const renderAuthSection = () => {
     // EmailForm takes priority — both anonymous-upgrade and unauthenticated flows
@@ -298,7 +320,7 @@ export const SettingsScreen: React.FC = () => {
           onEmailChange={setEmail}
           onPasswordChange={setPassword}
           onDisplayNameChange={setDisplayName}
-          onSubmit={handleEmailAuth}
+          onSubmit={isSwitchingAccount ? handleSwitchAuthSubmit : handleEmailAuth}
           onToggleMode={isUpgradeFlow ? undefined : toggleSignUp}
           onBack={handleCancelAuthForm}
           styles={styles}
