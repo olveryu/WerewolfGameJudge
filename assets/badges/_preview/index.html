@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>角色徽章预览 — Fluent Emoji 3D</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #1a1a2e;
+        color: #eee;
+        font-family: system-ui, sans-serif;
+        padding: 32px;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 8px;
+        font-size: 1.6rem;
+      }
+      .sub {
+        text-align: center;
+        color: #888;
+        margin-bottom: 32px;
+        font-size: 0.9rem;
+      }
+      .faction-group {
+        margin-bottom: 40px;
+      }
+      .faction-title {
+        font-size: 1.1rem;
+        margin-bottom: 12px;
+        padding-left: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .faction-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+      }
+      .card {
+        background: #16213e;
+        border-radius: 12px;
+        padding: 16px 8px 12px;
+        text-align: center;
+        transition: transform 0.15s;
+        cursor: default;
+      }
+      .card:hover {
+        transform: scale(1.05);
+      }
+      .card img {
+        width: 96px;
+        height: 96px;
+        image-rendering: auto;
+      }
+      .card .name {
+        margin-top: 8px;
+        font-size: 0.82rem;
+        color: #ccc;
+      }
+      .card .id {
+        font-size: 0.7rem;
+        color: #666;
+        margin-top: 2px;
+      }
+      .size-row {
+        display: flex;
+        gap: 16px;
+        align-items: flex-end;
+        justify-content: center;
+        margin-top: 6px;
+      }
+      .size-row img {
+        border-radius: 50%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🐺 角色徽章 Fluent Emoji 3D</h1>
+    <p class="sub">34 roles × 3 sizes (64 / 96 / 128 px)</p>
+    <div id="app"></div>
+    <script>
+      (async () => {
+        const manifest = await fetch('../manifest.json').then((r) => r.json());
+        const factionOrder = ['God', 'Villager', 'Wolf', 'Special'];
+        const factionLabels = { God: '神职', Villager: '村民', Wolf: '狼人', Special: '第三方' };
+        const factionColors = {
+          God: '#3B82F6',
+          Villager: '#22C55E',
+          Wolf: '#EF4444',
+          Special: '#A855F7',
+        };
+
+        const grouped = {};
+        for (const [id, info] of Object.entries(manifest)) {
+          const f = info.faction;
+          if (!grouped[f]) grouped[f] = [];
+          grouped[f].push({ id, ...info });
+        }
+
+        const app = document.getElementById('app');
+        for (const faction of factionOrder) {
+          const roles = grouped[faction];
+          if (!roles) continue;
+
+          const section = document.createElement('div');
+          section.className = 'faction-group';
+          section.innerHTML = `<div class="faction-title">
+      <span class="faction-dot" style="background:${factionColors[faction]}"></span>
+      ${factionLabels[faction]}（${roles.length}）
+    </div>`;
+
+          const grid = document.createElement('div');
+          grid.className = 'grid';
+
+          for (const role of roles) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+        <img src="../${role.png[128]}" alt="${role.displayName}">
+        <div class="name">${role.displayName}</div>
+        <div class="id">${role.id}</div>
+        <div class="size-row">
+          <img src="../${role.png[64]}" width="32" height="32" title="64px">
+          <img src="../${role.png[96]}" width="48" height="48" title="96px">
+          <img src="../${role.png[128]}" width="64" height="64" title="128px">
+        </div>`;
+            grid.appendChild(card);
+          }
+
+          section.appendChild(grid);
+          app.appendChild(section);
+        }
+      })();
+    </script>
+  </body>
+</html>

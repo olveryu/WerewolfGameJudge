@@ -27,12 +27,15 @@
     "dev:functions": "node scripts/dev-api.mjs",
     "deploy": "bash scripts/deploy.sh",
     "release": "bash scripts/release.sh",
+    "badges:generate": "node scripts/generate-badges.mjs",
+    "badges:validate": "node scripts/generate-badges.mjs --validate-only",
     "prepare": "husky"
   },
   "packageManager": "pnpm@10.29.3",
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@sentry/cli"
+      "@sentry/cli",
+      "sharp"
     ]
   },
   "engines": {
@@ -102,6 +105,7 @@
     "jest-expo": "^54.0.17",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.0",
+    "sharp": "^0.34.5",
     "ts-jest": "^29.4.6",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.55.0"

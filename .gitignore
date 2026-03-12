@@ -62,3 +62,7 @@ storybook-static
 .vercel
 test-output.txt
 package-lock.json
+
+# Badge generator cache & reports
+assets/badges/.cache/
+assets/badges/report.json

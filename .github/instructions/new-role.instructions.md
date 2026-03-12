@@ -415,6 +415,23 @@ newRoleSecondStep: {
 - 技能狼 → `狼人阵营` → `技能狼` section
 - 第三方 → `第三方阵营` → `第三方` section
 
+### 步骤 8b — 角色徽章
+
+1. **`scripts/badge-config.mjs`** — 在 `EMOJI_MAP` 中添加条目：
+
+   ```js
+   newRole: ['Fluent Emoji 文件夹名', '文件名（不含扩展名）', false],
+   ```
+
+   - 去 [fluentui-emoji/assets](https://github.com/microsoft/fluentui-emoji/tree/main/assets) 找合适的 3D emoji。
+   - `hasSkinTone` 为 `true` 时脚本会追加 `/Default` 路径段。
+
+2. **运行生成脚本**：`pnpm run badges:generate`，确认 `assets/badges/png/{64,96,128}/role_newRole.png` 已生成。
+3. **`src/utils/roleBadges.ts`** — 在 `BADGE_MAP` 中添加 `require()` 行：
+   ```ts
+   newRole: require('../../assets/badges/png/128/role_newRole.png'),
+   ```
+
 ### 步骤 9 — Resolver 单测
 
 **新建文件**: `packages/game-engine/src/resolvers/__tests__/<newRole>.resolver.test.ts`

@@ -11,10 +11,10 @@
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleEmoji, isValidRoleId } from '@werewolf/game-engine/models/roles';
+import { isValidRoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -35,6 +35,7 @@ import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { CELEBRATION_EMOJIS } from '@/config/emojiTokens';
 import { useColors } from '@/theme';
+import { getRoleBadge } from '@/utils/roleBadges';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const HUNT_COLORS = {
@@ -90,7 +91,7 @@ const AnimatedGhost: React.FC<AnimatedGhostProps> = React.memo(
     const captureScale = useSharedValue(1);
     const bobProgress = useSharedValue(0);
 
-    const emoji = isValidRoleId(ghost.role.id) ? getRoleEmoji(ghost.role.id) : '👻';
+    const badgeSource = isValidRoleId(ghost.role.id) ? getRoleBadge(ghost.role.id) : undefined;
 
     // Start floating animation — each ghost has unique driftDuration for natural desync
     useEffect(() => {
@@ -166,7 +167,11 @@ const AnimatedGhost: React.FC<AnimatedGhostProps> = React.memo(
         <Animated.View style={animStyle}>
           <Pressable onPress={handlePress} style={styles.ghostTouchable}>
             <View style={styles.ghostBody}>
-              <Text style={styles.ghostEmoji}>{emoji}</Text>
+              {badgeSource ? (
+                <Image source={badgeSource} style={styles.ghostBadge} />
+              ) : (
+                <Text style={styles.ghostFallbackEmoji}>{'👻'}</Text>
+              )}
               <Text style={styles.ghostName}>{ghost.role.name}</Text>
             </View>
           </Pressable>
@@ -603,7 +608,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
-  ghostEmoji: {
+  ghostBadge: {
+    width: 40,
+    height: 40,
+  },
+  ghostFallbackEmoji: {
     fontSize: 36,
   },
   ghostName: {

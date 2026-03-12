@@ -7,16 +7,11 @@
  * 渲染角色卡片内容 UI，通过 children 插槽扩展底部按钮。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import {
-  getRoleDisplayAs,
-  getRoleEmoji,
-  getRoleSpec,
-  isWolfRole,
-} from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayAs, getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -29,6 +24,7 @@ import Animated, {
 import { getFactionName } from '@/components/roleDisplayUtils';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import { getRoleBadge } from '@/utils/roleBadges';
 
 const AE = CONFIG.alignmentEffects;
 
@@ -123,7 +119,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   const baseRoleName = displaySpec?.displayName || roleId;
   const roleName = seerLabel != null ? `${seerLabel}号${baseRoleName}` : baseRoleName;
   const description = displaySpec?.description || '无技能描述';
-  const icon = getRoleEmoji(displayRoleId);
+  const badgeSource = getRoleBadge(displayRoleId);
   // English subtitle for reveal mode: convert camelCase roleId to UPPERCASE
   const roleSub = displayRoleId.toUpperCase();
   const factionColor = getFactionColor(displayRoleId, colors);
@@ -306,11 +302,12 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
       )}
 
       {revealMode ? (
-        <Animated.Text style={[styles.roleIcon, styles.roleIconReveal, emojiAnimStyle]}>
-          {icon}
-        </Animated.Text>
+        <Animated.Image
+          source={badgeSource}
+          style={[styles.roleIconImage, styles.roleIconRevealImage, emojiAnimStyle]}
+        />
       ) : (
-        <Text style={styles.roleIcon}>{icon}</Text>
+        <Image source={badgeSource} style={styles.roleIconImage} />
       )}
 
       {revealMode ? (
@@ -386,19 +383,18 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       fontSize: typography.secondary,
       fontWeight: '600',
     },
-    roleIcon: {
-      fontSize: 64,
+    roleIconImage: {
+      width: 80,
+      height: 80,
       marginTop: spacing.xlarge + spacing.medium,
       marginBottom: spacing.medium,
     },
-    /** Reveal mode: emoji centered, drop-shadow (matches HTML .role-emoji 48px on 140px card → 0.343) */
-    roleIconReveal: {
-      fontSize: Math.round(width * 0.343),
+    /** Reveal mode: badge centered, sized proportionally to card width (matches HTML .role-emoji 48px on 140px card → 0.343) */
+    roleIconRevealImage: {
+      width: Math.round(width * 0.38),
+      height: Math.round(width * 0.38),
       marginTop: 0,
       marginBottom: Math.round(width * 0.057),
-      textShadowColor: 'rgba(0,0,0,0.5)',
-      textShadowOffset: { width: 0, height: Math.round(height * 0.02) },
-      textShadowRadius: Math.round(height * 0.04),
     },
     roleName: {
       fontSize: typography.heading,
