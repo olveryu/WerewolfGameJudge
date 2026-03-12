@@ -99,7 +99,7 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
       if (!retryDialogShownRef.current) {
         retryDialogShownRef.current = true;
 
-        showAlert(
+        const shown = showAlert(
           title,
           message,
           retryFn
@@ -130,6 +130,10 @@ export const NetworkProvider: React.FC<Props> = ({ children }) => {
                 },
               ],
         );
+
+        if (!shown) {
+          retryDialogShownRef.current = false;
+        }
       }
     },
     [retryLastOperation, clearError],

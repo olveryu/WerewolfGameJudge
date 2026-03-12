@@ -96,6 +96,11 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
     if (error) {
       return { valid: false, rejectReason: error };
     }
+
+    // Poison target must exist
+    if (!context.players.has(poisonTarget)) {
+      return { valid: false, rejectReason: '目标玩家不存在' };
+    }
   }
 
   return {

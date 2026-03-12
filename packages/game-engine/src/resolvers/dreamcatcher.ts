@@ -29,6 +29,11 @@ export const dreamcatcherDreamResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: constraintResult.rejectReason };
   }
 
+  // Target must exist (aligned with factory resolvers in shared.ts)
+  if (!context.players.has(target)) {
+    return { valid: false, rejectReason: '目标玩家不存在' };
+  }
+
   // Night-1-only scope: no cross-night restriction.
 
   return {

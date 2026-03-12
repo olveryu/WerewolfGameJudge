@@ -9,7 +9,6 @@
 
 import { jsonResponse } from '../../_shared/cors.ts';
 import {
-  type AudioEffect,
   type GameState,
   handleAssignRoles,
   handleClearAllSeats,
@@ -26,7 +25,6 @@ import {
   handleViewedRole,
   type JoinSeatIntent,
   type LeaveMySeatIntent,
-  type StateAction,
   type UpdatePlayerProfileIntent,
 } from '../../_shared/game-engine/index.js';
 import { processGameAction } from '../../_shared/gameStateManager.ts';
@@ -41,7 +39,13 @@ import type {
   UpdateTemplateRequestBody,
   ViewRoleRequestBody,
 } from '../../_shared/types.ts';
-import { createSimpleHandler, type HandlerFn, missingParams } from './shared.ts';
+import {
+  createSimpleHandler,
+  extractAudioActions,
+  type HandlerFn,
+  isValidSeat,
+  missingParams,
+} from './shared.ts';
 
 // ---------------------------------------------------------------------------
 // Simple intent-only handlers (need only roomCode)
@@ -79,7 +83,7 @@ export const handleSeat: HandlerFn = async (req) => {
     return jsonResponse({ success: false, reason: 'INVALID_ACTION' }, 400);
   }
 
-  if (action === 'sit' && (seat == null || typeof seat !== 'number')) {
+  if (action === 'sit' && (seat == null || !isValidSeat(seat))) {
     return jsonResponse({ success: false, reason: 'MISSING_SEAT' }, 400);
   }
 
@@ -133,18 +137,8 @@ export const handleStart: HandlerFn = async (req) => {
     const handlerResult = handleStartNight({ type: 'START_NIGHT' }, handlerCtx);
     if (!handlerResult.success) return handlerResult;
 
-    const audioEffects: AudioEffect[] = (handlerResult.sideEffects ?? [])
-      .filter(
-        (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
-          e.type === 'PLAY_AUDIO',
-      )
-      .map((e) => ({ audioKey: e.audioKey, isEndAudio: e.isEndAudio }));
-
-    if (audioEffects.length > 0) {
-      const extraActions: StateAction[] = [
-        { type: 'SET_PENDING_AUDIO_EFFECTS', payload: { effects: audioEffects } },
-        { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: true } },
-      ];
+    const extraActions = extractAudioActions(handlerResult.sideEffects);
+    if (extraActions.length > 0) {
       return {
         ...handlerResult,
         actions: [...handlerResult.actions, ...extraActions],
@@ -178,7 +172,7 @@ export const handleViewRole: HandlerFn = async (req) => {
   const body = (await req.json()) as ViewRoleRequestBody;
   const { roomCode, uid, seat } = body;
 
-  if (!roomCode || !uid || typeof seat !== 'number') {
+  if (!roomCode || !uid || !isValidSeat(seat)) {
     return missingParams();
   }
 
