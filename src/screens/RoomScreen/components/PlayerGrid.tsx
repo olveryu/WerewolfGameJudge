@@ -10,6 +10,7 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { type ThemeColors, useColors } from '@/theme';
+import { spacing } from '@/theme/tokens';
 import { getUniqueAvatarMap } from '@/utils/avatar';
 
 import { createSeatTileStyles, getGridColumns, SeatTile } from './SeatTile';
@@ -47,7 +48,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const gridColumns = getGridColumns(screenWidth);
-  const tileSize = (screenWidth - 48) / gridColumns;
+  const tileSize = (screenWidth - spacing.medium * 2) / gridColumns;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Create SeatTile styles once and pass to all tiles (performance optimization)
