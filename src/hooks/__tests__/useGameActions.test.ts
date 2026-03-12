@@ -37,6 +37,7 @@ function createMockFacade(overrides: Record<string, unknown> = {}) {
     submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
     postProgression: jest.fn().mockResolvedValue(undefined),
+    fetchStateFromDB: jest.fn().mockResolvedValue(true),
     ...overrides,
   } as any;
 }
@@ -176,13 +177,14 @@ describe('useGameActions - game control', () => {
     expect(deps.facade.setAudioPlaying).not.toHaveBeenCalled();
   });
 
-  it('postProgression should call facade for host', async () => {
+  it('postProgression should call facade for host and fetch DB state', async () => {
     const deps = createDeps();
     const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.postProgression());
 
     expect(deps.facade.postProgression).toHaveBeenCalled();
+    expect(deps.facade.fetchStateFromDB).toHaveBeenCalled();
   });
 
   it('postProgression should skip for non-host', async () => {
