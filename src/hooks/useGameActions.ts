@@ -21,7 +21,6 @@ import { NETWORK_ERROR, SERVER_ERROR } from '@/config/errorMessages';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { showAlert } from '@/utils/alert';
-import { facadeLog } from '@/utils/logger';
 
 import type { BgmControlState } from './useBgmControl';
 import type { DebugModeState } from './useDebugMode';
@@ -242,12 +241,6 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const postProgression = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
     await facade.postProgression();
-    // Defensive: fetch DB state to cover missed postgres_changes broadcasts
-    // after reconnection. Without this, the client may stay stuck on the
-    // wolf vote screen even though the server has already progressed.
-    facade.fetchStateFromDB().catch((e) => {
-      facadeLog.warn('[postProgression] defensive fetchStateFromDB failed', e);
-    });
   }, [facade]);
 
   // =========================================================================
