@@ -29,7 +29,10 @@ interface ActionMessageStyles {
 export interface BoardInfoCardStyles {
   boardInfoContainer: ViewStyle;
   headerRow: ViewStyle;
+  headerRowRight: ViewStyle;
   boardInfoTitle: TextStyle;
+  notepadBtn: ViewStyle;
+  notepadBtnText: TextStyle;
   boardInfoContent: ViewStyle;
   roleCategory: ViewStyle;
   roleCategoryLabel: TextStyle;

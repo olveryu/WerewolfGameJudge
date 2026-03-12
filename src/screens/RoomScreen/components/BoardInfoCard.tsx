@@ -33,6 +33,8 @@ interface BoardInfoCardProps {
   collapsed?: boolean;
   /** Callback when a role chip is pressed (reports roleId to parent) */
   onRolePress?: (roleId: string) => void;
+  /** Callback when the notepad button is pressed */
+  onNotepadPress?: () => void;
   /** Speaking order text (shown for ~20s after night ends, outside collapsible) */
   speakingOrderText?: string;
   /** Pre-created styles from parent */
@@ -75,6 +77,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   villagerRoleItems,
   collapsed = false,
   onRolePress,
+  onNotepadPress,
   speakingOrderText,
   styles,
 }) => {
@@ -102,11 +105,27 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
         activeOpacity={fixed.activeOpacity}
       >
         <Text style={styles.boardInfoTitle}>角色配置（{playerCount}人局）</Text>
-        <Ionicons
-          name={isCollapsed ? 'chevron-down' : 'chevron-up'}
-          size={componentSizes.icon.sm}
-          color={colors.textSecondary}
-        />
+        <View style={styles.headerRowRight}>
+          {onNotepadPress != null && (
+            <TouchableOpacity
+              onPress={onNotepadPress}
+              style={styles.notepadBtn}
+              activeOpacity={fixed.activeOpacity}
+            >
+              <Ionicons
+                name="document-text-outline"
+                size={componentSizes.icon.sm}
+                color={colors.primary}
+              />
+              <Text style={styles.notepadBtnText}>笔记</Text>
+            </TouchableOpacity>
+          )}
+          <Ionicons
+            name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+            size={componentSizes.icon.sm}
+            color={colors.textSecondary}
+          />
+        </View>
       </TouchableOpacity>
 
       {!isCollapsed && (

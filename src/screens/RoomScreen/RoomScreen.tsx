@@ -16,6 +16,8 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { createStyles as createChatStyles } from '@/components/AIChatBubble/AIChatBubble.styles';
+import { NotepadModal } from '@/components/AIChatBubble/NotepadModal';
 import { AlertModal } from '@/components/AlertModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
@@ -91,6 +93,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createRoomScreenStyles(colors), [colors]);
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
+
+  // ─── Notepad ──────────────────────────────────────────────────────────
+  const chatStyles = useMemo(() => createChatStyles(colors), [colors]);
+  const [notepadOpen, setNotepadOpen] = useState(false);
+
+  const handleNotepadPress = useCallback(() => {
+    setNotepadOpen(true);
+  }, []);
 
   // ─── QR Code Modal state ──────────────────────────────────────────────
   const [qrModalVisible, setQrModalVisible] = useState(false);
@@ -226,6 +236,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     handleCloseSettings,
     handleAnimationChange,
     handleBgmChange,
+    // Notepad
+    notepad,
   } = useRoomScreenState(route.params, navigation);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
@@ -402,6 +414,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           villagerRoleItems={villagerRoleItems}
           collapsed={roomStatus === GameStatus.Ongoing || roomStatus === GameStatus.Ended}
           onRolePress={handleSkillPreviewOpen}
+          onNotepadPress={handleNotepadPress}
           speakingOrderText={speakingOrderText}
           styles={componentStyles.boardInfoCard}
         />
@@ -617,6 +630,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onShareImage={handleShareQRImage}
         onCopyLink={handleCopyLink}
         onClose={() => setQrModalVisible(false)}
+      />
+
+      {/* Notepad Modal — 笔记弹窗 */}
+      <NotepadModal
+        visible={notepadOpen}
+        onClose={() => setNotepadOpen(false)}
+        notepad={notepad}
+        styles={chatStyles}
       />
 
       {/* Settings Sheet — Host 可调动画和 BGM 设置 */}
