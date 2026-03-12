@@ -51,26 +51,29 @@ export function makeBaseUseGameRoomReturn({
     ]),
   );
 
-  return {
-    gameState: {
-      status: GameStatus.Ongoing,
-      template: {
-        numberOfPlayers,
-        roles: Array.from({ length: numberOfPlayers }).map(() => 'villager'),
-        actionOrder: [currentActionRole],
-      },
-      players,
-      actions: new Map(),
-      wolfVotes: new Map(),
-      currentStepIndex: 0,
-      isAudioPlaying: false,
-      lastNightDeaths: [],
-      nightmareBlockedSeat: null,
-      templateRoles: [],
-      hostUid: 'host',
-      roomCode: '1234',
-      ...(gameStateOverrides ?? {}),
+  const gameState = {
+    status: GameStatus.Ongoing,
+    template: {
+      numberOfPlayers,
+      roles: Array.from({ length: numberOfPlayers }).map(() => 'villager'),
+      actionOrder: [currentActionRole],
     },
+    players,
+    actions: new Map(),
+    wolfVotes: new Map(),
+    currentStepIndex: 0,
+    isAudioPlaying: false,
+    lastNightDeaths: [],
+    nightmareBlockedSeat: null,
+    templateRoles: [],
+    hostUid: 'host',
+    roomCode: '1234',
+    ...(gameStateOverrides ?? {}),
+  };
+
+  return {
+    facade: { getState: () => gameState },
+    gameState,
 
     connectionStatus: ConnectionStatus.Live,
 

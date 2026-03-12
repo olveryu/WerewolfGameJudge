@@ -3,7 +3,7 @@
  */
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, shadows, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 import { fixed } from '@/theme/tokens';
 
 import type { BoardInfoCardStyles, NightProgressIndicatorStyles } from './styles';
@@ -26,11 +26,32 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         justifyContent: 'space-between',
         alignItems: 'center',
       },
+      headerRowRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.tight,
+      },
       boardInfoTitle: {
+        flex: 1,
         fontSize: typography.subtitle,
         lineHeight: typography.lineHeights.subtitle,
         fontWeight: typography.weights.bold,
         color: colors.text,
+      },
+      notepadBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.micro,
+        backgroundColor: withAlpha(colors.primary, 0.1),
+        borderRadius: borderRadius.small,
+        paddingHorizontal: spacing.small,
+        paddingVertical: spacing.micro,
+      },
+      notepadBtnText: {
+        fontSize: typography.caption,
+        lineHeight: typography.lineHeights.caption,
+        fontWeight: typography.weights.semibold,
+        color: colors.primary,
       },
       boardInfoContent: {
         marginTop: spacing.small,

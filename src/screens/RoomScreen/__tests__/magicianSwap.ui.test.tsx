@@ -32,8 +32,8 @@ const mockSubmitAction = jest.fn();
 jest.mock('../../../hooks/useGameRoom', () => {
   const { GameStatus } = require('@werewolf/game-engine');
   return {
-    useGameRoom: () => ({
-      gameState: {
+    useGameRoom: () => {
+      const gameState = {
         status: GameStatus.Ongoing,
         template: {
           numberOfPlayers: 12,
@@ -62,57 +62,61 @@ jest.mock('../../../hooks/useGameRoom', () => {
         templateRoles: [],
         hostUid: 'host',
         roomCode: '1234',
-      },
+      };
+      return {
+        facade: { getState: () => gameState },
+        gameState,
 
-      connectionStatus: require('@/services/types/IGameFacade').ConnectionStatus.Live,
+        connectionStatus: require('@/services/types/IGameFacade').ConnectionStatus.Live,
 
-      isHost: false,
-      roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,
+        isHost: false,
+        roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,
 
-      currentActionRole: 'magician',
-      currentSchema: (() => {
-        const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
-        return getSchema('magicianSwap');
-      })(),
+        currentActionRole: 'magician',
+        currentSchema: (() => {
+          const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
+          return getSchema('magicianSwap');
+        })(),
 
-      isAudioPlaying: false,
+        isAudioPlaying: false,
 
-      mySeatNumber: 0,
-      myRole: 'magician',
-      myUid: 'p0',
+        mySeatNumber: 0,
+        myRole: 'magician',
+        myUid: 'p0',
 
-      // Debug mode fields
-      isDebugMode: false,
-      controlledSeat: null,
-      effectiveSeat: 0,
-      effectiveRole: 'magician',
-      fillWithBots: jest.fn(),
-      markAllBotsViewed: jest.fn(),
-      setControlledSeat: jest.fn(),
+        // Debug mode fields
+        isDebugMode: false,
+        controlledSeat: null,
+        effectiveSeat: 0,
+        effectiveRole: 'magician',
+        fillWithBots: jest.fn(),
+        markAllBotsViewed: jest.fn(),
+        setControlledSeat: jest.fn(),
 
-      joinRoom: jest.fn().mockResolvedValue(true),
-      takeSeat: jest.fn(),
-      leaveSeat: jest.fn(),
-      assignRoles: jest.fn(),
-      startGame: jest.fn(),
-      restartGame: jest.fn(),
+        joinRoom: jest.fn().mockResolvedValue(true),
+        takeSeat: jest.fn(),
+        leaveSeat: jest.fn(),
+        assignRoles: jest.fn(),
+        startGame: jest.fn(),
+        restartGame: jest.fn(),
 
-      submitAction: mockSubmitAction,
+        submitAction: mockSubmitAction,
 
-      hasWolfVoted: () => false,
-      requestSnapshot: jest.fn(),
-      viewedRole: jest.fn(),
+        hasWolfVoted: () => false,
+        requestSnapshot: jest.fn(),
+        viewedRole: jest.fn(),
 
-      lastSeatError: null,
-      clearLastSeatError: jest.fn(),
+        lastSeatError: null,
+        clearLastSeatError: jest.fn(),
 
-      getLastNightInfo: jest.fn().mockReturnValue(''),
+        getLastNightInfo: jest.fn().mockReturnValue(''),
 
-      submitRevealAck: jest.fn(),
+        submitRevealAck: jest.fn(),
 
-      isBgmEnabled: true,
-      toggleBgm: jest.fn(),
-    }),
+        isBgmEnabled: true,
+        toggleBgm: jest.fn(),
+      };
+    },
   };
 });
 

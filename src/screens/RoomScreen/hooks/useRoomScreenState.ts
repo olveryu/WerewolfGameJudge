@@ -14,6 +14,7 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useNotepad } from '@/components/AIChatBubble/useNotepad';
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { RootStackParamList } from '@/navigation/types';
@@ -88,6 +89,7 @@ export function useRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   const {
+    facade,
     gameState,
     isHost,
     mySeatNumber,
@@ -522,6 +524,12 @@ export function useRoomScreenState(
   const speakingOrderText = useSpeakingOrder({ roomStatus, isAudioPlaying, gameState });
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Notepad (pure client-side per-seat notes via AsyncStorage)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const notepad = useNotepad(facade);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Return bag
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -618,5 +626,8 @@ export function useRoomScreenState(
 
     // ── Settings sheet (from useRoomSettings) ──
     ...roomSettings,
+
+    // ── Notepad (from useNotepad) ──
+    notepad,
   };
 }

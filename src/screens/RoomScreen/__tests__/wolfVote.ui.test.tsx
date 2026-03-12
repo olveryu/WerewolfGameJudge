@@ -41,41 +41,43 @@ jest.mock('../../../hooks/useGameRoom', () => ({
 }));
 
 function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseGameRoomReturn {
-  return {
-    // Room data
-    gameState: {
-      status: GameStatus.Ongoing,
-      template: {
-        numberOfPlayers: 12,
-        roles: Array.from({ length: 12 }).map(() => 'villager'),
-        // NOTE: RoomScreen's currentActionRole is provided by the hook,
-        // but other helpers expect an actionOrder to exist on template.
-        actionOrder: ['wolf'],
-      },
-      players: new Map(
-        Array.from({ length: 12 }).map((_, i) => [
-          i,
-          {
-            uid: `p${i}`,
-            seatNumber: i,
-            displayName: `P${i + 1}`,
-            avatarUrl: undefined,
-            // Use a concrete wolf-faction RoleId so isWolfRole() is true.
-            role: i === 0 ? 'wolfQueen' : 'villager',
-            hasViewedRole: true,
-          },
-        ]),
-      ),
-      actions: new Map(),
-      wolfVotes: new Map(),
-      currentStepIndex: 0,
-      isAudioPlaying: false,
-      lastNightDeaths: [],
-      nightmareBlockedSeat: null,
-      templateRoles: [],
-      hostUid: 'host',
-      roomCode: '1234',
+  const gameState = {
+    status: GameStatus.Ongoing,
+    template: {
+      numberOfPlayers: 12,
+      roles: Array.from({ length: 12 }).map(() => 'villager'),
+      // NOTE: RoomScreen's currentActionRole is provided by the hook,
+      // but other helpers expect an actionOrder to exist on template.
+      actionOrder: ['wolf'],
     },
+    players: new Map(
+      Array.from({ length: 12 }).map((_, i) => [
+        i,
+        {
+          uid: `p${i}`,
+          seatNumber: i,
+          displayName: `P${i + 1}`,
+          avatarUrl: undefined,
+          // Use a concrete wolf-faction RoleId so isWolfRole() is true.
+          role: i === 0 ? 'wolfQueen' : 'villager',
+          hasViewedRole: true,
+        },
+      ]),
+    ),
+    actions: new Map(),
+    wolfVotes: new Map(),
+    currentStepIndex: 0,
+    isAudioPlaying: false,
+    lastNightDeaths: [],
+    nightmareBlockedSeat: null,
+    templateRoles: [],
+    hostUid: 'host',
+    roomCode: '1234',
+  };
+
+  return {
+    facade: { getState: () => gameState },
+    gameState,
 
     // Connection
     connectionStatus: require('@/services/types/IGameFacade').ConnectionStatus.Live,

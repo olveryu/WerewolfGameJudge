@@ -29,7 +29,7 @@ import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RoomRecord } from '@/services/infra/RoomService';
-import type { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { ConnectionStatus, IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { setAlertBlocked, showAlert } from '@/utils/alert';
 import { gameRoomLog } from '@/utils/logger';
@@ -47,6 +47,9 @@ import { useRoomLifecycle } from './useRoomLifecycle';
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface UseGameRoomResult {
+  // Core facade (for sub-hooks that need direct facade access)
+  facade: IGameFacade;
+
   // Room info
   roomRecord: RoomRecord | null;
 
@@ -296,6 +299,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Return flat bag
   // =========================================================================
   return {
+    facade,
     roomRecord,
     gameState,
     isHost,

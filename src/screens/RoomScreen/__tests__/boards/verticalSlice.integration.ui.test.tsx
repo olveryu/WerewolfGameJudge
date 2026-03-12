@@ -157,6 +157,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
     const currentSchema = getSchema('witchAction');
     mockUseGameRoomReturn = {
       gameState: toMockGameState(realState),
+      facade: { getState: () => mockUseGameRoomReturn.gameState },
       connectionStatus: ConnectionStatus.Live,
       isHost: false,
       roomStatus: GameStatus.Ongoing,
@@ -275,6 +276,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
     const currentSchema = getSchema('seerCheck');
     mockUseGameRoomReturn = {
       gameState: toMockGameState(realState),
+      facade: { getState: () => mockUseGameRoomReturn.gameState },
       connectionStatus: ConnectionStatus.Live,
       isHost: false,
       roomStatus: GameStatus.Ongoing,

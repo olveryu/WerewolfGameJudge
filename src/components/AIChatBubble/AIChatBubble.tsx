@@ -35,10 +35,8 @@ import { fixed } from '@/theme/tokens';
 
 import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
 import { MessageBubble } from './MessageBubble';
-import { NotepadModal } from './NotepadModal';
 import { TypingIndicator } from './TypingIndicator';
 import { useAIChat } from './useAIChat';
-import { useNotepad } from './useNotepad';
 
 /** Distance from bottom to show scroll-to-bottom FAB */
 const SCROLL_THRESHOLD = 100;
@@ -56,8 +54,6 @@ export const AIChatBubble: React.FC = () => {
 
   const chat = useAIChat();
   const facade = useGameFacade();
-  const isInRoom = facade.getState() !== null;
-  const notepad = useNotepad(facade);
 
   // ── Pulse animation after roles are assigned ────────
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -126,9 +122,6 @@ export const AIChatBubble: React.FC = () => {
     },
     [handleQuickQuestion],
   );
-
-  // ── Notepad open state ─────────────────────────────
-  const [notepadOpen, setNotepadOpen] = useState(false);
 
   // ── Message renderer ───────────────────────────────
   const lastMessageId = useMemo(() => chat.messages.at(-1)?.id, [chat.messages]);
@@ -219,15 +212,6 @@ export const AIChatBubble: React.FC = () => {
             <View style={styles.chatHeader}>
               <Text style={styles.chatTitle}>狼人杀助手</Text>
               <View style={styles.headerButtons}>
-                {isInRoom && (
-                  <TouchableOpacity
-                    onPress={() => setNotepadOpen(true)}
-                    style={styles.notepadEntryBtn}
-                    activeOpacity={fixed.activeOpacity}
-                  >
-                    <Text style={styles.notepadEntryBtnText}>{UI.NOTE} 笔记</Text>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity onPress={chat.handleClearHistory} style={styles.headerBtn}>
                   <Text style={styles.headerBtnText}>{UI.DELETE}</Text>
                 </TouchableOpacity>
@@ -339,16 +323,6 @@ export const AIChatBubble: React.FC = () => {
           </View>
         </View>
       </Modal>
-
-      {/* Full-screen notepad (only when in room) */}
-      {isInRoom && (
-        <NotepadModal
-          visible={notepadOpen}
-          onClose={() => setNotepadOpen(false)}
-          notepad={notepad}
-          styles={styles}
-        />
-      )}
     </>
   );
 };

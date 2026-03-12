@@ -162,36 +162,41 @@ export function createGameRoomMock(options: GameStateMockOptions) {
   const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const currentSchema = getSchema(schemaId);
 
-  return {
-    gameState: {
-      status: GameStatus.Ongoing,
-      template: {
-        numberOfPlayers,
-        roles: Array.from({ length: numberOfPlayers }).map(
-          (_, i) => roleAssignments?.get(i) || 'villager',
-        ),
-      },
-      players,
-      actions: new Map(),
-      wolfVotes: new Map(),
-      currentStepIndex: 0,
-      isAudioPlaying,
-      lastNightDeaths: [],
-      nightmareBlockedSeat,
-      wolfKillDisabled,
-      currentNightResults,
-      templateRoles: [],
-      hostUid: isHost ? 'p0' : 'host',
-      roomCode: '1234',
-      witchContext,
-      actionRejected,
-      seerReveal,
-      psychicReveal,
-      gargoyleReveal,
-      wolfRobotReveal,
-      wolfRobotHunterStatusViewed,
-      ...gameStateOverrides,
+  const gameState = {
+    status: GameStatus.Ongoing,
+    template: {
+      numberOfPlayers,
+      roles: Array.from({ length: numberOfPlayers }).map(
+        (_, i) => roleAssignments?.get(i) || 'villager',
+      ),
     },
+    players,
+    actions: new Map(),
+    wolfVotes: new Map(),
+    currentStepIndex: 0,
+    isAudioPlaying,
+    lastNightDeaths: [],
+    nightmareBlockedSeat,
+    wolfKillDisabled,
+    currentNightResults,
+    templateRoles: [],
+    hostUid: isHost ? 'p0' : 'host',
+    roomCode: '1234',
+    witchContext,
+    actionRejected,
+    seerReveal,
+    psychicReveal,
+    gargoyleReveal,
+    wolfRobotReveal,
+    wolfRobotHunterStatusViewed,
+    ...gameStateOverrides,
+  };
+
+  return {
+    // Facade stub — useNotepad (called via useRoomScreenState) only needs getState()
+    facade: { getState: () => gameState },
+
+    gameState,
 
     roomRecord: null,
     connectionStatus: ConnectionStatus.Live,
