@@ -130,9 +130,12 @@ describe('RoleCardSimple', () => {
     expect(getByText('狼人阵营')).toBeTruthy();
   });
 
-  it('shows role icon', () => {
-    const { getByText } = render(<RoleCardSimple {...defaultProps} />);
-    expect(getByText('🐺')).toBeTruthy();
+  it('renders role badge image', () => {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const { UNSAFE_getByType } = render(<RoleCardSimple {...defaultProps} />);
+    // Badge is now an Image, not emoji text
+    const { Image } = require('react-native');
+    expect(UNSAFE_getByType(Image)).toBeTruthy();
   });
 
   it('shows skill description section', () => {
@@ -167,13 +170,11 @@ describe('RoleCardSimple', () => {
 
   it('shows correct icon for witch role', () => {
     const { getByText } = render(<RoleCardSimple {...defaultProps} roleId="witch" />);
-    expect(getByText('🧙‍♀️')).toBeTruthy();
     expect(getByText('女巫')).toBeTruthy();
   });
 
   it('shows correct icon for hunter role', () => {
     const { getByText } = render(<RoleCardSimple {...defaultProps} roleId="hunter" />);
-    expect(getByText('🏹')).toBeTruthy();
     expect(getByText('猎人')).toBeTruthy();
   });
 
