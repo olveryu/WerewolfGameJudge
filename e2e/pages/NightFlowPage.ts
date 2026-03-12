@@ -89,7 +89,18 @@ const UI_TEXT = {
 /** Regex pattern for wolf vote progress (e.g. "1/2 狼人已确认"). */
 const VOTE_COUNT_PATTERN = String.raw`\d+/\d+ 狼人已确认`;
 
-const WOLF_VOTE_STUCK_THRESHOLD = 8;
+/**
+ * Wolf vote "stuck" iteration threshold.
+ *
+ * After all wolves confirm, the server sets a 5 s countdown
+ * (`WOLF_VOTE_COUNTDOWN_MS`). Once the countdown expires the Host calls
+ * `postProgression`, which may take up to `API_TIMEOUT_MS` (8 s) on a
+ * cold-start Edge Function. During this whole window the vote count text
+ * ("1/1 狼人已确认") stays unchanged, so the stuck-detector keeps
+ * incrementing. 50 iterations × ~300 ms ≈ 15 s covers
+ * 5 s countdown + 8 s API timeout + 2 s buffer.
+ */
+const WOLF_VOTE_STUCK_THRESHOLD = 50;
 const NO_PROGRESS_THRESHOLD = 35;
 
 // ---------------------------------------------------------------------------
