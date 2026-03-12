@@ -194,7 +194,7 @@ export const AIChatBubble: React.FC = () => {
             size={componentSizes.icon.sm}
             color={colors.primary}
           />
-          <Text style={styles.bubbleLabel}>AI 助手</Text>
+          <Text style={styles.bubbleLabel}>小助手</Text>
         </TouchableOpacity>
       </Animated.View>
 

@@ -20,9 +20,9 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const CHAT_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
 
-/** Capsule dimensions */
-export const BUBBLE_HEIGHT = 40;
-export const BUBBLE_WIDTH = 106;
+/** Badge dimensions (vertical: icon + label) */
+export const BUBBLE_HEIGHT = 56;
+export const BUBBLE_WIDTH = 56;
 export const BUBBLE_MARGIN = 16;
 
 /** 根据屏幕高度动态计算聊天窗口高度（55%，限制 320~600） */
