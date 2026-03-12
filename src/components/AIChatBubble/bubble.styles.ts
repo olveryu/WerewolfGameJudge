@@ -1,53 +1,46 @@
 /**
  * Bubble floating button styles.
  *
- * Bubble container, icon, label and pulse ring.
- * `bubbleSize` is injected from the barrel to avoid circular imports.
+ * Capsule-shaped FAB: surface bg + borderLight border + icon + label in a row.
+ * `bubbleHeight` / `bubbleWidth` injected from the barrel to avoid circular imports.
  */
 import { StyleSheet } from 'react-native';
 
-import { shadows, type ThemeColors, typography } from '@/theme';
+import { shadows, spacing, type ThemeColors, typography } from '@/theme';
+import { fixed } from '@/theme/tokens';
 
-export function createBubbleStyles(colors: ThemeColors, bubbleSize: number) {
+export function createBubbleStyles(colors: ThemeColors, bubbleHeight: number, bubbleWidth: number) {
   return StyleSheet.create({
     bubbleContainer: {
       position: 'absolute',
       left: 0,
       top: 0,
-      width: bubbleSize,
       alignItems: 'center',
       zIndex: 1000,
       overflow: 'visible',
     },
     bubble: {
-      width: bubbleSize,
-      height: bubbleSize,
-      borderRadius: bubbleSize / 2,
-      backgroundColor: colors.primary,
-      justifyContent: 'center',
+      flexDirection: 'row',
       alignItems: 'center',
-      ...shadows.lg,
-    },
-    bubbleIcon: {
-      fontSize: 28,
+      height: bubbleHeight,
+      paddingHorizontal: spacing.medium,
+      borderRadius: bubbleHeight / 2,
+      backgroundColor: colors.surface,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.borderLight,
+      gap: spacing.tight,
+      ...shadows.md,
     },
     bubbleLabel: {
-      fontSize: typography.captionSmall,
-      fontWeight: typography.weights.medium,
-      color: colors.textInverse,
-      textAlign: 'center' as const,
-      marginTop: 2,
-      backgroundColor: colors.primary,
-      paddingHorizontal: 6,
-      paddingVertical: 1,
-      borderRadius: 6,
-      overflow: 'hidden',
+      fontSize: typography.caption,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
     },
     pulseRing: {
       position: 'absolute',
-      width: bubbleSize,
-      height: bubbleSize,
-      borderRadius: bubbleSize / 2,
+      width: bubbleWidth,
+      height: bubbleHeight,
+      borderRadius: bubbleHeight / 2,
       borderWidth: 3,
       borderColor: colors.primary,
     },

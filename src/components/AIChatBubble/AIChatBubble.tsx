@@ -29,12 +29,10 @@ import {
   View,
 } from 'react-native';
 
-import { BRAND } from '@/config/emojiTokens';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useGameFacade } from '@/contexts';
 import { useTheme } from '@/theme';
-import { typography } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { componentSizes, fixed, typography } from '@/theme/tokens';
 
 import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
 import { MessageBubble } from './MessageBubble';
@@ -59,7 +57,7 @@ export const AIChatBubble: React.FC = () => {
   const facade = useGameFacade();
 
   // ── Pulse animation after roles are assigned ────────
-  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   const wasAssignedRef = useRef(
     (() => {
       const s = facade.getState();
@@ -191,9 +189,13 @@ export const AIChatBubble: React.FC = () => {
           onPress={chat.handleBubblePress}
           activeOpacity={fixed.activeOpacity}
         >
-          <Text style={styles.bubbleIcon}>{BRAND.APP}</Text>
+          <Ionicons
+            name={UI_ICONS.AI_ASSISTANT}
+            size={componentSizes.icon.sm}
+            color={colors.primary}
+          />
+          <Text style={styles.bubbleLabel}>AI 助手</Text>
         </TouchableOpacity>
-        <Text style={styles.bubbleLabel}>助手</Text>
       </Animated.View>
 
       {/* ── Chat Modal ──────────────────────────────── */}
