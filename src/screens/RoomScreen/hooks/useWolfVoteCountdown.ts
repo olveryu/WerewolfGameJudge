@@ -2,8 +2,10 @@
  * useWolfVoteCountdown — Wolf vote countdown timer hook
  *
  * Manages a per-second countdown tick driven by `gameState.wolfVoteDeadline`.
- * When the deadline expires, the Host fires `postProgression` exactly once
- * to trigger server-side inline progression.
+ * When the deadline expires, the Host fires `postProgression` and retries
+ * every tick until it succeeds (success-gated via `postProgressionFiredRef`).
+ * On success, new state arrives → `wolfVoteDeadline` changes → useEffect
+ * cleanup stops the interval.
  *
  * Does not render UI — returns `countdownTick` for downstream consumers
  * (e.g. `useRoomActions.getBottomAction` countdown display).
@@ -47,34 +49,35 @@ export function useWolfVoteCountdown({
     // and be expired — without this guard it would fire immediately and get 400.
     if (roomStatus !== GameStatus.Ongoing) return;
 
-    // Already expired on mount — fire postProgression immediately (once)
+    const tryProgression = (): void => {
+      if (!isHost || postProgressionFiredRef.current) return;
+      postProgressionFiredRef.current = true;
+      fireAndForget(
+        postProgression().then((ok) => {
+          if (!ok) postProgressionFiredRef.current = false;
+        }),
+        '[postProgression] fire failed',
+        roomScreenLog,
+      );
+    };
+
+    // Already expired on mount — fire immediately (Host only)
     if (Date.now() >= wolfVoteDeadline) {
-      if (isHost && !postProgressionFiredRef.current) {
-        postProgressionFiredRef.current = true;
-        fireAndForget(
-          postProgression().then((ok) => {
-            if (!ok) postProgressionFiredRef.current = false;
-          }),
-          '[postProgression] countdown expired fire failed',
-          roomScreenLog,
-        );
-      }
-      return;
+      tryProgression();
+      // Non-host: nothing to tick or retry
+      if (!isHost) return;
     }
 
+    // Interval: countdown ticks + Host retry on failure.
+    // For Host, the interval keeps running until postProgression succeeds
+    // (new state arrives → wolfVoteDeadline changes → useEffect cleanup).
+    // For non-host, clears once deadline expires.
     const interval = setInterval(() => {
       if (Date.now() >= wolfVoteDeadline) {
-        clearInterval(interval);
-        // Host triggers server-side progression when countdown expires
-        if (isHost && !postProgressionFiredRef.current) {
-          postProgressionFiredRef.current = true;
-          fireAndForget(
-            postProgression().then((ok) => {
-              if (!ok) postProgressionFiredRef.current = false;
-            }),
-            '[postProgression] countdown interval fire failed',
-            roomScreenLog,
-          );
+        if (isHost) {
+          tryProgression();
+        } else {
+          clearInterval(interval);
         }
       }
       setCountdownTick((t) => t + 1);
