@@ -119,8 +119,8 @@ interface UseGameRoomResult {
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
   hasWolfVoted: (seatNumber: number) => boolean;
-  /** Host: wolf vote deadline 到期后触发服务端推进 */
-  postProgression: () => Promise<void>;
+  /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
+  postProgression: () => Promise<boolean>;
 
   // Rejoin recovery
   resumeAfterRejoin: () => void;

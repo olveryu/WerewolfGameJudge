@@ -36,7 +36,7 @@ function createMockFacade(overrides: Record<string, unknown> = {}) {
     submitAction: jest.fn().mockResolvedValue({ success: true }),
     submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
-    postProgression: jest.fn().mockResolvedValue(undefined),
+    postProgression: jest.fn().mockResolvedValue({ success: true }),
     ...overrides,
   } as any;
 }
@@ -176,22 +176,47 @@ describe('useGameActions - game control', () => {
     expect(deps.facade.setAudioPlaying).not.toHaveBeenCalled();
   });
 
-  it('postProgression should call facade for host', async () => {
+  it('postProgression should return true on success for host', async () => {
     const deps = createDeps();
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.postProgression());
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.postProgression();
+    });
 
     expect(deps.facade.postProgression).toHaveBeenCalled();
+    expect(ok).toBe(true);
   });
 
-  it('postProgression should skip for non-host', async () => {
+  it('postProgression should return false on failure for host', async () => {
+    const deps = createDeps({
+      facade: createMockFacade({
+        postProgression: jest.fn().mockResolvedValue({ success: false, reason: 'NETWORK_ERROR' }),
+      }),
+    });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.postProgression();
+    });
+
+    expect(deps.facade.postProgression).toHaveBeenCalled();
+    expect(ok).toBe(false);
+  });
+
+  it('postProgression should return false for non-host', async () => {
     const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.postProgression());
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.postProgression();
+    });
 
     expect(deps.facade.postProgression).not.toHaveBeenCalled();
+    expect(ok).toBe(false);
   });
 });
 
