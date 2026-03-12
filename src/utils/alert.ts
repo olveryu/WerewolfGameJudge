@@ -62,8 +62,8 @@ export const setAlertListener = (listener: AlertListener | null) => {
  * Cross-platform alert function that works on both native and web
  * Uses custom modal for consistent UI across all platforms
  */
-export const showAlert = (title: string, message?: string, buttons?: AlertButton[]) => {
-  if (alertBlocked) return;
+export const showAlert = (title: string, message?: string, buttons?: AlertButton[]): boolean => {
+  if (alertBlocked) return false;
 
   const alertButtons = buttons || [{ text: '确定' }];
 
@@ -74,7 +74,7 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
       message,
       buttons: alertButtons,
     });
-    return;
+    return true;
   }
 
   // Fallback to native alert
@@ -112,4 +112,5 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
   } else {
     Alert.alert(title, message || '', alertButtons);
   }
+  return true;
 };

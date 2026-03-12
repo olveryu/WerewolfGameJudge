@@ -91,6 +91,18 @@ describe('dreamcatcherDreamResolver', () => {
     });
   });
 
+  describe('target existence', () => {
+    it('应该拒绝不存在的目标玩家', () => {
+      const ctx = createContext();
+      const input = createInput(99); // seat 99 does not exist in players map
+
+      const result = dreamcatcherDreamResolver(ctx, input);
+
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('不存在');
+    });
+  });
+
   describe('nightmare block', () => {
     // NOTE: Nightmare block guard is now at actionHandler layer.
     // The resolver itself does NOT reject blocked actions.

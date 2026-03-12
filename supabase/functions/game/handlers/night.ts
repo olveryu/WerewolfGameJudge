@@ -9,7 +9,6 @@
 
 import { jsonResponse } from '../../_shared/cors.ts';
 import {
-  type AudioEffect,
   decideWolfVoteTimerAction,
   type EndNightIntent,
   gameReducer,
@@ -35,7 +34,7 @@ import type {
   GroupConfirmAckRequestBody,
   WolfRobotViewedRequestBody,
 } from '../../_shared/types.ts';
-import { type HandlerFn, missingParams } from './shared.ts';
+import { extractAudioActions, type HandlerFn, isValidSeat, missingParams } from './shared.ts';
 
 // ---------------------------------------------------------------------------
 // Night handlers
@@ -45,7 +44,7 @@ export const handleAction: HandlerFn = async (req) => {
   const body = (await req.json()) as ActionRequestBody;
   const { roomCode, seat, role, target, extra } = body;
 
-  if (!roomCode || typeof seat !== 'number' || !role) {
+  if (!roomCode || !isValidSeat(seat) || !role) {
     return missingParams();
   }
 
@@ -162,19 +161,8 @@ export const handleEnd: HandlerFn = async (req) => {
     const handlerResult = handleEndNight(intent, handlerCtx);
     if (!handlerResult.success) return handlerResult;
 
-    // Extract PLAY_AUDIO sideEffects → convert to state actions (same as handleStart)
-    const audioEffects: AudioEffect[] = (handlerResult.sideEffects ?? [])
-      .filter(
-        (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
-          e.type === 'PLAY_AUDIO',
-      )
-      .map((e) => ({ audioKey: e.audioKey, isEndAudio: e.isEndAudio }));
-
-    if (audioEffects.length > 0) {
-      const extraActions: StateAction[] = [
-        { type: 'SET_PENDING_AUDIO_EFFECTS', payload: { effects: audioEffects } },
-        { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: true } },
-      ];
+    const extraActions = extractAudioActions(handlerResult.sideEffects);
+    if (extraActions.length > 0) {
       return {
         ...handlerResult,
         actions: [...handlerResult.actions, ...extraActions],
@@ -239,7 +227,7 @@ export const handleWolfRobotViewed: HandlerFn = async (req) => {
   const body = (await req.json()) as WolfRobotViewedRequestBody;
   const { roomCode, seat } = body;
 
-  if (!roomCode || typeof seat !== 'number') {
+  if (!roomCode || !isValidSeat(seat)) {
     return missingParams();
   }
 
@@ -262,7 +250,7 @@ export const handleGroupConfirmAck: HandlerFn = async (req) => {
   const body = (await req.json()) as GroupConfirmAckRequestBody;
   const { roomCode, seat, uid } = body;
 
-  if (!roomCode || typeof seat !== 'number' || !uid) {
+  if (!roomCode || !isValidSeat(seat) || !uid) {
     return missingParams();
   }
 

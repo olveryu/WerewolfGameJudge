@@ -32,17 +32,29 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
+    // Whitelist safe fields — prevent injection of arbitrary Gemini API parameters.
+    const MAX_TOKENS_CAP = 4096;
+    const sanitizedBody = {
+      messages: body.messages,
+      model: body.model,
+      stream: body.stream,
+      ...(body.temperature != null && { temperature: body.temperature }),
+      ...(body.max_tokens != null && {
+        max_tokens: Math.min(Number(body.max_tokens) || MAX_TOKENS_CAP, MAX_TOKENS_CAP),
+      }),
+    };
+
     const geminiResponse = await fetch(`${GEMINI_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${geminiApiKey}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(sanitizedBody),
     });
 
     // Streaming: forward SSE response as-is
-    if (body.stream) {
+    if (sanitizedBody.stream) {
       return new Response(geminiResponse.body, {
         headers: {
           ...corsHeaders,

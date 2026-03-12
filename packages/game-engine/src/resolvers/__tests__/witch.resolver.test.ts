@@ -162,6 +162,16 @@ describe('witchActionResolver', () => {
       expect(result.valid).toBe(true);
       expect(result.result?.poisonedTarget).toBe(5);
     });
+
+    it('应该拒绝毒不存在的目标玩家', () => {
+      const ctx = createContext();
+      const input = createInput({ save: null, poison: 99 }); // seat 99 does not exist
+
+      const result = witchActionResolver(ctx, input);
+
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('不存在');
+    });
   });
 
   describe('updates', () => {
