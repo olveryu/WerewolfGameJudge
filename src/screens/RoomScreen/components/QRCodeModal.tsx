@@ -11,8 +11,16 @@ import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
 
 import { TESTIDS } from '@/testids';
-import { borderRadius, shadows, spacing, type ThemeColors, typography, useColors } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  fixed,
+  shadows,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  useColors,
+} from '@/theme';
 
 /**
  * Capture the share card View as a base64-encoded PNG.
@@ -168,9 +176,7 @@ function createStyles(colors: ThemeColors) {
       ...shadows.md,
     },
     title: {
-      fontSize: typography.title,
-      lineHeight: typography.lineHeights.title,
-      fontWeight: typography.weights.bold,
+      ...textStyles.titleBold,
       color: colors.text,
       marginBottom: spacing.medium,
     },
@@ -211,9 +217,7 @@ function createStyles(colors: ThemeColors) {
       borderRadius: borderRadius.medium,
     },
     roomNumber: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.subtitleSemibold,
       color: colors.text,
       marginBottom: spacing.tight,
     },
@@ -236,10 +240,8 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     shareButtonText: {
+      ...textStyles.bodySemibold,
       color: colors.textInverse,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
     },
     buttonDisabled: {
       opacity: fixed.disabledOpacity,
@@ -254,10 +256,8 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
     },
     copyButtonText: {
+      ...textStyles.bodySemibold,
       color: colors.text,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
     },
     closeButton: {
       paddingVertical: spacing.small,

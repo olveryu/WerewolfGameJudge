@@ -11,7 +11,7 @@ import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import { spacing, type ThemeColors } from '@/theme';
+import { spacing, type ThemeColors, typography } from '@/theme';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
 import { SimpleMarkdown } from './SimpleMarkdown';
@@ -101,10 +101,10 @@ const localStyles = StyleSheet.create({
   cursorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: spacing.micro,
   },
   cursor: {
-    fontSize: 14,
+    fontSize: typography.secondary,
     marginLeft: 1,
   },
 });

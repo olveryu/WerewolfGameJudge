@@ -25,8 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo, useCallback, useState } from 'react';
 import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
-import { typography } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { fixed, typography } from '@/theme';
 
 import { ConfigScreenStyles } from './styles';
 

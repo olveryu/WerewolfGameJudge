@@ -11,8 +11,7 @@ import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import type { IoniconsName } from '@/config/iconTokens';
-import { type ThemeColors } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import { componentSizes, fixed, type ThemeColors } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
 

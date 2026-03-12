@@ -3,8 +3,17 @@
  */
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  createSharedStyles,
+  fixed,
+  shadows,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 import type { BoardInfoCardStyles, NightProgressIndicatorStyles } from './styles';
 
@@ -15,11 +24,8 @@ export function createBoardInfoStyles(colors: ThemeColors): {
   return {
     boardInfoCard: StyleSheet.create<BoardInfoCardStyles>({
       boardInfoContainer: {
-        backgroundColor: colors.surface,
-        borderRadius: borderRadius.large,
-        padding: spacing.medium,
+        ...createSharedStyles(colors).cardBase,
         marginBottom: spacing.medium,
-        ...shadows.md,
       },
       headerRow: {
         flexDirection: 'row',
@@ -33,9 +39,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
       },
       boardInfoTitle: {
         flex: 1,
-        fontSize: typography.subtitle,
-        lineHeight: typography.lineHeights.subtitle,
-        fontWeight: typography.weights.bold,
+        ...textStyles.subtitleSemibold,
         color: colors.text,
       },
       notepadBtn: {
@@ -62,9 +66,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         alignItems: 'flex-start',
       },
       roleCategoryLabel: {
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
-        fontWeight: typography.weights.semibold,
+        ...textStyles.secondarySemibold,
         color: colors.textSecondary,
         width: spacing.xxlarge * 2 + spacing.tight, // ~70
       },
@@ -123,9 +125,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         marginBottom: spacing.tight,
       },
       stepText: {
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
-        fontWeight: typography.weights.semibold,
+        ...textStyles.secondarySemibold,
         color: colors.text,
       },
       roleText: {

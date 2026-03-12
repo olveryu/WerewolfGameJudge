@@ -8,7 +8,7 @@ import React, { memo, useMemo } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { NumPad } from '@/components/NumPad';
-import { fixed } from '@/theme/tokens';
+import { fixed } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
 

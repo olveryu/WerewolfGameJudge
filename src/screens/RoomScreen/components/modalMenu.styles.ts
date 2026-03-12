@@ -5,13 +5,15 @@ import { StyleSheet } from 'react-native';
 
 import {
   borderRadius,
+  componentSizes,
   createSharedStyles,
+  fixed,
   shadows,
   spacing,
+  textStyles,
   type ThemeColors,
   typography,
 } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
 
 import type { HostMenuDropdownStyles, SeatConfirmModalStyles } from './styles';
 
@@ -35,10 +37,8 @@ export function createModalMenuStyles(colors: ThemeColors): {
         overflow: 'hidden',
       },
       triggerText: {
-        fontSize: typography.heading,
-        lineHeight: typography.lineHeights.heading,
+        ...textStyles.headingBold,
         color: colors.text,
-        fontWeight: typography.weights.bold,
       },
       modalOverlay: {
         flex: 1,
@@ -93,9 +93,7 @@ export function createModalMenuStyles(colors: ThemeColors): {
         alignItems: 'center',
       },
       modalTitle: {
-        fontSize: typography.title,
-        lineHeight: typography.lineHeights.title,
-        fontWeight: typography.weights.bold,
+        ...textStyles.titleBold,
         color: colors.text,
         marginBottom: spacing.small,
       },
@@ -126,16 +124,12 @@ export function createModalMenuStyles(colors: ThemeColors): {
         backgroundColor: colors.primary,
       },
       modalCancelText: {
+        ...textStyles.bodySemibold,
         color: colors.textSecondary,
-        fontSize: typography.body,
-        lineHeight: typography.lineHeights.body,
-        fontWeight: typography.weights.semibold,
       },
       modalConfirmText: {
+        ...textStyles.bodySemibold,
         color: colors.textInverse,
-        fontSize: typography.body,
-        lineHeight: typography.lineHeights.body,
-        fontWeight: typography.weights.semibold,
       },
     }),
   };

@@ -25,8 +25,7 @@ import {
 } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
-import { typography } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { fixed, typography } from '@/theme';
 
 import type { NotepadStyles } from './AIChatBubble.styles';
 import type { NotepadState, RoleTagInfo } from './useNotepad';

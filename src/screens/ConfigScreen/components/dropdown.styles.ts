@@ -5,8 +5,16 @@
  */
 import type { TextStyle, ViewStyle } from 'react-native';
 
-import { borderRadius, layout, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  fixed,
+  layout,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 export const createDropdownStyles = (colors: ThemeColors) => ({
   // ── Settings row ────────────────────────────
@@ -55,7 +63,7 @@ export const createDropdownStyles = (colors: ThemeColors) => ({
   // ── Modal (Dropdown / TemplatePicker) ──────
   modalOverlay: {
     flex: 1,
-    backgroundColor: colors.overlay,
+    backgroundColor: colors.overlayLight,
     justifyContent: 'flex-end',
   } satisfies ViewStyle,
   modalContent: {
@@ -75,9 +83,7 @@ export const createDropdownStyles = (colors: ThemeColors) => ({
     borderBottomColor: colors.border,
   } satisfies ViewStyle,
   modalTitle: {
-    fontSize: typography.subtitle,
-    lineHeight: typography.lineHeights.subtitle,
-    fontWeight: typography.weights.semibold,
+    ...textStyles.subtitleSemibold,
     color: colors.text,
   } satisfies TextStyle,
   modalCloseBtn: {

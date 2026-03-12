@@ -8,7 +8,7 @@
 import { memo, useMemo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { fixed } from '@/theme/tokens';
+import { fixed } from '@/theme';
 
 import { type AuthStyles } from './types';
 

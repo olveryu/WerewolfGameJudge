@@ -426,7 +426,7 @@ export const fixed = {
   activeOpacity: 0.7,
 
   /** 通用禁用态静态 opacity */
-  disabledOpacity: 0.4,
+  disabledOpacity: 0.5,
 } as const;
 
 // ============================================================================

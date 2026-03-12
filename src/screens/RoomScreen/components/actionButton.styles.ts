@@ -3,8 +3,14 @@
  */
 import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
-import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
-import { componentSizes } from '@/theme/tokens';
+import {
+  borderRadius,
+  componentSizes,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+} from '@/theme';
 
 import type { ActionButtonStyles } from './styles';
 
@@ -29,10 +35,8 @@ export function createActionButtonStyles(colors: ThemeColors): {
     backgroundColor: colors.textMuted,
   };
   const buttonTextBase: TextStyle = {
+    ...textStyles.secondarySemibold,
     color: colors.textInverse,
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    fontWeight: typography.weights.semibold,
   };
 
   return {

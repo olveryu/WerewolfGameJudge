@@ -8,14 +8,15 @@ import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
 import { createAuthBaseStyles } from '@/components/auth/authStyles';
 import {
   borderRadius,
+  componentSizes,
   createSharedStyles,
-  shadows,
+  fixed,
   spacing,
+  textStyles,
   ThemeColors,
   typography,
   withAlpha,
 } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface SettingsScreenStyles {
   container: ViewStyle;
@@ -134,16 +135,11 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       padding: spacing.screenH,
     },
     card: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.screenH,
+      ...createSharedStyles(colors).cardBase,
       marginBottom: spacing.screenH,
-      ...shadows.md,
     },
     cardTitle: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.subtitleSemibold,
       color: colors.text,
       marginBottom: spacing.medium,
     },
@@ -264,9 +260,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       gap: spacing.tight,
     },
     userName: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.subtitleSemibold,
       color: colors.text,
     },
     editIcon: {
@@ -294,7 +288,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       backgroundColor: colors.primary,
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.small,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
     },
     saveBtnText: {
       color: colors.textInverse,
@@ -340,10 +334,8 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       marginBottom: spacing.medium,
     },
     outlineButtonText: {
+      ...textStyles.bodyMedium,
       color: colors.text,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.medium,
     },
     // Theme section
     themeSection: {

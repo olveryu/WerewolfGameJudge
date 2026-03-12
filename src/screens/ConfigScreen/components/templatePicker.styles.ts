@@ -9,14 +9,16 @@ import { StyleSheet } from 'react-native';
 
 import {
   borderRadius,
+  componentSizes,
+  fixed,
   layout,
   shadows,
   spacing,
+  textStyles,
   type ThemeColors,
   typography,
   withAlpha,
 } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface TemplatePickerStyles {
   // ── Modal shell ──
@@ -112,9 +114,7 @@ export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerS
       paddingBottom: spacing.small,
     },
     pickerTitle: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.subtitleSemibold,
       color: colors.text,
     },
     pickerCloseBtn: {
@@ -186,9 +186,7 @@ export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerS
     },
     templateCardTitle: {
       flex: 1,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.bodySemibold,
       color: colors.text,
     },
     templateCardPlayerBadge: {
@@ -230,9 +228,7 @@ export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerS
       borderColor: colors.primary,
     },
     templateCardCTAText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.secondarySemibold,
       color: colors.primary,
     },
     templateCardCTATextSelected: {
@@ -372,9 +368,7 @@ export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerS
       backgroundColor: colors.primary,
     },
     confirmationBtnText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.secondarySemibold,
       color: colors.textInverse,
     },
   });

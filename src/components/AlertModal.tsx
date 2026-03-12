@@ -13,6 +13,7 @@ import {
   fixed,
   shadows,
   spacing,
+  textStyles,
   type ThemeColors,
   typography,
   useColors,
@@ -129,9 +130,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
       ...shadows.lg,
     },
     title: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.bold,
+      ...textStyles.subtitleSemibold,
       color: colors.text,
       textAlign: 'center',
       marginBottom: spacing.small,
@@ -165,10 +164,8 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
       backgroundColor: colors.error,
     },
     buttonText: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
+      ...textStyles.bodySemibold,
       color: colors.textInverse,
-      fontWeight: typography.weights.semibold,
     },
     cancelButtonText: {
       color: colors.textSecondary,

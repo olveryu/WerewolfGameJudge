@@ -8,14 +8,16 @@ import { StyleSheet } from 'react-native';
 
 import {
   borderRadius,
+  componentSizes,
   createSharedStyles,
+  fixed,
   layout,
   shadows,
   spacing,
+  textStyles,
   type ThemeColors,
   typography,
 } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
 
 export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   container: {
@@ -126,9 +128,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     paddingVertical: componentSizes.chip.paddingV,
   } satisfies ViewStyle,
   templatePillText: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
-    fontWeight: typography.weights.semibold,
+    ...textStyles.bodySemibold,
     color: colors.text,
   } satisfies TextStyle,
   templatePillArrow: {
@@ -138,10 +138,8 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     marginLeft: spacing.tight,
   } satisfies TextStyle,
   playerCount: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
+    ...textStyles.bodyMedium,
     color: colors.textSecondary,
-    fontWeight: typography.weights.medium,
   } satisfies TextStyle,
   clearBtn: {
     paddingHorizontal: spacing.small,
@@ -172,10 +170,8 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     opacity: fixed.disabledOpacity,
   } satisfies ViewStyle,
   bottomCreateBtnText: {
+    ...textStyles.bodySemibold,
     color: colors.textInverse,
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
-    fontWeight: typography.weights.semibold,
   } satisfies TextStyle,
 
   // ── Card B: stepper + role sections ──

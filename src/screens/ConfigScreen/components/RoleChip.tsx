@@ -8,7 +8,7 @@ import { memo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { fixed } from '@/theme/tokens';
+import { fixed } from '@/theme';
 
 import { ConfigScreenStyles } from './styles';
 

@@ -8,8 +8,16 @@
 import { memo, useCallback, useMemo } from 'react';
 import { StyleSheet, Text, type TextStyle, View, type ViewStyle } from 'react-native';
 
-import { borderRadius, spacing, typography, useColors, withAlpha } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  componentSizes,
+  fixed,
+  spacing,
+  textStyles,
+  typography,
+  useColors,
+  withAlpha,
+} from '@/theme';
 
 import type { AnimationOptionConfig } from './animationOptions';
 import { getAnimationLabel } from './animationOptions';
@@ -139,10 +147,8 @@ function createOptionGroupStyles(colors: ReturnType<typeof useColors>): OptionGr
       marginBottom: spacing.tight,
     },
     label: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
+      ...textStyles.secondarySemibold,
       color: colors.text,
-      fontWeight: typography.weights.semibold,
       textAlign: 'center',
     },
     labelSelected: {

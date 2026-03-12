@@ -20,8 +20,17 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { borderRadius, layout, spacing, typography, useColors, withAlpha } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  componentSizes,
+  fixed,
+  layout,
+  spacing,
+  textStyles,
+  typography,
+  useColors,
+  withAlpha,
+} from '@/theme';
 
 import { ANIMATION_OPTIONS } from './animationOptions';
 import { SettingsChipGroup, type SettingsOption } from './SettingsChipGroup';
@@ -241,9 +250,7 @@ function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles
       marginBottom: spacing.medium,
     },
     title: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.subtitleSemibold,
       color: colors.text,
     },
     closeButton: {

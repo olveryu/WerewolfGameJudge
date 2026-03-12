@@ -9,14 +9,16 @@ import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 import { createAuthBaseStyles } from '@/components/auth/authStyles';
 import {
   borderRadius,
+  componentSizes,
   createSharedStyles,
+  fixed,
   shadows,
   spacing,
+  textStyles,
   type ThemeColors,
   typography,
   withAlpha,
 } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
 
 export interface HomeScreenStyles {
   container: ViewStyle;
@@ -155,24 +157,19 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     // ── Hero Card (surface bg + elevated shadow, unified with action cards) ──
     heroCard: {
+      ...shared.cardElevated,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.surface,
       marginHorizontal: spacing.screenH,
       marginTop: spacing.medium,
       marginBottom: spacing.large,
-      padding: spacing.medium,
-      borderRadius: borderRadius.large,
-      ...shadows.lg,
     },
     heroCardContent: {
       flex: 1,
       gap: spacing.tight,
     },
     heroCardTitle: {
-      fontSize: typography.title,
-      lineHeight: typography.lineHeights.title,
-      fontWeight: typography.weights.bold,
+      ...textStyles.titleBold,
       color: colors.text,
     },
     heroCardSubtitle: {
@@ -196,13 +193,10 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       gap: spacing.small,
     },
     actionCard: {
+      ...shared.cardBase,
       flex: 1,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.medium,
       alignItems: 'center',
       gap: spacing.small,
-      ...shadows.md,
     },
     actionCardDisabled: {
       opacity: fixed.disabledOpacity,
@@ -216,9 +210,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       alignItems: 'center',
     },
     actionCardTitle: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.bodySemibold,
       color: colors.text,
       textAlign: 'center',
     },
@@ -253,9 +245,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       flex: 1,
     },
     tipCardTitle: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.secondarySemibold,
       color: colors.text,
     },
     tipCardSub: {
@@ -283,9 +273,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       maxWidth: Math.min(400, screenWidth * 0.85),
     },
     modalTitle: {
-      fontSize: typography.title,
-      lineHeight: typography.lineHeights.title,
-      fontWeight: typography.weights.bold,
+      ...textStyles.titleBold,
       color: colors.text,
       textAlign: 'center',
     },
@@ -335,10 +323,8 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       alignItems: 'center',
     },
     primaryButtonText: {
+      ...textStyles.bodySemibold,
       color: colors.textInverse,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
     },
     secondaryButton: {
       backgroundColor: colors.background,
@@ -347,16 +333,12 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       alignItems: 'center',
     },
     secondaryButtonText: {
+      ...textStyles.bodyMedium,
       color: colors.textSecondary,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.medium,
     },
     formTitle: {
       ...createAuthBaseStyles(colors).formTitle,
-      fontSize: typography.title,
-      lineHeight: typography.lineHeights.title,
-      fontWeight: typography.weights.bold,
+      ...textStyles.titleBold,
     },
     linkButton: {
       padding: spacing.small,
@@ -377,10 +359,8 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       marginTop: spacing.small,
     },
     outlineButtonText: {
+      ...textStyles.bodyMedium,
       color: colors.textSecondary,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.medium,
     },
     footer: {
       alignItems: 'center',

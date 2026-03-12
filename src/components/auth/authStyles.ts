@@ -6,8 +6,15 @@
  */
 import { type TextStyle, type ViewStyle } from 'react-native';
 
-import { borderRadius, componentSizes, spacing, type ThemeColors, typography } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  componentSizes,
+  fixed,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+} from '@/theme';
 
 import { type AuthStyles } from './types';
 
@@ -22,9 +29,7 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
     // Layout
     formContainer: {} as ViewStyle,
     formTitle: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.subtitleSemibold,
       color: colors.text,
       textAlign: 'center',
     },
@@ -106,10 +111,8 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       marginBottom: spacing.medium,
     },
     primaryButtonText: {
+      ...textStyles.bodySemibold,
       color: colors.textInverse,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
     },
     secondaryButton: {
       alignItems: 'center',
@@ -137,13 +140,11 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       marginBottom: spacing.medium,
     },
     outlineButtonText: {
+      ...textStyles.bodyMedium,
       color: colors.textSecondary,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.medium,
     },
     buttonDisabled: {
-      opacity: 0.6,
+      opacity: fixed.disabledOpacity,
     },
     buttonCaption: {
       fontSize: typography.caption,

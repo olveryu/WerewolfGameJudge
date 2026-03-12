@@ -17,7 +17,7 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
-import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 
 interface SimpleMarkdownProps {
   content: string;
@@ -101,9 +101,9 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({
   const boldStyle = { fontWeight: typography.weights.bold };
   const codeStyle = {
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    backgroundColor: inverted ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)',
-    borderRadius: 3,
-    paddingHorizontal: 3,
+    backgroundColor: inverted ? withAlpha('#FFFFFF', 0.15) : withAlpha('#000000', 0.06),
+    borderRadius: borderRadius.none + 3,
+    paddingHorizontal: spacing.micro,
     fontSize: typography.secondary - 1,
   };
   const bulletStyle = {
@@ -244,15 +244,15 @@ const localStyles = StyleSheet.create({
   codeBlockText: {
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontSize: typography.secondary - 1,
-    lineHeight: 18,
+    lineHeight: typography.lineHeights.secondary - 2,
     padding: spacing.small,
     borderRadius: borderRadius.small,
     overflow: 'hidden',
   },
   codeBlockBgInverted: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: withAlpha('#FFFFFF', 0.1),
   },
   codeBlockBgNormal: {
-    backgroundColor: 'rgba(0,0,0,0.04)',
+    backgroundColor: withAlpha('#000000', 0.04),
   },
 });

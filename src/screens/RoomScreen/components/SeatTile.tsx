@@ -26,8 +26,15 @@ import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { Avatar } from '@/components/Avatar';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
-import { borderRadius, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  componentSizes,
+  fixed,
+  spacing,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 const GRID_COLUMNS = 4;
 

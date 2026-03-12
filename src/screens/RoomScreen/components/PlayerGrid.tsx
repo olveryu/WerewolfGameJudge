@@ -9,8 +9,7 @@ import React, { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'reac
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
-import { type ThemeColors, useColors } from '@/theme';
-import { spacing } from '@/theme/tokens';
+import { spacing, type ThemeColors, useColors } from '@/theme';
 import { getUniqueAvatarMap } from '@/utils/avatar';
 
 import { createSeatTileStyles, getGridColumns, SeatTile } from './SeatTile';

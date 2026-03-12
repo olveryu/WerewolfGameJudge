@@ -7,8 +7,7 @@
  */
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { borderRadius, fixed, shadows, spacing, type ThemeColors, typography } from '@/theme';
 
 export function createChatStyles(colors: ThemeColors, chatWidth: number) {
   return StyleSheet.create({
@@ -155,7 +154,7 @@ export function createChatStyles(colors: ThemeColors, chatWidth: number) {
       justifyContent: 'center',
     },
     sendButtonDisabled: {
-      opacity: 0.5,
+      opacity: fixed.disabledOpacity,
     },
     sendButtonText: {
       color: colors.textInverse,
@@ -200,7 +199,7 @@ export function createChatStyles(colors: ThemeColors, chatWidth: number) {
       flexShrink: 1,
     },
     quickQuestionBtnDisabled: {
-      opacity: 0.5,
+      opacity: fixed.disabledOpacity,
     },
     quickQuestionText: {
       fontSize: typography.caption,

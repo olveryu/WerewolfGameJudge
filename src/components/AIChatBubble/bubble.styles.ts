@@ -7,8 +7,7 @@
  */
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { borderRadius, fixed, shadows, spacing, type ThemeColors, typography } from '@/theme';
 
 export function createBubbleStyles(colors: ThemeColors, bubbleHeight: number, bubbleWidth: number) {
   return StyleSheet.create({

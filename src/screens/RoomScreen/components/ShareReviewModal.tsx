@@ -21,6 +21,7 @@ import {
   borderRadius,
   fixed,
   spacing,
+  textStyles,
   type ThemeColors,
   typography,
   useColors,
@@ -233,10 +234,8 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       alignItems: 'center',
     },
     cancelButtonText: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
+      ...textStyles.bodySemibold,
       color: colors.textSecondary,
-      fontWeight: typography.weights.semibold,
     },
     confirmButton: {
       flex: 1,
@@ -249,10 +248,8 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       opacity: fixed.disabledOpacity,
     },
     confirmButtonText: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
+      ...textStyles.bodySemibold,
       color: colors.textInverse,
-      fontWeight: typography.weights.semibold,
     },
   });
 }

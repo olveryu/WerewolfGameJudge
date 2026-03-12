@@ -31,8 +31,7 @@ import {
 
 import { UI_ICONS } from '@/config/iconTokens';
 import { useGameFacade } from '@/contexts';
-import { useTheme } from '@/theme';
-import { componentSizes, fixed, typography } from '@/theme/tokens';
+import { componentSizes, fixed, typography, useTheme } from '@/theme';
 
 import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
 import { MessageBubble } from './MessageBubble';
