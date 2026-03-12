@@ -40,4 +40,5 @@ export const UI_ICONS = {
   GREETING: 'hand-left-outline',
   RECORD: 'clipboard-outline',
   ROLE_PLACEHOLDER: 'help-circle-outline',
+  AI_ASSISTANT: 'sparkles-outline',
 } as const satisfies Record<string, IoniconsName>;
