@@ -42,6 +42,7 @@ export interface SeatRequestBody {
   seat?: number; // action='sit' 时必填
   displayName?: string;
   avatarUrl?: string;
+  isAnonymous?: boolean;
 }
 
 // ---------------------------------------------------------------------------

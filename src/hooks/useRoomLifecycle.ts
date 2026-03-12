@@ -63,6 +63,7 @@ interface RoomLifecycleDeps {
   facade: IGameFacade;
   authService: AuthService;
   roomService: RoomService;
+  isAnonymous: boolean;
   connection: ConnectionSyncActions;
   setRoomRecord: (record: RoomRecord | null) => void;
 }
@@ -76,6 +77,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     facade,
     authService,
     roomService,
+    isAnonymous,
     connection: { setConnectionStatus },
     setRoomRecord,
   } = deps;
@@ -211,7 +213,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
 
-        return await facade.takeSeat(seatNumber, displayName ?? undefined, avatarUrl ?? undefined);
+        return await facade.takeSeat(
+          seatNumber,
+          displayName ?? undefined,
+          avatarUrl ?? undefined,
+          isAnonymous || undefined,
+        );
       } catch (err) {
         handleError(err, {
           label: '入座',
@@ -222,7 +229,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return false;
       }
     },
-    [facade, authService],
+    [facade, authService, isAnonymous],
   );
 
   // Leave seat (unified API)
@@ -250,6 +257,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           seatNumber,
           displayName ?? undefined,
           avatarUrl ?? undefined,
+          isAnonymous || undefined,
         );
 
         // Wire up seat error for downstream consumers (e.g., showAlert in useRoomScreenState)
@@ -263,7 +271,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return { success: false, reason: String(err) };
       }
     },
-    [facade, authService],
+    [facade, authService, isAnonymous],
   );
 
   // Leave seat with ack (unified API)

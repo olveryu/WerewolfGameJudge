@@ -256,6 +256,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     facade,
     authService,
     roomService,
+    isAnonymous: user?.isAnonymous ?? true,
     connection,
     setRoomRecord,
   });

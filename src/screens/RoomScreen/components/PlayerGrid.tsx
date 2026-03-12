@@ -11,6 +11,7 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { spacing, type ThemeColors, useColors } from '@/theme';
 import { getUniqueAvatarMap } from '@/utils/avatar';
+import { getUniqueLucideAvatarMap } from '@/utils/lucideAvatars';
 
 import { createSeatTileStyles, getGridColumns, SeatTile } from './SeatTile';
 
@@ -55,12 +56,20 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const seatTileStyles = useMemo(() => createSeatTileStyles(colors, tileSize), [colors, tileSize]);
 
   // Compute room-level unique avatar indices so no two players share an avatar.
-  // Only includes players without a custom avatarUrl.
+  // Only includes registered players without a custom avatarUrl.
   const avatarMap = useMemo(() => {
     const uids = seats
-      .filter((s) => s.player?.uid && !s.player.avatarUrl)
+      .filter((s) => s.player?.uid && !s.player.avatarUrl && !s.player.isAnonymous)
       .map((s) => s.player!.uid);
     return getUniqueAvatarMap(roomNumber, uids);
+  }, [seats, roomNumber]);
+
+  // Compute room-level unique Lucide icon indices for anonymous players.
+  const lucideAvatarMap = useMemo(() => {
+    const uids = seats
+      .filter((s) => s.player?.uid && !s.player.avatarUrl && s.player.isAnonymous)
+      .map((s) => s.player!.uid);
+    return getUniqueLucideAvatarMap(roomNumber, uids);
   }, [seats, roomNumber]);
 
   // Use ref to always call the latest onSeatPress callback.
@@ -112,6 +121,8 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           playerUid={seat.player?.uid ?? null}
           playerAvatarUrl={seat.player?.avatarUrl}
           playerAvatarIndex={seat.player?.uid ? avatarMap.get(seat.player.uid) : undefined}
+          isAnonymous={seat.player?.isAnonymous}
+          playerLucideIndex={seat.player?.uid ? lucideAvatarMap.get(seat.player.uid) : undefined}
           playerDisplayName={seat.player?.displayName ?? null}
           roleId={seat.player?.role ?? null}
           showBotRole={showBotRoles && seat.player?.isBot === true}

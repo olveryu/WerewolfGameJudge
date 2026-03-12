@@ -30,6 +30,8 @@ export interface LocalPlayer {
   hasViewedRole: boolean;
   /** Debug mode: true if this is a bot placeholder (not a real player) */
   isBot?: boolean;
+  /** True if the player joined via anonymous auth (no account) */
+  isAnonymous?: boolean;
 }
 
 // =============================================================================
