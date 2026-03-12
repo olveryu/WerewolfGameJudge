@@ -4,11 +4,13 @@
  * Home 和 Settings 共用。显示邮箱登录 / 匿名登录按钮。
  * 渲染登录方式 UI 并上报用户选择。不 import service，不含业务逻辑。
  */
+import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { UI } from '@/config/emojiTokens';
+import { UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
+import { typography } from '@/theme';
 import { fixed } from '@/theme/tokens';
 
 import { type LoginOptionsProps } from './types';
@@ -25,7 +27,10 @@ export const LoginOptions = memo<LoginOptionsProps>(
           onPress={onEmailLogin}
           activeOpacity={fixed.activeOpacity}
         >
-          <Text style={styles.primaryButtonText}>{UI.EMAIL} 邮箱登录/注册</Text>
+          <Text style={styles.primaryButtonText}>
+            <Ionicons name={UI_ICONS.EMAIL} size={typography.body} />
+            {' 邮箱登录/注册'}
+          </Text>
           <Text style={styles.buttonCaptionInverse}>可自定义头像和昵称</Text>
         </TouchableOpacity>
 
@@ -37,7 +42,14 @@ export const LoginOptions = memo<LoginOptionsProps>(
           testID={TESTIDS.homeAnonLoginButton}
         >
           <Text style={styles.outlineButtonText}>
-            {authLoading ? '处理中…' : `${UI.USER} 匿名登录`}
+            {authLoading ? (
+              '处理中…'
+            ) : (
+              <>
+                <Ionicons name={UI_ICONS.USER} size={typography.body} />
+                {' 匿名登录'}
+              </>
+            )}
           </Text>
           {!authLoading && <Text style={styles.buttonCaption}>随机分配头像和昵称</Text>}
         </TouchableOpacity>

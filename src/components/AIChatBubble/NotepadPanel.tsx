@@ -8,6 +8,7 @@
  * 不直接调用 service / AsyncStorage / game-engine。
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { useCallback, useState } from 'react';
@@ -23,7 +24,8 @@ import {
   View,
 } from 'react-native';
 
-import { UI } from '@/config/emojiTokens';
+import { UI_ICONS } from '@/config/iconTokens';
+import { typography } from '@/theme';
 import { fixed } from '@/theme/tokens';
 
 import type { NotepadStyles } from './AIChatBubble.styles';
@@ -113,7 +115,11 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
                   factionKey && styles[`roleBadgeText${factionKey}` as keyof NotepadStyles],
                 ]}
               >
-                {selectedTag ? selectedTag.shortName : UI.ROLE_PLACEHOLDER}
+                {selectedTag ? (
+                  selectedTag.shortName
+                ) : (
+                  <Ionicons name={UI_ICONS.ROLE_PLACEHOLDER} size={typography.caption} />
+                )}
               </Text>
             </View>
           </TouchableOpacity>

@@ -79,7 +79,11 @@ export const Dropdown = memo<DropdownProps>(
           <Text style={styles.settingsSelectorText} numberOfLines={1}>
             {selectedOption?.label ?? value}
           </Text>
-          <Text style={styles.settingsSelectorArrow}>▼</Text>
+          <Ionicons
+            name="chevron-down"
+            size={typography.secondary}
+            color={styles.settingsSelectorArrow.color as string}
+          />
         </TouchableOpacity>
 
         <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>

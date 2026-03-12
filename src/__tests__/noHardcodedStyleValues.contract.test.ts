@@ -165,7 +165,7 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   'src/screens/HomeScreen/components/styles.ts': 1,
 
   // TODO: Phase 1 — fontSize: 14 → typography.secondary
-  'src/screens/RoomScreen/components/SeatTile.tsx': 1,
+  'src/screens/RoomScreen/components/SeatTile.tsx': 0,
 
   // TODO: Phase 1 — paddingBottom: 60 → spacing/layout token
   'src/screens/ConfigScreen/components/templatePicker.styles.ts': 1,

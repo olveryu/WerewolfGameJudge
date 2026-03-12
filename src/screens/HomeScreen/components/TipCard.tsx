@@ -10,14 +10,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import type { IoniconsName } from '@/config/iconTokens';
 import { type ThemeColors } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 import { type HomeScreenStyles } from './styles';
 
 interface TipCardProps {
   tipId: string;
-  icon: string;
+  icon: IoniconsName;
   title: string;
   subtitle: string;
   onPress?: () => void;
@@ -31,7 +32,9 @@ export const TipCard = memo<TipCardProps>(
   ({ tipId, icon, title, subtitle, onPress, onDismiss, styles, colors, testID }) => {
     const content = (
       <>
-        <Text style={styles.tipCardIcon}>{icon}</Text>
+        <View style={styles.tipCardIcon}>
+          <Ionicons name={icon} size={componentSizes.icon.lg} color={colors.primary} />
+        </View>
         <View style={styles.tipCardBody}>
           <Text style={styles.tipCardTitle}>{title}</Text>
           <Text style={styles.tipCardSub}>{subtitle}</Text>

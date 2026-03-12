@@ -73,9 +73,9 @@ describe('SettingsScreen', () => {
     });
 
     it('should render account section', () => {
-      const { getByText, getByTestId } = render(<SettingsScreen />);
+      const { getByText, getAllByTestId } = render(<SettingsScreen />);
 
-      expect(getByTestId('Ionicons-icon-person-outline')).toBeTruthy();
+      expect(getAllByTestId('Ionicons-icon-person-outline').length).toBeGreaterThan(0);
       expect(getByText(/账户/)).toBeTruthy();
     });
 
@@ -91,8 +91,8 @@ describe('SettingsScreen', () => {
       const { getByText } = render(<SettingsScreen />);
 
       // Unauthenticated state shows login options
-      expect(getByText('📧 邮箱登录/注册')).toBeTruthy();
-      expect(getByText('👤 匿名登录')).toBeTruthy();
+      expect(getByText(/邮箱登录/)).toBeTruthy();
+      expect(getByText(/匿名登录/)).toBeTruthy();
     });
   });
 

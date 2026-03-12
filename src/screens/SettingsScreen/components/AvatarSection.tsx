@@ -4,20 +4,20 @@
  * 显示当前头像 + 上传按钮，通过回调上报操作意图。
  * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
+import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { memo } from 'react';
 import {
   ActivityIndicator,
   Image,
   ImageSourcePropType,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 
-import { UI } from '@/config/emojiTokens';
-import { ThemeColors } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { UI_ICONS } from '@/config/iconTokens';
+import { ThemeColors, typography } from '@/theme';
+import { componentSizes, fixed } from '@/theme/tokens';
 
 import { SettingsScreenStyles } from './styles';
 
@@ -37,7 +37,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
     if (isAnonymous) {
       return (
         <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarPlaceholderIcon}>{UI.USER}</Text>
+          <Ionicons name={UI_ICONS.USER} size={typography.display} color={colors.textSecondary} />
         </View>
       );
     }
@@ -66,7 +66,11 @@ export const AvatarSection = memo<AvatarSectionProps>(
               <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
             )}
             <View style={styles.avatarEditBadge}>
-              <Text style={styles.avatarEditIcon}>{UI.CAMERA}</Text>
+              <Ionicons
+                name={UI_ICONS.CAMERA}
+                size={componentSizes.icon.sm}
+                color={colors.textSecondary}
+              />
             </View>
           </View>
         )}

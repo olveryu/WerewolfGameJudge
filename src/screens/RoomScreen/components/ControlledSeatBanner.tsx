@@ -8,10 +8,12 @@
  * Performance: Memoized, receives pre-created styles from parent.
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
+import { Ionicons } from '@expo/vector-icons';
 import React, { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { UI } from '@/config/emojiTokens';
+import { UI_ICONS } from '@/config/iconTokens';
+import { typography } from '@/theme';
 
 import { type ControlledSeatBannerStyles } from './styles';
 
@@ -38,7 +40,10 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   if (mode === 'hint') {
     return (
       <View style={styles.hintContainer}>
-        <Text style={styles.hintText}>{UI.HINT} 长按座位可接管机器人</Text>
+        <Text style={styles.hintText}>
+          <Ionicons name={UI_ICONS.HINT} size={typography.secondary} />
+          {' 长按座位可接管机器人'}
+        </Text>
       </View>
     );
   }
@@ -52,7 +57,8 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.text}>
-        {UI.GAMEPAD} 正在操控 {controlledSeat + 1} 号位（{botDisplayName}）
+        <Ionicons name={UI_ICONS.GAMEPAD} size={typography.secondary} />
+        {` 正在操控 ${controlledSeat + 1} 号位（${botDisplayName}）`}
       </Text>
       <TouchableOpacity style={styles.releaseButton} onPress={onRelease}>
         <Text style={styles.releaseButtonText}>退出</Text>

@@ -4,6 +4,7 @@
  * 显示第一天晚上所有行动摘要及全员真实身份。
  * 渲染 Modal UI 并接收预构建的数据，不 import service，不含业务逻辑。
  */
+import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import {
   Modal,
@@ -15,7 +16,7 @@ import {
   View,
 } from 'react-native';
 
-import { STATUS } from '@/config/emojiTokens';
+import { STATUS_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
 
@@ -43,7 +44,14 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
 
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             {/* Fair play reminder */}
-            <Text style={styles.disclaimer}>{STATUS.WARNING} 仅供裁判及观战者参考</Text>
+            <Text style={styles.disclaimer}>
+              <Ionicons
+                name={STATUS_ICONS.WARNING}
+                size={typography.secondary}
+                color={colors.warning}
+              />
+              {' 仅供裁判及观战者参考'}
+            </Text>
 
             {/* Action summary section */}
             <Text style={styles.sectionTitle}>行动摘要</Text>

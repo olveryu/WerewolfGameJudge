@@ -5,13 +5,15 @@
  * 每组渲染带阵营色的 chip 行。复用 BoardInfoCard 的展示模式。
  * 渲染 UI，不 import service，不包含业务逻辑判断。
  */
+import { Ionicons } from '@expo/vector-icons';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { memo, useMemo } from 'react';
 import { Text, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
-import { UI } from '@/config/emojiTokens';
+import { UI_ICONS } from '@/config/iconTokens';
 import { useColors, withAlpha } from '@/theme';
+import { componentSizes } from '@/theme/tokens';
 
 import { type FactionStats, groupRolesByFaction, type TemplateRoleItem } from '../configHelpers';
 import type { TemplatePickerStyles } from './templatePicker.styles';
@@ -96,7 +98,12 @@ export const RoleListByFaction = memo<RoleListByFactionProps>(({ roles, styles, 
         styles={styles}
         onRolePress={onRolePress}
       />
-      {onRolePress && <Text style={styles.roleListHint}>{UI.HINT} 点击角色名查看能力说明</Text>}
+      {onRolePress && (
+        <Text style={styles.roleListHint}>
+          <Ionicons name={UI_ICONS.HINT} size={componentSizes.icon.xs} color={colors.textMuted} />
+          {' 点击角色名查看能力说明'}
+        </Text>
+      )}
     </View>
   );
 });
