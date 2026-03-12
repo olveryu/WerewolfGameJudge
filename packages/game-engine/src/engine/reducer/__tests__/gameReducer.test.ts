@@ -1369,6 +1369,7 @@ describe('gameReducer', () => {
           hasViewedRole: false,
           role: null,
           isBot: true,
+          isAnonymous: true,
         } as any,
         2: {
           uid: 'bot-2',
@@ -1376,6 +1377,7 @@ describe('gameReducer', () => {
           hasViewedRole: false,
           role: null,
           isBot: true,
+          isAnonymous: true,
         } as any,
       };
       const action = {

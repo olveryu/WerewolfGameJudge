@@ -38,7 +38,7 @@ import { STANDARD_SIDE_EFFECTS } from './types';
  * 支持换座：如果玩家已有座位，会先清空旧座位
  */
 export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext): HandlerResult {
-  const { seat, uid, displayName, avatarUrl } = intent.payload;
+  const { seat, uid, displayName, avatarUrl, isAnonymous } = intent.payload;
   const { state } = context;
 
   // 校验：state 是否存在
@@ -115,6 +115,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
         avatarUrl,
         role: null,
         hasViewedRole: false,
+        isAnonymous,
       },
     },
   };

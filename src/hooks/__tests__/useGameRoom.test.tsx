@@ -125,7 +125,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       expect(ackResult).toEqual({ success: true, reason: undefined });
-      expect(mockFacade.takeSeatWithAck).toHaveBeenCalledWith(1, 'Test Player', undefined);
+      expect(mockFacade.takeSeatWithAck).toHaveBeenCalledWith(1, 'Test Player', undefined, true);
     });
 
     it('should pass through seat_taken reason from facade', async () => {

@@ -354,6 +354,7 @@ export function handleFillWithBots(
         displayName: `Bot ${seat}`,
         hasViewedRole: false,
         isBot: true,
+        isAnonymous: true,
       };
     }
   }

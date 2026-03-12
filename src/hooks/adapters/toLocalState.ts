@@ -37,6 +37,7 @@ function toLocalPlayer(bp: Player, seatNumber: number): LocalPlayer {
     role: bp.role ?? null,
     hasViewedRole: bp.hasViewedRole,
     isBot: bp.isBot,
+    isAnonymous: bp.isAnonymous,
   };
 }
 
