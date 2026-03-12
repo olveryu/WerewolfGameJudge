@@ -88,10 +88,6 @@ export interface SeatTileProps {
   playerAvatarUrl?: string;
   /** Pre-computed unique avatar seat (from room-level dedup). Undefined = use hash fallback. */
   playerAvatarIndex?: number;
-  /** Whether this player is anonymous (renders Lucide line icon instead of portrait). */
-  isAnonymous?: boolean;
-  /** Pre-computed unique Lucide icon index for anonymous players (from room-level dedup). */
-  playerLucideIndex?: number;
   playerDisplayName: string | null;
   // Role info for bot display (debug mode only)
   roleId: RoleId | null;
@@ -121,8 +117,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerUid,
   playerAvatarUrl,
   playerAvatarIndex,
-  isAnonymous,
-  playerLucideIndex,
   playerDisplayName,
   roleId,
   showBotRole,
@@ -233,8 +227,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
               avatarIndex={playerAvatarIndex}
               roomId={roomNumber}
               borderRadius={borderRadius.medium}
-              isAnonymous={isAnonymous}
-              lucideIndex={playerLucideIndex}
             />
             {(isWolf || isSelected) && (
               <View

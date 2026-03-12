@@ -92,10 +92,9 @@ describe('handleFillWithBots', () => {
       // All 12 seats should have bots
       expect(Object.keys(bots)).toHaveLength(12);
 
-      // Each bot should have isBot: true and isAnonymous: true
+      // Each bot should have isBot: true
       for (const [seat, bot] of Object.entries(bots)) {
         expect(bot.isBot).toBe(true);
-        expect(bot.isAnonymous).toBe(true);
         expect(bot.seatNumber).toBe(Number(seat));
         expect(bot.uid).toMatch(/^bot-\d+$/);
       }

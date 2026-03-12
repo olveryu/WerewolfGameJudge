@@ -19,7 +19,6 @@ export interface JoinSeatIntent {
     uid: string;
     displayName: string;
     avatarUrl?: string;
-    isAnonymous?: boolean;
   };
 }
 
