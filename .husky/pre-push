@@ -1,1 +1,4 @@
+# Fix PATH for VS Code GUI commits (macOS GUI apps don't inherit shell profile)
+. /opt/homebrew/opt/asdf/libexec/asdf.sh
+
 npx tsc --noEmit
