@@ -24,7 +24,7 @@ _An automated judge app for both in-person and remote Werewolf games_
 | 🤖 **AI 狼人杀助手** - 悬浮聊天泡泡，随时咨询规则和策略                     | 🤖 **AI Werewolf Assistant** - Floating chat bubble for rules and strategy help     |
 | ⚡ **即开即用** - 匿名登录，无需注册，4位房间码快速加入                     | ⚡ **Instant Play** - Anonymous login, no registration, quick join                  |
 | 🌐 **跨平台** - iOS / Android / Web 全平台支持                              | 🌐 **Cross-platform** - iOS / Android / Web supported                               |
-| 🎨 **多主题** - 8 种主题风格可选（暗黑/浅色/纯黑/暖沙/午夜/血月/森林/雪夜） | 🎨 **Themes** - 8 theme styles (Dark/Light/AMOLED/Sand/Midnight/Blood/Forest/Snow)  |
+| 🎨 **多主题** - 8 种主题风格可选（月白/暖沙/青瓷/晴岚/石墨/月蚀/血月/幽林） | 🎨 **Themes** - 8 theme styles (Light/Sand/Jade/Sky/Dark/Midnight/Blood/Forest)     |
 | 🧪 **高测试覆盖** - 完整的单元/集成/E2E 测试                                | 🧪 **High Test Coverage** - Comprehensive unit / integration / E2E tests            |
 
 ---

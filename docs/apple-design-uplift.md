@@ -400,7 +400,7 @@ primaryButton: { ...authBase.primaryButton, /* screen-specific overrides */ },
 
 - [ ] `pnpm run quality` 通过
 - [ ] `pnpm exec tsc --noEmit` 零错误
-- [ ] 8 主题 × 4 页面截图对比（light / dark / amoled / sand / midnight / blood / forest / snow）
+- [ ] 8 主题 × 4 页面截图对比（light / sand / jade / sky / dark / midnight / blood / forest）
 - [ ] iPhone SE（375） / iPhone 16 Pro Max（430） / iPad（768+） / Web（1024+）4种宽度验证
 - [ ] E2E 回归：`pnpm exec playwright test --reporter=list`
 - [ ] Knip 无新死代码：`npx knip --no-exit-code`
