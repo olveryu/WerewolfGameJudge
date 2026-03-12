@@ -82,8 +82,8 @@ interface GameActionsState {
   submitRevealAck: () => Promise<void>;
   submitGroupConfirmAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
-  /** Host: wolf vote deadline 到期后触发服务端推进 */
-  postProgression: () => Promise<void>;
+  /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
+  postProgression: () => Promise<boolean>;
 
   // Game state queries
   getLastNightInfo: () => string;
@@ -238,9 +238,10 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   );
 
   // Post progression (host only) — wolf vote deadline 到期时由客户端触发
-  const postProgression = useCallback(async (): Promise<void> => {
-    if (!facade.isHostPlayer()) return;
-    await facade.postProgression();
+  const postProgression = useCallback(async (): Promise<boolean> => {
+    if (!facade.isHostPlayer()) return false;
+    const result = await facade.postProgression();
+    return result.success;
   }, [facade]);
 
   // =========================================================================

@@ -19,7 +19,7 @@ interface UseWolfVoteCountdownParams {
   wolfVoteDeadline: number | undefined;
   isHost: boolean;
   roomStatus: GameStatus;
-  postProgression: () => Promise<void>;
+  postProgression: () => Promise<boolean>;
 }
 
 /**
@@ -52,7 +52,9 @@ export function useWolfVoteCountdown({
       if (isHost && !postProgressionFiredRef.current) {
         postProgressionFiredRef.current = true;
         fireAndForget(
-          postProgression(),
+          postProgression().then((ok) => {
+            if (!ok) postProgressionFiredRef.current = false;
+          }),
           '[postProgression] countdown expired fire failed',
           roomScreenLog,
         );
@@ -67,7 +69,9 @@ export function useWolfVoteCountdown({
         if (isHost && !postProgressionFiredRef.current) {
           postProgressionFiredRef.current = true;
           fireAndForget(
-            postProgression(),
+            postProgression().then((ok) => {
+              if (!ok) postProgressionFiredRef.current = false;
+            }),
             '[postProgression] countdown interval fire failed',
             roomScreenLog,
           );
