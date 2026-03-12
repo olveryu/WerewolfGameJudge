@@ -13,7 +13,7 @@ import { settingsServiceLog } from '@/utils/logger';
 const SETTINGS_KEY = '@werewolf_settings';
 
 /** Valid theme keys (must match themes.ts ThemeKey) */
-type ThemeKey = 'light' | 'dark' | 'amoled' | 'sand' | 'midnight' | 'blood' | 'forest' | 'snow';
+type ThemeKey = 'light' | 'sand' | 'jade' | 'sky' | 'dark' | 'midnight' | 'blood' | 'forest';
 
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
@@ -29,13 +29,13 @@ interface UserSettings {
 /** Valid theme keys for runtime validation of persisted data */
 const VALID_THEME_KEYS: ReadonlySet<string> = new Set<ThemeKey>([
   'light',
-  'dark',
-  'amoled',
   'sand',
+  'jade',
+  'sky',
+  'dark',
   'midnight',
   'blood',
   'forest',
-  'snow',
 ]);
 
 /** Valid role reveal animation values for runtime validation of persisted data */

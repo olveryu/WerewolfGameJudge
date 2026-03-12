@@ -1,7 +1,8 @@
 /**
  * themes - Theme Colors configuration
  *
- * 定义所有主题的颜色方案（dark / blood / nature / ocean / light），提供颜色值定义和主题注册。
+ * 定义所有主题的颜色方案（8 套：月白 / 暖沙 / 青瓷 / 晴岚 / 石墨 / 月蚀 / 血月 / 幽林）。
+ * 浅色 4 套（light / sand / jade / sky）+ 深色 4 套（dark / midnight / blood / forest）。
  * 每个主题实现 ThemeColors 接口，包含 primary / background / surface / text 等语义色。
  * 不包含业务逻辑，不引入 React 或 service。
  */
@@ -48,15 +49,7 @@ export interface ThemeColors {
   overlayLight: string;
 }
 
-export type ThemeKey =
-  | 'light'
-  | 'dark'
-  | 'amoled'
-  | 'sand'
-  | 'midnight'
-  | 'blood'
-  | 'forest'
-  | 'snow';
+export type ThemeKey = 'light' | 'sand' | 'jade' | 'sky' | 'dark' | 'midnight' | 'blood' | 'forest';
 
 export interface Theme {
   key: ThemeKey;
@@ -69,303 +62,307 @@ export interface Theme {
 // 主题定义
 // ============================================
 
+// 石墨 — 沉稳、内敛、现代、均衡、普适
 const darkTheme: Theme = {
   key: 'dark',
-  name: '暗黑',
+  name: '石墨',
   isDark: true,
   colors: {
-    primary: '#6366F1',
-    primaryLight: '#818CF8',
-    primaryDark: '#4F46E5',
+    primary: '#7C7CFF',
+    primaryLight: '#9B9BFF',
+    primaryDark: '#5D5DD7',
 
-    background: '#0F0F0F',
-    surface: '#1A1A1A',
-    surfaceHover: '#252525',
-    card: '#1F1F1F',
+    background: '#121214',
+    surface: '#1C1C1F',
+    surfaceHover: '#26262A',
+    card: '#1F1F23',
 
-    text: '#FFFFFF',
-    textSecondary: '#A1A1AA',
-    textMuted: '#71717A',
-    textInverse: '#000000',
+    text: '#F0F0F3',
+    textSecondary: '#9898A8',
+    textMuted: '#5E5E6E',
+    textInverse: '#121214',
 
-    border: '#27272A',
-    borderLight: '#3F3F46',
+    border: '#2C2C32',
+    borderLight: '#3A3A42',
 
-    success: '#22C55E',
-    warning: '#F59E0B',
-    error: '#EF4444',
-    info: '#3B82F6',
+    success: '#34D399',
+    warning: '#FBBF24',
+    error: '#F87171',
+    info: '#60A5FA',
 
-    wolf: '#DC2626',
-    villager: '#059669',
-    god: '#7C3AED',
-    third: '#F59E0B',
+    wolf: '#EF4444',
+    villager: '#34D399',
+    god: '#A78BFA',
+    third: '#FBBF24',
 
     overlay: 'rgba(0, 0, 0, 0.7)',
     overlayLight: 'rgba(0, 0, 0, 0.4)',
   },
 };
 
+// 月白 — 克制、通透、专业、清晨雾气、雅致
 const lightTheme: Theme = {
   key: 'light',
-  name: '浅色',
+  name: '月白',
   isDark: false,
   colors: {
-    primary: '#6366F1',
-    primaryLight: '#818CF8',
-    primaryDark: '#4F46E5',
+    primary: '#5B5BD6',
+    primaryLight: '#7878E8',
+    primaryDark: '#4747B3',
 
-    background: '#FAFAFA',
+    background: '#F5F5F7',
     surface: '#FFFFFF',
-    surfaceHover: '#F4F4F5',
+    surfaceHover: '#EDEDF0',
     card: '#FFFFFF',
 
-    text: '#09090B',
-    textSecondary: '#52525B',
-    textMuted: '#78788C',
+    text: '#1A1A2E',
+    textSecondary: '#5C5C70',
+    textMuted: '#8E8EA0',
     textInverse: '#FFFFFF',
 
-    border: '#E4E4E7',
-    borderLight: '#F4F4F5',
+    border: '#DDDDE3',
+    borderLight: '#EEEEF2',
 
-    success: '#16A34A',
-    warning: '#CA8A04',
-    error: '#DC2626',
+    success: '#1A9A4A',
+    warning: '#B87D08',
+    error: '#D13438',
     info: '#2563EB',
 
-    wolf: '#DC2626',
-    villager: '#16A34A',
-    god: '#7C3AED',
-    third: '#CA8A04',
+    wolf: '#C82828',
+    villager: '#1A9A4A',
+    god: '#7B3FBF',
+    third: '#B87D08',
 
     overlay: 'rgba(0, 0, 0, 0.5)',
     overlayLight: 'rgba(0, 0, 0, 0.2)',
   },
 };
 
+// 月蚀 — 神秘、仪式感、深邃、暗紫、降神
 const midnightTheme: Theme = {
   key: 'midnight',
-  name: '午夜',
+  name: '月蚀',
   isDark: true,
   colors: {
-    primary: '#7C3AED',
-    primaryLight: '#8B5CF6',
-    primaryDark: '#6D28D9',
+    primary: '#8B5CF6',
+    primaryLight: '#A78BFA',
+    primaryDark: '#7C3AED',
 
-    background: '#0A0A0F',
-    surface: '#12121A',
-    surfaceHover: '#1A1A25',
-    card: '#15151F',
+    background: '#0B0B14',
+    surface: '#131320',
+    surfaceHover: '#1C1C2E',
+    card: '#16162A',
 
-    text: '#FFFFFF',
-    textSecondary: '#A78BFA',
-    textMuted: '#6D28D9',
-    textInverse: '#000000',
+    text: '#E8E8F0',
+    textSecondary: '#9696B8',
+    textMuted: '#5A5A7A',
+    textInverse: '#0B0B14',
 
-    border: '#2E1065',
-    borderLight: '#3B0764',
+    border: '#28284A',
+    borderLight: '#363660',
 
-    success: '#22C55E',
-    warning: '#F59E0B',
-    error: '#EF4444',
-    info: '#8B5CF6',
+    success: '#34D399',
+    warning: '#FBBF24',
+    error: '#F87171',
+    info: '#A78BFA',
 
-    wolf: '#DC2626',
-    villager: '#059669',
-    god: '#A855F7',
-    third: '#F59E0B',
+    wolf: '#EF4444',
+    villager: '#34D399',
+    god: '#C084FC',
+    third: '#FBBF24',
 
-    overlay: 'rgba(10, 10, 15, 0.8)',
-    overlayLight: 'rgba(10, 10, 15, 0.5)',
+    overlay: 'rgba(11, 11, 20, 0.8)',
+    overlayLight: 'rgba(11, 11, 20, 0.5)',
   },
 };
 
+// 血月 — 紧张、猎杀、危险、炽烈、血腥
 const bloodTheme: Theme = {
   key: 'blood',
   name: '血月',
   isDark: true,
   colors: {
-    primary: '#DC2626',
-    primaryLight: '#EF4444',
-    primaryDark: '#B91C1C',
+    primary: '#DC3B3B',
+    primaryLight: '#EF6060',
+    primaryDark: '#B82828',
 
-    background: '#111111',
-    surface: '#1A1111',
-    surfaceHover: '#251515',
-    card: '#1C1414',
+    background: '#110B0B',
+    surface: '#1C1212',
+    surfaceHover: '#281A1A',
+    card: '#1F1414',
 
-    text: '#FFFFFF',
-    textSecondary: '#FCA5A5',
-    textMuted: '#991B1B',
-    textInverse: '#000000',
+    text: '#F5EAEA',
+    textSecondary: '#C89898',
+    textMuted: '#7A5050',
+    textInverse: '#110B0B',
 
-    border: '#450A0A',
-    borderLight: '#7F1D1D',
-
-    success: '#22C55E',
-    warning: '#F59E0B',
-    error: '#EF4444',
-    info: '#F87171',
-
-    wolf: '#EF4444',
-    villager: '#22C55E',
-    god: '#F472B6',
-    third: '#FBBF24',
-
-    overlay: 'rgba(17, 17, 17, 0.8)',
-    overlayLight: 'rgba(17, 17, 17, 0.5)',
-  },
-};
-
-// 🌲 森林主题 - 神秘绿色森林氛围
-const forestTheme: Theme = {
-  key: 'forest',
-  name: '森林',
-  isDark: true,
-  colors: {
-    primary: '#22C55E',
-    primaryLight: '#4ADE80',
-    primaryDark: '#16A34A',
-
-    background: '#0A1510',
-    surface: '#0F1F17',
-    surfaceHover: '#152A1F',
-    card: '#122119',
-
-    text: '#ECFDF5',
-    textSecondary: '#86EFAC',
-    textMuted: '#166534',
-    textInverse: '#000000',
-
-    border: '#14532D',
-    borderLight: '#166534',
+    border: '#3D2020',
+    borderLight: '#522D2D',
 
     success: '#4ADE80',
-    warning: '#FCD34D',
-    error: '#F87171',
-    info: '#34D399',
-
-    wolf: '#EF4444',
-    villager: '#4ADE80',
-    god: '#A78BFA',
-    third: '#FCD34D',
-
-    overlay: 'rgba(10, 21, 16, 0.85)',
-    overlayLight: 'rgba(10, 21, 16, 0.5)',
-  },
-};
-
-// ❄️ 雪夜主题 - 冰冷的冬夜氛围
-const snowTheme: Theme = {
-  key: 'snow',
-  name: '雪夜',
-  isDark: true,
-  colors: {
-    primary: '#38BDF8',
-    primaryLight: '#7DD3FC',
-    primaryDark: '#0284C7',
-
-    background: '#0C1929',
-    surface: '#0F2137',
-    surfaceHover: '#132A45',
-    card: '#11243D',
-
-    text: '#F0F9FF',
-    textSecondary: '#7DD3FC',
-    textMuted: '#0369A1',
-    textInverse: '#000000',
-
-    border: '#0C4A6E',
-    borderLight: '#075985',
-
-    success: '#34D399',
     warning: '#FBBF24',
-    error: '#FB7185',
-    info: '#38BDF8',
+    error: '#FF8080',
+    info: '#F09090',
 
-    wolf: '#F43F5E',
-    villager: '#34D399',
-    god: '#A78BFA',
+    wolf: '#FF5555',
+    villager: '#4ADE80',
+    god: '#E879A8',
     third: '#FBBF24',
 
-    overlay: 'rgba(12, 25, 41, 0.85)',
-    overlayLight: 'rgba(12, 25, 41, 0.5)',
+    overlay: 'rgba(17, 11, 11, 0.8)',
+    overlayLight: 'rgba(17, 11, 11, 0.5)',
   },
 };
 
-// 🟤 暖沙主题 - 护眼暖色调 (f.lux 风格)
+// 幽林 — 隐秘、警觉、苔藓、猎场、策略
+const forestTheme: Theme = {
+  key: 'forest',
+  name: '幽林',
+  isDark: true,
+  colors: {
+    primary: '#3DD68C',
+    primaryLight: '#6EEDB0',
+    primaryDark: '#1FA866',
+
+    background: '#0A1210',
+    surface: '#101D18',
+    surfaceHover: '#182820',
+    card: '#142119',
+
+    text: '#E8F5EE',
+    textSecondary: '#7DC8A0',
+    textMuted: '#3A6A50',
+    textInverse: '#0A1210',
+
+    border: '#1D3828',
+    borderLight: '#265038',
+
+    success: '#6EEDB0',
+    warning: '#FCD34D',
+    error: '#F87171',
+    info: '#3DD68C',
+
+    wolf: '#EF4444',
+    villager: '#6EEDB0',
+    god: '#B388FF',
+    third: '#FCD34D',
+
+    overlay: 'rgba(10, 18, 16, 0.85)',
+    overlayLight: 'rgba(10, 18, 16, 0.5)',
+  },
+};
+
+// 晴岚 — 天青、开阔、朝霜、冷静、理性
+const skyTheme: Theme = {
+  key: 'sky',
+  name: '晴岚',
+  isDark: false,
+  colors: {
+    primary: '#4A7FBB',
+    primaryLight: '#6A9BD0',
+    primaryDark: '#356599',
+
+    background: '#F4F6FA',
+    surface: '#FFFFFF',
+    surfaceHover: '#E8ECF2',
+    card: '#FFFFFF',
+
+    text: '#1A2030',
+    textSecondary: '#556070',
+    textMuted: '#8890A0',
+    textInverse: '#FFFFFF',
+
+    border: '#D4DAE4',
+    borderLight: '#E8ECF2',
+
+    success: '#1A9A4A',
+    warning: '#B87D08',
+    error: '#D13438',
+    info: '#4A7FBB',
+
+    wolf: '#C82828',
+    villager: '#1A9A4A',
+    god: '#7B3FBF',
+    third: '#B87D08',
+
+    overlay: 'rgba(0, 0, 0, 0.5)',
+    overlayLight: 'rgba(0, 0, 0, 0.2)',
+  },
+};
+
+// 暖沙 — 温润、护眼、复古、书卷气、安宁
 const sandTheme: Theme = {
   key: 'sand',
   name: '暖沙',
   isDark: false,
   colors: {
-    primary: '#8B6914',
-    primaryLight: '#A68B2C',
-    primaryDark: '#6B4F0A',
+    primary: '#886830',
+    primaryLight: '#A88540',
+    primaryDark: '#6B4E1B',
 
-    background: '#F5F0E8',
-    surface: '#FAF6EF',
-    surfaceHover: '#EDE7DB',
-    card: '#FAF6EF',
+    background: '#F3EDE4',
+    surface: '#FAF6F0',
+    surfaceHover: '#E8E0D4',
+    card: '#FAF6F0',
 
-    text: '#3D2B1F',
-    textSecondary: '#6B5744',
-    textMuted: '#8A7760',
+    text: '#2D2418',
+    textSecondary: '#6D5D48',
+    textMuted: '#9A8B78',
     textInverse: '#FFFFFF',
 
-    border: '#D9CCBB',
-    borderLight: '#E8DDD0',
+    border: '#D4C8B8',
+    borderLight: '#E4DAD0',
 
-    success: '#5D8C3E',
-    warning: '#B8860B',
-    error: '#A0522D',
-    info: '#6B7B3A',
+    success: '#4E8B3A',
+    warning: '#B07D10',
+    error: '#A93E2A',
+    info: '#5B7B35',
 
-    wolf: '#8B2500',
-    villager: '#5D8C3E',
-    god: '#6B4F0A',
-    third: '#B8860B',
+    wolf: '#8B2E1C',
+    villager: '#4E8B3A',
+    god: '#6B4E1B',
+    third: '#B07D10',
 
-    overlay: 'rgba(61, 43, 31, 0.5)',
-    overlayLight: 'rgba(61, 43, 31, 0.2)',
+    overlay: 'rgba(45, 36, 24, 0.5)',
+    overlayLight: 'rgba(45, 36, 24, 0.2)',
   },
 };
 
-// ⬛ 纯黑主题 - AMOLED 省电
-const amoledTheme: Theme = {
-  key: 'amoled',
-  name: '纯黑',
-  isDark: true,
+// 青瓷 — 清凉、沉静、翡翠薄雾、自然、通透
+const jadeTheme: Theme = {
+  key: 'jade',
+  name: '青瓷',
+  isDark: false,
   colors: {
-    primary: '#6366F1',
-    primaryLight: '#818CF8',
-    primaryDark: '#4F46E5',
+    primary: '#2A8A7A',
+    primaryLight: '#3AA898',
+    primaryDark: '#1E6E60',
 
-    background: '#000000',
-    surface: '#0A0A0A',
-    surfaceHover: '#141414',
-    card: '#0A0A0A',
+    background: '#F3F7F6',
+    surface: '#FFFFFF',
+    surfaceHover: '#E4EDEA',
+    card: '#FFFFFF',
 
-    text: '#FFFFFF',
-    textSecondary: '#A1A1AA',
-    textMuted: '#52525B',
-    textInverse: '#000000',
+    text: '#182828',
+    textSecondary: '#4A6060',
+    textMuted: '#829090',
+    textInverse: '#FFFFFF',
 
-    border: '#1A1A1A',
-    borderLight: '#262626',
+    border: '#C8D8D4',
+    borderLight: '#E0ECE8',
 
-    success: '#22C55E',
-    warning: '#F59E0B',
-    error: '#EF4444',
-    info: '#3B82F6',
+    success: '#1A9A4A',
+    warning: '#B87D08',
+    error: '#D13438',
+    info: '#2A8A7A',
 
-    wolf: '#DC2626',
-    villager: '#059669',
-    god: '#7C3AED',
-    third: '#F59E0B',
+    wolf: '#C82828',
+    villager: '#1A9A4A',
+    god: '#7B3FBF',
+    third: '#B87D08',
 
-    overlay: 'rgba(0, 0, 0, 0.85)',
-    overlayLight: 'rgba(0, 0, 0, 0.5)',
+    overlay: 'rgba(0, 0, 0, 0.5)',
+    overlayLight: 'rgba(0, 0, 0, 0.2)',
   },
 };
 
@@ -374,14 +371,16 @@ const amoledTheme: Theme = {
 // ============================================
 
 export const themes: Record<ThemeKey, Theme> = {
+  // 浅色
   light: lightTheme,
-  dark: darkTheme,
-  amoled: amoledTheme,
   sand: sandTheme,
+  jade: jadeTheme,
+  sky: skyTheme,
+  // 深色
+  dark: darkTheme,
   midnight: midnightTheme,
   blood: bloodTheme,
   forest: forestTheme,
-  snow: snowTheme,
 };
 
 export const defaultTheme: ThemeKey = 'light';
