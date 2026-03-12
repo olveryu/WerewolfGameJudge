@@ -21,8 +21,7 @@ import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { useColors } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { fixed, useColors } from '@/theme';
 
 import {
   createConfigScreenStyles,

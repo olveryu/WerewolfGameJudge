@@ -3,8 +3,17 @@
  */
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  componentSizes,
+  fixed,
+  shadows,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 import type {
   BottomActionPanelStyles,
@@ -119,17 +128,13 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         ...shadows.sm,
       },
       text: {
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
+        ...textStyles.secondarySemibold,
         color: colors.text,
-        fontWeight: typography.weights.semibold,
         flex: 1,
       },
       hintText: {
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
+        ...textStyles.secondarySemibold,
         color: colors.text,
-        fontWeight: typography.weights.semibold,
       },
       releaseButton: {
         backgroundColor: colors.surface,

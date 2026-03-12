@@ -10,8 +10,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
 import { UI_ICONS } from '@/config/iconTokens';
-import { useColors } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import { componentSizes, fixed, useColors } from '@/theme';
 
 import type { RoleDisplayItem } from '../RoomScreen.helpers';
 import { type BoardInfoCardStyles } from './styles';

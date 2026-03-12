@@ -16,8 +16,7 @@ import {
 } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
-import { ThemeColors, typography } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import { componentSizes, fixed, ThemeColors, typography } from '@/theme';
 
 import { SettingsScreenStyles } from './styles';
 

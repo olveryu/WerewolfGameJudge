@@ -32,8 +32,7 @@ import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { useTheme } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import { componentSizes, fixed, useTheme } from '@/theme';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { homeLog } from '@/utils/logger';
 

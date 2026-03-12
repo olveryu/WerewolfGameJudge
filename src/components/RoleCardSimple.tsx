@@ -23,8 +23,16 @@ import {
   RoleCardContent,
 } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { TESTIDS } from '@/testids';
-import { borderRadius, spacing, type ThemeColors, typography, useColors, withAlpha } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  fixed,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  useColors,
+  withAlpha,
+} from '@/theme';
 
 interface RoleCardSimpleProps {
   visible: boolean;
@@ -178,10 +186,8 @@ function createStyles(colors: ThemeColors) {
       marginTop: spacing.small,
     },
     confirmButtonText: {
+      ...textStyles.bodySemibold,
       color: colors.textInverse,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
     },
   });
 }

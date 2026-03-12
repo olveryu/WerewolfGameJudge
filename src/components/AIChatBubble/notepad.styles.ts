@@ -6,8 +6,16 @@
  */
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, shadows, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  componentSizes,
+  fixed,
+  shadows,
+  spacing,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 export function createNotepadStyles(colors: ThemeColors) {
   return StyleSheet.create({

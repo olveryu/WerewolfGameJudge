@@ -13,8 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
-import { useColors } from '@/theme';
-import { componentSizes, spacing } from '@/theme/tokens';
+import { componentSizes, spacing, useColors } from '@/theme';
 
 import { type HostMenuDropdownStyles } from './styles';
 

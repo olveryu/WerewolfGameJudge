@@ -10,8 +10,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
-import { typography } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { fixed, typography } from '@/theme';
 
 import { type LoginOptionsProps } from './types';
 

@@ -5,8 +5,17 @@
  */
 import type { TextStyle, ViewStyle } from 'react-native';
 
-import { borderRadius, layout, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  componentSizes,
+  fixed,
+  layout,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 export const createRoleSelectorStyles = (colors: ThemeColors) => ({
   // ── Section (inside cardB) ────────────
@@ -14,9 +23,7 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     marginTop: spacing.medium,
   } satisfies ViewStyle,
   sectionTitle: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
-    fontWeight: typography.weights.semibold,
+    ...textStyles.bodySemibold,
     color: colors.text,
     marginBottom: spacing.small,
     paddingHorizontal: layout.cardPadding,
@@ -87,10 +94,8 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     paddingHorizontal: layout.cardPadding,
   } satisfies ViewStyle,
   stepperLabel: {
-    fontSize: typography.body,
-    lineHeight: typography.lineHeights.body,
+    ...textStyles.bodySemibold,
     color: colors.text,
-    fontWeight: typography.weights.semibold,
   } satisfies TextStyle,
   stepperPill: {
     flexDirection: 'row',
@@ -118,9 +123,7 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     opacity: fixed.disabledOpacity,
   } satisfies ViewStyle,
   stepperBtnText: {
-    fontSize: typography.subtitle,
-    lineHeight: typography.lineHeights.subtitle,
-    fontWeight: typography.weights.semibold,
+    ...textStyles.subtitleSemibold,
   } satisfies TextStyle,
   stepperBtnTextDisabled: {
     color: colors.textMuted,

@@ -91,8 +91,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.medium,
     paddingVertical: spacing.small,
     borderRadius: borderRadius.medium,
-    borderBottomLeftRadius: 4,
-    gap: 4,
+    borderBottomLeftRadius: spacing.tight,
+    gap: spacing.tight,
   },
   dot: {
     width: DOT_SIZE,

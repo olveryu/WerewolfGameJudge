@@ -8,8 +8,7 @@ import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { withAlpha } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { fixed, withAlpha } from '@/theme';
 
 import { ConfigScreenStyles } from './styles';
 

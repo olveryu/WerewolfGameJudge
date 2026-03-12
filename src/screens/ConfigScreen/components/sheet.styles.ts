@@ -5,8 +5,17 @@
  */
 import type { TextStyle, ViewStyle } from 'react-native';
 
-import { borderRadius, layout, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
-import { componentSizes, fixed } from '@/theme/tokens';
+import {
+  borderRadius,
+  componentSizes,
+  fixed,
+  layout,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 export const createSheetStyles = (colors: ThemeColors) => ({
   // ── Settings sheet (Animation + BGM) ──────
@@ -31,9 +40,7 @@ export const createSheetStyles = (colors: ThemeColors) => ({
     marginVertical: spacing.small + spacing.micro,
   } satisfies ViewStyle,
   settingsSheetTitle: {
-    fontSize: typography.subtitle,
-    lineHeight: typography.lineHeights.subtitle,
-    fontWeight: typography.weights.semibold,
+    ...textStyles.subtitleSemibold,
     color: colors.text,
     marginBottom: spacing.medium,
   } satisfies TextStyle,

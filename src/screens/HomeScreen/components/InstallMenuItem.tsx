@@ -12,8 +12,7 @@ import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { usePWAInstall } from '@/hooks/usePWAInstall';
-import { type ThemeColors } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { fixed, type ThemeColors } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
 

@@ -12,8 +12,7 @@ import type { PresetTemplate } from '@werewolf/game-engine/models/Template';
 import { memo, useCallback, useMemo } from 'react';
 import { LayoutAnimation, Platform, Text, TouchableOpacity, UIManager, View } from 'react-native';
 
-import { useColors, withAlpha } from '@/theme';
-import { fixed, typography } from '@/theme/tokens';
+import { fixed, typography, useColors, withAlpha } from '@/theme';
 
 import { computeFactionStats, FACTION_COLOR_MAP, getKeyRoles } from '../configHelpers';
 import { FactionStatBadges, RoleListByFaction } from './RoleListByFaction';

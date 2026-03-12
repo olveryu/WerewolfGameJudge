@@ -10,8 +10,7 @@ import { memo, useMemo } from 'react';
 import type { TextStyle, ViewStyle } from 'react-native';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { borderRadius, spacing, typography, useColors } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { borderRadius, fixed, spacing, typography, useColors } from '@/theme';
 
 type ChipSize = 'sm' | 'md';
 

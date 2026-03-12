@@ -18,7 +18,15 @@ import {
 
 import { STATUS_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
-import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import {
+  borderRadius,
+  fixed,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  useColors,
+} from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
 
@@ -115,9 +123,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       flexGrow: 0,
     },
     sectionTitle: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
+      ...textStyles.bodySemibold,
       color: colors.primary,
       marginBottom: spacing.small,
     },
@@ -147,10 +153,8 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       alignItems: 'center',
     },
     closeButtonText: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
+      ...textStyles.bodySemibold,
       color: colors.textInverse,
-      fontWeight: typography.weights.semibold,
     },
   });
 }

@@ -92,7 +92,10 @@ jest.mock('../../theme', () => ({
     maxContentWidth: 600,
     keyboardOffset: 24,
     activeOpacity: 0.7,
-    disabledOpacity: 0.4,
+    disabledOpacity: 0.5,
+  },
+  textStyles: {
+    bodySemibold: { fontSize: 16, lineHeight: 24, fontWeight: '600' },
   },
 }));
 

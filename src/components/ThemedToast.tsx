@@ -11,9 +11,15 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Toast, { type ToastConfigParams } from 'react-native-toast-message';
 
-import { useTheme } from '@/theme';
-import type { ThemeColors } from '@/theme/themes';
-import { borderRadius, shadows, spacing, typography } from '@/theme/tokens';
+import {
+  borderRadius,
+  shadows,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  useTheme,
+} from '@/theme';
 
 const ICON_SIZE = 18;
 
@@ -36,9 +42,7 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   text1: {
-    fontSize: typography.secondary,
-    lineHeight: typography.lineHeights.secondary,
-    fontWeight: typography.weights.semibold,
+    ...textStyles.secondarySemibold,
     flexShrink: 1,
   },
   text2: {

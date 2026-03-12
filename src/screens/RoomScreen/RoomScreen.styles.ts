@@ -12,12 +12,13 @@ import { StyleSheet } from 'react-native';
 import {
   borderRadius,
   createSharedStyles,
+  fixed,
   spacing,
+  textStyles,
   type ThemeColors,
   typography,
   withAlpha,
 } from '@/theme';
-import { fixed } from '@/theme/tokens';
 
 export function createRoomScreenStyles(colors: ThemeColors) {
   const shared = createSharedStyles(colors);
@@ -51,10 +52,8 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       borderRadius: borderRadius.full,
     },
     errorBackButtonText: {
+      ...textStyles.bodySemibold,
       color: colors.textInverse,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
     },
     errorSecondaryButton: {
       paddingHorizontal: spacing.large,
@@ -65,10 +64,8 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       borderColor: colors.border,
     },
     errorSecondaryButtonText: {
+      ...textStyles.bodySemibold,
       color: colors.textSecondary,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      fontWeight: typography.weights.semibold,
     },
     retryButtonRow: {
       flexDirection: 'row',

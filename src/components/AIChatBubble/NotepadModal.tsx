@@ -12,8 +12,7 @@ import { Modal, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { UI_ICONS } from '@/config/iconTokens';
-import { typography } from '@/theme';
-import { fixed } from '@/theme/tokens';
+import { fixed, typography } from '@/theme';
 
 import type { ChatStyles } from './AIChatBubble.styles';
 import { NotepadPanel } from './NotepadPanel';

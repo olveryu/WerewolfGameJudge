@@ -12,8 +12,7 @@ import { Text, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
 import { UI_ICONS } from '@/config/iconTokens';
-import { useColors, withAlpha } from '@/theme';
-import { componentSizes } from '@/theme/tokens';
+import { componentSizes, useColors, withAlpha } from '@/theme';
 
 import { type FactionStats, groupRolesByFaction, type TemplateRoleItem } from '../configHelpers';
 import type { TemplatePickerStyles } from './templatePicker.styles';
