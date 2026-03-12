@@ -1,12 +1,13 @@
 /**
  * Bubble floating button styles.
  *
- * Capsule-shaped FAB: surface bg + borderLight border + icon + label in a row.
+ * Circular FAB: icon on top + label below, vertical layout.
+ * Uses theme tokens exclusively for full theme adaptability.
  * `bubbleHeight` / `bubbleWidth` injected from the barrel to avoid circular imports.
  */
 import { StyleSheet } from 'react-native';
 
-import { shadows, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, shadows, spacing, type ThemeColors, typography } from '@/theme';
 import { fixed } from '@/theme/tokens';
 
 export function createBubbleStyles(colors: ThemeColors, bubbleHeight: number, bubbleWidth: number) {
@@ -20,28 +21,30 @@ export function createBubbleStyles(colors: ThemeColors, bubbleHeight: number, bu
       overflow: 'visible',
     },
     bubble: {
-      flexDirection: 'row',
+      flexDirection: 'column',
       alignItems: 'center',
+      justifyContent: 'center',
+      width: bubbleWidth,
       height: bubbleHeight,
-      paddingHorizontal: spacing.medium,
-      borderRadius: bubbleHeight / 2,
+      borderRadius: borderRadius.full,
       backgroundColor: colors.surface,
       borderWidth: fixed.borderWidth,
       borderColor: colors.borderLight,
-      gap: spacing.tight,
+      gap: spacing.micro,
       ...shadows.md,
     },
     bubbleLabel: {
-      fontSize: typography.caption,
+      fontSize: typography.captionSmall,
       fontWeight: typography.weights.semibold,
-      color: colors.text,
+      color: colors.textMuted,
+      textAlign: 'center',
     },
     pulseRing: {
       position: 'absolute',
       width: bubbleWidth,
       height: bubbleHeight,
-      borderRadius: bubbleHeight / 2,
-      borderWidth: 3,
+      borderRadius: borderRadius.full,
+      borderWidth: 2,
       borderColor: colors.primary,
     },
   });
