@@ -429,33 +429,20 @@ export class GameFacade implements IGameFacade {
   // Seating (委托给 seatActions)
   // =========================================================================
 
-  async takeSeat(
-    seatNumber: number,
-    displayName?: string,
-    avatarUrl?: string,
-    isAnonymous?: boolean,
-  ): Promise<boolean> {
-    return seatActions.takeSeat(
-      this.#getSeatActionsContext(),
-      seatNumber,
-      displayName,
-      avatarUrl,
-      isAnonymous,
-    );
+  async takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
+    return seatActions.takeSeat(this.#getSeatActionsContext(), seatNumber, displayName, avatarUrl);
   }
 
   async takeSeatWithAck(
     seatNumber: number,
     displayName?: string,
     avatarUrl?: string,
-    isAnonymous?: boolean,
   ): Promise<{ success: boolean; reason?: string }> {
     return seatActions.takeSeatWithAck(
       this.#getSeatActionsContext(),
       seatNumber,
       displayName,
       avatarUrl,
-      isAnonymous,
     );
   }
 

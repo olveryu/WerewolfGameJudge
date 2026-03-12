@@ -73,7 +73,7 @@ export const handleRestart = createSimpleHandler(handleRestartGame, {
 
 export const handleSeat: HandlerFn = async (req) => {
   const body = (await req.json()) as SeatRequestBody;
-  const { roomCode, action, uid, seat, displayName, avatarUrl, isAnonymous } = body;
+  const { roomCode, action, uid, seat, displayName, avatarUrl } = body;
 
   if (!roomCode || !uid || !action) {
     return missingParams();
@@ -92,7 +92,7 @@ export const handleSeat: HandlerFn = async (req) => {
     if (action === 'sit') {
       const intent: JoinSeatIntent = {
         type: 'JOIN_SEAT',
-        payload: { seat: seat!, uid, displayName: displayName ?? '', avatarUrl, isAnonymous },
+        payload: { seat: seat!, uid, displayName: displayName ?? '', avatarUrl },
       };
       return handleJoinSeat(intent, handlerCtx);
     } else {

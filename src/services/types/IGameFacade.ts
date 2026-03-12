@@ -96,12 +96,7 @@ export interface IGameFacade {
    * 入座
    * 统一 HTTP API，服务端处理
    */
-  takeSeat(
-    seatNumber: number,
-    displayName?: string,
-    avatarUrl?: string,
-    isAnonymous?: boolean,
-  ): Promise<boolean>;
+  takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean>;
 
   /**
    * 入座（带 ACK 等待）
@@ -112,7 +107,6 @@ export interface IGameFacade {
     seatNumber: number,
     displayName?: string,
     avatarUrl?: string,
-    isAnonymous?: boolean,
   ): Promise<{ success: boolean; reason?: string }>;
 
   /**

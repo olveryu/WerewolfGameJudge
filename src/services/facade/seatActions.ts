@@ -57,9 +57,8 @@ export async function takeSeat(
   seatNumber: number,
   displayName?: string,
   avatarUrl?: string,
-  isAnonymous?: boolean,
 ): Promise<boolean> {
-  const result = await takeSeatWithAck(ctx, seatNumber, displayName, avatarUrl, isAnonymous);
+  const result = await takeSeatWithAck(ctx, seatNumber, displayName, avatarUrl);
   return result.success;
 }
 
@@ -71,7 +70,6 @@ export async function takeSeatWithAck(
   seatNumber: number,
   displayName?: string,
   avatarUrl?: string,
-  isAnonymous?: boolean,
 ): Promise<{ success: boolean; reason?: string }> {
   const roomCode = ctx.getRoomCode();
   if (!roomCode || !ctx.myUid) {
@@ -88,7 +86,6 @@ export async function takeSeatWithAck(
       seat: seatNumber,
       displayName,
       avatarUrl,
-      isAnonymous,
     },
     ctx.store,
   );

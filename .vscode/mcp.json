@@ -2,8 +2,8 @@
   "servers": {
     "context7": {
       "type": "stdio",
-      "command": "/Users/eyan/.asdf/shims/npx",
-      "args": ["-y", "@upstash/context7-mcp"]
+      "command": "npx",
+      "args": ["-y", "--registry", "https://registry.npmjs.org/", "@upstash/context7-mcp"]
     },
     "github": {
       "type": "http",
