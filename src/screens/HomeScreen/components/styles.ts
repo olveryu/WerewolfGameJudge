@@ -327,7 +327,6 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       color: colors.textInverse,
     },
     secondaryButton: {
-      backgroundColor: colors.background,
       padding: spacing.medium,
       borderRadius: borderRadius.full,
       alignItems: 'center',
@@ -357,6 +356,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       borderRadius: borderRadius.full,
       alignItems: 'center',
       marginTop: spacing.small,
+      marginBottom: spacing.small,
     },
     outlineButtonText: {
       ...textStyles.bodyMedium,
