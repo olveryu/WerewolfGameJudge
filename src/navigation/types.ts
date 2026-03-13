@@ -19,6 +19,7 @@ export type RootStackParamList = {
     roleRevealAnimation?: RoleRevealAnimation;
   };
   Settings: undefined;
+  Encyclopedia: undefined;
 };
 
 // For type-safe navigation

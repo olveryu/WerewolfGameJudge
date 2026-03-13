@@ -110,4 +110,10 @@ export const TESTIDS = {
   roleRevealWindow: (effect: string) => `${effect}-window`,
   roleRevealAutoReveal: (effect: string) => `${effect}-auto-reveal`,
   roleRevealTapReveal: (effect: string) => `${effect}-tap-reveal`,
+
+  // EncyclopediaScreen
+  homeEncyclopediaButton: 'home-encyclopedia-button',
+  encyclopediaScreenRoot: 'encyclopedia-screen-root',
+  encyclopediaRoleItem: (id: string) => `encyclopedia-role-${id}`,
+  encyclopediaFactionTab: (key: string) => `encyclopedia-faction-tab-${key}`,
 } as const;

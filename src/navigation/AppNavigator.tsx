@@ -15,6 +15,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
+import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
@@ -63,6 +64,7 @@ const linking: LinkingOptions<RootStackParamList> = {
         },
       },
       Settings: 'settings',
+      Encyclopedia: 'encyclopedia',
     },
   },
   // Strip non-serializable params (template, roleRevealAnimation) from browser URL
@@ -107,6 +109,11 @@ export const AppNavigator: React.FC = () => {
           name="Settings"
           component={SettingsScreen}
           options={{ title: '设置', presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+          name="Encyclopedia"
+          component={EncyclopediaScreen}
+          options={{ title: '角色图鉴', presentation: 'modal', animation: 'slide_from_bottom' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

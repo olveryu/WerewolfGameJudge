@@ -380,6 +380,19 @@ export const HomeScreen: React.FC = () => {
           <View style={styles.topBarActions}>
             <TouchableOpacity
               style={styles.topBarButton}
+              onPress={() => navigation.navigate('Encyclopedia')}
+              activeOpacity={fixed.activeOpacity}
+              testID={TESTIDS.homeEncyclopediaButton}
+              accessibilityLabel="角色图鉴"
+            >
+              <Ionicons
+                name="book-outline"
+                size={componentSizes.icon.md}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.topBarButton}
               onPress={handleProfilePress}
               activeOpacity={fixed.activeOpacity}
               testID={user ? TESTIDS.homeUserBar : TESTIDS.homeLoginButton}
