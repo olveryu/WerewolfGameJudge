@@ -99,6 +99,7 @@ jest.mock('../../../../assets/audio_end/seer_2.mp3', () => 'seer_2-end-audio', {
 // Now import AudioService after mocks are set up
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
 
+import { BGM_VOLUME } from '@/services/infra/audio/audioRegistry';
 import {
   _AUDIO_END_ROLE_IDS,
   _AUDIO_ROLE_IDS,
@@ -544,7 +545,7 @@ describe('AudioService - BGM (native path)', () => {
     await audioService.startBgm();
 
     expect(createAudioPlayer).toHaveBeenCalled();
-    expect(mockPlayer.volume).toBe(0.03);
+    expect(mockPlayer.volume).toBe(BGM_VOLUME);
     expect(mockPlayer.loop).toBe(true);
     expect(mockPlayer.play).toHaveBeenCalled();
   });

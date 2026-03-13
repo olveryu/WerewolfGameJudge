@@ -2,8 +2,11 @@
  * BgmPlayer — background music lifecycle manager.
  *
  * Handles loop playback of night BGM with platform-specific backends
- * (HTML Audio on Web, expo-audio on Native). Supports pause/resume for
- * visibility changes. Independent of TTS playback — AudioService composes both.
+ * (Web Audio API GainNode on Web, expo-audio on Native). Supports pause/resume
+ * for visibility changes. Independent of TTS playback — AudioService composes both.
+ *
+ * Web uses AudioContext + GainNode instead of HTMLAudioElement.volume because
+ * iOS Safari ignores HTMLAudioElement.volume (always 1.0, hardware-only control).
  */
 
 import type { AudioPlayer } from 'expo-audio';
@@ -20,6 +23,7 @@ const isWeb = Platform.OS === 'web';
 export class BgmPlayer {
   #nativePlayer: AudioPlayer | null = null;
   #webElement: HTMLAudioElement | null = null;
+  #webAudioCtx: AudioContext | null = null;
   #isPlaying = false;
 
   getIsBgmPlaying(): boolean {
@@ -38,16 +42,27 @@ export class BgmPlayer {
       if (isWeb && typeof document !== 'undefined') {
         const audioUrl = audioAssetToUrl(BGM_NIGHT);
         const audio = new Audio(audioUrl);
-        audio.volume = BGM_VOLUME;
         audio.loop = true;
+
+        // Use Web Audio API GainNode for volume control.
+        // iOS Safari ignores HTMLAudioElement.volume (read-only, always 1.0).
+        const ctx = new AudioContext();
+        const source = ctx.createMediaElementSource(audio);
+        const gain = ctx.createGain();
+        gain.gain.value = BGM_VOLUME;
+        source.connect(gain);
+        gain.connect(ctx.destination);
+
         this.#webElement = audio;
+        this.#webAudioCtx = ctx;
         this.#isPlaying = true;
+
         audio.play().catch((err) => {
           audioLog.warn('Web BGM play() rejected (autoplay policy?):', err);
           this.#isPlaying = false;
-          this.#webElement = null; // 清除残留引用，允许后续 start() 重试
+          this.#cleanupWeb();
         });
-        audioLog.debug('BGM started successfully (Web HTML Audio)');
+        audioLog.debug('BGM started successfully (Web Audio API)');
         return;
       }
 
@@ -63,8 +78,20 @@ export class BgmPlayer {
       audioLog.warn('Failed to start BGM:', error);
       this.#isPlaying = false;
       this.#nativePlayer = null;
-      this.#webElement = null;
+      this.#cleanupWeb();
     }
+  }
+
+  #cleanupWeb(): void {
+    if (this.#webAudioCtx) {
+      try {
+        void this.#webAudioCtx.close();
+      } catch {
+        // Ignore
+      }
+    }
+    this.#webElement = null;
+    this.#webAudioCtx = null;
   }
 
   stop(): void {
@@ -75,7 +102,7 @@ export class BgmPlayer {
       } catch {
         // Ignore errors
       }
-      this.#webElement = null;
+      this.#cleanupWeb();
       this.#isPlaying = false;
       audioLog.debug('BGM stopped (Web)');
     }
@@ -111,6 +138,10 @@ export class BgmPlayer {
   resume(): void {
     if (!this.#isPlaying) return;
     if (this.#webElement) {
+      // Resume AudioContext if suspended (iOS Safari requires user gesture)
+      if (this.#webAudioCtx?.state === 'suspended') {
+        void this.#webAudioCtx.resume();
+      }
       this.#webElement.play().catch((e) => {
         audioLog.warn('[visibility] error resuming web bgm', e);
       });
