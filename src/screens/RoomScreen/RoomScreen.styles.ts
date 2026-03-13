@@ -137,9 +137,8 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     },
     hiddenShareCardContainer: {
       position: 'absolute',
-      top: spacing.small,
-      left: spacing.small,
-      zIndex: -1,
+      top: -9999,
+      left: -9999,
     },
   });
 }
