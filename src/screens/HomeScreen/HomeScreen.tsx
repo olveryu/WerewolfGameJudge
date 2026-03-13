@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { isValidRoleId, type RoleId } from '@werewolf/game-engine/models/roles';
+import { findMatchingPresetName } from '@werewolf/game-engine/models/Template';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -29,6 +31,7 @@ import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import { useServices } from '@/contexts/ServiceContext';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
@@ -48,11 +51,13 @@ export const HomeScreen: React.FC = () => {
 
   const navigation = useNavigation<NavigationProp>();
   const { user, signOut, loading: authLoading, error: authError } = useAuth();
+  const { settingsService } = useServices();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
   const [dismissedTips, setDismissedTips] = useState<Set<string>>(new Set());
+  const [lastTemplateRoles, setLastTemplateRoles] = useState<string[] | null>(null);
 
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
@@ -105,6 +110,21 @@ export const HomeScreen: React.FC = () => {
     const unsubscribeFocus = navigation.addListener('focus', readLastRoom);
     return unsubscribeFocus;
   }, [user, navigation]);
+
+  // Load last template roles on mount and when returning to screen
+  useEffect(() => {
+    const readLastTemplate = () => {
+      const roles = settingsService.getLastTemplateRoles();
+      if (roles && roles.length > 0 && roles.every((r) => isValidRoleId(r))) {
+        setLastTemplateRoles(roles);
+      } else {
+        setLastTemplateRoles(null);
+      }
+    };
+    readLastTemplate();
+    const unsubscribeFocus = navigation.addListener('focus', readLastTemplate);
+    return unsubscribeFocus;
+  }, [navigation, settingsService]);
 
   // Get user display name
   const userName = useMemo(() => {
@@ -182,6 +202,17 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('Config');
   }, [navigation]);
 
+  const handleQuickStart = useCallback(() => {
+    if (!lastTemplateRoles) return;
+    setIsCreating(true);
+    navigation.navigate('Config', { initialRoles: lastTemplateRoles as RoleId[] });
+  }, [lastTemplateRoles, navigation]);
+
+  const lastTemplateName = useMemo(() => {
+    if (!lastTemplateRoles) return null;
+    return findMatchingPresetName(lastTemplateRoles as RoleId[]) ?? '自定义';
+  }, [lastTemplateRoles]);
+
   const handleShowJoinModal = useCallback(() => {
     setShowJoinModal(true);
   }, []);
@@ -238,6 +269,18 @@ export const HomeScreen: React.FC = () => {
   });
   const handleReturnLastGamePress = useCallback(() => {
     handleReturnLastGamePressRef.current();
+  }, []);
+
+  const handleQuickStartPressRef = useRef(() => {
+    requireAuth(handleQuickStart);
+  });
+  useLayoutEffect(() => {
+    handleQuickStartPressRef.current = () => {
+      requireAuth(handleQuickStart);
+    };
+  });
+  const handleQuickStartPress = useCallback(() => {
+    handleQuickStartPressRef.current();
   }, []);
 
   // ============================================
@@ -428,6 +471,32 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </PressableScale>
         </View>
+
+        {/* ── Quick Start — Last Template ─────────────── */}
+        {lastTemplateRoles && lastTemplateName && (
+          <PressableScale
+            onPress={handleQuickStartPress}
+            disabled={authLoading}
+            style={styles.quickStartCard}
+            testID={TESTIDS.homeQuickStartCard}
+            haptic
+          >
+            <View style={styles.quickStartIcon}>
+              <Ionicons name="flash-outline" size={componentSizes.icon.lg} color={colors.primary} />
+            </View>
+            <View style={styles.quickStartContent}>
+              <Text style={styles.quickStartTitle}>快速开局</Text>
+              <Text style={styles.quickStartSubtitle}>
+                {lastTemplateName} · {lastTemplateRoles.length}人
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={componentSizes.icon.md}
+              color={colors.textMuted}
+            />
+          </PressableScale>
+        )}
 
         {/* ── Contextual Tips ────────────────────────── */}
         {activeTips.map((tip) => (

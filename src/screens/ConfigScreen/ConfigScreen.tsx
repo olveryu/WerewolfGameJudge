@@ -48,12 +48,14 @@ export const ConfigScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConfigRouteProp>();
   const existingRoomNumber = route.params?.existingRoomNumber;
+  const initialRoles = route.params?.initialRoles;
 
   const facade = useGameFacade();
   const { settingsService, authService, roomService } = useServices();
 
   const state = useConfigScreenState({
     existingRoomNumber,
+    initialRoles,
     navigation,
     facade,
     settingsService,

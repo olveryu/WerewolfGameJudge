@@ -11,7 +11,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
-import { Faction } from '@werewolf/game-engine/models/roles';
+import { Faction, type RoleId } from '@werewolf/game-engine/models/roles';
 import {
   createCustomTemplate,
   PRESET_TEMPLATES,
@@ -48,6 +48,7 @@ type ConfigNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Confi
 
 interface UseConfigScreenStateParams {
   existingRoomNumber: string | undefined;
+  initialRoles: RoleId[] | undefined;
   navigation: ConfigNavigationProp;
   facade: IGameFacade;
   settingsService: SettingsService;
@@ -62,6 +63,7 @@ interface UseConfigScreenStateParams {
 
 export function useConfigScreenState({
   existingRoomNumber,
+  initialRoles,
   navigation,
   facade,
   settingsService,
@@ -93,6 +95,17 @@ export function useConfigScreenState({
       setBgmEnabled(settingsService.isBgmEnabled());
     }
   }, [existingRoomNumber, settingsService]);
+
+  // ── Pre-populate from initialRoles (quick-start from HomeScreen) ─────────
+
+  useEffect(() => {
+    if (initialRoles && initialRoles.length > 0 && !isEditMode) {
+      const restored = restoreFromTemplateRoles(initialRoles);
+      setSelection(restored.selection);
+      setVariantOverrides(restored.variantOverrides);
+      setSelectedTemplate(restored.matchedPreset ?? '__custom__');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- one-shot on mount
 
   // ── Load current room's roles when in edit mode ──────────────────────────
 
@@ -226,6 +239,7 @@ export function useConfigScreenState({
         );
         const roomNumber = record.roomNumber;
         await AsyncStorage.setItem(LAST_ROOM_NUMBER_KEY, roomNumber);
+        await settingsService.setLastTemplateRoles(roles);
         navigation.navigate('Room', {
           roomNumber,
           isHost: true,
