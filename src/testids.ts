@@ -90,6 +90,7 @@ export const TESTIDS = {
   // NightReviewModal
   nightReviewButton: 'night-review-button',
   nightReviewModal: 'night-review-modal',
+  nightReviewShareButton: 'night-review-share-button',
 
   // ShareReviewModal
   shareReviewButton: 'share-review-button',
