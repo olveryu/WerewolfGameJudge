@@ -72,7 +72,7 @@ export interface TemplatePickerStyles {
   emptyClearBtn: ViewStyle;
   emptyClearBtnText: TextStyle;
   // ── Search icon ──
-  searchIcon: ViewStyle;
+  searchIcon: TextStyle;
   // ── SectionList content ──
   sectionListContent: ViewStyle;
   sectionListContentWithBar: ViewStyle;
