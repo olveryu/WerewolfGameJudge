@@ -409,12 +409,12 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
       'villager',
       'wolf',
       'wolf',
-      'wolf',
       'awakenedGargoyle',
       'seer',
       'witch',
       'hunter',
       'guard',
+      'graveyardKeeper',
     ],
   },
   {

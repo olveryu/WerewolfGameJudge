@@ -6,12 +6,13 @@
  * 模板：唯邻是从12人
  * 固定 seat-role assignment:
  *   seat 0-3: villager
- *   seat 4-6: wolf
- *   seat 7: awakenedGargoyle
- *   seat 8: seer
- *   seat 9: witch
- *   seat 10: hunter
- *   seat 11: guard
+ *   seat 4-5: wolf
+ *   seat 6: awakenedGargoyle
+ *   seat 7: seer
+ *   seat 8: witch
+ *   seat 9: hunter
+ *   seat 10: guard
+ *   seat 11: graveyardKeeper
  *
  * 核心规则：
  * - awakenedGargoyleConvert: chooseSeat (AdjacentToWolfFaction constraint)
@@ -40,12 +41,12 @@ function createRoleAssignment(): Map<number, RoleId> {
   map.set(3, 'villager');
   map.set(4, 'wolf');
   map.set(5, 'wolf');
-  map.set(6, 'wolf');
-  map.set(7, 'awakenedGargoyle');
-  map.set(8, 'seer');
-  map.set(9, 'witch');
-  map.set(10, 'hunter');
-  map.set(11, 'guard');
+  map.set(6, 'awakenedGargoyle');
+  map.set(7, 'seer');
+  map.set(8, 'witch');
+  map.set(9, 'hunter');
+  map.set(10, 'guard');
+  map.set(11, 'graveyardKeeper');
   return map;
 }
 
@@ -107,7 +108,7 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
 
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
-        seat: 7,
+        seat: 6,
         role: 'awakenedGargoyle',
         target: null,
       });
@@ -123,12 +124,12 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       expect(executeStepsUntil(ctx, 'awakenedGargoyleConvert')).toBe(true);
       ctx.assertStep('awakenedGargoyleConvert');
 
-      // seat 10 (hunter) 不与任何 wolf faction 相邻
-      // wolves at 4,5,6; awakenedGargoyle at 7; adjacent: 3,8
+      // seat 10 (guard) 不与任何 wolf faction 相邻
+      // wolves at 4,5; awakenedGargoyle at 6; adjacent non-wolf-faction: 3,7
       // seat 10 neighbors: 9,11 — both are non-wolf
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
-        seat: 7,
+        seat: 6,
         role: 'awakenedGargoyle',
         target: 10,
       });
@@ -144,9 +145,9 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
 
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
-        seat: 7,
+        seat: 6,
         role: 'awakenedGargoyle',
-        target: 7,
+        target: 6,
       });
 
       expect(result.success).toBe(false);
@@ -162,7 +163,7 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       // seat 4 is wolf (wolf faction) — 不能转化狼人阵营
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
-        seat: 7,
+        seat: 6,
         role: 'awakenedGargoyle',
         target: 4,
       });
@@ -180,7 +181,7 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       ctx.assertStep('awakenedGargoyleConvert');
       ctx.sendPlayerMessage({
         type: 'ACTION',
-        seat: 7,
+        seat: 6,
         role: 'awakenedGargoyle',
         target: 3, // seat 3 与 wolf seat 4 相邻
       });
