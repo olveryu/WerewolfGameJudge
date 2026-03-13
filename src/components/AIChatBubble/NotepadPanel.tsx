@@ -20,8 +20,10 @@ import {
   Text,
   TextInput,
   type TextInputContentSizeChangeEventData,
+  type TextStyle,
   TouchableOpacity,
   View,
+  type ViewStyle,
 } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
@@ -89,7 +91,9 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
       : null;
 
     const factionKey = selectedTag ? getFactionStyleKey(selectedTag.faction) : null;
-    const cardBgStyle = factionKey ? styles[`card${factionKey}` as keyof NotepadStyles] : undefined;
+    const cardBgStyle = factionKey
+      ? (styles[`card${factionKey}` as keyof NotepadStyles] as ViewStyle)
+      : undefined;
 
     return (
       <View style={[styles.card, cardBgStyle]}>
@@ -105,13 +109,15 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             <View
               style={[
                 styles.roleBadge,
-                factionKey && styles[`roleBadge${factionKey}` as keyof NotepadStyles],
+                factionKey &&
+                  (styles[`roleBadge${factionKey}` as keyof NotepadStyles] as ViewStyle),
               ]}
             >
               <Text
                 style={[
                   selectedTag ? styles.roleBadgeText : styles.seatPlaceholder,
-                  factionKey && styles[`roleBadgeText${factionKey}` as keyof NotepadStyles],
+                  factionKey &&
+                    (styles[`roleBadgeText${factionKey}` as keyof NotepadStyles] as TextStyle),
                 ]}
               >
                 {selectedTag ? (
@@ -175,14 +181,16 @@ const RolePickerModal: React.FC<RolePickerModalProps> = React.memo(
                     onPress={() => onSelect(seat, tag.roleId)}
                     style={[
                       styles.popoverTag,
-                      isSelected && styles[`popoverTagSelected${fKey}` as keyof NotepadStyles],
+                      isSelected &&
+                        (styles[`popoverTagSelected${fKey}` as keyof NotepadStyles] as ViewStyle),
                     ]}
                     activeOpacity={fixed.activeOpacity}
                   >
                     <Text
                       style={[
                         styles.popoverTagText,
-                        !isSelected && styles[`popoverTagText${fKey}` as keyof NotepadStyles],
+                        !isSelected &&
+                          (styles[`popoverTagText${fKey}` as keyof NotepadStyles] as TextStyle),
                         isSelected && styles.popoverTagTextSelected,
                       ]}
                     >

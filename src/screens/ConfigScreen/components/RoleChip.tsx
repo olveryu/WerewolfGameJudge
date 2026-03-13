@@ -5,7 +5,7 @@
  * 变体 chip 用双色边框区分。所有 chip 长按可查看技能说明（变体角色在卡片内切换变体）。
  */
 import { memo } from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity, type ViewStyle } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 import { fixed } from '@/theme';
@@ -50,7 +50,7 @@ export const RoleChip = memo<RoleChipProps>(
     onInfoPress,
   }) => {
     const selectedStyle = factionColor
-      ? styles[FACTION_STYLE_MAP[factionColor]]
+      ? (styles[FACTION_STYLE_MAP[factionColor]] as ViewStyle)
       : styles.chipSelected;
 
     const handleLongPress = onInfoPress ? () => onInfoPress(id) : undefined;
