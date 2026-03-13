@@ -33,9 +33,10 @@ import { TESTIDS } from '@/testids';
 import {
   borderRadius,
   componentSizes,
+  createSharedStyles,
   fixed,
+  shadows,
   spacing,
-  textStyles,
   type ThemeColors,
   typography,
   useColors,
@@ -55,9 +56,9 @@ interface FactionTab {
 }
 
 const FACTION_TABS: FactionTab[] = [
-  { key: 'villager', label: '村民' },
   { key: 'god', label: '神' },
   { key: 'wolf', label: '狼人' },
+  { key: 'villager', label: '村民' },
   { key: 'third', label: '第三方' },
 ];
 
@@ -113,7 +114,7 @@ const RoleGridItem = React.memo<RoleGridItemProps>(function RoleGridItem({
         {
           width: itemWidth,
           borderColor: withAlpha(factionColor, 0.5),
-          backgroundColor: withAlpha(factionColor, 0.08),
+          backgroundColor: withAlpha(factionColor, 0.12),
         },
       ]}
       onPress={() => onPress(roleId)}
@@ -132,10 +133,11 @@ const gridItemStyles = StyleSheet.create({
   card: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.medium,
+    paddingVertical: spacing.small,
     paddingHorizontal: spacing.tight,
     borderRadius: borderRadius.medium,
     borderWidth: fixed.borderWidth,
+    ...shadows.sm,
   },
   badge: {
     width: BADGE_SIZE,
@@ -143,8 +145,8 @@ const gridItemStyles = StyleSheet.create({
     marginBottom: spacing.tight,
   },
   name: {
-    fontSize: typography.caption,
-    lineHeight: typography.lineHeights.caption,
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
     fontWeight: typography.weights.medium,
     textAlign: 'center',
   },
@@ -159,7 +161,7 @@ export const EncyclopediaScreen: React.FC = () => {
   const navigation = useNavigation();
   const { width: screenWidth } = useWindowDimensions();
 
-  const [activeFilter, setActiveFilter] = useState<FactionFilterKey>('villager');
+  const [activeFilter, setActiveFilter] = useState<FactionFilterKey>('god');
   const [selectedRole, setSelectedRole] = useState<RoleId | null>(null);
 
   const allRoleIds = useMemo(() => getAllRoleIds(), []);
@@ -268,6 +270,7 @@ export const EncyclopediaScreen: React.FC = () => {
 // ============================================
 
 function createStyles(colors: ThemeColors) {
+  const shared = createSharedStyles(colors);
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -277,25 +280,34 @@ function createStyles(colors: ThemeColors) {
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.screenH,
+      paddingVertical: spacing.medium,
+      backgroundColor: colors.surface,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.border,
     },
     backButton: {
-      padding: spacing.small,
+      ...shared.iconButton,
+      borderRadius: borderRadius.full,
+      overflow: 'hidden',
     },
     headerTitle: {
-      ...textStyles.titleBold,
-      color: colors.text,
       flex: 1,
+      fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
+      fontWeight: typography.weights.bold,
+      color: colors.text,
       textAlign: 'center',
     },
     headerSpacer: {
-      width: componentSizes.icon.lg + spacing.small * 2,
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
     },
     // Tabs
     tabBar: {
       flexDirection: 'row',
       paddingHorizontal: spacing.medium,
+      marginTop: spacing.small,
       marginBottom: spacing.medium,
       gap: spacing.small,
     },

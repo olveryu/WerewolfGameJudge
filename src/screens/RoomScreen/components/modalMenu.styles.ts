@@ -48,10 +48,23 @@ export function createModalMenuStyles(colors: ThemeColors): {
         paddingTop: componentSizes.header + spacing.small,
         paddingRight: spacing.medium,
       },
+      menuArrow: {
+        width: 0,
+        height: 0,
+        borderLeftWidth: spacing.small,
+        borderLeftColor: colors.surface + '00', // transparent (CSS triangle technique)
+        borderRightWidth: spacing.small,
+        borderRightColor: colors.surface + '00', // transparent (CSS triangle technique)
+        borderBottomWidth: spacing.small,
+        borderBottomColor: colors.surface,
+        alignSelf: 'flex-end',
+        marginRight: spacing.medium,
+      },
       menuContainer: {
         backgroundColor: colors.surface,
         borderRadius: borderRadius.medium,
         minWidth: componentSizes.menu.minWidth,
+        paddingVertical: spacing.tight,
         ...shadows.md,
         overflow: 'hidden',
       },
@@ -59,7 +72,7 @@ export function createModalMenuStyles(colors: ThemeColors): {
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.small,
-        paddingVertical: spacing.medium,
+        paddingVertical: spacing.small,
         paddingHorizontal: spacing.large,
       },
       menuItemText: {
@@ -71,10 +84,11 @@ export function createModalMenuStyles(colors: ThemeColors): {
       menuItemTextDanger: {
         color: colors.error,
       },
-      separator: {
+      sectionGap: {
         height: fixed.divider,
         backgroundColor: colors.border,
         marginHorizontal: spacing.medium,
+        marginVertical: spacing.tight,
       },
     }),
 

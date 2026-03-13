@@ -16,12 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { SettingsSheet } from '@/components/SettingsSheet';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { fixed, useColors } from '@/theme';
+import { componentSizes, fixed, useColors } from '@/theme';
 
 import {
   createConfigScreenStyles,
@@ -70,8 +69,6 @@ export const ConfigScreen: React.FC = () => {
     selection,
     totalCount,
     variantOverrides,
-    overflowVisible,
-    setOverflowVisible,
     handleGoBack,
     handleCreateRoom,
     toggleRole,
@@ -82,13 +79,6 @@ export const ConfigScreen: React.FC = () => {
     handleCloseTemplateDropdown,
     handleSelectTemplate,
     selectedTemplate,
-    roleRevealAnimation,
-    bgmEnabled,
-    settingsSheetVisible,
-    handleOpenSettings,
-    handleCloseSettings,
-    handleAnimationChange,
-    handleBgmChange,
     roleInfoId,
     roleInfoVariantIds,
     roleInfoActiveVariant,
@@ -113,7 +103,7 @@ export const ConfigScreen: React.FC = () => {
           onPress={handleGoBack}
           testID={TESTIDS.configBackButton}
         >
-          <Ionicons name="chevron-back" size={20} color={colors.text} />
+          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter} pointerEvents="box-none">
           <TouchableOpacity
@@ -128,61 +118,14 @@ export const ConfigScreen: React.FC = () => {
         </View>
         <TouchableOpacity
           style={styles.headerBtn}
-          onPress={() => setOverflowVisible((v) => !v)}
+          onPress={handleClearSelection}
           activeOpacity={fixed.activeOpacity}
-          testID={TESTIDS.configMoreButton}
-          accessibilityLabel="更多选项"
+          testID={TESTIDS.configOverflowReset}
+          accessibilityLabel="重置配置"
         >
-          <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
+          <Ionicons name="trash-outline" size={componentSizes.icon.lg} color={colors.text} />
         </TouchableOpacity>
       </View>
-
-      {/* Overflow popup menu */}
-      {overflowVisible && (
-        <>
-          <TouchableOpacity
-            style={styles.overflowMenuOverlay}
-            activeOpacity={1}
-            onPress={() => setOverflowVisible(false)}
-          />
-          <View style={styles.overflowMenu}>
-            <TouchableOpacity
-              style={styles.overflowMenuItem}
-              onPress={() => {
-                setOverflowVisible(false);
-                handleClearSelection();
-              }}
-              testID={TESTIDS.configOverflowReset}
-              accessibilityLabel="重置配置"
-            >
-              <Ionicons
-                name="trash-outline"
-                size={18}
-                color={colors.text}
-                style={styles.overflowMenuItemIcon}
-              />
-              <Text style={styles.overflowMenuItemText}>重置配置</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.overflowMenuItem}
-              onPress={() => {
-                setOverflowVisible(false);
-                handleOpenSettings();
-              }}
-              testID={TESTIDS.configOverflowSettings}
-              accessibilityLabel="设置"
-            >
-              <Ionicons
-                name="settings-outline"
-                size={18}
-                color={colors.text}
-                style={styles.overflowMenuItemIcon}
-              />
-              <Text style={styles.overflowMenuItemText}>设置</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
 
       {/* Card A — faction tabs */}
       <View style={styles.cardA}>
@@ -282,19 +225,6 @@ export const ConfigScreen: React.FC = () => {
           )}
         </TouchableOpacity>
       </View>
-
-      {/* Settings Sheet (Animation + BGM) */}
-      <SettingsSheet
-        visible={settingsSheetVisible}
-        onClose={handleCloseSettings}
-        roleRevealAnimation={roleRevealAnimation}
-        bgmValue={bgmEnabled ? 'on' : 'off'}
-        onAnimationChange={handleAnimationChange}
-        onBgmChange={handleBgmChange}
-        animationTestIDPrefix={TESTIDS.configAnimation}
-        bgmTestIDPrefix={TESTIDS.configBgm}
-        overlayTestID={TESTIDS.configSettingsOverlay}
-      />
 
       {/* Template Dropdown Modal */}
       <TemplatePicker

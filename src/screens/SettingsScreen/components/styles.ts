@@ -23,8 +23,8 @@ export interface SettingsScreenStyles {
   header: ViewStyle;
   backBtn: ViewStyle;
   backBtnText: TextStyle;
-  title: TextStyle;
-  placeholder: ViewStyle;
+  headerTitle: TextStyle;
+  headerSpacer: ViewStyle;
   scrollView: ViewStyle;
   card: ViewStyle;
   cardTitle: TextStyle;
@@ -113,13 +113,15 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     backBtn: {
       ...createSharedStyles(colors).iconButton,
+      borderRadius: borderRadius.full,
+      overflow: 'hidden',
     },
     backBtnText: {
       fontSize: typography.title,
       lineHeight: typography.lineHeights.title,
       color: colors.text,
     },
-    title: {
+    headerTitle: {
       flex: 1,
       fontSize: typography.subtitle,
       lineHeight: typography.lineHeights.subtitle,
@@ -127,8 +129,9 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       color: colors.text,
       textAlign: 'center',
     },
-    placeholder: {
-      minWidth: componentSizes.headerAction.minWidth,
+    headerSpacer: {
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
     },
     scrollView: {
       flex: 1,

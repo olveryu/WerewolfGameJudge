@@ -71,12 +71,13 @@ export interface HostMenuDropdownStyles {
   triggerButton: ViewStyle;
   triggerText: TextStyle;
   modalOverlay: ViewStyle;
+  menuArrow: ViewStyle;
   menuContainer: ViewStyle;
   menuItem: ViewStyle;
   menuItemText: TextStyle;
   menuItemDanger: ViewStyle;
   menuItemTextDanger: TextStyle;
-  separator: ViewStyle;
+  sectionGap: ViewStyle;
   headerRightContainer: ViewStyle;
 }
 

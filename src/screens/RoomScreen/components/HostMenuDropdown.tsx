@@ -13,15 +13,17 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
-import { componentSizes, spacing, useColors } from '@/theme';
+import { componentSizes, useColors } from '@/theme';
 
 import { type HostMenuDropdownStyles } from './styles';
 
-const MENU_ICON_SIZE = spacing.large;
+const MENU_ICON_SIZE = componentSizes.icon.md;
 
 interface HostMenuDropdownProps {
   /** Whether to show the menu (Host only) */
   visible: boolean;
+  /** Show encyclopedia option (always visible for all users) */
+  showEncyclopedia: boolean;
   /** Show game settings option (only before game starts) */
   showSettings: boolean;
   /** Show user settings option */
@@ -37,6 +39,7 @@ interface HostMenuDropdownProps {
   onMarkAllBotsViewed: () => void;
   onClearAllSeats: () => void;
   onSettings: () => void;
+  onEncyclopedia: () => void;
   onUserSettings: () => void;
   /** Pre-created styles from parent */
   styles: HostMenuDropdownStyles;
@@ -44,6 +47,7 @@ interface HostMenuDropdownProps {
 
 const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   visible,
+  showEncyclopedia,
   showSettings,
   showUserSettings,
   showFillWithBots,
@@ -53,6 +57,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   onMarkAllBotsViewed,
   onClearAllSeats,
   onSettings,
+  onEncyclopedia,
   onUserSettings,
   styles,
 }) => {
@@ -92,43 +97,23 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     onUserSettings();
   }, [onUserSettings]);
 
+  const handleEncyclopedia = useCallback(() => {
+    setMenuOpen(false);
+    onEncyclopedia();
+  }, [onEncyclopedia]);
+
   // Don't render if not visible
   if (!visible) {
     return <View style={styles.triggerButton} />;
   }
 
   const hasDropdownItems =
+    showEncyclopedia ||
     showSettings ||
     showUserSettings ||
     showFillWithBots ||
     showMarkAllBotsViewed ||
     showClearAllSeats;
-
-  // Only user settings — render direct icon button, no dropdown
-  const isUserSettingsOnly =
-    showUserSettings &&
-    !showSettings &&
-    !showFillWithBots &&
-    !showMarkAllBotsViewed &&
-    !showClearAllSeats;
-
-  if (isUserSettingsOnly) {
-    return (
-      <View style={styles.headerRightContainer}>
-        <TouchableOpacity
-          style={styles.triggerButton}
-          onPress={onUserSettings}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons
-            name="person-circle-outline"
-            size={componentSizes.icon.lg}
-            color={colors.textSecondary}
-          />
-        </TouchableOpacity>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.headerRightContainer}>
@@ -140,7 +125,11 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
             onPress={handleOpenMenu}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
+            <Ionicons
+              name="ellipsis-horizontal"
+              size={componentSizes.icon.md}
+              color={colors.text}
+            />
           </TouchableOpacity>
 
           <Modal
@@ -154,56 +143,62 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
               activeOpacity={1}
               onPress={handleCloseMenu}
             >
-              <View style={styles.menuContainer}>
-                {/* Game Settings — only before game starts */}
-                {showSettings && (
-                  <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
-                    <Ionicons name="settings-outline" size={MENU_ICON_SIZE} color={colors.text} />
-                    <Text style={styles.menuItemText}>游戏设置</Text>
-                  </TouchableOpacity>
-                )}
+              <View>
+                <View style={styles.menuArrow} />
+                <View style={styles.menuContainer}>
+                  {/* Group 1: Navigation */}
+                  {showEncyclopedia && (
+                    <TouchableOpacity style={styles.menuItem} onPress={handleEncyclopedia}>
+                      <Ionicons name="book-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                      <Text style={styles.menuItemText}>角色图鉴</Text>
+                    </TouchableOpacity>
+                  )}
 
-                {/* User Settings — navigate to Settings screen */}
-                {showUserSettings && (
-                  <>
-                    {showSettings && <View style={styles.separator} />}
+                  {/* Gap: Navigation → Settings */}
+                  {showEncyclopedia && (showSettings || showUserSettings) && (
+                    <View style={styles.sectionGap} />
+                  )}
+
+                  {/* Group 2: Settings */}
+                  {showSettings && (
+                    <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
+                      <Ionicons name="settings-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                      <Text style={styles.menuItemText}>游戏设置</Text>
+                    </TouchableOpacity>
+                  )}
+                  {showUserSettings && (
                     <TouchableOpacity style={styles.menuItem} onPress={handleUserSettings}>
                       <Ionicons name="person-outline" size={MENU_ICON_SIZE} color={colors.text} />
                       <Text style={styles.menuItemText}>用户设置</Text>
                     </TouchableOpacity>
-                  </>
-                )}
+                  )}
 
-                {showClearAllSeats && (
-                  <>
-                    <View style={styles.separator} />
+                  {/* Gap: (Navigation | Settings) → Operations */}
+                  {(showEncyclopedia || showSettings || showUserSettings) &&
+                    (showClearAllSeats || showFillWithBots || showMarkAllBotsViewed) && (
+                      <View style={styles.sectionGap} />
+                    )}
+
+                  {/* Group 3: Operations */}
+                  {showClearAllSeats && (
                     <TouchableOpacity style={styles.menuItem} onPress={handleClearAllSeats}>
                       <Ionicons name="exit-outline" size={MENU_ICON_SIZE} color={colors.text} />
                       <Text style={styles.menuItemText}>全员起立</Text>
                     </TouchableOpacity>
-                  </>
-                )}
-
-                {/* Bot actions — at bottom */}
-                {showFillWithBots && (
-                  <>
-                    <View style={styles.separator} />
+                  )}
+                  {showFillWithBots && (
                     <TouchableOpacity style={styles.menuItem} onPress={handleFillWithBots}>
                       <Ionicons name="people-outline" size={MENU_ICON_SIZE} color={colors.text} />
                       <Text style={styles.menuItemText}>填充机器人</Text>
                     </TouchableOpacity>
-                  </>
-                )}
-
-                {showMarkAllBotsViewed && (
-                  <>
-                    <View style={styles.separator} />
+                  )}
+                  {showMarkAllBotsViewed && (
                     <TouchableOpacity style={styles.menuItem} onPress={handleMarkAllBotsViewed}>
                       <Ionicons name="eye-outline" size={MENU_ICON_SIZE} color={colors.text} />
                       <Text style={styles.menuItemText}>标记机器人已查看</Text>
                     </TouchableOpacity>
-                  </>
-                )}
+                  )}
+                </View>
               </View>
             </TouchableOpacity>
           </Modal>

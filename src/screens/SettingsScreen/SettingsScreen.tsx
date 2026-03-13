@@ -27,7 +27,7 @@ import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
-import { ThemeKey, typography, useTheme } from '@/theme';
+import { componentSizes, ThemeKey, typography, useTheme } from '@/theme';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { getAvatarImage } from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
@@ -406,10 +406,10 @@ export const SettingsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={handleGoBack}>
-          <Ionicons name="chevron-back" size={20} color={colors.text} />
+          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>设置</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.headerTitle}>设置</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>

@@ -120,13 +120,13 @@ describe('ConfigScreen', () => {
       expect(getByText('创建房间')).toBeTruthy();
     });
 
-    it('should render header with player count and more button', () => {
+    it('should render header with player count and reset button', () => {
       const { getByText, getByTestId } = renderWithFacade(<ConfigScreen />);
 
       // Header shows player count
       expect(getByText(/\d+人/)).toBeTruthy();
-      // More button for overflow menu
-      expect(getByTestId('config-more-btn')).toBeTruthy();
+      // Reset button for clearing selection
+      expect(getByTestId('config-overflow-reset')).toBeTruthy();
     });
   });
 
