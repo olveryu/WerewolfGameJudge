@@ -223,6 +223,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Night review modal
     nightReviewVisible,
     openNightReview,
+    openShareFromReview,
     closeNightReview,
     // Share review modal
     shareReviewVisible,
@@ -602,6 +603,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           data={buildNightReviewData(gameState)}
           roomNumber={roomNumber}
           onClose={closeNightReview}
+          onShareToPlayers={isHost ? openShareFromReview : undefined}
         />
       )}
 

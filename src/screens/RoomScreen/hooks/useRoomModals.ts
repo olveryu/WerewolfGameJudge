@@ -40,6 +40,7 @@ export interface RoomModalsState {
   // ── Night review modal ──
   nightReviewVisible: boolean;
   openNightReview: () => void;
+  openShareFromReview: () => void;
   closeNightReview: () => void;
 
   // ── Share review modal ──
@@ -86,18 +87,8 @@ export function useRoomModals({
 
   const openNightReview = useCallback(() => {
     if (isHost) {
-      // Host: choose between viewing or sharing
-      showAlert('详细信息', '选择操作', [
-        {
-          text: '自己查看',
-          onPress: () => setNightReviewVisible(true),
-        },
-        {
-          text: '分享给玩家',
-          onPress: () => setShareReviewVisible(true),
-        },
-        { text: '取消', style: 'cancel' },
-      ]);
+      // Host: directly open review modal (share-to-players button inside)
+      setNightReviewVisible(true);
     } else {
       // Non-host: confirm before viewing (anti-cheat reminder)
       showAlert('提示', '请确保你是裁判或观战玩家，再查看详细信息', [
@@ -109,6 +100,12 @@ export function useRoomModals({
       ]);
     }
   }, [isHost]);
+
+  /** Close night review and open share-to-players seat picker. */
+  const openShareFromReview = useCallback(() => {
+    setNightReviewVisible(false);
+    setShareReviewVisible(true);
+  }, []);
 
   const closeNightReview = useCallback(() => setNightReviewVisible(false), []);
 
@@ -149,6 +146,7 @@ export function useRoomModals({
     handleSkillPreviewClose,
     nightReviewVisible,
     openNightReview,
+    openShareFromReview,
     closeNightReview,
     shareReviewVisible,
     closeShareReview,
