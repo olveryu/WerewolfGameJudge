@@ -3,6 +3,13 @@
  * Mocks external dependencies that are not available in test environment
  */
 
+// ---------------------------------------------------------------------------
+// Polyfill Metro's require.context for Jest
+// babel-plugin-require-context-hook rewrites require.context calls;
+// register() provides the runtime implementation using fs.
+// ---------------------------------------------------------------------------
+require('babel-plugin-require-context-hook/register')();
+
 // Reanimated jest mock (must be before any component imports)
 require('react-native-reanimated').setUpTests();
 

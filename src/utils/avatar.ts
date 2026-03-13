@@ -1,70 +1,24 @@
 /**
  * avatar - Local avatar image registry and selection utilities
  *
- * 56 dark fantasy style character portraits.
+ * Dark fantasy style character portraits, auto-discovered from assets/avatars/.
  * 提供头像图片映射、基于 uid/roomId 的稳定 hash 分配和去重。
  * 不引入 React、service，也不发起网络请求。
+ *
+ * 新增头像只需将 villager_NNN.jpg/.png 放入 assets/avatars/，无需修改本文件。
  */
 
-// Import all avatar images
-const AVATAR_IMAGES = [
-  require('../../assets/avatars/villager_001.jpg'),
-  require('../../assets/avatars/villager_002.jpg'),
-  require('../../assets/avatars/villager_003.jpg'),
-  require('../../assets/avatars/villager_004.jpg'),
-  require('../../assets/avatars/villager_005.jpg'),
-  require('../../assets/avatars/villager_006.jpg'),
-  require('../../assets/avatars/villager_007.jpg'),
-  require('../../assets/avatars/villager_008.jpg'),
-  require('../../assets/avatars/villager_009.jpg'),
-  require('../../assets/avatars/villager_010.jpg'),
-  require('../../assets/avatars/villager_011.png'),
-  require('../../assets/avatars/villager_012.png'),
-  require('../../assets/avatars/villager_013.png'),
-  require('../../assets/avatars/villager_014.png'),
-  require('../../assets/avatars/villager_015.png'),
-  require('../../assets/avatars/villager_016.png'),
-  require('../../assets/avatars/villager_017.jpg'),
-  require('../../assets/avatars/villager_018.jpg'),
-  require('../../assets/avatars/villager_019.jpg'),
-  require('../../assets/avatars/villager_020.jpg'),
-  require('../../assets/avatars/villager_021.jpg'),
-  require('../../assets/avatars/villager_022.jpg'),
-  require('../../assets/avatars/villager_023.jpg'),
-  require('../../assets/avatars/villager_024.jpg'),
-  require('../../assets/avatars/villager_025.jpg'),
-  require('../../assets/avatars/villager_026.jpg'),
-  require('../../assets/avatars/villager_027.jpg'),
-  require('../../assets/avatars/villager_028.jpg'),
-  require('../../assets/avatars/villager_029.jpg'),
-  require('../../assets/avatars/villager_030.jpg'),
-  require('../../assets/avatars/villager_031.jpg'),
-  require('../../assets/avatars/villager_032.jpg'),
-  require('../../assets/avatars/villager_033.jpg'),
-  require('../../assets/avatars/villager_034.jpg'),
-  require('../../assets/avatars/villager_035.jpg'),
-  require('../../assets/avatars/villager_036.jpg'),
-  require('../../assets/avatars/villager_037.jpg'),
-  require('../../assets/avatars/villager_038.jpg'),
-  require('../../assets/avatars/villager_039.jpg'),
-  require('../../assets/avatars/villager_040.jpg'),
-  require('../../assets/avatars/villager_041.jpg'),
-  require('../../assets/avatars/villager_042.jpg'),
-  require('../../assets/avatars/villager_043.jpg'),
-  require('../../assets/avatars/villager_044.jpg'),
-  require('../../assets/avatars/villager_045.jpg'),
-  require('../../assets/avatars/villager_046.jpg'),
-  require('../../assets/avatars/villager_047.jpg'),
-  require('../../assets/avatars/villager_048.jpg'),
-  require('../../assets/avatars/villager_049.jpg'),
-  require('../../assets/avatars/villager_050.jpg'),
-  require('../../assets/avatars/villager_051.jpg'),
-  require('../../assets/avatars/villager_052.jpg'),
-  require('../../assets/avatars/villager_053.jpg'),
-  require('../../assets/avatars/villager_054.jpg'),
-  require('../../assets/avatars/villager_055.jpg'),
-  require('../../assets/avatars/villager_056.jpg'),
-];
+// Auto-discover all villager avatar images via Metro's require.context.
+// keys() returns sorted paths like ['./villager_001.jpg', ...], ensuring stable order.
+const avatarContext = require.context(
+  '../../assets/avatars',
+  false,
+  /^\.\/villager_\d+\.(jpg|png)$/,
+);
+const AVATAR_IMAGES: number[] = avatarContext
+  .keys()
+  .sort()
+  .map((key) => avatarContext<number>(key));
 
 /**
  * FNV-1a hash — better avalanche properties than djb2 for short similar strings.
@@ -128,7 +82,7 @@ function getDefaultAvatarIndex(roomId: string, uid: string): number {
  *
  * Uses each uid's preferred index (from getDefaultAvatarIndex) as the starting
  * point, then probes forward to find the next free slot if taken.
- * With 56 avatars and ≤12 players this always succeeds and never collides.
+ * With 61 avatars and ≤12 players this always succeeds and never collides.
  *
  * @param roomId - The room identifier
  * @param uids   - Ordered list of player UIDs in the room

@@ -9,5 +9,6 @@
       "@werewolf/game-engine/*": ["./packages/game-engine/src/*"]
     }
   },
+  "include": ["**/*.ts", "**/*.tsx", "expo-env.d.ts"],
   "exclude": ["supabase/functions"]
 }
