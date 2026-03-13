@@ -11,7 +11,7 @@ import { RoomPage } from '../pages/RoomPage';
  * Seating E2E Tests
  *
  * Regression tests for seat management:
- * 1. Single player manual seat + "我" badge
+ * 1. Single player manual seat + green seat badge
  * 2. Two player seat conflict detection
  * 3. Occupied seat rejection alert
  * 4. Host sees joiner seat update (broadcast)
@@ -91,7 +91,7 @@ async function pollSeatEmpty(
 // ---------------------------------------------------------------------------
 
 test.describe('Seating', () => {
-  test('single player manual seat shows "我" badge', async ({ browser }, testInfo) => {
+  test('single player manual seat shows green seat badge', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 1);
     const [page] = fixture.pages;
 
@@ -185,7 +185,7 @@ test.describe('Seating', () => {
 
       // Joiner takes seat 2 instead
       await roomB.seatAt(1);
-      await expect(pageB.getByText('我')).toBeVisible({ timeout: 3000 });
+      await expect(pageB.locator('[data-testid="my-seat-badge"]')).toBeVisible({ timeout: 3000 });
 
       // Host should see seat 2 occupied
       const hostSeat2 = await pollSeatOccupied(roomA, 2);
