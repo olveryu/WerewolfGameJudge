@@ -18,6 +18,7 @@ import {
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -40,12 +41,13 @@ import {
   useColors,
   withAlpha,
 } from '@/theme';
+import { getRoleBadge } from '@/utils/roleBadges';
 
 // ============================================
 // Types
 // ============================================
 
-type FactionFilterKey = 'all' | 'good' | 'wolf' | 'third';
+type FactionFilterKey = 'villager' | 'god' | 'wolf' | 'third';
 
 interface FactionTab {
   key: FactionFilterKey;
@@ -53,8 +55,8 @@ interface FactionTab {
 }
 
 const FACTION_TABS: FactionTab[] = [
-  { key: 'all', label: '全部' },
-  { key: 'good', label: '好人' },
+  { key: 'villager', label: '村民' },
+  { key: 'god', label: '神' },
   { key: 'wolf', label: '狼人' },
   { key: 'third', label: '第三方' },
 ];
@@ -72,9 +74,9 @@ function getFactionColorForRole(roleId: RoleId, colors: ThemeColors): string {
 }
 
 function matchesFactionFilter(roleId: RoleId, filter: FactionFilterKey): boolean {
-  if (filter === 'all') return true;
   const spec = ROLE_SPECS[roleId];
-  if (filter === 'good') return spec.faction === Faction.Villager || spec.faction === Faction.God;
+  if (filter === 'villager') return spec.faction === Faction.Villager;
+  if (filter === 'god') return spec.faction === Faction.God;
   if (filter === 'wolf') return spec.faction === Faction.Wolf;
   return spec.faction === Faction.Special;
 }
@@ -116,13 +118,15 @@ const RoleGridItem = React.memo<RoleGridItemProps>(function RoleGridItem({
       ]}
       onPress={() => onPress(roleId)}
     >
-      <Text style={styles.emoji}>{spec.emoji}</Text>
+      <Image source={getRoleBadge(roleId)} style={styles.badge} />
       <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
         {spec.displayName}
       </Text>
     </Pressable>
   );
 });
+
+const BADGE_SIZE = componentSizes.avatar.lg;
 
 const gridItemStyles = StyleSheet.create({
   card: {
@@ -133,8 +137,9 @@ const gridItemStyles = StyleSheet.create({
     borderRadius: borderRadius.medium,
     borderWidth: fixed.borderWidth,
   },
-  emoji: {
-    fontSize: typography.heading,
+  badge: {
+    width: BADGE_SIZE,
+    height: BADGE_SIZE,
     marginBottom: spacing.tight,
   },
   name: {
@@ -154,7 +159,7 @@ export const EncyclopediaScreen: React.FC = () => {
   const navigation = useNavigation();
   const { width: screenWidth } = useWindowDimensions();
 
-  const [activeFilter, setActiveFilter] = useState<FactionFilterKey>('all');
+  const [activeFilter, setActiveFilter] = useState<FactionFilterKey>('villager');
   const [selectedRole, setSelectedRole] = useState<RoleId | null>(null);
 
   const allRoleIds = useMemo(() => getAllRoleIds(), []);
