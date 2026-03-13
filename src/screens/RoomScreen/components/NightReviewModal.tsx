@@ -2,14 +2,12 @@
  * NightReviewModal - 夜晚行动回顾 Modal（裁判/观战者用）
  *
  * 显示第一天晚上所有行动摘要及全员真实身份。
- * 支持"分享战报"截图分享。
  * 渲染 Modal UI 并接收预构建的数据，不 import service，不含业务逻辑。
  */
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,9 +15,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { captureRef } from 'react-native-view-shot';
 
-import { UI_ICONS } from '@/config/iconTokens';
 import { STATUS_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import {
@@ -31,41 +27,16 @@ import {
   typography,
   useColors,
 } from '@/theme';
-import { roomScreenLog } from '@/utils/logger';
 
 import type { NightReviewData } from '../NightReview.helpers';
-import { shareImageBase64 } from '../shareImage';
-
-/**
- * Capture a View as base64 PNG (native: captureRef, web: html2canvas).
- */
-async function captureViewAsBase64(ref: React.RefObject<View | null>): Promise<string> {
-  if (Platform.OS === 'web') {
-    const html2canvas = (await import('html2canvas')).default;
-    const node = ref.current as unknown as HTMLElement;
-    if (!node) throw new Error('Share card ref not ready');
-    const canvas = await html2canvas(node, { backgroundColor: null });
-    const dataUrl = canvas.toDataURL('image/png');
-    const prefix = 'base64,';
-    const idx = dataUrl.indexOf(prefix);
-    return idx >= 0 ? dataUrl.slice(idx + prefix.length) : dataUrl;
-  }
-  return captureRef(ref, { format: 'png', result: 'base64', quality: 1 });
-}
 
 interface NightReviewModalProps {
   visible: boolean;
   data: NightReviewData;
-  roomNumber: string;
   onClose: () => void;
 }
 
-export const NightReviewModal: React.FC<NightReviewModalProps> = ({
-  visible,
-  data,
-  roomNumber,
-  onClose,
-}) => {
+export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, data, onClose }) => {
   const colors = useColors();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const styles = useMemo(
@@ -73,31 +44,11 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({
     [colors, screenWidth, screenHeight],
   );
 
-  const shareCardRef = useRef<View>(null);
-  const [isSharing, setIsSharing] = useState(false);
-
-  const handleShare = useCallback(async () => {
-    if (isSharing) return;
-    setIsSharing(true);
-    try {
-      await shareImageBase64(
-        () => captureViewAsBase64(shareCardRef),
-        `room-${roomNumber}-review.png`,
-        `狼人杀房间 ${roomNumber} 战报`,
-      );
-    } catch (e) {
-      roomScreenLog.error('Failed to share night review image:', e);
-    } finally {
-      setIsSharing(false);
-    }
-  }, [isSharing, roomNumber]);
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalBox} testID={TESTIDS.nightReviewModal}>
-          {/* Capture area for share screenshot */}
-          <View ref={shareCardRef} collapsable={false} style={styles.shareCapture}>
+          <View style={styles.contentContainer}>
             <Text style={styles.title}>夜晚行动回顾</Text>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -135,16 +86,6 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({
           {/* Action buttons */}
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={[styles.shareButton, isSharing && styles.buttonDisabled]}
-              onPress={handleShare}
-              activeOpacity={isSharing ? 1 : fixed.activeOpacity}
-              accessibilityState={{ disabled: isSharing }}
-              testID={TESTIDS.nightReviewShareButton}
-            >
-              <Ionicons name={UI_ICONS.SHARE} size={typography.body} color={colors.textInverse} />
-              <Text style={styles.shareButtonText}>{isSharing ? '分享中…' : '分享战报'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
               activeOpacity={fixed.activeOpacity}
@@ -174,7 +115,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       width: screenWidth * 0.88,
       maxHeight: screenHeight * 0.75,
     },
-    shareCapture: {
+    contentContainer: {
       backgroundColor: colors.surface,
     },
     title: {
@@ -212,29 +153,9 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       marginVertical: spacing.medium,
     },
     buttonRow: {
-      flexDirection: 'row',
-      gap: spacing.small,
       marginTop: spacing.medium,
     },
-    shareButton: {
-      flex: 1,
-      flexDirection: 'row',
-      backgroundColor: colors.primary,
-      borderRadius: borderRadius.full,
-      paddingVertical: spacing.medium,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: spacing.tight,
-    },
-    shareButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.textInverse,
-    },
-    buttonDisabled: {
-      opacity: fixed.disabledOpacity,
-    },
     closeButton: {
-      flex: 1,
       backgroundColor: colors.surfaceHover,
       borderRadius: borderRadius.full,
       paddingVertical: spacing.medium,

@@ -600,7 +600,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <NightReviewModal
           visible={nightReviewVisible}
           data={buildNightReviewData(gameState)}
-          roomNumber={roomNumber}
           onClose={closeNightReview}
         />
       )}

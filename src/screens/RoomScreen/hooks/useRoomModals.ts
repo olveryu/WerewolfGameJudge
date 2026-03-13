@@ -19,6 +19,8 @@ interface UseRoomModalsDeps {
   getLastNightInfo: () => string;
   /** 分享夜晚详情给指定座位（HTTP API） */
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
+  /** 直接分享战报（系统分享/复制） */
+  shareNightReviewReport: () => Promise<void>;
 }
 
 /** useRoomModals 返回值 */
@@ -55,6 +57,7 @@ export function useRoomModals({
   isHost,
   getLastNightInfo,
   shareNightReview,
+  shareNightReviewReport,
 }: UseRoomModalsDeps): RoomModalsState {
   // ── Role card modal ──
   const [roleCardVisible, setRoleCardVisible] = useState(false);
@@ -84,31 +87,41 @@ export function useRoomModals({
   // ── Night review modal ──
   const [nightReviewVisible, setNightReviewVisible] = useState(false);
 
+  const confirmOpenNightReview = useCallback(() => {
+    showAlert('提示', '请确保你是裁判或观战玩家，再查看详细信息', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '确定查看',
+        onPress: () => setNightReviewVisible(true),
+      },
+    ]);
+  }, []);
+
   const openNightReview = useCallback(() => {
     if (isHost) {
       // Host: choose between viewing or sharing
       showAlert('详细信息', '选择操作', [
         {
           text: '自己查看',
-          onPress: () => setNightReviewVisible(true),
+          onPress: () => confirmOpenNightReview(),
         },
         {
           text: '分享给玩家',
           onPress: () => setShareReviewVisible(true),
         },
+        {
+          text: '分享战报',
+          onPress: () => {
+            void shareNightReviewReport();
+          },
+        },
         { text: '取消', style: 'cancel' },
       ]);
     } else {
       // Non-host: confirm before viewing (anti-cheat reminder)
-      showAlert('提示', '请确保你是裁判或观战玩家，再查看详细信息', [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定查看',
-          onPress: () => setNightReviewVisible(true),
-        },
-      ]);
+      confirmOpenNightReview();
     }
-  }, [isHost]);
+  }, [confirmOpenNightReview, isHost, shareNightReviewReport]);
 
   const closeNightReview = useCallback(() => setNightReviewVisible(false), []);
 
