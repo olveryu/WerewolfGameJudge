@@ -261,6 +261,34 @@ export class RoomPage {
     await this.page.locator('[data-testid="room-settings-button"]').click();
   }
 
+  /**
+   * Disable role reveal animation so E2E tests see the static "知道了" card.
+   *
+   * Opens HostMenuDropdown → clicks "游戏设置" → selects "无动画" → closes sheet.
+   * Uses stable testID selectors where available, text selector for menu item.
+   */
+  async setAnimationNone() {
+    // Open host menu via ⋯ button
+    const menuBtn = this.page.locator('[data-testid="room-menu-button"]');
+    await menuBtn.waitFor({ state: 'visible', timeout: 3000 });
+    await menuBtn.click();
+
+    // Click "游戏设置" in dropdown menu → opens SettingsSheet
+    const settingsItem = this.page.getByText('游戏设置', { exact: true });
+    await settingsItem.waitFor({ state: 'visible', timeout: 3000 });
+    await settingsItem.click();
+
+    // Click the "无动画" option
+    const noneOption = this.page.locator('[data-testid="settings-animation-option-none"]');
+    await noneOption.waitFor({ state: 'visible', timeout: 3000 });
+    await noneOption.click();
+
+    // Close settings sheet by clicking the overlay backdrop
+    const overlay = this.page.locator('[data-testid="room-settings-overlay"]');
+    await overlay.click({ position: { x: 5, y: 5 }, force: true });
+    await overlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+  }
+
   /** Check if "昨夜信息" button is visible (night ended indicator). */
   async isLastNightInfoVisible(): Promise<boolean> {
     return this.page

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
+import { TESTIDS } from '@/testids';
 import { componentSizes, useColors } from '@/theme';
 
 import { type HostMenuDropdownStyles } from './styles';
@@ -124,6 +125,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
             style={styles.triggerButton}
             onPress={handleOpenMenu}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID={TESTIDS.roomMenuButton}
           >
             <Ionicons
               name="ellipsis-horizontal"

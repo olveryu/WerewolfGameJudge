@@ -144,7 +144,7 @@ export class ConfigPage {
     await option.click();
     // Close the role info card via "知道了" button.
     // Why NOT Escape? RN Web Modal onRequestClose doesn't reliably fire
-    // in Playwright/Chromium (same issue documented in setAnimationNone).
+    // in Playwright/Chromium (same issue documented in RoomPage.setAnimationNone).
     const confirmBtn = this.page.getByText('知道了', { exact: true });
     await confirmBtn.waitFor({ state: 'visible', timeout: 3000 });
     await confirmBtn.click();
@@ -207,51 +207,6 @@ export class ConfigPage {
   // ---------------------------------------------------------------------------
 
   // ---------------------------------------------------------------------------
-  // Settings (Animation)
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Disable role reveal animation so E2E tests see the static "知道了" card.
-   *
-   * Uses stable testID selectors only (no text/position/coordinate hacks):
-   * - `config-more-btn` → open overflow menu
-   * - `config-overflow-settings` → open settings sheet
-   * - `config-animation-option-none` → click "无动画" chip
-   * - `config-settings-overlay` → close settings sheet
-   */
-  async setAnimationNone() {
-    // Open overflow menu via ⋯ button
-    const moreBtn = this.page.locator('[data-testid="config-more-btn"]');
-    await moreBtn.waitFor({ state: 'visible', timeout: 3000 });
-    await moreBtn.click();
-
-    // Click "设置" in overflow menu → opens SettingsSheet
-    const settingsItem = this.page.locator('[data-testid="config-overflow-settings"]');
-    await settingsItem.waitFor({ state: 'visible', timeout: 3000 });
-    await settingsItem.click();
-
-    // Click the "无动画" chip directly (no second modal needed)
-    const noneOption = this.page.locator('[data-testid="config-animation-option-none"]');
-    await noneOption.waitFor({ state: 'visible', timeout: 3000 });
-    await noneOption.click();
-
-    // Close settings sheet by clicking the overlay backdrop.
-    //
-    // Why NOT `page.keyboard.press('Escape')`?
-    // React Native Web's Modal `onRequestClose` does not reliably fire on
-    // Escape in Playwright/Chromium — the key event can be swallowed by the
-    // underlying RN focus system, leaving the sheet open while subsequent
-    // interactions (role chip deselection) happen *behind* the modal.
-    // Clicking the overlay testID at an edge position is the stable path.
-    const overlay = this.page.locator('[data-testid="config-settings-overlay"]');
-    // Click the very edge of the overlay (which is outside the settings content)
-    // Use force:true because the content may obscure part of the overlay
-    await overlay.click({ position: { x: 5, y: 5 }, force: true });
-    // Wait for overlay to close
-    await overlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
-  }
-
-  // ---------------------------------------------------------------------------
   // Template Presets
   // ---------------------------------------------------------------------------
 
@@ -263,9 +218,6 @@ export class ConfigPage {
    * - 狼人阵营 tab: reduce wolf 4→1
    */
   async configure2Player() {
-    // Disable animation so role viewing uses static "知道了" card
-    await this.setAnimationNone();
-
     // 好人阵营 tab is active by default
     await this.deselectRoles(['seer', 'witch', 'hunter', 'idiot']);
     await this.decreaseStepper('villager', 3); // 4 → 1
@@ -283,9 +235,6 @@ export class ConfigPage {
    * - 狼人阵营 tab: reduce wolf 4→2
    */
   async configure6Player() {
-    // Disable animation so role viewing uses static "知道了" card
-    await this.setAnimationNone();
-
     // 好人阵营 tab is active by default
     await this.deselectRoles(['idiot']);
     await this.decreaseStepper('villager', 3); // 4 → 1
@@ -319,9 +268,6 @@ export class ConfigPage {
     specialRoles?: string[];
   }) {
     const { wolves = 0, villagers = 0, goodRoles = [], wolfRoles = [], specialRoles = [] } = opts;
-
-    // Disable animation
-    await this.setAnimationNone();
 
     // --- 好人阵营 (active by default) ---
     // Deselect all default god roles

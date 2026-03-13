@@ -667,6 +667,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onAnimationChange={handleAnimationChange}
         onBgmChange={handleBgmChange}
         resolvedAnimation={resolvedRoleRevealAnimation}
+        overlayTestID={TESTIDS.roomSettingsOverlay}
       />
     </SafeAreaView>
   );
