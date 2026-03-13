@@ -58,6 +58,8 @@ interface NightReviewModalProps {
   data: NightReviewData;
   roomNumber: string;
   onClose: () => void;
+  /** When provided, shows a "分享给玩家" button (Host only). */
+  onShareToPlayers?: () => void;
 }
 
 export const NightReviewModal: React.FC<NightReviewModalProps> = ({
@@ -65,6 +67,7 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({
   data,
   roomNumber,
   onClose,
+  onShareToPlayers,
 }) => {
   const colors = useColors();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -144,6 +147,16 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({
               <Ionicons name={UI_ICONS.SHARE} size={typography.body} color={colors.textInverse} />
               <Text style={styles.shareButtonText}>{isSharing ? '分享中…' : '分享战报'}</Text>
             </TouchableOpacity>
+            {onShareToPlayers && (
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={onShareToPlayers}
+                activeOpacity={fixed.activeOpacity}
+              >
+                <Ionicons name="people-outline" size={typography.body} color={colors.primary} />
+                <Text style={styles.secondaryButtonText}>分享给玩家</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
@@ -232,6 +245,22 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
     },
     buttonDisabled: {
       opacity: fixed.disabledOpacity,
+    },
+    secondaryButton: {
+      flex: 1,
+      flexDirection: 'row',
+      backgroundColor: colors.surfaceHover,
+      borderRadius: borderRadius.full,
+      paddingVertical: spacing.medium,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.tight,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.primary,
+    },
+    secondaryButtonText: {
+      ...textStyles.bodySemibold,
+      color: colors.primary,
     },
     closeButton: {
       flex: 1,
