@@ -22,7 +22,9 @@ import { showAlert } from '@/utils/alert';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
+import { buildNightReviewData } from '../NightReview.helpers';
 import { getWolfVoteSummary, toGameRoomLike } from '../RoomScreen.helpers';
+import { shareNightReviewReport } from '../shareNightReview';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { useRoomSeatDialogs } from '../useRoomSeatDialogs';
@@ -441,6 +443,22 @@ export function useRoomScreenState(
     roomNumber,
   });
 
+  const shareNightReviewReportDirectly = useCallback(async () => {
+    if (!gameState) {
+      showAlert('分享失败', '当前暂无可分享的战报');
+      return;
+    }
+
+    const result = await shareNightReviewReport(roomNumber, buildNightReviewData(gameState));
+    if (result === 'copied') {
+      showAlert('已复制', '战报内容已复制到剪贴板');
+      return;
+    }
+    if (result === 'failed') {
+      showAlert('分享失败', '无法分享战报，请稍后重试');
+    }
+  }, [gameState, roomNumber]);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Modal / dialog state (role card, skill preview, night review, share review)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -467,6 +485,7 @@ export function useRoomScreenState(
     isHost,
     getLastNightInfo: getLastNightInfoFn,
     shareNightReview,
+    shareNightReviewReport: shareNightReviewReportDirectly,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
