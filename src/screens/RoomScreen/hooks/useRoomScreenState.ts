@@ -458,7 +458,6 @@ export function useRoomScreenState(
     handleSkillPreviewClose,
     nightReviewVisible,
     openNightReview,
-    openShareFromReview,
     closeNightReview,
     shareReviewVisible,
     closeShareReview,
@@ -618,7 +617,6 @@ export function useRoomScreenState(
     // ── Night review modal ──
     nightReviewVisible,
     openNightReview,
-    openShareFromReview,
     closeNightReview,
 
     // ── Share review modal ──
