@@ -110,8 +110,6 @@ describe('Room creation → navigation roomNumber contract', () => {
         toggleBgm: jest.fn(),
         getThemeKey: jest.fn().mockReturnValue('dark'),
         setThemeKey: jest.fn(),
-        getLastTemplateRoles: jest.fn().mockReturnValue(null),
-        setLastTemplateRoles: jest.fn().mockResolvedValue(undefined),
         addListener: jest.fn().mockReturnValue(jest.fn()),
       },
       audioService: {

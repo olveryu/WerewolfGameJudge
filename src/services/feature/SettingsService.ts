@@ -24,8 +24,6 @@ interface UserSettings {
   themeKey: ThemeKey;
   /** Role reveal animation style (default: 'roulette') */
   roleRevealAnimation: RoleRevealAnimation;
-  /** Last used template roles for quick-start (default: null) */
-  lastTemplateRoles: string[] | null;
 }
 
 /** Valid theme keys for runtime validation of persisted data */
@@ -59,7 +57,6 @@ const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
   themeKey: 'light',
   roleRevealAnimation: 'random',
-  lastTemplateRoles: null,
 };
 
 export class SettingsService {
@@ -95,19 +92,6 @@ export class SettingsService {
               merged.roleRevealAnimation,
             );
             merged.roleRevealAnimation = DEFAULT_SETTINGS.roleRevealAnimation;
-          }
-          // Validate lastTemplateRoles (must be array of strings or null)
-          if (merged.lastTemplateRoles !== null) {
-            if (
-              !Array.isArray(merged.lastTemplateRoles) ||
-              !merged.lastTemplateRoles.every((r: unknown) => typeof r === 'string')
-            ) {
-              settingsServiceLog.warn(
-                'Invalid persisted lastTemplateRoles, resetting to default:',
-                merged.lastTemplateRoles,
-              );
-              merged.lastTemplateRoles = DEFAULT_SETTINGS.lastTemplateRoles;
-            }
           }
           // Validate boolean fields (guard against corrupted persisted data)
           if (typeof merged.bgmEnabled !== 'boolean') {
@@ -203,25 +187,6 @@ export class SettingsService {
    */
   async setRoleRevealAnimation(anim: RoleRevealAnimation): Promise<void> {
     this.#settings.roleRevealAnimation = anim;
-    await this.#save();
-  }
-
-  // =========================================================================
-  // Last Template (Quick Start)
-  // =========================================================================
-
-  /**
-   * Get last used template roles (for quick-start on HomeScreen).
-   */
-  getLastTemplateRoles(): string[] | null {
-    return this.#settings.lastTemplateRoles;
-  }
-
-  /**
-   * Set last used template roles and persist.
-   */
-  async setLastTemplateRoles(roles: string[] | null): Promise<void> {
-    this.#settings.lastTemplateRoles = roles;
     await this.#save();
   }
 

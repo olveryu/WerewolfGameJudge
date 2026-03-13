@@ -48,15 +48,6 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-// Mock ServiceContext
-jest.mock('../../../contexts/ServiceContext', () => ({
-  useServices: () => ({
-    settingsService: {
-      getLastTemplateRoles: jest.fn(() => null),
-    },
-  }),
-}));
-
 // Mock utils
 jest.mock('../../../utils/alert', () => ({
   ...jest.requireActual('../../../utils/alert'),
