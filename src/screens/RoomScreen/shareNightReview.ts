@@ -1,77 +1,52 @@
 /**
- * shareNightReview - Share/copy night review report text directly.
+ * shareNightReview - Share night review as screenshot image.
  *
- * Native: React Native Share API.
- * Web mobile: navigator.share.
- * Web desktop/fallback: clipboard copy.
+ * Capture source is provided by caller (typically a hidden share card view).
  */
-import { Platform, Share } from 'react-native';
+import type { RefObject } from 'react';
+import { Platform, type View } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 
-import type { NightReviewData } from './NightReview.helpers';
+import { shareImageBase64 } from './shareImage';
 
-export type ShareNightReviewResult = 'shared' | 'copied' | 'cancelled' | 'failed';
+export type ShareNightReviewResult = 'shared' | 'cancelled' | 'failed';
 
-function buildNightReviewText(roomNumber: string, data: NightReviewData): string {
-  const actionLines = data.actionLines.length > 0 ? data.actionLines.join('\n') : '暂无数据';
-  const identityLines = data.identityLines.length > 0 ? data.identityLines.join('\n') : '暂无数据';
+export async function captureNightReviewCard(ref: RefObject<View | null>): Promise<string> {
+  if (Platform.OS === 'web') {
+    const html2canvas = (await import('html2canvas')).default;
+    const node = ref.current as unknown as HTMLElement;
+    if (!node) throw new Error('Night review share card ref not ready');
+    const canvas = await html2canvas(node, { backgroundColor: null });
+    const dataUrl = canvas.toDataURL('image/png');
+    const prefix = 'base64,';
+    const idx = dataUrl.indexOf(prefix);
+    return idx >= 0 ? dataUrl.slice(idx + prefix.length) : dataUrl;
+  }
 
-  return [
-    `狼人杀房间 ${roomNumber} 战报`,
-    '',
-    '【行动摘要】',
-    actionLines,
-    '',
-    '【全员身份】',
-    identityLines,
-  ].join('\n');
+  return captureRef(ref, { format: 'png', result: 'base64', quality: 1 });
 }
 
-export async function shareNightReviewReport(
+function isShareCancelledError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const normalized = `${error.name} ${error.message}`.toLowerCase();
+  return (
+    normalized.includes('abort') || normalized.includes('cancel') || normalized.includes('dismiss')
+  );
+}
+
+export async function shareNightReviewReportImage(
+  getBase64: () => Promise<string>,
   roomNumber: string,
-  data: NightReviewData,
 ): Promise<ShareNightReviewResult> {
-  const title = `房间 ${roomNumber} 战报`;
-  const text = buildNightReviewText(roomNumber, data);
-
-  if (Platform.OS !== 'web') {
-    try {
-      const result = await Share.share({ title, message: text });
-      if (result.action === Share.dismissedAction) return 'cancelled';
-      return 'shared';
-    } catch {
-      return 'failed';
-    }
+  try {
+    await shareImageBase64(
+      getBase64,
+      `room-${roomNumber}-review.png`,
+      `狼人杀房间 ${roomNumber} 战报`,
+    );
+    return 'shared';
+  } catch (error) {
+    if (isShareCancelledError(error)) return 'cancelled';
+    return 'failed';
   }
-
-  const isMobile =
-    typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
-  if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
-    try {
-      await navigator.share({ title, text });
-      return 'shared';
-    } catch {
-      return 'cancelled';
-    }
-  }
-
-  if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return 'copied';
-    } catch {
-      // fall through
-    }
-  }
-
-  if (!isMobile && typeof navigator !== 'undefined' && navigator.share) {
-    try {
-      await navigator.share({ title, text });
-      return 'shared';
-    } catch {
-      return 'cancelled';
-    }
-  }
-
-  return 'failed';
 }

@@ -40,6 +40,7 @@ import { HostControlButtons } from './components/HostControlButtons';
 import { HostMenuDropdown } from './components/HostMenuDropdown';
 import { NightProgressIndicator } from './components/NightProgressIndicator';
 import { NightReviewModal } from './components/NightReviewModal';
+import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { PlayerGrid } from './components/PlayerGrid';
 import { QRCodeModal } from './components/QRCodeModal';
 import { RoleCardModal } from './components/RoleCardModal';
@@ -47,7 +48,6 @@ import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import { createRoomScreenComponentStyles } from './components/styles';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
-import { buildNightReviewData } from './NightReview.helpers';
 import { createRoomScreenStyles } from './RoomScreen.styles';
 import { shareQRCodeImage } from './shareQRCode';
 import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
@@ -221,6 +221,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Last night info
     showLastNightInfo,
     // Night review modal
+    nightReviewData,
+    nightReviewShareCardRef,
     nightReviewVisible,
     openNightReview,
     closeNightReview,
@@ -596,12 +598,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       />
 
       {/* Night Review Modal — 裁判/观战者用，显示夜晚行动 + 全员身份 */}
-      {nightReviewVisible && gameState && (
+      {nightReviewVisible && nightReviewData && (
         <NightReviewModal
           visible={nightReviewVisible}
-          data={buildNightReviewData(gameState)}
+          data={nightReviewData}
           onClose={closeNightReview}
         />
+      )}
+
+      {/* Hidden share card — capture source for direct "分享战报" image sharing */}
+      {nightReviewData && (
+        <View style={styles.hiddenShareCardContainer} pointerEvents="none">
+          <NightReviewShareCard
+            ref={nightReviewShareCardRef}
+            data={nightReviewData}
+            roomNumber={roomNumber}
+          />
+        </View>
       )}
 
       {/* Share Review Modal — Host 选择分享详细信息的座位 */}
