@@ -10,8 +10,13 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { isValidRoleId, type RoleId } from '@werewolf/game-engine/models/roles';
-import { findMatchingPresetName } from '@werewolf/game-engine/models/Template';
+import {
+  createCustomTemplate,
+  findMatchingPresetName,
+  validateTemplateRoles,
+} from '@werewolf/game-engine/models/Template';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -37,6 +42,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { componentSizes, fixed, useTheme } from '@/theme';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
+import { handleError } from '@/utils/errorPipeline';
 import { homeLog } from '@/utils/logger';
 
 import { createHomeScreenStyles, InstallMenuItem, JoinRoomModal, TipCard } from './components';
@@ -51,7 +57,7 @@ export const HomeScreen: React.FC = () => {
 
   const navigation = useNavigation<NavigationProp>();
   const { user, signOut, loading: authLoading, error: authError } = useAuth();
-  const { settingsService } = useServices();
+  const { settingsService, authService, roomService } = useServices();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
@@ -202,11 +208,50 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('Config');
   }, [navigation]);
 
-  const handleQuickStart = useCallback(() => {
+  const handleQuickStart = useCallback(async () => {
     if (!lastTemplateRoles) return;
+
+    const roles = lastTemplateRoles as RoleId[];
+    const validationError = validateTemplateRoles(roles);
+    if (validationError) {
+      showAlert('配置有误', validationError);
+      return;
+    }
+
     setIsCreating(true);
-    navigation.navigate('Config', { initialRoles: lastTemplateRoles as RoleId[] });
-  }, [lastTemplateRoles, navigation]);
+    try {
+      await authService.waitForInit();
+      const hostUid = authService.getCurrentUserId();
+      if (!hostUid) {
+        showAlert('需要登录', '请先登录后再创建房间');
+        return;
+      }
+
+      const template = createCustomTemplate(roles);
+      const roleRevealAnimation = settingsService.getRoleRevealAnimation();
+
+      const record = await roomService.createRoom(hostUid, undefined, undefined, (roomCode) =>
+        buildInitialGameState(roomCode, hostUid, template),
+      );
+      const roomNumber = record.roomNumber;
+      await AsyncStorage.setItem(LAST_ROOM_NUMBER_KEY, roomNumber);
+
+      navigation.navigate('Room', {
+        roomNumber,
+        isHost: true,
+        template,
+        roleRevealAnimation,
+      });
+    } catch (e) {
+      handleError(e, {
+        label: '快速开局',
+        logger: homeLog,
+        alertMessage: '创建房间失败，请重试',
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  }, [lastTemplateRoles, authService, roomService, settingsService, navigation]);
 
   const lastTemplateName = useMemo(() => {
     if (!lastTemplateRoles) return null;
