@@ -3,7 +3,7 @@
  *
  * 主题：纯白之女 & 狼巫查验结果（返回具体角色身份）。
  *
- * 模板：纯白夜影12人
+ * 模板：纯白夜影
  * 固定 seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
@@ -26,7 +26,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '纯白夜影12人';
+const TEMPLATE_NAME = '纯白夜影';
 
 /**
  * 固定 seat-role assignment

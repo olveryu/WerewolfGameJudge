@@ -182,7 +182,7 @@ describe('RoomScreen skip action UI', () => {
         params: {
           roomNumber: '1234',
           isHost: false,
-          template: '梦魇守卫12人',
+          template: '梦魇守卫',
         },
       },
     };
@@ -208,7 +208,7 @@ describe('RoomScreen skip action UI', () => {
         params: {
           roomNumber: '1234',
           isHost: false,
-          template: '梦魇守卫12人',
+          template: '梦魇守卫',
         },
       },
     };

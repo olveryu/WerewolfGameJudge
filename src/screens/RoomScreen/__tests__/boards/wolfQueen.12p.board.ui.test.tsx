@@ -1,7 +1,7 @@
 /**
  * WolfQueen 12P Board UI Test
  *
- * Board: 狼美守卫12人
+ * Board: 狼美守卫
  * Roles: 4x villager, 3x wolf, wolfQueen, seer, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -75,7 +75,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '狼美守卫12人';
+const BOARD_NAME = '狼美守卫';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

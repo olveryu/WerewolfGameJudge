@@ -1,7 +1,7 @@
 /**
  * DarkWolfKing 12P Board UI Test
  *
- * Board: 狼王守卫12人
+ * Board: 狼王守卫
  * Roles: 4x villager, 3x wolf, darkWolfKing, seer, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -75,7 +75,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '狼王守卫12人';
+const BOARD_NAME = '狼王守卫';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

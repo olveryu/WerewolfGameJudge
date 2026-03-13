@@ -1,7 +1,7 @@
 /**
  * SpiritKnight 12P Board UI Test
  *
- * Board: 恶灵骑士12人
+ * Board: 恶灵骑士
  * Roles: 4x villager, 3x wolf, spiritKnight, seer, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -75,7 +75,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '恶灵骑士12人';
+const BOARD_NAME = '恶灵骑士';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

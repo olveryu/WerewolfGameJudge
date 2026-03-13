@@ -49,14 +49,12 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
       const template = createTemplateFromRoles(preset.roles);
       const actionOrder = getActionOrderFromRoles(preset.roles);
 
-      it('名称应该包含人数且与 roles 数量匹配', () => {
-        const regex = /(\d+)人/;
-        const match = regex.exec(preset.name);
-        expect(match).not.toBeNull();
+      it('名称不应包含人数后缀（人数由 roles.length 派生）', () => {
+        expect(preset.name).not.toMatch(/\d+人$/);
+      });
 
-        const expectedCount = Number.parseInt(match![1], 10);
-        expect(preset.roles.length).toBe(expectedCount);
-        expect(template.numberOfPlayers).toBe(expectedCount);
+      it('roles 数量应与 numberOfPlayers 一致', () => {
+        expect(preset.roles.length).toBe(template.numberOfPlayers);
       });
 
       it('所有 roles 都应该是合法的 RoleId', () => {
@@ -139,24 +137,24 @@ describe('PRESET_TEMPLATES - 角色引用完整性', () => {
 
 describe('PRESET_TEMPLATES - 模板列表完整性', () => {
   const EXPECTED_TEMPLATE_NAMES = [
-    '预女猎白12人',
-    '狼美守卫12人',
-    '狼王守卫12人',
-    '石像守墓12人',
-    '梦魇守卫12人',
-    '血月猎魔12人',
-    '狼王摄梦12人',
-    '狼王魔术12人',
-    '机械通灵12人',
-    '恶灵骑士12人',
-    '纯白夜影12人',
-    '灯影预言12人',
-    '假面舞会12人',
-    '吹笛守卫12人',
-    '混子标准12人',
-    '野孩标准12人',
-    '唯邻是从12人',
-    '孤注一掷12人',
+    '预女猎白',
+    '狼美守卫',
+    '狼王守卫',
+    '石像守墓',
+    '梦魇守卫',
+    '血月猎魔',
+    '狼王摄梦',
+    '狼王魔术',
+    '机械通灵',
+    '恶灵骑士',
+    '纯白夜影',
+    '灯影预言',
+    '假面舞会',
+    '吹笛守卫',
+    '混子标准',
+    '野孩标准',
+    '唯邻是从',
+    '孤注一掷',
   ];
 
   it('应该包含所有预期的模板', () => {

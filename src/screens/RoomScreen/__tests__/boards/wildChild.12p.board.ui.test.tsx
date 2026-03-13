@@ -1,7 +1,7 @@
 /**
  * WildChild 12P Board UI Test
  *
- * Board: 野孩标准12人
+ * Board: 野孩标准
  * Roles: 4x villager, 3x wolf, wildChild, seer, witch, hunter, idiot
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -91,7 +91,7 @@ jest.mock('../../hooks/useActionerState', () => ({
 // Test Setup
 // =============================================================================
 
-const BOARD_NAME = '野孩标准12人';
+const BOARD_NAME = '野孩标准';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

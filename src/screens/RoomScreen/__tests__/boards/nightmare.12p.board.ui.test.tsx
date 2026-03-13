@@ -1,7 +1,7 @@
 /**
  * Nightmare 12P Board UI Test
  *
- * Board: 梦魇守卫12人
+ * Board: 梦魇守卫
  * Roles: 4x villager, 3x wolf, nightmare, seer, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -98,7 +98,7 @@ jest.mock('../../hooks/useActionerState', () => ({
 // Test Setup
 // =============================================================================
 
-const BOARD_NAME = '梦魇守卫12人';
+const BOARD_NAME = '梦魇守卫';
 const board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

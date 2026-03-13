@@ -179,7 +179,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
           params: {
             roomNumber: '1234',
             isHost: false,
-            template: '梦魇守卫12人',
+            template: '梦魇守卫',
           },
         },
       };

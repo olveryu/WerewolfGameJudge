@@ -24,14 +24,10 @@ export interface BoardConfig {
 }
 
 /**
- * Get all 10 12P board configurations
+ * Get all 12P board configurations (all preset templates are 12-player)
  */
 export function getAll12PBoards(): BoardConfig[] {
-  // NOTE: "12人板子" is a strict contract in this repo: it refers to the 10
-  // Chinese-named presets used by production UI.
-  // If someone adds/removes/renames presets, update BOARD_TEST_FILE_MAP
-  // and the UI coverage contract tests accordingly.
-  const boards = PRESET_TEMPLATES.filter((t) => t.name.includes('12人')).map((t) => ({
+  const boards = PRESET_TEMPLATES.map((t) => ({
     name: t.name,
     roles: t.roles,
   }));
@@ -39,7 +35,7 @@ export function getAll12PBoards(): BoardConfig[] {
   // Fail-fast: avoid silently picking up unexpected presets.
   if (boards.length !== 18) {
     throw new Error(
-      `Expected exactly 18 presets with name including "12人", but got ${boards.length}. ` +
+      `Expected exactly 18 presets, but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -211,22 +207,22 @@ export function boardHasNightmare(board: BoardConfig): boolean {
  * Map board name to expected test file name pattern
  */
 export const BOARD_TEST_FILE_MAP: Record<string, string> = {
-  预女猎白12人: 'standard.12p.board.ui.test.tsx',
-  狼美守卫12人: 'wolfQueen.12p.board.ui.test.tsx',
-  狼王守卫12人: 'darkWolfKing.12p.board.ui.test.tsx',
-  石像守墓12人: 'gargoyle.12p.board.ui.test.tsx',
-  梦魇守卫12人: 'nightmare.12p.board.ui.test.tsx',
-  血月猎魔12人: 'bloodMoon.12p.board.ui.test.tsx',
-  狼王摄梦12人: 'dreamcatcher.12p.board.ui.test.tsx',
-  狼王魔术12人: 'magician.12p.board.ui.test.tsx',
-  机械通灵12人: 'wolfRobot.12p.board.ui.test.tsx',
-  恶灵骑士12人: 'spiritKnight.12p.board.ui.test.tsx',
-  纯白夜影12人: 'pureWhite.12p.board.ui.test.tsx',
-  灯影预言12人: 'mirrorSeer.12p.board.ui.test.tsx',
-  假面舞会12人: 'masquerade.12p.board.ui.test.tsx',
-  吹笛守卫12人: 'piper.12p.board.ui.test.tsx',
-  混子标准12人: 'slacker.12p.board.ui.test.tsx',
-  野孩标准12人: 'wildChild.12p.board.ui.test.tsx',
-  唯邻是从12人: 'awakenedGargoyle.12p.board.ui.test.tsx',
-  孤注一掷12人: 'warden.12p.board.ui.test.tsx',
+  预女猎白: 'standard.12p.board.ui.test.tsx',
+  狼美守卫: 'wolfQueen.12p.board.ui.test.tsx',
+  狼王守卫: 'darkWolfKing.12p.board.ui.test.tsx',
+  石像守墓: 'gargoyle.12p.board.ui.test.tsx',
+  梦魇守卫: 'nightmare.12p.board.ui.test.tsx',
+  血月猎魔: 'bloodMoon.12p.board.ui.test.tsx',
+  狼王摄梦: 'dreamcatcher.12p.board.ui.test.tsx',
+  狼王魔术: 'magician.12p.board.ui.test.tsx',
+  机械通灵: 'wolfRobot.12p.board.ui.test.tsx',
+  恶灵骑士: 'spiritKnight.12p.board.ui.test.tsx',
+  纯白夜影: 'pureWhite.12p.board.ui.test.tsx',
+  灯影预言: 'mirrorSeer.12p.board.ui.test.tsx',
+  假面舞会: 'masquerade.12p.board.ui.test.tsx',
+  吹笛守卫: 'piper.12p.board.ui.test.tsx',
+  混子标准: 'slacker.12p.board.ui.test.tsx',
+  野孩标准: 'wildChild.12p.board.ui.test.tsx',
+  唯邻是从: 'awakenedGargoyle.12p.board.ui.test.tsx',
+  孤注一掷: 'warden.12p.board.ui.test.tsx',
 };

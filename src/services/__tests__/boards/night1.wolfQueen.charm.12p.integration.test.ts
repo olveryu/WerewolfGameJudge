@@ -3,7 +3,7 @@
  *
  * 主题：狼美人魅惑行为及链接死亡。
  *
- * 模板：狼美守卫12人
+ * 模板：狼美守卫
  * 固定 seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
@@ -25,7 +25,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '狼美守卫12人';
+const TEMPLATE_NAME = '狼美守卫';
 
 /**
  * 固定 seat-role assignment

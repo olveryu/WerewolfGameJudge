@@ -1,7 +1,7 @@
 /**
  * Piper 12P Board UI Test
  *
- * Board: 吹笛守卫12人
+ * Board: 吹笛守卫
  * Roles: 3x villager, 4x wolf, piper, seer, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -89,7 +89,7 @@ jest.mock('../../hooks/useActionerState', () => ({
 // Test Setup
 // =============================================================================
 
-const BOARD_NAME = '吹笛守卫12人';
+const BOARD_NAME = '吹笛守卫';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

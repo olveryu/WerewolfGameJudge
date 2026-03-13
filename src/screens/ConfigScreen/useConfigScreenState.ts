@@ -393,7 +393,7 @@ export function useConfigScreenState({
   const selectedTemplateLabel = useMemo(() => {
     if (selectedTemplate === '__custom__') return '自定义';
     const preset = PRESET_TEMPLATES.find((p) => p.name === selectedTemplate);
-    return preset ? preset.name.replace(/\d+人$/, '') : selectedTemplate;
+    return preset ? preset.name : selectedTemplate;
   }, [selectedTemplate]);
 
   // ── Bulk role stepper ────────────────────────────────────────────────────
