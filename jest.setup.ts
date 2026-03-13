@@ -500,8 +500,6 @@ jest.mock('./src/contexts/ServiceContext', () => {
       toggleBgm: jest.fn().mockResolvedValue(false),
       getThemeKey: jest.fn().mockReturnValue('dark'),
       setThemeKey: jest.fn(),
-      getLastTemplateRoles: jest.fn().mockReturnValue(null),
-      setLastTemplateRoles: jest.fn().mockResolvedValue(undefined),
       addListener: jest.fn().mockReturnValue(jest.fn()),
     },
     audioService: {
