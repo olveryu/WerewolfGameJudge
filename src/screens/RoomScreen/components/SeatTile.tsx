@@ -62,7 +62,7 @@ export interface SeatTileStyles {
   avatarOverlay: ViewStyle;
   wolfOverlay: ViewStyle;
   selectedOverlay: ViewStyle;
-  mySeatBadge: TextStyle;
+  mySeatNumberBadge: ViewStyle;
   readyBadge: TextStyle;
   wolfVoteBadge: TextStyle;
   emptyIndicator: TextStyle;
@@ -242,8 +242,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
         {!hasPlayer && <Text style={styles.emptyIndicator}>空</Text>}
 
-        {isMySpot && hasPlayer && <Text style={styles.mySeatBadge}>我</Text>}
-
         {showReadyBadge && hasPlayer && (
           <Ionicons
             name={STATUS_ICONS.READY}
@@ -258,7 +256,10 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       </TouchableOpacity>
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}
-      <View style={styles.seatNumberBadge}>
+      <View
+        style={[styles.seatNumberBadge, isMySpot && hasPlayer && styles.mySeatNumberBadge]}
+        testID={isMySpot && hasPlayer ? 'my-seat-badge' : undefined}
+      >
         <Text style={styles.seatNumberText}>{seat + 1}</Text>
       </View>
       {hasPlayer ? (
@@ -359,18 +360,8 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       backgroundColor: withAlpha(colors.primaryDark, 0.4),
       borderRadius: borderRadius.large,
     },
-    mySeatBadge: {
-      position: 'absolute',
-      bottom: spacing.tight + spacing.micro,
-      right: spacing.tight + spacing.micro,
+    mySeatNumberBadge: {
       backgroundColor: colors.success,
-      color: colors.textInverse,
-      fontSize: typography.caption,
-      fontWeight: typography.weights.bold,
-      paddingHorizontal: spacing.tight + spacing.micro,
-      paddingVertical: spacing.micro,
-      borderRadius: borderRadius.small,
-      overflow: 'hidden',
     },
     readyBadge: {
       position: 'absolute',

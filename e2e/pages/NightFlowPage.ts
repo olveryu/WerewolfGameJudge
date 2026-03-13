@@ -127,14 +127,14 @@ async function parseWolfVoteCount(page: Page): Promise<{ current: number; total:
 }
 
 async function getMySeat(page: Page): Promise<number | null> {
-  const myBadge = page.getByText('我', { exact: true }).first();
+  const myBadge = page.locator('[data-testid="my-seat-badge"]');
   if (!(await myBadge.isVisible().catch(() => false))) return null;
 
   for (let i = 0; i < 12; i++) {
-    const tile = page.locator(`[data-testid="seat-tile-pressable-${i}"]`);
+    const tile = page.locator(`[data-testid="seat-tile-${i}"]`);
     if (
       await tile
-        .locator('text="我"')
+        .locator('[data-testid="my-seat-badge"]')
         .isVisible()
         .catch(() => false)
     )

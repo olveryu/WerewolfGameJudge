@@ -244,7 +244,7 @@ export async function setupNPlayerGame(
     await joinerPage.getByText('加入', { exact: true }).click();
     await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
 
-    // Take seat (seatAt waits for "我" badge via auto-retrying assertion)
+    // Take seat (seatAt waits for green seat badge via auto-retrying assertion)
     const room = new RoomPage(joinerPage);
     await room.seatAt(seat);
   }
