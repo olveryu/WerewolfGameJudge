@@ -47,6 +47,12 @@ export interface HomeScreenStyles {
   actionCardIcon: ViewStyle;
   actionCardTitle: TextStyle;
   actionCardSubtitle: TextStyle;
+  // Quick Start Card (last template shortcut)
+  quickStartCard: ViewStyle;
+  quickStartIcon: ViewStyle;
+  quickStartContent: ViewStyle;
+  quickStartTitle: TextStyle;
+  quickStartSubtitle: TextStyle;
   // Modal
   modalOverlay: ViewStyle;
   modalContent: ViewStyle;
@@ -219,6 +225,36 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
       textAlign: 'center',
+    },
+    // ── Quick Start Card ─────────────────────────────────
+    quickStartCard: {
+      ...shared.cardBase,
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: spacing.screenH,
+      marginBottom: spacing.large,
+      gap: spacing.small,
+    },
+    quickStartIcon: {
+      width: componentSizes.button.md,
+      height: componentSizes.button.md,
+      borderRadius: borderRadius.medium,
+      backgroundColor: withAlpha(colors.primary, 0.08),
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    quickStartContent: {
+      flex: 1,
+      gap: spacing.micro,
+    },
+    quickStartTitle: {
+      ...textStyles.bodySemibold,
+      color: colors.text,
+    },
+    quickStartSubtitle: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textSecondary,
     },
     // ── Tip Card ─────────────────────────────────────────────
     tipCard: {

@@ -43,7 +43,7 @@ const navLog = log.extend('AppNavigator');
  */
 
 /** Params that are programmatic-only and should never appear in the URL. */
-const TRANSIENT_PARAMS = ['template', 'roleRevealAnimation'];
+const TRANSIENT_PARAMS = ['template', 'roleRevealAnimation', 'initialRoles'];
 
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [],

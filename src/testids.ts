@@ -32,6 +32,7 @@ export const TESTIDS = {
   homeAnonLoginButton: 'home-anon-login-button', // "👤 匿名登录" button in modal
   homeSettingsButton: 'home-settings-button', // Top bar settings icon
   homeTipCard: 'home-tip-card', // Contextual tip card
+  homeQuickStartCard: 'home-quick-start-card', // Quick start with last template
 
   configScreenRoot: 'config-screen-root',
   configBackButton: 'config-back-button',
