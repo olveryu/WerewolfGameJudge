@@ -85,6 +85,8 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     },
     backButton: {
       ...shared.iconButton,
+      borderRadius: borderRadius.full,
+      overflow: 'hidden',
     },
     backButtonText: {
       color: colors.text,

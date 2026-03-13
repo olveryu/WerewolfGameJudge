@@ -39,6 +39,8 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   } satisfies ViewStyle,
   headerBtn: {
     ...createSharedStyles(colors).iconButton,
+    borderRadius: borderRadius.full,
+    overflow: 'hidden',
   } satisfies ViewStyle,
   headerBtnText: {
     fontSize: typography.title,

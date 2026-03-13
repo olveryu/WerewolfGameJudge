@@ -25,7 +25,7 @@ import { SettingsSheet } from '@/components/SettingsSheet';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import type { ThemeColors } from '@/theme';
-import { fixed, spacing, useTheme } from '@/theme';
+import { componentSizes, fixed, spacing, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -145,6 +145,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleAvatarPress = useCallback(() => {
     navigation.navigate('Settings');
+  }, [navigation]);
+
+  const handleEncyclopedia = useCallback(() => {
+    navigation.navigate('Encyclopedia');
   }, [navigation]);
 
   const {
@@ -301,7 +305,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           testID={TESTIDS.roomBackButton}
         >
           <Text style={styles.backButtonText}>
-            <Ionicons name="chevron-back" size={20} color={colors.text} />
+            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
           </Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -326,6 +330,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.headerRight}>
           <HostMenuDropdown
             visible
+            showEncyclopedia
             showSettings={
               isHost &&
               !isStartingGame &&
@@ -369,6 +374,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               })
             }
             onSettings={handleOpenSettings}
+            onEncyclopedia={handleEncyclopedia}
             onUserSettings={handleAvatarPress}
             styles={componentStyles.hostMenuDropdown}
           />
