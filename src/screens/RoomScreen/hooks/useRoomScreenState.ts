@@ -13,6 +13,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { View } from 'react-native';
 
 import { useNotepad } from '@/components/AIChatBubble/useNotepad';
 import { useServices } from '@/contexts/ServiceContext';
@@ -24,7 +25,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 import { buildNightReviewData } from '../NightReview.helpers';
 import { getWolfVoteSummary, toGameRoomLike } from '../RoomScreen.helpers';
-import { shareNightReviewReport } from '../shareNightReview';
+import { captureNightReviewCard, shareNightReviewReportImage } from '../shareNightReview';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { useRoomSeatDialogs } from '../useRoomSeatDialogs';
@@ -443,21 +444,26 @@ export function useRoomScreenState(
     roomNumber,
   });
 
+  const nightReviewData = useMemo(() => {
+    if (!gameState?.currentNightResults) return null;
+    return buildNightReviewData(gameState);
+  }, [gameState]);
+  const nightReviewShareCardRef = useRef<View>(null);
+
   const shareNightReviewReportDirectly = useCallback(async () => {
-    if (!gameState) {
+    if (!nightReviewData) {
       showAlert('分享失败', '当前暂无可分享的战报');
       return;
     }
 
-    const result = await shareNightReviewReport(roomNumber, buildNightReviewData(gameState));
-    if (result === 'copied') {
-      showAlert('已复制', '战报内容已复制到剪贴板');
-      return;
-    }
+    const result = await shareNightReviewReportImage(
+      () => captureNightReviewCard(nightReviewShareCardRef),
+      roomNumber,
+    );
     if (result === 'failed') {
       showAlert('分享失败', '无法分享战报，请稍后重试');
     }
-  }, [gameState, roomNumber]);
+  }, [nightReviewData, roomNumber]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Modal / dialog state (role card, skill preview, night review, share review)
@@ -634,6 +640,8 @@ export function useRoomScreenState(
     showLastNightInfo,
 
     // ── Night review modal ──
+    nightReviewData,
+    nightReviewShareCardRef,
     nightReviewVisible,
     openNightReview,
     closeNightReview,

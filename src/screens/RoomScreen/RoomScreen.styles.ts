@@ -135,5 +135,11 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       // Extra bottom padding so content isn't hidden behind BottomActionPanel
       paddingBottom: spacing.xxlarge + spacing.xlarge,
     },
+    hiddenShareCardContainer: {
+      position: 'absolute',
+      top: spacing.small,
+      left: spacing.small,
+      zIndex: -1,
+    },
   });
 }
