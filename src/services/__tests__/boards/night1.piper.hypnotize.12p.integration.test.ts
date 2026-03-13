@@ -13,7 +13,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
 
-const _TEMPLATE_NAME = '预女猎白12人'; // coverage contract marker
+const _TEMPLATE_NAME = '预女猎白'; // coverage contract marker
 
 const CUSTOM_ROLES: RoleId[] = [
   'piper',

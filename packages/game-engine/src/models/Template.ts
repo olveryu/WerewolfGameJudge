@@ -112,7 +112,7 @@ export const findMatchingPresetName = (roles: RoleId[]): string | null => {
 // Predefined templates matching Flutter app
 export const PRESET_TEMPLATES: PresetTemplate[] = [
   {
-    name: '预女猎白12人',
+    name: '预女猎白',
     category: TemplateCategory.Classic,
     roles: [
       'villager',
@@ -130,7 +130,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '狼美守卫12人',
+    name: '狼美守卫',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -148,7 +148,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '狼王守卫12人',
+    name: '狼王守卫',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -166,7 +166,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '石像守墓12人',
+    name: '石像守墓',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -184,7 +184,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '梦魇守卫12人',
+    name: '梦魇守卫',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -202,7 +202,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '血月猎魔12人',
+    name: '血月猎魔',
     category: TemplateCategory.Featured,
     roles: [
       'villager',
@@ -220,7 +220,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '狼王摄梦12人',
+    name: '狼王摄梦',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -238,7 +238,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '狼王魔术12人',
+    name: '狼王魔术',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -256,7 +256,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '机械通灵12人',
+    name: '机械通灵',
     category: TemplateCategory.Featured,
     roles: [
       'villager',
@@ -274,7 +274,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '恶灵骑士12人',
+    name: '恶灵骑士',
     category: TemplateCategory.Featured,
     roles: [
       'villager',
@@ -292,7 +292,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '纯白夜影12人',
+    name: '纯白夜影',
     category: TemplateCategory.Featured,
     roles: [
       'villager',
@@ -310,7 +310,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '灯影预言12人',
+    name: '灯影预言',
     category: TemplateCategory.Featured,
     roles: [
       'villager',
@@ -328,7 +328,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '假面舞会12人',
+    name: '假面舞会',
     category: TemplateCategory.Featured,
     roles: [
       'villager',
@@ -346,7 +346,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '吹笛守卫12人',
+    name: '吹笛守卫',
     category: TemplateCategory.ThirdParty,
     roles: [
       'villager',
@@ -364,7 +364,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '混子标准12人',
+    name: '混子标准',
     category: TemplateCategory.ThirdParty,
     roles: [
       'villager',
@@ -382,7 +382,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '野孩标准12人',
+    name: '野孩标准',
     category: TemplateCategory.ThirdParty,
     roles: [
       'villager',
@@ -400,7 +400,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '唯邻是从12人',
+    name: '唯邻是从',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -418,7 +418,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '孤注一掷12人',
+    name: '孤注一掷',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',

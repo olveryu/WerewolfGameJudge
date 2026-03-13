@@ -3,7 +3,7 @@
  *
  * 主题：女巫的解药/毒药约束和效果。
  *
- * 模板：狼王魔术12人
+ * 模板：狼王魔术
  * 固定 seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
@@ -26,7 +26,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '狼王魔术12人';
+const TEMPLATE_NAME = '狼王魔术';
 
 /**
  * 固定 seat-role assignment

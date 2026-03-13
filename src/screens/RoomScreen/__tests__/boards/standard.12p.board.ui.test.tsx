@@ -1,7 +1,7 @@
 /**
  * Standard 12P Board UI Test
  *
- * Board: 预女猎白12人
+ * Board: 预女猎白
  * Roles: 4x villager, 4x wolf, seer, witch, hunter, idiot
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -89,7 +89,7 @@ jest.mock('../../hooks/useActionerState', () => ({
 // Test Setup
 // =============================================================================
 
-const BOARD_NAME = '预女猎白12人';
+const BOARD_NAME = '预女猎白';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

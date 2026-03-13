@@ -10,7 +10,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '预女猎白12人';
+const TEMPLATE_NAME = '预女猎白';
 
 const CUSTOM_ROLES: RoleId[] = [
   'silenceElder',
@@ -57,6 +57,6 @@ describe('Night-1: silenceElder + votebanElder steps (12p)', () => {
     executeFullNight(ctx);
 
     // contract gate pattern
-    expect(TEMPLATE_NAME).toBe('预女猎白12人');
+    expect(TEMPLATE_NAME).toBe('预女猎白');
   });
 });

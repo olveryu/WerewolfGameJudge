@@ -1,7 +1,7 @@
 /**
  * AwakenedGargoyle 12P Board UI Test
  *
- * Board: 唯邻是从12人
+ * Board: 唯邻是从
  * Roles: 4x villager, 2x wolf, awakenedGargoyle, seer, witch, hunter, guard, graveyardKeeper
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -78,7 +78,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '唯邻是从12人';
+const BOARD_NAME = '唯邻是从';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

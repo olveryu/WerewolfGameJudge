@@ -67,7 +67,7 @@ export const BoardTemplateCard = memo<BoardTemplateCardProps>(
           {/* Row 1: Title + player count */}
           <View style={styles.templateCardTitleRow}>
             <Text style={styles.templateCardTitle} numberOfLines={1}>
-              {template.name.replace(/\d+人$/, '')}
+              {template.name}
             </Text>
             <View style={styles.templateCardPlayerBadge}>
               <Text style={styles.templateCardPlayerText}>{template.roles.length}人</Text>

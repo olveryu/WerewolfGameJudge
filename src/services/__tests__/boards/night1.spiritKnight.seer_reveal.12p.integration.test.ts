@@ -1,7 +1,7 @@
 /**
- * Night-1 Integration Test: 恶灵骑士12人 - Seer Reveal
+ * Night-1 Integration Test: 恶灵骑士 - Seer Reveal
  *
- * 板子：恶灵骑士12人
+ * 板子：恶灵骑士
  * 主题：预言家查验结果写入 GameState.seerReveal
  *
  * 固定 seat-role assignment:
@@ -21,7 +21,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '恶灵骑士12人';
+const TEMPLATE_NAME = '恶灵骑士';
 
 /**
  * 固定 seat-role assignment
@@ -43,7 +43,7 @@ function createRoleAssignment(): Map<number, RoleId> {
   return map;
 }
 
-describe('Night-1: 恶灵骑士12人 - Seer Reveal (12p)', () => {
+describe('Night-1: 恶灵骑士 - Seer Reveal (12p)', () => {
   let ctx: GameContext;
 
   afterEach(() => {

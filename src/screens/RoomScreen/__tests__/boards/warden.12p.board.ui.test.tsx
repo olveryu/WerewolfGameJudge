@@ -1,7 +1,7 @@
 /**
  * Warden 12P Board UI Test
  *
- * Board: 孤注一掷12人
+ * Board: 孤注一掷
  * Roles: 4x villager, 3x wolf, warden, seer, witch, hunter, dreamcatcher
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -77,7 +77,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '孤注一掷12人';
+const BOARD_NAME = '孤注一掷';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

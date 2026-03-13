@@ -1,12 +1,12 @@
 /**
  * Night-1 Intermediate State Assertions (12P Integration Test)
  *
- * 板子：预女猎白12人 (4 villager, 4 wolf, seer, witch, hunter, idiot)
+ * 板子：预女猎白 (4 villager, 4 wolf, seer, witch, hunter, idiot)
  *
  * 目的：逐步执行 Night-1，在每一步 action 提交后断言 GameState
  * 的关键字段，确保中间状态正确。填补现有测试只关注最终结果的盲区。
  *
- * 步骤顺序 (预女猎白12人): wolfKill → witchAction → hunterConfirm → seerCheck
+ * 步骤顺序 (预女猎白): wolfKill → witchAction → hunterConfirm → seerCheck
  */
 
 import { GameStatus } from '@werewolf/game-engine';
@@ -20,7 +20,7 @@ import { sendMessageOrThrow } from './stepByStepRunner';
 // Constants
 // =============================================================================
 
-const TEMPLATE_NAME = '预女猎白12人';
+const TEMPLATE_NAME = '预女猎白';
 
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -46,7 +46,7 @@ function createRoleAssignment(): Map<number, RoleId> {
 // Tests
 // =============================================================================
 
-describe('Night-1: intermediate state assertions (预女猎白12人)', () => {
+describe('Night-1: intermediate state assertions (预女猎白)', () => {
   afterEach(() => {
     cleanupGame();
   });

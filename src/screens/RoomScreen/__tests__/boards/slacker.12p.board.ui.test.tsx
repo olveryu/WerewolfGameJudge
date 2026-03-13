@@ -1,7 +1,7 @@
 /**
  * Slacker 12P Board UI Test
  *
- * Board: 混子标准12人
+ * Board: 混子标准
  * Roles: 3x villager, 4x wolf, slacker, seer, witch, hunter, idiot
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -89,7 +89,7 @@ jest.mock('../../hooks/useActionerState', () => ({
 // Test Setup
 // =============================================================================
 
-const BOARD_NAME = '混子标准12人';
+const BOARD_NAME = '混子标准';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

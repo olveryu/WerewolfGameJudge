@@ -78,7 +78,7 @@ jest.mock('../../hooks/useActionerState', () => ({
 // Test Setup
 // =============================================================================
 
-const TEMPLATE_NAME = '预女猎白12人';
+const TEMPLATE_NAME = '预女猎白';
 const MY_SEAT = 9; // witch seat
 
 function createRoleAssignment(): Map<number, RoleId> {

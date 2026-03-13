@@ -187,7 +187,7 @@ describe('RoomScreen magician swap UI (smoke)', () => {
         params: {
           roomNumber: '1234',
           isHost: false,
-          template: '梦魇守卫12人',
+          template: '梦魇守卫',
         },
       },
     };

@@ -3,7 +3,7 @@
  *
  * 主题：石像鬼查验结果（返回具体角色）及 swap 后变化。
  *
- * 模板：石像守墓12人
+ * 模板：石像守墓
  * 固定 seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
@@ -26,7 +26,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '石像守墓12人';
+const TEMPLATE_NAME = '石像守墓';
 
 /**
  * 固定 seat-role assignment

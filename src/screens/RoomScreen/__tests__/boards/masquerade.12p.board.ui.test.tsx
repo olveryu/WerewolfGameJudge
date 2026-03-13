@@ -1,7 +1,7 @@
 /**
  * Masquerade 12P Board UI Test
  *
- * Board: 假面舞会12人
+ * Board: 假面舞会
  * Roles: 4x villager, 3x wolf, masquerade, seer, witch, dancer, idiot
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -75,7 +75,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '假面舞会12人';
+const BOARD_NAME = '假面舞会';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

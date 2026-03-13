@@ -1,7 +1,7 @@
 /**
  * BloodMoon 12P Board UI Test
  *
- * Board: 血月猎魔12人
+ * Board: 血月猎魔
  * Roles: 4x villager, 4x wolf, bloodMoon, seer, witch, witcher
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -74,7 +74,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '血月猎魔12人';
+const BOARD_NAME = '血月猎魔';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

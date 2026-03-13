@@ -252,7 +252,7 @@ describe('RoomScreen wolf vote UI', () => {
         params: {
           roomNumber: '1234',
           isHost: false,
-          template: '梦魇守卫12人',
+          template: '梦魇守卫',
         },
       },
     };
@@ -329,7 +329,7 @@ describe('RoomScreen wolf vote UI', () => {
         params: {
           roomNumber: '1234',
           isHost: false,
-          template: '梦魇守卫12人',
+          template: '梦魇守卫',
         },
       },
     };
@@ -397,7 +397,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
-        params: { roomNumber: '1234', isHost: false, template: '梦魇守卫12人' },
+        params: { roomNumber: '1234', isHost: false, template: '梦魇守卫' },
       },
     };
 
@@ -431,7 +431,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
-        params: { roomNumber: '1234', isHost: false, template: '梦魇守卫12人' },
+        params: { roomNumber: '1234', isHost: false, template: '梦魇守卫' },
       },
     };
 
@@ -461,7 +461,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
     const props: any = {
       navigation: mockNavigation,
       route: {
-        params: { roomNumber: '1234', isHost: false, template: '梦魇守卫12人' },
+        params: { roomNumber: '1234', isHost: false, template: '梦魇守卫' },
       },
     };
 
