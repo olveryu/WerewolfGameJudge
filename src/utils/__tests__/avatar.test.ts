@@ -8,10 +8,16 @@
  * 4. Index wrapping: getAvatarImageByIndex handles edge cases
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { getAvatarByUid, getAvatarImageByIndex, getUniqueAvatarMap } from '@/utils/avatar';
 
-/** Number of avatar images (56 dark fantasy portraits) */
-const AVATAR_COUNT = 56;
+/** Number of avatar images — auto-discovered from disk to stay in sync with require.context */
+const avatarDir = path.resolve(__dirname, '../../../assets/avatars');
+const AVATAR_COUNT = fs
+  .readdirSync(avatarDir)
+  .filter((f) => /^villager_\d+\.(jpg|png)$/.test(f)).length;
 
 describe('getAvatarByUid', () => {
   describe('stability', () => {
@@ -90,7 +96,7 @@ describe('getAvatarByUid', () => {
 
 describe('getUniqueAvatarMap', () => {
   it('assigns unique avatar indices to 12 different uids in same room', () => {
-    // Precondition: 56 avatars > 12 players
+    // Precondition: avatars > 12 players
     expect(AVATAR_COUNT).toBeGreaterThanOrEqual(12);
 
     const roomId = 'room-test-collision';
