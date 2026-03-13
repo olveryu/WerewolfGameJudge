@@ -2,7 +2,7 @@
  * AwakenedGargoyle 12P Board UI Test
  *
  * Board: 唯邻是从12人
- * Roles: 4x villager, 3x wolf, awakenedGargoyle, seer, witch, hunter, guard
+ * Roles: 4x villager, 2x wolf, awakenedGargoyle, seer, witch, hunter, guard, graveyardKeeper
  *
  * Required UI coverage (getRequiredUiDialogTypes):
  * - actionPrompt, wolfVote, wolfVoteEmpty, witchSavePrompt, witchPoisonPrompt,
@@ -112,7 +112,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'awakenedGargoyleConvert',
         currentActionRole: 'awakenedGargoyle',
         myRole: 'awakenedGargoyle',
-        mySeatNumber: 7,
+        mySeatNumber: 6,
       });
 
       const { getByTestId } = renderRoom();
@@ -131,8 +131,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         roleAssignments: new Map([
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolf'],
-          [7, 'awakenedGargoyle'],
+          [6, 'awakenedGargoyle'],
         ]),
       });
 
@@ -150,7 +149,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
-        mySeatNumber: 9,
+        mySeatNumber: 8,
         witchContext: { killedSeat: 1, canSave: true, canPoison: true },
         gameStateOverrides: { witchContext: { killedSeat: 1, canSave: true, canPoison: true } },
       });
@@ -167,7 +166,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
-        mySeatNumber: 9,
+        mySeatNumber: 8,
         witchContext: { killedSeat: -1, canSave: false, canPoison: true },
         gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
       });
@@ -186,7 +185,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
-        mySeatNumber: 9,
+        mySeatNumber: 8,
         witchContext: { killedSeat: -1, canSave: false, canPoison: true },
         gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
       });
@@ -203,7 +202,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
         myRole: 'hunter',
-        mySeatNumber: 10,
+        mySeatNumber: 9,
         gameStateOverrides: { confirmStatus: { role: 'hunter', canShoot: true } },
       });
 
@@ -225,7 +224,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 8,
+        mySeatNumber: 7,
       });
 
       const { getByTestId } = renderRoom();
@@ -242,7 +241,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 8,
+        mySeatNumber: 7,
       });
 
       const { getByTestId, getByText } = renderRoom();
@@ -266,8 +265,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         roleAssignments: new Map([
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolf'],
-          [7, 'awakenedGargoyle'],
+          [6, 'awakenedGargoyle'],
         ]),
       });
 
@@ -297,8 +295,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         new Map<number, any>([
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolf'],
-          [7, 'awakenedGargoyle'],
+          [6, 'awakenedGargoyle'],
         ]),
         1,
       );
@@ -312,7 +309,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         'hunterConfirm',
         'hunter',
         'hunter',
-        10,
+        9,
       );
     });
   });
@@ -327,7 +324,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         'awakenedGargoyleConvert',
         'awakenedGargoyle',
         'awakenedGargoyle',
-        7,
+        6,
       );
 
       // Step 2: wolfVote → press confirm → submitAction(1) called
@@ -340,18 +337,17 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         new Map<number, any>([
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolf'],
-          [7, 'awakenedGargoyle'],
+          [6, 'awakenedGargoyle'],
         ]),
         1,
       );
       expect(wolfVoteAction).toHaveBeenCalledWith(1);
 
       // Step 3: witchSavePrompt
-      await coverageChainWitchSavePrompt(harness, setMock, renderRoom, 9);
+      await coverageChainWitchSavePrompt(harness, setMock, renderRoom, 8);
 
       // Step 4: witchPoisonPrompt
-      await coverageChainWitchPoisonPrompt(harness, setMock, renderRoom, 9);
+      await coverageChainWitchPoisonPrompt(harness, setMock, renderRoom, 8);
 
       // Step 5: confirmTrigger (hunter) → press primary + assertNoLoop
       await coverageChainConfirmTrigger(
@@ -361,7 +357,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         'hunterConfirm',
         'hunter',
         'hunter',
-        10,
+        9,
       );
 
       // Step 6: actionConfirm (seer tap seat) → press confirm → submitAction called
@@ -372,7 +368,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         'seerCheck',
         'seer',
         'seer',
-        8,
+        7,
         1,
       );
       expect(seerSubmit).toHaveBeenCalled();
@@ -385,7 +381,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         'seerCheck',
         'seer',
         'seer',
-        8,
+        7,
       );
       expect(seerSkip).toHaveBeenCalled();
 
@@ -399,8 +395,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         new Map<number, any>([
           [4, 'wolf'],
           [5, 'wolf'],
-          [6, 'wolf'],
-          [7, 'awakenedGargoyle'],
+          [6, 'awakenedGargoyle'],
         ]),
       );
       expect(emptyVote).toHaveBeenCalledWith(null);
