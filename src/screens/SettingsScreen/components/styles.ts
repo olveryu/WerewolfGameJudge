@@ -93,6 +93,23 @@ export interface SettingsScreenStyles {
   aboutLabel: TextStyle;
   aboutValue: TextStyle;
   bottomSpacer: ViewStyle;
+  // Avatar picker
+  pickerOverlay: ViewStyle;
+  pickerSheet: ViewStyle;
+  pickerHandle: ViewStyle;
+  pickerHeader: ViewStyle;
+  pickerTitle: TextStyle;
+  pickerCloseBtn: ViewStyle;
+  pickerGrid: ViewStyle;
+  pickerItem: ViewStyle;
+  pickerItemImage: ImageStyle;
+  pickerItemSelected: ViewStyle;
+  pickerCheckBadge: ViewStyle;
+  pickerUploadItem: ViewStyle;
+  pickerFooter: ViewStyle;
+  pickerConfirmBtn: ViewStyle;
+  pickerConfirmBtnDisabled: ViewStyle;
+  pickerConfirmBtnText: TextStyle;
 }
 
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
@@ -410,5 +427,107 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     bottomSpacer: {
       height: spacing.xlarge,
+    },
+    // Avatar picker
+    pickerOverlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'flex-end',
+    },
+    pickerSheet: {
+      backgroundColor: colors.background,
+      borderTopLeftRadius: borderRadius.large,
+      borderTopRightRadius: borderRadius.large,
+      maxHeight: '75%',
+      paddingBottom: spacing.xlarge,
+    },
+    pickerHandle: {
+      width: componentSizes.handle.width,
+      height: componentSizes.handle.height,
+      backgroundColor: colors.textMuted,
+      borderRadius: borderRadius.full,
+      alignSelf: 'center',
+      marginTop: spacing.small,
+      marginBottom: spacing.small,
+    },
+    pickerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.screenH,
+      paddingBottom: spacing.small,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.border,
+    },
+    pickerTitle: {
+      ...textStyles.subtitleSemibold,
+      color: colors.text,
+    },
+    pickerCloseBtn: {
+      padding: spacing.tight,
+    },
+    pickerGrid: {
+      paddingHorizontal: spacing.medium,
+      paddingTop: spacing.medium,
+    },
+    pickerItem: {
+      flex: 1,
+      aspectRatio: 1,
+      margin: spacing.tight,
+      borderRadius: borderRadius.medium,
+      overflow: 'hidden',
+      borderWidth: fixed.borderWidthThick,
+      borderColor: colors.background,
+    },
+    pickerItemImage: {
+      width: '100%',
+      height: '100%',
+      borderRadius: borderRadius.medium - fixed.borderWidthThick,
+    },
+    pickerItemSelected: {
+      borderColor: colors.primary,
+    },
+    pickerCheckBadge: {
+      position: 'absolute',
+      bottom: spacing.micro,
+      right: spacing.micro,
+      width: componentSizes.icon.md,
+      height: componentSizes.icon.md,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    pickerUploadItem: {
+      flex: 1,
+      aspectRatio: 1,
+      margin: spacing.tight,
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidthThick,
+      borderColor: colors.border,
+      borderStyle: 'dashed',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+    },
+    pickerFooter: {
+      paddingHorizontal: spacing.screenH,
+      paddingTop: spacing.medium,
+      borderTopWidth: fixed.borderWidth,
+      borderTopColor: colors.border,
+    },
+    pickerConfirmBtn: {
+      backgroundColor: colors.primary,
+      height: componentSizes.button.md,
+      borderRadius: borderRadius.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    pickerConfirmBtnDisabled: {
+      opacity: fixed.disabledOpacity,
+    },
+    pickerConfirmBtnText: {
+      ...textStyles.bodyMedium,
+      color: colors.textInverse,
     },
   });

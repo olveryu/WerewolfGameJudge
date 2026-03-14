@@ -10,7 +10,13 @@ import React, { memo, useMemo } from 'react';
 import { Image, ImageSourcePropType, StyleSheet } from 'react-native';
 
 import { useColors } from '@/theme';
-import { getAvatarByUid, getAvatarImage, getAvatarImageByIndex } from '@/utils/avatar';
+import {
+  getAvatarByUid,
+  getAvatarImage,
+  getAvatarImageByIndex,
+  getBuiltinAvatarImage,
+  isBuiltinAvatarUrl,
+} from '@/utils/avatar';
 
 interface AvatarProps {
   value: string;
@@ -64,11 +70,18 @@ const AvatarComponent: React.FC<AvatarProps> = ({
   );
 
   // Memoize URI source object to prevent new object creation
-  const uriSource = useMemo(() => (avatarUrl ? { uri: avatarUrl } : null), [avatarUrl]);
+  const uriSource = useMemo(
+    () => (avatarUrl && !isBuiltinAvatarUrl(avatarUrl) ? { uri: avatarUrl } : null),
+    [avatarUrl],
+  );
 
   // Memoize local image source based on avatarIndex, uid and roomId
   const localImageSource = useMemo(() => {
-    if (avatarUrl) return null; // Not needed when custom avatar is provided
+    if (avatarUrl) {
+      // builtin:// → resolve to local asset
+      if (isBuiltinAvatarUrl(avatarUrl)) return getBuiltinAvatarImage(avatarUrl);
+      return null; // remote URL handled by uriSource
+    }
     if (avatarIndex !== undefined) return getAvatarImageByIndex(avatarIndex);
     return roomId ? getAvatarByUid(roomId, value) : getAvatarImage(value);
   }, [avatarUrl, avatarIndex, roomId, value]);
