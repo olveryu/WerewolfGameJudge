@@ -210,8 +210,14 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       try {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
+        const avatarFrame = await authService.getCurrentAvatarFrame();
 
-        return await facade.takeSeat(seatNumber, displayName ?? undefined, avatarUrl ?? undefined);
+        return await facade.takeSeat(
+          seatNumber,
+          displayName ?? undefined,
+          avatarUrl ?? undefined,
+          avatarFrame ?? undefined,
+        );
       } catch (err) {
         handleError(err, {
           label: '入座',

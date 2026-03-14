@@ -131,7 +131,55 @@ export interface SettingsScreenStyles {
   avatarPreviewItem: ImageStyle;
   avatarPreviewLockBadge: ViewStyle;
   avatarPreviewDesc: TextStyle;
+  avatarPreviewUpgradeBtn: ViewStyle;
+  avatarPreviewUpgradeBtnText: TextStyle;
   avatarPreviewCta: TextStyle;
+  // Avatar frame picker (fixed below scroll area)
+  frameSection: ViewStyle;
+  frameSectionTitle: TextStyle;
+  frameRow: ViewStyle;
+  frameCell: ViewStyle;
+  frameCellSelected: ViewStyle;
+  frameCellActive: ViewStyle;
+  frameName: TextStyle;
+  frameNameSelected: TextStyle;
+  frameNoFrameIcon: ViewStyle;
+  // Picker tab bar
+  pickerTabBar: ViewStyle;
+  pickerTab: ViewStyle;
+  pickerTabActive: ViewStyle;
+  pickerTabText: TextStyle;
+  pickerTabTextActive: TextStyle;
+  pickerTabIndicator: ViewStyle;
+  // Hero preview area
+  heroPreview: ViewStyle;
+  heroPreviewLeft: ViewStyle;
+  heroPreviewRight: ViewStyle;
+  heroDisplayName: TextStyle;
+  heroFrameLabel: TextStyle;
+  heroUploadBtn: ViewStyle;
+  heroUploadBtnText: TextStyle;
+  // Frame grid (3×2 in frame tab)
+  frameGrid: ViewStyle;
+  frameGridCell: ViewStyle;
+  frameGridCellSelected: ViewStyle;
+  frameGridCellActive: ViewStyle;
+  frameGridName: TextStyle;
+  frameGridNameSelected: TextStyle;
+  frameGridNoFrame: ViewStyle;
+  // ReadOnly upgrade card in picker
+  pickerUpgradeCard: ViewStyle;
+  pickerUpgradeTitle: TextStyle;
+  pickerUpgradeBenefits: ViewStyle;
+  pickerUpgradeBenefit: TextStyle;
+  // Settings account horizontal profile row
+  profileRow: ViewStyle;
+  profileRowRight: ViewStyle;
+  profileRowName: ViewStyle;
+  // Settings dresser entry row
+  dresserEntry: ViewStyle;
+  dresserEntryText: TextStyle;
+  dresserEntryChevron: TextStyle;
 }
 
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
@@ -652,11 +700,233 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       textAlign: 'center',
       marginTop: spacing.small,
     },
+    avatarPreviewUpgradeBtn: {
+      backgroundColor: colors.primary,
+      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.large,
+      borderRadius: borderRadius.full,
+      alignSelf: 'center',
+      marginTop: spacing.small,
+    },
+    avatarPreviewUpgradeBtnText: {
+      ...textStyles.secondarySemibold,
+      color: colors.textInverse,
+    },
     avatarPreviewCta: {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
       color: colors.primary,
       fontWeight: typography.weights.medium,
       marginTop: spacing.tight,
+    },
+    // Avatar frame picker (fixed below scroll area)
+    frameSection: {
+      paddingHorizontal: spacing.medium,
+      paddingTop: spacing.small,
+      paddingBottom: spacing.small,
+      borderTopWidth: fixed.borderWidth,
+      borderTopColor: colors.border,
+    },
+    frameSectionTitle: {
+      ...textStyles.secondarySemibold,
+      color: colors.textSecondary,
+      marginBottom: spacing.tight,
+    },
+    frameRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.small,
+      justifyContent: 'center',
+    },
+    frameCell: {
+      alignItems: 'center',
+      padding: spacing.tight,
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidthThick,
+      borderColor: colors.background,
+    },
+    frameCellSelected: {
+      borderColor: colors.primary,
+    },
+    frameCellActive: {
+      borderColor: withAlpha(colors.primary, 0.4),
+    },
+    frameName: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.micro,
+      textAlign: 'center',
+    },
+    frameNameSelected: {
+      color: colors.primary,
+      fontWeight: typography.weights.medium,
+    },
+    frameNoFrameIcon: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    // Picker tab bar (头像 / 头像框)
+    pickerTabBar: {
+      flexDirection: 'row',
+      paddingHorizontal: spacing.screenH,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.border,
+    },
+    pickerTab: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: spacing.small,
+    },
+    pickerTabActive: {
+      // active state — no background, uses indicator
+    },
+    pickerTabText: {
+      ...textStyles.bodyMedium,
+      color: colors.textSecondary,
+    },
+    pickerTabTextActive: {
+      color: colors.primary,
+      fontWeight: typography.weights.semibold,
+    },
+    pickerTabIndicator: {
+      position: 'absolute',
+      bottom: 0,
+      left: spacing.medium,
+      right: spacing.medium,
+      height: fixed.borderWidthThick,
+      backgroundColor: colors.primary,
+      borderRadius: fixed.borderWidth,
+    },
+    // Hero preview area
+    heroPreview: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.screenH,
+      paddingVertical: spacing.medium,
+      gap: spacing.medium,
+    },
+    heroPreviewLeft: {
+      alignItems: 'center',
+    },
+    heroPreviewRight: {
+      flex: 1,
+      gap: spacing.tight,
+    },
+    heroDisplayName: {
+      ...textStyles.bodyMedium,
+      color: colors.text,
+    },
+    heroFrameLabel: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
+    },
+    heroUploadBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
+      marginTop: spacing.small,
+    },
+    heroUploadBtnText: {
+      ...textStyles.secondary,
+      color: colors.primary,
+      fontWeight: typography.weights.medium,
+    },
+    // Frame grid (3×2 in frame tab)
+    frameGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.medium,
+      gap: spacing.medium,
+    },
+    frameGridCell: {
+      alignItems: 'center',
+      padding: spacing.small,
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidthThick,
+      borderColor: colors.background,
+    },
+    frameGridCellSelected: {
+      borderColor: colors.primary,
+      backgroundColor: withAlpha(colors.primary, 0.08),
+    },
+    frameGridCellActive: {
+      borderColor: withAlpha(colors.primary, 0.4),
+    },
+    frameGridName: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.tight,
+      textAlign: 'center',
+    },
+    frameGridNameSelected: {
+      color: colors.primary,
+      fontWeight: typography.weights.medium,
+    },
+    frameGridNoFrame: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    // ReadOnly upgrade card in picker
+    pickerUpgradeCard: {
+      marginHorizontal: spacing.screenH,
+      marginTop: spacing.medium,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.medium,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      gap: spacing.small,
+    },
+    pickerUpgradeTitle: {
+      ...textStyles.secondarySemibold,
+      color: colors.text,
+    },
+    pickerUpgradeBenefits: {
+      gap: spacing.tight,
+    },
+    pickerUpgradeBenefit: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
+    },
+    // Settings account horizontal profile row
+    profileRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing.medium,
+      marginBottom: spacing.medium,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.border,
+      gap: spacing.medium,
+    },
+    profileRowRight: {
+      flex: 1,
+      gap: spacing.tight,
+    },
+    profileRowName: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
+    },
+    // Settings dresser entry row
+    dresserEntry: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.medium,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.medium,
+      marginBottom: spacing.medium,
+    },
+    dresserEntryText: {
+      ...textStyles.body,
+      color: colors.text,
+    },
+    dresserEntryChevron: {
+      color: colors.textMuted,
     },
   });

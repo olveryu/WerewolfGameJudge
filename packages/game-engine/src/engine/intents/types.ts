@@ -19,6 +19,7 @@ export interface JoinSeatIntent {
     uid: string;
     displayName: string;
     avatarUrl?: string;
+    avatarFrame?: string;
   };
 }
 
@@ -112,6 +113,7 @@ export interface UpdatePlayerProfileIntent {
     uid: string;
     displayName?: string;
     avatarUrl?: string;
+    avatarFrame?: string;
   };
 }
 

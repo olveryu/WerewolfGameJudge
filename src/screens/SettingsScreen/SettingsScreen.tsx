@@ -23,11 +23,12 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
+import type { FrameId } from '@/components/avatarFrames';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
-import { componentSizes, ThemeKey, typography, useTheme } from '@/theme';
+import { componentSizes, fixed, ThemeKey, typography, useTheme } from '@/theme';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import {
   BUILTIN_AVATAR_PREFIX,
@@ -151,10 +152,6 @@ export const SettingsScreen: React.FC = () => {
     return parseInt(match[1], 10) - 1; // 1-based filename → 0-based index
   }, [user?.avatarUrl]);
 
-  // Whether avatarUrl is a remote URL (not builtin and not null)
-  const isAvatarRemote =
-    !!user?.avatarUrl && !user?.isAnonymous && !isBuiltinAvatarUrl(user.avatarUrl);
-
   // ============================================
   // Stable callback handlers
   // ============================================
@@ -258,6 +255,28 @@ export const SettingsScreen: React.FC = () => {
       showAlert('选择图片失败', message);
     }
   }, [uploadAvatar, facade]);
+
+  const handleSelectFrame = useCallback(
+    async (frameId: FrameId | null) => {
+      setSavingBuiltinAvatar(true);
+      try {
+        await updateProfile({ avatarFrame: frameId ?? '' });
+        showAlert('头像框已更新');
+        setShowAvatarPicker(false);
+
+        facade
+          .updatePlayerProfile(undefined, undefined, frameId ?? '')
+          .catch((err: unknown) => settingsLog.warn('Frame sync to GameState failed:', err));
+      } catch (e: unknown) {
+        const message = getErrorMessage(e);
+        settingsLog.error('Frame save failed:', message, e);
+        showAlert('保存失败', message);
+      } finally {
+        setSavingBuiltinAvatar(false);
+      }
+    },
+    [updateProfile, facade],
+  );
 
   const handleUpdateName = useCallback(async () => {
     if (!editName.trim()) {
@@ -401,55 +420,107 @@ export const SettingsScreen: React.FC = () => {
     }
 
     if (isAuthenticated) {
-      return (
-        <>
-          <View style={styles.profileSection}>
+      // ── Anonymous user: avatar + teaser card + account operations ──
+      if (user?.isAnonymous) {
+        return (
+          <>
             <AvatarSection
-              isAnonymous={user?.isAnonymous ?? true}
+              isAnonymous
               uid={user?.uid ?? 'anonymous'}
               avatarSource={avatarSource}
-              isRemote={isAvatarRemote}
+              avatarUrl={user?.avatarUrl}
+              avatarFrame={user?.avatarFrame}
               uploadingAvatar={uploadingAvatar}
               displayName={user?.displayName ?? null}
               onPickAvatar={handlePickAvatar}
               styles={styles}
               colors={colors}
             />
-            <NameSection
-              isAnonymous={user?.isAnonymous ?? true}
+
+            <View style={styles.accountRow}>
+              <Text style={styles.accountLabel}>状态</Text>
+              <View style={styles.statusBadge}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>匿名登录</Text>
+              </View>
+            </View>
+
+            {canSwitchAccount && (
+              <TouchableOpacity style={styles.logoutBtn} onPress={handleShowUpgradeForm}>
+                <Text style={[styles.logoutBtnText, { color: colors.primary }]}>绑定邮箱</Text>
+              </TouchableOpacity>
+            )}
+
+            {canSwitchAccount && (
+              <TouchableOpacity style={styles.logoutBtn} onPress={handleSwitchAccount}>
+                <Text style={styles.logoutBtnText}>切换账号</Text>
+              </TouchableOpacity>
+            )}
+
+            {!isInRoom && (
+              <TouchableOpacity style={styles.logoutBtn} onPress={signOut}>
+                <Text style={styles.logoutBtnText}>登出</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        );
+      }
+
+      // ── Registered user: horizontal profile row + dresser entry + account info + operations ──
+      return (
+        <>
+          {/* Zone 1: Identity — horizontal avatar + name/status/email */}
+          <View style={styles.profileRow}>
+            <AvatarSection
+              isAnonymous={false}
+              uid={user?.uid ?? 'anonymous'}
+              avatarSource={avatarSource}
+              avatarUrl={user?.avatarUrl}
+              avatarFrame={user?.avatarFrame}
+              uploadingAvatar={uploadingAvatar}
               displayName={user?.displayName ?? null}
-              isEditingName={isEditingName}
-              editName={editName}
-              onEditNameChange={setEditName}
-              onStartEdit={handleStartEditName}
-              onSave={handleUpdateName}
-              onCancel={handleCancelEditName}
+              onPickAvatar={handlePickAvatar}
               styles={styles}
               colors={colors}
             />
-          </View>
-
-          <View style={styles.accountRow}>
-            <Text style={styles.accountLabel}>状态</Text>
-            <View style={styles.statusBadge}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusText}>{user?.isAnonymous ? '匿名登录' : '邮箱登录'}</Text>
+            <View style={styles.profileRowRight}>
+              <View style={styles.profileRowName}>
+                <NameSection
+                  isAnonymous={false}
+                  displayName={user?.displayName ?? null}
+                  isEditingName={isEditingName}
+                  editName={editName}
+                  onEditNameChange={setEditName}
+                  onStartEdit={handleStartEditName}
+                  onSave={handleUpdateName}
+                  onCancel={handleCancelEditName}
+                  styles={styles}
+                  colors={colors}
+                />
+              </View>
+              <View style={styles.statusBadge}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>邮箱登录</Text>
+              </View>
+              {user?.email && <Text style={styles.accountValue}>{user.email}</Text>}
             </View>
           </View>
 
-          {user?.email && (
-            <View style={styles.accountRow}>
-              <Text style={styles.accountLabel}>邮箱</Text>
-              <Text style={styles.accountValue}>{user.email}</Text>
-            </View>
-          )}
+          {/* Zone 2: Dresser entry */}
+          <TouchableOpacity
+            style={styles.dresserEntry}
+            onPress={handlePickAvatar}
+            activeOpacity={fixed.activeOpacity}
+          >
+            <Text style={styles.dresserEntryText}>更换头像与头像框</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={componentSizes.icon.md}
+              color={colors.textMuted}
+            />
+          </TouchableOpacity>
 
-          {user?.isAnonymous && canSwitchAccount && (
-            <TouchableOpacity style={styles.logoutBtn} onPress={handleShowUpgradeForm}>
-              <Text style={styles.logoutBtnText}>绑定邮箱</Text>
-            </TouchableOpacity>
-          )}
-
+          {/* Zone 3: Account operations */}
           {canSwitchAccount && (
             <TouchableOpacity style={styles.logoutBtn} onPress={handleSwitchAccount}>
               <Text style={styles.logoutBtnText}>切换账号</Text>
@@ -510,11 +581,15 @@ export const SettingsScreen: React.FC = () => {
         visible={showAvatarPicker}
         currentIndex={currentBuiltinIndex}
         customAvatarUrl={user?.customAvatarUrl ?? undefined}
+        currentFrameId={user?.avatarFrame ?? null}
+        uid={user?.uid ?? 'anonymous'}
+        currentAvatarUrl={user?.avatarUrl}
         saving={savingBuiltinAvatar}
         readOnly={user?.isAnonymous ?? false}
         onSelect={handleSelectBuiltinAvatar}
         onSelectCustom={handleSelectCustomAvatar}
         onUpload={handleUploadFromPicker}
+        onSelectFrame={handleSelectFrame}
         onUpgrade={handleShowUpgradeForm}
         onClose={handleCloseAvatarPicker}
         styles={styles}

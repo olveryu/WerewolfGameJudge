@@ -82,6 +82,7 @@ export interface SeatViewModel {
     uid: string;
     displayName: string;
     avatarUrl?: string;
+    avatarFrame?: string;
     isBot?: boolean;
     role?: RoleId | null; // For bot role display (debug mode)
   } | null;
@@ -416,6 +417,7 @@ export function buildSeatViewModels(
             uid: player.uid,
             displayName: player.displayName || '玩家',
             avatarUrl: player.avatarUrl,
+            avatarFrame: player.avatarFrame,
             isBot: player.isBot,
             role: player.role, // For bot role display (debug mode)
           }

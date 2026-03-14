@@ -1,11 +1,11 @@
 /**
  * AvatarSection - 头像显示/编辑组件（Memoized）
  *
- * 显示当前头像 + 上传按钮，通过回调上报操作意图。
+ * 显示当前头像 + 编辑角标，通过回调上报操作意图。
+ * 匿名用户额外显示升级引导 teaser 卡片。
  * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
 import { Ionicons } from '@expo/vector-icons';
-import { Image as ExpoImage } from 'expo-image';
 import { memo } from 'react';
 import {
   ActivityIndicator,
@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
+import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { UI_ICONS } from '@/config/iconTokens';
 import { componentSizes, fixed, ThemeColors } from '@/theme';
 import { AVATAR_IMAGES, getAvatarImageByIndex } from '@/utils/avatar';
@@ -36,8 +37,10 @@ interface AvatarSectionProps {
   isAnonymous: boolean;
   uid: string;
   avatarSource: ImageSourcePropType | null;
-  /** Whether the avatar source is a remote URL (use expo-image) */
-  isRemote?: boolean;
+  /** Current avatarUrl string for AvatarWithFrame rendering */
+  avatarUrl?: string | null;
+  /** Current avatar frame ID */
+  avatarFrame?: string | null;
   uploadingAvatar: boolean;
   displayName: string | null;
   onPickAvatar: () => void;
@@ -50,7 +53,8 @@ export const AvatarSection = memo<AvatarSectionProps>(
     isAnonymous,
     uid,
     avatarSource,
-    isRemote,
+    avatarUrl,
+    avatarFrame,
     uploadingAvatar,
     displayName,
     onPickAvatar,
@@ -69,11 +73,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
           <Text style={styles.userName}>{displayName || '匿名用户'}</Text>
 
           {/* Teaser card */}
-          <TouchableOpacity
-            style={styles.avatarPreviewCard}
-            onPress={onPickAvatar}
-            activeOpacity={fixed.activeOpacity}
-          >
+          <View style={styles.avatarPreviewCard}>
             <View style={styles.avatarPreviewRow}>
               {PREVIEW_STRIP_INDICES.map((avatarIdx) => (
                 <Image
@@ -92,68 +92,55 @@ export const AvatarSection = memo<AvatarSectionProps>(
               </View>
             </View>
             <Text style={styles.avatarPreviewDesc}>
-              {`绑定邮箱，解锁 ${AVATAR_IMAGES.length} 款暗黑头像和自定义昵称`}
+              {`绑定邮箱，解锁 ${AVATAR_IMAGES.length} 款暗黑头像、自定义昵称和头像框`}
             </Text>
-            <Text style={styles.avatarPreviewCta}>浏览全部头像 ›</Text>
-          </TouchableOpacity>
+            <TouchableOpacity onPress={onPickAvatar} activeOpacity={fixed.activeOpacity}>
+              <Text style={styles.avatarPreviewCta}>浏览全部头像 ›</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
 
-    // No custom avatar: show default lucide avatar with edit badge
-    if (!avatarSource) {
+    // ── Registered user: clickable avatar with edit badge ──
+
+    if (uploadingAvatar) {
       return (
-        <TouchableOpacity onPress={onPickAvatar} activeOpacity={fixed.activeOpacity}>
-          <View>
-            <Avatar
-              value={uid}
-              size={componentSizes.avatar.xl}
-              borderRadius={styles.avatar.borderRadius as number}
-            />
-            <View style={styles.avatarEditBadge}>
-              <Ionicons
-                name={UI_ICONS.CAMERA}
-                size={componentSizes.icon.sm}
-                color={colors.textSecondary}
-              />
-            </View>
-          </View>
-        </TouchableOpacity>
+        <View style={styles.avatarPlaceholder}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
       );
     }
 
+    const avatarContent = avatarSource ? (
+      <AvatarWithFrame
+        value={uid}
+        size={componentSizes.avatar.xl}
+        avatarUrl={avatarUrl}
+        borderRadius={styles.avatar.borderRadius as number}
+        frameId={avatarFrame}
+      />
+    ) : (
+      <AvatarWithFrame
+        value={uid}
+        size={componentSizes.avatar.xl}
+        borderRadius={styles.avatar.borderRadius as number}
+        frameId={avatarFrame}
+      />
+    );
+
     return (
-      <TouchableOpacity
-        onPress={onPickAvatar}
-        activeOpacity={uploadingAvatar ? 1 : fixed.activeOpacity}
-        accessibilityState={{ disabled: uploadingAvatar }}
-      >
-        {uploadingAvatar ? (
-          <View style={styles.avatarPlaceholder}>
-            <ActivityIndicator color={colors.primary} />
+      <TouchableOpacity onPress={onPickAvatar} activeOpacity={fixed.activeOpacity}>
+        <View>
+          {avatarContent}
+          <View style={styles.avatarEditBadge}>
+            <Ionicons
+              name={UI_ICONS.CAMERA}
+              size={componentSizes.icon.sm}
+              color={colors.textSecondary}
+            />
           </View>
-        ) : (
-          <View>
-            {isRemote ? (
-              <ExpoImage
-                source={avatarSource}
-                style={styles.avatar}
-                contentFit="cover"
-                transition={200}
-                cachePolicy="disk"
-              />
-            ) : (
-              <Image source={avatarSource} style={styles.avatar} resizeMode="cover" />
-            )}
-            <View style={styles.avatarEditBadge}>
-              <Ionicons
-                name={UI_ICONS.CAMERA}
-                size={componentSizes.icon.sm}
-                color={colors.textSecondary}
-              />
-            </View>
-          </View>
-        )}
+        </View>
       </TouchableOpacity>
     );
   },

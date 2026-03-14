@@ -215,9 +215,9 @@ export const markAllBotsViewed = defineGameAction({
 // =============================================================================
 
 /** 同步玩家资料到 GameState（任何在座玩家） */
-export const updatePlayerProfile = defineGameAction<[string?, string?]>({
+export const updatePlayerProfile = defineGameAction<[string?, string?, string?]>({
   name: 'updatePlayerProfile',
   path: '/game/update-profile',
   needsUid: true,
-  body: (displayName, avatarUrl) => ({ displayName, avatarUrl }),
+  body: (displayName, avatarUrl, avatarFrame) => ({ displayName, avatarUrl, avatarFrame }),
 });

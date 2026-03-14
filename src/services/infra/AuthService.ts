@@ -167,6 +167,7 @@ export class AuthService {
     displayName?: string;
     avatarUrl?: string;
     customAvatarUrl?: string;
+    avatarFrame?: string;
   }): Promise<void> {
     this.#ensureConfigured();
     const { error } = await supabase!.auth.updateUser({
@@ -174,6 +175,7 @@ export class AuthService {
         display_name: updates.displayName,
         avatar_url: updates.avatarUrl,
         custom_avatar_url: updates.customAvatarUrl,
+        avatar_frame: updates.avatarFrame,
       },
     });
     if (error) throw error;
@@ -307,6 +309,21 @@ export class AuthService {
       return data.session?.user?.user_metadata?.avatar_url || null;
     } catch (e) {
       authLog.debug('getSession for avatarUrl failed', e);
+      return null;
+    }
+  }
+
+  // Get current user's avatar frame ID
+  async getCurrentAvatarFrame(): Promise<string | null> {
+    if (!this.isConfigured()) {
+      return null;
+    }
+
+    try {
+      const { data } = await supabase!.auth.getSession();
+      return data.session?.user?.user_metadata?.avatar_frame || null;
+    } catch (e) {
+      authLog.debug('getSession for avatarFrame failed', e);
       return null;
     }
   }
