@@ -54,6 +54,7 @@ jest.mock('../../../utils/avatar', () => ({
   ),
   BUILTIN_AVATAR_PREFIX: 'builtin://',
   AVATAR_IMAGES: [],
+  AVATAR_CATEGORIES: [{ key: 'human', label: '👤 人物', start: 0, end: 0 }],
   getAvatarImageByIndex: jest.fn(() => 1),
 }));
 
