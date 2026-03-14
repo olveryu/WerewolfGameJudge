@@ -34,6 +34,7 @@ function toLocalPlayer(bp: Player, seatNumber: number): LocalPlayer {
     seatNumber,
     displayName: bp.displayName,
     avatarUrl: bp.avatarUrl,
+    avatarFrame: bp.avatarFrame,
     role: bp.role ?? null,
     hasViewedRole: bp.hasViewedRole,
     isBot: bp.isBot,

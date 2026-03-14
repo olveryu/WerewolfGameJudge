@@ -23,7 +23,7 @@ const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 
-import { Avatar } from '@/components/Avatar';
+import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import {
@@ -89,6 +89,7 @@ export interface SeatTileProps {
   playerAvatarUrl?: string;
   /** Pre-computed unique avatar seat (from room-level dedup). Undefined = use hash fallback. */
   playerAvatarIndex?: number;
+  playerAvatarFrame?: string;
   playerDisplayName: string | null;
   /** Whether the player is anonymous (no custom avatar set). Dims the nickname. */
   isPlayerAnonymous: boolean;
@@ -120,6 +121,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerUid,
   playerAvatarUrl,
   playerAvatarIndex,
+  playerAvatarFrame,
   playerDisplayName,
   isPlayerAnonymous,
   roleId,
@@ -224,11 +226,12 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       >
         {hasPlayer && (
           <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
-            <Avatar
+            <AvatarWithFrame
               value={playerUid}
               size={tileSize - 16}
               avatarUrl={playerAvatarUrl}
               avatarIndex={playerAvatarIndex}
+              frameId={playerAvatarFrame}
               roomId={roomNumber}
               borderRadius={borderRadius.medium}
             />

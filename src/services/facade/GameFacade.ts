@@ -429,20 +429,33 @@ export class GameFacade implements IGameFacade {
   // Seating (委托给 seatActions)
   // =========================================================================
 
-  async takeSeat(seatNumber: number, displayName?: string, avatarUrl?: string): Promise<boolean> {
-    return seatActions.takeSeat(this.#getSeatActionsContext(), seatNumber, displayName, avatarUrl);
+  async takeSeat(
+    seatNumber: number,
+    displayName?: string,
+    avatarUrl?: string,
+    avatarFrame?: string,
+  ): Promise<boolean> {
+    return seatActions.takeSeat(
+      this.#getSeatActionsContext(),
+      seatNumber,
+      displayName,
+      avatarUrl,
+      avatarFrame,
+    );
   }
 
   async takeSeatWithAck(
     seatNumber: number,
     displayName?: string,
     avatarUrl?: string,
+    avatarFrame?: string,
   ): Promise<{ success: boolean; reason?: string }> {
     return seatActions.takeSeatWithAck(
       this.#getSeatActionsContext(),
       seatNumber,
       displayName,
       avatarUrl,
+      avatarFrame,
     );
   }
 
@@ -536,8 +549,14 @@ export class GameFacade implements IGameFacade {
   async updatePlayerProfile(
     displayName?: string,
     avatarUrl?: string,
+    avatarFrame?: string,
   ): Promise<{ success: boolean; reason?: string }> {
-    return gameActions.updatePlayerProfile(this.#getActionsContext(), displayName, avatarUrl);
+    return gameActions.updatePlayerProfile(
+      this.#getActionsContext(),
+      displayName,
+      avatarUrl,
+      avatarFrame,
+    );
   }
 
   /**

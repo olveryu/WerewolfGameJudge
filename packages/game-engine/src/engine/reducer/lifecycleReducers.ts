@@ -215,7 +215,7 @@ export function handleUpdatePlayerProfile(
   state: GameState,
   action: UpdatePlayerProfileAction,
 ): GameState {
-  const { seat, displayName, avatarUrl } = action.payload;
+  const { seat, displayName, avatarUrl, avatarFrame } = action.payload;
   const player = state.players[seat];
   if (!player) return state; // no-op if seat is empty (defensive)
 
@@ -227,6 +227,7 @@ export function handleUpdatePlayerProfile(
         ...player,
         ...(displayName !== undefined && { displayName }),
         ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(avatarFrame !== undefined && { avatarFrame }),
       },
     },
   };

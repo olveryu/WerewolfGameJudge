@@ -26,6 +26,8 @@ export interface User {
   avatarUrl: string | null;
   /** Persisted remote URL from last upload — survives builtin avatar switch */
   customAvatarUrl: string | null;
+  /** Selected avatar frame ID (e.g. 'lunar', 'wolfFang') */
+  avatarFrame: string | null;
   isAnonymous: boolean;
 }
 
@@ -37,7 +39,11 @@ interface AuthContextValue {
   signInAnonymously: () => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  updateProfile: (updates: { displayName?: string; avatarUrl?: string }) => Promise<void>;
+  updateProfile: (updates: {
+    displayName?: string;
+    avatarUrl?: string;
+    avatarFrame?: string;
+  }) => Promise<void>;
   uploadAvatar: (fileUri: string) => Promise<string>;
   signOut: () => Promise<void>;
 }
@@ -54,6 +60,7 @@ const userEquals = (a: User | null, b: User | null): boolean => {
     a.displayName === b.displayName &&
     a.avatarUrl === b.avatarUrl &&
     a.customAvatarUrl === b.customAvatarUrl &&
+    a.avatarFrame === b.avatarFrame &&
     a.isAnonymous === b.isAnonymous
   );
 };
@@ -67,6 +74,7 @@ const toUser = (supabaseUser: SupabaseUser | null): User | null => {
     displayName: supabaseUser.user_metadata?.display_name || null,
     avatarUrl: supabaseUser.user_metadata?.avatar_url || null,
     customAvatarUrl: supabaseUser.user_metadata?.custom_avatar_url || null,
+    avatarFrame: supabaseUser.user_metadata?.avatar_frame || null,
     isAnonymous: supabaseUser.is_anonymous || false,
   };
 };

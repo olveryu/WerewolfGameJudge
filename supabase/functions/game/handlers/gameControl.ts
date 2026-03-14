@@ -73,7 +73,7 @@ export const handleRestart = createSimpleHandler(handleRestartGame, {
 
 export const handleSeat: HandlerFn = async (req) => {
   const body = (await req.json()) as SeatRequestBody;
-  const { roomCode, action, uid, seat, displayName, avatarUrl } = body;
+  const { roomCode, action, uid, seat, displayName, avatarUrl, avatarFrame } = body;
 
   if (!roomCode || !uid || !action) {
     return missingParams();
@@ -92,7 +92,7 @@ export const handleSeat: HandlerFn = async (req) => {
     if (action === 'sit') {
       const intent: JoinSeatIntent = {
         type: 'JOIN_SEAT',
-        payload: { seat: seat!, uid, displayName: displayName ?? '', avatarUrl },
+        payload: { seat: seat!, uid, displayName: displayName ?? '', avatarUrl, avatarFrame },
       };
       return handleJoinSeat(intent, handlerCtx);
     } else {
@@ -200,7 +200,7 @@ export const handleShareReview: HandlerFn = async (req) => {
 
 export const handleUpdateProfile: HandlerFn = async (req) => {
   const body = (await req.json()) as UpdateProfileRequestBody;
-  const { roomCode, uid, displayName, avatarUrl } = body;
+  const { roomCode, uid, displayName, avatarUrl, avatarFrame } = body;
 
   if (!roomCode || !uid) {
     return missingParams();
@@ -210,7 +210,7 @@ export const handleUpdateProfile: HandlerFn = async (req) => {
     const handlerCtx = buildHandlerContext(state, uid);
     const intent: UpdatePlayerProfileIntent = {
       type: 'UPDATE_PLAYER_PROFILE',
-      payload: { uid, displayName, avatarUrl },
+      payload: { uid, displayName, avatarUrl, avatarFrame },
     };
     return handleUpdatePlayerProfile(intent, handlerCtx);
   });

@@ -33,6 +33,7 @@ const path = require('node:path');
 const EXCLUDED_DIRS = new Set([
   'RoleRevealEffects',
   'AIChatBubble',
+  'avatarFrames',
   '__tests__',
   '__mocks__',
   'node_modules',

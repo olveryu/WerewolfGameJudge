@@ -26,6 +26,7 @@ export interface LocalPlayer {
   seatNumber: number;
   displayName?: string;
   avatarUrl?: string;
+  avatarFrame?: string;
   role: RoleId | null;
   hasViewedRole: boolean;
   /** Debug mode: true if this is a bot placeholder (not a real player) */

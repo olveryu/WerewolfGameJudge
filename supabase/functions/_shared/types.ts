@@ -42,6 +42,7 @@ export interface SeatRequestBody {
   seat?: number; // action='sit' 时必填
   displayName?: string;
   avatarUrl?: string;
+  avatarFrame?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -118,6 +119,7 @@ export interface UpdateProfileRequestBody {
   uid: string;
   displayName?: string;
   avatarUrl?: string;
+  avatarFrame?: string;
 }
 
 // ---------------------------------------------------------------------------
