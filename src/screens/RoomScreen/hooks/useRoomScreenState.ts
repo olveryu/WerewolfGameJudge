@@ -450,6 +450,7 @@ export function useRoomScreenState(
     return buildNightReviewData(gameState);
   }, [gameState]);
   const nightReviewShareCardRef = useRef<View>(null);
+  const [isCapturingShareCard, setIsCapturingShareCard] = useState(false);
 
   const shareNightReviewReportDirectly = useCallback(async () => {
     if (!nightReviewData) {
@@ -457,11 +458,20 @@ export function useRoomScreenState(
       return;
     }
 
-    const result = await shareNightReviewReportImage(
-      () => captureNightReviewCard(nightReviewShareCardRef),
-      roomNumber,
-    );
-    if (result === 'failed') {
+    // On-demand: mount card → wait for render → capture → unmount → share
+    setIsCapturingShareCard(true);
+    try {
+      // Wait two frames to ensure React commits the mount and browser paints
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const base64 = await captureNightReviewCard(nightReviewShareCardRef);
+      setIsCapturingShareCard(false);
+
+      const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomNumber);
+      if (result === 'failed') {
+        showAlert('分享失败', '无法分享战报，请稍后重试');
+      }
+    } catch {
+      setIsCapturingShareCard(false);
       showAlert('分享失败', '无法分享战报，请稍后重试');
     }
   }, [nightReviewData, roomNumber]);
@@ -643,6 +653,7 @@ export function useRoomScreenState(
     // ── Night review modal ──
     nightReviewData,
     nightReviewShareCardRef,
+    isCapturingShareCard,
     nightReviewVisible,
     openNightReview,
     closeNightReview,
