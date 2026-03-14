@@ -13,6 +13,7 @@ jest.mock('@react-navigation/native', () => ({
     goBack: mockGoBack,
     addListener: jest.fn(() => jest.fn()),
   }),
+  useRoute: () => ({ params: undefined }),
 }));
 
 // Mock useAuth hook - default to unauthenticated state
@@ -46,7 +47,6 @@ jest.mock('../../../utils/alert', () => ({
 }));
 
 jest.mock('../../../utils/avatar', () => ({
-  getAvatarImage: jest.fn(() => ({ uri: 'https://example.com/avatar.png' })),
   isBuiltinAvatarUrl: jest.fn(() => false),
   getBuiltinAvatarImage: jest.fn(() => 1),
   makeBuiltinAvatarUrl: jest.fn(
@@ -55,6 +55,13 @@ jest.mock('../../../utils/avatar', () => ({
   BUILTIN_AVATAR_PREFIX: 'builtin://',
   AVATAR_IMAGES: [],
   getAvatarImageByIndex: jest.fn(() => 1),
+}));
+
+jest.mock('../../../utils/defaultAvatarIcons', () => ({
+  getAvatarIcon: jest.fn(() => ({
+    Icon: () => null,
+    color: '#C0392B',
+  })),
 }));
 
 // Mock GameFacadeContext — SettingsScreen calls facade methods for room state and profile sync
