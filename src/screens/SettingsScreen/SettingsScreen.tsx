@@ -203,6 +203,26 @@ export const SettingsScreen: React.FC = () => {
     [updateProfile, facade],
   );
 
+  const handleSelectCustomAvatar = useCallback(async () => {
+    if (!user?.customAvatarUrl) return;
+    setSavingBuiltinAvatar(true);
+    try {
+      await updateProfile({ avatarUrl: user.customAvatarUrl });
+      showAlert('头像已更新');
+      setShowAvatarPicker(false);
+
+      facade
+        .updatePlayerProfile(undefined, user.customAvatarUrl)
+        .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
+    } catch (e: unknown) {
+      const message = getErrorMessage(e);
+      settingsLog.error('Custom avatar restore failed:', message, e);
+      showAlert('保存失败', message);
+    } finally {
+      setSavingBuiltinAvatar(false);
+    }
+  }, [user?.customAvatarUrl, updateProfile, facade]);
+
   const handleUploadFromPicker = useCallback(async () => {
     setShowAvatarPicker(false);
     try {
@@ -491,8 +511,10 @@ export const SettingsScreen: React.FC = () => {
         <AvatarPickerSheet
           visible={showAvatarPicker}
           currentIndex={currentBuiltinIndex}
+          customAvatarUrl={user?.customAvatarUrl ?? undefined}
           saving={savingBuiltinAvatar}
           onSelect={handleSelectBuiltinAvatar}
+          onSelectCustom={handleSelectCustomAvatar}
           onUpload={handleUploadFromPicker}
           onClose={handleCloseAvatarPicker}
           styles={styles}

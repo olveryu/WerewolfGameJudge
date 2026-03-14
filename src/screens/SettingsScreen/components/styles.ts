@@ -106,6 +106,15 @@ export interface SettingsScreenStyles {
   pickerItemSelected: ViewStyle;
   pickerCheckBadge: ViewStyle;
   pickerUploadItem: ViewStyle;
+  pickerUploadImage: ImageStyle;
+  pickerUploadOverlay: ViewStyle;
+  pickerSectionTitle: TextStyle;
+  pickerCustomSection: ViewStyle;
+  pickerCustomRow: ViewStyle;
+  pickerCustomItem: ViewStyle;
+  pickerCustomUploadItem: ViewStyle;
+  pickerPreviewOverlay: ViewStyle;
+  pickerPreviewImage: ImageStyle;
   pickerFooter: ViewStyle;
   pickerConfirmBtn: ViewStyle;
   pickerConfirmBtnDisabled: ViewStyle;
@@ -509,6 +518,65 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: colors.surface,
+      overflow: 'hidden',
+    },
+    pickerUploadImage: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: borderRadius.medium - fixed.borderWidthThick,
+    },
+    pickerUploadOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: borderRadius.medium - fixed.borderWidthThick,
+    },
+    pickerSectionTitle: {
+      ...textStyles.secondarySemibold,
+      color: colors.textSecondary,
+      paddingHorizontal: spacing.tight,
+      paddingTop: spacing.medium,
+      paddingBottom: spacing.tight,
+    },
+    pickerCustomSection: {
+      paddingHorizontal: spacing.tight,
+      paddingBottom: spacing.small,
+      borderBottomWidth: fixed.borderWidth,
+      borderBottomColor: colors.border,
+    },
+    pickerCustomRow: {
+      flexDirection: 'row',
+      gap: spacing.small,
+    },
+    pickerCustomItem: {
+      width: componentSizes.avatar.xl,
+      height: componentSizes.avatar.xl,
+      borderRadius: borderRadius.medium,
+      overflow: 'hidden',
+      borderWidth: fixed.borderWidthThick,
+      borderColor: colors.background,
+    },
+    pickerCustomUploadItem: {
+      width: componentSizes.avatar.xl,
+      height: componentSizes.avatar.xl,
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidthThick,
+      borderColor: colors.border,
+      borderStyle: 'dashed',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+    },
+    pickerPreviewOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    pickerPreviewImage: {
+      width: 200,
+      height: 200,
+      borderRadius: borderRadius.medium,
     },
     pickerFooter: {
       paddingHorizontal: spacing.screenH,
