@@ -502,12 +502,11 @@ describe('NIGHT_STEPS order stability', () => {
       'silenceElderSilence',
       'votebanElderBan',
       'wolfKill',
-      'awakenedGargoyleConvert',
-      'awakenedGargoyleConvertReveal',
       'wolfQueenCharm',
       'witchAction',
       'hunterConfirm',
       'darkWolfKingConfirm',
+      'awakenedGargoyleConvert',
       'wolfRobotLearn',
       'seerCheck',
       'mirrorSeerCheck',
@@ -518,6 +517,7 @@ describe('NIGHT_STEPS order stability', () => {
       'psychicCheck',
       'piperHypnotize',
       'piperHypnotizedReveal',
+      'awakenedGargoyleConvertReveal',
     ];
 
     const actualOrder = NIGHT_STEPS.map((s) => s.id);

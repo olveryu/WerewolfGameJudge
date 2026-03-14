@@ -136,6 +136,11 @@ export function determineActionerState(
   const isWolfMeetingSchema =
     currentSchema?.kind === 'wolfVote' && currentSchema.meeting?.canSeeEachOther === true;
 
+  // Awakened gargoyle convert: show wolf teammates so player knows adjacent seats
+  if (currentSchema?.id === 'awakenedGargoyleConvert' && actorRole === currentActionRole) {
+    return { imActioner: true, showWolves: true };
+  }
+
   // My role matches current action
   if (actorRole === currentActionRole) {
     return handleMatchingRole(actorRole, actorSeatNumber, wolfVotes, actions, isWolfMeetingSchema);

@@ -72,18 +72,6 @@ const NIGHT_STEPS_INTERNAL = [
     roleId: 'wolf',
     audioKey: 'wolf',
   },
-  // 觉醒石像鬼转化是个人行动，在袭击后、狼美人前执行
-  {
-    id: 'awakenedGargoyleConvert',
-    roleId: 'awakenedGargoyle',
-    audioKey: 'awakenedGargoyle',
-  },
-  {
-    id: 'awakenedGargoyleConvertReveal',
-    roleId: 'awakenedGargoyle',
-    audioKey: 'awakenedGargoyleConvertReveal',
-    audioEndKey: 'awakenedGargoyleConvertReveal',
-  },
   // 狼美人魅惑是个人行动（不是狼人会议），但在袭击后执行
   {
     id: 'wolfQueenCharm',
@@ -110,12 +98,20 @@ const NIGHT_STEPS_INTERNAL = [
     audioKey: 'darkWolfKing', // 必须与 RoleId 一致，AudioService 按 RoleId 查找音频
   },
 
+  // === 觉醒石像鬼转化（检验类之前，确保 convertedSeat 在查验时已写入）===
+  {
+    id: 'awakenedGargoyleConvert',
+    roleId: 'awakenedGargoyle',
+    audioKey: 'awakenedGargoyle',
+  },
+
   // === 最后四个角色（机械狼 → 预言家 → 石像鬼 → 通灵师）===
   {
     id: 'wolfRobotLearn',
     roleId: 'wolfRobot',
     audioKey: 'wolfRobot', // 必须与 RoleId 一致，AudioService 按 RoleId 查找音频
   },
+
   {
     id: 'seerCheck',
     roleId: 'seer',
@@ -163,6 +159,14 @@ const NIGHT_STEPS_INTERNAL = [
     roleId: 'piper',
     audioKey: 'piperHypnotizedReveal', // 不同于 roleId — 此步骤有独立音频
     audioEndKey: 'piperHypnotizedReveal',
+  },
+
+  // === 觉醒石像鬼转化揭示（最后：被转化者天亮前知晓，与吹笛者揭示同理）===
+  {
+    id: 'awakenedGargoyleConvertReveal',
+    roleId: 'awakenedGargoyle',
+    audioKey: 'awakenedGargoyleConvertReveal',
+    audioEndKey: 'awakenedGargoyleConvertReveal',
   },
 ] as const satisfies readonly StepSpec[];
 
