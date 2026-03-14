@@ -129,9 +129,6 @@ importers:
       '@welldone-software/why-did-you-render':
         specifier: ^10.0.1
         version: 10.0.1(react@19.1.0)
-      babel-plugin-require-context-hook:
-        specifier: ^1.0.0
-        version: 1.0.0
       eslint:
         specifier: ^9.39.2
         version: 9.39.2(jiti@2.6.1)
@@ -2014,9 +2011,6 @@ packages:
 
   babel-plugin-react-native-web@0.21.2:
     resolution: {integrity: sha512-SPD0J6qjJn8231i0HZhlAGH6NORe+QvRSQM2mwQEzJ2Fb3E4ruWTiiicPlHjmeWShDXLcvoorOCXjeR7k/lyWA==}
-
-  babel-plugin-require-context-hook@1.0.0:
-    resolution: {integrity: sha512-EMZD1563QUqLhzrqcThk759RhuNVX/ZJdrtGK6drwzgvnR+ARjWyXIHPbu+tUNaMGtPz/gQeAM2M6VUw2UiUeA==}
 
   babel-plugin-syntax-hermes-parser@0.29.1:
     resolution: {integrity: sha512-2WFYnoWGdmih1I1J5eIqxATOeycOqRwYxAQBu3cUu/rhwInwHUg7k60AFNbuGjSDL8tje5GDrAnxzRLcu2pYcA==}
@@ -7668,8 +7662,6 @@ snapshots:
       '@babel/types': 7.29.0
 
   babel-plugin-react-native-web@0.21.2: {}
-
-  babel-plugin-require-context-hook@1.0.0: {}
 
   babel-plugin-syntax-hermes-parser@0.29.1:
     dependencies:

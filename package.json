@@ -93,7 +93,6 @@
     "@types/jest": "29.5.14",
     "@types/react": "~19.1.0",
     "@welldone-software/why-did-you-render": "^10.0.1",
-    "babel-plugin-require-context-hook": "^1.0.0",
     "eslint": "^9.39.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
