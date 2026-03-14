@@ -177,7 +177,14 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const config = CONFIG.roulette;
 
   const [phase, setPhase] = useState<'spinning' | 'stopping' | 'revealed'>('spinning');
-  const [shuffledRoles, setShuffledRoles] = useState<RoleData[]>([]);
+  const [shuffledRoles] = useState<RoleData[]>(() => {
+    const unique = [...new Set(allRoles.map((r) => r.id))];
+    const roles = unique.map((id) => allRoles.find((r) => r.id === id)!);
+    if (!roles.some((r) => r.id === role.id)) {
+      roles.push(role);
+    }
+    return shuffleArray(roles);
+  });
   const [particles, setParticles] = useState<EmojiParticleConfig[]>([]);
 
   // ── Shared values ──
@@ -211,16 +218,6 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       false,
     );
   }, [frameGlowAnim, reducedMotion]);
-
-  // ── Shuffle roles on mount ──
-  useEffect(() => {
-    const unique = [...new Set(allRoles.map((r) => r.id))];
-    const roles = unique.map((id) => allRoles.find((r) => r.id === id)!);
-    if (!roles.some((r) => r.id === role.id)) {
-      roles.push(role);
-    }
-    setShuffledRoles(shuffleArray(roles));
-  }, [allRoles, role]);
 
   const targetIndex = useMemo(
     () => shuffledRoles.findIndex((r) => r.id === role.id),

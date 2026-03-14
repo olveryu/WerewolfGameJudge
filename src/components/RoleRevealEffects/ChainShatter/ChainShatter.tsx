@@ -287,11 +287,11 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     if (phase !== 'idle' && phase !== 'hitting') return;
     const warningTimer = setTimeout(
       () => setAutoTimeoutWarning(true),
-      CS.autoShatterTimeout - 2000,
+      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
     );
     const timer = setTimeout(() => {
       if (phase === 'idle' || phase === 'hitting') triggerShatter();
-    }, CS.autoShatterTimeout);
+    }, CONFIG.common.autoTimeout);
     return () => {
       clearTimeout(warningTimer);
       clearTimeout(timer);

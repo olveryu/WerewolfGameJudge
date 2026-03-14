@@ -18,7 +18,8 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 import { StyleSheet } from 'react-native';
 
-import { borderRadius, type ThemeColors } from './index';
+import { type ThemeColors } from './themes';
+import { borderRadius } from './tokens';
 import { componentSizes, fixed, shadows, spacing, textStyles } from './tokens';
 
 export interface SharedStyles {

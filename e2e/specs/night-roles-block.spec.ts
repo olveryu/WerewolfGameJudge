@@ -353,15 +353,15 @@ test.describe('Night Roles — Block / Skip', () => {
         );
         expect(wolfBlocked, 'Wolves should see kill-disabled prompt').toBe(true);
 
-        // When wolfKillDisabled, the button label is the blocked message
-        // (not "放弃袭击"). Each wolf must click it to submit empty vote.
+        // When wolfKillDisabled, the button label is "放弃袭击（被封锁）".
+        // Each wolf must click it to submit empty vote.
         for (const wIdx of allWolfIndices) {
           const wPage = pages[wIdx];
           await dismissAlert(wPage);
 
           // Wait for the blocked button to appear in the bottom panel
           const panel = wPage.locator('[data-testid="bottom-action-panel"]');
-          const blockedBtn = panel.getByText('无法行动').first();
+          const blockedBtn = panel.getByText('放弃袭击').first();
           await blockedBtn.waitFor({ state: 'visible', timeout: 5000 });
           await blockedBtn.click({ force: true });
 

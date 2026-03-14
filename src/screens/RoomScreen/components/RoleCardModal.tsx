@@ -19,7 +19,7 @@ import {
   getRoleSpec,
 } from '@werewolf/game-engine/models/roles';
 import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Modal } from 'react-native';
 
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
@@ -81,6 +81,19 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
     setAnimationDone(true);
   }, []);
 
+  const allRolesData: RoleData[] = useMemo(
+    () =>
+      allRoleIds.map((id) => {
+        const spec = getRoleSpec(id);
+        return createRoleData(
+          id,
+          getRoleDisplayName(id),
+          ALIGNMENT_MAP[spec.faction] ?? 'villager',
+        );
+      }),
+    [allRoleIds],
+  );
+
   // ── Loading state：等待服务端确认 ──
   if (isLoading) {
     return (
@@ -113,11 +126,6 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
     displayName,
     ALIGNMENT_MAP[displaySpec.faction] ?? 'villager',
   );
-
-  const allRolesData: RoleData[] = allRoleIds.map((id) => {
-    const spec = getRoleSpec(id);
-    return createRoleData(id, getRoleDisplayName(id), ALIGNMENT_MAP[spec.faction] ?? 'villager');
-  });
 
   // resolvedAnimation 直接作为 effectType（Host 已解析 random → 具体动画）
   const effectType: RevealEffectType = resolvedAnimation as RevealEffectType;

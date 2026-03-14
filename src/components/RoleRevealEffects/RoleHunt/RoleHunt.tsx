@@ -326,7 +326,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
     if (reducedMotion) return;
     const warningTimer = setTimeout(
       () => setAutoTimeoutWarning(true),
-      config.autoSelectTimeout - 2000,
+      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
     );
     autoSelectTimerRef.current = setTimeout(() => {
       if (phase !== 'hunting') return;
@@ -334,7 +334,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       if (target) {
         handleCapture(target.id);
       }
-    }, config.autoSelectTimeout);
+    }, CONFIG.common.autoTimeout);
 
     return () => {
       clearTimeout(warningTimer);
