@@ -188,7 +188,7 @@ Handles app entry stabilization: hydration, login, home screen readiness.
 | **Recovery actions**  | 1. Handle error dialogs (click 重试/确定) <br> 2. Wait out transient states (创建中/加载中) <br> 3. Dismiss blocking modals (取消/确定/关闭) |
 | **Timeout behavior**  | Throws after `maxRetries` (default 5) or `timeoutMs` (default 30s); saves screenshot                                                         |
 
-**Blocking modals:** `需要登录`, `请先登录`, `👤 匿名登录`, `登录失败`, `加载超时`, `提示`
+**Blocking modals:** `请先登录`, `👤 匿名登录`, `登录失败`, `加载超时`, `提示`
 
 **Transient states:** `创建中`, `加载中`, `连接中`
 

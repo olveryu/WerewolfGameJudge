@@ -70,9 +70,14 @@ export const HomeScreen: React.FC = () => {
 
   const [showEmailForm, setShowEmailForm] = useState(false);
 
+  const pendingActionRef = useRef<(() => void) | null>(null);
+
   const handleAuthSuccess = useCallback(() => {
     setShowLoginModal(false);
     setShowEmailForm(false);
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    if (action) action();
   }, []);
 
   const {
@@ -120,10 +125,8 @@ export const HomeScreen: React.FC = () => {
   const requireAuth = useCallback(
     (action: () => void) => {
       if (!user) {
-        showAlert('需要登录', '请先登录后继续', [
-          CANCEL_BUTTON,
-          { text: '登录', onPress: () => setShowLoginModal(true) },
-        ]);
+        pendingActionRef.current = action;
+        setShowLoginModal(true);
         return;
       }
       action();
@@ -138,6 +141,7 @@ export const HomeScreen: React.FC = () => {
   const resetLoginModal = useCallback(() => {
     setShowLoginModal(false);
     setShowEmailForm(false);
+    pendingActionRef.current = null;
     resetForm();
   }, [resetForm]);
 
