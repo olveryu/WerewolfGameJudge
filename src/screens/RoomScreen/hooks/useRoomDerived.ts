@@ -80,7 +80,11 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
       multiSelectedSeats,
       showReadyBadges: roomStatus === GameStatus.Assigned || roomStatus === GameStatus.Ready,
       groupConfirmAcks:
-        currentSchema?.kind === 'groupConfirm' ? (gameState.piperRevealAcks ?? []) : undefined,
+        currentSchema?.kind === 'groupConfirm'
+          ? currentSchema.id === 'awakenedGargoyleConvertReveal'
+            ? (gameState.conversionRevealAcks ?? [])
+            : (gameState.piperRevealAcks ?? [])
+          : undefined,
     });
   }, [
     gameState,

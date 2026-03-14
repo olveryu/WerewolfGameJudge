@@ -11,12 +11,11 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "silenceElderSilence",
   "votebanElderBan",
   "wolfKill",
-  "awakenedGargoyleConvert",
-  "awakenedGargoyleConvertReveal",
   "wolfQueenCharm",
   "witchAction",
   "hunterConfirm",
   "darkWolfKingConfirm",
+  "awakenedGargoyleConvert",
   "wolfRobotLearn",
   "seerCheck",
   "mirrorSeerCheck",
@@ -27,5 +26,6 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "psychicCheck",
   "piperHypnotize",
   "piperHypnotizedReveal",
+  "awakenedGargoyleConvertReveal",
 ]
 `;

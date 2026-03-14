@@ -173,33 +173,23 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
   });
 
   describe('awakenedGargoyleConvertReveal 步骤', () => {
-    it('groupConfirm 步骤正常推进', () => {
+    it('groupConfirm 步骤在最后正常推进', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 先执行到 awakenedGargoyleConvert 并提交合法转化目标
-      expect(executeStepsUntil(ctx, 'awakenedGargoyleConvert')).toBe(true);
-      ctx.assertStep('awakenedGargoyleConvert');
-      ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 6,
-        role: 'awakenedGargoyle',
-        target: 3, // seat 3 与 wolf seat 4 相邻
-      });
-      ctx.advanceNightOrThrow('after awakenedGargoyleConvert');
-
-      // 现在应到 awakenedGargoyleConvertReveal
+      // 执行到 awakenedGargoyleConvertReveal（现在是夜晚最后一步）
+      expect(
+        executeStepsUntil(ctx, 'awakenedGargoyleConvertReveal', {
+          awakenedGargoyle: 3, // 转化 seat 3
+          wolf: 0,
+          witch: { save: null, poison: null },
+          seer: 4,
+          guard: 1,
+        }),
+      ).toBe(true);
       ctx.assertStep('awakenedGargoyleConvertReveal');
 
-      // groupConfirm 步骤可以直接推进
-      ctx.advanceNightOrThrow('after awakenedGargoyleConvertReveal');
-
-      // 继续完成剩余步骤
-      const result = executeRemainingSteps(ctx, {
-        wolf: 0,
-        witch: { save: null, poison: null },
-        seer: 4,
-        guard: 1,
-      });
+      // groupConfirm 步骤推进后完成 Night-1
+      const result = executeRemainingSteps(ctx);
 
       expect(result.completed).toBe(true);
     });
