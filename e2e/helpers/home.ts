@@ -30,14 +30,7 @@ const HOME_READY_SELECTORS = [
 const TRANSIENT_PATTERNS = ['创建中', '加载中', '连接中'];
 
 /** Modal/overlay patterns that block interaction */
-const BLOCKING_MODAL_PATTERNS = [
-  '需要登录',
-  '请先登录',
-  '👤 匿名登录',
-  '登录失败',
-  '加载超时',
-  '提示',
-];
+const BLOCKING_MODAL_PATTERNS = ['请先登录', '👤 匿名登录', '登录失败', '加载超时', '提示'];
 
 /** Error states that need recovery action */
 const ERROR_RECOVERY_PATTERNS = [
@@ -157,7 +150,7 @@ async function isHomeReady(page: Page): Promise<boolean> {
  * Complete anonymous login flow if login is required.
  *
  * Handles:
- * - "需要登录" / "请先登录后继续" dialogs
+ * - Login modal ("登录") shown directly when auth is required
  * - "点击登录" → "👤 匿名登录" flow
  *
  * Returns true if login was performed.
@@ -174,8 +167,8 @@ async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
     return false;
   }
 
-  // Check for login-required overlay (these are modal texts, kept as text match)
-  const loginPrompts = ['需要登录', '请先登录后继续', '请先登陆后继续'];
+  // Check for login modal overlay (title text in LoginOptions / AuthGateOverlay)
+  const loginPrompts = ['登录'];
   let needsLogin = false;
   for (const prompt of loginPrompts) {
     if (
@@ -422,10 +415,10 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
   const createRoomBtn = page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`);
   await expect(createRoomBtn).toBeVisible({ timeout: 5000 });
   await createRoomBtn.click();
-  // Wait for login dialog to appear after triggering create room
+  // Wait for login modal to appear after triggering create room
   await page
-    .getByText('需要登录')
-    .or(page.getByText('请先登录'))
+    .locator(`[data-testid="${TESTIDS.homeAnonLoginButton}"]`)
+    .or(page.getByText('登录', { exact: true }))
     .waitFor({ state: 'visible', timeout: 5000 })
     .catch(() => {});
 

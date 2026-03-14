@@ -218,7 +218,7 @@ export function useConfigScreenState({
         await authService.waitForInit();
         const hostUid = authService.getCurrentUserId();
         if (!hostUid) {
-          showAlert('需要登录', '请先登录后再创建房间');
+          navigation.navigate('Home');
           return;
         }
         const record = await roomService.createRoom(hostUid, undefined, undefined, (roomCode) =>

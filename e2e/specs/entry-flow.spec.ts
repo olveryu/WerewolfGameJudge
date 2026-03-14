@@ -219,9 +219,9 @@ test.describe('Direct room URL', () => {
 
     await gotoWithRetry(freshPage, `/room/${roomNumber}`);
 
-    // Step 3: AuthGateOverlay should appear ("需要登录")
-    await expect(freshPage.getByText('需要登录')).toBeVisible({ timeout: 15_000 });
-    await expect(freshPage.getByText('请选择登录方式以加入房间')).toBeVisible({ timeout: 5_000 });
+    // Step 3: AuthGateOverlay should appear ("登录")
+    await expect(freshPage.getByText('登录', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(freshPage.getByText('选择登录方式以加入房间')).toBeVisible({ timeout: 5_000 });
 
     // Step 4: Click anonymous login
     const anonBtn = freshPage.locator('[data-testid="home-anon-login-button"]');

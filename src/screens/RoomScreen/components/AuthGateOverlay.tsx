@@ -73,8 +73,8 @@ export const AuthGateOverlay: React.FC<AuthGateOverlayProps> = ({ onSuccess, onC
         ) : (
           <LoginOptions
             authLoading={authLoading}
-            title="需要登录"
-            subtitle="请选择登录方式以加入房间"
+            title="登录"
+            subtitle="选择登录方式以加入房间"
             onEmailLogin={() => setShowEmailForm(true)}
             onAnonymousLogin={handleAnonymousLogin}
             onCancel={onCancel}
