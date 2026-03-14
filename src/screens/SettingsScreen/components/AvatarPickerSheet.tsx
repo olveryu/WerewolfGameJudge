@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
-import { componentSizes, ThemeColors, typography } from '@/theme';
+import { componentSizes, fixed, ThemeColors, typography } from '@/theme';
 import { AVATAR_IMAGES, getAvatarImageByIndex } from '@/utils/avatar';
 
 import { SettingsScreenStyles } from './styles';
@@ -38,10 +38,14 @@ interface AvatarPickerSheetProps {
   /** Persisted remote URL of the custom-uploaded avatar, if any */
   customAvatarUrl?: string;
   saving: boolean;
+  /** Read-only browse mode for anonymous users (no selection, shows upgrade CTA). */
+  readOnly?: boolean;
   onSelect: (index: number) => void;
   /** Called when user selects their existing custom avatar */
   onSelectCustom: () => void;
   onUpload: () => void;
+  /** Called when user taps the upgrade CTA in readOnly mode. */
+  onUpgrade?: () => void;
   onClose: () => void;
   styles: SettingsScreenStyles;
   colors: ThemeColors;
@@ -59,9 +63,11 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
     currentIndex,
     customAvatarUrl,
     saving,
+    readOnly,
     onSelect,
     onSelectCustom,
     onUpload,
+    onUpgrade,
     onClose,
     styles,
     colors,
@@ -100,9 +106,13 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
       return items;
     }, []);
 
-    const handlePressBuiltin = useCallback((index: number) => {
-      setSelected(index);
-    }, []);
+    const handlePressBuiltin = useCallback(
+      (index: number) => {
+        if (readOnly) return;
+        setSelected(index);
+      },
+      [readOnly],
+    );
 
     const handlePressCustom = useCallback(() => {
       setSelected('custom');
@@ -126,44 +136,48 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
     const listHeader = useMemo(
       () => (
         <>
-          <Text style={styles.pickerSectionTitle}>我的头像</Text>
-          <View style={styles.pickerCustomSection}>
-            <View style={styles.pickerCustomRow}>
-              {customAvatarUrl && (
-                <TouchableOpacity
-                  style={[
-                    styles.pickerCustomItem,
-                    effectiveSelected === 'custom' && styles.pickerItemSelected,
-                  ]}
-                  onPress={handlePressCustom}
-                  activeOpacity={0.7}
-                >
-                  <ExpoImage
-                    source={{ uri: customAvatarUrl }}
-                    style={styles.pickerItemImage}
-                    contentFit="cover"
-                    cachePolicy="disk"
-                  />
-                  {isCustomActive && effectiveSelected !== 'custom' && (
-                    <View style={styles.pickerCheckBadge}>
-                      <Ionicons
-                        name="checkmark"
-                        size={componentSizes.icon.xs}
-                        color={colors.textInverse}
+          {!readOnly && (
+            <>
+              <Text style={styles.pickerSectionTitle}>我的头像</Text>
+              <View style={styles.pickerCustomSection}>
+                <View style={styles.pickerCustomRow}>
+                  {customAvatarUrl && (
+                    <TouchableOpacity
+                      style={[
+                        styles.pickerCustomItem,
+                        effectiveSelected === 'custom' && styles.pickerItemSelected,
+                      ]}
+                      onPress={handlePressCustom}
+                      activeOpacity={0.7}
+                    >
+                      <ExpoImage
+                        source={{ uri: customAvatarUrl }}
+                        style={styles.pickerItemImage}
+                        contentFit="cover"
+                        cachePolicy="disk"
                       />
-                    </View>
+                      {isCustomActive && effectiveSelected !== 'custom' && (
+                        <View style={styles.pickerCheckBadge}>
+                          <Ionicons
+                            name="checkmark"
+                            size={componentSizes.icon.xs}
+                            color={colors.textInverse}
+                          />
+                        </View>
+                      )}
+                    </TouchableOpacity>
                   )}
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.pickerCustomUploadItem} onPress={onUpload}>
-                <Ionicons
-                  name={UI_ICONS.CAMERA}
-                  size={componentSizes.icon.xl}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+                  <TouchableOpacity style={styles.pickerCustomUploadItem} onPress={onUpload}>
+                    <Ionicons
+                      name={UI_ICONS.CAMERA}
+                      size={componentSizes.icon.xl}
+                      color={colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
+          )}
           <Text style={styles.pickerSectionTitle}>内置头像</Text>
         </>
       ),
@@ -171,6 +185,7 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
         customAvatarUrl,
         effectiveSelected,
         isCustomActive,
+        readOnly,
         handlePressCustom,
         onUpload,
         styles,
@@ -239,22 +254,35 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
             />
 
             <View style={styles.pickerFooter}>
-              <TouchableOpacity
-                style={[styles.pickerConfirmBtn, !hasSelection && styles.pickerConfirmBtnDisabled]}
-                onPress={handleConfirm}
-                activeOpacity={hasSelection ? 0.7 : 1}
-                accessibilityState={{ disabled: !hasSelection || saving }}
-              >
-                {saving ? (
-                  <ActivityIndicator color={colors.textInverse} />
-                ) : (
-                  <Ionicons
-                    name="checkmark"
-                    size={componentSizes.icon.lg}
-                    color={colors.textInverse}
-                  />
-                )}
-              </TouchableOpacity>
+              {readOnly ? (
+                <TouchableOpacity
+                  style={styles.pickerConfirmBtn}
+                  onPress={onUpgrade}
+                  activeOpacity={fixed.activeOpacity}
+                >
+                  <Text style={styles.pickerConfirmBtnText}>绑定邮箱后可选择</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.pickerConfirmBtn,
+                    !hasSelection && styles.pickerConfirmBtnDisabled,
+                  ]}
+                  onPress={handleConfirm}
+                  activeOpacity={hasSelection ? 0.7 : 1}
+                  accessibilityState={{ disabled: !hasSelection || saving }}
+                >
+                  {saving ? (
+                    <ActivityIndicator color={colors.textInverse} />
+                  ) : (
+                    <Ionicons
+                      name="checkmark"
+                      size={componentSizes.icon.lg}
+                      color={colors.textInverse}
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </Pressable>
         </Pressable>

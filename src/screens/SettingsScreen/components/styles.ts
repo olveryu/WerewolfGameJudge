@@ -78,6 +78,11 @@ export interface SettingsScreenStyles {
   buttonDisabled: ViewStyle;
   buttonCaption: TextStyle;
   buttonCaptionInverse: TextStyle;
+  // Avatar preview card (LoginOptions)
+  avatarStripContainer: ViewStyle;
+  avatarStripRow: ViewStyle;
+  avatarStripImage: ImageStyle;
+  avatarStripText: TextStyle;
   // Theme section
   themeSection: ViewStyle;
   themeRow: ViewStyle;
@@ -119,6 +124,14 @@ export interface SettingsScreenStyles {
   pickerConfirmBtn: ViewStyle;
   pickerConfirmBtnDisabled: ViewStyle;
   pickerConfirmBtnText: TextStyle;
+  // Avatar preview strip (anonymous user teaser)
+  avatarPreviewSection: ViewStyle;
+  avatarPreviewCard: ViewStyle;
+  avatarPreviewRow: ViewStyle;
+  avatarPreviewItem: ImageStyle;
+  avatarPreviewLockBadge: ViewStyle;
+  avatarPreviewDesc: TextStyle;
+  avatarPreviewCta: TextStyle;
 }
 
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
@@ -597,5 +610,53 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     pickerConfirmBtnText: {
       ...textStyles.bodyMedium,
       color: colors.textInverse,
+    },
+    // Avatar preview (anonymous user teaser in AvatarSection)
+    avatarPreviewSection: {
+      alignItems: 'center',
+    },
+    avatarPreviewCard: {
+      alignItems: 'center',
+      marginTop: spacing.medium,
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.medium,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+    },
+    avatarPreviewRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
+    },
+    avatarPreviewItem: {
+      width: componentSizes.avatar.sm,
+      height: componentSizes.avatar.sm,
+      borderRadius: borderRadius.small,
+    },
+    avatarPreviewLockBadge: {
+      width: componentSizes.avatar.sm,
+      height: componentSizes.avatar.sm,
+      borderRadius: borderRadius.small,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      borderStyle: 'dashed',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarPreviewDesc: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: spacing.small,
+    },
+    avatarPreviewCta: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.primary,
+      fontWeight: typography.weights.medium,
+      marginTop: spacing.tight,
     },
   });

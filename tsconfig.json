@@ -4,11 +4,22 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@werewolf/game-engine": ["./packages/game-engine/src/index.ts"],
-      "@werewolf/game-engine/*": ["./packages/game-engine/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@werewolf/game-engine": [
+        "./packages/game-engine/src/index.ts"
+      ],
+      "@werewolf/game-engine/*": [
+        "./packages/game-engine/src/*"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "expo-env.d.ts"],
-  "exclude": ["supabase/functions"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "supabase/functions"
+  ]
 }
