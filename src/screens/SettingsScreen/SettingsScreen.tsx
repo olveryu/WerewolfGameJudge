@@ -29,12 +29,19 @@ import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { componentSizes, ThemeKey, typography, useTheme } from '@/theme';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
-import { getAvatarImage } from '@/utils/avatar';
+import {
+  BUILTIN_AVATAR_PREFIX,
+  getAvatarImage,
+  getBuiltinAvatarImage,
+  isBuiltinAvatarUrl,
+  makeBuiltinAvatarUrl,
+} from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
 import { settingsLog } from '@/utils/logger';
 
 import {
   AboutSection,
+  AvatarPickerSheet,
   AvatarSection,
   createSettingsScreenStyles,
   NameSection,
@@ -113,6 +120,8 @@ export const SettingsScreen: React.FC = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [savingBuiltinAvatar, setSavingBuiltinAvatar] = useState(false);
 
   // Reset transient states when screen regains focus
   useEffect(() => {
@@ -129,10 +138,26 @@ export const SettingsScreen: React.FC = () => {
       return getAvatarImage('anonymous');
     }
     if (user?.avatarUrl) {
+      if (isBuiltinAvatarUrl(user.avatarUrl)) {
+        return getBuiltinAvatarImage(user.avatarUrl);
+      }
       return { uri: user.avatarUrl };
     }
     return getAvatarImage(user?.uid || user?.displayName || 'anonymous');
   }, [user?.isAnonymous, user?.avatarUrl, user?.uid, user?.displayName]);
+
+  // Resolve current builtin avatar index (-1 if not builtin)
+  const currentBuiltinIndex = useMemo(() => {
+    if (!user?.avatarUrl || !isBuiltinAvatarUrl(user.avatarUrl)) return -1;
+    const filename = user.avatarUrl.slice(BUILTIN_AVATAR_PREFIX.length);
+    const match = filename.match(/^villager_(\d+)$/);
+    if (!match) return -1;
+    return parseInt(match[1], 10) - 1; // 1-based filename → 0-based index
+  }, [user?.avatarUrl]);
+
+  // Whether avatarUrl is a remote URL (not builtin and not null)
+  const isAvatarRemote =
+    !!user?.avatarUrl && !user?.isAnonymous && !isBuiltinAvatarUrl(user.avatarUrl);
 
   // ============================================
   // Stable callback handlers
@@ -146,7 +171,60 @@ export const SettingsScreen: React.FC = () => {
     }
   }, [navigation]);
 
-  const handlePickAvatar = useCallback(async () => {
+  const handlePickAvatar = useCallback(() => {
+    setShowAvatarPicker(true);
+  }, []);
+
+  const handleCloseAvatarPicker = useCallback(() => {
+    setShowAvatarPicker(false);
+  }, []);
+
+  const handleSelectBuiltinAvatar = useCallback(
+    async (index: number) => {
+      const builtinUrl = makeBuiltinAvatarUrl(index);
+      setSavingBuiltinAvatar(true);
+      try {
+        await updateProfile({ avatarUrl: builtinUrl });
+        showAlert('头像已更新');
+        setShowAvatarPicker(false);
+
+        // Sync to GameState (if in room & seated, silent failure is fine)
+        facade
+          .updatePlayerProfile(undefined, builtinUrl)
+          .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
+      } catch (e: unknown) {
+        const message = getErrorMessage(e);
+        settingsLog.error('Builtin avatar save failed:', message, e);
+        showAlert('保存失败', message);
+      } finally {
+        setSavingBuiltinAvatar(false);
+      }
+    },
+    [updateProfile, facade],
+  );
+
+  const handleSelectCustomAvatar = useCallback(async () => {
+    if (!user?.customAvatarUrl) return;
+    setSavingBuiltinAvatar(true);
+    try {
+      await updateProfile({ avatarUrl: user.customAvatarUrl });
+      showAlert('头像已更新');
+      setShowAvatarPicker(false);
+
+      facade
+        .updatePlayerProfile(undefined, user.customAvatarUrl)
+        .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
+    } catch (e: unknown) {
+      const message = getErrorMessage(e);
+      settingsLog.error('Custom avatar restore failed:', message, e);
+      showAlert('保存失败', message);
+    } finally {
+      setSavingBuiltinAvatar(false);
+    }
+  }, [user?.customAvatarUrl, updateProfile, facade]);
+
+  const handleUploadFromPicker = useCallback(async () => {
+    setShowAvatarPicker(false);
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -167,12 +245,10 @@ export const SettingsScreen: React.FC = () => {
           const url = await uploadAvatar(result.assets[0].uri);
           showAlert('头像已更新');
 
-          // Sync to GameState (if in room & seated, silent failure is fine)
           facade
             .updatePlayerProfile(undefined, url)
             .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
         } catch (e: unknown) {
-          // AuthContext already reported to Sentry before re-throwing; avoid double-reporting
           const message = getErrorMessage(e);
           settingsLog.error('Avatar upload failed:', message, e);
           showAlert('上传失败', message);
@@ -181,7 +257,6 @@ export const SettingsScreen: React.FC = () => {
         }
       }
     } catch (e: unknown) {
-      // Image picker permission denied / user cancel — expected, no Sentry
       const message = getErrorMessage(e);
       settingsLog.warn('Image picker failed:', message, e);
       showAlert('选择图片失败', message);
@@ -336,7 +411,7 @@ export const SettingsScreen: React.FC = () => {
             <AvatarSection
               isAnonymous={user?.isAnonymous ?? true}
               avatarSource={avatarSource}
-              isRemote={!!user?.avatarUrl && !user?.isAnonymous}
+              isRemote={isAvatarRemote}
               uploadingAvatar={uploadingAvatar}
               onPickAvatar={handlePickAvatar}
               styles={styles}
@@ -431,6 +506,21 @@ export const SettingsScreen: React.FC = () => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {!user?.isAnonymous && (
+        <AvatarPickerSheet
+          visible={showAvatarPicker}
+          currentIndex={currentBuiltinIndex}
+          customAvatarUrl={user?.customAvatarUrl ?? undefined}
+          saving={savingBuiltinAvatar}
+          onSelect={handleSelectBuiltinAvatar}
+          onSelectCustom={handleSelectCustomAvatar}
+          onUpload={handleUploadFromPicker}
+          onClose={handleCloseAvatarPicker}
+          styles={styles}
+          colors={colors}
+        />
+      )}
     </SafeAreaView>
   );
 };

@@ -6,6 +6,9 @@ import { Avatar } from '@/components/Avatar';
 jest.mock('../../utils/avatar', () => ({
   getAvatarImage: jest.fn(() => 1), // Return a mock image source
   getAvatarByUid: jest.fn(() => 2), // Return a different mock image source
+  getAvatarImageByIndex: jest.fn(() => 3),
+  isBuiltinAvatarUrl: jest.fn(() => false),
+  getBuiltinAvatarImage: jest.fn(() => 4),
 }));
 
 describe('Avatar', () => {
