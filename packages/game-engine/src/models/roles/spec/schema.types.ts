@@ -17,6 +17,7 @@ export const BLOCKED_UI_DEFAULTS = {
   title: '技能被封锁',
   message: '你被梦魇封锁了，本回合无法行动',
   skipButtonText: '跳过（技能被封锁）',
+  emptyVoteText: '放弃袭击（被封锁）',
   dismissButtonText: '知道了',
 } as const;
 
@@ -74,6 +75,8 @@ export interface SchemaUi {
   readonly blockedMessage?: string;
   /** Override blocked skip button text. */
   readonly blockedSkipButtonText?: string;
+  /** Override blocked empty-vote button text (wolfVote only). */
+  readonly blockedEmptyVoteText?: string;
 
   // === Template support for dynamic prompts ===
   /**

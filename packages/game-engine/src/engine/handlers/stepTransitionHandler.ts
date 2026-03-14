@@ -255,6 +255,7 @@ function maybeCreateUiHintAction(
   const blockedMessage = schemaUi?.blockedMessage ?? BLOCKED_UI_DEFAULTS.message;
   const blockedSkipButtonText =
     schemaUi?.blockedSkipButtonText ?? BLOCKED_UI_DEFAULTS.skipButtonText;
+  const blockedEmptyVoteText = schemaUi?.blockedEmptyVoteText ?? BLOCKED_UI_DEFAULTS.emptyVoteText;
 
   // Case 1: wolfVote 且 wolfKillDisabled → 所有狼人看到 wolf_kill_disabled hint
   if (schema?.kind === 'wolfVote' && state.wolfKillDisabled) {
@@ -267,7 +268,7 @@ function maybeCreateUiHintAction(
         currentActorHint: {
           kind: 'wolf_kill_disabled',
           targetRoleIds: wolfRoleIds,
-          message: blockedMessage,
+          message: blockedEmptyVoteText,
           bottomAction: 'wolfEmptyOnly',
           promptOverride: {
             title: blockedTitle,
