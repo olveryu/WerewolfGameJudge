@@ -57,8 +57,11 @@ export class AvatarUploadService {
     // Get public URL
     const { data: urlData } = supabase!.storage.from('avatars').getPublicUrl(data.path);
 
-    // Update user profile with avatar URL
-    await this.#authService.updateProfile({ avatarUrl: urlData.publicUrl });
+    // Update user profile with avatar URL (also persist as custom_avatar_url for recovery)
+    await this.#authService.updateProfile({
+      avatarUrl: urlData.publicUrl,
+      customAvatarUrl: urlData.publicUrl,
+    });
 
     avatarLog.debug('Uploaded avatar', { fileName, size: compressedBlob.size });
 

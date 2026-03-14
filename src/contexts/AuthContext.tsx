@@ -24,6 +24,8 @@ export interface User {
   email: string | null;
   displayName: string | null;
   avatarUrl: string | null;
+  /** Persisted remote URL from last upload — survives builtin avatar switch */
+  customAvatarUrl: string | null;
   isAnonymous: boolean;
 }
 
@@ -51,6 +53,7 @@ const userEquals = (a: User | null, b: User | null): boolean => {
     a.email === b.email &&
     a.displayName === b.displayName &&
     a.avatarUrl === b.avatarUrl &&
+    a.customAvatarUrl === b.customAvatarUrl &&
     a.isAnonymous === b.isAnonymous
   );
 };
@@ -63,6 +66,7 @@ const toUser = (supabaseUser: SupabaseUser | null): User | null => {
     email: supabaseUser.email || null,
     displayName: supabaseUser.user_metadata?.display_name || null,
     avatarUrl: supabaseUser.user_metadata?.avatar_url || null,
+    customAvatarUrl: supabaseUser.user_metadata?.custom_avatar_url || null,
     isAnonymous: supabaseUser.is_anonymous || false,
   };
 };
