@@ -11,10 +11,8 @@
  * 不硬编码样式值，不使用 console.*，不 import service 层。
  */
 import { useCallback, useState } from 'react';
-import Toast from 'react-native-toast-message';
 
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { navigateTo } from '@/navigation/navigationRef';
 import { showAlert } from '@/utils/alert';
 import { getErrorMessage } from '@/utils/errorUtils';
 
@@ -84,16 +82,6 @@ export function useAuthForm({
           showAlert('绑定成功');
         } else {
           showAlert('注册成功');
-          Toast.show({
-            type: 'info',
-            text1: '可在设置中自定义头像和昵称',
-            text2: '前往设置自定义',
-            visibilityTime: 5000,
-            onPress: () => {
-              Toast.hide();
-              navigateTo('Settings');
-            },
-          });
         }
       } else {
         await signInWithEmail(email, password);
