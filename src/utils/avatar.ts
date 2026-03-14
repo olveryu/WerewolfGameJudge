@@ -1,28 +1,105 @@
 /**
  * avatar - Local avatar image registry and selection utilities
  *
- * Dark fantasy style character portraits, auto-discovered from assets/avatars/.
+ * 76 dark fantasy style character portraits from assets/avatars/.
  * 提供头像图片映射、基于 uid/roomId 的稳定 hash 分配和去重。
  * 不引入 React、service，也不发起网络请求。
  *
- * 新增头像只需将 villager_NNN.jpg/.png 放入 assets/avatars/，无需修改本文件。
+ * 新增头像需在下方 AVATAR_IMAGES 数组末尾追加对应 require。
  */
 
 /** Prefix for builtin avatar URLs stored in user_metadata.avatar_url */
 export const BUILTIN_AVATAR_PREFIX = 'builtin://';
 
-// Auto-discover all villager avatar images via Metro's require.context.
-// keys() returns sorted paths like ['./villager_001.jpg', ...], ensuring stable order.
-const avatarContext = require.context(
-  '../../assets/avatars',
-  false,
-  /^\.\/villager_\d+\.(jpg|png)$/,
-);
-const avatarKeys = avatarContext.keys().sort();
-const AVATAR_IMAGES: number[] = avatarKeys.map((key) => avatarContext<number>(key));
+// Static require list — avoids require.context which has TS compatibility issues
+// across different build environments. Keep sorted by filename.
+// prettier-ignore
+const AVATAR_IMAGES: number[] = [
+  require('../../assets/avatars/villager_001.jpg'),
+  require('../../assets/avatars/villager_002.jpg'),
+  require('../../assets/avatars/villager_003.jpg'),
+  require('../../assets/avatars/villager_004.jpg'),
+  require('../../assets/avatars/villager_005.jpg'),
+  require('../../assets/avatars/villager_006.jpg'),
+  require('../../assets/avatars/villager_007.jpg'),
+  require('../../assets/avatars/villager_008.jpg'),
+  require('../../assets/avatars/villager_009.jpg'),
+  require('../../assets/avatars/villager_010.jpg'),
+  require('../../assets/avatars/villager_011.png'),
+  require('../../assets/avatars/villager_012.png'),
+  require('../../assets/avatars/villager_013.png'),
+  require('../../assets/avatars/villager_014.png'),
+  require('../../assets/avatars/villager_015.png'),
+  require('../../assets/avatars/villager_016.png'),
+  require('../../assets/avatars/villager_017.jpg'),
+  require('../../assets/avatars/villager_018.jpg'),
+  require('../../assets/avatars/villager_019.jpg'),
+  require('../../assets/avatars/villager_020.jpg'),
+  require('../../assets/avatars/villager_021.jpg'),
+  require('../../assets/avatars/villager_022.jpg'),
+  require('../../assets/avatars/villager_023.jpg'),
+  require('../../assets/avatars/villager_024.jpg'),
+  require('../../assets/avatars/villager_025.jpg'),
+  require('../../assets/avatars/villager_026.jpg'),
+  require('../../assets/avatars/villager_027.jpg'),
+  require('../../assets/avatars/villager_028.jpg'),
+  require('../../assets/avatars/villager_029.jpg'),
+  require('../../assets/avatars/villager_030.jpg'),
+  require('../../assets/avatars/villager_031.jpg'),
+  require('../../assets/avatars/villager_032.jpg'),
+  require('../../assets/avatars/villager_033.jpg'),
+  require('../../assets/avatars/villager_034.jpg'),
+  require('../../assets/avatars/villager_035.jpg'),
+  require('../../assets/avatars/villager_036.jpg'),
+  require('../../assets/avatars/villager_037.jpg'),
+  require('../../assets/avatars/villager_038.jpg'),
+  require('../../assets/avatars/villager_039.jpg'),
+  require('../../assets/avatars/villager_040.jpg'),
+  require('../../assets/avatars/villager_041.jpg'),
+  require('../../assets/avatars/villager_042.jpg'),
+  require('../../assets/avatars/villager_043.jpg'),
+  require('../../assets/avatars/villager_044.jpg'),
+  require('../../assets/avatars/villager_045.jpg'),
+  require('../../assets/avatars/villager_046.jpg'),
+  require('../../assets/avatars/villager_047.jpg'),
+  require('../../assets/avatars/villager_048.jpg'),
+  require('../../assets/avatars/villager_049.jpg'),
+  require('../../assets/avatars/villager_050.jpg'),
+  require('../../assets/avatars/villager_051.jpg'),
+  require('../../assets/avatars/villager_052.jpg'),
+  require('../../assets/avatars/villager_053.jpg'),
+  require('../../assets/avatars/villager_054.jpg'),
+  require('../../assets/avatars/villager_055.jpg'),
+  require('../../assets/avatars/villager_056.jpg'),
+  require('../../assets/avatars/villager_057.jpg'),
+  require('../../assets/avatars/villager_058.jpg'),
+  require('../../assets/avatars/villager_059.jpg'),
+  require('../../assets/avatars/villager_060.jpg'),
+  require('../../assets/avatars/villager_061.jpg'),
+  require('../../assets/avatars/villager_062.jpg'),
+  require('../../assets/avatars/villager_063.jpg'),
+  require('../../assets/avatars/villager_064.jpg'),
+  require('../../assets/avatars/villager_065.jpg'),
+  require('../../assets/avatars/villager_066.jpg'),
+  require('../../assets/avatars/villager_067.jpg'),
+  require('../../assets/avatars/villager_068.jpg'),
+  require('../../assets/avatars/villager_069.jpg'),
+  require('../../assets/avatars/villager_070.jpg'),
+  require('../../assets/avatars/villager_071.jpg'),
+  require('../../assets/avatars/villager_072.jpg'),
+  require('../../assets/avatars/villager_073.jpg'),
+  require('../../assets/avatars/villager_074.jpg'),
+  require('../../assets/avatars/villager_075.jpg'),
+  require('../../assets/avatars/villager_076.jpg'),
+];
 
 /** All local avatar image sources, in stable sorted order. */
 export { AVATAR_IMAGES };
+
+/** Derive filename key (e.g. "villager_042") from 0-based index. */
+function avatarKeyForIndex(index: number): string {
+  return `villager_${String(index + 1).padStart(3, '0')}`;
+}
 
 /**
  * FNV-1a hash — better avalanche properties than djb2 for short similar strings.
@@ -140,20 +217,16 @@ export function isBuiltinAvatarUrl(url: string): boolean {
 
 /** Resolve a builtin:// URL to the local image source (require() result). */
 export function getBuiltinAvatarImage(url: string): number {
-  const filename = url.slice(BUILTIN_AVATAR_PREFIX.length);
-  const key = `./${filename}.jpg`;
-  const keyPng = `./${filename}.png`;
-  const matchIndex =
-    avatarKeys.indexOf(key) !== -1 ? avatarKeys.indexOf(key) : avatarKeys.indexOf(keyPng);
-  if (matchIndex === -1) return AVATAR_IMAGES[0];
-  return AVATAR_IMAGES[matchIndex];
+  const filename = url.slice(BUILTIN_AVATAR_PREFIX.length); // e.g. "villager_042"
+  const match = filename.match(/^villager_(\d+)$/);
+  if (!match) return AVATAR_IMAGES[0];
+  const index = Number.parseInt(match[1], 10) - 1; // 1-based filename → 0-based index
+  if (index < 0 || index >= AVATAR_IMAGES.length) return AVATAR_IMAGES[0];
+  return AVATAR_IMAGES[index];
 }
 
 /** Create a builtin:// URL for the avatar at the given 0-based index. */
 export function makeBuiltinAvatarUrl(index: number): string {
   const safeIndex = Math.abs(index) % AVATAR_IMAGES.length;
-  // Extract filename like "villager_042" from the key "./villager_042.jpg"
-  const key = avatarKeys[safeIndex];
-  const name = key.replace(/^\.\//, '').replace(/\.(jpg|png)$/, '');
-  return `${BUILTIN_AVATAR_PREFIX}${name}`;
+  return `${BUILTIN_AVATAR_PREFIX}${avatarKeyForIndex(safeIndex)}`;
 }

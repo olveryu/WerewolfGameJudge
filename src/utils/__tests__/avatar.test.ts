@@ -13,7 +13,7 @@ import * as path from 'path';
 
 import { getAvatarByUid, getAvatarImageByIndex, getUniqueAvatarMap } from '@/utils/avatar';
 
-/** Number of avatar images — auto-discovered from disk to stay in sync with require.context */
+/** Number of avatar images — read from disk to stay in sync with static require list */
 const avatarDir = path.resolve(__dirname, '../../../assets/avatars');
 const AVATAR_COUNT = fs
   .readdirSync(avatarDir)
