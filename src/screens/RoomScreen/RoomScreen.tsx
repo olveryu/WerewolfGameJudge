@@ -227,6 +227,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Night review modal
     nightReviewData,
     nightReviewShareCardRef,
+    isCapturingShareCard,
     nightReviewVisible,
     openNightReview,
     closeNightReview,
@@ -612,8 +613,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
-      {/* Hidden share card — capture source for direct "分享战报" image sharing */}
-      {nightReviewData && (
+      {/* Share card — mounted on-demand during capture only */}
+      {isCapturingShareCard && nightReviewData && (
         <View style={styles.hiddenShareCardContainer} pointerEvents="none">
           <NightReviewShareCard
             ref={nightReviewShareCardRef}
