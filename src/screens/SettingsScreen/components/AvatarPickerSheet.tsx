@@ -22,12 +22,7 @@ import {
 
 import { UI_ICONS } from '@/config/iconTokens';
 import { componentSizes, ThemeColors, typography } from '@/theme';
-import {
-  AVATAR_CATEGORIES,
-  AVATAR_IMAGES,
-  AvatarCategory,
-  getAvatarImageByIndex,
-} from '@/utils/avatar';
+import { AVATAR_IMAGES, getAvatarImageByIndex } from '@/utils/avatar';
 
 import { SettingsScreenStyles } from './styles';
 
@@ -73,7 +68,6 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
   }) => {
     const [selected, setSelected] = useState<Selection>(null);
     const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-    const [activeTab, setActiveTab] = useState<string>('human');
 
     // Reset selection when sheet opens
     const effectiveSelected: Selection = visible ? selected : null;
@@ -81,7 +75,6 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
     const handleOpen = useCallback(() => {
       setSelected(null);
       setPreviewIndex(null);
-      setActiveTab('human');
     }, []);
 
     const handleLongPress = useCallback((index: number) => {
@@ -93,11 +86,10 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
     }, []);
 
     const data: BuiltinCellItem[] = useMemo(() => {
-      const category = AVATAR_CATEGORIES.find((c) => c.key === activeTab) ?? AVATAR_CATEGORIES[0];
-      const items: BuiltinCellItem[] = [];
-      for (let i = category.start; i < Math.min(category.end, AVATAR_IMAGES.length); i++) {
-        items.push({ key: String(i), index: i });
-      }
+      const items: BuiltinCellItem[] = AVATAR_IMAGES.map((_, i) => ({
+        key: String(i),
+        index: i,
+      }));
       // Pad with placeholders so the last row is full and cells don't stretch
       const remainder = items.length % NUM_COLUMNS;
       if (remainder !== 0) {
@@ -106,7 +98,7 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
         }
       }
       return items;
-    }, [activeTab]);
+    }, []);
 
     const handlePressBuiltin = useCallback((index: number) => {
       setSelected(index);
@@ -173,17 +165,6 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
             </View>
           </View>
           <Text style={styles.pickerSectionTitle}>内置头像</Text>
-          <View style={styles.pickerTabBar}>
-            {AVATAR_CATEGORIES.map((cat) => (
-              <CategoryTab
-                key={cat.key}
-                category={cat}
-                isActive={activeTab === cat.key}
-                onPress={setActiveTab}
-                styles={styles}
-              />
-            ))}
-          </View>
         </>
       ),
       [
@@ -192,8 +173,6 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
         isCustomActive,
         handlePressCustom,
         onUpload,
-        activeTab,
-        setActiveTab,
         styles,
         colors,
       ],
@@ -343,32 +322,3 @@ const AvatarCell = memo<AvatarCellProps>(
 );
 
 AvatarCell.displayName = 'AvatarCell';
-
-// ─── Category tab chip (memoized) ────────────────────────────────────────────
-
-interface CategoryTabProps {
-  category: AvatarCategory;
-  isActive: boolean;
-  onPress: (key: string) => void;
-  styles: SettingsScreenStyles;
-}
-
-const CategoryTab = memo<CategoryTabProps>(({ category, isActive, onPress, styles }) => {
-  const handlePress = useCallback(() => {
-    onPress(category.key);
-  }, [onPress, category.key]);
-
-  return (
-    <TouchableOpacity
-      style={[styles.pickerTab, isActive && styles.pickerTabActive]}
-      onPress={handlePress}
-      activeOpacity={0.7}
-    >
-      <Text style={isActive ? styles.pickerTabTextActive : styles.pickerTabText}>
-        {category.label}
-      </Text>
-    </TouchableOpacity>
-  );
-});
-
-CategoryTab.displayName = 'CategoryTab';
