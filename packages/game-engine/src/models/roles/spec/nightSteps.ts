@@ -98,13 +98,6 @@ const NIGHT_STEPS_INTERNAL = [
     audioKey: 'darkWolfKing', // 必须与 RoleId 一致，AudioService 按 RoleId 查找音频
   },
 
-  // === 觉醒石像鬼转化（检验类之前，确保 convertedSeat 在查验时已写入）===
-  {
-    id: 'awakenedGargoyleConvert',
-    roleId: 'awakenedGargoyle',
-    audioKey: 'awakenedGargoyle',
-  },
-
   // === 最后四个角色（机械狼 → 预言家 → 石像鬼 → 通灵师）===
   {
     id: 'wolfRobotLearn',
@@ -146,6 +139,13 @@ const NIGHT_STEPS_INTERNAL = [
     id: 'psychicCheck',
     roleId: 'psychic',
     audioKey: 'psychic',
+  },
+
+  // === 觉醒石像鬼转化（查验类之后）===
+  {
+    id: 'awakenedGargoyleConvert',
+    roleId: 'awakenedGargoyle',
+    audioKey: 'awakenedGargoyle',
   },
 
   // === 吹笛者（最后行动：催眠 → 全员确认）===
