@@ -24,23 +24,6 @@ const AVATAR_IMAGES: number[] = avatarKeys.map((key) => avatarContext<number>(ke
 /** All local avatar image sources, in stable sorted order. */
 export { AVATAR_IMAGES };
 
-/** Avatar category for tab-based filtering in the picker */
-export interface AvatarCategory {
-  key: string;
-  label: string;
-  /** Start index (inclusive, 0-based) */
-  start: number;
-  /** End index (exclusive, 0-based) */
-  end: number;
-}
-
-/** Built-in avatar categories. Ranges are 0-based indices into AVATAR_IMAGES. */
-export const AVATAR_CATEGORIES: AvatarCategory[] = [
-  { key: 'human', label: '👤 人物', start: 0, end: 35 },
-  { key: 'animal', label: '🐾 动物', start: 35, end: 55 },
-  { key: 'myth', label: '🐉 神话', start: 55, end: AVATAR_IMAGES.length },
-];
-
 /**
  * FNV-1a hash — better avalanche properties than djb2 for short similar strings.
  * Returns an unsigned 32-bit integer.

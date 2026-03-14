@@ -119,11 +119,6 @@ export interface SettingsScreenStyles {
   pickerConfirmBtn: ViewStyle;
   pickerConfirmBtnDisabled: ViewStyle;
   pickerConfirmBtnText: TextStyle;
-  pickerTabBar: ViewStyle;
-  pickerTab: ViewStyle;
-  pickerTabActive: ViewStyle;
-  pickerTabText: TextStyle;
-  pickerTabTextActive: TextStyle;
 }
 
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
@@ -601,29 +596,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     pickerConfirmBtnText: {
       ...textStyles.bodyMedium,
-      color: colors.textInverse,
-    },
-    pickerTabBar: {
-      flexDirection: 'row',
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      gap: spacing.small,
-    },
-    pickerTab: {
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.tight,
-      borderRadius: borderRadius.full,
-      backgroundColor: colors.surface,
-    },
-    pickerTabActive: {
-      backgroundColor: colors.primary,
-    },
-    pickerTabText: {
-      ...textStyles.secondary,
-      color: colors.textSecondary,
-    },
-    pickerTabTextActive: {
-      ...textStyles.secondarySemibold,
       color: colors.textInverse,
     },
   });
