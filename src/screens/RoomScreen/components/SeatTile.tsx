@@ -67,6 +67,7 @@ export interface SeatTileStyles {
   wolfVoteBadge: TextStyle;
   emptyIndicator: TextStyle;
   playerName: TextStyle;
+  playerNameHighlight: TextStyle;
   playerNamePlaceholder: ViewStyle;
   botRoleName: TextStyle;
 }
@@ -89,6 +90,8 @@ export interface SeatTileProps {
   /** Pre-computed unique avatar seat (from room-level dedup). Undefined = use hash fallback. */
   playerAvatarIndex?: number;
   playerDisplayName: string | null;
+  /** Whether the player is anonymous (no custom avatar set). Dims the nickname. */
+  isPlayerAnonymous: boolean;
   // Role info for bot display (debug mode only)
   roleId: RoleId | null;
   showBotRole: boolean; // isHost && debugMode?.botsEnabled && isBot
@@ -118,6 +121,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerAvatarUrl,
   playerAvatarIndex,
   playerDisplayName,
+  isPlayerAnonymous,
   roleId,
   showBotRole,
   showReadyBadge,
@@ -264,7 +268,11 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       </View>
       {hasPlayer ? (
         <>
-          <Text style={styles.playerName} numberOfLines={1} ellipsizeMode="tail">
+          <Text
+            style={isPlayerAnonymous ? styles.playerName : styles.playerNameHighlight}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             {isBot && <Ionicons name={UI_ICONS.BOT} size={typography.caption} />}
             {isBot && ' '}
             {playerDisplayName}
@@ -391,6 +399,15 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.text,
+      textAlign: 'center',
+      marginTop: spacing.tight,
+      width: tileSize - spacing.small,
+      height: typography.subtitle,
+    },
+    playerNameHighlight: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.primary,
       textAlign: 'center',
       marginTop: spacing.tight,
       width: tileSize - spacing.small,

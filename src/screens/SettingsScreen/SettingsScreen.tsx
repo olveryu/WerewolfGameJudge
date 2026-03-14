@@ -410,6 +410,7 @@ export const SettingsScreen: React.FC = () => {
               avatarSource={avatarSource}
               isRemote={isAvatarRemote}
               uploadingAvatar={uploadingAvatar}
+              displayName={user?.displayName ?? null}
               onPickAvatar={handlePickAvatar}
               styles={styles}
               colors={colors}
@@ -504,20 +505,21 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {!user?.isAnonymous && (
-        <AvatarPickerSheet
-          visible={showAvatarPicker}
-          currentIndex={currentBuiltinIndex}
-          customAvatarUrl={user?.customAvatarUrl ?? undefined}
-          saving={savingBuiltinAvatar}
-          onSelect={handleSelectBuiltinAvatar}
-          onSelectCustom={handleSelectCustomAvatar}
-          onUpload={handleUploadFromPicker}
-          onClose={handleCloseAvatarPicker}
-          styles={styles}
-          colors={colors}
-        />
-      )}
+      {/* Avatar picker — readOnly browse for anonymous, full edit for registered */}
+      <AvatarPickerSheet
+        visible={showAvatarPicker}
+        currentIndex={currentBuiltinIndex}
+        customAvatarUrl={user?.customAvatarUrl ?? undefined}
+        saving={savingBuiltinAvatar}
+        readOnly={user?.isAnonymous ?? false}
+        onSelect={handleSelectBuiltinAvatar}
+        onSelectCustom={handleSelectCustomAvatar}
+        onUpload={handleUploadFromPicker}
+        onUpgrade={handleShowUpgradeForm}
+        onClose={handleCloseAvatarPicker}
+        styles={styles}
+        colors={colors}
+      />
     </SafeAreaView>
   );
 };

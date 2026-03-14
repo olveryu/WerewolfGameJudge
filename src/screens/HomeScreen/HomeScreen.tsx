@@ -250,18 +250,36 @@ export const HomeScreen: React.FC = () => {
 
   const handleProfilePress = useCallback(() => {
     if (user) {
-      showAlert(userName, user.isAnonymous ? '匿名登录用户' : user.email || '已登录', [
-        CANCEL_BUTTON,
-        {
-          text: '退出登录',
-          style: 'destructive',
-          onPress: signOut,
-        },
-      ]);
+      const buttons = user.isAnonymous
+        ? [
+            CANCEL_BUTTON,
+            {
+              text: '绑定邮箱，解锁自定义',
+              onPress: () => navigation.navigate('Settings'),
+            },
+            {
+              text: '退出登录',
+              style: 'destructive' as const,
+              onPress: signOut,
+            },
+          ]
+        : [
+            CANCEL_BUTTON,
+            {
+              text: '退出登录',
+              style: 'destructive' as const,
+              onPress: signOut,
+            },
+          ];
+      showAlert(
+        userName,
+        user.isAnonymous ? '匿名登录 · 随机头像' : user.email || '已登录',
+        buttons,
+      );
     } else {
       setShowLoginModal(true);
     }
-  }, [user, userName, signOut]);
+  }, [user, userName, signOut, navigation]);
 
   // ============================================
   // Contextual tip card (session-only dismiss)

@@ -5,7 +5,7 @@
  * 各 screen 的 styles factory 需实现此接口的子集。
  * 导出类型定义。不含运行时逻辑，不含硬编码值。
  */
-import { type TextStyle, type ViewStyle } from 'react-native';
+import { type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
 
 import { type ThemeColors } from '@/theme';
 
@@ -37,6 +37,11 @@ export interface AuthStyles {
   buttonDisabled: ViewStyle;
   buttonCaption: TextStyle;
   buttonCaptionInverse: TextStyle;
+  // Avatar preview card (LoginOptions)
+  avatarStripContainer: ViewStyle;
+  avatarStripRow: ViewStyle;
+  avatarStripImage: ImageStyle;
+  avatarStripText: TextStyle;
 }
 
 /** EmailForm props — 两端共享 */

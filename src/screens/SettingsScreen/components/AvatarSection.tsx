@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Image,
   ImageSourcePropType,
+  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -18,8 +19,18 @@ import {
 import { Avatar } from '@/components/Avatar';
 import { UI_ICONS } from '@/config/iconTokens';
 import { componentSizes, fixed, ThemeColors } from '@/theme';
+import { AVATAR_IMAGES, getAvatarImageByIndex } from '@/utils/avatar';
 
 import { SettingsScreenStyles } from './styles';
+
+/** Number of avatars shown in the anonymous-user preview strip. */
+const PREVIEW_STRIP_COUNT = 4;
+
+/** Evenly-spaced indices into AVATAR_IMAGES for the preview strip. */
+const PREVIEW_STRIP_INDICES: number[] = (() => {
+  const step = Math.floor(AVATAR_IMAGES.length / PREVIEW_STRIP_COUNT);
+  return Array.from({ length: PREVIEW_STRIP_COUNT }, (_, i) => i * step);
+})();
 
 interface AvatarSectionProps {
   isAnonymous: boolean;
@@ -28,21 +39,64 @@ interface AvatarSectionProps {
   /** Whether the avatar source is a remote URL (use expo-image) */
   isRemote?: boolean;
   uploadingAvatar: boolean;
+  displayName: string | null;
   onPickAvatar: () => void;
   styles: SettingsScreenStyles;
   colors: ThemeColors;
 }
 
 export const AvatarSection = memo<AvatarSectionProps>(
-  ({ isAnonymous, uid, avatarSource, isRemote, uploadingAvatar, onPickAvatar, styles, colors }) => {
-    // Anonymous users: show default lucide avatar, no edit
+  ({
+    isAnonymous,
+    uid,
+    avatarSource,
+    isRemote,
+    uploadingAvatar,
+    displayName,
+    onPickAvatar,
+    styles,
+    colors,
+  }) => {
+    // Anonymous users: show avatar + name, then a teaser card to upgrade
     if (isAnonymous) {
       return (
-        <Avatar
-          value={uid}
-          size={componentSizes.avatar.xl}
-          borderRadius={styles.avatar.borderRadius as number}
-        />
+        <View style={styles.avatarPreviewSection}>
+          <Avatar
+            value={uid}
+            size={componentSizes.avatar.xl}
+            borderRadius={styles.avatar.borderRadius as number}
+          />
+          <Text style={styles.userName}>{displayName || '匿名用户'}</Text>
+
+          {/* Teaser card */}
+          <TouchableOpacity
+            style={styles.avatarPreviewCard}
+            onPress={onPickAvatar}
+            activeOpacity={fixed.activeOpacity}
+          >
+            <View style={styles.avatarPreviewRow}>
+              {PREVIEW_STRIP_INDICES.map((avatarIdx) => (
+                <Image
+                  key={avatarIdx}
+                  source={getAvatarImageByIndex(avatarIdx) as ImageSourcePropType}
+                  style={styles.avatarPreviewItem}
+                  resizeMode="cover"
+                />
+              ))}
+              <View style={styles.avatarPreviewLockBadge}>
+                <Ionicons
+                  name="lock-closed"
+                  size={componentSizes.icon.sm}
+                  color={colors.textSecondary}
+                />
+              </View>
+            </View>
+            <Text style={styles.avatarPreviewDesc}>
+              {`绑定邮箱，解锁 ${AVATAR_IMAGES.length} 款暗黑头像和自定义昵称`}
+            </Text>
+            <Text style={styles.avatarPreviewCta}>浏览全部头像 ›</Text>
+          </TouchableOpacity>
+        </View>
       );
     }
 

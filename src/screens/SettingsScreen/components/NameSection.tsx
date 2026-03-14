@@ -40,7 +40,7 @@ export const NameSection = memo<NameSectionProps>(
     colors,
   }) => {
     if (isAnonymous) {
-      return <Text style={styles.userName}>匿名用户</Text>;
+      return null;
     }
 
     if (isEditingName) {

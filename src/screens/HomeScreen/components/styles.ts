@@ -4,7 +4,7 @@
  * Created once in HomeScreen and passed to all sub-components.
  * This avoids redundant StyleSheet.create calls per component.
  */
-import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
+import { type ImageStyle, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import { createAuthBaseStyles } from '@/components/auth/authStyles';
 import {
@@ -80,6 +80,11 @@ export interface HomeScreenStyles {
   emailDomainText: TextStyle;
   buttonCaption: TextStyle;
   buttonCaptionInverse: TextStyle;
+  // Avatar preview card (LoginOptions)
+  avatarStripContainer: ViewStyle;
+  avatarStripRow: ViewStyle;
+  avatarStripImage: ImageStyle;
+  avatarStripText: TextStyle;
   // Tip Card (contextual tips between action row and footer)
   tipCard: ViewStyle;
   tipCardIcon: ViewStyle;

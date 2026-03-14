@@ -161,5 +161,31 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       marginTop: spacing.tight,
       opacity: 0.8,
     },
+    // Avatar preview card (LoginOptions)
+    avatarStripContainer: {
+      backgroundColor: colors.surface,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      borderRadius: borderRadius.large,
+      alignItems: 'center',
+      paddingVertical: spacing.medium,
+      paddingHorizontal: spacing.medium,
+      marginBottom: spacing.medium,
+    },
+    avatarStripRow: {
+      flexDirection: 'row',
+      gap: spacing.small,
+      marginBottom: spacing.small,
+    },
+    avatarStripImage: {
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
+      borderRadius: borderRadius.medium,
+    },
+    avatarStripText: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textSecondary,
+    },
   };
 }

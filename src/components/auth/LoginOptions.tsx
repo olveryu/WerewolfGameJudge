@@ -6,13 +6,23 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Image, ImageSourcePropType, Text, TouchableOpacity, View } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import { fixed, typography } from '@/theme';
+import { AVATAR_IMAGES, getAvatarImageByIndex } from '@/utils/avatar';
 
 import { type LoginOptionsProps } from './types';
+
+/** Number of avatars shown in the preview strip. */
+const STRIP_COUNT = 3;
+
+/** Evenly-spaced indices into AVATAR_IMAGES for the preview strip. */
+const STRIP_INDICES: number[] = (() => {
+  const step = Math.floor(AVATAR_IMAGES.length / STRIP_COUNT);
+  return Array.from({ length: STRIP_COUNT }, (_, i) => i * step);
+})();
 
 export const LoginOptions = memo<LoginOptionsProps>(
   ({ authLoading, title, subtitle, onEmailLogin, onAnonymousLogin, onCancel, styles }) => {
@@ -20,6 +30,21 @@ export const LoginOptions = memo<LoginOptionsProps>(
       <View style={styles.formContainer}>
         {title != null && <Text style={styles.formTitle}>{title}</Text>}
         {subtitle != null && <Text style={styles.formSubtitle}>{subtitle}</Text>}
+
+        {/* Avatar preview card */}
+        <View style={styles.avatarStripContainer}>
+          <View style={styles.avatarStripRow}>
+            {STRIP_INDICES.map((avatarIdx) => (
+              <Image
+                key={avatarIdx}
+                source={getAvatarImageByIndex(avatarIdx) as ImageSourcePropType}
+                style={styles.avatarStripImage}
+                resizeMode="cover"
+              />
+            ))}
+          </View>
+          <Text style={styles.avatarStripText}>{`${AVATAR_IMAGES.length} 款暗黑头像`}</Text>
+        </View>
 
         <TouchableOpacity
           style={styles.primaryButton}
@@ -30,7 +55,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
             <Ionicons name={UI_ICONS.EMAIL} size={typography.body} />
             {' 邮箱登录/注册'}
           </Text>
-          <Text style={styles.buttonCaptionInverse}>可自定义头像和昵称</Text>
+          <Text style={styles.buttonCaptionInverse}>选你喜欢的头像，起个专属昵称</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
