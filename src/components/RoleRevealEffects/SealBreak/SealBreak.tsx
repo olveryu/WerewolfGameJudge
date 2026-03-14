@@ -503,7 +503,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     if (phase !== 'idle' && phase !== 'charging') return;
     const warningTimer = setTimeout(
       () => setAutoTimeoutWarning(true),
-      SB.autoShatterTimeout - 2000,
+      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
     );
     const timer = setTimeout(() => {
       if (!shatterTriggeredRef.current) {
@@ -514,7 +514,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
         });
         crackProgress.value = withTiming(1, { duration: 800 });
       }
-    }, SB.autoShatterTimeout);
+    }, CONFIG.common.autoTimeout);
     return () => {
       clearTimeout(warningTimer);
       clearTimeout(timer);

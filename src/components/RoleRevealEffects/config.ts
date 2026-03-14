@@ -34,6 +34,12 @@ export const CONFIG = {
     glowBorderWidth: 3,
     /** GlowBorder size padding (added to each side of card) */
     glowPadding: 8,
+
+    // ── Auto-reveal timeout ──
+    /** Auto-reveal timeout if user doesn't complete interaction (ms) */
+    autoTimeout: 8000,
+    /** Warning text appears this many ms before auto-reveal */
+    autoTimeoutWarningLeadTime: 2000,
   },
 
   // =====================================================
@@ -67,8 +73,6 @@ export const CONFIG = {
   roleHunt: {
     /** Delay after hitting target before revealing card (ms) */
     hitRevealDelay: 500,
-    /** Auto-select timeout if user doesn't find the target (ms) */
-    autoSelectTimeout: 8000,
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 0,
   },
@@ -151,8 +155,6 @@ export const CONFIG = {
     maxColumns: 4,
     /** Gap between cards (px) */
     cardGap: 10,
-    /** Auto-select timeout if user doesn't tap (ms) */
-    autoSelectTimeout: 5000,
     /** Duration for a card to fade out when removed by another player (ms) */
     cardRemoveExitDuration: 400,
     /** Hold duration after reveal before calling onComplete (ms) */
@@ -176,11 +178,9 @@ export const CONFIG = {
     /** Seal radius as fraction of screen width */
     sealRadiusRatio: 0.28,
     /** Continuous press duration to reach full charge (ms) */
-    chargeDuration: 2500,
-    /** Charge decay rate when released (fraction per second, e.g. 0.4 = 40%/s) */
-    decayRate: 0.4,
-    /** Auto-shatter timeout if user doesn't fully charge (ms) */
-    autoShatterTimeout: 10000,
+    chargeDuration: 1500,
+    /** Charge decay rate when released (fraction per second, e.g. 0.25 = 25%/s) */
+    decayRate: 0.25,
     /** Number of energy particles spiraling toward seal */
     energyParticleCount: 16,
     /** Haptic tick interval during charging (ms) */
@@ -209,8 +209,6 @@ export const CONFIG = {
     shatterDuration: 1000,
     /** Card scale-in duration (ms) */
     cardRevealDuration: 400,
-    /** Auto-shatter timeout if user stops tapping (ms) */
-    autoShatterTimeout: 8000,
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 0,
   },
@@ -233,8 +231,6 @@ export const CONFIG = {
     snapDuration: 300,
     /** Card scale-in duration (ms) */
     cardRevealDuration: 400,
-    /** Auto-align timeout if user doesn't drag (ms) */
-    autoAlignTimeout: 8000,
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 0,
   },

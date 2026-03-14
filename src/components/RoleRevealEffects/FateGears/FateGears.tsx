@@ -453,7 +453,10 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
   // ── Auto-align timeout ──
   useEffect(() => {
     if (phase !== 'idle' && phase !== 'dragging') return;
-    const warningTimer = setTimeout(() => setAutoTimeoutWarning(true), FG.autoAlignTimeout - 2000);
+    const warningTimer = setTimeout(
+      () => setAutoTimeoutWarning(true),
+      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
+    );
     const timer = setTimeout(() => {
       if (phase === 'idle' || phase === 'dragging') {
         setPhase('aligned');
@@ -475,7 +478,7 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
 
         setTimeout(() => triggerReveal(), FG.snapDuration + 100);
       }
-    }, FG.autoAlignTimeout);
+    }, CONFIG.common.autoTimeout);
     return () => {
       clearTimeout(warningTimer);
       clearTimeout(timer);
@@ -608,7 +611,7 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
                 style={[styles.centeredOverlay, { top: cy + outerR + 30 }]}
                 pointerEvents="none"
               >
-                <Text style={styles.instructionText}>拖拽齿轮对准 ▶ 标记</Text>
+                <Text style={styles.instructionText}>转动齿轮，让 ▶ 指向 ▲</Text>
               </View>
             )}
           </Animated.View>
@@ -629,7 +632,7 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
       )}
       {(phase === 'idle' || phase === 'dragging') && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>⚙️ 拖拽齿轮对准 ▶ 标记</Text>
+          <Text style={styles.hintText}>⚙️ 转动齿轮，让 ▶ 指向 ▲</Text>
         </View>
       )}
       {autoTimeoutWarning && (phase === 'idle' || phase === 'dragging') && (

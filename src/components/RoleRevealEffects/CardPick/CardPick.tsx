@@ -29,7 +29,7 @@ import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, useColors } from '@/theme';
+import { borderRadius, crossPlatformTextShadow, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const TABLE_COLORS = {
@@ -287,25 +287,18 @@ export const CardPick: React.FC<CardPickProps> = ({
     if (aliveIndices.length === 0) return;
     const warningTimer = setTimeout(
       () => setAutoTimeoutWarning(true),
-      config.autoSelectTimeout - 2000,
+      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
     );
     const timer = setTimeout(() => {
       const randomIndex = aliveIndices[Math.floor(Math.random() * aliveIndices.length)];
       handleCardSelect(randomIndex);
-    }, config.autoSelectTimeout);
+    }, CONFIG.common.autoTimeout);
     return () => {
       clearTimeout(warningTimer);
       clearTimeout(timer);
       setAutoTimeoutWarning(false);
     };
-  }, [
-    phase,
-    reducedMotion,
-    initialCardCount,
-    removedIndices,
-    handleCardSelect,
-    config.autoSelectTimeout,
-  ]);
+  }, [phase, reducedMotion, initialCardCount, removedIndices, handleCardSelect]);
 
   // ── Animated styles for drawn card (fly-to-center + flip) ──
   const drawnCardStyle = useAnimatedStyle(() => ({
@@ -604,8 +597,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: 'rgba(255, 200, 50, 0.9)',
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 4),
   },
 });
