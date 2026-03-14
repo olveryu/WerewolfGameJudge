@@ -163,12 +163,17 @@ export class AuthService {
     return userId;
   }
 
-  async updateProfile(updates: { displayName?: string; avatarUrl?: string }): Promise<void> {
+  async updateProfile(updates: {
+    displayName?: string;
+    avatarUrl?: string;
+    customAvatarUrl?: string;
+  }): Promise<void> {
     this.#ensureConfigured();
     const { error } = await supabase!.auth.updateUser({
       data: {
         display_name: updates.displayName,
         avatar_url: updates.avatarUrl,
+        custom_avatar_url: updates.customAvatarUrl,
       },
     });
     if (error) throw error;

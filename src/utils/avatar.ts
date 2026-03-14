@@ -8,6 +8,9 @@
  * 新增头像只需将 villager_NNN.jpg/.png 放入 assets/avatars/，无需修改本文件。
  */
 
+/** Prefix for builtin avatar URLs stored in user_metadata.avatar_url */
+export const BUILTIN_AVATAR_PREFIX = 'builtin://';
+
 // Auto-discover all villager avatar images via Metro's require.context.
 // keys() returns sorted paths like ['./villager_001.jpg', ...], ensuring stable order.
 const avatarContext = require.context(
@@ -15,10 +18,11 @@ const avatarContext = require.context(
   false,
   /^\.\/villager_\d+\.(jpg|png)$/,
 );
-const AVATAR_IMAGES: number[] = avatarContext
-  .keys()
-  .sort()
-  .map((key) => avatarContext<number>(key));
+const avatarKeys = avatarContext.keys().sort();
+const AVATAR_IMAGES: number[] = avatarKeys.map((key) => avatarContext<number>(key));
+
+/** All local avatar image sources, in stable sorted order. */
+export { AVATAR_IMAGES };
 
 /**
  * FNV-1a hash — better avalanche properties than djb2 for short similar strings.
@@ -127,4 +131,29 @@ export function getAvatarImageByIndex(index: number): number {
 export function getAvatarByUid(roomId: string, uid: string): number {
   const index = getDefaultAvatarIndex(roomId, uid);
   return getAvatarImageByIndex(index);
+}
+
+/** Check whether an avatarUrl is a builtin avatar reference (e.g. "builtin://villager_042") */
+export function isBuiltinAvatarUrl(url: string): boolean {
+  return url.startsWith(BUILTIN_AVATAR_PREFIX);
+}
+
+/** Resolve a builtin:// URL to the local image source (require() result). */
+export function getBuiltinAvatarImage(url: string): number {
+  const filename = url.slice(BUILTIN_AVATAR_PREFIX.length);
+  const key = `./${filename}.jpg`;
+  const keyPng = `./${filename}.png`;
+  const matchIndex =
+    avatarKeys.indexOf(key) !== -1 ? avatarKeys.indexOf(key) : avatarKeys.indexOf(keyPng);
+  if (matchIndex === -1) return AVATAR_IMAGES[0];
+  return AVATAR_IMAGES[matchIndex];
+}
+
+/** Create a builtin:// URL for the avatar at the given 0-based index. */
+export function makeBuiltinAvatarUrl(index: number): string {
+  const safeIndex = Math.abs(index) % AVATAR_IMAGES.length;
+  // Extract filename like "villager_042" from the key "./villager_042.jpg"
+  const key = avatarKeys[safeIndex];
+  const name = key.replace(/^\.\//, '').replace(/\.(jpg|png)$/, '');
+  return `${BUILTIN_AVATAR_PREFIX}${name}`;
 }

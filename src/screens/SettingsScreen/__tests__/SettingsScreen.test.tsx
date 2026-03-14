@@ -47,6 +47,14 @@ jest.mock('../../../utils/alert', () => ({
 
 jest.mock('../../../utils/avatar', () => ({
   getAvatarImage: jest.fn(() => ({ uri: 'https://example.com/avatar.png' })),
+  isBuiltinAvatarUrl: jest.fn(() => false),
+  getBuiltinAvatarImage: jest.fn(() => 1),
+  makeBuiltinAvatarUrl: jest.fn(
+    (i: number) => `builtin://villager_${String(i + 1).padStart(3, '0')}`,
+  ),
+  BUILTIN_AVATAR_PREFIX: 'builtin://',
+  AVATAR_IMAGES: [],
+  getAvatarImageByIndex: jest.fn(() => 1),
 }));
 
 // Mock GameFacadeContext — SettingsScreen calls facade methods for room state and profile sync

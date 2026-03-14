@@ -192,6 +192,7 @@ describe('useAuth hook', () => {
         email: 'test@example.com',
         displayName: 'Test User',
         avatarUrl: null,
+        customAvatarUrl: null,
         isAnonymous: false,
       });
       expect(result.current.isAuthenticated).toBe(true);
@@ -407,6 +408,7 @@ describe('useAuth hook', () => {
         email: 'full@example.com',
         displayName: 'Full User',
         avatarUrl: 'https://example.com/avatar.png',
+        customAvatarUrl: null,
         isAnonymous: false,
       });
     });
@@ -435,6 +437,7 @@ describe('useAuth hook', () => {
         email: null,
         displayName: null,
         avatarUrl: null,
+        customAvatarUrl: null,
         isAnonymous: true,
       });
     });
@@ -470,6 +473,7 @@ describe('User interface', () => {
       email: 'test@example.com',
       displayName: 'Test User',
       avatarUrl: 'https://example.com/avatar.jpg',
+      customAvatarUrl: 'https://example.com/avatar.jpg',
       isAnonymous: false,
     };
 
@@ -477,6 +481,7 @@ describe('User interface', () => {
     expect(user.email).toBe('test@example.com');
     expect(user.displayName).toBe('Test User');
     expect(user.avatarUrl).toBe('https://example.com/avatar.jpg');
+    expect(user.customAvatarUrl).toBe('https://example.com/avatar.jpg');
     expect(user.isAnonymous).toBe(false);
   });
 
@@ -486,6 +491,7 @@ describe('User interface', () => {
       email: null,
       displayName: null,
       avatarUrl: null,
+      customAvatarUrl: null,
       isAnonymous: true,
     };
 

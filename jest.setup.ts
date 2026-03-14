@@ -451,6 +451,7 @@ jest.mock('./src/contexts/AuthContext', () => ({
       email: null,
       displayName: 'TestPlayer',
       avatarUrl: null,
+      customAvatarUrl: null,
       isAnonymous: true,
     },
     loading: false,

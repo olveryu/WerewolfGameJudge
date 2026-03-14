@@ -93,6 +93,7 @@ describe('AvatarUploadService - Configured state', () => {
     // profile updated
     expect(mockUpdateProfile).toHaveBeenCalledWith({
       avatarUrl: 'https://cdn.example.com/user-1/new.jpg',
+      customAvatarUrl: 'https://cdn.example.com/user-1/new.jpg',
     });
     // old avatars cleaned up
     expect(mockRemove).toHaveBeenCalledWith(['user-1/old-avatar.jpg']);
