@@ -8,4 +8,7 @@ build
 coverage
 playwright-report
 pnpm-lock.yaml
+.venv
+tsconfig.json
+expo-env.d.ts
 *.log

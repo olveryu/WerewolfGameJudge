@@ -31,7 +31,6 @@ import { componentSizes, ThemeKey, typography, useTheme } from '@/theme';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import {
   BUILTIN_AVATAR_PREFIX,
-  getAvatarImage,
   getBuiltinAvatarImage,
   isBuiltinAvatarUrl,
   makeBuiltinAvatarUrl,
@@ -132,19 +131,16 @@ export const SettingsScreen: React.FC = () => {
     return unsubscribe;
   }, [navigation]);
 
-  // Get avatar source
+  // Get avatar source (only for custom avatars; default handled by Avatar component)
   const avatarSource = useMemo(() => {
-    if (user?.isAnonymous) {
-      return getAvatarImage('anonymous');
-    }
-    if (user?.avatarUrl) {
+    if (user?.avatarUrl && !user?.isAnonymous) {
       if (isBuiltinAvatarUrl(user.avatarUrl)) {
         return getBuiltinAvatarImage(user.avatarUrl);
       }
       return { uri: user.avatarUrl };
     }
-    return getAvatarImage(user?.uid || user?.displayName || 'anonymous');
-  }, [user?.isAnonymous, user?.avatarUrl, user?.uid, user?.displayName]);
+    return null; // default → AvatarSection uses Avatar component
+  }, [user?.isAnonymous, user?.avatarUrl]);
 
   // Resolve current builtin avatar index (-1 if not builtin)
   const currentBuiltinIndex = useMemo(() => {
@@ -410,6 +406,7 @@ export const SettingsScreen: React.FC = () => {
           <View style={styles.profileSection}>
             <AvatarSection
               isAnonymous={user?.isAnonymous ?? true}
+              uid={user?.uid ?? 'anonymous'}
               avatarSource={avatarSource}
               isRemote={isAvatarRemote}
               uploadingAvatar={uploadingAvatar}

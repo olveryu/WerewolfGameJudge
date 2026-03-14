@@ -15,14 +15,16 @@ import {
   View,
 } from 'react-native';
 
+import { Avatar } from '@/components/Avatar';
 import { UI_ICONS } from '@/config/iconTokens';
-import { componentSizes, fixed, ThemeColors, typography } from '@/theme';
+import { componentSizes, fixed, ThemeColors } from '@/theme';
 
 import { SettingsScreenStyles } from './styles';
 
 interface AvatarSectionProps {
   isAnonymous: boolean;
-  avatarSource: ImageSourcePropType;
+  uid: string;
+  avatarSource: ImageSourcePropType | null;
   /** Whether the avatar source is a remote URL (use expo-image) */
   isRemote?: boolean;
   uploadingAvatar: boolean;
@@ -32,12 +34,37 @@ interface AvatarSectionProps {
 }
 
 export const AvatarSection = memo<AvatarSectionProps>(
-  ({ isAnonymous, avatarSource, isRemote, uploadingAvatar, onPickAvatar, styles, colors }) => {
+  ({ isAnonymous, uid, avatarSource, isRemote, uploadingAvatar, onPickAvatar, styles, colors }) => {
+    // Anonymous users: show default lucide avatar, no edit
     if (isAnonymous) {
       return (
-        <View style={styles.avatarPlaceholder}>
-          <Ionicons name={UI_ICONS.USER} size={typography.display} color={colors.textSecondary} />
-        </View>
+        <Avatar
+          value={uid}
+          size={componentSizes.avatar.xl}
+          borderRadius={styles.avatar.borderRadius as number}
+        />
+      );
+    }
+
+    // No custom avatar: show default lucide avatar with edit badge
+    if (!avatarSource) {
+      return (
+        <TouchableOpacity onPress={onPickAvatar} activeOpacity={fixed.activeOpacity}>
+          <View>
+            <Avatar
+              value={uid}
+              size={componentSizes.avatar.xl}
+              borderRadius={styles.avatar.borderRadius as number}
+            />
+            <View style={styles.avatarEditBadge}>
+              <Ionicons
+                name={UI_ICONS.CAMERA}
+                size={componentSizes.icon.sm}
+                color={colors.textSecondary}
+              />
+            </View>
+          </View>
+        </TouchableOpacity>
       );
     }
 
