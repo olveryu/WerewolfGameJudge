@@ -312,7 +312,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       height: componentSizes.avatar.xl,
       borderRadius: borderRadius.medium,
       marginBottom: spacing.small,
-      overflow: 'hidden',
+      overflow: 'visible' as const,
     },
     avatarPlaceholder: {
       width: componentSizes.avatar.xl,
@@ -808,6 +808,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     heroPreviewLeft: {
       alignItems: 'center',
+      overflow: 'visible' as const,
     },
     heroPreviewRight: {
       flex: 1,
@@ -847,6 +848,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       borderRadius: borderRadius.medium,
       borderWidth: fixed.borderWidthThick,
       borderColor: colors.background,
+      overflow: 'visible' as const,
     },
     frameGridCellSelected: {
       borderColor: colors.primary,

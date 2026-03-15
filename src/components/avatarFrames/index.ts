@@ -3,25 +3,23 @@
  *
  * 定义 FrameId 联合类型和 AVATAR_FRAMES 配置数组。
  * 通过 getFrameComponent 按 id 获取对应的 SVG 渲染组件。
- * 不引入 React hooks、service、theme。
+ * 不引入 service、theme。
  */
 import type React from 'react';
 
-import {
-  BloodThornFrame,
-  BoneGateFrame,
-  DarkVineFrame,
-  type FrameProps,
-  FrostCrystalFrame,
-  HellFireFrame,
-  IronForgeFrame,
-  MoonSilverFrame,
-  PharaohGoldFrame,
-  RunicSealFrame,
-  VoidRiftFrame,
-} from './frames';
+import { BloodThornFrame } from './BloodThornFrame';
+import { BoneGateFrame } from './BoneGateFrame';
+import { DarkVineFrame } from './DarkVineFrame';
+import type { FrameProps } from './FrameProps';
+import { FrostCrystalFrame } from './FrostCrystalFrame';
+import { HellFireFrame } from './HellFireFrame';
+import { IronForgeFrame } from './IronForgeFrame';
+import { MoonSilverFrame } from './MoonSilverFrame';
+import { PharaohGoldFrame } from './PharaohGoldFrame';
+import { RunicSealFrame } from './RunicSealFrame';
+import { VoidRiftFrame } from './VoidRiftFrame';
 
-export type { FrameProps } from './frames';
+export type { FrameProps } from './FrameProps';
 
 /** 可选的 10 款正方形头像框 ID */
 export type FrameId =
