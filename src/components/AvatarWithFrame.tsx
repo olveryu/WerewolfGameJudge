@@ -10,6 +10,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { type FrameId, getFrameById } from '@/components/avatarFrames';
+import { borderRadius as themeBorderRadius } from '@/theme';
 
 interface AvatarWithFrameProps {
   value: string;
@@ -22,8 +23,11 @@ interface AvatarWithFrameProps {
   frameId?: FrameId | string | null;
 }
 
-/** Avatar 相对于外框的内缩比例（8%） */
-const FRAME_INSET_RATIO = 0.08;
+/**
+ * Fixed pixel inset between frame edge and avatar edge.
+ * Matches SeatTile layout: avatar = tileSize - 16, frame = tileSize → 8px each side.
+ */
+const FRAME_INSET_PX = 8;
 
 const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({
   size,
@@ -49,9 +53,9 @@ const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({
     );
   }
 
-  const inset = Math.round(size * FRAME_INSET_RATIO);
+  const inset = FRAME_INSET_PX;
   const avatarSize = size - inset * 2;
-  const innerRadius = borderRadius != null ? Math.max(0, borderRadius - inset) : undefined;
+  const innerRadius = borderRadius ?? themeBorderRadius.medium;
   const { Component: FrameComponent } = frameConfig;
 
   return (
