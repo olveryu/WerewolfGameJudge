@@ -16,7 +16,7 @@ applyTo: src/services/**
 - 客户端 facade 负责：HTTP API 提交 + Realtime 接收 + 音频编排。客户端禁止运行 resolvers / reducers / death calculation。
 - Infra service 允许平台 API（AsyncStorage / Platform / expo-audio 等）。
 - 纯类型文件（`src/services/types/**`）可被任意层 `import type`。
-- 禁止 `console.*`（使用命名 logger），禁止跨夜状态（`previousActions` / `lastNightTarget` 等）。
+- 禁止跨夜状态（`previousActions` / `lastNightTarget` 等）。
 - SRP ~400 行拆分信号。超阈值先评估是否有独立复用/测试/修改场景，不机械套用。
 - Wire protocol（`PlayerMessage` / `GameState`）必须保持兼容。
 
@@ -72,7 +72,7 @@ expo-audio `AudioPlayer` 等原生资源被替换时必须 track 旧实例，在
 - **Facade**（客户端）：reactive 监听 store 中 `pendingAudioEffects` → 播放 → `postAudioAck` 释放 gate。Wolf vote deadline 到期后 `postProgression` 触发推进（一次性 guard 防重入）。
 - **UI**：只读 `isAudioPlaying`。禁止 useEffect 播放音频、禁止 UI toggle `setAudioPlaying`。
 - `isAudioPlaying` 是事实状态，唯一修改途径：`SET_AUDIO_PLAYING` action。禁止其他 action "顺便"设置。
-- **Rejoin 恢复**：`joinRoom(isHost=true)` 从 DB 恢复 → `ContinueGameOverlay` 用户手势（Web autoplay 需手势解锁）→ `resumeAfterRejoin()` 重播当前 step 音频 → `postAudioAck`。禁止 useEffect 自动触发。
+- **Rejoin 恢复**：`joinRoom(isHost=true)` 从 DB 恢复 → 继续游戏 AlertModal 用户手势（Web autoplay 需手势解锁）→ `resumeAfterRejoin()` 重播当前 step 音频 → `postAudioAck`。禁止 useEffect 自动触发。
 - **Audio-ack 断线重试**（两层互斥）：
   - **L1: Status listener** — WebSocket 真正断开后 SDK 重连 → `ConnectionStatus.Live` → 重试 `postAudioAck`。覆盖真实网络断开。
   - **L2: Browser `online` event** — `window.addEventListener('online', ...)` 零延迟感知网络恢复 → 重试 `postAudioAck`。覆盖 WebSocket 未断但 HTTP 断了的场景（如 Playwright `setOffline`、短暂 DNS 故障）。仅 Web 平台（`typeof globalThis.window?.addEventListener === 'function'` 能力检查），原生端由 L1 覆盖。

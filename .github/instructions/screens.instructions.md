@@ -16,7 +16,6 @@ applyTo: 'src/screens/**,src/components/**'
 - Policy 必须可单元测试，禁止 showAlert / navigation / service / hooks / 副作用。
 - Orchestrator 禁止写与 policy 并行的业务判断。
 - Presentational 禁止 import services，禁止组件内做业务逻辑判断（gate 决策由 policy 完成）。
-- 禁止 `console.*`（使用命名 logger）。
 
 ## 组件层规则
 
@@ -45,7 +44,7 @@ applyTo: 'src/screens/**,src/components/**'
 | 第三方 | `colors.third` | 同上 |
 
 - 所有 UI 展示阵营色的地方（ConfigScreen chip、BoardInfoCard chip、RoleCard、NotepadPanel badge、AIChatBubble 等）必须从 `colors.*` 读取，确保跟随主题切换。
-- `RoleRevealEffects` 动画组件通过 `createAlignmentThemes(colors)` 工厂函数派生 glow/particle/gradient 色值（`src/theme/colorUtils.ts`）。
+- `RoleRevealEffects` 动画组件通过 `createAlignmentThemes(colors)` 工厂函数派生 glow/particle/gradient 色值（`src/components/RoleRevealEffects/types.ts`）。
 - 新增阵营相关 UI 时，必须覆盖全部 4 个 faction（wolf / god / villager / third）。
 
 ## Actor Identity 三层语义
@@ -128,7 +127,7 @@ applyTo: 'src/screens/**,src/components/**'
 | 组件 | 触发条件 | 可见者 |
 |---|---|---|
 | `AuthGateOverlay` | 无 session 通过直链进入房间 | 未登录用户 |
-| `ContinueGameOverlay` | Host 断线重连后 `needsContinueOverlay` | Host |
+| AlertModal（继续游戏） | Host 断线重连后 `needsContinueOverlay` | Host |
 | `SeatConfirmModal` | 点击座位（Unseated/Seated 阶段） | 点击者 |
 | `RoleCardModal` | 点击「查看身份」 | 有座位的玩家 |
 | `NightReviewModal` | 点击「详细信息」（Ended 阶段） | Host + 被授权玩家 |

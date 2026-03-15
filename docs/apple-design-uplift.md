@@ -1,3 +1,5 @@
+> ⚠️ 历史文档 — 仅供参考，不反映当前代码状态
+
 # Apple Design Uplift Plan
 
 > 系统性 UI 审查 + 2 周执行方案
