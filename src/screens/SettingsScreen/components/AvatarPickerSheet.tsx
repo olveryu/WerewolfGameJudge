@@ -32,7 +32,7 @@ import { SettingsScreenStyles } from './styles';
 
 const NUM_COLUMNS = 4;
 /** Size for frame grid cells in frame tab (3×2 layout) */
-const FRAME_GRID_CELL_SIZE = 96;
+const FRAME_GRID_CELL_SIZE = 72;
 /** Hero preview avatar size */
 const HERO_PREVIEW_SIZE = 120;
 
