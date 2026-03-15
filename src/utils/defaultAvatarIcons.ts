@@ -114,7 +114,7 @@ import {
 } from 'lucide-react-native';
 
 /** 100 visually distinct Lucide icons for default avatars. */
-export const AVATAR_ICONS: readonly LucideIcon[] = [
+const AVATAR_ICONS: readonly LucideIcon[] = [
   Anchor,
   Apple,
   Atom,
@@ -257,7 +257,7 @@ function fnv1aHash(str: string): number {
   return hash >>> 0;
 }
 
-export interface AvatarIconInfo {
+interface AvatarIconInfo {
   Icon: LucideIcon;
   color: string;
 }

@@ -15,7 +15,7 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Wire payload shape for witch step results (save / poison targets). */
-export interface WitchStepResultsExtra {
+interface WitchStepResultsExtra {
   stepResults: { save: number | null; poison: number | null };
 }
 

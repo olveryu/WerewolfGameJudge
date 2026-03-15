@@ -429,7 +429,6 @@ jest.mock('./src/config/supabase', () => ({
 // in tests where @react-navigation/native is mocked as empty object.
 jest.mock('./src/navigation/navigationRef', () => ({
   navigationRef: { isReady: jest.fn(() => false), navigate: jest.fn() },
-  navigateTo: jest.fn(),
 }));
 
 // ---------------------------------------------------------------------------

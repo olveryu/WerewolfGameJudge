@@ -46,14 +46,14 @@ function getRoomCodeOrFail(ctx: GameActionsContext): { roomCode: string } | null
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Standard return type for all game actions */
-export type ActionResult = { success: boolean; reason?: string };
+type ActionResult = { success: boolean; reason?: string };
 
 /**
  * Configuration for a game action.
  *
  * @template TArgs - Tuple of extra arguments beyond `ctx`.
  */
-export interface GameActionDef<TArgs extends unknown[]> {
+interface GameActionDef<TArgs extends unknown[]> {
   /** Debug log label (e.g. 'assignRoles') */
   name: string;
   /** API endpoint path (e.g. '/game/assign') */

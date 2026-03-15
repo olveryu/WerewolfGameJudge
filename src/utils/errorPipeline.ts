@@ -21,7 +21,7 @@ import type { log as LoggerType } from './logger';
 type Logger = Pick<ReturnType<typeof LoggerType.extend>, 'error' | 'warn'>;
 
 /** Options for `handleError()` */
-export interface HandleErrorOptions {
+interface HandleErrorOptions {
   /** Descriptive label for log output, e.g. '创建房间' or '[wolfVote]' */
   label: string;
 

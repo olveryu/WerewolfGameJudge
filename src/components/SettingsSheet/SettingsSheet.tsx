@@ -40,7 +40,7 @@ import { SettingsOptionGroup } from './SettingsOptionGroup';
 // Constants — BGM 选项列表由组件拥有
 // ---------------------------------------------------------------------------
 
-export const BGM_OPTIONS: readonly SettingsOption[] = [
+const BGM_OPTIONS: readonly SettingsOption[] = [
   { value: 'on', label: '开' },
   { value: 'off', label: '关' },
 ] as const;
@@ -49,7 +49,7 @@ export const BGM_OPTIONS: readonly SettingsOption[] = [
 // Types
 // ---------------------------------------------------------------------------
 
-export interface SettingsSheetProps {
+interface SettingsSheetProps {
   visible: boolean;
   onClose: () => void;
   roleRevealAnimation: string;

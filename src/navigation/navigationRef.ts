@@ -9,17 +9,3 @@ import { createNavigationContainerRef } from '@react-navigation/native';
 import type { RootStackParamList } from './types';
 
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
-
-/**
- * Safe navigate — only navigates when the navigation container is mounted.
- * Use this from non-component code (Toast callbacks, services, etc.).
- */
-export function navigateTo<K extends keyof RootStackParamList>(
-  screen: K,
-  params?: RootStackParamList[K],
-): void {
-  if (navigationRef.isReady()) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (navigationRef.navigate as any)(screen, params);
-  }
-}

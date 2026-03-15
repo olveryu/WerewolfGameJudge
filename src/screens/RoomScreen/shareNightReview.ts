@@ -9,7 +9,7 @@ import { captureRef } from 'react-native-view-shot';
 
 import { shareImageBase64 } from './shareImage';
 
-export type ShareNightReviewResult = 'shared' | 'cancelled' | 'failed';
+type ShareNightReviewResult = 'shared' | 'cancelled' | 'failed';
 
 export async function captureNightReviewCard(ref: RefObject<View | null>): Promise<string> {
   if (Platform.OS === 'web') {
