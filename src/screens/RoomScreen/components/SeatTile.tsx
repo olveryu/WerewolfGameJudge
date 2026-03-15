@@ -23,7 +23,6 @@ const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 
-import { getFrameById } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
@@ -63,7 +62,6 @@ export interface SeatTileStyles {
   avatarOverlay: ViewStyle;
   wolfOverlay: ViewStyle;
   selectedOverlay: ViewStyle;
-  frameOverlay: ViewStyle;
   mySeatNumberBadge: ViewStyle;
   readyBadge: TextStyle;
   wolfVoteBadge: TextStyle;
@@ -207,9 +205,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   // Get role display name for bot (debug mode only)
   const botRoleDisplayName = showBotRole && roleId ? getRoleDisplayName(roleId) : null;
 
-  // Resolve frame component for tile-level rendering
-  const frameConfig = playerAvatarFrame ? getFrameById(playerAvatarFrame) : undefined;
-
   return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(seat)}>
       <TouchableOpacity
@@ -238,6 +233,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
               avatarIndex={playerAvatarIndex}
               roomId={roomNumber}
               borderRadius={borderRadius.medium}
+              frameId={playerAvatarFrame}
             />
             {(isWolf || isSelected) && (
               <View
@@ -265,13 +261,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
         )}
       </TouchableOpacity>
-
-      {/* Frame overlay — rendered outside tile so it wraps around the seat grid cell */}
-      {hasPlayer && frameConfig && (
-        <View style={styles.frameOverlay} pointerEvents="none">
-          <frameConfig.Component size={tileSize} />
-        </View>
-      )}
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}
       <View
@@ -329,6 +318,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       alignItems: 'center',
       borderWidth: fixed.borderWidthThick,
       borderColor: colors.border,
+      overflow: 'visible' as const,
     },
     mySpotTile: {},
     wolfTile: {
@@ -364,6 +354,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       ...StyleSheet.absoluteFillObject,
       justifyContent: 'center',
       alignItems: 'center',
+      overflow: 'visible' as const,
     },
     avatarOverlay: {
       ...StyleSheet.absoluteFillObject,
@@ -379,12 +370,6 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       ...StyleSheet.absoluteFillObject,
       backgroundColor: withAlpha(colors.primaryDark, 0.4),
       borderRadius: borderRadius.large,
-    },
-    frameOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      zIndex: 5,
     },
     mySeatNumberBadge: {
       backgroundColor: colors.success,
