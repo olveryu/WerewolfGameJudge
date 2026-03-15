@@ -56,4 +56,4 @@ void _exhaustiveCheck;
 
 // ── Public API ─────────────────────────────────────────────────────────────
 export { dispatchIntent } from './registry';
-export type { ExecutorContext, ExecutorMap, IntentExecutor } from './types';
+export type { ExecutorContext } from './types';

@@ -115,29 +115,6 @@ function fnv1aHash(str: string): number {
 }
 
 /**
- * Simple deterministic hash function (djb2 algorithm)
- * Returns a non-negative integer.
- * Kept for backward-compat with getAvatarImage (seed-based).
- */
-function djb2Hash(str: string): number {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.codePointAt(i) || 0;
-    hash = ((hash << 5) + hash) ^ char; // hash * 33 ^ char
-  }
-  return Math.abs(hash);
-}
-
-/**
- * Get a random avatar image based on seed
- * Returns a local image source (for use with Image component)
- */
-export const getAvatarImage = (seed: string): number => {
-  const index = djb2Hash(seed) % AVATAR_IMAGES.length;
-  return AVATAR_IMAGES[index];
-};
-
-/**
  * Get a stable default avatar for a user in a specific room.
  *
  * Properties:

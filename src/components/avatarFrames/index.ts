@@ -19,8 +19,6 @@ import { PharaohGoldFrame } from './PharaohGoldFrame';
 import { RunicSealFrame } from './RunicSealFrame';
 import { VoidRiftFrame } from './VoidRiftFrame';
 
-export type { FrameProps } from './FrameProps';
-
 /** 可选的 10 款正方形头像框 ID */
 export type FrameId =
   | 'ironForge'
@@ -34,7 +32,7 @@ export type FrameId =
   | 'pharaohGold'
   | 'voidRift';
 
-export interface AvatarFrameConfig {
+interface AvatarFrameConfig {
   id: FrameId;
   /** 中文显示名 */
   name: string;
@@ -62,9 +60,4 @@ const FRAME_MAP = new Map<string, AvatarFrameConfig>(AVATAR_FRAMES.map((f) => [f
 export function getFrameById(id: string | null | undefined): AvatarFrameConfig | undefined {
   if (!id) return undefined;
   return FRAME_MAP.get(id);
-}
-
-/** 校验字符串是否为合法 FrameId */
-export function isValidFrameId(id: string | null | undefined): id is FrameId {
-  return !!id && FRAME_MAP.has(id);
 }

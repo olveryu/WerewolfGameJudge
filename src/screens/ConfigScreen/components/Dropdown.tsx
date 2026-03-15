@@ -29,7 +29,7 @@ import { fixed, typography } from '@/theme';
 
 import { ConfigScreenStyles } from './styles';
 
-export interface DropdownOption {
+interface DropdownOption {
   value: string;
   label: string;
 }

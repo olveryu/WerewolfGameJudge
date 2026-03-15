@@ -24,7 +24,7 @@ interface UseRoomModalsDeps {
 }
 
 /** useRoomModals 返回值 */
-export interface RoomModalsState {
+interface RoomModalsState {
   // ── Role card modal ──
   roleCardVisible: boolean;
   shouldPlayRevealAnimation: boolean;
