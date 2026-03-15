@@ -8,18 +8,33 @@
 import type React from 'react';
 
 import {
-  ArcaneRuneFrame,
-  BloodFlameFrame,
-  BrambleFrame,
+  BloodThornFrame,
+  BoneGateFrame,
+  DarkVineFrame,
   type FrameProps,
-  LunarFrame,
-  WolfFangFrame,
+  FrostCrystalFrame,
+  HellFireFrame,
+  IronForgeFrame,
+  MoonSilverFrame,
+  PharaohGoldFrame,
+  RunicSealFrame,
+  VoidRiftFrame,
 } from './frames';
 
 export type { FrameProps } from './frames';
 
-/** 可选的 5 款头像框 ID */
-export type FrameId = 'lunar' | 'wolfFang' | 'arcaneRune' | 'bramble' | 'bloodFlame';
+/** 可选的 10 款正方形头像框 ID */
+export type FrameId =
+  | 'ironForge'
+  | 'moonSilver'
+  | 'bloodThorn'
+  | 'runicSeal'
+  | 'boneGate'
+  | 'hellFire'
+  | 'darkVine'
+  | 'frostCrystal'
+  | 'pharaohGold'
+  | 'voidRift';
 
 export interface AvatarFrameConfig {
   id: FrameId;
@@ -31,11 +46,16 @@ export interface AvatarFrameConfig {
 
 /** 所有可用头像框（顺序 = UI 展示顺序） */
 export const AVATAR_FRAMES: readonly AvatarFrameConfig[] = [
-  { id: 'lunar', name: '月轮', Component: LunarFrame },
-  { id: 'wolfFang', name: '狼牙', Component: WolfFangFrame },
-  { id: 'arcaneRune', name: '符文', Component: ArcaneRuneFrame },
-  { id: 'bramble', name: '荆棘', Component: BrambleFrame },
-  { id: 'bloodFlame', name: '血焰', Component: BloodFlameFrame },
+  { id: 'ironForge', name: '铁锻', Component: IronForgeFrame },
+  { id: 'moonSilver', name: '月银', Component: MoonSilverFrame },
+  { id: 'bloodThorn', name: '血棘', Component: BloodThornFrame },
+  { id: 'runicSeal', name: '符印', Component: RunicSealFrame },
+  { id: 'boneGate', name: '骨门', Component: BoneGateFrame },
+  { id: 'hellFire', name: '狱焰', Component: HellFireFrame },
+  { id: 'darkVine', name: '暗藤', Component: DarkVineFrame },
+  { id: 'frostCrystal', name: '霜晶', Component: FrostCrystalFrame },
+  { id: 'pharaohGold', name: '墓金', Component: PharaohGoldFrame },
+  { id: 'voidRift', name: '虚裂', Component: VoidRiftFrame },
 ] as const;
 
 const FRAME_MAP = new Map<string, AvatarFrameConfig>(AVATAR_FRAMES.map((f) => [f.id, f]));
