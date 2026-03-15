@@ -329,8 +329,8 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     avatarEditBadge: {
       position: 'absolute',
-      bottom: 0,
-      right: -spacing.tight,
+      bottom: -spacing.tight,
+      right: -spacing.small,
       width: componentSizes.icon.lg,
       height: componentSizes.icon.lg,
       borderRadius: borderRadius.medium,

@@ -228,11 +228,11 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
             <AvatarWithFrame
               value={playerUid}
-              size={tileSize - 16}
+              size={tileSize - spacing.small - fixed.borderWidthThick * 2}
               avatarUrl={playerAvatarUrl}
               avatarIndex={playerAvatarIndex}
               roomId={roomNumber}
-              borderRadius={borderRadius.medium}
+              borderRadius={borderRadius.large - fixed.borderWidthThick}
               frameId={playerAvatarFrame}
             />
             {(isWolf || isSelected) && (
