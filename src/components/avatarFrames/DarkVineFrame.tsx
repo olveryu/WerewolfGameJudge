@@ -1,11 +1,12 @@
 import { memo, useId } from 'react';
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from './FrameProps';
 
 export const DarkVineFrame = memo<FrameProps>(({ size, rx }) => {
   const uid = useId();
   const vineGrad = `vineGrad${uid}`;
+  const c = rx * 0.29;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
@@ -14,7 +15,7 @@ export const DarkVineFrame = memo<FrameProps>(({ size, rx }) => {
           <Stop offset="1" stopColor="#0A3018" stopOpacity={0.9} />
         </LinearGradient>
       </Defs>
-      {/* Base frame — at avatar edge */}
+      {/* Base frame — thicker */}
       <Rect
         x={0}
         y={0}
@@ -23,52 +24,138 @@ export const DarkVineFrame = memo<FrameProps>(({ size, rx }) => {
         rx={rx}
         fill="none"
         stroke={`url(#${vineGrad})`}
+        strokeWidth={3.5}
+      />
+      {/* Shadow vine layer (darker, behind main vines) */}
+      <G opacity={0.3} stroke="#0A2010" strokeWidth={2.8} fill="none">
+        <Path d="M15,1 C22,-5 32,6 42,1 C52,-5 62,6 72,1 C80,-4 88,4 90,1" />
+        <Path d="M10,101 C20,106 32,94 42,101 C52,106 62,94 72,101 C82,106 92,96 95,101" />
+        <Path d="M1,15 C-4,25 6,35 1,45 C-4,55 6,65 1,75 C-4,82 4,88 1,90" />
+        <Path d="M101,10 C106,22 94,32 101,42 C106,52 94,62 101,72 C106,80 96,86 101,90" />
+      </G>
+      {/* Main vines — thicker, higher opacity */}
+      <Path
+        d="M15,0 C22,-5 32,5 42,0 C52,-5 62,5 72,0 C80,-4 88,3 90,0"
+        fill="none"
+        stroke="#2D8B4A"
         strokeWidth={2.5}
+        opacity={0.85}
       />
-      {/* Vine along top — overflow */}
       <Path
-        d="M15,0 C20,-5 30,5 40,0 C50,-5 60,5 70,0 C80,-5 88,3 90,0"
+        d="M10,100 C20,105 32,95 42,100 C52,105 62,95 72,100 C82,105 92,97 95,100"
         fill="none"
         stroke="#2D8B4A"
-        strokeWidth={1.8}
-        opacity={0.7}
+        strokeWidth={2.5}
+        opacity={0.85}
       />
-      {/* Vine along bottom */}
-      <Path
-        d="M10,100 C20,105 30,95 40,100 C50,105 60,95 70,100 C80,105 90,97 95,100"
-        fill="none"
-        stroke="#2D8B4A"
-        strokeWidth={1.8}
-        opacity={0.7}
-      />
-      {/* Vine along left */}
       <Path
         d="M0,15 C-5,25 5,35 0,45 C-5,55 5,65 0,75 C-5,82 3,88 0,90"
         fill="none"
         stroke="#2D8B4A"
-        strokeWidth={1.8}
-        opacity={0.7}
+        strokeWidth={2.5}
+        opacity={0.85}
       />
-      {/* Vine along right */}
       <Path
-        d="M100,10 C105,20 95,30 100,40 C105,50 95,60 100,70 C105,78 97,85 100,90"
+        d="M100,10 C105,22 95,32 100,42 C105,52 95,62 100,72 C105,80 97,86 100,90"
         fill="none"
         stroke="#2D8B4A"
-        strokeWidth={1.8}
-        opacity={0.7}
+        strokeWidth={2.5}
+        opacity={0.85}
       />
-      {/* Leaves at corners — overflow */}
-      <Path d="M2,2 Q-3,-3 2,-3 Q7,-3 2,2 Z" fill="#34D399" opacity={0.7} />
-      <Path d="M6,-1 Q4,-5 8,-3 Z" fill="#2AAA70" opacity={0.5} />
-      <Path d="M98,2 Q103,-3 98,-3 Q93,-3 98,2 Z" fill="#34D399" opacity={0.7} />
-      <Path d="M94,-1 Q96,-5 92,-3 Z" fill="#2AAA70" opacity={0.5} />
-      <Path d="M2,98 Q-3,103 2,103 Q7,103 2,98 Z" fill="#34D399" opacity={0.7} />
-      <Path d="M98,98 Q103,103 98,103 Q93,103 98,98 Z" fill="#34D399" opacity={0.7} />
-      {/* Berries */}
-      <Circle cx={25} cy={-2} r={1.5} fill="#8B1A1A" opacity={0.7} />
-      <Circle cx={55} cy={102} r={1.5} fill="#8B1A1A" opacity={0.7} />
-      <Circle cx={-2} cy={40} r={1.5} fill="#8B1A1A" opacity={0.7} />
-      <Circle cx={102} cy={60} r={1.5} fill="#8B1A1A" opacity={0.7} />
+      {/* Vine thorns / tiny barbs along edges */}
+      <G opacity={0.5} stroke="#1A5A2A" strokeWidth={1} fill="none" strokeLinecap="round">
+        <Path d="M28,-1 L26,-4" />
+        <Path d="M60,-1 L62,-4" />
+        <Path d="M28,101 L26,104" />
+        <Path d="M60,101 L62,104" />
+        <Path d="M-1,28 L-4,26" />
+        <Path d="M-1,60 L-4,62" />
+        <Path d="M101,28 L104,26" />
+        <Path d="M101,60 L104,62" />
+      </G>
+      {/* Tendril curls at corners */}
+      <Path
+        d={`M${c + 8},${c - 4} Q${c + 12},${c - 8} ${c + 10},${c - 12}`}
+        fill="none"
+        stroke="#34D399"
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        opacity={0.5}
+      />
+      <Path
+        d={`M${100 - c - 8},${c - 4} Q${100 - c - 12},${c - 8} ${100 - c - 10},${c - 12}`}
+        fill="none"
+        stroke="#34D399"
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        opacity={0.5}
+      />
+      <Path
+        d={`M${c + 8},${100 - c + 4} Q${c + 12},${100 - c + 8} ${c + 10},${100 - c + 12}`}
+        fill="none"
+        stroke="#34D399"
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        opacity={0.5}
+      />
+      <Path
+        d={`M${100 - c - 8},${100 - c + 4} Q${100 - c - 12},${100 - c + 8} ${100 - c - 10},${100 - c + 12}`}
+        fill="none"
+        stroke="#34D399"
+        strokeWidth={1.2}
+        strokeLinecap="round"
+        opacity={0.5}
+      />
+      {/* Larger leaves at corners — on rx arc */}
+      <Path
+        d={`M${c},${c} Q${c - 7},${c - 7} ${c},${c - 7} Q${c + 7},${c - 7} ${c},${c} Z`}
+        fill="#34D399"
+        opacity={0.75}
+      />
+      <Path
+        d={`M${c + 5},${c - 4} Q${c + 3},${c - 9} ${c + 8},${c - 7} Z`}
+        fill="#2AAA70"
+        opacity={0.55}
+      />
+      <Path
+        d={`M${100 - c},${c} Q${100 - c + 7},${c - 7} ${100 - c},${c - 7} Q${100 - c - 7},${c - 7} ${100 - c},${c} Z`}
+        fill="#34D399"
+        opacity={0.75}
+      />
+      <Path
+        d={`M${100 - c - 5},${c - 4} Q${100 - c - 3},${c - 9} ${100 - c - 8},${c - 7} Z`}
+        fill="#2AAA70"
+        opacity={0.55}
+      />
+      <Path
+        d={`M${c},${100 - c} Q${c - 7},${100 - c + 7} ${c},${100 - c + 7} Q${c + 7},${100 - c + 7} ${c},${100 - c} Z`}
+        fill="#34D399"
+        opacity={0.75}
+      />
+      <Path
+        d={`M${c + 5},${100 - c + 4} Q${c + 3},${100 - c + 9} ${c + 8},${100 - c + 7} Z`}
+        fill="#2AAA70"
+        opacity={0.55}
+      />
+      <Path
+        d={`M${100 - c},${100 - c} Q${100 - c + 7},${100 - c + 7} ${100 - c},${100 - c + 7} Q${100 - c - 7},${100 - c + 7} ${100 - c},${100 - c} Z`}
+        fill="#34D399"
+        opacity={0.75}
+      />
+      <Path
+        d={`M${100 - c - 5},${100 - c + 4} Q${100 - c - 3},${100 - c + 9} ${100 - c - 8},${100 - c + 7} Z`}
+        fill="#2AAA70"
+        opacity={0.55}
+      />
+      {/* Berries — 8 total */}
+      <Circle cx={25} cy={-2} r={2} fill="#8B1A1A" opacity={0.75} />
+      <Circle cx={50} cy={-3} r={1.5} fill="#A02020" opacity={0.6} />
+      <Circle cx={75} cy={-2} r={2} fill="#8B1A1A" opacity={0.75} />
+      <Circle cx={25} cy={102} r={2} fill="#8B1A1A" opacity={0.75} />
+      <Circle cx={55} cy={103} r={1.5} fill="#A02020" opacity={0.6} />
+      <Circle cx={75} cy={102} r={2} fill="#8B1A1A" opacity={0.75} />
+      <Circle cx={-2} cy={40} r={2} fill="#8B1A1A" opacity={0.75} />
+      <Circle cx={102} cy={60} r={2} fill="#8B1A1A" opacity={0.75} />
     </Svg>
   );
 });

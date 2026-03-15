@@ -6,6 +6,7 @@ import type { FrameProps } from './FrameProps';
 export const BloodThornFrame = memo<FrameProps>(({ size, rx }) => {
   const uid = useId();
   const thornGrad = `thornGrad${uid}`;
+  const c = rx * 0.29;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
@@ -45,11 +46,23 @@ export const BloodThornFrame = memo<FrameProps>(({ size, rx }) => {
       <Path d="M100,38 L105,41 L100,44" fill="#8B1A1A" stroke="#CC3333" strokeWidth={0.8} />
       <Path d="M100,56 L105,59 L100,62" fill="#8B1A1A" stroke="#CC3333" strokeWidth={0.8} />
       <Path d="M100,74 L106,77 L100,80" fill="#8B1A1A" stroke="#CC3333" strokeWidth={0.8} />
-      {/* Large corner thorns */}
-      <Path d="M0,0 L-6,-6 L0,-2 Z" fill="#CC3333" opacity={0.8} />
-      <Path d="M100,0 L106,-6 L100,-2 Z" fill="#CC3333" opacity={0.8} />
-      <Path d="M0,100 L-6,106 L0,102 Z" fill="#CC3333" opacity={0.8} />
-      <Path d="M100,100 L106,106 L100,102 Z" fill="#CC3333" opacity={0.8} />
+      {/* Large corner thorns — on rx arc */}
+      <Path d={`M${c},${c} L${c - 6},${c - 6} L${c},${c - 2} Z`} fill="#CC3333" opacity={0.8} />
+      <Path
+        d={`M${100 - c},${c} L${100 - c + 6},${c - 6} L${100 - c},${c - 2} Z`}
+        fill="#CC3333"
+        opacity={0.8}
+      />
+      <Path
+        d={`M${c},${100 - c} L${c - 6},${100 - c + 6} L${c},${100 - c + 2} Z`}
+        fill="#CC3333"
+        opacity={0.8}
+      />
+      <Path
+        d={`M${100 - c},${100 - c} L${100 - c + 6},${100 - c + 6} L${100 - c},${100 - c + 2} Z`}
+        fill="#CC3333"
+        opacity={0.8}
+      />
       {/* Blood drip accents */}
       <Path
         d="M50,0 Q50,-3 50,-5"

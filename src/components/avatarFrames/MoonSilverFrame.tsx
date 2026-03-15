@@ -1,5 +1,5 @@
 import { memo, useId } from 'react';
-import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from './FrameProps';
 
@@ -38,77 +38,118 @@ export const MoonSilverFrame = memo<FrameProps>(({ size, rx }) => {
         strokeWidth={1.2}
         opacity={0.7}
       />
-      {/* Corner crescents — overflow outward */}
+      {/* Corner crescents — follow rx arc */}
       <Path
-        d="M0,18 A14,14 0 0,1 18,0"
+        d={`M0,${rx} A${rx - 4},${rx - 4} 0 0,1 ${rx},0`}
         fill="none"
         stroke="#F0F2FF"
         strokeWidth={3}
         strokeLinecap="round"
       />
       <Path
-        d="M4,14 A10,10 0 0,1 14,4"
+        d={`M4,${rx - 4} A${Math.max(rx - 8, 2)},${Math.max(rx - 8, 2)} 0 0,1 ${rx - 4},4`}
         fill="none"
         stroke="#C8D0E8"
         strokeWidth={1.5}
         opacity={0.7}
       />
       <Path
-        d="M82,0 A14,14 0 0,1 100,18"
+        d={`M${100 - rx},0 A${rx - 4},${rx - 4} 0 0,1 100,${rx}`}
         fill="none"
         stroke="#F0F2FF"
         strokeWidth={3}
         strokeLinecap="round"
       />
       <Path
-        d="M86,4 A10,10 0 0,1 96,14"
+        d={`M${104 - rx},4 A${Math.max(rx - 8, 2)},${Math.max(rx - 8, 2)} 0 0,1 96,${rx - 4}`}
         fill="none"
         stroke="#C8D0E8"
         strokeWidth={1.5}
         opacity={0.7}
       />
       <Path
-        d="M18,100 A14,14 0 0,1 0,82"
+        d={`M${rx},100 A${rx - 4},${rx - 4} 0 0,1 0,${100 - rx}`}
         fill="none"
         stroke="#F0F2FF"
         strokeWidth={3}
         strokeLinecap="round"
       />
       <Path
-        d="M14,96 A10,10 0 0,1 4,86"
+        d={`M${rx - 4},96 A${Math.max(rx - 8, 2)},${Math.max(rx - 8, 2)} 0 0,1 4,${104 - rx}`}
         fill="none"
         stroke="#C8D0E8"
         strokeWidth={1.5}
         opacity={0.7}
       />
       <Path
-        d="M100,82 A14,14 0 0,1 82,100"
+        d={`M100,${100 - rx} A${rx - 4},${rx - 4} 0 0,1 ${100 - rx},100`}
         fill="none"
         stroke="#F0F2FF"
         strokeWidth={3}
         strokeLinecap="round"
       />
       <Path
-        d="M96,86 A10,10 0 0,1 86,96"
+        d={`M96,${104 - rx} A${Math.max(rx - 8, 2)},${Math.max(rx - 8, 2)} 0 0,1 ${104 - rx},96`}
         fill="none"
         stroke="#C8D0E8"
         strokeWidth={1.5}
         opacity={0.7}
       />
-      {/* Edge diamonds — overflow */}
-      <Path d="M50,-3 L53,0 L50,3 L47,0 Z" fill="#D8DCF0" opacity={1} />
-      <Path d="M50,97 L53,100 L50,103 L47,100 Z" fill="#D8DCF0" opacity={1} />
-      <Path d="M-3,50 L0,47 L3,50 L0,53 Z" fill="#D8DCF0" opacity={1} />
-      <Path d="M97,50 L100,47 L103,50 L100,53 Z" fill="#D8DCF0" opacity={1} />
-      {/* Stars at mid-edges */}
-      <Circle cx={30} cy={-1} r={1.5} fill="#E8EAF8" opacity={0.8} />
-      <Circle cx={70} cy={-1} r={1.5} fill="#E8EAF8" opacity={0.8} />
-      <Circle cx={30} cy={101} r={1.5} fill="#E8EAF8" opacity={0.8} />
-      <Circle cx={70} cy={101} r={1.5} fill="#E8EAF8" opacity={0.8} />
-      <Circle cx={-1} cy={30} r={1.5} fill="#E8EAF8" opacity={0.8} />
-      <Circle cx={-1} cy={70} r={1.5} fill="#E8EAF8" opacity={0.8} />
-      <Circle cx={101} cy={30} r={1.5} fill="#E8EAF8" opacity={0.8} />
-      <Circle cx={101} cy={70} r={1.5} fill="#E8EAF8" opacity={0.8} />
+      {/* Corner starburst crosses */}
+      <G opacity={0.4} stroke="#E8EAF8" strokeWidth={0.8} strokeLinecap="round">
+        {/* Top-left */}
+        <Line x1={rx * 0.29 - 5} y1={rx * 0.29} x2={rx * 0.29 + 5} y2={rx * 0.29} />
+        <Line x1={rx * 0.29} y1={rx * 0.29 - 5} x2={rx * 0.29} y2={rx * 0.29 + 5} />
+        {/* Top-right */}
+        <Line x1={100 - rx * 0.29 - 5} y1={rx * 0.29} x2={100 - rx * 0.29 + 5} y2={rx * 0.29} />
+        <Line x1={100 - rx * 0.29} y1={rx * 0.29 - 5} x2={100 - rx * 0.29} y2={rx * 0.29 + 5} />
+        {/* Bottom-left */}
+        <Line x1={rx * 0.29 - 5} y1={100 - rx * 0.29} x2={rx * 0.29 + 5} y2={100 - rx * 0.29} />
+        <Line x1={rx * 0.29} y1={100 - rx * 0.29 - 5} x2={rx * 0.29} y2={100 - rx * 0.29 + 5} />
+        {/* Bottom-right */}
+        <Line
+          x1={100 - rx * 0.29 - 5}
+          y1={100 - rx * 0.29}
+          x2={100 - rx * 0.29 + 5}
+          y2={100 - rx * 0.29}
+        />
+        <Line
+          x1={100 - rx * 0.29}
+          y1={100 - rx * 0.29 - 5}
+          x2={100 - rx * 0.29}
+          y2={100 - rx * 0.29 + 5}
+        />
+      </G>
+      {/* Edge diamonds — larger */}
+      <Path d="M50,-4 L54,0 L50,4 L46,0 Z" fill="#D8DCF0" opacity={1} />
+      <Path d="M50,96 L54,100 L50,104 L46,100 Z" fill="#D8DCF0" opacity={1} />
+      <Path d="M-4,50 L0,46 L4,50 L0,54 Z" fill="#D8DCF0" opacity={1} />
+      <Path d="M96,50 L100,46 L104,50 L100,54 Z" fill="#D8DCF0" opacity={1} />
+      {/* Moon phase dots along edges */}
+      <G opacity={0.35} fill="#C8D0E8">
+        <Circle cx={20} cy={0} r={1.2} />
+        <Circle cx={80} cy={0} r={1.2} />
+        <Circle cx={20} cy={100} r={1.2} />
+        <Circle cx={80} cy={100} r={1.2} />
+        <Circle cx={0} cy={20} r={1.2} />
+        <Circle cx={0} cy={80} r={1.2} />
+        <Circle cx={100} cy={20} r={1.2} />
+        <Circle cx={100} cy={80} r={1.2} />
+      </G>
+      {/* Stars at mid-edges — larger */}
+      <Circle cx={30} cy={-1} r={2} fill="#E8EAF8" opacity={0.85} />
+      <Circle cx={70} cy={-1} r={2} fill="#E8EAF8" opacity={0.85} />
+      <Circle cx={30} cy={101} r={2} fill="#E8EAF8" opacity={0.85} />
+      <Circle cx={70} cy={101} r={2} fill="#E8EAF8" opacity={0.85} />
+      <Circle cx={-1} cy={30} r={2} fill="#E8EAF8" opacity={0.85} />
+      <Circle cx={-1} cy={70} r={2} fill="#E8EAF8" opacity={0.85} />
+      <Circle cx={101} cy={30} r={2} fill="#E8EAF8" opacity={0.85} />
+      <Circle cx={101} cy={70} r={2} fill="#E8EAF8" opacity={0.85} />
+      {/* Extra mid-quarter stars */}
+      <Circle cx={42} cy={-1.5} r={1.2} fill="#D8DCF0" opacity={0.6} />
+      <Circle cx={58} cy={-1.5} r={1.2} fill="#D8DCF0" opacity={0.6} />
+      <Circle cx={42} cy={101.5} r={1.2} fill="#D8DCF0" opacity={0.6} />
+      <Circle cx={58} cy={101.5} r={1.2} fill="#D8DCF0" opacity={0.6} />
     </Svg>
   );
 });
