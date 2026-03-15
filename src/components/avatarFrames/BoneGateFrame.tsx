@@ -6,6 +6,7 @@ import type { FrameProps } from './FrameProps';
 export const BoneGateFrame = memo<FrameProps>(({ size, rx }) => {
   const uid = useId();
   const boneGrad = `boneGrad${uid}`;
+  const c = rx * 0.29;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
@@ -37,99 +38,99 @@ export const BoneGateFrame = memo<FrameProps>(({ size, rx }) => {
         strokeWidth={1.5}
         opacity={0.6}
       />
-      {/* Cross bones — top-left (overflow) */}
+      {/* Cross bones — top-left (on arc) */}
       <Line
-        x1={-4}
-        y1={-4}
-        x2={12}
-        y2={12}
+        x1={c - 8}
+        y1={c - 8}
+        x2={c + 8}
+        y2={c + 8}
         stroke="#D8D0C0"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
       <Line
-        x1={12}
-        y1={-4}
-        x2={-4}
-        y2={12}
+        x1={c + 8}
+        y1={c - 8}
+        x2={c - 8}
+        y2={c + 8}
         stroke="#D8D0C0"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
       {/* Cross bones — top-right */}
       <Line
-        x1={88}
-        y1={-4}
-        x2={104}
-        y2={12}
+        x1={100 - c - 8}
+        y1={c - 8}
+        x2={100 - c + 8}
+        y2={c + 8}
         stroke="#D8D0C0"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
       <Line
-        x1={104}
-        y1={-4}
-        x2={88}
-        y2={12}
+        x1={100 - c + 8}
+        y1={c - 8}
+        x2={100 - c - 8}
+        y2={c + 8}
         stroke="#D8D0C0"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
       {/* Cross bones — bottom-left */}
       <Line
-        x1={-4}
-        y1={88}
-        x2={12}
-        y2={104}
+        x1={c - 8}
+        y1={100 - c - 8}
+        x2={c + 8}
+        y2={100 - c + 8}
         stroke="#D8D0C0"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
       <Line
-        x1={12}
-        y1={88}
-        x2={-4}
-        y2={104}
+        x1={c + 8}
+        y1={100 - c - 8}
+        x2={c - 8}
+        y2={100 - c + 8}
         stroke="#D8D0C0"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
       {/* Cross bones — bottom-right */}
       <Line
-        x1={88}
-        y1={88}
-        x2={104}
-        y2={104}
+        x1={100 - c - 8}
+        y1={100 - c - 8}
+        x2={100 - c + 8}
+        y2={100 - c + 8}
         stroke="#D8D0C0"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
       <Line
-        x1={104}
-        y1={88}
-        x2={88}
-        y2={104}
+        x1={100 - c + 8}
+        y1={100 - c - 8}
+        x2={100 - c - 8}
+        y2={100 - c + 8}
         stroke="#D8D0C0"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
       {/* Bone joint knobs */}
-      <Circle cx={-4} cy={-4} r={2.5} fill="#E0D8C8" />
-      <Circle cx={12} cy={-4} r={2.5} fill="#E0D8C8" />
-      <Circle cx={-4} cy={12} r={2.5} fill="#E0D8C8" />
-      <Circle cx={12} cy={12} r={2.5} fill="#E0D8C8" />
-      <Circle cx={88} cy={-4} r={2.5} fill="#E0D8C8" />
-      <Circle cx={104} cy={-4} r={2.5} fill="#E0D8C8" />
-      <Circle cx={88} cy={12} r={2.5} fill="#E0D8C8" />
-      <Circle cx={104} cy={12} r={2.5} fill="#E0D8C8" />
-      <Circle cx={-4} cy={88} r={2.5} fill="#E0D8C8" />
-      <Circle cx={12} cy={88} r={2.5} fill="#E0D8C8" />
-      <Circle cx={-4} cy={104} r={2.5} fill="#E0D8C8" />
-      <Circle cx={12} cy={104} r={2.5} fill="#E0D8C8" />
-      <Circle cx={88} cy={88} r={2.5} fill="#E0D8C8" />
-      <Circle cx={104} cy={88} r={2.5} fill="#E0D8C8" />
-      <Circle cx={88} cy={104} r={2.5} fill="#E0D8C8" />
-      <Circle cx={104} cy={104} r={2.5} fill="#E0D8C8" />
+      <Circle cx={c - 8} cy={c - 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={c + 8} cy={c - 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={c - 8} cy={c + 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={c + 8} cy={c + 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={100 - c - 8} cy={c - 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={100 - c + 8} cy={c - 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={100 - c - 8} cy={c + 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={100 - c + 8} cy={c + 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={c - 8} cy={100 - c - 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={c + 8} cy={100 - c - 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={c - 8} cy={100 - c + 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={c + 8} cy={100 - c + 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={100 - c - 8} cy={100 - c - 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={100 - c + 8} cy={100 - c - 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={100 - c - 8} cy={100 - c + 8} r={2.5} fill="#E0D8C8" />
+      <Circle cx={100 - c + 8} cy={100 - c + 8} r={2.5} fill="#E0D8C8" />
       {/* Mini skull at top center */}
       <Circle cx={50} cy={-2} r={3.5} fill="#D8D0C0" stroke="#3A3530" strokeWidth={0.6} />
       <Circle cx={48.5} cy={-2.8} r={0.7} fill="#3A3530" />
