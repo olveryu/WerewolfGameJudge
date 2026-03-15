@@ -263,7 +263,7 @@ newRoleGroupConfirm: {
 },
 ```
 
-**现有完整顺序参考（23 步）**:
+**现有完整顺序参考（25 步）**:
 
 1. magicianSwap → slackerChooseIdol → wildChildChooseIdol
 2. nightmareBlock → dreamcatcherDream → guardProtect → silenceElderSilence → votebanElderBan
@@ -271,7 +271,8 @@ newRoleGroupConfirm: {
 4. witchAction
 5. hunterConfirm → darkWolfKingConfirm
 6. wolfRobotLearn → seerCheck → mirrorSeerCheck → drunkSeerCheck → wolfWitchCheck → gargoyleCheck → pureWhiteCheck → psychicCheck
-7. piperHypnotize → piperHypnotizedReveal
+7. awakenedGargoyleConvert
+8. piperHypnotize → piperHypnotizedReveal → awakenedGargoyleConvertReveal
 
 ### 步骤 4 — Resolver
 
@@ -367,7 +368,7 @@ import { newRoleActionResolver } from './newRole';
 newRoleAction: newRoleActionResolver,
 ```
 
-当前已有 23 个 resolver 注册。
+当前已有 25 个 resolver 注册。
 
 ### 步骤 6 — 音频文件
 
@@ -480,9 +481,9 @@ describe('newRoleActionResolver', () => {
 **文件**: `packages/game-engine/src/models/roles/spec/__tests__/specs.contract.test.ts`
 
 ```typescript
-// 当前为 32，新增角色后改为 33：
-it('should have exactly 32 roles', () => {
-  expect(getAllRoleIds()).toHaveLength(32); // → 33
+// 当前为 34，新增角色后改为 35：
+it('should have exactly 34 roles', () => {
+  expect(getAllRoleIds()).toHaveLength(34); // → 35
 });
 ```
 
