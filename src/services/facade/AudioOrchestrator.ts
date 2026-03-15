@@ -73,6 +73,10 @@ export class AudioOrchestrator {
   /** 连续重试计数（指数退避 + 上限防止无限轮询） */
   #onlineRetryAttempt = 0;
 
+  /** Unsubscribe handles for constructor subscriptions */
+  #unsubscribeStore: (() => void) | null = null;
+  #unsubscribeStatus: (() => void) | null = null;
+
   /** 最大重试次数（超过后停止重试，等待用户手动刷新） */
   static readonly #maxOnlineRetries = 5;
 
@@ -83,7 +87,7 @@ export class AudioOrchestrator {
     this.#deps = deps;
 
     // Reactive: 监听 state 中 pendingAudioEffects 出现 → Host 播放 → postAudioAck
-    deps.store.subscribe((state) => {
+    this.#unsubscribeStore = deps.store.subscribe((state) => {
       if (!state) return;
       if (!deps.isHost()) return;
       if (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0) return;
@@ -93,7 +97,7 @@ export class AudioOrchestrator {
     });
 
     // L2: Retry — 断线期间 postAudioAck 失败 → 重连 live 后重播音频 + 重试 ack
-    deps.addStatusListener((status) => {
+    this.#unsubscribeStatus = deps.addStatusListener((status) => {
       if (status !== ('Live' as ConnectionStatus)) return;
       if (!deps.isHost()) return;
       if (!this.#pendingAudioAckRetry) return;
@@ -133,6 +137,10 @@ export class AudioOrchestrator {
   /** Cleanup all handlers/timers (leaveRoom) */
   dispose(): void {
     this.#unregisterOnlineRetry();
+    this.#unsubscribeStore?.();
+    this.#unsubscribeStore = null;
+    this.#unsubscribeStatus?.();
+    this.#unsubscribeStatus = null;
   }
 
   // =========================================================================
@@ -178,19 +186,39 @@ export class AudioOrchestrator {
             await this.#deps.audioService.playRoleBeginningAudio(resolvedKey);
           } finally {
             // 音频完成（或失败）后，POST audio-ack 释放 gate + 触发推进
-            await gameActions.postAudioAck(this.#deps.getActionsContext());
+            await this.#postAudioAckWithRetry();
           }
         } else {
           // 无 stepSpec（不该发生），兜底释放 gate
-          await gameActions.postAudioAck(this.#deps.getActionsContext());
+          await this.#postAudioAckWithRetry();
         }
       } else {
         // 无 currentStepId，兜底释放 gate
-        await gameActions.postAudioAck(this.#deps.getActionsContext());
+        await this.#postAudioAckWithRetry();
       }
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
       handleError(e, { label: 'resumeAfterRejoin', logger: facadeLog, alertTitle: false });
+    }
+  }
+
+  // =========================================================================
+  // Shared: postAudioAck with retry fallback
+  // =========================================================================
+
+  /**
+   * POST audio-ack and set up retry if it fails.
+   * Used by resumeAfterRejoin and other paths that need
+   * the same retry semantics as #playPendingAudioEffects.
+   */
+  async #postAudioAckWithRetry(): Promise<void> {
+    const ackResult = await gameActions.postAudioAck(this.#deps.getActionsContext());
+    if (!ackResult.success) {
+      facadeLog.warn('postAudioAck failed in resumeAfterRejoin, will retry on reconnect', {
+        reason: ackResult.reason,
+      });
+      this.#pendingAudioAckRetry = true;
+      this.#registerOnlineRetry();
     }
   }
 

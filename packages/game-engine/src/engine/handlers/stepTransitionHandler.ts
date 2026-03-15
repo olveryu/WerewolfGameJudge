@@ -331,7 +331,15 @@ function extractWitchAction(currentNightResults?: {
 }
 
 /**
- * Build NightActions from state for death resolution
+ * Build NightActions from state for death resolution.
+ *
+ * 数据来源设计：
+ * - currentNightResults（resolver 产出）: wolfVotesBySeat, witchAction, swappedSeats
+ *   → 这些字段经过 resolver 处理，是最终语义结果（如 witch save/poison 区分）。
+ * - ProtocolAction[]（原始提交）: guardProtect, wolfQueenCharm, dreamcatcherDream, seerCheck, nightmareBlock
+ *   → 这些字段是简单 chooseSeat 目标，resolver 不做额外转换，targetSeat 即最终值。
+ *
+ * 所有座位号均为物理座位（0-based），坐标空间一致。
  */
 function buildNightActions(state: NonNullState): NightActions {
   const actions = state.actions;

@@ -176,6 +176,11 @@ function processWolfKill(
   if (wolfKill === undefined) return;
 
   // Check if guard protection is effective (not blocked by nightmare)
+  // NOTE: Both nightmareBlock and roleSeatMap seats are in the same coordinate
+  // space (physical seats). buildRoleSeatMap maps effective-role → physical-seat,
+  // and nightmareBlock is the physical seat from ProtocolAction.targetSeat.
+  // This is a defense layer — upstream actionGuards already prevents blocked
+  // players from submitting actions.
   const isGuardBlocked =
     nightmareBlock !== undefined && guardSeat !== -1 && nightmareBlock === guardSeat;
   const effectiveGuardProtect = isGuardBlocked ? undefined : guardProtect;

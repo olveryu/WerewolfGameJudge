@@ -62,7 +62,7 @@ describe('toLocalState', () => {
   it('maps GameState.actions into LocalGameState.actions (all Night-1 schemas)', () => {
     const state = makeBaseGameState({
       // swap lives in currentNightResults
-      currentNightResults: { swappedSeats: [3, 4] } as any,
+      currentNightResults: { swappedSeats: [3, 4], savedSeat: 2 } as any,
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       actions: [
         { schemaId: 'seerCheck' as any, actorSeat: 2, targetSeat: 0, timestamp: 1 },
@@ -106,8 +106,9 @@ describe('toLocalState', () => {
     });
   });
 
-  it('maps witchAction as poison when target != killedSeat', () => {
+  it('maps witchAction as poison when poisonedSeat is set', () => {
     const state = makeBaseGameState({
+      currentNightResults: { poisonedSeat: 0 } as any,
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       actions: [{ schemaId: 'witchAction' as any, actorSeat: 1, targetSeat: 0, timestamp: 1 }],
     });
@@ -119,7 +120,7 @@ describe('toLocalState', () => {
     });
   });
 
-  it('maps witchAction as none when no targetSeat', () => {
+  it('maps witchAction as none when no savedSeat or poisonedSeat', () => {
     const state = makeBaseGameState({
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       actions: [{ schemaId: 'witchAction' as any, actorSeat: 1, timestamp: 1 }],

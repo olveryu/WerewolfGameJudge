@@ -46,6 +46,9 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
 
     return new Promise<void>((resolve) => {
       try {
+        // Settle any in-flight promise before overwriting (prevents orphaned promises)
+        this.#settle();
+
         this.#resolve = resolve;
 
         // Stop any current playback
