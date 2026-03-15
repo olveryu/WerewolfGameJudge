@@ -135,21 +135,16 @@ export function toLocalState(state: GameState): LocalGameState {
 
   // ---------------------------------------------------------------------------
   // witchAction (compound)
-  // stores a single ProtocolAction with targetSeat (either save target or poison target).
-  // We need witchContext to disambiguate save vs poison.
+  // Use currentNightResults.savedSeat / poisonedSeat (resolver output) as the
+  // authoritative source for save vs poison disambiguation, matching the
+  // server-side extractWitchAction pattern in stepTransitionHandler.ts.
   // ---------------------------------------------------------------------------
-  const witchAction = findBySchemaId('witchAction');
-  if (witchAction) {
-    const ctx = passthroughFields.witchContext;
-    const targetSeat = witchAction.targetSeat;
-
-    if (typeof targetSeat !== 'number') {
-      actionsMap.set('witch', makeActionWitch(makeWitchNone()));
-    } else if (ctx && targetSeat === ctx.killedSeat && ctx.canSave) {
-      actionsMap.set('witch', makeActionWitch(makeWitchSave(targetSeat)));
-    } else {
-      actionsMap.set('witch', makeActionWitch(makeWitchPoison(targetSeat)));
-    }
+  if (nightResults?.savedSeat !== undefined) {
+    actionsMap.set('witch', makeActionWitch(makeWitchSave(nightResults.savedSeat)));
+  } else if (nightResults?.poisonedSeat !== undefined) {
+    actionsMap.set('witch', makeActionWitch(makeWitchPoison(nightResults.poisonedSeat)));
+  } else if (findBySchemaId('witchAction')) {
+    actionsMap.set('witch', makeActionWitch(makeWitchNone()));
   }
 
   // ---------------------------------------------------------------------------

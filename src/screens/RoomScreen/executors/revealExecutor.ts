@@ -7,6 +7,7 @@
 
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 
+import { showAlert } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 
 import { getRevealDataFromState } from '../hooks/actionIntentHelpers';
@@ -27,8 +28,8 @@ export const revealExecutor: IntentExecutor = async (intent, ctx) => {
   confirmThenAct(intent.targetSeat, async () => {
     setPendingRevealDialog(true);
 
-    const maxRetries = 20;
-    const retryInterval = 50;
+    const maxRetries = 30;
+    const retryInterval = 100;
     let reveal: { targetSeat: number; result: string } | undefined;
 
     for (let i = 0; i < maxRetries; i++) {
@@ -57,6 +58,7 @@ export const revealExecutor: IntentExecutor = async (intent, ctx) => {
       roomScreenLog.warn(
         `${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
       );
+      showAlert('查看结果超时', '未收到服务端返回，请稍后重试');
       setPendingRevealDialog(false);
     }
   });
