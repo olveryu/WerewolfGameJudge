@@ -1,3 +1,5 @@
+> ⚠️ 历史文档 — 仅供参考，不反映当前代码状态
+
 # Code Review 变更计划
 
 > **分支**: `feature/optimize_1`

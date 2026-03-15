@@ -148,7 +148,7 @@ newDisguised: {
 
 `SchemaId` 从 `keyof typeof SCHEMAS` 自动推导。
 
-**约束枚举**: `TargetConstraint.NotSelf`（不能选自己）、`TargetConstraint.NotWolfFaction`（不能选狼阵营）。
+**约束枚举**: `TargetConstraint.NotSelf`（不能选自己）、`TargetConstraint.NotWolfFaction`（不能选狼阵营）、`TargetConstraint.AdjacentToWolfFaction`（必须与狼阵营座位相邻）。
 
 **bottomActionText 固定值**（4 字）:
 
@@ -352,7 +352,9 @@ interface ResolverResult {
     identityResult?: RoleId;               // psychic / gargoyle / wolfRobot
     savedTarget? / poisonedTarget? / guardedTarget? / blockedTarget? /
     dreamTarget? / charmTarget? / swapTargets? / learnTarget? /
-    idolTarget? / silenceTarget? / votebanTarget? / hypnotizedTargets?;
+    learnedRoleId? / canShootAsHunter? /   // wolfRobot
+    idolTarget? / silenceTarget? / votebanTarget? / hypnotizedTargets? /
+    convertTarget?;                         // awakenedGargoyle
   };
 }
 ```
@@ -520,7 +522,7 @@ pnpm exec jest --updateSnapshot
 
 1. `engine/DeathCalculator.ts` — `NightActions` 接口加字段 + 处理逻辑
 2. Resolver 的 `updates` 写入 `currentNightResults` 对应字段
-3. `resolvers/types.ts` — `CurrentNightResults` 加新字段（当前字段：wolfVotesBySeat / blockedSeat / wolfKillDisabled / guardedSeat / savedSeat / poisonedSeat / dreamingSeat / swappedSeats / silencedSeat / votebannedSeat / hypnotizedSeats）
+3. `resolvers/types.ts` — `CurrentNightResults` 加新字段（当前字段：wolfVotesBySeat / blockedSeat / wolfKillDisabled / guardedSeat / savedSeat / poisonedSeat / dreamingSeat / swappedSeats / silencedSeat / votebannedSeat / hypnotizedSeats / convertedSeat）
 
 ### C3 — 预设上下文 / Gate
 
@@ -598,19 +600,19 @@ pnpm exec jest --updateSnapshot
 
 ## 参考角色索引（按行动类型分类）
 
-| 行动类型             | 参考角色                                                                                                 | SchemaId                                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `chooseSeat`（查验） | seer, mirrorSeer, drunkSeer, psychic, gargoyle, pureWhite, wolfWitch                                     | `seerCheck`, `mirrorSeerCheck`, `drunkSeerCheck`, `psychicCheck`, `gargoyleCheck`, `pureWhiteCheck`, `wolfWitchCheck` |
-| `chooseSeat`（效果） | guard, nightmare, dreamcatcher, wolfQueen, silenceElder, votebanElder                                    | `guardProtect`, `nightmareBlock`, `dreamcatcherDream`, `wolfQueenCharm`, `silenceElderSilence`, `votebanElderBan`     |
-| `chooseSeat`（学习） | wolfRobot                                                                                                | `wolfRobotLearn`                                                                                                      |
-| `chooseSeat`（选人） | slacker, wildChild                                                                                       | `slackerChooseIdol`, `wildChildChooseIdol`                                                                            |
-| `confirm`            | hunter, darkWolfKing                                                                                     | `hunterConfirm`, `darkWolfKingConfirm`                                                                                |
-| `compound`           | witch                                                                                                    | `witchAction`                                                                                                         |
-| `swap`               | magician                                                                                                 | `magicianSwap`                                                                                                        |
-| `wolfVote`           | wolf                                                                                                     | `wolfKill`                                                                                                            |
-| `multiChooseSeat`    | piper                                                                                                    | `piperHypnotize`                                                                                                      |
-| `groupConfirm`       | piper（第二步）                                                                                          | `piperHypnotizedReveal`                                                                                               |
-| 无夜晚行动           | villager, idiot, knight, witcher, wolfKing, bloodMoon, spiritKnight, graveyardKeeper, dancer, masquerade | —                                                                                                                     |
+| 行动类型             | 参考角色                                                                                                         | SchemaId                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `chooseSeat`（查验） | seer, mirrorSeer, drunkSeer, psychic, gargoyle, pureWhite, wolfWitch                                             | `seerCheck`, `mirrorSeerCheck`, `drunkSeerCheck`, `psychicCheck`, `gargoyleCheck`, `pureWhiteCheck`, `wolfWitchCheck` |
+| `chooseSeat`（效果） | guard, nightmare, dreamcatcher, wolfQueen, silenceElder, votebanElder                                            | `guardProtect`, `nightmareBlock`, `dreamcatcherDream`, `wolfQueenCharm`, `silenceElderSilence`, `votebanElderBan`     |
+| `chooseSeat`（学习） | wolfRobot                                                                                                        | `wolfRobotLearn`                                                                                                      |
+| `chooseSeat`（选人） | slacker, wildChild                                                                                               | `slackerChooseIdol`, `wildChildChooseIdol`                                                                            |
+| `confirm`            | hunter, darkWolfKing                                                                                             | `hunterConfirm`, `darkWolfKingConfirm`                                                                                |
+| `compound`           | witch                                                                                                            | `witchAction`                                                                                                         |
+| `swap`               | magician                                                                                                         | `magicianSwap`                                                                                                        |
+| `wolfVote`           | wolf                                                                                                             | `wolfKill`                                                                                                            |
+| `multiChooseSeat`    | piper                                                                                                            | `piperHypnotize`                                                                                                      |
+| `groupConfirm`       | piper（第二步）                                                                                                  | `piperHypnotizedReveal`                                                                                               |
+| 无夜晚行动           | villager, idiot, knight, witcher, wolfKing, bloodMoon, spiritKnight, graveyardKeeper, dancer, masquerade, warden | —                                                                                                                     |
 
 ---
 

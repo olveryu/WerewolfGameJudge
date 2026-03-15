@@ -1,6 +1,6 @@
 # Night-1 角色对齐矩阵
 
-> 更新日期: 2026-02-27
+> 更新日期: 2026-03-15
 > 版本: Handler→Facade→UI 架构
 
 ## 概述
@@ -9,35 +9,37 @@
 
 ## NIGHT_STEPS 顺序（权威）
 
-| 序号 | stepId                  | roleId         | audioKey                | audioEndKey             |
-| ---- | ----------------------- | -------------- | ----------------------- | ----------------------- |
-| 0    | `magicianSwap`          | `magician`     | `magician`              | (同)                    |
-| 1    | `slackerChooseIdol`     | `slacker`      | `slacker`               | (同)                    |
-| 2    | `wildChildChooseIdol`   | `wildChild`    | `wildChild`             | (同)                    |
-| 3    | `nightmareBlock`        | `nightmare`    | `nightmare`             | (同)                    |
-| 4    | `dreamcatcherDream`     | `dreamcatcher` | `dreamcatcher`          | (同)                    |
-| 5    | `guardProtect`          | `guard`        | `guard`                 | (同)                    |
-| 6    | `silenceElderSilence`   | `silenceElder` | `silenceElder`          | (同)                    |
-| 7    | `votebanElderBan`       | `votebanElder` | `votebanElder`          | (同)                    |
-| 8    | `wolfKill`              | `wolf`         | `wolf`                  | (同)                    |
-| 9    | `wolfQueenCharm`        | `wolfQueen`    | `wolfQueen`             | (同)                    |
-| 10   | `witchAction`           | `witch`        | `witch`                 | (同)                    |
-| 11   | `hunterConfirm`         | `hunter`       | `hunter`                | (同)                    |
-| 12   | `darkWolfKingConfirm`   | `darkWolfKing` | `darkWolfKing`          | (同)                    |
-| 13   | `wolfRobotLearn`        | `wolfRobot`    | `wolfRobot`             | (同)                    |
-| 14   | `seerCheck`             | `seer`         | `seer`                  | (同)                    |
-| 15   | `mirrorSeerCheck`       | `mirrorSeer`   | `mirrorSeer`            | (同)                    |
-| 16   | `drunkSeerCheck`        | `drunkSeer`    | `drunkSeer`             | (同)                    |
-| 17   | `wolfWitchCheck`        | `wolfWitch`    | `wolfWitch`             | (同)                    |
-| 18   | `gargoyleCheck`         | `gargoyle`     | `gargoyle`              | (同)                    |
-| 19   | `pureWhiteCheck`        | `pureWhite`    | `pureWhite`             | (同)                    |
-| 20   | `psychicCheck`          | `psychic`      | `psychic`               | (同)                    |
-| 21   | `piperHypnotize`        | `piper`        | `piper`                 | (同)                    |
-| 22   | `piperHypnotizedReveal` | `piper`        | `piperHypnotizedReveal` | `piperHypnotizedReveal` |
+| 序号 | stepId                          | roleId             | audioKey                        | audioEndKey                     |
+| ---- | ------------------------------- | ------------------ | ------------------------------- | ------------------------------- |
+| 0    | `magicianSwap`                  | `magician`         | `magician`                      | (同)                            |
+| 1    | `slackerChooseIdol`             | `slacker`          | `slacker`                       | (同)                            |
+| 2    | `wildChildChooseIdol`           | `wildChild`        | `wildChild`                     | (同)                            |
+| 3    | `nightmareBlock`                | `nightmare`        | `nightmare`                     | (同)                            |
+| 4    | `dreamcatcherDream`             | `dreamcatcher`     | `dreamcatcher`                  | (同)                            |
+| 5    | `guardProtect`                  | `guard`            | `guard`                         | (同)                            |
+| 6    | `silenceElderSilence`           | `silenceElder`     | `silenceElder`                  | (同)                            |
+| 7    | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (同)                            |
+| 8    | `wolfKill`                      | `wolf`             | `wolf`                          | (同)                            |
+| 9    | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (同)                            |
+| 10   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
+| 11   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
+| 12   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
+| 13   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
+| 14   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
+| 15   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
+| 16   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
+| 17   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
+| 18   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
+| 19   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
+| 20   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
+| 21   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
+| 22   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
+| 23   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
+| 24   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
 
 **合约保证**：
 
-- 大部分步骤 `audioKey === roleId`，例外：`piperHypnotizedReveal`（独立音频）
+- 大部分步骤 `audioKey === roleId`，例外：`piperHypnotizedReveal`、`awakenedGargoyleConvertReveal`（独立音频）
 - stepId 唯一且顺序稳定 (snapshot 测试)
 
 ---
@@ -476,10 +478,10 @@
 
 ```
 === Night-1 Role Coverage Report ===
-Total Steps: 23
-With Schema: 23/23 (100%)
-With Resolver: 23/23 (100%)
-With Audio: 23/23 (100%)
+Total Steps: 25
+With Schema: 25/25 (100%)
+With Resolver: 25/25 (100%)
+With Audio: 25/25 (100%)
 ```
 
 ---
@@ -501,27 +503,28 @@ With Audio: 23/23 (100%)
 
 ### 当前 Night-1 的 UX-only 例外（必须测试覆盖）
 
-| 角色                 | Schema 约束          | UI 行为                | UX-only 限制                                                                    |
-| -------------------- | -------------------- | ---------------------- | ------------------------------------------------------------------------------- |
-| nightmare            | `[]`                 | 可选任意座位（含自己） | ❌ 无                                                                           |
-| dreamcatcher         | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| guard                | `[]`                 | 可选任意座位（含自己） | ❌ 无                                                                           |
-| silenceElder         | `[]`                 | 可选任意座位（含自己） | ❌ 无                                                                           |
-| votebanElder         | `[]`                 | 可选任意座位（含自己） | ❌ 无                                                                           |
-| seer                 | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| mirrorSeer           | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| drunkSeer            | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| psychic              | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| pureWhite            | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| gargoyle             | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| wolfWitch            | `['notWolfFaction']` | 狼人阵营座位禁用       | ❌ 无（来自 schema）                                                            |
-| wolf（袭击）         | `[]`                 | UI 不禁用任何目标      | ❌ 无（改为 Host/Resolver 权威拒绝免疫目标，UI 统一用 `actionRejected` 弹提示） |
-| witch（save/poison） | save: `['notSelf']`  | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| slacker              | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| wildChild            | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| wolfQueen            | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| wolfRobot            | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| piper                | `['notSelf']`        | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| 角色                 | Schema 约束                                              | UI 行为                | UX-only 限制                                                                    |
+| -------------------- | -------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------- |
+| nightmare            | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
+| dreamcatcher         | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| guard                | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
+| silenceElder         | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
+| votebanElder         | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
+| seer                 | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| mirrorSeer           | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| drunkSeer            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| psychic              | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| pureWhite            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| gargoyle             | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| wolfWitch            | `['notWolfFaction']`                                     | 狼人阵营座位禁用       | ❌ 无（来自 schema）                                                            |
+| wolf（袭击）         | `[]`                                                     | UI 不禁用任何目标      | ❌ 无（改为 Host/Resolver 权威拒绝免疫目标，UI 统一用 `actionRejected` 弹提示） |
+| witch（save/poison） | save: `['notSelf']`                                      | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| slacker              | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| wildChild            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| wolfQueen            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| wolfRobot            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| piper                | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| awakenedGargoyle     | `['notSelf', 'notWolfFaction', 'adjacentToWolfFaction']` | 自己+狼阵营+非相邻禁用 | ❌ 无（来自 schema）                                                            |
 
 ### 当前约定（替代 UX-only）：Host/Resolver 权威拒绝 + UI 统一提示
 
@@ -548,20 +551,21 @@ With Audio: 23/23 (100%)
 
 #### 1. Schema WITH notSelf 对齐验证
 
-| SchemaId            | Schema 检查                          | Resolver 检查 |
-| ------------------- | ------------------------------------ | ------------- |
-| seerCheck           | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| mirrorSeerCheck     | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| drunkSeerCheck      | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| psychicCheck        | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| pureWhiteCheck      | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| gargoyleCheck       | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| dreamcatcherDream   | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| wolfQueenCharm      | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| wolfRobotLearn      | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| slackerChooseIdol   | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| wildChildChooseIdol | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| piperHypnotize      | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| SchemaId                | Schema 检查                          | Resolver 检查 |
+| ----------------------- | ------------------------------------ | ------------- |
+| seerCheck               | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| mirrorSeerCheck         | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| drunkSeerCheck          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| psychicCheck            | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| pureWhiteCheck          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| gargoyleCheck           | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| dreamcatcherDream       | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| wolfQueenCharm          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| wolfRobotLearn          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| slackerChooseIdol       | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| wildChildChooseIdol     | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| piperHypnotize          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
+| awakenedGargoyleConvert | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
 
 #### 2. Schema WITHOUT notSelf 对齐验证
 
@@ -575,9 +579,10 @@ With Audio: 23/23 (100%)
 
 #### 3. Schema WITH notWolfFaction 对齐验证
 
-| SchemaId       | Schema 检查                                 | Resolver 检查       |
-| -------------- | ------------------------------------------- | ------------------- |
-| wolfWitchCheck | ✅ `constraints.includes('notWolfFaction')` | ✅ 拒绝狼人阵营目标 |
+| SchemaId                | Schema 检查                                 | Resolver 检查       |
+| ----------------------- | ------------------------------------------- | ------------------- |
+| wolfWitchCheck          | ✅ `constraints.includes('notWolfFaction')` | ✅ 拒绝狼人阵营目标 |
+| awakenedGargoyleConvert | ✅ `constraints.includes('notWolfFaction')` | ✅ 拒绝狼人阵营目标 |
 
 #### 4. witchAction 复合步骤验证
 
