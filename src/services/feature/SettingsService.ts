@@ -78,6 +78,7 @@ export class SettingsService {
         if (typeof parsed === 'object' && parsed !== null) {
           // Merge with defaults to handle new settings added in future versions
           const merged = { ...DEFAULT_SETTINGS, ...(parsed as Partial<UserSettings>) };
+
           // Validate + clamp persisted values to current valid ranges
           if (!VALID_THEME_KEYS.has(merged.themeKey)) {
             settingsServiceLog.warn(
