@@ -30,7 +30,14 @@ const HOME_READY_SELECTORS = [
 const TRANSIENT_PATTERNS = ['创建中', '加载中', '连接中'];
 
 /** Modal/overlay patterns that block interaction */
-const BLOCKING_MODAL_PATTERNS = ['请先登录', '👤 匿名登录', '登录失败', '加载超时', '提示'];
+const BLOCKING_MODAL_PATTERNS = [
+  '请先登录',
+  '👤 匿名登录',
+  '登录失败',
+  '加载超时',
+  '提示',
+  '加入房间',
+];
 
 /** Error states that need recovery action */
 const ERROR_RECOVERY_PATTERNS = [

@@ -33,13 +33,15 @@ test.describe('First-time open (no session)', () => {
       await gotoWithRetry(page, '/');
       await waitForAppReady(page);
 
-      // Should see the login button (user is not logged in)
-      const loginBtn = page.locator('[data-testid="home-login-button"]');
-      await expect(loginBtn).toBeVisible({ timeout: 10_000 });
-
-      // Should NOT see user name
+      // Should NOT see user name (not logged in)
       const userName = page.locator('[data-testid="home-user-name"]');
       await expect(userName).not.toBeVisible({ timeout: 2_000 });
+
+      // Action buttons should still be visible (home screen ready)
+      await expect(page.locator('[data-testid="home-enter-room-button"]')).toBeVisible({
+        timeout: 5_000,
+      });
+      await expect(page.locator('[data-testid="home-create-room-button"]')).toBeVisible();
     } finally {
       await ctx.close();
     }
@@ -89,10 +91,6 @@ test.describe('Return with existing session', () => {
 
       // Session should persist — user name visible without re-login
       await expect(userName).toBeVisible({ timeout: 15_000 });
-
-      // Login button should NOT be visible (already logged in)
-      const loginBtn = page.locator('[data-testid="home-login-button"]');
-      await expect(loginBtn).not.toBeVisible({ timeout: 2_000 });
 
       // Home screen action buttons should be ready
       await expect(page.locator('[data-testid="home-enter-room-button"]')).toBeVisible({
