@@ -5,12 +5,17 @@
  */
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
+// Mock RoleHunt barrel to bypass React.lazy Loader (Skia CanvasKit WASM not available in Jest)
+jest.mock('@/components/RoleRevealEffects/RoleHunt', () => ({
+  RoleHunt: require('@/components/RoleRevealEffects/RoleHunt/RoleHunt').RoleHunt,
+}));
+
 import {
   createRoleData,
-  RoleHunt,
   RoleRevealAnimator,
   ScratchReveal,
 } from '@/components/RoleRevealEffects/index';
+import { RoleHunt } from '@/components/RoleRevealEffects/RoleHunt/RoleHunt';
 import type { RoleData } from '@/components/RoleRevealEffects/types';
 
 // Mock timers for animation testing

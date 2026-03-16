@@ -1,16 +1,21 @@
 /**
  * ChainShatter - 锁链击碎揭示动画（Skia + Reanimated 4）
  *
- * 视觉设计：中央锁头（矩形锁身 + 半圆提梁 + 钥匙孔）+ 左右各 4 个水平椭圆链环。
- * 交互：连续点击击碎（6 次），每击产生裂纹线 + 屏幕抖动 + 冲击闪光。
- * 连击机制：>800ms 未击则连击数回退 1。全碎后碎片带重力爆炸。
+ * 视觉设计：中央锁头（金属蓝钢渐变锁身 + 铆钉 + 高光提梁 + 钥匙孔光晕）
+ * + 左右各 4 个链环。背景飘浮尘埃粒子增加氛围。
+ * 交互：连续点击击碎（6 次），每击产生：
+ *   - 累积可见裂纹（gold→red 渐变）+ glow 光晕
+ *   - 径向火花粒子（8-12 个 gold/orange/white）
+ *   - 扩散冲击环
+ *   - 屏幕抖动 + 冲击闪光
+ * 连击机制：>800ms 未击则连击数回退 1。
+ * 全碎后不规则多边形碎片带旋转 + 重力爆炸 + 径向光环扩散。
  *
- * 视觉参照：docs/interactive-reveal-demo.html #chainShatter。
- * Skia 负责：锁头 + 水平链环 + 裂纹线 + 碎片粒子。
+ * Skia 负责：锁头 + 链环 + 裂纹 + 火花 + 冲击环 + 碎片 + 尘埃。
  * Reanimated 负责：驱动所有 shared value + 阶段切换。
  * 不 import service，不含业务逻辑。
  */
-import { Canvas, Circle, Group, Path, Rect } from '@shopify/react-native-skia';
+import { Canvas, Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -23,6 +28,7 @@ import Animated, {
   useDerivedValue,
   useSharedValue,
   withDelay,
+  withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
@@ -36,33 +42,58 @@ import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
-/** Background gradient: cold iron blue-black to complement gold lock sparks */
-const BG_GRADIENT = ['#08080f', '#0e0e1a', '#08080f'] as const;
+const BG_GRADIENT = ['#050510', '#0a0a1e', '#050510'] as const;
 
 const COLORS = {
-  /** Lock body fill */
-  lockBody: '#3A3A4A',
-  /** Lock body stroke */
-  lockStroke: '#555555',
-  /** Shackle (提梁) */
-  shackle: '#666666',
+  /** Lock body fill — dark steel blue */
+  lockBody: '#2A3040',
+  /** Lock body top highlight */
+  lockHighlight: '#4A5570',
+  /** Lock body stroke — steel edge */
+  lockStroke: '#5A6580',
+  /** Shackle (提梁) — bright steel */
+  shackle: '#7888A0',
+  /** Shackle highlight */
+  shackleHighlight: '#A0B0C8',
   /** Keyhole */
-  keyhole: '#222222',
+  keyhole: '#0A0A14',
+  /** Keyhole glow ring */
+  keyholeGlow: 'rgba(255, 180, 60, 0.35)',
+  /** Chain link fill */
+  chainLinkFill: '#3A4255',
   /** Chain link stroke */
-  chainLink: '#555555',
-  /** Crack glow */
-  crackGlow: 'rgba(255, 200, 50, 0.8)',
+  chainLinkStroke: '#6A7890',
+  /** Rivet fill */
+  rivetFill: '#8898B0',
+  /** Rivet highlight */
+  rivetHighlight: '#B0C0D8',
+  /** Crack glow — starting colour (gold), transitions to red with hits */
+  crackGoldStart: 'rgba(255, 200, 50, 0.9)',
+  crackRedEnd: 'rgba(255, 80, 30, 0.9)',
   /** Hit flash overlay */
-  breakFlash: '#FFD080',
-  /** Shard palette */
-  shardPalette: ['#555', '#777', '#444', '#666'] as const,
+  breakFlash: 'rgba(255, 210, 100, 0.5)',
+  /** Spark palette */
+  sparkPalette: ['#FFD700', '#FFA500', '#FFFFFF', '#FFE066', '#FF8C00'] as const,
+  /** Enhanced shard palette — metallic hues */
+  shardPalette: ['#4A5570', '#6A7890', '#8898B0', '#3A4255', '#5A6580', '#FFD080'] as const,
   /** Hit counter & hint text */
   hitText: '#FFD700',
   /** Combo indicator */
-  comboText: 'rgba(255, 200, 0, 0.6)',
+  comboText: 'rgba(255, 200, 0, 0.7)',
+  /** Dust particle */
+  dustParticle: 'rgba(180, 200, 230, 0.15)',
+  /** Shockwave ring */
+  shockwaveRing: 'rgba(255, 200, 80, 0.6)',
+  /** Radial burst on final shatter */
+  radialBurst: 'rgba(255, 220, 100, 0.5)',
 } as const;
 
 const CS = CONFIG.chainShatter;
+
+/** Number of spark particles per hit */
+const SPARKS_PER_HIT = 10;
+/** Number of ambient dust particles */
+const DUST_COUNT = 10;
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface CrackData {
@@ -70,6 +101,8 @@ interface CrackData {
   y: number;
   angle: number;
   length: number;
+  /** Which hit spawned this crack (0-based) — drives colour interpolation */
+  hitIndex: number;
 }
 
 interface ShardData {
@@ -77,25 +110,43 @@ interface ShardData {
   vy: number;
   size: number;
   color: string;
+  /** Angular velocity (radians/s) for spin during flight */
+  spin: number;
+}
+
+interface SparkData {
+  vx: number;
+  vy: number;
+  color: string;
+  size: number;
+}
+
+interface DustData {
+  x: number;
+  y: number;
+  driftX: number;
+  driftY: number;
+  radius: number;
+  driftDuration: number;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────
-/** Generate shards fanning out in a full circle, matching demo's 20-piece explosion. */
 function generateShards(count: number): ShardData[] {
   const shards: ShardData[] = [];
   for (let i = 0; i < count; i++) {
-    const angle = (i / count) * Math.PI * 2;
+    const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+    const speed = 100 + Math.random() * 80;
     shards.push({
-      vx: Math.cos(angle) * (80 + Math.random() * 60),
-      vy: Math.sin(angle) * (80 + Math.random() * 60) - 20,
-      size: 8 + Math.random() * 12,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 30,
+      size: 6 + Math.random() * 14,
       color: COLORS.shardPalette[i % COLORS.shardPalette.length],
+      spin: (Math.random() - 0.5) * 8,
     });
   }
   return shards;
 }
 
-/** Build SVG ellipse paths for chain links on both sides of the lock. */
 function buildChainLinkPaths(
   cx: number,
   cy: number,
@@ -103,16 +154,15 @@ function buildChainLinkPaths(
   linksPerSide: number,
 ): string[] {
   const paths: string[] = [];
-  const rx = lockW * 0.1;
-  const ry = lockW * 0.06;
+  const rx = lockW * 0.11;
+  const ry = lockW * 0.065;
   const startOffset = lockW * 0.7;
-  const spacing = lockW * 0.2;
+  const spacing = lockW * 0.22;
 
   for (let side = -1; side <= 1; side += 2) {
     for (let i = 0; i < linksPerSide; i++) {
       const lx = cx + side * (startOffset + i * spacing);
       const ly = cy + Math.sin(i * 0.8) * (lockW * 0.05);
-      // Full ellipse via two 180° arcs
       paths.push(
         `M ${(lx - rx).toFixed(1)} ${ly.toFixed(1)} ` +
           `A ${rx.toFixed(1)} ${ry.toFixed(1)} 0 1 0 ${(lx + rx).toFixed(1)} ${ly.toFixed(1)} ` +
@@ -123,25 +173,148 @@ function buildChainLinkPaths(
   return paths;
 }
 
+function generateSparks(count: number): SparkData[] {
+  const sparks: SparkData[] = [];
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 60 + Math.random() * 100;
+    sparks.push({
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 40,
+      color: COLORS.sparkPalette[i % COLORS.sparkPalette.length],
+      size: 2 + Math.random() * 3,
+    });
+  }
+  return sparks;
+}
+
+function generateDust(screenW: number, screenH: number): DustData[] {
+  const particles: DustData[] = [];
+  for (let i = 0; i < DUST_COUNT; i++) {
+    particles.push({
+      x: Math.random() * screenW,
+      y: Math.random() * screenH,
+      driftX: 15 + Math.random() * 25,
+      driftY: 8 + Math.random() * 15,
+      radius: 1.5 + Math.random() * 2.5,
+      driftDuration: 3000 + Math.random() * 4000,
+    });
+  }
+  return particles;
+}
+
+/** Interpolate crack colour from gold (hit 0) to red (hit max). */
+function crackColor(hitIndex: number, maxHits: number): string {
+  const t = Math.min(hitIndex / Math.max(maxHits - 1, 1), 1);
+  const r = Math.round(255);
+  const g = Math.round(200 - t * 120);
+  const b = Math.round(50 - t * 20);
+  return `rgba(${r}, ${g}, ${b}, 0.9)`;
+}
+
 // ─── Skia sub-components ────────────────────────────────────────────────
 interface CrackLineProps {
   crack: CrackData;
   opacity: SharedValue<number>;
+  maxHits: number;
 }
 
-/** Gold crack line that fades after appearing on each hit. */
-const CrackLine: React.FC<CrackLineProps> = ({ crack, opacity }) => {
+const CrackLine: React.FC<CrackLineProps> = ({ crack, opacity, maxHits }) => {
   const path = useMemo(() => {
     const ex = crack.x + Math.cos(crack.angle) * crack.length;
     const ey = crack.y + Math.sin(crack.angle) * crack.length;
     return `M ${crack.x.toFixed(1)} ${crack.y.toFixed(1)} L ${ex.toFixed(1)} ${ey.toFixed(1)}`;
   }, [crack]);
 
+  const color = useMemo(() => crackColor(crack.hitIndex, maxHits), [crack.hitIndex, maxHits]);
+
   return (
     <Group opacity={opacity}>
-      <Path path={path} color={COLORS.crackGlow} style="stroke" strokeWidth={2} strokeCap="round" />
+      {/* Glow layer (wider, semi-transparent) */}
+      <Path
+        path={path}
+        color={color}
+        style="stroke"
+        strokeWidth={6}
+        strokeCap="round"
+        opacity={0.4}
+      />
+      {/* Core crack line */}
+      <Path path={path} color={color} style="stroke" strokeWidth={2} strokeCap="round" />
     </Group>
   );
+};
+
+interface SparkBurstProps {
+  sparks: SparkData[];
+  cx: number;
+  cy: number;
+  progress: SharedValue<number>;
+}
+
+const SparkBurst: React.FC<SparkBurstProps> = ({ sparks, cx, cy, progress }) => {
+  return (
+    <>
+      {sparks.map((spark, i) => (
+        <SparkParticle key={`spark-${i}`} spark={spark} cx={cx} cy={cy} progress={progress} />
+      ))}
+    </>
+  );
+};
+
+interface SparkParticleProps {
+  spark: SparkData;
+  cx: number;
+  cy: number;
+  progress: SharedValue<number>;
+}
+
+const SparkParticle: React.FC<SparkParticleProps> = ({ spark, cx, cy, progress }) => {
+  const x = useDerivedValue(() => cx + spark.vx * progress.value);
+  const y = useDerivedValue(
+    () => cy + spark.vy * progress.value + 60 * progress.value * progress.value,
+  );
+  const op = useDerivedValue(() => Math.max(0, 1 - progress.value * 1.5));
+  const r = useDerivedValue(() => spark.size * Math.max(0, 1 - progress.value));
+
+  return <Circle cx={x} cy={y} r={r} color={spark.color} opacity={op} />;
+};
+
+interface ShockwaveProps {
+  cx: number;
+  cy: number;
+  progress: SharedValue<number>;
+  maxRadius: number;
+}
+
+const Shockwave: React.FC<ShockwaveProps> = ({ cx, cy, progress, maxRadius }) => {
+  const r = useDerivedValue(() => progress.value * maxRadius);
+  const op = useDerivedValue(() => Math.max(0, 0.6 - progress.value * 0.8));
+
+  return (
+    <Circle
+      cx={cx}
+      cy={cy}
+      r={r}
+      color={COLORS.shockwaveRing}
+      style="stroke"
+      strokeWidth={2}
+      opacity={op}
+    />
+  );
+};
+
+interface DustParticleProps {
+  dust: DustData;
+  progress: SharedValue<number>;
+}
+
+const DustParticle: React.FC<DustParticleProps> = ({ dust, progress }) => {
+  const x = useDerivedValue(() => dust.x + Math.sin(progress.value * Math.PI * 2) * dust.driftX);
+  const y = useDerivedValue(() => dust.y + Math.cos(progress.value * Math.PI * 2) * dust.driftY);
+  const op = useDerivedValue(() => 0.08 + Math.sin(progress.value * Math.PI * 2) * 0.07);
+
+  return <Circle cx={x} cy={y} r={dust.radius} color={COLORS.dustParticle} opacity={op} />;
 };
 
 interface ShardPieceProps {
@@ -152,20 +325,109 @@ interface ShardPieceProps {
   progress: SharedValue<number>;
 }
 
-/** Shard that flies outward with gravity and fades, matching demo physics. */
 const ShardPiece: React.FC<ShardPieceProps> = ({ shard, cx, cy, gravity, progress }) => {
-  const x = useDerivedValue(() => cx + shard.vx * progress.value - shard.size / 2);
-  const y = useDerivedValue(
-    () =>
-      cy + shard.vy * progress.value + gravity * progress.value * progress.value - shard.size / 2,
+  const halfW = shard.size / 2;
+  const halfH = (shard.size * 0.6) / 2;
+
+  // Build an irregular polygon path (pentagon-ish shape)
+  const shardPath = useMemo(() => {
+    const pts = [
+      { x: -halfW * 0.8, y: -halfH },
+      { x: halfW * 0.6, y: -halfH * 0.7 },
+      { x: halfW, y: halfH * 0.3 },
+      { x: halfW * 0.4, y: halfH },
+      { x: -halfW, y: halfH * 0.6 },
+    ];
+    return (
+      `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} ` +
+      pts
+        .slice(1)
+        .map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+        .join(' ') +
+      ' Z'
+    );
+  }, [halfW, halfH]);
+
+  const originX = useDerivedValue(() => cx + shard.vx * progress.value);
+  const originY = useDerivedValue(
+    () => cy + shard.vy * progress.value + gravity * progress.value * progress.value,
   );
-  const opacity = useDerivedValue(() => Math.max(0, 1 - progress.value));
+  const rotation = useDerivedValue(() => shard.spin * progress.value);
+  const opacity = useDerivedValue(() => Math.max(0, 1 - progress.value * 1.2));
+
+  const transform = useDerivedValue(() => [
+    { translateX: originX.value },
+    { translateY: originY.value },
+    { rotate: rotation.value },
+  ]);
 
   return (
-    <Group opacity={opacity}>
-      <Rect x={x} y={y} width={shard.size} height={shard.size * 0.6} color={shard.color} />
+    <Group transform={transform} opacity={opacity}>
+      <Path path={shardPath} color={shard.color} />
+      <Path path={shardPath} color="rgba(255,255,255,0.3)" style="stroke" strokeWidth={0.5} />
     </Group>
   );
+};
+
+// ─── Radial burst lines for final shatter ───────────────────────────────
+interface RadialBurstProps {
+  cx: number;
+  cy: number;
+  progress: SharedValue<number>;
+  maxRadius: number;
+}
+
+const BURST_LINE_COUNT = 12;
+
+const RadialBurst: React.FC<RadialBurstProps> = ({ cx, cy, progress, maxRadius }) => {
+  const lines = useMemo(() => {
+    const result: { angle: number }[] = [];
+    for (let i = 0; i < BURST_LINE_COUNT; i++) {
+      result.push({ angle: (i / BURST_LINE_COUNT) * Math.PI * 2 });
+    }
+    return result;
+  }, []);
+
+  return (
+    <>
+      {lines.map((line, i) => (
+        <RadialBurstLine
+          key={i}
+          cx={cx}
+          cy={cy}
+          angle={line.angle}
+          progress={progress}
+          maxRadius={maxRadius}
+        />
+      ))}
+    </>
+  );
+};
+
+interface RadialBurstLineProps {
+  cx: number;
+  cy: number;
+  angle: number;
+  progress: SharedValue<number>;
+  maxRadius: number;
+}
+
+const RadialBurstLine: React.FC<RadialBurstLineProps> = ({
+  cx,
+  cy,
+  angle,
+  progress,
+  maxRadius,
+}) => {
+  const cosA = Math.cos(angle);
+  const sinA = Math.sin(angle);
+  const innerR = useDerivedValue(() => progress.value * maxRadius * 0.2);
+  const outerR = useDerivedValue(() => progress.value * maxRadius);
+  const p1 = useDerivedValue(() => vec(cx + cosA * innerR.value, cy + sinA * innerR.value));
+  const p2 = useDerivedValue(() => vec(cx + cosA * outerR.value, cy + sinA * outerR.value));
+  const op = useDerivedValue(() => Math.max(0, 0.5 - progress.value * 0.7));
+
+  return <Line p1={p1} p2={p2} color={COLORS.radialBurst} strokeWidth={2} opacity={op} />;
 };
 
 // ─── Main component ─────────────────────────────────────────────────────
@@ -191,7 +453,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   const cy = screenHeight / 2;
   const lockW = screenWidth * CS.lockWidthRatio;
   const lockH = lockW * 0.8;
-  const gravity = screenHeight * 0.15;
+  const gravity = screenHeight * 0.18;
 
   const [phase, setPhase] = useState<Phase>('appear');
   const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
@@ -205,6 +467,11 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   // ── Pre-computed geometry ──
   const chainLinkPaths = useMemo(() => buildChainLinkPaths(cx, cy, lockW, 4), [cx, cy, lockW]);
   const [allShards] = useState(() => generateShards(CS.shardCount));
+  const [dustParticles] = useState(() => generateDust(screenWidth, screenHeight));
+
+  // Spark bursts: array of { sparks, progress } per hit
+  const [sparkBursts, setSparkBursts] = useState<{ sparks: SparkData[]; id: number }[]>([]);
+  const sparkIdRef = useRef(0);
 
   // ── Shared values ──
   const chainOpacity = useSharedValue(0);
@@ -217,9 +484,27 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   const cardOpacity = useSharedValue(0);
   const flashOpacity = useSharedValue(0);
   const shakeX = useSharedValue(0);
+  const shakeY = useSharedValue(0);
   const comboOpacity = useSharedValue(0);
+  const comboScale = useSharedValue(1);
+  const dustProgress = useSharedValue(0);
 
-  // Pre-allocated crack opacities (max = requiredHits)
+  // Per-hit shockwave progress (reused)
+  const shockwaveProgress = useSharedValue(0);
+
+  // Per-hit spark progress values (pool of 6)
+  const sp0 = useSharedValue(0);
+  const sp1 = useSharedValue(0);
+  const sp2 = useSharedValue(0);
+  const sp3 = useSharedValue(0);
+  const sp4 = useSharedValue(0);
+  const sp5 = useSharedValue(0);
+  const sparkProgresses = useMemo(
+    () => [sp0, sp1, sp2, sp3, sp4, sp5],
+    [sp0, sp1, sp2, sp3, sp4, sp5],
+  );
+
+  // Pre-allocated crack opacities (persistent — cracks stay visible, so these stay at 1)
   const c0 = useSharedValue(0);
   const c1 = useSharedValue(0);
   const c2 = useSharedValue(0);
@@ -230,6 +515,9 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
   // Derived value for Skia lock group opacity
   const lockSkiaOpacity = useDerivedValue(() => lockOpacity.value);
+
+  // Radial burst progress for final shatter
+  const radialBurstProgress = useSharedValue(0);
 
   // ── Padlock paths ──
   const shacklePath = useMemo(() => {
@@ -252,6 +540,21 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     );
   }, [cx, cy, lockW]);
 
+  // Rivet positions (four corners of lock body)
+  const rivets = useMemo(() => {
+    const inset = lockW * 0.15;
+    const lx = cx - lockW / 2 + inset;
+    const rx = cx + lockW / 2 - inset;
+    const ty = cy - lockH / 2 + inset;
+    const by = cy + lockH / 2 - inset;
+    return [
+      { x: lx, y: ty },
+      { x: rx, y: ty },
+      { x: lx, y: by },
+      { x: rx, y: by },
+    ];
+  }, [cx, cy, lockW, lockH]);
+
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
 
@@ -271,6 +574,13 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       return;
     }
 
+    // Start ambient dust drift
+    dustProgress.value = withRepeat(
+      withTiming(1, { duration: 6000, easing: Easing.linear }),
+      -1,
+      false,
+    );
+
     chainOpacity.value = withTiming(1, { duration: CS.chainAppearDuration / 2 });
     chainScale.value = withTiming(
       1,
@@ -280,7 +590,15 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
         if (finished) runOnJS(setPhase)('idle');
       },
     );
-  }, [reducedMotion, chainOpacity, chainScale, cardScale, cardOpacity, canvasOpacity]);
+  }, [
+    reducedMotion,
+    chainOpacity,
+    chainScale,
+    cardScale,
+    cardOpacity,
+    canvasOpacity,
+    dustProgress,
+  ]);
 
   // ── Auto-shatter timeout ──
   useEffect(() => {
@@ -313,9 +631,16 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
     // Screen flash
     flashOpacity.value = withSequence(
-      withTiming(0.6, { duration: 100 }),
-      withTiming(0, { duration: 400 }),
+      withTiming(0.7, { duration: 80 }),
+      withTiming(0, { duration: 500 }),
     );
+
+    // Radial burst lines
+    radialBurstProgress.value = 0;
+    radialBurstProgress.value = withTiming(1, {
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+    });
 
     // Explode shards with gravity
     shatterProgress.value = withTiming(1, {
@@ -324,11 +649,11 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     });
 
     // Fade canvas
-    canvasOpacity.value = withDelay(300, withTiming(0, { duration: 300 }));
+    canvasOpacity.value = withDelay(400, withTiming(0, { duration: 400 }));
 
     // Card reveal
     cardScale.value = withDelay(
-      400,
+      500,
       withTiming(
         1,
         { duration: CS.cardRevealDuration, easing: Easing.out(Easing.back(1.15)) },
@@ -338,11 +663,12 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
         },
       ),
     );
-    cardOpacity.value = withDelay(400, withTiming(1, { duration: CS.cardRevealDuration }));
+    cardOpacity.value = withDelay(500, withTiming(1, { duration: CS.cardRevealDuration }));
   }, [
     enableHaptics,
     lockOpacity,
     flashOpacity,
+    radialBurstProgress,
     shatterProgress,
     canvasOpacity,
     cardScale,
@@ -357,7 +683,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     const now = Date.now();
     let current = hitCountRef.current;
 
-    // Combo decay: too slow → lose 1 hit (matching demo rhythm mechanic)
+    // Combo decay: too slow → lose 1 hit
     if (current > 0 && now - lastHitTimeRef.current > CS.comboTimeout) {
       current = Math.max(0, current - 1);
     }
@@ -370,39 +696,68 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     if (phase === 'idle') setPhase('hitting');
     if (enableHaptics) triggerHaptic('medium', true);
 
-    // Add crack near lock center
+    // Add persistent crack near lock center
     const crackIdx = Math.min(current - 1, crackOpacities.length - 1);
     const newCrack: CrackData = {
       x: cx + (Math.random() - 0.5) * lockW * 0.6,
       y: cy + (Math.random() - 0.5) * lockH * 0.6,
       angle: Math.random() * Math.PI * 2,
       length: lockW * 0.2 + Math.random() * lockW * 0.4,
+      hitIndex: current - 1,
     };
     setCracks((prev) => [...prev, newCrack]);
 
-    // Animate crack: flash in then fade
+    // Crack stays visible (flash in → hold) instead of fading out
     crackOpacities[crackIdx].value = withSequence(
-      withTiming(0.8, { duration: 50 }),
-      withTiming(0, { duration: CS.crackFadeDuration }),
+      withTiming(1, { duration: 50 }),
+      withTiming(0.85, { duration: 200 }),
     );
 
-    // Combo indicator flash
+    // Spawn spark burst
+    const newSparks = generateSparks(SPARKS_PER_HIT);
+    const sparkId = sparkIdRef.current++;
+    setSparkBursts((prev) => [...prev.slice(-5), { sparks: newSparks, id: sparkId }]);
+
+    // Animate spark progress
+    const spIdx = crackIdx % sparkProgresses.length;
+    sparkProgresses[spIdx].value = 0;
+    sparkProgresses[spIdx].value = withTiming(1, {
+      duration: 400,
+      easing: Easing.out(Easing.cubic),
+    });
+
+    // Shockwave ring
+    shockwaveProgress.value = 0;
+    shockwaveProgress.value = withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) });
+
+    // Combo indicator pop
+    comboScale.value = withSequence(
+      withTiming(1.4, { duration: 80 }),
+      withTiming(1, { duration: 150 }),
+    );
     comboOpacity.value = withSequence(
-      withTiming(0.6, { duration: 50 }),
+      withTiming(0.8, { duration: 50 }),
       withTiming(0, { duration: CS.comboTimeout }),
     );
 
     // Hit flash
     hitFlashOpacity.value = withSequence(
-      withTiming(0.3, { duration: 50 }),
-      withTiming(0, { duration: 100 }),
+      withTiming(0.35, { duration: 40 }),
+      withTiming(0, { duration: 120 }),
     );
 
-    // Shake
+    // Shake (X + Y for more dynamic feel)
+    const intensity = Math.min(current / CS.requiredHits, 1);
+    const amp = 6 + intensity * 8;
     shakeX.value = withSequence(
-      withTiming(-8, { duration: 30 }),
-      withTiming(8, { duration: 30 }),
-      withTiming(-4, { duration: 30 }),
+      withTiming(-amp, { duration: 25 }),
+      withTiming(amp, { duration: 25 }),
+      withTiming(-amp * 0.5, { duration: 25 }),
+      withTiming(0, { duration: 25 }),
+    );
+    shakeY.value = withSequence(
+      withTiming(-amp * 0.5, { duration: 30 }),
+      withTiming(amp * 0.3, { duration: 30 }),
       withTiming(0, { duration: 30 }),
     );
 
@@ -418,15 +773,23 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     lockW,
     lockH,
     crackOpacities,
+    sparkProgresses,
+    shockwaveProgress,
     comboOpacity,
+    comboScale,
     hitFlashOpacity,
     shakeX,
+    shakeY,
     triggerShatter,
   ]);
 
   // ── Animated styles ──
   const chainContainerStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: chainScale.value }, { translateX: shakeX.value }],
+    transform: [
+      { scale: chainScale.value },
+      { translateX: shakeX.value },
+      { translateY: shakeY.value },
+    ],
     opacity: chainOpacity.value,
   }));
 
@@ -449,6 +812,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
   const comboStyle = useAnimatedStyle(() => ({
     opacity: comboOpacity.value,
+    transform: [{ scale: comboScale.value }],
   }));
 
   const hitsRemaining = Math.max(0, CS.requiredHits - hitCountDisplay);
@@ -462,6 +826,16 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
+
+      {/* Ambient dust particles (full-screen Skia canvas behind lock) */}
+      {phase !== 'revealed' && !reducedMotion && (
+        <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+          {dustParticles.map((dust, i) => (
+            <DustParticle key={`dust-${i}`} dust={dust} progress={dustProgress} />
+          ))}
+        </Canvas>
+      )}
+
       {/* Pressable overlay for tap interaction */}
       <Pressable
         style={StyleSheet.absoluteFill}
@@ -470,11 +844,11 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       >
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Animated.View style={[StyleSheet.absoluteFill, chainContainerStyle]}>
-            {/* Skia: lock + chains + cracks */}
+            {/* Skia: lock + chains + cracks + sparks + shockwaves */}
             <Canvas style={StyleSheet.absoluteFill}>
               {/* Lock + chains (fade to 0 on shatter) */}
               <Group opacity={lockSkiaOpacity}>
-                {/* Lock body fill */}
+                {/* Lock body fill — dark steel */}
                 <Rect
                   x={cx - lockW / 2}
                   y={cy - lockH / 2}
@@ -482,7 +856,16 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                   height={lockH}
                   color={COLORS.lockBody}
                 />
-                {/* Lock body stroke */}
+                {/* Lock body top highlight band */}
+                <Rect
+                  x={cx - lockW / 2}
+                  y={cy - lockH / 2}
+                  width={lockW}
+                  height={lockH * 0.15}
+                  color={COLORS.lockHighlight}
+                  opacity={0.5}
+                />
+                {/* Lock body stroke — steel edge */}
                 <Rect
                   x={cx - lockW / 2}
                   y={cy - lockH / 2}
@@ -490,7 +873,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                   height={lockH}
                   color={COLORS.lockStroke}
                   style="stroke"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                 />
 
                 {/* Shackle (semi-circle arc above lock body) */}
@@ -501,35 +884,84 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                   strokeWidth={lockW * 0.1}
                   strokeCap="round"
                 />
+                {/* Shackle highlight (thinner inner arc) */}
+                <Path
+                  path={shacklePath}
+                  color={COLORS.shackleHighlight}
+                  style="stroke"
+                  strokeWidth={lockW * 0.03}
+                  strokeCap="round"
+                  opacity={0.4}
+                />
 
+                {/* Keyhole glow ring */}
+                <Circle cx={cx} cy={cy} r={lockW * 0.16} color={COLORS.keyholeGlow} />
                 {/* Keyhole circle */}
                 <Circle cx={cx} cy={cy} r={lockW * 0.1} color={COLORS.keyhole} />
                 {/* Keyhole slot */}
                 <Path path={keyholePath} color={COLORS.keyhole} />
 
-                {/* Chain links (ellipses extending horizontally on both sides) */}
+                {/* Rivets at four corners */}
+                {rivets.map((rivet, i) => (
+                  <React.Fragment key={`rivet-${i}`}>
+                    <Circle cx={rivet.x} cy={rivet.y} r={lockW * 0.035} color={COLORS.rivetFill} />
+                    <Circle
+                      cx={rivet.x}
+                      cy={rivet.y}
+                      r={lockW * 0.035}
+                      color={COLORS.rivetHighlight}
+                      style="stroke"
+                      strokeWidth={1}
+                      opacity={0.5}
+                    />
+                    {/* Rivet highlight dot */}
+                    <Circle
+                      cx={rivet.x - lockW * 0.01}
+                      cy={rivet.y - lockW * 0.01}
+                      r={lockW * 0.012}
+                      color={COLORS.rivetHighlight}
+                      opacity={0.6}
+                    />
+                  </React.Fragment>
+                ))}
+
+                {/* Chain links with fill + stroke for depth */}
                 {chainLinkPaths.map((d, i) => (
-                  <Path
-                    key={`link-${i}`}
-                    path={d}
-                    color={COLORS.chainLink}
-                    style="stroke"
-                    strokeWidth={4}
-                  />
+                  <React.Fragment key={`link-${i}`}>
+                    <Path path={d} color={COLORS.chainLinkFill} />
+                    <Path path={d} color={COLORS.chainLinkStroke} style="stroke" strokeWidth={3} />
+                  </React.Fragment>
                 ))}
               </Group>
 
-              {/* Crack lines (gold, fade after each hit) */}
+              {/* Persistent crack lines (accumulate, gold→red) */}
               {cracks.map((crack, i) => (
                 <CrackLine
                   key={`crack-${i}`}
                   crack={crack}
                   opacity={crackOpacities[Math.min(i, crackOpacities.length - 1)]}
+                  maxHits={CS.requiredHits}
                 />
               ))}
+
+              {/* Per-hit spark bursts */}
+              {sparkBursts.map((burst, bIdx) => (
+                <SparkBurst
+                  key={`burst-${burst.id}`}
+                  sparks={burst.sparks}
+                  cx={cx}
+                  cy={cy}
+                  progress={sparkProgresses[bIdx % sparkProgresses.length]}
+                />
+              ))}
+
+              {/* Hit shockwave ring */}
+              {(phase === 'hitting' || phase === 'idle') && (
+                <Shockwave cx={cx} cy={cy} progress={shockwaveProgress} maxRadius={lockW * 0.8} />
+              )}
             </Canvas>
 
-            {/* Hit counter inside shake container (shakes with lock) */}
+            {/* Hit counter inside shake container */}
             {(phase === 'idle' || phase === 'hitting') && (
               <View
                 style={[styles.centeredOverlay, { top: cy + lockH / 2 + 30 }]}
@@ -541,7 +973,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
               </View>
             )}
 
-            {/* Combo indicator (× N above lock, fades between hits) */}
+            {/* Combo indicator (× N above lock, pops + fades) */}
             {phase === 'hitting' && hitCountDisplay > 0 && (
               <Animated.View
                 style={[
@@ -556,9 +988,15 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
             )}
           </Animated.View>
 
-          {/* Shard particles (after shatter, with gravity) */}
+          {/* Shard particles + radial burst (after shatter, with gravity + spin) */}
           {phase === 'shatter' && (
             <Canvas style={StyleSheet.absoluteFill}>
+              <RadialBurst
+                cx={cx}
+                cy={cy}
+                progress={radialBurstProgress}
+                maxRadius={screenWidth * 0.5}
+              />
               {allShards.map((shard, i) => (
                 <ShardPiece
                   key={`shard-${i}`}
@@ -653,17 +1091,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.hitText,
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  comboText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.comboText,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
+  },
+  comboText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: COLORS.comboText,
+    textShadowColor: 'rgba(0, 0, 0, 0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   hint: { position: 'absolute', bottom: 80 },
   hintText: {
