@@ -12,7 +12,11 @@ import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 
 import { log } from '@/utils/logger';
 
-import type { RoleRevealEffectProps } from '../types';
+import type { RoleData, RoleRevealEffectProps } from '../types';
+
+interface FateGearsLoaderProps extends RoleRevealEffectProps {
+  allRoles?: RoleData[];
+}
 
 /**
  * Must match the installed `canvaskit-wasm` transitive dependency version.
@@ -63,7 +67,7 @@ const LoadingFallback = () => (
  * FateGears wrapper — uses React.lazy + Suspense to ensure CanvasKit WASM
  * is loaded before the Skia-dependent FateGears module is evaluated on web.
  */
-export const FateGears: React.FC<RoleRevealEffectProps> = (props) => (
+export const FateGears: React.FC<FateGearsLoaderProps> = (props) => (
   <Suspense fallback={<LoadingFallback />}>
     <FateGearsLazy {...props} />
   </Suspense>
