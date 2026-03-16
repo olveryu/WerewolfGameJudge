@@ -31,6 +31,14 @@
     <!-- Manifest -->
     <link rel="manifest" href="/manifest.json" />
 
+    <!-- Preload CanvasKit WASM (Skia animations) — starts download before JS execution -->
+    <link
+      rel="preload"
+      href="https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.40.0/bin/full/canvaskit.wasm"
+      as="fetch"
+      crossorigin="anonymous"
+    />
+
     <title>狼人杀电子法官</title>
 
     <!-- Expo required reset styles -->
@@ -293,7 +301,8 @@
         if (themeMeta) themeMeta.content = theme.primary;
       })();
 
-      // 隐藏启动画面
+      // 隐藏启动画面 — 由 React App.tsx 控制。
+      // 这里仅作超时 fallback（5 秒后强制隐藏，防止 JS 加载失败时永久卡 splash）。
       window.addEventListener('load', function () {
         setTimeout(function () {
           var splash = document.getElementById('splash-screen');
@@ -303,7 +312,7 @@
               splash.remove();
             }, 300);
           }
-        }, 500);
+        }, 5000);
       });
 
       // 注册 Service Worker（如果支持）

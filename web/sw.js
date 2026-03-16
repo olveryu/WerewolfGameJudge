@@ -54,6 +54,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // CDN 资源（CanvasKit WASM 等）: cache-first，版本号在 URL 中保证不过期
+  if (event.request.url.includes('cdn.jsdelivr.net')) {
+    event.respondWith(
+      caches.match(event.request).then(function (cached) {
+        if (cached) return cached;
+        return fetch(event.request).then(function (response) {
+          if (response.status === 200) {
+            var clone = response.clone();
+            caches.open(CACHE_NAME).then(function (cache) {
+              cache.put(event.request, clone);
+            });
+          }
+          return response;
+        });
+      }),
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
