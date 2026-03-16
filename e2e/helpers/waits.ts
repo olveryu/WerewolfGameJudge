@@ -5,6 +5,63 @@ import { TESTIDS } from '../../src/testids';
 /** Text shown in the disconnected banner */
 export const DISCONNECTED_BANNER_TEXT = '连接断开，正在重连…';
 
+// ---------------------------------------------------------------------------
+// Disconnect recovery (used inside poll loops)
+// ---------------------------------------------------------------------------
+
+/** Max time to wait for SDK auto-reconnect before forcing a page reload. */
+const RECONNECT_TIMEOUT_MS = 30_000;
+
+/**
+ * Check if a page shows the disconnected banner.
+ * Returns false for pages not on the room screen (banner component returns null).
+ */
+async function isDisconnected(page: Page): Promise<boolean> {
+  return page
+    .getByText(DISCONNECTED_BANNER_TEXT, { exact: true })
+    .isVisible()
+    .catch(() => false);
+}
+
+/**
+ * Wait for a single page to reconnect (banner disappears).
+ * If the banner doesn't disappear within `RECONNECT_TIMEOUT_MS`, reload the page
+ * to trigger DB recovery, then wait for room screen ready.
+ */
+async function waitForPageReconnect(page: Page): Promise<void> {
+  const start = Date.now();
+  const pollInterval = 500;
+
+  while (Date.now() - start < RECONNECT_TIMEOUT_MS) {
+    if (!(await isDisconnected(page))) return;
+    await page.waitForTimeout(pollInterval);
+  }
+
+  // SDK reconnect failed — force reload for DB recovery
+  await page.reload();
+  await waitForRoomScreenReady(page, { role: 'joiner', liveTimeoutMs: 30_000 });
+}
+
+/**
+ * Ensure all pages are connected. If any page shows the disconnected banner,
+ * pause and wait for reconnection before returning.
+ *
+ * Designed to be called inside poll loops (pollUntil, waitForRoleTurn, etc.)
+ * with near-zero overhead when all pages are connected (~1ms per page).
+ */
+export async function ensureConnected(pages: Page[]): Promise<void> {
+  const disconnected: Page[] = [];
+  for (const page of pages) {
+    if (await isDisconnected(page)) {
+      disconnected.push(page);
+    }
+  }
+  if (disconnected.length === 0) return;
+
+  // Wait for all disconnected pages to reconnect in parallel
+  await Promise.all(disconnected.map((p) => waitForPageReconnect(p)));
+}
+
 /**
  * Options for waitForRoomScreenReady
  */

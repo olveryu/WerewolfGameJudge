@@ -1,6 +1,7 @@
 import { Page } from '@playwright/test';
 
 import type { CapturedRole } from './multi-player';
+import { ensureConnected } from './waits';
 
 /**
  * Night Driver — role-aware night flow helpers.
@@ -174,6 +175,7 @@ async function pollUntil(
 ): Promise<void> {
   for (let i = 0; i < maxIter; i++) {
     if (await condition()) return;
+    await ensureConnected(pages);
     for (const page of pages) {
       await tryClickAdvanceButton(page);
     }
@@ -218,6 +220,9 @@ export async function waitForRoleTurn(
     }
 
     if (await isNightEnded(allPages[0])) return false;
+
+    // Ensure all pages are connected before advancing
+    await ensureConnected(allPages);
 
     // Advance other pages — skip the target role's own page to preserve
     // its alerts for detection. For other pages, include skip buttons to
