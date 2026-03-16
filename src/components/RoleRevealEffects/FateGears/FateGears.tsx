@@ -604,16 +604,6 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
                 </Group>
               )}
             </Canvas>
-
-            {/* Instruction text (inside gear container, below gear) */}
-            {!isAligned && (phase === 'idle' || phase === 'dragging') && (
-              <View
-                style={[styles.centeredOverlay, { top: cy + outerR + 30 }]}
-                pointerEvents="none"
-              >
-                <Text style={styles.instructionText}>转动齿轮，让 ▶ 指向 ▲</Text>
-              </View>
-            )}
           </Animated.View>
         </Animated.View>
       </GestureDetector>
@@ -679,16 +669,6 @@ export const FateGears: React.FC<RoleRevealEffectProps> = ({
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   flash: { ...StyleSheet.absoluteFillObject },
-  centeredOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  instructionText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
   hint: { position: 'absolute', bottom: 80 },
   hintText: {
     fontSize: 20,
