@@ -1,26 +1,19 @@
 /**
- * FortuneWheel - 命运转盘揭示动画（Skia + Reanimated 4 + Gesture Handler）
+ * FortuneWheel - 命运转盘揭示动画（Skia + RN Text + Reanimated 4 + Gesture Handler）
  *
- * 视觉设计：彩色扇形转盘，每格显示角色名+阵营色，顶部固定指针。
+ * 视觉设计：宝石色彩扇形 + 金色外圈转盘，每格显示角色名（RN Text），顶部固定指针。
  * 交互：Pan 拖拽/flick 旋转转盘，减速后停在玩家真实角色。
  * 停止后：闪光 → 转盘淡出 → 卡牌放大揭示。
  *
+ * 角色名使用 RN Text overlay（Skia matchFont 在 web 不可用），通过
+ * Animated.View rotation 同步跟随 Skia 转盘旋转。
  * 不 import service，不含业务逻辑。
  */
-import {
-  Canvas,
-  Circle,
-  Group,
-  Line,
-  matchFont,
-  Path,
-  Text as SkText,
-  vec,
-} from '@shopify/react-native-skia';
+import { Canvas, Circle, Group, Line, Path, vec } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -42,28 +35,40 @@ import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
-const BG_GRADIENT = ['#08081a', '#0c0c24', '#08081a'] as const;
+const BG_GRADIENT = ['#0a0a1e', '#12122a', '#0a0a1e'] as const;
 
-const SEGMENT_COLORS = [
-  'rgba(108, 99, 255, 0.35)',
-  'rgba(78, 205, 196, 0.30)',
-  'rgba(255, 136, 68, 0.30)',
-  'rgba(255, 99, 132, 0.30)',
-  'rgba(130, 202, 157, 0.30)',
-  'rgba(182, 137, 255, 0.30)',
-  'rgba(255, 206, 86, 0.30)',
-  'rgba(100, 181, 246, 0.30)',
+/** Vivid jewel-tone segment fills (alternating for visual depth) */
+const SEGMENT_FILLS = [
+  '#4B3F9E', // deep purple
+  '#2E8B7A', // emerald
+  '#C0392B', // ruby
+  '#2471A3', // sapphire
+  '#7D3C98', // amethyst
+  '#D4AC0D', // topaz
+  '#1E8449', // jade
+  '#BA4A00', // amber
+  '#5B4FBE', // light purple
+  '#3CB371', // light emerald
+  '#E74C3C', // light ruby
+  '#3498DB', // light sapphire
 ] as const;
 
-const SEGMENT_STROKE = 'rgba(255, 255, 255, 0.15)';
+const GOLD = '#FFD700';
+const GOLD_DARK = '#B8860B';
+const SEGMENT_DIVIDER = 'rgba(255, 215, 0, 0.5)';
 const CENTER_FILL = '#1a1a2e';
-const CENTER_STROKE = 'rgba(108, 99, 255, 0.6)';
-const POINTER_COLOR = '#FF4444';
-const POINTER_STROKE = '#FFFFFF';
+const POINTER_FILL = '#E74C3C';
+const POINTER_STROKE_COLOR = '#FFD700';
 const HINT_TEXT_COLOR = 'rgba(255, 255, 255, 0.85)';
 const HINT_ALIGNED_COLOR = '#4ECDC4';
 
 const FW = CONFIG.fortuneWheel;
+
+// ─── Layout ratios ──────────────────────────────────────────────────────
+const RIM_RATIO = 0.04;
+const LABEL_DIST = 0.62;
+const LABEL_SIZE = 80;
+const DOT_R = 3;
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 function buildSectorPath(
@@ -85,6 +90,13 @@ function buildPointerPath(pointerCx: number, topY: number, size: number): string
   const tipY = topY + size;
   const halfW = size * 0.55;
   return `M ${pointerCx} ${tipY} L ${pointerCx - halfW} ${topY} L ${pointerCx + halfW} ${topY} Z`;
+}
+
+/** Ensure label text is never upside-down when the wheel rotates. */
+function readableLabelDeg(midAngle: number): number {
+  const deg = ((midAngle + Math.PI / 2) * 180) / Math.PI;
+  const n = ((deg % 360) + 360) % 360;
+  return n > 90 && n < 270 ? deg + 180 : deg;
 }
 
 // ─── Props ──────────────────────────────────────────────────────────────
@@ -112,24 +124,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
 
-  // Font: matchFont uses native font APIs not available on React Native Web.
-  // When it fails (web), we skip Skia text labels — segments are still visually distinct by color.
-  const skFont = useMemo(() => {
-    try {
-      return matchFont({
-        fontFamily: Platform.select({ ios: 'PingFang SC', default: 'sans-serif' }),
-        fontSize: 14,
-        fontWeight: '600' as const,
-      });
-    } catch {
-      return null;
-    }
-  }, []);
-
   const cx = screenWidth / 2;
   const cy = screenHeight / 2;
   const wheelR = Math.min(screenWidth, screenHeight) * 0.38;
-  const centerR = wheelR * 0.15;
+  const innerR = wheelR * (1 - RIM_RATIO);
+  const centerR = wheelR * 0.18;
 
   // Prepare segments from allRoles (deduplicated, min 6)
   const segments = useMemo(() => {
@@ -160,41 +159,25 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       const startAngle = i * segmentAngle - Math.PI / 2;
       const endAngle = startAngle + segmentAngle;
       const midAngle = (startAngle + endAngle) / 2;
-      const labelDist = wheelR * 0.65;
-      const labelX = cx + labelDist * Math.cos(midAngle);
-      const labelY = cy + labelDist * Math.sin(midAngle);
-      const labelAngle = midAngle + Math.PI / 2;
+      const dist = wheelR * LABEL_DIST;
       const displayLabel = seg.name.length > 4 ? seg.name.slice(0, 4) : seg.name;
 
       return {
-        path: buildSectorPath(cx, cy, wheelR, startAngle, endAngle),
-        color: SEGMENT_COLORS[i % SEGMENT_COLORS.length],
+        path: buildSectorPath(cx, cy, innerR, startAngle, endAngle),
+        color: SEGMENT_FILLS[i % SEGMENT_FILLS.length],
         displayLabel,
-        labelX,
-        labelY,
-        labelAngle,
+        labelX: cx + dist * Math.cos(midAngle),
+        labelY: cy + dist * Math.sin(midAngle),
+        labelRotDeg: readableLabelDeg(midAngle),
+        edgeX: cx + innerR * Math.cos(startAngle),
+        edgeY: cy + innerR * Math.sin(startAngle),
+        dotX: cx + (wheelR - DOT_R * 2.5) * Math.cos(startAngle),
+        dotY: cy + (wheelR - DOT_R * 2.5) * Math.sin(startAngle),
       };
     });
-  }, [segments, segmentAngle, wheelR, cx, cy]);
+  }, [segments, segmentAngle, wheelR, innerR, cx, cy]);
 
-  const pointerPath = useMemo(() => buildPointerPath(cx, cy - wheelR - 18, 22), [cx, cy, wheelR]);
-
-  const tickMarks = useMemo(() => {
-    const ticks: { x1: number; y1: number; x2: number; y2: number }[] = [];
-    const tickCount = segmentCount * 2;
-    for (let i = 0; i < tickCount; i++) {
-      const angle = (i / tickCount) * Math.PI * 2 - Math.PI / 2;
-      const r1 = wheelR * 0.96;
-      const r2 = i % 2 === 0 ? wheelR : wheelR * 0.98;
-      ticks.push({
-        x1: cx + r1 * Math.cos(angle),
-        y1: cy + r1 * Math.sin(angle),
-        x2: cx + r2 * Math.cos(angle),
-        y2: cy + r2 * Math.sin(angle),
-      });
-    }
-    return ticks;
-  }, [segmentCount, wheelR, cx, cy]);
+  const pointerPath = useMemo(() => buildPointerPath(cx, cy - wheelR - 20, 26), [cx, cy, wheelR]);
 
   const [phase, setPhase] = useState<Phase>('appear');
   const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
@@ -364,6 +347,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     [cx, cy, rotation, dragStartAngle, rotationOnDragStart, phase, startDeceleratingToTarget],
   );
 
+  // ─── Animated styles ──────────────────────────────────────────────────
   const wheelTransform = useDerivedValue(() => [{ rotate: rotation.value }]);
 
   const wheelContainerStyle = useAnimatedStyle(() => ({
@@ -375,6 +359,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     opacity: canvasOpacity.value,
   }));
 
+  /** RN Text labels rotate in sync with the Skia wheel */
+  const labelRotateStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}rad` }],
+  }));
+
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ scale: cardScaleVal.value }],
     opacity: cardOpacity.value,
@@ -384,6 +373,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     opacity: flashOpacity.value,
   }));
 
+  // ─── Render ───────────────────────────────────────────────────────────
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
       <LinearGradient
@@ -396,83 +386,118 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Animated.View style={[StyleSheet.absoluteFill, wheelContainerStyle]}>
+            {/* ── Skia Canvas: sectors + gold rim + center + pointer ── */}
             <Canvas style={StyleSheet.absoluteFill}>
+              {/* Rotating group: sectors + rim decorations */}
               <Group transform={wheelTransform} origin={vec(cx, cy)}>
+                {/* Gold outer rim (background circle) */}
+                <Circle cx={cx} cy={cy} r={wheelR} color={GOLD_DARK} />
+                <Circle cx={cx} cy={cy} r={wheelR} color={GOLD} style="stroke" strokeWidth={3} />
+
+                {/* Sector fills */}
                 {segmentData.map((seg, i) => (
-                  <React.Fragment key={i}>
-                    <Path path={seg.path} color={seg.color} />
-                    <Path path={seg.path} color={SEGMENT_STROKE} style="stroke" strokeWidth={1} />
-                    {skFont && (
-                      <Group
-                        transform={[{ rotate: seg.labelAngle }]}
-                        origin={vec(seg.labelX, seg.labelY)}
-                      >
-                        <SkText
-                          x={seg.labelX - (seg.displayLabel.length * 14) / 2}
-                          y={seg.labelY + 5}
-                          text={seg.displayLabel}
-                          font={skFont}
-                          color="rgba(255, 255, 255, 0.9)"
-                        />
-                      </Group>
-                    )}
+                  <Path key={`s-${i}`} path={seg.path} color={seg.color} />
+                ))}
+
+                {/* Gold divider lines + rim dots at segment boundaries */}
+                {segmentData.map((seg, i) => (
+                  <React.Fragment key={`d-${i}`}>
+                    <Line
+                      p1={vec(cx, cy)}
+                      p2={vec(seg.edgeX, seg.edgeY)}
+                      color={SEGMENT_DIVIDER}
+                      strokeWidth={1.5}
+                    />
+                    <Circle cx={seg.dotX} cy={seg.dotY} r={DOT_R} color={GOLD} />
                   </React.Fragment>
                 ))}
-                {tickMarks.map((t, i) => (
-                  <Line
-                    key={`t-${i}`}
-                    p1={vec(t.x1, t.y1)}
-                    p2={vec(t.x2, t.y2)}
-                    color="rgba(255, 255, 255, 0.2)"
-                    strokeWidth={1}
-                  />
-                ))}
+
+                {/* Inner edge circle (crisp boundary between sectors and gold rim) */}
+                <Circle
+                  cx={cx}
+                  cy={cy}
+                  r={innerR}
+                  color={GOLD_DARK}
+                  style="stroke"
+                  strokeWidth={1.5}
+                />
               </Group>
 
+              {/* Static elements (don't rotate) */}
+              {/* Center hub */}
               <Circle cx={cx} cy={cy} r={centerR} color={CENTER_FILL} />
+              <Circle cx={cx} cy={cy} r={centerR} color={GOLD} style="stroke" strokeWidth={3} />
               <Circle
                 cx={cx}
                 cy={cy}
-                r={centerR}
-                color={CENTER_STROKE}
+                r={centerR * 0.7}
+                color={GOLD_DARK}
+                style="stroke"
+                strokeWidth={1}
+              />
+
+              {/* Pointer triangle */}
+              <Path path={pointerPath} color={POINTER_FILL} />
+              <Path
+                path={pointerPath}
+                color={POINTER_STROKE_COLOR}
                 style="stroke"
                 strokeWidth={2}
               />
-              {skFont && (
-                <SkText
-                  x={cx - 7}
-                  y={cy + 5}
-                  text="?"
-                  font={skFont}
-                  color="rgba(255, 255, 255, 0.6)"
-                />
-              )}
-
-              <Path path={pointerPath} color={POINTER_COLOR} />
-              <Path path={pointerPath} color={POINTER_STROKE} style="stroke" strokeWidth={1.5} />
             </Canvas>
+
+            {/* ── RN Text labels (rotate with wheel via Animated.View) ── */}
+            <Animated.View style={[StyleSheet.absoluteFill, labelRotateStyle]} pointerEvents="none">
+              {segmentData.map((seg, i) => (
+                <View
+                  key={`lbl-${i}`}
+                  style={[
+                    styles.labelContainer,
+                    {
+                      left: seg.labelX - LABEL_SIZE / 2,
+                      top: seg.labelY - LABEL_SIZE / 2,
+                      width: LABEL_SIZE,
+                      height: LABEL_SIZE,
+                      transform: [{ rotate: `${seg.labelRotDeg}deg` }],
+                    },
+                  ]}
+                >
+                  <Text style={styles.segmentLabel}>{seg.displayLabel}</Text>
+                </View>
+              ))}
+            </Animated.View>
+
+            {/* Center "?" text (static, above canvas) */}
+            <View
+              style={[styles.centerTextWrap, { left: cx - 20, top: cy - 16 }]}
+              pointerEvents="none"
+            >
+              <Text style={styles.centerText}>?</Text>
+            </View>
           </Animated.View>
         </Animated.View>
       </GestureDetector>
 
+      {/* Flash overlay */}
       <Animated.View
         style={[styles.flash, flashStyleAnim, { backgroundColor: theme.glowColor }]}
         pointerEvents="none"
       />
 
+      {/* Phase hints */}
       {phase === 'appear' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>⚙️ 转盘就绪…</Text>
+          <Text style={styles.hintText}>🎰 转盘就绪…</Text>
         </View>
       )}
       {phase === 'idle' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>⚙️ 拨动转盘，揭晓身份</Text>
+          <Text style={styles.hintText}>🎰 拨动转盘，揭晓身份</Text>
         </View>
       )}
       {phase === 'spinning' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>⚙️ 命运转动中…</Text>
+          <Text style={styles.hintText}>🎰 命运转动中…</Text>
         </View>
       )}
       {phase === 'stopped' && (
@@ -486,6 +511,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         </View>
       )}
 
+      {/* Card reveal */}
       {(phase === 'stopped' || phase === 'revealed') && (
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
@@ -544,5 +570,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
+  },
+  labelContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentLabel: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  centerTextWrap: {
+    position: 'absolute',
+    width: 40,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerText: {
+    color: GOLD,
+    fontSize: 22,
+    fontWeight: '900',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
