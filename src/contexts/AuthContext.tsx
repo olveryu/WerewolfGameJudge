@@ -16,7 +16,7 @@ import React, { createContext, use, useCallback, useEffect, useMemo, useState } 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
-import { isAbortError } from '@/utils/errorUtils';
+import { isAbortError, isNetworkError } from '@/utils/errorUtils';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
 
 export interface User {
@@ -102,7 +102,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const raw = e instanceof Error ? e.message : String(e);
     const friendly = mapAuthError(raw);
     authLog.error(`${label}:`, raw, e);
-    if (!isExpectedAuthError(raw) && !isAbortError(e)) Sentry.captureException(e);
+    if (!isExpectedAuthError(raw) && !isAbortError(e) && !isNetworkError(e))
+      Sentry.captureException(e);
     setError(friendly);
     if (opts?.rethrow) throw new Error(friendly);
   }, []);

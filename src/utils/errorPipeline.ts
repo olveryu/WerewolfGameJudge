@@ -13,8 +13,9 @@
 
 import * as Sentry from '@sentry/react-native';
 
+import { NETWORK_ERROR } from '@/config/errorMessages';
 import { showAlert } from '@/utils/alert';
-import { getErrorMessage, isAbortError } from '@/utils/errorUtils';
+import { getErrorMessage, isAbortError, isNetworkError } from '@/utils/errorUtils';
 
 import type { log as LoggerType } from './logger';
 
@@ -86,6 +87,15 @@ export function handleError(err: unknown, opts: HandleErrorOptions): void {
   // ── Abort: log.warn only, no Sentry, no UI ──
   if (isAbortError(err)) {
     logger.warn(`[${label}] aborted`, err);
+    return;
+  }
+
+  // ── Network error: log.warn, no Sentry, show network-specific message ──
+  if (isNetworkError(err)) {
+    logger.warn(`[${label}] network error`, err);
+    if (alertTitle !== false) {
+      showAlert(alertTitle ?? `${label}失败`, NETWORK_ERROR);
+    }
     return;
   }
 

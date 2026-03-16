@@ -6,7 +6,7 @@ import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
 import { enterRoomCodeViaNumPad, extractRoomNumber } from './home';
 import { getVisibleText } from './ui';
-import { waitForRoomScreenReady } from './waits';
+import { ensureConnected, waitForRoomScreenReady } from './waits';
 
 /**
  * Multi-player orchestration helpers.
@@ -95,6 +95,9 @@ async function waitForPresenceStable(
       await joinerPage.locator('body').count();
     }
     await hostPage.waitForTimeout(PRESENCE_INTERVAL_MS);
+
+    // Ensure all pages are still connected before checking presence
+    await ensureConnected([hostPage, ...joinerPages]);
 
     const isPrepareVisible = await hostPage
       .getByTestId('prepare-to-flip-button')

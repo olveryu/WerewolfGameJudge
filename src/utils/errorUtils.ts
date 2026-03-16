@@ -36,6 +36,51 @@ export function isAbortError(err: unknown): boolean {
 }
 
 /**
+ * Known error message substrings that indicate a network-level failure.
+ *
+ * Sources:
+ * - `TypeError: Failed to fetch` — Chromium (fetch API network failure)
+ * - `TypeError: Network request failed` — React Native / Safari
+ * - `TypeError: Load failed` — Safari (newer)
+ * - `TypeError: cancelled` — Safari (request cancelled by OS)
+ * - `ECONNREFUSED` / `ETIMEDOUT` — Node.js / SSR environments
+ * - `network` / `fetch` (case-insensitive) — Supabase SDK error messages
+ * - `Operation timed out after` — withTimeout() utility
+ */
+const NETWORK_ERROR_PATTERNS = [
+  'failed to fetch',
+  'network request failed',
+  'load failed',
+  'cancelled',
+  'econnrefused',
+  'etimedout',
+  'operation timed out after',
+];
+
+/**
+ * Detect network-level errors (offline, DNS, timeout, connection refused).
+ *
+ * Network errors are "expected" in the sense that they happen when the user
+ * is offline or the server is unreachable — they should NOT be reported to Sentry.
+ * Use this alongside `isAbortError()` for complete fetch error classification.
+ */
+export function isNetworkError(err: unknown): boolean {
+  if (err == null) return false;
+
+  // TypeError is the standard error type thrown by fetch() for network failures
+  const message =
+    err instanceof Error
+      ? err.message.toLowerCase()
+      : typeof err === 'object' && 'message' in err
+        ? String((err as { message: unknown }).message).toLowerCase()
+        : '';
+
+  if (!message) return false;
+
+  return NETWORK_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+/**
  * Fire-and-forget a promise with unified error handling (log + Sentry).
  *
  * Replaces the repetitive pattern:
@@ -58,6 +103,10 @@ export function fireAndForget(
   void promise.catch((err: unknown) => {
     if (isAbortError(err)) {
       logger.warn(label, '(aborted)', err);
+      return;
+    }
+    if (isNetworkError(err)) {
+      logger.warn(label, '(network error)', err);
       return;
     }
     logger.error(label, err);
