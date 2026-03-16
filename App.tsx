@@ -22,6 +22,7 @@ import { RealtimeService } from '@/services/transport/RealtimeService';
 import { ThemeProvider, useTheme } from '@/theme';
 import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { log } from '@/utils/logger';
+import { preloadCanvasKit } from '@/utils/preloadCanvasKit';
 
 // Initialize Sentry — DSN is public (like Supabase anon key), safe to commit.
 // EXPO_PUBLIC_DEPLOY_ENV is set by build.sh from Vercel's VERCEL_ENV system var.
@@ -50,9 +51,11 @@ function AppContent() {
     return () => setAlertListener(null);
   }, []);
 
-  // Hide splash screen once app content is ready
+  // Preload CanvasKit WASM (web only) during splash, then hide splash screen
   useEffect(() => {
-    SplashScreen.hideAsync();
+    preloadCanvasKit().finally(() => {
+      SplashScreen.hideAsync();
+    });
   }, []);
 
   const handleAlertClose = useCallback(() => {
