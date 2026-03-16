@@ -1,4 +1,1 @@
-/**
- * RoleHunt barrel export
- */
-export { RoleHunt } from './RoleHunt';
+export { RoleHunt } from './RoleHuntLoader';
