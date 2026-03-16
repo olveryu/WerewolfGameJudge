@@ -101,7 +101,7 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
       case 'chainShatter':
         return <ChainShatter {...commonProps} />;
       case 'fateGears':
-        return <FateGears {...commonProps} />;
+        return <FateGears {...commonProps} allRoles={rouletteRoles} />;
       default:
         // Default to roleHunt if unknown effect type
         return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;

@@ -110,9 +110,9 @@ export const ANIMATION_OPTIONS = [
   },
   {
     value: 'fateGears',
-    label: '齿轮',
-    icon: 'cog-outline',
-    shortDesc: '拖拽齿轮对准标记，揭晓身份',
+    label: '转盘',
+    icon: 'pie-chart-outline',
+    shortDesc: '拨动转盘旋转，命运指针定格揭晓',
     operationType: 'drag',
   },
   {
