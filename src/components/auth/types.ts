@@ -37,6 +37,7 @@ export interface AuthStyles {
   buttonDisabled: ViewStyle;
   buttonCaption: TextStyle;
   buttonCaptionInverse: TextStyle;
+  buttonCaptionInverseMuted: TextStyle;
   // Avatar preview card (LoginOptions)
   avatarStripContainer: ViewStyle;
   avatarStripRow: ViewStyle;
@@ -71,7 +72,10 @@ export interface LoginOptionsProps {
   title?: string;
   /** 副标题，不传则不显示 */
   subtitle?: string;
-  onEmailLogin: () => void;
+  /** 点击「邮箱注册」→ 进入注册表单 */
+  onEmailSignUp: () => void;
+  /** 点击「邮箱登录」→ 进入登录表单 */
+  onEmailSignIn: () => void;
   onAnonymousLogin: () => void;
   /** 不传则不显示取消按钮（Settings 不需要） */
   onCancel?: () => void;

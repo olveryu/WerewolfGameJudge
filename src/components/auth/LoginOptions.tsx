@@ -25,7 +25,16 @@ const STRIP_INDICES: number[] = (() => {
 })();
 
 export const LoginOptions = memo<LoginOptionsProps>(
-  ({ authLoading, title, subtitle, onEmailLogin, onAnonymousLogin, onCancel, styles }) => {
+  ({
+    authLoading,
+    title,
+    subtitle,
+    onEmailSignUp,
+    onEmailSignIn,
+    onAnonymousLogin,
+    onCancel,
+    styles,
+  }) => {
     return (
       <View style={styles.formContainer}>
         {title != null && <Text style={styles.formTitle}>{title}</Text>}
@@ -46,18 +55,34 @@ export const LoginOptions = memo<LoginOptionsProps>(
           <Text style={styles.avatarStripText}>{`${AVATAR_IMAGES.length} 款暗黑头像`}</Text>
         </View>
 
+        {/* 邮箱注册 — 主按钮 */}
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={onEmailLogin}
+          onPress={onEmailSignUp}
           activeOpacity={fixed.activeOpacity}
         >
           <Text style={styles.primaryButtonText}>
             <Ionicons name={UI_ICONS.EMAIL} size={typography.body} />
-            {' 邮箱登录/注册'}
+            {' 邮箱注册'}
           </Text>
-          <Text style={styles.buttonCaptionInverse}>选你喜欢的头像，起个专属昵称</Text>
+          <Text style={styles.buttonCaptionInverse}>选头像起昵称，解锁绚丽头像框</Text>
+          <Text style={styles.buttonCaptionInverseMuted}>✦ 免验证，输入即注册</Text>
         </TouchableOpacity>
 
+        {/* 邮箱登录 — 次级按钮 */}
+        <TouchableOpacity
+          style={styles.outlineButton}
+          onPress={onEmailSignIn}
+          activeOpacity={fixed.activeOpacity}
+        >
+          <Text style={styles.outlineButtonText}>
+            <Ionicons name={UI_ICONS.EMAIL} size={typography.body} />
+            {' 邮箱登录'}
+          </Text>
+          <Text style={styles.buttonCaption}>已有账号，回到你的专属形象</Text>
+        </TouchableOpacity>
+
+        {/* 匿名登录 */}
         <TouchableOpacity
           style={[styles.outlineButton, authLoading && styles.buttonDisabled]}
           onPress={onAnonymousLogin}
@@ -75,7 +100,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
               </>
             )}
           </Text>
-          {!authLoading && <Text style={styles.buttonCaption}>随机分配头像和昵称</Text>}
+          {!authLoading && <Text style={styles.buttonCaption}>仅分配线条头像和随机昵称</Text>}
         </TouchableOpacity>
 
         {onCancel != null && (

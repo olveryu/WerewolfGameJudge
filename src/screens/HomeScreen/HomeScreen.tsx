@@ -33,7 +33,7 @@ import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { componentSizes, fixed, useTheme } from '@/theme';
-import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
+import { showAlert } from '@/utils/alert';
 import { homeLog } from '@/utils/logger';
 
 import { createHomeScreenStyles, InstallMenuItem, JoinRoomModal, TipCard } from './components';
@@ -47,7 +47,7 @@ export const HomeScreen: React.FC = () => {
   const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [colors, screenWidth]);
 
   const navigation = useNavigation<NavigationProp>();
-  const { user, signOut, loading: authLoading, error: authError } = useAuth();
+  const { user, loading: authLoading, error: authError } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
@@ -71,14 +71,22 @@ export const HomeScreen: React.FC = () => {
   const [showEmailForm, setShowEmailForm] = useState(false);
 
   const pendingActionRef = useRef<(() => void) | null>(null);
+  const isSignUpRef = useRef(false);
 
   const handleAuthSuccess = useCallback(() => {
     setShowLoginModal(false);
     setShowEmailForm(false);
     const action = pendingActionRef.current;
     pendingActionRef.current = null;
+    const wasSignUp = isSignUpRef.current;
+
     if (action) action();
-  }, []);
+
+    // 注册成功 → 导航到 Settings 设置形象（stack push，返回回到之前页面）
+    if (wasSignUp) {
+      navigation.navigate('Settings');
+    }
+  }, [navigation]);
 
   const {
     email,
@@ -88,11 +96,15 @@ export const HomeScreen: React.FC = () => {
     displayName,
     setDisplayName,
     isSignUp,
+    setIsSignUp,
     handleEmailAuth,
     handleAnonymousLogin,
     resetForm,
     toggleSignUp,
   } = useAuthForm({ onSuccess: handleAuthSuccess, logger: homeLog });
+
+  // Keep ref in sync for handleAuthSuccess (defined before useAuthForm)
+  isSignUpRef.current = isSignUp;
 
   // Load last room number on mount and when returning to screen
   // (room-not-found clears AsyncStorage, need to re-read on focus)
@@ -194,9 +206,15 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('Settings');
   }, [navigation]);
 
-  const handleShowEmailForm = useCallback(() => {
+  const handleShowSignUp = useCallback(() => {
+    setIsSignUp(true);
     setShowEmailForm(true);
-  }, []);
+  }, [setIsSignUp]);
+
+  const handleShowSignIn = useCallback(() => {
+    setIsSignUp(false);
+    setShowEmailForm(true);
+  }, [setIsSignUp]);
 
   const handleHideEmailForm = useCallback(() => {
     setShowEmailForm(false);
@@ -243,43 +261,6 @@ export const HomeScreen: React.FC = () => {
   const handleReturnLastGamePress = useCallback(() => {
     handleReturnLastGamePressRef.current();
   }, []);
-
-  // ============================================
-  // Profile button handler
-  // ============================================
-
-  const handleProfilePress = useCallback(() => {
-    if (user) {
-      const buttons = user.isAnonymous
-        ? [
-            CANCEL_BUTTON,
-            {
-              text: '绑定邮箱，解锁自定义',
-              onPress: () => navigation.navigate('Settings'),
-            },
-            {
-              text: '退出登录',
-              style: 'destructive' as const,
-              onPress: signOut,
-            },
-          ]
-        : [
-            CANCEL_BUTTON,
-            {
-              text: '退出登录',
-              style: 'destructive' as const,
-              onPress: signOut,
-            },
-          ];
-      showAlert(
-        userName,
-        user.isAnonymous ? '匿名登录 · 随机头像' : user.email || '已登录',
-        buttons,
-      );
-    } else {
-      setShowLoginModal(true);
-    }
-  }, [user, userName, signOut, navigation]);
 
   // ============================================
   // Contextual tip card (session-only dismiss)
@@ -370,19 +351,7 @@ export const HomeScreen: React.FC = () => {
                 color={colors.textSecondary}
               />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.topBarButton}
-              onPress={handleProfilePress}
-              activeOpacity={fixed.activeOpacity}
-              testID={user ? TESTIDS.homeUserBar : TESTIDS.homeLoginButton}
-              accessibilityLabel={user ? userName : '登录'}
-            >
-              <Ionicons
-                name="person-circle-outline"
-                size={componentSizes.icon.lg}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.topBarButton}
               onPress={handleNavigateSettings}
@@ -513,7 +482,8 @@ export const HomeScreen: React.FC = () => {
                 authLoading={authLoading}
                 title="登录"
                 subtitle="选择登录方式继续"
-                onEmailLogin={handleShowEmailForm}
+                onEmailSignUp={handleShowSignUp}
+                onEmailSignIn={handleShowSignIn}
                 onAnonymousLogin={handleAnonymousLogin}
                 onCancel={resetLoginModal}
                 styles={styles}

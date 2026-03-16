@@ -187,19 +187,9 @@ async function completeAnonLoginIfNeeded(page: Page): Promise<boolean> {
     return false;
   }
 
-  // Click login trigger via testID or text fallback
-  const loginBtn = page.locator(`[data-testid="${TESTIDS.homeLoginButton}"]`);
-  if (
-    await loginBtn
-      .waitFor({ state: 'visible', timeout: 500 })
-      .then(() => true)
-      .catch(() => false)
-  ) {
-    await loginBtn.click();
-  } else {
-    await clickIfVisible(page, '点击登录', { timeout: 1000 });
-    await clickIfVisible(page, '登录', { exact: true, timeout: 1000 });
-  }
+  // Click login trigger via text fallback
+  await clickIfVisible(page, '点击登录', { timeout: 1000 });
+  await clickIfVisible(page, '登录', { exact: true, timeout: 1000 });
 
   // Wait for and click anonymous login via testID
   const anonLoginBtn = page.locator(`[data-testid="${TESTIDS.homeAnonLoginButton}"]`);
@@ -333,12 +323,9 @@ async function ensureHomeReady(
  *
  * Strategy:
  * 1. If already logged in (user name visible), verify home is stable
- * 2. Otherwise click login button in header to trigger login
- * 3. Complete login flow
+ * 2. Otherwise click "进入房间" to trigger requireAuth → login modal
+ * 3. Complete login flow and dismiss any leftover modals
  * 4. Wait for home to be stable
- *
- * IMPORTANT: We do NOT click "创建房间" to trigger login because that would
- * also start a room creation flow after login completes.
  *
  * @param page - Playwright Page
  */
@@ -357,56 +344,37 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
     return;
   }
 
-  // Check for login button in header via testID
-  const loginBtnLocator = page.locator(`[data-testid="${TESTIDS.homeLoginButton}"]`);
-  const hasLoginBtn = await loginBtnLocator
-    .waitFor({ state: 'visible', timeout: 2000 })
-    .then(() => true)
-    .catch(() => false);
-  if (hasLoginBtn) {
-    try {
-      await loginBtnLocator.click({ timeout: 2000 });
-    } catch {
-      // Element was replaced - login might have auto-completed
-    }
-
-    // Check if auto-sign-in already completed during the wait
-    if (
-      await userNameLocator
-        .waitFor({ state: 'visible', timeout: 500 })
-        .then(() => true)
-        .catch(() => false)
-    ) {
-      // Dismiss any leftover login modal
-      await dismissBlockingModals(page);
-      await ensureHomeReady(page);
-      return;
-    }
-
-    // Login Modal should be open now — click the anonymous login button directly
-    const anonLoginBtn = page.locator(`[data-testid="${TESTIDS.homeAnonLoginButton}"]`);
-    const hasAnonBtn = await anonLoginBtn
-      .waitFor({ state: 'visible', timeout: 3000 })
-      .then(() => true)
-      .catch(() => false);
-    if (hasAnonBtn) {
-      await anonLoginBtn.click();
-      // Wait for login to complete — user name should appear
-      await expect(userNameLocator).toBeVisible({ timeout: 15000 });
-    } else {
-      // Fallback: Login modal might have different shape, try generic flow
-      await completeAnonLoginIfNeeded(page);
-    }
-
-    // Wait for home to be stable
+  // Check if a login modal is already showing
+  const loginCompleted = await completeAnonLoginIfNeeded(page);
+  if (loginCompleted) {
     await ensureHomeReady(page);
     return;
   }
 
-  // Fallback: Maybe we're on a screen where login is required
-  // Check for login-required prompts
-  const loginCompleted = await completeAnonLoginIfNeeded(page);
-  if (loginCompleted) {
+  // Trigger login via "进入房间" button (calls requireAuth → shows login modal)
+  const enterRoomBtn = page.locator(`[data-testid="${TESTIDS.homeEnterRoomButton}"]`);
+  const hasEnterBtn = await enterRoomBtn
+    .waitFor({ state: 'visible', timeout: 3000 })
+    .then(() => true)
+    .catch(() => false);
+  if (hasEnterBtn) {
+    await enterRoomBtn.click({ timeout: 2000 });
+
+    // Wait for login modal to appear
+    const anonLoginBtn = page.locator(`[data-testid="${TESTIDS.homeAnonLoginButton}"]`);
+    const hasAnonBtn = await anonLoginBtn
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
+    if (hasAnonBtn) {
+      await anonLoginBtn.click();
+      await expect(userNameLocator).toBeVisible({ timeout: 15000 });
+    } else {
+      await completeAnonLoginIfNeeded(page);
+    }
+
+    // Dismiss any leftover modals (e.g. join room modal from pending action)
+    await dismissBlockingModals(page);
     await ensureHomeReady(page);
     return;
   }
