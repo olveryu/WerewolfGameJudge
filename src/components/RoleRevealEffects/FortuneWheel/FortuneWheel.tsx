@@ -1,5 +1,5 @@
 /**
- * FateGears - 命运转盘揭示动画（Skia + Reanimated 4 + Gesture Handler）
+ * FortuneWheel - 命运转盘揭示动画（Skia + Reanimated 4 + Gesture Handler）
  *
  * 视觉设计：彩色扇形转盘，每格显示角色名+阵营色，顶部固定指针。
  * 交互：Pan 拖拽/flick 旋转转盘，减速后停在玩家真实角色。
@@ -64,7 +64,7 @@ const POINTER_STROKE = '#FFFFFF';
 const HINT_TEXT_COLOR = 'rgba(255, 255, 255, 0.85)';
 const HINT_ALIGNED_COLOR = '#4ECDC4';
 
-const FG = CONFIG.fateGears;
+const FW = CONFIG.fortuneWheel;
 
 // ─── Font ──────────────────────────────────────────────────────────────
 const skFont: SkFont = matchFont({
@@ -96,20 +96,20 @@ function buildPointerPath(pointerCx: number, topY: number, size: number): string
 }
 
 // ─── Props ──────────────────────────────────────────────────────────────
-interface FateGearsProps extends RoleRevealEffectProps {
+interface FortuneWheelProps extends RoleRevealEffectProps {
   allRoles?: RoleData[];
 }
 
 // ─── Main component ─────────────────────────────────────────────────────
 type Phase = 'appear' | 'idle' | 'spinning' | 'stopped' | 'revealed';
 
-export const FateGears: React.FC<FateGearsProps> = ({
+export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   role,
   allRoles,
   onComplete,
   reducedMotion = false,
   enableHaptics = true,
-  testIDPrefix = 'fate-gears',
+  testIDPrefix = 'fortune-wheel',
 }) => {
   const appColors = useColors();
   const alignmentThemes = useMemo(() => createAlignmentThemes(appColors), [appColors]);
@@ -224,14 +224,14 @@ export const FateGears: React.FC<FateGearsProps> = ({
       300,
       withTiming(
         1,
-        { duration: FG.cardRevealDuration, easing: Easing.out(Easing.back(1.15)) },
+        { duration: FW.cardRevealDuration, easing: Easing.out(Easing.back(1.15)) },
         (finished) => {
           'worklet';
           if (finished) runOnJS(enterRevealed)();
         },
       ),
     );
-    cardOpacity.value = withDelay(300, withTiming(1, { duration: FG.cardRevealDuration }));
+    cardOpacity.value = withDelay(300, withTiming(1, { duration: FW.cardRevealDuration }));
   }, [canvasOpacity, cardScaleVal, cardOpacity, flashOpacity, enableHaptics, enterRevealed]);
 
   const computeTargetRotation = useCallback(
@@ -256,10 +256,10 @@ export const FateGears: React.FC<FateGearsProps> = ({
       setPhase('revealed');
       return;
     }
-    wheelOpacity.value = withTiming(1, { duration: FG.gearsAppearDuration / 2 });
+    wheelOpacity.value = withTiming(1, { duration: FW.appearDuration / 2 });
     wheelScaleVal.value = withTiming(
       1,
-      { duration: FG.gearsAppearDuration, easing: Easing.out(Easing.back(1.15)) },
+      { duration: FW.appearDuration, easing: Easing.out(Easing.back(1.15)) },
       (finished) => {
         'worklet';
         if (finished) runOnJS(setPhase)('idle');

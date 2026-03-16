@@ -14,6 +14,8 @@
  * - gachaMachine: 扭蛋机动画
  * - cardPick: 抽牌动画
  * - sealBreak: 封印解除动画
+ * - chainShatter: 锁链粉碎动画
+ * - fortuneWheel: 命运转盘动画
  * - none: 无动画（简单卡片）
  * - random: 随机选择（Host 解析后广播）
  */
@@ -26,7 +28,7 @@ export type RoleRevealAnimation =
   | 'cardPick'
   | 'sealBreak'
   | 'chainShatter'
-  | 'fateGears'
+  | 'fortuneWheel'
   | 'none'
   | 'random';
 
@@ -44,7 +46,7 @@ export type ResolvedRoleRevealAnimation =
   | 'cardPick'
   | 'sealBreak'
   | 'chainShatter'
-  | 'fateGears'
+  | 'fortuneWheel'
   | 'none';
 
 /**
@@ -59,7 +61,7 @@ export type RandomizableAnimation =
   | 'cardPick'
   | 'sealBreak'
   | 'chainShatter'
-  | 'fateGears';
+  | 'fortuneWheel';
 
 /**
  * 可随机选择的动画数组（用于 random 解析）
@@ -73,7 +75,7 @@ export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
   'cardPick',
   'sealBreak',
   'chainShatter',
-  'fateGears',
+  'fortuneWheel',
 ] as const;
 
 /**

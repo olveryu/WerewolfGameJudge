@@ -1,1 +1,0 @@
-export { FateGears } from './FateGearsLoader';

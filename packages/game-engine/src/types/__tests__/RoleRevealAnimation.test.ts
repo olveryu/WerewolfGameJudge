@@ -31,7 +31,7 @@ describe('RoleRevealAnimation', () => {
       expect(RANDOMIZABLE_ANIMATIONS).toContain('cardPick');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('sealBreak');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('chainShatter');
-      expect(RANDOMIZABLE_ANIMATIONS).toContain('fateGears');
+      expect(RANDOMIZABLE_ANIMATIONS).toContain('fortuneWheel');
     });
 
     it('should NOT contain "none"', () => {
