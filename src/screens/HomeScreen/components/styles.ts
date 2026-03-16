@@ -80,6 +80,7 @@ export interface HomeScreenStyles {
   emailDomainText: TextStyle;
   buttonCaption: TextStyle;
   buttonCaptionInverse: TextStyle;
+  buttonCaptionInverseMuted: TextStyle;
   // Avatar preview card (LoginOptions)
   avatarStripContainer: ViewStyle;
   avatarStripRow: ViewStyle;
@@ -321,16 +322,6 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     // Auth shared styles (base + HomeScreen overrides)
     ...createAuthBaseStyles(colors),
-    primaryButton: {
-      backgroundColor: colors.primary,
-      padding: spacing.medium,
-      borderRadius: borderRadius.full,
-      alignItems: 'center',
-    },
-    primaryButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.textInverse,
-    },
     secondaryButton: {
       padding: spacing.medium,
       borderRadius: borderRadius.full,
@@ -362,10 +353,6 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       alignItems: 'center',
       marginTop: spacing.small,
       marginBottom: spacing.small,
-    },
-    outlineButtonText: {
-      ...textStyles.bodyMedium,
-      color: colors.textSecondary,
     },
     footer: {
       alignItems: 'center',

@@ -104,7 +104,7 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
     // Buttons
     primaryButton: {
       backgroundColor: colors.primary,
-      height: componentSizes.button.lg,
+      padding: spacing.medium,
       borderRadius: borderRadius.full,
       justifyContent: 'center',
       alignItems: 'center',
@@ -160,6 +160,14 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       textAlign: 'center',
       marginTop: spacing.tight,
       opacity: 0.8,
+    },
+    buttonCaptionInverseMuted: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textInverse,
+      textAlign: 'center',
+      marginTop: spacing.tight,
+      opacity: 0.55,
     },
     // Avatar preview card (LoginOptions)
     avatarStripContainer: {

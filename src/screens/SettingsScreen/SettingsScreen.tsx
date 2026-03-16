@@ -318,8 +318,9 @@ export const SettingsScreen: React.FC = () => {
   }, []);
 
   const handleShowAuthForm = useCallback(() => {
+    setIsSignUp(false);
     setShowAuthForm(true);
-  }, []);
+  }, [setIsSignUp]);
 
   /** 匿名用户「绑定邮箱」：直接进入注册模式 */
   const handleShowUpgradeForm = useCallback(() => {
@@ -539,7 +540,8 @@ export const SettingsScreen: React.FC = () => {
     return (
       <LoginOptions
         authLoading={authLoading}
-        onEmailLogin={handleShowAuthForm}
+        onEmailSignUp={handleShowUpgradeForm}
+        onEmailSignIn={handleShowAuthForm}
         onAnonymousLogin={handleAnonymousLogin}
         styles={styles}
       />

@@ -56,7 +56,6 @@ export const EmailForm = memo<EmailFormProps>(
     return (
       <View style={styles.formContainer}>
         <Text style={styles.formTitle}>{formTitle ?? (isSignUp ? '注册账号' : '邮箱登录')}</Text>
-        <Text style={styles.formSubtitle}>无需邮箱验证，输入即可注册</Text>
 
         <TextInput
           style={styles.input}

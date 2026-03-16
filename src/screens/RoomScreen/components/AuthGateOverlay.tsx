@@ -45,10 +45,21 @@ export const AuthGateOverlay: React.FC<AuthGateOverlayProps> = ({ onSuccess, onC
     displayName,
     setDisplayName,
     isSignUp,
+    setIsSignUp,
     handleEmailAuth,
     handleAnonymousLogin,
     toggleSignUp,
   } = useAuthForm({ onSuccess: handleAuthSuccess, logger: roomScreenLog });
+
+  const handleShowSignUp = useCallback(() => {
+    setIsSignUp(true);
+    setShowEmailForm(true);
+  }, [setIsSignUp]);
+
+  const handleShowSignIn = useCallback(() => {
+    setIsSignUp(false);
+    setShowEmailForm(true);
+  }, [setIsSignUp]);
 
   return (
     <View style={styles.modalOverlay}>
@@ -75,7 +86,8 @@ export const AuthGateOverlay: React.FC<AuthGateOverlayProps> = ({ onSuccess, onC
             authLoading={authLoading}
             title="登录"
             subtitle="选择登录方式以加入房间"
-            onEmailLogin={() => setShowEmailForm(true)}
+            onEmailSignUp={handleShowSignUp}
+            onEmailSignIn={handleShowSignIn}
             onAnonymousLogin={handleAnonymousLogin}
             onCancel={onCancel}
             styles={styles}
