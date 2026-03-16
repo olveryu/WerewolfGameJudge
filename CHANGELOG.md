@@ -5,6 +5,122 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.8.0] - 2026-03-16
+
+- fix(config): fix FortuneWheel pointer landing on wrong segment
+- feat(config): redesign FortuneWheel with jewel colors, gold rim, and RN text labels
+- fix(config): remove fateGears migration code and fix matchFont web crash
+- refactor(config): rename FateGears to FortuneWheel across codebase
+- feat(config): redesign FateGears as prize wheel spinner
+- fix(config): remove duplicate hint in FateGears animation
+- fix(e2e): fix stale homeLoginButton refs after profile button removal
+- feat(home): split login into 3 buttons, remove profile header icon
+- fix(theme): adjust avatar sizing in SeatTile and camera badge position in settings
+- fix(night): audit fixes — witch SSOT, reveal timeout, ack retry, subscription leak, promise settle
+- docs: add instruction audit prompt template
+- docs: audit and sync instruction files, project docs, and add maintenance SOP
+- docs(new-role): sync instruction counts — 34 roles, 25 steps, 25 resolvers
+- docs(screens): add RoomScreen UI state machine reference to instructions
+- chore: remove unused exports, types, and dead code
+- style(theme): enhance 6 avatar frames with richer details
+- refactor(frames): same-size overlay + dynamic rx for pixel-perfect alignment
+- fix(config): reduce frame grid cell size to 72
+- feat(theme): replace circular avatar frames with 10 rounded-rect frames
+- feat(config): redesign avatar picker with 2-tab layout and hero preview
+- refactor(avatar): replace require.context with static requires
+- fix(night): move gargoyle convert after all check steps
+- feat(auth): add anonymous-to-registered conversion touchpoints
+- feat(avatar): use lucide-react-native icons as default avatars
+- fix(models): fix theme require cycle, unify autoTimeout, fix roulette re-render, fix e2e assert
+- refactor(auth): remove toast notifications from signup success flow
+- refactor(auth): skip confirmation alert, show login modal directly
+- refactor(avatar): remove avatar categories and related state from AvatarPickerSheet
+- feat(config): add avatar category tabs and new avatar images
+- fix(night): use correct button label for wolf blocked by nightmare
+- fix(e2e): on-demand render NightReviewShareCard to prevent false night-end detection
+- fix(e2e): gate nightReviewData on GameStatus.Ended to prevent false night-end detection
+- chore(settings): merge feature/fix_bug - persist custom avatar URL
+- feat(settings): persist custom avatar URL across builtin switch
+- feat(night): show wolf teammates during gargoyle convert step
+- feat(settings): add builtin avatar picker sheet
+- fix(theme): resolve pre-existing ViewStyle/TextStyle type errors
+- fix(mcp): update command to use /bin/zsh for context7 server
+- feat(models): add 7 mythical avatars and use require.context for auto-discovery
+- refactor(room): replace "我" badge with green seat number indicator
+- fix(e2e): migrate setAnimationNone from ConfigPage to RoomPage
+- feat(auth): add subtitle to EmailForm for registration guidance
+- fix(audio): set BGM_VOLUME to 0.05
+- fix(audio): tune BGM_VOLUME to 0.01 for testing
+- fix(audio): use Web Audio API GainNode for BGM volume on iOS Safari
+- style(screens): unify inner page headers and polish encyclopedia/menu UI
+- feat(encyclopedia): update faction filters and replace emoji with role badges
+- fix(room): move hidden share card offscreen to prevent layout overlap
+- fix(room): restore screenshot capture for battlefield report sharing
+- feat(room): move night review share to detail action menu
+- Revert "feat(room): add share-to-players button inside NightReviewModal for hosts"
+- Revert "feat(encyclopedia): redesign role guide with search, 2-col cards, structured detail & favorites"
+- feat(encyclopedia): redesign role guide with search, 2-col cards, structured detail & favorites
+- feat(room): add share-to-players button inside NightReviewModal for hosts
+- refactor(home): remove last template roles functionality and related code
+- refactor(game-engine): remove redundant 12人 suffix from preset template names
+- feat(home): quick start directly creates room instead of navigating to config
+- feat(home): add role encyclopedia screen
+- feat(room): add share screenshot button to NightReviewModal
+- feat(home): add quick-start card for last used template
+- fix(tests): update role assignments for awakenedGargoyle in 12P board tests
+- fix(styles): adjust secondary button background and add margin to outline button
+- Revert "feat(avatar): three-tier avatar system with 50 colored Lucide icons for anonymous users"
+- feat(avatar): three-tier avatar system with 50 colored Lucide icons for anonymous users
+- fix(game-engine): audit fixes — target checks, seat guard, DRY audio, proxy
+- fix(models): harden badge system — manifest, resizeMode, test, script
+- feat(models): replace emoji text with Fluent Emoji 3D badge images
+- fix(e2e): raise WOLF_VOTE_STUCK_THRESHOLD to cover countdown + API timeout
+- feat(theme): redesign all 8 themes with 4 light + 4 dark split
+- fix(wolf-vote): keep Host interval alive for postProgression retry
+- fix(wolf-vote): success-gated postProgression retry on network failure
+- Revert "fix(night): fetch DB state after postProgression to cover missed broadcasts"
+- fix(night): fetch DB state after postProgression to cover missed broadcasts
+- refactor(theme): unify token system, adopt shared presets and textStyles, consolidate imports
+- fix(husky): update scripts to include PATH for VS Code GUI commits
+- fix(PlayerGrid): update tileSize calculation to use spacing token for consistency
+- style(ai-chat): redesign bubble as circular FAB with vertical layout
+- refactor(components): redesign AI chat bubble as capsule FAB
+- fix(settings): defer signOut until switch-account auth succeeds
+- refactor(theme): migrate UI emoji tokens to Ionicons icon system
+- refactor(room): move notepad from AIChatBubble to BoardInfoCard header
+- fix(hooks): clear notepad when game restarts back to Seated
+- fix(e2e): update stale witch self-save copy in night-roles-protect spec
+- fix(e2e): add testID to start/restart/lastNightInfo buttons and exact match for '我'
+- fix(e2e): use testID for prepare-roles button to avoid getByText collision
+- refactor(config): remove faction tab emoji icons
+- fix(copy): unify Chinese copy terminology across codebase
+- feat(models): unify role reveal animation UX
+- refactor(room): extract alert button constants (CANCEL_BUTTON, DISMISS_BUTTON, confirmButton)
+- refactor(copy): ux copy optimization pass 2 — prompts, comments, tests
+- refactor(copy): systematic UX writing optimization across 48 files
+- feat(ci): add Playwright version retrieval and caching to CI workflow feat(emojiTokens): remove Faction labels from emojiTokens for clarity refactor(RoleListByFaction): simplify faction labels by removing emoji references refactor(BoardInfoCard): update role category labels to remove emoji references feat(cleanup): implement cache cleanup for closed pull requests
+- refactor(theme): unify emoji usage via centralized token registry
+- fix(cors): add x-request-id to allowed headers
+- ci: upgrade actions to node24 and opt-in FORCE_JAVASCRIPT_ACTIONS_TO_NODE24
+- feat(room): seat continuity after account state changes
+- fix(room): make user settings accessible to all players, not just Host
+- fix(services): remove optimistic updates from seat operations
+- chore(config): add scheduled game function warmup
+- feat(config): batch anonymous cleanup and add anomaly guard
+- test(e2e): add offline recovery canary and remove fixed wait
+- feat(room): add reconnect telemetry and manual recovery alert
+- feat(services): configure api region and timeout headers
+- style(theme): polish hero card + cross-screen visual consistency
+- feat(room): add daily cleanup for stale anonymous users
+- style(theme): unify design tokens across all screens
+- fix(components): add maxHeight + ScrollView + close button to SettingsSheet
+- refactor(components): extract SettingsChip/ChipGroup, card-ify settings groups
+- refactor(e2e): extract shared withSetup, fix polling anti-patterns, remove serial mode
+- ci(e2e): reduce concurrency to ease Supabase pressure
+- fix(room): pass raw roleRevealAnimation to SettingsSheet in RoomScreen
+- fix(e2e): reduce flakiness across seating, db-recovery, and night-driver
+- ci(release): create GitHub Release for all tags including patch
+
 ## [1.7.1] - 2026-03-09
 
 - fix(e2e): close RoleCardSimple via confirm button instead of Escape
