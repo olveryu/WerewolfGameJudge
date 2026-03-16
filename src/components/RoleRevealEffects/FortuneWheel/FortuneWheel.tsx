@@ -225,7 +225,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
   const computeTargetRotation = useCallback(
     (currentRotation: number) => {
-      const targetMidOffset = targetIndex * segmentAngle;
+      const targetMidOffset = targetIndex * segmentAngle + segmentAngle / 2;
       const extraSpins = 4 + Math.floor(Math.random() * 3);
       const baseTarget = Math.PI * 2 * extraSpins - targetMidOffset;
       const normalizedCurrent = currentRotation % (Math.PI * 2);
