@@ -14,7 +14,6 @@ import {
   Line,
   matchFont,
   Path,
-  type SkFont,
   Text as SkText,
   vec,
 } from '@shopify/react-native-skia';
@@ -66,13 +65,6 @@ const HINT_ALIGNED_COLOR = '#4ECDC4';
 
 const FW = CONFIG.fortuneWheel;
 
-// ─── Font ──────────────────────────────────────────────────────────────
-const skFont: SkFont = matchFont({
-  fontFamily: Platform.select({ ios: 'PingFang SC', default: 'sans-serif' }),
-  fontSize: 14,
-  fontWeight: '600' as const,
-});
-
 // ─── Helpers ────────────────────────────────────────────────────────────
 function buildSectorPath(
   sectorCx: number,
@@ -119,6 +111,20 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
+
+  // Font: matchFont uses native font APIs not available on React Native Web.
+  // When it fails (web), we skip Skia text labels — segments are still visually distinct by color.
+  const skFont = useMemo(() => {
+    try {
+      return matchFont({
+        fontFamily: Platform.select({ ios: 'PingFang SC', default: 'sans-serif' }),
+        fontSize: 14,
+        fontWeight: '600' as const,
+      });
+    } catch {
+      return null;
+    }
+  }, []);
 
   const cx = screenWidth / 2;
   const cy = screenHeight / 2;
@@ -396,18 +402,20 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
                   <React.Fragment key={i}>
                     <Path path={seg.path} color={seg.color} />
                     <Path path={seg.path} color={SEGMENT_STROKE} style="stroke" strokeWidth={1} />
-                    <Group
-                      transform={[{ rotate: seg.labelAngle }]}
-                      origin={vec(seg.labelX, seg.labelY)}
-                    >
-                      <SkText
-                        x={seg.labelX - (seg.displayLabel.length * 14) / 2}
-                        y={seg.labelY + 5}
-                        text={seg.displayLabel}
-                        font={skFont}
-                        color="rgba(255, 255, 255, 0.9)"
-                      />
-                    </Group>
+                    {skFont && (
+                      <Group
+                        transform={[{ rotate: seg.labelAngle }]}
+                        origin={vec(seg.labelX, seg.labelY)}
+                      >
+                        <SkText
+                          x={seg.labelX - (seg.displayLabel.length * 14) / 2}
+                          y={seg.labelY + 5}
+                          text={seg.displayLabel}
+                          font={skFont}
+                          color="rgba(255, 255, 255, 0.9)"
+                        />
+                      </Group>
+                    )}
                   </React.Fragment>
                 ))}
                 {tickMarks.map((t, i) => (
@@ -430,13 +438,15 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
                 style="stroke"
                 strokeWidth={2}
               />
-              <SkText
-                x={cx - 7}
-                y={cy + 5}
-                text="?"
-                font={skFont}
-                color="rgba(255, 255, 255, 0.6)"
-              />
+              {skFont && (
+                <SkText
+                  x={cx - 7}
+                  y={cy + 5}
+                  text="?"
+                  font={skFont}
+                  color="rgba(255, 255, 255, 0.6)"
+                />
+              )}
 
               <Path path={pointerPath} color={POINTER_COLOR} />
               <Path path={pointerPath} color={POINTER_STROKE} style="stroke" strokeWidth={1.5} />
