@@ -214,21 +214,13 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Fate Gears (命运齿轮)
+  // Fortune Wheel (命运转盘)
   // =====================================================
-  fateGears: {
-    /** Main gear outer radius as fraction of screen width */
-    outerGearRadiusRatio: 0.22,
-    /** Number of teeth on the main gear */
-    outerTeethCount: 16,
-    /** Gears appear + scale-in duration (ms) */
-    gearsAppearDuration: 800,
-    /** Idle rotation speed (radians per second) */
-    idleRotationSpeed: 0.3,
-    /** Alignment tolerance in radians (~8.6°) */
-    alignTolerance: 0.15,
-    /** Snap-to-alignment duration (ms) */
-    snapDuration: 300,
+  fortuneWheel: {
+    /** Wheel radius as fraction of screen width */
+    wheelRadiusRatio: 0.22,
+    /** Wheel appear + scale-in duration (ms) */
+    appearDuration: 800,
     /** Card scale-in duration (ms) */
     cardRevealDuration: 400,
     /** Hold duration after reveal before calling onComplete (ms) */

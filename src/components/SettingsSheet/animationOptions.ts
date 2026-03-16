@@ -109,7 +109,7 @@ export const ANIMATION_OPTIONS = [
     operationType: 'combo',
   },
   {
-    value: 'fateGears',
+    value: 'fortuneWheel',
     label: '转盘',
     icon: 'pie-chart-outline',
     shortDesc: '拨动转盘旋转，命运指针定格揭晓',

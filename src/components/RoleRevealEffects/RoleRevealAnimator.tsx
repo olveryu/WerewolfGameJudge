@@ -14,7 +14,7 @@ import { log } from '@/utils/logger';
 import { CardPick } from './CardPick';
 import { ChainShatter } from './ChainShatter';
 import { EnhancedRoulette } from './EnhancedRoulette';
-import { FateGears } from './FateGears';
+import { FortuneWheel } from './FortuneWheel';
 import { GachaMachine } from './GachaMachine';
 import { RoleHunt } from './RoleHunt';
 import { ScratchReveal } from './ScratchReveal';
@@ -100,8 +100,8 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
         return <SealBreak {...commonProps} />;
       case 'chainShatter':
         return <ChainShatter {...commonProps} />;
-      case 'fateGears':
-        return <FateGears {...commonProps} allRoles={rouletteRoles} />;
+      case 'fortuneWheel':
+        return <FortuneWheel {...commonProps} allRoles={rouletteRoles} />;
       default:
         // Default to roleHunt if unknown effect type
         return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;
