@@ -427,7 +427,6 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     mySpotTile: {},
     wolfTile: {
       backgroundColor: withAlpha(colors.wolf, 0.08),
-      borderColor: colors.wolf,
       shadowColor: colors.wolf,
       shadowOpacity: 0.4,
       shadowRadius: 8,
