@@ -34,12 +34,9 @@ import { ActionButton } from './components/ActionButton';
 import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BottomActionPanel } from './components/BottomActionPanel';
-import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HostControlButtons } from './components/HostControlButtons';
-import { HostGuideBanner } from './components/HostGuideBanner';
 import { HostMenuDropdown } from './components/HostMenuDropdown';
-import { NightProgressIndicator } from './components/NightProgressIndicator';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { PlayerGrid } from './components/PlayerGrid';
@@ -47,6 +44,7 @@ import { QRCodeModal } from './components/QRCodeModal';
 import { RoleCardModal } from './components/RoleCardModal';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
+import { StatusRibbon } from './components/StatusRibbon';
 import { createRoomScreenComponentStyles } from './components/styles';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
 import { createRoomScreenStyles } from './RoomScreen.styles';
@@ -393,23 +391,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </View>
 
-      {/* Connection Status Bar — only visible when disconnected */}
-      <ConnectionStatusBar status={connectionStatus} styles={componentStyles.connectionStatusBar} />
-
-      {/* Night Progress Indicator - only show during ongoing game */}
-      {nightProgress && (
-        <NightProgressIndicator
-          currentStep={nightProgress.current}
-          totalSteps={nightProgress.total}
-          currentRoleName={nightProgress.roleName}
-          styles={componentStyles.nightProgressIndicator}
-        />
-      )}
-
-      {/* Host Guide Banner — contextual hint for host outside Ongoing phase */}
-      {hostGuideMessage && (
-        <HostGuideBanner message={hostGuideMessage} styles={componentStyles.hostGuideBanner} />
-      )}
+      {/* StatusRibbon — unified slot: connection > night progress > speaking order > host guide */}
+      <StatusRibbon
+        connectionStatus={connectionStatus}
+        nightProgress={nightProgress}
+        hostGuideMessage={hostGuideMessage}
+        speakingOrderText={speakingOrderText}
+        styles={componentStyles.statusRibbon}
+        connectionStatusBarStyles={componentStyles.connectionStatusBar}
+        nightProgressIndicatorStyles={componentStyles.nightProgressIndicator}
+        hostGuideBannerStyles={componentStyles.hostGuideBanner}
+      />
 
       {/* Bot Mode Hint / Controlled Seat Banner - mutually exclusive */}
       {isDebugMode &&
@@ -439,7 +431,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           collapsed={roomStatus === GameStatus.Ongoing || roomStatus === GameStatus.Ended}
           onRolePress={handleSkillPreviewOpen}
           onNotepadPress={handleNotepadPress}
-          speakingOrderText={speakingOrderText}
           styles={componentStyles.boardInfoCard}
         />
 

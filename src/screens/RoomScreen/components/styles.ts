@@ -38,9 +38,6 @@ export interface BoardInfoCardStyles {
   roleCategoryLabel: TextStyle;
   roleCategoryText: TextStyle;
   roleChipRow: ViewStyle;
-  speakingOrderContainer: ViewStyle;
-  speakingOrderText: TextStyle;
-  speakingOrderSubText: TextStyle;
   boardInfoHint: TextStyle;
 }
 
@@ -71,6 +68,14 @@ export interface HostGuideBannerStyles {
   container: ViewStyle;
   icon: TextStyle;
   text: TextStyle;
+}
+
+export interface StatusRibbonStyles {
+  speakingOrderContainer: ViewStyle;
+  speakingOrderIcon: TextStyle;
+  speakingOrderTextContainer: ViewStyle;
+  speakingOrderText: TextStyle;
+  speakingOrderSubText: TextStyle;
 }
 
 export interface HostMenuDropdownStyles {
@@ -123,15 +128,18 @@ interface RoomScreenComponentStyles {
   hostMenuDropdown: HostMenuDropdownStyles;
   nightProgressIndicator: NightProgressIndicatorStyles;
   seatConfirmModal: SeatConfirmModalStyles;
+  statusRibbon: StatusRibbonStyles;
 }
 
 // ─── Factory ────────────────────────────────────────────────────────────────
 
 export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreenComponentStyles {
+  const statusPanels = createStatusPanelStyles(colors);
   return {
     ...createActionButtonStyles(colors),
     ...createBoardInfoStyles(colors),
-    ...createStatusPanelStyles(colors),
+    ...statusPanels,
     ...createModalMenuStyles(colors),
+    statusRibbon: statusPanels.statusRibbon,
   };
 }

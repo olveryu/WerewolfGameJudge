@@ -34,8 +34,6 @@ interface BoardInfoCardProps {
   onRolePress?: (roleId: string) => void;
   /** Callback when the notepad button is pressed */
   onNotepadPress?: () => void;
-  /** Speaking order text (shown for ~20s after night ends, outside collapsible) */
-  speakingOrderText?: string;
   /** Pre-created styles from parent */
   styles: BoardInfoCardStyles;
 }
@@ -77,7 +75,6 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   collapsed = false,
   onRolePress,
   onNotepadPress,
-  speakingOrderText,
   styles,
 }) => {
   const colors = useColors();
@@ -190,14 +187,6 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
             <Ionicons name={UI_ICONS.HINT} size={componentSizes.icon.xs} color={colors.textMuted} />
             {' 点击角色名查看能力说明'}
           </Text>
-        </View>
-      )}
-
-      {/* Speaking order — outside collapsible, always visible when provided */}
-      {speakingOrderText != null && (
-        <View style={styles.speakingOrderContainer}>
-          <Text style={styles.speakingOrderText}>{speakingOrderText}</Text>
-          <Text style={styles.speakingOrderSubText}>未参与竞选的玩家自动跳过</Text>
         </View>
       )}
     </View>

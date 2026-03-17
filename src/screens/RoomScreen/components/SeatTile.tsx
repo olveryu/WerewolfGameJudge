@@ -63,9 +63,11 @@ export interface SeatTileStyles {
   wolfOverlay: ViewStyle;
   selectedOverlay: ViewStyle;
   mySeatNumberBadge: ViewStyle;
-  readyBadge: TextStyle;
+  readyBadgeContainer: ViewStyle;
+  readyBadgeIcon: TextStyle;
   wolfVoteBadge: TextStyle;
   emptyIndicator: TextStyle;
+  rippleRing: ViewStyle;
   playerName: TextStyle;
   playerNameHighlight: TextStyle;
   playerNamePlaceholder: ViewStyle;
@@ -159,6 +161,19 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const opacityAnim = useMemo(() => new Animated.Value(hasPlayer ? 1 : 0), []);
 
+  // C1: Ripple ring on join
+  const rippleScale = useMemo(() => new Animated.Value(0), []);
+  const rippleOpacity = useMemo(() => new Animated.Value(0), []);
+
+  // C2: Ready badge pop-in
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- showReadyBadge is intentionally only used for initial value
+  const readyBadgeScale = useMemo(() => new Animated.Value(showReadyBadge ? 1 : 0), []);
+  const prevShowReadyBadgeRef = useRef(showReadyBadge);
+
+  // C4/C5: Selected tile pop/shrink
+  const selectedScale = useMemo(() => new Animated.Value(1), []);
+  const prevIsSelectedRef = useRef(isSelected);
+
   // Player join/leave animation
   useEffect(() => {
     if (prevHasPlayerRef.current === false && hasPlayer) {
@@ -187,6 +202,22 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start();
+
+      // C1: Fire ripple ring animation
+      rippleScale.setValue(0.5);
+      rippleOpacity.setValue(0.6);
+      Animated.parallel([
+        Animated.timing(rippleScale, {
+          toValue: 1.8,
+          duration: 300,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(rippleOpacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ]).start();
     } else if (prevHasPlayerRef.current === true && !hasPlayer) {
       // Player just left - mark as leaving (animation handled by keeping avatar visible briefly)
       isLeavingRef.current = true;
@@ -195,11 +226,77 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       // For a smoother experience, we could use a delayed unmount, but that's more complex
     }
     prevHasPlayerRef.current = hasPlayer;
-  }, [hasPlayer, slideAnim, scaleAnim, opacityAnim]);
+  }, [hasPlayer, slideAnim, scaleAnim, opacityAnim, rippleScale, rippleOpacity]);
+
+  // C2: Ready badge pop-in animation
+  useEffect(() => {
+    if (!prevShowReadyBadgeRef.current && showReadyBadge) {
+      readyBadgeScale.setValue(0);
+      Animated.spring(readyBadgeScale, {
+        toValue: 1,
+        friction: 5,
+        tension: 200,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }).start();
+    } else if (prevShowReadyBadgeRef.current && !showReadyBadge) {
+      readyBadgeScale.setValue(0);
+    }
+    prevShowReadyBadgeRef.current = showReadyBadge;
+  }, [showReadyBadge, readyBadgeScale]);
+
+  // C4/C5: Selected tile pop/shrink animation
+  useEffect(() => {
+    if (!prevIsSelectedRef.current && isSelected) {
+      // C4: Pop on select
+      selectedScale.setValue(1);
+      Animated.sequence([
+        Animated.spring(selectedScale, {
+          toValue: 1.08,
+          friction: 8,
+          tension: 300,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.spring(selectedScale, {
+          toValue: 1,
+          friction: 8,
+          tension: 200,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ]).start();
+    } else if (prevIsSelectedRef.current && !isSelected) {
+      // C5: Shrink on deselect
+      Animated.sequence([
+        Animated.timing(selectedScale, {
+          toValue: 0.96,
+          duration: 60,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.spring(selectedScale, {
+          toValue: 1,
+          friction: 10,
+          tension: 200,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ]).start();
+    }
+    prevIsSelectedRef.current = isSelected;
+  }, [isSelected, selectedScale]);
 
   const avatarAnimatedStyle = {
     transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
     opacity: opacityAnim,
+  };
+
+  // C4/C5: Tile scale animated style
+  const tileAnimatedStyle = {
+    transform: [{ scale: selectedScale }],
+  };
+
+  // C1: Ripple ring animated style
+  const rippleStyle = {
+    ...styles.rippleRing,
+    transform: [{ scale: rippleScale }],
+    opacity: rippleOpacity,
   };
 
   // Get role display name for bot (debug mode only)
@@ -207,60 +304,69 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
   return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(seat)}>
-      <TouchableOpacity
-        testID={TESTIDS.seatTilePressable(seat)}
-        accessibilityLabel={
-          playerDisplayName ? `座位${seat + 1} ${playerDisplayName}` : `座位${seat + 1}`
-        }
-        style={[
-          styles.playerTile,
-          isMySpot && styles.mySpotTile,
-          isWolf && styles.wolfTile,
-          isSelected && styles.selectedTile,
-          isControlled && styles.controlledTile,
-        ]}
-        onPress={handlePress}
-        onLongPress={handleLongPress}
-        delayLongPress={500}
-        activeOpacity={disabled || disabledReason ? 1 : fixed.activeOpacity}
-      >
-        {hasPlayer && (
-          <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
-            <AvatarWithFrame
-              value={playerUid}
-              size={tileSize - spacing.small - fixed.borderWidthThick * 2}
-              avatarUrl={playerAvatarUrl}
-              avatarIndex={playerAvatarIndex}
-              roomId={roomNumber}
-              borderRadius={borderRadius.large - fixed.borderWidthThick}
-              frameId={playerAvatarFrame}
-            />
-            {(isWolf || isSelected) && (
-              <View
-                style={[
-                  styles.avatarOverlay,
-                  isWolf && styles.wolfOverlay,
-                  isSelected && styles.selectedOverlay,
-                ]}
+      <Animated.View style={tileAnimatedStyle}>
+        <TouchableOpacity
+          testID={TESTIDS.seatTilePressable(seat)}
+          accessibilityLabel={
+            playerDisplayName ? `座位${seat + 1} ${playerDisplayName}` : `座位${seat + 1}`
+          }
+          style={[
+            styles.playerTile,
+            isMySpot && styles.mySpotTile,
+            isWolf && styles.wolfTile,
+            isSelected && styles.selectedTile,
+            isControlled && styles.controlledTile,
+          ]}
+          onPress={handlePress}
+          onLongPress={handleLongPress}
+          delayLongPress={500}
+          activeOpacity={disabled || disabledReason ? 1 : fixed.activeOpacity}
+        >
+          {hasPlayer && (
+            <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
+              <AvatarWithFrame
+                value={playerUid}
+                size={tileSize - spacing.tight - fixed.borderWidthThick * 2}
+                avatarUrl={playerAvatarUrl}
+                avatarIndex={playerAvatarIndex}
+                roomId={roomNumber}
+                borderRadius={borderRadius.large - fixed.borderWidthThick}
+                frameId={playerAvatarFrame}
               />
-            )}
-          </Animated.View>
-        )}
+              {(isWolf || isSelected) && (
+                <View
+                  style={[
+                    styles.avatarOverlay,
+                    isWolf && styles.wolfOverlay,
+                    isSelected && styles.selectedOverlay,
+                  ]}
+                />
+              )}
+            </Animated.View>
+          )}
 
-        {!hasPlayer && <Text style={styles.emptyIndicator}>空</Text>}
+          {!hasPlayer && <Text style={styles.emptyIndicator}>空</Text>}
 
-        {showReadyBadge && hasPlayer && (
-          <Ionicons
-            name={STATUS_ICONS.READY}
-            size={componentSizes.icon.sm}
-            style={styles.readyBadge}
-          />
-        )}
+          {showReadyBadge && hasPlayer && (
+            <Animated.View
+              style={[styles.readyBadgeContainer, { transform: [{ scale: readyBadgeScale }] }]}
+            >
+              <Ionicons
+                name={STATUS_ICONS.READY}
+                size={componentSizes.icon.md}
+                style={styles.readyBadgeIcon}
+              />
+            </Animated.View>
+          )}
 
-        {wolfVoteBadge != null && hasPlayer && (
-          <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
-        )}
-      </TouchableOpacity>
+          {wolfVoteBadge != null && hasPlayer && (
+            <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* C1: Ripple ring — expands and fades on player join */}
+        <Animated.View style={rippleStyle} pointerEvents="none" />
+      </Animated.View>
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}
       <View
@@ -305,13 +411,11 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     tileWrapper: {
       width: tileSize,
       alignItems: 'center',
-      marginBottom: spacing.small,
       overflow: 'visible' as const,
     },
     playerTile: {
-      width: tileSize - spacing.small,
-      height: tileSize - spacing.small,
-      margin: spacing.tight,
+      width: tileSize - spacing.tight,
+      height: tileSize - spacing.tight,
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
       justifyContent: 'center',
@@ -322,8 +426,9 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
     mySpotTile: {},
     wolfTile: {
-      backgroundColor: colors.error,
-      borderColor: colors.error,
+      backgroundColor: withAlpha(colors.wolf, 0.08),
+      borderColor: colors.wolf,
+      borderWidth: fixed.borderWidthHighlight,
     },
     selectedTile: {
       backgroundColor: colors.primaryDark,
@@ -361,11 +466,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       backgroundColor: withAlpha(colors.primary, 0.302),
       borderRadius: borderRadius.large,
     },
-    wolfOverlay: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: withAlpha(colors.wolf, 0.4),
-      borderRadius: borderRadius.large,
-    },
+    wolfOverlay: {},
     selectedOverlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: withAlpha(colors.primaryDark, 0.4),
@@ -374,10 +475,13 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     mySeatNumberBadge: {
       backgroundColor: colors.success,
     },
-    readyBadge: {
+    readyBadgeContainer: {
       position: 'absolute',
-      bottom: spacing.tight + spacing.micro,
-      left: spacing.tight + spacing.micro,
+      bottom: -spacing.tight,
+      right: -spacing.tight,
+      zIndex: 10,
+    },
+    readyBadgeIcon: {
       color: colors.success,
     },
     wolfVoteBadge: {
@@ -398,13 +502,23 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       lineHeight: typography.lineHeights.secondary,
       color: colors.textMuted,
     },
+    rippleRing: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderWidth: fixed.borderWidthThick,
+      borderColor: colors.primary,
+      borderRadius: borderRadius.large,
+    },
     playerName: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.text,
       textAlign: 'center',
       marginTop: spacing.tight,
-      width: tileSize - spacing.small,
+      width: tileSize - spacing.tight,
       height: typography.subtitle,
     },
     playerNameHighlight: {
@@ -413,7 +527,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       color: colors.primary,
       textAlign: 'center',
       marginTop: spacing.tight,
-      width: tileSize - spacing.small,
+      width: tileSize - spacing.tight,
       height: typography.subtitle,
     },
     playerNamePlaceholder: {
@@ -425,7 +539,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       lineHeight: typography.lineHeights.captionSmall,
       color: colors.textMuted,
       textAlign: 'center',
-      width: tileSize - spacing.small,
+      width: tileSize - spacing.tight,
     },
   });
 }
