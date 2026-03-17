@@ -41,13 +41,15 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
   styles,
   isDark = false,
 }) => {
-  // C6: Fade-in + slide-up animation when message text changes
+  // C6: Fade-in + slide-up animation when message text changes (native only)
+  // On web, RN Animated with useNativeDriver=false applies inline opacity:0 synchronously,
+  // which makes the element invisible to Playwright's visibility checks during the 150ms window.
   const msgFadeAnim = useMemo(() => new Animated.Value(1), []);
   const msgSlideAnim = useMemo(() => new Animated.Value(0), []);
   const prevMessageRef = useRef(message);
 
   useEffect(() => {
-    if (prevMessageRef.current !== message && message) {
+    if (prevMessageRef.current !== message && message && USE_NATIVE_DRIVER) {
       msgFadeAnim.setValue(0);
       msgSlideAnim.setValue(4);
       Animated.parallel([
