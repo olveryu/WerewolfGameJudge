@@ -67,6 +67,12 @@ export interface ControlledSeatBannerStyles {
   releaseButtonText: TextStyle;
 }
 
+export interface HostGuideBannerStyles {
+  container: ViewStyle;
+  icon: TextStyle;
+  text: TextStyle;
+}
+
 export interface HostMenuDropdownStyles {
   triggerButton: ViewStyle;
   triggerText: TextStyle;
@@ -113,6 +119,7 @@ interface RoomScreenComponentStyles {
   bottomActionPanel: BottomActionPanelStyles;
   connectionStatusBar: ConnectionStatusBarStyles;
   controlledSeatBanner: ControlledSeatBannerStyles;
+  hostGuideBanner: HostGuideBannerStyles;
   hostMenuDropdown: HostMenuDropdownStyles;
   nightProgressIndicator: NightProgressIndicatorStyles;
   seatConfirmModal: SeatConfirmModalStyles;

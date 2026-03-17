@@ -19,12 +19,14 @@ import type {
   BottomActionPanelStyles,
   ConnectionStatusBarStyles,
   ControlledSeatBannerStyles,
+  HostGuideBannerStyles,
 } from './styles';
 
 export function createStatusPanelStyles(colors: ThemeColors): {
   bottomActionPanel: BottomActionPanelStyles;
   connectionStatusBar: ConnectionStatusBarStyles;
   controlledSeatBanner: ControlledSeatBannerStyles;
+  hostGuideBanner: HostGuideBannerStyles;
 } {
   return {
     bottomActionPanel: StyleSheet.create<BottomActionPanelStyles>({
@@ -147,6 +149,28 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         lineHeight: typography.lineHeights.caption,
         color: colors.text,
         fontWeight: typography.weights.semibold,
+      },
+    }),
+
+    hostGuideBanner: StyleSheet.create<HostGuideBannerStyles>({
+      container: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: withAlpha(colors.info, 0.1),
+        paddingVertical: spacing.small,
+        paddingHorizontal: spacing.medium,
+        marginHorizontal: spacing.medium,
+        marginTop: spacing.small,
+        borderRadius: borderRadius.large,
+      },
+      icon: {
+        color: colors.info,
+        marginRight: spacing.small,
+      },
+      text: {
+        ...textStyles.secondarySemibold,
+        color: colors.info,
+        flex: 1,
       },
     }),
   };
