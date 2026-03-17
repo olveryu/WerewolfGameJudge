@@ -6,7 +6,6 @@ import { StyleSheet } from 'react-native';
 import {
   borderRadius,
   createSharedStyles,
-  fixed,
   shadows,
   spacing,
   textStyles,
@@ -81,23 +80,6 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: spacing.tight,
-      },
-      speakingOrderContainer: {
-        marginTop: spacing.small,
-        paddingTop: spacing.small,
-        borderTopWidth: fixed.borderWidth,
-        borderTopColor: colors.border,
-      },
-      speakingOrderText: {
-        fontSize: typography.secondary,
-        lineHeight: typography.lineHeights.secondary,
-        color: colors.primary,
-      },
-      speakingOrderSubText: {
-        fontSize: typography.caption,
-        lineHeight: typography.lineHeights.caption,
-        color: colors.textMuted,
-        marginTop: spacing.micro,
       },
       boardInfoHint: {
         fontSize: typography.caption,

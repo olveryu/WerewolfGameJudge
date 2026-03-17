@@ -47,7 +47,8 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const gridColumns = getGridColumns(screenWidth);
-  const tileSize = (screenWidth - spacing.medium * 2) / gridColumns;
+  const tileSize =
+    (screenWidth - spacing.medium * 2 - spacing.small * (gridColumns - 1)) / gridColumns;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Create SeatTile styles once and pass to all tiles (performance optimization)
@@ -137,6 +138,7 @@ function createStyles(_colors: ThemeColors) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
+      gap: spacing.small,
     },
   });
 }

@@ -5,12 +5,14 @@
  * 纯展示组件，渲染 message 与按钮子组件，不 import service，不包含业务逻辑判断。
  */
 import { BlurView } from 'expo-blur';
-import React, { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { memo, useEffect, useMemo, useRef } from 'react';
+import { Animated, Platform, StyleSheet, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 
 import { type BottomActionPanelStyles } from './styles';
+
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 interface BottomActionPanelProps {
   /** Action message to display (e.g., "请选择要查验的玩家") */
@@ -39,6 +41,30 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
   styles,
   isDark = false,
 }) => {
+  // C6: Fade-in + slide-up animation when message text changes
+  const msgFadeAnim = useMemo(() => new Animated.Value(1), []);
+  const msgSlideAnim = useMemo(() => new Animated.Value(0), []);
+  const prevMessageRef = useRef(message);
+
+  useEffect(() => {
+    if (prevMessageRef.current !== message && message) {
+      msgFadeAnim.setValue(0);
+      msgSlideAnim.setValue(4);
+      Animated.parallel([
+        Animated.timing(msgFadeAnim, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        Animated.timing(msgSlideAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+      ]).start();
+    }
+    prevMessageRef.current = message;
+  }, [message, msgFadeAnim, msgSlideAnim]);
   // Don't render if there's nothing to show
   const hasButtons = React.Children.count(children) > 0;
   if (!hasButtons && !showMessage) return null;
@@ -56,11 +82,17 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
           },
         ]}
       />
-      {/* Action Message */}
+      {/* Action Message — fades in + slides up on change */}
       {showMessage && message ? (
-        <Text style={styles.message} testID={TESTIDS.actionMessage}>
+        <Animated.Text
+          style={[
+            styles.message,
+            { opacity: msgFadeAnim, transform: [{ translateY: msgSlideAnim }] },
+          ]}
+          testID={TESTIDS.actionMessage}
+        >
           {message}
-        </Text>
+        </Animated.Text>
       ) : null}
 
       {/* Button Row */}

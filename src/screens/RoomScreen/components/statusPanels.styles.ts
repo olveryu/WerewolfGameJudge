@@ -20,6 +20,7 @@ import type {
   ConnectionStatusBarStyles,
   ControlledSeatBannerStyles,
   HostGuideBannerStyles,
+  StatusRibbonStyles,
 } from './styles';
 
 export function createStatusPanelStyles(colors: ThemeColors): {
@@ -27,6 +28,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
   connectionStatusBar: ConnectionStatusBarStyles;
   controlledSeatBanner: ControlledSeatBannerStyles;
   hostGuideBanner: HostGuideBannerStyles;
+  statusRibbon: StatusRibbonStyles;
 } {
   return {
     bottomActionPanel: StyleSheet.create<BottomActionPanelStyles>({
@@ -171,6 +173,39 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         ...textStyles.secondarySemibold,
         color: colors.info,
         flex: 1,
+      },
+    }),
+
+    statusRibbon: StyleSheet.create<StatusRibbonStyles>({
+      speakingOrderContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: withAlpha(colors.warning, 0.1),
+        paddingVertical: spacing.small,
+        paddingHorizontal: spacing.medium,
+        marginHorizontal: spacing.medium,
+        marginTop: spacing.small,
+        borderRadius: borderRadius.large,
+      },
+      speakingOrderIcon: {
+        color: colors.warning,
+        marginRight: spacing.small,
+        marginTop: spacing.micro,
+      },
+      speakingOrderTextContainer: {
+        flex: 1,
+      },
+      speakingOrderText: {
+        fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
+        color: colors.warning,
+        fontWeight: typography.weights.semibold,
+      },
+      speakingOrderSubText: {
+        fontSize: typography.caption,
+        lineHeight: typography.lineHeights.caption,
+        color: colors.textMuted,
+        marginTop: spacing.micro,
       },
     }),
   };
