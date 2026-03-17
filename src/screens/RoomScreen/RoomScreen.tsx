@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { BlurView } from 'expo-blur';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -104,6 +104,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── QR Code Modal state ──────────────────────────────────────────────
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const hasAutoShownQR = useRef(false);
 
   const handleShareRoom = useCallback(() => {
     setQrModalVisible(true);
@@ -247,6 +248,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Notepad
     notepad,
   } = useRoomScreenState(route.params, navigation);
+
+  // ─── Auto-show QR invite card after room creation ─────────────────────
+  useEffect(() => {
+    if (isInitialized && gameState && isHost && template && !hasAutoShownQR.current) {
+      hasAutoShownQR.current = true;
+      setQrModalVisible(true);
+    }
+  }, [isInitialized, gameState, isHost, template]);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
   if (!isInitialized || !gameState) {
