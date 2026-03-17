@@ -37,6 +37,7 @@ import { BottomActionPanel } from './components/BottomActionPanel';
 import { ConnectionStatusBar } from './components/ConnectionStatusBar';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HostControlButtons } from './components/HostControlButtons';
+import { HostGuideBanner } from './components/HostGuideBanner';
 import { HostMenuDropdown } from './components/HostMenuDropdown';
 import { NightProgressIndicator } from './components/NightProgressIndicator';
 import { NightReviewModal } from './components/NightReviewModal';
@@ -190,6 +191,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     villagerRoleItems,
     nightProgress,
     speakingOrderText,
+    hostGuideMessage,
     actionMessage,
     // Actioner
     imActioner,
@@ -393,6 +395,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           currentRoleName={nightProgress.roleName}
           styles={componentStyles.nightProgressIndicator}
         />
+      )}
+
+      {/* Host Guide Banner — contextual hint for host outside Ongoing phase */}
+      {hostGuideMessage && (
+        <HostGuideBanner message={hostGuideMessage} styles={componentStyles.hostGuideBanner} />
       )}
 
       {/* Bot Mode Hint / Controlled Seat Banner - mutually exclusive */}

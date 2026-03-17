@@ -560,6 +560,49 @@ export function useRoomScreenState(
   const speakingOrderText = useSpeakingOrder({ roomStatus, isAudioPlaying, gameState });
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Host guide message (contextual hint bar for host)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const hostGuideMessage = useMemo((): string | null => {
+    if (!isHost || !gameState) return null;
+
+    const players = gameState.players;
+    const totalSeats = gameState.template.roles.length;
+
+    switch (roomStatus) {
+      case GameStatus.Unseated:
+      case GameStatus.Seated: {
+        let seatedCount = 0;
+        for (const p of players.values()) {
+          if (p !== null) seatedCount++;
+        }
+        if (seatedCount === 0) return '等待玩家入座，或分享房间邀请好友';
+        if (seatedCount < totalSeats) return `还有 ${totalSeats - seatedCount} 个空位等待入座`;
+        return '全员已就位 → 点击下方「分配角色」';
+      }
+      case GameStatus.Assigned: {
+        let viewedCount = 0;
+        for (const p of players.values()) {
+          if (p && p.hasViewedRole) viewedCount++;
+        }
+        const totalPlayers = totalSeats;
+        if (viewedCount < totalPlayers) {
+          return `${viewedCount}/${totalPlayers} 位玩家已查看角色，等待剩余玩家…`;
+        }
+        return null;
+      }
+      case GameStatus.Ready:
+        return '全员已准备 → 点击「开始天黑」并调高音量 🔊';
+      case GameStatus.Ongoing:
+        return null;
+      case GameStatus.Ended:
+        return '游戏结束 → 可「重新开始」或修改配置再来一局';
+      default:
+        return null;
+    }
+  }, [isHost, gameState, roomStatus]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Notepad (pure client-side per-seat notes via AsyncStorage)
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -607,6 +650,7 @@ export function useRoomScreenState(
     ...derived,
     nightProgress,
     speakingOrderText,
+    hostGuideMessage,
 
     // ── Actioner ──
     imActioner,
