@@ -428,7 +428,11 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     wolfTile: {
       backgroundColor: withAlpha(colors.wolf, 0.08),
       borderColor: colors.wolf,
-      borderWidth: fixed.borderWidthHighlight,
+      shadowColor: colors.wolf,
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 0 },
+      elevation: 6,
     },
     selectedTile: {
       backgroundColor: colors.primaryDark,
