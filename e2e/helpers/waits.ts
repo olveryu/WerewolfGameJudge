@@ -136,9 +136,18 @@ export async function waitForRoomScreenReady(
 
   await waitForRoomHeaderOrRetry(page, maxRetries);
 
-  // Step 2: For joiner only, wait for live status
-  if (role !== 'joiner') {
-    return; // Host doesn't have connection status bar
+  // Host: dismiss auto-shown QR invite modal (if visible)
+  if (role === 'host') {
+    const qrOverlay = page.locator(`[data-testid="${TESTIDS.qrCodeModal}"]`);
+    const visible = await qrOverlay
+      .waitFor({ state: 'visible', timeout: 2000 })
+      .then(() => true)
+      .catch(() => false);
+    if (visible) {
+      await qrOverlay.click({ position: { x: 5, y: 5 }, force: true });
+      await qrOverlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    }
+    return;
   }
 
   await waitForJoinerLive(page, liveTimeoutMs);
