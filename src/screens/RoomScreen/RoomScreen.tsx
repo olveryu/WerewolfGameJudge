@@ -405,6 +405,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Bot Mode Hint / Controlled Seat Banner - mutually exclusive */}
       {isDebugMode &&
+        isHost &&
         hasBots &&
         roomStatus === GameStatus.Ongoing &&
         (controlledSeat !== null && gameState.players.get(controlledSeat) ? (
