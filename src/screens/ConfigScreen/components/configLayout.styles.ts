@@ -32,7 +32,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: layout.screenPaddingH,
-    paddingVertical: spacing.medium,
+    paddingVertical: layout.headerPaddingV,
     backgroundColor: colors.surface,
     borderBottomWidth: fixed.borderWidth,
     borderBottomColor: colors.border,
@@ -56,8 +56,8 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     pointerEvents: 'box-none',
   } satisfies ViewStyle,
   headerTitle: {
-    fontSize: typography.subtitle,
-    lineHeight: typography.lineHeights.subtitle,
+    fontSize: layout.headerTitleSize,
+    lineHeight: layout.headerTitleLineHeight,
     fontWeight: typography.weights.bold,
     color: colors.text,
   } satisfies TextStyle,
@@ -130,7 +130,9 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     paddingVertical: componentSizes.chip.paddingV,
   } satisfies ViewStyle,
   templatePillText: {
-    ...textStyles.bodySemibold,
+    fontSize: layout.headerTitleSize,
+    lineHeight: layout.headerTitleLineHeight,
+    fontWeight: typography.weights.semibold,
     color: colors.text,
   } satisfies TextStyle,
   templatePillArrow: {
@@ -140,7 +142,9 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     marginLeft: spacing.tight,
   } satisfies TextStyle,
   playerCount: {
-    ...textStyles.bodyMedium,
+    fontSize: layout.headerTitleSize,
+    lineHeight: layout.headerTitleLineHeight,
+    fontWeight: typography.weights.medium,
     color: colors.textSecondary,
   } satisfies TextStyle,
   clearBtn: {

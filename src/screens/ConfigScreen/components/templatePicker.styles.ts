@@ -47,10 +47,6 @@ export interface TemplatePickerStyles {
   templateCardChevron: TextStyle;
   templateCardExpanded: ViewStyle;
   templateCardDivider: ViewStyle;
-  templateCardCTA: ViewStyle;
-  templateCardCTASelected: ViewStyle;
-  templateCardCTAText: TextStyle;
-  templateCardCTATextSelected: TextStyle;
   // ── Faction stat badges ──
   factionStatRow: ViewStyle;
   factionStatBadge: ViewStyle;

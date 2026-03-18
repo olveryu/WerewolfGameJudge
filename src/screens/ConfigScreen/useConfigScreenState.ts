@@ -371,7 +371,6 @@ export function useConfigScreenState({
   const handleSelectTemplate = useCallback(
     (value: string) => {
       handleTemplateChange(value);
-      setTemplateDropdownVisible(false);
     },
     [handleTemplateChange],
   );

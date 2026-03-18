@@ -30,7 +30,7 @@ import type {
 interface StatusRibbonProps {
   connectionStatus: ConnectionStatus;
   nightProgress: { current: number; total: number; roleName?: string } | null;
-  hostGuideMessage: string | null;
+  guideMessage: string | null;
   speakingOrderText?: string;
   styles: StatusRibbonStyles;
   connectionStatusBarStyles: ConnectionStatusBarStyles;
@@ -41,7 +41,7 @@ interface StatusRibbonProps {
 const StatusRibbonComponent: React.FC<StatusRibbonProps> = ({
   connectionStatus,
   nightProgress,
-  hostGuideMessage,
+  guideMessage,
   speakingOrderText,
   styles,
   connectionStatusBarStyles,
@@ -85,8 +85,8 @@ const StatusRibbonComponent: React.FC<StatusRibbonProps> = ({
   }
 
   // Priority 4: Host guide
-  if (hostGuideMessage) {
-    return <HostGuideBanner message={hostGuideMessage} styles={hostGuideBannerStyles} />;
+  if (guideMessage) {
+    return <HostGuideBanner message={guideMessage} styles={hostGuideBannerStyles} />;
   }
 
   return null;
