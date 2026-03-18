@@ -25,10 +25,12 @@ interface HostMenuDropdownProps {
   visible: boolean;
   /** Show encyclopedia option (always visible for all users) */
   showEncyclopedia: boolean;
-  /** Show game settings option (only before game starts) */
-  showSettings: boolean;
   /** Show user settings option */
   showUserSettings: boolean;
+  /** Show share room option (only in unseated/seated phase) */
+  showShareRoom: boolean;
+  /** Show game settings option (only before game starts) */
+  showSettings: boolean;
   /** Show fill with bots option (in dropdown) */
   showFillWithBots: boolean;
   /** Show mark all bots viewed option (in dropdown) */
@@ -42,6 +44,7 @@ interface HostMenuDropdownProps {
   onSettings: () => void;
   onEncyclopedia: () => void;
   onUserSettings: () => void;
+  onShareRoom: () => void;
   /** Pre-created styles from parent */
   styles: HostMenuDropdownStyles;
 }
@@ -49,8 +52,9 @@ interface HostMenuDropdownProps {
 const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   visible,
   showEncyclopedia,
-  showSettings,
   showUserSettings,
+  showShareRoom,
+  showSettings,
   showFillWithBots,
   showMarkAllBotsViewed,
   showClearAllSeats,
@@ -60,6 +64,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   onSettings,
   onEncyclopedia,
   onUserSettings,
+  onShareRoom,
   styles,
 }) => {
   const colors = useColors();
@@ -103,6 +108,11 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     onEncyclopedia();
   }, [onEncyclopedia]);
 
+  const handleShareRoom = useCallback(() => {
+    setMenuOpen(false);
+    onShareRoom();
+  }, [onShareRoom]);
+
   // Don't render if not visible
   if (!visible) {
     return <View style={styles.triggerButton} />;
@@ -110,8 +120,9 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
 
   const hasDropdownItems =
     showEncyclopedia ||
-    showSettings ||
     showUserSettings ||
+    showShareRoom ||
+    showSettings ||
     showFillWithBots ||
     showMarkAllBotsViewed ||
     showClearAllSeats;
@@ -156,12 +167,18 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                     </TouchableOpacity>
                   )}
 
-                  {/* Gap: Navigation → Settings */}
-                  {showEncyclopedia && (showSettings || showUserSettings) && (
+                  {/* Gap: Navigation → Actions */}
+                  {showEncyclopedia && (showShareRoom || showSettings || showUserSettings) && (
                     <View style={styles.sectionGap} />
                   )}
 
-                  {/* Group 2: Settings */}
+                  {/* Group 2: Actions */}
+                  {showShareRoom && (
+                    <TouchableOpacity style={styles.menuItem} onPress={handleShareRoom}>
+                      <Ionicons name="share-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                      <Text style={styles.menuItemText}>分享房间</Text>
+                    </TouchableOpacity>
+                  )}
                   {showSettings && (
                     <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
                       <Ionicons name="settings-outline" size={MENU_ICON_SIZE} color={colors.text} />
@@ -175,8 +192,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                     </TouchableOpacity>
                   )}
 
-                  {/* Gap: (Navigation | Settings) → Operations */}
-                  {(showEncyclopedia || showSettings || showUserSettings) &&
+                  {/* Gap: Actions → Operations */}
+                  {(showEncyclopedia || showShareRoom || showSettings || showUserSettings) &&
                     (showClearAllSeats || showFillWithBots || showMarkAllBotsViewed) && (
                       <View style={styles.sectionGap} />
                     )}

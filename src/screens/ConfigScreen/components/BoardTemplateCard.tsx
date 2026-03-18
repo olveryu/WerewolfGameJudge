@@ -12,7 +12,7 @@ import type { PresetTemplate } from '@werewolf/game-engine/models/Template';
 import { memo, useCallback, useMemo } from 'react';
 import { LayoutAnimation, Platform, Text, TouchableOpacity, UIManager, View } from 'react-native';
 
-import { fixed, typography, useColors, withAlpha } from '@/theme';
+import { fixed, useColors, withAlpha } from '@/theme';
 
 import { computeFactionStats, FACTION_COLOR_MAP, getKeyRoles } from '../configHelpers';
 import { FactionStatBadges, RoleListByFaction } from './RoleListByFaction';
@@ -49,12 +49,12 @@ export const BoardTemplateCard = memo<BoardTemplateCardProps>(
 
     const handleToggle = useCallback(() => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      // Expanding → also select; collapsing → keep selection
+      if (!isExpanded) {
+        onSelect(template.name);
+      }
       onToggleExpand(template.name);
-    }, [onToggleExpand, template.name]);
-
-    const handleSelect = useCallback(() => {
-      onSelect(template.name);
-    }, [onSelect, template.name]);
+    }, [isExpanded, onToggleExpand, onSelect, template.name]);
 
     return (
       <View style={[styles.templateCard, isSelected && styles.templateCardSelected]}>
@@ -111,26 +111,11 @@ export const BoardTemplateCard = memo<BoardTemplateCardProps>(
           )}
         </TouchableOpacity>
 
-        {/* Expanded: full role list + CTA */}
+        {/* Expanded: full role list */}
         {isExpanded && (
           <View style={styles.templateCardExpanded}>
             <View style={styles.templateCardDivider} />
             <RoleListByFaction roles={template.roles} styles={styles} onRolePress={onRolePress} />
-            <TouchableOpacity
-              style={[styles.templateCardCTA, isSelected && styles.templateCardCTASelected]}
-              onPress={handleSelect}
-              activeOpacity={fixed.activeOpacity}
-            >
-              <Text
-                style={[
-                  styles.templateCardCTAText,
-                  isSelected && styles.templateCardCTATextSelected,
-                ]}
-              >
-                {isSelected ? '已选择 ' : '选择此模板'}
-                {isSelected && <Ionicons name="checkmark" size={typography.secondary} />}
-              </Text>
-            </TouchableOpacity>
           </View>
         )}
       </View>

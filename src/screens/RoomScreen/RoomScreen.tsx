@@ -24,8 +24,7 @@ import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import type { ThemeColors } from '@/theme';
-import { componentSizes, fixed, spacing, useTheme } from '@/theme';
+import { componentSizes, spacing, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -52,40 +51,6 @@ import { shareQRCodeImage } from './shareQRCode';
 import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
-
-/** Maps GameStatus to a user-facing Chinese label for the header subtitle. */
-function getStatusLabel(status: GameStatus): string {
-  switch (status) {
-    case GameStatus.Unseated:
-      return '等待入座';
-    case GameStatus.Seated:
-      return '等待房主分配角色';
-    case GameStatus.Assigned:
-      return '查看身份';
-    case GameStatus.Ready:
-      return '准备就绪';
-    case GameStatus.Ongoing:
-      return '游戏进行中';
-    case GameStatus.Ended:
-      return '游戏结束';
-  }
-}
-
-/** Maps GameStatus to a semantic theme color for the status pill badge. */
-function getStatusColor(status: GameStatus, themeColors: ThemeColors): string {
-  switch (status) {
-    case GameStatus.Unseated:
-      return themeColors.warning;
-    case GameStatus.Seated:
-    case GameStatus.Assigned:
-      return themeColors.info;
-    case GameStatus.Ready:
-    case GameStatus.Ongoing:
-      return themeColors.success;
-    case GameStatus.Ended:
-      return themeColors.textSecondary;
-  }
-}
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { colors, isDark } = useTheme();
@@ -190,7 +155,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     villagerRoleItems,
     nightProgress,
     speakingOrderText,
-    hostGuideMessage,
+    guideMessage,
     actionMessage,
     // Actioner
     imActioner,
@@ -322,32 +287,20 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <TouchableOpacity onPress={handleDebugTitleTap} activeOpacity={1}>
             <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
           </TouchableOpacity>
-          <View style={styles.headerSubtitleRow}>
-            <Text style={[styles.headerStatusText, { color: getStatusColor(roomStatus, colors) }]}>
-              {getStatusLabel(roomStatus)}
-            </Text>
-            {(roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) && (
-              <>
-                <Text style={styles.headerSeparator}> · </Text>
-                <TouchableOpacity onPress={handleShareRoom} activeOpacity={fixed.activeOpacity}>
-                  <Text style={styles.headerShareLink}>分享房间</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
         </View>
         {/* Header right: host menu */}
         <View style={styles.headerRight}>
           <HostMenuDropdown
             visible
             showEncyclopedia
+            showUserSettings
+            showShareRoom={roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated}
             showSettings={
               isHost &&
               !isStartingGame &&
               !isAudioPlaying &&
               (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated)
             }
-            showUserSettings
             showFillWithBots={isHost && roomStatus === GameStatus.Unseated}
             showMarkAllBotsViewed={isHost && isDebugMode && roomStatus === GameStatus.Assigned}
             showClearAllSeats={
@@ -386,6 +339,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             onSettings={handleOpenSettings}
             onEncyclopedia={handleEncyclopedia}
             onUserSettings={handleAvatarPress}
+            onShareRoom={handleShareRoom}
             styles={componentStyles.hostMenuDropdown}
           />
         </View>
@@ -395,7 +349,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       <StatusRibbon
         connectionStatus={connectionStatus}
         nightProgress={nightProgress}
-        hostGuideMessage={hostGuideMessage}
+        guideMessage={guideMessage}
         speakingOrderText={speakingOrderText}
         styles={componentStyles.statusRibbon}
         connectionStatusBarStyles={componentStyles.connectionStatusBar}

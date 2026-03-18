@@ -486,6 +486,12 @@ export const layout = {
   tabBarHeight: componentSizes.tabBar,
   /** 屏幕水平内边距 */
   screenPaddingH: spacing.screenH,
+  /** 屏幕 header 垂直内边距 */
+  headerPaddingV: spacing.medium,
+  /** 屏幕 header 标题字号 */
+  headerTitleSize: typography.title,
+  /** 屏幕 header 标题行高 */
+  headerTitleLineHeight: typography.lineHeights.title,
   /** 屏幕垂直内边距 */
   screenPaddingV: spacing.large,
   /** 卡片内边距 */

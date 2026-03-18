@@ -560,43 +560,67 @@ export function useRoomScreenState(
   const speakingOrderText = useSpeakingOrder({ roomStatus, isAudioPlaying, gameState });
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Host guide message (contextual hint bar for host)
+  // Guide message (contextual hint bar — host gets detailed tips, others get phase hints)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const hostGuideMessage = useMemo((): string | null => {
-    if (!isHost || !gameState) return null;
+  const guideMessage = useMemo((): string | null => {
+    if (!gameState) return null;
 
     const players = gameState.players;
     const totalSeats = gameState.template.roles.length;
 
+    if (isHost) {
+      switch (roomStatus) {
+        case GameStatus.Unseated:
+        case GameStatus.Seated: {
+          let seatedCount = 0;
+          for (const p of players.values()) {
+            if (p !== null) seatedCount++;
+          }
+          if (seatedCount === 0) return '等待玩家入座，或分享房间邀请好友';
+          if (seatedCount < totalSeats) return `还有 ${totalSeats - seatedCount} 个空位等待入座`;
+          return '全员已就位 → 点击下方「分配角色」';
+        }
+        case GameStatus.Assigned: {
+          let viewedCount = 0;
+          for (const p of players.values()) {
+            if (p && p.hasViewedRole) viewedCount++;
+          }
+          if (viewedCount < totalSeats) {
+            return `${viewedCount}/${totalSeats} 位玩家已查看角色，等待剩余玩家…`;
+          }
+          return null;
+        }
+        case GameStatus.Ready:
+          return '全员就绪 → 「开始天黑」🔊';
+        case GameStatus.Ongoing:
+          return null;
+        case GameStatus.Ended:
+          return '游戏结束 → 可「重新开始」或修改配置再来一局';
+        default:
+          return null;
+      }
+    }
+
+    // Non-host phase hints
     switch (roomStatus) {
       case GameStatus.Unseated:
-      case GameStatus.Seated: {
-        let seatedCount = 0;
-        for (const p of players.values()) {
-          if (p !== null) seatedCount++;
-        }
-        if (seatedCount === 0) return '等待玩家入座，或分享房间邀请好友';
-        if (seatedCount < totalSeats) return `还有 ${totalSeats - seatedCount} 个空位等待入座`;
-        return '全员已就位 → 点击下方「分配角色」';
-      }
+      case GameStatus.Seated:
+        return '等待所有玩家入座';
       case GameStatus.Assigned: {
         let viewedCount = 0;
         for (const p of players.values()) {
           if (p && p.hasViewedRole) viewedCount++;
         }
-        const totalPlayers = totalSeats;
-        if (viewedCount < totalPlayers) {
-          return `${viewedCount}/${totalPlayers} 位玩家已查看角色，等待剩余玩家…`;
+        if (viewedCount < totalSeats) {
+          return '请点击你的头像查看身份';
         }
         return null;
       }
       case GameStatus.Ready:
-        return '全员已准备 → 点击「开始天黑」并调高音量 🔊';
-      case GameStatus.Ongoing:
-        return null;
+        return '准备就绪，等待房主开始';
       case GameStatus.Ended:
-        return '游戏结束 → 可「重新开始」或修改配置再来一局';
+        return '游戏结束';
       default:
         return null;
     }
@@ -650,7 +674,7 @@ export function useRoomScreenState(
     ...derived,
     nightProgress,
     speakingOrderText,
-    hostGuideMessage,
+    guideMessage,
 
     // ── Actioner ──
     imActioner,
