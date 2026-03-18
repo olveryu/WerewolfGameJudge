@@ -34,7 +34,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
       headerRowRight: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: spacing.tight,
+        gap: spacing.small,
       },
       boardInfoTitle: {
         flex: 1,
