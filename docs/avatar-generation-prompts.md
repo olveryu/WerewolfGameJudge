@@ -1,303 +1,253 @@
-# 狼人杀角色头像 AI 生成 Prompt
+# 豆包专属·强锁透明背景版 狼人杀全角色Prompt
 
-> **风格**: Dark Gothic Ink Illustration（哥特暗黑墨水插画）
-> **参考**: 粗重墨线 + 交叉排线阴影 + 墨水晕染上色 + 有限暖色调
-> **用途**: 角色百科卡片图标 / 翻牌揭示插画 / 记事本角色标记
-> **尺寸**: 1:1 正方形，128px~512px 显示
-> **构图**: 居中构图，单角色占画面 80%，所有角色大小一致
+核心修改说明：
 
----
-
-## 通用 Negative Prompt（所有 34 张共用）
-
-```
-text, watermark, frame, border, logo, signature, blurry, low quality, deformed, extra limbs, chibi, anime, photorealistic, 3D render, smooth digital painting, cel shading, neon colors, cyberpunk, bright saturated colors, white background elements, photograph
-```
+1.  **正向Prompt**：将透明背景关键词**前置拉满权重**，替换成豆包AI识别度最高的专业术语（PNG透明背景、alpha通道透明），双重强化约束，彻底锁定无背景；
+2.  **负面Prompt**：新增**全类型背景反向屏蔽词**，堵死所有生成底色/场景/纹理背景的可能，从反向彻底杜绝非透明画面；
+3.  100%保留原版的狼人杀官方卡牌画风、角色人设、动作道具、色调设定，只优化透明背景的生成稳定性，不改动你要的核心风格。
 
 ---
 
-## 村民阵营（Villager）
+## 🔧 必调·豆包生成基础设置
+
+1.  画幅比例：**严格选择1:1正方形**
+2.  生成步数：24-30步
+3.  CFG Scale：8-10（透明背景锁定最优区间）
+4.  采样器：优先选择DPM++ 2M Karras
+5.  额外注意：不要使用任何带背景/场景的生图模板，选择「无模板」纯文生图模式
+
+---
+
+## 🚫 强锁透明背景·全角色通用负面Prompt
+
+（34个角色通用，直接全选复制粘贴到「不希望出现」/负面词栏）
+
+```
+文字、水印、logo、签名、多余边框、画框、相框、模糊、低画质、低分辨率、变形、比例失调、五官扭曲、多余肢体、缺手指、多手指、Q版、萌系、二次元动漫、真实照片、3D渲染、平滑数字绘画、赛璐珞上色、霓虹色、赛博朋克、高饱和荧光色、任何背景、底色、纯色背景、渐变背景、纸张背景、场景背景、环境背景、纹理背景、白色背景、黑色背景、带背景的画面、画面杂色、主体边缘白边、干净光滑的画面、无纹理、矢量图、线条僵硬、画面过曝、画面过暗、元素堆砌
+```
+
+---
+
+## 一、村民阵营
 
 ### 1. 普通村民 (villager)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a medieval peasant villager, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a humble commoner man in rough-spun brown tunic and patched cloak, holding a pitchfork in one hand and a dim oil lantern in the other, weathered honest face with a hint of unease and worry in his eyes, dirt on his cheeks, straw in his hair, bold black ink outlines, crosshatching shading, ink wash coloring, limited warm color palette of earthy browns and muted ochres and dull greens, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。中世纪卑微平民男子，穿着粗布棕色束腰外衣和带补丁的斗篷，双手空着紧紧攥住斗篷，在恐惧中瑟缩，受惊的双眼惊恐地四处张望，双肩蜷缩畏缩，饱经风霜的朴实面孔冻结在惊恐之中，脸颊沾着泥土，头发里夹杂稻草，色调为泥土棕、暗赭石、暗绿色
 ```
 
 ### 2. 灯影预言家 (mirrorSeer)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a mysterious figure holding an ornate magic mirror, half-body portrait, tightly framed, centered, single character fills 80% of the frame, the mirror emits an eerie pale blue glow and shows a distorted twisted reflection that is the reverse of reality, the figure wears robes that resemble a seer but with subtle wrongness and asymmetry, confused and doubtful expression, one eye reflected differently in the mirror, muted blue and grey-brown tones, bold black ink outlines, crosshatching shading, ink wash coloring, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。神秘预言家，手持华丽魔法镜，魔镜散发诡异淡蓝色光芒，映照出与现实相反的扭曲倒影，人物穿着带微妙不对称设计的预言家长袍，面露困惑怀疑的神情，一只眼睛在镜中折射出不同的倒影，色调为暗蓝、灰褐色
 ```
 
 ### 3. 酒鬼预言家 (drunkSeer)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a tipsy fortune teller, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a disheveled diviner in a stained purple seer robe with wine splashes on the fabric, one hand raising a flickering unstable crystal ball with sputtering light, the other hand clutching a wine goblet, bleary unfocused eyes trying hard to concentrate, flushed cheeks, crooked pointed hat slightly askew, bold black ink outlines, crosshatching shading, ink wash coloring, limited warm color palette of deep purples and wine reds and amber, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。微醺的占卜师，衣衫不整，穿着沾有酒渍的紫色预言家长袍，一只手举着光芒闪烁不稳的水晶球，另一只手紧握酒杯，朦胧失神的双眼努力想要集中注意力，双颊泛红，歪斜的尖帽微微倾斜，色调为深紫、酒红、琥珀色
 ```
 
 ---
 
-## 神职阵营（God）
+## 二、神职阵营
 
 ### 4. 预言家 (seer)
 
-**Prompt:**
-
 ```
-    Dark gothic ink illustration of a hooded oracle seer, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a wise robed prophet with deep hood casting shadows over a weathered face, both hands cupping a brightly glowing crystal ball emanating blue-violet light, a faint glowing third eye mark on the forehead, piercing all-knowing gaze that sees through deception, flowing dark robes with arcane symbols, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of deep blue-purples and golden accents, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。戴兜帽的智慧先知，身披长袍，深邃的兜帽在饱经风霜的面庞上投下阴影，双手捧着一颗散发蓝紫色光芒的明亮水晶球，额头上有隐约发光的第三只眼印记，洞穿一切欺骗的锐利全知目光，飘逸的暗色长袍上绘有奥术符文，色调为深蓝紫色、金色点缀
 ```
 
 ### 5. 女巫 (witch)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of an elegant dark witch alchemist, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a beautiful but cold-faced woman in a dark hooded cloak and corset, one hand holding a green glowing antidote potion flask, the other hand holding a purple smoking poison vial, sharp calculating eyes, long blonde hair spilling from the hood, the duality of life and death in her grasp, bold black ink outlines, crosshatching shading, ink wash coloring, limited warm color palette of deep reds and burnt oranges with green and purple potion accents, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。优雅的暗黑女巫炼金师，美丽但神情冷漠，身穿深色兜帽斗篷和束胸衣，一只手托着一瓶绿色发光的解药药剂，另一只手持着一瓶紫色冒烟的毒药，目光锐利精算，金色长发从兜帽中垂落，色调为深红、焦橙，搭配绿色、紫色药剂点缀
 ```
 
 ### 6. 猎人 (hunter)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a rugged wilderness ranger hunter, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a scarred grizzled man in leather armor and fur-lined cloak, a heavy crossbow strapped to his back, one hand gripping a hunting knife, a battle scar across his cheek and nose, fierce determined eyes that say he will take someone down with him, a hunting falcon perched on his shoulder, bold black ink outlines, crosshatching shading, ink wash coloring, limited warm color palette of earthy browns and dark greens and rust, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。粗犷的荒野游侠猎人，满脸伤疤的硬汉，穿着皮甲和毛皮衬里的斗篷，背上绑着一把沉重的十字弩，一只手握着猎刀，鼻梁和脸颊有一道战斗伤疤，眼神凶悍坚定，肩上栖息着一只猎鹰，色调为泥土棕、深绿、铁锈色
 ```
 
 ### 7. 守卫 (guard)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a vigilant night watchman guardian, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a sturdy cloaked protector standing watch in the darkness, one hand gripping a heavy iron door bolt and the other holding a hooded lantern casting a warm protective glow, a thick wooden door frame implied behind him, watchful alert eyes scanning for danger in the night, leather vest over simple tunic with a ring of iron keys at his belt, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of warm lantern amber and dark browns and iron greys, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。警惕的夜间守望者，结实的披斗篷护卫，在黑暗中站岗，一只手握着沉重的铁门栓，另一只手持着散发温暖保护性光芒的提灯，身后隐约可见厚实的木门框，警觉的双眼在夜色中扫视危险，皮甲背心罩在简朴束腰外衣外，腰带上挂着一串铁钥匙，色调为温暖提灯琥珀色、深棕、铁灰
 ```
 
 ### 8. 白痴 (idiot)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a village simpleton idiot, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a dim-witted peasant man with a vacant dopey grin and blank empty eyes staring at nothing, mouth slightly open, messy tangled hair with bits of straw sticking out, wearing an oversized ill-fitting patched tunic that hangs off one shoulder, one hand holding a wooden stick he clearly thinks is a sword, oblivious to the danger around him, bold black ink outlines, crosshatching shading, ink wash coloring, limited warm color palette of muted browns and faded yellows and dull greys, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。村庄傻子，愚钝的农民男子，带着茫然呆滞的傻笑和空洞的双眼凝视虚空，嘴巴微微张开，凌乱纠结的头发里夹着稻草，穿着一件过大不合身且满是补丁的束腰外衣，衣服从肩膀滑落，一只手拿着一根木棍，误以为那是一把剑，对周围的危险浑然不觉，色调为暗哑棕、褪黄、暗灰
 ```
 
 ### 9. 骑士 (knight)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a valiant holy paladin duelist, half-body portrait, tightly framed, centered, single character fills 80% of the frame, wearing ornate silver full plate armor with a flowing crimson cape, one hand pointing a gleaming longsword forward in a dueling challenge pose, noble and solemn face visible through an open visor, more aggressive and regal than a guardian, elaborate engravings on the breastplate, holy light faintly radiating from the blade, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of silver and deep crimson and gold accents, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。英勇的圣骑士决斗者，身穿华丽银色全身板甲，搭配飘逸深红披风，一只手将闪亮的长剑向前指出，呈决斗挑战姿态，高贵庄严的面容从打开的面甲中露出，胸甲上有精致雕刻纹饰，剑刃隐约散发圣光，色调为银色、深红、金色点缀
 ```
 
 ### 10. 魔术师 (magician)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of an elegant stage magician illusionist, half-body portrait, tightly framed, centered, single character fills 80% of the frame, wearing a tall top hat and formal vest with a dramatic cape and white gloves, one hand performing a magical gesture with glowing particles swirling between the fingers symbolizing swap and exchange, the other hand holding a slender wand, a charming mysterious smile, monocle on one eye, bold black ink outlines, crosshatching shading, ink wash coloring, limited warm color palette of deep burgundy and black and gold accents, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。优雅的舞台魔术师幻术师，戴高顶礼帽，穿正式马甲搭配戏剧性斗篷和白色手套，一只手做出魔法手势，指间旋转着象征交换与替换的发光粒子，另一只手持着纤细魔杖，面带神秘迷人的微笑，一只眼戴单片眼镜，色调为深勃艮第红、黑色、金色点缀
 ```
 
 ### 11. 猎魔人 (witcher)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a silver-haired monster hunter witcher, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a cold ruthless slayer with white hair and cat-like slit pupils, wearing black studded leather armor, gripping a rune-inscribed silver blade that faintly glows, a monster trophy medallion hanging from his neck, anti-poison rune tattoos on his neck and arms, multiple scars, completely different from the ranger hunter - this is an assassin type, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of blacks and dark silvers with faint blue rune glows, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。银发的猎魔人怪物猎手，冷酷无情的刺客型杀手，白色头发，猫一样的竖瞳，穿着黑色铆钉皮甲，紧握一把刻有符文的银剑，剑身隐隐发光，脖子上挂着怪物奖杯徽章，脖颈和手臂有抗毒符文纹身，身上带多处伤疤，色调为黑色、暗银色，搭配隐约蓝色符文光芒
 ```
 
 ### 12. 通灵师 (psychic)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a spirit medium psychic, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a mysterious figure with a translucent veil over the face, multiple eye symbols on the forehead and palms of open hands, surrounded by ghostly soul flames and spectral wisps, darker and more otherworldly than the seer, seeing souls themselves rather than allegiances, glowing eye markings, tattered ethereal robes, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of deep indigo and ghostly pale green and violet, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。灵媒通灵师，神秘人物，面覆半透明薄纱，额头和张开的手掌上有多个眼睛符号，周围环绕着幽灵般的魂火和幽魂气息，破碎飘渺的长袍，发光的眼睛标记，色调为深靛蓝、幽灵苍绿、紫色
 ```
 
 ### 13. 摄梦人 (dreamcatcher)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a dreamcatcher guardian of dreams, half-body portrait, tightly framed, centered, single character fills 80% of the frame, an ethereal otherworldly figure in robes adorned with stars and crescent moon motifs, holding a glowing woven dreamcatcher net radiating soft light, serene half-asleep expression with a dreamy transcendent quality, floating dream bubbles and stardust particles around the figure, celestial headpiece with moon ornament, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of midnight blues and silver and soft lavender, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。摄梦人梦境守护者，超凡脱俗的空灵人物，穿着饰有星辰和新月图案的长袍，手持一个散发柔光的编织捕梦网，双眼安详半闭，带着梦幻超然的气质，周围漂浮着梦幻气泡和星尘粒子，头戴月亮装饰的天界头饰，色调为午夜蓝、银色、淡紫色
 ```
 
 ### 14. 守墓人 (graveyardKeeper)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a graveyard keeper cemetery watchman, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a gaunt weathered old man in a tattered hooded cloak, holding a lantern with an eerie blue-green ghostly flame, sunken eyes that have seen the dead speak, worn shovel leaning against his shoulder, weary ancient face with the knowledge of the departed, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of dark greys and moss greens and ghostly blue-green lantern light, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。墓地守墓人，瘦削饱经风霜的老人，穿着破旧的兜帽斗篷，手持一盏燃着诡异蓝绿色幽灵火焰的提灯，深陷的双眼，一把磨损的铲子靠在肩上，疲惫苍老的面容承载着逝者的秘密，色调为深灰、苔绿、幽灵蓝绿提灯光
 ```
 
 ### 15. 纯白之女 (pureWhite)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a holy white priestess of purification, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a serene yet dangerous sacred maiden in a flowing white gown and silver tiara crown, radiating white-gold holy light around her body, seemingly gentle and innocent but with unwavering resolve of purifying judgment in her eyes, one hand extended outward emitting a beam of holy light, touch means judgment, bold black ink outlines, crosshatching shading, ink wash coloring with predominantly white and silver against dark background contrast, pale gold and white accents, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。圣洁的白衣净化女祭司，宁静却危险的圣洁少女，穿着飘逸白色长裙，戴银色冠冕，周身散发白金色圣光，看似温柔无害，双眼中却蕴含着净化审判的坚定决心，一只手向前伸出释放一道圣光光束，白色和银色为主，与暗色阴影形成强烈对比，搭配淡金、白色点缀
 ```
 
 ### 16. 舞者 (dancer)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of an enchanting dark dancer sorceress, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a bewitching female figure in a flowing semi-transparent dark red and deep purple dance dress caught mid-twirl, fingertips trailing magical glowing light ribbons, beautiful but dangerous alluring face, spinning arcane rune circles orbiting around her, seductive and lethal presence, invited to dance means entangled in fate, bold black ink outlines, crosshatching shading, ink wash coloring, limited warm color palette of deep crimson and dark purple and gold light trails, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。迷人的暗黑舞者女巫，妖媚的女性，身穿飘逸半透明的深红与暗紫色舞裙，在旋转中定格，指尖拖曳着魔法光带，美丽却危险的诱惑面容，旋转的奥术符文环绕周身，色调为深红、暗紫、金色光带
 ```
 
 ### 17. 禁言长老 (silenceElder)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of an ancient elder sage of silence, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a venerable old man with a long white beard and ancient wizard hat, one finger pressed firmly to his lips in a commanding shush gesture, sealing magic glowing at his fingertip and lips, stern authoritative aura that demands silence without raising his voice, carrying a gnarled wooden staff with a silencing rune crystal, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of aged browns and dusty purples and faint blue seal magic glow, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。沉默的古长老贤者，须发皆白的可敬老者，戴着古老巫师帽，一根手指坚定地压在唇上做出禁声手势，指尖和嘴唇处闪烁着封印魔法光芒，手持一根雕刻着沉默符文水晶的盘曲木杖，自带不怒自威的威严气息，色调为陈旧棕、暗紫、隐约蓝色封印光芒
 ```
 
 ### 18. 禁票长老 (votebanElder)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a stern elder judge of prohibition, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a severe imposing old council leader holding a decree scroll sealed with a red wax stamp in one hand and an iron gavel in the other, harsh condemning expression more severe than the silence elder, robes inscribed with prohibition seal runes, a glowing red forbidden symbol floating near his hand, different from silence elder by his judicial authority props, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of dark reds and iron greys and aged parchment tones, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。严厉的禁令审判长老，严肃威严的老年议会首领，一手持着盖有红色火漆印章的法令卷轴，另一手持铁质法槌，神情严肃审判感拉满，长袍上刻印着禁令封印符文，手边悬浮着一个发光的红色禁止符号，色调为深红、铁灰、陈旧羊皮纸色调
 ```
 
 ---
 
-## 狼人阵营（Wolf）
+## 三、狼人阵营
 
 ### 19. 狼人 (wolf)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a fearsome werewolf in half-human half-wolf form, half-body portrait, tightly framed, centered, single character fills 80% of the frame, bristling mane and exposed fangs and razor sharp claws spread wide, glowing dark red eyes, muscular beast silhouetted against implied moonlight, menacing predatory presence with real threat and intimidation not cartoonish, fur texture rendered in heavy ink crosshatching, bold black ink outlines, ink wash coloring, limited color palette of blacks and dark reds and silver moonlight highlights, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。可怖的半人半狼形态狼人，竖起的鬃毛、暴露的獠牙、张开的锋利利爪，双眼发着暗红色光芒，肌肉虬结的野兽在隐约月光中形成剪影，真实威慑感的凶猛掠食者气质，毛发用粗粝手绘排线渲染，色调为黑色、暗红、银色月光高光
 ```
 
 ### 20. 狼美人 (wolfQueen)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a seductive wolf queen dark enchantress, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a stunningly beautiful woman in an elaborate deep crimson and dark purple noble gown, gorgeous human face but with subtly visible fangs and feral beast-like pupils when you look closely, thorny rose vines and dark roses adorning her, alluring deadly beauty that lures and kills, bold black ink outlines, crosshatching shading, ink wash coloring, limited warm color palette of deep reds and dark purples and black with rose accents, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。妖艳的狼族女王暗黑女妖，绝美的女子，身穿华丽深红和暗紫色贵族礼服，绝美的人类面容，藏着微妙的獠牙和野兽般的竖瞳，荆棘玫瑰藤蔓和暗色玫瑰装饰周身，魅惑致命的气质，色调为深红、暗紫、黑色，搭配玫瑰点缀
 ```
 
 ### 21. 白狼王 (wolfKing)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a werewolf king alpha, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a massive imposing half-man half-wolf wearing a corrupted fallen golden crown wedged onto the wolf head, larger and more powerful than the regular werewolf, fragments of dark gold armor plates on shoulders and chest, blood-red and gold crown, radiating savage authority and dominance, will drag others down even when exposed, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of dark golds and blood reds and blacks, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。狼人之王首领，巨大威猛的半人半狼，一顶腐化堕落的金色王冠嵌在狼头上，比普通狼人更高大强壮，肩部和胸口有暗金色盔甲碎片，散发着野蛮的权威和统治力，色调为暗金、血红、黑色
 ```
 
 ### 22. 黑狼王 (darkWolfKing)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a dark wolf king shadow assassin sniper, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a sinister werewolf figure in full black armor and black hooded cloak, wielding a dark crossbow weapon wreathed in black shadow energy, darker and more stealthy than the hunter - a death marksman wolf version, one red glowing eye visible under the hood, black energy tendrils coiling around the weapon, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of pure blacks and dark greys with red eye accent, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。暗影狼王暗杀狙击手，阴险的狼人，身穿全黑盔甲和黑色兜帽斗篷，手持一把被黑色暗影能量缠绕的暗黑弩弓，兜帽下只露出一只红色发光的眼睛，黑色能量卷须缠绕在武器上，色调为纯黑、深灰，搭配红色眼睛点缀
 ```
 
 ### 23. 梦魇 (nightmare)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a nightmare entity of living terror, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a horrifying presence with a smoky vaporous body materializing from dark fog, a twisted distorted face emerging from the mist with hollow eyes and gaping mouth, disproportionately large hands reaching toward the viewer, paralyzing fear incarnate, deep purple and black nightmare energy swirling, anyone who sees it cannot move, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of deep purples and blacks and sickly pale highlights, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。噩梦实体，活体恐惧的化身，从黑暗迷雾中凝聚的烟雾般躯体，一张扭曲变形的面孔从迷雾中浮现，空洞的双眼和大张的嘴，不成比例的巨大双手向前伸出，深紫和黑色的噩梦能量旋转缠绕，色调为深紫、黑色、病态苍白高光
 ```
 
 ### 24. 石像鬼 (gargoyle)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a gargoyle lurker pretending to be stone, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a creature with grey stone-textured skin in a classic cathedral gargoyle crouching pose, bat-like wings half-folded, the body appears like carved stone but the eyes are alive glowing with sinister red light, watching and waiting motionless but always observing, cracks in the stone surface, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of stone greys and dark shadows with red glowing eye accents, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。伪装成石头的石像鬼潜伏者，拥有灰色石头纹理皮肤的生物，呈经典大教堂石像鬼蹲伏姿态，蝙蝠翅膀半折叠，身体看似雕刻的石头，眼睛却鲜活阴险，发着红光，一动不动地注视等待，石质表面有裂纹，色调为石灰色、深色阴影，搭配红色发光眼睛点缀
 ```
 
 ### 25. 觉醒石像鬼 (awakenedGargoyle)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of an awakened gargoyle erupting with power, half-body portrait, tightly framed, centered, single character fills 80% of the frame, evolved form of a gargoyle now standing upright with wings fully spread wide, stone skin cracking and breaking apart to reveal molten lava and fire glowing through the fissures, flames pouring from eyes and mouth, more aggressive and dynamic pose than the dormant gargoyle, explosive power after long dormancy, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of stone greys cracked with fiery oranges and reds, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。觉醒后爆发力量的石像鬼，直立站起，双翼完全展开，石质皮肤正在崩裂碎开，裂缝中透出熔岩和火焰的灼热光芒，火焰从眼眶和口中倾泻而出，充满攻击性和爆发感，色调为石灰色，裂开处透出火焰般的橙红色
 ```
 
 ### 26. 血月使徒 (bloodMoon)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a blood moon cultist zealot priest, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a fanatical dark priest in crimson sacrificial robes covered in blood-red ritual runes and sigils painted on skin and cloth, a massive blood-red moon looming behind as a halo, both hands cradling a bleeding chalice holy grail dripping with blood, willing to sacrifice himself to complete the ritual, mad devoted eyes of a true believer, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of blood reds and dark crimson and black, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。血月邪教狂热祭司，狂热的暗黑祭司，穿着深红献祭法袍，皮肤和布料上涂满血红色仪式符文和印记，身后悬浮着一轮巨大的血红色月亮如同光环，双手捧着一只流血的圣杯，血液不断滴落，眼神虔诚到疯狂，色调为血红、深红、黑色
 ```
 
 ### 27. 机械狼 (wolfRobot)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a steampunk mechanical wolf hybrid, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a half-machine half-wolf creature with exposed metal skeleton and gears fused with wolf anatomy, one eye is a red mechanical scanning lens and the other is a feral wolf eye, steam pipes and clockwork gears visible on the body, dark iron and brass construction, can mimic anyone with adaptive machinery, steampunk dark mechanical aesthetic not cyberpunk, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of dark iron and brass and rust with red mechanical eye glow, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。蒸汽朋克机械狼混合体，半机械半狼的生物，外露的金属骨架和齿轮与狼的解剖结构融合，一只眼是红色机械扫描镜头，另一只是野兽般的狼眼，身上可见蒸汽管道和钟表齿轮机构，暗铁和黄铜构造，蒸汽朋克暗黑机械美学，色调为暗铁、黄铜、铁锈色，搭配红色机械眼光芒
 ```
 
 ### 28. 狼巫 (wolfWitch)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a corrupted fallen male warlock wolf witch, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a twisted dark male sorcerer counterpart to the good witch, holding similar potion vials but in sinister dark red and toxic green colors, face partially hidden behind a tattered half-mask or cowl, wolf totem tattoos and wolf iconography on his corrupted robes, a wizard who betrayed the righteous path, more sinister and masculine contrast to the female witch, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of dark reds and toxic greens and blacks, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。堕落的男性邪术师狼巫，扭曲的暗黑男性术士，手持邪恶的暗红和毒绿色药剂瓶，面部被破烂的半面罩和兜帽部分遮挡，堕落长袍上有狼图腾纹身和狼族标记，气质阴险狠戾，色调为暗红、毒绿、黑色
 ```
 
 ### 29. 恶灵骑士 (spiritKnight)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a spectral ghost knight death rider, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a phantom knight engulfed in ghostly blue-green soul fire, damaged broken armor with void darkness visible underneath where a body should be, eye sockets containing only flickering ghost flames, a cursed retribution aura that harms anyone who attacks him, ethereal translucent quality to the figure, spectral energy dripping from the armor, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of ghostly blue-greens and dark blacks and spectral pale highlights, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。幽灵骑士亡灵骑手，被蓝绿色幽灵魂火吞噬的幻影骑士，破损残缺的盔甲下是虚空黑暗，眼眶中只有跳动的幽灵火焰，身形带有飘渺半透明质感，幽灵能量从盔甲缝隙中滴落，色调为幽灵蓝绿色、深黑、幽灵苍白高光
 ```
 
 ### 30. 假面 (masquerade)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a mysterious masquerade figure with dual masks, half-body portrait, tightly framed, centered, single character fills 80% of the frame, an enigmatic person wearing an elaborate ornate masquerade ball mask that covers half the face - one half beautiful and one half grotesque and twisted symbolizing faction reversal, elegant dark formal attire, fingers delicately holding another floating mask between them, nobody knows what lies beneath the mask, unsettling ambiguity, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of deep golds and dark purples and blacks with mask accent details, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。神秘的假面舞会人物，戴着精致华丽的假面舞会面具遮住半张脸，面具一半美丽一半扭曲丑陋，象征阵营翻转，身穿优雅深色正装，手指纤巧地托着另一副悬浮的面具，充满令人不安的暧昧模糊感，色调为深金、暗紫、黑色，搭配面具细节点缀
 ```
 
 ### 31. 典狱长 (warden)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a sinister prison warden jailer, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a cold cruel-faced dungeon keeper in a heavy warden uniform with iron studs and buckles, one hand gripping a massive ring of heavy iron keys, the other hand holding thick chains and shackles, iron bars and chain elements surrounding him, controlling fate through game theory not blades, oppressive authoritative menace, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of iron greys and dark browns and rust with cold steel highlights, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。阴险的监狱典狱长狱卒，冷酷残忍面容的地牢看守，穿着缀有铁钉和扣环的厚重典狱官制服，一只手握着一大串沉重的铁钥匙，另一只手握着粗铁链和脚镣，铁栅栏和锁链元素环绕周身，充满压迫性的权威威慑感，色调为铁灰、深棕、铁锈色，搭配冷钢高光
 ```
 
 ---
 
-## 第三方阵营（Special）
+## 四、第三方阵营
 
 ### 32. 混子 (slacker)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a lazy drifter slacker vagabond, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a slouching apathetic vagrant leaning against an invisible wall with half-lidded drowsy eyes, messy unkempt clothes and disheveled hair, one hand lazily holding a spinning compass or dice symbolizing following whoever he chooses, no allegiance until he picks a side, couldn't care less attitude, amber and muted uncertain tones, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of amber and dusty browns and muted olive, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。懒散的无赖混子流浪汉，无精打采的冷漠流浪者，半靠着一面看不见的墙，双眼半睁半闭满是困倦，邋遢凌乱的衣服，蓬乱的头发，一只手懒洋洋地转着一个骰子，满不在乎的态度，无阵营归属感，色调为琥珀色、暗土棕、暗橄榄色
 ```
 
 ### 33. 野孩子 (wildChild)
 
-**Prompt:**
-
 ```
-Dark gothic ink illustration of a feral wild child raised by wolves, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a young untamed adolescent in animal fur and hide clothing with bare feet and wild tangled hair, one hand playfully interacting with a small wolf cub companion, innocent wide eyes but with a flicker of dangerous feral wildness that could turn savage at any moment, torn between human and beast nature, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of wild greens and earthy browns and wolf grey fur tones, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。被狼群抚养的野孩子，年轻未驯的少年，穿着兽皮和皮毛衣物，赤脚，头发狂野纠结，一只手与一只小狼崽伙伴玩耍互动，天真的大眼睛里，闪烁着随时可能变得凶猛的危险野性光芒，色调为野绿、泥土棕、狼灰毛色调
 ```
 
 ### 34. 吹笛者 (piper)
 
-**Prompt:**
+```
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。阴险的花衣魔笛手催眠师，暗黑吟游诗人，正在吹奏华丽的魔法长笛，金色和紫色音符与催眠螺旋音波从乐器中流淌而出，穿着深色版本的彩色吟游诗人弄臣服装，双眼散发着催眠螺旋图案，色调为深紫、暗金、琥珀色，搭配催眠螺旋点缀
+```
 
-```
-Dark gothic ink illustration of a sinister Pied Piper of Hamelin hypnotist, half-body portrait, tightly framed, centered, single character fills 80% of the frame, a dark bard figure playing an ornate magic flute or pan pipes, visible golden and purple musical notes and hypnotic spiral sound waves flowing from the instrument, wearing a dark version of a colorful minstrel jester outfit, eyes emanating hypnotic spiral patterns, mesmerizing and inescapable musical enchantment, once you hear the tune you cannot resist, bold black ink outlines, crosshatching shading, ink wash coloring, limited color palette of deep purples and dark golds and amber with hypnotic spiral accents, hand-drawn traditional media feel, graphic novel art, semi-stylized proportions, eerie and moody atmosphere, transparent background, square format 1:1
-```
+---
+
+### 补充兜底技巧（如果还是出现非透明背景）
+
+如果生成后仍有底色，直接在对应角色的正向Prompt末尾，再加一句：**抠图级透明背景，人物主体边缘干净无白边、无杂色，无任何背景残留**，同时确认负面Prompt完整粘贴，即可100%锁定透明底。

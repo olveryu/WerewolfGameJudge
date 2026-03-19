@@ -14,10 +14,8 @@ import * as path from 'path';
 import { getAvatarByUid, getAvatarImageByIndex, getUniqueAvatarMap } from '@/utils/avatar';
 
 /** Number of avatar images — read from disk to stay in sync with static require list */
-const avatarDir = path.resolve(__dirname, '../../../assets/avatars');
-const AVATAR_COUNT = fs
-  .readdirSync(avatarDir)
-  .filter((f) => /^villager_\d+\.(jpg|png)$/.test(f)).length;
+const avatarDir = path.resolve(__dirname, '../../../assets/avatars/raw');
+const AVATAR_COUNT = fs.readdirSync(avatarDir).filter((f) => f.endsWith('.png')).length;
 
 describe('getAvatarByUid', () => {
   describe('stability', () => {

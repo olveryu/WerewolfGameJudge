@@ -185,7 +185,11 @@ export const EncyclopediaScreen: React.FC = () => {
   }, []);
 
   const handleGoBack = useCallback(() => {
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Home' as never);
+    }
   }, [navigation]);
 
   const renderItem = useCallback(

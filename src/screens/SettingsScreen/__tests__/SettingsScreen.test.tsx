@@ -59,7 +59,7 @@ jest.mock('../../../utils/avatar', () => ({
 
 jest.mock('../../../utils/defaultAvatarIcons', () => ({
   getAvatarIcon: jest.fn(() => ({
-    Icon: () => null,
+    image: 1,
     color: '#C0392B',
   })),
 }));
