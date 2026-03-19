@@ -71,8 +71,8 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
 }) => {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
-  const cardWidth = Math.min(screenWidth * 0.82, 320);
-  const cardHeight = cardWidth * 1.5;
+  const cardWidth = Math.min(screenWidth * 0.82, 360);
+  const cardHeight = cardWidth * 1.38;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   if (!visible || !roleId) return null;

@@ -31,6 +31,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { componentSizes, fixed, ThemeKey, typography, useTheme } from '@/theme';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import {
+  AVATAR_KEYS,
   BUILTIN_AVATAR_PREFIX,
   getBuiltinAvatarImage,
   isBuiltinAvatarUrl,
@@ -146,10 +147,8 @@ export const SettingsScreen: React.FC = () => {
   // Resolve current builtin avatar index (-1 if not builtin)
   const currentBuiltinIndex = useMemo(() => {
     if (!user?.avatarUrl || !isBuiltinAvatarUrl(user.avatarUrl)) return -1;
-    const filename = user.avatarUrl.slice(BUILTIN_AVATAR_PREFIX.length);
-    const match = filename.match(/^villager_(\d+)$/);
-    if (!match) return -1;
-    return parseInt(match[1], 10) - 1; // 1-based filename → 0-based index
+    const key = user.avatarUrl.slice(BUILTIN_AVATAR_PREFIX.length);
+    return AVATAR_KEYS.indexOf(key);
   }, [user?.avatarUrl]);
 
   // ============================================

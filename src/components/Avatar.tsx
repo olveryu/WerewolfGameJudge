@@ -1,8 +1,8 @@
 /**
  * Avatar - 用户头像组件
  *
- * 自定义头像优先（远程 URL / builtin://）。无自定义时使用 lucide 图标作为默认头像，
- * 基于 uid hash 确定性分配图标 + 颜色。
+ * 自定义头像优先（远程 URL / builtin://）。无自定义时使用狼爪图标作为默认头像，
+ * 基于 uid hash 确定性分配颜色 tint。
  * Memoized 以避免不必要的重渲染。不 import service，不含业务逻辑。
  */
 import { Image as ExpoImage } from 'expo-image';
@@ -33,7 +33,7 @@ interface AvatarProps {
  * Default avatar selection priority:
  * 1. avatarUrl (custom uploaded / remote)
  * 2. avatarUrl (builtin:// → local asset)
- * 3. Lucide icon based on uid hash (fallback)
+ * 3. Wolf paw icon with tint color based on uid hash (fallback)
  *
  * Memoized to prevent unnecessary re-renders when parent components update
  */
@@ -108,12 +108,16 @@ const AvatarComponent: React.FC<AvatarProps> = ({
     );
   }
 
-  // 3. Default: Lucide icon with colored lines, no background
-  const { Icon, color } = iconInfo;
-  const iconSize = Math.round(size * 0.6);
+  // 3. Default: Wolf paw icon with tint color
+  const { image, color } = iconInfo;
+  const iconSize = Math.round(size * 0.7);
   return (
     <View style={iconContainerStyle} accessibilityLabel="头像">
-      <Icon size={iconSize} color={color} strokeWidth={1.5} />
+      <Image
+        source={image}
+        style={{ width: iconSize, height: iconSize, tintColor: color }}
+        resizeMode="contain"
+      />
     </View>
   );
 };

@@ -390,17 +390,17 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       fontWeight: '600',
     },
     roleIconImage: {
-      width: 80,
-      height: 80,
-      marginTop: spacing.xlarge + spacing.medium,
-      marginBottom: spacing.medium,
-    },
-    /** Reveal mode: badge centered, sized proportionally to card width (matches HTML .role-emoji 48px on 140px card → 0.343) */
-    roleIconRevealImage: {
       width: Math.round(width * 0.38),
       height: Math.round(width * 0.38),
+      marginTop: spacing.xlarge,
+      marginBottom: spacing.small,
+    },
+    /** Reveal mode: badge centered, sized larger since no skill description (matches card vertical center layout) */
+    roleIconRevealImage: {
+      width: Math.round(width * 0.7),
+      height: Math.round(width * 0.7),
       marginTop: 0,
-      marginBottom: Math.round(width * 0.057),
+      marginBottom: Math.round(width * 0.04),
     },
     roleName: {
       fontSize: typography.heading,

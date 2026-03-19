@@ -11,10 +11,7 @@ jest.mock('../../utils/avatar', () => ({
 // Mock defaultAvatarIcons
 jest.mock('../../utils/defaultAvatarIcons', () => ({
   getAvatarIcon: jest.fn(() => ({
-    Icon: ({ size, color }: { size: number; color: string }) => {
-      const { Text } = require('react-native');
-      return <Text testID="lucide-icon">{`${size}-${color}`}</Text>;
-    },
+    image: 1,
     color: '#C0392B',
   })),
 }));
