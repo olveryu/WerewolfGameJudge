@@ -97,7 +97,7 @@ export const ConfigScreen: React.FC = () => {
     getFactionAccentColor,
   } = state;
 
-  const configGuide = usePageGuide('config', !isLoading);
+  const configGuide = usePageGuide('config');
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
