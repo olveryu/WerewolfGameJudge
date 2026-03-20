@@ -257,12 +257,20 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     ongoingGuide.visible;
 
   // ─── Auto-show QR invite card after room creation ─────────────────────
+  // Wait until page guide is dismissed (or already not showing) to avoid stacking modals.
   useEffect(() => {
-    if (isInitialized && gameState && isHost && template && !hasAutoShownQR.current) {
+    if (
+      isInitialized &&
+      gameState &&
+      isHost &&
+      template &&
+      !hasAutoShownQR.current &&
+      !roomGuide.visible
+    ) {
       hasAutoShownQR.current = true;
       setQrModalVisible(true);
     }
-  }, [isInitialized, gameState, isHost, template]);
+  }, [isInitialized, gameState, isHost, template, roomGuide.visible]);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
   if (!isInitialized || !gameState) {
