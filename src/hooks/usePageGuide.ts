@@ -7,6 +7,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
+import { InteractionManager } from 'react-native';
 
 import { ALL_GUIDE_DISMISSED_KEYS, type GuidePageKey, guideStorageKey } from '@/config/storageKeys';
 
@@ -24,12 +25,10 @@ export interface PageGuideResult {
   dismiss: () => void;
 }
 
-/**
- * @param pageKey - 页面标识
- * @param ready - 页面内容是否已加载完成。弹窗会等 ready=true 后才显示，
- *               避免在页面还在 loading 时弹出引导。默认 true（静态页面无需传）。
- */
-export function usePageGuide(pageKey: GuidePageKey, ready = true): PageGuideResult {
+/** Minimum delay (ms) after mount before showing guide, ensures page has painted */
+const SHOW_DELAY_MS = 500;
+
+export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
   const [shouldShow, setShouldShow] = useState(false);
@@ -51,7 +50,17 @@ export function usePageGuide(pageKey: GuidePageKey, ready = true): PageGuideResu
         const isPermanentlyDismissed = value === '1';
         setDismissed(isPermanentlyDismissed);
         if (!isPermanentlyDismissed) {
-          setShouldShow(true);
+          // Wait for animations/layout to complete + minimum delay,
+          // so the guide doesn't pop up before the page has painted.
+          const handle = InteractionManager.runAfterInteractions(() => {
+            if (cancelled) return;
+            const timer = setTimeout(() => {
+              if (!cancelled) setShouldShow(true);
+            }, SHOW_DELAY_MS);
+            // Attach timer to cleanup
+            cleanupTimer = timer;
+          });
+          cleanupHandle = handle;
         }
       })
       .catch(() => {
@@ -61,13 +70,15 @@ export function usePageGuide(pageKey: GuidePageKey, ready = true): PageGuideResu
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
+    let cleanupHandle: ReturnType<typeof InteractionManager.runAfterInteractions> | null = null;
+    let cleanupTimer: ReturnType<typeof setTimeout> | null = null;
     return () => {
       cancelled = true;
+      cleanupHandle?.cancel();
+      if (cleanupTimer != null) clearTimeout(cleanupTimer);
     };
   }, [pageKey]);
-
-  // Derive visible: only show when async check passed AND page is ready
-  const visible = shouldShow && ready;
 
   const toggleDontShowAgain = useCallback(() => {
     setDontShowAgain((prev) => !prev);
@@ -89,7 +100,7 @@ export function usePageGuide(pageKey: GuidePageKey, ready = true): PageGuideResu
     return { visible: false, dontShowAgain, toggleDontShowAgain, dismiss };
   }
 
-  return { visible, dontShowAgain, toggleDontShowAgain, dismiss };
+  return { visible: shouldShow, dontShowAgain, toggleDontShowAgain, dismiss };
 }
 
 /** 重置所有页面的新手引导（SettingsScreen 调用） */

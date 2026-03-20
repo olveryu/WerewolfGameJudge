@@ -66,7 +66,7 @@ export const SettingsScreen: React.FC = () => {
     error: authError,
     loading: authLoading,
   } = useAuth();
-  const settingsGuide = usePageGuide('settings', !authLoading);
+  const settingsGuide = usePageGuide('settings');
 
   const facade = useGameFacade();
 

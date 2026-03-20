@@ -221,10 +221,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   } = useRoomScreenState(route.params, navigation);
 
   // ─── Page Guide (3-layer: overview + assigned + ongoing) ───────────────
-  const roomReady = !!(isInitialized && gameState);
-  const roomGuide = usePageGuide('room', roomReady);
-  const assignedGuide = usePageGuide('room:assigned', roomReady);
-  const ongoingGuide = usePageGuide('room:ongoing', roomReady);
+  const roomGuide = usePageGuide('room');
+  const assignedGuide = usePageGuide('room:assigned');
+  const ongoingGuide = usePageGuide('room:ongoing');
 
   // Anti-cascade: after closing overview, suppress stage guide until next status change
   const [guideSuppressed, setGuideSuppressed] = useState(false);
