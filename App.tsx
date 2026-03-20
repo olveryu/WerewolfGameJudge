@@ -21,6 +21,7 @@ import { RoomService } from '@/services/infra/RoomService';
 import { RealtimeService } from '@/services/transport/RealtimeService';
 import { ThemeProvider, useTheme } from '@/theme';
 import { AlertConfig, setAlertListener } from '@/utils/alert';
+import { signalAppReady } from '@/utils/appReady';
 import { log } from '@/utils/logger';
 import { preloadCanvasKit } from '@/utils/preloadCanvasKit';
 
@@ -55,6 +56,7 @@ function AppContent() {
   useEffect(() => {
     preloadCanvasKit().finally(() => {
       SplashScreen.hideAsync();
+      signalAppReady();
     });
   }, []);
 
