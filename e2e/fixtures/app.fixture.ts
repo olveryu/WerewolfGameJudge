@@ -1,8 +1,26 @@
 import { Browser, BrowserContext, Page, test as base } from '@playwright/test';
 
+import { ALL_GUIDE_DISMISSED_KEYS } from '../../src/config/storageKeys';
 import { DiagnosticData, setupDiagnostics } from '../helpers/diagnostics';
 import { ensureAnonLogin, waitForAppReady } from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';
+
+/**
+ * Build Playwright `storageState` that pre-dismisses all page guide modals.
+ * AsyncStorage on web = window.localStorage, so seeding these keys prevents
+ * onboarding modals from appearing during E2E tests.
+ */
+function guideStorageState(origin: string) {
+  return {
+    cookies: [] as never[],
+    origins: [
+      {
+        origin,
+        localStorage: ALL_GUIDE_DISMISSED_KEYS.map((key) => ({ name: key, value: '1' })),
+      },
+    ],
+  };
+}
 
 /**
  * App fixture: ensures a single logged-in page ready on the home screen.
@@ -56,8 +74,12 @@ export async function createPlayerContexts(
   const pages: Page[] = [];
   const diags: DiagnosticData[] = [];
 
+  const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+
   for (let i = 0; i < count; i++) {
-    const ctx = await browser.newContext();
+    const ctx = await browser.newContext({
+      storageState: guideStorageState(baseURL),
+    });
     const page = await ctx.newPage();
     const label = i === 0 ? 'HOST' : `JOINER-${i + 1}`;
 

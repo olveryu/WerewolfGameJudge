@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { ALL_GUIDE_DISMISSED_KEYS } from './src/config/storageKeys';
+
 /**
  * E2E_BASE_URL: Single source of truth for all E2E navigation.
  *
@@ -59,6 +61,19 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
     baseURL: E2E_BASE_URL,
+
+    /* Pre-seed localStorage to dismiss all page guide modals.
+     * AsyncStorage on web = window.localStorage. This prevents onboarding
+     * modals from appearing and avoids "知道了" text collisions in tests. */
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: E2E_BASE_URL,
+          localStorage: ALL_GUIDE_DISMISSED_KEYS.map((key) => ({ name: key, value: '1' })),
+        },
+      ],
+    },
 
     /* Collect trace on failure for debugging via `npx playwright show-trace` */
     trace: 'retain-on-failure',

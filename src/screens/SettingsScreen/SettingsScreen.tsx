@@ -24,9 +24,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
 import type { FrameId } from '@/components/avatarFrames';
+import { PageGuideModal } from '@/components/PageGuideModal';
+import { SETTINGS_GUIDE } from '@/config/guideContent';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useAuthForm } from '@/hooks/useAuthForm';
+import { resetAllGuides, usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { componentSizes, fixed, ThemeKey, typography, useTheme } from '@/theme';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
@@ -53,6 +56,7 @@ export const SettingsScreen: React.FC = () => {
   const { colors, themeKey, setTheme, availableThemes } = useTheme();
   // Create styles once and pass to all sub-components
   const styles = useMemo(() => createSettingsScreenStyles(colors), [colors]);
+  const settingsGuide = usePageGuide('settings');
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Settings'>>();
   const {
@@ -388,6 +392,25 @@ export const SettingsScreen: React.FC = () => {
     [setTheme],
   );
 
+  const handleResetGuides = useCallback(() => {
+    showAlert('重置新手引导', '重置后，每个页面的新手引导将再次显示。', [
+      CANCEL_BUTTON,
+      {
+        text: '确认重置',
+        onPress: () => {
+          resetAllGuides()
+            .then(() => {
+              showAlert('已重置', '引导将重新显示');
+            })
+            .catch((e: unknown) => {
+              settingsLog.error('Reset guides failed:', e);
+              showAlert('重置失败', '请稍后重试');
+            });
+        },
+      },
+    ]);
+  }, []);
+
   // ============================================
   // Render helpers
   // ============================================
@@ -574,6 +597,17 @@ export const SettingsScreen: React.FC = () => {
 
         <AboutSection styles={styles} />
 
+        {/* Reset Guides */}
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          onPress={handleResetGuides}
+          activeOpacity={fixed.activeOpacity}
+        >
+          <Text style={[styles.logoutBtnText, { color: colors.textSecondary }]}>
+            🔄 重置新手引导
+          </Text>
+        </TouchableOpacity>
+
         <View style={styles.bottomSpacer} />
       </ScrollView>
 
@@ -595,6 +629,17 @@ export const SettingsScreen: React.FC = () => {
         onClose={handleCloseAvatarPicker}
         styles={styles}
         colors={colors}
+      />
+
+      {/* Page Guide */}
+      <PageGuideModal
+        visible={settingsGuide.visible}
+        title={SETTINGS_GUIDE.title}
+        titleEmoji={SETTINGS_GUIDE.titleEmoji}
+        items={SETTINGS_GUIDE.items}
+        dontShowAgain={settingsGuide.dontShowAgain}
+        onToggleDontShowAgain={settingsGuide.toggleDontShowAgain}
+        onDismiss={settingsGuide.dismiss}
       />
     </SafeAreaView>
   );
