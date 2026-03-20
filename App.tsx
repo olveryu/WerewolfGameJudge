@@ -3,6 +3,7 @@ import { GameStore } from '@werewolf/game-engine/engine/store';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AIChatBubble } from '@/components/AIChatBubble';
@@ -55,7 +56,15 @@ function AppContent() {
   // Preload CanvasKit WASM (web only) during splash, then hide splash screen
   useEffect(() => {
     preloadCanvasKit().finally(() => {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync(); // native only; web is no-op
+      // Web: remove the HTML splash overlay defined in web/index.html
+      if (Platform.OS === 'web') {
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+          splash.classList.add('hidden');
+          setTimeout(() => splash.remove(), 300); // match CSS transition duration
+        }
+      }
       signalAppReady();
     });
   }, []);
