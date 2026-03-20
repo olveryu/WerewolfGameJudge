@@ -158,22 +158,22 @@
 
 ### 8. wolfKill (袭击)
 
-| 属性                        | 值                                                                          | 说明                                                                                             |
-| --------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **schemaId**                | `wolfKill`                                                                  |                                                                                                  |
-| **kind**                    | `wolfVote`                                                                  | 特殊：多狼投票机制                                                                               |
-| **constraints**             | `[]`                                                                        | 中立裁判：可刀任意座位                                                                           |
-| **meeting.canSeeEachOther** | `true`                                                                      | 狼人互相可见                                                                                     |
-| **meeting.resolution**      | `majority`                                                                  | 多数投票生效                                                                                     |
-| **meeting.allowEmptyVote**  | `true`                                                                      | 可放弃袭击                                                                                       |
-| **prompt**                  | "请选择袭击目标"                                                            |                                                                                                  |
-| **emptyVoteText**           | "放弃袭击"                                                                  |                                                                                                  |
-| **revealKind**              | 无                                                                          |                                                                                                  |
-| **wolfKillDisabled**        | ✅ 检查                                                                     | 梦魇封狼则无法杀人                                                                               |
-| **结果落点**                | `currentNightResults.wolfKillTarget`, `currentNightResults.wolfVotesBySeat` |                                                                                                  |
-| **UI 目标限制**             | 所有座位（含狼队友/自己）                                                   |                                                                                                  |
-| **Host 权威拒绝**           | ✅                                                                          | 免疫袭击目标会被 Host/Resolver 拒绝，并通过 `actionRejected` 统一弹“操作无效”提示（UI 不做禁用） |
-| **失败原因**                | `目标玩家不存在`                                                            |                                                                                                  |
+| 属性                        | 值                                    | 说明                                                                                             |
+| --------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **schemaId**                | `wolfKill`                            |                                                                                                  |
+| **kind**                    | `wolfVote`                            | 特殊：多狼投票机制                                                                               |
+| **constraints**             | `[]`                                  | 中立裁判：可刀任意座位                                                                           |
+| **meeting.canSeeEachOther** | `true`                                | 狼人互相可见                                                                                     |
+| **meeting.resolution**      | `majority`                            | 多数投票生效                                                                                     |
+| **meeting.allowEmptyVote**  | `true`                                | 可放弃袭击                                                                                       |
+| **prompt**                  | "请选择袭击目标"                      |                                                                                                  |
+| **emptyVoteText**           | "放弃袭击"                            |                                                                                                  |
+| **revealKind**              | 无                                    |                                                                                                  |
+| **wolfKillDisabled**        | ✅ 检查                               | 梦魇封狼则无法杀人                                                                               |
+| **结果落点**                | `currentNightResults.wolfVotesBySeat` |                                                                                                  |
+| **UI 目标限制**             | 所有座位（含狼队友/自己）             |                                                                                                  |
+| **Host 权威拒绝**           | ✅                                    | 免疫袭击目标会被 Host/Resolver 拒绝，并通过 `actionRejected` 统一弹“操作无效”提示（UI 不做禁用） |
+| **失败原因**                | `目标玩家不存在`                      |                                                                                                  |
 
 ### 9. wolfQueenCharm (狼美人)
 
@@ -604,6 +604,8 @@ With Audio: 25/25 (100%)
 PASS src/screens/RoomScreen/__tests__/schemaUIResolverAlignment.contract.test.ts
   三层对齐 (Schema → Resolver → UI)
     Schema WITH notSelf → Resolver 必须拒绝自指
+      ✓ seerCheck: schema has notSelf constraint
+      ✓ seerCheck: resolver rejects self-target
       ✓ dreamcatcherDream: schema has notSelf constraint
       ✓ dreamcatcherDream: resolver rejects self-target
       ✓ wolfQueenCharm: schema has notSelf constraint
@@ -612,9 +614,10 @@ PASS src/screens/RoomScreen/__tests__/schemaUIResolverAlignment.contract.test.ts
       ✓ wolfRobotLearn: resolver rejects self-target
       ✓ slackerChooseIdol: schema has notSelf constraint
       ✓ slackerChooseIdol: resolver rejects self-target
+      ...
     Schema WITHOUT notSelf → Resolver 必须允许自指
-      ✓ seerCheck: schema has NO notSelf constraint
-      ✓ seerCheck: resolver accepts self-target
+      ✓ nightmareBlock: schema has NO notSelf constraint
+      ✓ nightmareBlock: resolver accepts self-target
       ...
     UI 无 Hardcode 验证
       ✓ buildSeatViewModels has no role-specific hardcode for notSelf
