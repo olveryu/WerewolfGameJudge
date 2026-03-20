@@ -51,7 +51,7 @@ export const HomeScreen: React.FC = () => {
 
   const navigation = useNavigation<NavigationProp>();
   const { user, loading: authLoading, error: authError } = useAuth();
-  const homeGuide = usePageGuide('home');
+  const homeGuide = usePageGuide('home', !authLoading);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');

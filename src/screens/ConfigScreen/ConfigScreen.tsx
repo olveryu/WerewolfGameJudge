@@ -45,7 +45,6 @@ type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
 export const ConfigScreen: React.FC = () => {
   const colors = useColors();
-  const configGuide = usePageGuide('config');
   const styles = useMemo(() => createConfigScreenStyles(colors), [colors]);
 
   const navigation = useNavigation<NavigationProp>();
@@ -97,6 +96,8 @@ export const ConfigScreen: React.FC = () => {
     handleBulkCountChange,
     getFactionAccentColor,
   } = state;
+
+  const configGuide = usePageGuide('config', !isLoading);
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
