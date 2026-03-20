@@ -7,9 +7,9 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
-import { InteractionManager } from 'react-native';
 
 import { ALL_GUIDE_DISMISSED_KEYS, type GuidePageKey, guideStorageKey } from '@/config/storageKeys';
+import { appReadyPromise } from '@/utils/appReady';
 
 /** Session-level dismissed set (cleared on app refresh, not persisted) */
 const sessionDismissed = new Set<GuidePageKey>();
@@ -45,22 +45,20 @@ export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
     }
 
     AsyncStorage.getItem(key)
-      .then((value) => {
+      .then(async (value) => {
         if (cancelled) return;
         const isPermanentlyDismissed = value === '1';
         setDismissed(isPermanentlyDismissed);
         if (!isPermanentlyDismissed) {
-          // Wait for animations/layout to complete + minimum delay,
-          // so the guide doesn't pop up before the page has painted.
-          const handle = InteractionManager.runAfterInteractions(() => {
-            if (cancelled) return;
-            const timer = setTimeout(() => {
-              if (!cancelled) setShouldShow(true);
-            }, SHOW_DELAY_MS);
-            // Attach timer to cleanup
-            cleanupTimer = timer;
-          });
-          cleanupHandle = handle;
+          // Wait for splash screen to hide (appReadyPromise) before showing guide.
+          // For guides triggered after app init (e.g. room:assigned), the promise
+          // is already resolved so this is effectively a no-op await.
+          await appReadyPromise;
+          if (cancelled) return;
+          const timer = setTimeout(() => {
+            if (!cancelled) setShouldShow(true);
+          }, SHOW_DELAY_MS);
+          cleanupTimer = timer;
         }
       })
       .catch(() => {
@@ -71,11 +69,9 @@ export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
         if (!cancelled) setLoading(false);
       });
 
-    let cleanupHandle: ReturnType<typeof InteractionManager.runAfterInteractions> | null = null;
     let cleanupTimer: ReturnType<typeof setTimeout> | null = null;
     return () => {
       cancelled = true;
-      cleanupHandle?.cancel();
       if (cleanupTimer != null) clearTimeout(cleanupTimer);
     };
   }, [pageKey]);
