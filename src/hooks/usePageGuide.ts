@@ -25,8 +25,8 @@ export interface PageGuideResult {
   dismiss: () => void;
 }
 
-/** Minimum delay (ms) after mount before showing guide, ensures page has painted */
-const SHOW_DELAY_MS = 500;
+/** Minimum delay (ms) after app ready before showing guide, ensures page has painted */
+const SHOW_DELAY_MS = 300;
 
 export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
   const [loading, setLoading] = useState(true);
