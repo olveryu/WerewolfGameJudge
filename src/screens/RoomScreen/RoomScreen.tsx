@@ -20,8 +20,16 @@ import { createStyles as createChatStyles } from '@/components/AIChatBubble/AICh
 import { NotepadModal } from '@/components/AIChatBubble/NotepadModal';
 import { AlertModal } from '@/components/AlertModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { SettingsSheet } from '@/components/SettingsSheet';
+import {
+  getRoomGuideItems,
+  ROOM_ASSIGNED_GUIDE,
+  ROOM_GUIDE_TITLE,
+  ROOM_ONGOING_GUIDE,
+} from '@/config/guideContent';
+import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { componentSizes, spacing, useTheme } from '@/theme';
@@ -211,6 +219,42 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Notepad
     notepad,
   } = useRoomScreenState(route.params, navigation);
+
+  // ─── Page Guide (3-layer: overview + assigned + ongoing) ───────────────
+  const roomGuide = usePageGuide('room');
+  const assignedGuide = usePageGuide('room:assigned');
+  const ongoingGuide = usePageGuide('room:ongoing');
+
+  // Anti-cascade: after closing overview, suppress stage guide until next status change
+  const [guideSuppressed, setGuideSuppressed] = useState(false);
+  const prevStatusRef = useRef<GameStatus | undefined>(undefined);
+
+  useEffect(() => {
+    if (roomStatus !== prevStatusRef.current) {
+      prevStatusRef.current = roomStatus;
+      setGuideSuppressed(false);
+    }
+  }, [roomStatus]);
+
+  const handleRoomGuideDismiss = useCallback(() => {
+    setGuideSuppressed(true);
+    roomGuide.dismiss();
+  }, [roomGuide]);
+
+  const roomGuideItems = useMemo(() => getRoomGuideItems(isHost), [isHost]);
+
+  // Determine which guide to show (at most 1 at a time)
+  const showAssignedGuide =
+    !roomGuide.visible &&
+    !guideSuppressed &&
+    roomStatus === GameStatus.Assigned &&
+    assignedGuide.visible;
+  const showOngoingGuide =
+    !roomGuide.visible &&
+    !guideSuppressed &&
+    !showAssignedGuide &&
+    roomStatus === GameStatus.Ongoing &&
+    ongoingGuide.visible;
 
   // ─── Auto-show QR invite card after room creation ─────────────────────
   useEffect(() => {
@@ -631,6 +675,39 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onBgmChange={handleBgmChange}
         resolvedAnimation={resolvedRoleRevealAnimation}
         overlayTestID={TESTIDS.roomSettingsOverlay}
+      />
+
+      {/* Page Guide — Room overview */}
+      <PageGuideModal
+        visible={roomGuide.visible}
+        title={ROOM_GUIDE_TITLE.title}
+        titleEmoji={ROOM_GUIDE_TITLE.titleEmoji}
+        items={roomGuideItems}
+        dontShowAgain={roomGuide.dontShowAgain}
+        onToggleDontShowAgain={roomGuide.toggleDontShowAgain}
+        onDismiss={handleRoomGuideDismiss}
+      />
+
+      {/* Page Guide — Assigned stage */}
+      <PageGuideModal
+        visible={showAssignedGuide}
+        title={ROOM_ASSIGNED_GUIDE.title}
+        titleEmoji={ROOM_ASSIGNED_GUIDE.titleEmoji}
+        items={ROOM_ASSIGNED_GUIDE.items}
+        dontShowAgain={assignedGuide.dontShowAgain}
+        onToggleDontShowAgain={assignedGuide.toggleDontShowAgain}
+        onDismiss={assignedGuide.dismiss}
+      />
+
+      {/* Page Guide — Ongoing stage */}
+      <PageGuideModal
+        visible={showOngoingGuide}
+        title={ROOM_ONGOING_GUIDE.title}
+        titleEmoji={ROOM_ONGOING_GUIDE.titleEmoji}
+        items={ROOM_ONGOING_GUIDE.items}
+        dontShowAgain={ongoingGuide.dontShowAgain}
+        onToggleDontShowAgain={ongoingGuide.toggleDontShowAgain}
+        onDismiss={ongoingGuide.dismiss}
       />
     </SafeAreaView>
   );

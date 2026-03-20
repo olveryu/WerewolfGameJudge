@@ -15,9 +15,12 @@ import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { CONFIG_GUIDE } from '@/config/guideContent';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
+import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { componentSizes, fixed, useColors } from '@/theme';
@@ -42,6 +45,7 @@ type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
 export const ConfigScreen: React.FC = () => {
   const colors = useColors();
+  const configGuide = usePageGuide('config');
   const styles = useMemo(() => createConfigScreenStyles(colors), [colors]);
 
   const navigation = useNavigation<NavigationProp>();
@@ -244,6 +248,17 @@ export const ConfigScreen: React.FC = () => {
         variantIds={roleInfoVariantIds}
         activeVariant={roleInfoActiveVariant}
         onVariantSelect={handleRoleInfoVariantSelect}
+      />
+
+      {/* Page Guide */}
+      <PageGuideModal
+        visible={configGuide.visible}
+        title={CONFIG_GUIDE.title}
+        titleEmoji={CONFIG_GUIDE.titleEmoji}
+        items={CONFIG_GUIDE.items}
+        dontShowAgain={configGuide.dontShowAgain}
+        onToggleDontShowAgain={configGuide.toggleDontShowAgain}
+        onDismiss={configGuide.dismiss}
       />
     </SafeAreaView>
   );

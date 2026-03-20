@@ -28,7 +28,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { ENCYCLOPEDIA_GUIDE } from '@/config/guideContent';
+import { usePageGuide } from '@/hooks/usePageGuide';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -160,6 +163,7 @@ export const EncyclopediaScreen: React.FC = () => {
   const colors = useColors();
   const navigation = useNavigation();
   const { width: screenWidth } = useWindowDimensions();
+  const encyclopediaGuide = usePageGuide('encyclopedia');
 
   const [activeFilter, setActiveFilter] = useState<FactionFilterKey>('god');
   const [selectedRole, setSelectedRole] = useState<RoleId | null>(null);
@@ -264,6 +268,17 @@ export const EncyclopediaScreen: React.FC = () => {
         roleId={selectedRole}
         onClose={handleCloseCard}
         showRealIdentity
+      />
+
+      {/* Page Guide */}
+      <PageGuideModal
+        visible={encyclopediaGuide.visible}
+        title={ENCYCLOPEDIA_GUIDE.title}
+        titleEmoji={ENCYCLOPEDIA_GUIDE.titleEmoji}
+        items={ENCYCLOPEDIA_GUIDE.items}
+        dontShowAgain={encyclopediaGuide.dontShowAgain}
+        onToggleDontShowAgain={encyclopediaGuide.toggleDontShowAgain}
+        onDismiss={encyclopediaGuide.dismiss}
       />
     </SafeAreaView>
   );
