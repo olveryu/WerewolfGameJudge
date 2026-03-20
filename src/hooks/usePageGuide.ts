@@ -24,10 +24,15 @@ export interface PageGuideResult {
   dismiss: () => void;
 }
 
-export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
+/**
+ * @param pageKey - 页面标识
+ * @param ready - 页面内容是否已加载完成。弹窗会等 ready=true 后才显示，
+ *               避免在页面还在 loading 时弹出引导。默认 true（静态页面无需传）。
+ */
+export function usePageGuide(pageKey: GuidePageKey, ready = true): PageGuideResult {
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [shouldShow, setShouldShow] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   useEffect(() => {
@@ -46,7 +51,7 @@ export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
         const isPermanentlyDismissed = value === '1';
         setDismissed(isPermanentlyDismissed);
         if (!isPermanentlyDismissed) {
-          setVisible(true);
+          setShouldShow(true);
         }
       })
       .catch(() => {
@@ -61,12 +66,15 @@ export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
     };
   }, [pageKey]);
 
+  // Derive visible: only show when async check passed AND page is ready
+  const visible = shouldShow && ready;
+
   const toggleDontShowAgain = useCallback(() => {
     setDontShowAgain((prev) => !prev);
   }, []);
 
   const dismiss = useCallback(() => {
-    setVisible(false);
+    setShouldShow(false);
     sessionDismissed.add(pageKey);
     if (dontShowAgain) {
       const key = guideStorageKey(pageKey);
@@ -76,14 +84,9 @@ export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
     }
   }, [dontShowAgain, pageKey]);
 
-  // While loading, keep visible=false to avoid flash
+  // While loading or permanently dismissed, keep visible=false
   if (loading || dismissed) {
-    return {
-      visible: false,
-      dontShowAgain,
-      toggleDontShowAgain,
-      dismiss,
-    };
+    return { visible: false, dontShowAgain, toggleDontShowAgain, dismiss };
   }
 
   return { visible, dontShowAgain, toggleDontShowAgain, dismiss };

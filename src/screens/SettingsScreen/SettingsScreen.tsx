@@ -56,8 +56,6 @@ export const SettingsScreen: React.FC = () => {
   const { colors, themeKey, setTheme, availableThemes } = useTheme();
   // Create styles once and pass to all sub-components
   const styles = useMemo(() => createSettingsScreenStyles(colors), [colors]);
-  const settingsGuide = usePageGuide('settings');
-
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Settings'>>();
   const {
     user,
@@ -68,6 +66,7 @@ export const SettingsScreen: React.FC = () => {
     error: authError,
     loading: authLoading,
   } = useAuth();
+  const settingsGuide = usePageGuide('settings', !authLoading);
 
   const facade = useGameFacade();
 
