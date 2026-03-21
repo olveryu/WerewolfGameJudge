@@ -645,6 +645,32 @@ export class GameFacade implements IGameFacade {
     }
   }
 
+  /**
+   * 轻量级 revision 比对：从 DB 读 state_revision，若落后则 fetchStateFromDB。
+   * 由 useConnectionSync 5s 轮询调用，用于检测遗漏的广播消息。
+   */
+  async checkRevision(): Promise<void> {
+    const roomCode = this.#store.getState()?.roomCode ?? this.#roomCode;
+    if (!roomCode) return;
+
+    try {
+      const dbRevision = await this.#roomService.getStateRevision(roomCode);
+      if (dbRevision == null) return;
+
+      const localRevision = this.#store.getRevision();
+      if (dbRevision > localRevision) {
+        facadeLog.info('Revision drift detected, fetching full state from DB', {
+          localRevision,
+          dbRevision,
+        });
+        await this.fetchStateFromDB();
+      }
+    } catch (e) {
+      // Polling failure is non-critical — log and continue
+      facadeLog.warn('checkRevision failed:', e);
+    }
+  }
+
   // =========================================================================
   // Night Flow (委托给 gameActions) - PR6
   // =========================================================================

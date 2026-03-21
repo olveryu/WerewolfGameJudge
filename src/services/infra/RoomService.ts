@@ -187,6 +187,24 @@ export class RoomService {
   }
 
   /**
+   * Read only the current state_revision from DB.
+   * Used by revision polling to detect missed broadcasts without fetching full state.
+   */
+  async getStateRevision(roomCode: string): Promise<number | null> {
+    this.#ensureConfigured();
+
+    const { data, error } = await supabase!
+      .from('rooms')
+      .select('state_revision')
+      .eq('code', roomCode)
+      .single();
+
+    if (error || data == null) return null;
+
+    return data.state_revision as number;
+  }
+
+  /**
    * Read latest game state from DB.
    * Used by Player for initial load and auto-heal fallback.
    */

@@ -248,6 +248,12 @@ export interface IGameFacade {
   fetchStateFromDB(): Promise<boolean>;
 
   /**
+   * 轻量级 revision 比对：从 DB 读 state_revision，若落后则 fetchStateFromDB。
+   * 由 useConnectionSync 5s 轮询调用，用于检测遗漏的广播消息。
+   */
+  checkRevision(): Promise<void>;
+
+  /**
    * Host rejoin 后是否有音频被中断
    */
   readonly wasAudioInterrupted: boolean;
