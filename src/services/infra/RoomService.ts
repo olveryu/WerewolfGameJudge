@@ -83,7 +83,7 @@ export class RoomService {
       };
       if (buildInitialState) {
         row.game_state = buildInitialState(roomNumber);
-        row.state_revision = 0;
+        row.state_revision = 1;
       }
 
       const { error } = await supabase!.from('rooms').insert(row);
