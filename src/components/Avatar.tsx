@@ -115,7 +115,8 @@ const AvatarComponent: React.FC<AvatarProps> = ({
     <View style={iconContainerStyle} accessibilityLabel="头像">
       <Image
         source={image}
-        style={{ width: iconSize, height: iconSize, tintColor: color }}
+        style={{ width: iconSize, height: iconSize }}
+        tintColor={color}
         resizeMode="contain"
       />
     </View>

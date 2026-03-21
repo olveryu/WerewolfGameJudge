@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Animated,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -56,6 +57,7 @@ interface PageGuideModalProps {
 const OPEN_DURATION = 250;
 const CLOSE_DURATION = 200;
 const SCALE_FROM = 0.9;
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 // ============================================
 // Component
@@ -96,18 +98,18 @@ export const PageGuideModal: React.FC<PageGuideModalProps> = ({
         Animated.timing(anim.overlay, {
           toValue: 1,
           duration: OPEN_DURATION,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.spring(anim.scale, {
           toValue: 1,
           friction: 8,
           tension: 65,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(anim.opacity, {
           toValue: 1,
           duration: OPEN_DURATION,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]).start();
     }
@@ -119,12 +121,12 @@ export const PageGuideModal: React.FC<PageGuideModalProps> = ({
       Animated.timing(anim.overlay, {
         toValue: 0,
         duration: CLOSE_DURATION,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.timing(anim.opacity, {
         toValue: 0,
         duration: CLOSE_DURATION,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start(() => {
       setModalVisible(false);
