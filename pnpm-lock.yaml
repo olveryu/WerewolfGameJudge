@@ -115,7 +115,7 @@ importers:
         specifier: ^9.39.2
         version: 9.39.2
       '@playwright/test':
-        specifier: ^1.57.0
+        specifier: ^1.58.2
         version: 1.58.2
       '@testing-library/react-native':
         specifier: ^13.3.3
