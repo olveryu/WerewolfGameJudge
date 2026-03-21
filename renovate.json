@@ -6,6 +6,7 @@
   "schedule": ["before 9am on monday"],
   "timezone": "Asia/Shanghai",
   "rangeStrategy": "bump",
+  "recreateWhen": "always",
   "prConcurrentLimit": 5,
   "postUpdateOptions": ["pnpmDedupe"],
   "packageRules": [
