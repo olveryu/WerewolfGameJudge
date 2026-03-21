@@ -20,16 +20,20 @@ const AsyncStorage = {
     return Promise.resolve();
   }),
   getAllKeys: jest.fn(() => Promise.resolve(Object.keys(storage))),
-  multiGet: jest.fn((keys: string[]) =>
-    Promise.resolve(keys.map((key) => [key, storage[key] ?? null])),
-  ),
-  multiSet: jest.fn((pairs: [string, string][]) => {
-    pairs.forEach(([key, value]) => {
+  getMany: jest.fn((keys: string[]) => {
+    const result: Record<string, string | null> = {};
+    keys.forEach((key) => {
+      result[key] = storage[key] ?? null;
+    });
+    return Promise.resolve(result);
+  }),
+  setMany: jest.fn((entries: Record<string, string>) => {
+    Object.entries(entries).forEach(([key, value]) => {
       storage[key] = value;
     });
     return Promise.resolve();
   }),
-  multiRemove: jest.fn((keys: string[]) => {
+  removeMany: jest.fn((keys: string[]) => {
     keys.forEach((key) => delete storage[key]);
     return Promise.resolve();
   }),
