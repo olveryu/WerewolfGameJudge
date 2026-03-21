@@ -4,7 +4,10 @@
  * 纯数据模块，不含组件/hooks/副作用。
  * 各页面 import 对应内容传入 PageGuideModal。
  */
+import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
+
 import type { GuideItem } from '@/components/PageGuideModal';
+import { AVATAR_IMAGES } from '@/utils/avatar';
 
 // ============================================
 // HomeScreen
@@ -29,12 +32,15 @@ export const CONFIG_GUIDE = {
   titleEmoji: '🎲',
   title: '配置你的游戏',
   items: [
-    { emoji: '📋', text: '选择模板 —— 18 个预设一键选，新手推荐"预女猎白"' },
+    {
+      emoji: '📋',
+      text: `选择模板 —— ${PRESET_TEMPLATES.length} 个预设一键选，新手推荐"预女猎白"`,
+    },
     { emoji: '🎛️', text: '自定义角色 —— 下方可自由增减任意角色' },
     { emoji: '👆', text: '长按角色 —— 可查看技能详情和变体' },
     { emoji: '👥', text: '底部按钮 —— 显示总人数，点击即创建房间' },
   ] satisfies GuideItem[],
-} as const;
+};
 
 // ============================================
 // RoomScreen — 总览 (首次进入房间)
@@ -112,12 +118,12 @@ export const SETTINGS_GUIDE = {
   titleEmoji: '⚙️',
   title: '个人设置',
   items: [
-    { emoji: '🖼️', text: '点头像换装 —— 76 个内置头像 + 自定义上传' },
+    { emoji: '🖼️', text: `点头像换装 —— ${AVATAR_IMAGES.length} 个内置头像 + 自定义上传` },
     { emoji: '🪪', text: '设昵称让朋友在房间里认出你' },
     { emoji: '🎨', text: '8 种主题随你换，亮暗都有' },
     { emoji: '📧', text: '绑定邮箱可跨设备保留数据' },
   ] satisfies GuideItem[],
-} as const;
+};
 
 // ============================================
 // EncyclopediaScreen
