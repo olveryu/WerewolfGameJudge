@@ -14,6 +14,7 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/',
+      '.venv/',
       '**/dist/',
       'build/',
       'playwright-report/',
