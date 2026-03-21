@@ -67,8 +67,21 @@ async function shareImageWeb(base64Data: string, filename: string, title: string
     const file = base64ToFile(base64Data, filename);
     const shareData = { title, files: [file] };
     if (navigator.canShare(shareData)) {
-      await navigator.share(shareData);
-      return;
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException) {
+          // User cancelled the share sheet — not an error
+          if (error.name === 'AbortError') return;
+          // User activation expired (async capture too slow) — fall through to download
+          if (error.name === 'NotAllowedError') {
+            downloadImage(base64Data, filename);
+            return;
+          }
+        }
+        throw error;
+      }
     }
   }
 
