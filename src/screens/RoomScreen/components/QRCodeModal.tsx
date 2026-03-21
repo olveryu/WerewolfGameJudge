@@ -5,7 +5,7 @@
  * 支持「分享」（生成临时 PNG → 系统分享 sheet）和「复制链接」两种操作。
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
-import React, { memo, useCallback, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
@@ -76,8 +76,29 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const shareCardRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const preCapturedRef = useRef<string | null>(null);
 
-  const getBase64 = useCallback(() => captureShareCard(shareCardRef), []);
+  // Pre-capture the share card on web so navigator.share() can be called
+  // within the user-activation window (avoids NotAllowedError).
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'web') return;
+    preCapturedRef.current = null;
+    const timer = setTimeout(() => {
+      captureShareCard(shareCardRef)
+        .then((b64) => {
+          preCapturedRef.current = b64;
+        })
+        .catch(() => {
+          // Pre-capture failed; on-demand capture will be used as fallback
+        });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [visible]);
+
+  const getBase64 = useCallback(async () => {
+    if (preCapturedRef.current) return preCapturedRef.current;
+    return captureShareCard(shareCardRef);
+  }, []);
 
   const handleShare = useCallback(() => {
     if (isSharing) return;
