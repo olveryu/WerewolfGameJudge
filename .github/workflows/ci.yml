@@ -68,7 +68,7 @@ jobs:
 
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          deno-version: 2.7.7
 
       - name: Deno Edge Function tests
         run: deno test --no-check --allow-env --allow-net --allow-read supabase/functions/
