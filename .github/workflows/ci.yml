@@ -30,7 +30,7 @@ jobs:
         id: detect-edge
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- supabase/functions/ packages/game-engine/)
+            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'supabase/functions/**/*.ts' 'packages/game-engine/src/**')
             if [[ -n "$CHANGED" ]]; then
               echo "changed=true" >> "$GITHUB_OUTPUT"
               echo "Edge-related files changed:"
