@@ -6,8 +6,15 @@
   "schedule": ["before 9am on monday"],
   "timezone": "Asia/Shanghai",
   "rangeStrategy": "bump",
+  "prConcurrentLimit": 5,
   "postUpdateOptions": ["pnpmDedupe"],
   "packageRules": [
+    {
+      "description": "Auto-merge patch/minor devDependencies",
+      "matchUpdateTypes": ["patch", "minor"],
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true
+    },
     {
       "description": "Group Expo SDK packages",
       "matchPackagePatterns": ["^expo", "^@expo/"],
