@@ -205,7 +205,7 @@ jobs:
 
   deploy-report:
     runs-on: ubuntu-latest
-    if: always() && needs.merge-reports.result == 'success'
+    if: always() && needs.merge-reports.result == 'success' && github.ref == 'refs/heads/main'
     needs: merge-reports
     environment:
       name: github-pages
