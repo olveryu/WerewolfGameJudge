@@ -183,6 +183,30 @@ export function useConnectionSync(
     return () => globalThis.window.removeEventListener('online', onOnline);
   }, [roomRecord, facade, reconnectWithTelemetry]);
 
+  // ── L6 补充：5s revision 轮询 → 检测遗漏广播 ──
+  // Supabase postgres_changes 不保证消息送达，连接正常时也可能丢失广播。
+  // 5 秒轮询 DB revision，如果落后于服务端则自动拉取完整 state。
+  // 仅在连接 Live + 页面可见 + 已加入房间时启用。
+  useEffect(() => {
+    if (!roomRecord) return;
+    if (connectionStatus !== ConnectionStatus.Live) return;
+
+    const REVISION_POLL_INTERVAL_MS = 5_000;
+
+    // Only poll when page is visible (avoid wasting queries when backgrounded)
+    const isVisible = () =>
+      typeof document === 'undefined' || document.visibilityState === 'visible';
+
+    const timer = setInterval(() => {
+      if (!isVisible()) return;
+      facade.checkRevision().catch((e) => {
+        connectionSyncLog.warn('Revision poll failed:', e);
+      });
+    }, REVISION_POLL_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [connectionStatus, roomRecord, facade]);
+
   // ── Dead Channel Detector ──
   // Supabase SDK gives up reconnecting after repeated CHANNEL_ERROR / TIMED_OUT
   // (common on mobile background/foreground cycles). When Disconnected persists
