@@ -50,12 +50,13 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 跳过 Supabase API 请求（需要实时数据）
-  if (event.request.url.includes('supabase')) {
+  var hostname = new URL(event.request.url).hostname;
+  if (hostname.endsWith('.supabase.co') || hostname.endsWith('.supabase.in')) {
     return;
   }
 
   // CDN 资源（CanvasKit WASM 等）: cache-first，版本号在 URL 中保证不过期
-  if (event.request.url.includes('cdn.jsdelivr.net')) {
+  if (hostname === 'cdn.jsdelivr.net') {
     event.respondWith(
       caches.match(event.request).then(function (cached) {
         if (cached) return cached;
