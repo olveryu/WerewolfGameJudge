@@ -17,39 +17,39 @@
     },
     {
       "description": "Group Expo SDK packages",
-      "matchPackagePatterns": ["^expo", "^@expo/"],
       "groupName": "expo",
-      "groupSlug": "expo"
+      "groupSlug": "expo",
+      "matchPackageNames": ["/^expo/", "/^@expo//"]
     },
     {
       "description": "Group React Native packages",
-      "matchPackagePatterns": ["^react-native", "^@react-native"],
       "groupName": "react-native",
-      "groupSlug": "react-native"
+      "groupSlug": "react-native",
+      "matchPackageNames": ["/^react-native/", "/^@react-native/"]
     },
     {
       "description": "Group ESLint packages",
-      "matchPackagePatterns": ["eslint"],
       "groupName": "eslint",
-      "groupSlug": "eslint"
+      "groupSlug": "eslint",
+      "matchPackageNames": ["/eslint/"]
     },
     {
       "description": "Group testing packages",
-      "matchPackagePatterns": ["jest", "@testing-library", "@playwright"],
       "groupName": "testing",
-      "groupSlug": "testing"
+      "groupSlug": "testing",
+      "matchPackageNames": ["/jest/", "/@testing-library/", "/@playwright/"]
     },
     {
       "description": "Group Sentry packages",
-      "matchPackagePatterns": ["@sentry/"],
       "groupName": "sentry",
-      "groupSlug": "sentry"
+      "groupSlug": "sentry",
+      "matchPackageNames": ["/@sentry//"]
     },
     {
       "description": "Group Supabase packages",
-      "matchPackagePatterns": ["@supabase/"],
       "groupName": "supabase",
-      "groupSlug": "supabase"
+      "groupSlug": "supabase",
+      "matchPackageNames": ["/@supabase//"]
     },
     {
       "description": "Group dev tooling (prettier, husky, lint-staged, typescript)",
