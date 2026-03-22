@@ -66,3 +66,6 @@ package-lock.json
 # Badge generator cache & reports
 assets/badges/.cache/
 assets/badges/report.json
+
+# asdf version manager (pnpm version managed by package.json "packageManager")
+.tool-versions
