@@ -34,6 +34,7 @@ jest.mock('../../infra/supabaseClient', () => ({
     realtime: {
       disconnect: () => mockDisconnect(),
       isDisconnecting: jest.fn(() => false),
+      getChannels: jest.fn(() => []),
     },
   },
 }));

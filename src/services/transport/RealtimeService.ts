@@ -267,11 +267,22 @@ export class RealtimeService {
    */
   async leaveRoom(): Promise<void> {
     if (this.#channel) {
-      await this.#channel.unsubscribe();
+      const channelRef = this.#channel;
+      await channelRef.unsubscribe();
       // removeChannel cleans up the channel from supabase client's internal tracking.
       // Must await: removeChannel may call disconnect() when last channel removed,
       // which would tear down a concurrently-created new channel if not serialized.
-      await supabase?.removeChannel(this.#channel);
+      await supabase?.removeChannel(channelRef);
+
+      // Workaround: realtime-js ≥2.99.3 (PR #2119 phoenix migration) removed
+      // the _remove(channel) call from removeChannel(), leaving zombie channels
+      // in channels[]. Next supabase.channel(sameTopic) finds the zombie (state=leaving)
+      // → subscribe() skips join logic → 8s timeout → infinite reconnect loop.
+      // Manually splice the zombie out to restore pre-2.99.3 behavior.
+      const channels = supabase?.realtime.getChannels() ?? [];
+      const idx = channels.indexOf(channelRef);
+      if (idx !== -1) channels.splice(idx, 1);
+
       this.#channel = null;
     }
     this.#onDbStateChange = null;
