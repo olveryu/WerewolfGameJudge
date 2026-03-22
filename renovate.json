@@ -8,6 +8,10 @@
   "rangeStrategy": "bump",
   "prConcurrentLimit": 5,
   "postUpdateOptions": ["pnpmDedupe"],
+  "postUpgradeTasks": {
+    "commands": ["pnpm exec prettier --write {{{fileResultsArray}}}"],
+    "fileFilters": ["**/*.json", "**/*.js", "**/*.ts", "**/*.md"]
+  },
   "packageRules": [
     {
       "description": "Auto-merge patch/minor devDependencies",
