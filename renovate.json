@@ -53,14 +53,7 @@
     },
     {
       "description": "Group dev tooling (prettier, husky, lint-staged, typescript)",
-      "matchPackageNames": [
-        "prettier",
-        "husky",
-        "lint-staged",
-        "typescript",
-        "globals",
-        "glob"
-      ],
+      "matchPackageNames": ["prettier", "husky", "lint-staged", "typescript", "globals", "glob"],
       "groupName": "dev-tooling",
       "groupSlug": "dev-tooling"
     }
