@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 3 * * 1' # Every Monday 11:00 Asia/Shanghai
 
+permissions:
+  contents: read
+
 jobs:
   renovate:
     runs-on: ubuntu-latest
