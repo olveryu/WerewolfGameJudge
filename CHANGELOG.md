@@ -5,6 +5,78 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.9.0] - 2026-03-23
+
+- chore: add .tool-versions to .gitignore
+- chore: remove .tool-versions file
+- fix(RealtimeService): handle zombie channels on leaveRoom and update tests
+- Merge pull request #36 from olveryu/renovate/supabase
+- ci(renovate): run prettier on upgraded files via postUpgradeTasks
+- Merge branch 'main' into renovate/supabase
+- Merge pull request #39 from olveryu/renovate/migrate-config
+- ci(renovate): add minimal permissions block to fix CodeQL alert
+- style: format renovate.json with prettier
+- chore(config): migrate config renovate.json
+- fix(deps): update dependency @supabase/supabase-js to ^2.99.3
+- chore(deps): update commitlint monorepo to ^20.5.0 (#34)
+- chore(deps): update eslint (#33)
+- build(deps): upgrade @sentry/react-native v7→v8
+- build(deps): upgrade @react-native-async-storage/async-storage v2→v3
+- ci: upgrade pnpm/action-setup v4→v5, checkout v4→v6 in renovate
+- ci(renovate): use global config file for repository discovery
+- ci(renovate): specify target repository
+- chore(deps): remove recreateWhen workaround
+- chore(deps): add recreateWhen to force-rebuild closed PRs
+- ci: skip Pages deploy on PR branches
+- fix(ci): use correct renovatebot/github-action version tag
+- ci: add self-hosted Renovate workflow
+- chore(deps): update marocchino/sticky-pull-request-comment action to v3 (#25)
+- fix(deps): update dependency @shopify/react-native-skia to v2.5.3 (#20)
+- chore(deps): update pnpm to v10.32.1 (#18)
+- chore(deps): update node.js to v22.22.1 (#17)
+- chore(deps): update node.js to >=20.20.1 (#16)
+- fix(deps): update expo (#12)
+- chore(deps): update dependency deno to v2.7.7 (#15)
+- fix(deps): update react-navigation monorepo (#13)
+- chore(deps): update dev-tooling (#10)
+- chore(deps): update dependency @playwright/test to ^1.58.2 (#8)
+- chore(deps): update dependency esbuild to ^0.27.4 (#9)
+- ci: narrow edge-change detection to source files only
+- chore(deps): add automerge for dev deps and PR concurrent limit
+- chore(deps): enable Renovate dependency dashboard
+- fix(sw): improve hostname checks for Supabase and CDN requests
+- fix(config): exclude .venv from eslint global ignores
+- fix(services): add 5s revision polling to detect missed postgres_changes broadcasts
+- fix(room): update initial state_revision to 1 during room creation
+- fix(room): fix QR share failure on mobile web due to user activation expiry
+- fix(room): resolve web console warnings for textShadow, tintColor, and useNativeDriver
+- fix(config): replace hardcoded template and avatar counts with dynamic values
+- fix(room): defer QR auto-show until page guide is dismissed
+- fix(room): reduce page guide delay to 300ms
+- fix(room): remove HTML splash on web before signaling app-ready
+- fix(room): gate page guide on app-ready signal instead of InteractionManager
+- fix(room): use InteractionManager delay for page guide timing
+- fix(room): delay page guide until content is loaded
+- feat(room): add page-level onboarding guide system
+- refactor(template): update selectTemplate method for improved clarity and interaction flow
+- fix(docs): update wolf kill target results in alignment matrix
+- feat(models): replace avatar & badge assets with role-specific art
+- feat(avatar): add AI-generated prompts for character avatars in Werewolf game
+- refactor(room): simplify header, unify header tokens, improve template picker UX
+- fix(room): restrict bot takeover banner to host only
+- style(room): increase gap between notepad button and collapse chevron
+- fix(room): skip message fade animation on web to prevent E2E visibility race
+- style(room): remove wolf tile borderColor to preserve default border
+- style(room): wolf tile use shadow glow instead of thick border
+- style(room): redesign ready badge and wolf tile styling
+- fix(e2e): dismiss auto-shown qr modal after room creation
+- feat(room): auto-show qr invite card after room creation
+- feat(room): add host guide banner for contextual phase hints
+- fix(services): add isNetworkError() and E2E disconnect recovery
+- feat(perf): preload CanvasKit WASM at app boot for web
+- feat(models): enhance ChainShatter and RoleHunt reveal animations with Skia effects
+- fix(copilot): add guideline against oversimplifying solutions for better code quality
+
 ## [1.8.0] - 2026-03-16
 
 - fix(config): fix FortuneWheel pointer landing on wrong segment
