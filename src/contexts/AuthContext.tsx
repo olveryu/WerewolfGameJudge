@@ -138,8 +138,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authLog.info('Auth state changed:', event);
       if (session?.user) {
         updateUserIfChanged(toUser(session.user));
+        Sentry.setUser({ id: session.user.id });
       } else {
         setUser(null);
+        Sentry.setUser(null);
       }
       // Only set loading false if it was true (avoid unnecessary re-render)
       setLoading((prev) => (prev ? false : prev));
