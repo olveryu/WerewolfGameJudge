@@ -10,6 +10,7 @@ import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ThemedToast } from '@/components/ThemedToast';
+import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, NetworkProvider, ServiceProvider } from '@/contexts';
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { AppNavigator } from '@/navigation';
@@ -30,10 +31,13 @@ import { preloadCanvasKit } from '@/utils/preloadCanvasKit';
 // EXPO_PUBLIC_DEPLOY_ENV is set by build.sh from Vercel's VERCEL_ENV system var.
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  release: `werewolfjudge@${APP_VERSION}`,
   // Disable in development to avoid noise
   enabled: !__DEV__,
   environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
   tracesSampleRate: 0.5,
+  // Enable session tracking for Release Health (unique users / sessions)
+  enableAutoSessionTracking: true,
 });
 
 // Keep splash screen visible while app initializes
