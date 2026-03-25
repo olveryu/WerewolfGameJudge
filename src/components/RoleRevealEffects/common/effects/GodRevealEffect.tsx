@@ -1,25 +1,23 @@
 /**
- * GodRevealEffect - 神职阵营揭示特效（Reanimated 4）
+ * GodRevealEffect — 神职阵营揭示特效（Skia + Reanimated 4）
  *
- * 翻牌后在卡片区域渲染圣光系列动画，严格对标 HTML demo v2：
- * 1. **卡片光晕** — animated boxShadow 从极亮爆发→中等→**持续微弱发光**（不消失）
- * 2. 光芒十字 — 横/纵两道 LinearGradient 光线爆开后淡出（中间亮两端透明）
- * 3. 放射状射线（16 条）— 从中心射出后淡出
- * 4. 扩散光环（3 层）— 依次从中心扩散后淡出
- * 5. 粒子雨（40 颗）— 随机分布全卡面，缓慢上飘 + sin 闪烁
+ * 翻牌后在卡片区域渲染圣光系列动画：
+ * 1. 卡片光晕 — Skia RadialGradient + Blur，极亮爆发→持续微弱金色发光
+ * 2. 天降光柱 — Skia 从卡片顶部向上延伸的锥形光束（blendMode="screen"）
+ * 3. 十字闪光 — Skia Rect + Blur + screen blend，快闪后消失
+ * 4. 光环绽放 — 4 层同心 Circle stroke + Blur 从中心扩散
+ * 5. 圣光粒子 — 24 颗金色光尘 + Blur 从中心向四周飘散
+ * 6. 底部光晕 — 地面反射的半圆形柔光
  *
- * 除卡片光晕外所有子元素均为瞬态（2.5s 内完成），粒子雨持续~5.5s，光晕持续保留。
+ * 情绪签名：瞬间爆发 + "divine intervention" 力量感。
  * 不 import service，不含业务逻辑。
  */
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, {
+import { Blur, Canvas, Circle, Group, RadialGradient, Rect, vec } from '@shopify/react-native-skia';
+import React, { useEffect, useMemo } from 'react';
+import type { SharedValue } from 'react-native-reanimated';
+import {
   Easing,
-  Extrapolation,
-  interpolate,
-  type SharedValue,
-  useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -28,276 +26,140 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { borderRadius } from '@/theme';
 
 const AE = CONFIG.alignmentEffects;
+const SK = CONFIG.skia;
 
-// ─── Pre-computed arrays (module-level, stable) ──────────────────────────
+// ─── Pre-computed data ────────────────────────────────────────────────
 
-const RAY_COUNT = 16;
-// Pre-compute per-ray random width (1-3px) and opacity (0.3-0.8) matching HTML demo
-const RAYS = Array.from({ length: RAY_COUNT }, (_, i) => ({
-  angle: (i * 360) / RAY_COUNT,
-  /** Width ratio relative to cardWidth (HTML 1-3px on 140px card → 0.007-0.021) */
-  widthRatio: (1 + ((i * 7 + 3) % 20) / 10) / 140,
-  opacity: 0.3 + ((i * 11 + 5) % 50) / 100, // 0.3-0.8 pseudo-random
-  /** Per-ray stagger as progress fraction (HTML: animationDelay 0.25+i*0.03s on 2.5s total) */
-  delayP: (0.25 + i * 0.03) / 2.5,
-}));
-
-/**
- * Halo timing from HTML demo:
- *  halo-1: 60px, delay 0.15s, duration 1.0s, border 2px
- *  halo-2: 80px, delay 0.30s, duration 1.2s, border 2px
- *  halo-3: 100px, delay 0.45s, duration 1.4s, border 1px
- *  On 2.5s progress: startP = delay/2.5, durationP = duration/2.5
- */
 const HALO_CONFIGS = [
-  { sizeRatio: 60 / 140, startP: 0.06, durationP: 0.4, bw: 2 },
-  { sizeRatio: 80 / 140, startP: 0.12, durationP: 0.48, bw: 2 },
-  { sizeRatio: 100 / 140, startP: 0.18, durationP: 0.56, bw: 1 },
+  { startP: 0.06, durationP: 0.4 },
+  { startP: 0.12, durationP: 0.48 },
+  { startP: 0.18, durationP: 0.56 },
+  { startP: 0.25, durationP: 0.6 },
 ] as const;
 
-/**
- * Particles: random distribution across card, slow upward drift + twinkle.
- * Matches HTML demo startGodParticles canvas:
- *   x: random * 140, y: random * 195
- *   vx: (random-0.5)*0.8, vy: -0.3 - random*1.2
- *   size: 1 + random*2.5, alpha: 0.3 + random*0.7
- *   life: 1 → -0.003/frame (dies at frame ~333 ≈ 5.5s)
- *   twinkle: random phase + 0.1/frame → sin cycle ~1047ms
- */
-const PARTICLE_LIFE_FRAMES = 333;
-const GOD_PARTICLES = Array.from({ length: AE.godParticleCount }, (_, i) => {
+const PARTICLE_COUNT = 24;
+const GOD_PARTICLES = Array.from({ length: PARTICLE_COUNT }, (_, i) => {
   const r1 = ((i * 73 + 17) % 100) / 100;
   const r2 = ((i * 41 + 31) % 100) / 100;
   const r3 = ((i * 59 + 7) % 100) / 100;
   const r4 = ((i * 37 + 53) % 100) / 100;
-  const r5 = ((i * 83 + 11) % 100) / 100;
-  const r6 = ((i * 29 + 43) % 100) / 100;
+  const angle = ((i * 29 + 11) % 360) * (Math.PI / 180);
+  const dist = 20 + r1 * 120;
   return {
-    index: i,
-    startXRatio: r1,
-    startYRatio: r2,
-    driftXRatio: ((r3 - 0.5) * 0.8 * PARTICLE_LIFE_FRAMES) / 140,
-    driftYRatio: ((-0.3 - r4 * 1.2) * PARTICLE_LIFE_FRAMES) / 195,
-    sizeRatio: (1 + r5 * 2.5) / 140,
-    baseAlpha: 0.3 + r6 * 0.7,
-    twinklePhase: ((i * 67 + 23) % 628) / 100,
+    angle,
+    dist,
+    driftX: (r2 - 0.5) * 40,
+    driftY: -20 - r3 * 60,
+    size: 1 + r4 * 2.5,
+    baseAlpha: 0.3 + ((i * 67 + 23) % 70) / 100,
+    twinklePhase: ((i * 83 + 11) % 628) / 100,
   };
 });
 
-/** Twinkle cycle: demo increments 0.1/frame at 60fps → period = 2π / (0.1*60) ≈ 1047ms */
 const TWINKLE_CYCLE_MS = 1047;
-/** Particle total lifetime: ~333 frames at 60fps */
-const PARTICLE_LIFETIME_MS = 5550;
-/** Particle start delay: demo setTimeout(draw, 400) */
+const PARTICLE_LIFETIME_MS = 5500;
 const PARTICLE_START_DELAY_MS = 400;
 
-// ─── Sub-components ──────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────
 
-/** Single light ray radiating outward from center (matches HTML .god-ray) */
-const GodRay = React.memo(function GodRay({
-  angle,
-  rayWidth,
-  rayOpacity,
-  delayP,
-  progress,
-  color,
-  centerX,
-  centerY,
-  cardHeight,
-}: {
-  angle: number;
-  rayWidth: number;
-  rayOpacity: number;
-  /** Per-ray stagger delay as progress fraction (HTML: 0.25s + i*0.03s on 2.5s total) */
-  delayP: number;
-  progress: SharedValue<number>;
-  color: string;
-  centerX: number;
-  centerY: number;
-  cardHeight: number;
-}) {
-  // HTML: ray shoots to 160→200px on 195px card ≈ 0.82→1.03 of cardHeight
-  const maxH1 = cardHeight * 0.82;
-  const maxH2 = cardHeight * 1.03;
-
-  // HTML: each ray has animationDelay = 0.25 + i*0.03s, animation duration 1.2s
-  // On a 2.5s progress, the end of each ray = delayP + 1.2/2.5 ≈ delayP + 0.48
-  const rayEnd = Math.min(delayP + 0.48, 1);
-
-  const animStyle = useAnimatedStyle(() => {
-    const p = progress.value;
-    const lp = interpolate(p, [delayP, rayEnd], [0, 1], Extrapolation.CLAMP);
-    // Per-ray ease-out matching HTML: animation: rayShoot 1.2s ease-out
-    const eased = 1 - (1 - lp) * (1 - lp);
-    return {
-      height: interpolate(eased, [0, 0.4, 1], [0, maxH1, maxH2]),
-      opacity: interpolate(eased, [0, 0.02, 0.4, 1], [0, rayOpacity, rayOpacity * 0.6, 0]),
-    };
-  });
-
-  return (
-    <View
-      style={[
-        styles.rayWrapper,
-        {
-          top: centerY,
-          left: centerX - rayWidth / 2,
-          width: rayWidth,
-          transform: [{ rotate: `${angle}deg` }],
-        },
-      ]}
-    >
-      <Animated.View
-        style={[
-          styles.rayInner,
-          styles.rayOverflowHidden,
-          { width: rayWidth, borderRadius: rayWidth / 2 },
-          animStyle,
-        ]}
-      >
-        <LinearGradient
-          colors={[`${color}00`, `${color}CC`]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-    </View>
-  );
-});
-
-/** Expanding halo ring from center (matches HTML .god-halo + @keyframes haloExpand) */
-const GodHalo = React.memo(function GodHalo({
-  sizeRatio,
-  startP,
-  durationP,
-  bw,
-  progress,
-  color,
-  centerX,
-  centerY,
-  cardWidth,
-}: {
-  sizeRatio: number;
-  startP: number;
-  durationP: number;
-  bw: number;
-  progress: SharedValue<number>;
-  color: string;
-  centerX: number;
-  centerY: number;
-  cardWidth: number;
-}) {
-  const size = cardWidth * sizeRatio;
-  const endP = startP + durationP;
-
-  const animStyle = useAnimatedStyle(() => {
-    const p = progress.value;
-    const lp = interpolate(p, [startP, endP], [0, 1], Extrapolation.CLAMP);
-    // Apply ease-out curve on local progress to match demo's per-halo ease-out timing
-    // Approximate ease-out: fast expansion early, slow at end
-    const eased = 1 - (1 - lp) * (1 - lp);
-    return {
-      opacity: interpolate(eased, [0, 0.5, 1], [1, 0.4, 0]),
-      transform: [{ scale: interpolate(eased, [0, 0.5, 1], [0, 2, 3]) }],
-    };
-  });
-
-  return (
-    <Animated.View
-      style={[
-        styles.haloBase,
-        {
-          top: centerY - size / 2,
-          left: centerX - size / 2,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: bw,
-          borderColor: `${color}80`,
-        },
-        animStyle,
-      ]}
-    />
-  );
-});
-
-/**
- * Floating sparkle particle drifting upward with twinkle.
- * Matches HTML demo startGodParticles canvas: random distribution,
- * slow upward drift, sin-based flicker, life decay.
- */
+/** Gold sparkle particle drifting with twinkle */
 const GodParticle = React.memo(function GodParticle({
-  startXRatio,
-  startYRatio,
-  driftXRatio,
-  driftYRatio,
-  sizeRatio,
+  angle,
+  dist,
+  driftX,
+  driftY,
+  size,
   baseAlpha,
   twinklePhase,
   particleProgress,
   twinkleCycle,
   color,
-  cardWidth,
-  cardHeight,
+  centerX,
+  centerY,
 }: {
-  startXRatio: number;
-  startYRatio: number;
-  driftXRatio: number;
-  driftYRatio: number;
-  sizeRatio: number;
+  angle: number;
+  dist: number;
+  driftX: number;
+  driftY: number;
+  size: number;
   baseAlpha: number;
   twinklePhase: number;
   particleProgress: SharedValue<number>;
   twinkleCycle: SharedValue<number>;
   color: string;
-  cardWidth: number;
-  cardHeight: number;
+  centerX: number;
+  centerY: number;
 }) {
-  const startX = startXRatio * cardWidth;
-  const startY = startYRatio * cardHeight;
-  const totalDriftX = driftXRatio * cardWidth;
-  const totalDriftY = driftYRatio * cardHeight;
-  const size = Math.max(1, sizeRatio * cardWidth);
+  const startX = centerX + Math.cos(angle) * dist * 0.3;
+  const startY = centerY + Math.sin(angle) * dist * 0.3;
 
-  const animStyle = useAnimatedStyle(() => {
-    const p = particleProgress.value;
-    const life = 1 - p;
-    if (life <= 0) {
-      return { opacity: 0 };
-    }
+  const cx = useDerivedValue(() => startX + driftX * particleProgress.value);
+  const cy = useDerivedValue(() => startY + driftY * particleProgress.value);
+  const opacity = useDerivedValue(() => {
+    const life = 1 - particleProgress.value;
+    if (life <= 0) return 0;
     const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + twinklePhase);
-    const alpha = baseAlpha * life * flicker;
-    return {
-      opacity: alpha,
-      transform: [
-        { translateX: startX + totalDriftX * p - size / 2 },
-        { translateY: startY + totalDriftY * p - size / 2 },
-      ],
-    };
+    return baseAlpha * life * flicker;
   });
 
   return (
-    <Animated.View
-      style={[
-        styles.particleBase,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          boxShadow: `0 0 ${Math.round(size * 3)}px ${Math.round(size)}px ${color}20`,
-        },
-        animStyle,
-      ]}
-    />
+    <Circle cx={cx} cy={cy} r={size} color={color} opacity={opacity}>
+      <Blur blur={SK.particleBlur} />
+    </Circle>
   );
 });
 
-// ─── Main component ──────────────────────────────────────────────────────
+/** Expanding halo ring */
+const GodHalo = React.memo(function GodHalo({
+  startP,
+  durationP,
+  progress,
+  color,
+  centerX,
+  centerY,
+  cardWidth,
+}: {
+  startP: number;
+  durationP: number;
+  progress: SharedValue<number>;
+  color: string;
+  centerX: number;
+  centerY: number;
+  cardWidth: number;
+}) {
+  const endP = startP + durationP;
+  const maxR = cardWidth * 0.8;
+
+  const r = useDerivedValue(() => {
+    const p = progress.value;
+    const lp = Math.min(1, Math.max(0, (p - startP) / (endP - startP)));
+    return lp * maxR;
+  });
+  const opacity = useDerivedValue(() => {
+    const p = progress.value;
+    const lp = Math.min(1, Math.max(0, (p - startP) / (endP - startP)));
+    if (lp < 0.3) return 0.8;
+    return Math.max(0, 0.8 * (1 - (lp - 0.3) / 0.7));
+  });
+
+  return (
+    <Circle
+      cx={centerX}
+      cy={centerY}
+      r={r}
+      color={color}
+      style="stroke"
+      strokeWidth={2}
+      opacity={opacity}
+    >
+      <Blur blur={6} />
+    </Circle>
+  );
+});
+
+// ─── Main component ───────────────────────────────────────────────────
 
 interface GodRevealEffectProps {
   cardWidth: number;
@@ -322,18 +184,17 @@ export const GodRevealEffect: React.FC<GodRevealEffectProps> = ({
   const twinkleCycle = useSharedValue(0);
   const centerX = cardWidth / 2;
   const centerY = cardHeight * 0.42;
-  const barThickness = Math.max(2, cardWidth * 0.02);
 
   useEffect(() => {
     if (!animate) return;
 
-    // Transient effects progress: 0→1 over 2.5s
+    // Main progress 0→1 over 2.5s
     progress.value = withDelay(
       AE.effectStartDelay,
       withTiming(1, { duration: 2500, easing: Easing.out(Easing.quad) }),
     );
 
-    // Card glow: fast peak then settle to persistent low glow
+    // Card glow: burst → persist
     glowIntensity.value = withDelay(
       AE.effectStartDelay,
       withSequence(
@@ -343,13 +204,13 @@ export const GodRevealEffect: React.FC<GodRevealEffectProps> = ({
       ),
     );
 
-    // Particle life: 0→1 over ~5.5s, starts after 400ms delay (matching demo setTimeout(draw, 400))
+    // Particle life: 0→1 over 5.5s after delay
     particleProgress.value = withDelay(
       AE.effectStartDelay + PARTICLE_START_DELAY_MS,
       withTiming(1, { duration: PARTICLE_LIFETIME_MS, easing: Easing.linear }),
     );
 
-    // Twinkle cycle: 0→2π repeating every ~1047ms (demo: 0.1 rad/frame at 60fps)
+    // Twinkle cycle: repeating
     twinkleCycle.value = withDelay(
       AE.effectStartDelay + PARTICLE_START_DELAY_MS,
       withRepeat(
@@ -359,189 +220,167 @@ export const GodRevealEffect: React.FC<GodRevealEffectProps> = ({
     );
   }, [animate, progress, glowIntensity, particleProgress, twinkleCycle]);
 
-  // Card glow wrapper — animated boxShadow via opacity
-  const cardGlowStyle = useAnimatedStyle(() => ({
-    opacity: glowIntensity.value,
-  }));
+  // ── Derived values ──
+  const glowR = useDerivedValue(() => cardWidth * 0.5 * (0.5 + glowIntensity.value * 0.5));
+  const glowOpacity = useDerivedValue(() => glowIntensity.value * 0.7);
 
-  // Cross horizontal bar (matches HTML @keyframes crossH: 1s delay 0.2s ease-out)
-  // HTML: 0% scaleX(0) → 25% scaleX(1.3) → 60% scaleX(1.1) → 100% scaleX(1.5)
-  // On 2.5s progress, delay 0.2s = p 0.08; 1s duration = 0.4 range
-  const crossHStyle = useAnimatedStyle(() => {
+  // Light pillar (tapers upward from card top)
+  const pillarOpacity = useDerivedValue(() => {
     const p = progress.value;
-    const lp = interpolate(p, [0.08, 0.48], [0, 1], Extrapolation.CLAMP);
-    // Per-cross ease-out matching HTML: animation: crossH 1s 0.2s ease-out
-    const eased = 1 - (1 - lp) * (1 - lp);
-    return {
-      opacity: interpolate(eased, [0, 0.1, 0.25, 0.6, 1], [0, 1, 1, 0.3, 0], Extrapolation.CLAMP),
-      transform: [
-        { scaleX: interpolate(eased, [0, 0.25, 0.6, 1], [0, 1.3, 1.1, 1.5], Extrapolation.CLAMP) },
-      ],
-    };
+    if (p < 0.05) return p / 0.05;
+    if (p < 0.3) return 1;
+    return Math.max(0.15, 1 - (p - 0.3) / 0.7);
+  });
+  const pillarHeight = useDerivedValue(() => {
+    const p = progress.value;
+    return Math.min(1, p / 0.15) * cardHeight * 0.8;
   });
 
-  // Cross vertical bar (matches HTML @keyframes crossV: 1s delay 0.2s ease-out)
-  // HTML: 0% scaleY(0) → 25% scaleY(1.3) → 60% scaleY(1.1) → 100% scaleY(1.5)
-  const crossVStyle = useAnimatedStyle(() => {
+  // Cross flash
+  const crossOpacity = useDerivedValue(() => {
     const p = progress.value;
-    const lp = interpolate(p, [0.08, 0.48], [0, 1], Extrapolation.CLAMP);
-    const eased = 1 - (1 - lp) * (1 - lp);
-    return {
-      opacity: interpolate(eased, [0, 0.1, 0.25, 0.6, 1], [0, 1, 1, 0.3, 0], Extrapolation.CLAMP),
-      transform: [
-        { scaleY: interpolate(eased, [0, 0.25, 0.6, 1], [0, 1.3, 1.1, 1.5], Extrapolation.CLAMP) },
-      ],
-    };
+    if (p < 0.08) return p / 0.08;
+    return Math.max(0, 1 - (p - 0.08) / 0.3);
   });
+  const crossScaleXTransform = useDerivedValue(() => [
+    { scaleX: Math.min(2, (progress.value / 0.08) * 2) },
+  ]);
+  const crossScaleYTransform = useDerivedValue(() => [
+    { scaleY: Math.min(2, (progress.value / 0.08) * 2) },
+  ]);
+
+  // Bottom ground glow
+  const groundOpacity = useDerivedValue(() => {
+    const p = progress.value;
+    if (p < 0.2) return (p / 0.2) * 0.25;
+    return 0.25;
+  });
+
+  const barThickness = Math.max(3, cardWidth * 0.025);
+
+  const canvasStyle = useMemo(
+    () => ({
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      overflow: 'visible' as const,
+      width: cardWidth,
+      height: cardHeight,
+    }),
+    [cardWidth, cardHeight],
+  );
 
   return (
-    <View style={[styles.container, { width: cardWidth, height: cardHeight }]} pointerEvents="none">
-      {/* Persistent card glow — matches HTML godGlow boxShadow animation */}
-      <Animated.View
-        style={[
-          styles.cardGlow,
-          {
-            width: cardWidth,
-            height: cardHeight,
-            borderRadius: borderRadius.medium,
-            boxShadow: `0 0 ${Math.round(cardWidth * 0.286)}px ${Math.round(cardWidth * 0.107)}px ${glowColor}, 0 0 ${Math.round(cardWidth * 0.571)}px ${Math.round(cardWidth * 0.214)}px ${primaryColor}`,
-          },
-          cardGlowStyle,
-        ]}
-      />
+    <Canvas style={canvasStyle} pointerEvents="none">
+      {/* Persistent card glow */}
+      <Group opacity={glowOpacity}>
+        <Circle cx={centerX} cy={centerY} r={glowR}>
+          <RadialGradient
+            c={vec(centerX, centerY)}
+            r={cardWidth * 0.5}
+            colors={[glowColor, `${primaryColor}60`, `${primaryColor}00`]}
+          />
+          <Blur blur={SK.glowBlur} />
+        </Circle>
+      </Group>
 
-      {/* Cross flash — horizontal (center-bright gradient matching HTML demo) */}
-      <Animated.View
-        style={[
-          styles.crossBar,
-          {
-            top: centerY - barThickness / 2,
-            left: centerX - cardWidth,
-            width: cardWidth * 2,
-            height: barThickness,
-          },
-          crossHStyle,
-        ]}
-      >
-        <LinearGradient
-          colors={['transparent', particleColor, 'transparent']}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-
-      {/* Cross flash — vertical (center-bright gradient matching HTML demo) */}
-      <Animated.View
-        style={[
-          styles.crossBar,
-          {
-            top: centerY - cardHeight * (280 / 195 / 2),
-            left: centerX - barThickness / 2,
-            width: barThickness,
-            height: cardHeight * (280 / 195),
-          },
-          crossVStyle,
-        ]}
-      >
-        <LinearGradient
-          colors={['transparent', particleColor, 'transparent']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-
-      {/* Light rays (16, matching HTML demo — random width/opacity per ray) */}
-      {RAYS.map((ray, i) => (
-        <GodRay
-          key={i}
-          angle={ray.angle}
-          rayWidth={Math.max(1, cardWidth * ray.widthRatio)}
-          rayOpacity={ray.opacity}
-          delayP={ray.delayP}
-          progress={progress}
+      {/* Light pillar — upward from card center */}
+      <Group opacity={pillarOpacity} blendMode="screen">
+        <Rect
+          x={centerX - cardWidth * 0.15}
+          y={0}
+          width={cardWidth * 0.3}
+          height={pillarHeight}
           color={primaryColor}
-          centerX={centerX}
-          centerY={centerY}
-          cardHeight={cardHeight}
-        />
-      ))}
+        >
+          <Blur blur={15} />
+        </Rect>
+      </Group>
 
-      {/* Expanding halos (3 layers) */}
-      {HALO_CONFIGS.map(({ sizeRatio, startP, durationP, bw }, i) => (
-        <GodHalo
-          key={i}
-          sizeRatio={sizeRatio}
-          startP={startP}
-          durationP={durationP}
-          bw={bw}
-          progress={progress}
-          color={primaryColor}
-          centerX={centerX}
-          centerY={centerY}
-          cardWidth={cardWidth}
-        />
-      ))}
-
-      {/* Sparkle particle rain (matches HTML canvas: random distribution + upward drift + twinkle) */}
-      {GOD_PARTICLES.map((p) => (
-        <GodParticle
-          key={p.index}
-          startXRatio={p.startXRatio}
-          startYRatio={p.startYRatio}
-          driftXRatio={p.driftXRatio}
-          driftYRatio={p.driftYRatio}
-          sizeRatio={p.sizeRatio}
-          baseAlpha={p.baseAlpha}
-          twinklePhase={p.twinklePhase}
-          particleProgress={particleProgress}
-          twinkleCycle={twinkleCycle}
+      {/* Cross flash — horizontal */}
+      <Group
+        opacity={crossOpacity}
+        transform={crossScaleXTransform}
+        origin={vec(centerX, centerY)}
+        blendMode="screen"
+      >
+        <Rect
+          x={centerX - cardWidth}
+          y={centerY - barThickness / 2}
+          width={cardWidth * 2}
+          height={barThickness}
           color={particleColor}
-          cardWidth={cardWidth}
-          cardHeight={cardHeight}
-        />
-      ))}
-    </View>
+        >
+          <Blur blur={10} />
+        </Rect>
+      </Group>
+
+      {/* Cross flash — vertical */}
+      <Group
+        opacity={crossOpacity}
+        transform={crossScaleYTransform}
+        origin={vec(centerX, centerY)}
+        blendMode="screen"
+      >
+        <Rect
+          x={centerX - barThickness / 2}
+          y={centerY - cardHeight}
+          width={barThickness}
+          height={cardHeight * 2}
+          color={particleColor}
+        >
+          <Blur blur={10} />
+        </Rect>
+      </Group>
+
+      {/* Expanding halos (4 layers) */}
+      <Group blendMode="screen">
+        {HALO_CONFIGS.map((cfg, i) => (
+          <GodHalo
+            key={i}
+            startP={cfg.startP}
+            durationP={cfg.durationP}
+            progress={progress}
+            color={primaryColor}
+            centerX={centerX}
+            centerY={centerY}
+            cardWidth={cardWidth}
+          />
+        ))}
+      </Group>
+
+      {/* Bottom ground glow */}
+      <Group opacity={groundOpacity}>
+        <Circle cx={centerX} cy={cardHeight} r={cardWidth * 0.6}>
+          <RadialGradient
+            c={vec(centerX, cardHeight)}
+            r={cardWidth * 0.6}
+            colors={[`${primaryColor}40`, `${primaryColor}00`]}
+          />
+          <Blur blur={20} />
+        </Circle>
+      </Group>
+
+      {/* Gold sparkle particles */}
+      <Group blendMode="screen">
+        {GOD_PARTICLES.map((p, i) => (
+          <GodParticle
+            key={i}
+            angle={p.angle}
+            dist={p.dist}
+            driftX={p.driftX}
+            driftY={p.driftY}
+            size={p.size}
+            baseAlpha={p.baseAlpha}
+            twinklePhase={p.twinklePhase}
+            particleProgress={particleProgress}
+            twinkleCycle={twinkleCycle}
+            color={particleColor}
+            centerX={centerX}
+            centerY={centerY}
+          />
+        ))}
+      </Group>
+    </Canvas>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    overflow: 'visible',
-  },
-  cardGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  flash: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: borderRadius.medium,
-  },
-  crossBar: {
-    position: 'absolute',
-    overflow: 'hidden',
-  },
-  rayWrapper: {
-    position: 'absolute',
-    height: 0,
-    overflow: 'visible',
-  },
-  rayInner: {
-    position: 'absolute',
-    bottom: 0,
-  },
-  rayOverflowHidden: {
-    overflow: 'hidden',
-  },
-  haloBase: {
-    position: 'absolute',
-  },
-  particleBase: {
-    position: 'absolute',
-  },
-});

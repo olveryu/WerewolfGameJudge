@@ -1,23 +1,21 @@
 /**
- * VillagerRevealEffect - 村民阵营揭示特效（Reanimated 4）
+ * VillagerRevealEffect — 村民阵营揭示特效（Skia + Reanimated 4）
  *
  * 翻牌后在卡片区域渲染宁静夜空系列动画：
- * 1. **卡片光晕** — animated boxShadow 从亮→柔和→持续微弱灰蓝发光
- * 2. 护盾涟漪（2 层）— 从中心柔和扩散后淡出（比狼冲击波慢且柔）
- * 3. 萤火虫粒子（16 颗）— 缓慢漂浮上升，带轻柔横向摇摆，持续循环
- * 4. 闪烁星点（10 颗）— 固定位置交替闪烁
+ * 1. 卡片光晕 — Skia RadialGradient + Blur，柔和爆发→持续微弱暖色发光
+ * 2. 护盾涟漪（2 层）— Skia Circle stroke + Blur，从中心柔和扩散后淡出
+ * 3. 萤火虫粒子（16 颗）— Skia Circle + Blur + blendMode="screen"，缓慢漂浮上升
+ * 4. 闪烁星点（10 颗）— Skia Circle + Blur，固定位置交替闪烁
  *
  * 萤火虫和星光持续循环，光晕持续保留。
  * 不 import service，不含业务逻辑。
  */
-import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, {
+import { Blur, Canvas, Circle, Group, RadialGradient, vec } from '@shopify/react-native-skia';
+import React, { useEffect, useMemo } from 'react';
+import type { SharedValue } from 'react-native-reanimated';
+import {
   Easing,
-  Extrapolation,
-  interpolate,
-  type SharedValue,
-  useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -25,53 +23,47 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { SkiaSparkle } from '@/components/RoleRevealEffects/common/effects/SkiaSparkle';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { borderRadius } from '@/theme';
 
 const AE = CONFIG.alignmentEffects;
+const SK = CONFIG.skia;
 
 // ─── Pre-computed arrays ──────────────────────────────────────────────
 
 /** Shield ripple configs — gentler than wolf shockwaves */
 const RIPPLE_CONFIGS = [
-  { delay: 0.05, endP: 0.5, maxScale: 2.5, bw: 1.5, peakOpacity: 0.25 },
-  { delay: 0.18, endP: 0.65, maxScale: 3, bw: 1, peakOpacity: 0.15 },
+  { startP: 0.05, durationP: 0.45, maxScale: 2.5, peakOpacity: 0.25 },
+  { startP: 0.18, durationP: 0.47, maxScale: 3, peakOpacity: 0.15 },
 ] as const;
 
 const FIREFLIES = Array.from({ length: AE.villagerFireflyCount }, (_, i) => {
   const phase = (i / AE.villagerFireflyCount) * 360;
-  // Horizontal base position ratio (0.08–0.92 of cardWidth)
   const xRatio = 0.08 + ((i * 61 + 17) % 84) / 100;
-  // Vertical start (bottom half: 0.55–0.95 of cardHeight)
   const startYRatio = 0.55 + ((i * 37 + 11) % 40) / 100;
-  // Drift height (0.35–0.65 of cardHeight)
   const driftRatio = 0.35 + ((i * 23 + 7) % 30) / 100;
-  // Wobble amplitude (0.03–0.07 of cardWidth)
   const wobbleRatio = 0.03 + ((i * 13 + 3) % 40) / 1000;
-  // Particle size ratio
   const sizeRatio = (2 + (i % 3)) / 320;
-  return { index: i, phase, xRatio, startYRatio, driftRatio, wobbleRatio, sizeRatio };
+  return { phase, xRatio, startYRatio, driftRatio, wobbleRatio, sizeRatio };
 });
 
 const STARS = Array.from({ length: AE.villagerStarCount }, (_, i) => {
-  // Distribute around card center in an elliptical pattern
   const angle = (i / AE.villagerStarCount) * Math.PI * 2 + ((i * 0.3) % 0.6);
-  const rRatio = 0.32 + ((i * 17 + 5) % 18) / 100; // 0.32–0.50 of cardWidth
+  const rRatio = 0.32 + ((i * 17 + 5) % 18) / 100;
   const xRatio = 0.5 + Math.cos(angle) * rRatio;
-  const yRatio = 0.42 + Math.sin(angle) * rRatio * 0.75; // compressed vertically
+  const yRatio = 0.42 + Math.sin(angle) * rRatio * 0.75;
   const sizeRatio = (1.5 + (i % 3)) / 320;
-  const twinklePhase = (i / AE.villagerStarCount) * 360;
-  return { index: i, xRatio, yRatio, sizeRatio, twinklePhase };
+  const twinklePhase = ((i * 83 + 11) % 628) / 100;
+  return { xRatio, yRatio, sizeRatio, twinklePhase };
 });
 
-// ─── Sub-components ──────────────────────────────────────────────────────
+// ─── Sub-components ──────────────────────────────────────────────────
 
-/** Gentle shield ripple expanding from center */
+/** Gentle shield ripple — Skia expanding ring with Blur */
 const ShieldRipple = React.memo(function ShieldRipple({
-  delay,
-  endP,
+  startP,
+  durationP,
   maxScale,
-  bw,
   peakOpacity,
   progress,
   color,
@@ -79,10 +71,9 @@ const ShieldRipple = React.memo(function ShieldRipple({
   centerY,
   cardWidth,
 }: {
-  delay: number;
-  endP: number;
+  startP: number;
+  durationP: number;
   maxScale: number;
-  bw: number;
   peakOpacity: number;
   progress: SharedValue<number>;
   color: string;
@@ -90,41 +81,36 @@ const ShieldRipple = React.memo(function ShieldRipple({
   centerY: number;
   cardWidth: number;
 }) {
-  const size = cardWidth * 0.25;
+  const baseR = cardWidth * 0.12;
+  const endP = startP + durationP;
 
-  const animStyle = useAnimatedStyle(() => {
-    const p = progress.value;
-    const lp = interpolate(p, [delay, endP], [0, 1], Extrapolation.CLAMP);
-    return {
-      opacity: interpolate(
-        lp,
-        [0, 0.1, 0.4, 1],
-        [peakOpacity, peakOpacity * 0.8, peakOpacity * 0.4, 0],
-      ),
-      transform: [{ scale: interpolate(lp, [0, 0.5, 1], [0, maxScale * 0.6, maxScale]) }],
-    };
+  const r = useDerivedValue(() => {
+    const lp = Math.min(1, Math.max(0, (progress.value - startP) / (endP - startP)));
+    return baseR * (1 + lp * (maxScale - 1));
+  });
+  const opacity = useDerivedValue(() => {
+    const lp = Math.min(1, Math.max(0, (progress.value - startP) / (endP - startP)));
+    if (lp < 0.1) return peakOpacity;
+    if (lp < 0.4) return peakOpacity * 0.8;
+    return Math.max(0, peakOpacity * (1 - (lp - 0.4) / 0.6));
   });
 
   return (
-    <Animated.View
-      style={[
-        styles.rippleBase,
-        {
-          top: centerY - size / 2,
-          left: centerX - size / 2,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: bw,
-          borderColor: color,
-        },
-        animStyle,
-      ]}
-    />
+    <Circle
+      cx={centerX}
+      cy={centerY}
+      r={r}
+      color={color}
+      style="stroke"
+      strokeWidth={1.5}
+      opacity={opacity}
+    >
+      <Blur blur={4} />
+    </Circle>
   );
 });
 
-/** Floating firefly particle that drifts upward with gentle wobble */
+/** Floating firefly — Skia Circle with glow, drifts upward with gentle wobble */
 const Firefly = React.memo(function Firefly({
   phase,
   xRatio,
@@ -156,40 +142,33 @@ const Firefly = React.memo(function Firefly({
   const wobbleAmp = wobbleRatio * cardWidth;
   const size = Math.max(1.5, sizeRatio * cardWidth);
 
-  const animStyle = useAnimatedStyle(() => {
-    // fireflyCycle goes 0→360 with repeat; phase offsets each particle
+  const cx = useDerivedValue(() => {
     const currentPhase = (fireflyCycle.value + phase) % 360;
-    const t = currentPhase / 360; // 0–1 progress through one rise cycle
-    const y = startY - t * driftHeight;
-    const x = baseX + Math.sin(((currentPhase * Math.PI) / 180) * 3) * wobbleAmp;
-
-    // Fade in near start, stay visible in the middle, fade out near top
-    const alpha = interpolate(t, [0, 0.12, 0.65, 1], [0, 0.85, 0.85, 0], Extrapolation.CLAMP);
-
-    return {
-      opacity: appear.value * alpha,
-      transform: [{ translateX: x - size / 2 }, { translateY: y - size / 2 }],
-    };
+    return baseX + Math.sin(((currentPhase * Math.PI) / 180) * 3) * wobbleAmp;
+  });
+  const cy = useDerivedValue(() => {
+    const currentPhase = (fireflyCycle.value + phase) % 360;
+    const t = currentPhase / 360;
+    return startY - t * driftHeight;
+  });
+  const opacity = useDerivedValue(() => {
+    const currentPhase = (fireflyCycle.value + phase) % 360;
+    const t = currentPhase / 360;
+    let alpha: number;
+    if (t < 0.12) alpha = (t / 0.12) * 0.85;
+    else if (t < 0.65) alpha = 0.85;
+    else alpha = 0.85 * (1 - (t - 0.65) / 0.35);
+    return appear.value * Math.max(0, alpha);
   });
 
   return (
-    <Animated.View
-      style={[
-        styles.fireflyBase,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          boxShadow: `0 0 ${size * 3}px ${size}px ${color}50`,
-        },
-        animStyle,
-      ]}
-    />
+    <Circle cx={cx} cy={cy} r={size} color={color} opacity={opacity}>
+      <Blur blur={SK.particleBlur + 1} />
+    </Circle>
   );
 });
 
-/** Twinkling star point at a fixed position */
+/** Twinkling star — Skia cross-sparkle ✦ with pulsing opacity */
 const TwinkleStar = React.memo(function TwinkleStar({
   xRatio,
   yRatio,
@@ -215,43 +194,32 @@ const TwinkleStar = React.memo(function TwinkleStar({
   const y = yRatio * cardHeight;
   const size = Math.max(1.5, sizeRatio * cardWidth);
 
-  const animStyle = useAnimatedStyle(() => {
-    const phaseRad = ((twinkleCycle.value + twinklePhase) * Math.PI) / 180;
-    const sinVal = Math.sin(phaseRad);
-    const alpha = interpolate(
-      sinVal,
-      [-1, -0.2, 0.2, 1],
-      [0.05, 0.15, 0.5, 0.85],
-      Extrapolation.CLAMP,
-    );
-    const scale = 0.4 + 0.6 * ((sinVal + 1) / 2);
-
-    return {
-      opacity: appear.value * alpha,
-      transform: [{ scale }],
-    };
+  const opacity = useDerivedValue(() => {
+    const sinVal = Math.sin(twinkleCycle.value + twinklePhase);
+    let alpha: number;
+    if (sinVal < -0.2) alpha = 0.05 + ((sinVal + 1) / 0.8) * 0.1;
+    else if (sinVal < 0.2) alpha = 0.15 + ((sinVal + 0.2) / 0.4) * 0.35;
+    else alpha = 0.5 + ((sinVal - 0.2) / 0.8) * 0.35;
+    return appear.value * alpha;
   });
 
+  const isBright = size > 2.5;
+
   return (
-    <Animated.View
-      style={[
-        styles.starBase,
-        {
-          top: y - size / 2,
-          left: x - size / 2,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          boxShadow: `0 0 ${size * 4}px ${size * 1.5}px ${color}60`,
-        },
-        animStyle,
-      ]}
-    />
+    <Group opacity={opacity}>
+      <SkiaSparkle
+        x={x}
+        y={y}
+        r={size}
+        color={color}
+        bright={isBright}
+        glowBlur={SK.particleBlur + 2}
+      />
+    </Group>
   );
 });
 
-// ─── Main component ──────────────────────────────────────────────────────
+// ─── Main component ──────────────────────────────────────────────────
 
 interface VillagerRevealEffectProps {
   cardWidth: number;
@@ -281,19 +249,16 @@ export const VillagerRevealEffect: React.FC<VillagerRevealEffectProps> = ({
   useEffect(() => {
     if (!animate) return;
 
-    // Entrance transient: 0→1 over 2.5s
     progress.value = withDelay(
       AE.effectStartDelay,
       withTiming(1, { duration: 2500, easing: Easing.out(Easing.quad) }),
     );
 
-    // Elements appear (0.3s delay, 0.5s ease-out)
     appear.value = withDelay(
       AE.effectStartDelay + 300,
       withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) }),
     );
 
-    // Card glow: peak → medium → persist
     glowIntensity.value = withDelay(
       AE.effectStartDelay,
       withSequence(
@@ -303,7 +268,6 @@ export const VillagerRevealEffect: React.FC<VillagerRevealEffectProps> = ({
       ),
     );
 
-    // Continuous firefly drift cycle (0→360, repeat)
     fireflyCycle.value = withDelay(
       AE.effectStartDelay,
       withRepeat(
@@ -315,11 +279,10 @@ export const VillagerRevealEffect: React.FC<VillagerRevealEffectProps> = ({
       ),
     );
 
-    // Continuous star twinkle cycle
     twinkleCycle.value = withDelay(
       AE.effectStartDelay,
       withRepeat(
-        withTiming(360, {
+        withTiming(Math.PI * 2, {
           duration: AE.villagerTwinkleDuration,
           easing: Easing.linear,
         }),
@@ -328,111 +291,110 @@ export const VillagerRevealEffect: React.FC<VillagerRevealEffectProps> = ({
     );
   }, [animate, progress, appear, glowIntensity, fireflyCycle, twinkleCycle]);
 
-  // Card glow wrapper
-  const cardGlowStyle = useAnimatedStyle(() => ({
-    opacity: glowIntensity.value,
-  }));
+  const glowR = useDerivedValue(() => cardWidth * 0.45 * (0.5 + glowIntensity.value * 0.5));
+  const glowOpacity = useDerivedValue(() => glowIntensity.value * 0.55);
 
-  // Flash overlay — softer than other factions
-  const flashStyle = useAnimatedStyle(() => {
+  const flashOpacity = useDerivedValue(() => {
     const p = progress.value;
-    return {
-      opacity: interpolate(p, [0, 0.06, 0.15, 0.35], [0, 0.5, 0.15, 0], Extrapolation.CLAMP),
-    };
+    if (p < 0.06) return (p / 0.06) * 0.4;
+    if (p < 0.15) return 0.4 * (1 - ((p - 0.06) / 0.09) * 0.6);
+    if (p < 0.35) return 0.16 * (1 - (p - 0.15) / 0.2);
+    return 0;
   });
 
+  const canvasStyle = useMemo(
+    () => ({
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      overflow: 'visible' as const,
+      width: cardWidth,
+      height: cardHeight,
+    }),
+    [cardWidth, cardHeight],
+  );
+
   return (
-    <View style={[styles.container, { width: cardWidth, height: cardHeight }]} pointerEvents="none">
+    <Canvas style={canvasStyle} pointerEvents="none">
       {/* Persistent card glow */}
-      <Animated.View
-        style={[
-          styles.cardGlow,
-          {
-            width: cardWidth,
-            height: cardHeight,
-            borderRadius: borderRadius.medium,
-            boxShadow: `0 0 ${Math.round(cardWidth * 0.3)}px ${Math.round(cardWidth * 0.1)}px ${glowColor}, 0 0 ${Math.round(cardWidth * 0.5)}px ${Math.round(cardWidth * 0.2)}px ${primaryColor}50`,
-          },
-          cardGlowStyle,
-        ]}
-      />
+      <Group opacity={glowOpacity}>
+        <Circle cx={centerX} cy={centerY} r={glowR}>
+          <RadialGradient
+            c={vec(centerX, centerY)}
+            r={cardWidth * 0.45}
+            colors={[glowColor, `${primaryColor}50`, `${primaryColor}00`]}
+          />
+          <Blur blur={SK.glowBlur} />
+        </Circle>
+      </Group>
 
-      {/* Flash overlay */}
-      <Animated.View style={[styles.flash, { backgroundColor: primaryColor }, flashStyle]} />
+      {/* Soft flash overlay */}
+      <Group opacity={flashOpacity}>
+        <Circle cx={centerX} cy={centerY} r={cardWidth * 0.6}>
+          <RadialGradient
+            c={vec(centerX, centerY)}
+            r={cardWidth * 0.6}
+            colors={[`${primaryColor}80`, `${primaryColor}00`]}
+          />
+          <Blur blur={20} />
+        </Circle>
+      </Group>
 
-      {/* Shield ripples — gentle expanding rings */}
-      {RIPPLE_CONFIGS.map((cfg, i) => (
-        <ShieldRipple
-          key={i}
-          {...cfg}
-          progress={progress}
-          color={glowColor}
-          centerX={centerX}
-          centerY={centerY}
-          cardWidth={cardWidth}
-        />
-      ))}
+      {/* Shield ripples */}
+      <Group blendMode="screen">
+        {RIPPLE_CONFIGS.map((cfg, i) => (
+          <ShieldRipple
+            key={i}
+            startP={cfg.startP}
+            durationP={cfg.durationP}
+            maxScale={cfg.maxScale}
+            peakOpacity={cfg.peakOpacity}
+            progress={progress}
+            color={glowColor}
+            centerX={centerX}
+            centerY={centerY}
+            cardWidth={cardWidth}
+          />
+        ))}
+      </Group>
 
-      {/* Twinkling stars — fixed positions */}
-      {STARS.map((star) => (
-        <TwinkleStar
-          key={star.index}
-          xRatio={star.xRatio}
-          yRatio={star.yRatio}
-          sizeRatio={star.sizeRatio}
-          twinklePhase={star.twinklePhase}
-          twinkleCycle={twinkleCycle}
-          appear={appear}
-          color={particleColor}
-          cardWidth={cardWidth}
-          cardHeight={cardHeight}
-        />
-      ))}
+      {/* Twinkling stars */}
+      <Group blendMode="screen">
+        {STARS.map((star, i) => (
+          <TwinkleStar
+            key={i}
+            xRatio={star.xRatio}
+            yRatio={star.yRatio}
+            sizeRatio={star.sizeRatio}
+            twinklePhase={star.twinklePhase}
+            twinkleCycle={twinkleCycle}
+            appear={appear}
+            color={particleColor}
+            cardWidth={cardWidth}
+            cardHeight={cardHeight}
+          />
+        ))}
+      </Group>
 
-      {/* Floating fireflies — continuous upward drift */}
-      {FIREFLIES.map((ff) => (
-        <Firefly
-          key={ff.index}
-          phase={ff.phase}
-          xRatio={ff.xRatio}
-          startYRatio={ff.startYRatio}
-          driftRatio={ff.driftRatio}
-          wobbleRatio={ff.wobbleRatio}
-          sizeRatio={ff.sizeRatio}
-          fireflyCycle={fireflyCycle}
-          appear={appear}
-          color={particleColor}
-          cardWidth={cardWidth}
-          cardHeight={cardHeight}
-        />
-      ))}
-    </View>
+      {/* Floating fireflies */}
+      <Group blendMode="screen">
+        {FIREFLIES.map((ff, i) => (
+          <Firefly
+            key={i}
+            phase={ff.phase}
+            xRatio={ff.xRatio}
+            startYRatio={ff.startYRatio}
+            driftRatio={ff.driftRatio}
+            wobbleRatio={ff.wobbleRatio}
+            sizeRatio={ff.sizeRatio}
+            fireflyCycle={fireflyCycle}
+            appear={appear}
+            color={particleColor}
+            cardWidth={cardWidth}
+            cardHeight={cardHeight}
+          />
+        ))}
+      </Group>
+    </Canvas>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    overflow: 'visible',
-  },
-  cardGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  flash: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: borderRadius.medium,
-  },
-  rippleBase: {
-    position: 'absolute',
-  },
-  fireflyBase: {
-    position: 'absolute',
-  },
-  starBase: {
-    position: 'absolute',
-  },
-});

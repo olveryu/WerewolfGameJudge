@@ -1,1 +1,1 @@
-export { FortuneWheel } from './FortuneWheelLoader';
+export { FortuneWheel } from './FortuneWheel';

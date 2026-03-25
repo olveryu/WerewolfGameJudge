@@ -1,197 +1,130 @@
 /**
- * WolfRevealEffect - 狼人阵营揭示特效（Reanimated 4）
+ * WolfRevealEffect — 狼人阵营揭示特效（Skia + Reanimated 4）
  *
- * 翻牌后在卡片区域渲染暗红系列动画，严格对标 HTML demo v2：
- * 1. **卡片光晕** — animated boxShadow 从极亮爆发→中等→**持续微弱暗红发光**
- * 2. 能量冲击波（3 层）— 从中心扩散后淡出
- * 3. 狼眼闪现 — 两只红色椭圆闪烁后消失
- * 4. 底部烟雾 — 缓慢升起后保持半透明
- * 5. 火花碎片（24 颗）— 从中心射出后淡出
+ * 翻牌后在卡片区域渲染暗红恐怖系列动画：
+ * 1. 卡片辉光 — Skia RadialGradient + Blur，从极亮爆发→持续微弱暗红发光
+ * 2. 暗红雾气 — Skia 多层 Circle + Blur 模拟干冰烟雾弥漫
+ * 3. 血滴粒子 — 5 颗水滴形液滴从卡片顶部边缘加速滴落（带拖尾辉光）
+ * 4. 裂痕网 — 从中心扩散的不规则裂纹 Path（strokeDashoffset 蔓延）
+ * 5. 狼瞳脉冲 — 两只暗红光点在暗处脉动
+ * 6. 暗色冲击波 — 2 层从中心扩散的扭曲波纹
+ * 7. 火花碎片 — 24 颗从中心射出带 Blur + blendMode 的粒子
  *
- * 除卡片光晕和底部烟雾外所有子元素均为瞬态（2.5s 内完成）。
+ * 情绪签名：slow burn（缓慢升温的不安）。
  * 不 import service，不含业务逻辑。
  */
-import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, {
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Path as SkiaPath,
+  RadialGradient,
+  vec,
+} from '@shopify/react-native-skia';
+import React, { useEffect, useMemo } from 'react';
+import type { SharedValue } from 'react-native-reanimated';
+import {
   Easing,
-  Extrapolation,
-  interpolate,
-  type SharedValue,
-  useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Line } from 'react-native-svg';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { borderRadius } from '@/theme';
 
 const AE = CONFIG.alignmentEffects;
+const SK = CONFIG.skia;
 
-// ─── Pre-computed arrays ──────────────────────────────────────────────
+// ─── Pre-computed data ────────────────────────────────────────────────
 
-// HTML demo: all 3 waves use same @keyframes wolfWaveExpand (scale 0→3.5→5)
-// Layers differ only in delay/opacity/border-width
-const WAVE_CONFIGS = [
-  { startP: 0.08, endP: 0.55, maxScale: 5, bw: 2, peakOpacity: 0.6 },
-  { startP: 0.14, endP: 0.65, maxScale: 5, bw: 1.5, peakOpacity: 0.3 },
-  { startP: 0.22, endP: 0.78, maxScale: 5, bw: 1, peakOpacity: 0.15 },
-] as const;
-
-const SPARK_COUNT = 24;
+const SPARK_COUNT = AE.wolfSparkCount;
 const SPARKS = Array.from({ length: SPARK_COUNT }, (_, i) => {
   const angle = (i / SPARK_COUNT) * Math.PI * 2 + (i % 3) * 0.15;
-  // Distance as ratio of card half-width (HTML: 40-140px on 140px card → 0.28-1.0)
-  const distanceRatio = 0.28 + ((i * 37) % 100) / 140;
-  // HTML demo: hue 0-40, saturation 100%, lightness 50-80%
+  const distRatio = 0.28 + ((i * 37) % 100) / 140;
   const hue = (i * 17) % 40;
   const lightness = 50 + ((i * 13) % 30);
   return {
-    index: i,
-    targetXRatio: Math.cos(angle) * distanceRatio,
-    targetYRatio: Math.sin(angle) * distanceRatio,
+    targetXRatio: Math.cos(angle) * distRatio,
+    targetYRatio: Math.sin(angle) * distRatio,
     sizeRatio: (1.5 + ((i * 13) % 30) / 10) / 140,
     delay: 0.06 + (i / SPARK_COUNT) * 0.12,
     color: `hsl(${hue}, 100%, ${lightness}%)`,
   };
 });
 
-// ─── Sub-components ──────────────────────────────────────────────────────
+// Blood drop seeds — fewer, larger, positioned near card edges for visual logic
+const BLOOD_DROPS = [
+  { xRatio: 0.12, size: 5, speed: 2800, delay: 0 },
+  { xRatio: 0.88, size: 4.5, speed: 3200, delay: 400 },
+  { xRatio: 0.28, size: 4, speed: 3600, delay: 800 },
+  { xRatio: 0.72, size: 5.5, speed: 2600, delay: 1200 },
+  { xRatio: 0.5, size: 4, speed: 3400, delay: 600 },
+];
 
-/** Expanding shockwave ring from center (matches HTML @keyframes wolfWaveExpand) */
-const WolfWave = React.memo(function WolfWave({
-  startP,
-  endP,
-  maxScale,
-  bw,
-  peakOpacity,
-  progress,
-  color,
-  centerX,
-  centerY,
-  cardWidth,
-}: {
-  startP: number;
-  endP: number;
-  maxScale: number;
-  bw: number;
-  peakOpacity: number;
-  progress: SharedValue<number>;
-  color: string;
-  centerX: number;
-  centerY: number;
-  cardWidth: number;
-}) {
-  // Wave base size: HTML 40px on 140px card → 0.28 ratio
-  const size = cardWidth * 0.28;
-
-  const animStyle = useAnimatedStyle(() => {
-    const p = progress.value;
-    const lp = interpolate(p, [startP, endP], [0, 1], Extrapolation.CLAMP);
-    return {
-      opacity: interpolate(
-        lp,
-        [0, 0.15, 0.5, 1],
-        [peakOpacity, peakOpacity * 0.7, peakOpacity * 0.3, 0],
-      ),
-      transform: [{ scale: interpolate(lp, [0, 0.5, 1], [0, maxScale * 0.6, maxScale]) }],
-    };
-  });
-
+/** Teardrop SVG path centered at (0,0): narrow top, round bottom */
+function buildTeardropPath(r: number): string {
+  // Upper tip (narrow) → bulge at bottom
+  const tipY = -r * 2.2;
   return (
-    <Animated.View
-      style={[
-        styles.waveBase,
-        {
-          top: centerY - size / 2,
-          left: centerX - size / 2,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: bw,
-          borderColor: color,
-          boxShadow: `0 0 8px 2px ${color}`,
-        },
-        animStyle,
-      ]}
-    />
+    `M 0 ${tipY.toFixed(1)} ` +
+    `Q ${(r * 0.4).toFixed(1)} ${(-r * 0.8).toFixed(1)} ${r.toFixed(1)} ${(r * 0.2).toFixed(1)} ` +
+    `A ${r.toFixed(1)} ${r.toFixed(1)} 0 1 1 ${(-r).toFixed(1)} ${(r * 0.2).toFixed(1)} ` +
+    `Q ${(-r * 0.4).toFixed(1)} ${(-r * 0.8).toFixed(1)} 0 ${tipY.toFixed(1)} Z`
   );
-});
+}
 
-/** Wolf eyes flash — two red ellipses (matches HTML @keyframes eyesFlash) */
-const WolfEyes = React.memo(function WolfEyes({
-  progress,
-  color,
-  centerX,
-  eyeY,
-  cardWidth,
-}: {
-  progress: SharedValue<number>;
-  color: string;
-  centerX: number;
-  eyeY: number;
+// Fog clouds (large blurry circles)
+const FOG_CLOUDS = Array.from({ length: 6 }, (_, i) => ({
+  xRatio: 0.1 + ((i * 67 + 23) % 80) / 100,
+  yRatio: 0.5 + ((i * 41 + 7) % 50) / 100,
+  rRatio: 0.15 + ((i * 29) % 15) / 100,
+  driftX: ((i * 53) % 30) - 15,
+}));
+
+// Crack paths (pre-computed SVG path strings as ratios)
+const CRACK_PATHS = [
+  'M 0.5 0.42 L 0.32 0.05',
+  'M 0.5 0.42 L 0.68 0.08',
+  'M 0.5 0.42 L 0.2 0.35',
+  'M 0.5 0.42 L 0.8 0.38',
+  'M 0.5 0.42 L 0.25 0.7',
+  'M 0.5 0.42 L 0.75 0.72',
+  'M 0.5 0.42 L 0.35 0.9',
+  'M 0.5 0.42 L 0.65 0.95',
+];
+
+// ─── Sub-components (Skia nodes) ──────────────────────────────────────
+
+/** Single fog cloud — extracted to avoid hooks inside .map() */
+interface SkiaFogCloudProps {
+  fog: (typeof FOG_CLOUDS)[number];
+  index: number;
+  fogDrift: SharedValue<number>;
   cardWidth: number;
-}) {
-  // Eyes container width relative to cardWidth (HTML: 60px wide on 140px card → 0.429)
-  const eyeWidth = cardWidth * 0.429;
-  const eyeSize = cardWidth * 0.071;
-  const eyeHeight = cardWidth * 0.043;
+  cardHeight: number;
+  color: string;
+}
 
-  const animStyle = useAnimatedStyle(() => {
-    const p = progress.value;
-    // HTML: 0%→0, 10%→1, 25%→1, 40%→0.1, 45%→0.9, 60%→0, 100%→0
-    return {
-      opacity: interpolate(
-        p,
-        [0.08, 0.12, 0.25, 0.35, 0.38, 0.5, 1],
-        [0, 1, 1, 0.1, 0.9, 0, 0],
-        Extrapolation.CLAMP,
-      ),
-    };
-  });
+const SkiaFogCloud: React.FC<SkiaFogCloudProps> = React.memo(
+  ({ fog, index, fogDrift, cardWidth, cardHeight, color }) => {
+    const fogCx = useDerivedValue(
+      () => fog.xRatio * cardWidth + Math.sin(fogDrift.value * Math.PI * 2 + index) * fog.driftX,
+    );
+    const fogCy = useDerivedValue(() => fog.yRatio * cardHeight);
+    return (
+      <Circle cx={fogCx} cy={fogCy} r={fog.rRatio * cardWidth} color={color}>
+        <Blur blur={20} />
+      </Circle>
+    );
+  },
+);
+SkiaFogCloud.displayName = 'SkiaFogCloud';
 
-  return (
-    <Animated.View
-      style={[
-        styles.eyesContainer,
-        { top: eyeY, left: centerX - eyeWidth / 2, width: eyeWidth, height: eyeHeight * 2.4 },
-        animStyle,
-      ]}
-    >
-      <View
-        style={[
-          styles.wolfEye,
-          {
-            width: eyeSize,
-            height: eyeHeight,
-            borderRadius: eyeSize / 2,
-            backgroundColor: color,
-            boxShadow: `0 0 ${Math.round(cardWidth * 0.071)}px ${Math.round(cardWidth * 0.021)}px ${color}`,
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.wolfEye,
-          {
-            width: eyeSize,
-            height: eyeHeight,
-            borderRadius: eyeSize / 2,
-            backgroundColor: color,
-            boxShadow: `0 0 ${Math.round(cardWidth * 0.071)}px ${Math.round(cardWidth * 0.021)}px ${color}`,
-          },
-        ]}
-      />
-    </Animated.View>
-  );
-});
-
-/** Spark fragment shooting outward from center (matches HTML spawnSparks) */
+/** Wolf spark particle with Blur + blendMode */
 const WolfSpark = React.memo(function WolfSpark({
   targetXRatio,
   targetYRatio,
@@ -217,39 +150,92 @@ const WolfSpark = React.memo(function WolfSpark({
   const targetY = targetYRatio * cardWidth;
   const size = Math.max(1, sizeRatio * cardWidth);
 
-  const animStyle = useAnimatedStyle(() => {
-    const p = progress.value;
-    const lp = interpolate(p, [delay, delay + 0.35], [0, 1], Extrapolation.CLAMP);
-    return {
-      opacity: interpolate(lp, [0, 0.05, 0.4, 1], [0, 1, 0.5, 0]),
-      transform: [
-        { translateX: interpolate(lp, [0, 1], [0, targetX]) },
-        { translateY: interpolate(lp, [0, 1], [0, targetY]) },
-        { scale: interpolate(lp, [0, 0.05, 1], [1, 1, 0]) },
-      ],
-    };
+  const cx = useDerivedValue(
+    () => centerX + targetX * Math.min(1, Math.max(0, (progress.value - delay) / 0.35)),
+  );
+  const cy = useDerivedValue(
+    () => centerY + targetY * Math.min(1, Math.max(0, (progress.value - delay) / 0.35)),
+  );
+  const opacity = useDerivedValue(() => {
+    const lp = Math.min(1, Math.max(0, (progress.value - delay) / 0.35));
+    if (lp < 0.05) return lp / 0.05;
+    return Math.max(0, 1 - (lp - 0.05) / 0.6);
+  });
+  const r = useDerivedValue(() => {
+    const lp = Math.min(1, Math.max(0, (progress.value - delay) / 0.35));
+    return size * Math.max(0, 1 - lp);
   });
 
   return (
-    <Animated.View
-      style={[
-        styles.sparkBase,
-        {
-          top: centerY - size / 2,
-          left: centerX - size / 2,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          boxShadow: `0 0 ${Math.round(cardWidth * 0.04)}px ${color}`,
-        },
-        animStyle,
-      ]}
-    />
+    <Circle cx={cx} cy={cy} r={r} color={color} opacity={opacity}>
+      <Blur blur={SK.particleBlur} />
+    </Circle>
   );
 });
 
-// ─── Main component ──────────────────────────────────────────────────────
+/** Blood drop — teardrop Path + trailing glow, falling with gravity */
+const BloodDrop = React.memo(function BloodDrop({
+  xRatio,
+  size,
+  dropProgress,
+  color,
+  cardWidth,
+  cardHeight,
+}: {
+  xRatio: number;
+  size: number;
+  dropProgress: SharedValue<number>;
+  color: string;
+  cardWidth: number;
+  cardHeight: number;
+}) {
+  const dropPath = useMemo(() => buildTeardropPath(size), [size]);
+  const cx = xRatio * cardWidth;
+
+  // Current Y position (top → 95% of card height)
+  const cy = useDerivedValue(() => dropProgress.value * cardHeight * 0.95);
+
+  // Trail Y — slightly behind the drop
+  const trailCy = useDerivedValue(() => Math.max(0, cy.value - size * 3.5));
+  const trailR = size * 0.6;
+
+  // Drop opacity: fade in quickly, solid mid-fall, fade out at bottom
+  const dropOpacity = useDerivedValue(() => {
+    const p = dropProgress.value;
+    if (p < 0.05) return p / 0.05;
+    if (p > 0.85) return Math.max(0, (1 - p) / 0.15);
+    return 0.9;
+  });
+
+  // Trail opacity: dimmer than drop, fades with it
+  const trailOpacity = useDerivedValue(() => dropOpacity.value * 0.4);
+
+  // Transform for teardrop path (translate to current position)
+  const dropTransform = useDerivedValue(() => [{ translateX: cx }, { translateY: cy.value }]);
+
+  return (
+    <Group>
+      {/* Trailing glow streak */}
+      <Group opacity={trailOpacity}>
+        <Circle cx={cx} cy={trailCy} r={trailR} color={color}>
+          <Blur blur={6} />
+        </Circle>
+        <Circle cx={cx} cy={trailCy} r={trailR * 1.8} color={color} opacity={0.3}>
+          <Blur blur={12} />
+        </Circle>
+      </Group>
+      {/* Teardrop body */}
+      <Group opacity={dropOpacity} transform={dropTransform}>
+        <SkiaPath path={dropPath} color={color} />
+        <SkiaPath path={dropPath} color={color} opacity={0.5}>
+          <Blur blur={4} />
+        </SkiaPath>
+      </Group>
+    </Group>
+  );
+});
+
+// ─── Main component ───────────────────────────────────────────────────
 
 interface WolfRevealEffectProps {
   cardWidth: number;
@@ -270,21 +256,32 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
 }) => {
   const progress = useSharedValue(0);
   const glowIntensity = useSharedValue(0);
-  const cracksOpacity = useSharedValue(0);
+  const fogDrift = useSharedValue(0);
+  const eyePulse = useSharedValue(0);
   const centerX = cardWidth / 2;
   const centerY = cardHeight * 0.42;
+
+  // Blood drop shared values (one per drop)
+  const dropSV0 = useSharedValue(0);
+  const dropSV1 = useSharedValue(0);
+  const dropSV2 = useSharedValue(0);
+  const dropSV3 = useSharedValue(0);
+  const dropSV4 = useSharedValue(0);
+  const dropSVs = useMemo(
+    () => [dropSV0, dropSV1, dropSV2, dropSV3, dropSV4],
+    [dropSV0, dropSV1, dropSV2, dropSV3, dropSV4],
+  );
 
   useEffect(() => {
     if (!animate) return;
 
-    // Transient effects progress: 0→1 over 2.5s
+    // Transient effects progress
     progress.value = withDelay(
       AE.effectStartDelay,
       withTiming(1, { duration: 2500, easing: Easing.out(Easing.quad) }),
     );
 
-    // Card glow — matches HTML @keyframes wolfGlow
-    // 0%→12% peak, 12%→35% medium, 35%→100% persist low
+    // Card glow — burst then persist
     glowIntensity.value = withDelay(
       AE.effectStartDelay,
       withSequence(
@@ -294,241 +291,190 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
       ),
     );
 
-    // Cracks appear at 0.2s then glow-pulse (matches HTML cracksAppear + cracksGlow)
-    cracksOpacity.value = withDelay(
-      200,
-      withSequence(
-        withTiming(1, { duration: 100 }),
-        withDelay(
-          800,
-          withRepeat(
-            withSequence(
-              withTiming(0.6, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
-              withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
-            ),
-            -1,
-          ),
+    // Fog drift — continuous
+    fogDrift.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1);
+
+    // Wolf eye pulse — continuous menacing throb
+    eyePulse.value = withDelay(
+      500,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
         ),
+        -1,
       ),
     );
-  }, [animate, progress, glowIntensity, cracksOpacity]);
 
-  // Card glow wrapper
-  const cardGlowStyle = useAnimatedStyle(() => ({
-    opacity: glowIntensity.value,
-  }));
+    // Blood drops — staggered falling loops
+    dropSVs.forEach((sv, i) => {
+      sv.value = withDelay(
+        AE.effectStartDelay + BLOOD_DROPS[i].delay,
+        withRepeat(
+          withTiming(1, { duration: BLOOD_DROPS[i].speed, easing: Easing.in(Easing.quad) }),
+          -1,
+        ),
+      );
+    });
+  }, [animate, progress, glowIntensity, fogDrift, eyePulse, dropSVs]);
 
-  // Flash overlay — strong initial burst matching HTML demo
-  const flashStyle = useAnimatedStyle(() => {
+  // ── Derived values ──
+  const glowR = useDerivedValue(() => cardWidth * 0.6 * (0.5 + glowIntensity.value * 0.5));
+  const glowOpacity = useDerivedValue(() => glowIntensity.value * 0.6);
+
+  // Crack path opacity (appears with progress)
+  const crackOpacity = useDerivedValue(() => {
     const p = progress.value;
-    return {
-      opacity: interpolate(p, [0, 0.04, 0.12, 0.3], [0, 0.7, 0.25, 0], Extrapolation.CLAMP),
-    };
+    if (p < 0.1) return 0;
+    return Math.min(0.8, (p - 0.1) * 2);
   });
 
-  // Bottom fog (matches HTML @keyframes fogRise — persistent)
-  const fogStyle = useAnimatedStyle(() => {
-    const p = progress.value;
-    return {
-      opacity: interpolate(p, [0.16, 0.4, 1], [0, 0.8, 0.45], Extrapolation.CLAMP),
-      transform: [{ translateY: interpolate(p, [0.16, 0.4, 1], [20, 0, -5], Extrapolation.CLAMP) }],
-    };
-  });
+  // Shockwave rings
+  const wave1R = useDerivedValue(() => progress.value * cardWidth * 0.8);
+  const wave1Op = useDerivedValue(() => Math.max(0, 0.5 - progress.value * 0.7));
+  const wave2R = useDerivedValue(() => Math.max(0, progress.value - 0.15) * cardWidth * 0.9);
+  const wave2Op = useDerivedValue(() =>
+    Math.max(0, 0.3 - Math.max(0, progress.value - 0.15) * 0.5),
+  );
 
-  // Cracks SVG brightness pulse
-  const cracksStyle = useAnimatedStyle(() => ({
-    opacity: cracksOpacity.value,
-  }));
+  // Eye pulse opacity
+  const eyeOpacity = useDerivedValue(() => 0.3 + eyePulse.value * 0.5);
+
+  const canvasStyle = useMemo(
+    () => ({
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      overflow: 'visible' as const,
+      width: cardWidth,
+      height: cardHeight,
+    }),
+    [cardWidth, cardHeight],
+  );
 
   return (
-    <View style={[styles.container, { width: cardWidth, height: cardHeight }]} pointerEvents="none">
-      {/* Persistent card glow — matches HTML wolfGlow boxShadow */}
-      <Animated.View
-        style={[
-          styles.cardGlow,
-          {
-            width: cardWidth,
-            height: cardHeight,
-            borderRadius: borderRadius.medium,
-            boxShadow: `0 0 ${Math.round(cardWidth * 0.357)}px ${Math.round(cardWidth * 0.143)}px ${glowColor}, 0 0 ${Math.round(cardWidth * 0.714)}px ${Math.round(cardWidth * 0.286)}px ${primaryColor}`,
-          },
-          cardGlowStyle,
-        ]}
-      />
+    <Canvas style={canvasStyle} pointerEvents="none">
+      {/* Card glow — RadialGradient from center */}
+      <Group opacity={glowOpacity}>
+        <Circle cx={centerX} cy={centerY} r={glowR}>
+          <RadialGradient
+            c={vec(centerX, centerY)}
+            r={cardWidth * 0.6}
+            colors={[glowColor, `${primaryColor}60`, `${primaryColor}00`]}
+          />
+          <Blur blur={SK.glowBlur} />
+        </Circle>
+      </Group>
 
-      {/* Flash overlay */}
-      <Animated.View style={[styles.flash, { backgroundColor: primaryColor }, flashStyle]} />
+      {/* Fog clouds — large blurry circles drifting */}
+      <Group opacity={0.35}>
+        {FOG_CLOUDS.map((fog, i) => (
+          <SkiaFogCloud
+            key={`fog-${i}`}
+            fog={fog}
+            index={i}
+            fogDrift={fogDrift}
+            cardWidth={cardWidth}
+            cardHeight={cardHeight}
+            color={primaryColor}
+          />
+        ))}
+      </Group>
 
-      {/* Bottom fog — gradient from dark red to transparent (matches HTML linear-gradient) */}
-      <Animated.View style={[styles.fog, { height: cardHeight * 0.6 }, fogStyle]}>
-        <LinearGradient
-          colors={[`${primaryColor}00`, `${primaryColor}50`]}
-          style={StyleSheet.absoluteFill}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-        />
-      </Animated.View>
+      {/* Blood drops — teardrop shapes with trailing glow */}
+      <Group>
+        {BLOOD_DROPS.map((drop, i) => (
+          <BloodDrop
+            key={`blood-${i}`}
+            xRatio={drop.xRatio}
+            size={drop.size}
+            dropProgress={dropSVs[i]}
+            color="#cc1111"
+            cardWidth={cardWidth}
+            cardHeight={cardHeight}
+          />
+        ))}
+      </Group>
 
-      {/* Cracks SVG (matches HTML wolf-cracks + cracksGlow brightness pulse) */}
-      <Animated.View
-        style={[styles.cracksContainer, { width: cardWidth, height: cardHeight }, cracksStyle]}
+      {/* Crack network — paths from center outward */}
+      <Group
+        opacity={crackOpacity}
+        transform={[{ scaleX: cardWidth }, { scaleY: cardHeight }]}
+        origin={vec(0, 0)}
       >
-        <Svg
-          width="100%"
-          height="100%"
-          viewBox={`0 0 ${Math.round(cardWidth)} ${Math.round(cardHeight)}`}
-        >
-          <Line
-            x1={cardWidth * 0.32}
-            y1={cardHeight * 0.05}
-            x2={cardWidth * 0.36}
-            y2={cardHeight * 0.28}
-            stroke={`${primaryColor}99`}
-            strokeWidth="1.5"
-          />
-          <Line
-            x1={cardWidth * 0.36}
-            y1={cardHeight * 0.28}
-            x2={cardWidth * 0.27}
-            y2={cardHeight * 0.46}
-            stroke={`${primaryColor}80`}
-            strokeWidth="1.2"
-          />
-          <Line
-            x1={cardWidth * 0.36}
-            y1={cardHeight * 0.28}
-            x2={cardWidth * 0.46}
-            y2={cardHeight * 0.41}
-            stroke={`${primaryColor}66`}
-            strokeWidth="1"
-          />
-          <Line
-            x1={cardWidth * 0.64}
-            y1={cardHeight * 0.08}
-            x2={cardWidth * 0.61}
-            y2={cardHeight * 0.31}
-            stroke={`${primaryColor}8C`}
-            strokeWidth="1.3"
-          />
-          <Line
-            x1={cardWidth * 0.61}
-            y1={cardHeight * 0.31}
-            x2={cardWidth * 0.68}
-            y2={cardHeight * 0.51}
-            stroke={`${primaryColor}66`}
-            strokeWidth="1"
-          />
-          <Line
-            x1={cardWidth * 0.61}
-            y1={cardHeight * 0.31}
-            x2={cardWidth * 0.51}
-            y2={cardHeight * 0.44}
-            stroke={`${primaryColor}59`}
-            strokeWidth="0.8"
-          />
-          <Line
-            x1={cardWidth * 0.21}
-            y1={cardHeight * 0.67}
-            x2={cardWidth * 0.39}
-            y2={cardHeight * 0.9}
-            stroke={`${primaryColor}4D`}
-            strokeWidth="1"
-          />
-          <Line
-            x1={cardWidth * 0.71}
-            y1={cardHeight * 0.72}
-            x2={cardWidth * 0.57}
-            y2={cardHeight * 0.95}
-            stroke={`${primaryColor}4D`}
-            strokeWidth="0.8"
-          />
-        </Svg>
-      </Animated.View>
+        {CRACK_PATHS.map((pathStr, i) => (
+          <SkiaPath
+            key={`crack-${i}`}
+            path={pathStr}
+            color={primaryColor}
+            style="stroke"
+            strokeWidth={1.5 / cardWidth}
+            strokeCap="round"
+          >
+            <Blur blur={1 / cardWidth} />
+          </SkiaPath>
+        ))}
+      </Group>
 
-      {/* Shockwave rings (3 layers) — use primaryColor for higher contrast */}
-      {WAVE_CONFIGS.map((cfg, i) => (
-        <WolfWave
-          key={i}
-          {...cfg}
-          progress={progress}
+      {/* Wolf eyes — two menacing red glows */}
+      <Group opacity={eyeOpacity} blendMode="screen">
+        <Circle cx={centerX - cardWidth * 0.12} cy={cardHeight * 0.3} r={5}>
+          <RadialGradient
+            c={vec(centerX - cardWidth * 0.12, cardHeight * 0.3)}
+            r={12}
+            colors={[primaryColor, `${primaryColor}00`]}
+          />
+          <Blur blur={8} />
+        </Circle>
+        <Circle cx={centerX + cardWidth * 0.12} cy={cardHeight * 0.3} r={5}>
+          <RadialGradient
+            c={vec(centerX + cardWidth * 0.12, cardHeight * 0.3)}
+            r={12}
+            colors={[primaryColor, `${primaryColor}00`]}
+          />
+          <Blur blur={8} />
+        </Circle>
+      </Group>
+
+      {/* Shockwave rings — expanding + fading */}
+      <Group blendMode="screen">
+        <Circle
+          cx={centerX}
+          cy={centerY}
+          r={wave1R}
           color={primaryColor}
-          centerX={centerX}
-          centerY={centerY}
-          cardWidth={cardWidth}
-        />
-      ))}
+          style="stroke"
+          strokeWidth={2}
+          opacity={wave1Op}
+        >
+          <Blur blur={4} />
+        </Circle>
+        <Circle
+          cx={centerX}
+          cy={centerY}
+          r={wave2R}
+          color={primaryColor}
+          style="stroke"
+          strokeWidth={1.5}
+          opacity={wave2Op}
+        >
+          <Blur blur={3} />
+        </Circle>
+      </Group>
 
-      {/* Wolf eyes */}
-      <WolfEyes
-        progress={progress}
-        color={primaryColor}
-        centerX={centerX}
-        eyeY={cardHeight * 0.3}
-        cardWidth={cardWidth}
-      />
-
-      {/* Spark fragments (24, matching HTML demo — hue-varied colors) */}
-      {SPARKS.map((spark) => (
-        <WolfSpark
-          key={spark.index}
-          targetXRatio={spark.targetXRatio}
-          targetYRatio={spark.targetYRatio}
-          sizeRatio={spark.sizeRatio}
-          delay={spark.delay}
-          progress={progress}
-          color={spark.color}
-          centerX={centerX}
-          centerY={centerY}
-          cardWidth={cardWidth}
-        />
-      ))}
-    </View>
+      {/* Spark fragments — 24 particles radiating outward */}
+      <Group blendMode="screen">
+        {SPARKS.map((spark, i) => (
+          <WolfSpark
+            key={`spark-${i}`}
+            {...spark}
+            progress={progress}
+            centerX={centerX}
+            centerY={centerY}
+            cardWidth={cardWidth}
+          />
+        ))}
+      </Group>
+    </Canvas>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    overflow: 'visible',
-  },
-  cardGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  flash: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: borderRadius.medium,
-  },
-  fog: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderBottomLeftRadius: borderRadius.medium,
-    borderBottomRightRadius: borderRadius.medium,
-    overflow: 'hidden',
-  },
-  cracksContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    borderRadius: borderRadius.medium,
-    overflow: 'hidden',
-  },
-  eyesContainer: {
-    position: 'absolute',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  wolfEye: {},
-  waveBase: {
-    position: 'absolute',
-  },
-  sparkBase: {
-    position: 'absolute',
-  },
-});

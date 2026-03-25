@@ -1,103 +1,65 @@
 /**
- * ThirdRevealEffect - 第三方阵营揭示特效（Reanimated 4）
+ * ThirdRevealEffect — 第三方阵营揭示特效（Skia + Reanimated 4）
  *
- * 翻牌后在卡片区域渲染神秘系列动画，严格对标 HTML demo v2：
- * 1. **卡片光晕** — animated boxShadow 从极亮爆发→中等→**持续微弱紫色发光**
- * 2. 旋转虚线符文环（2 层）— 出现后持续旋转
- * 3. 漂浮符号（8 个）— 分布在环上，缓慢浮动
- * 4. 螺旋轨道粒子（8 颗）— 绕中心无限公转
+ * 翻牌后在卡片区域渲染神秘系列动画：
+ * 1. 卡片光晕 — Skia RadialGradient + Blur，极亮爆发→持续微弱紫色发光
+ * 2. 旋转符文环（2 层）— Skia Circle stroke + dashPathEffect，持续旋转
+ * 3. 螺旋轨道粒子（30 颗）— Skia Circle + Blur + blendMode="screen"，绕中心公转
+ * 4. 召唤闪电弧（6 条）— Skia Path + Blur，从中心向外辐射的电弧
+ * 5. 中心能量核心 — Skia Circle + RadialGradient + Blur 脉动
  *
- * 符文环使用 react-native-svg 绘制虚线圆，旋转/浮动由 Reanimated 驱动。
+ * 符文环和粒子持续循环，光晕持续保留。
  * 不 import service，不含业务逻辑。
  */
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import Animated, {
+import { Blur, Canvas, Circle, Group, Path, RadialGradient, vec } from '@shopify/react-native-skia';
+import React, { useEffect, useMemo } from 'react';
+import type { SharedValue } from 'react-native-reanimated';
+import {
   Easing,
-  Extrapolation,
-  interpolate,
-  type SharedValue,
-  useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { borderRadius } from '@/theme';
 
 const AE = CONFIG.alignmentEffects;
+const SK = CONFIG.skia;
 
 // ─── Pre-computed arrays ──────────────────────────────────────────────
 
-const RUNE_SYMBOLS = ['✦', '⟡', '◇', '⊕', '☽', '✧', '⚝', '◈'];
-
-const ORBIT_PARTICLES = Array.from({ length: AE.thirdParticleCount }, (_, i) => ({
-  index: i,
-  phaseOffset: (i / AE.thirdParticleCount) * 360,
-  // Radius offset as ratio of ring radius (HTML: ±10px on ~60px ring ≈ ±0.17)
-  radiusOffsetRatio: 0.17 * ((i % 3) - 1),
-  sizeRatio: (2 + (i % 2)) / 140,
-}));
-
-// ─── Sub-components ──────────────────────────────────────────────────────
-
-/** Floating rune symbol positioned around the ring (matches HTML .rune-symbol + runeFloat) */
-const RuneSymbol = React.memo(function RuneSymbol({
-  symbol,
-  x,
-  y,
-  index,
-  total,
-  floatCycle,
-  appear,
-  color,
-  symbolSize,
-}: {
-  symbol: string;
-  x: number;
-  y: number;
-  index: number;
-  total: number;
-  floatCycle: SharedValue<number>;
-  appear: SharedValue<number>;
-  color: string;
-  symbolSize: number;
-}) {
-  const phaseOffset = (index / total) * Math.PI * 2;
-  const halfSize = symbolSize / 2;
-
-  const animStyle = useAnimatedStyle(() => {
-    const floatY = Math.sin((floatCycle.value / 360) * Math.PI * 2 * 3 + phaseOffset) * 4;
-    const symbolOpacity = interpolate(
-      Math.sin((floatCycle.value / 360) * Math.PI * 2 * 3 + phaseOffset),
-      [-1, 0, 1],
-      [0.3, 0.5, 0.6],
-    );
-    return {
-      opacity: appear.value * symbolOpacity,
-      transform: [{ translateY: floatY }],
-    };
-  });
-
-  return (
-    <Animated.View
-      style={[styles.runeSymbolContainer, { top: y - halfSize, left: x - halfSize }, animStyle]}
-    >
-      <Text style={[styles.runeSymbolText, { color, fontSize: symbolSize }]}>{symbol}</Text>
-    </Animated.View>
-  );
+const ORBIT_PARTICLES = Array.from({ length: AE.thirdParticleCount }, (_, i) => {
+  const r1 = ((i * 73 + 17) % 100) / 100;
+  const r2 = ((i * 41 + 31) % 100) / 100;
+  return {
+    phaseOffset: (i / AE.thirdParticleCount) * 360,
+    radiusOffsetRatio: 0.17 * ((i % 3) - 1),
+    sizeRatio: (2 + (i % 2)) / 140,
+    driftY: (r1 - 0.5) * 8,
+    twinklePhase: r2 * Math.PI * 2,
+  };
 });
 
-/** Orbiting particle around card center (matches HTML startThirdParticles) */
+const ARC_COUNT = 6;
+const ARCS = Array.from({ length: ARC_COUNT }, (_, i) => {
+  const angle = (i / ARC_COUNT) * Math.PI * 2;
+  return { angle, lengthRatio: 0.25 + ((i * 37 + 11) % 20) / 100 };
+});
+
+// ─── Sub-components ──────────────────────────────────────────────────
+
+/** Orbiting particle around card center */
 const OrbitParticle = React.memo(function OrbitParticle({
   phaseOffset,
   radiusOffsetRatio,
   sizeRatio,
+  driftY,
+  twinklePhase,
   orbit,
+  twinkleCycle,
   appear,
   color,
   centerX,
@@ -108,7 +70,10 @@ const OrbitParticle = React.memo(function OrbitParticle({
   phaseOffset: number;
   radiusOffsetRatio: number;
   sizeRatio: number;
+  driftY: number;
+  twinklePhase: number;
   orbit: SharedValue<number>;
+  twinkleCycle: SharedValue<number>;
   appear: SharedValue<number>;
   color: string;
   centerX: number;
@@ -118,40 +83,141 @@ const OrbitParticle = React.memo(function OrbitParticle({
 }) {
   const radiusOffset = radiusOffsetRatio * baseRadius;
   const size = Math.max(1, sizeRatio * cardWidth);
-  // Orbit wiggle amplitude: ~8px on 140px card → 0.057 ratio
   const wiggleAmp = cardWidth * 0.057;
 
-  const animStyle = useAnimatedStyle(() => {
+  const cx = useDerivedValue(() => {
     const angleDeg = orbit.value + phaseOffset;
     const angleRad = (angleDeg * Math.PI) / 180;
     const r = baseRadius + radiusOffset + Math.sin(angleRad * 3) * wiggleAmp;
-    return {
-      opacity: appear.value * 0.7,
-      transform: [
-        { translateX: Math.cos(angleRad) * r + centerX - size / 2 },
-        { translateY: Math.sin(angleRad) * r + centerY - size / 2 },
-      ],
-    };
+    return Math.cos(angleRad) * r + centerX;
+  });
+  const cy = useDerivedValue(() => {
+    const angleDeg = orbit.value + phaseOffset;
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const r = baseRadius + radiusOffset + Math.sin(angleRad * 3) * wiggleAmp;
+    return Math.sin(angleRad) * r + centerY + driftY;
+  });
+  const opacity = useDerivedValue(() => {
+    const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + twinklePhase);
+    return appear.value * 0.7 * flicker;
   });
 
   return (
-    <Animated.View
-      style={[
-        styles.orbitParticle,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          boxShadow: `0 0 ${size * 3}px ${size}px ${color}40`,
-        },
-        animStyle,
-      ]}
-    />
+    <Circle cx={cx} cy={cy} r={size} color={color} opacity={opacity}>
+      <Blur blur={SK.particleBlur} />
+    </Circle>
   );
 });
 
-// ─── Main component ──────────────────────────────────────────────────────
+/** Lightning arc path radiating from center */
+const LightningArc = React.memo(function LightningArc({
+  angle,
+  lengthRatio,
+  progress,
+  color,
+  centerX,
+  centerY,
+  cardWidth,
+}: {
+  angle: number;
+  lengthRatio: number;
+  progress: SharedValue<number>;
+  color: string;
+  centerX: number;
+  centerY: number;
+  cardWidth: number;
+}) {
+  const arcLength = cardWidth * lengthRatio;
+
+  // Pre-compute jagged path segments
+  const pathStr = useMemo(() => {
+    const segments = 5;
+    const segLen = arcLength / segments;
+    let d = `M ${centerX} ${centerY}`;
+    for (let s = 1; s <= segments; s++) {
+      const dist = segLen * s;
+      const jag = (((s * 37 + Math.round(angle * 10)) % 20) - 10) * 0.3;
+      const px = centerX + Math.cos(angle) * dist + Math.cos(angle + Math.PI / 2) * jag;
+      const py = centerY + Math.sin(angle) * dist + Math.sin(angle + Math.PI / 2) * jag;
+      d += ` L ${px} ${py}`;
+    }
+    return d;
+  }, [centerX, centerY, angle, arcLength]);
+
+  const opacity = useDerivedValue(() => {
+    const p = progress.value;
+    if (p < 0.05) return (p / 0.05) * 0.6;
+    if (p < 0.2) return 0.6;
+    return Math.max(0, 0.6 * (1 - (p - 0.2) / 0.3));
+  });
+
+  return (
+    <Path path={pathStr} color={color} style="stroke" strokeWidth={1.5} opacity={opacity}>
+      <Blur blur={2} />
+    </Path>
+  );
+});
+
+// ─── Rune ring as Skia circle stroke ─────────────────────────────────
+
+/** Rotating dashed rune ring */
+const RuneRing = React.memo(function RuneRing({
+  radius,
+  dashOn,
+  dashOff,
+  strokeWidth,
+  rotation,
+  appear,
+  color,
+  centerX,
+  centerY,
+}: {
+  radius: number;
+  dashOn: number;
+  dashOff: number;
+  strokeWidth: number;
+  rotation: SharedValue<number>;
+  appear: SharedValue<number>;
+  color: string;
+  centerX: number;
+  centerY: number;
+}) {
+  // Approximate dashed circle using multiple arc segments
+  const circumference = 2 * Math.PI * radius;
+  const segCount = Math.floor(circumference / (dashOn + dashOff));
+  const segAngle = (2 * Math.PI) / Math.max(1, segCount);
+  const dashAngle = segAngle * (dashOn / (dashOn + dashOff));
+
+  // Build arc segments as a single Path string
+  const pathStr = useMemo(() => {
+    let d = '';
+    for (let i = 0; i < segCount; i++) {
+      const startAngle = i * segAngle;
+      const endAngle = startAngle + dashAngle;
+      const x1 = centerX + Math.cos(startAngle) * radius;
+      const y1 = centerY + Math.sin(startAngle) * radius;
+      const x2 = centerX + Math.cos(endAngle) * radius;
+      const y2 = centerY + Math.sin(endAngle) * radius;
+      d += `M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} `;
+    }
+    return d;
+  }, [centerX, centerY, radius, segCount, segAngle, dashAngle]);
+
+  const opacity = useDerivedValue(() => appear.value * 0.7);
+
+  // Rotation is applied via Group transform
+  const transform = useDerivedValue(() => [{ rotate: (rotation.value * Math.PI) / 180 }]);
+
+  return (
+    <Group transform={transform} origin={vec(centerX, centerY)} opacity={opacity}>
+      <Path path={pathStr} color={color} style="stroke" strokeWidth={strokeWidth} strokeCap="round">
+        <Blur blur={1} />
+      </Path>
+    </Group>
+  );
+});
+
+// ─── Main component ──────────────────────────────────────────────────
 
 interface ThirdRevealEffectProps {
   cardWidth: number;
@@ -171,39 +237,32 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
   particleColor,
 }) => {
   const appear = useSharedValue(0);
-  const ringScale = useSharedValue(0.5);
-  const ringRotateOffset = useSharedValue(-30);
   const glowIntensity = useSharedValue(0);
-  const rotation = useSharedValue(0);
-  const orbit = useSharedValue(0);
+  const progress = useSharedValue(0);
+  const outerRotation = useSharedValue(0);
+  const innerRotation = useSharedValue(0);
   const particleOrbit = useSharedValue(0);
+  const twinkleCycle = useSharedValue(0);
+  const corePulse = useSharedValue(0);
   const centerX = cardWidth / 2;
   const centerY = cardHeight * 0.42;
-
-  // HTML: ring inset: -15px on 140px card → ring = 170px → 1.214 × cardWidth
-  const ringSize = cardWidth * 1.214;
-  const _ringRadius = ringSize / 2;
 
   useEffect(() => {
     if (!animate) return;
 
-    // Fade in all elements (matches HTML runeAppear: 0.5s delay 0.3s ease-out)
-    // HTML: opacity 0→0.6, scale 0.5→1, rotate -30°→0°
+    // Main progress 0→1 over 2.5s
+    progress.value = withDelay(
+      AE.effectStartDelay,
+      withTiming(1, { duration: 2500, easing: Easing.out(Easing.quad) }),
+    );
+
+    // Elements appear
     appear.value = withDelay(
       AE.effectStartDelay + 300,
       withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) }),
     );
-    ringScale.value = withDelay(
-      AE.effectStartDelay + 300,
-      withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) }),
-    );
-    ringRotateOffset.value = withDelay(
-      AE.effectStartDelay + 300,
-      withTiming(0, { duration: 500, easing: Easing.out(Easing.quad) }),
-    );
 
     // Card glow: peak → medium → persist
-    // Matches HTML @keyframes thirdGlow: 0%→15%→40%→100%
     glowIntensity.value = withDelay(
       AE.effectStartDelay,
       withSequence(
@@ -213,8 +272,8 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
       ),
     );
 
-    // Continuous outer ring rotation (matches HTML runeRotate: 12s linear infinite)
-    rotation.value = withDelay(
+    // Outer ring clockwise rotation (12s cycle)
+    outerRotation.value = withDelay(
       AE.effectStartDelay,
       withRepeat(
         withTiming(360, { duration: AE.thirdRuneRotationDuration, easing: Easing.linear }),
@@ -222,202 +281,170 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
       ),
     );
 
-    // Inner ring rotation: HTML 8s reverse (separate from orbit particles)
-    // Note: orbit.value drives both inner ring reverse + orbit particles at different speeds
-    // We reuse orbit for inner ring (8s) — orbit particles use their own phaseOffset math
-    orbit.value = withDelay(
+    // Inner ring counter-clockwise (8s cycle)
+    innerRotation.value = withDelay(
       AE.effectStartDelay,
       withRepeat(
-        withTiming(360, { duration: AE.thirdInnerRingDuration, easing: Easing.linear }),
+        withTiming(-360, { duration: AE.thirdInnerRingDuration, easing: Easing.linear }),
         -1,
       ),
     );
 
-    // Particle orbit: separate cycle for spiral particles
+    // Particle orbit (6s cycle)
     particleOrbit.value = withDelay(
       AE.effectStartDelay,
       withRepeat(withTiming(360, { duration: AE.thirdOrbitDuration, easing: Easing.linear }), -1),
     );
-  }, [animate, appear, ringScale, ringRotateOffset, glowIntensity, rotation, orbit, particleOrbit]);
 
-  // Card glow wrapper
-  const cardGlowStyle = useAnimatedStyle(() => ({
-    opacity: glowIntensity.value,
-  }));
+    // Twinkle cycle for particle flicker
+    twinkleCycle.value = withDelay(
+      AE.effectStartDelay,
+      withRepeat(withTiming(Math.PI * 2, { duration: 1200, easing: Easing.linear }), -1),
+    );
 
-  // Flash overlay — stronger initial burst
-  const flashStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(appear.value, [0, 0.3, 1], [0, 0.55, 0], Extrapolation.CLAMP),
-  }));
+    // Core pulse (continuous breathing)
+    corePulse.value = withDelay(
+      AE.effectStartDelay + 500,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+      ),
+    );
+  }, [
+    animate,
+    appear,
+    glowIntensity,
+    progress,
+    outerRotation,
+    innerRotation,
+    particleOrbit,
+    twinkleCycle,
+    corePulse,
+  ]);
 
-  // Outer rune ring (clockwise) — matches HTML runeAppear: scale 0.5→1, rotate -30→0
-  const outerRotateStyle = useAnimatedStyle(() => ({
-    opacity: appear.value * 0.8,
-    transform: [
-      { scale: ringScale.value },
-      { rotate: `${ringRotateOffset.value + rotation.value}deg` },
-    ],
-  }));
+  // ── Derived values ──
+  const glowR = useDerivedValue(() => cardWidth * 0.5 * (0.5 + glowIntensity.value * 0.5));
+  const glowOpacity = useDerivedValue(() => glowIntensity.value * 0.65);
 
-  // Inner rune ring (counter-clockwise, HTML: 8s reverse)
-  const innerRotateStyle = useAnimatedStyle(() => ({
-    opacity: appear.value * 0.5,
-    transform: [
-      { scale: ringScale.value },
-      { rotate: `${ringRotateOffset.value - orbit.value}deg` },
-    ],
-  }));
+  // Central energy core pulsating
+  const coreR = useDerivedValue(() => cardWidth * 0.06 * (0.7 + corePulse.value * 0.3));
+  const coreGlowR = useDerivedValue(() => cardWidth * 0.15 * (0.6 + corePulse.value * 0.4));
+  const coreOpacity = useDerivedValue(() => appear.value * (0.4 + corePulse.value * 0.3));
 
-  // Pre-compute symbol positions (on the ring circumference)
-  const symbolPositions = RUNE_SYMBOLS.map((sym, i) => {
-    const angle = (i / RUNE_SYMBOLS.length) * Math.PI * 2 - Math.PI / 2;
-    return {
-      symbol: sym,
-      // HTML: rune symbols at r=72 on 140px card → 0.514 × cardWidth
-      x: centerX + Math.cos(angle) * (cardWidth * 0.514),
-      y: centerY + Math.sin(angle) * (cardWidth * 0.514),
-    };
-  });
+  // Outer ring radius: ~60% of cardWidth
+  const outerRingR = cardWidth * 0.52;
+  // Inner ring: ~85% of outer
+  const innerRingR = outerRingR * 0.82;
 
-  // HTML: inner ring inset 10px more → 150/170 ≈ 0.882
-  const innerRingSize = ringSize * 0.882;
-
-  // Rune symbol size: HTML 14px on 140px card → 0.10
-  const symbolSize = Math.round(cardWidth * 0.1);
+  const canvasStyle = useMemo(
+    () => ({
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      overflow: 'visible' as const,
+      width: cardWidth,
+      height: cardHeight,
+    }),
+    [cardWidth, cardHeight],
+  );
 
   return (
-    <View style={[styles.container, { width: cardWidth, height: cardHeight }]} pointerEvents="none">
-      {/* Persistent card glow — matches HTML thirdGlow boxShadow */}
-      <Animated.View
-        style={[
-          styles.cardGlow,
-          {
-            width: cardWidth,
-            height: cardHeight,
-            borderRadius: borderRadius.medium,
-            boxShadow: `0 0 ${Math.round(cardWidth * 0.25)}px ${Math.round(cardWidth * 0.086)}px ${glowColor}, 0 0 ${Math.round(cardWidth * 0.5)}px ${Math.round(cardWidth * 0.179)}px ${primaryColor}`,
-          },
-          cardGlowStyle,
-        ]}
+    <Canvas style={canvasStyle} pointerEvents="none">
+      {/* Persistent card glow */}
+      <Group opacity={glowOpacity}>
+        <Circle cx={centerX} cy={centerY} r={glowR}>
+          <RadialGradient
+            c={vec(centerX, centerY)}
+            r={cardWidth * 0.5}
+            colors={[glowColor, `${primaryColor}60`, `${primaryColor}00`]}
+          />
+          <Blur blur={SK.glowBlur} />
+        </Circle>
+      </Group>
+
+      {/* Lightning arcs — brief flash at reveal */}
+      <Group blendMode="screen">
+        {ARCS.map((arc, i) => (
+          <LightningArc
+            key={i}
+            angle={arc.angle}
+            lengthRatio={arc.lengthRatio}
+            progress={progress}
+            color={particleColor}
+            centerX={centerX}
+            centerY={centerY}
+            cardWidth={cardWidth}
+          />
+        ))}
+      </Group>
+
+      {/* Outer rune ring — clockwise */}
+      <RuneRing
+        radius={outerRingR}
+        dashOn={6}
+        dashOff={12}
+        strokeWidth={1}
+        rotation={outerRotation}
+        appear={appear}
+        color={glowColor}
+        centerX={centerX}
+        centerY={centerY}
       />
 
-      {/* Flash overlay */}
-      <Animated.View style={[styles.flash, { backgroundColor: primaryColor }, flashStyle]} />
+      {/* Inner rune ring — counter-clockwise */}
+      <RuneRing
+        radius={innerRingR}
+        dashOn={3}
+        dashOff={8}
+        strokeWidth={1}
+        rotation={innerRotation}
+        appear={appear}
+        color={primaryColor}
+        centerX={centerX}
+        centerY={centerY}
+      />
 
-      {/* Outer rune ring */}
-      <Animated.View
-        style={[
-          styles.ringContainer,
-          {
-            top: centerY - ringSize / 2,
-            left: centerX - ringSize / 2,
-            width: ringSize,
-            height: ringSize,
-          },
-          outerRotateStyle,
-        ]}
-      >
-        <Svg width={ringSize} height={ringSize}>
-          <Circle
-            cx={ringSize / 2}
-            cy={ringSize / 2}
-            r={ringSize / 2 - 2}
-            stroke={glowColor}
-            strokeWidth={1}
-            strokeDasharray="4 8"
-            fill="none"
+      {/* Central energy core */}
+      <Group opacity={coreOpacity}>
+        {/* Outer glow */}
+        <Circle cx={centerX} cy={centerY} r={coreGlowR}>
+          <RadialGradient
+            c={vec(centerX, centerY)}
+            r={cardWidth * 0.15}
+            colors={[`${glowColor}80`, `${primaryColor}00`]}
           />
-        </Svg>
-      </Animated.View>
-
-      {/* Inner rune ring (counter-rotating) */}
-      <Animated.View
-        style={[
-          styles.ringContainer,
-          {
-            top: centerY - innerRingSize / 2,
-            left: centerX - innerRingSize / 2,
-            width: innerRingSize,
-            height: innerRingSize,
-          },
-          innerRotateStyle,
-        ]}
-      >
-        <Svg width={innerRingSize} height={innerRingSize}>
-          <Circle
-            cx={innerRingSize / 2}
-            cy={innerRingSize / 2}
-            r={innerRingSize / 2 - 2}
-            stroke={primaryColor}
-            strokeWidth={1}
-            strokeDasharray="2 6"
-            fill="none"
-          />
-        </Svg>
-      </Animated.View>
-
-      {/* Rune symbols */}
-      {symbolPositions.map(({ symbol, x, y }, i) => (
-        <RuneSymbol
-          key={i}
-          symbol={symbol}
-          x={x}
-          y={y}
-          index={i}
-          total={RUNE_SYMBOLS.length}
-          floatCycle={rotation}
-          appear={appear}
-          color={glowColor}
-          symbolSize={symbolSize}
-        />
-      ))}
+          <Blur blur={10} />
+        </Circle>
+        {/* Core orb */}
+        <Circle cx={centerX} cy={centerY} r={coreR} color={glowColor}>
+          <Blur blur={4} />
+        </Circle>
+      </Group>
 
       {/* Orbit particles */}
-      {ORBIT_PARTICLES.map(({ index, phaseOffset, radiusOffsetRatio, sizeRatio }) => (
-        <OrbitParticle
-          key={index}
-          phaseOffset={phaseOffset}
-          radiusOffsetRatio={radiusOffsetRatio}
-          sizeRatio={sizeRatio}
-          orbit={particleOrbit}
-          appear={appear}
-          color={particleColor}
-          centerX={centerX}
-          centerY={centerY}
-          baseRadius={cardWidth * 0.35}
-          cardWidth={cardWidth}
-        />
-      ))}
-    </View>
+      <Group blendMode="screen">
+        {ORBIT_PARTICLES.map((p, i) => (
+          <OrbitParticle
+            key={i}
+            phaseOffset={p.phaseOffset}
+            radiusOffsetRatio={p.radiusOffsetRatio}
+            sizeRatio={p.sizeRatio}
+            driftY={p.driftY}
+            twinklePhase={p.twinklePhase}
+            orbit={particleOrbit}
+            twinkleCycle={twinkleCycle}
+            appear={appear}
+            color={particleColor}
+            centerX={centerX}
+            centerY={centerY}
+            baseRadius={cardWidth * 0.35}
+            cardWidth={cardWidth}
+          />
+        ))}
+      </Group>
+    </Canvas>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    overflow: 'visible',
-  },
-  cardGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  flash: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: borderRadius.medium,
-  },
-  ringContainer: {
-    position: 'absolute',
-  },
-  runeSymbolContainer: {
-    position: 'absolute',
-  },
-  runeSymbolText: {},
-  orbitParticle: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-});

@@ -25,7 +25,8 @@
  */
 
 // Main animator component
-export { createRoleData, RoleRevealAnimator } from './RoleRevealAnimator';
+export { RoleRevealAnimator } from './RoleRevealAnimator';
+export { createRoleData } from './RoleRevealAnimator';
 
 // Individual effect components (for advanced usage)
 export { RoleHunt } from './RoleHunt';

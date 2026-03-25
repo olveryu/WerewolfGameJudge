@@ -1,19 +1,23 @@
 /**
- * GachaMachine - 复古日式扭蛋机揭示效果（Reanimated 4）
+ * GachaMachine - 复古日式扭蛋机揭示效果（Reanimated 4 + Skia）
  *
- * 特点：圆形透明球体顶部、投币口、旋转手柄、扭蛋滚出 → 打开 → 揭示。
+ * 动画流程：旋转灯 + 投币口 → 金币滑入 → 旋转手柄 → 球体翻滚 →
+ * 扭蛋从出口滑出 → 裂纹显现 → 打开 → 星星纷飞 + 稀有度标签。
  * 使用 `useSharedValue` 驱动所有动画，`runOnJS` 切换阶段。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
+import { Blur, Canvas, Circle, Group, RadialGradient, vec } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   cancelAnimation,
   Easing,
   runOnJS,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -22,12 +26,16 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
+import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
+import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { useColors } from '@/theme';
+import { crossPlatformTextShadow, useColors } from '@/theme';
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const CAPSULE_COLORS = [
@@ -60,7 +68,108 @@ const GACHA_COLORS = {
   capsuleBottomBg: '#FFF',
   capsuleRingBg: '#EEE',
   capsuleRingBorder: '#DDD',
+  coin: '#FFD700',
+  coinEdge: '#DAA520',
+  rotaryRed: '#ff3333',
+  rotaryYellow: '#ffdd33',
+  rotaryGreen: '#33dd66',
+  rotaryBlue: '#3388ff',
+  confettiGold: '#ffd700',
+  confettiPink: '#ff69b4',
+  confettiCyan: '#00e5ff',
+  crackLine: '#333333',
 };
+
+// Rarity tier per alignment
+const RARITY_LABEL: Record<string, { tier: string; color: string }> = {
+  wolf: { tier: 'SSR', color: '#ff3366' },
+  god: { tier: 'SSR', color: '#ffd700' },
+  villager: { tier: 'SR', color: '#66bbff' },
+  third: { tier: 'UR', color: '#cc66ff' },
+};
+
+// Rotary light positions around the machine body
+const ROTARY_LIGHTS = Array.from({ length: 8 }, (_, i) => {
+  const angle = (Math.PI * 2 * i) / 8;
+  return {
+    x: SCREEN_W / 2 + Math.cos(angle) * 100,
+    y: SCREEN_H * 0.42 + Math.sin(angle) * 70,
+    color: [
+      GACHA_COLORS.rotaryRed,
+      GACHA_COLORS.rotaryYellow,
+      GACHA_COLORS.rotaryGreen,
+      GACHA_COLORS.rotaryBlue,
+    ][i % 4],
+    phase: (i * Math.PI) / 4,
+  };
+});
+
+// Confetti star positions
+const CONFETTI_STARS = Array.from({ length: 16 }, (_, i) => ({
+  angle: (Math.PI * 2 * i) / 16 + (((i * 37) % 10) / 10) * 0.3,
+  speed: 60 + ((i * 53) % 40),
+  r: 2 + ((i * 23) % 3),
+  color: [GACHA_COLORS.confettiGold, GACHA_COLORS.confettiPink, GACHA_COLORS.confettiCyan][i % 3],
+}));
+
+// ─── Self-animating Skia sub-components (hooks must live in own component) ──
+
+interface SkiaRotaryLightProps {
+  x: number;
+  y: number;
+  color: string;
+  phase: number;
+  rotaryLightCycle: SharedValue<number>;
+}
+
+const SkiaRotaryLight: React.FC<SkiaRotaryLightProps> = React.memo(
+  ({ x, y, color, phase, rotaryLightCycle }) => {
+    const opacity = useDerivedValue(() => 0.3 + Math.sin(rotaryLightCycle.value + phase) * 0.3);
+    const glowOpacity = useDerivedValue(() => opacity.value * 0.3);
+    return (
+      <Group>
+        <Circle cx={x} cy={y} r={6} color={color} opacity={opacity}>
+          <Blur blur={4} />
+        </Circle>
+        <Circle cx={x} cy={y} r={12} opacity={glowOpacity}>
+          <RadialGradient c={vec(x, y)} r={12} colors={[`${color}60`, `${color}00`]} />
+          <Blur blur={6} />
+        </Circle>
+      </Group>
+    );
+  },
+);
+SkiaRotaryLight.displayName = 'SkiaRotaryLight';
+
+interface SkiaConfettiStarProps {
+  angle: number;
+  speed: number;
+  r: number;
+  color: string;
+  confettiProgress: SharedValue<number>;
+  confettiOpacity: SharedValue<number>;
+}
+
+const SkiaConfettiStar: React.FC<SkiaConfettiStarProps> = React.memo(
+  ({ angle, speed, r, color, confettiProgress, confettiOpacity }) => {
+    const cx = useDerivedValue(
+      () => SCREEN_W / 2 + Math.cos(angle) * speed * confettiProgress.value,
+    );
+    const cy = useDerivedValue(
+      () =>
+        SCREEN_H / 2 +
+        Math.sin(angle) * speed * confettiProgress.value -
+        20 * confettiProgress.value,
+    );
+    const op = useDerivedValue(() => confettiOpacity.value);
+    return (
+      <Circle cx={cx} cy={cy} r={r} color={color} opacity={op}>
+        <Blur blur={1} />
+      </Circle>
+    );
+  },
+);
+SkiaConfettiStar.displayName = 'SkiaConfettiStar';
 
 // ─── Tiny capsule inside dome ───────────────────────────────────────────
 const TinyCapsule: React.FC<{
@@ -85,7 +194,29 @@ const TinyCapsule: React.FC<{
         },
       ]}
     >
-      <View style={[styles.tinyCapsuleShine, { width: size * 0.3, height: size * 0.3 }]} />
+      {/* Specular highlight — bright off-center dot */}
+      <View
+        style={[
+          styles.tinyCapsuleShine,
+          {
+            width: size * 0.35,
+            height: size * 0.35,
+            top: size * 0.12,
+            left: size * 0.15,
+          },
+        ]}
+      />
+      {/* Bottom shadow crescent */}
+      <View
+        style={[
+          styles.capsuleShadow,
+          {
+            height: size * 0.35,
+            borderBottomLeftRadius: size / 2,
+            borderBottomRightRadius: size / 2,
+          },
+        ]}
+      />
     </View>
   );
 });
@@ -126,6 +257,16 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   const machineOpacityAnim = useSharedValue(1);
   const bobble = useSharedValue(0);
 
+  // Scene element shared values
+  const rotaryLightCycle = useSharedValue(0);
+  const coinSlideY = useSharedValue(-40);
+  const coinOpacity = useSharedValue(0);
+  const crackOpacity = useSharedValue(0);
+  const confettiProgress = useSharedValue(0);
+  const confettiOpacity = useSharedValue(0);
+  const rarityOpacity = useSharedValue(0);
+  const rarityScale = useSharedValue(0.5);
+
   // Random tiny capsules (stable across re-renders)
   const [tinyCapsules] = useState(() => {
     const result = [];
@@ -141,7 +282,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     return result;
   });
 
-  // ── Bobble animation for dome ──
+  // ── Bobble animation for dome + rotary lights ──
   useEffect(() => {
     if (phase !== 'ready' || reducedMotion) return;
 
@@ -154,17 +295,37 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       false,
     );
 
+    // Rotary lights cycle
+    rotaryLightCycle.value = withRepeat(
+      withTiming(Math.PI * 2, { duration: 3000, easing: Easing.linear }),
+      -1,
+    );
+
     return () => {
       cancelAnimation(bobble);
       bobble.value = 0;
     };
-  }, [phase, reducedMotion, bobble]);
+  }, [phase, reducedMotion, bobble, rotaryLightCycle]);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => {
     setPhase('revealed');
     machineOpacityAnim.value = withTiming(0, { duration: 300 });
-  }, [machineOpacityAnim]);
+
+    // Confetti burst
+    confettiOpacity.value = withSequence(
+      withTiming(1, { duration: 100 }),
+      withDelay(800, withTiming(0, { duration: 400 })),
+    );
+    confettiProgress.value = withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) });
+
+    // Rarity label pop-in
+    rarityOpacity.value = withDelay(300, withTiming(1, { duration: 300 }));
+    rarityScale.value = withDelay(
+      300,
+      withTiming(1, { duration: 400, easing: Easing.out(Easing.back(1.5)) }),
+    );
+  }, [machineOpacityAnim, confettiOpacity, confettiProgress, rarityOpacity, rarityScale]);
 
   const handleGlowComplete = useCallback(() => {
     if (onCompleteCalledRef.current) return;
@@ -179,6 +340,12 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     setPhase('opening');
     if (enableHaptics) triggerHaptic('heavy', true);
 
+    // Crack lines appear before shell bursts
+    crackOpacity.value = withSequence(
+      withTiming(1, { duration: 150 }),
+      withDelay(100, withTiming(0, { duration: 200 })),
+    );
+
     // Shell explodes outward
     shellScale.value = withTiming(1.3, { duration: 250 });
     shellOpacity.value = withTiming(0, { duration: 250 });
@@ -192,7 +359,16 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       }),
     );
     cardOpacity.value = withDelay(200, withTiming(1, { duration: 250 }));
-  }, [phase, shellScale, shellOpacity, cardScale, cardOpacity, enableHaptics, enterRevealed]);
+  }, [
+    phase,
+    shellScale,
+    shellOpacity,
+    cardScale,
+    cardOpacity,
+    crackOpacity,
+    enableHaptics,
+    enterRevealed,
+  ]);
 
   const enterWaiting = useCallback(() => {
     setPhase('waiting');
@@ -203,6 +379,13 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     if (phase !== 'ready') return;
     setPhase('spinning');
     if (enableHaptics) triggerHaptic('medium', true);
+
+    // Coin insert animation
+    coinOpacity.value = withSequence(
+      withTiming(1, { duration: 100 }),
+      withDelay(300, withTiming(0, { duration: 200 })),
+    );
+    coinSlideY.value = withTiming(10, { duration: 300, easing: Easing.in(Easing.cubic) });
 
     dialRotation.value = withTiming(
       360,
@@ -222,7 +405,17 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         capsuleRotate.value = withTiming(540, { duration: 800 });
       },
     );
-  }, [phase, dialRotation, capsuleY, capsuleOpacity, capsuleRotate, enableHaptics, enterWaiting]);
+  }, [
+    phase,
+    dialRotation,
+    capsuleY,
+    capsuleOpacity,
+    capsuleRotate,
+    coinOpacity,
+    coinSlideY,
+    enableHaptics,
+    enterWaiting,
+  ]);
 
   // ── Reduced motion ──
   useEffect(() => {
@@ -286,6 +479,20 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     transform: [{ scale: cardScale.value }],
   }));
 
+  const rarityStyle = useAnimatedStyle(() => ({
+    opacity: rarityOpacity.value,
+    transform: [{ scale: rarityScale.value }],
+  }));
+
+  const coinStyle = useAnimatedStyle(() => ({
+    opacity: coinOpacity.value,
+    transform: [{ translateY: coinSlideY.value }],
+  }));
+
+  const crackStyle = useAnimatedStyle(() => ({
+    opacity: crackOpacity.value,
+  }));
+
   // ── Render ──
   return (
     <View testID={`${testIDPrefix}-container`} style={styles.container}>
@@ -293,6 +500,38 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         colors={[...GACHA_COLORS.backgroundGradient]}
         style={StyleSheet.absoluteFill}
       />
+      <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
+
+      {/* Skia scene layer: rotary lights + confetti */}
+      {!reducedMotion && (
+        <Canvas style={styles.fullScreen} pointerEvents="none">
+          {/* Rotary lights around machine */}
+          {ROTARY_LIGHTS.map((light, i) => (
+            <SkiaRotaryLight
+              key={`rlight-${i}`}
+              x={light.x}
+              y={light.y}
+              color={light.color}
+              phase={light.phase}
+              rotaryLightCycle={rotaryLightCycle}
+            />
+          ))}
+
+          {/* Confetti stars burst on reveal */}
+          {phase === 'revealed' &&
+            CONFETTI_STARS.map((star, i) => (
+              <SkiaConfettiStar
+                key={`confetti-${i}`}
+                angle={star.angle}
+                speed={star.speed}
+                r={star.r}
+                color={star.color}
+                confettiProgress={confettiProgress}
+                confettiOpacity={confettiOpacity}
+              />
+            ))}
+        </Canvas>
+      )}
 
       {/* Machine - fades out on reveal */}
       <Animated.View
@@ -322,6 +561,10 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
           <LinearGradient colors={[...GACHA_COLORS.bodyGradient]} style={StyleSheet.absoluteFill} />
           <View style={styles.coinSlot}>
             <View style={styles.coinSlotInner} />
+            {/* Animated coin insert */}
+            <Animated.View style={[styles.coin, coinStyle]} pointerEvents="none">
+              <Text style={styles.coinSymbol}>¥</Text>
+            </Animated.View>
           </View>
           <View style={styles.label}>
             <Text style={styles.labelText}>GACHA</Text>
@@ -329,6 +572,8 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
           <View style={styles.outlet}>
             <View style={styles.outletInner} />
           </View>
+          {/* Exit slide chute */}
+          <View style={styles.exitSlide} />
         </View>
 
         {/* Dial */}
@@ -369,9 +614,20 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
           <Pressable onPress={openCapsule} style={styles.capsuleTouch}>
             <View style={styles.capsuleTop}>
               <View style={styles.capsuleTopShine} />
+              {/* Star pattern on capsule */}
+              <Text style={styles.capsuleStarPattern}>★</Text>
             </View>
-            <View style={styles.capsuleBottom} />
+            <View style={styles.capsuleBottom}>
+              {/* Star pattern on bottom half */}
+              <Text style={styles.capsuleStarPatternBottom}>✦</Text>
+            </View>
             <View style={styles.capsuleRing} />
+            {/* Crack lines — appear before opening */}
+            <Animated.View style={[styles.crackOverlay, crackStyle]} pointerEvents="none">
+              <Text style={styles.crackLine}>╲</Text>
+              <Text style={styles.crackLine}>╱</Text>
+              <Text style={styles.crackLine}>│</Text>
+            </Animated.View>
           </Pressable>
         </Animated.View>
       )}
@@ -388,6 +644,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
               revealGradient={theme.revealGradient}
               animateEntrance={phase === 'revealed'}
             />
+            <RevealBurst trigger={phase === 'revealed'} color={theme.glowColor} />
             {phase === 'revealed' && (
               <AlignmentRevealOverlay
                 alignment={role.alignment}
@@ -401,6 +658,17 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
           </View>
         </Animated.View>
       )}
+
+      {/* Rarity label — pops in after reveal */}
+      {phase === 'revealed' && (
+        <Animated.View style={[styles.rarityContainer, rarityStyle]} pointerEvents="none">
+          <Text
+            style={[styles.rarityText, { color: RARITY_LABEL[role.alignment]?.color ?? '#66bbff' }]}
+          >
+            {RARITY_LABEL[role.alignment]?.tier ?? 'SR'}
+          </Text>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -408,6 +676,13 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  fullScreen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: SCREEN_W,
+    height: SCREEN_H,
+  },
   machine: { alignItems: 'center' },
 
   dome: {
@@ -429,7 +704,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     transform: [{ rotate: '-30deg' }],
   },
-  tinyCapsule: { position: 'absolute' },
+  tinyCapsule: {
+    position: 'absolute',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  capsuleShadow: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
   tinyCapsuleShine: {
     position: 'absolute',
     top: 2,
@@ -596,4 +882,68 @@ const styles = StyleSheet.create({
   cardWrapper: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   cardInner: { alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   glowBorder: { position: 'absolute', top: -4, left: -4 },
+  coin: {
+    position: 'absolute',
+    top: -20,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: GACHA_COLORS.coin,
+    borderWidth: 2,
+    borderColor: GACHA_COLORS.coinEdge,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coinSymbol: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#8B6914',
+  },
+  exitSlide: {
+    position: 'absolute',
+    bottom: -8,
+    width: 70,
+    height: 12,
+    backgroundColor: '#555',
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+    transform: [{ perspective: 200 }, { rotateX: '20deg' }],
+  },
+  capsuleStarPattern: {
+    position: 'absolute',
+    top: 15,
+    right: 18,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.4)',
+  },
+  capsuleStarPatternBottom: {
+    position: 'absolute',
+    bottom: 12,
+    left: 20,
+    fontSize: 8,
+    color: 'rgba(0,0,0,0.1)',
+  },
+  crackOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  crackLine: {
+    fontSize: 20,
+    color: GACHA_COLORS.crackLine,
+    opacity: 0.7,
+    marginHorizontal: 2,
+  },
+  rarityContainer: {
+    position: 'absolute',
+    top: 60,
+    alignItems: 'center',
+  },
+  rarityText: {
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: 4,
+    ...crossPlatformTextShadow('#00000066', 0, 2, 6),
+  },
 });

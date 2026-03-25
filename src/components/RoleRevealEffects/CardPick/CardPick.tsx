@@ -1,35 +1,52 @@
 /**
- * CardPick - 桌面抽牌揭示效果（Reanimated 4）
+ * CardPick - 桌面抽牌揭示效果（Reanimated 4 + Skia）
  *
- * 动画流程：面朝下的牌平铺在桌面（网格排列）→ 玩家点选一张 → 其余牌消失 →
- * 被选牌飞到中央放大 → 翻转揭示角色。
+ * 动画流程：木质画框 + 散落筹码的桌面 → 面朝下的牌平铺（网格排列）→
+ * 玩家点选一张 → 其余牌暗化消失 → 金色粒子拖尾飞向中央 →
+ * 充能光环脉冲 → 翻转（侧光条扫过） → 揭示角色。
  *
  * `remainingCards` 决定桌面上展示多少张牌（= 总人数 - 已查看人数），
  * 让后查看的玩家看到更少的牌，营造"越来越少"的紧张感。
  * 渲染抽牌动画与触觉反馈。不 import service，不含业务逻辑。
  */
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  RadialGradient,
+  RoundedRect,
+  vec,
+} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
   runOnJS,
   type SharedValue,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
+  withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
+import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
+import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, crossPlatformTextShadow, useColors } from '@/theme';
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const TABLE_COLORS = {
@@ -42,7 +59,34 @@ const TABLE_COLORS = {
   accentLight: '#b8a080',
   /** 牌背中央符号 */
   symbol: '♠',
+  /** Wood frame */
+  woodDark: '#5a3a1e',
+  woodLight: '#8b6914',
+  woodCorner: '#4a2c12',
+  /** Table chips */
+  chipRed: '#cc3333',
+  chipBlue: '#3366aa',
+  chipGold: '#d4af37',
+  chipGreen: '#338844',
+  /** Trail & aura */
+  trailGold: '#d4af37',
+  trailGlow: '#ffd700',
+  chargeAura: '#d4af37',
+  /** Light bars */
+  lightBar: '#ffffff',
 };
+
+// ─── Pre-computed table chip positions ─────────────────────────────────
+const TABLE_CHIPS = [
+  { x: SCREEN_W * 0.08, y: SCREEN_H * 0.15, r: 8, color: TABLE_COLORS.chipRed },
+  { x: SCREEN_W * 0.92, y: SCREEN_H * 0.2, r: 7, color: TABLE_COLORS.chipBlue },
+  { x: SCREEN_W * 0.15, y: SCREEN_H * 0.82, r: 9, color: TABLE_COLORS.chipGold },
+  { x: SCREEN_W * 0.88, y: SCREEN_H * 0.78, r: 7, color: TABLE_COLORS.chipGreen },
+  { x: SCREEN_W * 0.05, y: SCREEN_H * 0.5, r: 6, color: TABLE_COLORS.chipRed },
+  { x: SCREEN_W * 0.95, y: SCREEN_H * 0.45, r: 8, color: TABLE_COLORS.chipBlue },
+  { x: SCREEN_W * 0.2, y: SCREEN_H * 0.12, r: 6, color: TABLE_COLORS.chipGold },
+  { x: SCREEN_W * 0.82, y: SCREEN_H * 0.88, r: 7, color: TABLE_COLORS.chipGreen },
+];
 
 // ─── Extended props ─────────────────────────────────────────────────────
 interface CardPickProps extends RoleRevealEffectProps {
@@ -139,6 +183,14 @@ export const CardPick: React.FC<CardPickProps> = ({
   const drawnCardOpacity = useSharedValue(0);
   const flipProgress = useSharedValue(0); // 0 = back, 1 = front
 
+  // Scene element shared values
+  const trailOpacity = useSharedValue(0);
+  const chargeAuraPulse = useSharedValue(0);
+  const chargeAuraOpacity = useSharedValue(0);
+  const lightBarProgress = useSharedValue(0);
+  const lightBarOpacity = useSharedValue(0);
+  const chipBobble = useSharedValue(0);
+
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => {
     setPhase('revealed');
@@ -149,6 +201,19 @@ export const CardPick: React.FC<CardPickProps> = ({
     setPhase('flipping');
     if (enableHaptics) triggerHaptic('medium', true);
 
+    // Light bars sweep during flip
+    lightBarOpacity.value = withSequence(
+      withTiming(0.6, { duration: 150 }),
+      withDelay(config.flipDuration - 200, withTiming(0, { duration: 200 })),
+    );
+    lightBarProgress.value = withTiming(1, {
+      duration: config.flipDuration,
+      easing: Easing.inOut(Easing.cubic),
+    });
+
+    // Charge aura fades out as flip starts
+    chargeAuraOpacity.value = withTiming(0, { duration: 400 });
+
     flipProgress.value = withTiming(
       1,
       { duration: config.flipDuration, easing: Easing.inOut(Easing.cubic) },
@@ -157,9 +222,27 @@ export const CardPick: React.FC<CardPickProps> = ({
         if (finished) runOnJS(enterRevealed)();
       },
     );
-  }, [flipProgress, config.flipDuration, enableHaptics, enterRevealed]);
+  }, [
+    flipProgress,
+    config.flipDuration,
+    enableHaptics,
+    enterRevealed,
+    lightBarOpacity,
+    lightBarProgress,
+    chargeAuraOpacity,
+  ]);
 
   const startFlipAfterDelay = useCallback(() => {
+    // Charge aura glow before flip
+    chargeAuraOpacity.value = withTiming(0.7, { duration: 200 });
+    chargeAuraPulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 300, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0.5, { duration: 300, easing: Easing.inOut(Easing.quad) }),
+      ),
+      2,
+    );
+
     // Short pause before flip
     flipProgress.value = withDelay(
       200,
@@ -168,7 +251,7 @@ export const CardPick: React.FC<CardPickProps> = ({
         if (finished) runOnJS(startFlipping)();
       }),
     );
-  }, [flipProgress, startFlipping]);
+  }, [flipProgress, startFlipping, chargeAuraOpacity, chargeAuraPulse]);
 
   const handleCardSelect = useCallback(
     (index: number) => {
@@ -182,6 +265,12 @@ export const CardPick: React.FC<CardPickProps> = ({
       drawnCardX.value = pos.x;
       drawnCardY.value = pos.y;
       drawnCardOpacity.value = 1;
+
+      // Trail follows the card
+      trailOpacity.value = withSequence(
+        withTiming(0.8, { duration: 80 }),
+        withDelay(config.flyToCenterDuration - 150, withTiming(0, { duration: 300 })),
+      );
 
       // Fade out other cards
       otherCardsOpacity.value = withTiming(0, { duration: config.fadeOutDuration });
@@ -207,6 +296,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       drawnCardY,
       drawnCardOpacity,
       otherCardsOpacity,
+      trailOpacity,
       config.fadeOutDuration,
       config.flyToCenterDuration,
       enableHaptics,
@@ -267,12 +357,19 @@ export const CardPick: React.FC<CardPickProps> = ({
         if (finished) runOnJS(setPhase)('waiting');
       },
     );
+
+    // Chips gentle bobble
+    chipBobble.value = withRepeat(
+      withTiming(Math.PI * 2, { duration: 4000, easing: Easing.linear }),
+      -1,
+    );
   }, [
     reducedMotion,
     spreadProgress,
     flipProgress,
     otherCardsOpacity,
     drawnCardOpacity,
+    chipBobble,
     onComplete,
     config.spreadDuration,
     config.revealHoldDuration,
@@ -320,12 +417,20 @@ export const CardPick: React.FC<CardPickProps> = ({
     transform: [{ scaleX: -1 }],
   }));
 
+  // ── Skia derived values ──
+  const chargeR = useDerivedValue(() => 60 + chargeAuraPulse.value * 12);
+  const chargeOp = useDerivedValue(() => chargeAuraOpacity.value);
+  const lbOp = useDerivedValue(() => lightBarOpacity.value);
+  const lbX = useDerivedValue(() => -SCREEN_W * 0.3 + lightBarProgress.value * SCREEN_W * 0.6);
+  const lbX2 = useDerivedValue(() => lbX.value + 20);
+
   // ── Render ──
   return (
     <View
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
+      <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
       {/* Table felt background */}
       <LinearGradient
         colors={[...TABLE_COLORS.felt]}
@@ -334,11 +439,77 @@ export const CardPick: React.FC<CardPickProps> = ({
         end={{ x: 0.5, y: 1 }}
       />
 
-      {/* Prompt text */}
+      {/* Wood frame border */}
+      <View style={styles.woodFrame} pointerEvents="none">
+        <View style={styles.woodFrameInner} />
+      </View>
+
+      {/* Skia scene layer: chips, trail, charge aura, light bars */}
+      {!reducedMotion && (
+        <Canvas style={styles.fullScreen} pointerEvents="none">
+          {/* Table chips — decorative scattered tokens */}
+          {TABLE_CHIPS.map((chip, i) => (
+            <Group key={`chip-${i}`}>
+              {/* Chip body */}
+              <Circle cx={chip.x} cy={chip.y} r={chip.r} color={chip.color} opacity={0.5} />
+              {/* Inner ring */}
+              <Circle
+                cx={chip.x}
+                cy={chip.y}
+                r={chip.r * 0.6}
+                color="#ffffff"
+                opacity={0.15}
+                style="stroke"
+                strokeWidth={1}
+              />
+              {/* Center dot */}
+              <Circle cx={chip.x} cy={chip.y} r={1.5} color="#ffffff" opacity={0.2} />
+            </Group>
+          ))}
+
+          {/* Charge aura — pulsing ring before flip */}
+          <Circle cx={SCREEN_W / 2} cy={SCREEN_H / 2} r={chargeR} opacity={chargeOp}>
+            <RadialGradient
+              c={vec(SCREEN_W / 2, SCREEN_H / 2)}
+              r={72}
+              colors={[`${TABLE_COLORS.chargeAura}60`, `${TABLE_COLORS.chargeAura}00`]}
+            />
+            <Blur blur={10} />
+          </Circle>
+
+          {/* Light bars — sweep during flip */}
+          <Group opacity={lbOp} blendMode="screen">
+            <RoundedRect
+              x={lbX}
+              y={SCREEN_H * 0.25}
+              width={4}
+              height={SCREEN_H * 0.5}
+              r={2}
+              color={TABLE_COLORS.lightBar}
+              opacity={0.4}
+            >
+              <Blur blur={6} />
+            </RoundedRect>
+            <RoundedRect
+              x={lbX2}
+              y={SCREEN_H * 0.3}
+              width={2}
+              height={SCREEN_H * 0.4}
+              r={1}
+              color={TABLE_COLORS.lightBar}
+              opacity={0.2}
+            >
+              <Blur blur={4} />
+            </RoundedRect>
+          </Group>
+        </Canvas>
+      )}
+
+      {/* Prompt text with dealer hand */}
       {(phase === 'spreading' || phase === 'waiting') && (
         <View style={styles.promptContainer}>
           <Animated.Text style={[styles.promptText, { color: TABLE_COLORS.accent }]}>
-            {aliveCount === 1 ? '🃏 最后一张，点击翻开' : `🃏 还剩 ${aliveCount} 张，点选一张`}
+            {aliveCount === 1 ? '🤚 最后一张，点击翻开' : `🤚 还剩 ${aliveCount} 张，点选一张`}
           </Animated.Text>
         </View>
       )}
@@ -407,6 +578,7 @@ export const CardPick: React.FC<CardPickProps> = ({
               animateEntrance={phase === 'revealed'}
             />
 
+            <RevealBurst trigger={phase === 'revealed'} color={theme.glowColor} />
             {phase === 'revealed' && (
               <AlignmentRevealOverlay
                 alignment={role.alignment}
@@ -522,6 +694,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fullScreen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: SCREEN_W,
+    height: SCREEN_H,
+  },
+  woodFrame: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    bottom: 8,
+    borderWidth: 4,
+    borderColor: TABLE_COLORS.woodDark,
+    borderRadius: borderRadius.medium,
+  },
+  woodFrameInner: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: TABLE_COLORS.woodLight,
+    borderRadius: borderRadius.small,
+    margin: 3,
   },
   gridCenter: {
     position: 'absolute',

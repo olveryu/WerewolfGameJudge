@@ -15,11 +15,11 @@
  * Reanimated 负责：驱动所有 shared value + 阶段切换。
  * 不 import service，不含业务逻辑。
  */
-import { Canvas, Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
+import { Blur, Canvas, Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
@@ -34,6 +34,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
+import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
+import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -86,6 +88,21 @@ const COLORS = {
   shockwaveRing: 'rgba(255, 200, 80, 0.6)',
   /** Radial burst on final shatter */
   radialBurst: 'rgba(255, 220, 100, 0.5)',
+  /** Stone wall */
+  stoneWall: 'rgba(50, 45, 40, 0.7)',
+  stoneWallBorder: 'rgba(80, 70, 60, 0.5)',
+  /** Torch flame */
+  torchFlame: '#FF8C00',
+  torchGlow: 'rgba(255, 140, 0, 0.3)',
+  /** Lightning arc */
+  lightningArc: 'rgba(150, 200, 255, 0.8)',
+  lightningGlow: 'rgba(100, 150, 255, 0.4)',
+  /** Light pillar */
+  lightPillar: 'rgba(255, 215, 0, 0.6)',
+  /** Spring coil */
+  springColor: 'rgba(160, 170, 180, 0.6)',
+  /** Ground debris */
+  debrisColor: 'rgba(100, 90, 80, 0.5)',
 } as const;
 
 const CS = CONFIG.chainShatter;
@@ -94,6 +111,30 @@ const CS = CONFIG.chainShatter;
 const SPARKS_PER_HIT = 10;
 /** Number of ambient dust particles */
 const DUST_COUNT = 10;
+
+const SCREEN_W = Dimensions.get('window').width;
+const SCREEN_H = Dimensions.get('window').height;
+
+/** Torch positions at the sides */
+const TORCH_POSITIONS = [
+  { x: 20, y: SCREEN_H * 0.3, symbol: '🔥' },
+  { x: SCREEN_W - 50, y: SCREEN_H * 0.35, symbol: '🔥' },
+];
+
+/** Stone wall blocks in the background */
+const STONE_BLOCKS = Array.from({ length: 6 }, (_, i) => ({
+  x: (i % 3) * (SCREEN_W / 3),
+  y: SCREEN_H * 0.3 + Math.floor(i / 3) * 80,
+  w: SCREEN_W / 3 - 4,
+  h: 70,
+}));
+
+/** Ground debris particles */
+const DEBRIS_PARTICLES = Array.from({ length: 10 }, (_) => ({
+  x: SCREEN_W * 0.2 + Math.random() * SCREEN_W * 0.6,
+  y: SCREEN_H * 0.65 + Math.random() * SCREEN_H * 0.1,
+  size: 2 + Math.random() * 3,
+}));
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface CrackData {
@@ -202,6 +243,52 @@ function generateDust(screenW: number, screenH: number): DustData[] {
   }
   return particles;
 }
+
+// ─── Skia torch flame ─────────────────────────────────────────────────
+interface SkiaTorchFlameProps {
+  x: number;
+  y: number;
+  flicker: SharedValue<number>;
+}
+
+/** Torch flame: cluster of overlapping circles with warm gradient — replaces emoji 🔥 */
+const SkiaTorchFlame: React.FC<SkiaTorchFlameProps> = React.memo(({ x, y, flicker }) => {
+  // Outer glow
+  const glowOp = useDerivedValue(() => 0.15 + flicker.value * 0.15);
+  // Core flame opacity sways
+  const coreOp = useDerivedValue(() => 0.7 + flicker.value * 0.3);
+  // Inner white-hot tip
+  const tipOp = useDerivedValue(() => 0.8 + flicker.value * 0.2);
+  // Sway offset
+  const swayX = useDerivedValue(() => x + 15 + Math.sin(flicker.value * Math.PI * 2) * 3);
+  const tipY = useDerivedValue(() => y - 8 + Math.sin(flicker.value * Math.PI * 4) * 2);
+
+  return (
+    <Group>
+      {/* Wide warm glow around the flame */}
+      <Circle cx={x + 15} cy={y + 5} r={35} color={COLORS.torchGlow} opacity={glowOp}>
+        <Blur blur={20} />
+      </Circle>
+      {/* Outer flame — reddish orange, largest */}
+      <Circle cx={swayX} cy={y + 8} r={14} color="rgba(255, 80, 20, 0.7)" opacity={coreOp}>
+        <Blur blur={6} />
+      </Circle>
+      {/* Mid flame — bright orange */}
+      <Circle cx={swayX} cy={y} r={10} color="rgba(255, 160, 40, 0.85)" opacity={coreOp}>
+        <Blur blur={4} />
+      </Circle>
+      {/* Inner flame — yellow */}
+      <Circle cx={swayX} cy={tipY} r={6} color="rgba(255, 230, 80, 0.9)" opacity={tipOp}>
+        <Blur blur={2} />
+      </Circle>
+      {/* White-hot tip */}
+      <Circle cx={swayX} cy={tipY} r={3} color="rgba(255, 255, 220, 0.95)" opacity={tipOp}>
+        <Blur blur={1} />
+      </Circle>
+    </Group>
+  );
+});
+SkiaTorchFlame.displayName = 'SkiaTorchFlame';
 
 /** Interpolate crack colour from gold (hit 0) to red (hit max). */
 function crackColor(hitIndex: number, maxHits: number): string {
@@ -492,6 +579,13 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   // Per-hit shockwave progress (reused)
   const shockwaveProgress = useSharedValue(0);
 
+  // ── New shared values for enhanced visuals ──
+  const torchFlicker = useSharedValue(0);
+  const lightningFlash = useSharedValue(0);
+  const lightPillarOpacity = useSharedValue(0);
+  const lightPillarScale = useSharedValue(0);
+  const debrisVisible = useSharedValue(0);
+
   // Per-hit spark progress values (pool of 6)
   const sp0 = useSharedValue(0);
   const sp1 = useSharedValue(0);
@@ -581,6 +675,17 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       false,
     );
 
+    // Torch flame flicker
+    torchFlicker.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 300, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0.4, { duration: 200, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0.8, { duration: 250, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0.3, { duration: 350, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+    );
+
     chainOpacity.value = withTiming(1, { duration: CS.chainAppearDuration / 2 });
     chainScale.value = withTiming(
       1,
@@ -598,6 +703,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     cardOpacity,
     canvasOpacity,
     dustProgress,
+    torchFlicker,
   ]);
 
   // ── Auto-shatter timeout ──
@@ -664,6 +770,16 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       ),
     );
     cardOpacity.value = withDelay(500, withTiming(1, { duration: CS.cardRevealDuration }));
+
+    // Freedom light pillar
+    lightPillarScale.value = withDelay(
+      300,
+      withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) }),
+    );
+    lightPillarOpacity.value = withDelay(
+      300,
+      withSequence(withTiming(0.8, { duration: 300 }), withTiming(0, { duration: 800 })),
+    );
   }, [
     enableHaptics,
     lockOpacity,
@@ -674,6 +790,8 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     cardScale,
     cardOpacity,
     enterRevealed,
+    lightPillarScale,
+    lightPillarOpacity,
   ]);
 
   // ── Handle hit ──
@@ -746,6 +864,17 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       withTiming(0, { duration: 120 }),
     );
 
+    // Lightning flash (visible above 3 hits)
+    if (current >= 3) {
+      lightningFlash.value = withSequence(
+        withTiming(1, { duration: 50 }),
+        withTiming(0, { duration: 200 }),
+      );
+    }
+
+    // Show debris after first hit
+    debrisVisible.value = withTiming(1, { duration: 200 });
+
     // Shake (X + Y for more dynamic feel)
     const intensity = Math.min(current / CS.requiredHits, 1);
     const amp = 6 + intensity * 8;
@@ -778,6 +907,8 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     comboOpacity,
     comboScale,
     hitFlashOpacity,
+    lightningFlash,
+    debrisVisible,
     shakeX,
     shakeY,
     triggerShatter,
@@ -815,6 +946,11 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     transform: [{ scale: comboScale.value }],
   }));
 
+  const lightPillarStyle = useAnimatedStyle(() => ({
+    opacity: lightPillarOpacity.value,
+    transform: [{ scaleY: lightPillarScale.value }],
+  }));
+
   const hitsRemaining = Math.max(0, CS.requiredHits - hitCountDisplay);
 
   return (
@@ -826,12 +962,49 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
+      <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
-      {/* Ambient dust particles (full-screen Skia canvas behind lock) */}
+      {/* Stone wall blocks in background */}
+      {!reducedMotion && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          {STONE_BLOCKS.map((block, i) => (
+            <View
+              key={`stone-${i}`}
+              style={[
+                styles.stoneBlock,
+                { left: block.x + 2, top: block.y, width: block.w, height: block.h },
+              ]}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* Wall torch brackets (bolt only — flame is rendered in Skia canvas) */}
+      {!reducedMotion &&
+        TORCH_POSITIONS.map((torch, i) => (
+          <View
+            key={`torch-bracket-${i}`}
+            style={[styles.torch, { left: torch.x + 8, top: torch.y + 30 }]}
+            pointerEvents="none"
+          >
+            <Text style={styles.torchBracket}>🔩</Text>
+          </View>
+        ))}
+
+      {/* Ambient dust particles + Skia torch flames (full-screen Skia canvas behind lock) */}
       {phase !== 'revealed' && !reducedMotion && (
         <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
           {dustParticles.map((dust, i) => (
             <DustParticle key={`dust-${i}`} dust={dust} progress={dustProgress} />
+          ))}
+          {/* Skia torch flames — warm glowing fire clusters */}
+          {TORCH_POSITIONS.map((torch, i) => (
+            <SkiaTorchFlame
+              key={`skia-torch-${i}`}
+              x={torch.x}
+              y={torch.y}
+              flicker={torchFlicker}
+            />
           ))}
         </Canvas>
       )}
@@ -959,6 +1132,47 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
               {(phase === 'hitting' || phase === 'idle') && (
                 <Shockwave cx={cx} cy={cy} progress={shockwaveProgress} maxRadius={lockW * 0.8} />
               )}
+
+              {/* Lightning arcs between cracks (visible after 3+ hits) */}
+              <Group opacity={lightningFlash}>
+                <Line
+                  p1={vec(cx - lockW * 0.25, cy - lockH * 0.2)}
+                  p2={vec(cx + lockW * 0.15, cy + lockH * 0.15)}
+                  color={COLORS.lightningArc}
+                  strokeWidth={2}
+                  style="stroke"
+                />
+                <Line
+                  p1={vec(cx + lockW * 0.2, cy - lockH * 0.15)}
+                  p2={vec(cx - lockW * 0.1, cy + lockH * 0.2)}
+                  color={COLORS.lightningArc}
+                  strokeWidth={2}
+                  style="stroke"
+                />
+                {/* Lightning glow */}
+                <Line
+                  p1={vec(cx - lockW * 0.25, cy - lockH * 0.2)}
+                  p2={vec(cx + lockW * 0.15, cy + lockH * 0.15)}
+                  color={COLORS.lightningGlow}
+                  strokeWidth={6}
+                  style="stroke"
+                >
+                  <Blur blur={4} />
+                </Line>
+              </Group>
+
+              {/* Ground debris (accumulate after hits) */}
+              <Group opacity={debrisVisible}>
+                {DEBRIS_PARTICLES.map((d, i) => (
+                  <Circle
+                    key={`debris-${i}`}
+                    cx={d.x}
+                    cy={d.y}
+                    r={d.size}
+                    color={COLORS.debrisColor}
+                  />
+                ))}
+              </Group>
             </Canvas>
 
             {/* Hit counter inside shake container */}
@@ -1048,6 +1262,18 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
         </View>
       )}
 
+      {/* Exposed spring coils (visible through cracks during hitting) */}
+      {phase === 'hitting' && hitCountDisplay >= 3 && (
+        <View style={styles.springContainer} pointerEvents="none">
+          <Text style={styles.springText}>⌇⌇⌇</Text>
+        </View>
+      )}
+
+      {/* Freedom light pillar (on shatter/reveal) */}
+      {(phase === 'shatter' || phase === 'revealed') && (
+        <Animated.View style={[styles.lightPillar, lightPillarStyle]} pointerEvents="none" />
+      )}
+
       {/* Revealed card */}
       {(phase === 'shatter' || phase === 'revealed') && (
         <Animated.View style={[styles.cardWrapper, cardStyle]}>
@@ -1060,6 +1286,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
               revealGradient={theme.revealGradient}
               animateEntrance={phase === 'revealed'}
             />
+            <RevealBurst trigger={phase === 'revealed'} color={theme.glowColor} />
             {phase === 'revealed' && (
               <AlignmentRevealOverlay
                 alignment={role.alignment}
@@ -1129,5 +1356,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
+  },
+  stoneBlock: {
+    position: 'absolute',
+    backgroundColor: COLORS.stoneWall,
+    borderWidth: 1,
+    borderColor: COLORS.stoneWallBorder,
+    borderRadius: 2,
+  },
+  torch: {
+    position: 'absolute',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  torchBracket: {
+    fontSize: 14,
+    marginTop: -4,
+  },
+  springContainer: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '48%',
+    zIndex: 3,
+  },
+  springText: {
+    fontSize: 18,
+    color: COLORS.springColor,
+    letterSpacing: 4,
+  },
+  lightPillar: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: 0,
+    width: 40,
+    height: '100%',
+    backgroundColor: COLORS.lightPillar,
+    zIndex: 1,
   },
 });

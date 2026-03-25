@@ -1,17 +1,17 @@
 /**
- * BreathingBorder - 持续呼吸发光边框（Reanimated 4）
+ * BreathingBorder — Skia 脉冲辉光边框
  *
- * 翻牌揭示后在卡片周围显示一圈发光边框，以无限呼吸脉动保持视觉存在感。
- * 初始 opacity=1（立即可见），然后进入 0.15↔0.4 的缓慢循环。
- * `onComplete` 在 mount 后经过 `effectDisplayDuration` 延迟触发（给阵营特效
- * 充分展示时间），不依赖动画回调。
+ * 翻牌揭示后在卡片周围渲染弥散的能量场光晕（而非简单边框线），
+ * 使用 Skia RoundedRect stroke + Blur + blendMode 实现。
+ * 4 颗光点沿矩形边缘缓慢移动。无限呼吸脉动保持视觉存在感。
+ * `onComplete` 在 mount 后经过 `effectDisplayDuration` 延迟触发。
  * 不 import service，不含业务逻辑。
  */
-import React, { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
-import Animated, {
+import { Blur, Canvas, Circle, Group, RoundedRect } from '@shopify/react-native-skia';
+import React, { useEffect, useMemo } from 'react';
+import {
   Easing,
-  useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withRepeat,
   withSequence,
@@ -19,9 +19,12 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { borderRadius, spacing } from '@/theme';
+import { borderRadius } from '@/theme';
 
-const { common, alignmentEffects } = CONFIG;
+const { common, alignmentEffects, skia: SK } = CONFIG;
+
+// Number of runner light orbs along the border edge
+const RUNNER_COUNT = 4;
 
 interface BreathingBorderProps {
   /** Border color */
@@ -50,66 +53,159 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
   onComplete,
 }) => {
   const glowPadding = common.glowPadding;
-  // Start fully visible — never invisible at mount
-  const opacity = useSharedValue(1);
   const duration = breathingDurationProp ?? 2500;
 
-  // Fire onComplete after alignment effects have displayed sufficiently
+  // ── Shared values ──
+  const breathe = useSharedValue(1);
+  const runnerProgress = useSharedValue(0);
+
+  // Fire onComplete after alignment effects have displayed
   useEffect(() => {
     if (!animate || !onComplete) return;
     const timer = setTimeout(onComplete, alignmentEffects.effectDisplayDuration);
     return () => clearTimeout(timer);
   }, [animate, onComplete]);
 
-  // Infinite breathing loop
+  // Breathing loop — stroke width and blur pulsation
   useEffect(() => {
     if (!animate) {
-      opacity.value = 1;
+      breathe.value = 1;
       return;
     }
-
     const breathHalf = duration / 2;
     const breathEasing = Easing.inOut(Easing.sin);
-
-    // 1 → 0.3 → 0.7 → 0.3 → 0.7 … (infinite, higher range for visibility on white cards)
-    opacity.value = withSequence(
-      withTiming(0.3, { duration: breathHalf, easing: breathEasing }),
+    breathe.value = withSequence(
+      withTiming(0, { duration: breathHalf, easing: breathEasing }),
       withRepeat(
         withSequence(
-          withTiming(0.7, { duration: breathHalf, easing: breathEasing }),
-          withTiming(0.3, { duration: breathHalf, easing: breathEasing }),
+          withTiming(1, { duration: breathHalf, easing: breathEasing }),
+          withTiming(0, { duration: breathHalf, easing: breathEasing }),
         ),
         -1,
       ),
     );
-  }, [animate, duration, opacity]);
+  }, [animate, duration, breathe]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
+  // Runner light — continuous loop along border perimeter
+  useEffect(() => {
+    if (!animate) return;
+    runnerProgress.value = withRepeat(
+      withTiming(1, { duration: duration * 2, easing: Easing.linear }),
+      -1,
+    );
+  }, [animate, duration, runnerProgress]);
+
+  // ── Derived Skia values ──
+  const [blurMin, blurMax] = SK.breathingBlurRange;
+  const [strokeMin, strokeMax] = SK.breathingStrokeRange;
+
+  const blurVal = useDerivedValue(() => blurMin + breathe.value * (blurMax - blurMin));
+  const strokeW = useDerivedValue(() => strokeMin + breathe.value * (strokeMax - strokeMin));
+  const borderOpacity = useDerivedValue(() => 0.4 + breathe.value * 0.4);
+
+  // Canvas dimensions (includes padding for glow overflow)
+  const canvasW = cardWidth + glowPadding * 3;
+  const canvasH = cardHeight + glowPadding * 3;
+  const offsetX = glowPadding;
+  const offsetY = glowPadding;
+  const rectR = borderRadius.xlarge;
+
+  // Perimeter for runner positions
+  const perimeter = useMemo(
+    () => 2 * (cardWidth + glowPadding) + 2 * (cardHeight + glowPadding),
+    [cardWidth, cardHeight, glowPadding],
+  );
+
+  const canvasStyle = useMemo(
+    () => ({
+      position: 'absolute' as const,
+      width: canvasW,
+      height: canvasH,
+      top: -glowPadding,
+      left: -glowPadding,
+    }),
+    [canvasW, canvasH, glowPadding],
+  );
 
   return (
-    <Animated.View
-      style={[
-        styles.border,
-        {
-          width: cardWidth + glowPadding,
-          height: cardHeight + glowPadding,
-          top: -glowPadding / 2,
-          left: -glowPadding / 2,
-          borderRadius: borderRadius.medium + spacing.tight,
-          borderWidth: common.glowBorderWidth,
-          borderColor: color,
-          boxShadow: `0 0 ${Math.round(cardWidth * 0.14)}px ${Math.round(cardWidth * 0.03)}px ${glowColor}`,
-        },
-        animatedStyle,
-      ]}
-    />
+    <Canvas style={canvasStyle} pointerEvents="none">
+      {/* Main breathing border — stroke + blur glow */}
+      <Group opacity={borderOpacity} blendMode="screen">
+        <RoundedRect
+          x={offsetX}
+          y={offsetY}
+          width={cardWidth + glowPadding}
+          height={cardHeight + glowPadding}
+          r={rectR}
+          color={color}
+          style="stroke"
+          strokeWidth={strokeW}
+        >
+          <Blur blur={blurVal} />
+        </RoundedRect>
+      </Group>
+
+      {/* Runner light orbs — 4 points gliding along border */}
+      <Group blendMode="screen">
+        {Array.from({ length: RUNNER_COUNT }, (_, i) => (
+          <RunnerOrb
+            key={i}
+            index={i}
+            progress={runnerProgress}
+            perimeter={perimeter}
+            offsetX={offsetX}
+            offsetY={offsetY}
+            rectW={cardWidth + glowPadding}
+            rectH={cardHeight + glowPadding}
+            color={glowColor}
+          />
+        ))}
+      </Group>
+    </Canvas>
   );
 };
 
-const styles = StyleSheet.create({
-  border: {
-    position: 'absolute',
-  },
+/** Light orb moving along the rectangular border perimeter */
+const RunnerOrb = React.memo(function RunnerOrb({
+  index,
+  progress,
+  perimeter,
+  offsetX,
+  offsetY,
+  rectW,
+  rectH,
+  color,
+}: {
+  index: number;
+  progress: { value: number };
+  perimeter: number;
+  offsetX: number;
+  offsetY: number;
+  rectW: number;
+  rectH: number;
+  color: string;
+}) {
+  const phase = index / RUNNER_COUNT;
+
+  const cx = useDerivedValue(() => {
+    const t = ((progress.value + phase) % 1) * perimeter;
+    if (t < rectW) return offsetX + t;
+    if (t < rectW + rectH) return offsetX + rectW;
+    if (t < 2 * rectW + rectH) return offsetX + rectW - (t - rectW - rectH);
+    return offsetX;
+  });
+
+  const cy = useDerivedValue(() => {
+    const t = ((progress.value + phase) % 1) * perimeter;
+    if (t < rectW) return offsetY;
+    if (t < rectW + rectH) return offsetY + (t - rectW);
+    if (t < 2 * rectW + rectH) return offsetY + rectH;
+    return offsetY + rectH - (t - 2 * rectW - rectH);
+  });
+
+  return (
+    <Circle cx={cx} cy={cy} r={3} color={color} opacity={0.7}>
+      <Blur blur={6} />
+    </Circle>
+  );
 });

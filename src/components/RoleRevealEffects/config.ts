@@ -328,4 +328,42 @@ export const CONFIG = {
     /** Use heavy impact for dramatic moments */
     dramaticStyle: 'heavy' as const,
   },
+
+  // =====================================================
+  // Skia visual effects
+  // =====================================================
+  skia: {
+    /** Default particle blur radius */
+    particleBlur: 3,
+    /** Default glow blur radius */
+    glowBlur: 12,
+    /** Screen flash blur */
+    flashBlur: 30,
+    /** Breathing border blur range [min, max] */
+    breathingBlurRange: [8, 16] as readonly [number, number],
+    /** Breathing border stroke width range [min, max] */
+    breathingStrokeRange: [4, 8] as readonly [number, number],
+    /** Burst particle count (reveal moment) */
+    burstParticleCount: 20,
+    /** Trail particle count (entrance) */
+    trailParticleCount: 8,
+    /** Cross flash thickness ratio (relative to card width) */
+    crossFlashThickness: 0.02,
+    /** Cross flash length ratio (relative to screen width) */
+    crossFlashLength: 2,
+  },
+
+  // =====================================================
+  // Charge-up phase (pre-reveal anticipation)
+  // =====================================================
+  chargeUp: {
+    /** Charge-up duration before reveal (ms) */
+    duration: 300,
+    /** Shake amplitude during charge (px) */
+    shakeAmplitude: 1.5,
+    /** Shake interval (ms) */
+    shakeInterval: 30,
+    /** Glow blur increase factor during charge */
+    glowBlurMultiplier: 2.5,
+  },
 } as const;

@@ -10,6 +10,7 @@
  * 不 import service，不含业务逻辑。
  */
 import {
+  Blur,
   Canvas,
   Circle,
   Group,
@@ -22,7 +23,7 @@ import {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
@@ -32,11 +33,14 @@ import Animated, {
   useDerivedValue,
   useSharedValue,
   withDelay,
+  withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
+import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
+import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -71,9 +75,62 @@ const COLORS = {
   energyParticle: 'rgba(255, 215, 0, 0.6)',
   /** Charging glow around seal */
   chargeGlow: 'rgba(255, 200, 50, 0.4)',
+  /** Dark fog */
+  fogColor: 'rgba(20, 10, 30, 0.6)',
+  /** Fire embers */
+  emberCore: '#FF6B00',
+  emberGlow: 'rgba(255, 107, 0, 0.4)',
+  /** Energy beams */
+  energyBeam: 'rgba(255, 215, 0, 0.5)',
+  energyBeamBright: 'rgba(255, 230, 100, 0.7)',
+  /** Chain */
+  chainColor: 'rgba(160, 160, 160, 0.6)',
+  /** Ancient text */
+  ancientText: 'rgba(180, 160, 120, 0.4)',
+  /** Wax drip */
+  waxDrip: '#6B1010',
+  /** Seal pulse */
+  sealPulse: 'rgba(255, 215, 0, 0.2)',
 } as const;
 
 const SB = CONFIG.sealBreak;
+
+const SCREEN_W = Dimensions.get('window').width;
+const SCREEN_H = Dimensions.get('window').height;
+
+/** Fire embers — small particles rising from the seal */
+const EMBERS = Array.from({ length: 14 }, (_, i) => ({
+  id: i,
+  startX: SCREEN_W * 0.3 + Math.random() * SCREEN_W * 0.4,
+  startY: SCREEN_H * 0.5 + Math.random() * SCREEN_H * 0.15,
+  drift: (Math.random() - 0.5) * 30,
+  size: 2 + Math.random() * 2.5,
+}));
+
+/** Fog circles at bottom/edges for dark atmosphere */
+const FOG_CIRCLES = [
+  { x: 0, y: SCREEN_H * 0.65, r: 130 },
+  { x: SCREEN_W, y: SCREEN_H * 0.7, r: 110 },
+  { x: SCREEN_W * 0.3, y: SCREEN_H, r: 150 },
+  { x: SCREEN_W * 0.7, y: SCREEN_H * 0.95, r: 120 },
+];
+
+/** Energy beam angles — 8 radial beams from seal center */
+const ENERGY_BEAM_ANGLES = Array.from({ length: 8 }, (_, i) => ((Math.PI * 2) / 8) * i);
+
+/** Chain symbol positions around outer ring */
+const CHAIN_POSITIONS = Array.from({ length: 6 }, (_, i) => ({
+  angle: ((Math.PI * 2) / 6) * i + Math.PI / 6,
+}));
+
+/** Ancient text symbols (counter-rotating ring) */
+const ANCIENT_TEXT_SYMBOLS = ['𐤀', '𐤁', '𐤂', '𐤃', '𐤄', '𐤅', '𐤆', '𐤇', '𐤈', '𐤉'];
+
+/** Wax drip positions around seal rim (biased toward bottom half) */
+const WAX_DRIPS = Array.from({ length: 5 }, (_, i) => {
+  const angle = Math.PI * 0.3 + ((Math.PI * 0.4) / 4) * i;
+  return { angle, length: 12 + Math.random() * 18 };
+});
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface ShardData {
@@ -251,6 +308,88 @@ const ProgressSegment: React.FC<ProgressSegmentProps> = ({ path, threshold, char
   );
 };
 
+// ─── Fire ember particle (Skia, rises with cycle) ──────────────────────
+interface EmberParticleProps {
+  startX: number;
+  startY: number;
+  drift: number;
+  size: number;
+  cycle: SharedValue<number>;
+  chargeLevel: SharedValue<number>;
+}
+
+const EmberParticle: React.FC<EmberParticleProps> = ({
+  startX,
+  startY,
+  drift,
+  size,
+  cycle,
+  chargeLevel,
+}) => {
+  const ey = useDerivedValue(() => startY - cycle.value * 180);
+  const ex = useDerivedValue(() => startX + Math.sin(cycle.value * Math.PI * 2) * drift);
+  const eOp = useDerivedValue(() =>
+    interpolate(cycle.value, [0, 0.2, 0.7, 1], [0, 0.8 * chargeLevel.value, 0.3, 0]),
+  );
+
+  return (
+    <Group opacity={eOp}>
+      <Circle cx={ex} cy={ey} r={size} color={COLORS.emberCore} />
+      <Circle cx={ex} cy={ey} r={size * 2}>
+        <Blur blur={4} />
+      </Circle>
+    </Group>
+  );
+};
+
+// ─── Chain symbol (RN Animated.Text, rattles during charge) ─────────────
+interface ChainSymbolProps {
+  angle: number;
+  cx: number;
+  cy: number;
+  radius: number;
+  rattle: SharedValue<number>;
+}
+
+const ChainSymbol: React.FC<ChainSymbolProps> = ({ angle, cx, cy, radius, rattle }) => {
+  const style = useAnimatedStyle(() => ({
+    left: cx + Math.cos(angle) * radius - 12,
+    top: cy + Math.sin(angle) * radius - 12 + Math.sin(rattle.value * Math.PI * 6) * 3,
+    opacity: interpolate(rattle.value, [0, 0.5, 1], [0.5, 0.8, 0.5]),
+  }));
+
+  return <Animated.Text style={[styles.chainText, style]}>⛓</Animated.Text>;
+};
+
+// ─── Ancient text symbol (counter-rotating ring) ────────────────────────
+interface AncientTextSymbolProps {
+  symbol: string;
+  baseAngle: number;
+  cx: number;
+  cy: number;
+  orbitR: number;
+  rotation: SharedValue<number>;
+}
+
+const AncientTextSymbol: React.FC<AncientTextSymbolProps> = ({
+  symbol,
+  baseAngle,
+  cx,
+  cy,
+  orbitR,
+  rotation,
+}) => {
+  const animStyle = useAnimatedStyle(() => {
+    const a = baseAngle - rotation.value; // counter-rotate
+    return {
+      left: cx + Math.cos(a) * orbitR - 8,
+      top: cy + Math.sin(a) * orbitR - 8,
+    };
+  });
+
+  return <Animated.Text style={[styles.ancientText, animStyle]}>{symbol}</Animated.Text>;
+};
+
 // ─── Outer rune symbol (extracted to avoid hook-in-callback violation) ──
 interface OuterRuneSymbolProps {
   symbol: string;
@@ -338,6 +477,14 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   const energyRotation = useSharedValue(0);
   const chargeGlowOpacity = useSharedValue(0);
 
+  // ── New shared values for enhanced visuals ──
+  const fogPulse = useSharedValue(0);
+  const emberCycle = useSharedValue(0);
+  const chainRattle = useSharedValue(0);
+  const energyBeamOpacity = useSharedValue(0);
+  const ancientTextRotation = useSharedValue(0);
+  const sealPulseScale = useSharedValue(1);
+
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
 
@@ -421,6 +568,8 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
       charge.value = newCharge;
       crackProgress.value = newCharge;
       chargeGlowOpacity.value = newCharge * 0.8;
+      // Energy beams appear above 30% charge, intensify linearly
+      energyBeamOpacity.value = newCharge > 0.3 ? (newCharge - 0.3) / 0.7 : 0;
 
       // Full charge -> shatter
       if (newCharge >= 1) {
@@ -435,6 +584,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
       chargeRate,
       crackProgress,
       chargeGlowOpacity,
+      energyBeamOpacity,
       decayRate,
       enableHaptics,
       triggerShatter,
@@ -476,6 +626,34 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
       duration: 60000,
       easing: Easing.linear,
     });
+
+    // Dark fog slow pulse
+    fogPulse.value = withRepeat(
+      withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+
+    // Fire embers continuous rise cycle
+    emberCycle.value = withRepeat(withTiming(1, { duration: 3000, easing: Easing.linear }), -1);
+
+    // Chain rattle continuous
+    chainRattle.value = withRepeat(withTiming(1, { duration: 2000, easing: Easing.linear }), -1);
+
+    // Ancient text counter-rotation (opposite to rune ring)
+    ancientTextRotation.value = withTiming(Math.PI * 12, {
+      duration: 60000,
+      easing: Easing.linear,
+    });
+
+    // Seal pulse (subtle breathing)
+    sealPulseScale.value = withRepeat(
+      withSequence(
+        withTiming(1.08, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+    );
   }, [
     reducedMotion,
     sealOpacity,
@@ -485,6 +663,11 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     canvasOpacity,
     runeRotation,
     energyRotation,
+    fogPulse,
+    emberCycle,
+    chainRattle,
+    ancientTextRotation,
+    sealPulseScale,
   ]);
 
   // ── Start/stop charging loop when phase allows ──
@@ -627,6 +810,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
+      <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
       {/* Pressable area for long-press */}
       <Pressable
@@ -639,6 +823,15 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Animated.View style={[StyleSheet.absoluteFill, sealContainerStyle]}>
             <Canvas style={StyleSheet.absoluteFill}>
+              {/* Dark fog at edges */}
+              {FOG_CIRCLES.map((fog, i) => (
+                <Group key={`fog-${i}`} opacity={fogPulse}>
+                  <Circle cx={fog.x} cy={fog.y} r={fog.r} color={COLORS.fogColor}>
+                    <Blur blur={40} />
+                  </Circle>
+                </Group>
+              ))}
+
               {/* Background aura glow */}
               <Circle cx={cx} cy={cy} r={sealRadius * 1.6}>
                 <SkiaLinearGradient
@@ -659,6 +852,20 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                   strokeCap="round"
                 />
               ))}
+
+              {/* Seal pulse ring (breathing glow around seal) */}
+              <Group>
+                <Circle
+                  cx={cx}
+                  cy={cy}
+                  r={sealRadius * 1.15}
+                  style="stroke"
+                  strokeWidth={6}
+                  color={COLORS.sealPulse}
+                >
+                  <Blur blur={8} />
+                </Circle>
+              </Group>
 
               {/* Seal disc — wax gradient */}
               <Circle cx={cx} cy={cy} r={sealRadius} color={COLORS.waxMid} />
@@ -689,6 +896,19 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                 opacity={0.3}
               />
 
+              {/* Wax drips from seal rim (bottom half) */}
+              {WAX_DRIPS.map((drip, i) => {
+                const dx = cx + Math.cos(drip.angle) * sealRadius;
+                const dy = cy + Math.sin(drip.angle) * sealRadius;
+                return (
+                  <Group key={`wax-drip-${i}`}>
+                    <Circle cx={dx} cy={dy + drip.length * 0.5} r={4} color={COLORS.waxDrip} />
+                    <Circle cx={dx} cy={dy + drip.length} r={3} color={COLORS.waxDrip} />
+                    <Circle cx={dx} cy={dy + drip.length * 0.25} r={3.5} color={COLORS.waxDrip} />
+                  </Group>
+                );
+              })}
+
               {/* Decorative cross in center */}
               <Line
                 p1={vec(cx - sealRadius * 0.3, cy)}
@@ -715,6 +935,26 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                 color={COLORS.rune}
                 opacity={0.4}
               />
+
+              {/* Energy beams (radial, appear above 30% charge) */}
+              <Group opacity={energyBeamOpacity}>
+                {ENERGY_BEAM_ANGLES.map((angle, i) => (
+                  <Line
+                    key={`beam-${i}`}
+                    p1={vec(
+                      cx + Math.cos(angle) * sealRadius * 0.5,
+                      cy + Math.sin(angle) * sealRadius * 0.5,
+                    )}
+                    p2={vec(
+                      cx + Math.cos(angle) * sealRadius * 1.8,
+                      cy + Math.sin(angle) * sealRadius * 1.8,
+                    )}
+                    color={COLORS.energyBeam}
+                    strokeWidth={2}
+                    style="stroke"
+                  />
+                ))}
+              </Group>
 
               {/* Progress ring segments (light up as charge increases) */}
               {progressArcSegments.map((seg) => (
@@ -766,6 +1006,19 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                   rotationOffset={energyRotation}
                 />
               ))}
+
+              {/* Fire embers (rising from seal, intensify with charge) */}
+              {EMBERS.map((ember) => (
+                <EmberParticle
+                  key={`ember-${ember.id}`}
+                  startX={ember.startX}
+                  startY={ember.startY}
+                  drift={ember.drift}
+                  size={ember.size}
+                  cycle={emberCycle}
+                  chargeLevel={charge}
+                />
+              ))}
             </Canvas>
 
             {/* Rune symbols (inner ring, RN Text for emoji rendering) */}
@@ -796,6 +1049,31 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                 cy={cy}
                 orbitR={orbitR}
                 runeRotation={runeRotation}
+              />
+            ))}
+
+            {/* Chain symbols (rattle during charge) */}
+            {CHAIN_POSITIONS.map((pos, i) => (
+              <ChainSymbol
+                key={`chain-${i}`}
+                angle={pos.angle}
+                cx={cx}
+                cy={cy}
+                radius={sealRadius * 1.7}
+                rattle={chainRattle}
+              />
+            ))}
+
+            {/* Ancient text ring (counter-rotating) */}
+            {ANCIENT_TEXT_SYMBOLS.map((symbol, i) => (
+              <AncientTextSymbol
+                key={`ancient-${i}`}
+                symbol={symbol}
+                baseAngle={((Math.PI * 2) / ANCIENT_TEXT_SYMBOLS.length) * i}
+                cx={cx}
+                cy={cy}
+                orbitR={sealRadius * 1.05}
+                rotation={ancientTextRotation}
               />
             ))}
           </Animated.View>
@@ -872,6 +1150,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
               revealGradient={theme.revealGradient}
               animateEntrance={phase === 'revealed'}
             />
+            <RevealBurst trigger={phase === 'revealed'} color={theme.glowColor} />
             {phase === 'revealed' && (
               <AlignmentRevealOverlay
                 alignment={role.alignment}
@@ -952,5 +1231,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
+  },
+  chainText: {
+    position: 'absolute',
+    fontSize: 20,
+    textShadowColor: 'rgba(200, 200, 200, 0.3)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  },
+  ancientText: {
+    position: 'absolute',
+    fontSize: 12,
+    color: COLORS.ancientText,
+    fontWeight: '400',
   },
 });

@@ -1,1 +1,1 @@
-export { RoleHunt } from './RoleHuntLoader';
+export { RoleHunt } from './RoleHunt';
