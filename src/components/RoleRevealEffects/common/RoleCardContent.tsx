@@ -22,6 +22,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { getFactionName } from '@/components/roleDisplayUtils';
+import { WolfCrackBackground } from '@/components/RoleRevealEffects/common/effects/WolfRevealEffect';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
 import { getRoleBadge } from '@/utils/roleBadges';
@@ -291,6 +292,16 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
           start={{ x: 0.15, y: 0 }}
           end={{ x: 0.85, y: 1 }}
           style={styles.revealGradientBg}
+        />
+      )}
+
+      {/* Wolf crack layer — between gradient bg and role image for depth */}
+      {revealMode && isWolf && animateEntrance && (
+        <WolfCrackBackground
+          cardWidth={width}
+          cardHeight={height}
+          animate
+          primaryColor={factionColor}
         />
       )}
 

@@ -5,6 +5,9 @@
  * 每个阵营都有专属特效 + 持续呼吸边框 + ScreenFlash。
  * `onComplete` 在 BreathingBorder 的 effectDisplayDuration 后触发。
  * Reduced motion 时不渲染任何特效，通过 timer 触发 onComplete。
+ *
+ * 裂痕层由 RoleCardContent 内部渲染（渐变背景与角色图标之间），
+ * 确保裂痕在角色图片后面。
  * 不 import service，不含业务逻辑。
  */
 import React, { useEffect } from 'react';

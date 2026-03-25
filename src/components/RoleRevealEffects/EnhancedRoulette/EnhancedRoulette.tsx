@@ -206,7 +206,6 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const cabinetOpacityAnim = useSharedValue(1);
 
   // Scene element shared values
-  const leverPull = useSharedValue(0);
   const jackpotOpacity = useSharedValue(0);
   const jackpotScale = useSharedValue(0.5);
   const creditFlicker = useSharedValue(1);
@@ -309,35 +308,13 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     );
   }, [enableHaptics, createParticles, revealScaleAnim, transitionToRevealed]);
 
-  // ── Spin animation ──
-  useEffect(() => {
-    if (shuffledRoles.length === 0 || targetIndex < 0) return;
+  // ── Start spin ──
+  const startSpin = useCallback(() => {
+    if (phase !== 'spinning') return;
 
-    if (reducedMotion) {
-      setPhase('revealed');
-      cabinetOpacityAnim.value = withTiming(0, {
-        duration: CONFIG.common.reducedMotionFadeDuration,
-      });
-      revealScaleAnim.value = withTiming(1, {
-        duration: CONFIG.common.reducedMotionFadeDuration,
-      });
-      revealOpacityAnim.value = withTiming(1, {
-        duration: CONFIG.common.reducedMotionFadeDuration,
-      });
-      const timer = setTimeout(
-        onComplete,
-        CONFIG.common.reducedMotionFadeDuration + (config.revealHoldDuration ?? 1500),
-      );
-      return () => clearTimeout(timer);
-    }
+    if (enableHaptics) triggerHaptic('medium', true);
 
     const targetPosition = config.spinRotations * shuffledRoles.length + targetIndex;
-
-    // Lever pull animation
-    leverPull.value = withSequence(
-      withTiming(1, { duration: 200, easing: Easing.in(Easing.cubic) }),
-      withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }),
-    );
 
     // Credit display flicker during spin
     creditFlicker.value = withRepeat(
@@ -369,21 +346,52 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       },
     );
   }, [
-    reducedMotion,
-    cabinetOpacityAnim,
+    phase,
+    enableHaptics,
     scrollAnim,
     bounceAnim,
-    leverPull,
     creditFlicker,
     pillarOpacity,
     shuffledRoles.length,
     targetIndex,
     config,
     afterBounce,
-    transitionToRevealed,
+  ]);
+
+  // ── Auto-start spin after brief waiting period ──
+  useEffect(() => {
+    if (shuffledRoles.length === 0 || targetIndex < 0) return;
+
+    if (reducedMotion) {
+      setPhase('revealed');
+      cabinetOpacityAnim.value = withTiming(0, {
+        duration: CONFIG.common.reducedMotionFadeDuration,
+      });
+      revealScaleAnim.value = withTiming(1, {
+        duration: CONFIG.common.reducedMotionFadeDuration,
+      });
+      revealOpacityAnim.value = withTiming(1, {
+        duration: CONFIG.common.reducedMotionFadeDuration,
+      });
+      const timer = setTimeout(
+        onComplete,
+        CONFIG.common.reducedMotionFadeDuration + (config.revealHoldDuration ?? 1500),
+      );
+      return () => clearTimeout(timer);
+    }
+
+    // Auto-start immediately
+    startSpin();
+  }, [
+    reducedMotion,
+    cabinetOpacityAnim,
+    shuffledRoles.length,
+    targetIndex,
+    config,
     revealScaleAnim,
     revealOpacityAnim,
     onComplete,
+    startSpin,
   ]);
 
   // ── Reveal complete handler ──
@@ -428,10 +436,6 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const revealedCardStyle = useAnimatedStyle(() => ({
     transform: [{ scale: revealScaleAnim.value }],
     opacity: revealOpacityAnim.value,
-  }));
-
-  const leverStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${leverPull.value * 30}deg` }],
   }));
 
   const creditStyle = useAnimatedStyle(() => ({
@@ -596,12 +600,6 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
             </View>
           </View>
         </LinearGradient>
-      </Animated.View>
-
-      {/* Pull lever — right side of machine */}
-      <Animated.View style={[styles.lever, leverStyle]} pointerEvents="none">
-        <View style={styles.leverArm} />
-        <View style={styles.leverHandle} />
       </Animated.View>
 
       {/* LED credit display — below machine */}
@@ -869,28 +867,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     overflow: 'hidden',
-  },
-  lever: {
-    position: 'absolute',
-    right: 20,
-    top: '40%',
-    alignItems: 'center',
-    transformOrigin: 'bottom center',
-  },
-  leverArm: {
-    width: 6,
-    height: 50,
-    backgroundColor: SLOT_COLORS.leverArm,
-    borderRadius: 3,
-  },
-  leverHandle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: SLOT_COLORS.leverHandle,
-    marginTop: -2,
-    borderWidth: 2,
-    borderColor: '#aa2222',
   },
   ledDisplay: {
     position: 'absolute',
