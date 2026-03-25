@@ -1,1 +1,1 @@
-export { SealBreak } from './SealBreakLoader';
+export { SealBreak } from './SealBreak';

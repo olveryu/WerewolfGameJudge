@@ -1,1 +1,1 @@
-export { ChainShatter } from './ChainShatterLoader';
+export { ChainShatter } from './ChainShatter';

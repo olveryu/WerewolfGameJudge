@@ -24,6 +24,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
+import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
+import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -52,6 +54,14 @@ const SLOT_COLORS = {
   screwBg: '#555',
   screwBorder: '#777',
   reelWindowBorder: '#333',
+  feltGreen: '#1a5c2e',
+  feltDark: '#0f3a1c',
+  leverHandle: '#cc3333',
+  leverArm: '#888888',
+  ledBg: '#111111',
+  ledText: '#33ff33',
+  jackpotGold: '#FFD700',
+  coinGold: '#FFD700',
 };
 
 const TOP_BULB_IDS = ['t1', 't2', 't3', 't4', 't5', 't6'] as const;
@@ -195,6 +205,13 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const revealOpacityAnim = useSharedValue(0);
   const cabinetOpacityAnim = useSharedValue(1);
 
+  // Scene element shared values
+  const leverPull = useSharedValue(0);
+  const jackpotOpacity = useSharedValue(0);
+  const jackpotScale = useSharedValue(0.5);
+  const creditFlicker = useSharedValue(1);
+  const pillarOpacity = useSharedValue(0);
+
   const containerWidth = Math.min(screenWidth * 0.9, 340);
   const containerHeight = config.itemHeight * config.visibleItems;
   const frameWidth = containerWidth + 40;
@@ -258,7 +275,24 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     cabinetOpacityAnim.value = withTiming(0, { duration: 300 });
     revealScaleAnim.value = withTiming(1, { duration: 200, easing: Easing.out(Easing.cubic) });
     revealOpacityAnim.value = withTiming(1, { duration: 300 });
-  }, [cabinetOpacityAnim, revealScaleAnim, revealOpacityAnim]);
+
+    // JACKPOT banner pop-in
+    jackpotOpacity.value = withDelay(200, withTiming(1, { duration: 300 }));
+    jackpotScale.value = withDelay(
+      200,
+      withTiming(1, { duration: 400, easing: Easing.out(Easing.back(1.5)) }),
+    );
+
+    // Light pillars fade out
+    pillarOpacity.value = withTiming(0, { duration: 500 });
+  }, [
+    cabinetOpacityAnim,
+    revealScaleAnim,
+    revealOpacityAnim,
+    jackpotOpacity,
+    jackpotScale,
+    pillarOpacity,
+  ]);
 
   // ── After bounce completes ──
   const afterBounce = useCallback(() => {
@@ -299,6 +333,18 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
     const targetPosition = config.spinRotations * shuffledRoles.length + targetIndex;
 
+    // Lever pull animation
+    leverPull.value = withSequence(
+      withTiming(1, { duration: 200, easing: Easing.in(Easing.cubic) }),
+      withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }),
+    );
+
+    // Credit display flicker during spin
+    creditFlicker.value = withRepeat(
+      withSequence(withTiming(0.3, { duration: 60 }), withTiming(1, { duration: 60 })),
+      Math.floor(config.spinDuration / 120),
+    );
+
     // Main spin
     scrollAnim.value = withTiming(
       targetPosition,
@@ -308,6 +354,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         if (!finished) return;
 
         runOnJS(setPhase)('stopping');
+
+        // Light pillars glow at stop
+        pillarOpacity.value = withTiming(0.6, { duration: 200 });
 
         // Bounce (deterministic timing, no spring oscillation)
         bounceAnim.value = withSequence(
@@ -324,6 +373,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     cabinetOpacityAnim,
     scrollAnim,
     bounceAnim,
+    leverPull,
+    creditFlicker,
+    pillarOpacity,
     shuffledRoles.length,
     targetIndex,
     config,
@@ -378,6 +430,23 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     opacity: revealOpacityAnim.value,
   }));
 
+  const leverStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${leverPull.value * 30}deg` }],
+  }));
+
+  const creditStyle = useAnimatedStyle(() => ({
+    opacity: creditFlicker.value,
+  }));
+
+  const jackpotStyle = useAnimatedStyle(() => ({
+    opacity: jackpotOpacity.value,
+    transform: [{ scale: jackpotScale.value }],
+  }));
+
+  const pillarStyle = useAnimatedStyle(() => ({
+    opacity: pillarOpacity.value,
+  }));
+
   // ── Loading state ──
   if (shuffledRoles.length === 0) {
     return (
@@ -397,6 +466,18 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
+      <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
+
+      {/* Felt table background */}
+      <View style={styles.feltTable} pointerEvents="none">
+        <LinearGradient
+          colors={[SLOT_COLORS.feltGreen, SLOT_COLORS.feltDark]}
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+        />
+      </View>
+
       {/* Slot machine cabinet - fades out on reveal */}
       <Animated.View
         style={[styles.cabinet, { width: frameWidth, height: frameHeight }, cabinetFadeStyle]}
@@ -517,6 +598,25 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         </LinearGradient>
       </Animated.View>
 
+      {/* Pull lever — right side of machine */}
+      <Animated.View style={[styles.lever, leverStyle]} pointerEvents="none">
+        <View style={styles.leverArm} />
+        <View style={styles.leverHandle} />
+      </Animated.View>
+
+      {/* LED credit display — below machine */}
+      <Animated.View style={[styles.ledDisplay, creditStyle]} pointerEvents="none">
+        <Text style={styles.ledText}>CREDIT: 00</Text>
+      </Animated.View>
+
+      {/* Light pillars — glow when stopping */}
+      {(phase === 'stopping' || phase === 'revealed') && (
+        <Animated.View style={[styles.pillarContainer, pillarStyle]} pointerEvents="none">
+          <View style={styles.pillarLeft} />
+          <View style={styles.pillarRight} />
+        </Animated.View>
+      )}
+
       {/* Revealed card - cross-fades in */}
       <Animated.View
         style={[styles.revealedOverlay, revealedCardStyle]}
@@ -533,6 +633,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
             revealGradient={theme.revealGradient}
             animateEntrance={phase === 'revealed'}
           />
+          <RevealBurst trigger={phase === 'revealed'} color={theme.glowColor} />
           {phase === 'revealed' && (
             <AlignmentRevealOverlay
               alignment={role.alignment}
@@ -552,6 +653,13 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           <EmojiParticle key={p.id} {...p} />
         ))}
       </View>
+
+      {/* JACKPOT banner — pops in on reveal */}
+      {phase === 'revealed' && (
+        <Animated.View style={[styles.jackpotBanner, jackpotStyle]} pointerEvents="none">
+          <Text style={styles.jackpotText}>🎰 JACKPOT! 🎰</Text>
+        </Animated.View>
+      )}
 
       {/* Hint text */}
       {phase === 'spinning' && (
@@ -751,5 +859,89 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     left: -4,
+  },
+  feltTable: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
+  },
+  lever: {
+    position: 'absolute',
+    right: 20,
+    top: '40%',
+    alignItems: 'center',
+    transformOrigin: 'bottom center',
+  },
+  leverArm: {
+    width: 6,
+    height: 50,
+    backgroundColor: SLOT_COLORS.leverArm,
+    borderRadius: 3,
+  },
+  leverHandle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: SLOT_COLORS.leverHandle,
+    marginTop: -2,
+    borderWidth: 2,
+    borderColor: '#aa2222',
+  },
+  ledDisplay: {
+    position: 'absolute',
+    bottom: 100,
+    backgroundColor: SLOT_COLORS.ledBg,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  ledText: {
+    fontFamily: 'monospace',
+    fontSize: 14,
+    fontWeight: '700',
+    color: SLOT_COLORS.ledText,
+    letterSpacing: 2,
+  },
+  pillarContainer: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 40,
+    pointerEvents: 'none',
+  },
+  pillarLeft: {
+    width: 4,
+    height: '60%',
+    backgroundColor: SLOT_COLORS.gold,
+    opacity: 0.3,
+    borderRadius: 2,
+    alignSelf: 'center',
+  },
+  pillarRight: {
+    width: 4,
+    height: '60%',
+    backgroundColor: SLOT_COLORS.gold,
+    opacity: 0.3,
+    borderRadius: 2,
+    alignSelf: 'center',
+  },
+  jackpotBanner: {
+    position: 'absolute',
+    top: 50,
+    alignItems: 'center',
+  },
+  jackpotText: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: SLOT_COLORS.jackpotGold,
+    letterSpacing: 4,
+    ...crossPlatformTextShadow(SLOT_COLORS.goldDark, 0, 2, 8),
   },
 });

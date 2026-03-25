@@ -1,28 +1,42 @@
 /**
- * ScratchReveal - 刮刮卡风格揭示动画（Reanimated 4 + Gesture Handler 2）
+ * ScratchReveal - 刮刮卡风格揭示动画（Reanimated 4 + Gesture Handler 2 + Skia）
  *
- * 特点：金属银刮层、刮痕纹理、金属碎片粒子、触觉反馈、进度条。
+ * 特点：金属银刮层 + 菱形底纹 + 序列号 + 规则文字，刮痕纹理，金属碎片粒子，
+ * 进度里程碑闪光，触觉反馈，"PRIZE"印章，彩纸礼花绽放。
  * 使用 `Gesture.Pan()` 替代 PanResponder，`useSharedValue` 驱动所有动画。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
+import { Blur, Canvas, Circle } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   cancelAnimation,
   Easing,
   interpolate,
   runOnJS,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
+import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
+import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -30,13 +44,76 @@ import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, crossPlatformTextShadow, spacing, typography, useColors } from '@/theme';
 
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
 // ─── Visual constants ──────────────────────────────────────────────────
 const SCRATCH_COLORS = {
   metalBase: '#C0C0C0',
   metalLight: '#E8E8E8',
   metalDark: '#909090',
   shavingColors: ['#D4D4D4', '#B8B8B8', '#A0A0A0', '#888888'],
+  confettiGold: '#ffd700',
+  confettiPink: '#ff69b4',
+  confettiCyan: '#00e5ff',
+  confettiGreen: '#66ff66',
+  milestoneFlash: '#ffffff',
 };
+
+// Confetti particles for reveal burst
+const CONFETTI = Array.from({ length: 20 }, (_, i) => ({
+  angle: (Math.PI * 2 * i) / 20 + (((i * 37) % 10) / 10) * 0.2,
+  speed: 50 + ((i * 53) % 50),
+  r: 2 + ((i * 23) % 3),
+  color: [
+    SCRATCH_COLORS.confettiGold,
+    SCRATCH_COLORS.confettiPink,
+    SCRATCH_COLORS.confettiCyan,
+    SCRATCH_COLORS.confettiGreen,
+  ][i % 4],
+}));
+
+// ─── Self-animating Skia confetti (hooks must live in own component) ────
+
+interface SkiaConfettiDotProps {
+  angle: number;
+  speed: number;
+  r: number;
+  color: string;
+  confettiProgress: SharedValue<number>;
+  confettiOpacity: SharedValue<number>;
+}
+
+const SkiaConfettiDot: React.FC<SkiaConfettiDotProps> = React.memo(
+  ({ angle, speed, r, color, confettiProgress, confettiOpacity }) => {
+    const cx = useDerivedValue(
+      () => SCREEN_W / 2 + Math.cos(angle) * speed * confettiProgress.value,
+    );
+    const cy = useDerivedValue(
+      () =>
+        SCREEN_H / 2 +
+        Math.sin(angle) * speed * confettiProgress.value -
+        30 * confettiProgress.value,
+    );
+    const op = useDerivedValue(() => confettiOpacity.value);
+    return (
+      <Circle cx={cx} cy={cy} r={r} color={color} opacity={op}>
+        <Blur blur={1} />
+      </Circle>
+    );
+  },
+);
+SkiaConfettiDot.displayName = 'SkiaConfettiDot';
+
+// Random serial number (stable per mount)
+function generateSerial(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 12; i++) {
+    if (i > 0 && i % 4 === 0) s += '-';
+    s += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return s;
+}
 
 interface ScratchPoint {
   x: number;
@@ -85,8 +162,9 @@ const MetalShaving: React.FC<ShavingConfig> = React.memo(
         style={[
           styles.shaving,
           {
-            width: size,
-            height: size * 0.6,
+            width: size * 1.8,
+            height: size * 0.35,
+            borderRadius: size * 0.15,
             backgroundColor: color,
           },
           animStyle,
@@ -123,6 +201,18 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const burstOpacity = useSharedValue(0);
   const sheenPosition = useSharedValue(0);
   const progressWidth = useSharedValue(0);
+
+  // Scene elements
+  const milestoneFlash = useSharedValue(0);
+  const confettiProgress = useSharedValue(0);
+  const confettiOpacity = useSharedValue(0);
+  const prizeStampOpacity = useSharedValue(0);
+  const prizeStampScale = useSharedValue(0.5);
+
+  // Stable serial number
+  const [serialNumber] = useState(() => generateSerial());
+  const milestone50Triggered = useRef(false);
+  const milestone75Triggered = useRef(false);
 
   const scratchedAreaRef = useRef(0);
   const lastHapticTime = useRef(0);
@@ -207,7 +297,35 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       'worklet';
       if (finished) runOnJS(setShowGlow)(true);
     });
-  }, [isRevealed, revealAnim, burstScale, burstOpacity, config.revealDuration, enableHaptics]);
+
+    // Confetti burst
+    confettiOpacity.value = withSequence(
+      withTiming(1, { duration: 100 }),
+      withDelay(600, withTiming(0, { duration: 300 })),
+    );
+    confettiProgress.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
+
+    // Prize stamp pop-in
+    prizeStampOpacity.value = withDelay(200, withTiming(1, { duration: 300 }));
+    prizeStampScale.value = withDelay(
+      200,
+      withSequence(
+        withTiming(1.2, { duration: 200, easing: Easing.out(Easing.back(2)) }),
+        withTiming(1, { duration: 150 }),
+      ),
+    );
+  }, [
+    isRevealed,
+    revealAnim,
+    burstScale,
+    burstOpacity,
+    config.revealDuration,
+    enableHaptics,
+    confettiOpacity,
+    confettiProgress,
+    prizeStampOpacity,
+    prizeStampScale,
+  ]);
 
   // ── Glow complete ──
   const handleGlowComplete = useCallback(() => {
@@ -245,6 +363,23 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       if (progress >= config.autoRevealThreshold) {
         triggerReveal();
       }
+
+      // Milestone flash at 50% and 75%
+      if (progress >= 0.5 && !milestone50Triggered.current) {
+        milestone50Triggered.current = true;
+        milestoneFlash.value = withSequence(
+          withTiming(0.5, { duration: 80 }),
+          withTiming(0, { duration: 300 }),
+        );
+        if (enableHaptics) triggerHaptic('medium', true);
+      } else if (progress >= 0.75 && !milestone75Triggered.current) {
+        milestone75Triggered.current = true;
+        milestoneFlash.value = withSequence(
+          withTiming(0.7, { duration: 80 }),
+          withTiming(0, { duration: 300 }),
+        );
+        if (enableHaptics) triggerHaptic('medium', true);
+      }
     },
     [
       isRevealed,
@@ -254,6 +389,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       createShaving,
       enableHaptics,
       progressWidth,
+      milestoneFlash,
     ],
   );
 
@@ -312,12 +448,43 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     width: `${progressWidth.value * 100}%` as `${number}%`,
   }));
 
+  const milestoneStyle = useAnimatedStyle(() => ({
+    opacity: milestoneFlash.value,
+  }));
+
+  const prizeStampStyle = useAnimatedStyle(() => ({
+    opacity: prizeStampOpacity.value,
+    transform: [{ scale: prizeStampScale.value }, { rotate: '-15deg' }],
+  }));
+
   // ── Render ──
   return (
     <View
       testID={`${testIDPrefix}-container`}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
+      <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
+
+      {/* Confetti burst — Skia canvas */}
+      {isRevealed && !reducedMotion && (
+        <Canvas style={styles.fullScreen} pointerEvents="none">
+          {CONFETTI.map((p, i) => (
+            <SkiaConfettiDot
+              key={`confetti-${i}`}
+              angle={p.angle}
+              speed={p.speed}
+              r={p.r}
+              color={p.color}
+              confettiProgress={confettiProgress}
+              confettiOpacity={confettiOpacity}
+            />
+          ))}
+        </Canvas>
+      )}
+
+      {/* Milestone flash overlay */}
+      <Animated.View style={[styles.milestoneFlash, milestoneStyle]} pointerEvents="none" />
+
       {/* Light burst */}
       <Animated.View
         style={[
@@ -379,6 +546,19 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
+
+              {/* Diamond pattern texture on metal */}
+              <View style={styles.diamondPattern} pointerEvents="none">
+                {Array.from({ length: 5 }, (_, row) => (
+                  <View key={`dp-row-${row}`} style={styles.diamondRow}>
+                    {Array.from({ length: 7 }, (_, col) => (
+                      <Text key={`dp-${row}-${col}`} style={styles.diamondChar}>
+                        ◇
+                      </Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
 
               {/* Animated sheen */}
               <Animated.View style={[styles.sheen, sheenStyle]}>
@@ -459,6 +639,15 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
         ))}
 
         {/* Glow border on reveal */}
+        <RevealBurst trigger={showGlow} color={theme.glowColor} />
+
+        {/* Prize stamp — pops in after reveal */}
+        {isRevealed && (
+          <Animated.View style={[styles.prizeStamp, prizeStampStyle]} pointerEvents="none">
+            <Text style={[styles.prizeStampText, { color: theme.primaryColor }]}>PRIZE</Text>
+          </Animated.View>
+        )}
+
         {showGlow && (
           <AlignmentRevealOverlay
             alignment={role.alignment}
@@ -489,6 +678,16 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
         </View>
       )}
 
+      {/* Serial number */}
+      <View style={styles.serialContainer} pointerEvents="none">
+        <Text style={[styles.serialText, { color: colors.textSecondary }]}>NO. {serialNumber}</Text>
+      </View>
+
+      {/* Rules text */}
+      <View style={styles.rulesContainer} pointerEvents="none">
+        <Text style={[styles.rulesText, { color: colors.textSecondary }]}>刮开涂层，揭晓命运</Text>
+      </View>
+
       {/* Reduced motion: tap button */}
       {reducedMotion && !isRevealed && (
         <TouchableOpacity
@@ -509,6 +708,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  fullScreen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: SCREEN_W,
+    height: SCREEN_H,
+  },
+  milestoneFlash: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: SCRATCH_COLORS.milestoneFlash,
   },
   cardWrapper: {
     overflow: 'hidden',
@@ -563,6 +773,8 @@ const styles = StyleSheet.create({
   shaving: {
     position: 'absolute',
     borderRadius: 1,
+    borderWidth: 0.5,
+    borderColor: SCRATCH_COLORS.metalLight,
   },
   lightBurst: {
     position: 'absolute',
@@ -606,5 +818,56 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: typography.body,
     fontWeight: '600',
+  },
+  diamondPattern: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.08,
+  },
+  diamondRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  diamondChar: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  prizeStamp: {
+    position: 'absolute',
+    top: 15,
+    right: 10,
+  },
+  prizeStampText: {
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 3,
+    borderWidth: 2,
+    borderColor: 'currentColor',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    opacity: 0.7,
+  },
+  serialContainer: {
+    position: 'absolute',
+    bottom: 28,
+    alignItems: 'center',
+  },
+  serialText: {
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 2,
+    opacity: 0.5,
+    fontFamily: 'monospace',
+  },
+  rulesContainer: {
+    position: 'absolute',
+    bottom: 12,
+    alignItems: 'center',
+  },
+  rulesText: {
+    fontSize: 10,
+    opacity: 0.4,
   },
 });

@@ -9,12 +9,22 @@
  * Animated.View rotation 同步跟随 Skia 转盘旋转。
  * 不 import service，不含业务逻辑。
  */
-import { Canvas, Circle, Group, Line, Path, vec } from '@shopify/react-native-skia';
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Line,
+  Path,
+  RadialGradient,
+  vec,
+} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
   runOnJS,
@@ -22,17 +32,23 @@ import Animated, {
   useDerivedValue,
   useSharedValue,
   withDelay,
+  withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
+import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
+import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
+import { SkiaSparkle } from '@/components/RoleRevealEffects/common/effects/SkiaSparkle';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { useColors } from '@/theme';
+import { crossPlatformTextShadow, useColors } from '@/theme';
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#0a0a1e', '#12122a', '#0a0a1e'] as const;
@@ -62,7 +78,42 @@ const POINTER_STROKE_COLOR = '#FFD700';
 const HINT_TEXT_COLOR = 'rgba(255, 255, 255, 0.85)';
 const HINT_ALIGNED_COLOR = '#4ECDC4';
 
+// Gem bulb colors for rim decorations
+const GEM_COLORS = ['#ff3366', '#33ccff', '#ffcc00', '#66ff66', '#cc66ff', '#ff6633'];
+
+// Pre-computed starfield
+const STARS = Array.from({ length: 25 }, (_, i) => ({
+  x: (((i * 73 + 17) % 100) / 100) * SCREEN_W,
+  y: (((i * 41 + 31) % 100) / 100) * SCREEN_H,
+  r: 0.5 + (((i * 59 + 7) % 100) / 100) * 1,
+}));
+
 const FW = CONFIG.fortuneWheel;
+
+/** Single gem bulb — extracted to avoid hooks inside .map() */
+interface GemBulbProps {
+  seg: { dotX: number; dotY: number };
+  index: number;
+  gemPulse: SharedValue<number>;
+}
+
+const GemBulb: React.FC<GemBulbProps> = React.memo(({ seg, index, gemPulse }) => {
+  const gemOp = useDerivedValue(() => 0.5 + Math.sin(gemPulse.value + (index * Math.PI) / 3) * 0.3);
+  return (
+    <Group>
+      <Circle
+        cx={seg.dotX}
+        cy={seg.dotY}
+        r={DOT_R + 2}
+        color={GEM_COLORS[index % GEM_COLORS.length]}
+        opacity={gemOp}
+      >
+        <Blur blur={3} />
+      </Circle>
+    </Group>
+  );
+});
+GemBulb.displayName = 'GemBulb';
 
 // ─── Layout ratios ──────────────────────────────────────────────────────
 const RIM_RATIO = 0.04;
@@ -193,6 +244,12 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const dragStartAngle = useSharedValue(0);
   const rotationOnDragStart = useSharedValue(0);
 
+  // Scene shared values
+  const gemPulse = useSharedValue(0);
+  const pointerTickGlow = useSharedValue(0);
+  const victoryArchOpacity = useSharedValue(0);
+  const victoryArchScale = useSharedValue(0.8);
+
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
 
   const handleGlowComplete = useCallback(() => {
@@ -221,7 +278,23 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ),
     );
     cardOpacity.value = withDelay(300, withTiming(1, { duration: FW.cardRevealDuration }));
-  }, [canvasOpacity, cardScaleVal, cardOpacity, flashOpacity, enableHaptics, enterRevealed]);
+
+    // Victory arch
+    victoryArchOpacity.value = withDelay(400, withTiming(0.8, { duration: 500 }));
+    victoryArchScale.value = withDelay(
+      400,
+      withTiming(1, { duration: 600, easing: Easing.out(Easing.back(1.1)) }),
+    );
+  }, [
+    canvasOpacity,
+    cardScaleVal,
+    cardOpacity,
+    flashOpacity,
+    victoryArchOpacity,
+    victoryArchScale,
+    enableHaptics,
+    enterRevealed,
+  ]);
 
   const computeTargetRotation = useCallback(
     (currentRotation: number) => {
@@ -246,6 +319,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       return;
     }
     wheelOpacity.value = withTiming(1, { duration: FW.appearDuration / 2 });
+    // Gem bulbs pulse
+    gemPulse.value = withRepeat(
+      withTiming(Math.PI * 2, { duration: 3000, easing: Easing.linear }),
+      -1,
+    );
     wheelScaleVal.value = withTiming(
       1,
       { duration: FW.appearDuration, easing: Easing.out(Easing.back(1.15)) },
@@ -254,13 +332,27 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         if (finished) runOnJS(setPhase)('idle');
       },
     );
-  }, [reducedMotion, wheelOpacity, wheelScaleVal, cardScaleVal, cardOpacity, canvasOpacity]);
+  }, [
+    reducedMotion,
+    wheelOpacity,
+    wheelScaleVal,
+    gemPulse,
+    cardScaleVal,
+    cardOpacity,
+    canvasOpacity,
+  ]);
 
   // Deceleration spin to target
   const startDeceleratingToTarget = useCallback(() => {
     setPhase('spinning');
     const finalRotation = computeTargetRotation(rotation.value);
     const duration = 2500 + Math.random() * 1000;
+
+    // Pointer tick glow pulses during spin
+    pointerTickGlow.value = withRepeat(
+      withSequence(withTiming(1, { duration: 80 }), withTiming(0, { duration: 80 })),
+      Math.floor(duration / 160),
+    );
 
     rotation.value = withTiming(
       finalRotation,
@@ -284,7 +376,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         );
       }
     }
-  }, [computeTargetRotation, rotation, enableHaptics]);
+  }, [computeTargetRotation, rotation, pointerTickGlow, enableHaptics]);
 
   // Trigger card reveal when wheel stops
   useEffect(() => {
@@ -373,6 +465,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     opacity: flashOpacity.value,
   }));
 
+  const victoryArchStyle = useAnimatedStyle(() => ({
+    opacity: victoryArchOpacity.value,
+    transform: [{ scale: victoryArchScale.value }],
+  }));
+
   // ─── Render ───────────────────────────────────────────────────────────
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
@@ -382,6 +479,32 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
+      <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
+
+      {/* Starfield background */}
+      {!reducedMotion && (
+        <Canvas style={styles.fullScreen} pointerEvents="none">
+          <Group blendMode="screen">
+            {STARS.map((star, i) => (
+              <SkiaSparkle
+                key={`bg-star-${i}`}
+                x={star.x}
+                y={star.y}
+                r={star.r}
+                color="#ccccff"
+                glowColor="#aaaaff"
+                glowBlur={4}
+              />
+            ))}
+          </Group>
+        </Canvas>
+      )}
+
+      {/* Pedestal base */}
+      <View style={styles.pedestal} pointerEvents="none">
+        <View style={styles.pedestalTop} />
+        <View style={styles.pedestalBody} />
+      </View>
 
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
@@ -421,6 +544,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
                   style="stroke"
                   strokeWidth={1.5}
                 />
+
+                {/* Gem bulbs at rim — pulsing colored gems */}
+                {segmentData.map((seg, i) => (
+                  <GemBulb key={`gem-${i}`} seg={seg} index={i} gemPulse={gemPulse} />
+                ))}
               </Group>
 
               {/* Static elements (don't rotate) */}
@@ -435,6 +563,17 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
                 style="stroke"
                 strokeWidth={1}
               />
+              {/* Center gem */}
+              <Circle cx={cx} cy={cy} r={centerR * 0.35}>
+                <RadialGradient
+                  c={vec(cx - 2, cy - 2)}
+                  r={centerR * 0.35}
+                  colors={['#ff6666', '#cc0033', '#660019']}
+                />
+              </Circle>
+              <Circle cx={cx - 3} cy={cy - 3} r={3} color="#ffffff" opacity={0.4}>
+                <Blur blur={1} />
+              </Circle>
 
               {/* Pointer triangle */}
               <Path path={pointerPath} color={POINTER_FILL} />
@@ -444,6 +583,20 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
                 style="stroke"
                 strokeWidth={2}
               />
+              {/* Pointer tick glow — flashes during spin */}
+              <Circle
+                cx={cx}
+                cy={cy - wheelR - 20 + 26}
+                r={8}
+                opacity={useDerivedValue(() => pointerTickGlow.value * 0.6)}
+              >
+                <RadialGradient
+                  c={vec(cx, cy - wheelR - 20 + 26)}
+                  r={8}
+                  colors={['#ff666680', '#ff660000']}
+                />
+                <Blur blur={4} />
+              </Circle>
             </Canvas>
 
             {/* ── RN Text labels (rotate with wheel via Animated.View) ── */}
@@ -513,28 +666,68 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
       {/* Card reveal */}
       {(phase === 'stopped' || phase === 'revealed') && (
-        <Animated.View style={[styles.cardWrapper, cardStyle]}>
-          <View style={styles.cardInner}>
-            <RoleCardContent
-              roleId={role.id as RoleId}
-              width={cardWidth}
-              height={cardHeight}
-              revealMode
-              revealGradient={theme.revealGradient}
-              animateEntrance={phase === 'revealed'}
-            />
-            {phase === 'revealed' && (
-              <AlignmentRevealOverlay
-                alignment={role.alignment}
-                theme={theme}
-                cardWidth={cardWidth}
-                cardHeight={cardHeight}
-                animate={!reducedMotion}
-                onComplete={handleGlowComplete}
+        <>
+          {/* Victory arch — golden glow ring behind card */}
+          <Animated.View style={[styles.victoryArch, victoryArchStyle]} pointerEvents="none">
+            <Canvas style={styles.victoryArchCanvas}>
+              <Circle cx={cardWidth / 2 + 20} cy={cardHeight / 2 + 20} r={cardWidth * 0.7}>
+                <RadialGradient
+                  c={vec(cardWidth / 2 + 20, cardHeight / 2 + 20)}
+                  r={cardWidth * 0.7}
+                  colors={[`${GOLD}00`, `${GOLD}30`, `${GOLD}00`]}
+                />
+              </Circle>
+              {/* Ray lines */}
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+                const angle = (Math.PI * 2 * i) / 8;
+                const ir = cardWidth * 0.45;
+                const or = cardWidth * 0.65;
+                return (
+                  <Line
+                    key={`ray-${i}`}
+                    p1={vec(
+                      cardWidth / 2 + 20 + Math.cos(angle) * ir,
+                      cardHeight / 2 + 20 + Math.sin(angle) * ir,
+                    )}
+                    p2={vec(
+                      cardWidth / 2 + 20 + Math.cos(angle) * or,
+                      cardHeight / 2 + 20 + Math.sin(angle) * or,
+                    )}
+                    color={GOLD}
+                    strokeWidth={2}
+                    style="stroke"
+                  >
+                    <Blur blur={3} />
+                  </Line>
+                );
+              })}
+            </Canvas>
+          </Animated.View>
+
+          <Animated.View style={[styles.cardWrapper, cardStyle]}>
+            <View style={styles.cardInner}>
+              <RoleCardContent
+                roleId={role.id as RoleId}
+                width={cardWidth}
+                height={cardHeight}
+                revealMode
+                revealGradient={theme.revealGradient}
+                animateEntrance={phase === 'revealed'}
               />
-            )}
-          </View>
-        </Animated.View>
+              <RevealBurst trigger={phase === 'revealed'} color={theme.glowColor} />
+              {phase === 'revealed' && (
+                <AlignmentRevealOverlay
+                  alignment={role.alignment}
+                  theme={theme}
+                  cardWidth={cardWidth}
+                  cardHeight={cardHeight}
+                  animate={!reducedMotion}
+                  onComplete={handleGlowComplete}
+                />
+              )}
+            </View>
+          </Animated.View>
+        </>
       )}
     </View>
   );
@@ -543,23 +736,54 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  fullScreen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: SCREEN_W,
+    height: SCREEN_H,
+  },
   flash: { ...StyleSheet.absoluteFillObject },
+  pedestal: {
+    position: 'absolute',
+    bottom: 40,
+    alignItems: 'center',
+  },
+  pedestalTop: {
+    width: 120,
+    height: 8,
+    backgroundColor: '#333355',
+    borderRadius: 4,
+  },
+  pedestalBody: {
+    width: 80,
+    height: 30,
+    backgroundColor: '#222244',
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    marginTop: -1,
+  },
+  victoryArch: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  victoryArchCanvas: {
+    width: 400,
+    height: 400,
+  },
   hint: { position: 'absolute', bottom: 80 },
   hintText: {
     fontSize: 20,
     fontWeight: '700',
     color: HINT_TEXT_COLOR,
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 4),
   },
   autoTimeoutWarning: {
     fontSize: 18,
     fontWeight: '600',
     color: 'rgba(255, 200, 50, 0.9)',
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 4),
   },
   cardWrapper: {
     ...StyleSheet.absoluteFillObject,

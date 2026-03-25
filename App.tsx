@@ -25,7 +25,6 @@ import { ThemeProvider, useTheme } from '@/theme';
 import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { signalAppReady } from '@/utils/appReady';
 import { log } from '@/utils/logger';
-import { preloadCanvasKit } from '@/utils/preloadCanvasKit';
 
 // Initialize Sentry — DSN is public (like Supabase anon key), safe to commit.
 // EXPO_PUBLIC_DEPLOY_ENV is set by build.sh from Vercel's VERCEL_ENV system var.
@@ -57,20 +56,18 @@ function AppContent() {
     return () => setAlertListener(null);
   }, []);
 
-  // Preload CanvasKit WASM (web only) during splash, then hide splash screen
+  // Hide splash screen and signal app ready
   useEffect(() => {
-    preloadCanvasKit().finally(() => {
-      SplashScreen.hideAsync(); // native only; web is no-op
-      // Web: remove the HTML splash overlay defined in web/index.html
-      if (Platform.OS === 'web') {
-        const splash = document.getElementById('splash-screen');
-        if (splash) {
-          splash.classList.add('hidden');
-          setTimeout(() => splash.remove(), 300); // match CSS transition duration
-        }
+    SplashScreen.hideAsync(); // native only; web is no-op
+    // Web: remove the HTML splash overlay defined in web/index.html
+    if (Platform.OS === 'web') {
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
+        splash.classList.add('hidden');
+        setTimeout(() => splash.remove(), 300); // match CSS transition duration
       }
-      signalAppReady();
-    });
+    }
+    signalAppReady();
   }, []);
 
   const handleAlertClose = useCallback(() => {
