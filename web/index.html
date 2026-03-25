@@ -317,14 +317,6 @@
 
       // 注册 Service Worker（如果支持）
       if ('serviceWorker' in navigator) {
-        // 新 SW 接管后自动刷新（配合 skipWaiting + clients.claim）
-        var refreshing = false;
-        navigator.serviceWorker.addEventListener('controllerchange', function () {
-          if (refreshing) return;
-          refreshing = true;
-          window.location.reload();
-        });
-
         window.addEventListener('load', function () {
           navigator.serviceWorker.register('/sw.js').catch(function (err) {
             console.log('ServiceWorker registration failed:', err);
