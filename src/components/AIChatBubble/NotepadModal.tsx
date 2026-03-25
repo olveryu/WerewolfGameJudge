@@ -50,6 +50,7 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       seatNumber: styles.notepadSeatNumber,
       seatPlaceholder: styles.notepadSeatPlaceholder,
       roleBadge: styles.notepadRoleBadge,
+      roleBadgeEmpty: styles.notepadRoleBadgeEmpty,
       roleBadgeWolf: styles.notepadRoleBadgeWolf,
       roleBadgeGod: styles.notepadRoleBadgeGod,
       roleBadgeVillager: styles.notepadRoleBadgeVillager,
@@ -64,6 +65,7 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
       handTagText: styles.notepadHandTagText,
       handTagTextActive: styles.notepadHandTagTextActive,
       noteInput: styles.notepadNoteInput,
+      placeholderColor: styles.notepadPlaceholderColor,
       popoverOverlay: styles.notepadPopoverOverlay,
       popover: styles.notepadPopover,
       popoverTitle: styles.notepadPopoverTitle,
@@ -146,6 +148,8 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
               style={styles.notepadPublicInput}
               value={notepad.state.publicNoteLeft}
               onChangeText={notepad.setPublicNoteLeft}
+              placeholder="自由记录…"
+              placeholderTextColor={styles.notepadPlaceholderColor}
               multiline
               textAlignVertical="top"
             />
@@ -153,6 +157,8 @@ export const NotepadModal: React.FC<NotepadModalProps> = ({
               style={styles.notepadPublicInput}
               value={notepad.state.publicNoteRight}
               onChangeText={notepad.setPublicNoteRight}
+              placeholder="投票记录…"
+              placeholderTextColor={styles.notepadPlaceholderColor}
               multiline
               textAlignVertical="top"
             />

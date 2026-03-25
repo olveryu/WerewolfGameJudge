@@ -61,6 +61,7 @@ export interface NotepadStyles {
   seatNumber: TextStyle;
   seatPlaceholder: TextStyle;
   roleBadge: ViewStyle;
+  roleBadgeEmpty: ViewStyle;
   roleBadgeWolf: ViewStyle;
   roleBadgeGod: ViewStyle;
   roleBadgeVillager: ViewStyle;
@@ -75,6 +76,7 @@ export interface NotepadStyles {
   handTagText: TextStyle;
   handTagTextActive: TextStyle;
   noteInput: TextStyle;
+  placeholderColor: string;
   popoverOverlay: ViewStyle;
   popover: ViewStyle;
   popoverTitle: TextStyle;
