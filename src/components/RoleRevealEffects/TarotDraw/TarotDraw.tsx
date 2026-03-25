@@ -114,7 +114,7 @@ const CardBackFace: React.FC<{ width: number; height: number }> = React.memo(
     const moonY = height * 0.32;
     const starY = height * 0.48;
     const vineY = height * 0.62;
-    const starSpacing = 16;
+    const starSpacing = 24;
     const moonR = 10;
 
     return (
@@ -131,34 +131,63 @@ const CardBackFace: React.FC<{ width: number; height: number }> = React.memo(
         </LinearGradient>
         {/* Skia overlay for glowing symbols */}
         <Canvas style={styles.cardBackCanvas} pointerEvents="none">
-          {/* Crescent moon */}
+          {/* Crescent moon — glow BEHIND body so cutout stays visible */}
+          <Circle cx={cx} cy={moonY} r={moonR + 3} color={TAROT_COLORS.goldGlow}>
+            <Blur blur={1} />
+          </Circle>
           <Circle cx={cx} cy={moonY} r={moonR} color={TAROT_COLORS.gold} />
           <Circle cx={cx + 4} cy={moonY - 2} r={moonR - 2} color={TAROT_COLORS.cardBack[0]} />
-          <Circle cx={cx} cy={moonY} r={moonR + 8} color={TAROT_COLORS.goldGlow}>
-            <Blur blur={8} />
-          </Circle>
 
-          {/* Three cross-sparkle stars */}
+          {/* Three cross-sparkle stars — drawn directly to avoid glow halo dominance */}
           {[-1, 0, 1].map((offset) => {
             const sx = cx + offset * starSpacing;
+            const sLen = 6;
+            const dLen = 4;
             return (
-              <SkiaSparkle
-                key={`cs-${offset}`}
-                x={sx}
-                y={starY}
-                r={2}
-                color={TAROT_COLORS.gold}
-                glowColor={TAROT_COLORS.goldGlow}
-                bright
-                glowBlur={4}
-              />
+              <React.Fragment key={`star-${offset}`}>
+                {/* Vertical spike */}
+                <SkiaLine
+                  p1={vec(sx, starY - sLen)}
+                  p2={vec(sx, starY + sLen)}
+                  color={TAROT_COLORS.gold}
+                  style="stroke"
+                  strokeWidth={1.2}
+                  strokeCap="round"
+                />
+                {/* Horizontal spike */}
+                <SkiaLine
+                  p1={vec(sx - sLen, starY)}
+                  p2={vec(sx + sLen, starY)}
+                  color={TAROT_COLORS.gold}
+                  style="stroke"
+                  strokeWidth={1.2}
+                  strokeCap="round"
+                />
+                {/* Diagonal spikes */}
+                <SkiaLine
+                  p1={vec(sx - dLen, starY - dLen)}
+                  p2={vec(sx + dLen, starY + dLen)}
+                  color={TAROT_COLORS.gold}
+                  style="stroke"
+                  strokeWidth={0.7}
+                  strokeCap="round"
+                />
+                <SkiaLine
+                  p1={vec(sx + dLen, starY - dLen)}
+                  p2={vec(sx - dLen, starY + dLen)}
+                  color={TAROT_COLORS.gold}
+                  style="stroke"
+                  strokeWidth={0.7}
+                  strokeCap="round"
+                />
+                {/* Center dot */}
+                <Circle cx={sx} cy={starY} r={1.5} color={TAROT_COLORS.gold} />
+              </React.Fragment>
             );
           })}
 
           {/* Vine/flourish decorations — small circles + connecting lines */}
-          <Circle cx={cx - 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5}>
-            <Blur blur={1} />
-          </Circle>
+          <Circle cx={cx - 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5} />
           <SkiaLine
             p1={vec(cx - 12, vineY)}
             p2={vec(cx + 12, vineY)}
@@ -168,9 +197,7 @@ const CardBackFace: React.FC<{ width: number; height: number }> = React.memo(
             strokeCap="round"
             opacity={0.4}
           />
-          <Circle cx={cx + 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5}>
-            <Blur blur={1} />
-          </Circle>
+          <Circle cx={cx + 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5} />
           {/* Central diamond accent */}
           <SkiaPath
             path={`M ${cx} ${vineY - 5} L ${cx + 4} ${vineY} L ${cx} ${vineY + 5} L ${cx - 4} ${vineY} Z`}
