@@ -59,14 +59,17 @@ export async function shareImageBase64(
 
 /** Web: navigator.share with files → download fallback. */
 async function shareImageWeb(base64Data: string, filename: string, title: string): Promise<void> {
-  if (
-    typeof navigator !== 'undefined' &&
-    navigator.share &&
-    typeof navigator.canShare === 'function'
-  ) {
+  if (typeof navigator !== 'undefined' && navigator.share) {
     const file = base64ToFile(base64Data, filename);
-    const shareData = { title, files: [file] };
-    if (navigator.canShare(shareData)) {
+    const shareData: ShareData = { title, files: [file] };
+
+    // Skip file sharing only if canShare explicitly rejects it.
+    // Missing canShare (older browsers) or unsupported → try share() directly
+    // and rely on error handling. Chrome iOS's canShare may return false for
+    // files even though share() works via WKWebView.
+    const canShareFiles = typeof navigator.canShare !== 'function' || navigator.canShare(shareData);
+
+    if (canShareFiles) {
       try {
         await navigator.share(shareData);
         return;
@@ -79,6 +82,11 @@ async function shareImageWeb(base64Data: string, filename: string, title: string
             downloadImage(base64Data, filename);
             return;
           }
+        }
+        // TypeError = file sharing unsupported → fall through to download
+        if (error instanceof TypeError) {
+          downloadImage(base64Data, filename);
+          return;
         }
         throw error;
       }
