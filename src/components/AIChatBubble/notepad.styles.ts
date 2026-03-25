@@ -18,7 +18,7 @@ import {
 } from '@/theme';
 
 export function createNotepadStyles(colors: ThemeColors) {
-  return StyleSheet.create({
+  const styles = StyleSheet.create({
     // ── Notepad (full-screen modal) ──────────────────
     notepadModal: {
       flex: 1,
@@ -101,7 +101,7 @@ export function createNotepadStyles(colors: ThemeColors) {
     },
     notepadSeatPlaceholder: {
       fontSize: typography.caption,
-      color: colors.textMuted,
+      color: colors.textSecondary,
     },
     notepadRoleBadge: {
       minWidth: componentSizes.badge.md,
@@ -110,6 +110,12 @@ export function createNotepadStyles(colors: ThemeColors) {
       borderRadius: borderRadius.small,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    notepadRoleBadgeEmpty: {
+      backgroundColor: withAlpha(colors.primary, 0.06),
+      borderWidth: 1,
+      borderStyle: 'dashed' as const,
+      borderColor: colors.textSecondary,
     },
     notepadRoleBadgeWolf: {
       backgroundColor: withAlpha(colors.wolf, 0.188),
@@ -314,4 +320,10 @@ export function createNotepadStyles(colors: ThemeColors) {
       maxHeight: 160,
     },
   });
+
+  return {
+    ...styles,
+    /** Non-style token: placeholder color for TextInputs */
+    notepadPlaceholderColor: colors.textMuted,
+  };
 }

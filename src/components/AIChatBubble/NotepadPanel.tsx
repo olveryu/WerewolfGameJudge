@@ -8,7 +8,6 @@
  * 不直接调用 service / AsyncStorage / game-engine。
  */
 
-import { Ionicons } from '@expo/vector-icons';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { useCallback, useState } from 'react';
@@ -26,8 +25,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { UI_ICONS } from '@/config/iconTokens';
-import { fixed, typography } from '@/theme';
+import { fixed } from '@/theme';
 
 import type { NotepadStyles } from './AIChatBubble.styles';
 import type { NotepadState, RoleTagInfo } from './useNotepad';
@@ -109,8 +107,9 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             <View
               style={[
                 styles.roleBadge,
-                factionKey &&
-                  (styles[`roleBadge${factionKey}` as keyof NotepadStyles] as ViewStyle),
+                factionKey
+                  ? (styles[`roleBadge${factionKey}` as keyof NotepadStyles] as ViewStyle)
+                  : styles.roleBadgeEmpty,
               ]}
             >
               <Text
@@ -120,11 +119,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
                     (styles[`roleBadgeText${factionKey}` as keyof NotepadStyles] as TextStyle),
                 ]}
               >
-                {selectedTag ? (
-                  selectedTag.shortName
-                ) : (
-                  <Ionicons name={UI_ICONS.ROLE_PLACEHOLDER} size={typography.caption} />
-                )}
+                {selectedTag ? selectedTag.shortName : '+'}
               </Text>
             </View>
           </TouchableOpacity>
@@ -144,6 +139,8 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
           value={noteText}
           onChangeText={(text) => onNoteChange(seat, text)}
           onContentSizeChange={handleContentSizeChange}
+          placeholder="发言"
+          placeholderTextColor={styles.placeholderColor}
           multiline
         />
       </View>
