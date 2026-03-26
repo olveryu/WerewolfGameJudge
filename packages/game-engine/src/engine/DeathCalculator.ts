@@ -52,6 +52,12 @@ export interface NightActions {
   /** Seer check target seat. undefined = not used */
   seerCheck?: number;
 
+  /** Psychic check target seat. undefined = not used */
+  psychicCheck?: number;
+
+  /** PureWhite check target seat. undefined = not used */
+  pureWhiteCheck?: number;
+
   /**
    * Nightmare block target seat. undefined = not used.
    * The blocked player's night skill is nullified for this night.
@@ -79,6 +85,12 @@ export interface RoleSeatMap {
   /** Seer seat (for damage reflection). -1 if not present */
   seer: number;
 
+  /** Psychic seat (for damage reflection). -1 if not present */
+  psychic: number;
+
+  /** PureWhite seat (for damage reflection). -1 if not present */
+  pureWhite: number;
+
   /** Witch seat (for damage reflection + nightmare block). -1 if not present */
   witch: number;
 
@@ -99,6 +111,8 @@ const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
   wolfQueen: -1,
   dreamcatcher: -1,
   seer: -1,
+  psychic: -1,
+  pureWhite: -1,
   witch: -1,
   guard: -1,
   poisonImmuneSeats: [],
@@ -287,7 +301,10 @@ function processDreamcatcherEffect(
 /**
  * Process damage reflection (flag-driven).
  *
- * Roles with reflectsDamage flag reflect seer check / witch poison back to source.
+ * Roles with reflectsDamage flag reflect non-wolf-faction checks / witch poison back to source.
+ * Affected sources: seer, psychic, pureWhite (check), witch (poison).
+ * Wolf-faction checks (gargoyle, wolfWitch, wolfRobot) do NOT trigger reflection.
+ *
  * Immunity (immuneToWolfKill, immuneToPoison) is handled upstream:
  * - Wolf kill immunity: actionHandler rejects targeting immuneToWolfKill roles
  * - Poison immunity: processWitchPoison skips immuneToPoison roles via poisonImmuneSeats
@@ -299,15 +316,39 @@ function processReflection(
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
 ): void {
-  const { seerCheck, witchAction, nightmareBlock } = actions;
+  const { seerCheck, psychicCheck, pureWhiteCheck, witchAction, nightmareBlock } = actions;
   const witchPoisonTarget = getWitchPoisonTarget(witchAction);
-  const { reflectsDamageSeats, seer: seerSeat, witch: witchSeat } = roleSeatMap;
+  const {
+    reflectsDamageSeats,
+    seer: seerSeat,
+    psychic: psychicSeat,
+    pureWhite: pureWhiteSeat,
+    witch: witchSeat,
+  } = roleSeatMap;
 
   if (reflectsDamageSeats.length === 0) return;
 
   // Seer checks a reflectsDamage target → seer dies by reflection
   if (seerCheck !== undefined && seerSeat !== -1 && reflectsDamageSeats.includes(seerCheck)) {
     deaths.add(seerSeat);
+  }
+
+  // Psychic checks a reflectsDamage target → psychic dies by reflection
+  if (
+    psychicCheck !== undefined &&
+    psychicSeat !== -1 &&
+    reflectsDamageSeats.includes(psychicCheck)
+  ) {
+    deaths.add(psychicSeat);
+  }
+
+  // PureWhite checks a reflectsDamage target → pureWhite dies by reflection
+  if (
+    pureWhiteCheck !== undefined &&
+    pureWhiteSeat !== -1 &&
+    reflectsDamageSeats.includes(pureWhiteCheck)
+  ) {
+    deaths.add(pureWhiteSeat);
   }
 
   // Witch poisons a reflectsDamage target → witch dies by reflection

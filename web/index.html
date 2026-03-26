@@ -317,11 +317,77 @@
 
       // 注册 Service Worker（如果支持）
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js').catch(function (err) {
-            console.log('ServiceWorker registration failed:', err);
-          });
+        // 新 SW 激活接管后安全刷新
+        var refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
         });
+
+        window.addEventListener('load', function () {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(function (reg) {
+              // 检测新 SW 安装完毕 → 自动触发更新（全屏蒙层覆盖白屏）
+              function onNewSW(sw) {
+                if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                  showUpdateOverlay(sw);
+                }
+              }
+              if (reg.waiting) {
+                showUpdateOverlay(reg.waiting);
+              }
+              if (reg.installing) {
+                reg.installing.addEventListener('statechange', function () {
+                  onNewSW(this);
+                });
+              }
+              reg.addEventListener('updatefound', function () {
+                var newSW = reg.installing;
+                if (newSW) {
+                  newSW.addEventListener('statechange', function () {
+                    onNewSW(this);
+                  });
+                }
+              });
+            })
+            .catch(function (err) {
+              console.log('ServiceWorker registration failed:', err);
+            });
+        });
+      }
+
+      // 全屏更新蒙层：覆盖当前页面 → 自动触发 SKIP_WAITING → reload
+      function showUpdateOverlay(waitingSW) {
+        if (document.getElementById('sw-update-overlay')) return;
+        var overlay = document.createElement('div');
+        overlay.id = 'sw-update-overlay';
+        overlay.style.cssText =
+          'position:fixed;top:0;left:0;width:100%;height:100%;' +
+          'background:' + (document.body.style.backgroundColor || '#121214') + ';' +
+          'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+          'z-index:99999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;';
+        overlay.innerHTML =
+          '<img src="/assets/pwa/icon-192.png" alt="" style="width:80px;height:80px;border-radius:20px;margin-bottom:24px;animation:pulse 2s ease-in-out infinite;" />' +
+          '<div style="color:' + (document.documentElement.style.color || '#9898A8') + ';font-size:15px;margin-bottom:16px;">正在更新...</div>' +
+          '<div style="width:160px;height:4px;border-radius:2px;background:rgba(128,128,128,0.2);overflow:hidden;">' +
+          '<div id="sw-update-bar" style="width:0%;height:100%;border-radius:2px;background:#6366F1;transition:width 0.3s ease;"></div></div>';
+        document.body.appendChild(overlay);
+
+        // 进度动画：快速到 70%，然后慢速等待 reload
+        var bar = document.getElementById('sw-update-bar');
+        setTimeout(function () { bar.style.width = '30%'; }, 100);
+        setTimeout(function () { bar.style.width = '70%'; }, 600);
+
+        // 触发更新
+        waitingSW.postMessage('SKIP_WAITING');
+        // controllerchange → reload 会自动发生
+        // 兜底：如果 3 秒内没 reload，强制刷新
+        setTimeout(function () {
+          bar.style.width = '100%';
+          setTimeout(function () { window.location.reload(); }, 300);
+        }, 3000);
       }
     </script>
   </body>
