@@ -22,11 +22,13 @@
  * - dreamcatcherDream: number | undefined
  * - magicianSwap: { first: number; second: number } | undefined
  * - seerCheck: number | undefined
+ * - psychicCheck: number | undefined
+ * - pureWhiteCheck: number | undefined
  * - nightmareBlock: number | undefined
  * - isWolfBlockedByNightmare: boolean | undefined
  *
  * RoleSeatMap 字段定义来源：src/services/DeathCalculator.ts
- * - wolfQueen, dreamcatcher, seer, witch, guard: number (-1 表示不在场)
+ * - wolfQueen, dreamcatcher, seer, psychic, pureWhite, witch, guard: number (-1 表示不在场)
  * - poisonImmuneSeats: number[] (免疫毒药的角色座位)
  * - reflectsDamageSeats: number[] (反伤角色座位)
  */
@@ -43,6 +45,8 @@ const NO_ROLES: RoleSeatMap = {
   wolfQueen: -1,
   dreamcatcher: -1,
   seer: -1,
+  psychic: -1,
+  pureWhite: -1,
   witch: -1,
   guard: -1,
   poisonImmuneSeats: [],
@@ -564,6 +568,78 @@ describe('DeathCalculator', () => {
       const deaths = calculateDeaths(actions, spiritKnightRoleSeatMap);
 
       // 女巫被封锁，毒无效 → 无反伤，只有 0 号死
+      expect(deaths).toEqual([0]);
+    });
+
+    it('通灵师查验恶灵骑士 → 通灵师死亡', () => {
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        reflectsDamageSeats: [7],
+        poisonImmuneSeats: [7],
+        psychic: 10,
+      };
+      const actions: NightActions = {
+        wolfKill: 0,
+        psychicCheck: 7,
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+
+      expect(deaths).toContain(0);
+      expect(deaths).toContain(10);
+      expect(deaths).not.toContain(7);
+    });
+
+    it('纯白之女查验恶灵骑士 → 纯白之女死亡', () => {
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        reflectsDamageSeats: [7],
+        poisonImmuneSeats: [7],
+        pureWhite: 11,
+      };
+      const actions: NightActions = {
+        wolfKill: 0,
+        pureWhiteCheck: 7,
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+
+      expect(deaths).toContain(0);
+      expect(deaths).toContain(11);
+      expect(deaths).not.toContain(7);
+    });
+
+    it('通灵师查验普通狼人 → 无反伤', () => {
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        reflectsDamageSeats: [7],
+        poisonImmuneSeats: [7],
+        psychic: 10,
+      };
+      const actions: NightActions = {
+        wolfKill: 0,
+        psychicCheck: 4,
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+
+      expect(deaths).toEqual([0]);
+    });
+
+    it('纯白之女查验普通狼人 → 无反伤', () => {
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        reflectsDamageSeats: [7],
+        poisonImmuneSeats: [7],
+        pureWhite: 11,
+      };
+      const actions: NightActions = {
+        wolfKill: 0,
+        pureWhiteCheck: 4,
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+
       expect(deaths).toEqual([0]);
     });
   });

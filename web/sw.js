@@ -13,6 +13,8 @@ const STATIC_ASSETS = [
 ];
 
 // 安装事件 - 缓存静态资源
+// 不调用 skipWaiting()：等待页面 postMessage('SKIP_WAITING') 后再激活，
+// 避免新 SW 中途接管导致旧 JS bundle 被清缓存 → 白屏。
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -20,8 +22,13 @@ self.addEventListener('install', (event) => {
       return cache.addAll(STATIC_ASSETS);
     }),
   );
-  // 立即激活
-  self.skipWaiting();
+});
+
+// 页面通知可以安全切换时，立即激活新 SW
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // 激活事件 - 清理旧缓存

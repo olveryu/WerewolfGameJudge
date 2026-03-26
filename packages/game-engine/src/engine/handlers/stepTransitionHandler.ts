@@ -192,6 +192,8 @@ function buildRoleSeatMap(state: NonNullState): RoleSeatMap {
     wolfQueen: effectiveRoleSeatMap.get('wolfQueen') ?? -1,
     dreamcatcher: effectiveRoleSeatMap.get('dreamcatcher') ?? -1,
     seer: effectiveRoleSeatMap.get('seer') ?? -1,
+    psychic: effectiveRoleSeatMap.get('psychic') ?? -1,
+    pureWhite: effectiveRoleSeatMap.get('pureWhite') ?? -1,
     witch: effectiveRoleSeatMap.get('witch') ?? -1,
     guard: effectiveRoleSeatMap.get('guard') ?? -1,
     poisonImmuneSeats,
@@ -403,6 +405,18 @@ function buildNightActions(state: NonNullState): NightActions {
   const seerAction = findActionBySchemaId(actions, 'seerCheck');
   if (seerAction?.targetSeat !== undefined) {
     nightActions.seerCheck = seerAction.targetSeat;
+  }
+
+  // Psychic check (for spirit knight reflection)
+  const psychicAction = findActionBySchemaId(actions, 'psychicCheck');
+  if (psychicAction?.targetSeat !== undefined) {
+    nightActions.psychicCheck = psychicAction.targetSeat;
+  }
+
+  // PureWhite check (for spirit knight reflection)
+  const pureWhiteAction = findActionBySchemaId(actions, 'pureWhiteCheck');
+  if (pureWhiteAction?.targetSeat !== undefined) {
+    nightActions.pureWhiteCheck = pureWhiteAction.targetSeat;
   }
 
   // Nightmare block

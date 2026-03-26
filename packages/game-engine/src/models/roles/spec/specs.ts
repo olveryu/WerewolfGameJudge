@@ -382,7 +382,7 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '永久免疫夜间伤害（无法被自刀、毒杀不死）；被预言家查验或女巫毒杀时反伤，次日对方出局；不能自爆，只能被放逐或猎人开枪带走',
+      '永久免疫夜间伤害（无法被自刀、毒杀不死）；被非狼人阵营角色查验或女巫毒杀时反伤，次日对方出局；不能自爆，只能被放逐或猎人开枪带走',
     // No night action (passive ability)
     night1: { hasAction: false },
     // 互知+参刀
