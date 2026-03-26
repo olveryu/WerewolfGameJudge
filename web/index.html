@@ -317,10 +317,11 @@
 
       // 注册 Service Worker（如果支持）
       if ('serviceWorker' in navigator) {
-        // 新 SW 激活接管后安全刷新
+        // 首次安装时 controller 为 null，此时 controllerchange 不应 reload
+        var hadController = !!navigator.serviceWorker.controller;
         var refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', function () {
-          if (refreshing) return;
+          if (!hadController || refreshing) return;
           refreshing = true;
           window.location.reload();
         });
