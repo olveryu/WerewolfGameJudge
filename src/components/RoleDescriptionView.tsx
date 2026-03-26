@@ -7,6 +7,7 @@
  */
 import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/spec.types';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ban, Crosshair, Shield, Star, Trophy, Zap } from 'lucide-react-native';
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -33,6 +34,22 @@ const FIELD_LABELS: Record<keyof RoleDescription, string> = {
   special: '特殊规则',
   winCondition: '胜利条件',
 };
+
+/** Lucide icon components for quick visual scanning in Mode B */
+const FIELD_ICONS: Record<
+  keyof RoleDescription,
+  React.ComponentType<{ size: number; color: string }>
+> = {
+  skill: Zap,
+  passive: Shield,
+  trigger: Crosshair,
+  restriction: Ban,
+  special: Star,
+  winCondition: Trophy,
+};
+
+/** Icon size for field labels (matches captionSmall) */
+const FIELD_ICON_SIZE = 10;
 
 /** Left accent bar width (fixed, not scaled — too thin to benefit from scaling) */
 const ACCENT_BAR_WIDTH = 2;
@@ -67,6 +84,34 @@ function countFields(desc: RoleDescription): number {
   return FIELD_ORDER.filter((key) => desc[key] != null).length;
 }
 
+/** Resolve accent bar color per field type */
+function getFieldAccentColor(
+  fieldKey: keyof RoleDescription,
+  factionColor: string,
+  colors: ThemeColors,
+): string {
+  switch (fieldKey) {
+    case 'restriction':
+      return withAlpha(colors.warning, ACCENT_BAR_OPACITY);
+    case 'winCondition':
+      return withAlpha(colors.success, ACCENT_BAR_OPACITY);
+    default:
+      return withAlpha(factionColor, ACCENT_BAR_OPACITY);
+  }
+}
+
+/** Resolve label text color per field type */
+function getFieldLabelColor(fieldKey: keyof RoleDescription, colors: ThemeColors): string {
+  switch (fieldKey) {
+    case 'restriction':
+      return colors.warning;
+    case 'winCondition':
+      return colors.success;
+    default:
+      return colors.textSecondary;
+  }
+}
+
 // ─── Sub-components ──────────────────────────────────────────
 
 /** Mode A: single-field centered layout */
@@ -86,23 +131,30 @@ const ModeA: React.FC<{ text: string; colors: ThemeColors }> = ({ text, colors }
   );
 };
 
-/** A single section in Mode B (label + accent bar + body text with optional bullets) */
+/** A single section in Mode B (icon + label + accent bar + body text with optional bullets) */
 const DescriptionSection: React.FC<{
+  fieldKey: keyof RoleDescription;
   label: string;
+  icon: React.ComponentType<{ size: number; color: string }>;
   text: string;
   accentColor: string;
+  labelColor: string;
   colors: ThemeColors;
   isLast: boolean;
-}> = ({ label, text, accentColor, colors, isLast }) => {
+}> = ({ label, icon, text, accentColor, labelColor, colors, isLast }) => {
   const styles = useMemo(() => createStyles(colors, accentColor), [colors, accentColor]);
   const bullets = splitBullets(text);
   const useBullets = bullets.length > 1;
+  const Icon = icon;
 
   return (
     <View style={[styles.sectionRow, !isLast && styles.sectionGap]}>
       <View style={styles.accentBar} />
       <View style={styles.sectionContent}>
-        <Text style={styles.sectionLabel}>{label}</Text>
+        <View style={styles.labelRow}>
+          <Icon size={FIELD_ICON_SIZE} color={labelColor} />
+          <Text style={[styles.sectionLabel, { color: labelColor }]}>{label}</Text>
+        </View>
         {useBullets ? (
           bullets.map((item, i) => (
             <View key={i} style={styles.bulletRow}>
@@ -150,8 +202,6 @@ export const RoleDescriptionView: React.FC<RoleDescriptionViewProps> = ({
   }
 
   // Mode B: structured sections with scroll + fade mask
-  const accentColor = withAlpha(factionColor, ACCENT_BAR_OPACITY);
-
   return (
     <View style={modeBContainer}>
       <ScrollView
@@ -162,9 +212,12 @@ export const RoleDescriptionView: React.FC<RoleDescriptionViewProps> = ({
         {fields.map((entry, i) => (
           <DescriptionSection
             key={entry.key}
+            fieldKey={entry.key}
             label={entry.label}
+            icon={FIELD_ICONS[entry.key]}
             text={entry.text}
-            accentColor={accentColor}
+            accentColor={getFieldAccentColor(entry.key, factionColor, colors)}
+            labelColor={getFieldLabelColor(entry.key, colors)}
             colors={colors}
             isLast={i === fields.length - 1}
           />
@@ -247,12 +300,17 @@ function createStyles(colors: ThemeColors, accentColor: string) {
     sectionContent: {
       flex: 1,
     },
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.micro,
+    },
     sectionLabel: {
       fontSize: typography.captionSmall,
       lineHeight: typography.captionSmall * 1.4,
       fontWeight: typography.weights.semibold,
       color: colors.textSecondary,
-      marginBottom: spacing.micro,
+      marginLeft: spacing.micro,
     },
     sectionText: {
       fontSize: typography.secondary,
