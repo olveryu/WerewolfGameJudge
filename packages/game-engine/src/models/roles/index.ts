@@ -35,6 +35,7 @@ export {
   getRoleDisplayAs,
   getRoleEmoji,
   getRoleSpec,
+  getRoleStructuredDescription,
   isValidRoleId,
   // Role Spec
   ROLE_SPECS,

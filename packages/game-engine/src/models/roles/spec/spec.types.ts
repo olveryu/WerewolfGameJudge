@@ -23,6 +23,29 @@ export interface WolfMeetingConfig {
   readonly participatesInWolfVote: boolean;
 }
 
+/**
+ * Structured role description for card UI rendering.
+ *
+ * Each field maps to a visual section on the role card.
+ * Only non-null fields are rendered. When a role has a single field,
+ * the card uses a simplified centered layout (Mode A);
+ * with 2+ fields, it uses a structured layout with labeled sections (Mode B).
+ */
+export interface RoleDescription {
+  /** 主动技能 — 玩家主动使用的能力（每晚/白天） */
+  readonly skill?: string;
+  /** 被动特性 — 始终生效，无需操作 */
+  readonly passive?: string;
+  /** 触发效果 — 出局/被查验/特定事件触发 */
+  readonly trigger?: string;
+  /** 限制条件 — 不能做什么 */
+  readonly restriction?: string;
+  /** 特殊规则 — 与其他角色的交互、边界情况 */
+  readonly special?: string;
+  /** 胜利条件 — 非标准胜利条件（可选） */
+  readonly winCondition?: string;
+}
+
 /** Role-specific flags */
 export interface RoleFlags {
   /** Cannot be targeted by wolf kill (spiritKnight, wolfQueen) */
@@ -78,8 +101,11 @@ export interface RoleSpec {
    */
   readonly team: Team;
 
-  /** Role description */
+  /** Role description (flat text for AI chat / non-UI contexts) */
   readonly description: string;
+
+  /** Structured description for card UI (labeled sections with visual hierarchy) */
+  readonly structuredDescription?: RoleDescription;
 
   /** Night-1 action configuration */
   readonly night1: Night1Config;

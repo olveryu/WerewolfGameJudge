@@ -33,6 +33,7 @@ jest.mock('../../theme', () => ({
     md: 16,
     lg: 24,
     xl: 32,
+    micro: 2,
     tight: 4,
     small: 8,
     medium: 16,
