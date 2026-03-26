@@ -14,6 +14,8 @@ jest.mock('../../theme', () => ({
     textSecondary: '#9898A8',
     textMuted: '#5E5E6E',
     border: '#2C2C32',
+    warning: '#FBBF24',
+    success: '#34D399',
   }),
   withAlpha: (hex: string, _opacity: number) => `${hex}4D`,
   spacing: {
@@ -91,7 +93,7 @@ describe('RoleDescriptionView', () => {
       restriction: '每瓶药限用一次；不能自救',
     };
 
-    it('renders section labels', () => {
+    it('renders section labels with icons', () => {
       const { getByText } = render(
         <RoleDescriptionView
           structuredDescription={witchDesc}
