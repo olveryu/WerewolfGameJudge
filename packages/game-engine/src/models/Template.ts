@@ -166,7 +166,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '石像守墓',
+    name: '石像鬼守墓人',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -220,7 +220,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '狼王摄梦',
+    name: '狼王摄梦人',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -238,7 +238,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '狼王魔术',
+    name: '狼王魔术师',
     category: TemplateCategory.SkillWolf,
     roles: [
       'villager',
@@ -256,7 +256,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '机械通灵',
+    name: '机械狼通灵师',
     category: TemplateCategory.Featured,
     roles: [
       'villager',
@@ -310,7 +310,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '灯影预言',
+    name: '灯影预言家',
     category: TemplateCategory.Featured,
     roles: [
       'villager',
@@ -346,7 +346,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '吹笛守卫',
+    name: '吹笛者',
     category: TemplateCategory.ThirdParty,
     roles: [
       'villager',
@@ -364,7 +364,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '混子标准',
+    name: '预女猎白混',
     category: TemplateCategory.ThirdParty,
     roles: [
       'villager',
@@ -382,7 +382,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '野孩标准',
+    name: '预女猎白野',
     category: TemplateCategory.ThirdParty,
     roles: [
       'villager',
@@ -436,7 +436,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '影仇混标准',
+    name: '影子复仇者',
     category: TemplateCategory.ThirdParty,
     roles: [
       'villager',

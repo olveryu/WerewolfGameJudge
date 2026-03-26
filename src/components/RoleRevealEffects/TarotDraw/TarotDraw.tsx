@@ -11,9 +11,13 @@ import {
   Canvas,
   Circle,
   Group,
+  Image as SkiaImage,
   Line as SkiaLine,
+  LinearGradient as SkiaLinearGradient,
   Path as SkiaPath,
   RadialGradient,
+  RoundedRect,
+  useTexture,
   vec,
 } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -108,109 +112,125 @@ interface WheelCard {
   angle: number;
 }
 
-// ─── Card back face (memoized) ──────────────────────────────────────────
-const CardBackFace: React.FC<{ width: number; height: number }> = React.memo(
-  ({ width, height }) => {
-    const cx = width / 2;
-    const moonY = height * 0.32;
-    const starY = height * 0.48;
-    const vineY = height * 0.62;
-    const starSpacing = 24;
-    const moonR = 10;
+// ─── Card back content (pure Skia elements for useTexture) ─────────────
+const CARD_BACK_PADDING = 6;
+const CARD_BACK_BORDER_WIDTH = 2;
+const CARD_BACK_MOON_R = 10;
+const CARD_BACK_STAR_SPACING = 24;
+const CARD_BACK_STAR_LEN = 6;
+const CARD_BACK_DIAG_LEN = 4;
 
-    return (
-      <View style={[styles.cardBackFace, { width, height }]}>
-        <LinearGradient
+/**
+ * Pure Skia element tree for card back face.
+ * Used as input to `useTexture` — cannot contain RN Views.
+ * Renders: gradient background + gold border + crescent moon + 3 sparkle stars + vine decorations.
+ */
+function CardBackSkiaContent({ width, height }: { width: number; height: number }) {
+  const outerR = borderRadius.medium;
+  const cx = width / 2;
+  const moonY = height * 0.32;
+  const starY = height * 0.48;
+  const vineY = height * 0.62;
+  const innerX = CARD_BACK_PADDING;
+  const innerY = CARD_BACK_PADDING;
+  const innerW = width - CARD_BACK_PADDING * 2;
+  const innerH = height - CARD_BACK_PADDING * 2;
+  const innerR = borderRadius.small;
+
+  return (
+    <Group>
+      {/* Gradient background */}
+      <RoundedRect x={0} y={0} width={width} height={height} r={outerR}>
+        <SkiaLinearGradient
+          start={vec(0, 0)}
+          end={vec(width, height)}
           colors={[...TAROT_COLORS.cardBack]}
-          style={StyleSheet.absoluteFill}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.cardBackInner}>
-            <View style={[styles.cardBackBorder, { borderColor: TAROT_COLORS.gold }]} />
-          </View>
-        </LinearGradient>
-        {/* Skia overlay for glowing symbols */}
-        <Canvas style={styles.cardBackCanvas} pointerEvents="none">
-          {/* Crescent moon — glow BEHIND body so cutout stays visible */}
-          <Circle cx={cx} cy={moonY} r={moonR + 3} color={TAROT_COLORS.goldGlow}>
-            <Blur blur={1} />
-          </Circle>
-          <Circle cx={cx} cy={moonY} r={moonR} color={TAROT_COLORS.gold} />
-          <Circle cx={cx + 4} cy={moonY - 2} r={moonR - 2} color={TAROT_COLORS.cardBack[0]} />
-
-          {/* Three cross-sparkle stars — drawn directly to avoid glow halo dominance */}
-          {[-1, 0, 1].map((offset) => {
-            const sx = cx + offset * starSpacing;
-            const sLen = 6;
-            const dLen = 4;
-            return (
-              <React.Fragment key={`star-${offset}`}>
-                {/* Vertical spike */}
-                <SkiaLine
-                  p1={vec(sx, starY - sLen)}
-                  p2={vec(sx, starY + sLen)}
-                  color={TAROT_COLORS.gold}
-                  style="stroke"
-                  strokeWidth={1.2}
-                  strokeCap="round"
-                />
-                {/* Horizontal spike */}
-                <SkiaLine
-                  p1={vec(sx - sLen, starY)}
-                  p2={vec(sx + sLen, starY)}
-                  color={TAROT_COLORS.gold}
-                  style="stroke"
-                  strokeWidth={1.2}
-                  strokeCap="round"
-                />
-                {/* Diagonal spikes */}
-                <SkiaLine
-                  p1={vec(sx - dLen, starY - dLen)}
-                  p2={vec(sx + dLen, starY + dLen)}
-                  color={TAROT_COLORS.gold}
-                  style="stroke"
-                  strokeWidth={0.7}
-                  strokeCap="round"
-                />
-                <SkiaLine
-                  p1={vec(sx + dLen, starY - dLen)}
-                  p2={vec(sx - dLen, starY + dLen)}
-                  color={TAROT_COLORS.gold}
-                  style="stroke"
-                  strokeWidth={0.7}
-                  strokeCap="round"
-                />
-                {/* Center dot */}
-                <Circle cx={sx} cy={starY} r={1.5} color={TAROT_COLORS.gold} />
-              </React.Fragment>
-            );
-          })}
-
-          {/* Vine/flourish decorations — small circles + connecting lines */}
-          <Circle cx={cx - 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5} />
-          <SkiaLine
-            p1={vec(cx - 12, vineY)}
-            p2={vec(cx + 12, vineY)}
-            color={TAROT_COLORS.gold}
-            style="stroke"
-            strokeWidth={0.8}
-            strokeCap="round"
-            opacity={0.4}
-          />
-          <Circle cx={cx + 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5} />
-          {/* Central diamond accent */}
-          <SkiaPath
-            path={`M ${cx} ${vineY - 5} L ${cx + 4} ${vineY} L ${cx} ${vineY + 5} L ${cx - 4} ${vineY} Z`}
-            color={TAROT_COLORS.gold}
-            opacity={0.6}
-          />
-        </Canvas>
-      </View>
-    );
-  },
-);
-CardBackFace.displayName = 'CardBackFace';
+        />
+      </RoundedRect>
+      {/* Gold border (inset) */}
+      <RoundedRect
+        x={innerX}
+        y={innerY}
+        width={innerW}
+        height={innerH}
+        r={innerR}
+        style="stroke"
+        strokeWidth={CARD_BACK_BORDER_WIDTH}
+        color={TAROT_COLORS.gold}
+      />
+      {/* Crescent moon — glow BEHIND body so cutout stays visible */}
+      <Circle cx={cx} cy={moonY} r={CARD_BACK_MOON_R + 3} color={TAROT_COLORS.goldGlow}>
+        <Blur blur={1} />
+      </Circle>
+      <Circle cx={cx} cy={moonY} r={CARD_BACK_MOON_R} color={TAROT_COLORS.gold} />
+      <Circle
+        cx={cx + 4}
+        cy={moonY - 2}
+        r={CARD_BACK_MOON_R - 2}
+        color={TAROT_COLORS.cardBack[0]}
+      />
+      {/* Three cross-sparkle stars */}
+      {[-1, 0, 1].map((offset) => {
+        const sx = cx + offset * CARD_BACK_STAR_SPACING;
+        return (
+          <React.Fragment key={`star-${offset}`}>
+            <SkiaLine
+              p1={vec(sx, starY - CARD_BACK_STAR_LEN)}
+              p2={vec(sx, starY + CARD_BACK_STAR_LEN)}
+              color={TAROT_COLORS.gold}
+              style="stroke"
+              strokeWidth={1.2}
+              strokeCap="round"
+            />
+            <SkiaLine
+              p1={vec(sx - CARD_BACK_STAR_LEN, starY)}
+              p2={vec(sx + CARD_BACK_STAR_LEN, starY)}
+              color={TAROT_COLORS.gold}
+              style="stroke"
+              strokeWidth={1.2}
+              strokeCap="round"
+            />
+            <SkiaLine
+              p1={vec(sx - CARD_BACK_DIAG_LEN, starY - CARD_BACK_DIAG_LEN)}
+              p2={vec(sx + CARD_BACK_DIAG_LEN, starY + CARD_BACK_DIAG_LEN)}
+              color={TAROT_COLORS.gold}
+              style="stroke"
+              strokeWidth={0.7}
+              strokeCap="round"
+            />
+            <SkiaLine
+              p1={vec(sx + CARD_BACK_DIAG_LEN, starY - CARD_BACK_DIAG_LEN)}
+              p2={vec(sx - CARD_BACK_DIAG_LEN, starY + CARD_BACK_DIAG_LEN)}
+              color={TAROT_COLORS.gold}
+              style="stroke"
+              strokeWidth={0.7}
+              strokeCap="round"
+            />
+            <Circle cx={sx} cy={starY} r={1.5} color={TAROT_COLORS.gold} />
+          </React.Fragment>
+        );
+      })}
+      {/* Vine/flourish decorations */}
+      <Circle cx={cx - 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5} />
+      <SkiaLine
+        p1={vec(cx - 12, vineY)}
+        p2={vec(cx + 12, vineY)}
+        color={TAROT_COLORS.gold}
+        style="stroke"
+        strokeWidth={0.8}
+        strokeCap="round"
+        opacity={0.4}
+      />
+      <Circle cx={cx + 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5} />
+      {/* Central diamond accent */}
+      <SkiaPath
+        path={`M ${cx} ${vineY - 5} L ${cx + 4} ${vineY} L ${cx} ${vineY + 5} L ${cx - 4} ${vineY} Z`}
+        color={TAROT_COLORS.gold}
+        opacity={0.6}
+      />
+    </Group>
+  );
+}
 
 // ─── Twinkling star (Skia sparkle cross, driven by shared cycle) ───────
 const TwinklingStar: React.FC<{
@@ -269,6 +289,12 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       angle: (Math.PI * 2 * i) / count,
     }));
   }, []);
+
+  // ── Card back texture (pre-rasterized on UI thread via useTexture) ──
+  const cardBackTexture = useTexture(
+    <CardBackSkiaContent width={cardWidth} height={cardHeight} />,
+    { width: cardWidth, height: cardHeight },
+  );
 
   // ── Shared values ──
   const wheelRotation = useSharedValue(0); // 0→1 = one full turn
@@ -810,7 +836,16 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                   disabled={phase !== 'waiting'}
                   style={styles.pressableFill}
                 >
-                  <CardBackFace width={cardWidth * 0.32} height={cardHeight * 0.32} />
+                  <Canvas style={styles.pressableFill} pointerEvents="none">
+                    <SkiaImage
+                      image={cardBackTexture}
+                      x={0}
+                      y={0}
+                      width={cardWidth * 0.32}
+                      height={cardHeight * 0.32}
+                      fit="fill"
+                    />
+                  </Canvas>
                 </Pressable>
               </View>
             );
@@ -826,7 +861,16 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       >
         {/* Card back */}
         <Animated.View style={[styles.cardFace, styles.cardBackZ, backOpacityStyle]}>
-          <CardBackFace width={cardWidth} height={cardHeight} />
+          <Canvas style={styles.pressableFill} pointerEvents="none">
+            <SkiaImage
+              image={cardBackTexture}
+              x={0}
+              y={0}
+              width={cardWidth}
+              height={cardHeight}
+              fit="fill"
+            />
+          </Canvas>
         </Animated.View>
 
         {/* Card front */}
@@ -893,25 +937,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: borderRadius.small,
     boxShadow: '0px 4px 6px rgba(0,0,0,0.3)',
-  },
-  cardBackFace: {
-    borderRadius: borderRadius.medium,
-    overflow: 'hidden',
-  },
-  cardBackInner: {
-    flex: 1,
-    padding: 6,
-  },
-  cardBackBorder: {
-    flex: 1,
-    borderWidth: 2,
-    borderRadius: borderRadius.small,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardBackCanvas: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1,
   },
   drawnCard: {
     borderRadius: borderRadius.medium,

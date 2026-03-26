@@ -14,10 +14,12 @@
 
 ## 开发工具
 
-| 文档                                                             | 说明                                   |
-| ---------------------------------------------------------------- | -------------------------------------- |
-| [avatar-prompts.md](avatar-prompts.md)                           | Leonardo.AI 生成角色头像的 prompt 模板 |
-| [reusable-code-review-prompt.md](reusable-code-review-prompt.md) | 通用 AI 代码审查提示词模板             |
+| 文档                                                             | 说明                                                |
+| ---------------------------------------------------------------- | --------------------------------------------------- |
+| [avatar-generation-prompts.md](avatar-generation-prompts.md)     | 豆包 AI 生成角色徽章图的 prompt 模板（当前使用）    |
+| [avatar-prompts.md](avatar-prompts.md)                           | ⚠️ 历史文档。Leonardo.AI 生成角色头像的 prompt 模板 |
+| [reusable-code-review-prompt.md](reusable-code-review-prompt.md) | 通用 AI 代码审查提示词模板                          |
+| [instruction-maintenance-sop.md](instruction-maintenance-sop.md) | AI Instruction 文件维护 SOP                         |
 
 ## 部署
 

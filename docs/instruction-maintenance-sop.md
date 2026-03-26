@@ -21,7 +21,7 @@
 ## 验证手段
 
 1. **合约测试**（自动）：`pnpm run quality` 会通过 `specs.contract.test.ts` 检查 ROLE_SPECS/NIGHT_STEPS/RESOLVERS 对齐，新角色遗漏会在 CI 报错。
-2. **硬编码数字对照**：instruction 中的计数（如"34 roles"、"25 steps"、"25 resolvers"）来源于合约测试中的断言值（`specs.contract.test.ts` → `toHaveLength(N)`）。两者必须同步更新。
+2. **硬编码数字对照**：instruction 中的计数（如"36 roles"、"27 steps"、"27 resolvers"）来源于合约测试中的断言值（`specs.contract.test.ts` → `toHaveLength(N)`）。两者必须同步更新。
 3. **手动 checklist**（每次发版前/季度）：按上表检查最近变更是否遗漏了文档更新。
 
 ## 减少硬编码
@@ -31,7 +31,7 @@ instruction 中的计数旁标注来源，方便未来维护者定位：
 ```markdown
 <!-- 派生自 specs.contract.test.ts: expect(getAllRoleIds()).toHaveLength(N) -->
 
-当前为 34，新增角色后改为 35
+当前为 36，新增角色后改为 37
 ```
 
 不必将计数改为动态生成——instruction 是静态 markdown，合约测试已覆盖一致性。关键是更新时知道去哪里改。

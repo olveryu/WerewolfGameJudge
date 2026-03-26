@@ -48,6 +48,7 @@ export const SkiaText = createMockComponent('SkiaText');
 export const Glyphs = createMockComponent('Glyphs');
 
 // ── Image ──
+export const Image = createMockComponent('Image');
 export const SkiaImage = createMockComponent('SkiaImage');
 
 // ── Utility ──
@@ -129,4 +130,5 @@ export const interpolateColors = (_value: number, _inputRange: number[], _colors
 export const usePathValue = (fn: unknown, defaultPath?: unknown) => defaultPath ?? null;
 export const useFont = () => null;
 export const useImage = () => null;
+export const useTexture = () => ({ value: null });
 export const useRuntimeShaderBuilder = () => ({});

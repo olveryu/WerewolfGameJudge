@@ -1,7 +1,7 @@
 /**
- * Night-1 Integration Test: 灯影预言 - MirrorSeer / DrunkSeer Reveal
+ * Night-1 Integration Test: 灯影预言家 - MirrorSeer / DrunkSeer Reveal
  *
- * 板子：灯影预言（seer 变体家族）
+ * 板子：灯影预言家（seer 变体家族）
  * 主题：
  *   - 灯影预言家查验结果写入 GameState.mirrorSeerReveal（反转）
  *   - 酒鬼预言家查验结果写入 GameState.drunkSeerReveal（随机）
@@ -27,7 +27,7 @@ import * as randomModule from '@werewolf/game-engine/utils/random';
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '灯影预言';
+const TEMPLATE_NAME = '灯影预言家';
 
 /**
  * 固定 seat-role assignment
@@ -93,7 +93,7 @@ const DRUNK_SEER_ROLES: RoleId[] = [
   'drunkSeer',
 ];
 
-describe('Night-1: 灯影预言 - DrunkSeer Random Reveal (12p)', () => {
+describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
   let ctx: GameContext;
 
   afterEach(() => {
@@ -185,7 +185,7 @@ describe('Night-1: 灯影预言 - DrunkSeer Random Reveal (12p)', () => {
   });
 });
 
-describe('Night-1: 灯影预言 - MirrorSeer Inverted Reveal (12p)', () => {
+describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
   let ctx: GameContext;
 
   afterEach(() => {

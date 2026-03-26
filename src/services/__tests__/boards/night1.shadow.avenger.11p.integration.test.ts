@@ -5,7 +5,7 @@
  * - shadowChooseMimic: chooseSeat schema (notSelf constraint)
  * - avengerConfirm: confirm schema (displays faction)
  *
- * 板子：影仇混标准 12 人
+ * 板子：影子复仇者 12 人
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';

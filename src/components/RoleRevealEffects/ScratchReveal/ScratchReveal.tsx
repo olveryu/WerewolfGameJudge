@@ -6,7 +6,7 @@
  * 使用 `Gesture.Pan()` 替代 PanResponder，`useSharedValue` 驱动所有动画。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle } from '@shopify/react-native-skia';
+import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -19,7 +19,6 @@ import {
   View,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -72,37 +71,9 @@ const CONFETTI = Array.from({ length: 20 }, (_, i) => ({
   ][i % 4],
 }));
 
-// ─── Self-animating Skia confetti (hooks must live in own component) ────
-
-interface SkiaConfettiDotProps {
-  angle: number;
-  speed: number;
-  r: number;
-  color: string;
-  confettiProgress: SharedValue<number>;
-  confettiOpacity: SharedValue<number>;
-}
-
-const SkiaConfettiDot: React.FC<SkiaConfettiDotProps> = React.memo(
-  ({ angle, speed, r, color, confettiProgress, confettiOpacity }) => {
-    const cx = useDerivedValue(
-      () => SCREEN_W / 2 + Math.cos(angle) * speed * confettiProgress.value,
-    );
-    const cy = useDerivedValue(
-      () =>
-        SCREEN_H / 2 +
-        Math.sin(angle) * speed * confettiProgress.value -
-        30 * confettiProgress.value,
-    );
-    const op = useDerivedValue(() => confettiOpacity.value);
-    return (
-      <Circle cx={cx} cy={cy} r={r} color={color} opacity={op}>
-        <Blur blur={1} />
-      </Circle>
-    );
-  },
-);
-SkiaConfettiDot.displayName = 'SkiaConfettiDot';
+// ── Immediate-mode Skia resources (reused across frames) ──
+const confettiRecorder = Skia.PictureRecorder();
+const confettiPaintRes = Skia.Paint();
 
 // Random serial number (stable per mount)
 function generateSerial(): string {
@@ -208,6 +179,27 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const confettiOpacity = useSharedValue(0);
   const prizeStampOpacity = useSharedValue(0);
   const prizeStampScale = useSharedValue(0.5);
+
+  // ── Picture API: batch confetti dots (20→1 draw call) ──
+  const confettiPicture = useDerivedValue(() => {
+    'worklet';
+    const c = confettiRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const op = confettiOpacity.value;
+    if (op > 0) {
+      for (let i = 0; i < CONFETTI.length; i++) {
+        const p = CONFETTI[i];
+        const cx = SCREEN_W / 2 + Math.cos(p.angle) * p.speed * confettiProgress.value;
+        const cy =
+          SCREEN_H / 2 +
+          Math.sin(p.angle) * p.speed * confettiProgress.value -
+          30 * confettiProgress.value;
+        confettiPaintRes.setColor(Skia.Color(p.color));
+        confettiPaintRes.setAlphaf(op);
+        c.drawCircle(cx, cy, p.r, confettiPaintRes);
+      }
+    }
+    return confettiRecorder.finishRecordingAsPicture();
+  });
 
   // Stable serial number
   const [serialNumber] = useState(() => generateSerial());
@@ -465,20 +457,18 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     >
       <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
-      {/* Confetti burst — Skia canvas */}
+      {/* Confetti burst — Picture API batch with group-level blur */}
       {isRevealed && !reducedMotion && (
         <Canvas style={styles.fullScreen} pointerEvents="none">
-          {CONFETTI.map((p, i) => (
-            <SkiaConfettiDot
-              key={`confetti-${i}`}
-              angle={p.angle}
-              speed={p.speed}
-              r={p.r}
-              color={p.color}
-              confettiProgress={confettiProgress}
-              confettiOpacity={confettiOpacity}
-            />
-          ))}
+          <Group
+            layer={
+              <Paint>
+                <Blur blur={1} />
+              </Paint>
+            }
+          >
+            <Picture picture={confettiPicture} />
+          </Group>
         </Canvas>
       )}
 

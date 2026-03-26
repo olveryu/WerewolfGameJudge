@@ -1,7 +1,7 @@
 /**
  * Shadow + Avenger 12P Board UI Test
  *
- * Board: 影仇混标准
+ * Board: 影子复仇者
  * Roles: 3x villager, 3x wolf, shadow, avenger, slacker, seer, witch, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -83,7 +83,7 @@ jest.mock('../../hooks/useActionerState', () => ({
 // Test Setup
 // =============================================================================
 
-const BOARD_NAME = '影仇混标准';
+const BOARD_NAME = '影子复仇者';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

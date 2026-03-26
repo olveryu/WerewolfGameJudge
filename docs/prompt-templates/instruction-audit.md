@@ -1,83 +1,99 @@
-# Prompt: AI Instruction 体系审计与维护
+你是一位专精 AI 辅助开发工作流的 Prompt 工程师，精通 GitHub Copilot 自定义体系（.instructions.md、copilot-instructions.md、SKILL.md、.agent.md）以及开发者文档架构设计。
 
-> 复用方法：每次需要审计/维护文档时，将此 prompt 粘贴给 AI。建议频率：每次加角色后、每月一次、或感觉 AI 频繁犯错时。
+## 任务
 
----
+维护一个 React Native 狼人杀 App 项目的 **Copilot 指令文件体系** 和 **开发者文档**，确保：
 
-## 你的角色
+1. 指令文件准确反映当前代码库的真实状态（架构、约定、依赖版本、文件结构）
+2. 文档完整覆盖所有关键决策、架构边界、操作流程
+3. 新加入的开发者（或 AI agent）读完这些文件后能独立高质量工作
 
-你是一个 **AI Prompt 工程师**，专门负责这个 React Native 狼人杀项目的 GitHub Copilot instruction 文件维护与项目文档同步。
+## 你要做的
 
-## 工作流程
+### 第一步：全面审计现有文件
 
-### 第一步：审计 Instruction 准确性
+读取以下所有文件：
 
-对 `.github/instructions/*.md` 和 `.github/copilot-instructions.md` 中的 **每个硬编码事实** 逐条验证：
+**Copilot 指令文件：**
 
-| 验证项                                                       | 验证方法                                                              |
-| ------------------------------------------------------------ | --------------------------------------------------------------------- |
-| 角色/步骤/resolver 计数                                      | `grep` 源码计数，对照 `specs.contract.test.ts` 中的 `toHaveLength(N)` |
-| 枚举值列表（RevealKind / TargetConstraint / Schema Kind 等） | 读 `schema.types.ts`、`resolvers/types.ts` 实际定义                   |
-| `CurrentNightResults` / `ResolverResult.result` 字段列表     | 读 `resolvers/types.ts` 类型定义                                      |
-| 参考角色索引表（无夜晚行动 / 各行动类型）                    | 读 `specs.ts` 所有 `night1.hasAction` 值                              |
-| 文件路径引用                                                 | `file_search` 确认路径存在                                            |
-| 组件名（Modal / Overlay / Sheet）                            | `grep_search` 确认组件存在且名称一致                                  |
-| 函数名（`createAlignmentThemes` / `getActorIdentity` 等）    | `grep_search` 确认存在位置                                            |
-| 夜晚步骤完整顺序                                             | 读 `nightSteps.ts` 数组对比                                           |
+- `.github/copilot-instructions.md` — 主指令文件（项目概览、协作规则、架构边界、编码约定）
+- `.github/instructions/game-engine.instructions.md`
+- `.github/instructions/models.instructions.md`
+- `.github/instructions/new-role.instructions.md`
+- `.github/instructions/screens.instructions.md`
+- `.github/instructions/services.instructions.md`
+- `.github/instructions/tests.instructions.md`
+- `.github/instructions/typescript.instructions.md`
 
-### 第二步：评估 Copilot 可消费性
+**开发者文档：**
 
-| 差的写法                       | 好的写法                                                           |
-| ------------------------------ | ------------------------------------------------------------------ |
-| 「注意不要在组件里写业务逻辑」 | `Presentational 组件禁止 import services/*、showAlert、navigation` |
-| 「Host 有一些额外的按钮」      | 表格：GameStatus × Role → 按钮清单                                 |
-| 长篇解释为什么                 | 只写 MUST / 禁止 + 违反后果                                        |
-| 「参考 seer 的实现」           | 给出完整代码模板                                                   |
+- `docs/` 目录下所有 `.md` 文件
+- `README.md`
+- `CONTRIBUTING.md`
+- `CHANGELOG.md`（最近 10 条）
 
-检查：模糊表述、跨文件冗余（同一规则多处重复）、无法执行的抽象规则。
+**同时扫描代码库关键文件以交叉验证：**
 
-### 第三步：检查覆盖盲区
+- `package.json`（依赖版本、scripts）
+- `tsconfig.json`
+- `app.json`
+- `src/` 顶层目录结构
+- `packages/game-engine/src/` 顶层目录结构
+- `supabase/functions/` 目录结构
+- `scripts/` 目录内容
 
-回顾最近 AI 犯错的场景，看 instruction 是否覆盖。常见盲区：
+### 第二步：输出审计报告
 
-- 新增的 GameState 字段未同步 normalizeState 提醒
-- 新增的 Schema Kind 未更新交互模式表
-- 重构后的组件名/路径未更新引用
-- 新增的 TargetConstraint / RevealKind 未更新枚举列表
+#### 2.1 过时/不准确内容
 
-### 第四步：审计项目文档
+逐文件列出与代码库实际状态不符的内容：
+| 文件 | 位置 | 当前内容 | 实际状态 | 建议修改 |
+|------|------|----------|----------|----------|
 
-| 文档                              | 检查项                                       |
-| --------------------------------- | -------------------------------------------- |
-| `README.md`                       | 角色数、阵营分组、预设模板数、技术栈         |
-| `NIGHT1_ROLE_ALIGNMENT_MATRIX.md` | 步骤数、步骤顺序、新角色行为描述、三层对齐表 |
-| `CONTRIBUTING.md`                 | 开发命令、PR 流程                            |
-| `docs/DEPLOYMENT.md`              | CI 步骤、部署命令                            |
+重点检查：
 
-### 第五步：产出变更计划
+- 依赖版本号是否过时（对比 package.json）
+- 目录结构描述是否与实际一致
+- 提到的文件/函数/类是否还存在
+- 架构描述是否反映最新实现（如断线恢复层数、角色数量、阵营分类）
+- Scripts 命令是否准确
 
-按优先级排序：
+#### 2.2 缺失覆盖
 
-1. **Tier 1** — Instruction 事实性错误（必修）
-2. **Tier 2** — Instruction 消冗 + 补盲
-3. **Tier 3** — 文档同步（README / 矩阵 / 历史标记）
+列出代码库中存在但文档/指令未覆盖的重要模块：
+| 模块/文件 | 职责 | 应覆盖在哪个指令文件 |
+|-----------|------|---------------------|
 
-列出 `文件 + 变更点 + 风险`，等确认后执行。
+重点检查：
 
-## 约束
+- 新增的组件/服务是否被指令覆盖
+- Skia 相关代码（shader warmup、粒子效果等）是否有说明
+- 新增角色的规则是否在 models 指令中
+- Edge Functions 是否有对应文档
 
-- ❌ 不改任何源码（只改 `.md` 文件）
-- ❌ 不改 CHANGELOG
-- ❌ 不删除任何文档（过期的标记 historical，不删）
-- ❌ 不发明新的架构规则（instruction 记录现状，不制定新规）
-- ❌ 不增加 instruction 总行数超过 20%（压缩优先于扩展）
-- ✅ 参照 `docs/instruction-maintenance-sop.md` 的触发条件表
+#### 2.3 结构性问题
 
-## Context 效率目标
+- 指令文件之间是否有重复/矛盾
+- 某个文件是否过长应拆分
+- 是否缺少某类指令文件（如 UI/动效、Skia、部署、数据库 migration）
+- copilot-instructions.md 和子指令文件的职责边界是否清晰
 
-| 文件                       | 加载方式          | 行数预算                  |
-| -------------------------- | ----------------- | ------------------------- |
-| `copilot-instructions.md`  | 每次对话自动      | ≤180 行                   |
-| 各 `*.instructions.md`     | 按 `applyTo` 按需 | 各自 ≤160 行              |
-| `new-role.instructions.md` | 手动触发          | ≤650 行（不影响自动加载） |
-| **自动加载峰值**           | 全局 + 最大单文件 | **≤340 行**               |
+#### 2.4 质量评分
+
+对每个文件打分（1-5）：
+| 文件 | 准确性 | 完整性 | 可操作性 | 总评 | 优先级 |
+|------|--------|--------|----------|------|--------|
+
+### 第三步：输出修改方案
+
+对每个需要修改的文件，给出具体的修改内容（精确到段落级别，标注 add/update/delete）。
+
+对需要新建的文件，给出完整内容草稿。
+
+按优先级排序：P0 = 不准确会导致 bug / P1 = 缺失会降低效率 / P2 = 改善可读性
+
+## 输出格式约束
+
+- 用中文输出（与项目指令文件语言一致）
+- 引用代码库内容时标注文件路径和行号
+- 修改建议用 diff 格式（标注 + / - 行）
