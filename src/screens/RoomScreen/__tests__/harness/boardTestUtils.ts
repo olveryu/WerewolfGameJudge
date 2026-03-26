@@ -9,6 +9,8 @@ import { fireEvent, waitFor } from '@testing-library/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
+import { Team } from '@werewolf/game-engine/models/roles/spec/types';
+import type { ConfirmStatus } from '@werewolf/game-engine/protocol/types';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -20,6 +22,15 @@ import { RoomScreenTestHarness } from './RoomScreenTestHarness';
 // =============================================================================
 // SafeAreaView Mock (MUST preserve testID)
 // =============================================================================
+
+/** Build a default ConfirmStatus for confirm-trigger test chains. */
+function defaultConfirmStatus(role: RoleId): ConfirmStatus {
+  if (role === 'avenger') {
+    return { role: 'avenger', faction: Team.Good };
+  }
+  // All other confirm roles (hunter, darkWolfKing) are shoot-type
+  return { role: role as 'hunter' | 'darkWolfKing', canShoot: true };
+}
 
 /**
  * Mock SafeAreaView that preserves testID and other props.
@@ -558,7 +569,7 @@ export async function chainConfirmTrigger(
       myRole: playerRole,
       mySeatNumber: seatNumber,
       gameStateOverrides: {
-        confirmStatus: { role: actionRole, canShoot: true },
+        confirmStatus: defaultConfirmStatus(actionRole),
       },
     }),
   );
@@ -770,7 +781,7 @@ export async function coverageChainConfirmTrigger(
       myRole: playerRole,
       mySeatNumber: seatNumber,
       gameStateOverrides: {
-        confirmStatus: { role: actionRole, canShoot: true },
+        confirmStatus: defaultConfirmStatus(actionRole),
       },
     }),
   );

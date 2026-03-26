@@ -435,6 +435,24 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
       'dreamcatcher',
     ],
   },
+  {
+    name: '影仇混标准',
+    category: TemplateCategory.ThirdParty,
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'shadow',
+      'avenger',
+      'slacker',
+      'seer',
+      'witch',
+      'guard',
+    ],
+  },
 ];
 
 // Get room info string (matching Flutter)

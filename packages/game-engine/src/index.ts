@@ -70,10 +70,13 @@ export {
 // === Protocol ===
 export {
   type AudioEffect,
+  type ConfirmStatus,
+  type FactionConfirmStatus,
   type GameState,
   type Player,
   type PlayerMessage,
   type ProtocolAction,
+  type ShootConfirmStatus,
 } from './protocol/types';
 
 // === Types ===

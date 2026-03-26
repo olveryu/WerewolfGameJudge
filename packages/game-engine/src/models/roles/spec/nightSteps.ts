@@ -38,6 +38,16 @@ const NIGHT_STEPS_INTERNAL = [
     roleId: 'wildChild',
     audioKey: 'wildChild',
   },
+  {
+    id: 'shadowChooseMimic',
+    roleId: 'shadow',
+    audioKey: 'shadow',
+  },
+  {
+    id: 'avengerConfirm',
+    roleId: 'avenger',
+    audioKey: 'avenger',
+  },
 
   // === 守护/查验类（袭击前）===
   {

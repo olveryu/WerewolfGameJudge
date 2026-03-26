@@ -8,6 +8,7 @@
  */
 
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import { Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 import { roomScreenLog } from '@/utils/logger';
 
@@ -78,31 +79,34 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
 
   if (!gameState) return;
 
-  if (
-    !currentSchema?.ui?.statusDialogTitle ||
-    !currentSchema?.ui?.canShootText ||
-    !currentSchema?.ui?.cannotShootText
-  ) {
+  const statusUi = currentSchema?.ui?.confirmStatusUi;
+  if (!statusUi) {
     throw new Error(
-      `[RoomScreen] confirmTrigger schema missing status dialog UI fields for ${currentSchema?.id}`,
+      `[RoomScreen] confirmTrigger schema missing confirmStatusUi for ${currentSchema?.id}`,
     );
   }
 
   const confirmStatus = gameState.confirmStatus;
-  let canShoot = true;
+  const dialogTitle = statusUi.statusDialogTitle;
+  let statusMessage: string;
 
-  if (effectiveRole === 'hunter') {
-    if (confirmStatus?.role === 'hunter') {
+  if (statusUi.kind === 'faction') {
+    // Avenger: 3-way faction display
+    const faction = confirmStatus?.role === 'avenger' ? confirmStatus.faction : Team.Good;
+    statusMessage =
+      faction === Team.Third
+        ? statusUi.bondedText
+        : faction === Team.Wolf
+          ? statusUi.wolfText
+          : statusUi.goodText;
+  } else {
+    // Hunter / DarkWolfKing: 2-way shoot status
+    let canShoot = true;
+    if (confirmStatus && confirmStatus.role !== 'avenger' && confirmStatus.role === effectiveRole) {
       canShoot = confirmStatus.canShoot;
     }
-  } else if (effectiveRole === 'darkWolfKing') {
-    if (confirmStatus?.role === 'darkWolfKing') {
-      canShoot = confirmStatus.canShoot;
-    }
+    statusMessage = canShoot ? statusUi.canText : statusUi.cannotText;
   }
-
-  const dialogTitle = currentSchema.ui.statusDialogTitle;
-  const statusMessage = canShoot ? currentSchema.ui.canShootText : currentSchema.ui.cannotShootText;
 
   if (effectiveSeat === null) {
     roomScreenLog.warn(

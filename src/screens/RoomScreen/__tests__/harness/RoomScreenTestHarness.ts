@@ -156,32 +156,28 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Magician
   { type: 'magicianFirst', match: (t) => t.includes('已选择第一位') },
 
-  // Confirm trigger (hunter/darkWolfKing status): schema-driven title/message.
+  // Confirm trigger (hunter/darkWolfKing/avenger status): schema-driven confirmStatusUi.
   {
     type: 'confirmTrigger',
     match: (t, m) => {
-      const hunterTitle = SCHEMAS.hunterConfirm.ui?.statusDialogTitle;
-      const hunterCan = SCHEMAS.hunterConfirm.ui?.canShootText;
-      const hunterCannot = SCHEMAS.hunterConfirm.ui?.cannotShootText;
-
-      const darkTitle = SCHEMAS.darkWolfKingConfirm.ui?.statusDialogTitle;
-      const darkCan = SCHEMAS.darkWolfKingConfirm.ui?.canShootText;
-      const darkCannot = SCHEMAS.darkWolfKingConfirm.ui?.cannotShootText;
+      const hunterUi = SCHEMAS.hunterConfirm.ui?.confirmStatusUi;
+      const darkUi = SCHEMAS.darkWolfKingConfirm.ui?.confirmStatusUi;
+      const avengerUi = SCHEMAS.avengerConfirm.ui?.confirmStatusUi;
 
       const isHunterConfirm =
-        !!hunterTitle &&
-        !!hunterCan &&
-        !!hunterCannot &&
-        t === hunterTitle &&
-        (m === hunterCan || m === hunterCannot);
+        hunterUi?.kind === 'shoot' &&
+        t === hunterUi.statusDialogTitle &&
+        (m === hunterUi.canText || m === hunterUi.cannotText);
       const isDarkWolfKingConfirm =
-        !!darkTitle &&
-        !!darkCan &&
-        !!darkCannot &&
-        t === darkTitle &&
-        (m === darkCan || m === darkCannot);
+        darkUi?.kind === 'shoot' &&
+        t === darkUi.statusDialogTitle &&
+        (m === darkUi.canText || m === darkUi.cannotText);
+      const isAvengerConfirm =
+        avengerUi?.kind === 'faction' &&
+        t === avengerUi.statusDialogTitle &&
+        (m === avengerUi.goodText || m === avengerUi.wolfText || m === avengerUi.bondedText);
 
-      return isHunterConfirm || isDarkWolfKingConfirm;
+      return isHunterConfirm || isDarkWolfKingConfirm || isAvengerConfirm;
     },
   },
 

@@ -7,6 +7,7 @@
 
 import { maybeCreateConfirmStatusAction } from '@werewolf/game-engine/engine/handlers/confirmContext';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { Team } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
@@ -155,5 +156,155 @@ describe('maybeCreateConfirmStatusAction', () => {
       // 没有 hunter
     });
     expect(maybeCreateConfirmStatusAction('hunterConfirm', state)).toBeNull();
+  });
+
+  // ---- avenger 阵营计算 ----
+
+  it('影子模仿好人 → 复仇者为狼人阵营 (faction = wolf)', () => {
+    const state = createOngoingState({
+      templateRoles: [
+        'wolf',
+        'wolf',
+        'wolf',
+        'villager',
+        'villager',
+        'villager',
+        'seer',
+        'witch',
+        'guard',
+        'shadow',
+        'avenger',
+      ],
+      players: {
+        0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+        1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+        2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'wolf' },
+        3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+        4: { uid: 'p4', seatNumber: 4, hasViewedRole: true, role: 'villager' },
+        5: { uid: 'p5', seatNumber: 5, hasViewedRole: true, role: 'villager' },
+        6: { uid: 'p6', seatNumber: 6, hasViewedRole: true, role: 'seer' },
+        7: { uid: 'p7', seatNumber: 7, hasViewedRole: true, role: 'witch' },
+        8: { uid: 'p8', seatNumber: 8, hasViewedRole: true, role: 'guard' },
+        9: { uid: 'p9', seatNumber: 9, hasViewedRole: true, role: 'shadow' },
+        10: { uid: 'p10', seatNumber: 10, hasViewedRole: true, role: 'avenger' },
+      },
+      currentNightResults: { shadowMimicTarget: 3, avengerFaction: Team.Wolf }, // shadow mimics villager (Good team)
+    });
+    const action = maybeCreateConfirmStatusAction('avengerConfirm', state);
+    expect(action).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'avenger', faction: Team.Wolf },
+    });
+  });
+
+  it('影子模仿狼人 → 复仇者为好人阵营 (faction = good)', () => {
+    const state = createOngoingState({
+      templateRoles: [
+        'wolf',
+        'wolf',
+        'wolf',
+        'villager',
+        'villager',
+        'villager',
+        'seer',
+        'witch',
+        'guard',
+        'shadow',
+        'avenger',
+      ],
+      players: {
+        0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+        1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+        2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'wolf' },
+        3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+        4: { uid: 'p4', seatNumber: 4, hasViewedRole: true, role: 'villager' },
+        5: { uid: 'p5', seatNumber: 5, hasViewedRole: true, role: 'villager' },
+        6: { uid: 'p6', seatNumber: 6, hasViewedRole: true, role: 'seer' },
+        7: { uid: 'p7', seatNumber: 7, hasViewedRole: true, role: 'witch' },
+        8: { uid: 'p8', seatNumber: 8, hasViewedRole: true, role: 'guard' },
+        9: { uid: 'p9', seatNumber: 9, hasViewedRole: true, role: 'shadow' },
+        10: { uid: 'p10', seatNumber: 10, hasViewedRole: true, role: 'avenger' },
+      },
+      currentNightResults: { shadowMimicTarget: 0, avengerFaction: Team.Good }, // shadow mimics wolf (Wolf team)
+    });
+    const action = maybeCreateConfirmStatusAction('avengerConfirm', state);
+    expect(action).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'avenger', faction: Team.Good },
+    });
+  });
+
+  it('影子未选人（被封锁）→ 复仇者兗底好人阵营 (faction = good)', () => {
+    const state = createOngoingState({
+      templateRoles: [
+        'wolf',
+        'wolf',
+        'wolf',
+        'villager',
+        'villager',
+        'villager',
+        'seer',
+        'witch',
+        'guard',
+        'shadow',
+        'avenger',
+      ],
+      players: {
+        0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+        1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+        2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'wolf' },
+        3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+        4: { uid: 'p4', seatNumber: 4, hasViewedRole: true, role: 'villager' },
+        5: { uid: 'p5', seatNumber: 5, hasViewedRole: true, role: 'villager' },
+        6: { uid: 'p6', seatNumber: 6, hasViewedRole: true, role: 'seer' },
+        7: { uid: 'p7', seatNumber: 7, hasViewedRole: true, role: 'witch' },
+        8: { uid: 'p8', seatNumber: 8, hasViewedRole: true, role: 'guard' },
+        9: { uid: 'p9', seatNumber: 9, hasViewedRole: true, role: 'shadow' },
+        10: { uid: 'p10', seatNumber: 10, hasViewedRole: true, role: 'avenger' },
+      },
+      currentNightResults: {}, // no shadowMimicTarget
+    });
+    const action = maybeCreateConfirmStatusAction('avengerConfirm', state);
+    expect(action).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'avenger', faction: Team.Good },
+    });
+  });
+
+  it('影子模仿复仇者 → 绑定 (faction = Team.Third)', () => {
+    const state = createOngoingState({
+      templateRoles: [
+        'wolf',
+        'wolf',
+        'wolf',
+        'villager',
+        'villager',
+        'villager',
+        'seer',
+        'witch',
+        'guard',
+        'shadow',
+        'avenger',
+      ],
+      players: {
+        0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+        1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+        2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'wolf' },
+        3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+        4: { uid: 'p4', seatNumber: 4, hasViewedRole: true, role: 'villager' },
+        5: { uid: 'p5', seatNumber: 5, hasViewedRole: true, role: 'villager' },
+        6: { uid: 'p6', seatNumber: 6, hasViewedRole: true, role: 'seer' },
+        7: { uid: 'p7', seatNumber: 7, hasViewedRole: true, role: 'witch' },
+        8: { uid: 'p8', seatNumber: 8, hasViewedRole: true, role: 'guard' },
+        9: { uid: 'p9', seatNumber: 9, hasViewedRole: true, role: 'shadow' },
+        10: { uid: 'p10', seatNumber: 10, hasViewedRole: true, role: 'avenger' },
+      },
+      currentNightResults: { shadowMimicTarget: 10, avengerFaction: Team.Third },
+    });
+    const action = maybeCreateConfirmStatusAction('avengerConfirm', state);
+    expect(action).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'avenger', faction: Team.Third },
+    });
   });
 });

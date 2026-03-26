@@ -74,6 +74,8 @@ BEGIN_TEXT: dict[str, str] = {
     "silence_elder": "禁言长老请睁眼，请选择要禁言的玩家。",
     "voteban_elder": "禁票长老请睁眼，请选择要禁票的玩家。",
     "piper": "吹笛者请睁眼，请选择要催眠的玩家。",
+    "shadow": "影子请睁眼，请选择你要模仿的玩家。",
+    "avenger": "复仇者请睁眼，请查看你的阵营信息。",
     "piper_hypnotized_reveal": "所有玩家请睁眼，请看手机确认信息。",
     "awakened_gargoyle_convert_reveal": "所有玩家请睁眼，请看手机确认转化信息。",
 }
@@ -103,6 +105,8 @@ END_TEXT: dict[str, str] = {
     "silence_elder": "禁言长老请闭眼。",
     "voteban_elder": "禁票长老请闭眼。",
     "piper": "吹笛者请闭眼。",
+    "shadow": "影子请闭眼。",
+    "avenger": "复仇者请闭眼。",
     "piper_hypnotized_reveal": "所有玩家请闭眼。",
     "awakened_gargoyle_convert_reveal": "所有玩家请闭眼。",
 }
@@ -118,6 +122,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--only", default="", help="Generate only one key (e.g. night_end)")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be generated")
     parser.add_argument("--list-voices", action="store_true", help="Print available zh-CN male voices")
+    parser.add_argument("--insecure", action="store_true", help="Skip SSL certificate verification (for corporate proxies like Netskope)")
     return parser.parse_args()
 
 
@@ -188,6 +193,17 @@ async def generate_one(key: str, text: str, voice: str, pitch: str, rate: str, v
 
 async def main() -> None:
     args = parse_args()
+
+    if args.insecure:
+        import ssl as _ssl
+        _original_create = _ssl.create_default_context
+        def _insecure_context(**kwargs):  # noqa: ANN003
+            ctx = _ssl.SSLContext(_ssl.PROTOCOL_TLS_CLIENT)
+            ctx.check_hostname = False
+            ctx.verify_mode = _ssl.CERT_NONE
+            return ctx
+        _ssl.create_default_context = _insecure_context
+        print("WARNING: SSL certificate verification disabled (--insecure)")
 
     if args.list_voices:
         await list_voices()

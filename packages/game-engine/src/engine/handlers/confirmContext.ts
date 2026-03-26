@@ -1,8 +1,9 @@
 /**
- * Confirm Context - 猎人/黑狼王确认上下文计算
+ * Confirm Context - 猎人/黑狼王/复仇者确认上下文计算
  *
  * 纯函数模块，负责：
  * - 在进入 hunterConfirm / darkWolfKingConfirm 步骤前，计算 canShoot
+ * - 在进入 avengerConfirm 步骤前，计算阵营（faction）
  * - 返回 SET_CONFIRM_STATUS action 或 null
  *
  * 设计原则：
@@ -13,32 +14,42 @@
  * 可读取 currentNightResults.poisonedSeat 判断是否被毒，不包含 IO（网络 / 音频 / Alert）。
  */
 
-import type { SchemaId } from '../../models/roles/spec';
+import { type SchemaId } from '../../models/roles/spec';
+import { Team } from '../../models/roles/spec/types';
+import type { ConfirmStatus } from '../../protocol/types';
 import { findSeatByRole } from '../../utils/playerHelpers';
 import type { SetConfirmStatusAction } from '../reducer/types';
 import type { NonNullState } from './types';
 
-/** hunterConfirm / darkWolfKingConfirm stepId → role 映射 */
-const CONFIRM_STEP_ROLE: Record<string, 'hunter' | 'darkWolfKing'> = {
+type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger';
+
+/** hunterConfirm / darkWolfKingConfirm / avengerConfirm stepId → role 映射 */
+const CONFIRM_STEP_ROLE: Record<string, ConfirmRole> = {
   hunterConfirm: 'hunter',
   darkWolfKingConfirm: 'darkWolfKing',
+  avengerConfirm: 'avenger',
 };
 
 /**
  * 计算 confirmStatus（纯函数）
  *
- * 规则：被女巫毒杀的角色不能发动技能（canShoot = false）。
- * 判定条件：currentNightResults.poisonedSeat === 该角色的座位号。
+ * 猎人/黑狼王：被女巫毒杀的角色不能发动技能（canShoot = false）。
+ * 复仇者：阵营由 shadow resolver 预计算存入 currentNightResults.avengerFaction，此处直接读取。
+ *   影子模仿好人 → 影子变好人阵营 → 复仇者为狼人阵营（faction = Team.Wolf）
+ *   影子模仿狼人 → 影子变狼人阵营 → 复仇者为好人阵营（faction = Team.Good）
+ *   影子未选人（被梦魇封锁/不在模板中）→ 兜底好人阵营（faction = Team.Good）
+ *   影子模仿复仇者 → 绑定，同属第三方阵营（faction = Team.Third）
  *
- * @param role 角色 ID（hunter | darkWolfKing）
+ * @param role 角色 ID
  * @param state 当前游戏状态
- * @returns { role, canShoot }
+ * @returns ConfirmStatus (discriminated by role)
  */
-function computeConfirmStatus(
-  role: 'hunter' | 'darkWolfKing',
-  state: NonNullState,
-): { role: 'hunter' | 'darkWolfKing'; canShoot: boolean } {
-  // 找到该角色的座位号
+function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmStatus {
+  if (role === 'avenger') {
+    return computeAvengerConfirmStatus(state);
+  }
+
+  // Hunter / DarkWolfKing: poisoned → can't shoot
   const roleSeat = findSeatByRole(state.players, role);
 
   // Fail-closed: 如果找不到角色座位，canShoot = false（异常态不应发技能）
@@ -50,6 +61,19 @@ function computeConfirmStatus(
   const canShoot = poisonedSeat !== roleSeat;
 
   return { role, canShoot };
+}
+
+/**
+ * 计算复仇者确认状态
+ *
+ * avengerFaction 由 shadow resolver 在模仿时直接计算并存入 currentNightResults。
+ * 此处仅读取，无需再次推导。未选目标（被封锁/不在模板）→ 兜底好人阵营。
+ */
+function computeAvengerConfirmStatus(state: NonNullState): ConfirmStatus {
+  return {
+    role: 'avenger',
+    faction: state.currentNightResults?.avengerFaction ?? Team.Good,
+  };
 }
 
 /**

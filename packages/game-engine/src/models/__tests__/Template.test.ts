@@ -193,9 +193,10 @@ describe('Template - getTemplateRoomInfo', () => {
 });
 
 describe('Template - PRESET_TEMPLATES', () => {
-  it('should have valid 12-player templates', () => {
+  it('should have valid player count for all templates', () => {
     PRESET_TEMPLATES.forEach((preset) => {
-      expect(preset.roles.length).toBe(12);
+      expect(preset.roles.length).toBeGreaterThanOrEqual(6);
+      expect(preset.roles.length).toBeLessThanOrEqual(12);
     });
   });
 

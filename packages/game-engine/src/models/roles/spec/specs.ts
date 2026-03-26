@@ -4,11 +4,11 @@
  * Single source of truth for all role definitions.
  * Derived from authoritative role files.
  *
- * 34 roles total:
+ * 36 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic, dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder (15)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle, awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden (13)
- * - Third-party: slacker, wildChild, piper (3)
+ * - Third-party: slacker, wildChild, piper, shadow, avenger (5)
  *
  * 提供声明式角色属性定义（faction / team / night1 / wolfMeeting 等），
  * 不依赖 service、不含副作用或 resolver 逻辑。
@@ -453,6 +453,28 @@ export const ROLE_SPECS = {
     team: Team.Third,
     description:
       '每晚可选择 1~2 名玩家进行催眠，被催眠的玩家会醒来互相确认；当所有其他存活玩家均被催眠时获胜',
+    night1: { hasAction: true },
+  },
+  shadow: {
+    id: 'shadow',
+    displayName: '影子',
+    shortName: '影',
+    emoji: '🌑',
+    faction: Faction.Special,
+    team: Team.Third,
+    description:
+      '首夜模仿一名玩家，目标出局后继承其身份和技能状态；模仿到复仇者时二人绑定，失去原技能，成为同生共死第三方；第二天起每晚影子轮次二人睁眼，可袭击一名玩家，袭击无视一切保护效果；绑定胜利条件为屠城',
+    night1: { hasAction: true },
+  },
+  avenger: {
+    id: 'avenger',
+    displayName: '复仇者',
+    shortName: '仇',
+    emoji: '⚔️',
+    faction: Faction.Special,
+    team: Team.Third,
+    description:
+      '首夜获知自身阵营，永远与影子模仿目标阵营对立；若影子模仿复仇者则二人绑定，失去原技能，成为同生共死第三方，胜利条件为屠城；非绑定时：出局可刺杀一名玩家，命中敌方有效、己方无效；命中未变身影子则单独胜利；帮好人时算神职，帮狼时与其他狼人互不相认，其他狼人全部出局后可主导袭击；预言家查验为好人',
     night1: { hasAction: true },
   },
 } as const satisfies Record<string, RoleSpec>;

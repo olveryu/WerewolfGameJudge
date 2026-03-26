@@ -9,8 +9,28 @@
 
 // ⚠️ 以现有 repo 导出路径为准
 import type { GameStatus, RoleId, SchemaId } from '../models';
+import type { Team } from '../models/roles/spec/types';
 import type { CurrentNightResults } from '../resolvers/types';
 import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '../types';
+
+// =============================================================================
+// Confirm Status (discriminated union, role tag)
+// =============================================================================
+
+/** 猎人/黑狼王：被毒则不能发动技能 */
+export interface ShootConfirmStatus {
+  readonly role: 'hunter' | 'darkWolfKing';
+  readonly canShoot: boolean;
+}
+
+/** 复仇者：阵营取决于影子模仿目标 */
+export interface FactionConfirmStatus {
+  readonly role: 'avenger';
+  readonly faction: Team;
+}
+
+/** Discriminated union (discriminant: role). */
+export type ConfirmStatus = ShootConfirmStatus | FactionConfirmStatus;
 
 // =============================================================================
 // 协议动作记录（ProtocolAction）— 线安全、稳定
@@ -219,11 +239,15 @@ export interface GameState {
    */
   wolfRobotHunterStatusViewed?: boolean;
 
-  /** Confirm status for hunter/darkWolfKing - only display to that role via UI filter */
-  confirmStatus?: {
-    role: 'hunter' | 'darkWolfKing';
-    canShoot: boolean;
-  };
+  /**
+   * Confirm status (discriminated by role).
+   *
+   * - hunter / darkWolfKing → ShootConfirmStatus（canShoot：被毒则不能发动）
+   * - avenger → FactionConfirmStatus（faction：好人/狼人/绑定）
+   *
+   * Only display to that role via UI filter.
+   */
+  confirmStatus?: ConfirmStatus;
 
   /** Action rejected feedback - only display to the rejected player via UI filter */
   actionRejected?: {
