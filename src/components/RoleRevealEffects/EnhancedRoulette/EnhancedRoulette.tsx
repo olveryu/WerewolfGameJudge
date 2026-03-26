@@ -22,6 +22,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -183,6 +184,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   testIDPrefix = 'enhanced-roulette',
 }) => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const config = CONFIG.roulette;
 
@@ -654,7 +656,10 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
       {/* JACKPOT banner — pops in on reveal */}
       {phase === 'revealed' && (
-        <Animated.View style={[styles.jackpotBanner, jackpotStyle]} pointerEvents="none">
+        <Animated.View
+          style={[styles.jackpotBanner, { top: insets.top + 50 }, jackpotStyle]}
+          pointerEvents="none"
+        >
           <Text style={styles.jackpotText}>🎰 JACKPOT! 🎰</Text>
         </Animated.View>
       )}
@@ -910,7 +915,6 @@ const styles = StyleSheet.create({
   },
   jackpotBanner: {
     position: 'absolute',
-    top: 50,
     alignItems: 'center',
   },
   jackpotText: {

@@ -24,6 +24,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -231,6 +232,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   testIDPrefix = 'gacha-machine',
 }) => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
   const theme = alignmentThemes[role.alignment];
   const config = CONFIG.gachaMachine ?? { revealHoldDuration: 1500 };
@@ -661,7 +663,10 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
       {/* Rarity label — pops in after reveal */}
       {phase === 'revealed' && (
-        <Animated.View style={[styles.rarityContainer, rarityStyle]} pointerEvents="none">
+        <Animated.View
+          style={[styles.rarityContainer, { top: insets.top + 60 }, rarityStyle]}
+          pointerEvents="none"
+        >
           <Text
             style={[styles.rarityText, { color: RARITY_LABEL[role.alignment]?.color ?? '#66bbff' }]}
           >
@@ -937,7 +942,6 @@ const styles = StyleSheet.create({
   },
   rarityContainer: {
     position: 'absolute',
-    top: 60,
     alignItems: 'center',
   },
   rarityText: {
