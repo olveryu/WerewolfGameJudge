@@ -7,11 +7,16 @@
  * 渲染角色卡片内容 UI，通过 children 插槽扩展底部按钮。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayAs, getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
+import {
+  getRoleDisplayAs,
+  getRoleSpec,
+  getRoleStructuredDescription,
+  isWolfRole,
+} from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Image, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -21,6 +26,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { RoleDescriptionView } from '@/components/RoleDescriptionView';
 import { getFactionName } from '@/components/roleDisplayUtils';
 import { WolfCrackBackground } from '@/components/RoleRevealEffects/common/effects/WolfRevealEffect';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
@@ -120,6 +126,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   const baseRoleName = displaySpec?.displayName || roleId;
   const roleName = seerLabel != null ? `${seerLabel}号${baseRoleName}` : baseRoleName;
   const description = displaySpec?.description || '无技能描述';
+  const structuredDescription = getRoleStructuredDescription(displayRoleId);
   const badgeSource = getRoleBadge(displayRoleId);
   // English subtitle for reveal mode: convert camelCase roleId to UPPERCASE
   const roleSub = displayRoleId.toUpperCase();
@@ -346,14 +353,11 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
         /* Normal mode: divider + skill description */
         <>
           <View style={styles.divider} />
-          <Text style={styles.skillTitle}>技能介绍</Text>
-          <ScrollView
-            style={styles.descriptionScroll}
-            contentContainerStyle={styles.descriptionScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.description}>{description}</Text>
-          </ScrollView>
+          <RoleDescriptionView
+            structuredDescription={structuredDescription}
+            descriptionFallback={description}
+            factionColor={factionColor}
+          />
         </>
       )}
       {children && <View style={styles.childrenSlot}>{children}</View>}
@@ -436,25 +440,6 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       height: 1,
       backgroundColor: colors.border,
       marginVertical: spacing.medium,
-    },
-    skillTitle: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-      marginBottom: spacing.tight,
-    },
-    descriptionScroll: {
-      flex: 1,
-      width: '100%',
-    },
-    descriptionScrollContent: {
-      alignItems: 'center',
-    },
-    description: {
-      fontSize: typography.body,
-      color: colors.text,
-      textAlign: 'center',
-      lineHeight: typography.body * 1.5,
-      paddingHorizontal: spacing.small,
     },
     childrenSlot: {
       marginTop: 'auto',
