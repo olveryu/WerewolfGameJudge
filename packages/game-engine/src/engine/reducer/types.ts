@@ -5,7 +5,7 @@
  */
 
 import type { RoleId, SchemaId } from '../../models';
-import type { Player, ProtocolAction } from '../../protocol/types';
+import type { ConfirmStatus, Player, ProtocolAction } from '../../protocol/types';
 import type { AudioEffect } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
 import type { RoleRevealAnimation } from '../../types';
@@ -167,10 +167,7 @@ export interface SetWitchContextAction {
 
 export interface SetConfirmStatusAction {
   type: 'SET_CONFIRM_STATUS';
-  payload: {
-    role: 'hunter' | 'darkWolfKing';
-    canShoot: boolean;
-  };
+  payload: ConfirmStatus;
 }
 
 export interface ClearRevealStateAction {

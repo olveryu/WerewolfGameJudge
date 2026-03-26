@@ -190,9 +190,12 @@ export const SCHEMAS = {
       confirmText: '确定查看猎人发动状态吗？',
       bottomActionText: '发动状态',
       // Status dialog (shown after user taps "发动状态")
-      statusDialogTitle: '技能状态',
-      canShootText: '猎人可以发动技能',
-      cannotShootText: '猎人不能发动技能',
+      confirmStatusUi: {
+        kind: 'shoot',
+        statusDialogTitle: '技能状态',
+        canText: '猎人可以发动技能',
+        cannotText: '猎人不能发动技能',
+      },
     },
   },
 
@@ -373,9 +376,12 @@ export const SCHEMAS = {
       confirmText: '确定查看黑狼王发动状态吗？',
       bottomActionText: '发动状态',
       // Status dialog (shown after user taps "发动状态")
-      statusDialogTitle: '技能状态',
-      canShootText: '黑狼王可以发动技能',
-      cannotShootText: '黑狼王不能发动技能',
+      confirmStatusUi: {
+        kind: 'shoot',
+        statusDialogTitle: '技能状态',
+        canText: '黑狼王可以发动技能',
+        cannotText: '黑狼王不能发动技能',
+      },
     },
   },
 
@@ -433,6 +439,37 @@ export const SCHEMAS = {
       hypnotizedText: '你已被吹笛者催眠，当前被催眠的座位：{seats}',
       notHypnotizedText: '你未被催眠',
       confirmButtonText: '知道了',
+    },
+  },
+  shadowChooseMimic: {
+    id: 'shadowChooseMimic',
+    displayName: '选择模仿',
+    kind: 'chooseSeat',
+    constraints: [TargetConstraint.NotSelf],
+    canSkip: false,
+    ui: {
+      confirmTitle: '确认模仿',
+      prompt: '请选择你要模仿的玩家',
+      confirmText: '确定模仿该玩家吗？',
+    },
+  },
+  avengerConfirm: {
+    id: 'avengerConfirm',
+    displayName: '阵营确认',
+    kind: 'confirm',
+    canSkip: true,
+    ui: {
+      confirmTitle: '确认行动',
+      prompt: '请点击下方按钮查看你的阵营信息',
+      confirmText: '确定查看阵营信息吗？',
+      bottomActionText: '查看阵营',
+      confirmStatusUi: {
+        kind: 'faction',
+        statusDialogTitle: '阵营信息',
+        goodText: '你属于好人阵营',
+        wolfText: '你属于狼人阵营',
+        bondedText: '你与影子绑定，同属第三方阵营',
+      },
     },
   },
 } as const satisfies Record<string, ActionSchema>;

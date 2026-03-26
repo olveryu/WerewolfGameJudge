@@ -380,7 +380,53 @@ newRoleAction: newRoleActionResolver,
 - `assets/audio_end/<snake_case>.mp3` — 结束音频
 
 命名规则：camelCase roleId → snake_case 文件名（`wolfQueen` → `wolf_queen.mp3`）。
-用 `scripts/generate_audio_edge_tts.py` 生成或手动提供。
+
+#### 6a — 编写旁白文案
+
+在 `scripts/generate_audio_edge_tts.py` 中添加对应条目：
+
+- `BEGIN_TEXT["<snake_case>"]` — 开始旁白，模板：`"XX请睁眼，请[行动描述]。"`
+- `END_TEXT["<snake_case>"]` — 结束旁白，模板：`"XX请闭眼。"`
+
+多步骤角色的第二步需要独立 key（如 `piper_hypnotized_reveal`）。
+
+#### 6b — 生成音频
+
+**前置依赖**:
+
+- Python 3.8+，已安装 `edge-tts`（`pip install edge-tts`）
+- 系统已安装 `ffmpeg`（`brew install ffmpeg`）
+- 需要联网（Edge TTS 云端合成）
+
+**命令**:
+
+```bash
+# 生成单个角色（推荐，新增角色时用）
+python3 scripts/generate_audio_edge_tts.py --only <snake_case_key>
+
+# 全量重新生成所有角色
+python3 scripts/generate_audio_edge_tts.py
+
+# 预览将生成的文件（不实际生成）
+python3 scripts/generate_audio_edge_tts.py --dry-run
+
+# 查看可用中文男声列表
+python3 scripts/generate_audio_edge_tts.py --list-voices
+```
+
+**默认参数**（低沉庄重风格）:
+
+| 参数       | 默认值                | 说明                    |
+| ---------- | --------------------- | ----------------------- |
+| `--voice`  | `zh-CN-YunjianNeural` | 男声音色                |
+| `--pitch`  | `-20Hz`               | 降低音高                |
+| `--rate`   | `-20%`                | 放慢语速                |
+| `--volume` | `+100%`               | TTS 最大音量            |
+| `--boost`  | `10`                  | ffmpeg 后处理增益（dB） |
+
+**产物**: `assets/audio/<key>.mp3` + `assets/audio_end/<key>.mp3`，生成后 commit 到仓库。
+
+更多用法参见 `scripts/README-audio.md`。
 
 ### 步骤 7 — 注册音频
 
@@ -420,20 +466,53 @@ newRoleSecondStep: {
 
 ### 步骤 8b — 角色徽章
 
-1. **`scripts/badge-config.mjs`** — 在 `EMOJI_MAP` 中添加条目：
+#### 8b-i — 生成徽章图片
 
-   ```js
-   newRole: ['Fluent Emoji 文件夹名', '文件名（不含扩展名）', false],
-   ```
+**工具**: 豆包 AI 文生图（或其他支持透明背景的 AI 图像生成工具）。
 
-   - 去 [fluentui-emoji/assets](https://github.com/microsoft/fluentui-emoji/tree/main/assets) 找合适的 3D emoji。
-   - `hasSkinTone` 为 `true` 时脚本会追加 `/Default` 路径段。
+**生成设置**:
 
-2. **运行生成脚本**：`pnpm run badges:generate`，确认 `assets/badges/png/{64,96,128}/role_newRole.png` 已生成。
-3. **`src/utils/roleBadges.ts`** — 在 `BADGE_MAP` 中添加 `require()` 行：
+| 参数      | 值                     |
+| --------- | ---------------------- |
+| 画幅比例  | 1:1 正方形             |
+| 生成步数  | 24-30 步               |
+| CFG Scale | 8-10                   |
+| 采样器    | DPM++ 2M Karras        |
+| 模板      | 无模板（纯文生图模式） |
+
+**Prompt 结构** = 通用前缀 + 角色特征描述。
+
+通用前缀（所有角色共用，直接复制）：
+
+```
+狼人杀官方卡牌插画，蒂姆·波顿式暗黑怪诞童话风格，美式复古手绘插画，铅笔手绘松弛线条，水彩晕染上色，做旧粗糙纸张纹理，画面带细腻颗粒噪点，夸张变形的人物造型，长脸尖下巴，戏剧化的五官与肢体动作，粗粝手绘排线做阴影，暗黑诡异又诙谐的氛围感，高清细节，手绘质感拉满，PNG格式透明背景，alpha通道透明，纯透明无背景，无任何底色、场景、环境元素，背景完全空白透明，1:1正方形画幅，居中构图，半身像紧凑裁切，单个人物主体占画面80%，所有人物尺寸比例统一。
+```
+
+角色特征描述追加在通用前缀后（30~80 字），描述：外貌/服饰/道具/动作/表情/色调。
+
+**负面 Prompt**（所有角色共用，完整粘贴到「不希望出现」栏）：
+
+```
+文字、水印、logo、签名、多余边框、画框、相框、模糊、低画质、低分辨率、变形、比例失调、五官扭曲、多余肢体、缺手指、多手指、Q版、萌系、二次元动漫、真实照片、3D渲染、平滑数字绘画、赛璐珞上色、霓虹色、赛博朋克、高饱和荧光色、任何背景、底色、纯色背景、渐变背景、纸张背景、场景背景、环境背景、纹理背景、白色背景、黑色背景、带背景的画面、画面杂色、主体边缘白边、干净光滑的画面、无纹理、矢量图、线条僵硬、画面过曝、画面过暗、元素堆砌
+```
+
+**后处理**: ① 确认背景透明（如有底色，追加「抠图级透明背景，人物主体边缘干净无白边、无杂色，无任何背景残留」重新生成）② 导出 / 裁剪为 **512×512 PNG**。
+
+**Prompt 归档**: 生成后将完整 Prompt 追加到 `docs/avatar-generation-prompts.md` 对应阵营区块，保持编号连续。
+
+所有现有角色 Prompt 参考见 `docs/avatar-generation-prompts.md`。
+
+#### 8b-ii — 放置与注册
+
+1. **放置文件**: 将 `role_<roleId>.png`（512×512）放入 `assets/badges/png/512/`。roleId 保持 camelCase（如 `role_wolfQueen.png`）。
+
+2. **`src/utils/roleBadges.ts`** — 在 `BADGE_MAP` 中添加 `require()` 行：
+
    ```ts
-   newRole: require('../../assets/badges/png/128/role_newRole.png'),
+   newRole: require('../../assets/badges/png/512/role_newRole.png'),
    ```
+
+3. **（可选）`scripts/badge-config.mjs`** — 如需 Fluent Emoji 自动生成，在 `EMOJI_MAP` 中添加条目并运行 `pnpm run badges:generate`。当前项目已改为手动放置 512px 图片，生成脚本仅作备用。
 
 ### 步骤 9 — Resolver 单测
 

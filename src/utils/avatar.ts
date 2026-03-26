@@ -18,6 +18,7 @@ export const BUILTIN_AVATAR_PREFIX = 'builtin://';
  */
 // prettier-ignore
 export const AVATAR_KEYS: readonly string[] = [
+  'avenger',
   'awakenedGargoyle',
   'bloodMoon',
   'dancer',
@@ -38,6 +39,7 @@ export const AVATAR_KEYS: readonly string[] = [
   'psychic',
   'pureWhite',
   'seer',
+  'shadow',
   'silenceElder',
   'slacker',
   'spiritKnight',
@@ -57,6 +59,7 @@ export const AVATAR_KEYS: readonly string[] = [
 // Static require list — keep in same order as AVATAR_KEYS.
 // prettier-ignore
 const AVATAR_IMAGES: number[] = [
+  require('../../assets/avatars/raw/avenger.png'),
   require('../../assets/avatars/raw/awakenedGargoyle.png'),
   require('../../assets/avatars/raw/bloodMoon.png'),
   require('../../assets/avatars/raw/dancer.png'),
@@ -77,6 +80,7 @@ const AVATAR_IMAGES: number[] = [
   require('../../assets/avatars/raw/psychic.png'),
   require('../../assets/avatars/raw/pureWhite.png'),
   require('../../assets/avatars/raw/seer.png'),
+  require('../../assets/avatars/raw/shadow.png'),
   require('../../assets/avatars/raw/silenceElder.png'),
   require('../../assets/avatars/raw/slacker.png'),
   require('../../assets/avatars/raw/spiritKnight.png'),

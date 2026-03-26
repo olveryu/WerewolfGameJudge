@@ -3,9 +3,31 @@
  *
  * Declarative descriptions of role action inputs.
  * Pure data - no functions, no flow control.
- * 导出 ActionSchema / CompoundSchema / SchemaUi 等类型定义及 BLOCKED_UI_DEFAULTS 常量，
+ * 导出 ActionSchema / CompoundSchema / SchemaUi / ConfirmStatusUi 等类型定义及 BLOCKED_UI_DEFAULTS 常量，
  * 不依赖 service、不含副作用或流程控制。
  */
+
+// === Confirm Status Dialog UI (discriminated union, kind tag) ===
+
+/** 二态确认 UI — 猎人/黑狼王：可/不可发动技能 */
+export interface ShootConfirmUi {
+  readonly kind: 'shoot';
+  readonly statusDialogTitle: string;
+  readonly canText: string;
+  readonly cannotText: string;
+}
+
+/** 三态阵营 UI — 复仇者：好人/狼人/绑定 */
+export interface FactionConfirmUi {
+  readonly kind: 'faction';
+  readonly statusDialogTitle: string;
+  readonly goodText: string;
+  readonly wolfText: string;
+  readonly bondedText: string;
+}
+
+/** Confirm status dialog UI (discriminant: kind). */
+export type ConfirmStatusUi = ShootConfirmUi | FactionConfirmUi;
 
 /**
  * Default UI text for nightmare-blocked actions.
@@ -111,13 +133,9 @@ export interface SchemaUi {
   /** Dialog message when wolfRobot cannot shoot as hunter (poisoned). */
   readonly hunterGateCannotShootText?: string;
 
-  // === Confirm Schema Status Dialog UI (hunterConfirm/darkWolfKingConfirm) ===
-  /** Dialog title when showing trigger status. */
-  readonly statusDialogTitle?: string;
-  /** Dialog message when role can shoot/trigger. */
-  readonly canShootText?: string;
-  /** Dialog message when role cannot shoot/trigger. */
-  readonly cannotShootText?: string;
+  // === Confirm Schema Status Dialog UI (hunterConfirm/darkWolfKingConfirm/avengerConfirm) ===
+  /** Confirm status dialog (shoot for hunter/darkWolfKing, faction for avenger). */
+  readonly confirmStatusUi?: ConfirmStatusUi;
 
   // === GroupConfirm UI (piperHypnotizedReveal) ===
   /** Text shown to hypnotized players. Placeholder: {seats} (comma-separated hypnotized seat numbers). */

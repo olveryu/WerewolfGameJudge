@@ -487,8 +487,8 @@ describe('canSkip behavior alignment', () => {
 // === 6. NIGHT_STEPS order stability ===
 
 describe('NIGHT_STEPS order stability', () => {
-  it('should have exactly 25 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(25);
+  it('should have exactly 27 steps', () => {
+    expect(NIGHT_STEPS).toHaveLength(27);
   });
 
   it('step order should match expected sequence', () => {
@@ -496,6 +496,8 @@ describe('NIGHT_STEPS order stability', () => {
       'magicianSwap',
       'slackerChooseIdol',
       'wildChildChooseIdol',
+      'shadowChooseMimic',
+      'avengerConfirm',
       'nightmareBlock',
       'dreamcatcherDream',
       'guardProtect',

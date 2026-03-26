@@ -270,6 +270,7 @@ describe('notSelf constraint completeness', () => {
       'wolfRobotLearn',
       'slackerChooseIdol',
       'wildChildChooseIdol',
+      'shadowChooseMimic',
       // Without notSelf
       'nightmareBlock',
       'guardProtect',

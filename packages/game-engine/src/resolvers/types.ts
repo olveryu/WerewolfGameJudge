@@ -10,6 +10,7 @@
  */
 
 import type { RoleId, SchemaId } from '../models';
+import type { Team } from '../models/roles/spec/types';
 
 /**
  * Current night's accumulated results.
@@ -60,6 +61,12 @@ export interface CurrentNightResults {
 
   /** Seat converted by awakenedGargoyle */
   readonly convertedSeat?: number;
+
+  /** Seat chosen by shadow as mimicry target */
+  readonly shadowMimicTarget?: number;
+
+  /** Avenger's faction (computed by shadow resolver from mimicry target's team) */
+  readonly avengerFaction?: Team;
 }
 
 /** Context passed to resolvers */

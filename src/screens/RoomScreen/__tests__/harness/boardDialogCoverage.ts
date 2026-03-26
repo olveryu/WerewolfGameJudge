@@ -24,7 +24,7 @@ export interface BoardConfig {
 }
 
 /**
- * Get all 12P board configurations (all preset templates are 12-player)
+ * Get all board configurations (all preset templates)
  */
 export function getAll12PBoards(): BoardConfig[] {
   const boards = PRESET_TEMPLATES.map((t) => ({
@@ -33,9 +33,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 18) {
+  if (boards.length !== 19) {
     throw new Error(
-      `Expected exactly 18 presets, but got ${boards.length}. ` +
+      `Expected exactly 19 presets, but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -122,6 +122,12 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
 
   // WildChild: chooseSeat (canSkip=false, must choose)
   wildChild: ['actionConfirm'],
+
+  // Shadow: chooseSeat (canSkip=false, must choose)
+  shadow: ['actionConfirm'],
+
+  // Avenger: confirm trigger (displays faction)
+  avenger: ['confirmTrigger'],
 
   // Piper: multiChooseSeat confirm + skip
   piper: ['actionConfirm', 'skipConfirm'],
@@ -225,4 +231,5 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   野孩标准: 'wildChild.12p.board.ui.test.tsx',
   唯邻是从: 'awakenedGargoyle.12p.board.ui.test.tsx',
   孤注一掷: 'warden.12p.board.ui.test.tsx',
+  影仇混标准: 'shadowAvenger.11p.board.ui.test.tsx',
 };

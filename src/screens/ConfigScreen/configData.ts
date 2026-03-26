@@ -122,7 +122,12 @@ export const FACTION_GROUPS: FactionGroup[] = [
     sections: [
       {
         title: '第三方',
-        roles: [{ roleId: 'slacker', variants: ['wildChild'] }, { roleId: 'piper' }],
+        roles: [
+          { roleId: 'slacker', variants: ['wildChild'] },
+          { roleId: 'piper' },
+          { roleId: 'shadow' },
+          { roleId: 'avenger' },
+        ],
       },
     ],
   },

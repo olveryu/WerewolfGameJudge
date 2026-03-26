@@ -199,20 +199,28 @@ function buildSuccessResult(
   // Only attach reveal payload when we have a concrete target.
   // (Avoid fabricating seat=0 when target is null.)
   if (target !== null && (result.updates || result.result)) {
+    const revealPayload = buildRevealPayload(result, schemaId, target);
     actions.push({
       type: 'APPLY_RESOLVER_RESULT',
-      payload: buildRevealPayload(result, schemaId, target),
+      payload: revealPayload,
     });
 
-    // 如果 schema 定义了 revealKind，需要弹窗确认，添加 pending ack 阻塞推进
+    // 如果 schema 定义了 revealKind，且 reveal payload 包含实际数据，添加 pending ack 阻塞推进
     // ackKey 使用 schemaId 作为稳定标识符（避免 revealKind 文案变更导致问题）
+    // 条件检查 payload 是否有 reveal 数据（shadow 仅在模仿复仇者时才有 reveal）
     const schema = SCHEMAS[schemaId];
     const revealKind = (schema?.ui as { revealKind?: string } | undefined)?.revealKind;
     if (revealKind) {
-      actions.push({
-        type: 'ADD_REVEAL_ACK',
-        payload: { ackKey: schemaId }, // 使用 schemaId 而不是 revealKind 字符串
-      });
+      const revealKey = `${revealKind}Reveal`;
+      const hasRevealData =
+        revealKey in revealPayload &&
+        revealPayload[revealKey as keyof typeof revealPayload] != null;
+      if (hasRevealData) {
+        actions.push({
+          type: 'ADD_REVEAL_ACK',
+          payload: { ackKey: schemaId },
+        });
+      }
     }
   } else if (result.updates) {
     // Updates can exist without a target (e.g. skip/blocked); keep them.

@@ -39,6 +39,8 @@ const schemaToRole: Record<string, string> = {
   // third party
   slackerChooseIdol: 'slacker',
   wildChildChooseIdol: 'wildChild',
+  shadowChooseMimic: 'shadow',
+  avengerConfirm: 'avenger',
   piperHypnotize: 'piper',
   piperHypnotizedReveal: 'piper',
 };

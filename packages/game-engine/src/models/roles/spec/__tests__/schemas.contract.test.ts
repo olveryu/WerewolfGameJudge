@@ -254,7 +254,9 @@ describe('SCHEMAS contract', () => {
       ]);
     });
 
-    it('reveal-style chooseSeat schemas (schema.ui.revealKind) must be skippable (canSkip=true)', () => {
+    it('reveal-style chooseSeat schemas (schema.ui.revealKind) must be skippable (canSkip=true), except conditional-reveal schemas', () => {
+      const CONDITIONAL_REVEAL_EXCEPTIONS = new Set<string>();
+
       const notSkippable: string[] = [];
 
       for (const schema of Object.values(SCHEMAS)) {
@@ -263,6 +265,7 @@ describe('SCHEMAS contract', () => {
         if (!schema.ui.revealKind) continue;
 
         if (schema.kind !== 'chooseSeat') continue; // enforced elsewhere
+        if (CONDITIONAL_REVEAL_EXCEPTIONS.has(schema.id)) continue;
 
         // chooseSeat schemas should always carry canSkip; treat missing/false as not skippable
         const canSkip = (schema as { canSkip?: boolean }).canSkip;

@@ -8,6 +8,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName, getRoleEmoji } from '@werewolf/game-engine/models/roles';
+import { Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 import { ACTION, STATUS } from '@/config/emojiTokens';
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
@@ -121,6 +122,21 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(
       `${getRoleEmoji('wildChild' as RoleId)} 野孩子选择了 ${s(wildChildAction.targetSeat)} 为榜样`,
     );
+  }
+
+  // 6b2. Shadow mimic
+  if (nr.shadowMimicTarget != null) {
+    const mimicInfo =
+      nr.avengerFaction === Team.Third
+        ? `${getRoleEmoji('shadow' as RoleId)} 影子模仿了 ${s(nr.shadowMimicTarget)}（绑定）`
+        : `${getRoleEmoji('shadow' as RoleId)} 影子模仿了 ${s(nr.shadowMimicTarget)}`;
+    lines.push(mimicInfo);
+  }
+
+  // 6b3. Avenger faction (always participates, just show presence)
+  const avengerSeat = findSeatByRole(gameState.players, 'avenger' as RoleId);
+  if (avengerSeat !== undefined) {
+    lines.push(`${getRoleEmoji('avenger' as RoleId)} 复仇者已确认阵营`);
   }
 
   // 6c. WolfQueen charm (from actions Map)

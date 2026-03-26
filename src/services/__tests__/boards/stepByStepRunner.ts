@@ -300,7 +300,11 @@ function submitActionForStep(
     submitWitchAction(ctx, stepId, actorSeat, actionValue);
   } else if (stepId === 'magicianSwap') {
     submitMagicianSwapAction(ctx, stepId, actorSeat, actionValue);
-  } else if (stepId === 'hunterConfirm' || stepId === 'darkWolfKingConfirm') {
+  } else if (
+    stepId === 'hunterConfirm' ||
+    stepId === 'darkWolfKingConfirm' ||
+    stepId === 'avengerConfirm'
+  ) {
     submitConfirmAction(ctx, stepId, roleId, actorSeat, actionValue);
   } else if (stepId === 'piperHypnotize') {
     submitPiperHypnotizeAction(ctx, stepId, roleId, actorSeat, actionValue);

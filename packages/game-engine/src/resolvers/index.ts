@@ -8,6 +8,7 @@
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
  */
 
+import { avengerConfirmResolver } from './avenger';
 import {
   awakenedGargoyleConvertResolver,
   awakenedGargoyleConvertRevealResolver,
@@ -25,6 +26,7 @@ import { piperHypnotizedRevealResolver, piperHypnotizeResolver } from './piper';
 import { psychicCheckResolver } from './psychic';
 import { pureWhiteCheckResolver } from './pureWhite';
 import { seerCheckResolver } from './seer';
+import { shadowChooseMimicResolver } from './shadow';
 import { silenceElderSilenceResolver } from './silenceElder';
 import { slackerChooseIdolResolver } from './slacker';
 import type { ResolverRegistry } from './types';
@@ -62,6 +64,8 @@ export const RESOLVERS: ResolverRegistry = {
   piperHypnotizedReveal: piperHypnotizedRevealResolver,
   awakenedGargoyleConvert: awakenedGargoyleConvertResolver,
   awakenedGargoyleConvertReveal: awakenedGargoyleConvertRevealResolver,
+  shadowChooseMimic: shadowChooseMimicResolver,
+  avengerConfirm: avengerConfirmResolver,
 };
 
 // Re-export types for convenience (SERVER-ONLY consumers)
