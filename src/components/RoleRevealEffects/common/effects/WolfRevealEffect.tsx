@@ -19,9 +19,12 @@ import {
   Circle,
   Group,
   LinearGradient,
+  Paint,
   Path as SkiaPath,
+  Picture,
   RadialGradient,
   Rect,
+  Skia,
   vec,
 } from '@shopify/react-native-skia';
 import React, { useEffect, useMemo } from 'react';
@@ -289,79 +292,11 @@ export const WolfCrackBackground: React.FC<WolfCrackBackgroundProps> = ({
 
 // ─── Sub-components (Skia nodes) ──────────────────────────────────────
 
-/** Single fog cloud — extracted to avoid hooks inside .map() */
-interface SkiaFogCloudProps {
-  fog: (typeof FOG_CLOUDS)[number];
-  index: number;
-  fogDrift: SharedValue<number>;
-  cardWidth: number;
-  cardHeight: number;
-  color: string;
-}
-
-const SkiaFogCloud: React.FC<SkiaFogCloudProps> = React.memo(
-  ({ fog, index, fogDrift, cardWidth, cardHeight, color }) => {
-    const fogCx = useDerivedValue(
-      () => fog.xRatio * cardWidth + Math.sin(fogDrift.value * Math.PI * 2 + index) * fog.driftX,
-    );
-    const fogCy = useDerivedValue(() => fog.yRatio * cardHeight);
-    return (
-      <Circle cx={fogCx} cy={fogCy} r={fog.rRatio * cardWidth} color={color}>
-        <Blur blur={20} />
-      </Circle>
-    );
-  },
-);
-SkiaFogCloud.displayName = 'SkiaFogCloud';
-
-/** Wolf spark particle with Blur + blendMode */
-const WolfSpark = React.memo(function WolfSpark({
-  targetXRatio,
-  targetYRatio,
-  sizeRatio,
-  delay,
-  progress,
-  color,
-  centerX,
-  centerY,
-  cardWidth,
-}: {
-  targetXRatio: number;
-  targetYRatio: number;
-  sizeRatio: number;
-  delay: number;
-  progress: SharedValue<number>;
-  color: string;
-  centerX: number;
-  centerY: number;
-  cardWidth: number;
-}) {
-  const targetX = targetXRatio * cardWidth;
-  const targetY = targetYRatio * cardWidth;
-  const size = Math.max(1, sizeRatio * cardWidth);
-
-  const cx = useDerivedValue(
-    () => centerX + targetX * Math.min(1, Math.max(0, (progress.value - delay) / 0.35)),
-  );
-  const cy = useDerivedValue(
-    () => centerY + targetY * Math.min(1, Math.max(0, (progress.value - delay) / 0.35)),
-  );
-  const opacity = useDerivedValue(() => {
-    const lp = Math.min(1, Math.max(0, (progress.value - delay) / 0.35));
-    if (lp < 0.05) return lp / 0.05;
-    return Math.max(0, 1 - (lp - 0.05) / 0.6);
-  });
-  const r = useDerivedValue(() => {
-    const lp = Math.min(1, Math.max(0, (progress.value - delay) / 0.35));
-    return size * Math.max(0, 1 - lp);
-  });
-
-  return (
-    <Circle cx={cx} cy={cy} r={r} color={color} opacity={opacity}>
-      <Blur blur={SK.particleBlur} />
-    </Circle>
-  );
-});
+// ── Immediate-mode Skia resources (reused across frames) ──
+const fogRecorder = Skia.PictureRecorder();
+const fogPaint = Skia.Paint();
+const sparkRecorder = Skia.PictureRecorder();
+const sparkPaint = Skia.Paint();
 
 /** Blood drop — teardrop Path + blood trail streak + trailing glow, falling with gravity */
 const BloodDrop = React.memo(function BloodDrop({
@@ -551,6 +486,50 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
   // Eye pulse opacity
   const eyeOpacity = useDerivedValue(() => 0.3 + eyePulse.value * 0.5);
 
+  // ── Fog clouds: Immediate Mode via Picture API ──
+  // Replaces 6 SkiaFogCloud components (12 useDerivedValue per frame) with 1.
+  const fogPicture = useDerivedValue(() => {
+    'worklet';
+    const c = fogRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
+    const skColor = Skia.Color(primaryColor);
+    for (let i = 0; i < FOG_CLOUDS.length; i++) {
+      const fog = FOG_CLOUDS[i];
+      const fogCx =
+        fog.xRatio * cardWidth + Math.sin(fogDrift.value * Math.PI * 2 + i) * fog.driftX;
+      const fogCy = fog.yRatio * cardHeight;
+      fogPaint.setColor(skColor);
+      fogPaint.setAlphaf(1);
+      c.drawCircle(fogCx, fogCy, fog.rRatio * cardWidth, fogPaint);
+    }
+    return fogRecorder.finishRecordingAsPicture();
+  });
+
+  // ── Spark fragments: Immediate Mode via Picture API ──
+  // Replaces 24 WolfSpark components (96 useDerivedValue per frame) with 1.
+  const sparkPicture = useDerivedValue(() => {
+    'worklet';
+    const c = sparkRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
+    for (let i = 0; i < SPARKS.length; i++) {
+      const s = SPARKS[i];
+      const targetX = s.targetXRatio * cardWidth;
+      const targetY = s.targetYRatio * cardWidth;
+      const size = Math.max(1, s.sizeRatio * cardWidth);
+      const lp = Math.min(1, Math.max(0, (progress.value - s.delay) / 0.35));
+      const cx = centerX + targetX * lp;
+      const cy = centerY + targetY * lp;
+      let opacity: number;
+      if (lp < 0.05) opacity = lp / 0.05;
+      else opacity = Math.max(0, 1 - (lp - 0.05) / 0.6);
+      const r = size * Math.max(0, 1 - lp);
+      if (r <= 0 || opacity <= 0) continue;
+      const skColor = Skia.Color(s.color);
+      sparkPaint.setColor(skColor);
+      sparkPaint.setAlphaf(opacity);
+      c.drawCircle(cx, cy, r, sparkPaint);
+    }
+    return sparkRecorder.finishRecordingAsPicture();
+  });
+
   const canvasStyle = useMemo(
     () => ({
       position: 'absolute' as const,
@@ -577,19 +556,16 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
         </Circle>
       </Group>
 
-      {/* Fog clouds — large blurry circles drifting */}
-      <Group opacity={0.35}>
-        {FOG_CLOUDS.map((fog, i) => (
-          <SkiaFogCloud
-            key={`fog-${i}`}
-            fog={fog}
-            index={i}
-            fogDrift={fogDrift}
-            cardWidth={cardWidth}
-            cardHeight={cardHeight}
-            color={primaryColor}
-          />
-        ))}
+      {/* Fog clouds — Picture API with group-level blur */}
+      <Group
+        opacity={0.35}
+        layer={
+          <Paint>
+            <Blur blur={20} />
+          </Paint>
+        }
+      >
+        <Picture picture={fogPicture} />
       </Group>
 
       {/* Blood drops — teardrop shapes with trailing glow */}
@@ -653,18 +629,16 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
         </Circle>
       </Group>
 
-      {/* Spark fragments — 24 particles radiating outward */}
-      <Group blendMode="screen">
-        {SPARKS.map((spark, i) => (
-          <WolfSpark
-            key={`spark-${i}`}
-            {...spark}
-            progress={progress}
-            centerX={centerX}
-            centerY={centerY}
-            cardWidth={cardWidth}
-          />
-        ))}
+      {/* Spark fragments — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={SK.particleBlur} />
+          </Paint>
+        }
+      >
+        <Picture picture={sparkPicture} />
       </Group>
     </Canvas>
   );

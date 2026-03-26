@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { ThemedToast } from '@/components/ThemedToast';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, NetworkProvider, ServiceProvider } from '@/contexts';
@@ -47,6 +48,9 @@ const appLog = log.extend('App');
 function AppContent() {
   const { colors, isDark } = useTheme();
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
+
+  // Pre-compile Skia GPU shaders via offscreen texture (eliminates first-frame jank)
+  useSkiaShaderWarmup();
 
   // Set up global alert listener
   useEffect(() => {

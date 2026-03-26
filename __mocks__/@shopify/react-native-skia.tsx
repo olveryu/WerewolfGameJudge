@@ -52,6 +52,30 @@ export const SkiaImage = createMockComponent('SkiaImage');
 
 // ── Utility ──
 export const vec = (x: number, y: number) => ({ x, y });
+export const Picture = createMockComponent('Picture');
+
+const noopCanvas = {
+  drawCircle: () => {},
+  drawRRect: () => {},
+  drawRect: () => {},
+  drawPath: () => {},
+  drawColor: () => {},
+  drawLine: () => {},
+  save: () => {},
+  restore: () => {},
+  translate: () => {},
+  scale: () => {},
+};
+
+const noopPaint = {
+  setColor: () => {},
+  setAlphaf: () => {},
+  setStyle: () => {},
+  setStrokeWidth: () => {},
+  setImageFilter: () => {},
+  setBlendMode: () => {},
+  copy: () => noopPaint,
+};
 
 export const Skia = {
   Path: {
@@ -70,6 +94,21 @@ export const Skia = {
       copy: () => Skia.Path.Make(),
     }),
     MakeFromSVGString: () => Skia.Path.Make(),
+  },
+  Paint: () => ({ ...noopPaint }),
+  PictureRecorder: () => ({
+    beginRecording: () => noopCanvas,
+    finishRecordingAsPicture: () => ({}),
+  }),
+  Surface: {
+    MakeOffscreen: () => ({
+      getCanvas: () => noopCanvas,
+      flush: () => {},
+      makeImageSnapshot: () => ({}),
+    }),
+  },
+  ImageFilter: {
+    MakeBlur: () => ({}),
   },
   RRectXY: () => ({}),
   XYWHRect: () => ({}),
