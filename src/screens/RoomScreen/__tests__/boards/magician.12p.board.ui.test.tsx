@@ -1,7 +1,7 @@
 /**
  * Magician 12P Board UI Test
  *
- * Board: 狼王魔术
+ * Board: 狼王魔术师
  * Roles: 4x villager, 3x wolf, darkWolfKing, seer, witch, hunter, magician
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -76,7 +76,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '狼王魔术';
+const BOARD_NAME = '狼王魔术师';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

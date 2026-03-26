@@ -263,16 +263,17 @@ newRoleGroupConfirm: {
 },
 ```
 
-**现有完整顺序参考（25 步）**:
+**现有完整顺序参考（27 步）**:
 
 1. magicianSwap → slackerChooseIdol → wildChildChooseIdol
-2. nightmareBlock → dreamcatcherDream → guardProtect → silenceElderSilence → votebanElderBan
-3. wolfKill → wolfQueenCharm
-4. witchAction
-5. hunterConfirm → darkWolfKingConfirm
-6. wolfRobotLearn → seerCheck → mirrorSeerCheck → drunkSeerCheck → wolfWitchCheck → gargoyleCheck → pureWhiteCheck → psychicCheck
-7. awakenedGargoyleConvert
-8. piperHypnotize → piperHypnotizedReveal → awakenedGargoyleConvertReveal
+2. shadowChooseMimic → avengerConfirm
+3. nightmareBlock → dreamcatcherDream → guardProtect → silenceElderSilence → votebanElderBan
+4. wolfKill → wolfQueenCharm
+5. witchAction
+6. hunterConfirm → darkWolfKingConfirm
+7. wolfRobotLearn → seerCheck → mirrorSeerCheck → drunkSeerCheck → wolfWitchCheck → gargoyleCheck → pureWhiteCheck → psychicCheck
+8. awakenedGargoyleConvert
+9. piperHypnotize → piperHypnotizedReveal → awakenedGargoyleConvertReveal
 
 ### 步骤 4 — Resolver
 
@@ -370,7 +371,7 @@ import { newRoleActionResolver } from './newRole';
 newRoleAction: newRoleActionResolver,
 ```
 
-当前已有 25 个 resolver 注册。
+当前已有 27 个 resolver 注册。
 
 ### 步骤 6 — 音频文件
 
@@ -562,9 +563,9 @@ describe('newRoleActionResolver', () => {
 **文件**: `packages/game-engine/src/models/roles/spec/__tests__/specs.contract.test.ts`
 
 ```typescript
-// 当前为 34，新增角色后改为 35：
-it('should have exactly 34 roles', () => {
-  expect(getAllRoleIds()).toHaveLength(34); // → 35
+// 当前为 36，新增角色后改为 37：
+it('should have exactly 36 roles', () => {
+  expect(getAllRoleIds()).toHaveLength(36); // → 37
 });
 ```
 
@@ -601,7 +602,7 @@ pnpm exec jest --updateSnapshot
 
 1. `engine/DeathCalculator.ts` — `NightActions` 接口加字段 + 处理逻辑
 2. Resolver 的 `updates` 写入 `currentNightResults` 对应字段
-3. `resolvers/types.ts` — `CurrentNightResults` 加新字段（当前字段：wolfVotesBySeat / blockedSeat / wolfKillDisabled / guardedSeat / savedSeat / poisonedSeat / dreamingSeat / swappedSeats / silencedSeat / votebannedSeat / hypnotizedSeats / convertedSeat）
+3. `resolvers/types.ts` — `CurrentNightResults` 加新字段（当前字段：wolfVotesBySeat / blockedSeat / wolfKillDisabled / guardedSeat / savedSeat / poisonedSeat / dreamingSeat / swappedSeats / silencedSeat / votebannedSeat / hypnotizedSeats / convertedSeat / shadowMimicTarget / avengerFaction）
 
 ### C3 — 预设上下文 / Gate
 
@@ -684,8 +685,8 @@ pnpm exec jest --updateSnapshot
 | `chooseSeat`（查验） | seer, mirrorSeer, drunkSeer, psychic, gargoyle, pureWhite, wolfWitch                                             | `seerCheck`, `mirrorSeerCheck`, `drunkSeerCheck`, `psychicCheck`, `gargoyleCheck`, `pureWhiteCheck`, `wolfWitchCheck` |
 | `chooseSeat`（效果） | guard, nightmare, dreamcatcher, wolfQueen, silenceElder, votebanElder                                            | `guardProtect`, `nightmareBlock`, `dreamcatcherDream`, `wolfQueenCharm`, `silenceElderSilence`, `votebanElderBan`     |
 | `chooseSeat`（学习） | wolfRobot                                                                                                        | `wolfRobotLearn`                                                                                                      |
-| `chooseSeat`（选人） | slacker, wildChild                                                                                               | `slackerChooseIdol`, `wildChildChooseIdol`                                                                            |
-| `confirm`            | hunter, darkWolfKing                                                                                             | `hunterConfirm`, `darkWolfKingConfirm`                                                                                |
+| `chooseSeat`（选人） | slacker, wildChild, shadow                                                                                       | `slackerChooseIdol`, `wildChildChooseIdol`, `shadowChooseMimic`                                                       |
+| `confirm`            | hunter, darkWolfKing, avenger                                                                                    | `hunterConfirm`, `darkWolfKingConfirm`, `avengerConfirm`                                                              |
 | `compound`           | witch                                                                                                            | `witchAction`                                                                                                         |
 | `swap`               | magician                                                                                                         | `magicianSwap`                                                                                                        |
 | `wolfVote`           | wolf                                                                                                             | `wolfKill`                                                                                                            |

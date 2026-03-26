@@ -84,6 +84,29 @@ applyTo: 'src/screens/**,src/components/**'
 
 ---
 
+## Screen 总览
+
+| Screen | 位置 | 职责 |
+|---|---|---|
+| `HomeScreen` | `screens/HomeScreen/` | 主页 — 创建/加入房间入口 |
+| `ConfigScreen` | `screens/ConfigScreen/` | 游戏配置 — 选择板子、角色、人数 |
+| `RoomScreen` | `screens/RoomScreen/` | 房间主屏 — 座位、夜晚流程、所有游戏交互 |
+| `EncyclopediaScreen` | `screens/EncyclopediaScreen/` | 角色图鉴 — 展示所有角色，按阵营筛选，点击查看详情 |
+| `SettingsScreen` | `screens/SettingsScreen/` | 用户设置 — 主题切换、账户管理等 |
+
+## RoomScreen 子目录
+
+| 目录 | 职责 |
+|---|---|
+| `policy/` | 纯逻辑 policy 函数（输入 → Instruction） |
+| `hooks/` | Screen 级 hooks（`useRoomScreenState` 等） |
+| `components/` | RoomScreen 专属 UI 组件 |
+| `executors/` | Action 执行器（从 hooks 拆出的执行层） |
+| `seatTap/` | 座位点击交互逻辑 |
+| `shareImage.ts` / `shareRoom.ts` / `shareQRCode.ts` / `shareNightReview.ts` | 分享功能模块 |
+
+---
+
 ## RoomScreen UI 状态机速查
 
 ### GameStatus → 底部按钮映射

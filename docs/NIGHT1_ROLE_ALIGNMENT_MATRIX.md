@@ -1,6 +1,6 @@
 # Night-1 角色对齐矩阵
 
-> 更新日期: 2026-03-15
+> 更新日期: 2026-03-26
 > 版本: Handler→Facade→UI 架构
 
 ## 概述
@@ -14,28 +14,30 @@
 | 0    | `magicianSwap`                  | `magician`         | `magician`                      | (同)                            |
 | 1    | `slackerChooseIdol`             | `slacker`          | `slacker`                       | (同)                            |
 | 2    | `wildChildChooseIdol`           | `wildChild`        | `wildChild`                     | (同)                            |
-| 3    | `nightmareBlock`                | `nightmare`        | `nightmare`                     | (同)                            |
-| 4    | `dreamcatcherDream`             | `dreamcatcher`     | `dreamcatcher`                  | (同)                            |
-| 5    | `guardProtect`                  | `guard`            | `guard`                         | (同)                            |
-| 6    | `silenceElderSilence`           | `silenceElder`     | `silenceElder`                  | (同)                            |
-| 7    | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (同)                            |
-| 8    | `wolfKill`                      | `wolf`             | `wolf`                          | (同)                            |
-| 9    | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (同)                            |
-| 10   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
-| 11   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
-| 12   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
-| 13   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
-| 14   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
-| 15   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
-| 16   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
-| 17   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
-| 18   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
-| 19   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
-| 20   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
-| 21   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
-| 22   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
-| 23   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
-| 24   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
+| 3    | `shadowChooseMimic`             | `shadow`           | `shadow`                        | (同)                            |
+| 4    | `avengerConfirm`                | `avenger`          | `avenger`                       | (同)                            |
+| 5    | `nightmareBlock`                | `nightmare`        | `nightmare`                     | (同)                            |
+| 6    | `dreamcatcherDream`             | `dreamcatcher`     | `dreamcatcher`                  | (同)                            |
+| 7    | `guardProtect`                  | `guard`            | `guard`                         | (同)                            |
+| 8    | `silenceElderSilence`           | `silenceElder`     | `silenceElder`                  | (同)                            |
+| 9    | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (同)                            |
+| 10   | `wolfKill`                      | `wolf`             | `wolf`                          | (同)                            |
+| 11   | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (同)                            |
+| 12   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
+| 13   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
+| 14   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
+| 15   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
+| 16   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
+| 17   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
+| 18   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
+| 19   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
+| 20   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
+| 21   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
+| 22   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
+| 23   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
+| 24   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
+| 25   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
+| 26   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
 
 **合约保证**：
 
@@ -76,7 +78,37 @@
 | **UI 目标限制**    | 排除自己                         |                     |
 | **失败原因**       | `必须选择榜样` / `不能选择自己`  |                     |
 
-### 3. wolfRobotLearn (机器狼)
+### 3. shadowChooseMimic (影子)
+
+| 属性               | 值                                                                                                   | 说明                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------- | -------------------------------- |
+| **schemaId**       | `shadowChooseMimic`                                                                                  |                                  |
+| **kind**           | `chooseSeat`                                                                                         |                                  |
+| **constraints**    | `['notSelf']`                                                                                        | 不能选自己                       |
+| **canSkip**        | `false`                                                                                              | **必须选择**                     |
+| **prompt**         | "请选择你要模仿的玩家"                                                                               |                                  |
+| **revealKind**     | 无                                                                                                   |                                  |
+| **nightmare 阻断** | ✅ 支持                                                                                              | 阻断后为 valid no-op（跳过不选） |
+| **结果落点**       | `currentNightResults.shadowMimicTarget` + `avengerFaction`                                           | 同时计算复仇者阵营               |
+| **UI 目标限制**    | 排除自己                                                                                             |                                  |
+| **失败原因**       | `必须选择模仿目标` / `不能选择自己` / `目标玩家不存在`                                               |                                  |
+| **特殊逻辑**       | 选中 avenger → 二人绑定（Team.Third）；选中狼阵营 → avenger 为好人；选中好人/第三方 → avenger 为狼人 |                                  |
+
+### 4. avengerConfirm (复仇者)
+
+| 属性                 | 值                                    | 说明                           |
+| -------------------- | ------------------------------------- | ------------------------------ |
+| **schemaId**         | `avengerConfirm`                      |                                |
+| **kind**             | `confirm`                             | 查看阵营信息                   |
+| **constraints**      | 无                                    |                                |
+| **canSkip**          | `true`                                | 可跳过不看                     |
+| **prompt**           | "请点击下方按钮查看你的阵营信息"      |                                |
+| **revealKind**       | 无（通过 `confirmStatusUi` 展示阵营） | 三种结果：好人/狼人/绑定第三方 |
+| **nightmare 阻断**   | handler 层处理                        |                                |
+| **结果落点**         | 无状态变更                            | 纯查看，always valid           |
+| **bottomActionText** | `'查看阵营'`                          |                                |
+
+### 5. wolfRobotLearn (机器狼)
 
 | 属性               | 值                                                | 说明                            |
 | ------------------ | ------------------------------------------------- | ------------------------------- |
@@ -93,7 +125,7 @@
 | **UI 目标限制**    | 排除自己                                          |                                 |
 | **失败原因**       | `不能选择自己` / `目标玩家不存在`                 |                                 |
 
-### 4. dreamcatcherDream (摄梦人)
+### 6. dreamcatcherDream (摄梦人)
 
 | 属性               | 值                                 | 说明 |
 | ------------------ | ---------------------------------- | ---- |
@@ -108,7 +140,7 @@
 | **UI 目标限制**    | 排除自己                           |      |
 | **失败原因**       | `不能选择自己`                     |      |
 
-### 5. gargoyleCheck (石像鬼)
+### 7. gargoyleCheck (石像鬼)
 
 | 属性               | 值                                               | 说明             |
 | ------------------ | ------------------------------------------------ | ---------------- |
@@ -125,7 +157,7 @@
 | **UI 目标限制**    | 所有座位                                         |                  |
 | **失败原因**       | `目标玩家不存在`                                 |                  |
 
-### 6. nightmareBlock (梦魇)
+### 8. nightmareBlock (梦魇)
 
 | 属性               | 值                                                    | 说明                     |
 | ------------------ | ----------------------------------------------------- | ------------------------ |
@@ -141,7 +173,7 @@
 | **UI 目标限制**    | 所有座位                                              |                          |
 | **失败原因**       | `目标玩家不存在`                                      |                          |
 
-### 7. guardProtect (守卫)
+### 9. guardProtect (守卫)
 
 | 属性               | 值                                | 说明                     |
 | ------------------ | --------------------------------- | ------------------------ |
@@ -156,7 +188,7 @@
 | **UI 目标限制**    | 所有座位                          |                          |
 | **失败原因**       | 无（canSkip=true）                |                          |
 
-### 8. wolfKill (袭击)
+### 10. wolfKill (袭击)
 
 | 属性                        | 值                                    | 说明                                                                                             |
 | --------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -175,7 +207,7 @@
 | **Host 权威拒绝**           | ✅                                    | 免疫袭击目标会被 Host/Resolver 拒绝，并通过 `actionRejected` 统一弹“操作无效”提示（UI 不做禁用） |
 | **失败原因**                | `目标玩家不存在`                      |                                                                                                  |
 
-### 9. wolfQueenCharm (狼美人)
+### 11. wolfQueenCharm (狼美人)
 
 | 属性               | 值                                | 说明 |
 | ------------------ | --------------------------------- | ---- |
@@ -190,7 +222,7 @@
 | **UI 目标限制**    | 排除自己                          |      |
 | **失败原因**       | `不能选择自己` / `目标玩家不存在` |      |
 
-### 10. witchAction (女巫)
+### 12. witchAction (女巫)
 
 | 属性               | 值                                                                         | 说明                    |
 | ------------------ | -------------------------------------------------------------------------- | ----------------------- |
@@ -209,7 +241,7 @@
 | **UI 目标限制**    | save: 被杀者（非自己）; poison: 任意                                       |                         |
 | **失败原因**       | `女巫不能自救` / `只能救被狼人袭击的玩家` / `同一晚不能同时使用解药和毒药` |                         |
 
-### 11. seerCheck (预言家)
+### 13. seerCheck (预言家)
 
 | 属性               | 值                                        | 说明         |
 | ------------------ | ----------------------------------------- | ------------ | --- |
@@ -226,7 +258,7 @@
 | **UI 目标限制**    | 所有座位                                  |              |
 | **失败原因**       | `目标玩家不存在`                          |              |
 
-### 12. psychicCheck (通灵师)
+### 14. psychicCheck (通灵师)
 
 | 属性               | 值                                              | 说明             |
 | ------------------ | ----------------------------------------------- | ---------------- |
@@ -243,7 +275,7 @@
 | **UI 目标限制**    | 所有座位                                        |                  |
 | **失败原因**       | `目标玩家不存在`                                |                  |
 
-### 13. hunterConfirm (猎人)
+### 15. hunterConfirm (猎人)
 
 | 属性                 | 值                                       | 说明                 |
 | -------------------- | ---------------------------------------- | -------------------- |
@@ -257,7 +289,7 @@
 | **UI 行为**          | 点击按钮确认                             |                      |
 | **失败原因**         | 无                                       | 始终 valid           |
 
-### 14. darkWolfKingConfirm (黑狼王)
+### 16. darkWolfKingConfirm (黑狼王)
 
 | 属性                 | 值                                             | 说明       |
 | -------------------- | ---------------------------------------------- | ---------- |
@@ -271,7 +303,7 @@
 | **UI 行为**          | 点击按钮确认                                   |            |
 | **失败原因**         | 无                                             | 始终 valid |
 
-### 15. wildChildChooseIdol (野孩子)
+### 17. wildChildChooseIdol (野孩子)
 
 | 属性               | 值                               | 说明                |
 | ------------------ | -------------------------------- | ------------------- |
@@ -286,7 +318,7 @@
 | **UI 目标限制**    | 排除自己                         |                     |
 | **失败原因**       | `必须选择榜样` / `不能选择自己`  |                     |
 
-### 16. silenceElderSilence (禁言长老)
+### 18. silenceElderSilence (禁言长老)
 
 | 属性               | 值                                 | 说明         |
 | ------------------ | ---------------------------------- | ------------ |
@@ -301,7 +333,7 @@
 | **UI 目标限制**    | 所有座位                           |              |
 | **失败原因**       | `目标玩家不存在`                   |              |
 
-### 17. votebanElderBan (禁票长老)
+### 19. votebanElderBan (禁票长老)
 
 | 属性               | 值                                   | 说明         |
 | ------------------ | ------------------------------------ | ------------ |
@@ -316,7 +348,7 @@
 | **UI 目标限制**    | 所有座位                             |              |
 | **失败原因**       | `目标玩家不存在`                     |              |
 
-### 18. mirrorSeerCheck (灯影预言家)
+### 20. mirrorSeerCheck (灯影预言家)
 
 | 属性               | 值                                              | 说明                            |
 | ------------------ | ----------------------------------------------- | ------------------------------- | ------------------ |
@@ -333,7 +365,7 @@
 | **UI 目标限制**    | 排除自己                                        |                                 |
 | **失败原因**       | `不能选择自己` / `目标玩家不存在`               |                                 |
 
-### 19. drunkSeerCheck (酒鬼预言家)
+### 21. drunkSeerCheck (酒鬼预言家)
 
 | 属性               | 值                                             | 说明                            |
 | ------------------ | ---------------------------------------------- | ------------------------------- | --------------- |
@@ -350,7 +382,7 @@
 | **UI 目标限制**    | 排除自己                                       |                                 |
 | **失败原因**       | `不能选择自己` / `目标玩家不存在`              |                                 |
 
-### 20. wolfWitchCheck (狼巫)
+### 22. wolfWitchCheck (狼巫)
 
 | 属性               | 值                                                | 说明                            |
 | ------------------ | ------------------------------------------------- | ------------------------------- |
@@ -367,7 +399,7 @@
 | **UI 目标限制**    | 排除狼人阵营                                      |                                 |
 | **失败原因**       | `不能选择狼人阵营` / `目标玩家不存在`             |                                 |
 
-### 21. pureWhiteCheck (纯白之女)
+### 23. pureWhiteCheck (纯白之女)
 
 | 属性               | 值                                                | 说明                            |
 | ------------------ | ------------------------------------------------- | ------------------------------- |
@@ -384,7 +416,7 @@
 | **UI 目标限制**    | 排除自己                                          |                                 |
 | **失败原因**       | `不能选择自己` / `目标玩家不存在`                 |                                 |
 
-### 22. piperHypnotize (吹笛者催眠)
+### 24. piperHypnotize (吹笛者催眠)
 
 | 属性               | 值                                    | 说明            |
 | ------------------ | ------------------------------------- | --------------- |
@@ -401,7 +433,7 @@
 | **UI 目标限制**    | 排除自己，可选 1-2 名                 |                 |
 | **失败原因**       | `不能选择自己` / `目标玩家不存在`     |                 |
 
-### 23. piperHypnotizedReveal (吹笛者催眠确认)
+### 25. piperHypnotizedReveal (吹笛者催眠确认)
 
 | 属性                  | 值                                            | 说明                  |
 | --------------------- | --------------------------------------------- | --------------------- |

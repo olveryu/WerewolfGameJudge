@@ -82,13 +82,20 @@ function buildTeardropPath(r: number): string {
   );
 }
 
-// Fog clouds (large blurry circles)
-const FOG_CLOUDS = Array.from({ length: 6 }, (_, i) => ({
-  xRatio: 0.1 + ((i * 67 + 23) % 80) / 100,
-  yRatio: 0.5 + ((i * 41 + 7) % 50) / 100,
-  rRatio: 0.15 + ((i * 29) % 15) / 100,
-  driftX: ((i * 53) % 30) - 15,
-}));
+// Fog clouds — layered volumetric fog with RadialGradient for soft edges
+const FOG_CLOUDS = [
+  // Large background layers (slow drift, low opacity set via alphaRatio)
+  { xRatio: 0.25, yRatio: 0.7, rRatio: 0.45, driftX: 8, driftYAmp: 6, alphaRatio: 0.5 },
+  { xRatio: 0.75, yRatio: 0.65, rRatio: 0.4, driftX: -10, driftYAmp: 5, alphaRatio: 0.45 },
+  { xRatio: 0.5, yRatio: 0.8, rRatio: 0.5, driftX: 6, driftYAmp: 8, alphaRatio: 0.55 },
+  // Medium mid-ground layers
+  { xRatio: 0.35, yRatio: 0.75, rRatio: 0.3, driftX: -12, driftYAmp: 4, alphaRatio: 0.6 },
+  { xRatio: 0.65, yRatio: 0.85, rRatio: 0.35, driftX: 10, driftYAmp: 7, alphaRatio: 0.5 },
+  // Small wisps (faster drift, higher alpha)
+  { xRatio: 0.15, yRatio: 0.9, rRatio: 0.2, driftX: 15, driftYAmp: 10, alphaRatio: 0.7 },
+  { xRatio: 0.85, yRatio: 0.78, rRatio: 0.22, driftX: -14, driftYAmp: 9, alphaRatio: 0.65 },
+  { xRatio: 0.5, yRatio: 0.95, rRatio: 0.38, driftX: -5, driftYAmp: 6, alphaRatio: 0.4 },
+];
 
 // Crack paths — jagged zigzag lines with branches (ratio coordinates 0–1)
 // Main cracks: multi-segment polylines from center with irregular offsets
@@ -292,9 +299,43 @@ export const WolfCrackBackground: React.FC<WolfCrackBackgroundProps> = ({
 
 // ─── Sub-components (Skia nodes) ──────────────────────────────────────
 
+/** Volumetric fog cloud — RadialGradient for soft edges, vertical + horizontal drift */
+const SkiaFogCloud: React.FC<{
+  fog: (typeof FOG_CLOUDS)[number];
+  index: number;
+  fogDrift: SharedValue<number>;
+  cardWidth: number;
+  cardHeight: number;
+  color: string;
+}> = React.memo(({ fog, index, fogDrift, cardWidth, cardHeight, color }) => {
+  const r = fog.rRatio * cardWidth;
+  const fogCx = useDerivedValue(
+    () => fog.xRatio * cardWidth + Math.sin(fogDrift.value * Math.PI * 2 + index) * fog.driftX,
+  );
+  const fogCy = useDerivedValue(
+    () =>
+      fog.yRatio * cardHeight +
+      Math.cos(fogDrift.value * Math.PI * 2 * 0.7 + index * 1.3) * fog.driftYAmp,
+  );
+  const opacity = useDerivedValue(
+    () => fog.alphaRatio * (0.8 + 0.2 * Math.sin(fogDrift.value * Math.PI * 2 * 0.5 + index * 2)),
+  );
+  return (
+    <Group opacity={opacity}>
+      <Circle cx={fogCx} cy={fogCy} r={r}>
+        <RadialGradient
+          c={vec(fog.xRatio * cardWidth, fog.yRatio * cardHeight)}
+          r={r}
+          colors={[`${color}90`, `${color}40`, `${color}00`]}
+        />
+        <Blur blur={25} />
+      </Circle>
+    </Group>
+  );
+});
+SkiaFogCloud.displayName = 'SkiaFogCloud';
+
 // ── Immediate-mode Skia resources (reused across frames) ──
-const fogRecorder = Skia.PictureRecorder();
-const fogPaint = Skia.Paint();
 const sparkRecorder = Skia.PictureRecorder();
 const sparkPaint = Skia.Paint();
 
@@ -486,24 +527,6 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
   // Eye pulse opacity
   const eyeOpacity = useDerivedValue(() => 0.3 + eyePulse.value * 0.5);
 
-  // ── Fog clouds: Immediate Mode via Picture API ──
-  // Replaces 6 SkiaFogCloud components (12 useDerivedValue per frame) with 1.
-  const fogPicture = useDerivedValue(() => {
-    'worklet';
-    const c = fogRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
-    const skColor = Skia.Color(primaryColor);
-    for (let i = 0; i < FOG_CLOUDS.length; i++) {
-      const fog = FOG_CLOUDS[i];
-      const fogCx =
-        fog.xRatio * cardWidth + Math.sin(fogDrift.value * Math.PI * 2 + i) * fog.driftX;
-      const fogCy = fog.yRatio * cardHeight;
-      fogPaint.setColor(skColor);
-      fogPaint.setAlphaf(1);
-      c.drawCircle(fogCx, fogCy, fog.rRatio * cardWidth, fogPaint);
-    }
-    return fogRecorder.finishRecordingAsPicture();
-  });
-
   // ── Spark fragments: Immediate Mode via Picture API ──
   // Replaces 24 WolfSpark components (96 useDerivedValue per frame) with 1.
   const sparkPicture = useDerivedValue(() => {
@@ -556,16 +579,19 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
         </Circle>
       </Group>
 
-      {/* Fog clouds — Picture API with group-level blur */}
-      <Group
-        opacity={0.35}
-        layer={
-          <Paint>
-            <Blur blur={20} />
-          </Paint>
-        }
-      >
-        <Picture picture={fogPicture} />
+      {/* Fog clouds — volumetric RadialGradient layers drifting */}
+      <Group>
+        {FOG_CLOUDS.map((fog, i) => (
+          <SkiaFogCloud
+            key={`fog-${i}`}
+            fog={fog}
+            index={i}
+            fogDrift={fogDrift}
+            cardWidth={cardWidth}
+            cardHeight={cardHeight}
+            color={primaryColor}
+          />
+        ))}
       </Group>
 
       {/* Blood drops — teardrop shapes with trailing glow */}

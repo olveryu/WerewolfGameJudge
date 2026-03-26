@@ -32,4 +32,18 @@ applyTo: packages/game-engine/**
 - **sideEffects 不可遗漏**: 修改了 state 的 handler result 必须包含对应 `sideEffects`（`BROADCAST_STATE` / `SAVE_STATE`）。遗漏 = 状态变更不持久化、不广播。
 - **新增 `GameState` 字段必须同步 `normalizeState`**（`engine/state/normalize.ts`）：编译期 `satisfies Complete<...>` 守卫会报错提醒。遗漏 = 字段被静默丢弃。
 
+## Engine 内部模块
+
+| 模块 | 文件 | 职责 |
+|---|---|---|
+| **GameStore** | `engine/store/GameStore.ts` | state 持有 + revision 管理 + applySnapshot + 订阅/通知。不含业务逻辑、不含 IO |
+| **Intents** | `engine/intents/types.ts` | UI→Handler 的强类型 Intent 定义（JoinSeat / StartNight / RestartGame 等） |
+| **InlineProgression** | `engine/inlineProgression.ts` | 服务端单请求内递归推进夜晚步骤（纯函数，最多 20 轮），收集 PLAY_AUDIO sideEffects |
+| **ResolveWolfVotes** | `engine/resolveWolfVotes.ts` | 狼人投票聚合计算 |
+| **DeathCalculator** | `engine/DeathCalculator.ts` | 夜晚死亡结算（守护/毒药/袭击/连带）|
+
+## Utils
+
+`utils/` 包含：`logger.ts`（DI 模式 `getEngineLogger` / `setEngineLogger`）/ `random.ts` / `shuffle.ts` / `playerHelpers.ts` / `id.ts` / `audioKeyOverride.ts`。
+
 ```

@@ -1,7 +1,7 @@
 /**
  * Dreamcatcher 12P Board UI Test
  *
- * Board: 狼王摄梦
+ * Board: 狼王摄梦人
  * Roles: 4x villager, 3x wolf, darkWolfKing, seer, witch, hunter, dreamcatcher
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -74,7 +74,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '狼王摄梦';
+const BOARD_NAME = '狼王摄梦人';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

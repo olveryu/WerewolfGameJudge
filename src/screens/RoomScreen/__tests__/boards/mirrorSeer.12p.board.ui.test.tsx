@@ -1,7 +1,7 @@
 /**
  * MirrorSeer 12P Board UI Test
  *
- * Board: 灯影预言
+ * Board: 灯影预言家
  * Roles: 3x villager, 3x wolf, darkWolfKing, seer, mirrorSeer, witch, guard, knight
  *
  * Required UI coverage (getRequiredUiDialogTypes):
@@ -77,7 +77,7 @@ jest.mock('../../hooks/useActionerState', () => ({
   }),
 }));
 
-const BOARD_NAME = '灯影预言';
+const BOARD_NAME = '灯影预言家';
 const _board = getBoardByName(BOARD_NAME)!;
 
 let harness: RoomScreenTestHarness;

@@ -15,8 +15,11 @@ import {
   Circle,
   Group,
   Line,
+  Paint,
   Path,
+  Picture,
   RadialGradient,
+  Skia,
   vec,
 } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -24,7 +27,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
   runOnJS,
@@ -40,7 +42,6 @@ import Animated, {
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
-import { SkiaSparkle } from '@/components/RoleRevealEffects/common/effects/SkiaSparkle';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -90,30 +91,31 @@ const STARS = Array.from({ length: 25 }, (_, i) => ({
 
 const FW = CONFIG.fortuneWheel;
 
-/** Single gem bulb — extracted to avoid hooks inside .map() */
-interface GemBulbProps {
-  seg: { dotX: number; dotY: number };
-  index: number;
-  gemPulse: SharedValue<number>;
-}
+// ── Immediate-mode Skia resources (reused across frames) ──
+const gemRecorder = Skia.PictureRecorder();
+const gemPaintRes = Skia.Paint();
 
-const GemBulb: React.FC<GemBulbProps> = React.memo(({ seg, index, gemPulse }) => {
-  const gemOp = useDerivedValue(() => 0.5 + Math.sin(gemPulse.value + (index * Math.PI) / 3) * 0.3);
-  return (
-    <Group>
-      <Circle
-        cx={seg.dotX}
-        cy={seg.dotY}
-        r={DOT_R + 2}
-        color={GEM_COLORS[index % GEM_COLORS.length]}
-        opacity={gemOp}
-      >
-        <Blur blur={3} />
-      </Circle>
-    </Group>
-  );
-});
-GemBulb.displayName = 'GemBulb';
+// ── Static starfield picture (computed once at module level) ──
+const starfieldRecorder = Skia.PictureRecorder();
+const starfieldPaint = Skia.Paint();
+function buildStarfieldPicture() {
+  const c = starfieldRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+  const starColor = Skia.Color('#ccccff');
+  const glowColor = Skia.Color('#aaaaff');
+  for (let i = 0; i < STARS.length; i++) {
+    const { x, y, r } = STARS[i];
+    // Glow halo
+    starfieldPaint.setColor(glowColor);
+    starfieldPaint.setAlphaf(0.3);
+    c.drawCircle(x, y, r * 4, starfieldPaint);
+    // Center dot
+    starfieldPaint.setColor(starColor);
+    starfieldPaint.setAlphaf(0.8);
+    c.drawCircle(x, y, r, starfieldPaint);
+  }
+  return starfieldRecorder.finishRecordingAsPicture();
+}
+const STARFIELD_PICTURE = buildStarfieldPicture();
 
 // ─── Layout ratios ──────────────────────────────────────────────────────
 const RIM_RATIO = 0.04;
@@ -249,6 +251,22 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const pointerTickGlow = useSharedValue(0);
   const victoryArchOpacity = useSharedValue(0);
   const victoryArchScale = useSharedValue(0.8);
+
+  // ── Picture API: batch gem bulbs (N→1 draw call, replaces N×useDerivedValue) ──
+  const gemPicture = useDerivedValue(() => {
+    'worklet';
+    // segmentData is a JS-thread array; access its values inside worklet via closure.
+    // Since segmentData is computed from useMemo (stable per layout), this is safe.
+    const c = gemRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    for (let i = 0; i < segmentData.length; i++) {
+      const seg = segmentData[i];
+      const opacity = 0.5 + Math.sin(gemPulse.value + (i * Math.PI) / 3) * 0.3;
+      gemPaintRes.setColor(Skia.Color(GEM_COLORS[i % GEM_COLORS.length]));
+      gemPaintRes.setAlphaf(opacity);
+      c.drawCircle(seg.dotX, seg.dotY, DOT_R + 2, gemPaintRes);
+    }
+    return gemRecorder.finishRecordingAsPicture();
+  });
 
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
 
@@ -481,21 +499,18 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       />
       <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
-      {/* Starfield background */}
+      {/* Starfield background — static Picture (pre-computed at module level) */}
       {!reducedMotion && (
         <Canvas style={styles.fullScreen} pointerEvents="none">
-          <Group blendMode="screen">
-            {STARS.map((star, i) => (
-              <SkiaSparkle
-                key={`bg-star-${i}`}
-                x={star.x}
-                y={star.y}
-                r={star.r}
-                color="#ccccff"
-                glowColor="#aaaaff"
-                glowBlur={4}
-              />
-            ))}
+          <Group
+            blendMode="screen"
+            layer={
+              <Paint>
+                <Blur blur={4} />
+              </Paint>
+            }
+          >
+            <Picture picture={STARFIELD_PICTURE} />
           </Group>
         </Canvas>
       )}
@@ -545,10 +560,16 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
                   strokeWidth={1.5}
                 />
 
-                {/* Gem bulbs at rim — pulsing colored gems */}
-                {segmentData.map((seg, i) => (
-                  <GemBulb key={`gem-${i}`} seg={seg} index={i} gemPulse={gemPulse} />
-                ))}
+                {/* Gem bulbs at rim — Picture API batch with blur */}
+                <Group
+                  layer={
+                    <Paint>
+                      <Blur blur={3} />
+                    </Paint>
+                  }
+                >
+                  <Picture picture={gemPicture} />
+                </Group>
               </Group>
 
               {/* Static elements (don't rotate) */}
