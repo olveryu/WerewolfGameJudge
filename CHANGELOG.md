@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.10.0] - 2026-03-26
+
+- fix(service-worker): skip reload on first SW install to prevent double-load
+- feat(executors): implement clearExecutors function to support HMR
+- fix(models): complete role descriptions with missing winCondition and restriction
+- style: fix web/index.html formatting
+- feat(game-engine): add psychic and pureWhite roles with reflection mechanics
+- fix(models): add bonded attack details to avenger description
+- feat(models): add shadow & avenger roles with bonded mechanic
+- style(notepad): improve role badge and input discoverability
+- refactor(service-worker): remove auto-refresh on new service worker activation
+- feat(shareImage): enhance web sharing with improved canShare checks and fallback
+- feat(service-worker): add auto-refresh on new service worker activation
+- feat(night): wolf reveal crack + blood trail visual overhaul
+- feat(config): upgrade role reveal effects with Skia visuals and lint cleanup
+
 ## [1.9.0] - 2026-03-23
 
 - chore: add .tool-versions to .gitignore
