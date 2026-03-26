@@ -365,20 +365,28 @@
         overlay.id = 'sw-update-overlay';
         overlay.style.cssText =
           'position:fixed;top:0;left:0;width:100%;height:100%;' +
-          'background:' + (document.body.style.backgroundColor || '#121214') + ';' +
+          'background:' +
+          (document.body.style.backgroundColor || '#121214') +
+          ';' +
           'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
           'z-index:99999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;';
         overlay.innerHTML =
           '<img src="/assets/pwa/icon-192.png" alt="" style="width:80px;height:80px;border-radius:20px;margin-bottom:24px;animation:pulse 2s ease-in-out infinite;" />' +
-          '<div style="color:' + (document.documentElement.style.color || '#9898A8') + ';font-size:15px;margin-bottom:16px;">正在更新...</div>' +
+          '<div style="color:' +
+          (document.documentElement.style.color || '#9898A8') +
+          ';font-size:15px;margin-bottom:16px;">正在更新...</div>' +
           '<div style="width:160px;height:4px;border-radius:2px;background:rgba(128,128,128,0.2);overflow:hidden;">' +
           '<div id="sw-update-bar" style="width:0%;height:100%;border-radius:2px;background:#6366F1;transition:width 0.3s ease;"></div></div>';
         document.body.appendChild(overlay);
 
         // 进度动画：快速到 70%，然后慢速等待 reload
         var bar = document.getElementById('sw-update-bar');
-        setTimeout(function () { bar.style.width = '30%'; }, 100);
-        setTimeout(function () { bar.style.width = '70%'; }, 600);
+        setTimeout(function () {
+          bar.style.width = '30%';
+        }, 100);
+        setTimeout(function () {
+          bar.style.width = '70%';
+        }, 600);
 
         // 触发更新
         waitingSW.postMessage('SKIP_WAITING');
@@ -386,7 +394,9 @@
         // 兜底：如果 3 秒内没 reload，强制刷新
         setTimeout(function () {
           bar.style.width = '100%';
-          setTimeout(function () { window.location.reload(); }, 300);
+          setTimeout(function () {
+            window.location.reload();
+          }, 300);
         }, 3000);
       }
     </script>
