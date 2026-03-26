@@ -127,20 +127,23 @@ describe('useRoomSeatDialogs', () => {
         ),
       );
 
-      // Confirm closes modal synchronously, API call is fire-and-forget
+      // Confirm starts submitting, modal stays open
       act(() => {
         result.current.handleConfirmSeat();
       });
 
-      // Modal closed and pendingSeat cleared immediately (before API resolves)
-      expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
-      expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
+      // API called, modal NOT closed yet (pending server response)
       expect(mockTakeSeat).toHaveBeenCalledWith(2);
+      expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
+      expect(result.current.isSeatSubmitting).toBe(true);
 
-      // Flush the fire-and-forget promise
+      // Flush — success closes modal
       await act(async () => {
         await mockTakeSeat.mock.results[0].value;
       });
+      expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
+      expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
+      expect(result.current.isSeatSubmitting).toBe(false);
       expect(mockShowAlert).not.toHaveBeenCalled();
     });
 
@@ -159,14 +162,17 @@ describe('useRoomSeatDialogs', () => {
         result.current.handleConfirmSeat();
       });
 
-      // Modal closed immediately
-      expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
+      // Modal NOT closed — waiting for server
       expect(mockTakeSeat).toHaveBeenCalledWith(4);
+      expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
+      expect(result.current.isSeatSubmitting).toBe(true);
 
-      // Flush fire-and-forget — failure triggers showAlert
+      // Flush — failure keeps modal open + shows alert
       await act(async () => {
         await mockTakeSeat.mock.results[0].value;
       });
+      expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
+      expect(result.current.isSeatSubmitting).toBe(false);
       expect(mockShowAlert).toHaveBeenCalledWith('入座失败', '5号座位已被占用，请选择其他位置。');
     });
   });
@@ -216,7 +222,7 @@ describe('useRoomSeatDialogs', () => {
       expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
     });
 
-    it('should close modal immediately and call leaveSeat (fire-and-forget)', async () => {
+    it('should close modal after leaveSeat succeeds', async () => {
       mockLeaveSeat.mockResolvedValue(undefined);
 
       const { result } = renderHook(() =>
@@ -231,15 +237,18 @@ describe('useRoomSeatDialogs', () => {
         result.current.handleConfirmLeave();
       });
 
-      // Modal closed immediately (before API resolves)
-      expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
-      expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
+      // API called, modal NOT closed yet (pending server response)
       expect(mockLeaveSeat).toHaveBeenCalled();
+      expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
+      expect(result.current.isSeatSubmitting).toBe(true);
 
-      // Flush fire-and-forget promise
+      // Flush — success closes modal
       await act(async () => {
         await mockLeaveSeat.mock.results[0].value;
       });
+      expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
+      expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
+      expect(result.current.isSeatSubmitting).toBe(false);
     });
   });
 

@@ -386,6 +386,7 @@ export function useRoomScreenState(
     handleCancelSeat,
     handleConfirmLeave,
     handleLeaveRoom,
+    isSeatSubmitting,
   } = seatDialogs;
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -695,6 +696,7 @@ export function useRoomScreenState(
     seatModalVisible,
     pendingSeat,
     modalType,
+    isSeatSubmitting,
     handleConfirmSeat,
     handleCancelSeat,
     handleConfirmLeave,

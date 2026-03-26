@@ -8,7 +8,7 @@
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
 import { CANCEL_BUTTON, confirmButton, showAlert } from '@/utils/alert';
@@ -40,6 +40,8 @@ interface UseRoomSeatDialogsResult {
   handleCancelSeat: () => void;
   handleConfirmLeave: () => void;
   handleLeaveRoom: () => void;
+  /** True while a seat enter/leave API call is in-flight (drives modal spinner) */
+  isSeatSubmitting: boolean;
 }
 
 export function useRoomSeatDialogs({
@@ -54,6 +56,7 @@ export function useRoomSeatDialogs({
   onLeaveRoom,
 }: UseRoomSeatDialogsParams): UseRoomSeatDialogsResult {
   const submittingRef = useRef(false);
+  const [isSeatSubmitting, setIsSeatSubmitting] = useState(false);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Enter seat dialog
@@ -62,6 +65,7 @@ export function useRoomSeatDialogs({
   const showEnterSeatDialog = useCallback(
     (seat: number) => {
       submittingRef.current = false; // 新对话框 → 解除旧异步锁
+      setIsSeatSubmitting(false);
       setPendingSeat(seat);
       setModalType('enter');
       setSeatModalVisible(true);
@@ -76,6 +80,7 @@ export function useRoomSeatDialogs({
   const showLeaveSeatDialog = useCallback(
     (seat: number) => {
       submittingRef.current = false; // 新对话框 → 解除旧异步锁
+      setIsSeatSubmitting(false);
       setPendingSeat(seat);
       setModalType('leave');
       setSeatModalVisible(true);
@@ -91,22 +96,24 @@ export function useRoomSeatDialogs({
     if (pendingSeat === null || submittingRef.current) return;
 
     submittingRef.current = true;
+    setIsSeatSubmitting(true);
     const seat = pendingSeat;
     roomScreenLog.debug('[SeatDialogs] Taking seat', { seat });
 
-    // Close modal immediately — server response applySnapshot will update seat state
-    setSeatModalVisible(false);
-    setPendingSeat(null);
-
     void takeSeat(seat)
       .then((success) => {
-        if (!success) {
+        if (success) {
+          // 成功 → 关弹窗
+          setSeatModalVisible(false);
+          setPendingSeat(null);
+        } else {
           roomScreenLog.warn('[SeatDialogs] takeSeat failed (occupied)', { seat });
           showAlert('入座失败', `${seat + 1}号座位已被占用，请选择其他位置。`);
         }
       })
       .finally(() => {
         submittingRef.current = false;
+        setIsSeatSubmitting(false);
       });
   }, [pendingSeat, takeSeat, setSeatModalVisible, setPendingSeat]);
 
@@ -127,15 +134,19 @@ export function useRoomSeatDialogs({
     if (pendingSeat === null || submittingRef.current) return;
 
     submittingRef.current = true;
+    setIsSeatSubmitting(true);
     roomScreenLog.debug('[SeatDialogs] Leaving seat', { seat: pendingSeat });
 
-    // Close modal immediately — server response applySnapshot will update seat state
-    setSeatModalVisible(false);
-    setPendingSeat(null);
-
-    void leaveSeat().finally(() => {
-      submittingRef.current = false;
-    });
+    void leaveSeat()
+      .then(() => {
+        // 成功 → 关弹窗
+        setSeatModalVisible(false);
+        setPendingSeat(null);
+      })
+      .finally(() => {
+        submittingRef.current = false;
+        setIsSeatSubmitting(false);
+      });
   }, [pendingSeat, leaveSeat, setSeatModalVisible, setPendingSeat]);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -160,5 +171,6 @@ export function useRoomSeatDialogs({
     handleCancelSeat,
     handleConfirmLeave,
     handleLeaveRoom,
+    isSeatSubmitting,
   };
 }
