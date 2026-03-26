@@ -7,7 +7,7 @@
  * `onComplete` 在 mount 后经过 `effectDisplayDuration` 延迟触发。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle, Group, RoundedRect } from '@shopify/react-native-skia';
+import { Blur, Canvas, Group, Paint, Picture, RoundedRect, Skia } from '@shopify/react-native-skia';
 import React, { useEffect, useMemo } from 'react';
 import {
   Easing,
@@ -25,6 +25,10 @@ const { common, alignmentEffects, skia: SK } = CONFIG;
 
 // Number of runner light orbs along the border edge
 const RUNNER_COUNT = 4;
+
+// ── Immediate-mode Skia resources (reused across frames) ──
+const runnerRecorder = Skia.PictureRecorder();
+const runnerPaint = Skia.Paint();
 
 interface BreathingBorderProps {
   /** Border color */
@@ -111,10 +115,9 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
   const rectR = borderRadius.xlarge;
 
   // Perimeter for runner positions
-  const perimeter = useMemo(
-    () => 2 * (cardWidth + glowPadding) + 2 * (cardHeight + glowPadding),
-    [cardWidth, cardHeight, glowPadding],
-  );
+  const rectW = cardWidth + glowPadding;
+  const rectH = cardHeight + glowPadding;
+  const perimeter = useMemo(() => 2 * rectW + 2 * rectH, [rectW, rectH]);
 
   const canvasStyle = useMemo(
     () => ({
@@ -126,6 +129,37 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
     }),
     [canvasW, canvasH, glowPadding],
   );
+
+  // ── Runner orbs: Immediate Mode via Picture API ──
+  // Replaces 4 RunnerOrb components (8 useDerivedValue per frame) with 1.
+  const runnerPicture = useDerivedValue(() => {
+    'worklet';
+    const c = runnerRecorder.beginRecording(Skia.XYWHRect(0, 0, canvasW, canvasH));
+    const skColor = Skia.Color(glowColor);
+    runnerPaint.setColor(skColor);
+    runnerPaint.setAlphaf(0.7);
+    for (let i = 0; i < RUNNER_COUNT; i++) {
+      const phase = i / RUNNER_COUNT;
+      const t = ((runnerProgress.value + phase) % 1) * perimeter;
+      let cx: number;
+      let cy: number;
+      if (t < rectW) {
+        cx = offsetX + t;
+        cy = offsetY;
+      } else if (t < rectW + rectH) {
+        cx = offsetX + rectW;
+        cy = offsetY + (t - rectW);
+      } else if (t < 2 * rectW + rectH) {
+        cx = offsetX + rectW - (t - rectW - rectH);
+        cy = offsetY + rectH;
+      } else {
+        cx = offsetX;
+        cy = offsetY + rectH - (t - 2 * rectW - rectH);
+      }
+      c.drawCircle(cx, cy, 3, runnerPaint);
+    }
+    return runnerRecorder.finishRecordingAsPicture();
+  });
 
   return (
     <Canvas style={canvasStyle} pointerEvents="none">
@@ -145,67 +179,17 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
         </RoundedRect>
       </Group>
 
-      {/* Runner light orbs — 4 points gliding along border */}
-      <Group blendMode="screen">
-        {Array.from({ length: RUNNER_COUNT }, (_, i) => (
-          <RunnerOrb
-            key={i}
-            index={i}
-            progress={runnerProgress}
-            perimeter={perimeter}
-            offsetX={offsetX}
-            offsetY={offsetY}
-            rectW={cardWidth + glowPadding}
-            rectH={cardHeight + glowPadding}
-            color={glowColor}
-          />
-        ))}
+      {/* Runner light orbs — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={6} />
+          </Paint>
+        }
+      >
+        <Picture picture={runnerPicture} />
       </Group>
     </Canvas>
   );
 };
-
-/** Light orb moving along the rectangular border perimeter */
-const RunnerOrb = React.memo(function RunnerOrb({
-  index,
-  progress,
-  perimeter,
-  offsetX,
-  offsetY,
-  rectW,
-  rectH,
-  color,
-}: {
-  index: number;
-  progress: { value: number };
-  perimeter: number;
-  offsetX: number;
-  offsetY: number;
-  rectW: number;
-  rectH: number;
-  color: string;
-}) {
-  const phase = index / RUNNER_COUNT;
-
-  const cx = useDerivedValue(() => {
-    const t = ((progress.value + phase) % 1) * perimeter;
-    if (t < rectW) return offsetX + t;
-    if (t < rectW + rectH) return offsetX + rectW;
-    if (t < 2 * rectW + rectH) return offsetX + rectW - (t - rectW - rectH);
-    return offsetX;
-  });
-
-  const cy = useDerivedValue(() => {
-    const t = ((progress.value + phase) % 1) * perimeter;
-    if (t < rectW) return offsetY;
-    if (t < rectW + rectH) return offsetY + (t - rectW);
-    if (t < 2 * rectW + rectH) return offsetY + rectH;
-    return offsetY + rectH - (t - 2 * rectW - rectH);
-  });
-
-  return (
-    <Circle cx={cx} cy={cy} r={3} color={color} opacity={0.7}>
-      <Blur blur={6} />
-    </Circle>
-  );
-});

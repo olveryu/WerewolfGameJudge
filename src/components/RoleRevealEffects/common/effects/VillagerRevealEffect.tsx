@@ -10,7 +10,17 @@
  * 萤火虫和星光持续循环，光晕持续保留。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle, Group, RadialGradient, vec } from '@shopify/react-native-skia';
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Paint,
+  Picture,
+  RadialGradient,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
 import React, { useEffect, useMemo } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 import {
@@ -110,63 +120,9 @@ const ShieldRipple = React.memo(function ShieldRipple({
   );
 });
 
-/** Floating firefly — Skia Circle with glow, drifts upward with gentle wobble */
-const Firefly = React.memo(function Firefly({
-  phase,
-  xRatio,
-  startYRatio,
-  driftRatio,
-  wobbleRatio,
-  sizeRatio,
-  fireflyCycle,
-  appear,
-  color,
-  cardWidth,
-  cardHeight,
-}: {
-  phase: number;
-  xRatio: number;
-  startYRatio: number;
-  driftRatio: number;
-  wobbleRatio: number;
-  sizeRatio: number;
-  fireflyCycle: SharedValue<number>;
-  appear: SharedValue<number>;
-  color: string;
-  cardWidth: number;
-  cardHeight: number;
-}) {
-  const baseX = xRatio * cardWidth;
-  const startY = startYRatio * cardHeight;
-  const driftHeight = driftRatio * cardHeight;
-  const wobbleAmp = wobbleRatio * cardWidth;
-  const size = Math.max(1.5, sizeRatio * cardWidth);
-
-  const cx = useDerivedValue(() => {
-    const currentPhase = (fireflyCycle.value + phase) % 360;
-    return baseX + Math.sin(((currentPhase * Math.PI) / 180) * 3) * wobbleAmp;
-  });
-  const cy = useDerivedValue(() => {
-    const currentPhase = (fireflyCycle.value + phase) % 360;
-    const t = currentPhase / 360;
-    return startY - t * driftHeight;
-  });
-  const opacity = useDerivedValue(() => {
-    const currentPhase = (fireflyCycle.value + phase) % 360;
-    const t = currentPhase / 360;
-    let alpha: number;
-    if (t < 0.12) alpha = (t / 0.12) * 0.85;
-    else if (t < 0.65) alpha = 0.85;
-    else alpha = 0.85 * (1 - (t - 0.65) / 0.35);
-    return appear.value * Math.max(0, alpha);
-  });
-
-  return (
-    <Circle cx={cx} cy={cy} r={size} color={color} opacity={opacity}>
-      <Blur blur={SK.particleBlur + 1} />
-    </Circle>
-  );
-});
+// ── Immediate-mode Skia resources (reused across frames) ──
+const fireflyRecorder = Skia.PictureRecorder();
+const fireflyPaint = Skia.Paint();
 
 /** Twinkling star — Skia cross-sparkle ✦ with pulsing opacity */
 const TwinkleStar = React.memo(function TwinkleStar({
@@ -302,6 +258,35 @@ export const VillagerRevealEffect: React.FC<VillagerRevealEffectProps> = ({
     return 0;
   });
 
+  // ── Fireflies: Immediate Mode via Picture API ──
+  // Replaces 16 Firefly components (48 useDerivedValue per frame) with 1.
+  const fireflyPicture = useDerivedValue(() => {
+    'worklet';
+    const c = fireflyRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
+    const skColor = Skia.Color(particleColor);
+    for (let i = 0; i < FIREFLIES.length; i++) {
+      const ff = FIREFLIES[i];
+      const baseX = ff.xRatio * cardWidth;
+      const startY = ff.startYRatio * cardHeight;
+      const driftHeight = ff.driftRatio * cardHeight;
+      const wobbleAmp = ff.wobbleRatio * cardWidth;
+      const size = Math.max(1.5, ff.sizeRatio * cardWidth);
+      const currentPhase = (fireflyCycle.value + ff.phase) % 360;
+      const t = currentPhase / 360;
+      const cx = baseX + Math.sin(((currentPhase * Math.PI) / 180) * 3) * wobbleAmp;
+      const cy = startY - t * driftHeight;
+      let alpha: number;
+      if (t < 0.12) alpha = (t / 0.12) * 0.85;
+      else if (t < 0.65) alpha = 0.85;
+      else alpha = 0.85 * (1 - (t - 0.65) / 0.35);
+      const opacity = appear.value * Math.max(0, alpha);
+      fireflyPaint.setColor(skColor);
+      fireflyPaint.setAlphaf(opacity);
+      c.drawCircle(cx, cy, size, fireflyPaint);
+    }
+    return fireflyRecorder.finishRecordingAsPicture();
+  });
+
   const canvasStyle = useMemo(
     () => ({
       position: 'absolute' as const,
@@ -376,24 +361,16 @@ export const VillagerRevealEffect: React.FC<VillagerRevealEffectProps> = ({
         ))}
       </Group>
 
-      {/* Floating fireflies */}
-      <Group blendMode="screen">
-        {FIREFLIES.map((ff, i) => (
-          <Firefly
-            key={i}
-            phase={ff.phase}
-            xRatio={ff.xRatio}
-            startYRatio={ff.startYRatio}
-            driftRatio={ff.driftRatio}
-            wobbleRatio={ff.wobbleRatio}
-            sizeRatio={ff.sizeRatio}
-            fireflyCycle={fireflyCycle}
-            appear={appear}
-            color={particleColor}
-            cardWidth={cardWidth}
-            cardHeight={cardHeight}
-          />
-        ))}
+      {/* Floating fireflies — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={SK.particleBlur + 1} />
+          </Paint>
+        }
+      >
+        <Picture picture={fireflyPicture} />
       </Group>
     </Canvas>
   );

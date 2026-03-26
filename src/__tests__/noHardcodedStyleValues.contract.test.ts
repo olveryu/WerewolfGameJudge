@@ -40,7 +40,7 @@ const EXCLUDED_DIRS = new Set([
 ]);
 
 /** Files excluded entirely from scanning */
-const EXCLUDED_FILES = new Set(['ErrorBoundary.tsx']);
+const EXCLUDED_FILES = new Set(['ErrorBoundary.tsx', 'SkiaShaderWarmup.tsx']);
 
 function getProductionFiles(dir: string): string[] {
   const results: string[] = [];

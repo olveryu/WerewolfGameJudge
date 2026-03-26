@@ -6,10 +6,19 @@
  * 接受阵营主色，自动生成环境粒子。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle, Group, RadialGradient, vec } from '@shopify/react-native-skia';
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Paint,
+  Picture,
+  RadialGradient,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
 import React, { useEffect } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
-import type { SharedValue } from 'react-native-reanimated';
 import {
   Easing,
   useDerivedValue,
@@ -36,39 +45,9 @@ const AMBIENT_PARTICLES = Array.from({ length: AMBIENT_COUNT }, (_, i) => {
   };
 });
 
-/** Single floating ambient particle */
-const AmbientParticle = React.memo(function AmbientParticle({
-  xRatio,
-  yRatio,
-  size,
-  driftX,
-  driftY,
-  phase,
-  cycle,
-  color,
-}: {
-  xRatio: number;
-  yRatio: number;
-  size: number;
-  driftX: number;
-  driftY: number;
-  phase: number;
-  cycle: SharedValue<number>;
-  color: string;
-}) {
-  const baseX = xRatio * SCREEN_W;
-  const baseY = yRatio * SCREEN_H;
-
-  const cx = useDerivedValue(() => baseX + driftX * Math.sin(cycle.value + phase));
-  const cy = useDerivedValue(() => baseY + driftY * Math.sin(cycle.value * 0.7 + phase));
-  const opacity = useDerivedValue(() => 0.15 + 0.15 * Math.sin(cycle.value * 1.3 + phase));
-
-  return (
-    <Circle cx={cx} cy={cy} r={size} color={color} opacity={opacity}>
-      <Blur blur={3} />
-    </Circle>
-  );
-});
+// ── Immediate-mode Skia resources (reused across frames) ──
+const particleRecorder = Skia.PictureRecorder();
+const particlePaint = Skia.Paint();
 
 interface AtmosphericBackgroundProps {
   /** Primary color for particles */
@@ -98,6 +77,26 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
 
   const centerGlowOpacity = useDerivedValue(() => 0.06 + glowPulse.value * 0.04);
 
+  // ── Particles: Immediate Mode via Picture API ──
+  // Replaces 12 AmbientParticle components (36 useDerivedValue per frame) with 1.
+  const particlePicture = useDerivedValue(() => {
+    'worklet';
+    const c = particleRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const skColor = Skia.Color(color);
+    for (let i = 0; i < AMBIENT_PARTICLES.length; i++) {
+      const p = AMBIENT_PARTICLES[i];
+      const baseX = p.xRatio * SCREEN_W;
+      const baseY = p.yRatio * SCREEN_H;
+      const cx = baseX + p.driftX * Math.sin(cycle.value + p.phase);
+      const cy = baseY + p.driftY * Math.sin(cycle.value * 0.7 + p.phase);
+      const opacity = 0.15 + 0.15 * Math.sin(cycle.value * 1.3 + p.phase);
+      particlePaint.setColor(skColor);
+      particlePaint.setAlphaf(opacity);
+      c.drawCircle(cx, cy, p.size, particlePaint);
+    }
+    return particleRecorder.finishRecordingAsPicture();
+  });
+
   if (!animate) return null;
 
   return (
@@ -114,21 +113,16 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
         </Circle>
       </Group>
 
-      {/* Floating ambient particles */}
-      <Group blendMode="screen">
-        {AMBIENT_PARTICLES.map((p, i) => (
-          <AmbientParticle
-            key={i}
-            xRatio={p.xRatio}
-            yRatio={p.yRatio}
-            size={p.size}
-            driftX={p.driftX}
-            driftY={p.driftY}
-            phase={p.phase}
-            cycle={cycle}
-            color={color}
-          />
-        ))}
+      {/* Floating ambient particles — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={3} />
+          </Paint>
+        }
+      >
+        <Picture picture={particlePicture} />
       </Group>
     </Canvas>
   );

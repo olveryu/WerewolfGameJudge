@@ -12,7 +12,18 @@
  * 情绪签名：瞬间爆发 + "divine intervention" 力量感。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle, Group, RadialGradient, Rect, vec } from '@shopify/react-native-skia';
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Paint,
+  Picture,
+  RadialGradient,
+  Rect,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
 import React, { useEffect, useMemo } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 import {
@@ -62,54 +73,11 @@ const TWINKLE_CYCLE_MS = 1047;
 const PARTICLE_LIFETIME_MS = 5500;
 const PARTICLE_START_DELAY_MS = 400;
 
+// ── Immediate-mode Skia resources (reused across frames) ──
+const godParticleRecorder = Skia.PictureRecorder();
+const godParticlePaint = Skia.Paint();
+
 // ─── Sub-components ───────────────────────────────────────────────────
-
-/** Gold sparkle particle drifting with twinkle */
-const GodParticle = React.memo(function GodParticle({
-  angle,
-  dist,
-  driftX,
-  driftY,
-  size,
-  baseAlpha,
-  twinklePhase,
-  particleProgress,
-  twinkleCycle,
-  color,
-  centerX,
-  centerY,
-}: {
-  angle: number;
-  dist: number;
-  driftX: number;
-  driftY: number;
-  size: number;
-  baseAlpha: number;
-  twinklePhase: number;
-  particleProgress: SharedValue<number>;
-  twinkleCycle: SharedValue<number>;
-  color: string;
-  centerX: number;
-  centerY: number;
-}) {
-  const startX = centerX + Math.cos(angle) * dist * 0.3;
-  const startY = centerY + Math.sin(angle) * dist * 0.3;
-
-  const cx = useDerivedValue(() => startX + driftX * particleProgress.value);
-  const cy = useDerivedValue(() => startY + driftY * particleProgress.value);
-  const opacity = useDerivedValue(() => {
-    const life = 1 - particleProgress.value;
-    if (life <= 0) return 0;
-    const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + twinklePhase);
-    return baseAlpha * life * flicker;
-  });
-
-  return (
-    <Circle cx={cx} cy={cy} r={size} color={color} opacity={opacity}>
-      <Blur blur={SK.particleBlur} />
-    </Circle>
-  );
-});
 
 /** Expanding halo ring */
 const GodHalo = React.memo(function GodHalo({
@@ -258,6 +226,29 @@ export const GodRevealEffect: React.FC<GodRevealEffectProps> = ({
 
   const barThickness = Math.max(3, cardWidth * 0.025);
 
+  // ── Gold sparkle particles: Immediate Mode via Picture API ──
+  // Replaces 24 GodParticle components (72 useDerivedValue per frame) with 1.
+  const particlePicture = useDerivedValue(() => {
+    'worklet';
+    const c = godParticleRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
+    const skColor = Skia.Color(particleColor);
+    for (let i = 0; i < GOD_PARTICLES.length; i++) {
+      const p = GOD_PARTICLES[i];
+      const startX = centerX + Math.cos(p.angle) * p.dist * 0.3;
+      const startY = centerY + Math.sin(p.angle) * p.dist * 0.3;
+      const cx = startX + p.driftX * particleProgress.value;
+      const cy = startY + p.driftY * particleProgress.value;
+      const life = 1 - particleProgress.value;
+      if (life <= 0) continue;
+      const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + p.twinklePhase);
+      const opacity = p.baseAlpha * life * flicker;
+      godParticlePaint.setColor(skColor);
+      godParticlePaint.setAlphaf(opacity);
+      c.drawCircle(cx, cy, p.size, godParticlePaint);
+    }
+    return godParticleRecorder.finishRecordingAsPicture();
+  });
+
   const canvasStyle = useMemo(
     () => ({
       position: 'absolute' as const,
@@ -361,25 +352,16 @@ export const GodRevealEffect: React.FC<GodRevealEffectProps> = ({
         </Circle>
       </Group>
 
-      {/* Gold sparkle particles */}
-      <Group blendMode="screen">
-        {GOD_PARTICLES.map((p, i) => (
-          <GodParticle
-            key={i}
-            angle={p.angle}
-            dist={p.dist}
-            driftX={p.driftX}
-            driftY={p.driftY}
-            size={p.size}
-            baseAlpha={p.baseAlpha}
-            twinklePhase={p.twinklePhase}
-            particleProgress={particleProgress}
-            twinkleCycle={twinkleCycle}
-            color={particleColor}
-            centerX={centerX}
-            centerY={centerY}
-          />
-        ))}
+      {/* Gold sparkle particles — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={SK.particleBlur} />
+          </Paint>
+        }
+      >
+        <Picture picture={particlePicture} />
       </Group>
     </Canvas>
   );

@@ -5,10 +5,19 @@
  * 使用 Skia Canvas + Blur + RadialGradient + blendMode="screen" 实现。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle, Group, RadialGradient, vec } from '@shopify/react-native-skia';
-import React, { useEffect, useMemo } from 'react';
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Paint,
+  Picture,
+  RadialGradient,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
+import React, { useEffect } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
-import type { SharedValue } from 'react-native-reanimated';
 import {
   Easing,
   useDerivedValue,
@@ -31,6 +40,10 @@ const BURST_PARTICLES = Array.from({ length: SK.burstParticleCount }, (_, i) => 
   const dist = 50 + ((i * 31) % 100) * 1.5;
   return { angle, dist, size: 1.5 + ((i * 13) % 20) / 10 };
 });
+
+// ── Immediate-mode Skia resources (reused across frames) ──
+const burstRecorder = Skia.PictureRecorder();
+const burstPaint = Skia.Paint();
 
 interface ScreenFlashProps {
   /** Flash color (faction primary) */
@@ -79,10 +92,25 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
     return Math.max(0, peakOpacity * (1 - (p - 0.15) / 0.85));
   });
 
-  const particleSeeds = useMemo(
-    () => BURST_PARTICLES.map((bp) => ({ ...bp, baseX: centerX, baseY: centerY })),
-    [centerX, centerY],
-  );
+  // ── Burst particles: Immediate Mode via Picture API ──
+  // Replaces 20 BurstParticle components (80 useDerivedValue per frame) with 1.
+  const burstPicture = useDerivedValue(() => {
+    'worklet';
+    const c = burstRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const skColor = Skia.Color(color);
+    const p = progress.value;
+    for (let i = 0; i < BURST_PARTICLES.length; i++) {
+      const bp = BURST_PARTICLES[i];
+      const cx = centerX + Math.cos(bp.angle) * bp.dist * p;
+      const cy = centerY + Math.sin(bp.angle) * bp.dist * p;
+      const opacity = p < 0.05 ? p / 0.05 : Math.max(0, 1 - (p - 0.05) / 0.6);
+      const r = bp.size * Math.max(0.3, 1 - p * 0.7);
+      burstPaint.setColor(skColor);
+      burstPaint.setAlphaf(opacity);
+      c.drawCircle(cx, cy, r, burstPaint);
+    }
+    return burstRecorder.finishRecordingAsPicture();
+  });
 
   return (
     <Canvas style={styles.canvas} pointerEvents="none">
@@ -98,58 +126,20 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
         </Circle>
       </Group>
 
-      {/* Burst particles — radial scatter */}
-      <Group blendMode="screen">
-        {particleSeeds.map((p, i) => (
-          <BurstParticle
-            key={i}
-            baseX={p.baseX}
-            baseY={p.baseY}
-            angle={p.angle}
-            dist={p.dist}
-            size={p.size}
-            color={color}
-            progress={progress}
-          />
-        ))}
+      {/* Burst particles — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={SK.particleBlur} />
+          </Paint>
+        }
+      >
+        <Picture picture={burstPicture} />
       </Group>
     </Canvas>
   );
 };
-
-/** Single burst particle flying outward from center */
-const BurstParticle = React.memo(function BurstParticle({
-  baseX,
-  baseY,
-  angle,
-  dist,
-  size,
-  color,
-  progress,
-}: {
-  baseX: number;
-  baseY: number;
-  angle: number;
-  dist: number;
-  size: number;
-  color: string;
-  progress: SharedValue<number>;
-}) {
-  const cx = useDerivedValue(() => baseX + Math.cos(angle) * dist * progress.value);
-  const cy = useDerivedValue(() => baseY + Math.sin(angle) * dist * progress.value);
-  const opacity = useDerivedValue(() => {
-    const p = progress.value;
-    if (p < 0.05) return p / 0.05;
-    return Math.max(0, 1 - (p - 0.05) / 0.6);
-  });
-  const r = useDerivedValue(() => size * Math.max(0.3, 1 - progress.value * 0.7));
-
-  return (
-    <Circle cx={cx} cy={cy} r={r} color={color} opacity={opacity}>
-      <Blur blur={SK.particleBlur} />
-    </Circle>
-  );
-});
 
 const styles = StyleSheet.create({
   canvas: {

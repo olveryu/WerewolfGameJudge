@@ -19,7 +19,8 @@ import {
   getRoleSpec,
 } from '@werewolf/game-engine/models/roles';
 import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import React, { useCallback, useMemo, useState } from 'react';
+import { Asset } from 'expo-asset';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal } from 'react-native';
 
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
@@ -30,6 +31,7 @@ import {
   type RoleData,
   RoleRevealAnimator,
 } from '@/components/RoleRevealEffects';
+import { getRoleBadge } from '@/utils/roleBadges';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────
 const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager' | 'third'> = {
@@ -76,6 +78,14 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   seerLabelMap,
 }) => {
   const [animationDone, setAnimationDone] = useState(false);
+
+  // Preload role badge image during animation so it's decoded when the card flips
+  useEffect(() => {
+    if (visible) {
+      const targetRoleId = getRoleDisplayAs(roleId) ?? roleId;
+      Asset.loadAsync(getRoleBadge(targetRoleId) as number).catch(() => {});
+    }
+  }, [visible, roleId]);
 
   const handleAnimationComplete = useCallback(() => {
     setAnimationDone(true);

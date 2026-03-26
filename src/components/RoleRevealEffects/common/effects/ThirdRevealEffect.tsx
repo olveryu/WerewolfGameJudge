@@ -11,7 +11,18 @@
  * 符文环和粒子持续循环，光晕持续保留。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle, Group, Path, RadialGradient, vec } from '@shopify/react-native-skia';
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Paint,
+  Path,
+  Picture,
+  RadialGradient,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
 import React, { useEffect, useMemo } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 import {
@@ -49,65 +60,11 @@ const ARCS = Array.from({ length: ARC_COUNT }, (_, i) => {
   return { angle, lengthRatio: 0.25 + ((i * 37 + 11) % 20) / 100 };
 });
 
+// ── Immediate-mode Skia resources (reused across frames) ──
+const orbitRecorder = Skia.PictureRecorder();
+const orbitPaint = Skia.Paint();
+
 // ─── Sub-components ──────────────────────────────────────────────────
-
-/** Orbiting particle around card center */
-const OrbitParticle = React.memo(function OrbitParticle({
-  phaseOffset,
-  radiusOffsetRatio,
-  sizeRatio,
-  driftY,
-  twinklePhase,
-  orbit,
-  twinkleCycle,
-  appear,
-  color,
-  centerX,
-  centerY,
-  baseRadius,
-  cardWidth,
-}: {
-  phaseOffset: number;
-  radiusOffsetRatio: number;
-  sizeRatio: number;
-  driftY: number;
-  twinklePhase: number;
-  orbit: SharedValue<number>;
-  twinkleCycle: SharedValue<number>;
-  appear: SharedValue<number>;
-  color: string;
-  centerX: number;
-  centerY: number;
-  baseRadius: number;
-  cardWidth: number;
-}) {
-  const radiusOffset = radiusOffsetRatio * baseRadius;
-  const size = Math.max(1, sizeRatio * cardWidth);
-  const wiggleAmp = cardWidth * 0.057;
-
-  const cx = useDerivedValue(() => {
-    const angleDeg = orbit.value + phaseOffset;
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const r = baseRadius + radiusOffset + Math.sin(angleRad * 3) * wiggleAmp;
-    return Math.cos(angleRad) * r + centerX;
-  });
-  const cy = useDerivedValue(() => {
-    const angleDeg = orbit.value + phaseOffset;
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const r = baseRadius + radiusOffset + Math.sin(angleRad * 3) * wiggleAmp;
-    return Math.sin(angleRad) * r + centerY + driftY;
-  });
-  const opacity = useDerivedValue(() => {
-    const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + twinklePhase);
-    return appear.value * 0.7 * flicker;
-  });
-
-  return (
-    <Circle cx={cx} cy={cy} r={size} color={color} opacity={opacity}>
-      <Blur blur={SK.particleBlur} />
-    </Circle>
-  );
-});
 
 /** Lightning arc path radiating from center */
 const LightningArc = React.memo(function LightningArc({
@@ -339,6 +296,32 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
   // Inner ring: ~85% of outer
   const innerRingR = outerRingR * 0.82;
 
+  // ── Orbit particles: Immediate Mode via Picture API ──
+  // Replaces 30 OrbitParticle components (90 useDerivedValue per frame) with 1.
+  const baseRadius = cardWidth * 0.35;
+  const orbitPicture = useDerivedValue(() => {
+    'worklet';
+    const c = orbitRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
+    const skColor = Skia.Color(particleColor);
+    for (let i = 0; i < ORBIT_PARTICLES.length; i++) {
+      const p = ORBIT_PARTICLES[i];
+      const radiusOffset = p.radiusOffsetRatio * baseRadius;
+      const size = Math.max(1, p.sizeRatio * cardWidth);
+      const wiggleAmp = cardWidth * 0.057;
+      const angleDeg = particleOrbit.value + p.phaseOffset;
+      const angleRad = (angleDeg * Math.PI) / 180;
+      const r = baseRadius + radiusOffset + Math.sin(angleRad * 3) * wiggleAmp;
+      const cx = Math.cos(angleRad) * r + centerX;
+      const cy = Math.sin(angleRad) * r + centerY + p.driftY;
+      const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + p.twinklePhase);
+      const opacity = appear.value * 0.7 * flicker;
+      orbitPaint.setColor(skColor);
+      orbitPaint.setAlphaf(opacity);
+      c.drawCircle(cx, cy, size, orbitPaint);
+    }
+    return orbitRecorder.finishRecordingAsPicture();
+  });
+
   const canvasStyle = useMemo(
     () => ({
       position: 'absolute' as const,
@@ -424,26 +407,16 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
         </Circle>
       </Group>
 
-      {/* Orbit particles */}
-      <Group blendMode="screen">
-        {ORBIT_PARTICLES.map((p, i) => (
-          <OrbitParticle
-            key={i}
-            phaseOffset={p.phaseOffset}
-            radiusOffsetRatio={p.radiusOffsetRatio}
-            sizeRatio={p.sizeRatio}
-            driftY={p.driftY}
-            twinklePhase={p.twinklePhase}
-            orbit={particleOrbit}
-            twinkleCycle={twinkleCycle}
-            appear={appear}
-            color={particleColor}
-            centerX={centerX}
-            centerY={centerY}
-            baseRadius={cardWidth * 0.35}
-            cardWidth={cardWidth}
-          />
-        ))}
+      {/* Orbit particles — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={SK.particleBlur} />
+          </Paint>
+        }
+      >
+        <Picture picture={orbitPicture} />
       </Group>
     </Canvas>
   );
