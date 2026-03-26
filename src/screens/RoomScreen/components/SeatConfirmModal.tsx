@@ -5,7 +5,7 @@
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
 import React, { memo } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 
@@ -20,6 +20,8 @@ interface SeatConfirmModalProps {
   modalType: SeatModalType;
   /** The seat number (1-indexed for display) */
   seatNumber: number;
+  /** Whether a seat API call is in-flight */
+  isSubmitting: boolean;
   /** Called when user confirms the action */
   onConfirm: () => void;
   /** Called when user cancels or dismisses the modal */
@@ -32,6 +34,7 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   visible,
   modalType,
   seatNumber,
+  isSubmitting,
   onConfirm,
   onCancel,
   styles,
@@ -39,6 +42,7 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   const title = modalType === 'enter' ? '入座' : '离座';
   const message =
     modalType === 'enter' ? `确定在${seatNumber}号位入座？` : `确定从${seatNumber}号位离座？`;
+  const confirmText = isSubmitting ? (modalType === 'enter' ? '入座中...' : '离座中...') : '确定';
 
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>
@@ -54,16 +58,34 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
             <TouchableOpacity
               style={[styles.modalButton, styles.modalCancelButton]}
               onPress={onCancel}
+              activeOpacity={isSubmitting ? 1 : undefined}
               testID={TESTIDS.seatConfirmCancel}
             >
               <Text style={styles.modalCancelText}>取消</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, styles.modalConfirmButton]}
+              style={[
+                styles.modalButton,
+                isSubmitting ? styles.modalConfirmButtonDisabled : styles.modalConfirmButton,
+              ]}
               onPress={onConfirm}
+              activeOpacity={isSubmitting ? 1 : undefined}
               testID={TESTIDS.seatConfirmOk}
             >
-              <Text style={styles.modalConfirmText}>确定</Text>
+              <View style={styles.modalConfirmContent}>
+                {isSubmitting && (
+                  <ActivityIndicator
+                    size="small"
+                    color={styles.modalConfirmTextDisabled.color}
+                    style={styles.modalSpinner}
+                  />
+                )}
+                <Text
+                  style={isSubmitting ? styles.modalConfirmTextDisabled : styles.modalConfirmText}
+                >
+                  {confirmText}
+                </Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>

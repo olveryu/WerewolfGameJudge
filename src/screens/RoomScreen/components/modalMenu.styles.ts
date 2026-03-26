@@ -137,6 +137,10 @@ export function createModalMenuStyles(colors: ThemeColors): {
       modalConfirmButton: {
         backgroundColor: colors.primary,
       },
+      modalConfirmButtonDisabled: {
+        backgroundColor: colors.primary,
+        opacity: fixed.disabledOpacity,
+      },
       modalCancelText: {
         ...textStyles.bodySemibold,
         color: colors.textSecondary,
@@ -144,6 +148,18 @@ export function createModalMenuStyles(colors: ThemeColors): {
       modalConfirmText: {
         ...textStyles.bodySemibold,
         color: colors.textInverse,
+      },
+      modalConfirmTextDisabled: {
+        ...textStyles.bodySemibold,
+        color: colors.textInverse,
+      },
+      modalConfirmContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+      modalSpinner: {
+        marginRight: spacing.small,
       },
     }),
   };

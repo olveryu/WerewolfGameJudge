@@ -110,8 +110,12 @@ export interface SeatConfirmModalStyles {
   modalButton: ViewStyle;
   modalCancelButton: ViewStyle;
   modalConfirmButton: ViewStyle;
+  modalConfirmButtonDisabled: ViewStyle;
   modalCancelText: TextStyle;
   modalConfirmText: TextStyle;
+  modalConfirmTextDisabled: TextStyle;
+  modalConfirmContent: ViewStyle;
+  modalSpinner: ViewStyle;
 }
 
 // ─── Combined styles container ──────────────────────────────────────────────
