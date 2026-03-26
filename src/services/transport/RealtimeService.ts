@@ -102,40 +102,10 @@ export class RealtimeService {
   }
 
   /**
-   * Join a room's realtime channel (postgres_changes single channel)
+   * Create a postgres_changes channel for the given room.
+   * Does NOT subscribe — call #subscribeChannel() after.
    */
-  async joinRoom(
-    roomCode: string,
-    userId: string,
-    callbacks: {
-      /** DB state change callback (postgres_changes — sole state sync channel) */
-      onDbStateChange?: (state: GameState, revision: number) => void;
-    },
-  ): Promise<void> {
-    if (!this.#isConfigured()) {
-      realtimeLog.warn(' Supabase not configured');
-      return;
-    }
-
-    // Leave previous room if any
-    await this.leaveRoom();
-
-    // SDK's removeChannel() may trigger disconnect() when the last channel is removed.
-    // Wait for that async disconnect to complete before creating a new channel.
-    await this.#waitForDisconnectDrain();
-
-    this.#setConnectionStatus(ConnectionStatus.Connecting);
-
-    this.#onDbStateChange = callbacks.onDbStateChange || null;
-
-    // Cache params for dead channel recovery (rejoinCurrentRoom)
-    this.#lastJoinParams = {
-      roomCode,
-      userId,
-      onDbStateChange: callbacks.onDbStateChange,
-    };
-
-    // Create single postgres_changes channel
+  #createChannel(roomCode: string): void {
     realtimeLog.info(` Creating channel for db-room:${roomCode}`);
     this.#channel = supabase!.channel(`db-room:${roomCode}`).on(
       'postgres_changes',
@@ -157,9 +127,14 @@ export class RealtimeService {
         }
       },
     );
+  }
 
-    // Subscribe with connection status detection
-    const subscribePromise = new Promise<void>((resolve, reject) => {
+  /**
+   * Subscribe the current #channel and wait for SUBSCRIBED status.
+   * Rejects on timeout (8s), CLOSED, CHANNEL_ERROR, or TIMED_OUT.
+   */
+  #subscribeChannel(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
       let resolved = false;
 
       const timeout = setTimeout(() => {
@@ -201,9 +176,96 @@ export class RealtimeService {
         }
       });
     });
-    await subscribePromise;
+  }
 
-    realtimeLog.info(' Joined room:', roomCode);
+  /**
+   * Tear down #channel without resetting #lastJoinParams (preserves dead channel recovery).
+   * Used after subscribe failure to prevent zombie channel from corrupting status.
+   */
+  async #cleanupChannel(): Promise<void> {
+    if (!this.#channel) return;
+    const channelRef = this.#channel;
+    this.#channel = null;
+    try {
+      await channelRef.unsubscribe();
+      await supabase?.removeChannel(channelRef);
+      // Splice zombie (same workaround as leaveRoom — see comment there)
+      const channels = supabase?.realtime.getChannels() ?? [];
+      const idx = channels.indexOf(channelRef);
+      if (idx !== -1) channels.splice(idx, 1);
+    } catch {
+      realtimeLog.warn('cleanupChannel: error during teardown (ignored)');
+    }
+  }
+
+  /**
+   * Join a room's realtime channel (postgres_changes single channel).
+   *
+   * On subscribe timeout, automatically retries once with a fresh WebSocket
+   * transport (disconnect → drain → new channel). Mobile WebKit can have
+   * transient WS establishment delays; a single retry significantly improves
+   * success rate without burdening the user with manual retry.
+   */
+  async joinRoom(
+    roomCode: string,
+    userId: string,
+    callbacks: {
+      /** DB state change callback (postgres_changes — sole state sync channel) */
+      onDbStateChange?: (state: GameState, revision: number) => void;
+    },
+  ): Promise<void> {
+    if (!this.#isConfigured()) {
+      realtimeLog.warn(' Supabase not configured');
+      return;
+    }
+
+    // Leave previous room if any
+    await this.leaveRoom();
+
+    // SDK's removeChannel() may trigger disconnect() when the last channel is removed.
+    // Wait for that async disconnect to complete before creating a new channel.
+    await this.#waitForDisconnectDrain();
+
+    this.#setConnectionStatus(ConnectionStatus.Connecting);
+
+    this.#onDbStateChange = callbacks.onDbStateChange || null;
+
+    // Cache params for dead channel recovery (rejoinCurrentRoom)
+    this.#lastJoinParams = {
+      roomCode,
+      userId,
+      onDbStateChange: callbacks.onDbStateChange,
+    };
+
+    // Attempt subscribe, retry once on timeout with fresh transport
+    const SUBSCRIBE_MAX_ATTEMPTS = 2;
+    for (let attempt = 1; attempt <= SUBSCRIBE_MAX_ATTEMPTS; attempt++) {
+      this.#createChannel(roomCode);
+      try {
+        await this.#subscribeChannel();
+        realtimeLog.info(' Joined room:', roomCode);
+        return;
+      } catch (err) {
+        // Clean up failed channel to prevent zombie status corruption
+        await this.#cleanupChannel();
+
+        const isTimeout = err instanceof Error && err.message.includes('subscribe timeout');
+
+        if (isTimeout && attempt < SUBSCRIBE_MAX_ATTEMPTS) {
+          realtimeLog.warn(
+            `Subscribe timeout (attempt ${attempt}/${SUBSCRIBE_MAX_ATTEMPTS}), retrying with fresh transport`,
+          );
+          // Force-close stale WS so next subscribe opens a fresh one
+          supabase?.realtime.disconnect();
+          await this.#waitForDisconnectDrain();
+          this.#setConnectionStatus(ConnectionStatus.Connecting);
+          continue;
+        }
+
+        // Non-timeout error or final attempt — propagate
+        throw err;
+      }
+    }
   }
 
   /**

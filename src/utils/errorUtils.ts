@@ -46,6 +46,7 @@ export function isAbortError(err: unknown): boolean {
  * - `ECONNREFUSED` / `ETIMEDOUT` — Node.js / SSR environments
  * - `network` / `fetch` (case-insensitive) — Supabase SDK error messages
  * - `Operation timed out after` — withTimeout() utility
+ * - `subscribe timeout` — RealtimeService channel subscription timeout
  */
 const NETWORK_ERROR_PATTERNS = [
   'failed to fetch',
@@ -55,6 +56,7 @@ const NETWORK_ERROR_PATTERNS = [
   'econnrefused',
   'etimedout',
   'operation timed out after',
+  'subscribe timeout',
 ];
 
 /**

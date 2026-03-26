@@ -128,9 +128,15 @@ describe('RealtimeService', () => {
   });
 
   describe('subscribe timeout', () => {
-    it('rejects after 8s', async () => {
+    it('retries once then rejects after two timeouts', async () => {
       const joinPromise = joinRoomAndGetSubscribe(service);
       await flushMicrotasks();
+
+      // First timeout → triggers automatic retry
+      jest.advanceTimersByTime(8000);
+      await flushMicrotasks();
+
+      // Second timeout → final rejection
       jest.advanceTimersByTime(8000);
       await expect(joinPromise).rejects.toThrow('subscribe timeout after 8s');
     });
