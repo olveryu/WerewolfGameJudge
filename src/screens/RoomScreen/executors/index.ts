@@ -8,11 +8,12 @@
 
 // ── C09 executors ──────────────────────────────────────────────────────────
 import { actionConfirmExecutor, magicianFirstExecutor } from './actionSubmitExecutor';
-import { registerExecutor } from './registry';
+import { clearExecutors, registerExecutor } from './registry';
 import { revealExecutor } from './revealExecutor';
 import { skipExecutor } from './skipExecutor';
 import { wolfVoteExecutor } from './wolfVoteExecutor';
 
+clearExecutors();
 registerExecutor('reveal', revealExecutor);
 registerExecutor('magicianFirst', magicianFirstExecutor);
 registerExecutor('wolfVote', wolfVoteExecutor);

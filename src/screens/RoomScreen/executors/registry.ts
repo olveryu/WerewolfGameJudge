@@ -18,6 +18,13 @@ import type { ExecutorContext, ExecutorMap, IntentExecutor } from './types';
 
 const executors: ExecutorMap = {};
 
+/** Clear all registered executors. Called before re-registration to support HMR. */
+export function clearExecutors(): void {
+  for (const key of Object.keys(executors)) {
+    delete executors[key as keyof ExecutorMap];
+  }
+}
+
 /**
  * Register an executor for a specific ActionIntentType.
  * Throws if a duplicate registration is attempted (fail-fast).
