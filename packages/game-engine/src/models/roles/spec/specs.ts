@@ -35,7 +35,6 @@ export const ROLE_SPECS = {
     structuredDescription: {
       passive: '没有特殊技能，依靠推理和投票帮助好人阵营获胜',
     },
-    night1: { hasAction: false },
     abilities: [],
   },
 
@@ -53,7 +52,6 @@ export const ROLE_SPECS = {
       passive: '自身不知真实身份，以预言家身份示人',
     },
     tags: ['seerFamily'],
-    night1: { hasAction: true },
     displayAs: 'seer',
     abilities: [
       {
@@ -105,7 +103,6 @@ export const ROLE_SPECS = {
       passive: '自身不知真实身份，以预言家身份示人',
     },
     tags: ['seerFamily'],
-    night1: { hasAction: true },
     displayAs: 'seer',
     abilities: [
       {
@@ -159,7 +156,6 @@ export const ROLE_SPECS = {
       skill: '每晚可查验一名玩家的阵营，获知其是好人还是狼人',
     },
     tags: ['seerFamily'],
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -207,7 +203,6 @@ export const ROLE_SPECS = {
       passive: '拥有一瓶解药和一瓶毒药',
       restriction: '每瓶药限用一次；不能自救',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -280,7 +275,6 @@ export const ROLE_SPECS = {
       trigger: '出局时可开枪带走一名玩家',
       restriction: '被女巫毒杀则不能开枪',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -332,7 +326,6 @@ export const ROLE_SPECS = {
       skill: '每晚可守护一名玩家使其免受狼人袭击',
       restriction: '不能连续两晚守护同一人；同时被守护和解药救活则仍然出局；无法防御女巫毒药',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -376,7 +369,6 @@ export const ROLE_SPECS = {
       trigger: '被投票放逐时可翻牌免死',
       restriction: '此后失去投票权和技能使用权',
     },
-    night1: { hasAction: false },
     abilities: [
       {
         type: 'triggered',
@@ -397,7 +389,6 @@ export const ROLE_SPECS = {
     structuredDescription: {
       skill: '白天可翻牌与一名玩家决斗：对方是狼人则对方出局，对方是好人则自身出局',
     },
-    night1: { hasAction: false },
     abilities: [
       {
         type: 'active',
@@ -425,7 +416,6 @@ export const ROLE_SPECS = {
     structuredDescription: {
       skill: '每晚最先行动，交换两名玩家的号码牌，仅当晚有效',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -471,7 +461,6 @@ export const ROLE_SPECS = {
       skill: '从第二夜起，每晚可选择一名玩家狩猎：对方是狼人则对方次日出局，是好人则自身次日出局',
       passive: '免疫女巫毒药',
     },
-    night1: { hasAction: false },
     abilities: [
       {
         type: 'passive',
@@ -492,7 +481,6 @@ export const ROLE_SPECS = {
     structuredDescription: {
       skill: '每晚可查验一名玩家的身份，获知其具体角色名称',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -540,7 +528,6 @@ export const ROLE_SPECS = {
       skill: '每晚可选择一名玩家成为梦游者，梦游者不知情且免疫夜间伤害',
       trigger: '自身夜间出局则梦游者一并出局；连续两晚被摄梦也会出局',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -588,7 +575,6 @@ export const ROLE_SPECS = {
     structuredDescription: {
       skill: '每晚可得知上一个白天被放逐玩家的阵营（好人/狼人）',
     },
-    night1: { hasAction: false },
     abilities: [],
   },
 
@@ -604,7 +590,6 @@ export const ROLE_SPECS = {
       skill: '每晚可查验一名玩家的身份，获知其具体角色名称',
       trigger: '从第二夜起，查验到狼人则该狼人出局',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -652,7 +637,6 @@ export const ROLE_SPECS = {
         '从第二夜起，每晚必须选择三名玩家共舞（可含自身），若三人分属不同阵营则人数少的一方出局',
       passive: '仅当自身参舞时，舞池中三人当夜免疫狼人袭击；免疫女巫毒药',
     },
-    night1: { hasAction: false },
     abilities: [
       {
         type: 'passive',
@@ -675,7 +659,6 @@ export const ROLE_SPECS = {
       skill: '每晚可禁言一名玩家，使其次日发言阶段只能用肢体动作表达',
       restriction: '不能连续两晚禁言同一人；禁言信息与死讯同时公布',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -719,7 +702,6 @@ export const ROLE_SPECS = {
       skill: '每晚可禁票一名玩家，使其次日放逐环节不能投票',
       restriction: '不能连续两晚禁票同一人；禁票信息与死讯同时公布',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -766,7 +748,6 @@ export const ROLE_SPECS = {
       skill: '每晚与狼队友共同选择一名玩家进行袭击',
     },
     tags: ['wolfBase'],
-    night1: { hasAction: true },
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [
       {
@@ -820,7 +801,6 @@ export const ROLE_SPECS = {
       restriction: '不能自爆；不能自刀',
       trigger: '白天出局时被魅惑者随之殉情出局，被魅惑者不知情',
     },
-    night1: { hasAction: true },
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [
       {
@@ -871,7 +851,6 @@ export const ROLE_SPECS = {
       skill: '白天可自爆并带走一名玩家',
       restriction: '非自爆出局时不能发动技能',
     },
-    night1: { hasAction: false },
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [
       {
@@ -894,7 +873,6 @@ export const ROLE_SPECS = {
       trigger: '出局时可开枪带走一名玩家',
       restriction: '被女巫毒杀则不能开枪',
     },
-    night1: { hasAction: true },
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [
       {
@@ -948,7 +926,6 @@ export const ROLE_SPECS = {
       restriction: '不能连续两晚恐惧同一人；首夜行动时尚未与狼队互认',
       special: '若恐惧到狼人，狼人阵营当夜无法袭击',
     },
-    night1: { hasAction: true },
     recognition: { canSeeWolves: true, participatesInWolfVote: true, actsSolo: true },
     abilities: [
       {
@@ -994,7 +971,6 @@ export const ROLE_SPECS = {
       passive: '与其他狼人互不相认',
       special: '其他狼人全部出局后可主导袭击',
     },
-    night1: { hasAction: true },
     recognition: { canSeeWolves: false, participatesInWolfVote: false },
     abilities: [
       {
@@ -1043,7 +1019,6 @@ export const ROLE_SPECS = {
         '被转化者天亮前知晓转变，不入狼队，保留自身技能；其他狼人全部出局后失去原技能并主导袭击',
       restriction: '被转化者不可自爆',
     },
-    night1: { hasAction: true },
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [
       {
@@ -1105,7 +1080,6 @@ export const ROLE_SPECS = {
       trigger: '自爆后的当晚所有好人阵营的技能被封印',
       passive: '若为最后一个被放逐的狼人，可存活至下一个白天天亮后才出局',
     },
-    night1: { hasAction: false },
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [],
   },
@@ -1125,7 +1099,6 @@ export const ROLE_SPECS = {
       restriction: '不能自爆',
       special: '其他狼人全部出局后可主导袭击',
     },
-    night1: { hasAction: true },
     recognition: { canSeeWolves: false, participatesInWolfVote: false },
     abilities: [
       {
@@ -1177,7 +1150,6 @@ export const ROLE_SPECS = {
       skill: '每晚可查验一名非狼人阵营玩家的身份，获知其具体角色名称',
       trigger: '从第二夜起，查验到纯白之女则其出局',
     },
-    night1: { hasAction: true },
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [
       {
@@ -1224,7 +1196,6 @@ export const ROLE_SPECS = {
       trigger: '被非狼人阵营角色查验或女巫毒杀时反伤，次日对方出局',
       restriction: '不能自爆',
     },
-    night1: { hasAction: false },
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [
       { type: 'passive', effect: 'immuneToWolfKill' },
@@ -1259,7 +1230,6 @@ export const ROLE_SPECS = {
       passive: '与其他狼人互不相认；免疫女巫毒药',
       special: '其他狼人全部出局后可主导袭击',
     },
-    night1: { hasAction: false },
     recognition: { canSeeWolves: false, participatesInWolfVote: false },
     abilities: [
       {
@@ -1284,7 +1254,6 @@ export const ROLE_SPECS = {
         '从第二夜起，每晚选择2名玩家进行交易，随后与狼人共同袭击；双方得知对象但不知身份，各自选「交易」或「背叛」：同交易免夜间伤害，同背叛互为当夜技能目标，一交一叛时选「交易」的出局；选自身交易时，对方与自身同选则自身出局，不同则对方出局',
       restriction: '每人限交易1次',
     },
-    night1: { hasAction: false },
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [],
   },
@@ -1306,7 +1275,6 @@ export const ROLE_SPECS = {
       skill: '首夜选择一名玩家作为榜样，与榜样同阵营，但不知道榜样的具体身份',
       winCondition: '与榜样阵营共同胜利',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -1351,7 +1319,6 @@ export const ROLE_SPECS = {
       trigger: '榜样被投票出局时自身变为狼人；若先于榜样出局则始终为好人阵营',
       winCondition: '未变身时随好人阵营胜利；变为狼人后随狼人阵营胜利',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -1395,7 +1362,6 @@ export const ROLE_SPECS = {
       skill: '每晚可选择 1~2 名玩家进行催眠，被催眠的玩家会醒来互相确认',
       winCondition: '当所有其他存活玩家均被催眠时获胜',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -1464,7 +1430,6 @@ export const ROLE_SPECS = {
         '模仿到复仇者时二人绑定，失去原技能，成为同生共死第三方；第二天起每晚影子轮次二人睁眼，可袭击一名玩家，袭击无视一切保护效果',
       winCondition: '非绑定时随继承的阵营胜利；绑定时胜利条件为屠城',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',
@@ -1512,7 +1477,6 @@ export const ROLE_SPECS = {
         '若影子模仿复仇者则二人绑定，失去原技能，成为同生共死第三方；第二天起每晚影子轮次二人睁眼，可袭击一名玩家，袭击无视一切保护效果；帮好人时算神职，帮狼时与其他狼人互不相认，其他狼人全部出局后可主导袭击',
       winCondition: '非绑定时随自身阵营胜利；绑定时胜利条件为屠城',
     },
-    night1: { hasAction: true },
     abilities: [
       {
         type: 'active',

@@ -53,10 +53,6 @@ describe('V2 per-role identity contract', () => {
       it('description should be non-empty', () => {
         expect(spec.description).toBeTruthy();
       });
-
-      it('night1.hasAction should be boolean', () => {
-        expect(typeof spec.night1.hasAction).toBe('boolean');
-      });
     });
   }
 });
@@ -69,20 +65,23 @@ describe('nightSteps ↔ NIGHT_STEPS equivalence', () => {
     nightStepsByRole.set(step.roleId, existing);
   }
 
-  it('roles with hasAction=true should have nightSteps defined', () => {
+  it('roles with nightSteps should have nightSteps defined', () => {
     for (const roleId of allIds) {
       const spec = ROLE_SPECS[roleId] as RoleSpec;
-      if (spec.night1.hasAction) {
+      const hasSteps = (spec.nightSteps?.length ?? 0) > 0;
+      const inNightSteps = nightStepsByRole.has(roleId);
+      if (hasSteps) {
         expect(spec.nightSteps?.length).toBeGreaterThanOrEqual(1);
       }
+      expect(hasSteps).toBe(inNightSteps);
     }
   });
 
-  it('roles with hasAction=false should not have nightSteps (or have empty)', () => {
+  it('roles without nightSteps should not appear in NIGHT_STEPS', () => {
     for (const roleId of allIds) {
       const spec = ROLE_SPECS[roleId] as RoleSpec;
-      if (!spec.night1.hasAction) {
-        expect(spec.nightSteps ?? []).toHaveLength(0);
+      if ((spec.nightSteps?.length ?? 0) === 0) {
+        expect(nightStepsByRole.has(roleId)).toBe(false);
       }
     }
   });

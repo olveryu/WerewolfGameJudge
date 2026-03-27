@@ -31,15 +31,16 @@ describe('ROLE_SPECS contract', () => {
       expect(spec.displayName).toBeTruthy();
       expect(spec.faction).toBeDefined();
       expect(Object.values(Team)).toContain(spec.team);
-      expect(spec.night1).toBeDefined();
     }
   });
 
-  it('roles with hasAction=true should appear at least once in NIGHT_STEPS', () => {
-    const rolesWithAction = getAllRoleIds().filter((id: RoleId) => ROLE_SPECS[id].night1.hasAction);
+  it('roles with nightSteps should appear at least once in NIGHT_STEPS', () => {
+    const rolesWithSteps = getAllRoleIds().filter(
+      (id: RoleId) => ((ROLE_SPECS[id] as RoleSpec).nightSteps?.length ?? 0) > 0,
+    );
     const rolesInSteps = NIGHT_STEPS.map((s) => s.roleId);
 
-    for (const roleId of rolesWithAction) {
+    for (const roleId of rolesWithSteps) {
       const count = rolesInSteps.filter((r) => r === roleId).length;
       expect(count).toBeGreaterThanOrEqual(1);
     }
@@ -153,7 +154,7 @@ describe('ROLE_SPECS contract', () => {
 
     it('should have correct night-1 action roles', () => {
       const actualNight1Roles = getAllRoleIds().filter(
-        (id: RoleId) => ROLE_SPECS[id].night1.hasAction,
+        (id: RoleId) => ((ROLE_SPECS[id] as RoleSpec).nightSteps?.length ?? 0) > 0,
       );
       const sortedActual = [...actualNight1Roles].sort((a, b) => a.localeCompare(b));
       const sortedExpected = [...expectedNight1Roles].sort((a, b) => a.localeCompare(b));
@@ -178,19 +179,19 @@ describe('ROLE_SPECS contract', () => {
 
     it('should have correct no-action roles', () => {
       const actualNoActionRoles = getAllRoleIds().filter(
-        (id: RoleId) => !ROLE_SPECS[id].night1.hasAction,
+        (id: RoleId) => ((ROLE_SPECS[id] as RoleSpec).nightSteps?.length ?? 0) === 0,
       );
       const sortedActual = [...actualNoActionRoles].sort((a, b) => a.localeCompare(b));
       const sortedExpected = [...expectedNoActionRoles].sort((a, b) => a.localeCompare(b));
       expect(sortedActual).toEqual(sortedExpected);
     });
 
-    it('graveyardKeeper should have hasAction=false (no info on night-1)', () => {
-      expect(ROLE_SPECS.graveyardKeeper.night1.hasAction).toBe(false);
+    it('graveyardKeeper should have no nightSteps (no info on night-1)', () => {
+      expect((ROLE_SPECS.graveyardKeeper as RoleSpec).nightSteps).toBeUndefined();
     });
 
-    it('witcher should have hasAction=false (starts from night-2)', () => {
-      expect(ROLE_SPECS.witcher.night1.hasAction).toBe(false);
+    it('witcher should have no nightSteps (starts from night-2)', () => {
+      expect((ROLE_SPECS.witcher as RoleSpec).nightSteps).toBeUndefined();
     });
   });
 
@@ -246,23 +247,15 @@ describe('ROLE_SPECS contract', () => {
     });
   });
 
-  describe('night1.hasAction ↔ NIGHT_STEPS alignment (M3c contract)', () => {
-    it('night1.hasAction should match NIGHT_STEPS presence for all roles', () => {
+  describe('nightSteps ↔ NIGHT_STEPS alignment (M3c contract)', () => {
+    it('nightSteps presence should match NIGHT_STEPS presence for all roles', () => {
       const stepsRoleIds = new Set(NIGHT_STEPS.map((s) => s.roleId));
 
       for (const roleId of getAllRoleIds()) {
-        const spec = ROLE_SPECS[roleId];
+        const spec: RoleSpec = ROLE_SPECS[roleId];
         const hasStepInNightSteps = stepsRoleIds.has(roleId);
-        expect(spec.night1.hasAction).toBe(hasStepInNightSteps);
-      }
-    });
-
-    it('night1 should NOT contain legacy fields (order/schemaId/actsSolo)', () => {
-      for (const roleId of getAllRoleIds()) {
-        const night1 = ROLE_SPECS[roleId].night1 as Record<string, unknown>;
-        expect(night1).not.toHaveProperty('order');
-        expect(night1).not.toHaveProperty('schemaId');
-        expect(night1).not.toHaveProperty('actsSolo');
+        const hasNightSteps = (spec.nightSteps?.length ?? 0) > 0;
+        expect(hasNightSteps).toBe(hasStepInNightSteps);
       }
     });
   });

@@ -5,7 +5,7 @@
  *
  * NOTE（Night-1-only scope）:
  * - 本项目只做第一晚。
- * - 任何“第一晚不行动/从第二晚开始才行动”的角色，必须在 role model 中配置为 `hasNightAction=false`。
+ * - 任何"第一晚不行动/从第二晚开始才行动"的角色，不应有 `nightSteps` 定义。
  *   这样它才不会出现在 `template.actionOrder`，避免夜晚流程错误提示该角色起床。
  */
 
