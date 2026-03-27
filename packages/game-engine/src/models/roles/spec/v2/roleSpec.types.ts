@@ -4,11 +4,8 @@
  * The single source of truth for everything a role IS and DOES.
  * Handler code only fills gaps that cannot be expressed declaratively (customResolver).
  * 纯类型定义，不含业务逻辑、副作用、平台依赖。
- *
- * 复用 V1 的 Faction / Team / RoleDescription 类型。
  */
 
-import type { RoleDescription } from '../spec.types';
 import type { Faction, Team } from '../types';
 import type {
   Ability,
@@ -21,8 +18,28 @@ import type {
   Resource,
 } from './ability.types';
 
-// Re-export for convenience
-export type { RoleDescription };
+/**
+ * Structured role description for card UI rendering.
+ *
+ * Each field maps to a visual section on the role card.
+ * Only non-null fields are rendered. When a role has a single field,
+ * the card uses a simplified centered layout (Mode A);
+ * with 2+ fields, it uses a structured layout with labeled sections (Mode B).
+ */
+export interface RoleDescription {
+  /** 主动技能 — 玩家主动使用的能力（每晚/白天） */
+  readonly skill?: string;
+  /** 被动特性 — 始终生效，无需操作 */
+  readonly passive?: string;
+  /** 触发效果 — 出局/被查验/特定事件触发 */
+  readonly trigger?: string;
+  /** 限制条件 — 不能做什么 */
+  readonly restriction?: string;
+  /** 特殊规则 — 与其他角色的交互、边界情况 */
+  readonly special?: string;
+  /** 胜利条件 — 非标准胜利条件（可选） */
+  readonly winCondition?: string;
+}
 
 /**
  * Complete Role Specification v2

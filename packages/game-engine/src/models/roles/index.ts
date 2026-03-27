@@ -50,9 +50,9 @@ export {
 // ============================================================
 // Re-imports from spec/ (for internal use)
 // ============================================================
-import type { RoleSpec } from './spec/spec.types';
 import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec/specs';
 import { Team } from './spec/types';
+import type { RoleSpecV2 } from './spec/v2/roleSpec.types';
 
 // ============================================================
 // Display Name Helpers (UI-facing)
@@ -92,8 +92,8 @@ export function isWolfRole(roleId: string): boolean {
  */
 export function canRoleSeeWolves(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec = getRoleSpec(roleId) as RoleSpec;
-  return spec?.wolfMeeting?.canSeeWolves ?? false;
+  const spec: RoleSpecV2 = getRoleSpec(roleId);
+  return spec.recognition?.canSeeWolves ?? false;
 }
 
 /**
@@ -107,14 +107,13 @@ export function canRoleSeeWolves(roleId: string): boolean {
  */
 export function doesRoleParticipateInWolfVote(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec = getRoleSpec(roleId) as RoleSpec;
-  if (!spec) return false;
+  const spec: RoleSpecV2 = getRoleSpec(roleId);
 
   // Participation is explicitly configured per role (single source of truth).
   // We intentionally do NOT infer from team/faction here.
   // - team/faction is for seer result / UI highlighting
-  // - wolfMeeting.participatesInWolfVote is for whether this role submits WOLF_VOTE
-  return spec.wolfMeeting?.participatesInWolfVote ?? false;
+  // - recognition.participatesInWolfVote is for whether this role submits WOLF_VOTE
+  return spec.recognition?.participatesInWolfVote ?? false;
 }
 
 /**
@@ -131,8 +130,8 @@ export function getWolfRoleIds(): RoleId[] {
  */
 export function getWolfKillImmuneRoleIds(): RoleId[] {
   return getAllRoleIds().filter((id) => {
-    const spec = ROLE_SPECS[id] as RoleSpec;
-    return spec.flags?.immuneToWolfKill === true;
+    const spec: RoleSpecV2 = ROLE_SPECS[id];
+    return spec.immunities?.some((i) => i.kind === 'wolfAttack') === true;
   });
 }
 

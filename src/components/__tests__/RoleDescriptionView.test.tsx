@@ -2,7 +2,7 @@
  * RoleDescriptionView.test.tsx - Tests for structured role description rendering
  */
 import { render } from '@testing-library/react-native';
-import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/spec.types';
+import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
 
 import { RoleDescriptionView } from '@/components/RoleDescriptionView';
 
