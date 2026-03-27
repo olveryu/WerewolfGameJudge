@@ -2,9 +2,9 @@
  * Piper Resolvers (SERVER-ONLY, 纯函数)
  *
  * 职责：
- * - piperHypnotizeResolver: 校验吹笛者催眠行动（选择 1-2 名目标）+ 计算累积催眠结果。
+ * - piperHypnotizeResolver: 校验吹笛者催眠行动（选择 1-2 名目标）+ 写入 hypnotizedSeats。
  * - piperHypnotizedRevealResolver: groupConfirm 步骤的 no-op resolver（ack 由 handler 层处理）。
- * 提供多目标校验与 hypnotizedSeats 累积计算。
+ * 提供多目标校验。
  * 不包含 IO（网络 / 音频 / Alert）。
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
@@ -14,20 +14,6 @@ import { SCHEMAS } from '../models';
 import type { MultiChooseSeatSchema } from '../models/roles/spec/schema.types';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverContext, ResolverFn } from './types';
-
-/**
- * Merge newly hypnotized seats into accumulated hypnotizedSeats (deduplicated).
- */
-function mergeHypnotizedSeats(
-  existing: readonly number[] | undefined,
-  newTargets: readonly number[],
-): readonly number[] {
-  const set = new Set(existing ?? []);
-  for (const t of newTargets) {
-    set.add(t);
-  }
-  return [...set].sort((a, b) => a - b);
-}
 
 export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, input) => {
   const { actorSeat, players } = context;
@@ -65,20 +51,9 @@ export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, inp
     }
   }
 
-  // Cannot hypnotize already-hypnotized players
-  const existingHypnotized = context.gameState.hypnotizedSeats ?? [];
-  for (const target of targets) {
-    if (existingHypnotized.includes(target)) {
-      return { valid: false, rejectReason: `${target}号玩家已被催眠` };
-    }
-  }
-
-  // Merge new targets into accumulated hypnotizedSeats
-  const updatedHypnotizedSeats = mergeHypnotizedSeats(existingHypnotized, targets);
-
   return {
     valid: true,
-    updates: { hypnotizedSeats: updatedHypnotizedSeats },
+    updates: { hypnotizedSeats: [...targets].sort((a, b) => a - b) },
     result: { hypnotizedTargets: targets },
   };
 };
