@@ -76,6 +76,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'mirrorSeerCheck',
+        displayName: '查验',
         audioKey: 'mirrorSeer',
         actionKind: 'chooseSeat',
         ui: {
@@ -127,6 +128,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'drunkSeerCheck',
+        displayName: '查验',
         audioKey: 'drunkSeer',
         actionKind: 'chooseSeat',
         ui: {
@@ -176,6 +178,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'seerCheck',
+        displayName: '查验',
         audioKey: 'seer',
         actionKind: 'chooseSeat',
         ui: {
@@ -224,12 +227,43 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'witchAction',
+        displayName: '女巫行动',
         audioKey: 'witch',
         actionKind: 'compound',
         ui: {
           prompt: '女巫请行动',
           emptyKillTitle: '昨夜无人倒台',
         },
+        compoundSteps: [
+          {
+            key: 'save',
+            displayName: '救人',
+            kind: 'confirmTarget',
+            constraints: [TargetConstraint.NotSelf],
+            canSkip: true,
+            ui: {
+              confirmTitle: '确认行动',
+              prompt: '是否使用解药？',
+              promptTemplate: '{seat}号被狼人袭击，是否使用解药？',
+              cannotSavePrompt: '你被狼人袭击，无法自救，可使用毒药或不用技能。',
+              confirmText: '确定使用解药吗？',
+              bottomActionText: '不用技能',
+            },
+          },
+          {
+            key: 'poison',
+            displayName: '毒人',
+            kind: 'chooseSeat',
+            constraints: [],
+            canSkip: true,
+            ui: {
+              confirmTitle: '确认行动',
+              prompt: '如要使用毒药，请点击座位。',
+              confirmText: '确定使用毒药吗？',
+              bottomActionText: '不用技能',
+            },
+          },
+        ],
       },
     ],
   },
@@ -266,6 +300,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'hunterConfirm',
+        displayName: '技能发动确认',
         audioKey: 'hunter',
         actionKind: 'confirm',
         ui: {
@@ -316,6 +351,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'guardProtect',
+        displayName: '守护',
         audioKey: 'guard',
         actionKind: 'chooseSeat',
         ui: {
@@ -407,6 +443,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'magicianSwap',
+        displayName: '交换',
         audioKey: 'magician',
         actionKind: 'swap',
         ui: {
@@ -474,6 +511,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'psychicCheck',
+        displayName: '通灵',
         audioKey: 'psychic',
         actionKind: 'chooseSeat',
         ui: {
@@ -526,6 +564,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'dreamcatcherDream',
+        displayName: '摄梦',
         audioKey: 'dreamcatcher',
         actionKind: 'chooseSeat',
         ui: {
@@ -584,6 +623,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'pureWhiteCheck',
+        displayName: '查验',
         audioKey: 'pureWhite',
         actionKind: 'chooseSeat',
         ui: {
@@ -653,6 +693,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'silenceElderSilence',
+        displayName: '禁言',
         audioKey: 'silenceElder',
         actionKind: 'chooseSeat',
         ui: {
@@ -696,6 +737,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'votebanElderBan',
+        displayName: '禁票',
         audioKey: 'votebanElder',
         actionKind: 'chooseSeat',
         ui: {
@@ -744,6 +786,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'wolfKill',
+        displayName: '袭击',
         audioKey: 'wolf',
         actionKind: 'wolfVote',
         ui: {
@@ -803,6 +846,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'wolfQueenCharm',
+        displayName: '魅惑',
         audioKey: 'wolfQueen',
         actionKind: 'chooseSeat',
         ui: {
@@ -871,6 +915,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'darkWolfKingConfirm',
+        displayName: '技能发动确认',
         audioKey: 'darkWolfKing',
         actionKind: 'confirm',
         ui: {
@@ -922,6 +967,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'nightmareBlock',
+        displayName: '恐惧',
         audioKey: 'nightmare',
         actionKind: 'chooseSeat',
         ui: {
@@ -967,6 +1013,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'gargoyleCheck',
+        displayName: '查验',
         audioKey: 'gargoyle',
         actionKind: 'chooseSeat',
         ui: {
@@ -1019,6 +1066,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'awakenedGargoyleConvert',
+        displayName: '幻惑人心',
         audioKey: 'awakenedGargoyle',
         actionKind: 'chooseSeat',
         ui: {
@@ -1029,6 +1077,7 @@ export const ROLE_SPECS_V2 = {
       },
       {
         stepId: 'awakenedGargoyleConvertReveal',
+        displayName: '转化确认',
         audioKey: 'awakenedGargoyleConvertReveal',
         audioEndKey: 'awakenedGargoyleConvertReveal',
         actionKind: 'groupConfirm',
@@ -1095,6 +1144,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'wolfRobotLearn',
+        displayName: '学习',
         audioKey: 'wolfRobot',
         actionKind: 'chooseSeat',
         ui: {
@@ -1146,6 +1196,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'wolfWitchCheck',
+        displayName: '查验',
         audioKey: 'wolfWitch',
         actionKind: 'chooseSeat',
         ui: {
@@ -1273,6 +1324,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'slackerChooseIdol',
+        displayName: '选择榜样',
         audioKey: 'slacker',
         actionKind: 'chooseSeat',
         ui: {
@@ -1317,6 +1369,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'wildChildChooseIdol',
+        displayName: '选择榜样',
         audioKey: 'wildChild',
         actionKind: 'chooseSeat',
         ui: {
@@ -1368,6 +1421,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'piperHypnotize',
+        displayName: '催眠',
         audioKey: 'piper',
         actionKind: 'multiChooseSeat',
         ui: {
@@ -1380,6 +1434,7 @@ export const ROLE_SPECS_V2 = {
       },
       {
         stepId: 'piperHypnotizedReveal',
+        displayName: '催眠确认',
         audioKey: 'piperHypnotizedReveal',
         audioEndKey: 'piperHypnotizedReveal',
         actionKind: 'groupConfirm',
@@ -1428,6 +1483,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'shadowChooseMimic',
+        displayName: '选择模仿',
         audioKey: 'shadow',
         actionKind: 'chooseSeat',
         ui: {
@@ -1475,6 +1531,7 @@ export const ROLE_SPECS_V2 = {
     nightSteps: [
       {
         stepId: 'avengerConfirm',
+        displayName: '阵营确认',
         audioKey: 'avenger',
         actionKind: 'confirm',
         ui: {
