@@ -324,3 +324,21 @@ export interface MeetingConfig {
   readonly resolution: 'majority' | 'firstVote';
   readonly allowEmptyVote: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Compound Sub-Step (for witch-style compound actions)
+// ---------------------------------------------------------------------------
+
+/**
+ * Sub-step definition within a compound night action (e.g. witch save/poison).
+ *
+ * Mirrors V1's InlineSubStepSchema. Only used by compound actionKind steps.
+ */
+export interface CompoundSubStepDef {
+  readonly key: string;
+  readonly displayName: string;
+  readonly kind: 'chooseSeat' | 'confirmTarget';
+  readonly constraints: readonly TargetConstraint[];
+  readonly canSkip: boolean;
+  readonly ui?: NightStepUi;
+}

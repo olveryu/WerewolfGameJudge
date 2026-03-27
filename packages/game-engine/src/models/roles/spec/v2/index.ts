@@ -15,6 +15,7 @@ export type {
   CharmEffect,
   CheckEffect,
   ChooseIdolEffect,
+  CompoundSubStepDef,
   ConfirmEffect,
   ConvertEffect,
   GroupRevealEffect,
@@ -46,3 +47,9 @@ export type { DeathCalcRole, NightStepDef, RoleDescription, RoleSpecV2 } from '.
 // Specs registry
 export type { RoleIdV2 } from './specs';
 export { ROLE_SPECS_V2 } from './specs';
+
+// Night plan builder
+export { buildNightPlanFromV2, NIGHT_STEP_ORDER } from './nightPlan';
+
+// Schemas builder
+export { buildSchemasFromV2 } from './schemas';

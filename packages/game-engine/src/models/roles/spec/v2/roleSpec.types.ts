@@ -13,6 +13,7 @@ import type { Faction, Team } from '../types';
 import type {
   Ability,
   ActionKind,
+  CompoundSubStepDef,
   Immunity,
   MeetingConfig,
   NightStepUi,
@@ -87,6 +88,8 @@ export interface RoleSpecV2 {
 export interface NightStepDef {
   /** Step/schema ID (must be globally unique) */
   readonly stepId: string;
+  /** Display name for this step's schema (e.g. '查验', '守护') */
+  readonly displayName: string;
   /** Audio key for this step (defaults to role ID) */
   readonly audioKey?: string;
   /** End audio key (defaults to audioKey) */
@@ -97,6 +100,8 @@ export interface NightStepDef {
   readonly ui: NightStepUi;
   /** Meeting config (wolfVote only) */
   readonly meeting?: MeetingConfig;
+  /** Compound sub-steps (witch only — save/poison inline steps) */
+  readonly compoundSteps?: readonly CompoundSubStepDef[];
 }
 
 /**
