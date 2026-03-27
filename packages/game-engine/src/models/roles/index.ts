@@ -136,18 +136,5 @@ export function getWolfKillImmuneRoleIds(): RoleId[] {
 }
 
 // ============================================================
-// Night Action Helpers
-// ============================================================
-
-/**
- * Check if a role has night action (derived from nightSteps presence)
- */
-export function hasNightAction(roleId: string): boolean {
-  if (!isValidRoleId(roleId)) return false;
-  const spec: RoleSpec | undefined = getRoleSpec(roleId);
-  return (spec?.nightSteps?.length ?? 0) > 0;
-}
-
-// ============================================================
 // Seer Check
 // ============================================================

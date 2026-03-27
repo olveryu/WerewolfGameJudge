@@ -13,7 +13,6 @@ import {
   type ResolvedRoleRevealAnimation,
   resolveRandomAnimation,
   type RoleRevealAnimation,
-  simpleHash,
 } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 describe('RoleRevealAnimation', () => {
@@ -40,38 +39,6 @@ describe('RoleRevealAnimation', () => {
 
     it('should NOT contain "random"', () => {
       expect(RANDOMIZABLE_ANIMATIONS).not.toContain('random');
-    });
-  });
-
-  describe('simpleHash', () => {
-    it('should return consistent hash for same input', () => {
-      const hash1 = simpleHash('test-room-123');
-      const hash2 = simpleHash('test-room-123');
-      expect(hash1).toBe(hash2);
-    });
-
-    it('should return different hashes for different inputs', () => {
-      const hash1 = simpleHash('room-A');
-      const hash2 = simpleHash('room-B');
-      expect(hash1).not.toBe(hash2);
-    });
-
-    it('should return positive integer', () => {
-      const hash = simpleHash('any-string');
-      expect(hash).toBeGreaterThanOrEqual(0);
-      expect(Number.isInteger(hash)).toBe(true);
-    });
-
-    it('should handle empty string', () => {
-      const hash = simpleHash('');
-      expect(hash).toBeGreaterThanOrEqual(0);
-      expect(Number.isInteger(hash)).toBe(true);
-    });
-
-    it('should handle unicode characters', () => {
-      const hash = simpleHash('房间🎲中文');
-      expect(hash).toBeGreaterThanOrEqual(0);
-      expect(Number.isInteger(hash)).toBe(true);
     });
   });
 

@@ -178,19 +178,6 @@ export function getAvatarImageByIndex(index: number): number {
   return AVATAR_IMAGES[safeIndex];
 }
 
-/**
- * Get a stable default avatar image for a user in a specific room.
- * Convenience function that combines getDefaultAvatarIndex and getAvatarImageByIndex.
- *
- * @param roomId - The room identifier
- * @param uid - The user's unique identifier
- * @returns The avatar image source
- */
-export function getAvatarByUid(roomId: string, uid: string): number {
-  const index = getDefaultAvatarIndex(roomId, uid);
-  return getAvatarImageByIndex(index);
-}
-
 /** Check whether an avatarUrl is a builtin avatar reference (e.g. "builtin://seer") */
 export function isBuiltinAvatarUrl(url: string): boolean {
   return url.startsWith(BUILTIN_AVATAR_PREFIX);

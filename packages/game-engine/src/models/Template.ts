@@ -4,7 +4,7 @@
  * 定义 GameTemplate 接口、模板校验、预设模板和模板工厂。
  * 导出类型定义、纯函数校验/工厂及预设常量，不包含 service 依赖、副作用或 IO。
  */
-import { getRoleSpec, isValidRoleId, RoleId } from './roles';
+import { isValidRoleId, RoleId } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template categories (for grouped display in TemplatePicker)
@@ -454,20 +454,3 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
 ];
-
-// Get room info string (matching Flutter)
-export const getTemplateRoomInfo = (template: GameTemplate): string => {
-  const villagerCount = template.roles.filter((r) => r === 'villager').length;
-  const wolfCount = template.roles.filter((r) => r === 'wolf').length;
-
-  let info = `村民x${villagerCount}, 狼人x${wolfCount}, `;
-
-  const specialRoles = template.roles.filter((r) => r !== 'wolf' && r !== 'villager');
-  // 板子配置是法官视角，使用真实角色名
-  const displayNames = specialRoles.map((r) => getRoleSpec(r as RoleId).displayName);
-  const uniqueDisplayNames = [...new Set(displayNames)];
-
-  info += uniqueDisplayNames.join(', ');
-
-  return info;
-};

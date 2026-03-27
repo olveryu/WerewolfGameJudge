@@ -82,7 +82,7 @@ export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
  * 确定性 hash 函数（用于 random 解析）
  * 使用简单的 djb2 算法，不依赖外部库
  */
-export function simpleHash(str: string): number {
+function simpleHash(str: string): number {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
     const codePoint = str.codePointAt(i) ?? 0;

@@ -13,7 +13,6 @@ import {
   buildNightPlan,
   Faction,
   getRoleSpec,
-  hasNightAction,
   isValidRoleId,
   isWolfRole,
   RoleId,
@@ -68,12 +67,6 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
         const roleSet = new Set(preset.roles);
         for (const actionRole of actionOrder) {
           expect(roleSet.has(actionRole)).toBe(true);
-        }
-      });
-
-      it('actionOrder 中的角色都应该有夜间行动', () => {
-        for (const actionRole of actionOrder) {
-          expect(hasNightAction(actionRole)).toBe(true);
         }
       });
 

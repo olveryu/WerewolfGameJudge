@@ -2,7 +2,6 @@ import { buildNightPlan, RoleId } from '@werewolf/game-engine/models/roles';
 import {
   createCustomTemplate,
   createTemplateFromRoles,
-  getTemplateRoomInfo,
   PRESET_TEMPLATES,
 } from '@werewolf/game-engine/models/Template';
 
@@ -133,62 +132,6 @@ describe('Template - createCustomTemplate', () => {
     expect(actionOrder).toContain('wolf');
     expect(actionOrder).toContain('witch');
     expect(actionOrder).toContain('seer');
-  });
-});
-
-describe('Template - getTemplateRoomInfo', () => {
-  it('should generate correct info for standard template', () => {
-    const template = createTemplateFromRoles([
-      'villager',
-      'villager',
-      'villager',
-      'villager',
-      'wolf',
-      'wolf',
-      'wolf',
-      'wolf',
-      'seer',
-      'witch',
-      'hunter',
-      'idiot',
-    ]);
-
-    const info = getTemplateRoomInfo(template);
-
-    expect(info).toContain('村民x4');
-    expect(info).toContain('狼人x4');
-    expect(info).toContain('预言家');
-    expect(info).toContain('女巫');
-    expect(info).toContain('猎人');
-    expect(info).toContain('白痴');
-  });
-
-  it('should show special wolves by name', () => {
-    const template = createTemplateFromRoles([
-      'villager',
-      'villager',
-      'villager',
-      'wolf',
-      'wolf',
-      'wolfQueen',
-      'seer',
-      'witch',
-      'hunter',
-    ]);
-
-    const info = getTemplateRoomInfo(template);
-
-    expect(info).toContain('狼美人');
-    expect(info).toContain('狼人x2');
-  });
-
-  it('should handle template with no villagers', () => {
-    const template = createTemplateFromRoles(['wolf', 'wolf', 'seer', 'witch', 'hunter', 'guard']);
-
-    const info = getTemplateRoomInfo(template);
-
-    expect(info).toContain('村民x0');
-    expect(info).toContain('狼人x2');
   });
 });
 
