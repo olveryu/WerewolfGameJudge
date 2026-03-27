@@ -16,6 +16,8 @@
 
 import { type SchemaId } from '../../models/roles/spec';
 import { Team } from '../../models/roles/spec/types';
+import type { RoleSpecV2 } from '../../models/roles/spec/v2/roleSpec.types';
+import { ROLE_SPECS_V2 } from '../../models/roles/spec/v2/specs';
 import type { ConfirmStatus } from '../../protocol/types';
 import { findSeatByRole } from '../../utils/playerHelpers';
 import type { SetConfirmStatusAction } from '../reducer/types';
@@ -23,12 +25,26 @@ import type { NonNullState } from './types';
 
 type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger';
 
+/**
+ * Derive the confirm-step → role mapping from ROLE_SPECS_V2.
+ * Scans for roles with confirm-kind nightSteps.
+ */
+function deriveConfirmStepRoleMap(): Record<string, ConfirmRole> {
+  const map: Record<string, ConfirmRole> = {};
+  for (const [roleId, rawSpec] of Object.entries(ROLE_SPECS_V2)) {
+    const spec = rawSpec as RoleSpecV2;
+    if (!spec.nightSteps) continue;
+    for (const step of spec.nightSteps) {
+      if (step.actionKind === 'confirm') {
+        map[step.stepId] = roleId as ConfirmRole;
+      }
+    }
+  }
+  return map;
+}
+
 /** hunterConfirm / darkWolfKingConfirm / avengerConfirm stepId → role 映射 */
-const CONFIRM_STEP_ROLE: Record<string, ConfirmRole> = {
-  hunterConfirm: 'hunter',
-  darkWolfKingConfirm: 'darkWolfKing',
-  avengerConfirm: 'avenger',
-};
+const CONFIRM_STEP_ROLE: Record<string, ConfirmRole> = deriveConfirmStepRoleMap();
 
 /**
  * 计算 confirmStatus（纯函数）
