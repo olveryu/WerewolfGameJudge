@@ -3135,10 +3135,70 @@ commit P7-4: chore(game-engine): rename v2 → canonical, run knip cleanup
 | P5       | 5       | 4        | 3        | 0        | +300                        |
 | P6       | 4       | 0        | 6        | 0        | ±0                          |
 | P7       | 4       | 0        | 3        | 36+      | **−2000**                   |
-| **合计** | **37**  | **11**   | **34**   | **36+**  | **+800 → −2000 净减 ~1200** |
+| P8       | 3       | 0        | 10+      | 2+       | **−500**                    |
+| **合计** | **40**  | **11**   | **44+**  | **38+**  | **+800 → −2500 净减 ~1700** |
 
 > **关键里程碑**：
 >
 > - P1-4 完成后：genericResolver 为止，每次 push 仍可部署上线
 > - P5-4 完成后：V2 接管步骤排序和 schema，第一次真正删除 V1 数据流
 > - P7-4 完成后：项目中不再存在 V1 代码，新增角色仅需编辑 specs.ts
+> - P8 完成后：所有 V1 兼容层彻底删除，spec.types.ts 消失，schemas.ts 从手写 ~500 行变为 V2 派生 ~40 行
+
+---
+
+#### P8: V1 兼容层清除（3 commits）
+
+> **背景**：P7 原计划"删除 V1 + 重命名 v2 → canonical"，但实际保留了 4 个 V1 兼容文件：
+> `specs.ts`（600+ 行手写数据）、`spec.types.ts`（V1 type 定义）、`schemas.ts`（500 行手写 schema）、
+> `nightSteps.ts`（V2 adapter）。P8 彻底消除前三个的 V1 残留。
+
+```
+commit P8-A: refactor(game-engine): switch specs + helpers to V2 re-exports ✅
+  [files]
+    ~ packages/game-engine/src/models/roles/spec/specs.ts         (687→68 行，V2 re-export)
+    ~ packages/game-engine/src/models/roles/spec/index.ts         (删除 export * from spec.types)
+    ~ packages/game-engine/src/models/roles/index.ts              (helpers 用 V2 recognition/immunities)
+    ~ packages/game-engine/src/models/roles/spec/v2/roleSpec.types.ts  (接管 RoleDescription 定义)
+    ~ src/components/RoleDescriptionView.tsx                      (import 改 V2)
+    ~ src/components/__tests__/RoleDescriptionView.test.tsx        (import 改 V2)
+    ~ packages/game-engine/src/models/roles/spec/__tests__/specs.contract.test.ts
+    ~ packages/game-engine/src/models/roles/spec/__tests__/structuredDescription.contract.test.ts
+    ~ packages/game-engine/src/models/roles/spec/v2/__tests__/v2Specs.contract.test.ts
+  [内容]
+    specs.ts 从 687 行完整手写数据改为 `ROLE_SPECS = ROLE_SPECS_V2` re-export + 6 个 helper 函数。
+    roles/index.ts 的 canRoleSeeWolves / doesRoleParticipateInWolfVote / getWolfKillImmuneRoleIds
+    全部从 V1 wolfMeeting/flags 切换到 V2 recognition/immunities。
+    RoleDescription 从 spec.types.ts 移入 v2/roleSpec.types.ts（打断 V2→V1 依赖）。
+    spec/index.ts 删除 `export * from './spec.types'`。
+    contract tests 全部改为 V2 字段 + 自洽性测试。
+  [verify] npx tsc --noEmit (clean)
+  [risk] 中 — helpers 语义切换需验证所有消费者
+
+commit P8-B: refactor(game-engine): derive SCHEMAS from V2 specs
+  [files]
+    ~ packages/game-engine/src/models/roles/spec/schemas.ts       (496→~40 行，V2 派生)
+    ~ packages/game-engine/src/engine/handlers/actionGuards.ts     (3 处类型简化)
+    ~ packages/game-engine/src/models/roles/spec/__tests__/schemas.contract.test.ts
+    ~ src/screens/RoomScreen/hooks/__tests__/useRoomActions.witchSchema.contract.test.ts
+  [内容]
+    schemas.ts 删除 ~470 行手写 SCHEMAS 常量，改为模块初始化时调用
+    buildSchemasFromV2() 生成。SchemaId 改为 NightStepId re-export。
+    getSchema() 返回类型从 generic 窄字面量简化为 ActionSchema。
+    actionGuards.ts 的 (typeof SCHEMAS)[SchemaId] → ActionSchema。
+    test 中 SCHEMAS.witchAction.steps → (SCHEMAS.witchAction as CompoundSchema).steps。
+  [verify] pnpm run test:all + npx tsc --noEmit
+  [risk] 中 — SchemaId 类型变宽，需验证所有 discriminant switch
+
+commit P8-C: chore(game-engine): delete spec.types.ts + barrel cleanup
+  [files]
+    - packages/game-engine/src/models/roles/spec/spec.types.ts     (删除)
+    - scripts/_tmp_rewrite_specs.py                                 (删除临时脚本)
+    ~ packages/game-engine/src/models/roles/spec/index.ts           (barrel 更新)
+  [内容]
+    spec.types.ts 已无消费者（RoleDescription 在 P8-A 移入 V2），删除。
+    删除 P8-A 中产生的临时 Python 脚本。
+    运行 knip 清理残余未使用导出。
+  [verify] pnpm run quality
+  [risk] 低 — 纯清理
+```
