@@ -1,7 +1,7 @@
 /**
  * RoleDetailSheet — 角色详情底部面板
  *
- * 底部滑入的 Modal 面板，展示角色完整信息：badge 大图 + emoji + 角色名 + 阵营 +
+ * 底部滑入的 Modal 面板，展示角色完整信息：badge 大图 + 角色名 + 阵营 +
  * structuredDescription（复用 RoleDescriptionView）+ 能力 tag chips。
  * 纯展示组件，不 import service，不含业务逻辑。
  */
@@ -104,7 +104,6 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
             <View style={[styles.heroSection, { backgroundColor: withAlpha(factionColor, 0.06) }]}>
               <Image source={getRoleBadge(roleId)} style={styles.heroBadge} />
               <View style={styles.heroInfo}>
-                <Text style={styles.heroEmoji}>{spec.emoji}</Text>
                 <Text style={[styles.heroName, { color: colors.text }]}>{spec.displayName}</Text>
                 {englishName && (
                   <Text style={[styles.heroEnglishName, { color: colors.textSecondary }]}>
@@ -211,10 +210,6 @@ function createStyles(colors: ThemeColors) {
       flex: 1,
       marginLeft: spacing.medium,
       alignItems: 'flex-start',
-    },
-    heroEmoji: {
-      fontSize: typography.heading,
-      marginBottom: spacing.micro,
     },
     heroName: {
       ...textStyles.titleBold,
