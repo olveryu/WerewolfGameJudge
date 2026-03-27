@@ -108,6 +108,8 @@ export function useRoomSeatDialogs({
           setPendingSeat(null);
         } else {
           roomScreenLog.warn('[SeatDialogs] takeSeat failed (occupied)', { seat });
+          setSeatModalVisible(false);
+          setPendingSeat(null);
           showAlert('入座失败', `${seat + 1}号座位已被占用，请选择其他位置。`);
         }
       })

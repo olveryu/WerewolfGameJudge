@@ -167,11 +167,12 @@ describe('useRoomSeatDialogs', () => {
       expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
       expect(result.current.isSeatSubmitting).toBe(true);
 
-      // Flush — failure keeps modal open + shows alert
+      // Flush — failure closes modal + shows alert
       await act(async () => {
         await mockTakeSeat.mock.results[0].value;
       });
-      expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
+      expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
+      expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
       expect(result.current.isSeatSubmitting).toBe(false);
       expect(mockShowAlert).toHaveBeenCalledWith('入座失败', '5号座位已被占用，请选择其他位置。');
     });
