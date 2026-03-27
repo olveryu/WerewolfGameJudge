@@ -11,10 +11,10 @@
  * - charm: 魅惑目标（wolfQueen — writeSlot 的语义变体）
  * - block: 封锁目标技能（nightmare）
  * - learn: 学习目标身份和技能（wolfRobot）
- * - hypnotize: 催眠多目标（piper）
- * - convert: 转化目标阵营（awakenedGargoyle）
+ * - confirm: 确认类（hunter/darkWolfKing/avenger）
  *
- * 不处理：witch（compound 双步骤）、wolf（投票聚合）、shadow（跨角色联动）。
+ * 不处理：witch（compound 双步骤）、wolf（投票聚合）、shadow（跨角色联动）、
+ * piper（多目标 + 累积催眠）、magician（swap 双目标）、awakenedGargoyle（转化逻辑）。
  * 这些角色保留 customResolver。
  */
 
@@ -252,31 +252,6 @@ function processLearn(
 }
 
 /**
- * hypnotize: 催眠多目标（piper）
- */
-function processHypnotize(
-  _ability: ActiveAbility,
-  _context: ResolverContext,
-  input: ActionInput,
-  _target: number,
-): ResolverResult {
-  // Piper uses multiChooseSeat — targets come from input.targets
-  const targets = input.targets;
-  if (!targets || targets.length === 0) {
-    return { valid: true, result: {} };
-  }
-
-  // Deduplicate
-  const uniqueTargets = [...new Set(targets)];
-
-  return {
-    valid: true,
-    updates: { hypnotizedSeats: uniqueTargets },
-    result: { hypnotizedTargets: uniqueTargets },
-  };
-}
-
-/**
  * confirm: 确认类（hunter/darkWolfKing confirm status）
  */
 function processConfirm(
@@ -301,7 +276,6 @@ const EFFECT_PROCESSORS: Record<string, EffectProcessor> = {
   check: processCheck,
   block: processBlock,
   learn: processLearn,
-  hypnotize: processHypnotize,
   confirm: processConfirm,
 };
 
@@ -373,14 +347,9 @@ export function createGenericResolver(roleId: string, abilityIndex = 0): Resolve
 // =============================================================================
 
 /**
- * Extract target from input based on action kind.
- * multiChooseSeat uses targets[0] as primary (for constraint validation),
- * but the full targets array is passed via input.
+ * Extract target from input.
  */
-function getTarget(ability: ActiveAbility, input: ActionInput): number | undefined {
-  if (ability.actionKind === 'multiChooseSeat') {
-    return input.targets?.[0];
-  }
+function getTarget(_ability: ActiveAbility, input: ActionInput): number | undefined {
   return input.target;
 }
 

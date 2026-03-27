@@ -535,60 +535,6 @@ describe('genericResolver: learn effect', () => {
 });
 
 // =============================================================================
-// hypnotize effect tests
-// =============================================================================
-
-describe('genericResolver: hypnotize effect', () => {
-  const resolver = createGenericResolver('piper');
-
-  it('should write hypnotizedSeats from targets', () => {
-    const players = createPlayers({ 5: 'piper' });
-    const ctx = createContext({
-      actorSeat: 5,
-      actorRoleId: 'piper' as RoleId,
-      players,
-    });
-    const result = resolver(
-      ctx,
-      createInput('piperHypnotize', undefined, {
-        targets: [3, 4],
-      }),
-    );
-    expect(result.valid).toBe(true);
-    expect(result.updates?.hypnotizedSeats).toEqual([3, 4]);
-    expect(result.result?.hypnotizedTargets).toEqual([3, 4]);
-  });
-
-  it('should deduplicate targets', () => {
-    const players = createPlayers({ 5: 'piper' });
-    const ctx = createContext({
-      actorSeat: 5,
-      actorRoleId: 'piper' as RoleId,
-      players,
-    });
-    const result = resolver(
-      ctx,
-      createInput('piperHypnotize', undefined, {
-        targets: [3, 3],
-      }),
-    );
-    expect(result.valid).toBe(true);
-    expect(result.updates?.hypnotizedSeats).toEqual([3]);
-  });
-
-  it('should allow skip', () => {
-    const players = createPlayers({ 5: 'piper' });
-    const ctx = createContext({
-      actorSeat: 5,
-      actorRoleId: 'piper' as RoleId,
-      players,
-    });
-    const result = resolver(ctx, createInput('piperHypnotize'));
-    expect(result.valid).toBe(true);
-  });
-});
-
-// =============================================================================
 // createGenericResolver error handling
 // =============================================================================
 
