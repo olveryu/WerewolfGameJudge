@@ -5,8 +5,8 @@
  * 仅包含 StepSpec 类型定义，不依赖 service、不含副作用。
  */
 
-import type { SchemaId } from './v2/schemas';
-import type { RoleId } from './v2/specs';
+import type { SchemaId } from './schemas';
+import type { RoleId } from './specs';
 
 /**
  * 夜晚步骤规格

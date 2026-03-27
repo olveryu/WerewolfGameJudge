@@ -7,9 +7,9 @@
  */
 
 import { type RevealKind, type SchemaId, SCHEMAS } from '../../models';
-import type { ActiveAbility, LearnEffect } from '../../models/roles/spec/v2/ability.types';
-import type { RoleSpec } from '../../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS } from '../../models/roles/spec/v2/specs';
+import type { ActiveAbility, LearnEffect } from '../../models/roles/spec/ability.types';
+import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { ResolverResult } from '../../resolvers/types';
 import type { ApplyResolverResultAction } from '../reducer/types';
 

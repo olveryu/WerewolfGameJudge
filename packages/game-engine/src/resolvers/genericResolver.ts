@@ -20,11 +20,11 @@
 
 import type { RoleId } from '../models';
 import { getSeerCheckResultForTeam } from '../models/roles/spec';
+import type { ActiveAbility, CheckEffect } from '../models/roles/spec/ability.types';
+import { TargetConstraint } from '../models/roles/spec/ability.types';
+import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
+import { ROLE_SPECS } from '../models/roles/spec/specs';
 import { Team } from '../models/roles/spec/types';
-import type { ActiveAbility, CheckEffect } from '../models/roles/spec/v2/ability.types';
-import { TargetConstraint } from '../models/roles/spec/v2/ability.types';
-import type { RoleSpec } from '../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS } from '../models/roles/spec/v2/specs';
 import { validateConstraints } from './constraintValidator';
 import { invertCheckResult } from './shared';
 import type { ActionInput, ResolverContext, ResolverFn, ResolverResult } from './types';

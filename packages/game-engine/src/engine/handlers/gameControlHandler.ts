@@ -12,8 +12,8 @@
 
 import { GameStatus, type RoleId } from '../../models';
 import { buildNightPlan, getStepSpec } from '../../models/roles/spec';
-import type { RoleSpec } from '../../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS } from '../../models/roles/spec/v2/specs';
+import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { randomHex } from '../../utils/id';

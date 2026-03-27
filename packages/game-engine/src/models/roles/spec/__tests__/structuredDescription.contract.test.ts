@@ -6,9 +6,9 @@
  */
 
 import { getAllRoleIds, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles/spec';
+import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
+import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 import { getRoleStructuredDescription } from '@werewolf/game-engine/models/roles/spec/specs';
-import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
-import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
 
 /** Valid field keys in RoleDescription */
 const VALID_FIELDS: readonly (keyof RoleDescription)[] = [
