@@ -594,7 +594,7 @@ describe('genericResolver: hypnotize effect', () => {
 
 describe('genericResolver: error handling', () => {
   it('should throw for non-existent role', () => {
-    expect(() => createGenericResolver('nonexistent')).toThrow('not found in ROLE_SPECS_V2');
+    expect(() => createGenericResolver('nonexistent')).toThrow('not found in ROLE_SPECS');
   });
 
   it('should throw for role without active ability', () => {

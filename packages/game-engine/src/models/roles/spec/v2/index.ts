@@ -1,7 +1,7 @@
 /**
  * V2 Role Spec Module — Public API
  *
- * Re-exports all V2 types and the ROLE_SPECS_V2 registry.
+ * Re-exports all types and the ROLE_SPECS registry.
  */
 
 // Ability system types
@@ -42,14 +42,14 @@ export type {
 export { TargetConstraint } from './ability.types';
 
 // Role spec types
-export type { DeathCalcRole, NightStepDef, RoleDescription, RoleSpecV2 } from './roleSpec.types';
+export type { DeathCalcRole, NightStepDef, RoleDescription, RoleSpec } from './roleSpec.types';
 
 // Specs registry
-export type { RoleIdV2 } from './specs';
-export { ROLE_SPECS_V2 } from './specs';
+export type { RoleId } from './specs';
+export { ROLE_SPECS } from './specs';
 
 // Night plan builder
-export { buildNightPlanFromV2, NIGHT_STEP_ORDER } from './nightPlan';
+export { buildNightPlan, NIGHT_STEP_ORDER, type NightStepId } from './nightPlan';
 
 // Schemas builder
-export { buildSchemasFromV2 } from './schemas';
+export { buildSchemas } from './schemas';

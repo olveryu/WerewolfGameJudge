@@ -52,7 +52,7 @@ export {
 // ============================================================
 import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec/specs';
 import { Team } from './spec/types';
-import type { RoleSpecV2 } from './spec/v2/roleSpec.types';
+import type { RoleSpec } from './spec/v2/roleSpec.types';
 
 // ============================================================
 // Display Name Helpers (UI-facing)
@@ -92,7 +92,7 @@ export function isWolfRole(roleId: string): boolean {
  */
 export function canRoleSeeWolves(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec: RoleSpecV2 = getRoleSpec(roleId);
+  const spec: RoleSpec = getRoleSpec(roleId);
   return spec.recognition?.canSeeWolves ?? false;
 }
 
@@ -107,7 +107,7 @@ export function canRoleSeeWolves(roleId: string): boolean {
  */
 export function doesRoleParticipateInWolfVote(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec: RoleSpecV2 = getRoleSpec(roleId);
+  const spec: RoleSpec = getRoleSpec(roleId);
 
   // Participation is explicitly configured per role (single source of truth).
   // We intentionally do NOT infer from team/faction here.
@@ -130,7 +130,7 @@ export function getWolfRoleIds(): RoleId[] {
  */
 export function getWolfKillImmuneRoleIds(): RoleId[] {
   return getAllRoleIds().filter((id) => {
-    const spec: RoleSpecV2 = ROLE_SPECS[id];
+    const spec: RoleSpec = ROLE_SPECS[id];
     return spec.immunities?.some((i) => i.kind === 'wolfAttack') === true;
   });
 }

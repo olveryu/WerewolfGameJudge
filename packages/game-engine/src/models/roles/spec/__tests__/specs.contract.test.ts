@@ -18,7 +18,7 @@ import {
 } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
-import type { RoleSpecV2 } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
+import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
 
 describe('ROLE_SPECS contract', () => {
   it('should have exactly 36 roles', () => {
@@ -26,7 +26,7 @@ describe('ROLE_SPECS contract', () => {
   });
 
   it('every role should have required fields', () => {
-    for (const [id, spec] of Object.entries(ROLE_SPECS) as [RoleId, RoleSpecV2][]) {
+    for (const [id, spec] of Object.entries(ROLE_SPECS) as [RoleId, RoleSpec][]) {
       expect(spec.id).toBe(id);
       expect(spec.displayName).toBeTruthy();
       expect(spec.faction).toBeDefined();
@@ -211,7 +211,7 @@ describe('ROLE_SPECS contract', () => {
 
     it('wolf pack members should see wolves and participate in vote', () => {
       for (const roleId of wolfPackMembers) {
-        const spec: RoleSpecV2 = ROLE_SPECS[roleId];
+        const spec: RoleSpec = ROLE_SPECS[roleId];
         expect(spec.recognition?.canSeeWolves).toBe(true);
         expect(spec.recognition?.participatesInWolfVote).toBe(true);
       }
@@ -219,7 +219,7 @@ describe('ROLE_SPECS contract', () => {
 
     it('lone wolves should not see wolves and not participate in vote', () => {
       for (const roleId of loneWolves) {
-        const spec: RoleSpecV2 = ROLE_SPECS[roleId];
+        const spec: RoleSpec = ROLE_SPECS[roleId];
         expect(spec.recognition?.canSeeWolves).toBe(false);
         expect(spec.recognition?.participatesInWolfVote).toBe(false);
       }

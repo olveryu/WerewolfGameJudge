@@ -1,16 +1,14 @@
 /**
- * V2 Night Plan Builder — 从 ROLE_SPECS_V2 构建夜晚行动序列
+ * Night Plan Builder — 从 ROLE_SPECS 构建夜晚行动序列
  *
- * 替代 V1 的 buildNightPlan（依赖 NIGHT_STEPS 数组）。
  * NIGHT_STEP_ORDER 定义全局步骤执行顺序，各角色的 nightSteps 提供步骤详情。
- * 导出 buildNightPlanFromV2 纯函数，不依赖 service、不含副作用或 IO。
+ * 导出 buildNightPlan 纯函数，不依赖 service、不含副作用或 IO。
  */
 
 import type { NightPlan, NightPlanStep } from '../plan.types';
 import { NightPlanBuildError } from '../plan.types';
-import type { RoleId } from '../specs';
-import type { NightStepDef, RoleSpecV2 } from './roleSpec.types';
-import { ROLE_SPECS_V2 } from './specs';
+import type { NightStepDef, RoleSpec } from './roleSpec.types';
+import { ROLE_SPECS, type RoleId } from './specs';
 
 // =============================================================================
 // NIGHT_STEP_ORDER — 全局步骤执行顺序（单一真相）
@@ -79,26 +77,26 @@ export type NightStepId = (typeof NIGHT_STEP_ORDER_INTERNAL)[number];
 // Builder
 // =============================================================================
 
-type V2RoleId = keyof typeof ROLE_SPECS_V2;
+type SpecRoleId = keyof typeof ROLE_SPECS;
 
-function isValidV2RoleId(id: string): id is V2RoleId {
-  return id in ROLE_SPECS_V2;
+function isValidSpecRoleId(id: string): id is SpecRoleId {
+  return id in ROLE_SPECS;
 }
 
 /**
- * Build night plan from template roles using V2 spec data.
+ * Build night plan from template roles.
  *
  * @param templateRoles - Array of role IDs in the template (must be canonical RoleIds)
  * @param seerLabelMap - Optional label numbers for seer-like roles (for display ordering)
  * @returns NightPlan with ordered steps
  * @throws NightPlanBuildError if any roleId is invalid (fail-fast)
  */
-export function buildNightPlanFromV2(
+export function buildNightPlan(
   templateRoles: readonly string[],
   seerLabelMap?: Readonly<Record<string, number>>,
 ): NightPlan {
   // Fail-fast: validate all roleIds
-  const invalidRoleIds = templateRoles.filter((id) => !isValidV2RoleId(id));
+  const invalidRoleIds = templateRoles.filter((id) => !isValidSpecRoleId(id));
   if (invalidRoleIds.length > 0) {
     throw new NightPlanBuildError(
       `Invalid roleIds in template: ${invalidRoleIds.join(', ')}. All roleIds must be canonical.`,
@@ -110,15 +108,15 @@ export function buildNightPlanFromV2(
 
   // Check if any wolf participates in vote (for wolfKill step inclusion)
   const hasWolfVotingParticipant = templateRoles.some((roleId) => {
-    const spec: RoleSpecV2 = ROLE_SPECS_V2[roleId as V2RoleId];
+    const spec: RoleSpec = ROLE_SPECS[roleId as SpecRoleId];
     return spec.recognition?.participatesInWolfVote === true;
   });
 
-  // Collect step definitions from V2 specs
+  // Collect step definitions from specs
   const stepMap = new Map<string, { roleId: string; stepDef: NightStepDef }>();
 
-  for (const roleId of Object.keys(ROLE_SPECS_V2) as V2RoleId[]) {
-    const spec: RoleSpecV2 = ROLE_SPECS_V2[roleId];
+  for (const roleId of Object.keys(ROLE_SPECS) as SpecRoleId[]) {
+    const spec: RoleSpec = ROLE_SPECS[roleId];
     if (!spec.nightSteps) continue;
 
     // wolfKill special case: include wolf's steps only if any wolf votes
@@ -137,7 +135,7 @@ export function buildNightPlanFromV2(
   let steps: NightPlanStep[] = NIGHT_STEP_ORDER.filter((stepId) => stepMap.has(stepId)).map(
     (stepId, idx) => {
       const { roleId, stepDef } = stepMap.get(stepId)!;
-      const spec: RoleSpecV2 = ROLE_SPECS_V2[roleId as V2RoleId];
+      const spec: RoleSpec = ROLE_SPECS[roleId as SpecRoleId];
       return {
         roleId: roleId as RoleId,
         stepId: stepId as NightStepId,

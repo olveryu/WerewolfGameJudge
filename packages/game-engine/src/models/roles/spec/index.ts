@@ -4,7 +4,7 @@
  * This module exports the declarative role specification system:
  * - Types: Faction, Team, RoleSpec, ActionSchema, NightPlan
  * - Registries: ROLE_SPECS, SCHEMAS
- * - Builders: buildNightPlan
+ * - Builders: buildNightPlan, buildSchemas
  * - Utils: isValidRoleId, isValidSchemaId, getSeerCheckResultForTeam
  *
  * IMPORTANT: This module does NOT export resolvers.
@@ -18,7 +18,7 @@ export * from './types';
 export * from './schema.types';
 export * from './schemas';
 
-// Spec registry (V2-based)
+// Spec registry
 export * from './specs';
 
 // Night steps types and registry
@@ -28,3 +28,6 @@ export * from './nightSteps.types';
 // Night plan types and builder
 export * from './plan';
 export * from './plan.types';
+
+// V2 core re-exports (NIGHT_STEP_ORDER, NightStepId, buildSchemas, ability types)
+export { buildSchemas, NIGHT_STEP_ORDER, type NightStepId } from './v2';

@@ -12,8 +12,8 @@
 
 import { GameStatus, type RoleId } from '../../models';
 import { buildNightPlan, getStepSpec } from '../../models/roles/spec';
-import type { RoleSpecV2 } from '../../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS_V2 } from '../../models/roles/spec/v2/specs';
+import type { RoleSpec } from '../../models/roles/spec/v2/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/v2/specs';
 import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { randomHex } from '../../utils/id';
@@ -109,7 +109,7 @@ export function handleAssignRoles(
     ...new Set(
       shuffledRoles.filter((r) => {
         if (r === 'seer') return true;
-        const spec = ROLE_SPECS_V2[r as keyof typeof ROLE_SPECS_V2] as RoleSpecV2 | undefined;
+        const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
         return spec?.tags?.includes('seerFamily') === true;
       }),
     ),

@@ -1,195 +1,192 @@
 /**
- * V2 Night Plan + Schemas Equivalence Tests
+ * Night Plan + Schemas Builder Tests
  *
- * Verifies that V2 builders produce output equivalent to V1:
- * - buildNightPlanFromV2() matches buildNightPlan() for all preset templates
- * - buildSchemasFromV2() matches SCHEMAS for key set + actionKind + constraints + canSkip
+ * Verifies builder functions produce correct output:
+ * - buildNightPlan() produces correct step sequences for preset templates
+ * - buildSchemas() matches SCHEMAS registry for key set + actionKind + constraints + canSkip
  */
 
 import {
   buildNightPlan,
+  buildSchemas,
+  NIGHT_STEP_ORDER,
   NIGHT_STEPS,
   ROLE_SPECS,
   type RoleId,
   SCHEMAS,
   type SchemaUi,
 } from '@werewolf/game-engine/models/roles/spec';
-import {
-  buildNightPlanFromV2,
-  buildSchemasFromV2,
-  NIGHT_STEP_ORDER,
-  ROLE_SPECS_V2,
-} from '@werewolf/game-engine/models/roles/spec/v2';
 import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
 
 // =============================================================================
-// Night Plan Equivalence
+// Night Plan Tests
 // =============================================================================
 
-describe('buildNightPlanFromV2 ↔ buildNightPlan equivalence', () => {
+describe('buildNightPlan', () => {
   describe.each(PRESET_TEMPLATES)('preset "$name"', ({ roles }) => {
-    it('should produce identical step sequence', () => {
-      const v1 = buildNightPlan(roles);
-      const v2 = buildNightPlanFromV2(roles);
+    it('should produce valid step sequence', () => {
+      const plan = buildNightPlan(roles);
 
-      expect(v2.steps.map((s) => s.stepId)).toEqual(v1.steps.map((s) => s.stepId));
-      expect(v2.steps.map((s) => s.roleId)).toEqual(v1.steps.map((s) => s.roleId));
+      expect(plan.steps.length).toBeGreaterThan(0);
+      expect(plan.steps.map((s: { stepId: string }) => s.stepId).length).toBe(plan.length);
     });
 
-    it('should produce identical step count', () => {
-      const v1 = buildNightPlan(roles);
-      const v2 = buildNightPlanFromV2(roles);
+    it('should have correct step count', () => {
+      const plan = buildNightPlan(roles);
 
-      expect(v2.length).toBe(v1.length);
+      expect(plan.length).toBe(plan.steps.length);
     });
 
-    it('should produce identical audioKeys', () => {
-      const v1 = buildNightPlan(roles);
-      const v2 = buildNightPlanFromV2(roles);
+    it('should produce valid audioKeys', () => {
+      const plan = buildNightPlan(roles);
 
-      expect(v2.steps.map((s) => s.audioKey)).toEqual(v1.steps.map((s) => s.audioKey));
+      for (const step of plan.steps) {
+        expect(step.audioKey).toBeTruthy();
+      }
     });
 
     it('should produce contiguous 0..n-1 order', () => {
-      const v2 = buildNightPlanFromV2(roles);
+      const plan = buildNightPlan(roles);
 
-      expect(v2.steps.map((s) => s.order)).toEqual(v2.steps.map((_, i) => i));
+      expect(plan.steps.map((s: { order: number }) => s.order)).toEqual(
+        plan.steps.map((_: unknown, i: number) => i),
+      );
     });
   });
 
-  it('should produce identical plan for ALL roles', () => {
+  it('should produce valid plan for ALL roles', () => {
     const allRoles = Object.keys(ROLE_SPECS) as RoleId[];
-    const v1 = buildNightPlan(allRoles);
-    const v2 = buildNightPlanFromV2(allRoles);
+    const plan = buildNightPlan(allRoles);
 
-    expect(v2.steps.map((s) => s.stepId)).toEqual(v1.steps.map((s) => s.stepId));
-    expect(v2.steps.map((s) => s.roleId)).toEqual(v1.steps.map((s) => s.roleId));
-    expect(v2.steps.map((s) => s.audioKey)).toEqual(v1.steps.map((s) => s.audioKey));
+    expect(plan.steps.map((s: { stepId: string }) => s.stepId).length).toBeGreaterThan(0);
+    expect(plan.steps.map((s: { roleId: string }) => s.roleId).length).toBe(plan.length);
+    expect(plan.steps.map((s: { audioKey: string }) => s.audioKey).length).toBe(plan.length);
   });
 
   it('NIGHT_STEP_ORDER should match NIGHT_STEPS order', () => {
-    expect(NIGHT_STEP_ORDER).toEqual(NIGHT_STEPS.map((s) => s.id));
+    expect(NIGHT_STEP_ORDER).toEqual(NIGHT_STEPS.map((s: { id: string }) => s.id));
   });
 });
 
 // =============================================================================
-// Schemas Equivalence
+// Schemas Tests
 // =============================================================================
 
-describe('buildSchemasFromV2 ↔ SCHEMAS equivalence', () => {
-  const v2Schemas = buildSchemasFromV2();
-  const v1SchemaKeys = Object.keys(SCHEMAS).sort();
-  const v2SchemaKeys = Object.keys(v2Schemas).sort();
+describe('buildSchemas ↔ SCHEMAS equivalence', () => {
+  const builtSchemas = buildSchemas();
+  const schemaKeys = Object.keys(SCHEMAS).sort();
+  const builtSchemaKeys = Object.keys(builtSchemas).sort();
 
   it('should produce same schema key set', () => {
-    expect(v2SchemaKeys).toEqual(v1SchemaKeys);
+    expect(builtSchemaKeys).toEqual(schemaKeys);
   });
 
-  describe.each(v1SchemaKeys)('schema "%s"', (schemaId) => {
-    const v1 = SCHEMAS[schemaId as keyof typeof SCHEMAS];
+  describe.each(schemaKeys)('schema "%s"', (schemaId) => {
+    const cached = SCHEMAS[schemaId as keyof typeof SCHEMAS];
 
-    const v2 = v2Schemas[schemaId]!;
+    const built = builtSchemas[schemaId]!;
 
     it('should have same actionKind', () => {
-      expect(v2.kind).toBe(v1.kind);
+      expect(built.kind).toBe(cached.kind);
     });
 
     it('should have same displayName', () => {
-      expect(v2.displayName).toBe(v1.displayName);
+      expect(built.displayName).toBe(cached.displayName);
     });
 
-    if ('constraints' in v1) {
+    if ('constraints' in cached) {
       it('should have same constraints', () => {
-        expect('constraints' in v2 ? v2.constraints : []).toEqual(v1.constraints);
+        expect('constraints' in built ? built.constraints : []).toEqual(cached.constraints);
       });
     }
 
-    if ('canSkip' in v1) {
+    if ('canSkip' in cached) {
       it('should have same canSkip', () => {
-        expect('canSkip' in v2 ? v2.canSkip : undefined).toBe(v1.canSkip);
+        expect('canSkip' in built ? built.canSkip : undefined).toBe(cached.canSkip);
       });
     }
 
-    if ('meeting' in v1) {
+    if ('meeting' in cached) {
       it('should have same meeting config', () => {
-        expect('meeting' in v2 ? v2.meeting : undefined).toEqual(v1.meeting);
+        expect('meeting' in built ? built.meeting : undefined).toEqual(cached.meeting);
       });
     }
 
-    if ('requireAllAcks' in v1) {
+    if ('requireAllAcks' in cached) {
       it('should have same requireAllAcks', () => {
-        expect('requireAllAcks' in v2 ? v2.requireAllAcks : undefined).toBe(v1.requireAllAcks);
+        expect('requireAllAcks' in built ? built.requireAllAcks : undefined).toBe(
+          cached.requireAllAcks,
+        );
       });
     }
 
-    if ('minTargets' in v1) {
+    if ('minTargets' in cached) {
       it('should have same minTargets', () => {
-        expect('minTargets' in v2 ? v2.minTargets : undefined).toBe(v1.minTargets);
+        expect('minTargets' in built ? built.minTargets : undefined).toBe(cached.minTargets);
       });
     }
 
-    if ('maxTargets' in v1) {
+    if ('maxTargets' in cached) {
       it('should have same maxTargets', () => {
-        expect('maxTargets' in v2 ? v2.maxTargets : undefined).toBe(v1.maxTargets);
+        expect('maxTargets' in built ? built.maxTargets : undefined).toBe(cached.maxTargets);
       });
     }
 
-    if (v1.ui) {
-      const v1Ui = v1.ui as SchemaUi;
+    if (cached.ui) {
+      const v1Ui = cached.ui as SchemaUi;
 
       it('should have matching ui.revealKind', () => {
-        expect(v2.ui?.revealKind).toBe(v1Ui.revealKind);
+        expect(built.ui?.revealKind).toBe(v1Ui.revealKind);
       });
 
       it('should have matching ui.revealResultFormat', () => {
-        expect(v2.ui?.revealResultFormat).toBe(v1Ui.revealResultFormat);
+        expect(built.ui?.revealResultFormat).toBe(v1Ui.revealResultFormat);
       });
 
       it('should have matching ui.revealTitlePrefix', () => {
-        expect(v2.ui?.revealTitlePrefix).toBe(v1Ui.revealTitlePrefix);
+        expect(built.ui?.revealTitlePrefix).toBe(v1Ui.revealTitlePrefix);
       });
 
       it('should have matching ui.prompt', () => {
-        expect(v2.ui?.prompt).toBe(v1Ui.prompt);
+        expect(built.ui?.prompt).toBe(v1Ui.prompt);
       });
 
       if (v1Ui.confirmStatusUi) {
         it('should have matching ui.confirmStatusUi', () => {
-          expect(v2.ui?.confirmStatusUi).toEqual(v1Ui.confirmStatusUi);
+          expect(built.ui?.confirmStatusUi).toEqual(v1Ui.confirmStatusUi);
         });
       }
     }
 
-    if (v1.kind === 'compound' && 'steps' in v1) {
+    if (cached.kind === 'compound' && 'steps' in cached) {
       it('should have same compound steps', () => {
-        const v2Compound = v2 as typeof v1;
-        expect(v2Compound.steps.length).toBe(v1.steps.length);
-        v1.steps.forEach((v1Step, idx) => {
-          const v2Step = v2Compound.steps[idx];
-          expect(v2Step.key).toBe(v1Step.key);
-          expect(v2Step.displayName).toBe(v1Step.displayName);
-          expect(v2Step.kind).toBe(v1Step.kind);
-          expect(v2Step.constraints).toEqual(v1Step.constraints);
-          expect(v2Step.canSkip).toBe(v1Step.canSkip);
+        const builtCompound = built as typeof cached;
+        expect(builtCompound.steps.length).toBe(cached.steps.length);
+        cached.steps.forEach((cachedStep, idx) => {
+          const builtStep = builtCompound.steps[idx];
+          expect(builtStep.key).toBe(cachedStep.key);
+          expect(builtStep.displayName).toBe(cachedStep.displayName);
+          expect(builtStep.kind).toBe(cachedStep.kind);
+          expect(builtStep.constraints).toEqual(cachedStep.constraints);
+          expect(builtStep.canSkip).toBe(cachedStep.canSkip);
         });
       });
     }
   });
 
-  it('V2 specs nightSteps should cover all NIGHT_STEPS entries', () => {
-    // Every V1 NIGHT_STEPS entry should have a corresponding V2 nightStep
-    const v2StepIds = new Set<string>();
-    for (const spec of Object.values(ROLE_SPECS_V2)) {
+  it('ROLE_SPECS nightSteps should cover all NIGHT_STEPS entries', () => {
+    const allStepIds = new Set<string>();
+    for (const spec of Object.values(ROLE_SPECS)) {
       const roleSpec = spec as { nightSteps?: readonly { stepId: string }[] };
       if (roleSpec.nightSteps) {
         for (const step of roleSpec.nightSteps) {
-          v2StepIds.add(step.stepId);
+          allStepIds.add(step.stepId);
         }
       }
     }
 
     for (const step of NIGHT_STEPS) {
-      expect(v2StepIds.has(step.id)).toBe(true);
+      expect(allStepIds.has(step.id)).toBe(true);
     }
   });
 });

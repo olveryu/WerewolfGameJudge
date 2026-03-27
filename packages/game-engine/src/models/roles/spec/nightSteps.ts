@@ -1,9 +1,5 @@
 /**
- * Night Steps Registry - 夜晚步骤表（V2 adapter）
- *
- * 从 ROLE_SPECS_V2 + NIGHT_STEP_ORDER 动态派生 NIGHT_STEPS 数组和查询函数。
- * 保留原有 StepSpec 接口，供 stepTransitionHandler / actionGuards / gameControlHandler 消费。
- * 不依赖 service、不含副作用，audioKey 不在 specs 中双写。
+ * Night Steps Registry — re-export layer (to be removed in P9-C)
  */
 
 import type { StepSpec } from './nightSteps.types';
@@ -11,19 +7,19 @@ import type { SchemaId } from './schemas';
 import type { RoleId } from './specs';
 import type { NightStepId } from './v2/nightPlan';
 import { NIGHT_STEP_ORDER } from './v2/nightPlan';
-import type { RoleSpecV2 } from './v2/roleSpec.types';
-import { ROLE_SPECS_V2 } from './v2/specs';
+import type { RoleSpec } from './v2/roleSpec.types';
+import { ROLE_SPECS } from './v2/specs';
 
 // =============================================================================
 // Derive NIGHT_STEPS from V2 data
 // =============================================================================
 
-function buildNightStepsFromV2(): readonly StepSpec[] {
+function buildNightSteps(): readonly StepSpec[] {
   const stepIndex = new Map<string, StepSpec>();
 
   // Index all nightSteps from all V2 role specs
-  for (const [roleId, spec] of Object.entries(ROLE_SPECS_V2)) {
-    for (const ns of (spec as RoleSpecV2).nightSteps ?? []) {
+  for (const [roleId, spec] of Object.entries(ROLE_SPECS)) {
+    for (const ns of (spec as RoleSpec).nightSteps ?? []) {
       stepIndex.set(ns.stepId, {
         id: ns.stepId as SchemaId,
         roleId: roleId as RoleId,
@@ -43,7 +39,7 @@ function buildNightStepsFromV2(): readonly StepSpec[] {
 }
 
 /** Exported NIGHT_STEPS — derived from V2 at module init */
-export const NIGHT_STEPS: readonly StepSpec[] = buildNightStepsFromV2();
+export const NIGHT_STEPS: readonly StepSpec[] = buildNightSteps();
 
 // === Helper functions ===
 
