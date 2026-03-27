@@ -49,15 +49,6 @@ export interface NightActions {
   /** Magician swap targets. undefined = not used */
   magicianSwap?: { first: number; second: number };
 
-  /** Seer check target seat. undefined = not used */
-  seerCheck?: number;
-
-  /** Psychic check target seat. undefined = not used */
-  psychicCheck?: number;
-
-  /** PureWhite check target seat. undefined = not used */
-  pureWhiteCheck?: number;
-
   /**
    * Nightmare block target seat. undefined = not used.
    * The blocked player's night skill is nullified for this night.
@@ -72,51 +63,56 @@ export interface NightActions {
 }
 
 /**
+ * Reflection source — a pair of (attacker seat, target seat) where reflection may apply.
+ *
+ * Built externally from NightActions + spec scan; DeathCalculator only loops over the list.
+ * Nightmare-blocked sources are excluded at construction time.
+ */
+export interface ReflectionSource {
+  /** The seat of the role that performed a check or poison action */
+  readonly sourceSeat: number;
+  /** The seat of the target that was checked or poisoned */
+  readonly targetSeat: number;
+}
+
+/**
  * Role seat mapping for context-dependent death rules
  * All seat numbers are 0-based indices. -1 means role not present.
  */
 export interface RoleSeatMap {
   /** Wolf Queen seat (for link death check). -1 if not present */
-  wolfQueen: number;
+  wolfQueenLinkSeat: number;
 
   /** Dreamcatcher seat (for link death check). -1 if not present */
-  dreamcatcher: number;
+  dreamcatcherLinkSeat: number;
 
-  /** Seer seat (for damage reflection). -1 if not present */
-  seer: number;
-
-  /** Psychic seat (for damage reflection). -1 if not present */
-  psychic: number;
-
-  /** PureWhite seat (for damage reflection). -1 if not present */
-  pureWhite: number;
-
-  /** Witch seat (for damage reflection + nightmare block). -1 if not present */
-  witch: number;
+  /** Witch seat (for nightmare block check on poison/save). -1 if not present */
+  poisonSourceSeat: number;
 
   /** Guard seat (for nightmare block check). -1 if not present */
-  guard: number;
+  guardProtectorSeat: number;
 
   /** Seats of roles with immuneToPoison flag (witcher, dancer, masquerade, spiritKnight, etc.) */
   poisonImmuneSeats: number[];
 
   /** Seats of roles with reflectsDamage flag (spiritKnight, etc.) */
   reflectsDamageSeats: number[];
+
+  /** Pre-built reflection pairs (check/poison source → target). Empty = no reflection possible */
+  reflectionSources: readonly ReflectionSource[];
 }
 
 /**
  * Default role seat map (all roles not present)
  */
 const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
-  wolfQueen: -1,
-  dreamcatcher: -1,
-  seer: -1,
-  psychic: -1,
-  pureWhite: -1,
-  witch: -1,
-  guard: -1,
+  wolfQueenLinkSeat: -1,
+  dreamcatcherLinkSeat: -1,
+  poisonSourceSeat: -1,
+  guardProtectorSeat: -1,
   poisonImmuneSeats: [],
   reflectsDamageSeats: [],
+  reflectionSources: [],
 };
 
 // =============================================================================
@@ -181,7 +177,7 @@ function processWolfKill(
   deaths: Set<number>,
 ): void {
   const { wolfKill, guardProtect, witchAction, nightmareBlock, isWolfBlockedByNightmare } = actions;
-  const { guard: guardSeat, witch: witchSeat } = roleSeatMap;
+  const { guardProtectorSeat, poisonSourceSeat } = roleSeatMap;
 
   // Nightmare blocked a wolf on night 1: wolves cannot kill
   if (isWolfBlockedByNightmare) return;
@@ -196,13 +192,15 @@ function processWolfKill(
   // This is a defense layer — upstream actionGuards already prevents blocked
   // players from submitting actions.
   const isGuardBlocked =
-    nightmareBlock !== undefined && guardSeat !== -1 && nightmareBlock === guardSeat;
+    nightmareBlock !== undefined &&
+    guardProtectorSeat !== -1 &&
+    nightmareBlock === guardProtectorSeat;
   const effectiveGuardProtect = isGuardBlocked ? undefined : guardProtect;
   const isGuarded = effectiveGuardProtect === wolfKill;
 
   // Check if witch save is effective (not blocked by nightmare)
   const isWitchBlocked =
-    nightmareBlock !== undefined && witchSeat !== -1 && nightmareBlock === witchSeat;
+    nightmareBlock !== undefined && poisonSourceSeat !== -1 && nightmareBlock === poisonSourceSeat;
   const witchSaveTarget = getWitchSaveTarget(witchAction);
   const effectiveWitchSave = isWitchBlocked ? undefined : witchSaveTarget;
   const isSaved = effectiveWitchSave === wolfKill;
@@ -230,11 +228,11 @@ function processWitchPoison(
   deaths: Set<number>,
 ): void {
   const { nightmareBlock } = actions;
-  const { witch: witchSeat, poisonImmuneSeats } = roleSeatMap;
+  const { poisonSourceSeat, poisonImmuneSeats } = roleSeatMap;
 
   // If witch is blocked by nightmare, poison has no effect
   const isWitchBlocked =
-    nightmareBlock !== undefined && witchSeat !== -1 && nightmareBlock === witchSeat;
+    nightmareBlock !== undefined && poisonSourceSeat !== -1 && nightmareBlock === poisonSourceSeat;
   if (isWitchBlocked) return;
 
   const witchPoisonTarget = getWitchPoisonTarget(actions.witchAction);
@@ -261,7 +259,7 @@ function processWolfQueenLink(
   deaths: Set<number>,
 ): void {
   const { wolfQueenCharm } = actions;
-  const { wolfQueen: queenSeat } = roleSeatMap;
+  const { wolfQueenLinkSeat: queenSeat } = roleSeatMap;
 
   if (wolfQueenCharm === undefined) return;
   if (queenSeat === -1) return;
@@ -285,7 +283,7 @@ function processDreamcatcherEffect(
   deaths: Set<number>,
 ): void {
   const { dreamcatcherDream } = actions;
-  const { dreamcatcher: dreamcatcherSeat } = roleSeatMap;
+  const { dreamcatcherLinkSeat: dreamcatcherSeat } = roleSeatMap;
 
   if (dreamcatcherDream === undefined) return;
 
@@ -299,68 +297,24 @@ function processDreamcatcherEffect(
 }
 
 /**
- * Process damage reflection (flag-driven).
+ * Process damage reflection (driven by pre-built reflectionSources).
  *
- * Roles with reflectsDamage flag reflect non-wolf-faction checks / witch poison back to source.
- * Affected sources: seer, psychic, pureWhite (check), witch (poison).
- * Wolf-faction checks (gargoyle, wolfWitch, wolfRobot) do NOT trigger reflection.
- *
- * Immunity (immuneToWolfKill, immuneToPoison) is handled upstream:
- * - Wolf kill immunity: actionHandler rejects targeting immuneToWolfKill roles
- * - Poison immunity: processWitchPoison skips immuneToPoison roles via poisonImmuneSeats
- *
- * This function only handles the reflection effect (source dies).
+ * Each ReflectionSource represents a check or poison action that may trigger reflection.
+ * If the target seat has reflectsDamage, the source seat dies.
+ * Nightmare-blocked sources are excluded at construction time (not checked here).
  */
 function processReflection(
-  actions: NightActions,
+  _actions: NightActions,
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
 ): void {
-  const { seerCheck, psychicCheck, pureWhiteCheck, witchAction, nightmareBlock } = actions;
-  const witchPoisonTarget = getWitchPoisonTarget(witchAction);
-  const {
-    reflectsDamageSeats,
-    seer: seerSeat,
-    psychic: psychicSeat,
-    pureWhite: pureWhiteSeat,
-    witch: witchSeat,
-  } = roleSeatMap;
+  const { reflectsDamageSeats, reflectionSources } = roleSeatMap;
 
-  if (reflectsDamageSeats.length === 0) return;
+  if (reflectsDamageSeats.length === 0 || reflectionSources.length === 0) return;
 
-  // Seer checks a reflectsDamage target → seer dies by reflection
-  if (seerCheck !== undefined && seerSeat !== -1 && reflectsDamageSeats.includes(seerCheck)) {
-    deaths.add(seerSeat);
-  }
-
-  // Psychic checks a reflectsDamage target → psychic dies by reflection
-  if (
-    psychicCheck !== undefined &&
-    psychicSeat !== -1 &&
-    reflectsDamageSeats.includes(psychicCheck)
-  ) {
-    deaths.add(psychicSeat);
-  }
-
-  // PureWhite checks a reflectsDamage target → pureWhite dies by reflection
-  if (
-    pureWhiteCheck !== undefined &&
-    pureWhiteSeat !== -1 &&
-    reflectsDamageSeats.includes(pureWhiteCheck)
-  ) {
-    deaths.add(pureWhiteSeat);
-  }
-
-  // Witch poisons a reflectsDamage target → witch dies by reflection
-  // (only if witch is not blocked by nightmare — blocked witch cannot act)
-  if (
-    witchPoisonTarget !== undefined &&
-    witchSeat !== -1 &&
-    reflectsDamageSeats.includes(witchPoisonTarget)
-  ) {
-    const isWitchBlocked = nightmareBlock !== undefined && nightmareBlock === witchSeat;
-    if (!isWitchBlocked) {
-      deaths.add(witchSeat);
+  for (const { sourceSeat, targetSeat } of reflectionSources) {
+    if (reflectsDamageSeats.includes(targetSeat)) {
+      deaths.add(sourceSeat);
     }
   }
 }

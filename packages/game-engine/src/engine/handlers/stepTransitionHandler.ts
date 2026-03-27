@@ -22,7 +22,12 @@ import {
   SCHEMAS,
 } from '../../models';
 import type { WitchAction } from '../../models/actions/WitchAction';
-import { makeWitchNone, makeWitchPoison, makeWitchSave } from '../../models/actions/WitchAction';
+import {
+  getWitchPoisonTarget,
+  makeWitchNone,
+  makeWitchPoison,
+  makeWitchSave,
+} from '../../models/actions/WitchAction';
 import {
   BLOCKED_UI_DEFAULTS,
   buildNightPlan,
@@ -36,7 +41,7 @@ import { getRoleAfterSwap } from '../../resolvers/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { getEngineLogger } from '../../utils/logger';
 import { buildSeatRoleMap, findSeatByRole } from '../../utils/playerHelpers';
-import type { NightActions, RoleSeatMap } from '../DeathCalculator';
+import type { NightActions, ReflectionSource, RoleSeatMap } from '../DeathCalculator';
 import { calculateDeaths } from '../DeathCalculator';
 import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
 import type {
@@ -156,17 +161,13 @@ function validateSetAudioPlayingPreconditions(
  * 统一身份解析：遍历所有 seat，用 getRoleAfterSwap 获取交换后的有效身份，
  * 再反向查找每个关键角色所在的「有效座位」。
  * 这样 DeathCalculator 中灵骑反弹、毒药免疫等规则自动跟着交换后的身份走。
- * 毒药免疫由 ROLE_SPECS immunities 驱动，无需逐角色硬编码。
  *
  * Constraint 校验仍使用原始 players map（玩家不知道 swap，操作合法性按已知信息判定）。
  */
-function buildRoleSeatMap(state: NonNullState): RoleSeatMap {
+function buildEffectiveRoleSeatMap(state: NonNullState): Map<RoleId, number> {
   const swappedSeats = state.currentNightResults?.swappedSeats;
-
-  // Build original players map once (seat → roleId)
   const players = buildSeatRoleMap(state.players);
 
-  // Build effective role → seat mapping (swap-aware)
   const effectiveRoleSeatMap = new Map<RoleId, number>();
   for (const [seat] of players) {
     const effectiveRole = getRoleAfterSwap(seat, players, swappedSeats);
@@ -174,31 +175,109 @@ function buildRoleSeatMap(state: NonNullState): RoleSeatMap {
       effectiveRoleSeatMap.set(effectiveRole, seat);
     }
   }
+  return effectiveRoleSeatMap;
+}
 
-  // Collect flag-driven seat arrays from V2 specs
+/**
+ * 从 effectiveRoleSeatMap 构建 RoleSeatMap（deathCalcRole 驱动）
+ *
+ * 单循环扫描每个角色的 deathCalcRole + immunities + abilities，
+ * 替代原先 7 个 roleId 字符串硬编码查找。
+ * reflectionSources 由 buildReflectionSources 构建后注入。
+ */
+function buildRoleSeatMap(
+  effectiveRoleSeatMap: Map<RoleId, number>,
+  reflectionSources: readonly ReflectionSource[],
+): RoleSeatMap {
   const poisonImmuneSeats: number[] = [];
   const reflectsDamageSeats: number[] = [];
+  let wolfQueenLinkSeat = -1;
+  let dreamcatcherLinkSeat = -1;
+  let guardProtectorSeat = -1;
+  let poisonSourceSeat = -1;
+
   for (const [roleId, seat] of effectiveRoleSeatMap) {
     const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec;
+
+    // Flag-driven seat arrays (unchanged from V2)
     if (spec.immunities?.some((i) => i.kind === 'poison')) {
       poisonImmuneSeats.push(seat);
     }
     if (spec.abilities.some((a) => a.type === 'passive' && a.effect === 'reflectsDamage')) {
       reflectsDamageSeats.push(seat);
     }
+
+    // deathCalcRole-driven fields
+    switch (spec.deathCalcRole) {
+      case 'wolfQueenLink':
+        wolfQueenLinkSeat = seat;
+        break;
+      case 'dreamcatcherLink':
+        dreamcatcherLinkSeat = seat;
+        break;
+      case 'guardProtector':
+        guardProtectorSeat = seat;
+        break;
+      case 'poisonSource':
+        poisonSourceSeat = seat;
+        break;
+      // 'checkSource' and 'reflectTarget' don't need dedicated fields
+    }
   }
 
   return {
-    wolfQueen: effectiveRoleSeatMap.get('wolfQueen') ?? -1,
-    dreamcatcher: effectiveRoleSeatMap.get('dreamcatcher') ?? -1,
-    seer: effectiveRoleSeatMap.get('seer') ?? -1,
-    psychic: effectiveRoleSeatMap.get('psychic') ?? -1,
-    pureWhite: effectiveRoleSeatMap.get('pureWhite') ?? -1,
-    witch: effectiveRoleSeatMap.get('witch') ?? -1,
-    guard: effectiveRoleSeatMap.get('guard') ?? -1,
+    wolfQueenLinkSeat,
+    dreamcatcherLinkSeat,
+    guardProtectorSeat,
+    poisonSourceSeat,
     poisonImmuneSeats,
     reflectsDamageSeats,
+    reflectionSources,
   };
+}
+
+/**
+ * 构建反伤来源列表。
+ *
+ * 扫描 deathCalcRole='checkSource' 的角色：从 spec.nightSteps[0].stepId 找到 schemaId，
+ * 再从 ProtocolAction 中取 targetSeat → 生成 { sourceSeat, targetSeat }。
+ *
+ * 扫描 deathCalcRole='poisonSource'：从 nightActions.witchAction 提取 poisonTarget。
+ *
+ * nightmare 封锁的来源在此排除（sourceSeat === nightmareBlock → 不生成条目）。
+ */
+function buildReflectionSources(
+  effectiveRoleSeatMap: Map<RoleId, number>,
+  protocolActions: readonly ProtocolAction[],
+  nightActions: NightActions,
+): readonly ReflectionSource[] {
+  const sources: ReflectionSource[] = [];
+  const { nightmareBlock } = nightActions;
+
+  for (const [roleId, seat] of effectiveRoleSeatMap) {
+    const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec;
+    if (!spec.deathCalcRole) continue;
+
+    // Skip nightmare-blocked sources
+    if (nightmareBlock !== undefined && nightmareBlock === seat) continue;
+
+    if (spec.deathCalcRole === 'checkSource') {
+      // Find schemaId from the role's first nightStep
+      const stepId = spec.nightSteps?.[0]?.stepId;
+      if (!stepId) continue;
+      const action = findActionBySchemaId(protocolActions, stepId as SchemaId);
+      if (action?.targetSeat !== undefined) {
+        sources.push({ sourceSeat: seat, targetSeat: action.targetSeat });
+      }
+    } else if (spec.deathCalcRole === 'poisonSource') {
+      const poisonTarget = getWitchPoisonTarget(nightActions.witchAction);
+      if (poisonTarget !== undefined) {
+        sources.push({ sourceSeat: seat, targetSeat: poisonTarget });
+      }
+    }
+  }
+
+  return sources;
 }
 
 /**
@@ -338,8 +417,9 @@ function extractWitchAction(currentNightResults?: {
  * 数据来源设计：
  * - currentNightResults（resolver 产出）: wolfVotesBySeat, witchAction, swappedSeats
  *   → 这些字段经过 resolver 处理，是最终语义结果（如 witch save/poison 区分）。
- * - ProtocolAction[]（原始提交）: guardProtect, wolfQueenCharm, dreamcatcherDream, seerCheck, nightmareBlock
+ * - ProtocolAction[]（原始提交）: guardProtect, wolfQueenCharm, dreamcatcherDream, nightmareBlock
  *   → 这些字段是简单 chooseSeat 目标，resolver 不做额外转换，targetSeat 即最终值。
+ * - 查验类反伤来源（seerCheck 等）不再收集到 NightActions，改由 buildReflectionSources 驱动。
  *
  * 所有座位号均为物理座位（0-based），坐标空间一致。
  */
@@ -399,24 +479,6 @@ function buildNightActions(state: NonNullState): NightActions {
   if (state.currentNightResults?.swappedSeats) {
     const [first, second] = state.currentNightResults.swappedSeats;
     nightActions.magicianSwap = { first, second };
-  }
-
-  // Seer check (for spirit knight reflection)
-  const seerAction = findActionBySchemaId(actions, 'seerCheck');
-  if (seerAction?.targetSeat !== undefined) {
-    nightActions.seerCheck = seerAction.targetSeat;
-  }
-
-  // Psychic check (for spirit knight reflection)
-  const psychicAction = findActionBySchemaId(actions, 'psychicCheck');
-  if (psychicAction?.targetSeat !== undefined) {
-    nightActions.psychicCheck = psychicAction.targetSeat;
-  }
-
-  // PureWhite check (for spirit knight reflection)
-  const pureWhiteAction = findActionBySchemaId(actions, 'pureWhiteCheck');
-  if (pureWhiteAction?.targetSeat !== undefined) {
-    nightActions.pureWhiteCheck = pureWhiteAction.targetSeat;
   }
 
   // Nightmare block
@@ -585,8 +647,14 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   // 构建 NightActions
   const nightActions = buildNightActions(state);
 
-  // 构建 RoleSeatMap
-  const roleSeatMap = buildRoleSeatMap(state);
+  // 构建 effective role → seat mapping（共享给 buildRoleSeatMap + buildReflectionSources）
+  const effectiveMap = buildEffectiveRoleSeatMap(state);
+
+  // 构建反伤来源（从 spec.deathCalcRole + ProtocolAction 扫描）
+  const reflectionSources = buildReflectionSources(effectiveMap, state.actions, nightActions);
+
+  // 构建 RoleSeatMap（deathCalcRole 驱动）
+  const roleSeatMap = buildRoleSeatMap(effectiveMap, reflectionSources);
 
   // DEBUG: 打印死亡计算输入
   nightFlowLog.debug('handleEndNight: calculating deaths', {

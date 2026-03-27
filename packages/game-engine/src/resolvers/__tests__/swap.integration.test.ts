@@ -12,6 +12,7 @@
  * - swappedSeats 是 GameState 的单一真相
  */
 
+import type { RoleSeatMap } from '@werewolf/game-engine/engine/DeathCalculator';
 import { calculateDeaths } from '@werewolf/game-engine/engine/DeathCalculator';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
@@ -23,6 +24,17 @@ const gargoyleCheckResolver = RESOLVERS.gargoyleCheck!;
 const psychicCheckResolver = RESOLVERS.psychicCheck!;
 const seerCheckResolver = RESOLVERS.seerCheck!;
 const wolfRobotLearnResolver = RESOLVERS.wolfRobotLearn!;
+
+/** All roles absent */
+const NO_ROLES: RoleSeatMap = {
+  wolfQueenLinkSeat: -1,
+  dreamcatcherLinkSeat: -1,
+  poisonSourceSeat: -1,
+  guardProtectorSeat: -1,
+  poisonImmuneSeats: [],
+  reflectsDamageSeats: [],
+  reflectionSources: [],
+};
 
 // =============================================================================
 // Test Helpers
@@ -269,17 +281,7 @@ describe('死亡结算对齐 (swap 规则)', () => {
         wolfKill: 0, // 杀 A
         magicianSwap: { first: 0, second: 1 }, // swap A ↔ B
       },
-      {
-        wolfQueen: -1,
-        dreamcatcher: -1,
-        seer: -1,
-        psychic: -1,
-        pureWhite: -1,
-        witch: -1,
-        guard: -1,
-        poisonImmuneSeats: [],
-        reflectsDamageSeats: [],
-      },
+      NO_ROLES,
     );
 
     // A 原本会死，swap 后死亡转移到 B
@@ -293,17 +295,7 @@ describe('死亡结算对齐 (swap 规则)', () => {
         wolfKill: 1, // 杀 B
         magicianSwap: { first: 0, second: 1 }, // swap A ↔ B
       },
-      {
-        wolfQueen: -1,
-        dreamcatcher: -1,
-        seer: -1,
-        psychic: -1,
-        pureWhite: -1,
-        witch: -1,
-        guard: -1,
-        poisonImmuneSeats: [],
-        reflectsDamageSeats: [],
-      },
+      NO_ROLES,
     );
 
     // B 原本会死，swap 后死亡转移到 A
@@ -317,17 +309,7 @@ describe('死亡结算对齐 (swap 规则)', () => {
         wolfKill: 2, // 杀 C
         magicianSwap: { first: 0, second: 1 }, // swap A ↔ B
       },
-      {
-        wolfQueen: -1,
-        dreamcatcher: -1,
-        seer: -1,
-        psychic: -1,
-        pureWhite: -1,
-        witch: -1,
-        guard: -1,
-        poisonImmuneSeats: [],
-        reflectsDamageSeats: [],
-      },
+      NO_ROLES,
     );
 
     expect(deaths).toContain(2);
@@ -341,17 +323,7 @@ describe('死亡结算对齐 (swap 规则)', () => {
         wolfKill: 2, // 杀 C (不是 A 或 B)
         magicianSwap: { first: 0, second: 1 },
       },
-      {
-        wolfQueen: -1,
-        dreamcatcher: -1,
-        seer: -1,
-        psychic: -1,
-        pureWhite: -1,
-        witch: -1,
-        guard: -1,
-        poisonImmuneSeats: [],
-        reflectsDamageSeats: [],
-      },
+      NO_ROLES,
     );
 
     // A, B 都不死
@@ -366,17 +338,7 @@ describe('死亡结算对齐 (swap 规则)', () => {
         witchAction: { kind: 'poison', targetSeat: 1 }, // B 被毒
         magicianSwap: { first: 0, second: 1 },
       },
-      {
-        wolfQueen: -1,
-        dreamcatcher: -1,
-        seer: -1,
-        psychic: -1,
-        pureWhite: -1,
-        witch: -1,
-        guard: -1,
-        poisonImmuneSeats: [],
-        reflectsDamageSeats: [],
-      },
+      NO_ROLES,
     );
 
     // 两者都死，swap 不交换
@@ -414,17 +376,7 @@ describe('Swap 边界情况', () => {
         wolfKill: 0,
         // 无 magicianSwap
       },
-      {
-        wolfQueen: -1,
-        dreamcatcher: -1,
-        seer: -1,
-        psychic: -1,
-        pureWhite: -1,
-        witch: -1,
-        guard: -1,
-        poisonImmuneSeats: [],
-        reflectsDamageSeats: [],
-      },
+      NO_ROLES,
     );
 
     expect(deaths).toContain(0);
