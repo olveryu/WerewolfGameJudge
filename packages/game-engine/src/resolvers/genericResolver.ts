@@ -28,7 +28,7 @@ import { ROLE_SPECS_V2 } from '../models/roles/spec/v2/specs';
 import { validateConstraints } from './constraintValidator';
 import { invertCheckResult } from './shared';
 import type { ActionInput, ResolverContext, ResolverFn, ResolverResult } from './types';
-import { resolveRoleForChecks } from './types';
+import { getRoleAfterSwap, resolveRoleForChecks } from './types';
 
 // =============================================================================
 // Constants
@@ -220,7 +220,13 @@ function processLearn(
     throw new Error(`[FAIL-FAST] Expected learn effect, got ${effect.kind}`);
   }
 
-  const effectiveRoleId = resolveRoleForChecks(context, target);
+  // Learn uses getRoleAfterSwap (magician swap only, no wolfRobot disguise)
+  // This matches V1 wolfRobot behavior: learns the real role after swap.
+  const effectiveRoleId = getRoleAfterSwap(
+    target,
+    context.players,
+    context.currentNightResults.swappedSeats,
+  );
   if (!effectiveRoleId) {
     return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
   }
@@ -228,13 +234,13 @@ function processLearn(
   const result: Record<string, unknown> = {
     learnTarget: target,
     learnedRoleId: effectiveRoleId,
+    identityResult: effectiveRoleId,
   };
 
   // Gate triggers (e.g., hunter → canShootAsHunter)
   if (effect.gateTriggersOnRoles?.includes(effectiveRoleId)) {
-    // Check if the learned role's "canShoot" applies
-    // For hunter: canShoot is true unless poisoned
-    const isPoisoned = context.currentNightResults.poisonedSeat === target;
+    // wolfRobot: canShoot=false if wolfRobot itself is poisoned
+    const isPoisoned = context.currentNightResults.poisonedSeat === context.actorSeat;
     result.canShootAsHunter = !isPoisoned;
   }
 

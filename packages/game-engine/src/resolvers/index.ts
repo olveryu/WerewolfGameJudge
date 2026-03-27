@@ -8,64 +8,52 @@
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
  */
 
-import { avengerConfirmResolver } from './avenger';
 import {
   awakenedGargoyleConvertResolver,
   awakenedGargoyleConvertRevealResolver,
 } from './awakenedGargoyle';
-import { darkWolfKingConfirmResolver } from './darkWolfKing';
-import { dreamcatcherDreamResolver } from './dreamcatcher';
-import { drunkSeerCheckResolver } from './drunkSeer';
-import { gargoyleCheckResolver } from './gargoyle';
-import { guardProtectResolver } from './guard';
-import { hunterConfirmResolver } from './hunter';
+import { createGenericResolver } from './genericResolver';
 import { magicianSwapResolver } from './magician';
-import { mirrorSeerCheckResolver } from './mirrorSeer';
-import { nightmareBlockResolver } from './nightmare';
-import { piperHypnotizedRevealResolver, piperHypnotizeResolver } from './piper';
-import { psychicCheckResolver } from './psychic';
-import { pureWhiteCheckResolver } from './pureWhite';
-import { seerCheckResolver } from './seer';
+import { piperHypnotizedRevealResolver } from './piper';
 import { shadowChooseMimicResolver } from './shadow';
-import { silenceElderSilenceResolver } from './silenceElder';
-import { slackerChooseIdolResolver } from './slacker';
 import type { ResolverRegistry } from './types';
-import { votebanElderBanResolver } from './votebanElder';
-import { wildChildChooseIdolResolver } from './wildChild';
 import { witchActionResolver } from './witch';
 import { wolfKillResolver } from './wolf';
-import { wolfQueenCharmResolver } from './wolfQueen';
-import { wolfRobotLearnResolver } from './wolfRobot';
-import { wolfWitchCheckResolver } from './wolfWitch';
 
 export const RESOLVERS: ResolverRegistry = {
-  seerCheck: seerCheckResolver,
-  mirrorSeerCheck: mirrorSeerCheckResolver,
-  drunkSeerCheck: drunkSeerCheckResolver,
+  // --- Generic resolvers (data-driven from ROLE_SPECS_V2) ---
+  // P2: writeSlot / charm / chooseIdol
+  guardProtect: createGenericResolver('guard'),
+  dreamcatcherDream: createGenericResolver('dreamcatcher'),
+  silenceElderSilence: createGenericResolver('silenceElder'),
+  votebanElderBan: createGenericResolver('votebanElder'),
+  wolfQueenCharm: createGenericResolver('wolfQueen'),
+  slackerChooseIdol: createGenericResolver('slacker'),
+  wildChildChooseIdol: createGenericResolver('wildChild'),
+  // P3: check (faction + identity)
+  seerCheck: createGenericResolver('seer'),
+  mirrorSeerCheck: createGenericResolver('mirrorSeer'),
+  drunkSeerCheck: createGenericResolver('drunkSeer'),
+  psychicCheck: createGenericResolver('psychic'),
+  gargoyleCheck: createGenericResolver('gargoyle'),
+  pureWhiteCheck: createGenericResolver('pureWhite'),
+  wolfWitchCheck: createGenericResolver('wolfWitch'),
+  // P4: block / learn / hypnotize / confirm
+  nightmareBlock: createGenericResolver('nightmare'),
+  wolfRobotLearn: createGenericResolver('wolfRobot'),
+  piperHypnotize: createGenericResolver('piper'),
+  hunterConfirm: createGenericResolver('hunter'),
+  darkWolfKingConfirm: createGenericResolver('darkWolfKing'),
+  avengerConfirm: createGenericResolver('avenger'),
+
+  // --- Custom resolvers (complex logic not expressible declaratively) ---
   witchAction: witchActionResolver,
   wolfKill: wolfKillResolver,
-  guardProtect: guardProtectResolver,
-  nightmareBlock: nightmareBlockResolver,
-  psychicCheck: psychicCheckResolver,
-  dreamcatcherDream: dreamcatcherDreamResolver,
   magicianSwap: magicianSwapResolver,
-  gargoyleCheck: gargoyleCheckResolver,
-  wolfRobotLearn: wolfRobotLearnResolver,
-  wolfQueenCharm: wolfQueenCharmResolver,
-  slackerChooseIdol: slackerChooseIdolResolver,
-  wildChildChooseIdol: wildChildChooseIdolResolver,
-  hunterConfirm: hunterConfirmResolver,
-  darkWolfKingConfirm: darkWolfKingConfirmResolver,
-  pureWhiteCheck: pureWhiteCheckResolver,
-  wolfWitchCheck: wolfWitchCheckResolver,
-  silenceElderSilence: silenceElderSilenceResolver,
-  votebanElderBan: votebanElderBanResolver,
-  piperHypnotize: piperHypnotizeResolver,
-  piperHypnotizedReveal: piperHypnotizedRevealResolver,
+  shadowChooseMimic: shadowChooseMimicResolver,
   awakenedGargoyleConvert: awakenedGargoyleConvertResolver,
   awakenedGargoyleConvertReveal: awakenedGargoyleConvertRevealResolver,
-  shadowChooseMimic: shadowChooseMimicResolver,
-  avengerConfirm: avengerConfirmResolver,
+  piperHypnotizedReveal: piperHypnotizedRevealResolver,
 };
 
 // Re-export types for convenience (SERVER-ONLY consumers)

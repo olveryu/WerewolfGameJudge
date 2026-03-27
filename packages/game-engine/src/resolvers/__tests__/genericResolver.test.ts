@@ -471,17 +471,30 @@ describe('genericResolver: learn effect', () => {
     expect(result.result?.canShootAsHunter).toBe(true);
   });
 
-  it('should set canShootAsHunter=false when hunter is poisoned', () => {
+  it('should set canShootAsHunter=false when wolfRobot itself is poisoned', () => {
     const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter' });
     const ctx = createContext({
       actorSeat: 5,
       actorRoleId: 'wolfRobot' as RoleId,
       players,
-      currentNightResults: { poisonedSeat: 4 },
+      currentNightResults: { poisonedSeat: 5 }, // actorSeat poisoned
     });
     const result = resolver(ctx, createInput('wolfRobotLearn', 4));
     expect(result.valid).toBe(true);
     expect(result.result?.canShootAsHunter).toBe(false);
+  });
+
+  it('should set canShootAsHunter=true when target is poisoned but wolfRobot is not', () => {
+    const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter' });
+    const ctx = createContext({
+      actorSeat: 5,
+      actorRoleId: 'wolfRobot' as RoleId,
+      players,
+      currentNightResults: { poisonedSeat: 4 }, // target poisoned, not actor
+    });
+    const result = resolver(ctx, createInput('wolfRobotLearn', 4));
+    expect(result.valid).toBe(true);
+    expect(result.result?.canShootAsHunter).toBe(true);
   });
 
   it('should be swap-aware', () => {
