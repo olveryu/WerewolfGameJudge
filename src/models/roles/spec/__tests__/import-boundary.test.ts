@@ -158,14 +158,14 @@ describe('Import Boundary Enforcement', () => {
       expect(content).not.toMatch(/export\s+{.*RESOLVERS.*}/);
     });
 
-    it('spec/index.ts should export types, schemas, specs, and plan', () => {
+    it('spec/index.ts should export types and v2 barrel', () => {
       const specIndexPath = path.join(gameEngineSpecRoot, 'index.ts');
       const content = fs.readFileSync(specIndexPath, 'utf-8');
 
       expect(content).toContain('./types');
-      expect(content).toContain('./schemas');
-      expect(content).toContain('./specs');
-      expect(content).toContain('./plan');
+      expect(content).toContain('./schema.types');
+      expect(content).toContain('./plan.types');
+      expect(content).toContain('./v2');
     });
   });
 });
