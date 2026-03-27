@@ -11,6 +11,7 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import type { CompoundSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 import {
@@ -164,7 +165,9 @@ describe('Witch Compound Sequence', () => {
       harness.pressPrimaryOnType('witchNoKill');
 
       // Step 3: press the skip button
-      const poisonStep = SCHEMAS.witchAction.steps?.find((s) => s.key === 'poison');
+      const poisonStep = (SCHEMAS.witchAction as CompoundSchema).steps?.find(
+        (s) => s.key === 'poison',
+      );
       const skipText = poisonStep?.ui?.bottomActionText || '不用技能';
       fireEvent.press(getByText(skipText));
 
@@ -204,7 +207,9 @@ describe('Witch Compound Sequence', () => {
       // Dismiss and press skip
       harness.pressPrimaryOnType('witchNoKill');
 
-      const poisonStep = SCHEMAS.witchAction.steps?.find((s) => s.key === 'poison');
+      const poisonStep = (SCHEMAS.witchAction as CompoundSchema).steps?.find(
+        (s) => s.key === 'poison',
+      );
       const skipText = poisonStep?.ui?.bottomActionText || '不用技能';
       fireEvent.press(getByText(skipText));
 

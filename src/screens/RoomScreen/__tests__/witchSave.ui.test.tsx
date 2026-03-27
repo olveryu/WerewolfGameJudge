@@ -101,7 +101,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     // Some builds may not auto-prompt on first render (depending on RoomScreen prompt gating).
     // Keep this test focused on the contract: save is NOT seat-driven.
     await waitFor(() => {
-      expect(SCHEMAS.witchAction.ui.prompt).toBeTruthy();
+      expect(SCHEMAS.witchAction.ui!.prompt).toBeTruthy();
     });
   });
 

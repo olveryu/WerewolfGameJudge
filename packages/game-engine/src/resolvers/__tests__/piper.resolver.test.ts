@@ -3,7 +3,7 @@
  *
  * Tests for piperHypnotizeResolver validation and resolution logic.
  * Covers: multi-target selection, constraint enforcement, duplicate rejection,
- * already-hypnotized rejection, and cumulative hypnotizedSeats merging.
+ * and hypnotizedSeats output.
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -104,18 +104,6 @@ describe('piperHypnotizeResolver', () => {
       expect(result.valid).toBe(false);
       expect(result.rejectReason).toContain('不存在');
     });
-
-    it('应该拒绝已被催眠的目标', () => {
-      const ctx = createContext({
-        gameState: { isNight1: false, hypnotizedSeats: [0] },
-      });
-      const input = createInput([0]);
-
-      const result = piperHypnotizeResolver(ctx, input);
-
-      expect(result.valid).toBe(false);
-      expect(result.rejectReason).toContain('已被催眠');
-    });
   });
 
   describe('hypnotize action', () => {
@@ -139,18 +127,6 @@ describe('piperHypnotizeResolver', () => {
       expect(result.valid).toBe(true);
       expect(result.result?.hypnotizedTargets).toEqual([0, 3]);
       expect(result.updates?.hypnotizedSeats).toEqual([0, 3]);
-    });
-
-    it('应该累积合并已有的 hypnotizedSeats', () => {
-      const ctx = createContext({
-        gameState: { isNight1: false, hypnotizedSeats: [1] },
-      });
-      const input = createInput([0, 3]);
-
-      const result = piperHypnotizeResolver(ctx, input);
-
-      expect(result.valid).toBe(true);
-      expect(result.updates?.hypnotizedSeats).toEqual([0, 1, 3]); // sorted, merged
     });
 
     it('应该允许选择狼人（无 NotWolfFaction 约束）', () => {

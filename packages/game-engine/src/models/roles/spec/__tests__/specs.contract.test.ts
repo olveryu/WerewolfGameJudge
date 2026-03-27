@@ -12,9 +12,12 @@ import {
   ROLE_SPECS,
   type RoleId,
 } from '@werewolf/game-engine/models/roles/spec';
-import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
+import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
+import {
+  type CompoundSchema,
+  TargetConstraint,
+} from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
-import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.types';
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
@@ -28,15 +31,16 @@ describe('ROLE_SPECS contract', () => {
       expect(spec.displayName).toBeTruthy();
       expect(spec.faction).toBeDefined();
       expect(Object.values(Team)).toContain(spec.team);
-      expect(spec.night1).toBeDefined();
     }
   });
 
-  it('roles with hasAction=true should appear at least once in NIGHT_STEPS', () => {
-    const rolesWithAction = getAllRoleIds().filter((id: RoleId) => ROLE_SPECS[id].night1.hasAction);
+  it('roles with nightSteps should appear at least once in NIGHT_STEPS', () => {
+    const rolesWithSteps = getAllRoleIds().filter(
+      (id: RoleId) => ((ROLE_SPECS[id] as RoleSpec).nightSteps?.length ?? 0) > 0,
+    );
     const rolesInSteps = NIGHT_STEPS.map((s) => s.roleId);
 
-    for (const roleId of rolesWithAction) {
+    for (const roleId of rolesWithSteps) {
       const count = rolesInSteps.filter((r) => r === roleId).length;
       expect(count).toBeGreaterThanOrEqual(1);
     }
@@ -46,7 +50,7 @@ describe('ROLE_SPECS contract', () => {
     it('witch save action should have notSelf constraint and confirmTarget kind in schema', () => {
       // Night-1-only: 女巫不能自救规则定义在 witchAction.steps[0].constraints
       // save 是 confirmTarget 类型：目标是固定的（被杀的人），用户只需确认
-      const witchSchema = SCHEMAS.witchAction;
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
       expect(witchSchema.kind).toBe('compound');
       const saveStep = witchSchema.steps.find((s) => s.key === 'save');
       expect(saveStep).toBeDefined();
@@ -55,7 +59,7 @@ describe('ROLE_SPECS contract', () => {
     });
 
     it('witch poison action should have chooseSeat kind', () => {
-      const witchSchema = SCHEMAS.witchAction;
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
       const poisonStep = witchSchema.steps.find((s) => s.key === 'poison');
       expect(poisonStep).toBeDefined();
       expect(poisonStep!.kind).toBe('chooseSeat'); // User selects target
@@ -63,32 +67,33 @@ describe('ROLE_SPECS contract', () => {
   });
 
   describe('spiritKnight spec', () => {
-    it('should have wolfMeeting with canSeeWolves=true and participatesInWolfVote=true', () => {
-      expect(ROLE_SPECS.spiritKnight.wolfMeeting?.canSeeWolves).toBe(true);
-      expect(ROLE_SPECS.spiritKnight.wolfMeeting?.participatesInWolfVote).toBe(true);
+    it('should have recognition with canSeeWolves=true and participatesInWolfVote=true', () => {
+      expect(ROLE_SPECS.spiritKnight.recognition?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.spiritKnight.recognition?.participatesInWolfVote).toBe(true);
     });
 
-    it('should have immuneToWolfKill, immuneToPoison and reflectsDamage flags', () => {
-      expect(ROLE_SPECS.spiritKnight.flags?.immuneToWolfKill).toBe(true);
-      expect(ROLE_SPECS.spiritKnight.flags?.immuneToPoison).toBe(true);
-      expect(ROLE_SPECS.spiritKnight.flags?.reflectsDamage).toBe(true);
+    it('should have wolfAttack, poison, and nightDamage immunities', () => {
+      const kinds = ROLE_SPECS.spiritKnight.immunities?.map((i) => i.kind) ?? [];
+      expect(kinds).toContain('wolfAttack');
+      expect(kinds).toContain('poison');
+      expect(kinds).toContain('nightDamage');
     });
   });
 
   describe('gargoyle and wolfRobot specs', () => {
     it('gargoyle should not see wolves and not participate in vote', () => {
-      expect(ROLE_SPECS.gargoyle.wolfMeeting?.canSeeWolves).toBe(false);
-      expect(ROLE_SPECS.gargoyle.wolfMeeting?.participatesInWolfVote).toBe(false);
+      expect(ROLE_SPECS.gargoyle.recognition?.canSeeWolves).toBe(false);
+      expect(ROLE_SPECS.gargoyle.recognition?.participatesInWolfVote).toBe(false);
     });
 
     it('awakenedGargoyle should see wolves and participate in vote', () => {
-      expect(ROLE_SPECS.awakenedGargoyle.wolfMeeting?.canSeeWolves).toBe(true);
-      expect(ROLE_SPECS.awakenedGargoyle.wolfMeeting?.participatesInWolfVote).toBe(true);
+      expect(ROLE_SPECS.awakenedGargoyle.recognition?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.awakenedGargoyle.recognition?.participatesInWolfVote).toBe(true);
     });
 
     it('wolfRobot should not see wolves and not participate in vote', () => {
-      expect(ROLE_SPECS.wolfRobot.wolfMeeting?.canSeeWolves).toBe(false);
-      expect(ROLE_SPECS.wolfRobot.wolfMeeting?.participatesInWolfVote).toBe(false);
+      expect(ROLE_SPECS.wolfRobot.recognition?.canSeeWolves).toBe(false);
+      expect(ROLE_SPECS.wolfRobot.recognition?.participatesInWolfVote).toBe(false);
     });
   });
 
@@ -108,8 +113,8 @@ describe('ROLE_SPECS contract', () => {
     // Nightmare acts solo because nightmareBlock is kind='chooseSeat', not 'wolfVote'
 
     it('should participate in wolf meeting (canSeeWolves=true, participatesInWolfVote=true)', () => {
-      expect(ROLE_SPECS.nightmare.wolfMeeting?.canSeeWolves).toBe(true);
-      expect(ROLE_SPECS.nightmare.wolfMeeting?.participatesInWolfVote).toBe(true);
+      expect(ROLE_SPECS.nightmare.recognition?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.nightmare.recognition?.participatesInWolfVote).toBe(true);
     });
 
     it('nightmare should come before wolf in NIGHT_STEPS', () => {
@@ -149,7 +154,7 @@ describe('ROLE_SPECS contract', () => {
 
     it('should have correct night-1 action roles', () => {
       const actualNight1Roles = getAllRoleIds().filter(
-        (id: RoleId) => ROLE_SPECS[id].night1.hasAction,
+        (id: RoleId) => ((ROLE_SPECS[id] as RoleSpec).nightSteps?.length ?? 0) > 0,
       );
       const sortedActual = [...actualNight1Roles].sort((a, b) => a.localeCompare(b));
       const sortedExpected = [...expectedNight1Roles].sort((a, b) => a.localeCompare(b));
@@ -174,19 +179,19 @@ describe('ROLE_SPECS contract', () => {
 
     it('should have correct no-action roles', () => {
       const actualNoActionRoles = getAllRoleIds().filter(
-        (id: RoleId) => !ROLE_SPECS[id].night1.hasAction,
+        (id: RoleId) => ((ROLE_SPECS[id] as RoleSpec).nightSteps?.length ?? 0) === 0,
       );
       const sortedActual = [...actualNoActionRoles].sort((a, b) => a.localeCompare(b));
       const sortedExpected = [...expectedNoActionRoles].sort((a, b) => a.localeCompare(b));
       expect(sortedActual).toEqual(sortedExpected);
     });
 
-    it('graveyardKeeper should have hasAction=false (no info on night-1)', () => {
-      expect(ROLE_SPECS.graveyardKeeper.night1.hasAction).toBe(false);
+    it('graveyardKeeper should have no nightSteps (no info on night-1)', () => {
+      expect((ROLE_SPECS.graveyardKeeper as RoleSpec).nightSteps).toBeUndefined();
     });
 
-    it('witcher should have hasAction=false (starts from night-2)', () => {
-      expect(ROLE_SPECS.witcher.night1.hasAction).toBe(false);
+    it('witcher should have no nightSteps (starts from night-2)', () => {
+      expect((ROLE_SPECS.witcher as RoleSpec).nightSteps).toBeUndefined();
     });
   });
 
@@ -207,17 +212,17 @@ describe('ROLE_SPECS contract', () => {
 
     it('wolf pack members should see wolves and participate in vote', () => {
       for (const roleId of wolfPackMembers) {
-        const spec = ROLE_SPECS[roleId] as RoleSpec;
-        expect(spec.wolfMeeting?.canSeeWolves).toBe(true);
-        expect(spec.wolfMeeting?.participatesInWolfVote).toBe(true);
+        const spec: RoleSpec = ROLE_SPECS[roleId];
+        expect(spec.recognition?.canSeeWolves).toBe(true);
+        expect(spec.recognition?.participatesInWolfVote).toBe(true);
       }
     });
 
     it('lone wolves should not see wolves and not participate in vote', () => {
       for (const roleId of loneWolves) {
-        const spec = ROLE_SPECS[roleId] as RoleSpec;
-        expect(spec.wolfMeeting?.canSeeWolves).toBe(false);
-        expect(spec.wolfMeeting?.participatesInWolfVote).toBe(false);
+        const spec: RoleSpec = ROLE_SPECS[roleId];
+        expect(spec.recognition?.canSeeWolves).toBe(false);
+        expect(spec.recognition?.participatesInWolfVote).toBe(false);
       }
     });
   });
@@ -242,23 +247,15 @@ describe('ROLE_SPECS contract', () => {
     });
   });
 
-  describe('night1.hasAction ↔ NIGHT_STEPS alignment (M3c contract)', () => {
-    it('night1.hasAction should match NIGHT_STEPS presence for all roles', () => {
+  describe('nightSteps ↔ NIGHT_STEPS alignment (M3c contract)', () => {
+    it('nightSteps presence should match NIGHT_STEPS presence for all roles', () => {
       const stepsRoleIds = new Set(NIGHT_STEPS.map((s) => s.roleId));
 
       for (const roleId of getAllRoleIds()) {
-        const spec = ROLE_SPECS[roleId];
+        const spec: RoleSpec = ROLE_SPECS[roleId];
         const hasStepInNightSteps = stepsRoleIds.has(roleId);
-        expect(spec.night1.hasAction).toBe(hasStepInNightSteps);
-      }
-    });
-
-    it('night1 should NOT contain legacy fields (order/schemaId/actsSolo)', () => {
-      for (const roleId of getAllRoleIds()) {
-        const night1 = ROLE_SPECS[roleId].night1 as Record<string, unknown>;
-        expect(night1).not.toHaveProperty('order');
-        expect(night1).not.toHaveProperty('schemaId');
-        expect(night1).not.toHaveProperty('actsSolo');
+        const hasNightSteps = (spec.nightSteps?.length ?? 0) > 0;
+        expect(hasNightSteps).toBe(hasStepInNightSteps);
       }
     });
   });

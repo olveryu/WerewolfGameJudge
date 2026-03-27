@@ -1,37 +1,97 @@
 /**
- * Night Plan Builder - 夜晚行动序列构建器
+ * Night Plan Builder — 从 ROLE_SPECS 构建夜晚行动序列
  *
- * Builds night action sequence from template roles.
- * Single source of truth for action order.
- *
- * NOTE:
- * - This builder derives steps from `NIGHT_STEPS` (array order = authority).
- * - `NightPlanStep.order` is derived from the table index.
- * - RoleSpec no longer carries night-1 ordering or schemaId. Treat `NIGHT_STEPS` as authoritative.
- * 导出 buildNightPlan 纯函数并执行 fail-fast 校验，不依赖 service、不含副作用或 IO。
+ * NIGHT_STEP_ORDER 定义全局步骤执行顺序，各角色的 nightSteps 提供步骤详情。
+ * 导出 buildNightPlan 纯函数，不依赖 service、不含副作用或 IO。
  */
 
-import { NIGHT_STEPS } from './nightSteps';
-import { type NightPlan, NightPlanBuildError, type NightPlanStep } from './plan.types';
+import type { NightPlan, NightPlanStep } from './plan.types';
+import { NightPlanBuildError } from './plan.types';
+export type { NightPlan, NightPlanStep };
+export { NightPlanBuildError };
+import type { NightStepDef, RoleSpec } from './roleSpec.types';
 import { isValidRoleId, ROLE_SPECS, type RoleId } from './specs';
+
+// =============================================================================
+// NIGHT_STEP_ORDER — 全局步骤执行顺序（单一真相）
+// =============================================================================
+
+/**
+ * Global step execution order.
+ *
+ * Array position = authority. Replaces V1's NIGHT_STEPS array ordering.
+ * Each entry is a stepId matching a NightStepDef.stepId in ROLE_SPECS_V2.
+ */
+const NIGHT_STEP_ORDER_INTERNAL = [
+  // === 特殊角色（最先行动）===
+  'magicianSwap',
+  'slackerChooseIdol',
+  'wildChildChooseIdol',
+  'shadowChooseMimic',
+  'avengerConfirm',
+
+  // === 守护/查验类（袭击前）===
+  'nightmareBlock',
+  'dreamcatcherDream',
+  'guardProtect',
+  'silenceElderSilence',
+  'votebanElderBan',
+
+  // === 狼人会议阶段 ===
+  'wolfKill',
+  'wolfQueenCharm',
+
+  // === 女巫 ===
+  'witchAction',
+
+  // === 确认类 ===
+  'hunterConfirm',
+  'darkWolfKingConfirm',
+
+  // === 最后四个角色（机械狼 → 预言家 → 石像鬼 → 通灵师）===
+  'wolfRobotLearn',
+  'seerCheck',
+  'mirrorSeerCheck',
+  'drunkSeerCheck',
+  'wolfWitchCheck',
+  'gargoyleCheck',
+  'pureWhiteCheck',
+  'psychicCheck',
+
+  // === 觉醒石像鬼转化（查验类之后）===
+  'awakenedGargoyleConvert',
+
+  // === 吹笛者（催眠 → 全员确认）===
+  'piperHypnotize',
+  'piperHypnotizedReveal',
+
+  // === 觉醒石像鬼转化揭示（最后）===
+  'awakenedGargoyleConvertReveal',
+] as const;
+
+/** Public readonly array for external consumers. */
+export const NIGHT_STEP_ORDER: readonly NightStepId[] = [...NIGHT_STEP_ORDER_INTERNAL];
+
+/** Literal union of all step IDs (= SchemaId). Derived from NIGHT_STEP_ORDER. */
+export type NightStepId = (typeof NIGHT_STEP_ORDER_INTERNAL)[number];
+
+// =============================================================================
+// Builder
+// =============================================================================
 
 /**
  * Build night plan from template roles.
  *
  * @param templateRoles - Array of role IDs in the template (must be canonical RoleIds)
+ * @param seerLabelMap - Optional label numbers for seer-like roles (for display ordering)
  * @returns NightPlan with ordered steps
  * @throws NightPlanBuildError if any roleId is invalid (fail-fast)
- *
- * IMPORTANT:
- * - Input must be canonical RoleIds (no aliases like 'celebrity')
- * - Roles with night1.hasAction=false are excluded
- * - Duplicate roles are deduplicated (e.g., multiple wolves → one wolf step)
  */
 export function buildNightPlan(
   templateRoles: readonly string[],
   seerLabelMap?: Readonly<Record<string, number>>,
 ): NightPlan {
-  // Fail-fast: validate all roleIds first
+  // Fail-fast: validate all roleIds
   const invalidRoleIds = templateRoles.filter((id) => !isValidRoleId(id));
   if (invalidRoleIds.length > 0) {
     throw new NightPlanBuildError(
@@ -40,44 +100,49 @@ export function buildNightPlan(
     );
   }
 
-  const templateRoleSet = new Set(templateRoles as RoleId[]);
+  const templateRoleSet = new Set(templateRoles);
 
-  // Check if any wolf in template participates in wolf vote
-  // This is needed because wolfKill step has roleId='wolf', but templates may only have
-  // skill wolves (darkWolfKing, nightmare, wolfQueen, etc.) without basic 'wolf'.
+  // Check if any wolf participates in vote (for wolfKill step inclusion)
   const hasWolfVotingParticipant = templateRoles.some((roleId) => {
-    const spec = ROLE_SPECS[roleId as RoleId];
-    // Use 'in' operator to check for optional property existence
-    if (spec && 'wolfMeeting' in spec && spec.wolfMeeting) {
-      return spec.wolfMeeting.participatesInWolfVote === true;
-    }
-    return false;
+    const spec: RoleSpec = ROLE_SPECS[roleId as RoleId];
+    return spec.recognition?.participatesInWolfVote === true;
   });
 
-  // M2: derive ordered steps from NIGHT_STEPS (array order = authority)
-  // Dedupe is implicit because NIGHT_STEPS contains each night-1 action role exactly once.
-  // Special case: wolfKill step is included if ANY wolf participates in vote, not just 'wolf' role.
-  const steps: NightPlanStep[] = NIGHT_STEPS.filter((step) => {
-    // Special case: wolfKill step should be included if any wolf participates in voting
-    if (step.id === 'wolfKill') {
-      return hasWolfVotingParticipant;
-    }
-    return templateRoleSet.has(step.roleId);
-  }).map((step, idx) => {
-    const spec = ROLE_SPECS[step.roleId];
-    return {
-      roleId: step.roleId,
-      stepId: step.id, // step.id is the stepId (= schemaId)
-      // Keep NightPlanStep shape stable for existing consumers/tests.
-      // The numeric order is now derived from table sequence.
-      order: idx,
-      displayName: spec.displayName,
-      audioKey: step.audioKey,
-    };
-  });
+  // Collect step definitions from specs
+  const stepMap = new Map<string, { roleId: string; stepDef: NightStepDef }>();
 
-  // 当存在 seerLabelMap 时，按标签编号重排 seer-like 步骤
-  // 确保角色「1号预言家」的步骤在「2号预言家」之前执行/播放
+  for (const roleId of Object.keys(ROLE_SPECS) as RoleId[]) {
+    const spec: RoleSpec = ROLE_SPECS[roleId];
+    if (!spec.nightSteps) continue;
+
+    // wolfKill special case: include wolf's steps only if any wolf votes
+    if (roleId === 'wolf') {
+      if (!hasWolfVotingParticipant) continue;
+    } else if (!templateRoleSet.has(roleId)) {
+      continue;
+    }
+
+    for (const stepDef of spec.nightSteps) {
+      stepMap.set(stepDef.stepId, { roleId, stepDef });
+    }
+  }
+
+  // Build steps ordered by NIGHT_STEP_ORDER
+  let steps: NightPlanStep[] = NIGHT_STEP_ORDER.filter((stepId) => stepMap.has(stepId)).map(
+    (stepId, idx) => {
+      const { roleId, stepDef } = stepMap.get(stepId)!;
+      const spec: RoleSpec = ROLE_SPECS[roleId as RoleId];
+      return {
+        roleId: roleId as RoleId,
+        stepId: stepId as NightStepId,
+        order: idx,
+        displayName: spec.displayName,
+        audioKey: stepDef.audioKey ?? roleId,
+      };
+    },
+  );
+
+  // Reorder seer-like steps by label number when seerLabelMap is provided
   if (seerLabelMap) {
     const seerIndices: number[] = [];
     const seerSteps: NightPlanStep[] = [];
@@ -91,10 +156,8 @@ export function buildNightPlan(
     for (let i = 0; i < seerIndices.length; i++) {
       steps[seerIndices[i]] = seerSteps[i];
     }
-    // 重新计算 order
-    for (let i = 0; i < steps.length; i++) {
-      steps[i] = { ...steps[i], order: i };
-    }
+    // Recompute order
+    steps = steps.map((s, i) => ({ ...s, order: i }));
   }
 
   return {
@@ -102,6 +165,3 @@ export function buildNightPlan(
     length: steps.length,
   };
 }
-
-// Re-export types
-export * from './plan.types';

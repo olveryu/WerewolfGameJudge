@@ -10,8 +10,10 @@
  * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
  */
 
-import { GameStatus, ROLE_SPECS, type RoleId } from '../../models';
+import { GameStatus, type RoleId } from '../../models';
 import { buildNightPlan, getStepSpec } from '../../models/roles/spec';
+import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { randomHex } from '../../utils/id';
@@ -102,13 +104,13 @@ export function handleAssignRoles(
     assignments[seats[i]] = shuffledRoles[i];
   }
 
-  // 当多个 displayAs='seer' 角色同时在场，随机分配编号标签
+  // 当多个 seerFamily 标签角色同时在场，随机分配编号标签
   const seerLikeRoles = [
     ...new Set(
       shuffledRoles.filter((r) => {
         if (r === 'seer') return true;
-        const spec = ROLE_SPECS[r as RoleId];
-        return 'displayAs' in spec && spec.displayAs === 'seer';
+        const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
+        return spec?.tags?.includes('seerFamily') === true;
       }),
     ),
   ];

@@ -7,8 +7,35 @@
  */
 
 import { type RevealKind, type SchemaId, SCHEMAS } from '../../models';
+import type { ActiveAbility, LearnEffect } from '../../models/roles/spec/ability.types';
+import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { ResolverResult } from '../../resolvers/types';
 import type { ApplyResolverResultAction } from '../reducer/types';
+
+// ---------------------------------------------------------------------------
+// V2-derived gate trigger roles (replaces hardcoded 'hunter' check)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract gateTriggersOnRoles from the first learn effect in wolfRobot's abilities.
+ * Returns empty array if not found (no gate triggered).
+ */
+function deriveGateTriggerRoles(): readonly string[] {
+  const spec = ROLE_SPECS.wolfRobot as RoleSpec;
+  for (const ability of spec.abilities) {
+    if (ability.type !== 'active') continue;
+    const active = ability as ActiveAbility;
+    for (const effect of active.effects) {
+      if (effect.kind === 'learn') {
+        return (effect as LearnEffect).gateTriggersOnRoles ?? [];
+      }
+    }
+  }
+  return [];
+}
+
+const WOLF_ROBOT_GATE_ROLES = deriveGateTriggerRoles();
 
 // ---------------------------------------------------------------------------
 // Type aliases
@@ -96,8 +123,8 @@ function handleWolfRobotReveal(
     },
   };
 
-  // Gate: if learned hunter, set gate to false (requires viewing before advancing)
-  if (learnedRoleId === 'hunter') {
+  // Gate: if learned a gate-triggering role, set gate to false (requires viewing before advancing)
+  if (WOLF_ROBOT_GATE_ROLES.includes(learnedRoleId)) {
     payload.wolfRobotHunterStatusViewed = false;
   }
 

@@ -12,6 +12,7 @@
  * - canShoot logic now lives in resolvers (see wolfRobot.resolver.test.ts)
  */
 
+import type { ConfirmSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 describe('confirm schema contract (hunter/darkWolfKing)', () => {
@@ -37,7 +38,7 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
 
     it('should have canSkip=true (for nightmare block skip button)', () => {
       // confirm schema needs canSkip to show skip button when blocked by nightmare
-      expect(SCHEMAS.hunterConfirm.canSkip).toBe(true);
+      expect((SCHEMAS.hunterConfirm as ConfirmSchema).canSkip).toBe(true);
     });
 
     it('should NOT have constraints (no target selection)', () => {
@@ -67,7 +68,7 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
 
     it('should have canSkip=true (for nightmare block skip button)', () => {
       // confirm schema needs canSkip to show skip button when blocked by nightmare
-      expect(SCHEMAS.darkWolfKingConfirm.canSkip).toBe(true);
+      expect((SCHEMAS.darkWolfKingConfirm as ConfirmSchema).canSkip).toBe(true);
     });
 
     it('should NOT have constraints (no target selection)', () => {

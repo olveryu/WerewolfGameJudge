@@ -8,6 +8,7 @@
  * - 同守同救必死 (double save = death)
  * - Witcher/dancer/masquerade poison immunity (driven by poisonImmuneSeats)
  * - Wolf Queen link death
+ * - Bonded link death (Shadow ↔ Avenger)
  * - Dreamcatcher protection and link death
  * - Magician swap
  * - Nightmare block effects
@@ -21,16 +22,14 @@
  * - wolfQueenCharm: number | undefined
  * - dreamcatcherDream: number | undefined
  * - magicianSwap: { first: number; second: number } | undefined
- * - seerCheck: number | undefined
- * - psychicCheck: number | undefined
- * - pureWhiteCheck: number | undefined
  * - nightmareBlock: number | undefined
  * - isWolfBlockedByNightmare: boolean | undefined
  *
  * RoleSeatMap 字段定义来源：src/services/DeathCalculator.ts
- * - wolfQueen, dreamcatcher, seer, psychic, pureWhite, witch, guard: number (-1 表示不在场)
+ * - wolfQueenLinkSeat, dreamcatcherLinkSeat, poisonSourceSeat, guardProtectorSeat: number (-1 表示不在场)
  * - poisonImmuneSeats: number[] (免疫毒药的角色座位)
  * - reflectsDamageSeats: number[] (反伤角色座位)
+ * - reflectionSources: ReflectionSource[] (反伤来源配对列表)
  */
 
 import {
@@ -42,15 +41,14 @@ import { makeWitchPoison, makeWitchSave } from '@werewolf/game-engine/models/act
 
 /** All roles absent — mirrors the module-private DEFAULT_ROLE_SEAT_MAP */
 const NO_ROLES: RoleSeatMap = {
-  wolfQueen: -1,
-  dreamcatcher: -1,
-  seer: -1,
-  psychic: -1,
-  pureWhite: -1,
-  witch: -1,
-  guard: -1,
+  wolfQueenLinkSeat: -1,
+  dreamcatcherLinkSeat: -1,
+  poisonSourceSeat: -1,
+  guardProtectorSeat: -1,
+  bondedLinkSeats: null,
   poisonImmuneSeats: [],
   reflectsDamageSeats: [],
+  reflectionSources: [],
 };
 
 describe('DeathCalculator', () => {
@@ -219,7 +217,7 @@ describe('DeathCalculator', () => {
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        wolfQueen: 2,
+        wolfQueenLinkSeat: 2,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -233,7 +231,7 @@ describe('DeathCalculator', () => {
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        wolfQueen: 2,
+        wolfQueenLinkSeat: 2,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -273,7 +271,7 @@ describe('DeathCalculator', () => {
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        dreamcatcher: 2,
+        dreamcatcherLinkSeat: 2,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -290,7 +288,7 @@ describe('DeathCalculator', () => {
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        dreamcatcher: 2,
+        dreamcatcherLinkSeat: 2,
       };
 
       // Dream target (5) is protected from poison, then dies because dreamcatcher (2) dies
@@ -409,7 +407,7 @@ describe('DeathCalculator', () => {
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        guard: 11,
+        guardProtectorSeat: 11,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -426,7 +424,7 @@ describe('DeathCalculator', () => {
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        witch: 9,
+        poisonSourceSeat: 9,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -443,7 +441,7 @@ describe('DeathCalculator', () => {
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        witch: 9,
+        poisonSourceSeat: 9,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -472,7 +470,7 @@ describe('DeathCalculator', () => {
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        guard: 11,
+        guardProtectorSeat: 11,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -483,25 +481,128 @@ describe('DeathCalculator', () => {
   });
 
   // ===========================================================================
+  // Bonded Link Death (Shadow ↔ Avenger)
+  // ===========================================================================
+
+  describe('Bonded Link Death', () => {
+    it('影子死亡 → 复仇者也死亡（同生共死）', () => {
+      const actions: NightActions = {
+        wolfKill: 3, // wolf kills shadow (seat 3)
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: [3, 7], // shadow=3, avenger=7
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([3, 7]);
+    });
+
+    it('复仇者死亡 → 影子也死亡（双向）', () => {
+      const actions: NightActions = {
+        wolfKill: 7, // wolf kills avenger (seat 7)
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: [3, 7],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([3, 7]);
+    });
+
+    it('未绑定时 → 无连带死亡', () => {
+      const actions: NightActions = {
+        wolfKill: 3,
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: null, // not bonded
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([3]);
+    });
+
+    it('两人同时死亡 → 不重复计算', () => {
+      const actions: NightActions = {
+        wolfKill: 3,
+        witchAction: makeWitchPoison(7),
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: [3, 7],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      // Both already dead, no duplicate
+      expect(deaths).toEqual([3, 7]);
+    });
+
+    it('守卫守住影子 → 不触发连带', () => {
+      const actions: NightActions = {
+        wolfKill: 3,
+        guardProtect: 3, // guard protects shadow
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        guardProtectorSeat: 11,
+        bondedLinkSeats: [3, 7],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      // Shadow saved by guard, no bonded link triggered
+      expect(deaths).toEqual([]);
+    });
+
+    it('女巫毒影子 → 复仇者连带死亡', () => {
+      const actions: NightActions = {
+        wolfKill: 0, // wolf kills someone else
+        witchAction: makeWitchPoison(3), // witch poisons shadow
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: [3, 7],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([0, 3, 7]);
+    });
+
+    it('与狼美连带交互：狼美人死亡拉人 + 被拉目标是绑定角色 → 触发同生共死', () => {
+      const actions: NightActions = {
+        wolfKill: 0,
+        wolfQueenCharm: 3, // wolf queen charms shadow
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        wolfQueenLinkSeat: 0, // wolf queen is seat 0 (wolf killed)
+        bondedLinkSeats: [3, 7],
+      };
+
+      // Wolf queen (seat 0) dies → charm kills shadow (3) → bonded link kills avenger (7)
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([0, 3, 7]);
+    });
+  });
+
+  // ===========================================================================
   // Spirit Knight Reflection
   // ===========================================================================
 
   describe('Spirit Knight Reflection', () => {
-    const spiritKnightRoleSeatMap: RoleSeatMap = {
-      ...NO_ROLES,
-      reflectsDamageSeats: [7],
-      poisonImmuneSeats: [7],
-      seer: 8,
-      witch: 9,
-    };
-
     it('预言家查验恶灵骑士 → 预言家死亡', () => {
       const actions: NightActions = {
         wolfKill: 0,
-        seerCheck: 7,
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        reflectsDamageSeats: [7],
+        poisonImmuneSeats: [7],
+        reflectionSources: [{ sourceSeat: 8, targetSeat: 7 }],
       };
 
-      const deaths = calculateDeaths(actions, spiritKnightRoleSeatMap);
+      const deaths = calculateDeaths(actions, roleSeatMap);
 
       expect(deaths).toContain(0);
       expect(deaths).toContain(8);
@@ -513,8 +614,15 @@ describe('DeathCalculator', () => {
         wolfKill: 0,
         witchAction: makeWitchPoison(7),
       };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        reflectsDamageSeats: [7],
+        poisonImmuneSeats: [7],
+        poisonSourceSeat: 9,
+        reflectionSources: [{ sourceSeat: 9, targetSeat: 7 }],
+      };
 
-      const deaths = calculateDeaths(actions, spiritKnightRoleSeatMap);
+      const deaths = calculateDeaths(actions, roleSeatMap);
 
       expect(deaths).toContain(0);
       expect(deaths).toContain(9);
@@ -524,10 +632,15 @@ describe('DeathCalculator', () => {
     it('预言家查验普通狼人 → 无反伤', () => {
       const actions: NightActions = {
         wolfKill: 0,
-        seerCheck: 4,
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        reflectsDamageSeats: [7],
+        poisonImmuneSeats: [7],
+        reflectionSources: [{ sourceSeat: 8, targetSeat: 4 }],
       };
 
-      const deaths = calculateDeaths(actions, spiritKnightRoleSeatMap);
+      const deaths = calculateDeaths(actions, roleSeatMap);
 
       expect(deaths).toEqual([0]);
     });
@@ -537,8 +650,15 @@ describe('DeathCalculator', () => {
         wolfKill: 0,
         witchAction: makeWitchPoison(4),
       };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        reflectsDamageSeats: [7],
+        poisonImmuneSeats: [7],
+        poisonSourceSeat: 9,
+        reflectionSources: [{ sourceSeat: 9, targetSeat: 4 }],
+      };
 
-      const deaths = calculateDeaths(actions, spiritKnightRoleSeatMap);
+      const deaths = calculateDeaths(actions, roleSeatMap);
 
       expect(deaths).toContain(0);
       expect(deaths).toContain(4);
@@ -548,7 +668,6 @@ describe('DeathCalculator', () => {
     it('反伤角色不在场时无反伤规则', () => {
       const actions: NightActions = {
         wolfKill: 0,
-        seerCheck: 4,
         witchAction: makeWitchPoison(5),
       };
 
@@ -559,13 +678,22 @@ describe('DeathCalculator', () => {
     });
 
     it('女巫被梦魇封锁时毒恶灵骑士 → 无反伤', () => {
+      // Nightmare-blocked sources are excluded at construction time,
+      // so reflectionSources is empty when witch is blocked.
       const actions: NightActions = {
         wolfKill: 0,
         witchAction: makeWitchPoison(7),
         nightmareBlock: 9, // 封锁女巫
       };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        reflectsDamageSeats: [7],
+        poisonImmuneSeats: [7],
+        poisonSourceSeat: 9,
+        reflectionSources: [], // witch blocked → no reflection source
+      };
 
-      const deaths = calculateDeaths(actions, spiritKnightRoleSeatMap);
+      const deaths = calculateDeaths(actions, roleSeatMap);
 
       // 女巫被封锁，毒无效 → 无反伤，只有 0 号死
       expect(deaths).toEqual([0]);
@@ -576,11 +704,10 @@ describe('DeathCalculator', () => {
         ...NO_ROLES,
         reflectsDamageSeats: [7],
         poisonImmuneSeats: [7],
-        psychic: 10,
+        reflectionSources: [{ sourceSeat: 10, targetSeat: 7 }],
       };
       const actions: NightActions = {
         wolfKill: 0,
-        psychicCheck: 7,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -595,11 +722,10 @@ describe('DeathCalculator', () => {
         ...NO_ROLES,
         reflectsDamageSeats: [7],
         poisonImmuneSeats: [7],
-        pureWhite: 11,
+        reflectionSources: [{ sourceSeat: 11, targetSeat: 7 }],
       };
       const actions: NightActions = {
         wolfKill: 0,
-        pureWhiteCheck: 7,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -614,11 +740,10 @@ describe('DeathCalculator', () => {
         ...NO_ROLES,
         reflectsDamageSeats: [7],
         poisonImmuneSeats: [7],
-        psychic: 10,
+        reflectionSources: [{ sourceSeat: 10, targetSeat: 4 }],
       };
       const actions: NightActions = {
         wolfKill: 0,
-        psychicCheck: 4,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -631,11 +756,10 @@ describe('DeathCalculator', () => {
         ...NO_ROLES,
         reflectsDamageSeats: [7],
         poisonImmuneSeats: [7],
-        pureWhite: 11,
+        reflectionSources: [{ sourceSeat: 11, targetSeat: 4 }],
       };
       const actions: NightActions = {
         wolfKill: 0,
-        pureWhiteCheck: 4,
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);

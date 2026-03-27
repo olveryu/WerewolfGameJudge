@@ -21,7 +21,7 @@ export {
   buildNightPlan,
   type NightPlan,
   type NightPlanStep,
-} from './spec/plan';
+} from './spec';
 export {
   type ActionSchema,
   getSchema,
@@ -29,7 +29,7 @@ export {
   type SchemaId,
   // Schemas
   SCHEMAS,
-} from './spec/schemas';
+} from './spec';
 export {
   getAllRoleIds,
   getRoleDisplayAs,
@@ -40,7 +40,7 @@ export {
   // Role Spec
   ROLE_SPECS,
   type RoleId,
-} from './spec/specs';
+} from './spec';
 export {
   // Types
   Faction,
@@ -50,8 +50,8 @@ export {
 // ============================================================
 // Re-imports from spec/ (for internal use)
 // ============================================================
-import type { RoleSpec } from './spec/spec.types';
-import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec/specs';
+import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec';
+import type { RoleSpec } from './spec/roleSpec.types';
 import { Team } from './spec/types';
 
 // ============================================================
@@ -92,8 +92,8 @@ export function isWolfRole(roleId: string): boolean {
  */
 export function canRoleSeeWolves(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec = getRoleSpec(roleId) as RoleSpec;
-  return spec?.wolfMeeting?.canSeeWolves ?? false;
+  const spec: RoleSpec = getRoleSpec(roleId);
+  return spec.recognition?.canSeeWolves ?? false;
 }
 
 /**
@@ -107,14 +107,13 @@ export function canRoleSeeWolves(roleId: string): boolean {
  */
 export function doesRoleParticipateInWolfVote(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec = getRoleSpec(roleId) as RoleSpec;
-  if (!spec) return false;
+  const spec: RoleSpec = getRoleSpec(roleId);
 
   // Participation is explicitly configured per role (single source of truth).
   // We intentionally do NOT infer from team/faction here.
   // - team/faction is for seer result / UI highlighting
-  // - wolfMeeting.participatesInWolfVote is for whether this role submits WOLF_VOTE
-  return spec.wolfMeeting?.participatesInWolfVote ?? false;
+  // - recognition.participatesInWolfVote is for whether this role submits WOLF_VOTE
+  return spec.recognition?.participatesInWolfVote ?? false;
 }
 
 /**
@@ -131,8 +130,8 @@ export function getWolfRoleIds(): RoleId[] {
  */
 export function getWolfKillImmuneRoleIds(): RoleId[] {
   return getAllRoleIds().filter((id) => {
-    const spec = ROLE_SPECS[id] as RoleSpec;
-    return spec.flags?.immuneToWolfKill === true;
+    const spec: RoleSpec = ROLE_SPECS[id];
+    return spec.immunities?.some((i) => i.kind === 'wolfAttack') === true;
   });
 }
 
@@ -141,12 +140,12 @@ export function getWolfKillImmuneRoleIds(): RoleId[] {
 // ============================================================
 
 /**
- * Check if a role has night action
+ * Check if a role has night action (derived from nightSteps presence)
  */
 export function hasNightAction(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec = getRoleSpec(roleId);
-  return spec?.night1.hasAction ?? false;
+  const spec: RoleSpec | undefined = getRoleSpec(roleId);
+  return (spec?.nightSteps?.length ?? 0) > 0;
 }
 
 // ============================================================
