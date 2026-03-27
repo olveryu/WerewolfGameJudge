@@ -172,3 +172,36 @@ export function buildSchemas(): Record<string, ActionSchema> {
 
   return result;
 }
+
+// =============================================================================
+// Cached Registry + Helpers
+// =============================================================================
+
+import type { NightStepId } from './nightPlan';
+
+/** Build once at module init (deterministic, no side effects) */
+const _SCHEMAS: Record<string, ActionSchema> = buildSchemas();
+
+/**
+ * Complete action schema registry — derived from ROLE_SPECS.
+ * Keyed by NightStepId (e.g. 'seerCheck', 'wolfKill', 'witchAction').
+ */
+export const SCHEMAS = _SCHEMAS as Record<NightStepId, ActionSchema>;
+
+/** Schema ID type — alias for NightStepId. */
+export type SchemaId = NightStepId;
+
+/** Get schema by ID */
+export function getSchema(id: SchemaId): ActionSchema {
+  return SCHEMAS[id];
+}
+
+/** Check if a string is a valid SchemaId */
+export function isValidSchemaId(id: string): id is SchemaId {
+  return id in SCHEMAS;
+}
+
+/** Get all schema IDs */
+export function getAllSchemaIds(): SchemaId[] {
+  return Object.keys(SCHEMAS) as SchemaId[];
+}
