@@ -16,7 +16,13 @@ describe('Resolver test coverage contract', () => {
   const testDir = path.resolve(__dirname);
 
   /** Infrastructure / utility files that are NOT individual resolvers */
-  const UTILITY_FILES = new Set(['index.ts', 'types.ts', 'shared.ts', 'constraintValidator.ts']);
+  const UTILITY_FILES = new Set([
+    'index.ts',
+    'types.ts',
+    'shared.ts',
+    'constraintValidator.ts',
+    'genericResolver.ts',
+  ]);
 
   // Source: resolvers/*.ts (exclude utility files)
   const sourceFiles = fs
