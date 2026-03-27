@@ -72,7 +72,12 @@ jobs:
 
   deploy-edge-functions:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    if: |
+      needs.quality.result == 'success' &&
+      (
+        ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'pull_request' && needs.quality.outputs.edge_changed == 'true')
+      )
     needs: quality
     steps:
       - uses: actions/checkout@v6
@@ -106,8 +111,7 @@ jobs:
     if: |
       always() &&
       needs.quality.result == 'success' &&
-      (needs.deploy-edge-functions.result == 'success' || needs.deploy-edge-functions.result == 'skipped') &&
-      !(github.event_name == 'pull_request' && needs.quality.outputs.edge_changed == 'true')
+      (needs.deploy-edge-functions.result == 'success' || needs.deploy-edge-functions.result == 'skipped')
     needs: [quality, deploy-edge-functions]
     strategy:
       fail-fast: false
@@ -218,17 +222,49 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "👉 [${{ steps.deployment.outputs.page_url }}](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
 
-  warn-edge-changed:
+  restore-edge-functions:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && needs.quality.outputs.edge_changed == 'true'
-    needs: quality
+    if: |
+      always() &&
+      github.event_name == 'pull_request' &&
+      needs.quality.outputs.edge_changed == 'true' &&
+      needs.deploy-edge-functions.result == 'success'
+    needs: [quality, deploy-edge-functions, e2e]
     steps:
-      - name: Post PR comment
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build game-engine ESM (main branch)
+        run: pnpm --filter @werewolf/game-engine run build:esm
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Restore production Edge Functions
+        run: |
+          supabase functions deploy game --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy gemini-proxy --project-ref "$SUPABASE_PROJECT_REF"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      - name: Post restore status
+        if: always()
         uses: marocchino/sticky-pull-request-comment@v3
         with:
-          header: edge-changed-warning
+          header: edge-restore-status
           message: |
-            ⚠️ **E2E tests skipped** — this PR modifies `supabase/functions/` or `packages/game-engine/`.
+            ${{ job.status == 'success' && '✅' || '❌' }} **Edge Functions restore**: ${{ job.status }}
 
-            Edge Functions are only deployed on merge to `main`. E2E will run automatically after merge.
-            To verify locally, use `pnpm exec playwright test --reporter=list` against a local Supabase instance.
+            Production edge functions have been ${{ job.status == 'success' && 'restored to `main` branch version.' || '**NOT restored**. Please run `pnpm run deploy` manually or trigger `workflow_dispatch` on main.' }}
