@@ -3316,3 +3316,104 @@ commit P10: refactor(game-engine): flatten v2/ into spec/ top level
   [verify] pnpm run quality
   [risk] 低 — 纯路径重构，零逻辑变化，影响 ~22 文件
 ```
+
+#### P11: DeathCalculator spec 驱动（2 commits）
+
+> **背景**：P6-1 因 PR 体量被推迟。当前 `buildRoleSeatMap` 中 7 个命名角色槽位
+> （wolfQueen/dreamcatcher/seer/psychic/pureWhite/witch/guard）仍按 roleId 字符串
+> 硬编码查找，`processReflection` 中 4 个 per-role 分支（seer/psychic/pureWhite/witch）
+> 逐角色硬编码反伤来源。`deathCalcRole` 字段已在 specs.ts 中声明和赋值但无运行时消费者。
+>
+> **目标**：用 `deathCalcRole` 驱动 `buildRoleSeatMap`，用 `ReflectionSource[]` 替代
+> `processReflection` 的 per-role 硬编码。新增 checkSource 角色时不再需要修改
+> DeathCalculator 或 RoleSeatMap。
+
+```
+commit P11-A: refactor(game-engine): derive RoleSeatMap from deathCalcRole + reflectionSources
+
+  [files]
+    ~ packages/game-engine/src/engine/DeathCalculator.ts
+    ~ packages/game-engine/src/engine/handlers/stepTransitionHandler.ts
+    ~ packages/game-engine/src/engine/__tests__/DeathCalculator.test.ts
+
+  [内容]
+
+    === DeathCalculator.ts ===
+
+    1. RoleSeatMap 接口重构：
+       - wolfQueen → wolfQueenLinkSeat（语义化：链锁死亡来源）
+       - dreamcatcher → dreamcatcherLinkSeat（语义化：链锁死亡来源）
+       - guard → guardProtectorSeat（语义化：守护者座位，用于 nightmare 封锁判定）
+       - witch → poisonSourceSeat（语义化：毒药来源座位，用于 nightmare 封锁判定）
+       - 删除 seer / psychic / pureWhite 字段（反伤配对改由 reflectionSources 承载）
+       - 新增 reflectionSources: readonly ReflectionSource[]
+
+    2. 新增 ReflectionSource 接口：
+       interface ReflectionSource {
+         readonly sourceSeat: number;   // 查验/毒药来源座位
+         readonly targetSeat: number;   // 被查验/被毒目标座位
+       }
+
+    3. DEFAULT_ROLE_SEAT_MAP 同步更新字段名。
+
+    4. processWolfKill：guard → guardProtectorSeat，witch → poisonSourceSeat
+    5. processWitchPoison：witch → poisonSourceSeat
+    6. processWolfQueenLink：wolfQueen → wolfQueenLinkSeat
+    7. processDreamcatcherEffect：dreamcatcher → dreamcatcherLinkSeat
+    8. processReflection 重写：
+       - 删除 4 个 per-role 分支（seer/psychic/pureWhite/witch）
+       - 改为遍历 reflectionSources：
+         for (const { sourceSeat, targetSeat } of reflectionSources) {
+           if (reflectsDamageSeats.includes(targetSeat)) {
+             deaths.add(sourceSeat);
+           }
+         }
+       - nightmare 封锁的来源不进入 reflectionSources（在构建时排除）
+
+    === stepTransitionHandler.ts ===
+
+    9. buildRoleSeatMap 重写：
+       - 单循环扫描 deathCalcRole：
+         switch (spec.deathCalcRole) {
+           case 'wolfQueenLink': result.wolfQueenLinkSeat = seat; break;
+           case 'dreamcatcherLink': result.dreamcatcherLinkSeat = seat; break;
+           case 'guardProtector': result.guardProtectorSeat = seat; break;
+           case 'poisonSource': result.poisonSourceSeat = seat; break;
+           // checkSource + reflectTarget 无需单独字段
+         }
+       - poisonImmuneSeats / reflectsDamageSeats 保持不变（已从 spec 驱动）
+
+    10. 新增 buildReflectionSources() 纯函数：
+        - 在 handleEndNight 中，buildNightActions 之后调用
+        - 扫描 effectiveRoleSeatMap 中 deathCalcRole='checkSource' 的角色：
+          从 nightSteps[0].stepId 找到 schemaId → findActionBySchemaId 取 targetSeat
+          → 生成 { sourceSeat, targetSeat }
+        - 扫描 deathCalcRole='poisonSource' 的角色：
+          从 witchAction 提取 poisonTarget → 生成 { sourceSeat, targetSeat }
+        - nightmare 封锁判定：若 sourceSeat === nightmareBlock → 排除（不生成条目）
+        - 返回 ReflectionSource[]
+
+    11. handleEndNight 调用顺序更新：
+        buildRoleSeatMap → buildNightActions → buildReflectionSources
+        → 将 reflectionSources 注入 roleSeatMap → calculateDeaths
+
+    === DeathCalculator.test.ts ===
+
+    12. NO_ROLES 常量更新字段名
+    13. 48 个现有测试用 spread 更新（wolfQueen → wolfQueenLinkSeat 等）
+    14. 反伤测试从 { seer: 8, seerCheck: target } 改为
+        reflectionSources: [{ sourceSeat: 8, targetSeat: 7 }]
+        — 语义更清晰，不再依赖 action 字段名约定
+
+  [消除的硬编码]
+    - buildRoleSeatMap: 7 个 roleId 字符串 → deathCalcRole 单循环
+    - processReflection: 4 个 per-role 分支 → reflectionSources 遍历
+    - processReflection: witch nightmare 重复判定 → 构建时排除
+
+  [新增 checkSource 角色成本变化]
+    P11 之前：RoleSeatMap 加字段 + buildRoleSeatMap 加 lookup + processReflection 加分支（3 处）
+    P11 之后：specs.ts 加 deathCalcRole: 'checkSource'（1 处，自动扫描）
+
+  [verify] pnpm run test:all（48 个 DeathCalculator 测试全绿）+ pnpm exec tsc --noEmit
+  [risk] 高 — 死亡结算是最核心逻辑，但有 48 个测试守护行为等价性
+```
