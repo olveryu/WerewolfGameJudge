@@ -127,4 +127,5 @@ export type DeathCalcRole =
   | 'checkSource'
   | 'poisonSource'
   | 'guardProtector'
-  | 'reflectTarget';
+  | 'reflectTarget'
+  | 'bondedLink';

@@ -8,6 +8,7 @@
  * - 同守同救必死 (double save = death)
  * - Witcher/dancer/masquerade poison immunity (driven by poisonImmuneSeats)
  * - Wolf Queen link death
+ * - Bonded link death (Shadow ↔ Avenger)
  * - Dreamcatcher protection and link death
  * - Magician swap
  * - Nightmare block effects
@@ -44,6 +45,7 @@ const NO_ROLES: RoleSeatMap = {
   dreamcatcherLinkSeat: -1,
   poisonSourceSeat: -1,
   guardProtectorSeat: -1,
+  bondedLinkSeats: null,
   poisonImmuneSeats: [],
   reflectsDamageSeats: [],
   reflectionSources: [],
@@ -475,6 +477,112 @@ describe('DeathCalculator', () => {
 
       // 封锁的是村民，守卫保护有效
       expect(deaths).toEqual([]);
+    });
+  });
+
+  // ===========================================================================
+  // Bonded Link Death (Shadow ↔ Avenger)
+  // ===========================================================================
+
+  describe('Bonded Link Death', () => {
+    it('影子死亡 → 复仇者也死亡（同生共死）', () => {
+      const actions: NightActions = {
+        wolfKill: 3, // wolf kills shadow (seat 3)
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: [3, 7], // shadow=3, avenger=7
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([3, 7]);
+    });
+
+    it('复仇者死亡 → 影子也死亡（双向）', () => {
+      const actions: NightActions = {
+        wolfKill: 7, // wolf kills avenger (seat 7)
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: [3, 7],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([3, 7]);
+    });
+
+    it('未绑定时 → 无连带死亡', () => {
+      const actions: NightActions = {
+        wolfKill: 3,
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: null, // not bonded
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([3]);
+    });
+
+    it('两人同时死亡 → 不重复计算', () => {
+      const actions: NightActions = {
+        wolfKill: 3,
+        witchAction: makeWitchPoison(7),
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: [3, 7],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      // Both already dead, no duplicate
+      expect(deaths).toEqual([3, 7]);
+    });
+
+    it('守卫守住影子 → 不触发连带', () => {
+      const actions: NightActions = {
+        wolfKill: 3,
+        guardProtect: 3, // guard protects shadow
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        guardProtectorSeat: 11,
+        bondedLinkSeats: [3, 7],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      // Shadow saved by guard, no bonded link triggered
+      expect(deaths).toEqual([]);
+    });
+
+    it('女巫毒影子 → 复仇者连带死亡', () => {
+      const actions: NightActions = {
+        wolfKill: 0, // wolf kills someone else
+        witchAction: makeWitchPoison(3), // witch poisons shadow
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        bondedLinkSeats: [3, 7],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([0, 3, 7]);
+    });
+
+    it('与狼美连带交互：狼美人死亡拉人 + 被拉目标是绑定角色 → 触发同生共死', () => {
+      const actions: NightActions = {
+        wolfKill: 0,
+        wolfQueenCharm: 3, // wolf queen charms shadow
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        wolfQueenLinkSeat: 0, // wolf queen is seat 0 (wolf killed)
+        bondedLinkSeats: [3, 7],
+      };
+
+      // Wolf queen (seat 0) dies → charm kills shadow (3) → bonded link kills avenger (7)
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([0, 3, 7]);
     });
   });
 
