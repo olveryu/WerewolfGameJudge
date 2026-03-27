@@ -25,6 +25,7 @@ import { TargetConstraint } from '../models/roles/spec/ability.types';
 import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
 import { ROLE_SPECS } from '../models/roles/spec/specs';
 import { Team } from '../models/roles/spec/types';
+import { secureRng } from '../utils/random';
 import { validateConstraints } from './constraintValidator';
 import { invertCheckResult } from './shared';
 import type { ActionInput, ResolverContext, ResolverFn, ResolverResult } from './types';
@@ -148,7 +149,7 @@ function processFactionCheck(
     checkResult = invertCheckResult(normalResult);
   } else if (effect.transformer === 'random') {
     // 50% chance to invert
-    const shouldInvert = crypto.getRandomValues(new Uint8Array(1))[0] < 128;
+    const shouldInvert = secureRng() < 0.5;
     if (shouldInvert) {
       checkResult = invertCheckResult(normalResult);
     }
