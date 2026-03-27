@@ -10,7 +10,7 @@ import { NightPlanBuildError } from './plan.types';
 export type { NightPlan, NightPlanStep };
 export { NightPlanBuildError };
 import type { NightStepDef, RoleSpec } from './roleSpec.types';
-import { ROLE_SPECS, type RoleId } from './specs';
+import { isValidRoleId, ROLE_SPECS, type RoleId } from './specs';
 
 // =============================================================================
 // NIGHT_STEP_ORDER — 全局步骤执行顺序（单一真相）
@@ -70,7 +70,7 @@ const NIGHT_STEP_ORDER_INTERNAL = [
 ] as const;
 
 /** Public readonly array for external consumers. */
-export const NIGHT_STEP_ORDER: readonly string[] = NIGHT_STEP_ORDER_INTERNAL;
+export const NIGHT_STEP_ORDER: readonly NightStepId[] = [...NIGHT_STEP_ORDER_INTERNAL];
 
 /** Literal union of all step IDs (= SchemaId). Derived from NIGHT_STEP_ORDER. */
 export type NightStepId = (typeof NIGHT_STEP_ORDER_INTERNAL)[number];
@@ -78,12 +78,6 @@ export type NightStepId = (typeof NIGHT_STEP_ORDER_INTERNAL)[number];
 // =============================================================================
 // Builder
 // =============================================================================
-
-type SpecRoleId = keyof typeof ROLE_SPECS;
-
-function isValidSpecRoleId(id: string): id is SpecRoleId {
-  return id in ROLE_SPECS;
-}
 
 /**
  * Build night plan from template roles.
@@ -98,7 +92,7 @@ export function buildNightPlan(
   seerLabelMap?: Readonly<Record<string, number>>,
 ): NightPlan {
   // Fail-fast: validate all roleIds
-  const invalidRoleIds = templateRoles.filter((id) => !isValidSpecRoleId(id));
+  const invalidRoleIds = templateRoles.filter((id) => !isValidRoleId(id));
   if (invalidRoleIds.length > 0) {
     throw new NightPlanBuildError(
       `Invalid roleIds in template: ${invalidRoleIds.join(', ')}. All roleIds must be canonical.`,
@@ -110,14 +104,14 @@ export function buildNightPlan(
 
   // Check if any wolf participates in vote (for wolfKill step inclusion)
   const hasWolfVotingParticipant = templateRoles.some((roleId) => {
-    const spec: RoleSpec = ROLE_SPECS[roleId as SpecRoleId];
+    const spec: RoleSpec = ROLE_SPECS[roleId as RoleId];
     return spec.recognition?.participatesInWolfVote === true;
   });
 
   // Collect step definitions from specs
   const stepMap = new Map<string, { roleId: string; stepDef: NightStepDef }>();
 
-  for (const roleId of Object.keys(ROLE_SPECS) as SpecRoleId[]) {
+  for (const roleId of Object.keys(ROLE_SPECS) as RoleId[]) {
     const spec: RoleSpec = ROLE_SPECS[roleId];
     if (!spec.nightSteps) continue;
 
@@ -137,7 +131,7 @@ export function buildNightPlan(
   let steps: NightPlanStep[] = NIGHT_STEP_ORDER.filter((stepId) => stepMap.has(stepId)).map(
     (stepId, idx) => {
       const { roleId, stepDef } = stepMap.get(stepId)!;
-      const spec: RoleSpec = ROLE_SPECS[roleId as SpecRoleId];
+      const spec: RoleSpec = ROLE_SPECS[roleId as RoleId];
       return {
         roleId: roleId as RoleId,
         stepId: stepId as NightStepId,
