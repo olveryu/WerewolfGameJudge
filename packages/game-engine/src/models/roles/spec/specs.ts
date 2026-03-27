@@ -1445,6 +1445,7 @@ export const ROLE_SPECS = {
         customResolver: 'shadowChooseMimic',
       },
     ],
+    deathCalcRole: 'bondedLink',
     nightSteps: [
       {
         stepId: 'shadowChooseMimic',
@@ -1477,6 +1478,7 @@ export const ROLE_SPECS = {
         '若影子模仿复仇者则二人绑定，失去原技能，成为同生共死第三方；第二天起每晚影子轮次二人睁眼，可袭击一名玩家，袭击无视一切保护效果；帮好人时算神职，帮狼时与其他狼人互不相认，其他狼人全部出局后可主导袭击',
       winCondition: '非绑定时随自身阵营胜利；绑定时胜利条件为屠城',
     },
+    deathCalcRole: 'bondedLink',
     abilities: [
       {
         type: 'active',

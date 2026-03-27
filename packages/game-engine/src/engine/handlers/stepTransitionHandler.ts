@@ -55,6 +55,7 @@ import { resolveWolfVotes } from '../resolveWolfVotes';
 
 const nightFlowLog = getEngineLogger().extend('NightFlow');
 
+import { Team } from '../../models/roles/spec/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
 import type { HandlerContext, HandlerResult, NonNullState, SideEffect } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
@@ -188,9 +189,11 @@ function buildEffectiveRoleSeatMap(state: NonNullState): Map<RoleId, number> {
 function buildRoleSeatMap(
   effectiveRoleSeatMap: Map<RoleId, number>,
   reflectionSources: readonly ReflectionSource[],
+  isBonded: boolean,
 ): RoleSeatMap {
   const poisonImmuneSeats: number[] = [];
   const reflectsDamageSeats: number[] = [];
+  const bondedLinkCandidates: number[] = [];
   let wolfQueenLinkSeat = -1;
   let dreamcatcherLinkSeat = -1;
   let guardProtectorSeat = -1;
@@ -221,15 +224,25 @@ function buildRoleSeatMap(
       case 'poisonSource':
         poisonSourceSeat = seat;
         break;
+      case 'bondedLink':
+        bondedLinkCandidates.push(seat);
+        break;
       // 'checkSource' and 'reflectTarget' don't need dedicated fields
     }
   }
+
+  // bondedLinkSeats is only active when isBonded=true AND exactly 2 candidates found
+  const bondedLinkSeats: RoleSeatMap['bondedLinkSeats'] =
+    isBonded && bondedLinkCandidates.length === 2
+      ? [bondedLinkCandidates[0], bondedLinkCandidates[1]]
+      : null;
 
   return {
     wolfQueenLinkSeat,
     dreamcatcherLinkSeat,
     guardProtectorSeat,
     poisonSourceSeat,
+    bondedLinkSeats,
     poisonImmuneSeats,
     reflectsDamageSeats,
     reflectionSources,
@@ -654,7 +667,8 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   const reflectionSources = buildReflectionSources(effectiveMap, state.actions, nightActions);
 
   // 构建 RoleSeatMap（deathCalcRole 驱动）
-  const roleSeatMap = buildRoleSeatMap(effectiveMap, reflectionSources);
+  const isBonded = state.currentNightResults?.avengerFaction === Team.Third;
+  const roleSeatMap = buildRoleSeatMap(effectiveMap, reflectionSources, isBonded);
 
   // DEBUG: 打印死亡计算输入
   nightFlowLog.debug('handleEndNight: calculating deaths', {

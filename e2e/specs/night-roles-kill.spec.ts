@@ -25,6 +25,7 @@ import { withSetup } from '../helpers/night-setup';
  * - Hunter / DarkWolfKing canShoot confirmation
  * - WolfQueen charm
  * - Hunter poisoned → cannotShoot
+ * - Bonded link death (shadow mimics avenger → 同生共死)
  *
  * Covers UI assertions on death/status text.
  * Does not modify game state directly or import services/models.
@@ -352,6 +353,77 @@ test.describe('Night Roles — Kill / Status', () => {
         // Finish night
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
+      },
+    );
+  });
+
+  // --------------------------------------------------------------------------
+  // Shadow mimics avenger → bonded link death (同生共死)
+  // --------------------------------------------------------------------------
+  test('shadow mimics avenger → wolf kills shadow → both die (bonded link)', async ({
+    browser,
+  }) => {
+    await withSetup(
+      browser,
+      {
+        playerCount: 4,
+        configure: async (c) =>
+          c.configureCustomTemplate({
+            wolves: 1,
+            villagers: 1,
+            specialRoles: ['shadow', 'avenger'],
+          }),
+      },
+      async ({ pages, roleMap }) => {
+        const wolfIdx = findRolePageIndex(roleMap, '狼人');
+        const shadowIdx = findRolePageIndex(roleMap, '影子');
+        const avengerIdx = findRolePageIndex(roleMap, '复仇者');
+        expect(wolfIdx).not.toBe(-1);
+        expect(shadowIdx).not.toBe(-1);
+        expect(avengerIdx).not.toBe(-1);
+
+        const shadowSeat = roleMap.get(shadowIdx)!.seat;
+        const avengerSeat = roleMap.get(avengerIdx)!.seat;
+
+        // Wolf kills shadow
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        expect(wolfTurn).toBe(true);
+        await driveWolfVote(pages, [wolfIdx], shadowSeat);
+
+        // Shadow's turn: mimic avenger → bonded
+        const shadowTurn = await waitForRoleTurn(pages[shadowIdx], ['模仿'], pages, 120);
+        expect(shadowTurn, 'Shadow turn should be detected').toBe(true);
+        await clickSeatAndConfirm(pages[shadowIdx], avengerSeat);
+        // Dismiss the shadow reveal dialog (shows mimic result)
+        await dismissAlert(pages[shadowIdx]);
+
+        // Avenger's turn: click "查看阵营" to view faction info, then dismiss
+        const avengerTurn = await waitForRoleTurn(pages[avengerIdx], ['阵营'], pages, 120);
+        expect(avengerTurn, 'Avenger turn should be detected').toBe(true);
+        await clickBottomButton(pages[avengerIdx], '查看阵营');
+        await dismissAlert(pages[avengerIdx]);
+
+        // Night should end (remaining steps auto-advance)
+        const ended = await waitForNightEnd(pages, 120);
+        expect(ended, 'Night should end after bonded link setup').toBe(true);
+
+        // Verify deaths: shadow (wolf killed) + avenger (bonded link) = 2 deaths
+        await viewLastNightInfo(pages[0]);
+        const alertText = await readAlertText(pages[0]);
+
+        // Both shadow and avenger seats should appear in the death list
+        const shadowSeatDisplay = `${shadowSeat + 1}号`;
+        const avengerSeatDisplay = `${avengerSeat + 1}号`;
+        expect(alertText, `Should contain shadow seat ${shadowSeatDisplay}`).toContain(
+          shadowSeatDisplay,
+        );
+        expect(alertText, `Should contain avenger seat ${avengerSeatDisplay}`).toContain(
+          avengerSeatDisplay,
+        );
+
+        // Should not be 平安夜
+        const peaceful = await isTextVisible(pages[0], '平安夜');
+        expect(peaceful, 'Should not be 平安夜 with bonded deaths').toBe(false);
       },
     );
   });

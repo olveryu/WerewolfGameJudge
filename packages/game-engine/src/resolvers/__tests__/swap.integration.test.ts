@@ -31,6 +31,7 @@ const NO_ROLES: RoleSeatMap = {
   dreamcatcherLinkSeat: -1,
   poisonSourceSeat: -1,
   guardProtectorSeat: -1,
+  bondedLinkSeats: null,
   poisonImmuneSeats: [],
   reflectsDamageSeats: [],
   reflectionSources: [],

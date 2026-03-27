@@ -100,6 +100,12 @@ export interface RoleSeatMap {
 
   /** Pre-built reflection pairs (check/poison source → target). Empty = no reflection possible */
   reflectionSources: readonly ReflectionSource[];
+
+  /**
+   * Bonded link seats (shadow ↔ avenger). null = bonded link not active.
+   * When active, if either seat dies, the other dies too.
+   */
+  bondedLinkSeats: readonly [number, number] | null;
 }
 
 /**
@@ -113,6 +119,7 @@ const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
   poisonImmuneSeats: [],
   reflectsDamageSeats: [],
   reflectionSources: [],
+  bondedLinkSeats: null,
 };
 
 // =============================================================================
@@ -142,6 +149,9 @@ export function calculateDeaths(
 
   // 3. Process wolf queen link death
   processWolfQueenLink(actions, roleSeatMap, deaths);
+
+  // 3.5. Process bonded link death (shadow ↔ avenger)
+  processBondedLink(roleSeatMap, deaths);
 
   // 4. Process dreamcatcher effect (protection + link death)
   processDreamcatcherEffect(actions, roleSeatMap, deaths);
@@ -267,6 +277,31 @@ function processWolfQueenLink(
   // If queen is dead, charmed target also dies
   if (deaths.has(queenSeat)) {
     deaths.add(wolfQueenCharm);
+  }
+}
+
+/**
+ * Process bonded link death (shadow ↔ avenger).
+ *
+ * Rules:
+ * - When bonded (shadow mimicked avenger), if either dies the other dies too
+ * - Bidirectional: shadow death → avenger death, avenger death → shadow death
+ * - Only active when bondedLinkSeats is non-null (bonded state confirmed)
+ */
+function processBondedLink(roleSeatMap: RoleSeatMap, deaths: Set<number>): void {
+  const { bondedLinkSeats } = roleSeatMap;
+
+  if (!bondedLinkSeats) return;
+
+  const [seatA, seatB] = bondedLinkSeats;
+  const aDead = deaths.has(seatA);
+  const bDead = deaths.has(seatB);
+
+  // If either is dead, the other dies too
+  if (aDead && !bDead) {
+    deaths.add(seatB);
+  } else if (bDead && !aDead) {
+    deaths.add(seatA);
   }
 }
 
