@@ -38,6 +38,7 @@ import {
   componentSizes,
   createSharedStyles,
   fixed,
+  layout,
   shadows,
   spacing,
   type ThemeColors,
@@ -312,8 +313,8 @@ function createStyles(colors: ThemeColors) {
     },
     headerTitle: {
       flex: 1,
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
+      fontSize: layout.headerTitleSize,
+      lineHeight: layout.headerTitleLineHeight,
       fontWeight: typography.weights.bold,
       color: colors.text,
       textAlign: 'center',

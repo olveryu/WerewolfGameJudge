@@ -130,8 +130,8 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     paddingVertical: componentSizes.chip.paddingV,
   } satisfies ViewStyle,
   templatePillText: {
-    fontSize: layout.headerTitleSize,
-    lineHeight: layout.headerTitleLineHeight,
+    fontSize: typography.subtitle,
+    lineHeight: typography.lineHeights.subtitle,
     fontWeight: typography.weights.semibold,
     color: colors.text,
   } satisfies TextStyle,
@@ -142,8 +142,8 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     marginLeft: spacing.tight,
   } satisfies TextStyle,
   playerCount: {
-    fontSize: layout.headerTitleSize,
-    lineHeight: layout.headerTitleLineHeight,
+    fontSize: typography.subtitle,
+    lineHeight: typography.lineHeights.subtitle,
     fontWeight: typography.weights.medium,
     color: colors.textSecondary,
   } satisfies TextStyle,
