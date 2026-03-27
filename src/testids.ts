@@ -111,6 +111,7 @@ export const TESTIDS = {
   encyclopediaScreenRoot: 'encyclopedia-screen-root',
   encyclopediaRoleItem: (id: string) => `encyclopedia-role-${id}`,
   encyclopediaFactionTab: (key: string) => `encyclopedia-faction-tab-${key}`,
+  encyclopediaTagFilter: (tag: string) => `encyclopedia-tag-${tag}`,
 
   // PageGuideModal
   pageGuideOverlay: 'page-guide-overlay',

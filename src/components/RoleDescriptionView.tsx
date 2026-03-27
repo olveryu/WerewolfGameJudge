@@ -69,6 +69,8 @@ interface RoleDescriptionViewProps {
   descriptionFallback: string;
   /** Faction color for accent bar */
   factionColor: string;
+  /** Enable internal scrolling (default true). Set false when embedded in an outer ScrollView. */
+  scrollEnabled?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -176,6 +178,7 @@ export const RoleDescriptionView: React.FC<RoleDescriptionViewProps> = ({
   structuredDescription,
   descriptionFallback,
   factionColor,
+  scrollEnabled = true,
 }) => {
   const colors = useColors();
 
@@ -202,6 +205,25 @@ export const RoleDescriptionView: React.FC<RoleDescriptionViewProps> = ({
   }
 
   // Mode B: structured sections with scroll + fade mask
+  const sectionElements = fields.map((entry, i) => (
+    <DescriptionSection
+      key={entry.key}
+      fieldKey={entry.key}
+      label={entry.label}
+      icon={FIELD_ICONS[entry.key]}
+      text={entry.text}
+      accentColor={getFieldAccentColor(entry.key, factionColor, colors)}
+      labelColor={getFieldLabelColor(entry.key, colors)}
+      colors={colors}
+      isLast={i === fields.length - 1}
+    />
+  ));
+
+  if (!scrollEnabled) {
+    // Flat layout — let parent handle scrolling
+    return <View style={modeBScrollContent}>{sectionElements}</View>;
+  }
+
   return (
     <View style={modeBContainer}>
       <ScrollView
@@ -209,19 +231,7 @@ export const RoleDescriptionView: React.FC<RoleDescriptionViewProps> = ({
         contentContainerStyle={modeBScrollContent}
         showsVerticalScrollIndicator
       >
-        {fields.map((entry, i) => (
-          <DescriptionSection
-            key={entry.key}
-            fieldKey={entry.key}
-            label={entry.label}
-            icon={FIELD_ICONS[entry.key]}
-            text={entry.text}
-            accentColor={getFieldAccentColor(entry.key, factionColor, colors)}
-            labelColor={getFieldLabelColor(entry.key, colors)}
-            colors={colors}
-            isLast={i === fields.length - 1}
-          />
-        ))}
+        {sectionElements}
       </ScrollView>
       {/* Bottom fade mask to hint scrollable content */}
       <LinearGradient

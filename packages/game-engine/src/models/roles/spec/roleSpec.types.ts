@@ -19,6 +19,30 @@ import type {
 import type { Faction, Team } from './types';
 
 /**
+ * UI ability category tags — 百科页面筛选 & 角色卡片展示用。
+ *
+ * 纯展示分类，不参与运行时游戏逻辑判断。
+ */
+export type RoleAbilityTag =
+  | 'check' // 查验 — 可查验其他玩家身份或阵营
+  | 'protect' // 保护 — 可主动防护或救治其他玩家
+  | 'kill' // 杀伤 — 可直接导致玩家出局
+  | 'control' // 控制 — 可限制、干扰其他玩家行动或操纵游戏状态
+  | 'link' // 连带 — 出局或行动引发对其他玩家的连锁效果
+  | 'immune' // 免疫 — 对特定伤害类型天然免疫
+  | 'transform' // 变身 — 可改变自身或他人的阵营、身份
+  | 'survive' // 免死 — 可触发保命机制避免出局
+  | 'follow' // 跟随 — 依附其他玩家阵营共同胜负
+  | 'none'; // 无能力 — 无特殊技能，纯推理投票
+
+/**
+ * Internal grouping tags — handler 运行时逻辑分组用（如预言家系判定）。
+ *
+ * 不用于 UI 展示筛选。
+ */
+export type RoleGroupTag = 'seerFamily'; // 预言家系 — 预言家及其变体
+
+/**
  * Structured role description for card UI rendering.
  *
  * Each field maps to a visual section on the role card.
@@ -58,8 +82,10 @@ export interface RoleSpec {
   // --- Classification ---
   readonly faction: Faction;
   readonly team: Team;
-  /** Tags for grouping (seerFamily, wolfBase, thirdParty, idol...) */
-  readonly tags?: readonly string[];
+  /** UI ability category tags for encyclopedia filtering */
+  readonly tags?: readonly RoleAbilityTag[];
+  /** Internal grouping tags for handler runtime logic (e.g. seerFamily detection) */
+  readonly groups?: readonly RoleGroupTag[];
 
   // --- Abilities ---
   readonly abilities: readonly Ability[];

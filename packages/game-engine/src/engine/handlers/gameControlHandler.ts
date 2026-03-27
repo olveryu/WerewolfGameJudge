@@ -110,7 +110,7 @@ export function handleAssignRoles(
       shuffledRoles.filter((r) => {
         if (r === 'seer') return true;
         const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
-        return spec?.tags?.includes('seerFamily') === true;
+        return spec?.groups?.includes('seerFamily') === true;
       }),
     ),
   ];

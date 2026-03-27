@@ -39,6 +39,8 @@ export {
   isValidRoleId,
   // Role Spec
   ROLE_SPECS,
+  type RoleAbilityTag,
+  type RoleGroupTag,
   type RoleId,
 } from './spec';
 export {

@@ -55,7 +55,14 @@ export type {
 export { TargetConstraint } from './ability.types';
 
 // Role spec types
-export type { DeathCalcRole, NightStepDef, RoleDescription, RoleSpec } from './roleSpec.types';
+export type {
+  DeathCalcRole,
+  NightStepDef,
+  RoleAbilityTag,
+  RoleDescription,
+  RoleGroupTag,
+  RoleSpec,
+} from './roleSpec.types';
 
 // Specs registry + helpers
 export {
