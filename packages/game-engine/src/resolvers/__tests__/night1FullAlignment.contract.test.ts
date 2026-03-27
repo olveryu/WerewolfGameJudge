@@ -128,7 +128,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
      * Schema-Resolver alignment: ✅ Both allow self-target
      */
     it('guardProtect schema has NO notSelf constraint', () => {
-      const schema = SCHEMAS.guardProtect;
+      const schema = SCHEMAS.guardProtect as { constraints: readonly TargetConstraint[] };
       expect(schema.constraints).toEqual([]);
     });
 
@@ -171,7 +171,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
 
   describe('wolfKill should NOT have notSelf (neutral judge rule)', () => {
     it('schema should not have notSelf constraint', () => {
-      const wolfSchema = SCHEMAS.wolfKill;
+      const wolfSchema = SCHEMAS.wolfKill as { constraints?: readonly TargetConstraint[] };
       expect(wolfSchema.constraints ?? []).not.toContain(TargetConstraint.NotSelf);
     });
 

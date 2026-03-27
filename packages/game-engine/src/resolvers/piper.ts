@@ -11,6 +11,7 @@
  */
 
 import { SCHEMAS } from '../models';
+import type { MultiChooseSeatSchema } from '../models/roles/spec/schema.types';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverContext, ResolverFn } from './types';
 
@@ -31,7 +32,7 @@ function mergeHypnotizedSeats(
 export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, input) => {
   const { actorSeat, players } = context;
   const targets = input.targets;
-  const schema = SCHEMAS.piperHypnotize;
+  const schema: MultiChooseSeatSchema = SCHEMAS.piperHypnotize as MultiChooseSeatSchema;
 
   // Piper can skip (canSkip: true)
   if (!targets || targets.length === 0) {

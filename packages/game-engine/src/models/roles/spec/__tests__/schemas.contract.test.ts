@@ -12,7 +12,11 @@ import {
   SCHEMAS,
 } from '@werewolf/game-engine/models/roles/spec';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
-import type { CompoundSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
+import type {
+  ActionSchema,
+  CompoundSchema,
+  WolfVoteSchema,
+} from '@werewolf/game-engine/models/roles/spec/schema.types';
 
 describe('SCHEMAS contract', () => {
   it('should include at least all NIGHT_STEPS schemas (and may include helper schemas)', () => {
@@ -29,10 +33,7 @@ describe('SCHEMAS contract', () => {
   });
 
   it('every schema should have required fields', () => {
-    for (const [id, schema] of Object.entries(SCHEMAS) as [
-      SchemaId,
-      (typeof SCHEMAS)[SchemaId],
-    ][]) {
+    for (const [id, schema] of Object.entries(SCHEMAS) as [SchemaId, ActionSchema][]) {
       expect(schema.id).toBe(id);
       expect(schema.kind).toMatch(
         /^(chooseSeat|confirm|compound|swap|wolfVote|multiChooseSeat|groupConfirm)$/,
@@ -79,9 +80,10 @@ describe('SCHEMAS contract', () => {
 
   describe('compound schemas', () => {
     it('witchAction should be compound with steps', () => {
-      expect(SCHEMAS.witchAction.kind).toBe('compound');
-      expect(Array.isArray(SCHEMAS.witchAction.steps)).toBe(true);
-      expect(SCHEMAS.witchAction.steps).toHaveLength(2);
+      const witch = SCHEMAS.witchAction as CompoundSchema;
+      expect(witch.kind).toBe('compound');
+      expect(Array.isArray(witch.steps)).toBe(true);
+      expect(witch.steps).toHaveLength(2);
     });
   });
 
@@ -97,7 +99,7 @@ describe('SCHEMAS contract', () => {
     it('wolfKill.meeting should have correct MeetingConfig (schema-driven wolf visibility)', () => {
       // Contract: UI derives showWolves from schema.meeting.canSeeEachOther
       // This test ensures the meeting config exists and has correct values
-      const wolfKill = SCHEMAS.wolfKill;
+      const wolfKill = SCHEMAS.wolfKill as WolfVoteSchema;
       expect(wolfKill.meeting).toBeDefined();
       expect(wolfKill.meeting.canSeeEachOther).toBe(true);
       expect(wolfKill.meeting.resolution).toBe('majority');
