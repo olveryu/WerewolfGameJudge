@@ -53,7 +53,6 @@ newRole: {
   faction: Faction.God,     // God | Wolf | Villager | Special
   team: Team.Good,          // Team.Good | Team.Wolf | Team.Third
   description: '技能描述',
-  night1: { hasAction: true },
 },
 
 // 参考模板（狼人阵营）
@@ -65,7 +64,6 @@ newWolf: {
   faction: Faction.Wolf,
   team: Team.Wolf,
   description: '技能描述',
-  night1: { hasAction: true },
   wolfMeeting: { canSeeWolves: true, participatesInWolfVote: true },
 },
 
@@ -78,7 +76,6 @@ newThird: {
   faction: Faction.Special,
   team: Team.Third,
   description: '技能描述',
-  night1: { hasAction: true },
 },
 
 // 参考模板（伪装角色 — 玩家看到的身份与实际不同）
@@ -90,7 +87,6 @@ newDisguised: {
   faction: Faction.Villager,
   team: Team.Good,
   description: '技能描述',
-  night1: { hasAction: true },
   displayAs: 'seer',  // 玩家看到的角色 ID（如灯影/酒鬼预言家伪装为 seer）
 },
 ````
@@ -100,6 +96,8 @@ newDisguised: {
 - `wolfMeeting?: { canSeeWolves, participatesInWolfVote }` — 仅狼阵营
 - `flags?: { immuneToWolfKill?, immuneToPoison?, reflectsDamage? }` — 特殊免疫/反射
 - `displayAs?: string` — 伪装身份（mirrorSeer / drunkSeer 用）
+
+> **NOTE**: 角色是否有夜晚行动由 `NIGHT_STEPS` 数组决定（`hasNightAction()` 从 `nightSteps.length > 0` 推导）。`ROLE_SPECS` 中无需声明 `night1` 字段。
 
 **description 文案规范**:
 
@@ -277,6 +275,30 @@ newRoleGroupConfirm: {
 
 ### 步骤 4 — Resolver
 
+大多数角色使用 **genericResolver**（数据驱动，从 `ROLE_SPECS` 的 `abilities` 声明自动校验和计算）。仅逻辑无法声明式表达的角色才需要独立 resolver 文件。
+
+**判断标准**:
+
+| 模式                   | 用 genericResolver                                            | 用独立 resolver            |
+| ---------------------- | ------------------------------------------------------------- | -------------------------- |
+| chooseSeat + writeSlot | ✅ guard, dreamcatcher, silenceElder, votebanElder, wolfQueen |                            |
+| chooseSeat + check     | ✅ seer 家族, psychic, gargoyle, pureWhite, wolfWitch         |                            |
+| chooseIdol             | ✅ slacker, wildChild                                         |                            |
+| confirm                | ✅ hunter, darkWolfKing, avenger                              |                            |
+| block                  | ✅ nightmare                                                  |                            |
+| learn                  | ✅ wolfRobot                                                  |                            |
+| compound 双步骤        |                                                               | ✅ witch                   |
+| 投票聚合               |                                                               | ✅ wolf                    |
+| swap 双目标            |                                                               | ✅ magician                |
+| 跨角色联动             |                                                               | ✅ shadow                  |
+| 多目标 + 级联步骤      |                                                               | ✅ piper, awakenedGargoyle |
+
+#### 4a — genericResolver 路径（默认）
+
+无需新建文件。只需确保 `ROLE_SPECS` 中的 `abilities` 声明正确，然后在步骤 5 注册即可。
+
+#### 4b — 独立 resolver 路径（仅特殊角色）
+
 **新建文件**: `packages/game-engine/src/resolvers/<newRole>.ts`
 
 ```typescript
@@ -365,13 +387,20 @@ interface ResolverResult {
 **文件**: `packages/game-engine/src/resolvers/index.ts`
 
 ```typescript
+// --- genericResolver 路径（默认）---
+import { createGenericResolver } from './genericResolver';
+
+// 在 RESOLVERS 的 Generic resolvers 区块添加：
+newRoleAction: createGenericResolver('newRole'),
+
+// --- 独立 resolver 路径 ---
 import { newRoleActionResolver } from './newRole';
 
-// 在 RESOLVERS 对象中添加：
+// 在 RESOLVERS 的 Custom resolvers 区块添加：
 newRoleAction: newRoleActionResolver,
 ```
 
-当前已有 27 个 resolver 注册。
+`RESOLVERS` 分两个区块：Generic resolvers（数据驱动）和 Custom resolvers（独立文件）。按角色类型放入对应区块。
 
 ### 步骤 6 — 音频文件
 
@@ -568,6 +597,12 @@ it('should have exactly 36 roles', () => {
   expect(getAllRoleIds()).toHaveLength(36); // → 37
 });
 ```
+
+同步更新 V2 合约测试：
+
+**文件**: `packages/game-engine/src/models/roles/spec/__tests__/v2Specs.contract.test.ts`
+
+新增角色后需在 `ROLE_SPECS_V2` 中添加对应 V2 spec 定义（`packages/game-engine/src/models/roles/spec/v2/v2Specs.ts`），确保 V2 合约测试通过。
 
 ### 步骤 11 — 运行验证
 
