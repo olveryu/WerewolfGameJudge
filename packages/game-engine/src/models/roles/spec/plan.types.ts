@@ -5,8 +5,8 @@
  * 导出 NightPlan / NightPlanStep / NightPlanBuildError 类型定义，不依赖 service、不含副作用。
  */
 
-import type { SchemaId } from './v2/schemas';
-import type { RoleId } from './v2/specs';
+import type { SchemaId } from './schemas';
+import type { RoleId } from './specs';
 
 /** Single step in the night plan */
 export interface NightPlanStep {

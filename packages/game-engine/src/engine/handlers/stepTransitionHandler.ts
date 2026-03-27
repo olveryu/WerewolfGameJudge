@@ -29,8 +29,8 @@ import {
   getStepSpec,
   type SchemaUi,
 } from '../../models/roles/spec';
-import type { RoleSpec } from '../../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS } from '../../models/roles/spec/v2/specs';
+import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { ProtocolAction } from '../../protocol/types';
 import { getRoleAfterSwap } from '../../resolvers/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';

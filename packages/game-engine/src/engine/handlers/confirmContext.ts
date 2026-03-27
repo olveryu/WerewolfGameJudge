@@ -15,9 +15,9 @@
  */
 
 import { type SchemaId } from '../../models/roles/spec';
+import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import { Team } from '../../models/roles/spec/types';
-import type { RoleSpec } from '../../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS } from '../../models/roles/spec/v2/specs';
 import type { ConfirmStatus } from '../../protocol/types';
 import { findSeatByRole } from '../../utils/playerHelpers';
 import type { SetConfirmStatusAction } from '../reducer/types';

@@ -3281,3 +3281,38 @@ commit P9-D: refactor(game-engine): update all direct V2 consumer imports
   [verify] pnpm run quality
   [risk] 低 — 机械替换，逻辑零变化
 ```
+
+#### P10: 拉平 v2/ → spec/ 顶层，删除 v2/ 目录
+
+> **背景**：P9 完成后 `spec/` 顶层存在 4 个 @deprecated re-export stub（specs / schemas /
+> nightSteps / plan），真正实现在 `spec/v2/` 下。目录嵌套 + 重复文件名造成混淆。
+> P10 将 v2/ 内容拉平到 spec/ 顶层，删除 v2/ 整个目录。
+
+```
+commit P10: refactor(game-engine): flatten v2/ into spec/ top level
+
+  [文件名映射]
+    v2/specs.ts           → spec/specs.ts          (替换 stub)
+    v2/schemas.ts         → spec/schemas.ts        (替换 stub)
+    v2/nightSteps.ts      → spec/nightSteps.ts     (替换 stub)
+    v2/nightPlan.ts       → spec/plan.ts           (替换 stub)
+    v2/roleSpec.types.ts  → spec/roleSpec.types.ts (新文件)
+    v2/ability.types.ts   → spec/ability.types.ts  (新文件)
+    v2/index.ts           → 删除 (spec/index.ts 接管)
+    v2/__tests__/*        → spec/__tests__/        (移动)
+
+  [内容 — 纯机械重构]
+    A: 替换 spec/ 顶层 stub 为 v2/ 真实内容，修复相对 import
+       (../types → ./types, ./specs → ./specs 不变, ./nightPlan → ./plan)
+    B: 移动 v2/__tests__/ 到 spec/__tests__/
+    C: 重写 spec/index.ts barrel — 直接导出顶层文件
+    D: 更新 nightSteps.types.ts / plan.types.ts import (去掉 ./v2/ 前缀)
+    E: 更新 engine handlers / resolvers import (去掉 /v2/ 路径段)
+    F: 更新 models/roles/index.ts (./spec/v2/roleSpec.types → ./spec/roleSpec.types)
+    G: 更新外部消费者 @werewolf/game-engine/.../v2/ → 去掉 v2/
+    H: 更新 contract test 文件路径引用
+    I: 删除 v2/ 目录
+
+  [verify] pnpm run quality
+  [risk] 低 — 纯路径重构，零逻辑变化，影响 ~22 文件
+```

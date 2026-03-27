@@ -6,7 +6,6 @@
  * 纯类型定义，不含业务逻辑、副作用、平台依赖。
  */
 
-import type { Faction, Team } from '../types';
 import type {
   Ability,
   ActionKind,
@@ -17,6 +16,7 @@ import type {
   RecognitionConfig,
   Resource,
 } from './ability.types';
+import type { Faction, Team } from './types';
 
 /**
  * Structured role description for card UI rendering.

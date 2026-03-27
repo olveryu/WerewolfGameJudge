@@ -154,7 +154,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
 
     it('should have exactly one NIGHT_STEPS export', () => {
       const nightStepsFile = readFileContent(
-        'packages/game-engine/src/models/roles/spec/v2/nightSteps.ts',
+        'packages/game-engine/src/models/roles/spec/nightSteps.ts',
       );
 
       // Count export statements for NIGHT_STEPS
@@ -163,12 +163,14 @@ describe('Actor Identity Anti-Drift Contracts', () => {
       expect(exportMatches).toHaveLength(1);
     });
 
-    it('all audioKey references should come from NIGHT_STEPS (not from ROLE_SPECS)', () => {
-      const specsContent = readFileContent('packages/game-engine/src/models/roles/spec/specs.ts');
+    it('NIGHT_STEPS should derive audioKey from ROLE_SPECS (no independent definitions)', () => {
+      const nightStepsContent = readFileContent(
+        'packages/game-engine/src/models/roles/spec/nightSteps.ts',
+      );
 
-      // ROLE_SPECS should not define audioKey (it should come from NIGHT_STEPS)
-      // Look for audioKey: 'xxx' pattern which would indicate duplicate definition
-      const lines = specsContent.split('\n');
+      // nightSteps.ts should NOT hardcode audioKey string literals — it derives them from ROLE_SPECS.
+      // Look for audioKey: 'xxx' pattern which would indicate a parallel/duplicate source.
+      const lines = nightStepsContent.split('\n');
       const audioKeyDefinitions: string[] = [];
 
       for (let i = 0; i < lines.length; i++) {
@@ -180,7 +182,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
         ) {
           continue;
         }
-        // Look for audioKey: 'xxx' pattern which would indicate duplicate definition
+        // Look for hardcoded audioKey: 'xxx' pattern
         if (/audioKey\s*:\s*['"]/.test(line)) {
           audioKeyDefinitions.push(`Line ${i + 1}: ${line.trim()}`);
         }

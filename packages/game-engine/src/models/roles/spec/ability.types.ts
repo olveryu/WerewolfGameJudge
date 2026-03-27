@@ -8,8 +8,8 @@
  * 复用 V1 的 Faction / Team / TargetConstraint 枚举，不重复定义。
  */
 
-import type { ConfirmStatusUi } from '../schema.types';
-import { TargetConstraint } from '../schema.types';
+import type { ConfirmStatusUi } from './schema.types';
+import { TargetConstraint } from './schema.types';
 
 // Re-export TargetConstraint so V2 consumers can import from v2/
 export { TargetConstraint };

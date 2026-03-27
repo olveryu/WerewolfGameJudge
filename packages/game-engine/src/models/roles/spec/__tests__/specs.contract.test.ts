@@ -12,13 +12,13 @@ import {
   ROLE_SPECS,
   type RoleId,
 } from '@werewolf/game-engine/models/roles/spec';
+import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 import {
   type CompoundSchema,
   TargetConstraint,
 } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
-import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
 
 describe('ROLE_SPECS contract', () => {
   it('should have exactly 36 roles', () => {
