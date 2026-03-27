@@ -14,16 +14,15 @@
 
 import { calculateDeaths } from '@werewolf/game-engine/engine/DeathCalculator';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { gargoyleCheckResolver } from '@werewolf/game-engine/resolvers/gargoyle';
-import { magicianSwapResolver } from '@werewolf/game-engine/resolvers/magician';
-import { psychicCheckResolver } from '@werewolf/game-engine/resolvers/psychic';
-import { seerCheckResolver } from '@werewolf/game-engine/resolvers/seer';
-import type {
-  ActionInput,
-  CurrentNightResults,
-  ResolverContext,
-} from '@werewolf/game-engine/resolvers/types';
-import { wolfRobotLearnResolver } from '@werewolf/game-engine/resolvers/wolfRobot';
+
+import { RESOLVERS } from '../index';
+import { magicianSwapResolver } from '../magician';
+import type { ActionInput, CurrentNightResults, ResolverContext } from '../types';
+
+const gargoyleCheckResolver = RESOLVERS.gargoyleCheck!;
+const psychicCheckResolver = RESOLVERS.psychicCheck!;
+const seerCheckResolver = RESOLVERS.seerCheck!;
+const wolfRobotLearnResolver = RESOLVERS.wolfRobotLearn!;
 
 // =============================================================================
 // Test Helpers
