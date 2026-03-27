@@ -1,14 +1,12 @@
 /**
- * V1 ↔ V2 Equivalence Contract Tests
+ * V2 Role Specs Contract Tests
  *
- * Verifies that ROLE_SPECS_V2 faithfully mirrors the V1 data:
- * ROLE_SPECS (identity/classification) + NIGHT_STEPS (step order) + SCHEMAS (UI).
- * Any mismatch between V1 and V2 is a migration bug.
+ * Validates ROLE_SPECS_V2 integrity: identity/classification,
+ * nightSteps/NIGHT_STEPS alignment, recognition, immunities.
  */
 
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles/spec';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
-import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.types';
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 import type { RoleSpecV2 } from '../roleSpec.types';
@@ -18,8 +16,8 @@ const v1Ids = Object.keys(ROLE_SPECS).sort() as RoleId[];
 const v2Ids = Object.keys(ROLE_SPECS_V2).sort();
 
 describe('V1 ↔ V2 key-set equivalence', () => {
-  it('V2 should contain the same 36 role IDs as V1', () => {
-    expect(v2Ids).toEqual(v1Ids);
+  it('ROLE_SPECS and ROLE_SPECS_V2 should be the same object', () => {
+    expect(ROLE_SPECS).toBe(ROLE_SPECS_V2);
   });
 
   it('should have exactly 36 roles', () => {
@@ -27,48 +25,41 @@ describe('V1 ↔ V2 key-set equivalence', () => {
   });
 });
 
-describe('V1 ↔ V2 per-role identity equivalence', () => {
+describe('V2 per-role identity contract', () => {
   for (const roleId of v1Ids) {
-    const v1 = ROLE_SPECS[roleId] as RoleSpec;
     const v2 = ROLE_SPECS_V2[roleId as keyof typeof ROLE_SPECS_V2] as RoleSpecV2;
 
     describe(roleId, () => {
-      it('id should match', () => {
-        expect(v2.id).toBe(v1.id);
+      it('id should match key', () => {
+        expect(v2.id).toBe(roleId);
       });
 
-      it('displayName should match', () => {
-        expect(v2.displayName).toBe(v1.displayName);
+      it('displayName should be non-empty', () => {
+        expect(v2.displayName).toBeTruthy();
       });
 
-      it('shortName should match', () => {
-        expect(v2.shortName).toBe(v1.shortName);
+      it('shortName should be non-empty', () => {
+        expect(v2.shortName).toBeTruthy();
       });
 
-      it('emoji should match', () => {
-        expect(v2.emoji).toBe(v1.emoji);
+      it('emoji should be non-empty', () => {
+        expect(v2.emoji).toBeTruthy();
       });
 
-      it('faction should match', () => {
-        expect(v2.faction).toBe(v1.faction);
+      it('faction should be valid', () => {
+        expect(Object.values(Faction)).toContain(v2.faction);
       });
 
-      it('team should match', () => {
-        expect(v2.team).toBe(v1.team);
+      it('team should be valid', () => {
+        expect(Object.values(Team)).toContain(v2.team);
       });
 
-      it('description should match', () => {
-        expect(v2.description).toBe(v1.description);
+      it('description should be non-empty', () => {
+        expect(v2.description).toBeTruthy();
       });
 
-      it('structuredDescription should match', () => {
-        if (v1.structuredDescription) {
-          expect(v2.structuredDescription).toEqual(v1.structuredDescription);
-        }
-      });
-
-      it('night1.hasAction should match', () => {
-        expect(v2.night1.hasAction).toBe(v1.night1.hasAction);
+      it('night1.hasAction should be boolean', () => {
+        expect(typeof v2.night1.hasAction).toBe('boolean');
       });
     });
   }
@@ -127,7 +118,7 @@ describe('V2 nightSteps ↔ V1 NIGHT_STEPS equivalence', () => {
   });
 });
 
-describe('V2 recognition ↔ V1 wolfMeeting equivalence', () => {
+describe('V2 recognition contract', () => {
   const wolfPackMembers: RoleId[] = [
     'wolf',
     'wolfQueen',
@@ -143,23 +134,19 @@ describe('V2 recognition ↔ V1 wolfMeeting equivalence', () => {
 
   const loneWolves: RoleId[] = ['gargoyle', 'wolfRobot', 'masquerade'];
 
-  it('wolf pack members: V2 recognition should match V1 wolfMeeting', () => {
+  it('wolf pack members should have canSeeWolves=true, participatesInWolfVote=true', () => {
     for (const roleId of wolfPackMembers) {
-      const v1 = ROLE_SPECS[roleId] as RoleSpec;
       const v2 = ROLE_SPECS_V2[roleId as keyof typeof ROLE_SPECS_V2] as RoleSpecV2;
-
-      expect(v2.recognition?.canSeeWolves).toBe(v1.wolfMeeting?.canSeeWolves);
-      expect(v2.recognition?.participatesInWolfVote).toBe(v1.wolfMeeting?.participatesInWolfVote);
+      expect(v2.recognition?.canSeeWolves).toBe(true);
+      expect(v2.recognition?.participatesInWolfVote).toBe(true);
     }
   });
 
-  it('lone wolves: V2 recognition should match V1 wolfMeeting', () => {
+  it('lone wolves should have canSeeWolves=false, participatesInWolfVote=false', () => {
     for (const roleId of loneWolves) {
-      const v1 = ROLE_SPECS[roleId] as RoleSpec;
       const v2 = ROLE_SPECS_V2[roleId as keyof typeof ROLE_SPECS_V2] as RoleSpecV2;
-
-      expect(v2.recognition?.canSeeWolves).toBe(v1.wolfMeeting?.canSeeWolves);
-      expect(v2.recognition?.participatesInWolfVote).toBe(v1.wolfMeeting?.participatesInWolfVote);
+      expect(v2.recognition?.canSeeWolves).toBe(false);
+      expect(v2.recognition?.participatesInWolfVote).toBe(false);
     }
   });
 
@@ -176,44 +163,25 @@ describe('V2 recognition ↔ V1 wolfMeeting equivalence', () => {
   });
 });
 
-describe('V2 immunities ↔ V1 flags equivalence', () => {
-  it('roles with V1 immuneToPoison flag should have V2 poison immunity', () => {
-    for (const roleId of v1Ids) {
-      const v1 = ROLE_SPECS[roleId] as RoleSpec;
-      const v2 = ROLE_SPECS_V2[roleId as keyof typeof ROLE_SPECS_V2] as RoleSpecV2;
-
-      const v1HasPoisonImmunity = v1.flags?.immuneToPoison === true;
-      const v2HasPoisonImmunity = v2.immunities?.some((i) => i.kind === 'poison') ?? false;
-
-      expect(v2HasPoisonImmunity).toBe(v1HasPoisonImmunity);
-    }
+describe('V2 immunities contract', () => {
+  it('spiritKnight should have wolfAttack + poison + nightDamage immunities', () => {
+    const kinds = ROLE_SPECS_V2.spiritKnight.immunities?.map((i) => i.kind) ?? [];
+    expect(kinds).toContain('wolfAttack');
+    expect(kinds).toContain('poison');
+    expect(kinds).toContain('nightDamage');
   });
 
-  it('roles with V1 immuneToWolfKill flag should have V2 wolfAttack immunity', () => {
-    for (const roleId of v1Ids) {
-      const v1 = ROLE_SPECS[roleId] as RoleSpec;
-      const v2 = ROLE_SPECS_V2[roleId as keyof typeof ROLE_SPECS_V2] as RoleSpecV2;
-
-      const v1HasWolfImmunity = v1.flags?.immuneToWolfKill === true;
-      const v2HasWolfImmunity = v2.immunities?.some((i) => i.kind === 'wolfAttack') ?? false;
-
-      expect(v2HasWolfImmunity).toBe(v1HasWolfImmunity);
-    }
+  it('wolfQueen should have wolfAttack immunity', () => {
+    const kinds = ROLE_SPECS_V2.wolfQueen.immunities?.map((i) => i.kind) ?? [];
+    expect(kinds).toContain('wolfAttack');
   });
 
-  it('roles with V1 reflectsDamage flag should have V2 nightDamage immunity', () => {
-    for (const roleId of v1Ids) {
-      const v1 = ROLE_SPECS[roleId] as RoleSpec;
+  it('poison-immune roles should have poison immunity', () => {
+    const poisonImmuneRoles: RoleId[] = ['witcher', 'dancer', 'spiritKnight', 'masquerade'];
+    for (const roleId of poisonImmuneRoles) {
       const v2 = ROLE_SPECS_V2[roleId as keyof typeof ROLE_SPECS_V2] as RoleSpecV2;
-
-      const v1HasReflect = v1.flags?.reflectsDamage === true;
-      const v2HasNightDamageImmunity =
-        v2.immunities?.some((i) => i.kind === 'nightDamage') ?? false;
-
-      // spiritKnight has reflectsDamage AND nightDamage immunity
-      if (v1HasReflect) {
-        expect(v2HasNightDamageImmunity).toBe(true);
-      }
+      const hasPoisonImmunity = v2.immunities?.some((i) => i.kind === 'poison') ?? false;
+      expect(hasPoisonImmunity).toBe(true);
     }
   });
 });

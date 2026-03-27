@@ -6,8 +6,9 @@
  */
 
 import { getAllRoleIds, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles/spec';
-import type { RoleDescription, RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.types';
 import { getRoleStructuredDescription } from '@werewolf/game-engine/models/roles/spec/specs';
+import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
+import type { RoleSpecV2 } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
 
 /** Valid field keys in RoleDescription */
 const VALID_FIELDS: readonly (keyof RoleDescription)[] = [
@@ -25,7 +26,7 @@ describe('structuredDescription contract', () => {
   it('every role should have structuredDescription defined', () => {
     const missing: string[] = [];
     for (const id of allRoles) {
-      const spec = ROLE_SPECS[id] as RoleSpec;
+      const spec: RoleSpecV2 = ROLE_SPECS[id];
       if (!spec.structuredDescription) {
         missing.push(id);
       }
@@ -61,7 +62,7 @@ describe('structuredDescription contract', () => {
     // as a substring or semantic segment in the flat description.
     // This is a loose check — we verify each clause appears in the original.
     for (const id of allRoles) {
-      const spec = ROLE_SPECS[id] as RoleSpec;
+      const spec: RoleSpecV2 = ROLE_SPECS[id];
       const desc = spec.structuredDescription;
       if (!desc) continue;
       const flat = spec.description;

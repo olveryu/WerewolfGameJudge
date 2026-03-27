@@ -14,8 +14,8 @@ import {
 } from '@werewolf/game-engine/models/roles/spec';
 import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
-import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/spec.types';
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
+import type { RoleSpecV2 } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
 
 describe('ROLE_SPECS contract', () => {
   it('should have exactly 36 roles', () => {
@@ -23,7 +23,7 @@ describe('ROLE_SPECS contract', () => {
   });
 
   it('every role should have required fields', () => {
-    for (const [id, spec] of Object.entries(ROLE_SPECS) as [RoleId, RoleSpec][]) {
+    for (const [id, spec] of Object.entries(ROLE_SPECS) as [RoleId, RoleSpecV2][]) {
       expect(spec.id).toBe(id);
       expect(spec.displayName).toBeTruthy();
       expect(spec.faction).toBeDefined();
@@ -63,32 +63,33 @@ describe('ROLE_SPECS contract', () => {
   });
 
   describe('spiritKnight spec', () => {
-    it('should have wolfMeeting with canSeeWolves=true and participatesInWolfVote=true', () => {
-      expect(ROLE_SPECS.spiritKnight.wolfMeeting?.canSeeWolves).toBe(true);
-      expect(ROLE_SPECS.spiritKnight.wolfMeeting?.participatesInWolfVote).toBe(true);
+    it('should have recognition with canSeeWolves=true and participatesInWolfVote=true', () => {
+      expect(ROLE_SPECS.spiritKnight.recognition?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.spiritKnight.recognition?.participatesInWolfVote).toBe(true);
     });
 
-    it('should have immuneToWolfKill, immuneToPoison and reflectsDamage flags', () => {
-      expect(ROLE_SPECS.spiritKnight.flags?.immuneToWolfKill).toBe(true);
-      expect(ROLE_SPECS.spiritKnight.flags?.immuneToPoison).toBe(true);
-      expect(ROLE_SPECS.spiritKnight.flags?.reflectsDamage).toBe(true);
+    it('should have wolfAttack, poison, and nightDamage immunities', () => {
+      const kinds = ROLE_SPECS.spiritKnight.immunities?.map((i) => i.kind) ?? [];
+      expect(kinds).toContain('wolfAttack');
+      expect(kinds).toContain('poison');
+      expect(kinds).toContain('nightDamage');
     });
   });
 
   describe('gargoyle and wolfRobot specs', () => {
     it('gargoyle should not see wolves and not participate in vote', () => {
-      expect(ROLE_SPECS.gargoyle.wolfMeeting?.canSeeWolves).toBe(false);
-      expect(ROLE_SPECS.gargoyle.wolfMeeting?.participatesInWolfVote).toBe(false);
+      expect(ROLE_SPECS.gargoyle.recognition?.canSeeWolves).toBe(false);
+      expect(ROLE_SPECS.gargoyle.recognition?.participatesInWolfVote).toBe(false);
     });
 
     it('awakenedGargoyle should see wolves and participate in vote', () => {
-      expect(ROLE_SPECS.awakenedGargoyle.wolfMeeting?.canSeeWolves).toBe(true);
-      expect(ROLE_SPECS.awakenedGargoyle.wolfMeeting?.participatesInWolfVote).toBe(true);
+      expect(ROLE_SPECS.awakenedGargoyle.recognition?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.awakenedGargoyle.recognition?.participatesInWolfVote).toBe(true);
     });
 
     it('wolfRobot should not see wolves and not participate in vote', () => {
-      expect(ROLE_SPECS.wolfRobot.wolfMeeting?.canSeeWolves).toBe(false);
-      expect(ROLE_SPECS.wolfRobot.wolfMeeting?.participatesInWolfVote).toBe(false);
+      expect(ROLE_SPECS.wolfRobot.recognition?.canSeeWolves).toBe(false);
+      expect(ROLE_SPECS.wolfRobot.recognition?.participatesInWolfVote).toBe(false);
     });
   });
 
@@ -108,8 +109,8 @@ describe('ROLE_SPECS contract', () => {
     // Nightmare acts solo because nightmareBlock is kind='chooseSeat', not 'wolfVote'
 
     it('should participate in wolf meeting (canSeeWolves=true, participatesInWolfVote=true)', () => {
-      expect(ROLE_SPECS.nightmare.wolfMeeting?.canSeeWolves).toBe(true);
-      expect(ROLE_SPECS.nightmare.wolfMeeting?.participatesInWolfVote).toBe(true);
+      expect(ROLE_SPECS.nightmare.recognition?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.nightmare.recognition?.participatesInWolfVote).toBe(true);
     });
 
     it('nightmare should come before wolf in NIGHT_STEPS', () => {
@@ -207,17 +208,17 @@ describe('ROLE_SPECS contract', () => {
 
     it('wolf pack members should see wolves and participate in vote', () => {
       for (const roleId of wolfPackMembers) {
-        const spec = ROLE_SPECS[roleId] as RoleSpec;
-        expect(spec.wolfMeeting?.canSeeWolves).toBe(true);
-        expect(spec.wolfMeeting?.participatesInWolfVote).toBe(true);
+        const spec: RoleSpecV2 = ROLE_SPECS[roleId];
+        expect(spec.recognition?.canSeeWolves).toBe(true);
+        expect(spec.recognition?.participatesInWolfVote).toBe(true);
       }
     });
 
     it('lone wolves should not see wolves and not participate in vote', () => {
       for (const roleId of loneWolves) {
-        const spec = ROLE_SPECS[roleId] as RoleSpec;
-        expect(spec.wolfMeeting?.canSeeWolves).toBe(false);
-        expect(spec.wolfMeeting?.participatesInWolfVote).toBe(false);
+        const spec: RoleSpecV2 = ROLE_SPECS[roleId];
+        expect(spec.recognition?.canSeeWolves).toBe(false);
+        expect(spec.recognition?.participatesInWolfVote).toBe(false);
       }
     });
   });

@@ -18,8 +18,7 @@ export * from './types';
 export * from './schema.types';
 export * from './schemas';
 
-// Spec types and registry
-export * from './spec.types';
+// Spec registry (V2-based)
 export * from './specs';
 
 // Night steps types and registry
