@@ -8,7 +8,6 @@
 
 import type { NightPlan, NightPlanStep } from '../plan.types';
 import { NightPlanBuildError } from '../plan.types';
-import type { SchemaId } from '../schemas';
 import type { RoleId } from '../specs';
 import type { NightStepDef, RoleSpecV2 } from './roleSpec.types';
 import { ROLE_SPECS_V2 } from './specs';
@@ -23,7 +22,7 @@ import { ROLE_SPECS_V2 } from './specs';
  * Array position = authority. Replaces V1's NIGHT_STEPS array ordering.
  * Each entry is a stepId matching a NightStepDef.stepId in ROLE_SPECS_V2.
  */
-export const NIGHT_STEP_ORDER: readonly string[] = [
+const NIGHT_STEP_ORDER_INTERNAL = [
   // === 特殊角色（最先行动）===
   'magicianSwap',
   'slackerChooseIdol',
@@ -68,7 +67,13 @@ export const NIGHT_STEP_ORDER: readonly string[] = [
 
   // === 觉醒石像鬼转化揭示（最后）===
   'awakenedGargoyleConvertReveal',
-];
+] as const;
+
+/** Public readonly array for external consumers. */
+export const NIGHT_STEP_ORDER: readonly string[] = NIGHT_STEP_ORDER_INTERNAL;
+
+/** Literal union of all step IDs (= SchemaId). Derived from NIGHT_STEP_ORDER. */
+export type NightStepId = (typeof NIGHT_STEP_ORDER_INTERNAL)[number];
 
 // =============================================================================
 // Builder
@@ -135,7 +140,7 @@ export function buildNightPlanFromV2(
       const spec: RoleSpecV2 = ROLE_SPECS_V2[roleId as V2RoleId];
       return {
         roleId: roleId as RoleId,
-        stepId: stepId as SchemaId,
+        stepId: stepId as NightStepId,
         order: idx,
         displayName: spec.displayName,
         audioKey: stepDef.audioKey ?? roleId,

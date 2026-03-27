@@ -1,12 +1,10 @@
 /**
  * Night Steps Registry - 夜晚步骤表
  *
- * 夜晚步骤的单一真相。
+ * @deprecated Use NIGHT_STEP_ORDER from v2/nightPlan.ts instead.
+ * This file is kept for backward compatibility during the V1→V2 migration.
+ * The authoritative step ordering is now in v2/nightPlan.ts NIGHT_STEP_ORDER.
  *
- * 数组顺序 = 权威顺序（无 order 字段）
- * step.id 即 schemaId（无需双字段）
- *
- * 策划维护：调顺序只需移动数组元素。
  * 导出步骤定义（roleId / schemaId / audioKey / audioEndKey），
  * 不依赖 service、不含副作用，audioKey 不在 specs 中双写。
  */
