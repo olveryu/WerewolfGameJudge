@@ -13,6 +13,7 @@ import {
   getStepSpecStrict,
   NIGHT_STEPS,
 } from '@werewolf/game-engine/models/roles/spec/nightSteps';
+import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 import { isValidSchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 describe('NIGHT_STEPS contract', () => {
@@ -84,29 +85,29 @@ describe('NIGHT_STEPS contract', () => {
   });
 
   describe('alignment with ROLE_SPECS', () => {
-    it('every step.roleId must have hasAction=true in ROLE_SPECS', () => {
+    it('every step.roleId must have nightSteps defined in ROLE_SPECS', () => {
       for (const step of NIGHT_STEPS) {
-        const roleSpec = ROLE_SPECS[step.roleId];
-        expect(roleSpec.night1.hasAction).toBe(true);
+        const roleSpec: RoleSpec = ROLE_SPECS[step.roleId];
+        expect(roleSpec.nightSteps?.length ?? 0).toBeGreaterThanOrEqual(1);
       }
     });
 
-    it('every role with hasAction=true should appear at least once in NIGHT_STEPS', () => {
-      const rolesWithAction = Object.entries(ROLE_SPECS)
-        .filter(([_, spec]) => spec.night1.hasAction)
+    it('every role with nightSteps should appear at least once in NIGHT_STEPS', () => {
+      const rolesWithSteps = (Object.entries(ROLE_SPECS) as [string, RoleSpec][])
+        .filter(([_, spec]) => (spec.nightSteps?.length ?? 0) > 0)
         .map(([id]) => id);
 
       const rolesInSteps = NIGHT_STEPS.map((s) => s.roleId);
 
-      // Each role with action should appear at least once
-      for (const roleId of rolesWithAction) {
+      // Each role with nightSteps should appear at least once
+      for (const roleId of rolesWithSteps) {
         const count = rolesInSteps.filter((r) => r === roleId).length;
         expect(count).toBeGreaterThanOrEqual(1);
       }
 
-      // All unique roles in NIGHT_STEPS must have hasAction=true
+      // All unique roles in NIGHT_STEPS must have nightSteps defined
       const uniqueRolesInSteps = [...new Set(rolesInSteps)];
-      expect(uniqueRolesInSteps.length).toBe(rolesWithAction.length);
+      expect(uniqueRolesInSteps.length).toBe(rolesWithSteps.length);
     });
   });
 

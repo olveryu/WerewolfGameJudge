@@ -73,11 +73,6 @@ export interface RoleSpec {
   // --- Resources ---
   readonly resources?: readonly Resource[];
 
-  // --- Night Action ---
-  readonly night1: {
-    readonly hasAction: boolean;
-  };
-
   /**
    * Night step definitions for this role.
    * Replaces the separate NIGHT_STEPS + SCHEMAS tables.

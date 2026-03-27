@@ -140,12 +140,12 @@ export function getWolfKillImmuneRoleIds(): RoleId[] {
 // ============================================================
 
 /**
- * Check if a role has night action
+ * Check if a role has night action (derived from nightSteps presence)
  */
 export function hasNightAction(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;
-  const spec = getRoleSpec(roleId);
-  return spec?.night1.hasAction ?? false;
+  const spec: RoleSpec | undefined = getRoleSpec(roleId);
+  return (spec?.nightSteps?.length ?? 0) > 0;
 }
 
 // ============================================================
