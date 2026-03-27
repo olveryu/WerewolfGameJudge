@@ -1,31 +1,14 @@
 /**
- * Role Specs Registry — V2-based canonical exports
- *
- * Single source of truth for all role definitions.
- * All role data comes from ROLE_SPECS_V2 in v2/specs.ts.
- *
- * 36 roles total:
- * - Villager faction: villager, mirrorSeer, drunkSeer (3)
- * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic,
- *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder (15)
- * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle,
- *   awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden (13)
- * - Third-party: slacker, wildChild, piper, shadow, avenger (5)
- *
- * V2 re-export layer. Helper functions preserved for backward compatibility.
- * Not dependent on services or side effects.
+ * Role Specs Registry — re-export layer (to be removed in P9-C)
  */
-import type { RoleDescription, RoleSpecV2 } from './v2/roleSpec.types';
-import { ROLE_SPECS_V2, type RoleIdV2 } from './v2/specs';
+import type { RoleDescription, RoleSpec } from './v2/roleSpec.types';
+import { ROLE_SPECS, type RoleId } from './v2/specs';
 
-/** Canonical role specs registry */
-export const ROLE_SPECS = ROLE_SPECS_V2;
-
-/** Role ID type (auto-derived from V2 registry keys) */
-export type RoleId = RoleIdV2;
-
-/** Role Spec type alias */
-export type RoleSpec = RoleSpecV2;
+// Re-export types and registry
+export { ROLE_SPECS, type RoleId };
+export type { RoleDescription };
+// Re-export RoleSpec from roleSpec.types (cannot use same local name)
+export type { RoleSpec } from './v2/roleSpec.types';
 
 /** Get spec by ID */
 export function getRoleSpec<K extends RoleId>(id: K): (typeof ROLE_SPECS)[K] {
@@ -38,7 +21,7 @@ export function getRoleSpec<K extends RoleId>(id: K): (typeof ROLE_SPECS)[K] {
  * or undefined if the role shows its own identity.
  */
 export function getRoleDisplayAs(roleId: RoleId): RoleId | undefined {
-  const spec: RoleSpecV2 = ROLE_SPECS[roleId];
+  const spec: RoleSpec = ROLE_SPECS[roleId];
   return spec.displayAs as RoleId | undefined;
 }
 

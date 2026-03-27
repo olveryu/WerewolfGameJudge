@@ -3202,3 +3202,82 @@ commit P8-C: chore(game-engine): delete spec.types.ts + barrel cleanup
   [verify] pnpm run quality
   [risk] 低 — 纯清理
 ```
+
+---
+
+#### P9: 去除 V2 后缀 + 消除 wrapper 层（4 commits）
+
+> **背景**：P8 完成后 ROLE_SPECS_V2 已是唯一真相源，但符号仍保留 V2 后缀（ROLE_SPECS_V2、
+> RoleSpecV2、RoleIdV2、buildNightPlanFromV2、buildSchemasFromV2），且 spec/ 目录存在 4 个
+> 纯薄包装文件（specs.ts、schemas.ts、nightSteps.ts、plan.ts）做 V2→canonical 别名映射。
+> P9 将 V2 符号重命名为正式名称，helper/派生逻辑下沉到 v2/ 文件，删除薄包装层。
+
+```
+commit P9-A: refactor(game-engine): rename V2-suffixed symbols to canonical names ✅
+  [files]
+    ~ packages/game-engine/src/models/roles/spec/v2/roleSpec.types.ts  (RoleSpecV2 → RoleSpec)
+    ~ packages/game-engine/src/models/roles/spec/v2/specs.ts           (ROLE_SPECS_V2 → ROLE_SPECS, RoleIdV2 → RoleId)
+    ~ packages/game-engine/src/models/roles/spec/v2/nightPlan.ts       (buildNightPlanFromV2 → buildNightPlan)
+    ~ packages/game-engine/src/models/roles/spec/v2/schemas.ts         (buildSchemasFromV2 → buildSchemas)
+    ~ packages/game-engine/src/models/roles/spec/v2/index.ts           (更新 re-export)
+  [内容]
+    6 个 V2 后缀符号统一去掉后缀：
+    ROLE_SPECS_V2→ROLE_SPECS, RoleSpecV2→RoleSpec, RoleIdV2→RoleId,
+    buildNightPlanFromV2→buildNightPlan, buildSchemasFromV2→buildSchemas。
+    v2/ 内部引用同步更新（V2RoleId / isValidV2RoleId 等内部变量一并清理）。
+  [verify] npx tsc --noEmit（可能需要临时调整 wrapper import）
+  [risk] 低 — 纯符号重命名，逻辑零变化
+
+commit P9-B: refactor(game-engine): move helpers + derivation into v2/ files
+  [files]
+    ~ packages/game-engine/src/models/roles/spec/v2/specs.ts          (吸收 6 个 helper)
+    ~ packages/game-engine/src/models/roles/spec/v2/schemas.ts        (吸收 SCHEMAS 缓存 + SchemaId 别名 + 3 个 helper)
+    + packages/game-engine/src/models/roles/spec/v2/nightSteps.ts     (从 spec/nightSteps.ts 搬入)
+    ~ packages/game-engine/src/models/roles/spec/v2/index.ts          (新增 re-export)
+  [内容]
+    spec/specs.ts 的 getRoleSpec / getRoleDisplayAs / getRoleEmoji / isValidRoleId /
+    getRoleStructuredDescription / getAllRoleIds → 移入 v2/specs.ts。
+    spec/schemas.ts 的 SCHEMAS 缓存 + SchemaId + getSchema / isValidSchemaId /
+    getAllSchemaIds → 移入 v2/schemas.ts。
+    spec/nightSteps.ts 的 buildNightSteps + NIGHT_STEPS + 5 个 helper → 新建 v2/nightSteps.ts。
+    v2/index.ts 挂载全部新导出。
+  [verify] npx tsc --noEmit
+  [risk] 低 — 逻辑搬迁，无语义变化
+
+commit P9-C: refactor(game-engine): delete wrapper layer + update barrel
+  [files]
+    - packages/game-engine/src/models/roles/spec/specs.ts             (删除)
+    - packages/game-engine/src/models/roles/spec/schemas.ts           (删除)
+    - packages/game-engine/src/models/roles/spec/nightSteps.ts        (删除)
+    - packages/game-engine/src/models/roles/spec/plan.ts              (删除)
+    ~ packages/game-engine/src/models/roles/spec/index.ts             (改为 re-export from ./v2)
+    ~ packages/game-engine/src/models/roles/spec/nightSteps.types.ts  (import 改 v2/)
+    ~ packages/game-engine/src/models/roles/spec/plan.types.ts        (import 改 v2/)
+    ~ packages/game-engine/src/models/roles/index.ts                  (import 路径更新)
+  [内容]
+    删除 4 个空壳 wrapper。spec/index.ts 改为：
+    export * from './types' + './schema.types' + './nightSteps.types' + './plan.types' + './v2'
+    type files 的 import 从 ./specs → ./v2/specs, ./schemas → ./v2/schemas。
+    roles/index.ts 的 re-export 路径从 ./spec/specs → ./spec/v2/specs 等。
+  [verify] npx tsc --noEmit + pnpm run test:all
+  [risk] 中 — barrel 路径变更影响面广，需验证所有消费者
+
+commit P9-D: refactor(game-engine): update all direct V2 consumer imports
+  [files]
+    ~ packages/game-engine/src/resolvers/genericResolver.ts
+    ~ packages/game-engine/src/engine/handlers/confirmContext.ts
+    ~ packages/game-engine/src/engine/handlers/revealPayload.ts
+    ~ packages/game-engine/src/engine/handlers/stepTransitionHandler.ts
+    ~ packages/game-engine/src/engine/handlers/gameControlHandler.ts
+    ~ packages/game-engine/src/models/roles/spec/v2/__tests__/*.ts     (v2Specs / nightPlanSchemas)
+    ~ packages/game-engine/src/models/roles/spec/__tests__/*.ts        (specs / structuredDescription)
+    ~ packages/game-engine/src/resolvers/__tests__/genericResolver.test.ts
+  [内容]
+    所有直接引用 v2/ 的生产/测试文件：
+    ROLE_SPECS_V2→ROLE_SPECS, RoleSpecV2→RoleSpec, buildNightPlanFromV2→buildNightPlan,
+    buildSchemasFromV2→buildSchemas。
+    error message 文本同步更新（"not found in ROLE_SPECS_V2" → "not found in ROLE_SPECS"）。
+    通过 barrel 间接消费的 ~90% 文件无需改动。
+  [verify] pnpm run quality
+  [risk] 低 — 机械替换，逻辑零变化
+```

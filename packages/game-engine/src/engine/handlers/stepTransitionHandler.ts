@@ -29,8 +29,8 @@ import {
   getStepSpec,
   type SchemaUi,
 } from '../../models/roles/spec';
-import type { RoleSpecV2 } from '../../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS_V2 } from '../../models/roles/spec/v2/specs';
+import type { RoleSpec } from '../../models/roles/spec/v2/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/v2/specs';
 import type { ProtocolAction } from '../../protocol/types';
 import { getRoleAfterSwap } from '../../resolvers/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
@@ -156,7 +156,7 @@ function validateSetAudioPlayingPreconditions(
  * 统一身份解析：遍历所有 seat，用 getRoleAfterSwap 获取交换后的有效身份，
  * 再反向查找每个关键角色所在的「有效座位」。
  * 这样 DeathCalculator 中灵骑反弹、毒药免疫等规则自动跟着交换后的身份走。
- * 毒药免疫由 ROLE_SPECS_V2 immunities 驱动，无需逐角色硬编码。
+ * 毒药免疫由 ROLE_SPECS immunities 驱动，无需逐角色硬编码。
  *
  * Constraint 校验仍使用原始 players map（玩家不知道 swap，操作合法性按已知信息判定）。
  */
@@ -179,7 +179,7 @@ function buildRoleSeatMap(state: NonNullState): RoleSeatMap {
   const poisonImmuneSeats: number[] = [];
   const reflectsDamageSeats: number[] = [];
   for (const [roleId, seat] of effectiveRoleSeatMap) {
-    const spec = ROLE_SPECS_V2[roleId as keyof typeof ROLE_SPECS_V2] as RoleSpecV2;
+    const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec;
     if (spec.immunities?.some((i) => i.kind === 'poison')) {
       poisonImmuneSeats.push(seat);
     }

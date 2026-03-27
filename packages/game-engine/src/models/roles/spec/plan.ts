@@ -1,13 +1,9 @@
 /**
- * Night Plan Builder - 夜晚行动序列构建器
- *
- * Delegates to V2 buildNightPlanFromV2().
- * This file is a thin wrapper preserving the original public API.
- * 导出 buildNightPlan 纯函数，不依赖 service、不含副作用或 IO。
+ * Night Plan Builder — re-export layer (to be removed in P9-C)
  */
 
 import type { NightPlan } from './plan.types';
-import { buildNightPlanFromV2 } from './v2/nightPlan';
+import { buildNightPlan as buildNightPlanCore } from './v2/nightPlan';
 
 /**
  * Build night plan from template roles.
@@ -25,7 +21,7 @@ export function buildNightPlan(
   templateRoles: readonly string[],
   seerLabelMap?: Readonly<Record<string, number>>,
 ): NightPlan {
-  return buildNightPlanFromV2(templateRoles, seerLabelMap);
+  return buildNightPlanCore(templateRoles, seerLabelMap);
 }
 
 // Re-export types

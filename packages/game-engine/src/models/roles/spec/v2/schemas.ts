@@ -1,20 +1,20 @@
 /**
- * V2 Schemas Builder — 从 ROLE_SPECS_V2 构建 ActionSchema 注册表
+ * Schemas Builder — 从 ROLE_SPECS 构建 ActionSchema 注册表
  *
- * 替代 V1 的手写 SCHEMAS 常量。每个 schema 从角色的 nightSteps + abilities 推导。
- * 导出 buildSchemasFromV2 纯函数，不依赖 service、不含副作用或 IO。
+ * 每个 schema 从角色的 nightSteps + abilities 推导。
+ * 导出 buildSchemas 纯函数，不依赖 service、不含副作用或 IO。
  */
 
 import type { ActionSchema, InlineSubStepSchema, RevealKind, SchemaUi } from '../schema.types';
 import type { ActiveAbility, NightStepUi } from './ability.types';
-import type { NightStepDef, RoleSpecV2 } from './roleSpec.types';
-import { ROLE_SPECS_V2 } from './specs';
+import type { NightStepDef, RoleSpec } from './roleSpec.types';
+import { ROLE_SPECS } from './specs';
 
 // =============================================================================
 // Helpers
 // =============================================================================
 
-type V2RoleId = keyof typeof ROLE_SPECS_V2;
+type SpecRoleId = keyof typeof ROLE_SPECS;
 
 /** Roles whose check/learn effects produce a revealKind in the schema UI. */
 const REVEAL_ROLE_IDS = new Set<string>([
@@ -32,7 +32,7 @@ const REVEAL_ROLE_IDS = new Set<string>([
  * Find the matching active ability for a night step by actionKind.
  * Returns undefined if no matching ability (e.g. groupConfirm reveal steps).
  */
-function findMatchingAbility(spec: RoleSpecV2, step: NightStepDef): ActiveAbility | undefined {
+function findMatchingAbility(spec: RoleSpec, step: NightStepDef): ActiveAbility | undefined {
   return spec.abilities.find(
     (a): a is ActiveAbility => a.type === 'active' && a.actionKind === step.actionKind,
   );
@@ -152,17 +152,16 @@ function buildSchema(
 // =============================================================================
 
 /**
- * Build the complete SCHEMAS registry from ROLE_SPECS_V2.
+ * Build the complete SCHEMAS registry from ROLE_SPECS.
  *
  * Iterates all roles with nightSteps, matches each step to its active ability
- * for constraint/canSkip extraction, and produces the same ActionSchema shape
- * as the V1 SCHEMAS constant.
+ * for constraint/canSkip extraction, and produces the ActionSchema shape.
  */
-export function buildSchemasFromV2(): Record<string, ActionSchema> {
+export function buildSchemas(): Record<string, ActionSchema> {
   const result: Record<string, ActionSchema> = {};
 
-  for (const roleId of Object.keys(ROLE_SPECS_V2) as V2RoleId[]) {
-    const spec: RoleSpecV2 = ROLE_SPECS_V2[roleId];
+  for (const roleId of Object.keys(ROLE_SPECS) as SpecRoleId[]) {
+    const spec: RoleSpec = ROLE_SPECS[roleId];
     if (!spec.nightSteps) continue;
 
     for (const step of spec.nightSteps) {

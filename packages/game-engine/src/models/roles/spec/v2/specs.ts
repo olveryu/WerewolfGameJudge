@@ -17,9 +17,9 @@
 
 import { Faction, Team } from '../types';
 import { TargetConstraint } from './ability.types';
-import type { RoleSpecV2 } from './roleSpec.types';
+import type { RoleSpec } from './roleSpec.types';
 
-export const ROLE_SPECS_V2 = {
+export const ROLE_SPECS = {
   // ===================================================================
   // VILLAGER FACTION (3)
   // ===================================================================
@@ -1550,7 +1550,7 @@ export const ROLE_SPECS_V2 = {
       },
     ],
   },
-} as const satisfies Record<string, RoleSpecV2>;
+} as const satisfies Record<string, RoleSpec>;
 
-/** V2 Role ID type (auto-derived from registry keys) */
-export type RoleIdV2 = keyof typeof ROLE_SPECS_V2;
+/** Role ID type (auto-derived from registry keys) */
+export type RoleId = keyof typeof ROLE_SPECS;

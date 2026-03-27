@@ -1,7 +1,7 @@
 /**
  * Generic Resolver (SERVER-ONLY, 纯函数)
  *
- * Data-driven resolver：从 ROLE_SPECS_V2 的 abilities 声明驱动行动校验与结果计算。
+ * Data-driven resolver：从 ROLE_SPECS 的 abilities 声明驱动行动校验与结果计算。
  * 替代大量 pattern-identical 的独立 resolver 文件。
  *
  * 支持的 effect kinds（按 P2-P4 逐步扩展）:
@@ -19,12 +19,12 @@
  */
 
 import type { RoleId } from '../models';
-import { getSeerCheckResultForTeam, ROLE_SPECS } from '../models/roles/spec';
+import { getSeerCheckResultForTeam } from '../models/roles/spec';
 import { Team } from '../models/roles/spec/types';
 import type { ActiveAbility, CheckEffect } from '../models/roles/spec/v2/ability.types';
 import { TargetConstraint } from '../models/roles/spec/v2/ability.types';
-import type { RoleSpecV2 } from '../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS_V2 } from '../models/roles/spec/v2/specs';
+import type { RoleSpec } from '../models/roles/spec/v2/roleSpec.types';
+import { ROLE_SPECS } from '../models/roles/spec/v2/specs';
 import { validateConstraints } from './constraintValidator';
 import { invertCheckResult } from './shared';
 import type { ActionInput, ResolverContext, ResolverFn, ResolverResult } from './types';
@@ -311,13 +311,13 @@ const EFFECT_PROCESSORS: Record<string, EffectProcessor> = {
 /**
  * Create a generic resolver for a given V2 role spec's active ability.
  *
- * @param roleId - The role ID in ROLE_SPECS_V2
+ * @param roleId - The role ID in ROLE_SPECS
  * @param abilityIndex - Which ability to use (default 0)
  */
 export function createGenericResolver(roleId: string, abilityIndex = 0): ResolverFn {
-  const spec = ROLE_SPECS_V2[roleId as keyof typeof ROLE_SPECS_V2] as RoleSpecV2 | undefined;
+  const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
   if (!spec) {
-    throw new Error(`[FAIL-FAST] Role ${roleId} not found in ROLE_SPECS_V2`);
+    throw new Error(`[FAIL-FAST] Role ${roleId} not found in ROLE_SPECS`);
   }
 
   const ability = spec.abilities[abilityIndex];

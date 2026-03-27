@@ -47,7 +47,7 @@ export interface RoleDescription {
  * The single source of truth for everything a role IS and DOES.
  * Handler code only fills gaps that cannot be expressed declaratively.
  */
-export interface RoleSpecV2 {
+export interface RoleSpec {
   // --- Identity ---
   readonly id: string;
   readonly displayName: string;

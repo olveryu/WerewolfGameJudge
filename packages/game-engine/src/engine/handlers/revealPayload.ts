@@ -8,8 +8,8 @@
 
 import { type RevealKind, type SchemaId, SCHEMAS } from '../../models';
 import type { ActiveAbility, LearnEffect } from '../../models/roles/spec/v2/ability.types';
-import type { RoleSpecV2 } from '../../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS_V2 } from '../../models/roles/spec/v2/specs';
+import type { RoleSpec } from '../../models/roles/spec/v2/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/v2/specs';
 import type { ResolverResult } from '../../resolvers/types';
 import type { ApplyResolverResultAction } from '../reducer/types';
 
@@ -22,7 +22,7 @@ import type { ApplyResolverResultAction } from '../reducer/types';
  * Returns empty array if not found (no gate triggered).
  */
 function deriveGateTriggerRoles(): readonly string[] {
-  const spec = ROLE_SPECS_V2.wolfRobot as RoleSpecV2;
+  const spec = ROLE_SPECS.wolfRobot as RoleSpec;
   for (const ability of spec.abilities) {
     if (ability.type !== 'active') continue;
     const active = ability as ActiveAbility;

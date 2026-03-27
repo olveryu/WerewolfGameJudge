@@ -16,8 +16,8 @@
 
 import { type SchemaId } from '../../models/roles/spec';
 import { Team } from '../../models/roles/spec/types';
-import type { RoleSpecV2 } from '../../models/roles/spec/v2/roleSpec.types';
-import { ROLE_SPECS_V2 } from '../../models/roles/spec/v2/specs';
+import type { RoleSpec } from '../../models/roles/spec/v2/roleSpec.types';
+import { ROLE_SPECS } from '../../models/roles/spec/v2/specs';
 import type { ConfirmStatus } from '../../protocol/types';
 import { findSeatByRole } from '../../utils/playerHelpers';
 import type { SetConfirmStatusAction } from '../reducer/types';
@@ -26,13 +26,13 @@ import type { NonNullState } from './types';
 type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger';
 
 /**
- * Derive the confirm-step → role mapping from ROLE_SPECS_V2.
+ * Derive the confirm-step → role mapping from ROLE_SPECS.
  * Scans for roles with confirm-kind nightSteps.
  */
 function deriveConfirmStepRoleMap(): Record<string, ConfirmRole> {
   const map: Record<string, ConfirmRole> = {};
-  for (const [roleId, rawSpec] of Object.entries(ROLE_SPECS_V2)) {
-    const spec = rawSpec as RoleSpecV2;
+  for (const [roleId, rawSpec] of Object.entries(ROLE_SPECS)) {
+    const spec = rawSpec as RoleSpec;
     if (!spec.nightSteps) continue;
     for (const step of spec.nightSteps) {
       if (step.actionKind === 'confirm') {
