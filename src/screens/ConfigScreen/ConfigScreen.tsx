@@ -128,7 +128,7 @@ export const ConfigScreen: React.FC = () => {
           testID={TESTIDS.configOverflowReset}
           accessibilityLabel="重置配置"
         >
-          <Ionicons name="trash-outline" size={componentSizes.icon.lg} color={colors.text} />
+          <Ionicons name="trash-outline" size={componentSizes.icon.md} color={colors.text} />
         </TouchableOpacity>
       </View>
 

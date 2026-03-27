@@ -1,4 +1,5 @@
 import { expect, Page, TestInfo } from '@playwright/test';
+import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 
 import { extractRoomNumber } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
@@ -146,41 +147,7 @@ export class RoomPage {
    * before dismissing. Returns the Chinese displayName (e.g. "狼人", "预言家").
    */
   async viewRoleAndCapture(): Promise<string> {
-    const KNOWN_ROLES = [
-      '普通村民',
-      '预言家',
-      '女巫',
-      '猎人',
-      '守卫',
-      '白痴',
-      '骑士',
-      '狼人',
-      '狼美人',
-      '白狼王',
-      '黑狼王',
-      '梦魇',
-      '石像鬼',
-      '觉醒石像鬼',
-      '血月使徒',
-      '机械狼',
-      '恶灵骑士',
-      '混子',
-      '魔术师',
-      '猎魔人',
-      '通灵师',
-      '摄梦人',
-      '守墓人',
-      '纯白之女',
-      '狼巫',
-      '灯影预言家',
-      '酒鬼预言家',
-      '舞者',
-      '禁言长老',
-      '禁票长老',
-      '假面',
-      '野孩子',
-      '吹笛者',
-    ];
+    const KNOWN_ROLES = Object.values(ROLE_SPECS).map((s) => s.displayName);
 
     const viewBtn = this.page.getByRole('button', { name: '查看身份' });
     await expect(viewBtn).toBeVisible({ timeout: 15_000 });

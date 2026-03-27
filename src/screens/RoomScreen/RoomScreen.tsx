@@ -341,11 +341,18 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
           </TouchableOpacity>
         </View>
-        {/* Header right: host menu */}
+        {/* Header right: encyclopedia + host menu */}
         <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={handleEncyclopedia}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            testID={TESTIDS.roomEncyclopediaButton}
+          >
+            <Ionicons name="book-outline" size={componentSizes.icon.md} color={colors.text} />
+          </TouchableOpacity>
           <HostMenuDropdown
             visible
-            showEncyclopedia
             showUserSettings
             showShareRoom={roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated}
             showSettings={
@@ -390,7 +397,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               })
             }
             onSettings={handleOpenSettings}
-            onEncyclopedia={handleEncyclopedia}
             onUserSettings={handleAvatarPress}
             onShareRoom={handleShareRoom}
             styles={componentStyles.hostMenuDropdown}

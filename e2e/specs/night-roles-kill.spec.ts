@@ -385,10 +385,7 @@ test.describe('Night Roles — Kill / Status', () => {
         const shadowSeat = roleMap.get(shadowIdx)!.seat;
         const avengerSeat = roleMap.get(avengerIdx)!.seat;
 
-        // Wolf kills shadow
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
-        expect(wolfTurn).toBe(true);
-        await driveWolfVote(pages, [wolfIdx], shadowSeat);
+        // Night order: Shadow → Avenger → Wolf
 
         // Shadow's turn: mimic avenger → bonded
         const shadowTurn = await waitForRoleTurn(pages[shadowIdx], ['模仿'], pages, 120);
@@ -400,8 +397,21 @@ test.describe('Night Roles — Kill / Status', () => {
         // Avenger's turn: click "查看阵营" to view faction info, then dismiss
         const avengerTurn = await waitForRoleTurn(pages[avengerIdx], ['阵营'], pages, 120);
         expect(avengerTurn, 'Avenger turn should be detected').toBe(true);
-        await clickBottomButton(pages[avengerIdx], '查看阵营');
+
+        // Dismiss the initial action prompt ("复仇者行动") before clicking bottom button
         await dismissAlert(pages[avengerIdx]);
+
+        await clickBottomButton(pages[avengerIdx], '查看阵营');
+
+        // Read the faction status dialog, then dismiss
+        const factionText = await readAlertText(pages[avengerIdx]);
+        expect(factionText).toContain('阵营');
+        await dismissAlert(pages[avengerIdx]);
+
+        // Wolf kills shadow
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        expect(wolfTurn).toBe(true);
+        await driveWolfVote(pages, [wolfIdx], shadowSeat);
 
         // Night should end (remaining steps auto-advance)
         const ended = await waitForNightEnd(pages, 120);

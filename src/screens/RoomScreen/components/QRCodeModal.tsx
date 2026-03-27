@@ -55,7 +55,7 @@ interface QRCodeModalProps {
 }
 
 /** QR 码尺寸（逻辑像素） */
-const QR_SIZE = 200;
+const QR_SIZE = 160;
 /** QR 中心 logo 尺寸 */
 const QR_LOGO_SIZE = 44;
 /** QR 中心 logo 外边距（白色背景区域） */
@@ -160,16 +160,15 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
             >
               <Text style={styles.copyButtonText}>复制链接</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={onClose}
+              activeOpacity={fixed.activeOpacity}
+              accessibilityLabel="关闭"
+            >
+              <Text style={styles.closeButtonText}>关闭</Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onClose}
-            activeOpacity={fixed.activeOpacity}
-            accessibilityLabel="关闭"
-          >
-            <Text style={styles.closeButtonText}>关闭</Text>
-          </TouchableOpacity>
         </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
@@ -249,13 +248,11 @@ function createStyles(colors: ThemeColors) {
       marginBottom: spacing.large,
     },
     buttonRow: {
-      flexDirection: 'row',
       gap: spacing.small,
-      marginBottom: spacing.small,
+      alignSelf: 'stretch',
     },
     shareButton: {
       backgroundColor: colors.primary,
-      paddingHorizontal: spacing.large,
       paddingVertical: spacing.medium,
       borderRadius: borderRadius.full,
       alignItems: 'center',
@@ -269,7 +266,6 @@ function createStyles(colors: ThemeColors) {
     },
     copyButton: {
       backgroundColor: colors.surfaceHover,
-      paddingHorizontal: spacing.large,
       paddingVertical: spacing.medium,
       borderRadius: borderRadius.full,
       borderWidth: fixed.borderWidth,
@@ -281,13 +277,16 @@ function createStyles(colors: ThemeColors) {
       color: colors.text,
     },
     closeButton: {
-      paddingVertical: spacing.small,
-      paddingHorizontal: spacing.large,
+      backgroundColor: colors.surfaceHover,
+      paddingVertical: spacing.medium,
+      borderRadius: borderRadius.full,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      alignItems: 'center',
     },
     closeButtonText: {
-      color: colors.textSecondary,
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
+      ...textStyles.bodySemibold,
+      color: colors.text,
     },
   });
 }

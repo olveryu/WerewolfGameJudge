@@ -23,8 +23,6 @@ const MENU_ICON_SIZE = componentSizes.icon.md;
 interface HostMenuDropdownProps {
   /** Whether to show the menu (Host only) */
   visible: boolean;
-  /** Show encyclopedia option (always visible for all users) */
-  showEncyclopedia: boolean;
   /** Show user settings option */
   showUserSettings: boolean;
   /** Show share room option (only in unseated/seated phase) */
@@ -42,7 +40,6 @@ interface HostMenuDropdownProps {
   onMarkAllBotsViewed: () => void;
   onClearAllSeats: () => void;
   onSettings: () => void;
-  onEncyclopedia: () => void;
   onUserSettings: () => void;
   onShareRoom: () => void;
   /** Pre-created styles from parent */
@@ -51,7 +48,6 @@ interface HostMenuDropdownProps {
 
 const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   visible,
-  showEncyclopedia,
   showUserSettings,
   showShareRoom,
   showSettings,
@@ -62,7 +58,6 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   onMarkAllBotsViewed,
   onClearAllSeats,
   onSettings,
-  onEncyclopedia,
   onUserSettings,
   onShareRoom,
   styles,
@@ -103,11 +98,6 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     onUserSettings();
   }, [onUserSettings]);
 
-  const handleEncyclopedia = useCallback(() => {
-    setMenuOpen(false);
-    onEncyclopedia();
-  }, [onEncyclopedia]);
-
   const handleShareRoom = useCallback(() => {
     setMenuOpen(false);
     onShareRoom();
@@ -119,7 +109,6 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   }
 
   const hasDropdownItems =
-    showEncyclopedia ||
     showUserSettings ||
     showShareRoom ||
     showSettings ||
@@ -159,20 +148,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
               <View>
                 <View style={styles.menuArrow} />
                 <View style={styles.menuContainer}>
-                  {/* Group 1: Navigation */}
-                  {showEncyclopedia && (
-                    <TouchableOpacity style={styles.menuItem} onPress={handleEncyclopedia}>
-                      <Ionicons name="book-outline" size={MENU_ICON_SIZE} color={colors.text} />
-                      <Text style={styles.menuItemText}>角色图鉴</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Gap: Navigation → Actions */}
-                  {showEncyclopedia && (showShareRoom || showSettings || showUserSettings) && (
-                    <View style={styles.sectionGap} />
-                  )}
-
-                  {/* Group 2: Actions */}
+                  {/* Group 1: Actions */}
                   {showShareRoom && (
                     <TouchableOpacity style={styles.menuItem} onPress={handleShareRoom}>
                       <Ionicons name="share-outline" size={MENU_ICON_SIZE} color={colors.text} />
@@ -193,7 +169,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                   )}
 
                   {/* Gap: Actions → Operations */}
-                  {(showEncyclopedia || showShareRoom || showSettings || showUserSettings) &&
+                  {(showShareRoom || showSettings || showUserSettings) &&
                     (showClearAllSeats || showFillWithBots || showMarkAllBotsViewed) && (
                       <View style={styles.sectionGap} />
                     )}

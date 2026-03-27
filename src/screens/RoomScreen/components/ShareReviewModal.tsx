@@ -230,12 +230,14 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       flex: 1,
       backgroundColor: colors.surfaceHover,
       borderRadius: borderRadius.full,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
       paddingVertical: spacing.medium,
       alignItems: 'center',
     },
     cancelButtonText: {
       ...textStyles.bodySemibold,
-      color: colors.textSecondary,
+      color: colors.text,
     },
     confirmButton: {
       flex: 1,

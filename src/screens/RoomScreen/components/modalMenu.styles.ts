@@ -29,7 +29,6 @@ export function createModalMenuStyles(colors: ThemeColors): {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'flex-end',
-        minWidth: componentSizes.headerAction.minWidth,
       },
       triggerButton: {
         ...shared.iconButton,

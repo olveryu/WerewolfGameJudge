@@ -45,6 +45,7 @@ export const TESTIDS = {
   roomScreenRoot: 'room-screen-root',
   roomBackButton: 'room-back-button',
   roomHeader: 'room-header',
+  roomEncyclopediaButton: 'room-encyclopedia-button',
   roomMenuButton: 'room-menu-button',
   roomSettingsButton: 'room-settings-button',
   roomSettingsOverlay: 'room-settings-overlay',
