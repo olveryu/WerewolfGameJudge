@@ -8,18 +8,23 @@
  * @see docs/architecture/schema-kinds.md
  */
 
-import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
+import {
+  type CompoundSchema,
+  TargetConstraint,
+} from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+
+const witchSchema = SCHEMAS.witchAction as CompoundSchema;
 
 describe('useRoomActions witch schema contract', () => {
   describe('witchAction schema structure', () => {
     it('should be a compound schema with exactly 2 steps', () => {
-      expect(SCHEMAS.witchAction.kind).toBe('compound');
-      expect(SCHEMAS.witchAction.steps).toHaveLength(2);
+      expect(witchSchema.kind).toBe('compound');
+      expect(witchSchema.steps).toHaveLength(2);
     });
 
     it('save step should be confirmTarget kind (fixed target, user confirms)', () => {
-      const saveStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'save');
+      const saveStep = witchSchema.steps.find((s) => s.key === 'save');
       expect(saveStep).toBeDefined();
       expect(saveStep!.kind).toBe('confirmTarget');
       // confirmTarget means: target is pre-determined (WITCH_CONTEXT.killedSeat)
@@ -27,43 +32,43 @@ describe('useRoomActions witch schema contract', () => {
     });
 
     it('poison step should be chooseSeat kind (user selects target)', () => {
-      const poisonStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'poison');
+      const poisonStep = witchSchema.steps.find((s) => s.key === 'poison');
       expect(poisonStep).toBeDefined();
       expect(poisonStep!.kind).toBe('chooseSeat');
       // chooseSeat means: user taps a seat to select target
     });
 
     it('save step should have canSkip=true', () => {
-      const saveStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'save');
+      const saveStep = witchSchema.steps.find((s) => s.key === 'save');
       expect(saveStep!.canSkip).toBe(true);
     });
 
     it('poison step should have canSkip=true', () => {
-      const poisonStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'poison');
+      const poisonStep = witchSchema.steps.find((s) => s.key === 'poison');
       expect(poisonStep!.canSkip).toBe(true);
     });
 
     it('save step should have notSelf constraint (witch cannot save self)', () => {
-      const saveStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'save');
+      const saveStep = witchSchema.steps.find((s) => s.key === 'save');
       expect(saveStep!.constraints).toContain(TargetConstraint.NotSelf);
     });
 
     it('poison step should have no constraints (witch can poison anyone)', () => {
-      const poisonStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'poison');
+      const poisonStep = witchSchema.steps.find((s) => s.key === 'poison');
       expect(poisonStep!.constraints).toEqual([]);
     });
   });
 
   describe('schema UI fields', () => {
     it('save step should have required UI fields for bottom button', () => {
-      const saveStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'save');
+      const saveStep = witchSchema.steps.find((s) => s.key === 'save');
       expect(saveStep!.ui).toBeDefined();
       expect(saveStep!.ui!.confirmText).toBeDefined();
       expect(saveStep!.ui!.bottomActionText).toBeDefined();
     });
 
     it('poison step should have required UI fields for seat tap confirm', () => {
-      const poisonStep = SCHEMAS.witchAction.steps.find((s) => s.key === 'poison');
+      const poisonStep = witchSchema.steps.find((s) => s.key === 'poison');
       expect(poisonStep!.ui).toBeDefined();
       expect(poisonStep!.ui!.confirmText).toBeDefined();
       expect(poisonStep!.ui!.bottomActionText).toBeDefined();

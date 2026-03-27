@@ -12,7 +12,10 @@ import {
   ROLE_SPECS,
   type RoleId,
 } from '@werewolf/game-engine/models/roles/spec';
-import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
+import {
+  type CompoundSchema,
+  TargetConstraint,
+} from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 import type { RoleSpecV2 } from '@werewolf/game-engine/models/roles/spec/v2/roleSpec.types';
@@ -46,7 +49,7 @@ describe('ROLE_SPECS contract', () => {
     it('witch save action should have notSelf constraint and confirmTarget kind in schema', () => {
       // Night-1-only: 女巫不能自救规则定义在 witchAction.steps[0].constraints
       // save 是 confirmTarget 类型：目标是固定的（被杀的人），用户只需确认
-      const witchSchema = SCHEMAS.witchAction;
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
       expect(witchSchema.kind).toBe('compound');
       const saveStep = witchSchema.steps.find((s) => s.key === 'save');
       expect(saveStep).toBeDefined();
@@ -55,7 +58,7 @@ describe('ROLE_SPECS contract', () => {
     });
 
     it('witch poison action should have chooseSeat kind', () => {
-      const witchSchema = SCHEMAS.witchAction;
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
       const poisonStep = witchSchema.steps.find((s) => s.key === 'poison');
       expect(poisonStep).toBeDefined();
       expect(poisonStep!.kind).toBe('chooseSeat'); // User selects target

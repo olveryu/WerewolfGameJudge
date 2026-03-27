@@ -6,6 +6,7 @@
  */
 
 import {
+  type ActionSchema,
   doesRoleParticipateInWolfVote,
   GameStatus,
   type RoleId,
@@ -46,7 +47,7 @@ export function validateActionPreconditions(
   role: RoleId,
 ):
   | { valid: false; result: HandlerResult }
-  | { valid: true; schemaId: SchemaId; state: NonNullState; schema: (typeof SCHEMAS)[SchemaId] } {
+  | { valid: true; schemaId: SchemaId; state: NonNullState; schema: ActionSchema } {
   // Gate 1: no_state
   if (!state) {
     return {
@@ -143,10 +144,7 @@ export function validateActionPreconditions(
  * @param actionInput - 玩家提交的 action input
  * @returns true 表示是 skip，false 表示是实际行动
  */
-export function isSkipAction(
-  schema: (typeof SCHEMAS)[SchemaId],
-  actionInput: ActionInput,
-): boolean {
+export function isSkipAction(schema: ActionSchema, actionInput: ActionInput): boolean {
   switch (schema.kind) {
     case 'confirm':
       // confirm 类型：confirmed !== true 视为 skip
@@ -209,7 +207,7 @@ export function isSkipAction(
  */
 export function checkNightmareBlockGuard(
   seat: number,
-  schema: (typeof SCHEMAS)[SchemaId],
+  schema: ActionSchema,
   actionInput: ActionInput,
   blockedSeat: number | undefined,
 ): string | undefined {

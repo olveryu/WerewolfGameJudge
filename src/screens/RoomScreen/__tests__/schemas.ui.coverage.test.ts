@@ -20,7 +20,7 @@ describe('RoomScreen schema ui coverage (contract)', () => {
         // Compound schema doesn't go through the normal confirm flow.
         // It must have prompt and inline sub-steps.
         expect(typeof schema.ui?.prompt).toBe('string');
-        expect(schema.ui?.prompt.length).toBeGreaterThan(0);
+        expect(schema.ui!.prompt!.length).toBeGreaterThan(0);
         expect(Array.isArray(schema.steps)).toBe(true);
         expect(schema.steps.length).toBeGreaterThan(0);
         for (const step of schema.steps) {
@@ -38,28 +38,28 @@ describe('RoomScreen schema ui coverage (contract)', () => {
       if (schema.kind === 'groupConfirm') {
         // groupConfirm schemas have their own UI fields (hypnotizedText/notHypnotizedText), not confirmText.
         expect(schema.ui).toBeDefined();
-        expect(typeof schema.ui.prompt).toBe('string');
-        expect(schema.ui.prompt.length).toBeGreaterThan(0);
+        expect(typeof schema.ui!.prompt).toBe('string');
+        expect(schema.ui!.prompt!.length).toBeGreaterThan(0);
         continue;
       }
 
       if (schema.kind === 'multiChooseSeat') {
         // multiChooseSeat schemas have confirmText + multi-target selection.
         expect(schema.ui).toBeDefined();
-        expect(typeof schema.ui.prompt).toBe('string');
-        expect(schema.ui.prompt.length).toBeGreaterThan(0);
-        expect(typeof schema.ui.confirmText).toBe('string');
-        expect(schema.ui.confirmText.length).toBeGreaterThan(0);
+        expect(typeof schema.ui!.prompt).toBe('string');
+        expect(schema.ui!.prompt!.length).toBeGreaterThan(0);
+        expect(typeof schema.ui!.confirmText).toBe('string');
+        expect(schema.ui!.confirmText!.length).toBeGreaterThan(0);
         continue;
       }
 
       // All other non-compound schemas must not rely on fallback UI.
       // (RoomScreen/useRoomActions will fail-fast if confirmText is missing.)
       expect(schema.ui).toBeDefined();
-      expect(typeof schema.ui.prompt).toBe('string');
-      expect(schema.ui.prompt.length).toBeGreaterThan(0);
-      expect(typeof schema.ui.confirmText).toBe('string');
-      expect(schema.ui.confirmText.length).toBeGreaterThan(0);
+      expect(typeof schema.ui!.prompt).toBe('string');
+      expect(schema.ui!.prompt!.length).toBeGreaterThan(0);
+      expect(typeof schema.ui!.confirmText).toBe('string');
+      expect(schema.ui!.confirmText!.length).toBeGreaterThan(0);
 
       // chooseSeat/swap schemas with canSkip should have bottom action text (skip button).
       if ((schema.kind === 'chooseSeat' || schema.kind === 'swap') && schema.canSkip) {

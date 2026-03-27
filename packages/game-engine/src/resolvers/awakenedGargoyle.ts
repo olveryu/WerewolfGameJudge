@@ -10,13 +10,14 @@
  */
 
 import { SCHEMAS } from '../models';
+import type { ChooseSeatSchema } from '../models/roles/spec/schema.types';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverContext, ResolverFn } from './types';
 
 export const awakenedGargoyleConvertResolver: ResolverFn = (context: ResolverContext, input) => {
   const { actorSeat, players, currentNightResults } = context;
   const target = input.target;
-  const schema = SCHEMAS.awakenedGargoyleConvert;
+  const schema: ChooseSeatSchema = SCHEMAS.awakenedGargoyleConvert as ChooseSeatSchema;
 
   // canSkip: false — 强制发动，不允许跳过
   if (target === undefined || target === null) {
