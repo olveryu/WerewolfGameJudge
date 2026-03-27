@@ -21,7 +21,7 @@ export {
   buildNightPlan,
   type NightPlan,
   type NightPlanStep,
-} from './spec/plan';
+} from './spec';
 export {
   type ActionSchema,
   getSchema,
@@ -29,7 +29,7 @@ export {
   type SchemaId,
   // Schemas
   SCHEMAS,
-} from './spec/schemas';
+} from './spec';
 export {
   getAllRoleIds,
   getRoleDisplayAs,
@@ -40,7 +40,7 @@ export {
   // Role Spec
   ROLE_SPECS,
   type RoleId,
-} from './spec/specs';
+} from './spec';
 export {
   // Types
   Faction,
@@ -50,7 +50,7 @@ export {
 // ============================================================
 // Re-imports from spec/ (for internal use)
 // ============================================================
-import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec/specs';
+import { getAllRoleIds, getRoleSpec, isValidRoleId, ROLE_SPECS, type RoleId } from './spec';
 import { Team } from './spec/types';
 import type { RoleSpec } from './spec/v2/roleSpec.types';
 

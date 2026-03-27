@@ -2,8 +2,8 @@
  * Role Spec Module - Public API
  *
  * This module exports the declarative role specification system:
- * - Types: Faction, Team, RoleSpec, ActionSchema, NightPlan
- * - Registries: ROLE_SPECS, SCHEMAS
+ * - Types: Faction, Team, RoleSpec, ActionSchema, NightPlan, StepSpec
+ * - Registries: ROLE_SPECS, SCHEMAS, NIGHT_STEPS
  * - Builders: buildNightPlan, buildSchemas
  * - Utils: isValidRoleId, isValidSchemaId, getSeerCheckResultForTeam
  *
@@ -11,23 +11,11 @@
  * Resolvers are SERVER-ONLY and located in src/resolvers/.
  */
 
-// Base types
+// Base types (standalone, no dependencies on v2/)
+export * from './nightSteps.types';
+export * from './plan.types';
+export * from './schema.types';
 export * from './types';
 
-// Schema types and registry
-export * from './schema.types';
-export * from './schemas';
-
-// Spec registry
-export * from './specs';
-
-// Night steps types and registry
-export * from './nightSteps';
-export * from './nightSteps.types';
-
-// Night plan types and builder
-export * from './plan';
-export * from './plan.types';
-
-// V2 core re-exports (NIGHT_STEP_ORDER, NightStepId, buildSchemas, ability types)
-export { buildSchemas, NIGHT_STEP_ORDER, type NightStepId } from './v2';
+// Core (single source of truth for specs, schemas, nightSteps, nightPlan)
+export * from './v2';

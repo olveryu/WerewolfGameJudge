@@ -154,7 +154,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
 
     it('should have exactly one NIGHT_STEPS export', () => {
       const nightStepsFile = readFileContent(
-        'packages/game-engine/src/models/roles/spec/nightSteps.ts',
+        'packages/game-engine/src/models/roles/spec/v2/nightSteps.ts',
       );
 
       // Count export statements for NIGHT_STEPS
