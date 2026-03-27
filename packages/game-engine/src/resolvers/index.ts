@@ -14,7 +14,7 @@ import {
 } from './awakenedGargoyle';
 import { createGenericResolver } from './genericResolver';
 import { magicianSwapResolver } from './magician';
-import { piperHypnotizedRevealResolver } from './piper';
+import { piperHypnotizedRevealResolver, piperHypnotizeResolver } from './piper';
 import { shadowChooseMimicResolver } from './shadow';
 import type { ResolverRegistry } from './types';
 import { witchActionResolver } from './witch';
@@ -38,10 +38,9 @@ export const RESOLVERS: ResolverRegistry = {
   gargoyleCheck: createGenericResolver('gargoyle'),
   pureWhiteCheck: createGenericResolver('pureWhite'),
   wolfWitchCheck: createGenericResolver('wolfWitch'),
-  // P4: block / learn / hypnotize / confirm
+  // P4: block / learn / confirm
   nightmareBlock: createGenericResolver('nightmare'),
   wolfRobotLearn: createGenericResolver('wolfRobot'),
-  piperHypnotize: createGenericResolver('piper'),
   hunterConfirm: createGenericResolver('hunter'),
   darkWolfKingConfirm: createGenericResolver('darkWolfKing'),
   avengerConfirm: createGenericResolver('avenger'),
@@ -53,6 +52,7 @@ export const RESOLVERS: ResolverRegistry = {
   shadowChooseMimic: shadowChooseMimicResolver,
   awakenedGargoyleConvert: awakenedGargoyleConvertResolver,
   awakenedGargoyleConvertReveal: awakenedGargoyleConvertRevealResolver,
+  piperHypnotize: piperHypnotizeResolver,
   piperHypnotizedReveal: piperHypnotizedRevealResolver,
 };
 
