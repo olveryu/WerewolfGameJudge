@@ -133,6 +133,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     gameState,
     isHost,
     roomStatus,
+    currentSchema,
     isAudioPlaying,
     roleRevealAnimation,
     resolvedRoleRevealAnimation,
@@ -691,7 +692,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <ChooseBottomCardModal
           visible={chooseCardModalVisible}
           bottomCards={gameState.bottomCards}
-          confirmText={'确认选择此身份？'}
+          confirmText={currentSchema?.ui?.confirmText ?? ''}
           onChoose={handleChooseCard}
           onClose={closeChooseCardModal}
         />
