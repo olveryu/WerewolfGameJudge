@@ -87,8 +87,17 @@ function isUnchosenBottomCardStep(state: GameState): boolean {
   const step = getStepSpec(currentStepId);
   if (!step) return false;
 
-  // Check if the step's role is in the bottom cards but NOT the chosen card
-  return bottomCardStepRoles.includes(step.roleId) && step.roleId !== treasureMasterChosenCard;
+  // Not a bottom card role → not applicable
+  if (!bottomCardStepRoles.includes(step.roleId)) return false;
+
+  // This IS the chosen card's step → treasureMaster will act, don't skip
+  if (step.roleId === treasureMasterChosenCard) return false;
+
+  // Role also exists as a player (e.g. wolf in bottom + wolf players) → don't skip
+  const hasPlayerWithRole = Object.values(state.players).some((p) => p?.role === step.roleId);
+  if (hasPlayerWithRole) return false;
+
+  return true;
 }
 
 /**

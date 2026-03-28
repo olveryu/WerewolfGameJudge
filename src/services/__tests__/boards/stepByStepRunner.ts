@@ -74,13 +74,15 @@ export function sendMessageOrThrow(
  * - { save: number | null; poison: number | null }: 女巫 compound action
  * - { targets: number[] }: 魔术师交换
  * - { confirmed: boolean }: 确认类 action
+ * - { cardIndex: number }: 盗宝大师选卡
  */
 type ActionValue =
   | number
   | null
   | { save: number | null; poison: number | null }
   | { targets: readonly number[] }
-  | { confirmed: boolean };
+  | { confirmed: boolean }
+  | { cardIndex: number };
 
 type CustomActions = Partial<Record<RoleId, ActionValue>>;
 
@@ -267,18 +269,26 @@ function executeCurrentStep(ctx: GameContext, customActions: CustomActions): voi
   if (!stepConfig) return;
 
   const roleId = stepConfig.roleId;
-  const actorSeat = ctx.findSeatByRole(roleId);
+  let actorSeat = ctx.findSeatByRole(roleId);
+  let actorRole: RoleId = roleId;
 
-  // 该角色不在模板中，跳过（advanceNight 会在外层调用）
+  // TreasureMaster actor override: 所选底牌角色的步骤由盗宝大师代行
   if (actorSeat === -1) {
-    return;
+    const state2 = ctx.getGameState();
+    if (state2.treasureMasterChosenCard === roleId && state2.treasureMasterSeat != null) {
+      actorSeat = state2.treasureMasterSeat;
+      actorRole = 'treasureMaster' as RoleId; // Gate 4b/5b 要求发送实际座位角色
+    } else {
+      // 该角色不在模板中，跳过（advanceNight 会在外层调用）
+      return;
+    }
   }
 
   // 获取自定义 action
   const actionValue = customActions[roleId];
 
   // 根据步骤类型提交 action
-  submitActionForStep(ctx, currentStepId, roleId, actorSeat, actionValue);
+  submitActionForStep(ctx, currentStepId, actorRole, actorSeat, actionValue);
 
   // ⚠️ 注意：reveal ack / wolfRobot hunter gate 等确认消息
   // 必须由测试在 customActions 中显式处理，不在此自动发送
@@ -294,7 +304,9 @@ function submitActionForStep(
   actorSeat: number,
   actionValue: ActionValue | undefined,
 ): void {
-  if (stepId === 'wolfKill') {
+  if (stepId === 'treasureMasterChoose') {
+    submitChooseCardAction(ctx, stepId, roleId, actorSeat, actionValue);
+  } else if (stepId === 'wolfKill') {
     submitWolfKillAction(ctx, stepId, actorSeat, actionValue);
   } else if (stepId === 'witchAction') {
     submitWitchAction(ctx, stepId, actorSeat, actionValue);
@@ -318,6 +330,34 @@ function submitActionForStep(
     // 普通 action（seer, guard, nightmare, etc.）
     submitNormalAction(ctx, stepId, roleId, actorSeat, actionValue);
   }
+}
+
+/**
+ * 提交盗宝大师选卡 action
+ */
+function submitChooseCardAction(
+  ctx: GameContext,
+  stepId: SchemaId,
+  roleId: RoleId,
+  actorSeat: number,
+  actionValue: ActionValue | undefined,
+): void {
+  const cardIndex =
+    actionValue != null && typeof actionValue === 'object' && 'cardIndex' in actionValue
+      ? actionValue.cardIndex
+      : null;
+
+  sendMessageOrThrow(
+    ctx,
+    {
+      type: 'ACTION',
+      seat: actorSeat,
+      role: roleId,
+      target: null,
+      extra: cardIndex != null ? { cardIndex } : undefined,
+    },
+    { stepId },
+  );
 }
 
 /**

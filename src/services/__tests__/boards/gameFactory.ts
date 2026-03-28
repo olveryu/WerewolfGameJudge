@@ -27,8 +27,10 @@ import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import {
+  BOTTOM_CARD_COUNT,
   createTemplateFromRoles,
   GameTemplate,
+  getPlayerCount,
   PRESET_TEMPLATES,
 } from '@werewolf/game-engine/models/Template';
 import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
@@ -66,9 +68,15 @@ function createContext(state: GameState): HandlerContext {
 // Factory Function
 // =============================================================================
 
+interface CreateGameOptions {
+  /** 盗宝大师底牌（3 张），仅 15 角色模板需要 */
+  bottomCards?: readonly RoleId[];
+}
+
 export function createGame(
   templateNameOrRoles: string | RoleId[],
   roleAssignment?: Map<number, RoleId>,
+  options?: CreateGameOptions,
 ): GameContext {
   let template: GameTemplate;
   if (typeof templateNameOrRoles === 'string') {
@@ -109,14 +117,42 @@ export function createGame(
       assignments[seat] = role;
     });
   } else {
+    // Auto-assign: first N roles to seats, rest become bottom cards
+    const playerCount = getPlayerCount(template.roles);
     template.roles.forEach((role, idx) => {
-      assignments[idx] = role;
+      if (idx < playerCount) {
+        assignments[idx] = role;
+      }
     });
+  }
+
+  // TreasureMaster: derive bottomCards and treasureMasterSeat
+  const hasTreasureMaster = template.roles.includes('treasureMaster' as RoleId);
+  let bottomCards: readonly RoleId[] | undefined;
+  let treasureMasterSeat: number | undefined;
+
+  if (hasTreasureMaster) {
+    if (options?.bottomCards) {
+      bottomCards = options.bottomCards;
+    } else {
+      // Auto-derive: last BOTTOM_CARD_COUNT roles in templateRoles that are not assigned
+      const assignedRoles = new Set(Object.values(assignments));
+      const remaining = template.roles.filter((r) => !assignedRoles.has(r));
+      bottomCards = remaining.slice(0, BOTTOM_CARD_COUNT);
+    }
+
+    // Find treasureMaster seat
+    for (const [seatStr, role] of Object.entries(assignments)) {
+      if (role === 'treasureMaster') {
+        treasureMasterSeat = Number.parseInt(seatStr, 10);
+        break;
+      }
+    }
   }
 
   state = gameReducer(state, {
     type: 'ASSIGN_ROLES',
-    payload: { assignments },
+    payload: { assignments, bottomCards, treasureMasterSeat },
   });
 
   for (let i = 0; i < template.numberOfPlayers; i++) {
