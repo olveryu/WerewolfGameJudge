@@ -9,7 +9,7 @@ import { Animated, Image, Platform, StyleSheet, Text, View } from 'react-native'
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import { borderRadius, shadows, spacing, typography } from '@/theme';
+import { borderRadius, componentSizes, shadows, spacing, typography } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -93,12 +93,11 @@ const styles = StyleSheet.create({
   },
   inlineContainer: {
     flex: 0,
-    // 60px: not on the spacing scale (4-8-16-24-32-48-64), layout-specific for loading animation
-    paddingVertical: 60,
+    paddingVertical: spacing.xxlarge + spacing.medium,
   },
   iconContainer: {
-    width: 120,
-    height: 120,
+    width: componentSizes.avatar.xl,
+    height: componentSizes.avatar.xl,
     borderRadius: borderRadius.xlarge,
     overflow: 'hidden',
     marginBottom: spacing.large,

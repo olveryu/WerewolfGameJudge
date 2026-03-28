@@ -10,6 +10,7 @@ import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } 
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  componentSizes,
   fixed,
   shadows,
   spacing,
@@ -125,7 +126,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xlarge,
       padding: spacing.large,
-      minWidth: spacing.xxlarge * 6, // ~280
+      minWidth: Math.min(componentSizes.modal.minWidth, screenWidth * 0.85),
       maxWidth: screenWidth * 0.85,
       ...shadows.lg,
     },

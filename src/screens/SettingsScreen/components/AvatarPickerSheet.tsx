@@ -28,6 +28,9 @@ import { UI_ICONS } from '@/config/iconTokens';
 import { componentSizes, fixed, ThemeColors } from '@/theme';
 import { AVATAR_IMAGES, getAvatarImageByIndex, makeBuiltinAvatarUrl } from '@/utils/avatar';
 
+/** Stable style to let ScrollView fill remaining space inside maxHeight parent */
+const scrollViewFlex = { flex: 1 } as const;
+
 import { SettingsScreenStyles } from './styles';
 
 const NUM_COLUMNS = 4;
@@ -350,7 +353,11 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
     );
 
     const renderFrameTab = () => (
-      <ScrollView contentContainerStyle={styles.frameGrid} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={scrollViewFlex}
+        contentContainerStyle={styles.frameGrid}
+        showsVerticalScrollIndicator={false}
+      >
         {/* "None" option */}
         <TouchableOpacity
           style={[

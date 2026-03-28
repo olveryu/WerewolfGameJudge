@@ -29,6 +29,9 @@ import { fixed, typography } from '@/theme';
 
 import { ConfigScreenStyles } from './styles';
 
+/** Stable style to let ScrollView fill remaining space inside maxHeight parent */
+const scrollViewFlex = { flex: 1 } as const;
+
 interface DropdownOption {
   value: string;
   label: string;
@@ -107,7 +110,7 @@ export const Dropdown = memo<DropdownProps>(
                   />
                 </TouchableOpacity>
               </View>
-              <ScrollView>
+              <ScrollView style={scrollViewFlex}>
                 {options.map((option) => (
                   <TouchableOpacity
                     key={option.value}

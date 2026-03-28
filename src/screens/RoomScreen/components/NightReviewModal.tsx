@@ -116,6 +116,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       maxHeight: screenHeight * 0.75,
     },
     contentContainer: {
+      flex: 1,
       backgroundColor: colors.surface,
     },
     title: {
@@ -127,7 +128,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       marginBottom: spacing.medium,
     },
     scrollView: {
-      flexGrow: 0,
+      flex: 1,
     },
     sectionTitle: {
       ...textStyles.bodySemibold,

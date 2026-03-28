@@ -6,7 +6,7 @@
  * 渲染 UI 并通过回调上报 onSeatPress，不 import service / showAlert，不包含业务逻辑判断。
  */
 import React, { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { PixelRatio, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { spacing, type ThemeColors, useColors } from '@/theme';
@@ -47,8 +47,14 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const gridColumns = getGridColumns(screenWidth);
+  // Floor to nearest device pixel to prevent sub-pixel rounding overflow
+  // (roundToNearestPixel can round UP, causing the last column to wrap)
+  const pixelRatio = PixelRatio.get();
   const tileSize =
-    (screenWidth - spacing.medium * 2 - spacing.small * (gridColumns - 1)) / gridColumns;
+    Math.floor(
+      ((screenWidth - spacing.medium * 2 - spacing.small * (gridColumns - 1)) / gridColumns) *
+        pixelRatio,
+    ) / pixelRatio;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Create SeatTile styles once and pass to all tiles (performance optimization)

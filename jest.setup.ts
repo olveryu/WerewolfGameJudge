@@ -199,6 +199,7 @@ jest.mock('./src/theme', () => {
       handle: { width: 36, height: 4 },
       radio: { size: 20, dotSize: 10 },
       progressBar: { height: 2, borderRadius: 1 },
+      modal: { minWidth: 280 },
       menu: { minWidth: 180, compactMinWidth: 140 },
       headerAction: { minWidth: 60 },
       header: 56,

@@ -102,7 +102,8 @@ export function createModalMenuStyles(colors: ThemeColors): {
         backgroundColor: colors.surface,
         borderRadius: borderRadius.xlarge,
         padding: spacing.xlarge,
-        minWidth: spacing.xxlarge * 6 + spacing.large, // ~280
+        minWidth: componentSizes.modal.minWidth,
+        maxWidth: '88%',
         alignItems: 'center',
       },
       modalTitle: {

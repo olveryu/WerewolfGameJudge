@@ -308,6 +308,12 @@ export const componentSizes = {
     borderRadius: 1,
   },
 
+  /** 模态框 */
+  modal: {
+    /** 居中弹窗最小宽度（~280px 基准） */
+    minWidth: scale(280),
+  },
+
   /** 弹出菜单 */
   menu: {
     minWidth: scale(180),

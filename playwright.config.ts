@@ -88,6 +88,17 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+
+    /* Narrow viewport (320×640) — catches responsive overflow on small Android phones */
+    {
+      name: 'small-mobile',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 320, height: 640 },
+      },
+      // Only run home + config specs — enough to catch layout overflow
+      testMatch: /home\.spec|config\.spec/,
+    },
   ],
 
   /* Run your local dev server before starting the tests */

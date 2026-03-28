@@ -183,7 +183,7 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       marginBottom: spacing.medium,
     },
     scrollView: {
-      flexGrow: 0,
+      flex: 1,
       marginBottom: spacing.medium,
     },
     seatRow: {

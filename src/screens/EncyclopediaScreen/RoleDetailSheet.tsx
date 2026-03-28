@@ -24,6 +24,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RoleDescriptionView } from '@/components/RoleDescriptionView';
 import {
@@ -75,7 +76,8 @@ const HERO_BADGE_SIZE = componentSizes.avatar.xl;
 
 export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleId, onClose }) => {
   const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(colors, insets.bottom), [colors, insets.bottom]);
 
   if (!visible || !roleId) return null;
 
@@ -169,7 +171,7 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
 
 // ── Styles ───────────────────────────────────────────────────
 
-function createStyles(colors: ThemeColors) {
+function createStyles(colors: ThemeColors, bottomInset: number) {
   const shared = createSharedStyles(colors);
   return StyleSheet.create({
     overlay: {
@@ -192,7 +194,7 @@ function createStyles(colors: ThemeColors) {
       ...shared.sheetHandle,
     },
     scrollContent: {
-      paddingBottom: spacing.medium,
+      paddingBottom: Math.max(spacing.medium, bottomInset + spacing.small),
     },
     // Hero
     heroSection: {

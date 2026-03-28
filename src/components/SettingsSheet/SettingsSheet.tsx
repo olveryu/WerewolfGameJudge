@@ -45,6 +45,9 @@ const BGM_OPTIONS: readonly SettingsOption[] = [
   { value: 'off', label: '关' },
 ] as const;
 
+/** Stable style to let ScrollView fill remaining space inside maxHeight parent */
+const scrollViewFlex = { flex: 1 } as const;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -131,7 +134,7 @@ export const SettingsSheet = memo(function SettingsSheet({
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+          <ScrollView style={scrollViewFlex} showsVerticalScrollIndicator={false} bounces={false}>
             <SettingsOptionGroup
               label="动画"
               options={ANIMATION_OPTIONS}
@@ -232,7 +235,7 @@ function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles
       borderTopLeftRadius: borderRadius.large,
       borderTopRightRadius: borderRadius.large,
       paddingHorizontal: layout.screenPaddingH,
-      paddingBottom: spacing.xlarge,
+      paddingBottom: spacing.xxlarge,
       maxHeight: '85%',
     },
     handle: {

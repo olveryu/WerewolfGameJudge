@@ -573,6 +573,7 @@ function createStyles(colors: ThemeColors) {
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.large,
       minWidth: 200,
+      maxWidth: '80%',
       ...shadows.md,
     },
     dropdownTitle: {

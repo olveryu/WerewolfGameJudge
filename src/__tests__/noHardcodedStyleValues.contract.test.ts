@@ -173,9 +173,6 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
 
   // statusDot borderRadius: 3 — exempt per instructions (statusDot 6×6)
   'src/screens/SettingsScreen/components/styles.ts': 1,
-
-  // TODO: Phase 1 — paddingVertical: 60 → spacing/layout token
-  'src/components/LoadingScreen/LoadingScreen.tsx': 1,
 };
 
 // ─── Test ───────────────────────────────────────────────────────────────────
