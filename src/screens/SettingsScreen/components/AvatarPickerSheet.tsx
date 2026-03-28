@@ -467,8 +467,9 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
         onRequestClose={onClose}
         onShow={handleOpen}
       >
-        <Pressable style={styles.pickerOverlay} onPress={onClose}>
-          <Pressable style={styles.pickerSheet} onPress={undefined}>
+        <View style={styles.pickerModalRoot}>
+          <Pressable style={styles.pickerOverlay} onPress={onClose} />
+          <View style={styles.pickerSheet}>
             <View style={styles.pickerHandle} />
             <View style={styles.pickerHeader}>
               <Text style={styles.pickerTitle}>选择形象</Text>
@@ -503,8 +504,8 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
 
             {/* Footer */}
             {renderFooter()}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
 
         {/* Long-press preview overlay */}
         {previewIndex !== null && (

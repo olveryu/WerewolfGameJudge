@@ -101,6 +101,7 @@ export interface SettingsScreenStyles {
   aboutValue: TextStyle;
   bottomSpacer: ViewStyle;
   // Avatar picker
+  pickerModalRoot: ViewStyle;
   pickerOverlay: ViewStyle;
   pickerSheet: ViewStyle;
   pickerHandle: ViewStyle;
@@ -501,10 +502,13 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       height: spacing.xlarge,
     },
     // Avatar picker
-    pickerOverlay: {
+    pickerModalRoot: {
       flex: 1,
-      backgroundColor: colors.overlay,
       justifyContent: 'flex-end',
+    },
+    pickerOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.overlay,
     },
     pickerSheet: {
       backgroundColor: colors.background,
