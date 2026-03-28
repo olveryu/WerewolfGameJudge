@@ -102,7 +102,8 @@ export function useRoomInit({
         setLoadingMessage('正在加载房间…');
         roomScreenLog.debug('[useRoomInit] Host initializing room', {
           roomNumber,
-          roleCount: template.roles.length,
+          playerCount: template.numberOfPlayers,
+          totalRoles: template.roles.length,
         });
         const success = await initializeRoom(roomNumber, template);
 

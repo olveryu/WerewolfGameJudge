@@ -54,7 +54,7 @@ export function useSpeakingOrder({
 
     const seed = gameStateRef.current.roleRevealRandomNonce ?? gameStateRef.current.roomCode;
     const rng = createSeededRng(seed);
-    const playerCount = gameStateRef.current.template.roles.length;
+    const playerCount = gameStateRef.current.template.numberOfPlayers;
     const { startSeat, direction } = generateSpeakOrder(playerCount, rng);
     setSpeakingOrderText(`${STATUS.SPEAKING} 从 ${startSeat} 号开始 ${direction}发言`);
 

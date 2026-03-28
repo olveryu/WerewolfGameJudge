@@ -5,7 +5,7 @@
  * No IO, no random, no time dependencies.
  */
 
-import { GameStatus } from '../../models';
+import { GameStatus, getPlayerCount } from '../../models';
 import { type ResolvedRoleRevealAnimation, resolveRandomAnimation } from '../../types';
 import type { Complete } from '../state/normalize';
 import type { GameState } from '../store/types';
@@ -134,7 +134,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
 
 export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAction): GameState {
   const newTemplateRoles = action.payload.templateRoles;
-  const newCount = newTemplateRoles.length;
+  const newCount = getPlayerCount(newTemplateRoles);
   const oldPlayers = state.players;
 
   const newPlayers: GameState['players'] = {};

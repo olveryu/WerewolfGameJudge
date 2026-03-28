@@ -570,7 +570,7 @@ export function useRoomScreenState(
     if (!gameState) return null;
 
     const players = gameState.players;
-    const totalSeats = gameState.template.roles.length;
+    const totalSeats = gameState.template.numberOfPlayers;
 
     if (isHost) {
       switch (roomStatus) {

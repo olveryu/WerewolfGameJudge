@@ -77,7 +77,7 @@ export const useRoomHostDialogs = ({
     gameState.players.forEach((player) => {
       if (player !== null) seatedCount++;
     });
-    const totalSeats = gameState.template.roles.length;
+    const totalSeats = gameState.template.numberOfPlayers;
 
     if (seatedCount !== totalSeats) {
       roomScreenLog.warn('[HostDialogs] Cannot prepare to flip — seats not full', {
