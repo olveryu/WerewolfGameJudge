@@ -330,7 +330,9 @@
             'background:#DC3B3B;color:#fff;font-size:13px;z-index:999999;' +
             'font-family:monospace;word-break:break-all;';
           banner.textContent = '[DIAG] reload: ' + src + ' (' + elapsed + ')';
-          banner.onclick = function () { banner.remove(); };
+          banner.onclick = function () {
+            banner.remove();
+          };
           document.body.appendChild(banner);
         }
         // 记录本次加载时间
@@ -375,7 +377,10 @@
               // 只在真正有新部署时触发（build.sh 用 git hash，同 commit 不变）
               function onNewSW(sw) {
                 if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-                  localStorage.setItem('__diag_reload_src', 'onNewSW (updatefound) → showUpdateOverlay');
+                  localStorage.setItem(
+                    '__diag_reload_src',
+                    'onNewSW (updatefound) → showUpdateOverlay',
+                  );
                   localStorage.setItem('__diag_reload_ts', String(Date.now()));
                   showUpdateOverlay(sw);
                 }

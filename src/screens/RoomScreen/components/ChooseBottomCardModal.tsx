@@ -11,7 +11,14 @@ import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { memo, useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { borderRadius, spacing, textStyles, type ThemeColors, useColors } from '@/theme';
+import {
+  borderRadius,
+  spacing,
+  textStyles,
+  type ThemeColors,
+  typography,
+  useColors,
+} from '@/theme';
 import { CANCEL_BUTTON, confirmButton, showAlert } from '@/utils/alert';
 
 interface BottomCardItem {
@@ -75,7 +82,7 @@ function createStyles(colors: ThemeColors) {
     cardName: {
       ...textStyles.body,
       color: colors.text,
-      fontWeight: '600',
+      fontWeight: typography.weights.semibold,
     },
     cardNameDisabled: {
       color: colors.textMuted,
@@ -83,7 +90,7 @@ function createStyles(colors: ThemeColors) {
     cardHint: {
       ...textStyles.caption,
       color: colors.textMuted,
-      marginTop: 2,
+      marginTop: spacing.micro,
     },
     cancelButton: {
       marginTop: spacing.medium,
