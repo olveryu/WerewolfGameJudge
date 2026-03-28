@@ -45,8 +45,8 @@ self.addEventListener('activate', (event) => {
       );
     }),
   );
-  // 不调用 clients.claim()：让新 SW 等到下次导航自然接管，
-  // 避免 controllerchange 触发页面 reload 中断当前会话。
+  // 立即控制所有页面（配合 showUpdateOverlay 在页面加载时触发 reload）
+  self.clients.claim();
 });
 
 // 请求拦截 - 网络优先，失败则使用缓存
