@@ -1,5 +1,6 @@
 import { buildNightPlan, RoleId } from '@werewolf/game-engine/models/roles';
 import {
+  BOTTOM_CARD_COUNT,
   createCustomTemplate,
   createTemplateFromRoles,
   PRESET_TEMPLATES,
@@ -139,7 +140,7 @@ describe('Template - PRESET_TEMPLATES', () => {
   it('should have valid player count for all templates', () => {
     PRESET_TEMPLATES.forEach((preset) => {
       expect(preset.roles.length).toBeGreaterThanOrEqual(6);
-      expect(preset.roles.length).toBeLessThanOrEqual(12);
+      expect(preset.roles.length).toBeLessThanOrEqual(12 + BOTTOM_CARD_COUNT);
     });
   });
 

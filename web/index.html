@@ -315,6 +315,24 @@
         }, 5000);
       });
 
+      // [DIAG] 页面加载后检查上次 reload 来源
+      (function () {
+        var src = sessionStorage.getItem('__diag_reload_src');
+        if (src) {
+          sessionStorage.removeItem('__diag_reload_src');
+          setTimeout(function () {
+            alert('[DIAG] 上次 reload 来源: ' + src);
+          }, 500);
+        }
+      })();
+
+      // [DIAG] 捕获所有非预期的页面卸载
+      window.addEventListener('beforeunload', function () {
+        if (!sessionStorage.getItem('__diag_reload_src')) {
+          sessionStorage.setItem('__diag_reload_src', 'UNKNOWN (beforeunload, 非 SW 路径)');
+        }
+      });
+
       // 注册 Service Worker（如果支持）
       if ('serviceWorker' in navigator) {
         // 首次安装时 controller 为 null，此时 controllerchange 不应 reload
@@ -323,6 +341,7 @@
         navigator.serviceWorker.addEventListener('controllerchange', function () {
           if (!hadController || refreshing) return;
           refreshing = true;
+          sessionStorage.setItem('__diag_reload_src', 'controllerchange → reload');
           window.location.reload();
         });
 
@@ -333,10 +352,15 @@
               // 检测新 SW 安装完毕 → 自动触发更新（全屏蒙层覆盖白屏）
               function onNewSW(sw) {
                 if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                  sessionStorage.setItem(
+                    '__diag_reload_src',
+                    'onNewSW (updatefound) → showUpdateOverlay',
+                  );
                   showUpdateOverlay(sw);
                 }
               }
               if (reg.waiting) {
+                sessionStorage.setItem('__diag_reload_src', 'reg.waiting → showUpdateOverlay');
                 showUpdateOverlay(reg.waiting);
               }
               if (reg.installing) {
@@ -396,6 +420,7 @@
         setTimeout(function () {
           bar.style.width = '100%';
           setTimeout(function () {
+            sessionStorage.setItem('__diag_reload_src', 'showUpdateOverlay 3s fallback → reload');
             window.location.reload();
           }, 300);
         }, 3000);

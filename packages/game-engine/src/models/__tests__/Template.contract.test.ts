@@ -17,7 +17,11 @@ import {
   isWolfRole,
   RoleId,
 } from '@werewolf/game-engine/models/roles';
-import { createTemplateFromRoles, PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
+import {
+  createTemplateFromRoles,
+  getPlayerCount,
+  PRESET_TEMPLATES,
+} from '@werewolf/game-engine/models/Template';
 
 /**
  * Helper: Get action order from roles via NightPlan
@@ -52,8 +56,8 @@ describe('PRESET_TEMPLATES - 数据自洽性', () => {
         expect(preset.name).not.toMatch(/\d+人$/);
       });
 
-      it('roles 数量应与 numberOfPlayers 一致', () => {
-        expect(preset.roles.length).toBe(template.numberOfPlayers);
+      it('numberOfPlayers 应与 getPlayerCount(roles) 一致', () => {
+        expect(template.numberOfPlayers).toBe(getPlayerCount(preset.roles));
       });
 
       it('所有 roles 都应该是合法的 RoleId', () => {
@@ -149,6 +153,7 @@ describe('PRESET_TEMPLATES - 模板列表完整性', () => {
     '唯邻是从',
     '孤注一掷',
     '影子复仇者',
+    '盗宝大师',
   ];
 
   it('应该包含所有预期的模板', () => {

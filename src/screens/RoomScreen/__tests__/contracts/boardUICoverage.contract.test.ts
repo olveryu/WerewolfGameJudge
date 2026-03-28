@@ -308,9 +308,9 @@ describe('Board UI Coverage Contract', () => {
   const boards = getAll12PBoards();
 
   describe('File Existence', () => {
-    it('should have exactly 19 board UI test files', () => {
+    it('should have exactly 20 board UI test files', () => {
       const files = getBoardUITestFiles();
-      expect(files.length).toBe(19);
+      expect(files.length).toBe(20);
     });
 
     it('should have a test file mapping for every 12P board', () => {
