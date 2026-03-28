@@ -45,6 +45,7 @@ const schemaToRole: Record<string, string> = {
   avengerConfirm: 'avenger',
   piperHypnotize: 'piper',
   piperHypnotizedReveal: 'piper',
+  treasureMasterChoose: 'treasureMaster',
 };
 
 describe('RoomScreen schema smoke: schemaId->role mapping contract', () => {

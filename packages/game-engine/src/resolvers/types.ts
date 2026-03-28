@@ -71,6 +71,15 @@ export interface CurrentNightResults {
 
   /** Avenger's faction (computed by shadow resolver from mimicry target's team) */
   readonly avengerFaction?: Team;
+
+  /** TreasureMaster: chosen card role ID */
+  readonly treasureMasterChosenCard?: RoleId;
+
+  /** TreasureMaster: effective team (derived from bottom card composition) */
+  readonly effectiveTeam?: Team;
+
+  /** TreasureMaster: bottom card roles revealed during step (for UI display) */
+  readonly bottomCardStepRoles?: readonly RoleId[];
 }
 
 /** Context passed to resolvers */
@@ -102,6 +111,9 @@ export interface ResolverContext {
     /** Accumulated hypnotized seats (piper) — needed to reject already-hypnotized targets */
     readonly hypnotizedSeats?: readonly number[];
   };
+
+  /** TreasureMaster context (only present when game includes treasureMaster role) */
+  readonly treasureMasterContext?: TreasureMasterContext;
 }
 
 /** Action input from player */
@@ -111,6 +123,7 @@ export interface ActionInput {
   readonly targets?: readonly number[]; // For swap
   readonly stepResults?: Record<string, number | null>; // For compound
   readonly confirmed?: boolean; // For confirm
+  readonly cardIndex?: number; // For chooseCard (treasureMaster bottom card index)
 }
 
 /** Resolver result - role action outcome */
@@ -218,6 +231,15 @@ interface WolfRobotContext {
   readonly disguisedRole: RoleId;
 }
 
+/**
+ * TreasureMaster context from GameState.
+ * Passed to the treasureMaster resolver for card selection.
+ */
+export interface TreasureMasterContext {
+  readonly bottomCards: readonly RoleId[];
+  readonly treasureMasterSeat: number;
+}
+
 // =============================================================================
 // Unified Role Resolution for Checks (SERVER-ONLY, Single Source of Truth)
 // =============================================================================
@@ -232,14 +254,16 @@ interface WolfRobotContext {
  * 1. Apply magician swap (if any)
  * 2. If the effective role is 'wolfRobot' AND wolfRobotContext.disguisedRole exists,
  *    return the disguised role instead.
- * 3. Otherwise return the effective role.
+ * 3. If the seat is the treasureMaster seat AND treasureMasterChosenCard exists,
+ *    return the chosen card's role instead.
+ * 4. Otherwise return the effective role.
  *
- * @param context - The resolver context (contains players, currentNightResults, wolfRobotContext)
+ * @param context - The resolver context (contains players, currentNightResults, wolfRobotContext, treasureMasterContext)
  * @param seat - The seat to check
- * @returns The role to use for checks (after swap and disguise)
+ * @returns The role to use for checks (after swap, disguise, and card selection)
  */
 export function resolveRoleForChecks(context: ResolverContext, seat: number): RoleId | undefined {
-  const { players, currentNightResults, wolfRobotContext } = context;
+  const { players, currentNightResults, wolfRobotContext, treasureMasterContext } = context;
 
   // Step 1: Get role after magician swap
   const effectiveRole = getRoleAfterSwap(seat, players, currentNightResults.swappedSeats);
@@ -248,10 +272,17 @@ export function resolveRoleForChecks(context: ResolverContext, seat: number): Ro
   }
 
   // Step 2: Apply wolfRobot disguise if applicable
-  // If the effective role at this seat is wolfRobot and has learned a role, return disguised role
   if (wolfRobotContext && effectiveRole === 'wolfRobot') {
-    // WolfRobot at this seat should appear as disguised role
     return wolfRobotContext.disguisedRole;
+  }
+
+  // Step 3: Apply treasureMaster identity masquerade if applicable
+  if (
+    treasureMasterContext &&
+    effectiveRole === 'treasureMaster' &&
+    currentNightResults.treasureMasterChosenCard
+  ) {
+    return currentNightResults.treasureMasterChosenCard;
   }
 
   return effectiveRole;

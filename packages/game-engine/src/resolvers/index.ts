@@ -16,6 +16,7 @@ import { createGenericResolver } from './genericResolver';
 import { magicianSwapResolver } from './magician';
 import { piperHypnotizedRevealResolver, piperHypnotizeResolver } from './piper';
 import { shadowChooseMimicResolver } from './shadow';
+import { treasureMasterChooseResolver } from './treasureMaster';
 import type { ResolverRegistry } from './types';
 import { witchActionResolver } from './witch';
 import { wolfKillResolver } from './wolf';
@@ -56,6 +57,7 @@ export const RESOLVERS: ResolverRegistry = {
   awakenedGargoyleConvertReveal: awakenedGargoyleConvertRevealResolver,
   piperHypnotize: piperHypnotizeResolver,
   piperHypnotizedReveal: piperHypnotizedRevealResolver,
+  treasureMasterChoose: treasureMasterChooseResolver,
 };
 
 // Re-export types for convenience (SERVER-ONLY consumers)

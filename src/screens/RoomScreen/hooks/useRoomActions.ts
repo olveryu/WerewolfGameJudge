@@ -227,6 +227,7 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
     case 'skip':
     case 'confirmTarget':
     case 'groupConfirm':
+    case 'chooseCard':
     case undefined:
       return null;
     default: {

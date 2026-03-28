@@ -122,6 +122,11 @@ export interface GroupRevealEffect {
   readonly kind: 'groupReveal';
 }
 
+/** ChooseCard effect — 从底牌中选择一张身份牌（treasureMaster） */
+export interface ChooseCardEffect {
+  readonly kind: 'chooseCard';
+}
+
 /**
  * Confirm effect — 确认类（查看状态）
  * hunter / darkWolfKing / avenger confirm
@@ -144,7 +149,8 @@ export type AbilityEffect =
   | HypnotizeEffect
   | ConvertEffect
   | GroupRevealEffect
-  | ConfirmEffect;
+  | ConfirmEffect
+  | ChooseCardEffect;
 
 // ---------------------------------------------------------------------------
 // Abilities (what a role can do)
@@ -161,7 +167,8 @@ export type ActionKind =
   | 'compound'
   | 'swap'
   | 'confirm'
-  | 'groupConfirm';
+  | 'groupConfirm'
+  | 'chooseCard';
 
 /**
  * Active ability — 需要玩家主动操作

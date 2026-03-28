@@ -144,6 +144,15 @@ function buildSchema(
         requireAllAcks: true,
         ui,
       };
+
+    case 'chooseCard':
+      return {
+        id: step.stepId,
+        displayName: step.displayName,
+        kind: 'chooseCard',
+        canSkip: ability?.canSkip ?? false,
+        ui,
+      };
   }
 }
 

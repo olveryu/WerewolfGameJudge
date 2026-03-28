@@ -111,8 +111,8 @@ for jsfile in dist/assets/js/*.js; do
   perl -i -pe 's|/_expo/static/js/web/|/assets/js/|g' "$jsfile" 2>/dev/null
 done
 
-# Service Worker 缓存版本号（使用构建时间戳自动递增）
-SW_VERSION="werewolf-judge-$(date +%Y%m%d%H%M%S)"
+# Service Worker 缓存版本号（使用 git commit hash，同一 commit 构建结果不变）
+SW_VERSION="werewolf-judge-$(git rev-parse --short HEAD)"
 if [ -f dist/sw.js ]; then
   perl -i -pe "s|__SW_CACHE_VERSION__|$SW_VERSION|g" dist/sw.js
   echo "✅ SW 缓存版本: $SW_VERSION"

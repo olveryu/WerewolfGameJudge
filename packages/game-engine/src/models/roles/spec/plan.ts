@@ -23,6 +23,9 @@ import { isValidRoleId, ROLE_SPECS, type RoleId } from './specs';
  * Each entry is a stepId matching a NightStepDef.stepId in ROLE_SPECS_V2.
  */
 const NIGHT_STEP_ORDER_INTERNAL = [
+  // === 盗宝大师（最先行动，选取底牌身份）===
+  'treasureMasterChoose',
+
   // === 特殊角色（最先行动）===
   'magicianSwap',
   'slackerChooseIdol',

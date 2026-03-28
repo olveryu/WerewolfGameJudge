@@ -2,6 +2,7 @@
 
 exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot) 1`] = `
 [
+  "treasureMasterChoose",
   "magicianSwap",
   "slackerChooseIdol",
   "wildChildChooseIdol",

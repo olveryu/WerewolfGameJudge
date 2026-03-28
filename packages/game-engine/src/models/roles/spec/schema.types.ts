@@ -345,6 +345,12 @@ export interface GroupConfirmSchema extends BaseActionSchema {
   };
 }
 
+/** Choose a card from bottom cards (treasureMaster) */
+export interface ChooseCardSchema extends BaseActionSchema {
+  readonly kind: 'chooseCard';
+  readonly canSkip: boolean;
+}
+
 /** Union type for all schemas */
 export type ActionSchema =
   | ChooseSeatSchema
@@ -355,4 +361,5 @@ export type ActionSchema =
   | ConfirmSchema
   | ConfirmTargetSchema
   | MultiChooseSeatSchema
-  | GroupConfirmSchema;
+  | GroupConfirmSchema
+  | ChooseCardSchema;

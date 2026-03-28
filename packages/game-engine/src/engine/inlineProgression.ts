@@ -17,6 +17,7 @@
  */
 
 import { GameStatus, type SchemaId, SCHEMAS } from '../models';
+import { getStepSpec } from '../models/roles/spec/nightSteps';
 import type { AudioEffect, GameState } from '../protocol/types';
 import { getEngineLogger } from '../utils/logger';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
@@ -74,6 +75,23 @@ function isStepComplete(state: GameState): boolean {
 }
 
 /**
+ * Check if the current step belongs to an unchosen bottom card role.
+ *
+ * When treasureMaster picks a card, the unchosen bottom card roles' steps
+ * have no player operating them → auto-advance immediately after audio.
+ */
+function isUnchosenBottomCardStep(state: GameState): boolean {
+  const { currentStepId, bottomCardStepRoles, treasureMasterChosenCard } = state;
+  if (!currentStepId || !bottomCardStepRoles || !treasureMasterChosenCard) return false;
+
+  const step = getStepSpec(currentStepId);
+  if (!step) return false;
+
+  // Check if the step's role is in the bottom cards but NOT the chosen card
+  return bottomCardStepRoles.includes(step.roleId) && step.roleId !== treasureMasterChosenCard;
+}
+
+/**
  * 服务端内联评估推进决策
  *
  * 与 evaluateNightProgression 等价，但：
@@ -96,6 +114,11 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
     ) {
       return 'none';
     }
+    return 'advance';
+  }
+
+  // Auto-skip: unchosen bottom card role steps advance immediately (no player to act)
+  if (isUnchosenBottomCardStep(state)) {
     return 'advance';
   }
 

@@ -55,6 +55,12 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   const lines: string[] = [];
   const nr = gameState.currentNightResults;
 
+  // 0. TreasureMaster card choice
+  if (gameState.treasureMasterChosenCard) {
+    const chosenName = getRoleDisplayName(gameState.treasureMasterChosenCard as RoleId);
+    lines.push(`${getRoleEmoji('treasureMaster' as RoleId)} 盗宝大师选择了 ${chosenName}`);
+  }
+
   // 1. Wolf kill vote
   if (nr.wolfVotesBySeat && Object.keys(nr.wolfVotesBySeat).length > 0) {
     const entries = Object.entries(nr.wolfVotesBySeat);

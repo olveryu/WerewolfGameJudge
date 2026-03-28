@@ -1660,8 +1660,29 @@ export const ROLE_SPECS = {
         '底牌含狼人则属于狼人阵营，其他狼人全部出局后可主导袭击；底牌无狼人且2张以上为神职则为神职阵营，2张以上为平民则为平民阵营',
     },
     tags: ['transform'],
-    abilities: [],
-    nightSteps: [],
+    abilities: [
+      {
+        type: 'active',
+        timing: 'night',
+        actionKind: 'chooseCard',
+        canSkip: false,
+        effects: [{ kind: 'chooseCard' }],
+        activeOnNight1: true,
+      },
+    ],
+    nightSteps: [
+      {
+        stepId: 'treasureMasterChoose',
+        displayName: '盗宝',
+        audioKey: 'treasureMaster',
+        actionKind: 'chooseCard',
+        ui: {
+          prompt: '请选择一张底牌作为你的身份',
+          confirmText: '确认选择此身份？',
+          bottomActionText: '选择',
+        },
+      },
+    ],
   },
 } as const satisfies Record<string, RoleSpec>;
 

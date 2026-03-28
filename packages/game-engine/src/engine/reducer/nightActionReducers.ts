@@ -122,6 +122,18 @@ export function handleApplyResolverResult(
   const convertedSeat =
     updates && 'convertedSeat' in updates ? updates.convertedSeat : state.convertedSeat;
 
+  // Sync treasureMaster fields from resolver updates to top-level state
+  const treasureMasterChosenCard =
+    updates && 'treasureMasterChosenCard' in updates
+      ? updates.treasureMasterChosenCard
+      : state.treasureMasterChosenCard;
+  const effectiveTeam =
+    updates && 'effectiveTeam' in updates ? updates.effectiveTeam : state.effectiveTeam;
+  const bottomCardStepRoles =
+    updates && 'bottomCardStepRoles' in updates
+      ? updates.bottomCardStepRoles
+      : state.bottomCardStepRoles;
+
   return {
     ...state,
     currentNightResults,
@@ -129,6 +141,9 @@ export function handleApplyResolverResult(
     wolfKillOverride,
     hypnotizedSeats,
     convertedSeat,
+    treasureMasterChosenCard,
+    effectiveTeam,
+    bottomCardStepRoles,
     seerReveal: seerReveal ?? state.seerReveal,
     mirrorSeerReveal: mirrorSeerReveal ?? state.mirrorSeerReveal,
     drunkSeerReveal: drunkSeerReveal ?? state.drunkSeerReveal,

@@ -113,6 +113,7 @@ const schemaToRole: Record<string, string> = {
   avengerConfirm: 'avenger',
   piperHypnotize: 'piper',
   piperHypnotizedReveal: 'piper',
+  treasureMasterChoose: 'treasureMaster',
 };
 
 function roleForSchemaId(schemaId: string): string {

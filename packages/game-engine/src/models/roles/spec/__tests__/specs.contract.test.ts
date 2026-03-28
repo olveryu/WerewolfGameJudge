@@ -152,6 +152,7 @@ describe('ROLE_SPECS contract', () => {
       'hunter', // 20
       'darkWolfKing', // 25
       'piper', // 30
+      'treasureMaster', // 0 (first to act)
     ];
 
     it('should have correct night-1 action roles', () => {
@@ -177,7 +178,6 @@ describe('ROLE_SPECS contract', () => {
       'dancer',
       'masquerade',
       'warden',
-      'treasureMaster',
     ];
 
     it('should have correct no-action roles', () => {

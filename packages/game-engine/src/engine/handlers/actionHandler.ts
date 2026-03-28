@@ -18,13 +18,18 @@ import { newRejectionId } from '../../utils/id';
 import { buildSeatRoleMap } from '../../utils/playerHelpers';
 import type { SubmitActionIntent } from '../intents/types';
 import type { ActionRejectedAction, RecordActionAction, StateAction } from '../reducer/types';
-import { checkNightmareBlockGuard, validateActionPreconditions } from './actionGuards';
+import {
+  checkNightmareBlockGuard,
+  isTreasureMasterActorOverride,
+  validateActionPreconditions,
+} from './actionGuards';
 import { buildRevealPayload } from './revealPayload';
 import type { HandlerContext, HandlerResult, NonNullState } from './types';
 import { STANDARD_SIDE_EFFECTS } from './types';
 
 // Re-export moved symbols for backward compatibility
 export { checkNightmareBlockGuard, isSkipAction } from './actionGuards';
+export { isTreasureMasterActorOverride } from './actionGuards';
 export { handleViewedRole } from './viewedRoleHandler';
 
 /**
@@ -54,6 +59,14 @@ function buildResolverContext(
       isNight1: true, // Night-1 only
       hypnotizedSeats: state.hypnotizedSeats ?? [],
     },
+    ...(state.bottomCards && state.treasureMasterSeat != null
+      ? {
+          treasureMasterContext: {
+            bottomCards: state.bottomCards,
+            treasureMasterSeat: state.treasureMasterSeat,
+          },
+        }
+      : {}),
   };
 }
 
@@ -71,6 +84,7 @@ function buildActionInput(
     confirmed: extra?.confirmed as boolean | undefined,
     targets: extra?.targets as readonly number[] | undefined,
     stepResults: extra?.stepResults as Record<string, number | null> | undefined,
+    cardIndex: extra?.cardIndex as number | undefined,
   };
 }
 
@@ -119,8 +133,15 @@ export function handleSubmitAction(
   // 获取 resolver
   const resolver = RESOLVERS[schemaId]!;
 
+  // TreasureMaster actor override: when acting on the chosen card's step,
+  // use the chosen card's role for the resolver context
+  const resolverRole =
+    role === ('treasureMaster' as RoleId) && isTreasureMasterActorOverride(state, schemaId)
+      ? (state.treasureMasterChosenCard as RoleId)
+      : role;
+
   // 构建上下文
-  const resolverContext = buildResolverContext(state, seat, role);
+  const resolverContext = buildResolverContext(state, seat, resolverRole);
 
   // 调用 resolver（resolver-first）
   const result = resolver(resolverContext, actionInput);

@@ -13,11 +13,14 @@ Notes:
 - Generating requires internet access.
 - Playback in-app is offline; files are bundled as static assets.
 - "night.mp3" has 5s of trailing silence appended (iOS Safari workaround).
+- macOS + Homebrew Python 常遇到 SSL 证书验证失败（Netskope 等企业代理或系统证书链问题），
+  加 --insecure 跳过验证即可。
 
 Example:
   python3 scripts/generate_audio_edge_tts.py --voice zh-CN-YunxiNeural
   python3 scripts/generate_audio_edge_tts.py --only night_end
   python3 scripts/generate_audio_edge_tts.py --dry-run
+  python3 scripts/generate_audio_edge_tts.py --insecure --only treasure_master
 """
 
 from __future__ import annotations
@@ -72,8 +75,11 @@ BEGIN_TEXT: dict[str, str] = {
     "pure_white": "纯白之女请睁眼，请选择要查验的玩家。",
     "wolf_witch": "狼巫请睁眼，请选择要查验的玩家。",
     "silence_elder": "禁言长老请睁眼，请选择要禁言的玩家。",
-    "voteban_elder": "禁票长老请睁眼，请选择要禁票的玩家。",    "crow": "乌鸦请睁眼，请选择要诅咒的玩家。",
-    "poisoner": "毒师请睁眼，请选择要毒杀的玩家。",    "piper": "吹笛者请睁眼，请选择要催眠的玩家。",
+    "voteban_elder": "禁票长老请睁眼，请选择要禁票的玩家。",
+    "crow": "乌鸦请睁眼，请选择要诅咒的玩家。",
+    "poisoner": "毒师请睁眼，请选择要毒杀的玩家。",
+    "treasure_master": "盗宝大师请睁眼，请查看底牌并选择一张作为你的身份。",
+    "piper": "吹笛者请睁眼，请选择要催眠的玩家。",
     "shadow": "影子请睁眼，请选择你要模仿的玩家。",
     "avenger": "复仇者请睁眼，请查看你的阵营信息。",
     "piper_hypnotized_reveal": "所有玩家请睁眼，请看手机确认信息。",
@@ -106,6 +112,7 @@ END_TEXT: dict[str, str] = {
     "voteban_elder": "禁票长老请闭眼。",
     "crow": "乌鸦请闭眼。",
     "poisoner": "毒师请闭眼。",
+    "treasure_master": "盗宝大师请闭眼。",
     "piper": "吹笛者请闭眼。",
     "shadow": "影子请闭眼。",
     "avenger": "复仇者请闭眼。",

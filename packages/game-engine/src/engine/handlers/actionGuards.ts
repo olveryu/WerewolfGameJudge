@@ -13,10 +13,25 @@ import {
   type SchemaId,
   SCHEMAS,
 } from '../../models';
-import { BLOCKED_UI_DEFAULTS, NIGHT_STEPS } from '../../models/roles/spec';
+import { BLOCKED_UI_DEFAULTS, getStepSpec, NIGHT_STEPS } from '../../models/roles/spec';
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput } from '../../resolvers/types';
 import type { HandlerResult, NonNullState } from './types';
+
+/**
+ * Check if the given step is the treasureMaster's chosen card role's step.
+ *
+ * Used for Gate 4b override and for resolver role substitution.
+ */
+export function isTreasureMasterActorOverride(state: NonNullState, stepId: SchemaId): boolean {
+  const { treasureMasterChosenCard } = state;
+  if (!treasureMasterChosenCard) return false;
+
+  const step = getStepSpec(stepId);
+  if (!step) return false;
+
+  return step.roleId === treasureMasterChosenCard;
+}
 
 /**
  * 根据角色获取对应的 SchemaId
@@ -96,6 +111,8 @@ export function validateActionPreconditions(
   // via ROLE_SPECS[*].wolfMeeting.participatesInWolfVote instead of role->schema mapping.
   if (currentStepId === 'wolfKill' && doesRoleParticipateInWolfVote(role)) {
     // ok
+  } else if (role === 'treasureMaster' && isTreasureMasterActorOverride(state, currentStepId)) {
+    // TreasureMaster acting on the chosen card's step — allowed
   } else if (expectedSchemaId !== currentStepId) {
     return {
       valid: false,
@@ -175,6 +192,10 @@ export function isSkipAction(schema: ActionSchema, actionInput: ActionInput): bo
     case 'groupConfirm':
       // groupConfirm 类型：确认步骤，永远不是 skip
       return false;
+
+    case 'chooseCard':
+      // 选卡类型：cardIndex == null 视为 skip
+      return actionInput.cardIndex === undefined || actionInput.cardIndex === null;
 
     default:
       // 未知类型：安全策略 - 统一视为 non-skip

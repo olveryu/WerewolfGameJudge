@@ -36,7 +36,7 @@ describe('SCHEMAS contract', () => {
     for (const [id, schema] of Object.entries(SCHEMAS) as [SchemaId, ActionSchema][]) {
       expect(schema.id).toBe(id);
       expect(schema.kind).toMatch(
-        /^(chooseSeat|confirm|compound|swap|wolfVote|multiChooseSeat|groupConfirm)$/,
+        /^(chooseSeat|confirm|compound|swap|wolfVote|multiChooseSeat|groupConfirm|chooseCard)$/,
       );
     }
   });

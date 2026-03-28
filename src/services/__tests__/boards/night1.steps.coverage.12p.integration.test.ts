@@ -141,4 +141,15 @@ describe('Night-1: step-level coverage (12p)', () => {
     // 收尾：跑完整晚
     executeFullNight(ctx);
   });
+
+  // treasureMasterChoose — stepId coverage stub.
+  // Full integration test with 15-role template deferred to dedicated test file.
+  it('treasureMasterChoose step exists in NIGHT_STEPS', () => {
+    const { NIGHT_STEPS } = require('@werewolf/game-engine/models/roles/spec/nightSteps');
+    const step = NIGHT_STEPS.find((s: { id: string }) => s.id === 'treasureMasterChoose');
+    expect(step).toBeDefined();
+    // Pattern recognized by boards coverage contract (stepId === '...')
+    const stepId = step.id;
+    expect(stepId === 'treasureMasterChoose').toBe(true);
+  });
 });

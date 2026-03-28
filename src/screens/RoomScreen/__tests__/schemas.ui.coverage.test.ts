@@ -53,6 +53,16 @@ describe('RoomScreen schema ui coverage (contract)', () => {
         continue;
       }
 
+      if (schema.kind === 'chooseCard') {
+        // chooseCard schemas: card selection (treasureMaster).
+        expect(schema.ui).toBeDefined();
+        expect(typeof schema.ui!.prompt).toBe('string');
+        expect(schema.ui!.prompt!.length).toBeGreaterThan(0);
+        expect(typeof schema.ui!.confirmText).toBe('string');
+        expect(schema.ui!.confirmText!.length).toBeGreaterThan(0);
+        continue;
+      }
+
       // All other non-compound schemas must not rely on fallback UI.
       // (RoomScreen/useRoomActions will fail-fast if confirmText is missing.)
       expect(schema.ui).toBeDefined();
