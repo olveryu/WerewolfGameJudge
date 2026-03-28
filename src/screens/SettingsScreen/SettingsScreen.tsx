@@ -127,35 +127,6 @@ export const SettingsScreen: React.FC = () => {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [savingBuiltinAvatar, setSavingBuiltinAvatar] = useState(false);
 
-  // [DIAG] 追踪组件生命周期和 auth 状态变化
-  const mountCountRef = useRef(0);
-  const authHistoryRef = useRef<string[]>([]);
-  const [authHistory, setAuthHistory] = useState<string[]>([]);
-  useEffect(() => {
-    mountCountRef.current += 1;
-    settingsLog.warn(
-      `[DIAG] SettingsScreen mounted (#${mountCountRef.current}), isAuthenticated=${isAuthenticated}, user=${user?.uid ?? 'null'}`,
-    );
-    return () => {
-      settingsLog.warn('[DIAG] SettingsScreen UNMOUNTED');
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useEffect(() => {
-    const entry = `${new Date().toLocaleTimeString()}: auth=${String(isAuthenticated)} load=${String(authLoading)} user=${user?.uid?.slice(0, 8) ?? 'null'}`;
-    settingsLog.warn(`[DIAG] ${entry}`);
-    authHistoryRef.current = [...authHistoryRef.current.slice(-4), entry];
-    setAuthHistory([...authHistoryRef.current]);
-  }, [isAuthenticated, authLoading, user?.uid, user?.isAnonymous]);
-
-  // [DIAG] 可视化卡片 (在 Settings 页面顶部显示)
-  const [diagMountCount] = useState(() => {
-    const g = globalThis as Record<string, unknown>;
-    const prev = Number(g.__diagSettingsMountCount ?? 0) + 1;
-    g.__diagSettingsMountCount = prev;
-    return prev;
-  });
-
   // Reset transient states when screen regains focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -609,18 +580,6 @@ export const SettingsScreen: React.FC = () => {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* [DIAG] 可视化诊断横幅 — auth 变迁历史 */}
-        <View style={styles.diagBanner}>
-          <Text style={styles.diagText}>
-            [DIAG] mount#{diagMountCount} | now: auth={String(isAuthenticated)} load=
-            {String(authLoading)}
-          </Text>
-          {authHistory.map((h, i) => (
-            <Text key={i} style={styles.diagText}>
-              {h}
-            </Text>
-          ))}
-        </View>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
             <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户

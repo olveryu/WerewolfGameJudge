@@ -100,9 +100,7 @@ export interface SettingsScreenStyles {
   aboutLabel: TextStyle;
   aboutValue: TextStyle;
   bottomSpacer: ViewStyle;
-  // [DIAG]
-  diagBanner: ViewStyle;
-  diagText: TextStyle;
+
   // Avatar picker
   pickerModalRoot: ViewStyle;
   pickerOverlay: ViewStyle;
@@ -504,18 +502,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     bottomSpacer: {
       height: spacing.xlarge,
     },
-    // [DIAG]
-    diagBanner: {
-      backgroundColor: colors.error,
-      padding: spacing.small,
-      marginBottom: spacing.small,
-      borderRadius: borderRadius.small,
-    },
-    diagText: {
-      color: colors.surface,
-      fontFamily: 'monospace',
-      fontSize: typography.caption,
-    },
+
     // Avatar picker
     pickerModalRoot: {
       flex: 1,

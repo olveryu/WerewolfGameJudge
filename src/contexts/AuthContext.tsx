@@ -139,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         updateUserIfChanged(toUser(session.user));
         Sentry.setUser({ id: session.user.id });
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         Sentry.setUser(null);
       }

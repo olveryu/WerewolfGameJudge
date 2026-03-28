@@ -315,46 +315,6 @@
         }, 5000);
       });
 
-      // [DIAG] 页面加载后检查上次 reload 来源（用 localStorage，iOS 进程杀不掉）
-      (function () {
-        var src = localStorage.getItem('__diag_reload_src');
-        var ts = localStorage.getItem('__diag_reload_ts');
-        if (src) {
-          localStorage.removeItem('__diag_reload_src');
-          localStorage.removeItem('__diag_reload_ts');
-          var elapsed = ts ? ((Date.now() - Number(ts)) / 1000).toFixed(1) + 's ago' : 'unknown';
-          // 在页面顶部显示横幅（不用 alert，不会被阻断）
-          var banner = document.createElement('div');
-          banner.style.cssText =
-            'position:fixed;top:0;left:0;right:0;padding:12px 16px;' +
-            'background:#DC3B3B;color:#fff;font-size:13px;z-index:999999;' +
-            'font-family:monospace;word-break:break-all;';
-          banner.textContent = '[DIAG] reload: ' + src + ' (' + elapsed + ')';
-          banner.onclick = function () {
-            banner.remove();
-          };
-          document.body.appendChild(banner);
-        }
-        // 记录本次加载时间
-        localStorage.setItem('__diag_load_ts', String(Date.now()));
-      })();
-
-      // [DIAG] 捕获所有非预期的页面卸载
-      window.addEventListener('beforeunload', function () {
-        if (!localStorage.getItem('__diag_reload_src')) {
-          localStorage.setItem('__diag_reload_src', 'UNKNOWN (beforeunload, 非 SW 路径)');
-          localStorage.setItem('__diag_reload_ts', String(Date.now()));
-        }
-      });
-
-      // [DIAG] iOS Safari 不可靠触发 beforeunload，加 pagehide 兜底
-      window.addEventListener('pagehide', function () {
-        if (!localStorage.getItem('__diag_reload_src')) {
-          localStorage.setItem('__diag_reload_src', 'UNKNOWN (pagehide, 非 SW 路径)');
-          localStorage.setItem('__diag_reload_ts', String(Date.now()));
-        }
-      });
-
       // 注册 Service Worker（如果支持）
       if ('serviceWorker' in navigator) {
         // 首次安装时 controller 为 null，此时 controllerchange 不应 reload
@@ -363,9 +323,6 @@
         navigator.serviceWorker.addEventListener('controllerchange', function () {
           if (!hadController || refreshing) return;
           refreshing = true;
-          sessionStorage.setItem('__diag_reload_src', 'controllerchange → reload');
-          localStorage.setItem('__diag_reload_src', 'controllerchange → reload');
-          localStorage.setItem('__diag_reload_ts', String(Date.now()));
           window.location.reload();
         });
 
@@ -377,17 +334,10 @@
               // 只在真正有新部署时触发（build.sh 用 git hash，同 commit 不变）
               function onNewSW(sw) {
                 if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-                  localStorage.setItem(
-                    '__diag_reload_src',
-                    'onNewSW (updatefound) → showUpdateOverlay',
-                  );
-                  localStorage.setItem('__diag_reload_ts', String(Date.now()));
                   showUpdateOverlay(sw);
                 }
               }
               if (reg.waiting) {
-                localStorage.setItem('__diag_reload_src', 'reg.waiting → showUpdateOverlay');
-                localStorage.setItem('__diag_reload_ts', String(Date.now()));
                 showUpdateOverlay(reg.waiting);
               }
               if (reg.installing) {
