@@ -9,6 +9,7 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import type { PresetTemplate } from '@werewolf/game-engine/models/Template';
+import { getPlayerCount } from '@werewolf/game-engine/models/Template';
 import { memo, useCallback, useMemo } from 'react';
 import { LayoutAnimation, Platform, Text, TouchableOpacity, UIManager, View } from 'react-native';
 
@@ -70,7 +71,7 @@ export const BoardTemplateCard = memo<BoardTemplateCardProps>(
               {template.name}
             </Text>
             <View style={styles.templateCardPlayerBadge}>
-              <Text style={styles.templateCardPlayerText}>{template.roles.length}人</Text>
+              <Text style={styles.templateCardPlayerText}>{getPlayerCount(template.roles)}人</Text>
             </View>
             <Ionicons
               name={isExpanded ? 'chevron-up' : 'chevron-down'}

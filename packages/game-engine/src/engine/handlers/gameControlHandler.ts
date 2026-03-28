@@ -16,7 +16,7 @@ import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../../models/roles/spec/schema.types';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import { Faction } from '../../models/roles/spec/types';
-import { BOTTOM_CARD_COUNT } from '../../models/Template';
+import { BOTTOM_CARD_COUNT, getPlayerCount } from '../../models/Template';
 import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { randomHex } from '../../utils/id';
@@ -446,7 +446,7 @@ export function handleFillWithBots(
   }
 
   // 计算空座位并生成 bot players
-  const seatCount = state.templateRoles.length;
+  const seatCount = getPlayerCount(state.templateRoles);
   // 只有 player !== null 的座位才算已占用
   const occupiedSeats = new Set(
     Object.entries(state.players)
