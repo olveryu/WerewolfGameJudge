@@ -20,6 +20,7 @@ import { GameStatus, type SchemaId, SCHEMAS } from '../models';
 import { getStepSpec } from '../models/roles/spec/nightSteps';
 import type { AudioEffect, GameState } from '../protocol/types';
 import { getEngineLogger } from '../utils/logger';
+import { randomIntInclusive } from '../utils/random';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
 import type { HandlerContext, SideEffect } from './handlers/types';
@@ -27,6 +28,10 @@ import { gameReducer } from './reducer/gameReducer';
 import type { StateAction } from './reducer/types';
 
 const log = getEngineLogger().extend('InlineProgression');
+
+/** 底牌空步骤随机延迟范围（ms） */
+const AUTO_SKIP_DELAY_MIN_MS = 5000;
+const AUTO_SKIP_DELAY_MAX_MS = 10000;
 
 /** 最大推进循环次数（防止无限循环） */
 const MAX_PROGRESSION_LOOPS = 20;
@@ -126,8 +131,13 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
     return 'advance';
   }
 
-  // Auto-skip: unchosen bottom card role steps advance immediately (no player to act)
+  // Auto-skip: unchosen bottom card role steps advance after random delay
   if (isUnchosenBottomCardStep(state)) {
+    // No deadline set yet → signal 'none' so runInlineProgression can set it
+    if (state.autoSkipDeadline == null) return 'none';
+    // Deadline not yet reached → wait
+    if (nowMs < state.autoSkipDeadline) return 'none';
+    // Deadline passed → advance
     return 'advance';
   }
 
@@ -215,6 +225,22 @@ export function runInlineProgression(
       // end_night terminates progression
       break;
     }
+  }
+
+  // Set autoSkipDeadline if we stopped at a vacant bottom card step without one.
+  // This covers both: initial entry (no advance happened) and post-advance landing.
+  if (isUnchosenBottomCardStep(currentState) && currentState.autoSkipDeadline == null) {
+    const deadline = nowMs + randomIntInclusive(AUTO_SKIP_DELAY_MIN_MS, AUTO_SKIP_DELAY_MAX_MS);
+    const setDeadlineAction: StateAction = {
+      type: 'SET_AUTO_SKIP_DEADLINE',
+      payload: { deadline },
+    };
+    currentState = gameReducer(currentState, setDeadlineAction);
+    allActions.push(setDeadlineAction);
+    log.info('Set autoSkipDeadline for vacant bottom card step', {
+      stepId: currentState.currentStepId,
+      deadline,
+    });
   }
 
   // If there are audio effects, add SET_PENDING_AUDIO_EFFECTS + SET_AUDIO_PLAYING actions

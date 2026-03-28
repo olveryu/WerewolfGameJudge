@@ -327,6 +327,18 @@ export interface ClearWolfVoteDeadlineAction {
   type: 'CLEAR_WOLF_VOTE_DEADLINE';
 }
 
+/**
+ * 底牌空步骤 auto-skip 截止时间
+ * advance 到底牌空步骤时设置 = now + randomIntInclusive(5000, 10000)。
+ * 下次推进时评估 nowMs >= deadline 后才 advance。
+ */
+export interface SetAutoSkipDeadlineAction {
+  type: 'SET_AUTO_SKIP_DEADLINE';
+  payload: {
+    deadline: number;
+  };
+}
+
 // =============================================================================
 // 待消费音频队列动作
 // =============================================================================
@@ -436,6 +448,8 @@ export type StateAction =
   // 狼人投票倒计时
   | SetWolfVoteDeadlineAction
   | ClearWolfVoteDeadlineAction
+  // 底牌空步骤 auto-skip 延迟
+  | SetAutoSkipDeadlineAction
   // 待消费音频队列
   | SetPendingAudioEffectsAction
   | ClearPendingAudioEffectsAction

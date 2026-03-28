@@ -130,6 +130,9 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     case 'CLEAR_WOLF_VOTE_DEADLINE':
       return { ...state, wolfVoteDeadline: undefined };
 
+    case 'SET_AUTO_SKIP_DEADLINE':
+      return { ...state, autoSkipDeadline: action.payload.deadline };
+
     case 'SET_PENDING_AUDIO_EFFECTS':
       return { ...state, pendingAudioEffects: action.payload.effects };
 

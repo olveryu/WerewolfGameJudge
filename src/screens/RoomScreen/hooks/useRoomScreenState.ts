@@ -261,6 +261,7 @@ export function useRoomScreenState(
     actorSeatNumber: actorSeatForUi,
     wolfVotes: wolfVotesMap,
     actions: gameState?.actions ?? EMPTY_ACTIONS,
+    treasureMasterChosenCard: gameState?.treasureMasterChosenCard,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

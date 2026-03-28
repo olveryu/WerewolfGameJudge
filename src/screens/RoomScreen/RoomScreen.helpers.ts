@@ -115,6 +115,7 @@ export interface SeatViewModel {
  * @param actorSeatNumber - Actor's seat number (actorSeatForUi — may be bot's seat when delegating)
  * @param wolfVotes - Map of wolf votes (seat -> target)
  * @param actions - Map of already submitted role actions
+ * @param treasureMasterChosenCard - The role treasureMaster chose from bottom cards (if any)
  */
 export function determineActionerState(
   actorRole: RoleId | null,
@@ -123,6 +124,7 @@ export function determineActionerState(
   actorSeatNumber: number | null,
   wolfVotes: Map<number, number>,
   actions: Map<RoleId, RoleAction> = new Map(),
+  treasureMasterChosenCard?: RoleId | null,
 ): ActionerState {
   if (!currentActionRole) {
     return { imActioner: false, showWolves: false };
@@ -139,6 +141,11 @@ export function determineActionerState(
 
   // My role matches current action
   if (actorRole === currentActionRole) {
+    return handleMatchingRole(actorRole, actorSeatNumber, wolfVotes, actions, isWolfMeetingSchema);
+  }
+
+  // TreasureMaster actor override: chosen card's step is acted by treasureMaster
+  if (actorRole === 'treasureMaster' && treasureMasterChosenCard === currentActionRole) {
     return handleMatchingRole(actorRole, actorSeatNumber, wolfVotes, actions, isWolfMeetingSchema);
   }
 

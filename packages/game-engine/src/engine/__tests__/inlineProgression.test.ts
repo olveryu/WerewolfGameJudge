@@ -206,4 +206,89 @@ describe('runInlineProgression', () => {
       expect(beginAudios.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  describe('底牌空步骤 autoSkipDeadline', () => {
+    /**
+     * Scenario: treasureMaster chose 'seer', and there's a 'poisoner' in bottom cards.
+     * When poisoner's step is current & no player has that role → vacant step.
+     * runInlineProgression should set autoSkipDeadline and NOT advance immediately.
+     */
+    it('should set autoSkipDeadline for vacant bottom card step instead of instant advance', () => {
+      // Template includes treasureMaster + seer + poisoner (poisoner also in bottom cards)
+      const templateRoles = ['treasureMaster', 'wolf', 'seer', 'poisoner', 'villager'] as const;
+      const plan = buildNightPlan(templateRoles);
+      const poisonerIdx = plan.steps.findIndex((s) => s.stepId === 'poisonerPoison');
+      expect(poisonerIdx).toBeGreaterThanOrEqual(0);
+
+      const nowMs = Date.now();
+      const state: GameState = {
+        roomCode: 'TEST',
+        hostUid: 'host',
+        status: GameStatus.Ongoing,
+        templateRoles: [...templateRoles],
+        players: {
+          // No player has 'poisoner' role — it's in bottom cards
+          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'treasureMaster' },
+          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+          2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
+          3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+        },
+        currentStepIndex: poisonerIdx,
+        currentStepId: 'poisonerPoison',
+        isAudioPlaying: false,
+        actions: [],
+        pendingRevealAcks: [],
+        treasureMasterChosenCard: 'seer',
+        bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
+        treasureMasterSeat: 0,
+      };
+
+      const result = runInlineProgression(state, 'host', nowMs);
+
+      // Should NOT advance past this step (deadline is in the future)
+      expect(result.stepsAdvanced).toBe(0);
+      // autoSkipDeadline should be set
+      expect(result.finalState.autoSkipDeadline).toBeDefined();
+      expect(result.finalState.autoSkipDeadline!).toBeGreaterThanOrEqual(nowMs + 5000);
+      expect(result.finalState.autoSkipDeadline!).toBeLessThanOrEqual(nowMs + 10000);
+    });
+
+    it('should advance vacant step when autoSkipDeadline has passed', () => {
+      const templateRoles = ['treasureMaster', 'wolf', 'seer', 'poisoner', 'villager'] as const;
+      const plan = buildNightPlan(templateRoles);
+      const poisonerIdx = plan.steps.findIndex((s) => s.stepId === 'poisonerPoison');
+      expect(poisonerIdx).toBeGreaterThanOrEqual(0);
+
+      const nowMs = Date.now();
+      const state: GameState = {
+        roomCode: 'TEST',
+        hostUid: 'host',
+        status: GameStatus.Ongoing,
+        templateRoles: [...templateRoles],
+        players: {
+          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'treasureMaster' },
+          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+          2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
+          3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+        },
+        currentStepIndex: poisonerIdx,
+        currentStepId: 'poisonerPoison',
+        isAudioPlaying: false,
+        actions: [],
+        pendingRevealAcks: [],
+        treasureMasterChosenCard: 'seer',
+        bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
+        treasureMasterSeat: 0,
+        // Deadline already passed
+        autoSkipDeadline: nowMs - 1000,
+      };
+
+      const result = runInlineProgression(state, 'host', nowMs);
+
+      // Should advance past the vacant step
+      expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
+      // autoSkipDeadline should be cleared (advance clears it)
+      expect(result.finalState.currentStepId).not.toBe('poisonerPoison');
+    });
+  });
 });

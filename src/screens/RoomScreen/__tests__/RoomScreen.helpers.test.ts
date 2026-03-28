@@ -147,6 +147,52 @@ describe('determineActionerState', () => {
     });
   });
 
+  describe('treasureMaster actor override (chosenCard)', () => {
+    const psychicCheckSchema = SCHEMAS.psychicCheck;
+
+    it('should set imActioner=true when treasureMaster chose the current action role', () => {
+      const result = determineActionerState(
+        'treasureMaster',
+        'psychic', // currentActionRole (chosen card's role step)
+        psychicCheckSchema,
+        2,
+        new Map(),
+        new Map(),
+        'psychic', // treasureMasterChosenCard
+      );
+
+      expect(result.imActioner).toBe(true);
+      expect(result.showWolves).toBe(false);
+    });
+
+    it('should NOT set imActioner when treasureMaster chose a different role', () => {
+      const result = determineActionerState(
+        'treasureMaster',
+        'psychic',
+        psychicCheckSchema,
+        2,
+        new Map(),
+        new Map(),
+        'seer', // chose seer, not psychic
+      );
+
+      expect(result.imActioner).toBe(false);
+    });
+
+    it('should NOT set imActioner when treasureMasterChosenCard is not provided', () => {
+      const result = determineActionerState(
+        'treasureMaster',
+        'psychic',
+        psychicCheckSchema,
+        2,
+        new Map(),
+        new Map(),
+      );
+
+      expect(result.imActioner).toBe(false);
+    });
+  });
+
   it('should handle mixed board with special wolves', () => {
     const roles: RoleId[] = [
       'villager',

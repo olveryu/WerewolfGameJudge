@@ -29,6 +29,8 @@ export interface UseActionerStateParams {
   wolfVotes: Map<number, number>;
   /** Already submitted role actions */
   actions: Map<RoleId, RoleAction>;
+  /** The role treasureMaster chose from bottom cards (if any) */
+  treasureMasterChosenCard?: RoleId | null;
 }
 
 /**
@@ -42,6 +44,7 @@ export function useActionerState({
   actorSeatNumber,
   wolfVotes,
   actions,
+  treasureMasterChosenCard,
 }: UseActionerStateParams): ActionerState {
   return useMemo(() => {
     return determineActionerState(
@@ -51,6 +54,15 @@ export function useActionerState({
       actorSeatNumber,
       wolfVotes,
       actions,
+      treasureMasterChosenCard,
     );
-  }, [actorRole, currentActionRole, currentSchema, actorSeatNumber, wolfVotes, actions]);
+  }, [
+    actorRole,
+    currentActionRole,
+    currentSchema,
+    actorSeatNumber,
+    wolfVotes,
+    actions,
+    treasureMasterChosenCard,
+  ]);
 }
