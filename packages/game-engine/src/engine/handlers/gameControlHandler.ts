@@ -36,6 +36,7 @@ import type {
   RestartGameAction,
   SetNightReviewAllowedSeatsAction,
   SetRoleRevealAnimationAction,
+  SetWolfKillDisabledAction,
   StartNightAction,
   StateAction,
   UpdateTemplateAction,
@@ -199,6 +200,15 @@ export function handleStartNight(
   const confirmStatusAction = maybeCreateConfirmStatusAction(firstStepId, state);
   if (confirmStatusAction) {
     actions.push(confirmStatusAction);
+  }
+
+  // 毒师在场：首夜狼人仅可空刀（板子级规则）
+  if (state.templateRoles.includes('poisoner' as RoleId)) {
+    const wolfKillDisabledAction: SetWolfKillDisabledAction = {
+      type: 'SET_WOLF_KILL_DISABLED',
+      payload: { disabled: true },
+    };
+    actions.push(wolfKillDisabledAction);
   }
 
   // 构建 sideEffects：先广播 + 保存，然后播放夜晚开始音频 + 第一步音频

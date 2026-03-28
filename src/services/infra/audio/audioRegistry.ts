@@ -127,6 +127,14 @@ export const AUDIO_REGISTRY: Partial<Record<RoleId, RoleAudioEntry>> = {
     begin: require('../../../../assets/audio/avenger.mp3'),
     end: require('../../../../assets/audio_end/avenger.mp3'),
   },
+  crow: {
+    begin: require('../../../../assets/audio/crow.mp3'),
+    end: require('../../../../assets/audio_end/crow.mp3'),
+  },
+  poisoner: {
+    begin: require('../../../../assets/audio/poisoner.mp3'),
+    end: require('../../../../assets/audio_end/poisoner.mp3'),
+  },
 };
 
 // ---------------------------------------------------------------------------

@@ -139,6 +139,14 @@ export function createGame(
     },
   });
 
+  // 毒师在场：首夜 wolfKillDisabled（与 handleStartNight 行为一致）
+  if (template.roles.includes('poisoner' as RoleId)) {
+    state = gameReducer(state, {
+      type: 'SET_WOLF_KILL_DISABLED',
+      payload: { disabled: true },
+    });
+  }
+
   const revision = 1;
   const internal: InternalState = {
     state,

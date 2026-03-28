@@ -69,7 +69,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
         faction: Faction.God,
         roles: [
           { roleId: 'seer' },
-          { roleId: 'witch' },
+          { roleId: 'witch', variants: ['poisoner'] },
           { roleId: 'hunter' },
           { roleId: 'guard' },
           { roleId: 'idiot' },
@@ -81,6 +81,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
           { roleId: 'psychic' },
           { roleId: 'pureWhite' },
           { roleId: 'dancer' },
+          { roleId: 'crow' },
           { roleId: 'silenceElder', variants: ['votebanElder'] },
         ],
       },

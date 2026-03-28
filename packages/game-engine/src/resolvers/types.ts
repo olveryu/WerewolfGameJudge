@@ -56,6 +56,9 @@ export interface CurrentNightResults {
   /** Seat vote-banned by votebanElder (cannot vote during exile) */
   readonly votebannedSeat?: number;
 
+  /** Seat cursed by crow (extra vote during exile) */
+  readonly cursedSeat?: number;
+
   /** Seats newly hypnotized by piper this night (1-2 seats) */
   readonly hypnotizedSeats?: readonly number[];
 
@@ -139,6 +142,7 @@ export interface ResolverResult {
     readonly votebanTarget?: number; // votebanElder
     readonly hypnotizedTargets?: readonly number[]; // piper - newly hypnotized seats this night
     readonly convertTarget?: number; // awakenedGargoyle - converted seat
+    readonly curseTarget?: number; // crow - cursed seat
   };
 }
 

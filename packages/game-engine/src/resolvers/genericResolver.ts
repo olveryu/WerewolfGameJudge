@@ -71,6 +71,8 @@ function processWriteSlot(
     dreamingSeat: 'dreamTarget',
     silencedSeat: 'silenceTarget',
     votebannedSeat: 'votebanTarget',
+    cursedSeat: 'curseTarget',
+    poisonedSeat: 'poisonedTarget',
   };
 
   const resultKey = resultKeyMap[slot];

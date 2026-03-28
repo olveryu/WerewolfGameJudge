@@ -36,13 +36,15 @@ const NIGHT_STEP_ORDER_INTERNAL = [
   'guardProtect',
   'silenceElderSilence',
   'votebanElderBan',
+  'crowCurse',
 
   // === 狼人会议阶段 ===
   'wolfKill',
   'wolfQueenCharm',
 
-  // === 女巫 ===
+  // === 女巫 / 毒师 ===
   'witchAction',
+  'poisonerPoison',
 
   // === 确认类 ===
   'hunterConfirm',

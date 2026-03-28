@@ -1,7 +1,7 @@
 /**
  * avatar - Local avatar image registry and selection utilities
  *
- * 34 dark fantasy role portraits from assets/avatars/raw/.
+ * 39 dark fantasy role portraits from assets/avatars/raw/.
  * 提供头像图片映射、基于 uid/roomId 的稳定 hash 分配和去重。
  * 不引入 React、service，也不发起网络请求。
  *
@@ -21,6 +21,7 @@ export const AVATAR_KEYS: readonly string[] = [
   'avenger',
   'awakenedGargoyle',
   'bloodMoon',
+  'crow',
   'dancer',
   'darkWolfKing',
   'dreamcatcher',
@@ -36,6 +37,7 @@ export const AVATAR_KEYS: readonly string[] = [
   'mirrorSeer',
   'nightmare',
   'piper',
+  'poisoner',
   'psychic',
   'pureWhite',
   'seer',
@@ -43,6 +45,7 @@ export const AVATAR_KEYS: readonly string[] = [
   'silenceElder',
   'slacker',
   'spiritKnight',
+  'treasureMaster',
   'villager',
   'votebanElder',
   'warden',
@@ -62,6 +65,7 @@ const AVATAR_IMAGES: number[] = [
   require('../../assets/avatars/raw/avenger.png'),
   require('../../assets/avatars/raw/awakenedGargoyle.png'),
   require('../../assets/avatars/raw/bloodMoon.png'),
+  require('../../assets/avatars/raw/crow.png'),
   require('../../assets/avatars/raw/dancer.png'),
   require('../../assets/avatars/raw/darkWolfKing.png'),
   require('../../assets/avatars/raw/dreamcatcher.png'),
@@ -77,6 +81,7 @@ const AVATAR_IMAGES: number[] = [
   require('../../assets/avatars/raw/mirrorSeer.png'),
   require('../../assets/avatars/raw/nightmare.png'),
   require('../../assets/avatars/raw/piper.png'),
+  require('../../assets/avatars/raw/poisoner.png'),
   require('../../assets/avatars/raw/psychic.png'),
   require('../../assets/avatars/raw/pureWhite.png'),
   require('../../assets/avatars/raw/seer.png'),
@@ -84,6 +89,7 @@ const AVATAR_IMAGES: number[] = [
   require('../../assets/avatars/raw/silenceElder.png'),
   require('../../assets/avatars/raw/slacker.png'),
   require('../../assets/avatars/raw/spiritKnight.png'),
+  require('../../assets/avatars/raw/treasureMaster.png'),
   require('../../assets/avatars/raw/villager.png'),
   require('../../assets/avatars/raw/votebanElder.png'),
   require('../../assets/avatars/raw/warden.png'),

@@ -21,8 +21,8 @@ import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
-  it('should have exactly 36 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(36);
+  it('should have exactly 39 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(39);
   });
 
   it('every role should have required fields', () => {
@@ -138,9 +138,11 @@ describe('ROLE_SPECS contract', () => {
       'guard', // 3
       'silenceElder', // 3.5
       'votebanElder', // 3.6
+      'crow', // 4
       'wolf', // 5
       'wolfQueen', // 6
       'witch', // 10
+      'poisoner', // 11
       'wolfWitch', // 14
       'seer', // 15
       'mirrorSeer', // 15.5
@@ -175,6 +177,7 @@ describe('ROLE_SPECS contract', () => {
       'dancer',
       'masquerade',
       'warden',
+      'treasureMaster',
     ];
 
     it('should have correct no-action roles', () => {

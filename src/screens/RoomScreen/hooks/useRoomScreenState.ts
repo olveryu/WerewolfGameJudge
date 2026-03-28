@@ -122,6 +122,7 @@ export function useRoomScreenState(
     submitAction,
     hasWolfVoted,
     getLastNightInfo: getLastNightInfoFn,
+    getCurseInfo: getCurseInfoFn,
     lastSeatError,
     clearLastSeatError,
     needsAuth,
@@ -502,6 +503,7 @@ export function useRoomScreenState(
   } = useRoomModals({
     isHost,
     getLastNightInfo: getLastNightInfoFn,
+    getCurseInfo: getCurseInfoFn,
     shareNightReview,
     shareNightReviewReport: shareNightReviewReportDirectly,
   });

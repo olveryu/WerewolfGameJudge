@@ -31,6 +31,8 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   dancer: require('../../assets/badges/png/512/role_dancer.png'),
   silenceElder: require('../../assets/badges/png/512/role_silenceElder.png'),
   votebanElder: require('../../assets/badges/png/512/role_votebanElder.png'),
+  crow: require('../../assets/badges/png/512/role_crow.png'),
+  poisoner: require('../../assets/badges/png/512/role_poisoner.png'),
 
   // ── Wolf ──
   wolf: require('../../assets/badges/png/512/role_wolf.png'),
@@ -53,6 +55,7 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   piper: require('../../assets/badges/png/512/role_piper.png'),
   shadow: require('../../assets/badges/png/512/role_shadow.png'),
   avenger: require('../../assets/badges/png/512/role_avenger.png'),
+  treasureMaster: require('../../assets/badges/png/512/role_treasureMaster.png'),
 };
 /* eslint-enable @typescript-eslint/no-require-imports */
 

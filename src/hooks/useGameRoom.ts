@@ -118,6 +118,7 @@ interface UseGameRoomResult {
   submitGroupConfirmAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
+  getCurseInfo: () => string | null;
   hasWolfVoted: (seatNumber: number) => boolean;
   /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
   postProgression: () => Promise<boolean>;
@@ -354,6 +355,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     submitGroupConfirmAck: actions.submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed: actions.sendWolfRobotHunterStatusViewed,
     getLastNightInfo: actions.getLastNightInfo,
+    getCurseInfo: actions.getCurseInfo,
     hasWolfVoted: actions.hasWolfVoted,
     postProgression: actions.postProgression,
     // Rejoin recovery

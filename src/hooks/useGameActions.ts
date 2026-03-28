@@ -12,6 +12,7 @@
  * 不直接修改 GameState，不绕过 facade。
  */
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback } from 'react';
@@ -87,6 +88,7 @@ interface GameActionsState {
 
   // Game state queries
   getLastNightInfo: () => string;
+  getCurseInfo: () => string | null;
   hasWolfVoted: (seatNumber: number) => boolean;
 }
 
@@ -272,6 +274,15 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     return parts.join('\n');
   }, [gameState]);
 
+  // Get curse info — separate from lastNightInfo; returns null when crow is not in template
+  const getCurseInfo = useCallback((): string | null => {
+    if (!gameState) return null;
+    if (!gameState.template.roles.includes('crow' as RoleId)) return null;
+    const { cursedSeat } = gameState.currentNightResults;
+    if (cursedSeat == null) return '乌鸦未诅咒任何人';
+    return `${cursedSeat + 1}号被诅咒（放逐+1票）`;
+  }, [gameState]);
+
   // Check if a wolf has voted
   const hasWolfVoted = useCallback(
     (seatNumber: number): boolean => {
@@ -297,6 +308,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     sendWolfRobotHunterStatusViewed,
     postProgression,
     getLastNightInfo,
+    getCurseInfo,
     hasWolfVoted,
   };
 }

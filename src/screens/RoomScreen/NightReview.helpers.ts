@@ -65,7 +65,9 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   }
 
   if (nr.wolfKillDisabled) {
-    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人放弃袭击（被梦魇封锁）`);
+    const isPoisoner = findSeatByRole(gameState.players, 'poisoner' as RoleId) !== undefined;
+    const reason = isPoisoner ? '毒师在场' : '被梦魇封锁';
+    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人放弃袭击（${reason}）`);
   }
 
   // 2. Nightmare block
@@ -88,12 +90,19 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(`${getRoleEmoji('votebanElder' as RoleId)} 禁票长老禁票了 ${s(nr.votebannedSeat)}`);
   }
 
-  // 4. Witch
+  // 4. Witch / Poisoner
   if (nr.savedSeat != null) {
     lines.push(`${ACTION.SAVE} 女巫使用解药救了 ${s(nr.savedSeat)}`);
   }
   if (nr.poisonedSeat != null) {
-    lines.push(`${ACTION.POISON} 女巫使用毒药毒杀了 ${s(nr.poisonedSeat)}`);
+    const isPoisoner = findSeatByRole(gameState.players, 'poisoner' as RoleId) !== undefined;
+    const poisonLabel = isPoisoner ? '毒师毒杀了' : '女巫使用毒药毒杀了';
+    lines.push(`${ACTION.POISON} ${poisonLabel} ${s(nr.poisonedSeat)}`);
+  }
+
+  // 4a. Crow curse
+  if (nr.cursedSeat != null) {
+    lines.push(`${getRoleEmoji('crow' as RoleId)} 乌鸦诅咒了 ${s(nr.cursedSeat)}`);
   }
 
   // 5. Dreamcatcher
@@ -192,9 +201,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   if (hunterSeat !== undefined) {
     const canShoot = nr.poisonedSeat !== hunterSeat;
     lines.push(
-      canShoot
-        ? `${ACTION.SHOOT} 猎人可以发动技能`
-        : `${ACTION.SHOOT} 猎人不能发动技能（被女巫毒杀）`,
+      canShoot ? `${ACTION.SHOOT} 猎人可以发动技能` : `${ACTION.SHOOT} 猎人不能发动技能（被毒杀）`,
     );
   }
 
@@ -204,7 +211,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(
       canShoot
         ? `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王可以发动技能`
-        : `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王不能发动技能（被女巫毒杀）`,
+        : `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王不能发动技能（被毒杀）`,
     );
   }
 

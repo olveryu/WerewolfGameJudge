@@ -1,7 +1,7 @@
 /**
  * Structured Description Contract Tests
  *
- * Validates that all 36 roles have structuredDescription defined
+ * Validates that all 39 roles have structuredDescription defined
  * and that structured content is semantically consistent with the flat description.
  */
 

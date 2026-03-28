@@ -16,8 +16,8 @@ interface UseRoomModalsDeps {
   /** 当前用户是否是 Host（决定 "详细信息" 弹窗的选项） */
   isHost: boolean;
   /** 获取昨夜信息文本 */
-  getLastNightInfo: () => string;
-  /** 分享夜晚详情给指定座位（HTTP API） */
+  getLastNightInfo: () => string; /** 获取乌鸦诅咒信息，无乌鸦返回 null */
+  getCurseInfo: () => string | null; /** 分享夜晚详情给指定座位（HTTP API） */
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
   /** 直接分享战报（系统分享/复制） */
   shareNightReviewReport: () => Promise<void>;
@@ -56,6 +56,7 @@ interface RoomModalsState {
 export function useRoomModals({
   isHost,
   getLastNightInfo,
+  getCurseInfo,
   shareNightReview,
   shareNightReviewReport,
 }: UseRoomModalsDeps): RoomModalsState {
@@ -143,11 +144,25 @@ export function useRoomModals({
         text: '确定查看',
         onPress: () => {
           const info = getLastNightInfo();
-          showAlert('昨夜信息', info, [DISMISS_BUTTON]);
+          const curseInfo = getCurseInfo();
+          const buttons: {
+            text: string;
+            onPress?: () => void;
+            style?: 'default' | 'cancel' | 'destructive';
+          }[] = [DISMISS_BUTTON];
+          if (curseInfo != null) {
+            buttons.unshift({
+              text: '查看诅咒',
+              onPress: () => {
+                showAlert('乌鸦诅咒', curseInfo, [DISMISS_BUTTON]);
+              },
+            });
+          }
+          showAlert('昨夜信息', info, buttons);
         },
       },
     ]);
-  }, [getLastNightInfo]);
+  }, [getLastNightInfo, getCurseInfo]);
 
   return {
     roleCardVisible,

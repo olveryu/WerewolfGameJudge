@@ -27,6 +27,7 @@ export const RESOLVERS: ResolverRegistry = {
   dreamcatcherDream: createGenericResolver('dreamcatcher'),
   silenceElderSilence: createGenericResolver('silenceElder'),
   votebanElderBan: createGenericResolver('votebanElder'),
+  crowCurse: createGenericResolver('crow'),
   wolfQueenCharm: createGenericResolver('wolfQueen'),
   slackerChooseIdol: createGenericResolver('slacker'),
   wildChildChooseIdol: createGenericResolver('wildChild'),
@@ -44,6 +45,7 @@ export const RESOLVERS: ResolverRegistry = {
   hunterConfirm: createGenericResolver('hunter'),
   darkWolfKingConfirm: createGenericResolver('darkWolfKing'),
   avengerConfirm: createGenericResolver('avenger'),
+  poisonerPoison: createGenericResolver('poisoner'),
 
   // --- Custom resolvers (complex logic not expressible declaratively) ---
   witchAction: witchActionResolver,

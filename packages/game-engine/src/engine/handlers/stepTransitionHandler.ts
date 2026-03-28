@@ -355,7 +355,9 @@ function maybeCreateUiHintAction(
   if (schema?.kind === 'wolfVote' && state.wolfKillDisabled) {
     // 所有狼人阵营角色都能看到这个 hint
     const wolfRoleIds = getWolfRoleIds();
-    nightFlowLog.debug('[UI Hint] setting wolf_kill_disabled hint', { wolfRoleIds });
+    const hasPoisoner = state.templateRoles.includes('poisoner' as RoleId);
+    const hintText = hasPoisoner ? '本局有毒师在场，首夜仅可空刀' : '今晚狼队无法刀人';
+    nightFlowLog.debug('[UI Hint] setting wolf_kill_disabled hint', { wolfRoleIds, hasPoisoner });
     return {
       type: 'SET_UI_HINT',
       payload: {
@@ -366,7 +368,7 @@ function maybeCreateUiHintAction(
           bottomAction: 'wolfEmptyOnly',
           promptOverride: {
             title: blockedTitle,
-            text: '今晚狼队无法刀人', // Wolf 特殊文案：袭击被禁用
+            text: hintText,
           },
         },
       },

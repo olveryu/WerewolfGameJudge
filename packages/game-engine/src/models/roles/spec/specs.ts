@@ -1,16 +1,16 @@
 /**
- * V2 Role Specs Registry — 全部 36 角色声明式定义
+ * V2 Role Specs Registry — 全部 39 角色声明式定义
  *
  * Single source of truth: 角色固有属性 + 行为（abilities / effects）+ 夜间步骤 + UI 元数据
  * 合并了 V1 的 ROLE_SPECS + SCHEMAS + NIGHT_STEPS 三表。
  *
- * 36 roles total:
+ * 39 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
- * - God faction: seer, witch, hunter, guard, idiot, knight, magician, witcher, psychic,
- *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder (15)
+ * - God faction: seer, witch, poisoner, hunter, guard, idiot, knight, magician, witcher, psychic,
+ *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder, crow (17)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle,
  *   awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden (13)
- * - Third-party: slacker, wildChild, piper, shadow, avenger (5)
+ * - Third-party: slacker, wildChild, piper, shadow, avenger, treasureMaster (6)
  *
  * 纯数据，JSON-serializable。不含业务逻辑、副作用、平台依赖。
  */
@@ -144,7 +144,7 @@ export const ROLE_SPECS = {
   },
 
   // ===================================================================
-  // GOD FACTION (15)
+  // GOD FACTION (17)
   // ===================================================================
 
   seer: {
@@ -201,11 +201,11 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '拥有一瓶解药和一瓶毒药，每晚可救活被狼人袭击的玩家或毒杀一名玩家；每瓶药限用一次，不能自救',
+      '拥有一瓶解药和一瓶毒药，每晚可救活被狼人袭击的玩家或毒杀一名玩家；每瓶药限用一次；不能自救；被毒杀的角色无法开枪',
     structuredDescription: {
       skill: '每晚可救活被狼人袭击的玩家或毒杀一名玩家',
       passive: '拥有一瓶解药和一瓶毒药',
-      restriction: '每瓶药限用一次；不能自救',
+      restriction: '每瓶药限用一次；不能自救；被毒杀的角色无法开枪',
     },
     tags: ['protect', 'kill'],
     abilities: [
@@ -268,6 +268,53 @@ export const ROLE_SPECS = {
     ],
   },
 
+  poisoner: {
+    id: 'poisoner',
+    displayName: '毒师',
+    shortName: '毒',
+    emoji: '☠️',
+    faction: Faction.God,
+    team: Team.Good,
+    description:
+      '拥有一瓶毒药，可在夜间毒杀一名玩家；被毒杀的角色无法开枪；有毒师在场时首夜狼人仅可空刀',
+    structuredDescription: {
+      skill: '可在夜间毒杀一名玩家',
+      passive: '拥有一瓶毒药',
+      restriction: '被毒杀的角色无法开枪；有毒师在场时首夜狼人仅可空刀',
+    },
+    tags: ['kill'],
+    abilities: [
+      {
+        type: 'active',
+        timing: 'night',
+        actionKind: 'chooseSeat',
+        target: {
+          count: { min: 1, max: 1 },
+          constraints: [],
+        },
+        canSkip: true,
+        effects: [{ kind: 'writeSlot', slot: 'poisonedSeat' }],
+        activeOnNight1: true,
+      },
+    ],
+    resources: [{ kind: 'poison', uses: 1, refreshPerNight: false }],
+    deathCalcRole: 'poisonSource',
+    nightSteps: [
+      {
+        stepId: 'poisonerPoison',
+        displayName: '毒杀',
+        audioKey: 'poisoner',
+        actionKind: 'chooseSeat',
+        ui: {
+          confirmTitle: '确认毒杀',
+          prompt: '请选择要毒杀的玩家，如不使用请点击「不用技能」',
+          confirmText: '确定要毒杀该玩家吗？',
+          bottomActionText: '不用技能',
+        },
+      },
+    ],
+  },
+
   hunter: {
     id: 'hunter',
     displayName: '猎人',
@@ -275,10 +322,10 @@ export const ROLE_SPECS = {
     emoji: '🏹',
     faction: Faction.God,
     team: Team.Good,
-    description: '出局时可开枪带走一名玩家；被女巫毒杀则不能开枪',
+    description: '出局时可开枪带走一名玩家；被毒杀则不能开枪',
     structuredDescription: {
       trigger: '出局时可开枪带走一名玩家',
-      restriction: '被女巫毒杀则不能开枪',
+      restriction: '被毒杀则不能开枪',
     },
     tags: ['kill'],
     abilities: [
@@ -750,6 +797,48 @@ export const ROLE_SPECS = {
     ],
   },
 
+  crow: {
+    id: 'crow',
+    displayName: '乌鸦',
+    shortName: '鸦',
+    emoji: '🐦‍⬛',
+    faction: Faction.God,
+    team: Team.Good,
+    description: '每晚可诅咒一名玩家，被诅咒者在次日白天放逐投票时额外增加一票',
+    structuredDescription: {
+      skill: '每晚可诅咒一名玩家，被诅咒者在次日白天放逐投票时额外增加一票',
+    },
+    tags: ['control'],
+    abilities: [
+      {
+        type: 'active',
+        timing: 'night',
+        actionKind: 'chooseSeat',
+        target: {
+          count: { min: 1, max: 1 },
+          constraints: [TargetConstraint.NotSelf],
+        },
+        canSkip: true,
+        effects: [{ kind: 'writeSlot', slot: 'cursedSeat' }],
+        activeOnNight1: true,
+      },
+    ],
+    nightSteps: [
+      {
+        stepId: 'crowCurse',
+        displayName: '诅咒',
+        audioKey: 'crow',
+        actionKind: 'chooseSeat',
+        ui: {
+          confirmTitle: '确认诅咒',
+          prompt: '请选择要诅咒的玩家，如不使用请点击「不用技能」',
+          confirmText: '确定要诅咒该玩家吗？',
+          bottomActionText: '不用技能',
+        },
+      },
+    ],
+  },
+
   // ===================================================================
   // WOLF FACTION (13)
   // ===================================================================
@@ -888,10 +977,10 @@ export const ROLE_SPECS = {
     emoji: '🖤🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
-    description: '出局时可开枪带走一名玩家；被女巫毒杀则不能开枪',
+    description: '出局时可开枪带走一名玩家；被毒杀则不能开枪',
     structuredDescription: {
       trigger: '出局时可开枪带走一名玩家',
-      restriction: '被女巫毒杀则不能开枪',
+      restriction: '被毒杀则不能开枪',
     },
     tags: ['kill'],
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
@@ -1289,7 +1378,7 @@ export const ROLE_SPECS = {
   },
 
   // ===================================================================
-  // THIRD-PARTY FACTION (5)
+  // THIRD-PARTY FACTION (6)
   // ===================================================================
 
   slacker: {
@@ -1503,11 +1592,12 @@ export const ROLE_SPECS = {
     faction: Faction.Special,
     team: Team.Third,
     description:
-      '首夜获知自身阵营，永远与影子模仿目标阵营对立；非绑定时随自身阵营胜利；若影子模仿复仇者则二人绑定，失去原技能，成为同生共死第三方；第二天起每晚影子轮次二人睁眼，可袭击一名玩家，袭击无视一切保护效果；绑定时胜利条件为屠城；非绑定时：出局可刺杀一名玩家，命中敌方有效、己方无效；命中未变身影子则单独胜利；帮好人时算神职，帮狼时与其他狼人互不相认，其他狼人全部出局后可主导袭击；预言家查验为好人',
+      '首夜获知自身阵营，永远与影子模仿目标阵营对立；非绑定时随自身阵营胜利；若影子模仿复仇者则二人绑定，失去原技能，成为同生共死第三方；第二天起每晚影子轮次二人睁眼，可袭击一名玩家，袭击无视一切保护效果；绑定时胜利条件为屠城；非绑定时：出局可刺杀一名玩家，刺杀不受毒杀影响；命中敌方有效、己方无效；命中未变身影子则单独胜利；帮好人时算神职，帮狼时与其他狼人互不相认，其他狼人全部出局后可主导袭击；预言家查验为好人',
     structuredDescription: {
       skill: '首夜获知自身阵营',
       passive: '永远与影子模仿目标阵营对立；预言家查验为好人',
-      trigger: '出局可刺杀一名玩家，命中敌方有效、己方无效；命中未变身影子则单独胜利',
+      trigger:
+        '出局可刺杀一名玩家，刺杀不受毒杀影响；命中敌方有效、己方无效；命中未变身影子则单独胜利',
       special:
         '若影子模仿复仇者则二人绑定，失去原技能，成为同生共死第三方；第二天起每晚影子轮次二人睁眼，可袭击一名玩家，袭击无视一切保护效果；帮好人时算神职，帮狼时与其他狼人互不相认，其他狼人全部出局后可主导袭击',
       winCondition: '非绑定时随自身阵营胜利；绑定时胜利条件为屠城',
@@ -1550,6 +1640,28 @@ export const ROLE_SPECS = {
         },
       },
     ],
+  },
+
+  treasureMaster: {
+    id: 'treasureMaster',
+    displayName: '盗宝大师',
+    shortName: '盗',
+    emoji: '💎',
+    faction: Faction.Special,
+    team: Team.Third,
+    description:
+      '每晚先于所有人行动，从底牌三张身份牌中选择一张作为自身身份；被查验时以选择的身份为准；选中角色的夜晚步骤由盗宝大师执行，未选中的底牌角色步骤照常进行但无人操作；不能选择狼人阵营的卡牌；连续两夜不可选择同一张；底牌含狼人则属于狼人阵营，其他狼人全部出局后可主导袭击；底牌无狼人且2张以上为神职则为神职阵营，2张以上为平民则为平民阵营；底牌最多含1只普通狼人，不会出现技能狼；底牌不会出现3张全为神职或3张全为平民',
+    structuredDescription: {
+      skill:
+        '每晚先于所有人行动，从底牌三张身份牌中选择一张作为自身身份；选中角色的夜晚步骤由盗宝大师执行，未选中的底牌角色步骤照常进行但无人操作',
+      passive: '被查验时以选择的身份为准',
+      restriction: '不能选择狼人阵营的卡牌；连续两夜不可选择同一张',
+      trigger:
+        '底牌含狼人则属于狼人阵营，其他狼人全部出局后可主导袭击；底牌无狼人且2张以上为神职则为神职阵营，2张以上为平民则为平民阵营',
+    },
+    tags: ['transform'],
+    abilities: [],
+    nightSteps: [],
   },
 } as const satisfies Record<string, RoleSpec>;
 

@@ -35,6 +35,21 @@ const CUSTOM_ROLES: RoleId[] = [
   'psychic',
 ];
 
+const CUSTOM_ROLES_CROW_POISONER: RoleId[] = [
+  'crow',
+  'poisoner',
+  'hunter',
+  'dreamcatcher',
+  'seer',
+  'wolf',
+  'wolf',
+  'wolf',
+  'darkWolfKing',
+  'villager',
+  'villager',
+  'villager',
+];
+
 describe('Night-1: step-level coverage (12p)', () => {
   afterEach(() => {
     cleanupGame();
@@ -100,5 +115,28 @@ describe('Night-1: step-level coverage (12p)', () => {
 
     // 仅用于 coverage contract：确保文件包含 TEMPLATE_NAME 常量（对应旧 contract 的 pattern 机制）
     expect(TEMPLATE_NAME).toBe('预女猎白');
+  });
+
+  it('should reach crowCurse / poisonerPoison steps and wolfKillDisabled by poisoner', () => {
+    const ctx = createGame(CUSTOM_ROLES_CROW_POISONER);
+
+    // 毒师在场 → 首夜 wolfKillDisabled = true（板子级规则）
+    expect(ctx.getGameState().wolfKillDisabled).toBe(true);
+    expect(ctx.getGameState().currentNightResults?.wolfKillDisabled).toBe(true);
+
+    expect(ctx.getGameState().actions?.length).toBeGreaterThanOrEqual(0);
+
+    expect(executeStepsUntil(ctx, 'crowCurse', {})).toBe(true);
+    ctx.assertStep('crowCurse');
+
+    expect(
+      executeStepsUntil(ctx, 'poisonerPoison', {
+        crow: 1,
+      }),
+    ).toBe(true);
+    ctx.assertStep('poisonerPoison');
+
+    // 收尾：跑完整晚
+    executeFullNight(ctx);
   });
 });

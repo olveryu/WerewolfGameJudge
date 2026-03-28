@@ -69,6 +69,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
     { schemaId: 'slackerChooseIdol', roleId: 'slacker' },
     { schemaId: 'wildChildChooseIdol', roleId: 'wildChild' },
     { schemaId: 'awakenedGargoyleConvert', roleId: 'awakenedGargoyle' },
+    { schemaId: 'crowCurse', roleId: 'crow' },
   ];
 
   // 无 notSelf 的 schema（允许自指）
@@ -76,6 +77,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
     { schemaId: 'nightmareBlock', roleId: 'nightmare' },
     { schemaId: 'guardProtect', roleId: 'guard' },
     { schemaId: 'wolfKill', roleId: 'wolf' },
+    { schemaId: 'poisonerPoison', roleId: 'poisoner' },
   ];
 
   // 有 notWolfFaction 的 schema（不能选狼阵营，自身为狼阵营所以也不能自指）
@@ -275,6 +277,7 @@ describe('notSelf constraint completeness', () => {
       'nightmareBlock',
       'guardProtect',
       'wolfKill',
+      'poisonerPoison',
       // AdjacentToWolfFaction
       'awakenedGargoyleConvert',
       // notWolfFaction
@@ -282,6 +285,8 @@ describe('notSelf constraint completeness', () => {
       // No constraint (can target self)
       'silenceElderSilence',
       'votebanElderBan',
+      // With notSelf (god)
+      'crowCurse',
       // Swap (special)
       'magicianSwap',
     ]);

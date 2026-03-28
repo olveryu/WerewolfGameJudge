@@ -169,6 +169,10 @@ export function handleSetWolfKillDisabled(
     ...state,
     wolfKillDisabled: disabled,
     nightmareBlockedSeat: blockedSeat,
+    currentNightResults: {
+      ...state.currentNightResults,
+      wolfKillDisabled: disabled || undefined,
+    },
   };
 }
 
