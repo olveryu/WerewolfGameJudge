@@ -391,6 +391,15 @@ export function useRoomScreenState(
   } = seatDialogs;
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Choose card modal state (declared before orchestrator so openChooseCardModal
+  // is available to pass into ExecutorContext)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const [chooseCardModalVisible, setChooseCardModalVisible] = useState(false);
+  const openChooseCardModal = useCallback(() => setChooseCardModalVisible(true), []);
+  const closeChooseCardModal = useCallback(() => setChooseCardModalVisible(false), []);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Action Orchestrator
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -424,6 +433,7 @@ export function useRoomScreenState(
     setMultiSelectedSeats,
     getAutoTriggerIntent,
     actionDialogs,
+    openChooseCardModal,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -636,6 +646,18 @@ export function useRoomScreenState(
   const notepad = useNotepad(facade);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Choose card handler (treasureMaster bottom card selection)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const handleChooseCard = useCallback(
+    async (cardIndex: number) => {
+      closeChooseCardModal();
+      await submitAction(null, { cardIndex });
+    },
+    [closeChooseCardModal, submitAction],
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Return bag
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -740,5 +762,10 @@ export function useRoomScreenState(
 
     // ── Notepad (from useNotepad) ──
     notepad,
+
+    // ── Choose card modal (treasureMaster) ──
+    chooseCardModalVisible,
+    closeChooseCardModal,
+    handleChooseCard,
   };
 }

@@ -47,7 +47,10 @@ export type ActionIntentType =
   | 'groupConfirmAck' // Acknowledge group confirm prompt
 
   // Auto-trigger prompt (dismiss → wait for seat tap)
-  | 'actionPrompt'; // Generic action prompt for all roles
+  | 'actionPrompt' // Generic action prompt for all roles
+
+  // ChooseCard (treasureMaster bottom card selection)
+  | 'chooseCard'; // Open bottom card selection modal
 
 export interface ActionIntent {
   type: ActionIntentType;
@@ -65,6 +68,9 @@ export interface ActionIntent {
    * (e.g., 'save' or 'poison' for witch). Used by RoomScreen to derive confirm copy + payload.
    */
   stepKey?: string;
+
+  /** Bottom card index for treasureMaster chooseCard intent */
+  cardIndex?: number;
 }
 
 // =============================================================================

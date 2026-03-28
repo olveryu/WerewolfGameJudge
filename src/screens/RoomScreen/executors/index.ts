@@ -33,6 +33,11 @@ registerExecutor('multiSelectToggle', multiSelectToggleExecutor);
 registerExecutor('multiSelectConfirm', multiSelectConfirmExecutor);
 registerExecutor('groupConfirmAck', groupConfirmAckExecutor);
 
+// ── TreasureMaster executors ───────────────────────────────────────────────
+import { chooseCardExecutor } from './chooseCardExecutor';
+
+registerExecutor('chooseCard', chooseCardExecutor);
+
 // ── Compile-time exhaustive check ──────────────────────────────────────────
 // If a new ActionIntentType is added but not registered above, this will
 // produce a TS error: "Type '...' does not satisfy 'CompleteExecutorMap'."
@@ -50,6 +55,7 @@ const _exhaustiveCheck = {
   multiSelectToggle: multiSelectToggleExecutor,
   multiSelectConfirm: multiSelectConfirmExecutor,
   groupConfirmAck: groupConfirmAckExecutor,
+  chooseCard: chooseCardExecutor,
 } satisfies CompleteExecutorMap;
 
 // Suppress unused-variable lint — _exhaustiveCheck is intentionally type-only.

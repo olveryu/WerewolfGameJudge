@@ -223,6 +223,17 @@ function validateBottomCards(cards: RoleId[]): boolean {
   const allVillager = cards.every((r) => r === ('villager' as RoleId));
   if (allVillager) return false;
 
+  // Constraint 4: 盗宝大师不可在底牌（必须分配给玩家）
+  if (cards.includes('treasureMaster' as RoleId)) return false;
+
+  // Constraint 5: 禁止技能狼（底牌只允许普通狼 'wolf'，不允许 faction=Wolf 的技能狼）
+  const hasSkillWolf = cards.some((r) => {
+    if (r === ('wolf' as RoleId)) return false; // 普通狼由 Constraint 1 控制
+    const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
+    return spec?.faction === Faction.Wolf;
+  });
+  if (hasSkillWolf) return false;
+
   return true;
 }
 

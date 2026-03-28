@@ -61,6 +61,9 @@ export interface ExecutorContext {
   pendingHunterStatusViewed: boolean;
   setPendingHunterStatusViewed: (v: boolean) => void;
 
+  // ── Choose card modal (treasureMaster) ──
+  openChooseCardModal?: () => void;
+
   // ── Dialog layer ──
   actionDialogs: UseRoomActionDialogsResult;
 }

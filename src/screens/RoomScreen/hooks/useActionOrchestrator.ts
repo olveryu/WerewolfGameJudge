@@ -69,6 +69,9 @@ interface UseActionOrchestratorParams {
 
   // ── Dialog layer ──
   actionDialogs: UseRoomActionDialogsResult;
+
+  // ── Choose card modal (treasureMaster) ──
+  openChooseCardModal?: () => void;
 }
 
 interface UseActionOrchestratorResult {
@@ -112,6 +115,7 @@ export function useActionOrchestrator({
   setMultiSelectedSeats,
   getAutoTriggerIntent,
   actionDialogs,
+  openChooseCardModal,
 }: UseActionOrchestratorParams): UseActionOrchestratorResult {
   // ─── Local state ─────────────────────────────────────────────────────────
   // P0-FIX: 追踪"正在等待/显示查验结果弹窗"的状态
@@ -241,6 +245,7 @@ export function useActionOrchestrator({
         setPendingRevealDialog,
         pendingHunterStatusViewed,
         setPendingHunterStatusViewed,
+        openChooseCardModal,
         actionDialogs,
       };
 
@@ -271,6 +276,7 @@ export function useActionOrchestrator({
       setSecondSeat,
       controlledSeat,
       proceedWithAction,
+      openChooseCardModal,
     ],
   );
 

@@ -41,6 +41,7 @@ import { ActionButton } from './components/ActionButton';
 import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BottomActionPanel } from './components/BottomActionPanel';
+import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HostControlButtons } from './components/HostControlButtons';
 import { HostMenuDropdown } from './components/HostMenuDropdown';
@@ -219,6 +220,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     handleBgmChange,
     // Notepad
     notepad,
+    // Choose card modal (treasureMaster)
+    chooseCardModalVisible,
+    closeChooseCardModal,
+    handleChooseCard,
   } = useRoomScreenState(route.params, navigation);
 
   // ─── Page Guide (3-layer: overview + assigned + ongoing) ───────────────
@@ -680,6 +685,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         notepad={notepad}
         styles={chatStyles}
       />
+
+      {/* Choose Bottom Card Modal — 盗宝大师底牌选择 */}
+      {chooseCardModalVisible && gameState?.bottomCards && (
+        <ChooseBottomCardModal
+          visible={chooseCardModalVisible}
+          bottomCards={gameState.bottomCards}
+          confirmText={'确认选择此身份？'}
+          onChoose={handleChooseCard}
+          onClose={closeChooseCardModal}
+        />
+      )}
 
       {/* Settings Sheet — Host 可调动画和 BGM 设置 */}
       <SettingsSheet

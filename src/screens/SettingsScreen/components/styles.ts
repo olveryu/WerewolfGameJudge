@@ -514,7 +514,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       backgroundColor: colors.background,
       borderTopLeftRadius: borderRadius.large,
       borderTopRightRadius: borderRadius.large,
-      maxHeight: '75%',
+      maxHeight: '85%',
       paddingBottom: spacing.xlarge,
     },
     pickerHandle: {
@@ -809,7 +809,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: spacing.screenH,
-      paddingVertical: spacing.medium,
+      paddingVertical: spacing.small,
       gap: spacing.medium,
     },
     heroPreviewLeft: {

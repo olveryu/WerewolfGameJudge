@@ -298,6 +298,19 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
     return { buttons };
   }
 
+  // chooseCard schema (treasureMaster): one button to open bottom card selection modal
+  if (currentSchema.kind === 'chooseCard') {
+    return {
+      buttons: [
+        {
+          key: 'chooseCard',
+          label: currentSchema.ui!.bottomActionText!,
+          intent: { type: 'chooseCard', targetSeat: -1 },
+        },
+      ],
+    };
+  }
+
   // No generic bottom action
   return EMPTY;
 }

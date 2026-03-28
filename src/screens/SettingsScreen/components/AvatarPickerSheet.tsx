@@ -37,7 +37,7 @@ const NUM_COLUMNS = 4;
 /** Size for frame grid cells in frame tab (3×2 layout) */
 const FRAME_GRID_CELL_SIZE = 72;
 /** Hero preview avatar size */
-const HERO_PREVIEW_SIZE = 120;
+const HERO_PREVIEW_SIZE = 80;
 
 /** Selection state: a builtin index, 'custom' for the uploaded avatar, or null */
 type Selection = number | 'custom' | null;
