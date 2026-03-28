@@ -45,7 +45,7 @@ self.addEventListener('activate', (event) => {
       );
     }),
   );
-  // 立即控制所有页面（配合 showUpdateOverlay 在页面加载时触发 reload）
+  // 立即控制所有页面
   self.clients.claim();
 });
 
