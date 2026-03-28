@@ -115,7 +115,14 @@ describe('NightReview.helpers', () => {
 
     it('shows wolf kill disabled', () => {
       const lines = buildActionLines(
-        makeGameState({ currentNightResults: { wolfKillDisabled: true } }),
+        makeGameState({
+          currentNightResults: {
+            wolfKillOverride: {
+              source: 'nightmare',
+              ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+            },
+          },
+        }),
       );
       expect(lines).toContainEqual(expect.stringContaining('狼人放弃袭击'));
     });

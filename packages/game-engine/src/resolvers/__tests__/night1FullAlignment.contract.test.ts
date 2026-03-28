@@ -364,16 +364,21 @@ describe('Nightmare blocking behavior', () => {
   });
 
   /**
-   * Wolf kill when wolfKillDisabled:
+   * Wolf kill when wolfKillOverride:
    * - Non-empty vote (target) → REJECTED
    * - Empty vote (放弃袭击) → allowed
    */
-  describe('wolfKillDisabled behavior', () => {
-    it('wolfKillDisabled + non-empty vote → valid=false', () => {
+  describe('wolfKillOverride behavior', () => {
+    it('wolfKillOverride + non-empty vote → valid=false', () => {
       const resolver = RESOLVERS.wolfKill;
       const wolfSeat = 7;
       const context = createContext(wolfSeat, 'wolf', {
-        currentNightResults: { wolfKillDisabled: true },
+        currentNightResults: {
+          wolfKillOverride: {
+            source: 'nightmare',
+            ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+          },
+        },
       });
 
       const result = resolver!(context, { schemaId: 'wolfKill', target: 14 });
@@ -382,11 +387,16 @@ describe('Nightmare blocking behavior', () => {
       expect(result.rejectReason).toBeDefined();
     });
 
-    it('wolfKillDisabled + empty vote (放弃袭击) → valid=true', () => {
+    it('wolfKillOverride + empty vote (放弃袭击) → valid=true', () => {
       const resolver = RESOLVERS.wolfKill;
       const wolfSeat = 7;
       const context = createContext(wolfSeat, 'wolf', {
-        currentNightResults: { wolfKillDisabled: true },
+        currentNightResults: {
+          wolfKillOverride: {
+            source: 'nightmare',
+            ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+          },
+        },
       });
 
       const result = resolver!(context, { schemaId: 'wolfKill', target: undefined });
@@ -397,7 +407,7 @@ describe('Nightmare blocking behavior', () => {
     });
   });
 
-  it('nightmare resolver sets wolfKillDisabled when blocking a wolf', () => {
+  it('nightmare resolver sets wolfKillOverride when blocking a wolf', () => {
     const resolver = RESOLVERS.nightmareBlock;
     const nightmareSeat = 5;
     const wolfSeat = 7;
@@ -407,10 +417,11 @@ describe('Nightmare blocking behavior', () => {
 
     expect(result.valid).toBe(true);
     expect(result.updates?.blockedSeat).toBe(wolfSeat);
-    expect(result.updates?.wolfKillDisabled).toBe(true);
+    expect(result.updates?.wolfKillOverride).toBeDefined();
+    expect((result.updates?.wolfKillOverride as any).source).toBe('nightmare');
   });
 
-  it('nightmare resolver does NOT set wolfKillDisabled when blocking non-wolf', () => {
+  it('nightmare resolver does NOT set wolfKillOverride when blocking non-wolf', () => {
     const resolver = RESOLVERS.nightmareBlock;
     const nightmareSeat = 5;
     const seerSeat = 10;
@@ -420,7 +431,7 @@ describe('Nightmare blocking behavior', () => {
 
     expect(result.valid).toBe(true);
     expect(result.updates?.blockedSeat).toBe(seerSeat);
-    expect(result.updates?.wolfKillDisabled).toBeUndefined();
+    expect(result.updates?.wolfKillOverride).toBeUndefined();
   });
 });
 

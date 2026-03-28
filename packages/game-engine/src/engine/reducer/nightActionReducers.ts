@@ -17,7 +17,7 @@ import type {
   SetAudioPlayingAction,
   SetConfirmStatusAction,
   SetWitchContextAction,
-  SetWolfKillDisabledAction,
+  SetWolfKillOverrideAction,
   SetWolfRobotHunterStatusViewedAction,
   StartNightAction,
 } from './types';
@@ -110,8 +110,8 @@ export function handleApplyResolverResult(
   // Note: Use 'in' check to allow blockedSeat=0 (seat 0 is valid)
   const nightmareBlockedSeat =
     updates && 'blockedSeat' in updates ? updates.blockedSeat : state.nightmareBlockedSeat;
-  const wolfKillDisabled =
-    updates && 'wolfKillDisabled' in updates ? updates.wolfKillDisabled : state.wolfKillDisabled;
+  const wolfKillOverride =
+    updates && 'wolfKillOverride' in updates ? updates.wolfKillOverride : state.wolfKillOverride;
 
   // Sync cumulative hypnotizedSeats from resolver updates to top-level state
   // (Top-level hypnotizedSeats is the cross-night source of truth; resolver context reads it)
@@ -126,7 +126,7 @@ export function handleApplyResolverResult(
     ...state,
     currentNightResults,
     nightmareBlockedSeat,
-    wolfKillDisabled,
+    wolfKillOverride,
     hypnotizedSeats,
     convertedSeat,
     seerReveal: seerReveal ?? state.seerReveal,
@@ -160,18 +160,18 @@ export function handleSetConfirmStatus(
   };
 }
 
-export function handleSetWolfKillDisabled(
+export function handleSetWolfKillOverride(
   state: GameState,
-  action: SetWolfKillDisabledAction,
+  action: SetWolfKillOverrideAction,
 ): GameState {
-  const { disabled, blockedSeat } = action.payload;
+  const { override, blockedSeat } = action.payload;
   return {
     ...state,
-    wolfKillDisabled: disabled,
+    wolfKillOverride: override,
     nightmareBlockedSeat: blockedSeat,
     currentNightResults: {
       ...state.currentNightResults,
-      wolfKillDisabled: disabled || undefined,
+      wolfKillOverride: override,
     },
   };
 }

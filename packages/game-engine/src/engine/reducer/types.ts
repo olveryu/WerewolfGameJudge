@@ -5,6 +5,7 @@
  */
 
 import type { RoleId, SchemaId } from '../../models';
+import type { WolfKillOverride } from '../../models/roles/spec/schema.types';
 import type { ConfirmStatus, Player, ProtocolAction } from '../../protocol/types';
 import type { AudioEffect } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
@@ -174,10 +175,10 @@ export interface ClearRevealStateAction {
   type: 'CLEAR_REVEAL_STATE';
 }
 
-export interface SetWolfKillDisabledAction {
-  type: 'SET_WOLF_KILL_DISABLED';
+export interface SetWolfKillOverrideAction {
+  type: 'SET_WOLF_KILL_OVERRIDE';
   payload: {
-    disabled: boolean;
+    override?: WolfKillOverride;
     blockedSeat?: number;
   };
 }
@@ -410,7 +411,7 @@ export type StateAction =
   | SetConfirmStatusAction
   | ClearRevealStateAction
   // 狼人相关
-  | SetWolfKillDisabledAction
+  | SetWolfKillOverrideAction
   // Wolf Robot Hunter Gate
   | SetWolfRobotHunterStatusViewedAction
   // UI Hint（Host 广播驱动）

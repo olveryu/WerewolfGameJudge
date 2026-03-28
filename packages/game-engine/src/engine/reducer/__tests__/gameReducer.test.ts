@@ -1120,33 +1120,43 @@ describe('gameReducer', () => {
     });
   });
 
-  describe('SET_WOLF_KILL_DISABLED', () => {
-    it('should set wolfKillDisabled and nightmareBlockedSeat', () => {
+  describe('SET_WOLF_KILL_OVERRIDE', () => {
+    it('should set wolfKillOverride and nightmareBlockedSeat', () => {
       const state = createMinimalState();
       const action = {
-        type: 'SET_WOLF_KILL_DISABLED' as const,
-        payload: { disabled: true, blockedSeat: 3 },
+        type: 'SET_WOLF_KILL_OVERRIDE' as const,
+        payload: {
+          override: {
+            source: 'nightmare' as const,
+            ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+          },
+          blockedSeat: 3,
+        },
       };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.wolfKillDisabled).toBe(true);
+      expect(newState.wolfKillOverride).toBeDefined();
+      expect(newState.wolfKillOverride?.source).toBe('nightmare');
       expect(newState.nightmareBlockedSeat).toBe(3);
     });
 
-    it('should clear nightmareBlockedSeat when blockedSeat is undefined', () => {
+    it('should clear wolfKillOverride and nightmareBlockedSeat when override is undefined', () => {
       const state = createMinimalState({
-        wolfKillDisabled: true,
+        wolfKillOverride: {
+          source: 'nightmare',
+          ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+        },
         nightmareBlockedSeat: 3,
       });
       const action = {
-        type: 'SET_WOLF_KILL_DISABLED' as const,
-        payload: { disabled: false },
+        type: 'SET_WOLF_KILL_OVERRIDE' as const,
+        payload: {},
       };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.wolfKillDisabled).toBe(false);
+      expect(newState.wolfKillOverride).toBeUndefined();
       expect(newState.nightmareBlockedSeat).toBeUndefined();
     });
   });

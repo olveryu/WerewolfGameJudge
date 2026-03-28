@@ -419,15 +419,16 @@ describe('genericResolver: block effect', () => {
     expect(result.valid).toBe(true);
     expect(result.updates?.blockedSeat).toBe(4);
     expect(result.result?.blockedTarget).toBe(4);
-    expect(result.updates?.wolfKillDisabled).toBeUndefined();
+    expect(result.updates?.wolfKillOverride).toBeUndefined();
   });
 
-  it('should set wolfKillDisabled when blocking wolf-team target', () => {
+  it('should set wolfKillOverride when blocking wolf-team target', () => {
     const ctx = createContext({ actorSeat: 8, actorRoleId: 'nightmare' as RoleId });
     const result = resolver(ctx, createInput('nightmareBlock', 2)); // wolf
     expect(result.valid).toBe(true);
     expect(result.updates?.blockedSeat).toBe(2);
-    expect(result.updates?.wolfKillDisabled).toBe(true);
+    expect(result.updates?.wolfKillOverride).toBeDefined();
+    expect((result.updates?.wolfKillOverride as any).source).toBe('nightmare');
   });
 
   it('should allow skip', () => {

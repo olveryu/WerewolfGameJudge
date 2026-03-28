@@ -64,9 +64,8 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人袭击：${voteDesc}`);
   }
 
-  if (nr.wolfKillDisabled) {
-    const isPoisoner = findSeatByRole(gameState.players, 'poisoner' as RoleId) !== undefined;
-    const reason = isPoisoner ? '毒师在场' : '被梦魇封锁';
+  if (nr.wolfKillOverride) {
+    const reason = nr.wolfKillOverride.source === 'poisoner' ? '毒师在场' : '被梦魇封锁';
     lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人放弃袭击（${reason}）`);
   }
 

@@ -312,7 +312,6 @@ export interface NightStepUi {
   readonly blockedTitle?: string;
   readonly blockedMessage?: string;
   readonly blockedSkipButtonText?: string;
-  readonly blockedEmptyVoteText?: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -96,7 +96,7 @@ export function normalizeState(raw: GameState): GameState {
 
     // 其他可选字段（透传）
     nightmareBlockedSeat: raw.nightmareBlockedSeat,
-    wolfKillDisabled: raw.wolfKillDisabled,
+    wolfKillOverride: raw.wolfKillOverride,
     witchContext: raw.witchContext,
     seerReveal: raw.seerReveal,
     mirrorSeerReveal: raw.mirrorSeerReveal,

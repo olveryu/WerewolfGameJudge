@@ -106,7 +106,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     confirmStatus: undefined,
     actionRejected: undefined,
     nightmareBlockedSeat: undefined,
-    wolfKillDisabled: undefined,
+    wolfKillOverride: undefined,
     pendingRevealAcks: [],
     pendingAudioEffects: undefined,
     wolfVoteDeadline: undefined,

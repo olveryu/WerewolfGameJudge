@@ -43,7 +43,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
 
   // 梦魇封锁
   'nightmareBlockedSeat',
-  'wolfKillDisabled',
+  'wolfKillOverride',
 
   // 吹笛者
   'hypnotizedSeats',
@@ -122,7 +122,10 @@ describe('normalizeState contract', () => {
 
       // 梦魇封锁
       nightmareBlockedSeat: 5,
-      wolfKillDisabled: true,
+      wolfKillOverride: {
+        source: 'nightmare',
+        ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+      },
 
       // 吹笛者
       hypnotizedSeats: [3, 5],

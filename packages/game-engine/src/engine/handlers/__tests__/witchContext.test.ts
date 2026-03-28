@@ -40,7 +40,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     currentNightResults: {},
     pendingRevealAcks: [],
     deaths: [],
-    wolfKillDisabled: false,
+    wolfKillOverride: undefined,
     isAudioPlaying: false,
     ...overrides,
   } as NonNullable<GameState>;
@@ -87,9 +87,12 @@ describe('maybeCreateWitchContextAction', () => {
       expect(action?.payload.canSave).toBe(false);
     });
 
-    it('should set canSave=false when wolfKillDisabled', () => {
+    it('should set canSave=false when wolfKillOverride is set', () => {
       const state = createOngoingState({
-        wolfKillDisabled: true,
+        wolfKillOverride: {
+          source: 'nightmare',
+          ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+        },
         currentNightResults: { wolfVotesBySeat: { '0': 2 } },
       });
 

@@ -112,10 +112,15 @@ describe('wolfKillResolver', () => {
     });
   });
 
-  describe('wolfKillDisabled', () => {
+  describe('wolfKillOverride', () => {
     it('袭击被禁用时提交非空投票应该被拒绝', () => {
       const ctx = createContext({
-        currentNightResults: { wolfKillDisabled: true },
+        currentNightResults: {
+          wolfKillOverride: {
+            source: 'nightmare',
+            ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+          },
+        },
       });
       const input = createInput(0);
 
@@ -127,7 +132,12 @@ describe('wolfKillResolver', () => {
 
     it('袭击被禁用时可以放弃袭击', () => {
       const ctx = createContext({
-        currentNightResults: { wolfKillDisabled: true },
+        currentNightResults: {
+          wolfKillOverride: {
+            source: 'nightmare',
+            ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+          },
+        },
       });
       const input = createInput(undefined);
 

@@ -37,7 +37,7 @@ function computeWitchContext(state: NonNullState): {
   // 1. 计算袭击目标（killedSeat）
   let killedSeat = -1;
 
-  if (!state.wolfKillDisabled) {
+  if (!state.wolfKillOverride) {
     const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat ?? {};
     const votes = new Map<number, number>();
     for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {

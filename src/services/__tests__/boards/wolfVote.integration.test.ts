@@ -253,7 +253,7 @@ describe('WolfVote Integration Tests', () => {
       return map;
     }
 
-    it('nightmare 封锁狼后，wolfKillDisabled 设为 true', () => {
+    it('nightmare 封锁狼后，wolfKillOverride set', () => {
       const ctx = createGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
 
       // 第一步应该是 nightmare
@@ -271,10 +271,11 @@ describe('WolfVote Integration Tests', () => {
       // 验证封锁状态
       const state = ctx.getGameState();
       expect(state.currentNightResults?.blockedSeat).toBe(4);
-      expect(state.currentNightResults?.wolfKillDisabled).toBe(true);
+      expect(state.currentNightResults?.wolfKillOverride).toBeDefined();
+      expect(state.currentNightResults?.wolfKillOverride?.source).toBe('nightmare');
     });
 
-    it('nightmare 封锁非狼角色时，wolfKillDisabled 不设置', () => {
+    it('nightmare 封锁非狼角色时，wolfKillOverride 不设置', () => {
       const ctx = createGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
@@ -289,7 +290,7 @@ describe('WolfVote Integration Tests', () => {
       // 验证狼没有被禁用
       const state = ctx.getGameState();
       expect(state.currentNightResults?.blockedSeat).toBe(1);
-      expect(state.currentNightResults?.wolfKillDisabled).toBeFalsy();
+      expect(state.currentNightResults?.wolfKillOverride).toBeUndefined();
     });
 
     it('nightmare 封锁后通过逐步执行完成夜晚，被封锁狼放弃袭击', () => {

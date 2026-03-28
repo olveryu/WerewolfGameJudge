@@ -233,7 +233,7 @@ describe('nightFlowHandler', () => {
           currentNightResults: {
             wolfVotesBySeat: { '0': -1, '1': 0 },
           },
-          wolfKillDisabled: false,
+          wolfKillOverride: undefined,
           pendingRevealAcks: [],
         },
       };
@@ -392,14 +392,17 @@ describe('nightFlowHandler', () => {
         }
       });
 
-      it('should return empty deaths when wolfKillDisabled (nightmare blocked wolf)', () => {
+      it('should return empty deaths when wolfKillOverride set (nightmare blocked wolf)', () => {
         // 狼被封锁，即使投票了也无效
         // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
-            wolfKillDisabled: true,
+            wolfKillOverride: {
+              source: 'nightmare',
+              ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+            },
           }),
           myUid: 'host-uid',
           mySeat: null,

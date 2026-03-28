@@ -690,12 +690,14 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     );
     const timer = setTimeout(() => {
       if (!shatterTriggeredRef.current) {
-        // Force full charge then shatter
-        charge.value = withTiming(1, { duration: 800 }, (finished) => {
-          'worklet';
-          if (finished) runOnJS(triggerShatter)();
-        });
-        crackProgress.value = withTiming(1, { duration: 800 });
+        // Force charge to full and trigger shatter directly.
+        // Cannot use withTiming here: the RAF loop overwrites charge.value
+        // each frame, which cancels the Reanimated animation and causes
+        // the finished callback to never fire → permanent freeze.
+        chargeRef.current = 1;
+        charge.value = 1;
+        crackProgress.value = 1;
+        triggerShatter();
       }
     }, CONFIG.common.autoTimeout);
     return () => {
@@ -793,7 +795,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   useEffect(() => {
     if (phase !== 'charging' && phase !== 'idle') return;
     const interval = setInterval(() => {
-      setChargePercent(Math.round(chargeRef.current * 100));
+      setChargePercent(Math.floor(chargeRef.current * 100));
     }, 50);
     return () => clearInterval(interval);
   }, [phase]);

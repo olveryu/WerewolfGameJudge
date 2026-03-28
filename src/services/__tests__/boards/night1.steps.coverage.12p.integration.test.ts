@@ -117,12 +117,14 @@ describe('Night-1: step-level coverage (12p)', () => {
     expect(TEMPLATE_NAME).toBe('预女猎白');
   });
 
-  it('should reach crowCurse / poisonerPoison steps and wolfKillDisabled by poisoner', () => {
+  it('should reach crowCurse / poisonerPoison steps and wolfKillOverride by poisoner', () => {
     const ctx = createGame(CUSTOM_ROLES_CROW_POISONER);
 
-    // 毒师在场 → 首夜 wolfKillDisabled = true（板子级规则）
-    expect(ctx.getGameState().wolfKillDisabled).toBe(true);
-    expect(ctx.getGameState().currentNightResults?.wolfKillDisabled).toBe(true);
+    // 毒师在场 → 首夜 wolfKillOverride set（板子级规则）
+    expect(ctx.getGameState().wolfKillOverride).toBeDefined();
+    expect(ctx.getGameState().wolfKillOverride?.source).toBe('poisoner');
+    expect(ctx.getGameState().currentNightResults?.wolfKillOverride).toBeDefined();
+    expect(ctx.getGameState().currentNightResults?.wolfKillOverride?.source).toBe('poisoner');
 
     expect(ctx.getGameState().actions?.length).toBeGreaterThanOrEqual(0);
 

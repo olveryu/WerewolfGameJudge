@@ -13,6 +13,7 @@
 import { GameStatus, type RoleId } from '../../models';
 import { buildNightPlan, getStepSpec } from '../../models/roles/spec';
 import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
+import { WOLF_KILL_OVERRIDE_TEXTS } from '../../models/roles/spec/schema.types';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
@@ -36,7 +37,7 @@ import type {
   RestartGameAction,
   SetNightReviewAllowedSeatsAction,
   SetRoleRevealAnimationAction,
-  SetWolfKillDisabledAction,
+  SetWolfKillOverrideAction,
   StartNightAction,
   StateAction,
   UpdateTemplateAction,
@@ -204,11 +205,16 @@ export function handleStartNight(
 
   // 毒师在场：首夜狼人仅可空刀（板子级规则）
   if (state.templateRoles.includes('poisoner' as RoleId)) {
-    const wolfKillDisabledAction: SetWolfKillDisabledAction = {
-      type: 'SET_WOLF_KILL_DISABLED',
-      payload: { disabled: true },
+    const wolfKillOverrideAction: SetWolfKillOverrideAction = {
+      type: 'SET_WOLF_KILL_OVERRIDE',
+      payload: {
+        override: {
+          source: 'poisoner',
+          ui: WOLF_KILL_OVERRIDE_TEXTS.poisoner,
+        },
+      },
     };
-    actions.push(wolfKillDisabledAction);
+    actions.push(wolfKillOverrideAction);
   }
 
   // 构建 sideEffects：先广播 + 保存，然后播放夜晚开始音频 + 第一步音频

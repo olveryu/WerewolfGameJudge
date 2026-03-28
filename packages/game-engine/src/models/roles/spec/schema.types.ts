@@ -39,9 +39,45 @@ export const BLOCKED_UI_DEFAULTS = {
   title: '技能被封锁',
   message: '你被梦魇封锁了，本回合无法行动',
   skipButtonText: '跳过（技能被封锁）',
-  emptyVoteText: '放弃袭击（被封锁）',
   dismissButtonText: '知道了',
 } as const;
+
+// === Wolf Kill Override ===
+
+/** Self-contained UI text for a wolf kill override. Consumers read directly, no branching. */
+export interface WolfKillOverrideUi {
+  readonly promptTitle: string;
+  readonly promptMessage: string;
+  readonly emptyVoteText: string;
+  readonly rejectMessage: string;
+}
+
+/**
+ * Self-contained wolf kill override object.
+ * Writers construct the full object (source + ui); consumers read directly.
+ */
+export interface WolfKillOverride {
+  /** What caused the override (display-only, for night review label). */
+  readonly source: 'nightmare' | 'poisoner';
+  /** UI text — consumers read directly, zero branching. */
+  readonly ui: WolfKillOverrideUi;
+}
+
+/** Centralized text definitions for all wolf kill override sources. */
+export const WOLF_KILL_OVERRIDE_TEXTS = {
+  nightmare: {
+    promptTitle: BLOCKED_UI_DEFAULTS.title,
+    promptMessage: BLOCKED_UI_DEFAULTS.message,
+    emptyVoteText: '放弃袭击（被封锁）',
+    rejectMessage: BLOCKED_UI_DEFAULTS.message,
+  },
+  poisoner: {
+    promptTitle: '首夜空刀',
+    promptMessage: '本局有毒师在场，首夜仅可空刀',
+    emptyVoteText: '放弃袭击（首夜空刀）',
+    rejectMessage: '本局有毒师在场，首夜仅可空刀',
+  },
+} as const satisfies Record<string, WolfKillOverrideUi>;
 
 /** Constraint types for target selection */
 export enum TargetConstraint {
@@ -97,8 +133,6 @@ export interface SchemaUi {
   readonly blockedMessage?: string;
   /** Override blocked skip button text. */
   readonly blockedSkipButtonText?: string;
-  /** Override blocked empty-vote button text (wolfVote only). */
-  readonly blockedEmptyVoteText?: string;
 
   // === Template support for dynamic prompts ===
   /**

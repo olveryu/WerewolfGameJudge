@@ -2,7 +2,7 @@
  * RoleChip - 角色选择标签（Memoized）
  *
  * 带阵营色选中状态。渲染 UI 并通过回调上报 onToggle，不 import service，不包含业务逻辑判断。
- * 变体 chip 用双色边框区分。所有 chip 长按可查看技能说明（变体角色在卡片内切换变体）。
+ * 变体 chip 用加粗边框区分。所有 chip 长按可查看技能说明（变体角色在卡片内切换变体）。
  */
 import { memo } from 'react';
 import { Text, TouchableOpacity, type ViewStyle } from 'react-native';
@@ -58,11 +58,7 @@ export const RoleChip = memo<RoleChipProps>(
     return (
       <TouchableOpacity
         testID={TESTIDS.configRoleChip(id)}
-        style={[
-          styles.chip,
-          hasVariants && !selected && styles.chipVariant,
-          selected && selectedStyle,
-        ]}
+        style={[styles.chip, hasVariants && styles.chipVariant, selected && selectedStyle]}
         onPress={() => onToggle(id)}
         onLongPress={handleLongPress}
         activeOpacity={fixed.activeOpacity}

@@ -23,6 +23,7 @@ import { getSeerCheckResultForTeam } from '../models/roles/spec';
 import type { ActiveAbility, CheckEffect } from '../models/roles/spec/ability.types';
 import { TargetConstraint } from '../models/roles/spec/ability.types';
 import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
+import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
 import { ROLE_SPECS } from '../models/roles/spec/specs';
 import { Team } from '../models/roles/spec/types';
 import { secureRng } from '../utils/random';
@@ -200,7 +201,10 @@ function processBlock(
     if (targetRoleId) {
       const targetSpec = ROLE_SPECS[targetRoleId];
       if (targetSpec.team === Team.Wolf) {
-        updates.wolfKillDisabled = true;
+        updates.wolfKillOverride = {
+          source: 'nightmare',
+          ui: WOLF_KILL_OVERRIDE_TEXTS.nightmare,
+        };
       }
     }
   }

@@ -351,13 +351,12 @@ describe('SCHEMAS contract', () => {
       expect(BLOCKED_UI_DEFAULTS.dismissButtonText.length).toBeGreaterThan(0);
     });
 
-    it('should have exactly 5 keys (anti-drift)', () => {
+    it('should have exactly 4 keys (anti-drift)', () => {
       const keys = Object.keys(BLOCKED_UI_DEFAULTS);
-      expect(keys).toHaveLength(5);
+      expect(keys).toHaveLength(4);
       expect(keys).toContain('title');
       expect(keys).toContain('message');
       expect(keys).toContain('skipButtonText');
-      expect(keys).toContain('emptyVoteText');
       expect(keys).toContain('dismissButtonText');
     });
 
@@ -366,7 +365,6 @@ describe('SCHEMAS contract', () => {
       expect(BLOCKED_UI_DEFAULTS.title).toBe('技能被封锁');
       expect(BLOCKED_UI_DEFAULTS.message).toBe('你被梦魇封锁了，本回合无法行动');
       expect(BLOCKED_UI_DEFAULTS.skipButtonText).toBe('跳过（技能被封锁）');
-      expect(BLOCKED_UI_DEFAULTS.emptyVoteText).toBe('放弃袭击（被封锁）');
       expect(BLOCKED_UI_DEFAULTS.dismissButtonText).toBe('知道了');
     });
   });

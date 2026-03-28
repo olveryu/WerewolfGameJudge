@@ -10,6 +10,7 @@
  */
 
 import type { RoleId, SchemaId } from '../models';
+import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
 
 /**
@@ -30,10 +31,10 @@ export interface CurrentNightResults {
   readonly blockedSeat?: number;
 
   /**
-   * Whether wolf kill is disabled for this night.
-   * Set to true if nightmare blocks a wolf.
+   * Self-contained wolf kill override (nightmare / poisoner).
+   * Presence means wolf kill is disabled; ui field provides all display text.
    */
-  readonly wolfKillDisabled?: boolean;
+  readonly wolfKillOverride?: WolfKillOverride;
 
   /** Seat protected by guard */
   readonly guardedSeat?: number;

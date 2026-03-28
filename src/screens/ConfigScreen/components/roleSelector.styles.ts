@@ -82,9 +82,8 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
   } satisfies TextStyle,
   chipVariant: {
     borderColor: withAlpha(colors.primary, 0.502),
-    borderWidth: fixed.borderWidthThick,
+    borderWidth: fixed.borderWidthHighlight,
   } satisfies ViewStyle,
-
   // ── Role stepper ──
   stepperRow: {
     flexDirection: 'row',

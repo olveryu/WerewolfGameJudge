@@ -56,7 +56,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
   });
 
   describe('Nightmare 阻断狼阵营 → 禁刀', () => {
-    it('nightmare 选中 wolf(4)，wolfKillDisabled=true', () => {
+    it('nightmare 选中 wolf(4)，wolfKillOverride set', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 执行到 nightmareBlock 步骤
@@ -72,13 +72,14 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       expect(blockResult.success).toBe(true);
       ctx.advanceNight();
 
-      // 核心断言：wolfKillDisabled = true
+      // 核心断言：wolfKillOverride set
       const state = ctx.getGameState();
-      expect(state.currentNightResults?.wolfKillDisabled).toBe(true);
+      expect(state.currentNightResults?.wolfKillOverride).toBeDefined();
+      expect(state.currentNightResults?.wolfKillOverride?.source).toBe('nightmare');
       expect(state.currentNightResults?.blockedSeat).toBe(4);
     });
 
-    it('nightmare 选中 nightmare 自己(7，狼阵营)，wolfKillDisabled=true', () => {
+    it('nightmare 选中 nightmare 自己(7，狼阵营)，wolfKillOverride set', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
@@ -94,12 +95,12 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
 
       // nightmare 是狼阵营，选中自己也触发禁刀
       const state = ctx.getGameState();
-      expect(state.currentNightResults?.wolfKillDisabled).toBe(true);
+      expect(state.currentNightResults?.wolfKillOverride).toBeDefined();
     });
   });
 
   describe('Nightmare 阻断好人阵营 → 不禁刀', () => {
-    it('nightmare 选中 villager(0)，wolfKillDisabled 不设置', () => {
+    it('nightmare 选中 villager(0)，wolfKillOverride 不设置', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
@@ -112,9 +113,9 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       });
       ctx.advanceNight();
 
-      // 核心断言：wolfKillDisabled 不设置（undefined）
+      // 核心断言：wolfKillOverride 不设置（undefined）
       const state = ctx.getGameState();
-      expect(state.currentNightResults?.wolfKillDisabled).toBeUndefined();
+      expect(state.currentNightResults?.wolfKillOverride).toBeUndefined();
       expect(state.currentNightResults?.blockedSeat).toBe(0);
     });
   });
@@ -292,7 +293,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
 
       const state = ctx.getGameState();
       expect(state.currentNightResults?.blockedSeat).toBeUndefined();
-      expect(state.currentNightResults?.wolfKillDisabled).toBeUndefined();
+      expect(state.currentNightResults?.wolfKillOverride).toBeUndefined();
     });
   });
 });

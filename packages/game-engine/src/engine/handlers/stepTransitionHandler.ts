@@ -312,7 +312,7 @@ function findActionBySchemaId(
  *
  * 规则：
  * 1. 如果下一步的行动者被 nightmare 封锁，设置 blocked_by_nightmare hint
- * 2. 如果下一步是 wolfVote 且 wolfKillDisabled，设置 wolf_kill_disabled hint
+ * 2. 如果下一步是 wolfVote 且 wolfKillOverride 存在，设置 wolf_kill_disabled hint
  * 3. 其他情况清空 hint（null）
  *
  * @param nextStep - 下一步的 NightPlanStep（null 表示夜晚结束）
@@ -338,7 +338,7 @@ function maybeCreateUiHintAction(
     roleId,
     nextActorSeat,
     nightmareBlockedSeat: state.nightmareBlockedSeat,
-    wolfKillDisabled: state.wolfKillDisabled,
+    wolfKillOverride: !!state.wolfKillOverride,
     schemaKind: schema?.kind,
   });
 
@@ -349,26 +349,26 @@ function maybeCreateUiHintAction(
   const blockedMessage = schemaUi?.blockedMessage ?? BLOCKED_UI_DEFAULTS.message;
   const blockedSkipButtonText =
     schemaUi?.blockedSkipButtonText ?? BLOCKED_UI_DEFAULTS.skipButtonText;
-  const blockedEmptyVoteText = schemaUi?.blockedEmptyVoteText ?? BLOCKED_UI_DEFAULTS.emptyVoteText;
 
-  // Case 1: wolfVote 且 wolfKillDisabled → 所有狼人看到 wolf_kill_disabled hint
-  if (schema?.kind === 'wolfVote' && state.wolfKillDisabled) {
-    // 所有狼人阵营角色都能看到这个 hint
+  // Case 1: wolfVote 且 wolfKillOverride → 所有狼人看到 wolf_kill_disabled hint
+  if (schema?.kind === 'wolfVote' && state.wolfKillOverride) {
     const wolfRoleIds = getWolfRoleIds();
-    const hasPoisoner = state.templateRoles.includes('poisoner' as RoleId);
-    const hintText = hasPoisoner ? '本局有毒师在场，首夜仅可空刀' : '今晚狼队无法刀人';
-    nightFlowLog.debug('[UI Hint] setting wolf_kill_disabled hint', { wolfRoleIds, hasPoisoner });
+    const { ui } = state.wolfKillOverride;
+    nightFlowLog.debug('[UI Hint] setting wolf_kill_disabled hint', {
+      wolfRoleIds,
+      source: state.wolfKillOverride.source,
+    });
     return {
       type: 'SET_UI_HINT',
       payload: {
         currentActorHint: {
           kind: 'wolf_kill_disabled',
           targetRoleIds: wolfRoleIds,
-          message: blockedEmptyVoteText,
+          message: ui.emptyVoteText,
           bottomAction: 'wolfEmptyOnly',
           promptOverride: {
-            title: blockedTitle,
-            text: hintText,
+            title: ui.promptTitle,
+            text: ui.promptMessage,
           },
         },
       },
@@ -444,7 +444,7 @@ function buildNightActions(state: NonNullState): NightActions {
 
   // Wolf kill - resolve final target from wolfVotesBySeat
   // Single source of truth is the votes table; final target is derived.
-  if (!state.wolfKillDisabled) {
+  if (!state.wolfKillOverride) {
     if (!state.currentNightResults) {
       throw new Error(
         '[FAIL-FAST] buildNightActions: currentNightResults missing in ongoing state',
@@ -465,7 +465,7 @@ function buildNightActions(state: NonNullState): NightActions {
   }
 
   // 检查 nightmare 封锁的是否是狼人
-  if (state.wolfKillDisabled) {
+  if (state.wolfKillOverride) {
     nightActions.isWolfBlockedByNightmare = true;
   }
 
@@ -575,7 +575,7 @@ export function handleAdvanceNight(
   // ==========================================================================
   // 在推进到下一步时，检查是否需要设置 UI hint。
   // - 如果下一步的行动者被 nightmare 封锁，设置 blocked_by_nightmare hint
-  // - 如果下一步是 wolfVote 且 wolfKillDisabled，设置 wolf_kill_disabled hint
+  // - 如果下一步是 wolfVote 且 wolfKillOverride 存在，设置 wolf_kill_disabled hint
   // - 其他情况清空 hint（null）
   const uiHintAction = maybeCreateUiHintAction(nextStep, state);
   actions.push(uiHintAction);
@@ -675,7 +675,7 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   // DEBUG: 打印死亡计算输入
   nightFlowLog.debug('handleEndNight: calculating deaths', {
     wolfVotes: state.currentNightResults?.wolfVotesBySeat,
-    wolfKillDisabled: state.wolfKillDisabled,
+    wolfKillOverride: !!state.wolfKillOverride,
     nightActions,
     roleSeatMap,
   });

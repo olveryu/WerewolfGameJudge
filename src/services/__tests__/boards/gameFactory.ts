@@ -25,6 +25,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
+import { WOLF_KILL_OVERRIDE_TEXTS } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import {
   createTemplateFromRoles,
   GameTemplate,
@@ -139,11 +140,16 @@ export function createGame(
     },
   });
 
-  // 毒师在场：首夜 wolfKillDisabled（与 handleStartNight 行为一致）
+  // 毒师在场：首夜 wolfKillOverride（与 handleStartNight 行为一致）
   if (template.roles.includes('poisoner' as RoleId)) {
     state = gameReducer(state, {
-      type: 'SET_WOLF_KILL_DISABLED',
-      payload: { disabled: true },
+      type: 'SET_WOLF_KILL_OVERRIDE',
+      payload: {
+        override: {
+          source: 'poisoner',
+          ui: WOLF_KILL_OVERRIDE_TEXTS.poisoner,
+        },
+      },
     });
   }
 

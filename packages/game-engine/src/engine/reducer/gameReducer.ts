@@ -34,7 +34,7 @@ import {
   handleSetAudioPlaying,
   handleSetConfirmStatus,
   handleSetWitchContext,
-  handleSetWolfKillDisabled,
+  handleSetWolfKillOverride,
   handleSetWolfRobotHunterStatusViewed,
   handleStartNight,
 } from './nightActionReducers';
@@ -84,8 +84,8 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleSetWitchContext(state, action);
     case 'SET_CONFIRM_STATUS':
       return handleSetConfirmStatus(state, action);
-    case 'SET_WOLF_KILL_DISABLED':
-      return handleSetWolfKillDisabled(state, action);
+    case 'SET_WOLF_KILL_OVERRIDE':
+      return handleSetWolfKillOverride(state, action);
     case 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED':
       return handleSetWolfRobotHunterStatusViewed(state, action);
     case 'SET_AUDIO_PLAYING':

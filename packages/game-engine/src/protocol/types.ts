@@ -9,6 +9,7 @@
 
 // ⚠️ 以现有 repo 导出路径为准
 import type { GameStatus, RoleId, SchemaId } from '../models';
+import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
 import type { CurrentNightResults } from '../resolvers/types';
 import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '../types';
@@ -136,7 +137,12 @@ export interface GameState {
 
   // --- 梦魇封锁 ---
   nightmareBlockedSeat?: number;
-  wolfKillDisabled?: boolean;
+
+  /**
+   * Self-contained wolf kill override (nightmare / poisoner).
+   * Presence means wolf kill is disabled; ui field provides all display text.
+   */
+  wolfKillOverride?: WolfKillOverride;
 
   // --- 机械狼伪装上下文 ---
   /**

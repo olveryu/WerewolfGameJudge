@@ -2,14 +2,13 @@
  * Wolf Kill Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验袭击行动合法性 + 计算袭击结果，
- * 提供袭击校验与 wolfKillDisabled 检查（nightmare 阻断）。
+ * 提供袭击校验与 wolfKillOverride 检查（nightmare 封锁 / poisoner 板子规则）。
  * 不包含 IO（网络 / 音频 / Alert），不添加 notSelf/notWolf 约束（袭击是中立的，可袭击任意座位）。
  *
- * RULE: If wolfKillDisabled (nightmare blocked a wolf), non-empty vote is REJECTED.
+ * RULE: If wolfKillOverride exists (nightmare / poisoner), non-empty vote is REJECTED.
  */
 
 import { getRoleSpec, getWolfKillImmuneRoleIds, isValidRoleId } from '../models';
-import { BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
 import type { ResolverFn } from './types';
 
 export const wolfKillResolver: ResolverFn = (context, input) => {
@@ -41,10 +40,9 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
     };
   }
 
-  // Check if wolf kill is disabled (nightmare blocked a wolf)
-  // Non-empty vote is REJECTED when disabled
-  if (currentNightResults.wolfKillDisabled) {
-    return { valid: false, rejectReason: BLOCKED_UI_DEFAULTS.message };
+  // Wolf kill override: non-empty vote is REJECTED
+  if (currentNightResults.wolfKillOverride) {
+    return { valid: false, rejectReason: currentNightResults.wolfKillOverride.ui.rejectMessage };
   }
 
   // Target must exist
