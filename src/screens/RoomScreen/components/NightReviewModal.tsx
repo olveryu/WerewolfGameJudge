@@ -48,40 +48,38 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalBox} testID={TESTIDS.nightReviewModal}>
-          <View style={styles.contentContainer}>
-            <Text style={styles.title}>夜晚行动回顾</Text>
+          <Text style={styles.title}>夜晚行动回顾</Text>
 
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-              {/* Fair play reminder */}
-              <Text style={styles.disclaimer}>
-                <Ionicons
-                  name={STATUS_ICONS.WARNING}
-                  size={typography.secondary}
-                  color={colors.warning}
-                />
-                {' 仅供裁判及观战者参考'}
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            {/* Fair play reminder */}
+            <Text style={styles.disclaimer}>
+              <Ionicons
+                name={STATUS_ICONS.WARNING}
+                size={typography.secondary}
+                color={colors.warning}
+              />
+              {' 仅供裁判及观战者参考'}
+            </Text>
+
+            {/* Action summary section */}
+            <Text style={styles.sectionTitle}>行动摘要</Text>
+            {data.actionLines.map((line, i) => (
+              <Text key={`action-${i}`} style={styles.line}>
+                {line}
               </Text>
+            ))}
 
-              {/* Action summary section */}
-              <Text style={styles.sectionTitle}>行动摘要</Text>
-              {data.actionLines.map((line, i) => (
-                <Text key={`action-${i}`} style={styles.line}>
-                  {line}
-                </Text>
-              ))}
+            {/* Divider */}
+            <View style={styles.divider} />
 
-              {/* Divider */}
-              <View style={styles.divider} />
-
-              {/* Identity table section */}
-              <Text style={styles.sectionTitle}>全员身份</Text>
-              {data.identityLines.map((line, i) => (
-                <Text key={`identity-${i}`} style={styles.line}>
-                  {line}
-                </Text>
-              ))}
-            </ScrollView>
-          </View>
+            {/* Identity table section */}
+            <Text style={styles.sectionTitle}>全员身份</Text>
+            {data.identityLines.map((line, i) => (
+              <Text key={`identity-${i}`} style={styles.line}>
+                {line}
+              </Text>
+            ))}
+          </ScrollView>
 
           {/* Action buttons */}
           <View style={styles.buttonRow}>
@@ -114,10 +112,6 @@ function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: nu
       padding: spacing.large,
       width: screenWidth * 0.88,
       maxHeight: screenHeight * 0.75,
-    },
-    contentContainer: {
-      flex: 1,
-      backgroundColor: colors.surface,
     },
     title: {
       fontSize: typography.subtitle,
