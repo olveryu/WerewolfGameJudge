@@ -5,11 +5,11 @@
  * 点击后弹出确认对话框，确认后通过 onChoose(cardIndex) 回调提交。
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
-import { getRoleDisplayName, getRoleEmoji, type RoleId } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName, type RoleId } from '@werewolf/game-engine/models/roles';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec/specs';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { memo, useMemo } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import {
   borderRadius,
@@ -20,11 +20,11 @@ import {
   useColors,
 } from '@/theme';
 import { CANCEL_BUTTON, confirmButton, showAlert } from '@/utils/alert';
+import { getRoleBadge } from '@/utils/roleBadges';
 
 interface BottomCardItem {
   roleId: string;
   displayName: string;
-  emoji: string;
   isWolf: boolean;
 }
 
@@ -72,8 +72,9 @@ function createStyles(colors: ThemeColors) {
     cardDisabled: {
       opacity: 0.4,
     },
-    cardEmoji: {
-      ...textStyles.title,
+    cardBadge: {
+      width: 40,
+      height: 40,
       marginRight: spacing.small,
     },
     cardInfo: {
@@ -121,7 +122,6 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
         return {
           roleId,
           displayName: getRoleDisplayName(roleId),
-          emoji: getRoleEmoji(roleId as RoleId),
           isWolf: spec?.faction === Faction.Wolf,
         };
       }),
@@ -129,7 +129,7 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
   );
 
   const handleCardPress = (cardIndex: number, card: BottomCardItem) => {
-    showAlert('确认选择', `${confirmText}\n\n${card.emoji} ${card.displayName}`, [
+    showAlert('确认选择', `${confirmText}\n\n${card.displayName}`, [
       CANCEL_BUTTON,
       confirmButton(() => onChoose(cardIndex)),
     ]);
@@ -149,7 +149,7 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
                 activeOpacity={0.7}
                 onPress={() => handleCardPress(index, card)}
               >
-                <Text style={styles.cardEmoji}>{card.emoji}</Text>
+                <Image source={getRoleBadge(card.roleId as RoleId)} style={styles.cardBadge} />
                 <View style={styles.cardInfo}>
                   <Text style={[styles.cardName, card.isWolf && styles.cardNameDisabled]}>
                     {card.displayName}

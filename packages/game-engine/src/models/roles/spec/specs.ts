@@ -1680,7 +1680,7 @@ export const ROLE_SPECS = {
         ui: {
           prompt: '请选择一张底牌作为你的身份',
           confirmText: '确认选择此身份？',
-          bottomActionText: '选择',
+          bottomActionText: '选择底牌',
         },
       },
     ],
