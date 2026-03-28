@@ -457,6 +457,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   const rafRef = useRef<number | null>(null);
   const lastFrameRef = useRef(0);
   const lastHapticRef = useRef(0);
+  const pressInTimeRef = useRef(0);
 
   // ── Pre-computed geometry ──
   const [shards] = useState(() => generateShards(SB.shardCount));
@@ -707,16 +708,28 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     };
   }, [phase, charge, crackProgress, triggerShatter]);
 
-  // ── Press handlers ──
+  // ── Press handlers (dual mode: long-press charges continuously, tap boosts) ──
   const handlePressIn = useCallback(() => {
     if (phase !== 'idle' && phase !== 'charging') return;
+    pressInTimeRef.current = Date.now();
     isPresentRef.current = true;
     if (phase === 'idle') setPhase('charging');
   }, [phase]);
 
   const handlePressOut = useCallback(() => {
     isPresentRef.current = false;
-  }, []);
+    if (shatterTriggeredRef.current) return;
+    // Short press → treat as tap, boost charge instantly
+    const pressDuration = Date.now() - pressInTimeRef.current;
+    if (pressDuration < SB.tapThreshold) {
+      const boosted = Math.min(1, chargeRef.current + SB.tapBoost);
+      chargeRef.current = boosted;
+      charge.value = boosted;
+      crackProgress.value = boosted;
+      if (enableHaptics) triggerHaptic('medium', true);
+      if (boosted >= 1) triggerShatter();
+    }
+  }, [charge, crackProgress, enableHaptics, triggerShatter]);
 
   // ── Animated styles ──
   const sealContainerStyle = useAnimatedStyle(() => ({
@@ -1121,12 +1134,12 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
       )}
       {phase === 'idle' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>{'🔮'} 长按封印蓄力破除</Text>
+          <Text style={styles.hintText}>{'🔮'} 长按或连续点击封印蓄力</Text>
         </View>
       )}
       {phase === 'charging' && (
         <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>{'\uD83D\uDD2E'} 持续按住…能量灌注中…</Text>
+          <Text style={styles.hintText}>{'\uD83D\uDD2E'} 持续按住或点击…能量灌注中…</Text>
         </View>
       )}
       {autoTimeoutWarning && (phase === 'idle' || phase === 'charging') && (

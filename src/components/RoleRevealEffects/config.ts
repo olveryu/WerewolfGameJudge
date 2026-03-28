@@ -185,6 +185,10 @@ export const CONFIG = {
     energyParticleCount: 16,
     /** Haptic tick interval during charging (ms) */
     hapticTickInterval: 200,
+    /** Charge boost per tap (fraction of full charge, e.g. 0.15 = 15%) */
+    tapBoost: 0.15,
+    /** Max press duration (ms) to count as a tap rather than a hold */
+    tapThreshold: 200,
     /** Hold duration after reveal before calling onComplete (ms) */
     revealHoldDuration: 0,
   },
