@@ -371,13 +371,33 @@
           navigator.serviceWorker
             .register('/sw.js')
             .then(function (reg) {
-              // 只处理上次访问留下的 waiting SW（页面刚加载，reload 无感知）
-              // 会话中途的 updatefound 不处理，留到下次访问
+              // 检测新 SW 安装完毕 → 自动触发更新（全屏蒙层覆盖白屏）
+              // 只在真正有新部署时触发（build.sh 用 git hash，同 commit 不变）
+              function onNewSW(sw) {
+                if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                  localStorage.setItem('__diag_reload_src', 'onNewSW (updatefound) → showUpdateOverlay');
+                  localStorage.setItem('__diag_reload_ts', String(Date.now()));
+                  showUpdateOverlay(sw);
+                }
+              }
               if (reg.waiting) {
                 localStorage.setItem('__diag_reload_src', 'reg.waiting → showUpdateOverlay');
                 localStorage.setItem('__diag_reload_ts', String(Date.now()));
                 showUpdateOverlay(reg.waiting);
               }
+              if (reg.installing) {
+                reg.installing.addEventListener('statechange', function () {
+                  onNewSW(this);
+                });
+              }
+              reg.addEventListener('updatefound', function () {
+                var newSW = reg.installing;
+                if (newSW) {
+                  newSW.addEventListener('statechange', function () {
+                    onNewSW(this);
+                  });
+                }
+              });
             })
             .catch(function (err) {
               console.log('ServiceWorker registration failed:', err);
