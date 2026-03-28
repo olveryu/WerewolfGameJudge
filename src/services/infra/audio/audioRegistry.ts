@@ -177,7 +177,7 @@ export const NIGHT_END_AUDIO: AudioAsset = require('../../../../assets/audio/nig
 export const BGM_NIGHT: AudioAsset = require('../../../../assets/audio/bgm_night.mp3');
 
 /** BGM volume (0.0 to 1.0) — keep low so TTS narration is clearly audible. */
-export const BGM_VOLUME = 0.05;
+export const BGM_VOLUME = 0.1;
 
 // ---------------------------------------------------------------------------
 // Contract-test helpers
