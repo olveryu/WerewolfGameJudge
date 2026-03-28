@@ -129,6 +129,8 @@ export const SettingsScreen: React.FC = () => {
 
   // [DIAG] 追踪组件生命周期和 auth 状态变化
   const mountCountRef = useRef(0);
+  const authHistoryRef = useRef<string[]>([]);
+  const [authHistory, setAuthHistory] = useState<string[]>([]);
   useEffect(() => {
     mountCountRef.current += 1;
     settingsLog.warn(
@@ -140,9 +142,10 @@ export const SettingsScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
-    settingsLog.warn(
-      `[DIAG] auth changed: isAuthenticated=${isAuthenticated}, loading=${authLoading}, user=${user?.uid ?? 'null'}, isAnonymous=${user?.isAnonymous}`,
-    );
+    const entry = `${new Date().toLocaleTimeString()}: auth=${String(isAuthenticated)} load=${String(authLoading)} user=${user?.uid?.slice(0, 8) ?? 'null'}`;
+    settingsLog.warn(`[DIAG] ${entry}`);
+    authHistoryRef.current = [...authHistoryRef.current.slice(-4), entry];
+    setAuthHistory([...authHistoryRef.current]);
   }, [isAuthenticated, authLoading, user?.uid, user?.isAnonymous]);
 
   // [DIAG] 可视化卡片 (在 Settings 页面顶部显示)
@@ -606,12 +609,17 @@ export const SettingsScreen: React.FC = () => {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* [DIAG] 可视化诊断横幅 */}
+        {/* [DIAG] 可视化诊断横幅 — auth 变迁历史 */}
         <View style={styles.diagBanner}>
           <Text style={styles.diagText}>
-            [DIAG] mount#{diagMountCount} auth={String(isAuthenticated)} loading=
-            {String(authLoading)} user={user?.uid?.slice(0, 8) ?? 'null'}
+            [DIAG] mount#{diagMountCount} | now: auth={String(isAuthenticated)} load=
+            {String(authLoading)}
           </Text>
+          {authHistory.map((h, i) => (
+            <Text key={i} style={styles.diagText}>
+              {h}
+            </Text>
+          ))}
         </View>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
