@@ -13,6 +13,7 @@ import {
 } from '@werewolf/game-engine/models/roles';
 import {
   findMatchingPresetName,
+  getPlayerCount,
   type PresetTemplate,
   TEMPLATE_CATEGORY_LABELS,
   TemplateCategory,
@@ -116,13 +117,13 @@ export const FACTION_COLOR_MAP: Record<string, FactionColorKey> = {
   [Faction.Special]: 'third',
 };
 
-/** Compute total selected role count */
-export const computeTotalCount = (selection: Record<string, boolean>): number => {
-  let total = 0;
-  Object.values(selection).forEach((selected) => {
-    if (selected) total++;
-  });
-  return total;
+/** Compute total player count (accounts for treasureMaster bottom cards) */
+export const computeTotalCount = (
+  selection: Record<string, boolean>,
+  variantOverrides?: Record<string, string>,
+): number => {
+  const roles = selectionToRoles(selection, variantOverrides);
+  return getPlayerCount(roles);
 };
 
 /** Expand a RoleSlot into an array of {key, label} for rendering chips */

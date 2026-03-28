@@ -380,7 +380,8 @@ export function buildSeatViewModels(
   // Wolf vote progress: reuse ✅ badge on wolf seats that have voted (ongoing phase only, mutually exclusive with assigned/ready badge)
   const wolfVotesBySeat = showWolves ? gameState.currentNightResults?.wolfVotesBySeat : undefined;
 
-  return gameState.template.roles.map((role, seat) => {
+  const playerRoles = gameState.template.roles.slice(0, gameState.template.numberOfPlayers);
+  return playerRoles.map((role, seat) => {
     const player = gameState.players.get(seat);
     const effectiveRole = player?.role ?? role;
     // Wolf visibility is controlled by ActionerState.showWolves.

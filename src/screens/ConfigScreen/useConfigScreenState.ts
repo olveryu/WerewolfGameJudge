@@ -82,7 +82,10 @@ export function useConfigScreenState({
   const [overflowVisible, setOverflowVisible] = useState(false);
   const [variantOverrides, setVariantOverrides] = useState<Record<string, string>>({});
 
-  const totalCount = useMemo(() => computeTotalCount(selection), [selection]);
+  const totalCount = useMemo(
+    () => computeTotalCount(selection, variantOverrides),
+    [selection, variantOverrides],
+  );
 
   // ── Load settings (animation + BGM) for new rooms ────────────────────────
 

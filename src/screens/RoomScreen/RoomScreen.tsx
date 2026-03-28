@@ -436,7 +436,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Board Info - collapsed during ongoing/ended, expanded during setup */}
         <BoardInfoCard
-          playerCount={gameState.template.roles.length}
+          playerCount={gameState.template.numberOfPlayers}
           wolfRoleItems={wolfRoleItems}
           godRoleItems={godRoleItems}
           specialRoleItems={specialRoleItems}
