@@ -349,33 +349,12 @@
           navigator.serviceWorker
             .register('/sw.js')
             .then(function (reg) {
-              // 检测新 SW 安装完毕 → 自动触发更新（全屏蒙层覆盖白屏）
-              function onNewSW(sw) {
-                if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-                  sessionStorage.setItem(
-                    '__diag_reload_src',
-                    'onNewSW (updatefound) → showUpdateOverlay',
-                  );
-                  showUpdateOverlay(sw);
-                }
-              }
+              // 只处理上次访问留下的 waiting SW（页面刚加载，reload 无感知）
+              // 会话中途的 updatefound 不处理，留到下次访问
               if (reg.waiting) {
                 sessionStorage.setItem('__diag_reload_src', 'reg.waiting → showUpdateOverlay');
                 showUpdateOverlay(reg.waiting);
               }
-              if (reg.installing) {
-                reg.installing.addEventListener('statechange', function () {
-                  onNewSW(this);
-                });
-              }
-              reg.addEventListener('updatefound', function () {
-                var newSW = reg.installing;
-                if (newSW) {
-                  newSW.addEventListener('statechange', function () {
-                    onNewSW(this);
-                  });
-                }
-              });
             })
             .catch(function (err) {
               console.log('ServiceWorker registration failed:', err);
