@@ -371,6 +371,47 @@ export interface GameState {
    * 进入下一夜时重置为空。
    */
   conversionRevealAcks?: readonly number[];
+
+  // --- 盗宝大师（TreasureMaster）---
+  /**
+   * 底牌（3 张身份牌），发牌时从 15 张模板角色中分出。
+   * 仅盗宝大师在场时存在。发牌后不变。
+   */
+  bottomCards?: readonly RoleId[];
+
+  /**
+   * 盗宝大师所在座位号。
+   * 发牌时写入，用于 resolver actor 路由和查验伪装。
+   */
+  treasureMasterSeat?: number;
+
+  /**
+   * 盗宝大师选中的底牌身份。
+   * treasureMasterChoose resolver 写入。
+   * 查验 treasureMasterSeat 时返回此身份。
+   */
+  treasureMasterChosenCard?: RoleId;
+
+  /**
+   * 盗宝大师选卡后的动态阵营。
+   * 由底牌组成决定（含狼→Wolf，≥2神→Good，≥2民→Good）。
+   * 查验 treasureMasterSeat 的 team 时使用此值。
+   */
+  effectiveTeam?: Team;
+
+  /**
+   * 底牌中有夜晚步骤、但未被盗宝大师选中的角色列表。
+   * 这些角色的步骤保留在 nightPlan 中但无人操作（auto-skip）。
+   * handleStartNight / treasureMasterChoose resolver 写入。
+   */
+  bottomCardStepRoles?: readonly RoleId[];
+
+  /**
+   * 底牌空步骤的 auto-skip 截止时间（epoch ms）。
+   * 复用 wolfVoteDeadline 的 deadline-gate pattern。
+   * advance 到底牌空步骤时设置 = now + randomIntInclusive(5000, 10000)。
+   */
+  autoSkipDeadline?: number;
 }
 
 // =============================================================================

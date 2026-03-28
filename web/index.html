@@ -320,11 +320,9 @@
       // 不做 controllerchange→reload，避免中断当前会话。
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-          navigator.serviceWorker
-            .register('/sw.js')
-            .catch(function (err) {
-              console.log('ServiceWorker registration failed:', err);
-            });
+          navigator.serviceWorker.register('/sw.js').catch(function (err) {
+            console.log('ServiceWorker registration failed:', err);
+          });
         });
       }
     </script>
