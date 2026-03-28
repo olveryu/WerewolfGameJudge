@@ -86,6 +86,10 @@ export interface AssignRolesAction {
     assignments: Record<number, RoleId>;
     /** Seer label map - set when both seer + mirrorSeer are in template */
     seerLabelMap?: Readonly<Record<string, number>>;
+    /** 盗宝大师底牌（3 张），仅 treasureMaster 在场时存在 */
+    bottomCards?: readonly RoleId[];
+    /** 盗宝大师所在座位号 */
+    treasureMasterSeat?: number;
   };
 }
 

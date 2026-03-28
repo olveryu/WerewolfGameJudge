@@ -87,6 +87,14 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
 
   // 详细信息分享权限
   'nightReviewAllowedSeats',
+
+  // 盗宝大师
+  'bottomCards',
+  'treasureMasterSeat',
+  'treasureMasterChosenCard',
+  'effectiveTeam',
+  'bottomCardStepRoles',
+  'autoSkipDeadline',
 ];
 
 describe('normalizeState contract', () => {

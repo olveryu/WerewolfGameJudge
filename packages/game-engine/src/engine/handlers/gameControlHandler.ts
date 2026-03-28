@@ -15,6 +15,8 @@ import { buildNightPlan, getStepSpec } from '../../models/roles/spec';
 import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../../models/roles/spec/schema.types';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
+import { Faction } from '../../models/roles/spec/types';
+import { BOTTOM_CARD_COUNT } from '../../models/Template';
 import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { randomHex } from '../../utils/id';
@@ -87,9 +89,12 @@ export function handleAssignRoles(
     };
   }
 
-  // 验证：模板角色数量与座位数匹配
   const seatCount = Object.keys(state.players).length;
-  if (state.templateRoles.length !== seatCount) {
+  const hasTreasureMaster = state.templateRoles.includes('treasureMaster' as RoleId);
+  const expectedRoleCount = hasTreasureMaster ? seatCount + BOTTOM_CARD_COUNT : seatCount;
+
+  // 验证：模板角色数量与座位数匹配（含底牌）
+  if (state.templateRoles.length !== expectedRoleCount) {
     return {
       success: false,
       reason: 'role_count_mismatch',
@@ -97,19 +102,44 @@ export function handleAssignRoles(
     };
   }
 
-  // Shuffle and assign roles
-  const shuffledRoles = shuffleArray([...state.templateRoles]);
+  let seatedRoles: RoleId[];
+  let bottomCards: RoleId[] | undefined;
+  let treasureMasterSeat: number | undefined;
+
+  if (hasTreasureMaster) {
+    // 盗宝大师在场：15 张 shuffle → 前 12 分配座位 + 后 3 为底牌
+    // 底牌约束：最多 1 只普通狼人（无技能狼）；不全神；不全民
+    const result = shuffleWithBottomCardConstraints(state.templateRoles, seatCount);
+    seatedRoles = result.seatedRoles;
+    bottomCards = result.bottomCards;
+  } else {
+    seatedRoles = shuffleArray([...state.templateRoles]);
+  }
+
+  // Assign seated roles to seats
   const assignments: Record<number, RoleId> = {};
   const seats = Object.keys(state.players).map((s) => Number.parseInt(s, 10));
 
   for (let i = 0; i < seats.length; i++) {
-    assignments[seats[i]] = shuffledRoles[i];
+    assignments[seats[i]] = seatedRoles[i];
+  }
+
+  // 记录盗宝大师座位
+  if (hasTreasureMaster) {
+    for (const [seatStr, roleId] of Object.entries(assignments)) {
+      if (roleId === 'treasureMaster') {
+        treasureMasterSeat = Number.parseInt(seatStr, 10);
+        break;
+      }
+    }
   }
 
   // 当多个 seerFamily 标签角色同时在场，随机分配编号标签
+  // 注意：需要用全部角色（含底牌）来判断 seer 家族
+  const allRoles = hasTreasureMaster ? [...seatedRoles, ...bottomCards!] : seatedRoles;
   const seerLikeRoles = [
     ...new Set(
-      shuffledRoles.filter((r) => {
+      allRoles.filter((r) => {
         if (r === 'seer') return true;
         const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
         return spec?.groups?.includes('seerFamily') === true;
@@ -125,7 +155,11 @@ export function handleAssignRoles(
   // 只产生 ASSIGN_ROLES action（不产生 START_NIGHT）
   const assignRolesAction: AssignRolesAction = {
     type: 'ASSIGN_ROLES',
-    payload: { assignments, ...(seerLabelMap ? { seerLabelMap } : {}) },
+    payload: {
+      assignments,
+      ...(seerLabelMap ? { seerLabelMap } : {}),
+      ...(bottomCards ? { bottomCards, treasureMasterSeat } : {}),
+    },
   };
 
   return {
@@ -133,6 +167,63 @@ export function handleAssignRoles(
     actions: [assignRolesAction],
     sideEffects: STANDARD_SIDE_EFFECTS,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Bottom card shuffle with constraints (rejection sampling)
+// ---------------------------------------------------------------------------
+
+/** 最大重试次数（底牌约束满足概率极高，几乎不需重试） */
+const MAX_SHUFFLE_RETRIES = 100;
+
+/**
+ * Shuffle roles and split into seated + bottom cards with constraints.
+ *
+ * Bottom card constraints:
+ * - 最多 1 只普通狼人（faction === Wolf && 无技能 = 仅 'wolf'）
+ * - 不会全部是神职（faction === God）
+ * - 不会全部是平民（faction === Villager 且 role === 'villager'）
+ */
+function shuffleWithBottomCardConstraints(
+  templateRoles: readonly RoleId[],
+  seatCount: number,
+): { seatedRoles: RoleId[]; bottomCards: RoleId[] } {
+  for (let attempt = 0; attempt < MAX_SHUFFLE_RETRIES; attempt++) {
+    const shuffled = shuffleArray([...templateRoles]);
+    const seated = shuffled.slice(0, seatCount);
+    const bottom = shuffled.slice(seatCount);
+
+    if (validateBottomCards(bottom)) {
+      return { seatedRoles: seated, bottomCards: bottom };
+    }
+  }
+
+  // Should never happen given the loose constraints
+  throw new Error(
+    `[FAIL-FAST] Failed to satisfy bottom card constraints after ${MAX_SHUFFLE_RETRIES} retries`,
+  );
+}
+
+/**
+ * Validate bottom card constraints.
+ */
+function validateBottomCards(cards: RoleId[]): boolean {
+  // Constraint 1: 最多 1 只普通狼人（id === 'wolf'，技能狼不算）
+  const plainWolfCount = cards.filter((r) => r === ('wolf' as RoleId)).length;
+  if (plainWolfCount > 1) return false;
+
+  // Constraint 2: 不全神
+  const allGod = cards.every((r) => {
+    const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
+    return spec?.faction === Faction.God;
+  });
+  if (allGod) return false;
+
+  // Constraint 3: 不全民
+  const allVillager = cards.every((r) => r === ('villager' as RoleId));
+  if (allVillager) return false;
+
+  return true;
 }
 
 /**

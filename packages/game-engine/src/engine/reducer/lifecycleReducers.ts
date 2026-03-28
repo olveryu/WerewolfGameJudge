@@ -118,6 +118,14 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     convertedSeat: undefined,
     conversionRevealAcks: [],
 
+    // 盗宝大师
+    bottomCards: undefined,
+    treasureMasterSeat: undefined,
+    treasureMasterChosenCard: undefined,
+    effectiveTeam: undefined,
+    bottomCardStepRoles: undefined,
+    autoSkipDeadline: undefined,
+
     // ── 重开时更新 nonce 和 resolved 动画 ─────────────────
     roleRevealRandomNonce: newNonce,
     resolvedRoleRevealAnimation: resolvedAnimation,
@@ -234,7 +242,7 @@ export function handleUpdatePlayerProfile(
 }
 
 export function handleAssignRoles(state: GameState, action: AssignRolesAction): GameState {
-  const { assignments, seerLabelMap } = action.payload;
+  const { assignments, seerLabelMap, bottomCards, treasureMasterSeat } = action.payload;
   const newPlayers = { ...state.players };
 
   for (const [seatStr, role] of Object.entries(assignments)) {
@@ -250,6 +258,8 @@ export function handleAssignRoles(state: GameState, action: AssignRolesAction): 
     players: newPlayers,
     status: GameStatus.Assigned,
     seerLabelMap,
+    bottomCards,
+    treasureMasterSeat,
   };
 }
 

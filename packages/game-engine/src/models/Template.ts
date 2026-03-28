@@ -75,11 +75,23 @@ export interface GameTemplate {
   roles: RoleId[];
 }
 
+/** 盗宝大师底牌数量 */
+export const BOTTOM_CARD_COUNT = 3;
+
+/**
+ * 计算实际玩家数（座位数）。
+ * 含 treasureMaster 时，roles 比座位多 BOTTOM_CARD_COUNT 张底牌。
+ */
+export function getPlayerCount(roles: readonly RoleId[]): number {
+  const hasTreasureMaster = roles.includes('treasureMaster' as RoleId);
+  return hasTreasureMaster ? roles.length - BOTTOM_CARD_COUNT : roles.length;
+}
+
 // Create custom template (roles are NOT shuffled here - shuffling happens at "分配角色")
 export const createCustomTemplate = (roles: RoleId[]): GameTemplate => {
   return {
     name: '',
-    numberOfPlayers: roles.length,
+    numberOfPlayers: getPlayerCount(roles),
     roles: roles, // Keep original order, shuffle later when assigning roles
   };
 };
@@ -87,7 +99,7 @@ export const createCustomTemplate = (roles: RoleId[]): GameTemplate => {
 // Create template from existing roles (for loading from database)
 export const createTemplateFromRoles = (roles: RoleId[]): GameTemplate => ({
   name: '',
-  numberOfPlayers: roles.length,
+  numberOfPlayers: getPlayerCount(roles),
   roles,
 });
 

@@ -136,5 +136,13 @@ export function normalizeState(raw: GameState): GameState {
     // 觉醒石像鬼（透传）
     convertedSeat: raw.convertedSeat,
     conversionRevealAcks: raw.conversionRevealAcks ?? [],
+
+    // 盗宝大师（透传）
+    bottomCards: raw.bottomCards,
+    treasureMasterSeat: raw.treasureMasterSeat,
+    treasureMasterChosenCard: raw.treasureMasterChosenCard,
+    effectiveTeam: raw.effectiveTeam,
+    bottomCardStepRoles: raw.bottomCardStepRoles,
+    autoSkipDeadline: raw.autoSkipDeadline,
   } satisfies Complete<GameState>;
 }

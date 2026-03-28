@@ -57,10 +57,12 @@ export {
   SCHEMAS,
 } from './models/roles';
 export {
+  BOTTOM_CARD_COUNT,
   createCustomTemplate,
   createTemplateFromRoles,
   findMatchingPresetName,
   type GameTemplate,
+  getPlayerCount,
   PRESET_TEMPLATES,
   type PresetTemplate,
   TEMPLATE_CATEGORY_LABELS,
