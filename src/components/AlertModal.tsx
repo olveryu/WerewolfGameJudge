@@ -124,7 +124,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     alertBox: {
       backgroundColor: colors.surface,
-      borderRadius: borderRadius.xlarge,
+      borderRadius: borderRadius.large,
       padding: spacing.large,
       minWidth: Math.min(componentSizes.modal.minWidth, screenWidth * 0.85),
       maxWidth: screenWidth * 0.85,
@@ -150,8 +150,8 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     button: {
       backgroundColor: colors.primary,
-      borderRadius: borderRadius.full,
-      paddingVertical: spacing.medium,
+      borderRadius: borderRadius.medium,
+      paddingVertical: spacing.small,
       paddingHorizontal: spacing.large,
       alignItems: 'center',
       ...(buttonCount === 2 ? { flex: 1 } : {}),
