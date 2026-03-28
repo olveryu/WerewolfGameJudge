@@ -407,12 +407,7 @@ export class GameFacade implements IGameFacade {
     this.#connectionRecovery.setAborted(true);
     this.#connectionRecovery.dispose();
 
-    const mySeat = this.getMySeatNumber();
-
-    // 如果在座，通过 HTTP API 离座
-    if (mySeat !== null && this.#myUid) {
-      await seatActions.leaveSeat(this.#getSeatActionsContext());
-    }
+    // 不自动离座——玩家回到房间时按 UID 恢复原座位
 
     // Stop currently playing audio and release preloaded audio to free memory
     this.#audioService.stop();
