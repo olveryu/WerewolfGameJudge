@@ -82,10 +82,13 @@ fi
 if [ -f dist/index.html ]; then
   # 从原始 index.html 提取所有 bundle 引用（保持 Expo 输出顺序：runtime → common → index）
   SCRIPT_TAGS=""
+  JS_ASSET_LIST=""
   JS_COUNT=0
   while IFS= read -r jsref; do
     fname=$(echo "$jsref" | sed 's|.*/_expo/static/js/web/||')
     SCRIPT_TAGS="${SCRIPT_TAGS}    <script src=\"/assets/js/${fname}\" defer></script>\n"
+    [ -n "$JS_ASSET_LIST" ] && JS_ASSET_LIST="$JS_ASSET_LIST,"
+    JS_ASSET_LIST="$JS_ASSET_LIST'/assets/js/$fname'"
     JS_COUNT=$((JS_COUNT + 1))
   done < <(grep -oE '/_expo/static/js/web/[^"]+\.js' dist/index.html)
 
@@ -94,6 +97,7 @@ if [ -f dist/index.html ]; then
     for jsfile in dist/assets/js/index-*.js; do
       fname=$(basename "$jsfile")
       SCRIPT_TAGS="    <script src=\"/assets/js/${fname}\" defer></script>\n"
+      JS_ASSET_LIST="'/assets/js/$fname'"
       JS_COUNT=1
       break
     done
@@ -111,11 +115,13 @@ for jsfile in dist/assets/js/*.js; do
   perl -i -pe 's|/_expo/static/js/web/|/assets/js/|g' "$jsfile" 2>/dev/null
 done
 
-# Service Worker 缓存版本号（使用 git commit hash，同一 commit 构建结果不变）
-SW_VERSION="werewolf-judge-$(git rev-parse --short HEAD)"
+# Service Worker 缓存版本号（使用构建时间戳自动递增）
+SW_VERSION="werewolf-judge-$(date +%Y%m%d%H%M%S)"
 if [ -f dist/sw.js ]; then
   perl -i -pe "s|__SW_CACHE_VERSION__|$SW_VERSION|g" dist/sw.js
-  echo "✅ SW 缓存版本: $SW_VERSION"
+  # 注入 JS entry bundle 列表（确保 SW 更新时新 bundle 已预缓存，避免白屏）
+  perl -i -pe "s|/\\* __JS_ASSETS__ \\*/|$JS_ASSET_LIST|g" dist/sw.js
+  echo "✅ SW 缓存版本: $SW_VERSION（含 ${JS_COUNT} 个 JS bundle 预缓存）"
 fi
 
 echo "✅ 构建完成"

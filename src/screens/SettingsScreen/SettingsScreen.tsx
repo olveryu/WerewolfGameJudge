@@ -88,6 +88,8 @@ export const SettingsScreen: React.FC = () => {
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
+  // Suppress LoginOptions flash during transient auth state (e.g. updateUser → onAuthStateChange)
+  const wasAuthenticatedRef = useRef(isAuthenticated);
   useEffect(() => {
     const isAnonymous = user?.isAnonymous;
     if (wasAnonymousRef.current && user && !isAnonymous) {
@@ -98,7 +100,8 @@ export const SettingsScreen: React.FC = () => {
         .catch((err: unknown) => settingsLog.warn('Profile sync to GameState failed:', err));
     }
     wasAnonymousRef.current = isAnonymous;
-  }, [user, facade]);
+    if (isAuthenticated) wasAuthenticatedRef.current = true;
+  }, [user, facade, isAuthenticated]);
 
   const handleAuthSuccess = useCallback(() => {
     setShowAuthForm(false);
@@ -556,6 +559,12 @@ export const SettingsScreen: React.FC = () => {
           )}
         </>
       );
+    }
+
+    // If user was previously authenticated in this session, suppress LoginOptions
+    // during transient auth state flashes (e.g. Supabase SDK onAuthStateChange glitch)
+    if (wasAuthenticatedRef.current) {
+      return null;
     }
 
     return (

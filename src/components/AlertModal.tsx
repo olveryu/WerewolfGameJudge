@@ -10,7 +10,6 @@ import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } 
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
-  componentSizes,
   fixed,
   shadows,
   spacing,
@@ -126,8 +125,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
       backgroundColor: colors.surface,
       borderRadius: borderRadius.large,
       padding: spacing.large,
-      minWidth: Math.min(componentSizes.modal.minWidth, screenWidth * 0.85),
-      maxWidth: screenWidth * 0.85,
+      width: screenWidth * 0.85,
       ...shadows.lg,
     },
     title: {
@@ -152,7 +150,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
       backgroundColor: colors.primary,
       borderRadius: borderRadius.medium,
       paddingVertical: spacing.small,
-      paddingHorizontal: spacing.large,
+      paddingHorizontal: spacing.medium,
       alignItems: 'center',
       ...(buttonCount === 2 ? { flex: 1 } : {}),
     },

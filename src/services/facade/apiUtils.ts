@@ -90,6 +90,21 @@ async function callApiOnce(
 
     const result = (await res.json()) as ApiResponse;
 
+    // [DIAG] Log server response state fields for debugging
+    if (result.state && typeof result.state === 'object') {
+      const s = result.state as Record<string, unknown>;
+      facadeLog.debug('[DIAG] API response state', {
+        path,
+        revision: result.revision,
+        currentStepId: s.currentStepId,
+        autoSkipDeadline: s.autoSkipDeadline,
+        isAudioPlaying: s.isAudioPlaying,
+        pendingAudioEffectsCount: Array.isArray(s.pendingAudioEffects)
+          ? s.pendingAudioEffects.length
+          : 0,
+      });
+    }
+
     // Optimistic Response: HTTP 响应含 state 时立即 apply，不等 broadcast
     if (result.success && result.state && result.revision != null && store) {
       store.applySnapshot(result.state as never, result.revision);

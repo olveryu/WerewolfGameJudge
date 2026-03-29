@@ -290,5 +290,49 @@ describe('runInlineProgression', () => {
       // autoSkipDeadline should be cleared (advance clears it)
       expect(result.finalState.currentStepId).not.toBe('poisonerPoison');
     });
+
+    it('should defer autoSkipDeadline when advancing into vacant step produces audio', () => {
+      // Scenario: wolfKill complete → advance → lands on poisonerPoison (vacant).
+      // Step transition produces audio effects → deadline should NOT be set yet.
+      // It will be set later when audio-ack triggers another inline progression.
+      const templateRoles = ['treasureMaster', 'wolf', 'seer', 'poisoner', 'villager'] as const;
+      const plan = buildNightPlan(templateRoles);
+      const wolfKillIdx = plan.steps.findIndex((s) => s.stepId === 'wolfKill');
+      expect(wolfKillIdx).toBeGreaterThanOrEqual(0);
+
+      const nowMs = Date.now();
+      const state: GameState = {
+        roomCode: 'TEST',
+        hostUid: 'host',
+        status: GameStatus.Ongoing,
+        templateRoles: [...templateRoles],
+        players: {
+          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'treasureMaster' },
+          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+          2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
+          3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+        },
+        currentStepIndex: wolfKillIdx,
+        currentStepId: 'wolfKill',
+        isAudioPlaying: false,
+        actions: [{ schemaId: 'wolfKill', actorSeat: 1, timestamp: 1 }],
+        pendingRevealAcks: [],
+        currentNightResults: { wolfVotesBySeat: { '1': 3 } },
+        treasureMasterChosenCard: 'seer',
+        bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
+        treasureMasterSeat: 0,
+      };
+
+      const result = runInlineProgression(state, 'host', nowMs);
+
+      // Should advance past wolfKill into poisonerPoison
+      expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
+      // Audio effects should be produced (step transition audio)
+      expect(result.audioEffects.length).toBeGreaterThan(0);
+      // autoSkipDeadline should NOT be set — deferred until audio-ack
+      expect(result.finalState.autoSkipDeadline).toBeUndefined();
+      // isAudioPlaying should be set (audio effects → SET_AUDIO_PLAYING)
+      expect(result.finalState.isAudioPlaying).toBe(true);
+    });
   });
 });

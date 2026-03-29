@@ -228,8 +228,15 @@ export function runInlineProgression(
   }
 
   // Set autoSkipDeadline if we stopped at a vacant bottom card step without one.
-  // This covers both: initial entry (no advance happened) and post-advance landing.
-  if (isUnchosenBottomCardStep(currentState) && currentState.autoSkipDeadline == null) {
+  // Only when there are NO pending audio effects — if audio is about to play,
+  // defer deadline to the audio-ack's inline progression so the random delay
+  // starts AFTER audio finishes (avoids server clock race where audio duration
+  // overlaps with the deadline window).
+  if (
+    isUnchosenBottomCardStep(currentState) &&
+    currentState.autoSkipDeadline == null &&
+    allAudioEffects.length === 0
+  ) {
     const deadline = nowMs + randomIntInclusive(AUTO_SKIP_DELAY_MIN_MS, AUTO_SKIP_DELAY_MAX_MS);
     const setDeadlineAction: StateAction = {
       type: 'SET_AUTO_SKIP_DEADLINE',

@@ -12,14 +12,19 @@ const STATIC_ASSETS = [
   '/assets/pwa/apple-touch-icon.png',
 ];
 
-// 安装事件 - 缓存静态资源
+// JS entry bundle 列表（由 build.sh 注入，确保 SW 更新时新 bundle 已预缓存，避免白屏）
+const JS_ASSETS = [
+  /* __JS_ASSETS__ */
+];
+
+// 安装事件 - 缓存静态资源 + JS entry bundle
 // 不调用 skipWaiting()：等待页面 postMessage('SKIP_WAITING') 后再激活，
 // 避免新 SW 中途接管导致旧 JS bundle 被清缓存 → 白屏。
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
+      console.log('[SW] Caching static assets + JS bundles');
+      return cache.addAll(STATIC_ASSETS.concat(JS_ASSETS));
     }),
   );
 });

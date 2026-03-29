@@ -279,6 +279,27 @@ export class AudioOrchestrator {
         }
       }
       this.#isPlayingEffects = false;
+
+      // Re-check: audio-ack 的内联推进可能产生了新 pendingAudioEffects（如 role_end + night_end），
+      // 但 applySnapshot 触发 store subscription 时 #isPlayingEffects 还为 true 被跳过了。
+      // 释放 flag 后需要补偿触发一次。
+      const postAckState = this.#deps.store.getState();
+
+      // [DIAG] Log store state after ack for debugging
+      facadeLog.debug('[DIAG] AudioOrchestrator post-ack store state', {
+        currentStepId: postAckState?.currentStepId,
+        autoSkipDeadline: postAckState?.autoSkipDeadline,
+        isAudioPlaying: postAckState?.isAudioPlaying,
+        pendingAudioEffectsCount: postAckState?.pendingAudioEffects?.length ?? 0,
+      });
+      if (
+        postAckState?.pendingAudioEffects &&
+        postAckState.pendingAudioEffects.length > 0 &&
+        this.#deps.isHost() &&
+        !this.#wasAudioInterrupted
+      ) {
+        void this.#playPendingAudioEffects(postAckState.pendingAudioEffects);
+      }
     }
   }
 

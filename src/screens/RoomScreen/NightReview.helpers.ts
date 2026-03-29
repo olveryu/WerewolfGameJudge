@@ -55,10 +55,20 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   const lines: string[] = [];
   const nr = gameState.currentNightResults;
 
-  // 0. TreasureMaster card choice
+  // 0. TreasureMaster: bottom cards composition + card choice + skipped roles
+  if (gameState.bottomCards && gameState.bottomCards.length > 0) {
+    const cardNames = gameState.bottomCards.map((id) => getRoleDisplayName(id)).join('、');
+    lines.push(`${getRoleEmoji('treasureMaster' as RoleId)} 底牌组成：${cardNames}`);
+  }
   if (gameState.treasureMasterChosenCard) {
     const chosenName = getRoleDisplayName(gameState.treasureMasterChosenCard as RoleId);
     lines.push(`${getRoleEmoji('treasureMaster' as RoleId)} 盗宝大师选择了 ${chosenName}`);
+  }
+  if (gameState.bottomCardStepRoles && gameState.bottomCardStepRoles.length > 0) {
+    for (const roleId of gameState.bottomCardStepRoles) {
+      const roleName = getRoleDisplayName(roleId);
+      lines.push(`⏭️ ${roleName}（底牌）跳过行动`);
+    }
   }
 
   // 1. Wolf kill vote

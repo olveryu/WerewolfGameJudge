@@ -64,10 +64,27 @@ export class GameStore implements IWritableGameStore {
       return;
     }
 
+    // [DIAG] Log incoming state before normalize
+    gameStoreLog.debug('[DIAG] applySnapshot incoming', {
+      revision,
+      currentStepId: state.currentStepId,
+      autoSkipDeadline: state.autoSkipDeadline,
+      isAudioPlaying: state.isAudioPlaying,
+    });
+
     // 权威 state 到达 → 清除乐观标记
     this.#confirmedState = null;
     this.#state = normalizeState(state);
     this.#revision = revision;
+
+    // [DIAG] Log state after normalize
+    gameStoreLog.debug('[DIAG] applySnapshot after normalize', {
+      revision,
+      currentStepId: this.#state.currentStepId,
+      autoSkipDeadline: this.#state.autoSkipDeadline,
+      isAudioPlaying: this.#state.isAudioPlaying,
+    });
+
     this.#notifyListeners();
   }
 

@@ -28,6 +28,20 @@ interface BottomCardItem {
   isWolf: boolean;
 }
 
+/**
+ * 根据底牌 Faction 分布计算阵营显示文案。
+ * 规则（同 description）：含狼→狼人阵营；无狼+≥2神→神职阵营；无狼+≥2民→平民阵营。
+ */
+function getTeamDisplayLabel(bottomCards: readonly string[]): string {
+  const factions = bottomCards.map((r) => ROLE_SPECS[r as keyof typeof ROLE_SPECS]?.faction);
+  if (factions.some((f) => f === Faction.Wolf)) return '狼人阵营';
+  const godCount = factions.filter((f) => f === Faction.God).length;
+  if (godCount >= 2) return '神职阵营';
+  const villagerCount = factions.filter((f) => f === Faction.Villager).length;
+  if (villagerCount >= 2) return '平民阵营';
+  return '好人阵营';
+}
+
 interface ChooseBottomCardModalProps {
   visible: boolean;
   bottomCards: readonly string[];
@@ -54,6 +68,12 @@ function createStyles(colors: ThemeColors) {
     title: {
       ...textStyles.subtitle,
       color: colors.text,
+      textAlign: 'center',
+      marginBottom: spacing.micro,
+    },
+    teamSubtitle: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
       textAlign: 'center',
       marginBottom: spacing.medium,
     },
@@ -140,10 +160,11 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.container}>
           <Text style={styles.title}>选择底牌</Text>
+          <Text style={styles.teamSubtitle}>你的阵营：{getTeamDisplayLabel(bottomCards)}</Text>
           <View style={styles.cardList}>
             {cards.map((card, index) => (
               <TouchableOpacity
-                key={card.roleId}
+                key={`${card.roleId}-${index}`}
                 style={[styles.card, card.isWolf && styles.cardDisabled]}
                 disabled={card.isWolf}
                 activeOpacity={0.7}

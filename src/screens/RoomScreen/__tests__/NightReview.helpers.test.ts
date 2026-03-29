@@ -18,6 +18,9 @@ function makeGameState(
     actions: Map<RoleId, ReturnType<typeof makeActionTarget>>;
     seerReveal: { targetSeat: number; result: '好人' | '狼人' };
     wolfRobotReveal: { targetSeat: number; result: string; learnedRoleId: string };
+    bottomCards: readonly RoleId[];
+    bottomCardStepRoles: readonly RoleId[];
+    treasureMasterChosenCard: RoleId;
   }> = {},
 ): LocalGameState {
   return {
@@ -27,6 +30,9 @@ function makeGameState(
     actions: overrides.actions ?? new Map(),
     seerReveal: overrides.seerReveal,
     wolfRobotReveal: overrides.wolfRobotReveal,
+    bottomCards: overrides.bottomCards,
+    bottomCardStepRoles: overrides.bottomCardStepRoles,
+    treasureMasterChosenCard: overrides.treasureMasterChosenCard,
   } as unknown as LocalGameState;
 }
 
@@ -125,6 +131,33 @@ describe('NightReview.helpers', () => {
         }),
       );
       expect(lines).toContainEqual(expect.stringContaining('狼人放弃袭击'));
+    });
+
+    it('shows bottom cards composition', () => {
+      const lines = buildActionLines(
+        makeGameState({
+          bottomCards: ['seer' as RoleId, 'guard' as RoleId, 'villager' as RoleId],
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('底牌组成'));
+      expect(lines).toContainEqual(expect.stringContaining('预言家'));
+      expect(lines).toContainEqual(expect.stringContaining('守卫'));
+      expect(lines).toContainEqual(expect.stringContaining('普通村民'));
+    });
+
+    it('shows treasureMaster chosen card', () => {
+      const lines = buildActionLines(makeGameState({ treasureMasterChosenCard: 'seer' as RoleId }));
+      expect(lines).toContainEqual(expect.stringContaining('盗宝大师选择了 预言家'));
+    });
+
+    it('shows skipped bottom card step roles', () => {
+      const lines = buildActionLines(
+        makeGameState({
+          bottomCardStepRoles: ['guard' as RoleId, 'seer' as RoleId],
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('守卫（底牌）跳过行动'));
+      expect(lines).toContainEqual(expect.stringContaining('预言家（底牌）跳过行动'));
     });
 
     it('shows slacker idol choice', () => {
