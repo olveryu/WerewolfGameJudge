@@ -242,57 +242,74 @@ export class AudioOrchestrator {
     const { audioService } = this.#deps;
 
     try {
-      for (const effect of effects) {
-        if (this.#deps.isAborted()) break;
-        try {
-          if (effect.isEndAudio) {
-            await audioService.playRoleEndingAudio(effect.audioKey);
-          } else if (effect.audioKey === 'night') {
-            await audioService.playNightAudio();
-          } else if (effect.audioKey === 'night_end') {
-            // 音频时序：天亮语音前立即停 BGM，避免 BGM 与"天亮了"语音重叠。
-            audioService.stopBgm();
-            await audioService.playNightEndAudio();
-          } else {
-            await audioService.playRoleBeginningAudio(effect.audioKey);
-          }
-        } catch (e) {
-          // 单个音频失败不阻断队列（与 resumeAfterRejoin 一致）
-          facadeLog.warn('Audio effect playback failed, continuing', {
-            audioKey: effect.audioKey,
-            error: e,
+      let currentEffects: AudioEffect[] | undefined = effects;
+
+      // Loop: play effects → ack → re-check for new effects that arrived during playback.
+      // Uses a loop instead of recursion to avoid unbounded stack/heap growth.
+      // Max iterations caps at 2 × nightSteps (generous upper bound for role_end + night_end chains).
+      const maxIterations = 20;
+      let iteration = 0;
+
+      while (currentEffects && currentEffects.length > 0) {
+        if (++iteration > maxIterations) {
+          facadeLog.warn('playPendingAudioEffects exceeded max iterations, breaking', {
+            maxIterations,
           });
+          break;
+        }
+        for (const effect of currentEffects) {
+          if (this.#deps.isAborted()) break;
+          try {
+            if (effect.isEndAudio) {
+              await audioService.playRoleEndingAudio(effect.audioKey);
+            } else if (effect.audioKey === 'night') {
+              await audioService.playNightAudio();
+            } else if (effect.audioKey === 'night_end') {
+              // 音频时序：天亮语音前立即停 BGM，避免 BGM 与"天亮了"语音重叠。
+              audioService.stopBgm();
+              await audioService.playNightEndAudio();
+            } else {
+              await audioService.playRoleBeginningAudio(effect.audioKey);
+            }
+          } catch (e) {
+            // 单个音频失败不阻断队列（与 resumeAfterRejoin 一致）
+            facadeLog.warn('Audio effect playback failed, continuing', {
+              audioKey: effect.audioKey,
+              error: e,
+            });
+          }
+        }
+
+        // POST audio-ack 释放 gate
+        if (!this.#deps.isAborted()) {
+          const ackResult = await gameActions.postAudioAck(this.#deps.getActionsContext());
+          if (!ackResult.success) {
+            facadeLog.warn('postAudioAck failed during playback, will retry on reconnect', {
+              reason: ackResult.reason,
+            });
+            this.#pendingAudioAckRetry = true;
+            this.#registerOnlineRetry();
+            break; // ack 失败，不再 re-check（等 retry 路径恢复）
+          }
+        }
+
+        // Re-check: audio-ack 的内联推进可能产生了新 pendingAudioEffects（如 role_end + night_end），
+        // 但 applySnapshot 触发 store subscription 时 #isPlayingEffects 还为 true 被跳过了。
+        // 仅在 ack 成功后 re-check 一次；ack 失败时 break 出循环。
+        const postAckState = this.#deps.store.getState();
+        if (
+          postAckState?.pendingAudioEffects &&
+          postAckState.pendingAudioEffects.length > 0 &&
+          this.#deps.isHost() &&
+          !this.#wasAudioInterrupted
+        ) {
+          currentEffects = postAckState.pendingAudioEffects;
+        } else {
+          currentEffects = undefined;
         }
       }
     } finally {
-      // 无论成功/失败/中断，都 POST audio-ack 释放 gate
-      // 注意：#isPlayingEffects 在 ack 完成后才释放，防止 ack 在途期间
-      // applySnapshot 触发 store subscription 导致重入（CRIT-01）
-      if (!this.#deps.isAborted()) {
-        const ackResult = await gameActions.postAudioAck(this.#deps.getActionsContext());
-        if (!ackResult.success) {
-          facadeLog.warn('postAudioAck failed during playback, will retry on reconnect', {
-            reason: ackResult.reason,
-          });
-          this.#pendingAudioAckRetry = true;
-          this.#registerOnlineRetry();
-        }
-      }
       this.#isPlayingEffects = false;
-
-      // Re-check: audio-ack 的内联推进可能产生了新 pendingAudioEffects（如 role_end + night_end），
-      // 但 applySnapshot 触发 store subscription 时 #isPlayingEffects 还为 true 被跳过了。
-      // 释放 flag 后需要补偿触发一次。
-      const postAckState = this.#deps.store.getState();
-
-      if (
-        postAckState?.pendingAudioEffects &&
-        postAckState.pendingAudioEffects.length > 0 &&
-        this.#deps.isHost() &&
-        !this.#wasAudioInterrupted
-      ) {
-        void this.#playPendingAudioEffects(postAckState.pendingAudioEffects);
-      }
     }
   }
 
