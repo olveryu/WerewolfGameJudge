@@ -97,7 +97,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌含狼', () => {
       treasureMaster: { cardIndex: 1 }, // 选 crow（index 1）
       dreamcatcher: 0, // 摄梦 seat 0
       crow: 3, // treasureMaster 代行 crowCurse，诅咒 seat 3
-      wolf: null, // 毒师在场，首夜必须空刀
+      wolf: null, // 毒师在场，首夜无法袭击
       poisoner: null, // 不毒
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
@@ -114,7 +114,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌含狼', () => {
     expect(state.bottomCardStepRoles).toEqual(expect.arrayContaining(['wolf', 'crow']));
 
     // wolfKill 正常执行（底牌有 wolf 但玩家中仍有 wolf×2，不应被 auto-skip）
-    // 毒师在场，首夜必须空刀→无狼刀死亡
+    // 毒师在场，首夜无法袭击→无袭击死亡
     expect(result.deaths).toEqual([]);
 
     // crowCurse 由盗宝代行 → cursedSeat 已写入
@@ -137,7 +137,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌含狼', () => {
       treasureMaster: { cardIndex: 2 }, // 选 villager（index 2）
       dreamcatcher: 0,
       // crow 在底牌且未被选 → crowCurse auto-skip
-      wolf: null, // 毒师在场，首夜必须空刀
+      wolf: null, // 毒师在场，首夜无法袭击
       poisoner: null,
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
@@ -156,7 +156,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌含狼', () => {
     expect(state.currentNightResults?.cursedSeat).toBeUndefined();
 
     // wolfKill 仍正常执行（wolf×2 仍是玩家）
-    // 毒师在场，首夜必须空刀→无死亡
+    // 毒师在场，首夜无法袭击→无死亡
     expect(result.deaths).toEqual([]);
   });
 });
@@ -221,7 +221,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌无狼', () => {
       treasureMaster: { cardIndex: 1 }, // 选 dreamcatcher（index 1）
       dreamcatcher: 0, // treasureMaster 代行 dreamcatcherDream，摄梦 seat 0
       crow: 3, // crow 是玩家，正常诅咒 seat 3
-      wolf: null, // 毒师在模板中（底牌），首夜必须空刀
+      wolf: null, // 毒师在模板中（底牌），首夜无法袭击
       // poisoner 在底牌且未被选 → poisonerPoison auto-skip
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
@@ -241,7 +241,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌无狼', () => {
     expect(state.currentNightResults?.dreamingSeat).toBe(0);
 
     // poisonerPoison 被 auto-skip（poisoner 在底牌且未被选）
-    // 毒师在模板中（底牌），首夜必须空刀→无狼刀死亡
+    // 毒师在模板中（底牌），首夜无法袭击→无袭击死亡
     expect(result.deaths).toEqual([]);
 
     // crowCurse 正常（crow 是玩家）
@@ -257,7 +257,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌无狼', () => {
       treasureMaster: { cardIndex: 0 }, // 选 poisoner（index 0）
       // dreamcatcher 在底牌且未被选 → dreamcatcherDream auto-skip
       crow: 3,
-      wolf: null, // 毒师在模板中（底牌），首夜必须空刀
+      wolf: null, // 毒师在模板中（底牌），首夜无法袭击
       poisoner: 2, // treasureMaster 代行 poisonerPoison，毒杀 seat 2
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
@@ -275,7 +275,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌无狼', () => {
     expect(state.currentNightResults?.dreamingSeat).toBeUndefined();
 
     // poisonerPoison 由盗宝代行 → seat 2 被毒
-    // 狼空刀（毒师在模板）+ seat 2 被毒
+    // 狼无法袭击（毒师在模板）+ seat 2 被毒
     expect(result.deaths).toEqual([2]);
   });
 });

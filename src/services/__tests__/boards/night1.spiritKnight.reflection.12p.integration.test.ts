@@ -163,13 +163,13 @@ describe('Night-1: 恶灵骑士 - Spirit Knight Reflection (12p)', () => {
     });
   });
 
-  describe('Wolf 刀 spiritKnight → 禁选（免疫实现）', () => {
+  describe('Wolf 袭击 spiritKnight → 禁选（免疫实现）', () => {
     /**
      * spiritKnight 的袭击免疫是通过“禁选”实现的（immuneToWolfKill flag）。
      * 狼人在投票时就无法选择 spiritKnight，而不是事后结算时免疫。
      * 此测试验证狼人选择其他目标时的正常流程。
      */
-    it('wolf 刀 villager(0)，流程正常执行', () => {
+    it('wolf 袭击 villager(0)，流程正常执行', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {

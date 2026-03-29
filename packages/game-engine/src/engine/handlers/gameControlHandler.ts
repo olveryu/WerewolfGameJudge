@@ -305,7 +305,7 @@ export function handleStartNight(
     actions.push(confirmStatusAction);
   }
 
-  // 毒师在场：首夜狼人仅可空刀（板子级规则）
+  // 毒师在场：首夜狼人无法袭击（板子级规则）
   if (state.templateRoles.includes('poisoner' as RoleId)) {
     const wolfKillOverrideAction: SetWolfKillOverrideAction = {
       type: 'SET_WOLF_KILL_OVERRIDE',

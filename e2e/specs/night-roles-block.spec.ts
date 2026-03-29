@@ -344,10 +344,10 @@ test.describe('Night Roles — Block / Skip', () => {
           (v, i, a) => a.indexOf(v) === i,
         );
 
-        // Wait for wolf step on any wolf page — detect "无法刀人" or "封锁"
+        // Wait for wolf step on any wolf page — detect "无法袭击" or "封锁"
         const wolfBlocked = await waitForRoleTurn(
           pages[allWolfIndices[0]],
-          ['无法刀人', '封锁'],
+          ['无法袭击', '封锁'],
           pages,
           120,
         );

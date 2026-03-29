@@ -53,7 +53,7 @@ TRAILING_SILENCE: dict[str, int] = {
 BEGIN_TEXT: dict[str, str] = {
     "night": "天黑请闭眼。",
     "night_end": "天亮了，倒数三秒闭眼举手上警，三，二，一。睁眼。",
-    "wolf": "狼人请睁眼，互相确认身份后，请选择要击杀的玩家。",
+    "wolf": "狼人请睁眼，互相确认身份后，请选择要袭击的玩家。",
     "wolf_queen": "狼美人请睁眼，请选择魅惑的对象。",
     "dark_wolf_king": "黑狼王请睁眼，请确认开枪状态。",
     "nightmare": "梦魇请睁眼，请选择要恐惧的玩家。",

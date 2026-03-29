@@ -1,7 +1,7 @@
 /**
  * Night-1 Integration Test: Nightmare Blocks Actions and Disables Wolf Kill
  *
- * 主题：梦魇阻断神职技能 + 选中狼导致禁刀。
+ * 主题：梦魇阻断神职技能 + 选中狼导致禁止袭击。
  *
  * 模板：梦魇守卫
  * 固定 seat-role assignment:
@@ -55,7 +55,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
     cleanupGame();
   });
 
-  describe('Nightmare 阻断狼阵营 → 禁刀', () => {
+  describe('Nightmare 阻断狼阵营 → 禁止袭击', () => {
     it('nightmare 选中 wolf(4)，wolfKillOverride set', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
@@ -93,13 +93,13 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       expect(blockResult.success).toBe(true);
       ctx.advanceNight();
 
-      // nightmare 是狼阵营，选中自己也触发禁刀
+      // nightmare 是狼阵营，选中自己也触发禁止袭击
       const state = ctx.getGameState();
       expect(state.currentNightResults?.wolfKillOverride).toBeDefined();
     });
   });
 
-  describe('Nightmare 阻断好人阵营 → 不禁刀', () => {
+  describe('Nightmare 阻断好人阵营 → 不禁止袭击', () => {
     it('nightmare 选中 villager(0)，wolfKillOverride 不设置', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
       ctx.assertStep('nightmareBlock');

@@ -72,10 +72,10 @@ export const WOLF_KILL_OVERRIDE_TEXTS = {
     rejectMessage: BLOCKED_UI_DEFAULTS.message,
   },
   poisoner: {
-    promptTitle: '首夜空刀',
-    promptMessage: '本局有毒师在场，首夜仅可空刀',
-    emptyVoteText: '放弃袭击（首夜空刀）',
-    rejectMessage: '本局有毒师在场，首夜仅可空刀',
+    promptTitle: '首夜无法袭击',
+    promptMessage: '本局有毒师在场，首夜无法袭击',
+    emptyVoteText: '放弃袭击（首夜无法袭击）',
+    rejectMessage: '本局有毒师在场，首夜无法袭击',
   },
 } as const satisfies Record<string, WolfKillOverrideUi>;
 

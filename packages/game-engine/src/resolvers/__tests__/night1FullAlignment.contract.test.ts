@@ -182,7 +182,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
 
       const input: ActionInput = {
         schemaId: 'wolfKill',
-        target: wolfSeat, // 刀自己
+        target: wolfSeat, // 袭击自己
       };
 
       const result = resolver!(context, input);

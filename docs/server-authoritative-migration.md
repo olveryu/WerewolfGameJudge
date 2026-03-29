@@ -1063,7 +1063,7 @@ Player 端：
 - 更新相关单元测试（hostActions, messageRouter, progressionEvaluator）
 - E2E：`night-2p.spec.ts`、`night-6p.spec.ts`、`restart.spec.ts` 全部通过
 - 手动测试关键场景：
-  - 正常夜晚流程（预言家查验 → 女巫救人 → 狼人杀人 → 天亮）
+  - 正常夜晚流程（预言家查验 → 女巫救人 → 狼人袭击 → 天亮）
   - Host 切后台 → Player 操作仍然正常
   - Wolf vote 5s countdown → 自动推进
   - 带 reveal 的角色（预言家/石像鬼）→ ACK 后推进

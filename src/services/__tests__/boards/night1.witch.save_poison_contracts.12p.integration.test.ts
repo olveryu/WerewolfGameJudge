@@ -130,7 +130,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
   describe('notSelf 约束：女巫不能自救', () => {
     /**
      * notSelf 约束在 UI 层就是禁选：女巫无法在 UI 上选择自己。
-     * 这里验证：当女巫自己被刀时，只能选择不救（skip）。
+     * 这里验证：当女巫自己被袭击时，只能选择不救（skip）。
      * reject 的直接测试由 schema/resolver contract 测试覆盖。
      */
     it('袭击女巫 seat(9) 时，女巫 skip 救人，女巫死亡', () => {
@@ -139,7 +139,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       // 袭击 seat 9（witch），女巫 skip（因为不能自救）
       const result = executeFullNight(ctx, {
         magician: null,
-        wolf: 9, // 刀女巫
+        wolf: 9, // 袭击女巫
         witch: { save: null, poison: null }, // 不救（自救被禁）
         seer: 4,
       });
@@ -187,7 +187,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       const result = executeFullNight(ctx, {
         magician: null,
         wolf: 0,
-        witch: { save: 0, poison: null }, // 救被刀的人
+        witch: { save: 0, poison: null }, // 救被袭击的人
         seer: 4,
       });
 

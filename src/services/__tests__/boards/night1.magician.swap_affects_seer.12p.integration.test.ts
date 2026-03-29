@@ -160,7 +160,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
       // 袭击 seat 0，女巫毒 seat 4
       const result = executeFullNight(ctx, {
         magician: { targets: [0, 4] },
-        wolf: 0, // 刀 seat 0
+        wolf: 0, // 袭击 seat 0
         witch: { save: null, poison: 4 }, // 毒 seat 4
         seer: 1,
       });

@@ -450,7 +450,7 @@ describe('DeathCalculator', () => {
       expect(deaths).toEqual([0]);
     });
 
-    it('封锁狼人 → 狼人无法杀人', () => {
+    it('封锁狼人 → 狼人无法袭击', () => {
       const actions: NightActions = {
         wolfKill: 0, // 狼想杀0号
         isWolfBlockedByNightmare: true, // 梦魇封锁了狼人
@@ -458,7 +458,7 @@ describe('DeathCalculator', () => {
 
       const deaths = calculateDeaths(actions);
 
-      // 狼人被封锁，当夜无法杀人
+      // 狼人被封锁，当夜无法袭击
       expect(deaths).toEqual([]);
     });
 

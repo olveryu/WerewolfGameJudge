@@ -276,11 +276,11 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '拥有一瓶毒药，可在夜间毒杀一名玩家；被毒杀的角色无法开枪；有毒师在场时首夜狼人仅可空刀',
+      '拥有一瓶毒药，可在夜间毒杀一名玩家；被毒杀的角色无法开枪；有毒师在场时首夜狼人无法袭击',
     structuredDescription: {
       skill: '可在夜间毒杀一名玩家',
       passive: '拥有一瓶毒药',
-      restriction: '被毒杀的角色无法开枪；有毒师在场时首夜狼人仅可空刀',
+      restriction: '被毒杀的角色无法开枪；有毒师在场时首夜狼人无法袭击',
     },
     tags: ['kill'],
     abilities: [
@@ -902,10 +902,10 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '每晚可魅惑一名玩家；白天出局时被魅惑者随之殉情出局，被魅惑者不知情；不能自爆，不能自刀',
+      '每晚可魅惑一名玩家；白天出局时被魅惑者随之殉情出局，被魅惑者不知情；不能自爆，不能袭击自己',
     structuredDescription: {
       skill: '每晚可魅惑一名玩家',
-      restriction: '不能自爆；不能自刀',
+      restriction: '不能自爆；不能袭击自己',
       trigger: '白天出局时被魅惑者随之殉情出局，被魅惑者不知情',
     },
     tags: ['control', 'link'],

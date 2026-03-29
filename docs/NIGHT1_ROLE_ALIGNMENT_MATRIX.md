@@ -194,14 +194,14 @@
 | --------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | **schemaId**                | `wolfKill`                            |                                                                                                  |
 | **kind**                    | `wolfVote`                            | 特殊：多狼投票机制                                                                               |
-| **constraints**             | `[]`                                  | 中立裁判：可刀任意座位                                                                           |
+| **constraints**             | `[]`                                  | 中立裁判：可袭击任意座位                                                                         |
 | **meeting.canSeeEachOther** | `true`                                | 狼人互相可见                                                                                     |
 | **meeting.resolution**      | `majority`                            | 多数投票生效                                                                                     |
 | **meeting.allowEmptyVote**  | `true`                                | 可放弃袭击                                                                                       |
 | **prompt**                  | "请选择袭击目标"                      |                                                                                                  |
 | **emptyVoteText**           | "放弃袭击"                            |                                                                                                  |
 | **revealKind**              | 无                                    |                                                                                                  |
-| **wolfKillDisabled**        | ✅ 检查                               | 梦魇封狼则无法杀人                                                                               |
+| **wolfKillDisabled**        | ✅ 检查                               | 梦魇封狼则无法袭击                                                                               |
 | **结果落点**                | `currentNightResults.wolfVotesBySeat` |                                                                                                  |
 | **UI 目标限制**             | 所有座位（含狼队友/自己）             |                                                                                                  |
 | **Host 权威拒绝**           | ✅                                    | 免疫袭击目标会被 Host/Resolver 拒绝，并通过 `actionRejected` 统一弹“操作无效”提示（UI 不做禁用） |

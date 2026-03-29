@@ -332,10 +332,10 @@ describe('死亡结算对齐 (swap 规则)', () => {
     expect(deaths).not.toContain(1);
   });
 
-  it('两者都死（例如毒和刀）→ swap 无效果', () => {
+  it('两者都死（例如毒和袭击）→ swap 无效果', () => {
     const deaths = calculateDeaths(
       {
-        wolfKill: 0, // A 被刀
+        wolfKill: 0, // A 被袭击
         witchAction: { kind: 'poison', targetSeat: 1 }, // B 被毒
         magicianSwap: { first: 0, second: 1 },
       },

@@ -70,8 +70,8 @@ describe('wolfKillResolver', () => {
     });
   });
 
-  describe('neutral judge (狼人可刀任意目标)', () => {
-    it('应该接受刀村民', () => {
+  describe('neutral judge (狼人可袭击任意目标)', () => {
+    it('应该接受袭击村民', () => {
       const ctx = createContext();
       const input = createInput(0); // villager
 
@@ -81,7 +81,7 @@ describe('wolfKillResolver', () => {
       expect(result.updates?.wolfVotesBySeat?.['2']).toBe(0);
     });
 
-    it('应该接受刀神职 (预言家)', () => {
+    it('应该接受袭击神职 (预言家)', () => {
       const ctx = createContext();
       const input = createInput(4); // seer
 
@@ -91,7 +91,7 @@ describe('wolfKillResolver', () => {
       expect(result.updates?.wolfVotesBySeat?.['2']).toBe(4);
     });
 
-    it('狼人可以刀自己（neutral judge: 不限制 self）', () => {
+    it('狼人可以袭击自己（neutral judge: 不限制 self）', () => {
       const ctx = createContext();
       const input = createInput(2); // wolf kills self
 
@@ -101,7 +101,7 @@ describe('wolfKillResolver', () => {
       expect(result.updates?.wolfVotesBySeat?.['2']).toBe(2);
     });
 
-    it('狼人可以刀狼队友（neutral judge: 不限制 team）', () => {
+    it('狼人可以袭击狼队友（neutral judge: 不限制 team）', () => {
       const ctx = createContext();
       const input = createInput(3); // wolf kills other wolf
 
@@ -149,7 +149,7 @@ describe('wolfKillResolver', () => {
   });
 
   describe('updates', () => {
-    it('刀人时应该更新 wolfVotesBySeat', () => {
+    it('袭击时应该更新 wolfVotesBySeat', () => {
       const ctx = createContext();
       const input = createInput(0);
 

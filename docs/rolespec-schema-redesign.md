@@ -31,7 +31,7 @@
 | dancer           | faction, team, immuneToPoison                                                | 无夜间行为（Night-1 scope）                                                                           | 100%          |
 | silenceElder     | faction, team                                                                | silencedSeat 写入                                                                                     | 50%           |
 | votebanElder     | faction, team                                                                | votebannedSeat 写入                                                                                   | 50%           |
-| wolf             | faction, team, wolfMeeting                                                   | 投票聚合、空刀/撤回哨兵值、免疫角色过滤                                                               | 20%           |
+| wolf             | faction, team, wolfMeeting                                                   | 投票聚合、放弃袭击/撤回哨兵值、免疫角色过滤                                                           | 20%           |
 | wolfQueen        | faction, team, wolfMeeting, immuneToWolfKill                                 | charmTarget 写入、constraints 校验                                                                    | 45%           |
 | wolfKing         | faction, team, wolfMeeting                                                   | 无夜间行为                                                                                            | 100%          |
 | darkWolfKing     | faction, team, wolfMeeting                                                   | confirm UI、canShoot 计算                                                                             | 30%           |
@@ -1399,10 +1399,10 @@ export const ROLE_SPECS_V2 = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '每晚可魅惑一名玩家；白天出局时被魅惑者随之殉情出局，被魅惑者不知情；不能自爆，不能自刀',
+      '每晚可魅惑一名玩家；白天出局时被魅惑者随之殉情出局，被魅惑者不知情；不能自爆，不能袭击自己',
     structuredDescription: {
       skill: '每晚可魅惑一名玩家',
-      restriction: '不能自爆；不能自刀',
+      restriction: '不能自爆；不能袭击自己',
       trigger: '白天出局时被魅惑者随之殉情出局，被魅惑者不知情',
     },
     night1: { hasAction: true },

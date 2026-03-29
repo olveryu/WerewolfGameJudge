@@ -132,7 +132,7 @@ describe('Night-1: 恶灵骑士 - Seer Reveal (12p)', () => {
       // 核心断言 2：guardedSeat 写入
       expect(state.currentNightResults?.guardedSeat).toBe(8);
 
-      // seer 被守卫挡刀，无人死亡
+      // seer 被守卫抵挡袭击，无人死亡
       expect(result.deaths).toEqual([]);
     });
   });

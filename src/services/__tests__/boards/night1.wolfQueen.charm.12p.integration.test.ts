@@ -75,7 +75,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
       expect(charmAction!.actorSeat).toBe(7); // wolfQueen 在 seat 7
       expect(charmAction!.targetSeat).toBe(0); // 魅惑 seat 0
 
-      // 只有被刀的 seat 1 死亡，seat 0 和 wolfQueen 存活
+      // 只有被袭击的 seat 1 死亡，seat 0 和 wolfQueen 存活
       expect(result.deaths).toEqual([1]);
     });
 
@@ -135,14 +135,14 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
      * "If queen is dead, charmed target also dies"
      */
 
-    it('被魅惑者被刀时，只有被魅惑者死（单向链接）', () => {
+    it('被魅惑者被袭击时，只有被魅惑者死（单向链接）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // wolfQueen 魅惑 seat 0，袭击 seat 0
       // 根据当前规则（单向链接），只有 seat 0 死
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 0, // 刀被魅惑者
+        wolf: 0, // 袭击被魅惑者
         wolfQueen: 0, // 魅惑 seat 0
         witch: { save: null, poison: null },
         seer: 4,
@@ -179,7 +179,7 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 1, // 刀 seat 1
+        wolf: 1, // 袭击 seat 1
         wolfQueen: 0, // 魅惑 seat 0（不同于袭击目标）
         witch: { save: null, poison: null },
         seer: 4,

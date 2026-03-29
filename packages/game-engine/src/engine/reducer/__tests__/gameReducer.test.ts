@@ -1193,7 +1193,7 @@ describe('gameReducer', () => {
       const hint = {
         kind: 'blocked_by_nightmare' as const,
         targetRoleIds: ['wolf' as const],
-        message: '梦魇已阻止刀人',
+        message: '梦魇已阻止袭击',
       };
       const action = {
         type: 'SET_UI_HINT' as const,

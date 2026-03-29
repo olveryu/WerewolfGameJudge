@@ -88,8 +88,8 @@ describe('WolfVote Integration Tests', () => {
       expect(wolfVotesBySeat).toBeDefined();
       // At least the lead wolf should have a record
       const wolfSeats = ['4', '5', '6', '7'];
-      const hasEmptyKnifeRecord = wolfSeats.some((seat) => wolfVotesBySeat![seat] === -1);
-      expect(hasEmptyKnifeRecord).toBe(true);
+      const hasEmptyAttackRecord = wolfSeats.some((seat) => wolfVotesBySeat![seat] === -1);
+      expect(hasEmptyAttackRecord).toBe(true);
     });
 
     it('投票后 night 正常结束（不会卡住）', () => {

@@ -15,7 +15,7 @@
  *
  * 核心规则：
  * - 守卫守护的目标免疫袭击
- * - witchContext.killedSeat 在守卫挡刀时的取值需要固化
+ * - witchContext.killedSeat 在守卫抵挡袭击时的取值需要固化
  *
  * 架构：intents → handlers → reducer → GameState
  */
@@ -54,14 +54,14 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
     cleanupGame();
   });
 
-  describe('守卫守护成功挡刀', () => {
+  describe('守卫守护成功抵挡袭击', () => {
     it('守卫守护袭击目标，该目标不死', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 0，袭击 seat 0
       const result = executeFullNight(ctx, {
         guard: 0, // 守 seat 0
-        wolf: 0, // 刀 seat 0
+        wolf: 0, // 袭击 seat 0
         witch: { save: null, poison: null },
         seer: 4,
       });
@@ -81,7 +81,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       // 守卫守 seat 1，袭击 seat 0
       const result = executeFullNight(ctx, {
         guard: 1, // 守 seat 1
-        wolf: 0, // 刀 seat 0
+        wolf: 0, // 袭击 seat 0
         witch: { save: null, poison: null },
         seer: 4,
       });
@@ -113,7 +113,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
    * witchContext.killedSeat 的 contract 由 witchContext.test.ts 单元测试覆盖。
    * Integration 测试只验证最终死亡结果，不检查中间状态。
    *
-   * 守卫挡刀时，witchContext.killedSeat 仍为原目标（女巫能看到谁被刀）。
+   * 守卫抵挡袭击时，witchContext.killedSeat 仍为原目标（女巫能看到谁被袭击）。
    * 这个规则的验证见：src/services/engine/handlers/__tests__/witchContext.test.ts
    */
 
@@ -135,13 +135,13 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       expect(result.deaths).toEqual([0]);
     });
 
-    it('守卫守护 A + 女巫救 B：只有女巫救的 B 生效（如果 B 被刀）', () => {
+    it('守卫守护 A + 女巫救 B：只有女巫救的 B 生效（如果 B 被袭击）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       // 守卫守 seat 1，袭击 seat 0，女巫救 seat 0
       const result = executeFullNight(ctx, {
-        guard: 1, // 守 seat 1（不是被刀的）
-        wolf: 0, // 刀 seat 0
+        guard: 1, // 守 seat 1（不是被袭击的）
+        wolf: 0, // 袭击 seat 0
         witch: { save: 0, poison: null }, // 救 seat 0
         seer: 4,
       });
