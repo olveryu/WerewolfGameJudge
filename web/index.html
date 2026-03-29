@@ -346,16 +346,14 @@
           );
         });
 
-        // 3) On load: read PerformanceNavigationTiming.type and prepend to __diag_reload
-        window.addEventListener('load', function () {
-          try {
-            var navEntries = performance.getEntriesByType('navigation');
-            var navType = navEntries.length > 0 ? navEntries[0].type : 'unknown';
-            localStorage.setItem('__diag_nav_type', navType);
-          } catch (_e) {
-            // ignore
-          }
-        });
+        // 3) Sync: read PerformanceNavigationTiming.type immediately (before React mounts)
+        try {
+          var navEntries = performance.getEntriesByType('navigation');
+          var navType = navEntries.length > 0 ? navEntries[0].type : 'unknown';
+          localStorage.setItem('__diag_nav_type', navType);
+        } catch (_e) {
+          // ignore
+        }
       })();
 
       // 注册 Service Worker（如果支持）
