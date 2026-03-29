@@ -319,10 +319,14 @@
 
       // ─── [DIAG] Reload source tracker ───
       // Write to localStorage BEFORE any reload so SettingsScreen can read the cause.
+      // window.__diagStep is set by React handlers at each async step.
       (function () {
-        // Track pagehide (iOS kills tab)
         window.addEventListener('pagehide', function () {
-          localStorage.setItem('__diag_reload', 'pagehide@' + new Date().toLocaleTimeString());
+          var step = window.__diagStep || 'idle';
+          localStorage.setItem(
+            '__diag_reload',
+            'pagehide[' + step + ']@' + new Date().toLocaleTimeString(),
+          );
         });
       })();
 
@@ -370,9 +374,12 @@
               });
 
               // 主动轮询新版本：每 30 分钟检查一次 sw.js 是否有变化
-              setInterval(function () {
-                reg.update();
-              }, 30 * 60 * 1000);
+              setInterval(
+                function () {
+                  reg.update();
+                },
+                30 * 60 * 1000,
+              );
 
               // 用户切回前台时检查新版本（60s debounce 防止频繁切换）
               var lastVisibilityCheck = 0;

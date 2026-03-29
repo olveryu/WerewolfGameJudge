@@ -201,9 +201,14 @@ export const SettingsScreen: React.FC = () => {
     async (index: number) => {
       const builtinUrl = makeBuiltinAvatarUrl(index);
       setSavingBuiltinAvatar(true);
+      // [DIAG] step tracking for pagehide root cause
+      (window as unknown as Record<string, string>).__diagStep = 'builtin:start';
       try {
+        (window as unknown as Record<string, string>).__diagStep = 'builtin:updateProfile';
         await updateProfile({ avatarUrl: builtinUrl });
+        (window as unknown as Record<string, string>).__diagStep = 'builtin:showAlert';
         showAlert('头像已更新');
+        (window as unknown as Record<string, string>).__diagStep = 'builtin:closePicker';
         setShowAvatarPicker(false);
 
         // Sync to GameState (if in room & seated, silent failure is fine)
@@ -215,6 +220,7 @@ export const SettingsScreen: React.FC = () => {
         settingsLog.error('Builtin avatar save failed:', message, e);
         showAlert('保存失败', message);
       } finally {
+        (window as unknown as Record<string, string>).__diagStep = 'builtin:done';
         setSavingBuiltinAvatar(false);
       }
     },
@@ -224,9 +230,14 @@ export const SettingsScreen: React.FC = () => {
   const handleSelectCustomAvatar = useCallback(async () => {
     if (!user?.customAvatarUrl) return;
     setSavingBuiltinAvatar(true);
+    // [DIAG] step tracking for pagehide root cause
+    (window as unknown as Record<string, string>).__diagStep = 'custom:start';
     try {
+      (window as unknown as Record<string, string>).__diagStep = 'custom:updateProfile';
       await updateProfile({ avatarUrl: user.customAvatarUrl });
+      (window as unknown as Record<string, string>).__diagStep = 'custom:showAlert';
       showAlert('头像已更新');
+      (window as unknown as Record<string, string>).__diagStep = 'custom:closePicker';
       setShowAvatarPicker(false);
 
       facade
@@ -237,6 +248,7 @@ export const SettingsScreen: React.FC = () => {
       settingsLog.error('Custom avatar restore failed:', message, e);
       showAlert('保存失败', message);
     } finally {
+      (window as unknown as Record<string, string>).__diagStep = 'custom:done';
       setSavingBuiltinAvatar(false);
     }
   }, [user?.customAvatarUrl, updateProfile, facade]);
@@ -284,9 +296,14 @@ export const SettingsScreen: React.FC = () => {
   const handleSelectFrame = useCallback(
     async (frameId: FrameId | null) => {
       setSavingBuiltinAvatar(true);
+      // [DIAG] step tracking for pagehide root cause
+      (window as unknown as Record<string, string>).__diagStep = 'frame:start';
       try {
+        (window as unknown as Record<string, string>).__diagStep = 'frame:updateProfile';
         await updateProfile({ avatarFrame: frameId ?? '' });
+        (window as unknown as Record<string, string>).__diagStep = 'frame:showAlert';
         showAlert('头像框已更新');
+        (window as unknown as Record<string, string>).__diagStep = 'frame:closePicker';
         setShowAvatarPicker(false);
 
         facade
@@ -297,6 +314,7 @@ export const SettingsScreen: React.FC = () => {
         settingsLog.error('Frame save failed:', message, e);
         showAlert('保存失败', message);
       } finally {
+        (window as unknown as Record<string, string>).__diagStep = 'frame:done';
         setSavingBuiltinAvatar(false);
       }
     },
