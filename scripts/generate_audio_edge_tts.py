@@ -56,7 +56,7 @@ BEGIN_TEXT: dict[str, str] = {
     "wolf": "狼人请睁眼，互相确认身份后，请选择要击杀的玩家。",
     "wolf_queen": "狼美人请睁眼，请选择魅惑的对象。",
     "dark_wolf_king": "黑狼王请睁眼，请确认开枪状态。",
-    "nightmare": "梦魇请睁眼，请选择要封锁的玩家。",
+    "nightmare": "梦魇请睁眼，请选择要恐惧的玩家。",
     "gargoyle": "石像鬼请睁眼，请选择要查验的玩家。",
     "awakened_gargoyle": "觉醒石像鬼，请睁眼，请选择要转化的玩家。",
     "wolf_robot": "机械狼请睁眼，请选择要学习的玩家。",
