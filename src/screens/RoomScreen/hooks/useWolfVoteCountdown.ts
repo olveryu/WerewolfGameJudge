@@ -25,9 +25,6 @@ import { roomScreenLog } from '@/utils/logger';
 interface UseWolfVoteCountdownParams {
   wolfVoteDeadline: number | undefined;
   autoSkipDeadline: number | undefined;
-  isAudioPlaying: boolean | undefined;
-  currentStepId: string | undefined;
-  pendingRevealAcksCount: number;
   isHost: boolean;
   roomStatus: GameStatus;
   postProgression: () => Promise<boolean>;
@@ -40,9 +37,6 @@ interface UseWolfVoteCountdownParams {
 export function useWolfVoteCountdown({
   wolfVoteDeadline,
   autoSkipDeadline,
-  isAudioPlaying,
-  currentStepId,
-  pendingRevealAcksCount,
   isHost,
   roomStatus,
   postProgression,
@@ -53,32 +47,12 @@ export function useWolfVoteCountdown({
   // Effective deadline: pick whichever is defined (mutually exclusive)
   const effectiveDeadline = wolfVoteDeadline ?? autoSkipDeadline;
 
-  // [DIAG] Log deadline sources on every render
-  roomScreenLog.debug('[DIAG] useWolfVoteCountdown render', {
-    wolfVoteDeadline,
-    autoSkipDeadline,
-    effectiveDeadline,
-    isAudioPlaying,
-    currentStepId,
-    pendingRevealAcksCount,
-    isHost,
-    roomStatus,
-  });
-
   // Reset fire-guard when deadline changes (new deadline = new countdown)
   useEffect(() => {
-    roomScreenLog.debug('[DIAG] effectiveDeadline changed, resetting fire-guard', {
-      effectiveDeadline,
-    });
     postProgressionFiredRef.current = false;
   }, [effectiveDeadline]);
 
   useEffect(() => {
-    roomScreenLog.debug('[DIAG] deadline effect running', {
-      effectiveDeadline,
-      isHost,
-      roomStatus,
-    });
     if (effectiveDeadline == null) return;
     // Guard: only fire postProgression while game is ongoing.
     // On host rejoin with status `ended`, stale wolfVoteDeadline may still exist
@@ -86,19 +60,10 @@ export function useWolfVoteCountdown({
     if (roomStatus !== GameStatus.Ongoing) return;
 
     const tryProgression = (): void => {
-      roomScreenLog.debug('[DIAG] tryProgression called', {
-        isHost,
-        firedRef: postProgressionFiredRef.current,
-        effectiveDeadline,
-        now: Date.now(),
-        remainMs: effectiveDeadline - Date.now(),
-      });
       if (!isHost || postProgressionFiredRef.current) return;
       postProgressionFiredRef.current = true;
-      roomScreenLog.info('[DIAG] firing postProgression');
       fireAndForget(
-        postProgression().then((ok) => {
-          roomScreenLog.debug('[DIAG] postProgression returned', { ok });
+        postProgression().then(() => {
           // Always reset — server may no-op (same revision) when autoSkipDeadline
           // hasn't passed yet. The 1s interval provides natural rate limiting;
           // when progression truly succeeds, effectiveDeadline changes and
@@ -112,7 +77,6 @@ export function useWolfVoteCountdown({
 
     // Already expired on mount — fire immediately (Host only)
     if (Date.now() >= effectiveDeadline) {
-      roomScreenLog.debug('[DIAG] deadline already expired on effect mount, firing immediately');
       tryProgression();
       // Non-host: nothing to tick or retry
       if (!isHost) return;
@@ -125,11 +89,6 @@ export function useWolfVoteCountdown({
     const interval = setInterval(() => {
       const now = Date.now();
       const expired = now >= effectiveDeadline;
-      roomScreenLog.debug('[DIAG] interval tick', {
-        expired,
-        remainMs: effectiveDeadline - now,
-        firedRef: postProgressionFiredRef.current,
-      });
       if (expired) {
         if (isHost) {
           tryProgression();
@@ -139,10 +98,7 @@ export function useWolfVoteCountdown({
       }
       setCountdownTick((t) => t + 1);
     }, 1000);
-    return () => {
-      roomScreenLog.debug('[DIAG] deadline effect cleanup', { effectiveDeadline });
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [effectiveDeadline, isHost, postProgression, roomStatus]);
 
   return countdownTick;

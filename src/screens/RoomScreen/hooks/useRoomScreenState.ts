@@ -187,9 +187,6 @@ export function useRoomScreenState(
   const countdownTick = useWolfVoteCountdown({
     wolfVoteDeadline: gameState?.wolfVoteDeadline,
     autoSkipDeadline: gameState?.autoSkipDeadline,
-    isAudioPlaying: gameState?.isAudioPlaying,
-    currentStepId: gameState?.currentStepId,
-    pendingRevealAcksCount: gameState?.pendingRevealAcks?.length ?? 0,
     isHost,
     roomStatus,
     postProgression,

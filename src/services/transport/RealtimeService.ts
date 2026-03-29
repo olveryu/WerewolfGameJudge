@@ -123,17 +123,6 @@ export class RealtimeService {
           newRow.state_revision != null
         ) {
           realtimeLog.debug(' DB state change received, revision:', newRow.state_revision);
-          // [DIAG] Log key fields from DB broadcast
-          const _gs = newRow.game_state as Record<string, unknown>;
-          realtimeLog.debug('[DIAG] DB broadcast state', {
-            revision: newRow.state_revision,
-            currentStepId: _gs.currentStepId,
-            autoSkipDeadline: _gs.autoSkipDeadline,
-            isAudioPlaying: _gs.isAudioPlaying,
-            pendingAudioEffectsCount: Array.isArray(_gs.pendingAudioEffects)
-              ? _gs.pendingAudioEffects.length
-              : 0,
-          });
           this.#onDbStateChange?.(newRow.game_state as GameState, newRow.state_revision);
         }
       },
