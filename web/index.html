@@ -397,9 +397,6 @@
         setTimeout(function () {
           bar.style.width = '100%';
           setTimeout(function () {
-            sessionStorage.setItem('__diag_reload_src', 'showUpdateOverlay 3s fallback → reload');
-            localStorage.setItem('__diag_reload_src', 'showUpdateOverlay 3s fallback → reload');
-            localStorage.setItem('__diag_reload_ts', String(Date.now()));
             window.location.reload();
           }, 300);
         }, 3000);
