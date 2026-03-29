@@ -86,7 +86,7 @@ export interface RoleSeatMap {
   /** Dreamcatcher seat (for link death check). -1 if not present */
   dreamcatcherLinkSeat: number;
 
-  /** Witch seat (for nightmare block check on poison/save). -1 if not present */
+  /** Poison source seat (witch or poisoner, driven by deathCalcRole: 'poisonSource'). -1 if not present */
   poisonSourceSeat: number;
 
   /** Guard seat (for nightmare block check). -1 if not present */
@@ -144,8 +144,8 @@ export function calculateDeaths(
   // 1. Process wolf kill (with guard/witch/nightmare interaction)
   processWolfKill(actions, roleSeatMap, deaths);
 
-  // 2. Process witch poison (with poison immunity and nightmare block)
-  processWitchPoison(actions, roleSeatMap, deaths);
+  // 2. Process poison death (witch or poisoner, with immunity and nightmare block)
+  processPoisonDeath(actions, roleSeatMap, deaths);
 
   // 3. Process wolf queen link death
   processWolfQueenLink(actions, roleSeatMap, deaths);
@@ -163,6 +163,18 @@ export function calculateDeaths(
   processMagicianSwap(actions, deaths);
 
   return Array.from(deaths).sort((a, b) => a - b);
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Check if a role seat is blocked by nightmare this night.
+ * Centralizes the repeated nightmareBlock + present-check pattern.
+ */
+function isBlockedByNightmare(roleSeat: number, nightmareBlock: number | undefined): boolean {
+  return nightmareBlock !== undefined && roleSeat !== -1 && nightmareBlock === roleSeat;
 }
 
 // =============================================================================
@@ -201,16 +213,13 @@ function processWolfKill(
   // and nightmareBlock is the physical seat from ProtocolAction.targetSeat.
   // This is a defense layer — upstream actionGuards already prevents blocked
   // players from submitting actions.
-  const isGuardBlocked =
-    nightmareBlock !== undefined &&
-    guardProtectorSeat !== -1 &&
-    nightmareBlock === guardProtectorSeat;
-  const effectiveGuardProtect = isGuardBlocked ? undefined : guardProtect;
+  const effectiveGuardProtect = isBlockedByNightmare(guardProtectorSeat, nightmareBlock)
+    ? undefined
+    : guardProtect;
   const isGuarded = effectiveGuardProtect === wolfKill;
 
   // Check if witch save is effective (not blocked by nightmare)
-  const isWitchBlocked =
-    nightmareBlock !== undefined && poisonSourceSeat !== -1 && nightmareBlock === poisonSourceSeat;
+  const isWitchBlocked = isBlockedByNightmare(poisonSourceSeat, nightmareBlock);
   const witchSaveTarget = getWitchSaveTarget(witchAction);
   const effectiveWitchSave = isWitchBlocked ? undefined : witchSaveTarget;
   const isSaved = effectiveWitchSave === wolfKill;
@@ -225,14 +234,14 @@ function processWolfKill(
 }
 
 /**
- * Process witch poison with poison immunity and nightmare block.
+ * Process poison death (witch or poisoner) with poison immunity and nightmare block.
  *
  * Rules:
- * - Witch poison kills target
+ * - Poison kills target
  * - Roles with immuneToPoison flag are immune to poison
- * - If witch is blocked by nightmare, poison has no effect
+ * - If poison source is blocked by nightmare, poison has no effect
  */
-function processWitchPoison(
+function processPoisonDeath(
   actions: NightActions,
   roleSeatMap: RoleSeatMap,
   deaths: Set<number>,
@@ -240,10 +249,8 @@ function processWitchPoison(
   const { nightmareBlock } = actions;
   const { poisonSourceSeat, poisonImmuneSeats } = roleSeatMap;
 
-  // If witch is blocked by nightmare, poison has no effect
-  const isWitchBlocked =
-    nightmareBlock !== undefined && poisonSourceSeat !== -1 && nightmareBlock === poisonSourceSeat;
-  if (isWitchBlocked) return;
+  // If poison source is blocked by nightmare, poison has no effect
+  if (isBlockedByNightmare(poisonSourceSeat, nightmareBlock)) return;
 
   const witchPoisonTarget = getWitchPoisonTarget(actions.witchAction);
 
