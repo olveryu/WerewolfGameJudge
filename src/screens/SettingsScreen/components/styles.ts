@@ -951,7 +951,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     diagText: {
       color: colors.background,
-      fontSize: 11,
+      fontSize: typography.captionSmall,
       fontFamily: 'Courier',
     },
   });
