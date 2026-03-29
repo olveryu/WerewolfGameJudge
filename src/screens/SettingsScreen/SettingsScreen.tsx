@@ -96,6 +96,19 @@ export const SettingsScreen: React.FC = () => {
     if (reason) localStorage.removeItem('__diag_reload');
     return reason;
   });
+  // [DIAG] Read reload stack trace + navigation type
+  const [diagReloadStack] = useState(() => {
+    if (typeof localStorage === 'undefined') return null;
+    const stack = localStorage.getItem('__diag_reload_stack');
+    if (stack) localStorage.removeItem('__diag_reload_stack');
+    return stack;
+  });
+  const [diagNavType] = useState(() => {
+    if (typeof localStorage === 'undefined') return null;
+    const navType = localStorage.getItem('__diag_nav_type');
+    if (navType) localStorage.removeItem('__diag_nav_type');
+    return navType;
+  });
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
@@ -635,6 +648,8 @@ export const SettingsScreen: React.FC = () => {
           {diagReloadReason && (
             <Text style={styles.diagText}>{`[RELOAD] ${diagReloadReason}`}</Text>
           )}
+          {diagNavType && <Text style={styles.diagText}>{`[NAV] type=${diagNavType}`}</Text>}
+          {diagReloadStack && <Text style={styles.diagText}>{`[STACK] ${diagReloadStack}`}</Text>}
         </View>
 
         <View style={styles.card}>
