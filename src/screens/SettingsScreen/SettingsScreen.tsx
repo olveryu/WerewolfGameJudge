@@ -89,6 +89,13 @@ export const SettingsScreen: React.FC = () => {
   // ─── [DIAG] Auth state tracker ───
   const diagRenderCount = useRef(0);
   diagRenderCount.current += 1;
+  // Read reload reason from localStorage (written by index.html before reload)
+  const [diagReloadReason] = useState(() => {
+    if (typeof localStorage === 'undefined') return null;
+    const reason = localStorage.getItem('__diag_reload');
+    if (reason) localStorage.removeItem('__diag_reload');
+    return reason;
+  });
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
@@ -607,6 +614,9 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.diagText}>
             {`[DIAG] #${diagRenderCount.current} auth=${String(isAuthenticated)} load=${String(authLoading)} wasAuth=${String(wasAuthenticatedRef.current)} branch=${diagBranch} uid=${user?.uid?.slice(0, 8) ?? 'null'}`}
           </Text>
+          {diagReloadReason && (
+            <Text style={styles.diagText}>{`[RELOAD] ${diagReloadReason}`}</Text>
+          )}
         </View>
 
         <View style={styles.card}>

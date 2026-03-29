@@ -318,22 +318,8 @@
       });
 
       // ─── [DIAG] Reload source tracker ───
-      // Write to localStorage BEFORE any reload so we can read the cause on next load.
-      // Also track pagehide (iOS background kill) and visibilitychange.
+      // Write to localStorage BEFORE any reload so SettingsScreen can read the cause.
       (function () {
-        var prev = localStorage.getItem('__diag_reload');
-        if (prev) {
-          // Show reload reason as a persistent banner at the very top
-          var banner = document.createElement('div');
-          banner.id = 'diag-reload-banner';
-          banner.style.cssText =
-            'position:fixed;top:0;left:0;right:0;z-index:999999;' +
-            'background:#FF6F00;color:#fff;font-size:11px;padding:4px 8px;' +
-            'font-family:Courier;white-space:pre-wrap;pointer-events:none;';
-          banner.textContent = '[DIAG-RELOAD] ' + prev;
-          document.body.appendChild(banner);
-          localStorage.removeItem('__diag_reload');
-        }
         // Track pagehide (iOS kills tab)
         window.addEventListener('pagehide', function () {
           localStorage.setItem('__diag_reload', 'pagehide@' + new Date().toLocaleTimeString());
