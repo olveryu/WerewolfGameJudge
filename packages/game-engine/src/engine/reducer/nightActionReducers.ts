@@ -46,8 +46,8 @@ export function handleAdvanceToNextAction(
     currentStepIndex: nextStepIndex,
     // PR6 contract: 推进时同步更新 currentStepId（单一真相）
     currentStepId: nextStepId ?? undefined,
-    // 推进到新步骤时清除上一步的 autoSkipDeadline
-    autoSkipDeadline: undefined,
+    // 推进到新步骤时清除上一步的 stepDeadline
+    stepDeadline: undefined,
     // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
     // 注意：wolf 投票单一真相在 currentNightResults.wolfVotesBySeat（协议已移除 wolfVotes/wolfVoteStatus）。
     // P0-FIX: 不再清空 reveal 字段。reveal 应该保留到整个夜晚结束，

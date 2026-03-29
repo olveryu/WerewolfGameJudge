@@ -305,38 +305,27 @@ export interface MarkAllBotsViewedAction {
 }
 
 // =============================================================================
-// 狼人投票倒计时
+// 步骤推进截止时间（统一 deadline-gate）
 // =============================================================================
 
 /**
- * 设置狼人投票截止时间（epoch ms）
- * Host 在全部狼人投票完成时写入，改票时重置。
+ * 设置当前步骤的推进截止时间（epoch ms）。
+ * - wolfKill 步骤：全投完后 set (now + WOLF_VOTE_COUNTDOWN_MS)
+ * - 底牌空步骤：步入时 set (now + random(5000, 10000))
  */
-export interface SetWolfVoteDeadlineAction {
-  type: 'SET_WOLF_VOTE_DEADLINE';
+export interface SetStepDeadlineAction {
+  type: 'SET_STEP_DEADLINE';
   payload: {
     deadline: number;
   };
 }
 
 /**
- * 清除狼人投票截止时间
- * 撤回导致未全投完时清除。
+ * 清除当前步骤的推进截止时间。
+ * 狼人撤回投票导致未全投完时清除。
  */
-export interface ClearWolfVoteDeadlineAction {
-  type: 'CLEAR_WOLF_VOTE_DEADLINE';
-}
-
-/**
- * 底牌空步骤 auto-skip 截止时间
- * advance 到底牌空步骤时设置 = now + randomIntInclusive(5000, 10000)。
- * 下次推进时评估 nowMs >= deadline 后才 advance。
- */
-export interface SetAutoSkipDeadlineAction {
-  type: 'SET_AUTO_SKIP_DEADLINE';
-  payload: {
-    deadline: number;
-  };
+export interface ClearStepDeadlineAction {
+  type: 'CLEAR_STEP_DEADLINE';
 }
 
 // =============================================================================
@@ -445,11 +434,9 @@ export type StateAction =
   // Debug Bots
   | FillWithBotsAction
   | MarkAllBotsViewedAction
-  // 狼人投票倒计时
-  | SetWolfVoteDeadlineAction
-  | ClearWolfVoteDeadlineAction
-  // 底牌空步骤 auto-skip 延迟
-  | SetAutoSkipDeadlineAction
+  // 步骤推进截止时间
+  | SetStepDeadlineAction
+  | ClearStepDeadlineAction
   // 待消费音频队列
   | SetPendingAudioEffectsAction
   | ClearPendingAudioEffectsAction

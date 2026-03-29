@@ -109,7 +109,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     wolfKillOverride: undefined,
     pendingRevealAcks: [],
     pendingAudioEffects: undefined,
-    wolfVoteDeadline: undefined,
+    stepDeadline: undefined,
     ui: undefined,
     nightReviewAllowedSeats: undefined,
     seerLabelMap: undefined,
@@ -124,7 +124,6 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     treasureMasterChosenCard: undefined,
     effectiveTeam: undefined,
     bottomCardStepRoles: undefined,
-    autoSkipDeadline: undefined,
 
     // ── 重开时更新 nonce 和 resolved 动画 ─────────────────
     roleRevealRandomNonce: newNonce,

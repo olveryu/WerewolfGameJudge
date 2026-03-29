@@ -111,8 +111,8 @@ export function normalizeState(raw: GameState): GameState {
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,
 
-    // 狼人投票倒計時（透传）
-    wolfVoteDeadline: raw.wolfVoteDeadline,
+    // 步骤推进截止时间（统一 deadline-gate，透传）
+    stepDeadline: raw.stepDeadline,
 
     // 待消費音频隊列（透传）
     pendingAudioEffects: raw.pendingAudioEffects,
@@ -143,6 +143,5 @@ export function normalizeState(raw: GameState): GameState {
     treasureMasterChosenCard: raw.treasureMasterChosenCard,
     effectiveTeam: raw.effectiveTeam,
     bottomCardStepRoles: raw.bottomCardStepRoles,
-    autoSkipDeadline: raw.autoSkipDeadline,
   } satisfies Complete<GameState>;
 }

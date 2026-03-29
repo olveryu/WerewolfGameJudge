@@ -264,15 +264,21 @@ export interface GameState {
     rejectionId: string;
   };
 
-  // --- 狼人投票倒计时 ---
+  // --- 步骤推进截止时间 ---
   /**
-   * 全部狼人投票完成后的截止时间（epoch ms）。
+   * 当前步骤的推进截止时间（epoch ms）。
    *
-   * 服务端在所有狼人投票完成时写入 `Date.now() + WOLF_VOTE_COUNTDOWN_MS`，
-   * 改票/撤回导致重新全投完时重置，撤回导致未全投完时清除。
-   * Timer 是 best-effort 触发器，此字段是权威时间戳。
+   * 统一的 deadline-gate：到期后 inlineProgression 允许 advance。
+   * 用途：
+   * - wolfKill 步骤：全投完后 set (now + WOLF_VOTE_COUNTDOWN_MS)，改票/撤回清除
+   * - 底牌空步骤：步入时 set (now + random(5000, 10000))
+   *
+   * 生命周期：
+   * - 设置：engine 内部（wolf vote post-action / unchosen step entry）
+   * - 检查：evaluateProgression (inlineProgression.ts)
+   * - 清除：ADVANCE_TO_NEXT_ACTION reducer
    */
-  wolfVoteDeadline?: number;
+  stepDeadline?: number;
 
   // --- 待消费音频队列（服务端内联推进产物） ---
   /**
@@ -405,13 +411,6 @@ export interface GameState {
    * handleStartNight / treasureMasterChoose resolver 写入。
    */
   bottomCardStepRoles?: readonly RoleId[];
-
-  /**
-   * 底牌空步骤的 auto-skip 截止时间（epoch ms）。
-   * 复用 wolfVoteDeadline 的 deadline-gate pattern。
-   * advance 到底牌空步骤时设置 = now + randomIntInclusive(5000, 10000)。
-   */
-  autoSkipDeadline?: number;
 }
 
 // =============================================================================

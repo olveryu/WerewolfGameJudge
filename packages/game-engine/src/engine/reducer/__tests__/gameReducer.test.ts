@@ -1263,29 +1263,29 @@ describe('gameReducer', () => {
     });
   });
 
-  describe('SET_WOLF_VOTE_DEADLINE', () => {
-    it('should set wolfVoteDeadline', () => {
+  describe('SET_STEP_DEADLINE', () => {
+    it('should set stepDeadline', () => {
       const state = createMinimalState();
       const deadline = Date.now() + 30000;
       const action = {
-        type: 'SET_WOLF_VOTE_DEADLINE' as const,
+        type: 'SET_STEP_DEADLINE' as const,
         payload: { deadline },
       };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.wolfVoteDeadline).toBe(deadline);
+      expect(newState.stepDeadline).toBe(deadline);
     });
   });
 
-  describe('CLEAR_WOLF_VOTE_DEADLINE', () => {
-    it('should clear wolfVoteDeadline', () => {
-      const state = createMinimalState({ wolfVoteDeadline: Date.now() + 30000 });
-      const action = { type: 'CLEAR_WOLF_VOTE_DEADLINE' as const };
+  describe('CLEAR_STEP_DEADLINE', () => {
+    it('should clear stepDeadline', () => {
+      const state = createMinimalState({ stepDeadline: Date.now() + 30000 });
+      const action = { type: 'CLEAR_STEP_DEADLINE' as const };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.wolfVoteDeadline).toBeUndefined();
+      expect(newState.stepDeadline).toBeUndefined();
     });
   });
 

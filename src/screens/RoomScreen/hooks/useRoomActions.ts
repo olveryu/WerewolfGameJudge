@@ -328,7 +328,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     }
 
     // 已投票：检查倒计时
-    const deadline = gameState?.wolfVoteDeadline;
+    const deadline = gameState?.stepDeadline;
     if (deadline != null) {
       const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       if (remaining > 0) {
@@ -344,7 +344,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     hasWolfVoted,
     actorRole,
     actorSeatNumber,
-    gameState?.wolfVoteDeadline,
+    gameState?.stepDeadline,
     countdownTick,
   ]);
 

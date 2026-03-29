@@ -1,12 +1,11 @@
 /**
- * useWolfVoteCountdown — Deadline-driven progression timer hook
+ * useStepDeadlineCountdown — Deadline-driven progression timer hook
  *
- * Manages a per-second countdown tick driven by deadline fields on GameState:
- * - `wolfVoteDeadline` — wolf vote countdown (wolfKill step)
- * - `autoSkipDeadline` — vacant bottom card step auto-skip
+ * Manages a per-second countdown tick driven by `stepDeadline` on GameState.
+ * This unified deadline covers both:
+ * - wolf vote countdown (wolfKill step: all voted → 5s countdown)
+ * - vacant bottom card step auto-skip (random 5–10s delay)
  *
- * The two deadlines are mutually exclusive (different steps). The hook
- * picks whichever is defined as the effective deadline.
  * When the deadline expires, the Host fires `postProgression` and retries
  * every tick until it succeeds (success-gated via `postProgressionFiredRef`).
  * On success, new state arrives → deadline changes → useEffect
@@ -22,9 +21,8 @@ import { useEffect, useRef, useState } from 'react';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
-interface UseWolfVoteCountdownParams {
-  wolfVoteDeadline: number | undefined;
-  autoSkipDeadline: number | undefined;
+interface UseStepDeadlineCountdownParams {
+  stepDeadline: number | undefined;
   isHost: boolean;
   roomStatus: GameStatus;
   postProgression: () => Promise<boolean>;
@@ -32,30 +30,26 @@ interface UseWolfVoteCountdownParams {
 
 /**
  * @returns countdownTick — increments every second while a deadline is active.
- *   Downstream consumers derive remaining seconds from `wolfVoteDeadline - Date.now()`.
+ *   Downstream consumers derive remaining seconds from `stepDeadline - Date.now()`.
  */
-export function useWolfVoteCountdown({
-  wolfVoteDeadline,
-  autoSkipDeadline,
+export function useStepDeadlineCountdown({
+  stepDeadline,
   isHost,
   roomStatus,
   postProgression,
-}: UseWolfVoteCountdownParams): number {
+}: UseStepDeadlineCountdownParams): number {
   const [countdownTick, setCountdownTick] = useState(0);
   const postProgressionFiredRef = useRef(false);
-
-  // Effective deadline: pick whichever is defined (mutually exclusive)
-  const effectiveDeadline = wolfVoteDeadline ?? autoSkipDeadline;
 
   // Reset fire-guard when deadline changes (new deadline = new countdown)
   useEffect(() => {
     postProgressionFiredRef.current = false;
-  }, [effectiveDeadline]);
+  }, [stepDeadline]);
 
   useEffect(() => {
-    if (effectiveDeadline == null) return;
+    if (stepDeadline == null) return;
     // Guard: only fire postProgression while game is ongoing.
-    // On host rejoin with status `ended`, stale wolfVoteDeadline may still exist
+    // On host rejoin with status `ended`, stale stepDeadline may still exist
     // and be expired — without this guard it would fire immediately and get 400.
     if (roomStatus !== GameStatus.Ongoing) return;
 
@@ -64,9 +58,9 @@ export function useWolfVoteCountdown({
       postProgressionFiredRef.current = true;
       fireAndForget(
         postProgression().then(() => {
-          // Always reset — server may no-op (same revision) when autoSkipDeadline
+          // Always reset — server may no-op (same revision) when stepDeadline
           // hasn't passed yet. The 1s interval provides natural rate limiting;
-          // when progression truly succeeds, effectiveDeadline changes and
+          // when progression truly succeeds, stepDeadline changes and
           // useEffect cleanup stops the interval.
           postProgressionFiredRef.current = false;
         }),
@@ -76,7 +70,7 @@ export function useWolfVoteCountdown({
     };
 
     // Already expired on mount — fire immediately (Host only)
-    if (Date.now() >= effectiveDeadline) {
+    if (Date.now() >= stepDeadline) {
       tryProgression();
       // Non-host: nothing to tick or retry
       if (!isHost) return;
@@ -88,7 +82,7 @@ export function useWolfVoteCountdown({
     // For non-host, clears once deadline expires.
     const interval = setInterval(() => {
       const now = Date.now();
-      const expired = now >= effectiveDeadline;
+      const expired = now >= stepDeadline;
       if (expired) {
         if (isHost) {
           tryProgression();
@@ -99,7 +93,7 @@ export function useWolfVoteCountdown({
       setCountdownTick((t) => t + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [effectiveDeadline, isHost, postProgression, roomStatus]);
+  }, [stepDeadline, isHost, postProgression, roomStatus]);
 
   return countdownTick;
 }

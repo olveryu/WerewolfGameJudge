@@ -70,8 +70,8 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'confirmStatus',
   'actionRejected',
 
-  // 狼人投票倒计时
-  'wolfVoteDeadline',
+  // 统一步骤截止时间
+  'stepDeadline',
 
   // 待消费音频队列
   'pendingAudioEffects',
@@ -94,7 +94,6 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'treasureMasterChosenCard',
   'effectiveTeam',
   'bottomCardStepRoles',
-  'autoSkipDeadline',
 ];
 
 describe('normalizeState contract', () => {
@@ -163,8 +162,8 @@ describe('normalizeState contract', () => {
         rejectionId: 'rej-1',
       },
 
-      // 狼人投票倒计时
-      wolfVoteDeadline: Date.now() + 5000,
+      // 统一步骤截止时间
+      stepDeadline: Date.now() + 5000,
 
       // 待消费音频队列
       pendingAudioEffects: [{ audioKey: 'wolfKill', isEndAudio: true }],

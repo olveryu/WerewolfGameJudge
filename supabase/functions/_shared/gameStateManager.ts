@@ -27,7 +27,7 @@ import type { GameActionResult, ProcessResult } from './types.ts';
 interface InlineProgressionOptions {
   /** 启用内联推进（action 处理后自动 evaluate + advance/endNight） */
   enabled: boolean;
-  /** 当前时间戳（用于 wolfVoteDeadline 检查，默认 Date.now()） */
+  /** 当前时间戳（用于 stepDeadline 检查，默认 Date.now()） */
   nowMs?: number;
 }
 

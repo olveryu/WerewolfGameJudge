@@ -41,7 +41,7 @@ import { useRoomInit } from './useRoomInit';
 import { useRoomModals } from './useRoomModals';
 import { useRoomSettings } from './useRoomSettings';
 import { useSpeakingOrder } from './useSpeakingOrder';
-import { useWolfVoteCountdown } from './useWolfVoteCountdown';
+import { useStepDeadlineCountdown } from './useStepDeadlineCountdown';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -183,10 +183,9 @@ export function useRoomScreenState(
   // ── Settings sheet (delegated to useRoomSettings) ─────────────────────────
   const roomSettings = useRoomSettings({ settingsService, setRoleRevealAnimation });
 
-  // ── Wolf vote countdown tick ─────────────────────────────────────────────
-  const countdownTick = useWolfVoteCountdown({
-    wolfVoteDeadline: gameState?.wolfVoteDeadline,
-    autoSkipDeadline: gameState?.autoSkipDeadline,
+  // ── Step deadline countdown tick ──────────────────────────────────────────
+  const countdownTick = useStepDeadlineCountdown({
+    stepDeadline: gameState?.stepDeadline,
     isHost,
     roomStatus,
     postProgression,

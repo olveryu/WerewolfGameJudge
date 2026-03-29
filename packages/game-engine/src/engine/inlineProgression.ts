@@ -30,8 +30,8 @@ import type { StateAction } from './reducer/types';
 const log = getEngineLogger().extend('InlineProgression');
 
 /** 底牌空步骤随机延迟范围（ms） */
-const AUTO_SKIP_DELAY_MIN_MS = 5000;
-const AUTO_SKIP_DELAY_MAX_MS = 10000;
+export const AUTO_SKIP_DELAY_MIN_MS = 5000;
+export const AUTO_SKIP_DELAY_MAX_MS = 10000;
 
 /** 最大推进循环次数（防止无限循环） */
 const MAX_PROGRESSION_LOOPS = 20;
@@ -110,7 +110,7 @@ function isUnchosenBottomCardStep(state: GameState): boolean {
  *
  * 与 evaluateNightProgression 等价，但：
  * - 不使用 ProgressionTracker（服务端无状态）
- * - 接受 nowMs 用于 wolfVoteDeadline 检查
+ * - 接受 nowMs 用于 stepDeadline 检查
  */
 function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_night' | 'none' {
   if (state.status !== GameStatus.Ongoing) return 'none';
@@ -120,12 +120,8 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
   if (state.currentStepId === undefined) return 'end_night';
 
   if (isStepComplete(state)) {
-    // wolfKill countdown gate
-    if (
-      state.currentStepId === 'wolfKill' &&
-      state.wolfVoteDeadline != null &&
-      nowMs < state.wolfVoteDeadline
-    ) {
+    // Unified deadline gate: step complete but deadline not yet reached → wait
+    if (state.stepDeadline != null && nowMs < state.stepDeadline) {
       return 'none';
     }
     return 'advance';
@@ -134,9 +130,9 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
   // Auto-skip: unchosen bottom card role steps advance after random delay
   if (isUnchosenBottomCardStep(state)) {
     // No deadline set yet → signal 'none' so runInlineProgression can set it
-    if (state.autoSkipDeadline == null) return 'none';
+    if (state.stepDeadline == null) return 'none';
     // Deadline not yet reached → wait
-    if (nowMs < state.autoSkipDeadline) return 'none';
+    if (nowMs < state.stepDeadline) return 'none';
     // Deadline passed → advance
     return 'advance';
   }
@@ -165,7 +161,7 @@ function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): Au
  *
  * @param state - action 处理后的 state
  * @param hostUid - Host UID（用于构建 HandlerContext）
- * @param nowMs - 当前时间戳（用于 wolfVoteDeadline 检查，默认 Date.now()）
+ * @param nowMs - 当前时间戳（用于 stepDeadline 检查，默认 Date.now()）
  * @returns 推进结果（actions + audioEffects + finalState）
  */
 export function runInlineProgression(
@@ -227,24 +223,24 @@ export function runInlineProgression(
     }
   }
 
-  // Set autoSkipDeadline if we stopped at a vacant bottom card step without one.
+  // Set stepDeadline if we stopped at a vacant bottom card step without one.
   // Only when there are NO pending audio effects — if audio is about to play,
   // defer deadline to the audio-ack's inline progression so the random delay
   // starts AFTER audio finishes (avoids server clock race where audio duration
   // overlaps with the deadline window).
   if (
     isUnchosenBottomCardStep(currentState) &&
-    currentState.autoSkipDeadline == null &&
+    currentState.stepDeadline == null &&
     allAudioEffects.length === 0
   ) {
     const deadline = nowMs + randomIntInclusive(AUTO_SKIP_DELAY_MIN_MS, AUTO_SKIP_DELAY_MAX_MS);
     const setDeadlineAction: StateAction = {
-      type: 'SET_AUTO_SKIP_DEADLINE',
+      type: 'SET_STEP_DEADLINE',
       payload: { deadline },
     };
     currentState = gameReducer(currentState, setDeadlineAction);
     allActions.push(setDeadlineAction);
-    log.info('Set autoSkipDeadline for vacant bottom card step', {
+    log.info('Set stepDeadline for vacant bottom card step', {
       stepId: currentState.currentStepId,
       deadline,
     });

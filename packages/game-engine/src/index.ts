@@ -109,6 +109,7 @@ export {
 export {
   decideWolfVoteTimerAction,
   isWolfVoteAllComplete,
+  WOLF_VOTE_COUNTDOWN_MS,
 } from './engine/handlers/progressionEvaluator';
 export {
   handleClearAllSeats,
@@ -123,7 +124,11 @@ export {
 } from './engine/handlers/stepTransitionHandler';
 export { type HandlerContext, type HandlerResult, type SideEffect } from './engine/handlers/types';
 export { handleSetWolfRobotHunterStatusViewed } from './engine/handlers/wolfRobotHunterGateHandler';
-export { runInlineProgression } from './engine/inlineProgression';
+export {
+  AUTO_SKIP_DELAY_MAX_MS,
+  AUTO_SKIP_DELAY_MIN_MS,
+  runInlineProgression,
+} from './engine/inlineProgression';
 export type {
   EndNightIntent,
   JoinSeatIntent,

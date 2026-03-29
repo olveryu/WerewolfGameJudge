@@ -111,7 +111,7 @@ describe('runInlineProgression', () => {
         currentNightResults: {
           wolfVotesBySeat: { '0': 1 },
         },
-        wolfVoteDeadline: Date.now() + 10000, // 10s in future
+        stepDeadline: Date.now() + 10000, // 10s in future
       });
       const result = runInlineProgression(state, 'host', Date.now());
       expect(result.stepsAdvanced).toBe(0);
@@ -125,7 +125,7 @@ describe('runInlineProgression', () => {
         currentNightResults: {
           wolfVotesBySeat: { '0': 1 },
         },
-        wolfVoteDeadline: now - 1000, // 1s in the past
+        stepDeadline: now - 1000, // 1s in the past
       });
       const result = runInlineProgression(state, 'host', now);
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
@@ -207,13 +207,13 @@ describe('runInlineProgression', () => {
     });
   });
 
-  describe('底牌空步骤 autoSkipDeadline', () => {
+  describe('底牌空步骤 stepDeadline (auto-skip)', () => {
     /**
      * Scenario: treasureMaster chose 'seer', and there's a 'poisoner' in bottom cards.
      * When poisoner's step is current & no player has that role → vacant step.
-     * runInlineProgression should set autoSkipDeadline and NOT advance immediately.
+     * runInlineProgression should set stepDeadline and NOT advance immediately.
      */
-    it('should set autoSkipDeadline for vacant bottom card step instead of instant advance', () => {
+    it('should set stepDeadline for vacant bottom card step instead of instant advance', () => {
       // Template includes treasureMaster + seer + poisoner (poisoner also in bottom cards)
       const templateRoles = ['treasureMaster', 'wolf', 'seer', 'poisoner', 'villager'] as const;
       const plan = buildNightPlan(templateRoles);
@@ -247,13 +247,13 @@ describe('runInlineProgression', () => {
 
       // Should NOT advance past this step (deadline is in the future)
       expect(result.stepsAdvanced).toBe(0);
-      // autoSkipDeadline should be set
-      expect(result.finalState.autoSkipDeadline).toBeDefined();
-      expect(result.finalState.autoSkipDeadline!).toBeGreaterThanOrEqual(nowMs + 5000);
-      expect(result.finalState.autoSkipDeadline!).toBeLessThanOrEqual(nowMs + 10000);
+      // stepDeadline should be set
+      expect(result.finalState.stepDeadline).toBeDefined();
+      expect(result.finalState.stepDeadline!).toBeGreaterThanOrEqual(nowMs + 5000);
+      expect(result.finalState.stepDeadline!).toBeLessThanOrEqual(nowMs + 10000);
     });
 
-    it('should advance vacant step when autoSkipDeadline has passed', () => {
+    it('should advance vacant step when stepDeadline has passed', () => {
       const templateRoles = ['treasureMaster', 'wolf', 'seer', 'poisoner', 'villager'] as const;
       const plan = buildNightPlan(templateRoles);
       const poisonerIdx = plan.steps.findIndex((s) => s.stepId === 'poisonerPoison');
@@ -280,18 +280,18 @@ describe('runInlineProgression', () => {
         bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
         treasureMasterSeat: 0,
         // Deadline already passed
-        autoSkipDeadline: nowMs - 1000,
+        stepDeadline: nowMs - 1000,
       };
 
       const result = runInlineProgression(state, 'host', nowMs);
 
       // Should advance past the vacant step
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
-      // autoSkipDeadline should be cleared (advance clears it)
+      // stepDeadline should be cleared (advance clears it)
       expect(result.finalState.currentStepId).not.toBe('poisonerPoison');
     });
 
-    it('should defer autoSkipDeadline when advancing into vacant step produces audio', () => {
+    it('should defer stepDeadline when advancing into vacant step produces audio', () => {
       // Scenario: wolfKill complete → advance → lands on poisonerPoison (vacant).
       // Step transition produces audio effects → deadline should NOT be set yet.
       // It will be set later when audio-ack triggers another inline progression.
@@ -329,8 +329,8 @@ describe('runInlineProgression', () => {
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
       // Audio effects should be produced (step transition audio)
       expect(result.audioEffects.length).toBeGreaterThan(0);
-      // autoSkipDeadline should NOT be set — deferred until audio-ack
-      expect(result.finalState.autoSkipDeadline).toBeUndefined();
+      // stepDeadline should NOT be set — deferred until audio-ack
+      expect(result.finalState.stepDeadline).toBeUndefined();
       // isAudioPlaying should be set (audio effects → SET_AUDIO_PLAYING)
       expect(result.finalState.isAudioPlaying).toBe(true);
     });

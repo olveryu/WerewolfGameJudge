@@ -9,16 +9,13 @@
 
 import { jsonResponse } from '../../_shared/cors.ts';
 import {
-  decideWolfVoteTimerAction,
   type EndNightIntent,
-  gameReducer,
   type GameState,
   GameStatus,
   handleEndNight,
   handleSetAudioPlaying,
   handleSetWolfRobotHunterStatusViewed,
   handleSubmitAction,
-  isWolfVoteAllComplete,
   type SchemaId,
   SCHEMAS,
   type SetAudioPlayingIntent,
@@ -56,38 +53,8 @@ export const handleAction: HandlerFn = async (req) => {
         type: 'SUBMIT_ACTION',
         payload: { seat, role, target, extra },
       };
-      const actionResult = handleSubmitAction(intent, handlerCtx);
-      if (!actionResult.success) return actionResult;
-
-      // Wolf vote timer: if this was a wolfVote step, manage the 5s countdown timer.
-      const stepId = state.currentStepId;
-      if (stepId) {
-        const schema = SCHEMAS[stepId as SchemaId];
-        if (schema?.kind === 'wolfVote') {
-          let tempState = state;
-          for (const action of actionResult.actions) {
-            tempState = gameReducer(tempState, action);
-          }
-
-          const allVoted = isWolfVoteAllComplete(tempState);
-          const hasExistingTimer = tempState.wolfVoteDeadline != null;
-          const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, Date.now());
-
-          const actions = [...actionResult.actions];
-          if (timerAction.type === 'set') {
-            actions.push({
-              type: 'SET_WOLF_VOTE_DEADLINE' as const,
-              payload: { deadline: timerAction.deadline },
-            });
-          } else if (timerAction.type === 'clear') {
-            actions.push({ type: 'CLEAR_WOLF_VOTE_DEADLINE' as const });
-          }
-
-          return { ...actionResult, actions };
-        }
-      }
-
-      return actionResult;
+      // Wolf vote timer logic is now handled inside handleSubmitAction
+      return handleSubmitAction(intent, handlerCtx);
     },
     { enabled: true },
   );

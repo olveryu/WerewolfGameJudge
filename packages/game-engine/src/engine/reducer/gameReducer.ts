@@ -124,14 +124,11 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     case 'CLEAR_REVEAL_ACKS':
       return { ...state, pendingRevealAcks: [] };
 
-    case 'SET_WOLF_VOTE_DEADLINE':
-      return { ...state, wolfVoteDeadline: action.payload.deadline };
+    case 'SET_STEP_DEADLINE':
+      return { ...state, stepDeadline: action.payload.deadline };
 
-    case 'CLEAR_WOLF_VOTE_DEADLINE':
-      return { ...state, wolfVoteDeadline: undefined };
-
-    case 'SET_AUTO_SKIP_DEADLINE':
-      return { ...state, autoSkipDeadline: action.payload.deadline };
+    case 'CLEAR_STEP_DEADLINE':
+      return { ...state, stepDeadline: undefined };
 
     case 'SET_PENDING_AUDIO_EFFECTS':
       return { ...state, pendingAudioEffects: action.payload.effects };

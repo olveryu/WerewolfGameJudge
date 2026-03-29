@@ -17,12 +17,14 @@ import type { ActionInput, ResolverContext, ResolverResult } from '../../resolve
 import { newRejectionId } from '../../utils/id';
 import { buildSeatRoleMap } from '../../utils/playerHelpers';
 import type { SubmitActionIntent } from '../intents/types';
+import { gameReducer } from '../reducer/gameReducer';
 import type { ActionRejectedAction, RecordActionAction, StateAction } from '../reducer/types';
 import {
   checkNightmareBlockGuard,
   isTreasureMasterActorOverride,
   validateActionPreconditions,
 } from './actionGuards';
+import { decideWolfVoteTimerAction, isWolfVoteAllComplete } from './progressionEvaluator';
 import { buildRevealPayload } from './revealPayload';
 import type { HandlerContext, HandlerResult, NonNullState } from './types';
 import { STANDARD_SIDE_EFFECTS } from './types';
@@ -151,7 +153,7 @@ export function handleSubmitAction(
   }
 
   // 构建成功结果
-  return buildSuccessResult(
+  const handlerResult = buildSuccessResult(
     schemaId,
     seat,
     target,
@@ -159,6 +161,29 @@ export function handleSubmitAction(
     result,
     extra as Record<string, unknown> | undefined,
   );
+
+  // Wolf vote timer: wolfVote 步骤提交后，管理 stepDeadline
+  if (schema.kind === 'wolfVote' && handlerResult.success) {
+    // 临时 reduce 所有 actions 以获取投票最新状态
+    let tempState = state as import('../../protocol/types').GameState;
+    for (const action of handlerResult.actions) {
+      tempState = gameReducer(tempState, action);
+    }
+    const allVoted = isWolfVoteAllComplete(tempState);
+    const hasExistingTimer = tempState.stepDeadline != null;
+    const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, Date.now());
+
+    if (timerAction.type === 'set') {
+      handlerResult.actions.push({
+        type: 'SET_STEP_DEADLINE' as const,
+        payload: { deadline: timerAction.deadline },
+      });
+    } else if (timerAction.type === 'clear') {
+      handlerResult.actions.push({ type: 'CLEAR_STEP_DEADLINE' as const });
+    }
+  }
+
+  return handlerResult;
 }
 
 /**
