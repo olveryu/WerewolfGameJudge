@@ -317,6 +317,29 @@
         }, 5000);
       });
 
+      // ─── [DIAG] Reload source tracker ───
+      // Write to localStorage BEFORE any reload so we can read the cause on next load.
+      // Also track pagehide (iOS background kill) and visibilitychange.
+      (function () {
+        var prev = localStorage.getItem('__diag_reload');
+        if (prev) {
+          // Show reload reason as a persistent banner at the very top
+          var banner = document.createElement('div');
+          banner.id = 'diag-reload-banner';
+          banner.style.cssText =
+            'position:fixed;top:0;left:0;right:0;z-index:999999;' +
+            'background:#FF6F00;color:#fff;font-size:11px;padding:4px 8px;' +
+            'font-family:Courier;white-space:pre-wrap;pointer-events:none;';
+          banner.textContent = '[DIAG-RELOAD] ' + prev;
+          document.body.appendChild(banner);
+          localStorage.removeItem('__diag_reload');
+        }
+        // Track pagehide (iOS kills tab)
+        window.addEventListener('pagehide', function () {
+          localStorage.setItem('__diag_reload', 'pagehide@' + new Date().toLocaleTimeString());
+        });
+      })();
+
       // 注册 Service Worker（如果支持）
       if ('serviceWorker' in navigator) {
         // 首次安装时 controller 为 null，此时 controllerchange 不应 reload
@@ -325,6 +348,10 @@
         navigator.serviceWorker.addEventListener('controllerchange', function () {
           if (!hadController || refreshing) return;
           refreshing = true;
+          localStorage.setItem(
+            '__diag_reload',
+            'controllerchange@' + new Date().toLocaleTimeString(),
+          );
           window.location.reload();
         });
 
@@ -435,6 +462,10 @@
           setTimeout(function () {
             bar.style.width = '100%';
             setTimeout(function () {
+              localStorage.setItem(
+                '__diag_reload',
+                'sw-update-fallback@' + new Date().toLocaleTimeString(),
+              );
               window.location.reload();
             }, 300);
           }, 3000);
