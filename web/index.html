@@ -368,6 +368,21 @@
                   });
                 }
               });
+
+              // 主动轮询新版本：每 30 分钟检查一次 sw.js 是否有变化
+              setInterval(function () {
+                reg.update();
+              }, 30 * 60 * 1000);
+
+              // 用户切回前台时检查新版本（60s debounce 防止频繁切换）
+              var lastVisibilityCheck = 0;
+              document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState !== 'visible') return;
+                var now = Date.now();
+                if (now - lastVisibilityCheck < 60 * 1000) return;
+                lastVisibilityCheck = now;
+                reg.update();
+              });
             })
             .catch(function (err) {
               console.log('ServiceWorker registration failed:', err);
