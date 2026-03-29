@@ -63,33 +63,28 @@ async function shareImageWeb(base64Data: string, filename: string, title: string
     const file = base64ToFile(base64Data, filename);
     const shareData: ShareData = { title, files: [file] };
 
-    // Skip file sharing only if canShare explicitly rejects it.
-    // Missing canShare (older browsers) or unsupported → try share() directly
-    // and rely on error handling. Chrome iOS's canShare may return false for
-    // files even though share() works via WKWebView.
-    const canShareFiles = typeof navigator.canShare !== 'function' || navigator.canShare(shareData);
-
-    if (canShareFiles) {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch (error) {
-        if (error instanceof DOMException) {
-          // User cancelled the share sheet — not an error
-          if (error.name === 'AbortError') return;
-          // User activation expired (async capture too slow) — fall through to download
-          if (error.name === 'NotAllowedError') {
-            downloadImage(base64Data, filename);
-            return;
-          }
-        }
-        // TypeError = file sharing unsupported → fall through to download
-        if (error instanceof TypeError) {
+    // Always attempt navigator.share() directly — canShare() is unreliable
+    // (Chrome iOS returns false for files even though share() works via WKWebView).
+    // Rely on error handling to fall through to download.
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (error) {
+      if (error instanceof DOMException) {
+        // User cancelled the share sheet — not an error
+        if (error.name === 'AbortError') return;
+        // User activation expired (async capture too slow) — fall through to download
+        if (error.name === 'NotAllowedError') {
           downloadImage(base64Data, filename);
           return;
         }
-        throw error;
       }
+      // TypeError = file sharing unsupported → fall through to download
+      if (error instanceof TypeError) {
+        downloadImage(base64Data, filename);
+        return;
+      }
+      throw error;
     }
   }
 
