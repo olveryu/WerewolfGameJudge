@@ -86,10 +86,23 @@ export const SettingsScreen: React.FC = () => {
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
 
+  // ─── [DIAG] Auth state tracker ───
+  const diagRenderCount = useRef(0);
+  diagRenderCount.current += 1;
+
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
   // Suppress LoginOptions flash during transient auth state (e.g. updateUser → onAuthStateChange)
   const wasAuthenticatedRef = useRef(isAuthenticated);
+
+  // [DIAG] must be after wasAuthenticatedRef declaration
+  const diagBranch = !isAuthenticated
+    ? wasAuthenticatedRef.current
+      ? 'GUARD(null)'
+      : 'LoginOptions'
+    : user?.isAnonymous
+      ? 'Anon'
+      : 'Registered';
   useEffect(() => {
     const isAnonymous = user?.isAnonymous;
     if (wasAnonymousRef.current && user && !isAnonymous) {
@@ -589,6 +602,13 @@ export const SettingsScreen: React.FC = () => {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* [DIAG] Auth state banner — remove after debugging */}
+        <View style={styles.diagBanner}>
+          <Text style={styles.diagText}>
+            {`[DIAG] #${diagRenderCount.current} auth=${String(isAuthenticated)} load=${String(authLoading)} wasAuth=${String(wasAuthenticatedRef.current)} branch=${diagBranch} uid=${user?.uid?.slice(0, 8) ?? 'null'}`}
+          </Text>
+        </View>
+
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
             <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户
