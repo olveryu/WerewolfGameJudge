@@ -184,9 +184,6 @@ export interface SettingsScreenStyles {
   dresserEntry: ViewStyle;
   dresserEntryText: TextStyle;
   dresserEntryChevron: TextStyle;
-  // [DIAG] — remove after debugging
-  diagBanner: ViewStyle;
-  diagText: TextStyle;
 }
 
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
@@ -941,17 +938,5 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     dresserEntryChevron: {
       color: colors.textMuted,
-    },
-    // [DIAG] — remove after debugging
-    diagBanner: {
-      backgroundColor: colors.error,
-      padding: spacing.small,
-      marginBottom: spacing.small,
-      borderRadius: borderRadius.small,
-    },
-    diagText: {
-      color: colors.background,
-      fontSize: typography.captionSmall,
-      fontFamily: 'Courier',
     },
   });

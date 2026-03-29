@@ -317,45 +317,6 @@
         }, 5000);
       });
 
-      // ─── [DIAG] Reload source tracker ───
-      // Captures: (1) who called location.reload() via stack trace proxy,
-      //           (2) pagehide event + __diagStep,
-      //           (3) PerformanceNavigationTiming.type on next load.
-      (function () {
-        // 1) Proxy location.reload to capture call stack
-        var origReload = location.reload.bind(location);
-        Object.defineProperty(location, 'reload', {
-          value: function () {
-            try {
-              var stack = new Error('DIAG reload proxy').stack || '';
-              // Trim to first 500 chars to fit localStorage
-              localStorage.setItem('__diag_reload_stack', stack.slice(0, 500));
-            } catch (_e) {
-              // ignore
-            }
-            origReload();
-          },
-        });
-
-        // 2) pagehide: write step + timestamp (fires on iOS WKWebView navigation/eviction)
-        window.addEventListener('pagehide', function () {
-          var step = window.__diagStep || 'idle';
-          localStorage.setItem(
-            '__diag_reload',
-            'pagehide[' + step + ']@' + new Date().toLocaleTimeString(),
-          );
-        });
-
-        // 3) Sync: read PerformanceNavigationTiming.type immediately (before React mounts)
-        try {
-          var navEntries = performance.getEntriesByType('navigation');
-          var navType = navEntries.length > 0 ? navEntries[0].type : 'unknown';
-          localStorage.setItem('__diag_nav_type', navType);
-        } catch (_e) {
-          // ignore
-        }
-      })();
-
       // 注册 Service Worker（如果支持）
       if ('serviceWorker' in navigator) {
         // 首次安装时 controller 为 null，此时 controllerchange 不应 reload

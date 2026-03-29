@@ -86,43 +86,11 @@ export const SettingsScreen: React.FC = () => {
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
 
-  // ─── [DIAG] Auth state tracker ───
-  const diagRenderCount = useRef(0);
-  diagRenderCount.current += 1;
-  // Read reload reason from localStorage (written by index.html before reload)
-  const [diagReloadReason] = useState(() => {
-    if (typeof localStorage === 'undefined') return null;
-    const reason = localStorage.getItem('__diag_reload');
-    if (reason) localStorage.removeItem('__diag_reload');
-    return reason;
-  });
-  // [DIAG] Read reload stack trace + navigation type
-  const [diagReloadStack] = useState(() => {
-    if (typeof localStorage === 'undefined') return null;
-    const stack = localStorage.getItem('__diag_reload_stack');
-    if (stack) localStorage.removeItem('__diag_reload_stack');
-    return stack;
-  });
-  const [diagNavType] = useState(() => {
-    if (typeof localStorage === 'undefined') return null;
-    const navType = localStorage.getItem('__diag_nav_type');
-    if (navType) localStorage.removeItem('__diag_nav_type');
-    return navType;
-  });
-
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
   // Suppress LoginOptions flash during transient auth state (e.g. updateUser → onAuthStateChange)
   const wasAuthenticatedRef = useRef(isAuthenticated);
 
-  // [DIAG] must be after wasAuthenticatedRef declaration
-  const diagBranch = !isAuthenticated
-    ? wasAuthenticatedRef.current
-      ? 'GUARD(null)'
-      : 'LoginOptions'
-    : user?.isAnonymous
-      ? 'Anon'
-      : 'Registered';
   useEffect(() => {
     const isAnonymous = user?.isAnonymous;
     if (wasAnonymousRef.current && user && !isAnonymous) {
@@ -214,14 +182,9 @@ export const SettingsScreen: React.FC = () => {
     async (index: number) => {
       const builtinUrl = makeBuiltinAvatarUrl(index);
       setSavingBuiltinAvatar(true);
-      // [DIAG] step tracking for pagehide root cause
-      (window as unknown as Record<string, string>).__diagStep = 'builtin:start';
       try {
-        (window as unknown as Record<string, string>).__diagStep = 'builtin:updateProfile';
         await updateProfile({ avatarUrl: builtinUrl });
-        (window as unknown as Record<string, string>).__diagStep = 'builtin:showAlert';
         showAlert('头像已更新');
-        (window as unknown as Record<string, string>).__diagStep = 'builtin:closePicker';
         setShowAvatarPicker(false);
 
         // Sync to GameState (if in room & seated, silent failure is fine)
@@ -233,7 +196,6 @@ export const SettingsScreen: React.FC = () => {
         settingsLog.error('Builtin avatar save failed:', message, e);
         showAlert('保存失败', message);
       } finally {
-        (window as unknown as Record<string, string>).__diagStep = 'builtin:done';
         setSavingBuiltinAvatar(false);
       }
     },
@@ -243,14 +205,9 @@ export const SettingsScreen: React.FC = () => {
   const handleSelectCustomAvatar = useCallback(async () => {
     if (!user?.customAvatarUrl) return;
     setSavingBuiltinAvatar(true);
-    // [DIAG] step tracking for pagehide root cause
-    (window as unknown as Record<string, string>).__diagStep = 'custom:start';
     try {
-      (window as unknown as Record<string, string>).__diagStep = 'custom:updateProfile';
       await updateProfile({ avatarUrl: user.customAvatarUrl });
-      (window as unknown as Record<string, string>).__diagStep = 'custom:showAlert';
       showAlert('头像已更新');
-      (window as unknown as Record<string, string>).__diagStep = 'custom:closePicker';
       setShowAvatarPicker(false);
 
       facade
@@ -261,7 +218,6 @@ export const SettingsScreen: React.FC = () => {
       settingsLog.error('Custom avatar restore failed:', message, e);
       showAlert('保存失败', message);
     } finally {
-      (window as unknown as Record<string, string>).__diagStep = 'custom:done';
       setSavingBuiltinAvatar(false);
     }
   }, [user?.customAvatarUrl, updateProfile, facade]);
@@ -309,14 +265,9 @@ export const SettingsScreen: React.FC = () => {
   const handleSelectFrame = useCallback(
     async (frameId: FrameId | null) => {
       setSavingBuiltinAvatar(true);
-      // [DIAG] step tracking for pagehide root cause
-      (window as unknown as Record<string, string>).__diagStep = 'frame:start';
       try {
-        (window as unknown as Record<string, string>).__diagStep = 'frame:updateProfile';
         await updateProfile({ avatarFrame: frameId ?? '' });
-        (window as unknown as Record<string, string>).__diagStep = 'frame:showAlert';
         showAlert('头像框已更新');
-        (window as unknown as Record<string, string>).__diagStep = 'frame:closePicker';
         setShowAvatarPicker(false);
 
         facade
@@ -327,7 +278,6 @@ export const SettingsScreen: React.FC = () => {
         settingsLog.error('Frame save failed:', message, e);
         showAlert('保存失败', message);
       } finally {
-        (window as unknown as Record<string, string>).__diagStep = 'frame:done';
         setSavingBuiltinAvatar(false);
       }
     },
@@ -612,9 +562,9 @@ export const SettingsScreen: React.FC = () => {
       );
     }
 
-    // If user was previously authenticated in this session, suppress LoginOptions
-    // during transient auth state flashes (e.g. Supabase SDK onAuthStateChange glitch)
-    if (wasAuthenticatedRef.current) {
+    // Suppress LoginOptions during auth initialization or transient auth state flashes
+    // (e.g. Supabase SDK onAuthStateChange glitch, or initial session restore)
+    if (wasAuthenticatedRef.current || authLoading) {
       return null;
     }
 
@@ -640,18 +590,6 @@ export const SettingsScreen: React.FC = () => {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* [DIAG] Auth state banner — remove after debugging */}
-        <View style={styles.diagBanner}>
-          <Text style={styles.diagText}>
-            {`[DIAG] #${diagRenderCount.current} auth=${String(isAuthenticated)} load=${String(authLoading)} wasAuth=${String(wasAuthenticatedRef.current)} branch=${diagBranch} uid=${user?.uid?.slice(0, 8) ?? 'null'}`}
-          </Text>
-          {diagReloadReason && (
-            <Text style={styles.diagText}>{`[RELOAD] ${diagReloadReason}`}</Text>
-          )}
-          {diagNavType && <Text style={styles.diagText}>{`[NAV] type=${diagNavType}`}</Text>}
-          {diagReloadStack && <Text style={styles.diagText}>{`[STACK] ${diagReloadStack}`}</Text>}
-        </View>
-
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
             <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户
