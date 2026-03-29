@@ -64,12 +64,6 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     const chosenName = getRoleDisplayName(gameState.treasureMasterChosenCard as RoleId);
     lines.push(`${getRoleEmoji('treasureMaster' as RoleId)} 盗宝大师选择了 ${chosenName}`);
   }
-  if (gameState.bottomCardStepRoles && gameState.bottomCardStepRoles.length > 0) {
-    for (const roleId of gameState.bottomCardStepRoles) {
-      const roleName = getRoleDisplayName(roleId);
-      lines.push(`⏭️ ${roleName}（底牌）跳过行动`);
-    }
-  }
 
   // 1. Wolf kill vote
   if (nr.wolfVotesBySeat && Object.keys(nr.wolfVotesBySeat).length > 0) {

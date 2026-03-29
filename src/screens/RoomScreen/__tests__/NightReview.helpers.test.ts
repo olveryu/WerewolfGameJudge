@@ -150,16 +150,6 @@ describe('NightReview.helpers', () => {
       expect(lines).toContainEqual(expect.stringContaining('盗宝大师选择了 预言家'));
     });
 
-    it('shows skipped bottom card step roles', () => {
-      const lines = buildActionLines(
-        makeGameState({
-          bottomCardStepRoles: ['guard' as RoleId, 'seer' as RoleId],
-        }),
-      );
-      expect(lines).toContainEqual(expect.stringContaining('守卫（底牌）跳过行动'));
-      expect(lines).toContainEqual(expect.stringContaining('预言家（底牌）跳过行动'));
-    });
-
     it('shows slacker idol choice', () => {
       const actions = new Map([['slacker' as RoleId, makeActionTarget(3)]]);
       const lines = buildActionLines(makeGameState({ actions }));
