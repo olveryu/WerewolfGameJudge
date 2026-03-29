@@ -102,5 +102,5 @@ export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
 /** 重置所有页面的新手引导（SettingsScreen 调用） */
 export async function resetAllGuides(): Promise<void> {
   sessionDismissed.clear();
-  await AsyncStorage.removeMany(ALL_GUIDE_DISMISSED_KEYS);
+  await AsyncStorage.multiRemove(ALL_GUIDE_DISMISSED_KEYS);
 }
