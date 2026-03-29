@@ -12,6 +12,7 @@ import { getVisibleText } from '../helpers/ui';
 const VARIANT_TO_BASE: Record<string, string> = {
   awakenedGargoyle: 'gargoyle',
   drunkSeer: 'mirrorSeer',
+  poisoner: 'witch',
   wildChild: 'slacker',
 };
 
