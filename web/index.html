@@ -325,10 +325,6 @@
         navigator.serviceWorker.addEventListener('controllerchange', function () {
           if (!hadController || refreshing) return;
           refreshing = true;
-          localStorage.setItem(
-            '__diag_reload',
-            'controllerchange@' + new Date().toLocaleTimeString(),
-          );
           window.location.reload();
         });
 
@@ -457,10 +453,6 @@
           setTimeout(function () {
             bar.style.width = '100%';
             setTimeout(function () {
-              localStorage.setItem(
-                '__diag_reload',
-                'sw-update-fallback@' + new Date().toLocaleTimeString(),
-              );
               window.location.reload();
             }, 300);
           }, 3000);
