@@ -359,7 +359,7 @@
               // 主动轮询新版本：每 30 分钟检查一次 sw.js 是否有变化
               setInterval(
                 function () {
-                  reg.update();
+                  reg.update().catch(function () {});
                 },
                 30 * 60 * 1000,
               );
@@ -371,7 +371,7 @@
                 var now = Date.now();
                 if (now - lastVisibilityCheck < 60 * 1000) return;
                 lastVisibilityCheck = now;
-                reg.update();
+                reg.update().catch(function () {});
               });
             })
             .catch(function (err) {
