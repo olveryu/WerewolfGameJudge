@@ -78,19 +78,23 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   const shareCardRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
   const preCapturedRef = useRef<string | null>(null);
+  const [isPreCaptureReady, setIsPreCaptureReady] = useState(Platform.OS !== 'web');
 
   // Pre-capture the share card on web so navigator.share() can be called
   // within the user-activation window (avoids NotAllowedError).
   useEffect(() => {
     if (!visible || Platform.OS !== 'web') return;
     preCapturedRef.current = null;
+    setIsPreCaptureReady(false);
     const timer = setTimeout(() => {
       captureShareCard(shareCardRef)
         .then((b64) => {
           preCapturedRef.current = b64;
+          setIsPreCaptureReady(true);
         })
         .catch(() => {
-          // Pre-capture failed; on-demand capture will be used as fallback
+          // Pre-capture failed; enable button anyway for on-demand fallback
+          setIsPreCaptureReady(true);
         });
     }, 300);
     return () => clearTimeout(timer);
@@ -148,7 +152,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
             <Button
               variant="primary"
               onPress={handleShare}
-              loading={isSharing}
+              loading={isSharing || !isPreCaptureReady}
               testID={TESTIDS.qrCodeShareButton}
             >
               分享图片

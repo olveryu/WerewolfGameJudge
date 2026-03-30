@@ -7,7 +7,7 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { CANCEL_BUTTON, DISMISS_BUTTON, showAlert } from '@/utils/alert';
 
@@ -21,6 +21,8 @@ interface UseRoomModalsDeps {
   getLastNightInfo: () => string; /** 获取乌鸦诅咒信息，无乌鸦返回 null */
   getCurseInfo: () => string | null; /** 分享夜晚详情给指定座位（HTTP API） */
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
+  /** 开始后台截图战报，返回 base64（成功）或 null（失败） */
+  beginReportCapture: () => Promise<string | null>;
   /** 直接分享战报（系统分享/复制） */
   shareNightReviewReport: () => Promise<void>;
 }
@@ -61,6 +63,7 @@ export function useRoomModals({
   getLastNightInfo,
   getCurseInfo,
   shareNightReview,
+  beginReportCapture,
   shareNightReviewReport,
 }: UseRoomModalsDeps): RoomModalsState {
   // ── Role card modal ──
@@ -91,6 +94,9 @@ export function useRoomModals({
   // ── Night review modal ──
   const [nightReviewVisible, setNightReviewVisible] = useState(false);
 
+  /** Tracks whether the "详细信息" alert is still open (prevents re-showing after dismiss). */
+  const detailAlertOpenRef = useRef(false);
+
   const confirmOpenNightReview = useCallback(() => {
     showAlert('提示', '请确保你是裁判或观战玩家，再查看详细信息', [
       { text: '取消', style: 'cancel' },
@@ -101,46 +107,94 @@ export function useRoomModals({
     ]);
   }, []);
 
+  /**
+   * Show the "详细信息" alert with optional loading state on "分享战报" button.
+   * Can be called twice: first with `reportLoading: true`, then with `false`
+   * once capture completes — `showAlert` seamlessly updates the existing modal.
+   */
+  const showDetailAlert = useCallback(
+    (reportLoading: boolean) => {
+      const dismiss = () => {
+        detailAlertOpenRef.current = false;
+      };
+
+      if (isHost) {
+        showAlert('详细信息', '选择操作', [
+          {
+            text: '自己查看',
+            onPress: () => {
+              dismiss();
+              confirmOpenNightReview();
+            },
+          },
+          {
+            text: '分享给玩家',
+            onPress: () => {
+              dismiss();
+              setShareReviewVisible(true);
+            },
+          },
+          {
+            text: '分享战报',
+            loading: reportLoading,
+            onPress: () => {
+              dismiss();
+              void shareNightReviewReport();
+            },
+          },
+          {
+            text: '取消',
+            style: 'cancel',
+            onPress: dismiss,
+          },
+        ]);
+      } else if (canShareReport) {
+        showAlert('详细信息', '选择操作', [
+          {
+            text: '查看',
+            onPress: () => {
+              dismiss();
+              confirmOpenNightReview();
+            },
+          },
+          {
+            text: '分享战报',
+            loading: reportLoading,
+            onPress: () => {
+              dismiss();
+              void shareNightReviewReport();
+            },
+          },
+          {
+            text: '取消',
+            style: 'cancel',
+            onPress: dismiss,
+          },
+        ]);
+      }
+    },
+    [confirmOpenNightReview, isHost, canShareReport, shareNightReviewReport],
+  );
+
   const openNightReview = useCallback(() => {
-    if (isHost) {
-      // Host: choose between viewing or sharing
-      showAlert('详细信息', '选择操作', [
-        {
-          text: '自己查看',
-          onPress: () => confirmOpenNightReview(),
-        },
-        {
-          text: '分享给玩家',
-          onPress: () => setShareReviewVisible(true),
-        },
-        {
-          text: '分享战报',
-          onPress: () => {
-            void shareNightReviewReport();
-          },
-        },
-        { text: '取消', style: 'cancel' },
-      ]);
-    } else if (canShareReport) {
-      // Non-host allowed player: view or share
-      showAlert('详细信息', '选择操作', [
-        {
-          text: '查看',
-          onPress: () => confirmOpenNightReview(),
-        },
-        {
-          text: '分享战报',
-          onPress: () => {
-            void shareNightReviewReport();
-          },
-        },
-        { text: '取消', style: 'cancel' },
-      ]);
-    } else {
+    if (!isHost && !canShareReport) {
       // Non-host without share permission: confirm before viewing (anti-cheat reminder)
       confirmOpenNightReview();
+      return;
     }
-  }, [confirmOpenNightReview, isHost, canShareReport, shareNightReviewReport]);
+
+    detailAlertOpenRef.current = true;
+
+    // Start capture in background; update alert to enable "分享战报" on completion
+    void beginReportCapture().then(() => {
+      if (detailAlertOpenRef.current) {
+        showDetailAlert(false);
+      }
+    });
+
+    // Show alert immediately with loading "分享战报"
+    showDetailAlert(true);
+  }, [confirmOpenNightReview, isHost, canShareReport, beginReportCapture, showDetailAlert]);
 
   const closeNightReview = useCallback(() => setNightReviewVisible(false), []);
 

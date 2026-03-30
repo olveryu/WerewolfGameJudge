@@ -5,7 +5,15 @@
  * 渲染 Modal UI，通过 onPress 回调上报用户操作。不 import service，不含业务逻辑。
  */
 import React, { useMemo } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { TESTIDS } from '@/testids';
 import {
@@ -23,6 +31,8 @@ export interface AlertButton {
   text: string;
   onPress?: () => void;
   style?: 'default' | 'cancel' | 'destructive';
+  loading?: boolean;
+  disabled?: boolean;
 }
 
 /**
@@ -92,18 +102,27 @@ export const AlertModal: React.FC<AlertModalProps> = ({
                   styles.button,
                   button.style === 'cancel' && styles.cancelButton,
                   button.style === 'destructive' && styles.destructiveButton,
+                  (button.loading || button.disabled) && styles.disabledButton,
                 ]}
                 onPress={() => handleButtonPress(button)}
+                disabled={button.loading || button.disabled}
               >
-                <Text
-                  style={[
-                    styles.buttonText,
-                    button.style === 'cancel' && styles.cancelButtonText,
-                    button.style === 'destructive' && styles.destructiveButtonText,
-                  ]}
-                >
-                  {button.text}
-                </Text>
+                {button.loading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={button.style === 'cancel' ? colors.textSecondary : colors.textInverse}
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      button.style === 'cancel' && styles.cancelButtonText,
+                      button.style === 'destructive' && styles.destructiveButtonText,
+                    ]}
+                  >
+                    {button.text}
+                  </Text>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -161,6 +180,9 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     destructiveButton: {
       backgroundColor: colors.error,
+    },
+    disabledButton: {
+      opacity: 0.5,
     },
     buttonText: {
       ...textStyles.bodySemibold,

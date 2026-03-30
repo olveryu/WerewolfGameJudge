@@ -11,6 +11,8 @@ interface AlertButton {
   text: string;
   onPress?: () => void;
   style?: 'default' | 'cancel' | 'destructive';
+  loading?: boolean;
+  disabled?: boolean;
 }
 
 // ── Common button presets (DRY) ──────────────────────────────────────────

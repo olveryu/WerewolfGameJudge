@@ -466,32 +466,22 @@ export function useRoomScreenState(
   const [isCapturingShareCard, setIsCapturingShareCard] = useState(false);
   const cachedShareBase64Ref = useRef<string | null>(null);
 
-  // Pre-capture share card when nightReviewData becomes available.
-  // Caches base64 so that navigator.share() can be called synchronously
-  // within the user-activation window (Chrome expires it after ~5s).
-  useEffect(() => {
-    if (!nightReviewData) {
-      cachedShareBase64Ref.current = null;
-      return;
-    }
-    let cancelled = false;
+  // Begin report capture on demand (called when user opens "详细信息" alert).
+  // Mounts the hidden share card, waits for paint, captures via html2canvas / captureRef.
+  const beginReportCapture = useCallback(async (): Promise<string | null> => {
+    cachedShareBase64Ref.current = null;
     setIsCapturingShareCard(true);
-    const capture = async () => {
-      try {
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-        const base64 = await captureNightReviewCard(nightReviewShareCardRef);
-        if (!cancelled) cachedShareBase64Ref.current = base64;
-      } catch {
-        // Pre-capture failure is non-fatal; shareNightReviewReportDirectly will retry on-demand
-      } finally {
-        if (!cancelled) setIsCapturingShareCard(false);
-      }
-    };
-    void capture();
-    return () => {
-      cancelled = true;
-    };
-  }, [nightReviewData]);
+    try {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const base64 = await captureNightReviewCard(nightReviewShareCardRef);
+      cachedShareBase64Ref.current = base64;
+      return base64;
+    } catch {
+      return null;
+    } finally {
+      setIsCapturingShareCard(false);
+    }
+  }, []);
 
   const shareNightReviewReportDirectly = useCallback(async () => {
     if (!nightReviewData) {
@@ -499,9 +489,9 @@ export function useRoomScreenState(
       return;
     }
 
-    // Fast path: use pre-cached base64 (keeps user-activation alive for Chrome)
-    if (cachedShareBase64Ref.current) {
-      const base64 = cachedShareBase64Ref.current;
+    // Use base64 pre-captured by beginReportCapture (triggered when "详细信息" alert opened)
+    const base64 = cachedShareBase64Ref.current;
+    if (base64) {
       const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomNumber);
       if (result === 'failed') {
         showAlert('分享失败', '无法分享战报，请稍后重试');
@@ -509,22 +499,20 @@ export function useRoomScreenState(
       return;
     }
 
-    // Slow path fallback: mount card → capture → share (Chrome will likely download)
-    setIsCapturingShareCard(true);
-    try {
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      const base64 = await captureNightReviewCard(nightReviewShareCardRef);
-      setIsCapturingShareCard(false);
-
-      const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomNumber);
-      if (result === 'failed') {
-        showAlert('分享失败', '无法分享战报，请稍后重试');
-      }
-    } catch {
-      setIsCapturingShareCard(false);
+    // Fallback: on-demand capture (Chrome may download instead of share due to activation expiry)
+    const freshBase64 = await beginReportCapture();
+    if (!freshBase64) {
+      showAlert('分享失败', '无法生成战报截图，请稍后重试');
+      return;
+    }
+    const result = await shareNightReviewReportImage(
+      () => Promise.resolve(freshBase64),
+      roomNumber,
+    );
+    if (result === 'failed') {
       showAlert('分享失败', '无法分享战报，请稍后重试');
     }
-  }, [nightReviewData, roomNumber]);
+  }, [nightReviewData, roomNumber, beginReportCapture]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Modal / dialog state (role card, skill preview, night review, share review)
@@ -557,6 +545,7 @@ export function useRoomScreenState(
     getLastNightInfo: getLastNightInfoFn,
     getCurseInfo: getCurseInfoFn,
     shareNightReview,
+    beginReportCapture,
     shareNightReviewReport: shareNightReviewReportDirectly,
   });
 
