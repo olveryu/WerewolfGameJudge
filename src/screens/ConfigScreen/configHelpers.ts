@@ -28,6 +28,9 @@ import { buildInitialSelection, FACTION_GROUPS } from './configData';
 
 export const getInitialSelection = (): Record<string, boolean> => buildInitialSelection();
 
+/** All roles off — used when entering ConfigScreen via "从零开始自定义". */
+export const getEmptySelection = (): Record<string, boolean> => buildInitialSelection([]);
+
 export const selectionToRoles = (
   selection: Record<string, boolean>,
   variantOverrides?: Record<string, string>,
@@ -220,7 +223,47 @@ export const getKeyRoles = (roles: RoleId[], max: number = 3): TemplateRoleItem[
     });
   }
 
+  // Prioritize distinctive roles: third-party > wolf variants > god > villager
+  const FACTION_PRIORITY: Record<string, number> = {
+    [Faction.Special]: 0,
+    [Faction.Wolf]: 1,
+    [Faction.God]: 2,
+    [Faction.Villager]: 3,
+  };
+  items.sort((a, b) => (FACTION_PRIORITY[a.faction] ?? 3) - (FACTION_PRIORITY[b.faction] ?? 3));
+
   return items.slice(0, max);
+};
+
+/**
+ * Collect all distinctive roles across ALL preset templates.
+ * Excludes generic 'wolf' and 'villager'. De-duplicated, sorted by faction
+ * priority (third > wolf variants > god). Computed once at module level.
+ */
+export const getDistinctiveRoles = (templates: PresetTemplate[]): TemplateRoleItem[] => {
+  const seen = new Set<string>();
+  const items: TemplateRoleItem[] = [];
+
+  for (const t of templates) {
+    for (const roleId of t.roles) {
+      if (roleId === 'wolf' || roleId === 'villager') continue;
+      if (seen.has(roleId)) continue;
+      seen.add(roleId);
+      if (!isValidRoleId(roleId)) continue;
+      const spec = ROLE_SPECS[roleId];
+      items.push({ roleId, displayName: spec.displayName, count: 1, faction: spec.faction });
+    }
+  }
+
+  const FACTION_PRIORITY: Record<string, number> = {
+    [Faction.Special]: 0,
+    [Faction.Wolf]: 1,
+    [Faction.God]: 2,
+    [Faction.Villager]: 3,
+  };
+  items.sort((a, b) => (FACTION_PRIORITY[a.faction] ?? 3) - (FACTION_PRIORITY[b.faction] ?? 3));
+
+  return items;
 };
 
 /**
@@ -276,19 +319,20 @@ export const groupRolesByFaction = (
 
 /** SectionList section for grouped templates */
 export interface TemplateSectionData {
+  category: TemplateCategory;
   title: string;
   data: PresetTemplate[];
 }
 
 /**
  * Group templates by category for SectionList display.
- * Order: Classic → SkillWolf → Featured → ThirdParty.
+ * Order: Classic → Advanced → Special → ThirdParty.
  */
 export const groupTemplatesByCategory = (templates: PresetTemplate[]): TemplateSectionData[] => {
   const order: TemplateCategory[] = [
     TemplateCategory.Classic,
-    TemplateCategory.SkillWolf,
-    TemplateCategory.Featured,
+    TemplateCategory.Advanced,
+    TemplateCategory.Special,
     TemplateCategory.ThirdParty,
   ];
 
@@ -304,6 +348,7 @@ export const groupTemplatesByCategory = (templates: PresetTemplate[]): TemplateS
     const data = grouped.get(cat);
     if (data && data.length > 0) {
       sections.push({
+        category: cat,
         title: `${TEMPLATE_CATEGORY_LABELS[cat]} · ${data.length}`,
         data,
       });

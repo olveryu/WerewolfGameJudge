@@ -1,6 +1,8 @@
 import { expect, Page } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import { getVisibleText } from '../helpers/ui';
+import { BoardPickerPage } from './BoardPickerPage';
 
 /**
  * Variant → base role mapping.
@@ -63,34 +65,38 @@ export class ConfigPage {
   // ---------------------------------------------------------------------------
 
   /**
-   * Select a template from the opened TemplatePicker modal.
+   * Change the selected template by navigating back to BoardPicker.
    *
-   * Clicking the card header auto-selects + expands. Then click the
-   * bottom "确认" button to close the modal and apply selection.
+   * In create mode, clicking the template pill goes back to BoardPicker.
+   * Then we select the desired template on BoardPicker, which navigates
+   * back to Config with the new preset.
    */
   async selectTemplate(name: string) {
-    // Step 1: Click the card header to expand + auto-select
-    const cardTitle = getVisibleText(this.page, name);
-    await cardTitle.scrollIntoViewIfNeeded();
-    await expect(cardTitle).toBeVisible({ timeout: 5000 });
-    await cardTitle.click();
+    // Step 1: Click the template pill to go back to BoardPicker
+    await this.clickTemplatePill();
 
-    // Step 2: Click the "确认" button on the confirmation bar to close the modal
-    const confirmButton = getVisibleText(this.page, '确认');
-    await expect(confirmButton).toBeVisible({ timeout: 3000 });
-    await confirmButton.click();
+    // Step 2: BoardPicker is now visible — select the template
+    const boardPicker = new BoardPickerPage(this.page);
+    await boardPicker.waitForReady();
+    await boardPicker.selectTemplate(name);
   }
 
   /**
-   * Open the template dropdown by clicking the template pill.
-   * @param currentTemplate Short label of current template (e.g. '预女猎白')
+   * Click the template pill in the header.
+   * In create mode this navigates back to BoardPicker.
    */
-  async openTemplateDropdown(currentTemplate: string) {
-    const dropdown = getVisibleText(this.page, currentTemplate);
-    await expect(dropdown).toBeVisible({ timeout: 5000 });
-    await dropdown.click();
-    // Wait for the modal to appear
-    await expect(this.page.getByText('选择模板')).toBeVisible({ timeout: 3000 });
+  async clickTemplatePill() {
+    // Use the back button which navigates back to BoardPicker in create mode
+    const backBtn = this.page.locator(`[data-testid="${TESTIDS.configBackButton}"]`);
+    await backBtn.click();
+  }
+
+  /**
+   * @deprecated Use selectTemplate() instead. The old TemplatePicker modal no longer exists.
+   * In create mode, the template pill navigates back to BoardPicker.
+   */
+  async openTemplateDropdown(_currentTemplate: string) {
+    await this.clickTemplatePill();
   }
 
   /** Expect template pill to be visible (config screen identity check). */

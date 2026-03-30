@@ -24,7 +24,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { componentSizes, fixed, useColors } from '@/theme';
+import { componentSizes, useColors } from '@/theme';
 
 import {
   createConfigScreenStyles,
@@ -32,7 +32,6 @@ import {
   RoleChip,
   RoleStepper,
   Section,
-  TemplatePicker,
 } from './components';
 import { expandSlotToChipEntries, FACTION_COLOR_MAP } from './configHelpers';
 import { useConfigScreenState } from './useConfigScreenState';
@@ -51,12 +50,14 @@ export const ConfigScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConfigRouteProp>();
   const existingRoomNumber = route.params?.existingRoomNumber;
+  const presetName = route.params?.presetName;
 
   const facade = useGameFacade();
   const { settingsService, authService, roomService } = useServices();
 
   const state = useConfigScreenState({
     existingRoomNumber,
+    presetName,
     navigation,
     facade,
     settingsService,
@@ -78,11 +79,6 @@ export const ConfigScreen: React.FC = () => {
     toggleRole,
     handleClearSelection,
     selectedTemplateLabel,
-    templateDropdownVisible,
-    handleOpenTemplateDropdown,
-    handleCloseTemplateDropdown,
-    handleSelectTemplate,
-    selectedTemplate,
     roleInfoId,
     roleInfoVariantIds,
     roleInfoActiveVariant,
@@ -102,19 +98,19 @@ export const ConfigScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
-      {/* Header row — ← | 预女猎白▾ 12人 | ⋯ */}
+      {/* Header row — ← | 预女猎白 12人 | ⋯ */}
       <View style={styles.header}>
         <Button variant="icon" onPress={handleGoBack} testID={TESTIDS.configBackButton}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>
         <View style={styles.headerCenter} pointerEvents="box-none">
-          <TouchableOpacity
-            style={styles.templatePill}
-            onPress={handleOpenTemplateDropdown}
-            activeOpacity={fixed.activeOpacity}
-          >
+          <TouchableOpacity style={styles.templatePill} activeOpacity={0.7} onPress={handleGoBack}>
             <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
-            <Text style={styles.templatePillArrow}>▾</Text>
+            <Ionicons
+              name="chevron-down"
+              size={componentSizes.icon.xs}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
           <Text style={styles.playerCount}>{totalCount}人</Text>
         </View>
@@ -224,15 +220,6 @@ export const ConfigScreen: React.FC = () => {
           {isEditMode ? '保存配置' : '创建房间'}
         </Button>
       </View>
-
-      {/* Template Dropdown Modal */}
-      <TemplatePicker
-        visible={templateDropdownVisible}
-        onClose={handleCloseTemplateDropdown}
-        selectedValue={selectedTemplate}
-        onSelect={handleSelectTemplate}
-        styles={styles}
-      />
 
       {/* Role Info Card (long-press any chip → card with variant pills) */}
       <RoleCardSimple

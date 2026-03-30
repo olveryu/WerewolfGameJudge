@@ -3,10 +3,13 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 
 export type RootStackParamList = {
   Home: undefined;
+  BoardPicker: undefined;
   Config:
     | {
         // Optional: if provided, update existing room instead of creating new one
         existingRoomNumber?: string;
+        // Optional: if provided, auto-apply this preset template
+        presetName?: string;
       }
     | undefined;
   Room: {

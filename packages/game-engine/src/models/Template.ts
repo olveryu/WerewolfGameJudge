@@ -11,21 +11,21 @@ import { isValidRoleId, RoleId } from './roles';
 // ---------------------------------------------------------------------------
 
 export enum TemplateCategory {
-  /** 经典板（预女猎白等基础阵容） */
+  /** 经典板（预女猎白、狼美守卫、狼王守卫等入门阵容） */
   Classic = 'classic',
-  /** 技能狼板（狼美、狼王、石像等含技能狼） */
-  SkillWolf = 'skillWolf',
-  /** 特色板（血月猎魔、假面舞会等独特机制） */
-  Featured = 'featured',
+  /** 进阶板（石像鬼、血月猎魔等需要经验的阵容） */
+  Advanced = 'advanced',
+  /** 特色板（梦魇、灯影、假面等独特机制） */
+  Special = 'special',
   /** 第三方板（混子、吹笛、野孩等含第三方阵营） */
   ThirdParty = 'thirdParty',
 }
 
 export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
-  [TemplateCategory.Classic]: '经典板',
-  [TemplateCategory.SkillWolf]: '技能狼板',
-  [TemplateCategory.Featured]: '特色板',
-  [TemplateCategory.ThirdParty]: '第三方板',
+  [TemplateCategory.Classic]: '经典',
+  [TemplateCategory.Advanced]: '进阶',
+  [TemplateCategory.Special]: '特色',
+  [TemplateCategory.ThirdParty]: '第三方',
 };
 
 export interface PresetTemplate {
@@ -144,7 +144,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '狼美守卫',
-    category: TemplateCategory.SkillWolf,
+    category: TemplateCategory.Classic,
     roles: [
       'villager',
       'villager',
@@ -162,7 +162,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '狼王守卫',
-    category: TemplateCategory.SkillWolf,
+    category: TemplateCategory.Classic,
     roles: [
       'villager',
       'villager',
@@ -180,7 +180,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '石像鬼守墓人',
-    category: TemplateCategory.SkillWolf,
+    category: TemplateCategory.Advanced,
     roles: [
       'villager',
       'villager',
@@ -198,7 +198,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '梦魇守卫',
-    category: TemplateCategory.SkillWolf,
+    category: TemplateCategory.Advanced,
     roles: [
       'villager',
       'villager',
@@ -216,7 +216,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '血月猎魔',
-    category: TemplateCategory.Featured,
+    category: TemplateCategory.Advanced,
     roles: [
       'villager',
       'villager',
@@ -234,7 +234,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '狼王摄梦人',
-    category: TemplateCategory.SkillWolf,
+    category: TemplateCategory.Advanced,
     roles: [
       'villager',
       'villager',
@@ -252,7 +252,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '狼王魔术师',
-    category: TemplateCategory.SkillWolf,
+    category: TemplateCategory.Advanced,
     roles: [
       'villager',
       'villager',
@@ -270,7 +270,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '机械狼通灵师',
-    category: TemplateCategory.Featured,
+    category: TemplateCategory.Advanced,
     roles: [
       'villager',
       'villager',
@@ -288,7 +288,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '恶灵骑士',
-    category: TemplateCategory.Featured,
+    category: TemplateCategory.Advanced,
     roles: [
       'villager',
       'villager',
@@ -306,7 +306,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '纯白夜影',
-    category: TemplateCategory.Featured,
+    category: TemplateCategory.Special,
     roles: [
       'villager',
       'villager',
@@ -324,7 +324,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '灯影预言家',
-    category: TemplateCategory.Featured,
+    category: TemplateCategory.Special,
     roles: [
       'villager',
       'villager',
@@ -342,7 +342,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '假面舞会',
-    category: TemplateCategory.Featured,
+    category: TemplateCategory.Special,
     roles: [
       'villager',
       'villager',
@@ -414,7 +414,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '唯邻是从',
-    category: TemplateCategory.SkillWolf,
+    category: TemplateCategory.Special,
     roles: [
       'villager',
       'villager',
@@ -432,7 +432,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
   },
   {
     name: '孤注一掷',
-    category: TemplateCategory.SkillWolf,
+    category: TemplateCategory.Special,
     roles: [
       'villager',
       'villager',

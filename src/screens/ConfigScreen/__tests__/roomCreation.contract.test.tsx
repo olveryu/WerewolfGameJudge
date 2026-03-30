@@ -27,7 +27,7 @@ jest.mock('@react-navigation/native', () => ({
     addListener: jest.fn(() => jest.fn()),
   }),
   useRoute: () => ({
-    params: {},
+    params: { presetName: '预女猎白' },
   }),
 }));
 

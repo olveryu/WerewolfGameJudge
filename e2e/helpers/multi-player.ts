@@ -2,6 +2,7 @@ import type { Browser } from '@playwright/test';
 import { expect, Page } from '@playwright/test';
 
 import { createPlayerContexts, MultiPlayerFixture } from '../fixtures/app.fixture';
+import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
 import { enterRoomCodeViaNumPad, extractRoomNumber } from './home';
@@ -216,6 +217,9 @@ export async function setupNPlayerGame(
 
   // Step 2: Host creates room
   await hostPage.getByText('创建房间').click();
+  const boardPicker = new BoardPickerPage(hostPage);
+  await boardPicker.waitForReady();
+  await boardPicker.selectDefaultTemplate();
   const config = new ConfigPage(hostPage);
   await config.waitForCreateMode();
 
@@ -293,6 +297,9 @@ export async function setupNPlayerGameWithRoles(
 
   // Step 2: Host creates room
   await hostPage.getByText('创建房间').click();
+  const boardPicker2 = new BoardPickerPage(hostPage);
+  await boardPicker2.waitForReady();
+  await boardPicker2.selectDefaultTemplate();
   const config = new ConfigPage(hostPage);
   await config.waitForCreateMode();
 

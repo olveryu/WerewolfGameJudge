@@ -100,7 +100,7 @@ describe('HomeScreen', () => {
       fireEvent.press(getByText('创建房间'));
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('Config');
+        expect(mockNavigate).toHaveBeenCalledWith('BoardPicker');
       });
     });
 

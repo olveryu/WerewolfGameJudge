@@ -14,6 +14,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
+import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
@@ -51,6 +52,7 @@ const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       Home: '',
+      BoardPicker: 'board-picker',
       Config: 'config',
       Room: {
         path: 'room/:roomNumber',
@@ -99,6 +101,11 @@ export const AppNavigator: React.FC = () => {
         }}
       >
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: '狼人杀' }} />
+        <Stack.Screen
+          name="BoardPicker"
+          component={BoardPickerScreen}
+          options={{ title: '选择板子' }}
+        />
         <Stack.Screen
           name="Config"
           component={ConfigScreen}

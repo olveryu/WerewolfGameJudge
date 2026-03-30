@@ -4,6 +4,7 @@ import { closeAll, createPlayerContexts, MultiPlayerFixture } from '../fixtures/
 import { ensureAnonLogin, enterRoomCodeViaNumPad, waitForAppReady } from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
+import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -121,6 +122,9 @@ test.describe('Enter room via join flow', () => {
     const [hostPage, joinerPage] = fixture.pages;
 
     await hostPage.getByText('创建房间').click();
+    const boardPicker = new BoardPickerPage(hostPage);
+    await boardPicker.waitForReady();
+    await boardPicker.selectDefaultTemplate();
     const config = new ConfigPage(hostPage);
     await config.waitForCreateMode();
     await config.clickCreate();
@@ -165,6 +169,9 @@ test.describe('Direct room URL', () => {
     const [hostPage] = fixture.pages;
 
     await hostPage.getByText('创建房间').click();
+    const boardPicker1 = new BoardPickerPage(hostPage);
+    await boardPicker1.waitForReady();
+    await boardPicker1.selectDefaultTemplate();
     const config = new ConfigPage(hostPage);
     await config.waitForCreateMode();
     await config.clickCreate();
@@ -201,6 +208,9 @@ test.describe('Direct room URL', () => {
     const [hostPage] = fixture.pages;
 
     await hostPage.getByText('创建房间').click();
+    const boardPicker2 = new BoardPickerPage(hostPage);
+    await boardPicker2.waitForReady();
+    await boardPicker2.selectDefaultTemplate();
     const config = new ConfigPage(hostPage);
     await config.waitForCreateMode();
     await config.clickCreate();

@@ -199,7 +199,7 @@ export const HomeScreen: React.FC = () => {
 
   const handleCreateRoom = useCallback(() => {
     setIsCreating(true);
-    navigation.navigate('Config');
+    navigation.navigate('BoardPicker');
   }, [navigation]);
 
   const handleShowJoinModal = useCallback(() => {

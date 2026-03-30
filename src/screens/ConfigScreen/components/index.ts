@@ -10,4 +10,3 @@ export { RoleStepper } from './RoleStepper';
 export { Section } from './Section';
 export type { ConfigScreenStyles } from './styles';
 export { createConfigScreenStyles } from './styles';
-export { TemplatePicker } from './TemplatePicker';

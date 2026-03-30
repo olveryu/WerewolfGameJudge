@@ -33,6 +33,9 @@ export const TESTIDS = {
 
   configScreenRoot: 'config-screen-root',
   configBackButton: 'config-back-button',
+
+  boardPickerScreenRoot: 'board-picker-screen-root',
+
   configPresetSection: 'config-preset-section',
   configOverflowReset: 'config-overflow-reset',
   configRoleChip: (id: string) => `config-role-chip-${id}`,

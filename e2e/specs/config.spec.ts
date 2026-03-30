@@ -1,72 +1,65 @@
 import { expect, test } from '../fixtures/app.fixture';
+import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { HomePage } from '../pages/HomePage';
-import { RoomPage } from '../pages/RoomPage';
 
 /**
  * Config Screen E2E Tests
  *
  * Verifies:
- * - Config screen accessible via "创建房间"
- * - Template selection works
- * - Template change in settings after room creation persists
+ * - BoardPicker accessible via "创建房间", then Config via template selection
+ * - Template selection works (via BoardPicker navigation)
+ * - Config screen displays selected template
  */
 test.describe('Config Screen', () => {
-  test('can access config screen and see templates', async ({ app }) => {
+  test('can access config screen via board picker', async ({ app }) => {
     const home = new HomePage(app.page);
     await home.clickCreateRoom();
+
+    const boardPicker = new BoardPickerPage(app.page);
+    await boardPicker.waitForReady();
+    await boardPicker.selectDefaultTemplate();
 
     const config = new ConfigPage(app.page);
     await config.waitForCreateMode();
     await config.expectTemplateVisible();
   });
 
-  test('can select different templates', async ({ app }) => {
+  test('can select different templates via board picker', async ({ app }) => {
     const home = new HomePage(app.page);
     await home.clickCreateRoom();
+
+    const boardPicker = new BoardPickerPage(app.page);
+    await boardPicker.waitForReady();
+    await boardPicker.selectTemplate('狼美守卫');
 
     const config = new ConfigPage(app.page);
     await config.waitForCreateMode();
 
-    // Open dropdown and select alternate template
-    await config.openTemplateDropdown('预女猎白');
-    await config.selectTemplate('狼美守卫');
-
-    // Should still be on config screen
-    await config.waitForCreateMode();
+    // Verify the selected template is shown
+    await expect(app.page.getByText('狼美守卫')).toBeVisible({ timeout: 5000 });
 
     await config.clickBack();
   });
 
-  test('can change template in settings after creating room', async ({ app }) => {
+  test('can change template after initial selection', async ({ app }) => {
     const home = new HomePage(app.page);
     await home.clickCreateRoom();
 
+    const boardPicker = new BoardPickerPage(app.page);
+    await boardPicker.waitForReady();
+    await boardPicker.selectDefaultTemplate();
+
     const config = new ConfigPage(app.page);
     await config.waitForCreateMode();
-    await config.clickCreate();
 
-    const room = new RoomPage(app.page);
-    await room.waitForReady('host');
+    // Go back to BoardPicker and select a different template
+    await config.selectTemplate('狼美守卫');
 
-    // Open settings → should be in save mode
-    await room.openSettings();
-    const editConfig = new ConfigPage(app.page);
-    await editConfig.waitForSaveMode();
-
-    // Change template
-    await editConfig.openTemplateDropdown('预女猎白');
-    await editConfig.selectTemplate('狼美守卫');
-
-    // Save and return to room
-    await editConfig.clickSave();
-    await room.waitForReady('host');
-
-    // Verify: re-open settings, template should be persisted
-    await room.openSettings();
-    await editConfig.waitForSaveMode();
+    // Should be back on config screen with new template
+    await config.waitForCreateMode();
     await expect(app.page.getByText('狼美守卫')).toBeVisible({ timeout: 5000 });
 
-    await editConfig.clickBack();
+    await config.clickBack();
   });
 });

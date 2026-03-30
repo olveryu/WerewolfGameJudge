@@ -4,6 +4,7 @@ import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { enterRoomCodeViaNumPad } from '../helpers/home';
 import { getVisibleText } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
+import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
 
@@ -98,6 +99,9 @@ test.describe('Seating', () => {
     try {
       const home = page;
       await home.getByText('创建房间').click();
+      const bp = new BoardPickerPage(page);
+      await bp.waitForReady();
+      await bp.selectDefaultTemplate();
       const config = new ConfigPage(page);
       await config.waitForCreateMode();
       await config.clickCreate();
@@ -138,6 +142,9 @@ test.describe('Seating', () => {
     try {
       // Host creates room
       await pageA.getByText('创建房间').click();
+      const bp1 = new BoardPickerPage(pageA);
+      await bp1.waitForReady();
+      await bp1.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
       await config.waitForCreateMode();
       await config.clickCreate();
@@ -204,6 +211,9 @@ test.describe('Seating', () => {
     try {
       // Host creates room
       await pageA.getByText('创建房间').click();
+      const bp2 = new BoardPickerPage(pageA);
+      await bp2.waitForReady();
+      await bp2.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
       await config.waitForCreateMode();
       await config.clickCreate();
@@ -268,6 +278,9 @@ test.describe('Seating', () => {
     try {
       // Host creates room
       await pageA.getByText('创建房间').click();
+      const bp3 = new BoardPickerPage(pageA);
+      await bp3.waitForReady();
+      await bp3.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
       await config.waitForCreateMode();
       await config.clickCreate();
@@ -313,6 +326,9 @@ test.describe('Seating', () => {
     try {
       // Host creates room
       await pageA.getByText('创建房间').click();
+      const bp4 = new BoardPickerPage(pageA);
+      await bp4.waitForReady();
+      await bp4.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
       await config.waitForCreateMode();
       await config.clickCreate();
@@ -367,6 +383,9 @@ test.describe('Seating', () => {
     try {
       // Host creates room
       await pageA.getByText('创建房间').click();
+      const bp5 = new BoardPickerPage(pageA);
+      await bp5.waitForReady();
+      await bp5.selectDefaultTemplate();
       const config = new ConfigPage(pageA);
       await config.waitForCreateMode();
       await config.clickCreate();

@@ -411,6 +411,10 @@ async function waitForPostLoginStable(page: Page, maxWaitMs = 15000): Promise<vo
 
   while (Date.now() - startTime < maxWaitMs) {
     // Check if we're on a stable screen using testIDs (preferred) or fallback regex
+    const onBoardPicker = await page
+      .locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`)
+      .isVisible()
+      .catch(() => false);
     const onConfig = await page
       .locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)
       .isVisible()
@@ -424,13 +428,14 @@ async function waitForPostLoginStable(page: Page, maxWaitMs = 15000): Promise<vo
       .isVisible()
       .catch(() => false);
 
-    if (onConfig || onRoom || onHome) {
+    if (onBoardPicker || onConfig || onRoom || onHome) {
       return;
     }
 
     // Wait for any stable screen to appear
     await page
-      .locator(`[data-testid="${TESTIDS.configScreenRoot}"]`)
+      .locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`)
+      .or(page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`))
       .or(page.locator(`[data-testid="${TESTIDS.roomScreenRoot}"]`))
       .or(page.locator(`[data-testid="${TESTIDS.homeScreenRoot}"]`))
       .first()
@@ -463,6 +468,21 @@ async function navigateBackToHome(page: Page): Promise<void> {
           .catch(() => {});
         continue;
       }
+    }
+
+    // Check if we're on BoardPickerScreen using testID
+    const onBoardPicker = await page
+      .locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`)
+      .isVisible()
+      .catch(() => false);
+    if (onBoardPicker) {
+      // Press browser back or the header back button to return to Home
+      await page.goBack();
+      await page
+        .locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`)
+        .waitFor({ state: 'hidden', timeout: 3000 })
+        .catch(() => {});
+      continue;
     }
 
     // Check if we're on RoomScreen using testID

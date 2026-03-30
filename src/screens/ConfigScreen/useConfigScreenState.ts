@@ -35,6 +35,7 @@ import type { FactionTabItem } from './components';
 import { FACTION_GROUPS } from './configData';
 import {
   computeTotalCount,
+  getEmptySelection,
   getInitialSelection,
   restoreFromTemplateRoles,
   selectionToRoles,
@@ -48,6 +49,7 @@ type ConfigNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Confi
 
 interface UseConfigScreenStateParams {
   existingRoomNumber: string | undefined;
+  presetName: string | undefined;
   navigation: ConfigNavigationProp;
   facade: IGameFacade;
   settingsService: SettingsService;
@@ -62,6 +64,7 @@ interface UseConfigScreenStateParams {
 
 export function useConfigScreenState({
   existingRoomNumber,
+  presetName,
   navigation,
   facade,
   settingsService,
@@ -73,14 +76,28 @@ export function useConfigScreenState({
 
   // ── Core state ────────────────────────────────────────────────────────────
 
-  const [selection, setSelection] = useState(getInitialSelection);
+  // Compute initial selection from presetName (if navigating from BoardPicker)
+  const presetInitial = useMemo(() => {
+    if (!presetName) return undefined;
+    const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
+    if (!preset) return undefined;
+    return restoreFromTemplateRoles(preset.roles);
+  }, [presetName]);
+
+  const [selection, setSelection] = useState(
+    () => presetInitial?.selection ?? (isEditMode ? getInitialSelection() : getEmptySelection()),
+  );
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [roleRevealAnimation, setRoleRevealAnimation] = useState<RoleRevealAnimation>('random');
-  const [selectedTemplate, setSelectedTemplate] = useState(PRESET_TEMPLATES[0]?.name ?? '');
+  const [selectedTemplate, setSelectedTemplate] = useState(
+    presetInitial?.matchedPreset ?? (isEditMode ? (PRESET_TEMPLATES[0]?.name ?? '') : '__custom__'),
+  );
   const [bgmEnabled, setBgmEnabled] = useState(true);
   const [overflowVisible, setOverflowVisible] = useState(false);
-  const [variantOverrides, setVariantOverrides] = useState<Record<string, string>>({});
+  const [variantOverrides, setVariantOverrides] = useState<Record<string, string>>(
+    () => presetInitial?.variantOverrides ?? {},
+  );
 
   const totalCount = useMemo(
     () => computeTotalCount(selection, variantOverrides),
@@ -159,14 +176,6 @@ export function useConfigScreenState({
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
     setSelectedTemplate('__custom__');
-  }, []);
-
-  const handlePresetSelect = useCallback((presetName: string) => {
-    const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
-    if (!preset) return;
-    const restored = restoreFromTemplateRoles(preset.roles);
-    setSelection(restored.selection);
-    setVariantOverrides(restored.variantOverrides);
   }, []);
 
   const handleClearSelection = useCallback(() => {
@@ -263,16 +272,6 @@ export function useConfigScreenState({
 
   // ── Template label ───────────────────────────────────────────────────────
 
-  const handleTemplateChange = useCallback(
-    (templateName: string) => {
-      setSelectedTemplate(templateName);
-      if (templateName !== '__custom__') {
-        handlePresetSelect(templateName);
-      }
-    },
-    [handlePresetSelect],
-  );
-
   const handleAnimationChange = useCallback((v: string) => {
     setRoleRevealAnimation(v as RoleRevealAnimation);
   }, []);
@@ -359,24 +358,7 @@ export function useConfigScreenState({
     setSettingsSheetVisible(false);
   }, []);
 
-  // ── Template dropdown ────────────────────────────────────────────────────
-
-  const [templateDropdownVisible, setTemplateDropdownVisible] = useState(false);
-
-  const handleOpenTemplateDropdown = useCallback(() => {
-    setTemplateDropdownVisible(true);
-  }, []);
-
-  const handleCloseTemplateDropdown = useCallback(() => {
-    setTemplateDropdownVisible(false);
-  }, []);
-
-  const handleSelectTemplate = useCallback(
-    (value: string) => {
-      handleTemplateChange(value);
-    },
-    [handleTemplateChange],
-  );
+  // ── Template label ───────────────────────────────────────────────────────
 
   const selectedTemplateLabel = useMemo(() => {
     if (selectedTemplate === '__custom__') return '自定义';
@@ -500,12 +482,7 @@ export function useConfigScreenState({
     handleClearSelection,
 
     // Template
-    selectedTemplate,
     selectedTemplateLabel,
-    templateDropdownVisible,
-    handleOpenTemplateDropdown,
-    handleCloseTemplateDropdown,
-    handleSelectTemplate,
 
     // Settings
     roleRevealAnimation,

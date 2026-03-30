@@ -168,9 +168,6 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // TODO: Phase 1 — fontSize: 14 → typography.secondary
   'src/screens/RoomScreen/components/SeatTile.tsx': 0,
 
-  // TODO: Phase 1 — paddingBottom: 60 → spacing/layout token
-  'src/screens/ConfigScreen/components/templatePicker.styles.ts': 1,
-
   // statusDot borderRadius: 3 — exempt per instructions (statusDot 6×6)
   'src/screens/SettingsScreen/components/styles.ts': 1,
 };

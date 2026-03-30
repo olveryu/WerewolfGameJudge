@@ -115,6 +115,11 @@ test.describe('Room Lifecycle', () => {
       const home = new HomePage(page);
       await home.clickCreateRoom();
 
+      const { BoardPickerPage } = await import('../pages/BoardPickerPage');
+      const bp = new BoardPickerPage(page);
+      await bp.waitForReady();
+      await bp.selectDefaultTemplate();
+
       const { ConfigPage } = await import('../pages/ConfigPage');
       const config = new ConfigPage(page);
       await config.waitForCreateMode();
