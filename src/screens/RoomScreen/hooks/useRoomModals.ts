@@ -15,6 +15,8 @@ import { CANCEL_BUTTON, DISMISS_BUTTON, showAlert } from '@/utils/alert';
 interface UseRoomModalsDeps {
   /** 当前用户是否是 Host（决定 "详细信息" 弹窗的选项） */
   isHost: boolean;
+  /** 当前用户是否可以分享战报截图（Host 或已被 Host share 的玩家） */
+  canShareReport: boolean;
   /** 获取昨夜信息文本 */
   getLastNightInfo: () => string; /** 获取乌鸦诅咒信息，无乌鸦返回 null */
   getCurseInfo: () => string | null; /** 分享夜晚详情给指定座位（HTTP API） */
@@ -55,6 +57,7 @@ interface RoomModalsState {
 
 export function useRoomModals({
   isHost,
+  canShareReport,
   getLastNightInfo,
   getCurseInfo,
   shareNightReview,
@@ -118,11 +121,26 @@ export function useRoomModals({
         },
         { text: '取消', style: 'cancel' },
       ]);
+    } else if (canShareReport) {
+      // Non-host allowed player: view or share
+      showAlert('详细信息', '选择操作', [
+        {
+          text: '查看',
+          onPress: () => confirmOpenNightReview(),
+        },
+        {
+          text: '分享战报',
+          onPress: () => {
+            void shareNightReviewReport();
+          },
+        },
+        { text: '取消', style: 'cancel' },
+      ]);
     } else {
-      // Non-host: confirm before viewing (anti-cheat reminder)
+      // Non-host without share permission: confirm before viewing (anti-cheat reminder)
       confirmOpenNightReview();
     }
-  }, [confirmOpenNightReview, isHost, shareNightReviewReport]);
+  }, [confirmOpenNightReview, isHost, canShareReport, shareNightReviewReport]);
 
   const closeNightReview = useCallback(() => setNightReviewVisible(false), []);
 

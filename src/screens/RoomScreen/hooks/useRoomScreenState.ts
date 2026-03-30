@@ -464,6 +464,34 @@ export function useRoomScreenState(
   }, [gameState]);
   const nightReviewShareCardRef = useRef<View>(null);
   const [isCapturingShareCard, setIsCapturingShareCard] = useState(false);
+  const cachedShareBase64Ref = useRef<string | null>(null);
+
+  // Pre-capture share card when nightReviewData becomes available.
+  // Caches base64 so that navigator.share() can be called synchronously
+  // within the user-activation window (Chrome expires it after ~5s).
+  useEffect(() => {
+    if (!nightReviewData) {
+      cachedShareBase64Ref.current = null;
+      return;
+    }
+    let cancelled = false;
+    setIsCapturingShareCard(true);
+    const capture = async () => {
+      try {
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const base64 = await captureNightReviewCard(nightReviewShareCardRef);
+        if (!cancelled) cachedShareBase64Ref.current = base64;
+      } catch {
+        // Pre-capture failure is non-fatal; shareNightReviewReportDirectly will retry on-demand
+      } finally {
+        if (!cancelled) setIsCapturingShareCard(false);
+      }
+    };
+    void capture();
+    return () => {
+      cancelled = true;
+    };
+  }, [nightReviewData]);
 
   const shareNightReviewReportDirectly = useCallback(async () => {
     if (!nightReviewData) {
@@ -471,10 +499,19 @@ export function useRoomScreenState(
       return;
     }
 
-    // On-demand: mount card → wait for render → capture → unmount → share
+    // Fast path: use pre-cached base64 (keeps user-activation alive for Chrome)
+    if (cachedShareBase64Ref.current) {
+      const base64 = cachedShareBase64Ref.current;
+      const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomNumber);
+      if (result === 'failed') {
+        showAlert('分享失败', '无法分享战报，请稍后重试');
+      }
+      return;
+    }
+
+    // Slow path fallback: mount card → capture → share (Chrome will likely download)
     setIsCapturingShareCard(true);
     try {
-      // Wait two frames to ensure React commits the mount and browser paints
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       const base64 = await captureNightReviewCard(nightReviewShareCardRef);
       setIsCapturingShareCard(false);
@@ -513,6 +550,10 @@ export function useRoomScreenState(
     showLastNightInfo,
   } = useRoomModals({
     isHost,
+    canShareReport:
+      isHost ||
+      (effectiveSeat !== null &&
+        gameState?.nightReviewAllowedSeats?.includes(effectiveSeat) === true),
     getLastNightInfo: getLastNightInfoFn,
     getCurseInfo: getCurseInfoFn,
     shareNightReview,
