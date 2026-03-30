@@ -330,7 +330,7 @@
 
         window.addEventListener('load', function () {
           navigator.serviceWorker
-            .register('/sw.js')
+            .register('/sw.js', { updateViaCache: 'none' })
             .then(function (reg) {
               // 检测新 SW 安装完毕 → 自动触发更新（全屏蒙层覆盖白屏）
               // 只在真正有新部署时触发（build.sh 用 git hash，同 commit 不变）
