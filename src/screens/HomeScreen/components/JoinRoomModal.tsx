@@ -5,10 +5,10 @@
  * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
 import React, { memo, useMemo } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Text, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { NumPad } from '@/components/NumPad';
-import { fixed } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
 
@@ -63,30 +63,22 @@ const JoinRoomModalComponent: React.FC<JoinRoomModalProps> = ({
           />
 
           <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[
-                styles.secondaryButton,
-                styles.modalButtonFlex,
-                isLoading && styles.buttonDisabled,
-              ]}
+            <Button
+              variant="secondary"
               onPress={onCancel}
-              activeOpacity={isLoading ? 1 : fixed.activeOpacity}
-              accessibilityState={{ disabled: isLoading }}
+              disabled={isLoading}
+              style={styles.modalButtonFlex}
             >
-              <Text style={styles.secondaryButtonText}>取消</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                styles.modalButtonFlex,
-                isLoading && styles.buttonDisabled,
-              ]}
+              取消
+            </Button>
+            <Button
+              variant="primary"
               onPress={onJoin}
-              activeOpacity={isLoading ? 1 : fixed.activeOpacity}
-              accessibilityState={{ disabled: isLoading }}
+              loading={isLoading}
+              style={styles.modalButtonFlex}
             >
-              <Text style={styles.primaryButtonText}>{isLoading ? '加入中…' : '加入'}</Text>
-            </TouchableOpacity>
+              加入
+            </Button>
           </View>
         </View>
       </View>

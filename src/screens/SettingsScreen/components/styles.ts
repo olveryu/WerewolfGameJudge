@@ -22,8 +22,6 @@ import {
 export interface SettingsScreenStyles {
   container: ViewStyle;
   header: ViewStyle;
-  backBtn: ViewStyle;
-  backBtnText: TextStyle;
   headerTitle: TextStyle;
   headerSpacer: ViewStyle;
   scrollView: ViewStyle;
@@ -36,7 +34,6 @@ export interface SettingsScreenStyles {
   statusDot: ViewStyle;
   statusText: TextStyle;
   logoutBtn: ViewStyle;
-  logoutBtnText: TextStyle;
   infoRow: ViewStyle;
   infoLabel: TextStyle;
   infoValue: TextStyle;
@@ -52,10 +49,6 @@ export interface SettingsScreenStyles {
   editIcon: TextStyle;
   editNameRow: ViewStyle;
   nameInput: TextStyle;
-  saveBtn: ViewStyle;
-  saveBtnText: TextStyle;
-  cancelBtn: ViewStyle;
-  cancelBtnText: TextStyle;
   // Auth form (AuthStyles-compatible)
   formContainer: ViewStyle;
   formTitle: TextStyle;
@@ -125,9 +118,6 @@ export interface SettingsScreenStyles {
   pickerPreviewOverlay: ViewStyle;
   pickerPreviewImage: ImageStyle;
   pickerFooter: ViewStyle;
-  pickerConfirmBtn: ViewStyle;
-  pickerConfirmBtnDisabled: ViewStyle;
-  pickerConfirmBtnText: TextStyle;
   // Avatar preview strip (anonymous user teaser)
   avatarPreviewSection: ViewStyle;
   avatarPreviewCard: ViewStyle;
@@ -202,16 +192,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
-    backBtn: {
-      ...createSharedStyles(colors).iconButton,
-      borderRadius: borderRadius.full,
-      overflow: 'hidden',
-    },
-    backBtnText: {
-      fontSize: typography.title,
-      lineHeight: typography.lineHeights.title,
-      color: colors.text,
-    },
     headerTitle: {
       flex: 1,
       fontSize: layout.headerTitleSize,
@@ -280,12 +260,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       backgroundColor: colors.background,
       borderRadius: borderRadius.full,
       alignItems: 'center',
-    },
-    logoutBtnText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.error,
-      fontWeight: typography.weights.medium,
     },
     infoRow: {
       flexDirection: 'row',
@@ -377,27 +351,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       color: colors.text,
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
-    },
-    saveBtn: {
-      backgroundColor: colors.primary,
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      borderRadius: borderRadius.full,
-    },
-    saveBtnText: {
-      color: colors.textInverse,
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      fontWeight: typography.weights.medium,
-    },
-    cancelBtn: {
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.small,
-    },
-    cancelBtnText: {
-      color: colors.textSecondary,
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
     },
     // Auth form (base + SettingsScreen overrides)
     ...createAuthBaseStyles(colors),
@@ -652,20 +605,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       paddingTop: spacing.medium,
       borderTopWidth: fixed.borderWidth,
       borderTopColor: colors.border,
-    },
-    pickerConfirmBtn: {
-      backgroundColor: colors.primary,
-      height: componentSizes.button.md,
-      borderRadius: borderRadius.full,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    pickerConfirmBtnDisabled: {
-      opacity: fixed.disabledOpacity,
-    },
-    pickerConfirmBtnText: {
-      ...textStyles.bodyMedium,
-      color: colors.textInverse,
     },
     // Avatar preview (anonymous user teaser in AvatarSection)
     avatarPreviewSection: {

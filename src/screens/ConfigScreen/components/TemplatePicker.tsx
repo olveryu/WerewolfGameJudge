@@ -20,6 +20,7 @@ import {
   View,
 } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { typography, useColors } from '@/theme';
 
@@ -174,9 +175,9 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
     () => (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>没有匹配的模板</Text>
-        <TouchableOpacity onPress={handleClearSearch} style={styles.emptyClearBtn}>
-          <Text style={styles.emptyClearBtnText}>清除搜索</Text>
-        </TouchableOpacity>
+        <Button variant="ghost" onPress={handleClearSearch}>
+          清除搜索
+        </Button>
       </View>
     ),
     [styles, handleClearSearch],
@@ -197,17 +198,13 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
         <View style={styles.pickerHandle} />
         <View style={styles.pickerHeader}>
           <Text style={styles.pickerTitle}>选择模板</Text>
-          <TouchableOpacity
-            style={styles.pickerCloseBtn}
-            onPress={onClose}
-            accessibilityLabel="关闭"
-          >
+          <Button variant="icon" onPress={onClose} accessibilityLabel="关闭">
             <Ionicons
               name="close"
               size={typography.title}
               color={styles.pickerCloseBtnText.color as string}
             />
-          </TouchableOpacity>
+          </Button>
         </View>
 
         {/* Search bar */}
@@ -254,9 +251,9 @@ const TemplatePickerInner = memo(function TemplatePickerInner({
             <Text style={styles.confirmationText} numberOfLines={1}>
               已选: {selectedLabel}
             </Text>
-            <TouchableOpacity style={styles.confirmationBtn} onPress={onClose}>
-              <Text style={styles.confirmationBtnText}>确认</Text>
-            </TouchableOpacity>
+            <Button variant="primary" size="sm" onPress={onClose}>
+              确认
+            </Button>
           </View>
         )}
       </View>

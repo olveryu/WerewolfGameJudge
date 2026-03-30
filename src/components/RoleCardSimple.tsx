@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native';
 
+import { Button } from '@/components/Button';
 import {
   getFactionColor,
   RoleCardContent,
@@ -27,7 +28,6 @@ import {
   borderRadius,
   fixed,
   spacing,
-  textStyles,
   type ThemeColors,
   typography,
   useColors,
@@ -127,12 +127,9 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
             </View>
           )}
 
-          <TouchableOpacity
-            style={[styles.confirmButton, { backgroundColor: factionColor }]}
-            onPress={onClose}
-          >
-            <Text style={styles.confirmButtonText}>知道了</Text>
-          </TouchableOpacity>
+          <Button variant="primary" buttonColor={factionColor} onPress={onClose}>
+            知道了
+          </Button>
         </View>
       </View>
     </Modal>
@@ -178,16 +175,6 @@ function createStyles(colors: ThemeColors) {
     },
     variantPillTextActive: {
       fontWeight: typography.weights.semibold,
-    },
-    confirmButton: {
-      paddingHorizontal: spacing.xlarge,
-      paddingVertical: spacing.medium,
-      borderRadius: borderRadius.full,
-      marginTop: spacing.small,
-    },
-    confirmButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.textInverse,
     },
   });
 }

@@ -25,11 +25,11 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { ENCYCLOPEDIA_GUIDE } from '@/config/guideContent';
 import { usePageGuide } from '@/hooks/usePageGuide';
@@ -292,20 +292,15 @@ export const EncyclopediaScreen: React.FC = () => {
     <SafeAreaView style={styles.container} testID={TESTIDS.encyclopediaScreenRoot}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={handleGoBack}
-          style={styles.backButton}
-          activeOpacity={fixed.activeOpacity}
-          accessibilityLabel="返回"
-        >
+        <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </TouchableOpacity>
+        </Button>
         <Text style={styles.headerTitle}>角色图鉴</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity
+          <Button
+            variant="icon"
             onPress={() => setTagDropdownVisible(true)}
-            style={[styles.headerIconButton, activeTag && styles.headerIconButtonActive]}
-            activeOpacity={fixed.activeOpacity}
+            style={activeTag ? styles.headerIconButtonActive : undefined}
             accessibilityLabel="能力筛选"
           >
             <Ionicons
@@ -313,19 +308,14 @@ export const EncyclopediaScreen: React.FC = () => {
               size={componentSizes.icon.md}
               color={activeTag ? colors.primary : colors.text}
             />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={toggleSearch}
-            style={styles.headerIconButton}
-            activeOpacity={fixed.activeOpacity}
-            accessibilityLabel="搜索"
-          >
+          </Button>
+          <Button variant="icon" onPress={toggleSearch} accessibilityLabel="搜索">
             <Ionicons
               name={searchVisible ? 'close' : 'search'}
               size={componentSizes.icon.md}
               color={colors.text}
             />
-          </TouchableOpacity>
+          </Button>
         </View>
       </View>
 
@@ -408,15 +398,15 @@ export const EncyclopediaScreen: React.FC = () => {
               );
             })}
             {activeTag && (
-              <Pressable
-                style={styles.dropdownClearButton}
+              <Button
+                variant="ghost"
                 onPress={() => {
                   setActiveTag(null);
                   setTagDropdownVisible(false);
                 }}
               >
-                <Text style={styles.dropdownClearText}>清除筛选</Text>
-              </Pressable>
+                清除筛选
+              </Button>
             )}
           </View>
         </Pressable>
@@ -500,11 +490,6 @@ function createStyles(colors: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.small,
-    },
-    headerIconButton: {
-      ...shared.iconButton,
-      borderRadius: borderRadius.full,
-      overflow: 'hidden',
     },
     headerIconButtonActive: {
       backgroundColor: withAlpha(colors.primary, 0.15),
@@ -613,13 +598,6 @@ function createStyles(colors: ThemeColors) {
     },
     dropdownItemCountActive: {
       color: colors.primary,
-    },
-    dropdownClearButton: {
-      alignItems: 'center',
-      marginTop: spacing.small,
-      paddingVertical: spacing.small,
-      borderTopWidth: fixed.borderWidth,
-      borderTopColor: colors.border,
     },
     dropdownClearText: {
       fontSize: typography.secondary,

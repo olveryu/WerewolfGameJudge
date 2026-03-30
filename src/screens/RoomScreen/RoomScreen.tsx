@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { createStyles as createChatStyles } from '@/components/AIChatBubble/AIChatBubble.styles';
 import { NotepadModal } from '@/components/AIChatBubble/NotepadModal';
 import { AlertModal } from '@/components/AlertModal';
+import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
@@ -37,7 +38,6 @@ import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
-import { ActionButton } from './components/ActionButton';
 import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BottomActionPanel } from './components/BottomActionPanel';
@@ -478,14 +478,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           const bottom = getBottomAction();
           if (!bottom.buttons.length) return null;
           return bottom.buttons.map((b) => (
-            <ActionButton
+            <Button
               key={b.key}
-              label={b.label}
-              onPress={(_meta) => {
+              variant="primary"
+              onPress={() => {
                 dispatchInteraction({ kind: 'BOTTOM_ACTION', intent: b.intent });
               }}
-              styles={componentStyles.actionButton}
-            />
+            >
+              {b.label}
+            </Button>
           ));
         })()}
 
@@ -496,26 +497,26 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           roomStatus === GameStatus.Ongoing ||
           roomStatus === GameStatus.Ended) &&
           effectiveSeat !== null && (
-            <ActionButton
-              label="查看身份"
-              onPress={(_meta) => dispatchInteraction({ kind: 'VIEW_ROLE' })}
-              styles={componentStyles.actionButton}
-            />
+            <Button variant="primary" onPress={() => dispatchInteraction({ kind: 'VIEW_ROLE' })}>
+              查看身份
+            </Button>
           )}
         {/* Greyed View Role (waiting for host) */}
         {(roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
           effectiveSeat !== null && (
-            <ActionButton
-              label="等待分配角色…"
+            <Button
+              variant="primary"
               disabled
-              onPress={(meta) => {
+              fireWhenDisabled
+              onPress={(meta: { disabled: boolean }) => {
                 // Policy decision: disabled button shows alert
                 if (meta.disabled) {
                   showAlert('等待房主分配角色…');
                 }
               }}
-              styles={componentStyles.actionButton}
-            />
+            >
+              等待分配角色…
+            </Button>
           )}
 
         {/* Secondary row: Host controls + review buttons */}
@@ -539,8 +540,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                   roomStatus === GameStatus.Ended)
               }
               disabled={isHostActionSubmitting}
-              actionStyles={componentStyles.actionButton}
-              dangerStyles={componentStyles.dangerActionButton}
               onSettingsPress={() =>
                 dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })
               }
@@ -556,12 +555,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             />
             {/* Last Night Info — host only, ended phase only */}
             {isHost && roomStatus === GameStatus.Ended && !isAudioPlaying && (
-              <ActionButton
-                label="昨夜信息"
+              <Button
+                variant="danger"
                 testID={TESTIDS.lastNightInfoButton}
                 onPress={() => showLastNightInfo()}
-                styles={componentStyles.dangerActionButton}
-              />
+              >
+                昨夜信息
+              </Button>
             )}
             {/* Night Review Button — host + spectators (no seat) + allowed players, ended phase only */}
             {(isHost ||
@@ -570,12 +570,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 gameState?.nightReviewAllowedSeats?.includes(effectiveSeat))) &&
               roomStatus === GameStatus.Ended &&
               !isAudioPlaying && (
-                <ActionButton
-                  label="详细信息"
+                <Button
+                  variant="danger"
                   testID={TESTIDS.nightReviewButton}
                   onPress={() => openNightReview()}
-                  styles={componentStyles.dangerActionButton}
-                />
+                >
+                  详细信息
+                </Button>
               )}
           </View>
         )}

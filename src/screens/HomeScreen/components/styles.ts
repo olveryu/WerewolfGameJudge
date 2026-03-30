@@ -31,7 +31,6 @@ export interface HomeScreenStyles {
   topBarLogo: TextStyle;
   topBarTitle: TextStyle;
   topBarActions: ViewStyle;
-  topBarButton: ViewStyle;
   // User identity (login state, keep testIDs for E2E)
 
   userNameHidden: TextStyle;
@@ -149,11 +148,6 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.small,
-    },
-    topBarButton: {
-      ...shared.iconButton,
-      borderRadius: borderRadius.full,
-      overflow: 'hidden',
     },
 
     userNameHidden: {

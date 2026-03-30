@@ -16,13 +16,13 @@ import {
   Modal,
   ScrollView,
   Text,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
+import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { PressableScale } from '@/components/PressableScale';
 import { BRAND } from '@/config/emojiTokens';
@@ -35,7 +35,7 @@ import { useAuthForm } from '@/hooks/useAuthForm';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { componentSizes, fixed, useTheme } from '@/theme';
+import { componentSizes, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { homeLog } from '@/utils/logger';
 
@@ -342,10 +342,9 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.topBarTitle}>狼人杀法官</Text>
           </View>
           <View style={styles.topBarActions}>
-            <TouchableOpacity
-              style={styles.topBarButton}
+            <Button
+              variant="icon"
               onPress={() => navigation.navigate('Encyclopedia')}
-              activeOpacity={fixed.activeOpacity}
               testID={TESTIDS.homeEncyclopediaButton}
               accessibilityLabel="角色图鉴"
             >
@@ -354,12 +353,11 @@ export const HomeScreen: React.FC = () => {
                 size={componentSizes.icon.md}
                 color={colors.textSecondary}
               />
-            </TouchableOpacity>
+            </Button>
 
-            <TouchableOpacity
-              style={styles.topBarButton}
+            <Button
+              variant="icon"
               onPress={handleNavigateSettings}
-              activeOpacity={fixed.activeOpacity}
               accessibilityLabel="设置"
               testID={TESTIDS.homeSettingsButton}
             >
@@ -368,7 +366,7 @@ export const HomeScreen: React.FC = () => {
                 size={componentSizes.icon.md}
                 color={colors.textSecondary}
               />
-            </TouchableOpacity>
+            </Button>
           </View>
         </View>
 

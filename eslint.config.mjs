@@ -84,7 +84,7 @@ export default tseslint.config(
       'react-hooks/preserve-manual-memoization': 'off',
 
       // React Native — enable useful rules, disable noisy ones
-      'react-native/no-raw-text': 'error',
+      'react-native/no-raw-text': ['error', { skip: ['Button'] }],
       'react-native/split-platform-components': 'error',
       'react-native/no-single-element-style-arrays': 'warn',
       'react-native/no-inline-styles': 'error',

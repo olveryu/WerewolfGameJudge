@@ -46,7 +46,7 @@ function fnv1aHash(str: string): number {
   return hash >>> 0;
 }
 
-export interface AvatarIconInfo {
+interface AvatarIconInfo {
   image: ImageSourcePropType;
   color: string;
 }

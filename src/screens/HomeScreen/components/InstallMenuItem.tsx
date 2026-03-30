@@ -9,12 +9,16 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
-import { fixed, type ThemeColors } from '@/theme';
+import { fixed, spacing, type ThemeColors } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
+
+/** Layout margin only — Button owns visual styling */
+const GUIDE_DISMISS_MARGIN: ViewStyle = { marginBottom: spacing.medium };
 
 interface InstallMenuItemProps {
   styles: HomeScreenStyles;
@@ -99,13 +103,9 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
               )}
             </View>
 
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleCloseGuide}
-              activeOpacity={fixed.activeOpacity}
-            >
-              <Text style={styles.primaryButtonText}>知道了</Text>
-            </TouchableOpacity>
+            <Button variant="primary" onPress={handleCloseGuide} style={GUIDE_DISMISS_MARGIN}>
+              知道了
+            </Button>
           </View>
         </View>
       </Modal>

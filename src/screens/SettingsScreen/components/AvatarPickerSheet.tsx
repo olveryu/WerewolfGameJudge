@@ -9,7 +9,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { memo, useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   ImageSourcePropType,
@@ -24,6 +23,7 @@ import {
 
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
+import { Button } from '@/components/Button';
 import { UI_ICONS } from '@/config/iconTokens';
 import { componentSizes, fixed, ThemeColors } from '@/theme';
 import { AVATAR_IMAGES, getAvatarImageByIndex, makeBuiltinAvatarUrl } from '@/utils/avatar';
@@ -303,20 +303,22 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
         <View style={styles.heroPreviewRight}>
           <Text style={styles.heroFrameLabel}>当前框：{frameLabel}</Text>
           {!readOnly && (
-            <TouchableOpacity
-              style={styles.heroUploadBtn}
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={
+                <Ionicons
+                  name={UI_ICONS.CAMERA}
+                  size={componentSizes.icon.sm}
+                  color={colors.primary}
+                />
+              }
               onPress={onUpload}
-              activeOpacity={fixed.activeOpacity}
+              textColor={colors.primary}
+              style={styles.heroUploadBtn}
             >
-              <Ionicons
-                name={UI_ICONS.CAMERA}
-                size={componentSizes.icon.sm}
-                color={colors.primary}
-              />
-              <Text style={styles.heroUploadBtnText}>
-                {customAvatarUrl ? '更换自定义' : '上传自定义'}
-              </Text>
-            </TouchableOpacity>
+              {customAvatarUrl ? '更换自定义' : '上传自定义'}
+            </Button>
           )}
           {readOnly && (
             <Text style={[styles.heroFrameLabel, { color: colors.textMuted }]}>绑定后可上传</Text>
@@ -432,29 +434,19 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
               <Text style={styles.pickerUpgradeBenefit}>· 装备头像框</Text>
               <Text style={styles.pickerUpgradeBenefit}>· 设置昵称</Text>
             </View>
-            <TouchableOpacity
-              style={styles.pickerConfirmBtn}
-              onPress={onUpgrade}
-              activeOpacity={fixed.activeOpacity}
-            >
-              <Text style={styles.pickerConfirmBtnText}>立即绑定</Text>
-            </TouchableOpacity>
+            <Button variant="primary" onPress={onUpgrade}>
+              立即绑定
+            </Button>
           </View>
         ) : (
-          <TouchableOpacity
-            style={[styles.pickerConfirmBtn, !hasSelection && styles.pickerConfirmBtnDisabled]}
+          <Button
+            variant="primary"
             onPress={handleConfirm}
-            activeOpacity={hasSelection ? 0.7 : 1}
-            accessibilityState={{ disabled: !hasSelection || saving }}
+            disabled={!hasSelection}
+            loading={saving}
           >
-            {saving ? (
-              <ActivityIndicator color={colors.textInverse} />
-            ) : (
-              <Text style={styles.pickerConfirmBtnText}>
-                {hasSelection ? '确认使用' : '未做更改'}
-              </Text>
-            )}
-          </TouchableOpacity>
+            {hasSelection ? '确认使用' : '未做更改'}
+          </Button>
         )}
       </View>
     );
@@ -473,9 +465,9 @@ export const AvatarPickerSheet = memo<AvatarPickerSheetProps>(
             <View style={styles.pickerHandle} />
             <View style={styles.pickerHeader}>
               <Text style={styles.pickerTitle}>选择形象</Text>
-              <TouchableOpacity style={styles.pickerCloseBtn} onPress={onClose}>
+              <Button variant="icon" onPress={onClose}>
                 <Ionicons name="close" size={componentSizes.icon.lg} color={colors.textSecondary} />
-              </TouchableOpacity>
+              </Button>
             </View>
 
             {/* Hero preview — shared between both tabs */}

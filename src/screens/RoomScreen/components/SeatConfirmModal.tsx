@@ -5,8 +5,9 @@
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
 import React, { memo } from 'react';
-import { ActivityIndicator, Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Text, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 
 import { type SeatConfirmModalStyles } from './styles';
@@ -55,38 +56,24 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
             {message}
           </Text>
           <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.modalCancelButton]}
+            <Button
+              variant="secondary"
               onPress={onCancel}
-              activeOpacity={isSubmitting ? 1 : undefined}
+              disabled={isSubmitting}
               testID={TESTIDS.seatConfirmCancel}
+              style={styles.modalButton}
             >
-              <Text style={styles.modalCancelText}>取消</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.modalButton,
-                isSubmitting ? styles.modalConfirmButtonDisabled : styles.modalConfirmButton,
-              ]}
+              取消
+            </Button>
+            <Button
+              variant="primary"
               onPress={onConfirm}
-              activeOpacity={isSubmitting ? 1 : undefined}
+              loading={isSubmitting}
               testID={TESTIDS.seatConfirmOk}
+              style={styles.modalButton}
             >
-              <View style={styles.modalConfirmContent}>
-                {isSubmitting && (
-                  <ActivityIndicator
-                    size="small"
-                    color={styles.modalConfirmTextDisabled.color}
-                    style={styles.modalSpinner}
-                  />
-                )}
-                <Text
-                  style={isSubmitting ? styles.modalConfirmTextDisabled : styles.modalConfirmText}
-                >
-                  {confirmText}
-                </Text>
-              </View>
-            </TouchableOpacity>
+              {confirmText}
+            </Button>
           </View>
         </View>
       </View>

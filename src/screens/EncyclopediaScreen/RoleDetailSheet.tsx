@@ -14,24 +14,15 @@ import {
 } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { useMemo } from 'react';
-import {
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/Button';
 import { RoleDescriptionView } from '@/components/RoleDescriptionView';
 import {
   borderRadius,
   componentSizes,
   createSharedStyles,
-  fixed,
   shadows,
   spacing,
   textStyles,
@@ -155,13 +146,9 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
             </View>
 
             {/* Close button */}
-            <TouchableOpacity
-              style={[styles.closeButton, { backgroundColor: factionColor }]}
-              onPress={onClose}
-              activeOpacity={fixed.activeOpacity}
-            >
-              <Text style={styles.closeButtonText}>知道了</Text>
-            </TouchableOpacity>
+            <Button variant="primary" buttonColor={factionColor} onPress={onClose}>
+              知道了
+            </Button>
           </ScrollView>
         </View>
       </View>

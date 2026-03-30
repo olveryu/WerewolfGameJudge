@@ -10,6 +10,7 @@ import { Image, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
 
+import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -144,30 +145,20 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
 
           {/* Action buttons */}
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[styles.shareButton, isSharing && styles.buttonDisabled]}
+            <Button
+              variant="primary"
               onPress={handleShare}
-              activeOpacity={isSharing ? 1 : fixed.activeOpacity}
-              accessibilityState={{ disabled: isSharing }}
+              loading={isSharing}
               testID={TESTIDS.qrCodeShareButton}
             >
-              <Text style={styles.shareButtonText}>{isSharing ? '分享中…' : '分享图片'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.copyButton}
-              onPress={onCopyLink}
-              activeOpacity={fixed.activeOpacity}
-            >
-              <Text style={styles.copyButtonText}>复制链接</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={onClose}
-              activeOpacity={fixed.activeOpacity}
-              accessibilityLabel="关闭"
-            >
-              <Text style={styles.closeButtonText}>关闭</Text>
-            </TouchableOpacity>
+              分享图片
+            </Button>
+            <Button variant="secondary" onPress={onCopyLink}>
+              复制链接
+            </Button>
+            <Button variant="secondary" onPress={onClose} accessibilityLabel="关闭">
+              关闭
+            </Button>
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -251,30 +242,8 @@ function createStyles(colors: ThemeColors) {
       gap: spacing.small,
       alignSelf: 'stretch',
     },
-    shareButton: {
-      backgroundColor: colors.primary,
-      paddingVertical: spacing.medium,
-      borderRadius: borderRadius.full,
-      alignItems: 'center',
-    },
-    shareButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.textInverse,
-    },
     buttonDisabled: {
       opacity: fixed.disabledOpacity,
-    },
-    copyButton: {
-      backgroundColor: colors.surfaceHover,
-      paddingVertical: spacing.medium,
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      alignItems: 'center',
-    },
-    copyButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.text,
     },
     closeButton: {
       backgroundColor: colors.surfaceHover,

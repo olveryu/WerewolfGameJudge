@@ -14,7 +14,6 @@ import {
   layout,
   shadows,
   spacing,
-  textStyles,
   type ThemeColors,
   typography,
 } from '@/theme';
@@ -164,21 +163,6 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     backgroundColor: colors.background,
     ...shadows.lgUpward,
   } satisfies ViewStyle,
-  bottomCreateBtn: {
-    height: componentSizes.button.lg,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.md,
-  } satisfies ViewStyle,
-  bottomCreateBtnDisabled: {
-    opacity: fixed.disabledOpacity,
-  } satisfies ViewStyle,
-  bottomCreateBtnText: {
-    ...textStyles.bodySemibold,
-    color: colors.textInverse,
-  } satisfies TextStyle,
 
   // ── Card B: stepper + role sections ──
   cardB: {

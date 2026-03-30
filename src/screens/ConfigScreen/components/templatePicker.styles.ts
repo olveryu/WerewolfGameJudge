@@ -65,8 +65,6 @@ export interface TemplatePickerStyles {
   // ── Empty state ──
   emptyContainer: ViewStyle;
   emptyText: TextStyle;
-  emptyClearBtn: ViewStyle;
-  emptyClearBtnText: TextStyle;
   // ── Search icon ──
   searchIcon: TextStyle;
   // ── SectionList content ──
@@ -75,8 +73,6 @@ export interface TemplatePickerStyles {
   // ── Confirmation bar ──
   confirmationBar: ViewStyle;
   confirmationText: TextStyle;
-  confirmationBtn: ViewStyle;
-  confirmationBtnText: TextStyle;
 }
 
 export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerStyles =>
@@ -317,14 +313,6 @@ export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerS
       lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
     },
-    emptyClearBtn: {
-      marginTop: spacing.medium,
-    },
-    emptyClearBtnText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.primary,
-    },
 
     // ── Search icon ───────────────────────────────
     searchIcon: {
@@ -356,15 +344,5 @@ export const createTemplatePickerStyles = (colors: ThemeColors): TemplatePickerS
       lineHeight: typography.lineHeights.secondary,
       color: colors.text,
       fontWeight: typography.weights.medium,
-    },
-    confirmationBtn: {
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.primary,
-    },
-    confirmationBtnText: {
-      ...textStyles.secondarySemibold,
-      color: colors.textInverse,
     },
   });

@@ -31,6 +31,8 @@ import {
   useColors,
 } from '@/theme';
 
+import { Button } from './Button';
+
 // ============================================
 // Types
 // ============================================
@@ -180,14 +182,9 @@ export const PageGuideModal: React.FC<PageGuideModalProps> = ({
           </TouchableOpacity>
 
           {/* Dismiss button */}
-          <TouchableOpacity
-            style={styles.dismissButton}
-            onPress={handleDismiss}
-            activeOpacity={fixed.activeOpacity}
-            testID={TESTIDS.pageGuideDismissBtn}
-          >
-            <Text style={styles.dismissButtonText}>知道了</Text>
-          </TouchableOpacity>
+          <Button variant="primary" onPress={handleDismiss} testID={TESTIDS.pageGuideDismissBtn}>
+            知道了
+          </Button>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -286,17 +283,6 @@ function createStyles(colors: ThemeColors, screenWidth: number) {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
-    },
-    // Button
-    dismissButton: {
-      backgroundColor: colors.primary,
-      borderRadius: borderRadius.full,
-      paddingVertical: spacing.medium,
-      alignItems: 'center',
-    },
-    dismissButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.textInverse,
     },
   });
 }

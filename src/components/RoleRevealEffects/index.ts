@@ -29,7 +29,6 @@ export { RoleRevealAnimator } from './RoleRevealAnimator';
 export { createRoleData } from './RoleRevealAnimator';
 
 // Individual effect components (for advanced usage)
-export { RoleHunt } from './RoleHunt';
 export { ScratchReveal } from './ScratchReveal';
 
 // Types

@@ -8,7 +8,7 @@
 import { Blur, Circle, Group, Line, vec } from '@shopify/react-native-skia';
 import React from 'react';
 
-export interface SkiaSparkleProps {
+interface SkiaSparkleProps {
   /** Center X */
   x: number;
   /** Center Y */

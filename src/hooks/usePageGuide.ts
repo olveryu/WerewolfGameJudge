@@ -14,7 +14,7 @@ import { appReadyPromise } from '@/utils/appReady';
 /** Session-level dismissed set (cleared on app refresh, not persisted) */
 const sessionDismissed = new Set<GuidePageKey>();
 
-export interface PageGuideResult {
+interface PageGuideResult {
   /** true = 弹窗应该显示（已加载 + 未被永久 dismiss） */
   visible: boolean;
   /** "下次不再显示" 勾选状态 */

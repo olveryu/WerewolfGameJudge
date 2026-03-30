@@ -24,12 +24,6 @@ describe('createSharedStyles', () => {
     'screenContainer',
     'cardBase',
     'cardElevated',
-    'primaryButton',
-    'primaryButtonText',
-    'secondaryButton',
-    'secondaryButtonText',
-    'dangerButton',
-    'dangerButtonText',
     'inputBase',
     'modalOverlay',
     'modalBase',
@@ -57,24 +51,6 @@ describe('createSharedStyles', () => {
 
   it('cardElevated uses lg shadow (different from cardBase)', () => {
     expect(dark.cardElevated).toHaveProperty('boxShadow', shadows.lg.boxShadow);
-  });
-
-  // ── Button ────────────────────────────────────────────────────────────
-  it('primaryButton is pill-shaped (borderRadius 9999)', () => {
-    expect(dark.primaryButton.borderRadius).toBe(9999);
-  });
-
-  it('primaryButton minHeight is a positive number', () => {
-    expect(dark.primaryButton.minHeight).toBeGreaterThan(0);
-  });
-
-  it('primaryButtonText uses bodySemibold structure', () => {
-    expect(dark.primaryButtonText.fontWeight).toBe('600');
-    expect(dark.primaryButtonText.fontSize).toBeGreaterThan(0);
-  });
-
-  it('dangerButton uses error color', () => {
-    expect(dark.dangerButton.backgroundColor).toBe(darkColors.error);
   });
 
   // ── Modal vs Sheet overlay ────────────────────────────────────────────

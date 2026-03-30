@@ -57,7 +57,6 @@ describe('HomeScreen Performance Optimizations', () => {
         'topBarLogo',
         'topBarTitle',
         'topBarActions',
-        'topBarButton',
         'userNameHidden',
         'heroCard',
         'heroCardContent',

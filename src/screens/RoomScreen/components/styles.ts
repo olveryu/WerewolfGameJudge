@@ -9,22 +9,11 @@ import type { TextStyle, ViewStyle } from 'react-native';
 
 import type { ThemeColors } from '@/theme';
 
-import { createActionButtonStyles } from './actionButton.styles';
 import { createBoardInfoStyles } from './boardInfo.styles';
 import { createModalMenuStyles } from './modalMenu.styles';
 import { createStatusPanelStyles } from './statusPanels.styles';
 
 // ─── Per-component style interfaces ─────────────────────────────────────────
-
-export interface ActionButtonStyles {
-  actionButton: ViewStyle;
-  disabledButton: ViewStyle;
-  buttonText: TextStyle;
-}
-
-interface ActionMessageStyles {
-  actionMessage: TextStyle;
-}
 
 export interface BoardInfoCardStyles {
   boardInfoContainer: ViewStyle;
@@ -108,22 +97,11 @@ export interface SeatConfirmModalStyles {
   modalMessage: TextStyle;
   modalButtons: ViewStyle;
   modalButton: ViewStyle;
-  modalCancelButton: ViewStyle;
-  modalConfirmButton: ViewStyle;
-  modalConfirmButtonDisabled: ViewStyle;
-  modalCancelText: TextStyle;
-  modalConfirmText: TextStyle;
-  modalConfirmTextDisabled: TextStyle;
-  modalConfirmContent: ViewStyle;
-  modalSpinner: ViewStyle;
 }
 
 // ─── Combined styles container ──────────────────────────────────────────────
 
 interface RoomScreenComponentStyles {
-  actionButton: ActionButtonStyles;
-  dangerActionButton: ActionButtonStyles;
-  actionMessage: ActionMessageStyles;
   boardInfoCard: BoardInfoCardStyles;
   bottomActionPanel: BottomActionPanelStyles;
   connectionStatusBar: ConnectionStatusBarStyles;
@@ -140,7 +118,6 @@ interface RoomScreenComponentStyles {
 export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreenComponentStyles {
   const statusPanels = createStatusPanelStyles(colors);
   return {
-    ...createActionButtonStyles(colors),
     ...createBoardInfoStyles(colors),
     ...statusPanels,
     ...createModalMenuStyles(colors),

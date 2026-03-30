@@ -24,6 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
 import type { FrameId } from '@/components/avatarFrames';
+import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { SETTINGS_GUIDE } from '@/config/guideContent';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
@@ -472,21 +473,39 @@ export const SettingsScreen: React.FC = () => {
             </View>
 
             {canSwitchAccount && (
-              <TouchableOpacity style={styles.logoutBtn} onPress={handleShowUpgradeForm}>
-                <Text style={[styles.logoutBtnText, { color: colors.primary }]}>绑定邮箱</Text>
-              </TouchableOpacity>
+              <Button
+                variant="ghost"
+                buttonColor={colors.background}
+                textColor={colors.primary}
+                onPress={handleShowUpgradeForm}
+                style={styles.logoutBtn}
+              >
+                绑定邮箱
+              </Button>
             )}
 
             {canSwitchAccount && (
-              <TouchableOpacity style={styles.logoutBtn} onPress={handleSwitchAccount}>
-                <Text style={styles.logoutBtnText}>切换账号</Text>
-              </TouchableOpacity>
+              <Button
+                variant="ghost"
+                buttonColor={colors.background}
+                textColor={colors.text}
+                onPress={handleSwitchAccount}
+                style={styles.logoutBtn}
+              >
+                切换账号
+              </Button>
             )}
 
             {!isInRoom && (
-              <TouchableOpacity style={styles.logoutBtn} onPress={signOut}>
-                <Text style={styles.logoutBtnText}>登出</Text>
-              </TouchableOpacity>
+              <Button
+                variant="ghost"
+                buttonColor={colors.background}
+                textColor={colors.text}
+                onPress={signOut}
+                style={styles.logoutBtn}
+              >
+                登出
+              </Button>
             )}
           </>
         );
@@ -548,15 +567,27 @@ export const SettingsScreen: React.FC = () => {
 
           {/* Zone 3: Account operations */}
           {canSwitchAccount && (
-            <TouchableOpacity style={styles.logoutBtn} onPress={handleSwitchAccount}>
-              <Text style={styles.logoutBtnText}>切换账号</Text>
-            </TouchableOpacity>
+            <Button
+              variant="ghost"
+              buttonColor={colors.background}
+              textColor={colors.text}
+              onPress={handleSwitchAccount}
+              style={styles.logoutBtn}
+            >
+              切换账号
+            </Button>
           )}
 
           {!isInRoom && (
-            <TouchableOpacity style={styles.logoutBtn} onPress={signOut}>
-              <Text style={styles.logoutBtnText}>登出</Text>
-            </TouchableOpacity>
+            <Button
+              variant="ghost"
+              buttonColor={colors.background}
+              textColor={colors.text}
+              onPress={signOut}
+              style={styles.logoutBtn}
+            >
+              登出
+            </Button>
           )}
         </>
       );
@@ -582,9 +613,9 @@ export const SettingsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleGoBack}>
+        <Button variant="icon" onPress={handleGoBack}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </TouchableOpacity>
+        </Button>
         <Text style={styles.headerTitle}>设置</Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -607,15 +638,15 @@ export const SettingsScreen: React.FC = () => {
         <AboutSection styles={styles} />
 
         {/* Reset Guides */}
-        <TouchableOpacity
-          style={styles.logoutBtn}
+        <Button
+          variant="ghost"
+          buttonColor={colors.background}
+          textColor={colors.textSecondary}
           onPress={handleResetGuides}
-          activeOpacity={fixed.activeOpacity}
+          style={styles.logoutBtn}
         >
-          <Text style={[styles.logoutBtnText, { color: colors.textSecondary }]}>
-            🔄 重置新手引导
-          </Text>
-        </TouchableOpacity>
+          🔄 重置新手引导
+        </Button>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { UI_ICONS } from '@/config/iconTokens';
 import { ThemeColors, typography } from '@/theme';
 
@@ -53,12 +54,12 @@ export const NameSection = memo<NameSectionProps>(
             placeholder="输入名字"
             placeholderTextColor={colors.textSecondary}
           />
-          <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
-            <Text style={styles.saveBtnText}>保存</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
-            <Text style={styles.cancelBtnText}>取消</Text>
-          </TouchableOpacity>
+          <Button variant="primary" size="sm" onPress={onSave}>
+            保存
+          </Button>
+          <Button variant="ghost" size="sm" onPress={onCancel}>
+            取消
+          </Button>
         </View>
       );
     }

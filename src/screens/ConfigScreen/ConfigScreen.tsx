@@ -11,9 +11,10 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
@@ -103,13 +104,9 @@ export const ConfigScreen: React.FC = () => {
     <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
       {/* Header row — ← | 预女猎白▾ 12人 | ⋯ */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerBtn}
-          onPress={handleGoBack}
-          testID={TESTIDS.configBackButton}
-        >
+        <Button variant="icon" onPress={handleGoBack} testID={TESTIDS.configBackButton}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </TouchableOpacity>
+        </Button>
         <View style={styles.headerCenter} pointerEvents="box-none">
           <TouchableOpacity
             style={styles.templatePill}
@@ -121,15 +118,14 @@ export const ConfigScreen: React.FC = () => {
           </TouchableOpacity>
           <Text style={styles.playerCount}>{totalCount}人</Text>
         </View>
-        <TouchableOpacity
-          style={styles.headerBtn}
+        <Button
+          variant="icon"
           onPress={handleClearSelection}
-          activeOpacity={fixed.activeOpacity}
           testID={TESTIDS.configOverflowReset}
           accessibilityLabel="重置配置"
         >
           <Ionicons name="trash-outline" size={componentSizes.icon.md} color={colors.text} />
-        </TouchableOpacity>
+        </Button>
       </View>
 
       {/* Card A — faction tabs */}
@@ -219,18 +215,14 @@ export const ConfigScreen: React.FC = () => {
         <Text style={styles.cardBFooterHint}>
           长按角色查看技能说明{'\n'}粗边框角色可长按切换变体
         </Text>
-        <TouchableOpacity
-          style={[styles.bottomCreateBtn, isDisabled && styles.bottomCreateBtnDisabled]}
+        <Button
+          variant="primary"
           onPress={handleCreateRoom}
-          activeOpacity={isDisabled ? 1 : fixed.activeOpacity}
-          accessibilityState={{ disabled: isDisabled }}
+          disabled={isDisabled}
+          loading={isCreating}
         >
-          {isCreating ? (
-            <ActivityIndicator color={colors.textInverse} size="small" />
-          ) : (
-            <Text style={styles.bottomCreateBtnText}>{isEditMode ? '保存配置' : '创建房间'}</Text>
-          )}
-        </TouchableOpacity>
+          {isEditMode ? '保存配置' : '创建房间'}
+        </Button>
       </View>
 
       {/* Template Dropdown Modal */}

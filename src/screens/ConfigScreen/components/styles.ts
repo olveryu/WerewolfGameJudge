@@ -41,9 +41,6 @@ export interface ConfigScreenStyles {
   clearBtnText: TextStyle;
   // Bottom create button
   bottomCreateBar: ViewStyle;
-  bottomCreateBtn: ViewStyle;
-  bottomCreateBtnDisabled: ViewStyle;
-  bottomCreateBtnText: TextStyle;
   // Faction tab bar (inside cardA)
   tabBar: ViewStyle;
   tab: ViewStyle;

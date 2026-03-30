@@ -33,14 +33,6 @@ export interface SharedStyles {
   /** Emphasized card: same as cardBase but with lg shadow */
   cardElevated: ViewStyle;
 
-  // ── Button ──────────────────────────────────────────────────────────────
-  primaryButton: ViewStyle;
-  primaryButtonText: TextStyle;
-  secondaryButton: ViewStyle;
-  secondaryButtonText: TextStyle;
-  dangerButton: ViewStyle;
-  dangerButtonText: TextStyle;
-
   // ── Input ───────────────────────────────────────────────────────────────
   inputBase: TextStyle;
 
@@ -98,46 +90,6 @@ export function createSharedStyles(colors: ThemeColors): SharedStyles {
       borderRadius: borderRadius.large,
       padding: spacing.medium,
       ...shadows.lg,
-    },
-
-    // ── Button ────────────────────────────────────────────────────────────
-    primaryButton: {
-      backgroundColor: colors.primary,
-      borderRadius: borderRadius.full,
-      minHeight: componentSizes.button.md,
-      paddingHorizontal: spacing.large,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    primaryButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.textInverse,
-    },
-    secondaryButton: {
-      backgroundColor: 'transparent',
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      minHeight: componentSizes.button.md,
-      paddingHorizontal: spacing.large,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    secondaryButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.text,
-    },
-    dangerButton: {
-      backgroundColor: colors.error,
-      borderRadius: borderRadius.full,
-      minHeight: componentSizes.button.md,
-      paddingHorizontal: spacing.large,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    dangerButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.textInverse,
     },
 
     // ── Input ─────────────────────────────────────────────────────────────

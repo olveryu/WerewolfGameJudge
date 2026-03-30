@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 import { componentSizes, useColors } from '@/theme';
 
@@ -121,18 +122,13 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
       {/* Dropdown menu trigger - only show if there are dropdown items */}
       {hasDropdownItems && (
         <>
-          <TouchableOpacity
-            style={styles.triggerButton}
-            onPress={handleOpenMenu}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            testID={TESTIDS.roomMenuButton}
-          >
+          <Button variant="icon" onPress={handleOpenMenu} testID={TESTIDS.roomMenuButton}>
             <Ionicons
               name="ellipsis-horizontal"
               size={componentSizes.icon.md}
               color={colors.text}
             />
-          </TouchableOpacity>
+          </Button>
 
           <Modal
             visible={menuOpen}

@@ -3,15 +3,12 @@
  *
  * 仅负责按 visibility flags 渲染按钮，业务逻辑由 RoomScreen 处理。
  * 渲染 UI 并通过回调上报 onPress，不 import service，不包含业务逻辑判断。
- * 样式由父组件通过 props 注入（actionStyles / dangerStyles），不自建 StyleSheet。
  */
 import React, { memo, useMemo } from 'react';
 
+import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 import { useColors } from '@/theme';
-
-import { ActionButton } from './ActionButton';
-import type { ActionButtonStyles } from './styles';
 
 interface HostControlButtonsProps {
   // Visibility flags
@@ -22,10 +19,6 @@ interface HostControlButtonsProps {
   showRestart: boolean;
   /** Disable all action buttons while a host action is in-flight. */
   disabled?: boolean;
-  /** Pre-created styles for normal buttons (from parent componentStyles.actionButton). */
-  actionStyles: ActionButtonStyles;
-  /** Pre-created styles for danger buttons (from parent componentStyles.dangerActionButton). */
-  dangerStyles: ActionButtonStyles;
 
   // Button press handlers (parent provides dialog/logic)
   onSettingsPress: () => void;
@@ -41,15 +34,13 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
   showStartGame,
   showRestart,
   disabled,
-  actionStyles,
-  dangerStyles,
   onSettingsPress,
   onPrepareToFlipPress,
   onStartGamePress,
   onRestartPress,
 }) => {
   const colors = useColors();
-  const settingsStyleOverride = useMemo(() => ({ backgroundColor: colors.info }), [colors.info]);
+  const settingsButtonColor = useMemo(() => colors.info, [colors.info]);
 
   if (!isHost) return null;
 
@@ -57,52 +48,59 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
     <>
       {/* Host: Restart Game - danger style (leftmost) */}
       {showRestart && (
-        <ActionButton
-          label="重新开始"
+        <Button
+          variant="danger"
           disabled={disabled}
+          fireWhenDisabled
           testID={TESTIDS.restartButton}
-          onPress={(meta) => {
+          onPress={(meta: { disabled: boolean }) => {
             if (!meta.disabled) onRestartPress();
           }}
-          styles={dangerStyles}
-        />
+        >
+          重新开始
+        </Button>
       )}
 
       {/* Host: Settings */}
       {showSettings && (
-        <ActionButton
-          label="房间配置"
+        <Button
+          variant="primary"
+          buttonColor={settingsButtonColor}
           onPress={() => onSettingsPress()}
-          styleOverride={settingsStyleOverride}
           testID={TESTIDS.roomSettingsButton}
-          styles={actionStyles}
-        />
+        >
+          房间配置
+        </Button>
       )}
 
       {/* Host: Prepare to Flip */}
       {showPrepareToFlip && (
-        <ActionButton
-          label="分配角色"
+        <Button
+          variant="primary"
           disabled={disabled}
+          fireWhenDisabled
           testID={TESTIDS.prepareToFlipButton}
-          onPress={(meta) => {
+          onPress={(meta: { disabled: boolean }) => {
             if (!meta.disabled) onPrepareToFlipPress();
           }}
-          styles={actionStyles}
-        />
+        >
+          分配角色
+        </Button>
       )}
 
       {/* Host: Start Game */}
       {showStartGame && (
-        <ActionButton
-          label="开始游戏"
+        <Button
+          variant="primary"
           disabled={disabled}
+          fireWhenDisabled
           testID={TESTIDS.startGameButton}
-          onPress={(meta) => {
+          onPress={(meta: { disabled: boolean }) => {
             if (!meta.disabled) onStartGamePress();
           }}
-          styles={actionStyles}
-        />
+        >
+          开始游戏
+        </Button>
       )}
     </>
   );

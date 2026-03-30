@@ -129,38 +129,6 @@ export function createModalMenuStyles(colors: ThemeColors): {
         minWidth: spacing.xxlarge * 2 + spacing.medium, // ~100
         alignItems: 'center',
       },
-      modalCancelButton: {
-        backgroundColor: colors.surfaceHover,
-        borderWidth: fixed.borderWidth,
-        borderColor: colors.border,
-      },
-      modalConfirmButton: {
-        backgroundColor: colors.primary,
-      },
-      modalConfirmButtonDisabled: {
-        backgroundColor: colors.primary,
-        opacity: fixed.disabledOpacity,
-      },
-      modalCancelText: {
-        ...textStyles.bodySemibold,
-        color: colors.textSecondary,
-      },
-      modalConfirmText: {
-        ...textStyles.bodySemibold,
-        color: colors.textInverse,
-      },
-      modalConfirmTextDisabled: {
-        ...textStyles.bodySemibold,
-        color: colors.textInverse,
-      },
-      modalConfirmContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-      },
-      modalSpinner: {
-        marginRight: spacing.small,
-      },
     }),
   };
 }

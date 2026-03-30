@@ -148,7 +148,7 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
     },
     button: {
       backgroundColor: colors.primary,
-      borderRadius: borderRadius.medium,
+      borderRadius: borderRadius.full,
       paddingVertical: spacing.small,
       paddingHorizontal: spacing.medium,
       alignItems: 'center',
