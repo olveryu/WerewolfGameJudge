@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
 
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { NETWORK_ERROR } from '@/config/errorMessages';
 import {
   type ChatMessage,
   isAIChatReady,
@@ -20,6 +21,7 @@ import {
 } from '@/services/feature/AIChatService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
+import { isNetworkError } from '@/utils/errorUtils';
 import { chatLog } from '@/utils/logger';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
@@ -294,6 +296,13 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
             }
             return prev;
           });
+          return;
+        }
+        // Network errors: log.warn + UI feedback, no Sentry
+        if (isNetworkError(err)) {
+          chatLog.warn('sendMessage network error:', err);
+          setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+          showErrorAlert('发送失败', NETWORK_ERROR);
           return;
         }
         // Non-abort errors: log + Sentry + user feedback

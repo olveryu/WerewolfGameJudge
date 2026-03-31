@@ -109,8 +109,16 @@ export class SettingsService {
       this.#loaded = true;
     } catch (e) {
       // If load fails, use defaults
-      settingsServiceLog.error('Failed to load settings, using defaults:', e);
-      Sentry.captureException(e);
+      const isQuota = e instanceof Error && e.name === 'QuotaExceededError';
+      if (isQuota) {
+        settingsServiceLog.warn(
+          'Storage quota exceeded while loading settings, using defaults:',
+          e,
+        );
+      } else {
+        settingsServiceLog.error('Failed to load settings, using defaults:', e);
+        Sentry.captureException(e);
+      }
       this.#settings = { ...DEFAULT_SETTINGS };
       this.#loaded = true;
     }
@@ -124,8 +132,13 @@ export class SettingsService {
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(this.#settings));
       this.#notifyListeners();
     } catch (e) {
-      settingsServiceLog.error('Failed to save settings:', e);
-      Sentry.captureException(e);
+      const isQuota = e instanceof Error && e.name === 'QuotaExceededError';
+      if (isQuota) {
+        settingsServiceLog.warn('Storage quota exceeded while saving settings:', e);
+      } else {
+        settingsServiceLog.error('Failed to save settings:', e);
+        Sentry.captureException(e);
+      }
     }
   }
 

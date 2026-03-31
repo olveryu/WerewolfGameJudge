@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { ALL_GUIDE_DISMISSED_KEYS, type GuidePageKey, guideStorageKey } from '@/config/storageKeys';
 import { appReadyPromise } from '@/utils/appReady';
+import { log } from '@/utils/logger';
 
 /** Session-level dismissed set (cleared on app refresh, not persisted) */
 const sessionDismissed = new Set<GuidePageKey>();
@@ -61,8 +62,9 @@ export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
           cleanupTimer = timer;
         }
       })
-      .catch(() => {
+      .catch((e) => {
         // If read fails, don't show guide (fail safe)
+        log.warn('Failed to read guide dismissed state:', e);
         if (!cancelled) setDismissed(true);
       })
       .finally(() => {
@@ -85,8 +87,9 @@ export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
     sessionDismissed.add(pageKey);
     if (dontShowAgain) {
       const key = guideStorageKey(pageKey);
-      AsyncStorage.setItem(key, '1').catch(() => {
+      AsyncStorage.setItem(key, '1').catch((e) => {
         // Best-effort persist; non-critical failure
+        log.warn('Failed to persist guide dismissed state:', e);
       });
     }
   }, [dontShowAgain, pageKey]);

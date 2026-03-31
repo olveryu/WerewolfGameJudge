@@ -23,6 +23,7 @@ import {
   typography,
   useColors,
 } from '@/theme';
+import { log } from '@/utils/logger';
 
 /**
  * Capture the share card View as a base64-encoded PNG.
@@ -93,8 +94,9 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
           preCapturedRef.current = b64;
           setIsPreCaptureReady(true);
         })
-        .catch(() => {
+        .catch((e) => {
           // Pre-capture failed; enable button anyway for on-demand fallback
+          log.warn('Pre-capture share card failed:', e);
           setIsPreCaptureReady(true);
         });
     }, 300);

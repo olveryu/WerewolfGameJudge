@@ -31,6 +31,7 @@ import {
   type RoleData,
   RoleRevealAnimator,
 } from '@/components/RoleRevealEffects';
+import { log } from '@/utils/logger';
 import { getRoleBadge } from '@/utils/roleBadges';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────
@@ -83,7 +84,9 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   useEffect(() => {
     if (visible) {
       const targetRoleId = getRoleDisplayAs(roleId) ?? roleId;
-      Asset.loadAsync(getRoleBadge(targetRoleId) as number).catch(() => {});
+      Asset.loadAsync(getRoleBadge(targetRoleId) as number).catch((e) => {
+        log.warn('Failed to preload role badge:', e);
+      });
     }
   }, [visible, roleId]);
 

@@ -43,7 +43,7 @@ import {
   makeBuiltinAvatarUrl,
 } from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
-import { settingsLog } from '@/utils/logger';
+import { isExpectedAuthError, mapAuthError, settingsLog } from '@/utils/logger';
 
 import {
   AboutSection,
@@ -353,9 +353,14 @@ export const SettingsScreen: React.FC = () => {
         setShowAuthForm(true);
         setIsSignUp(false);
       } catch (e: unknown) {
-        const message = getErrorMessage(e);
-        settingsLog.error('Account switch failed:', message, e);
-        Sentry.captureException(e);
+        const raw = e instanceof Error ? e.message : String(e);
+        const message = mapAuthError(raw);
+        if (isExpectedAuthError(raw)) {
+          settingsLog.warn('Account switch expected error:', raw, e);
+        } else {
+          settingsLog.error('Account switch failed:', raw, e);
+          Sentry.captureException(e);
+        }
         setShowAuthForm(false);
         setIsSwitchingAccount(false);
         showErrorAlert('切换失败', message);
@@ -378,9 +383,14 @@ export const SettingsScreen: React.FC = () => {
     try {
       await signOut();
     } catch (e: unknown) {
-      const message = getErrorMessage(e);
-      settingsLog.error('Sign-out before switch failed:', message, e);
-      Sentry.captureException(e);
+      const raw = e instanceof Error ? e.message : String(e);
+      const message = mapAuthError(raw);
+      if (isExpectedAuthError(raw)) {
+        settingsLog.warn('Sign-out before switch expected error:', raw, e);
+      } else {
+        settingsLog.error('Sign-out before switch failed:', raw, e);
+        Sentry.captureException(e);
+      }
       showErrorAlert('切换失败', message);
       return;
     }
