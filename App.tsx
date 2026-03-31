@@ -13,7 +13,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { ThemedToast } from '@/components/ThemedToast';
 import { APP_VERSION } from '@/config/version';
-import { AuthProvider, GameFacadeProvider, NetworkProvider, ServiceProvider } from '@/contexts';
+import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { AppNavigator } from '@/navigation';
@@ -146,11 +146,9 @@ export default function App() {
         <ServiceProvider services={services}>
           <ThemeProvider>
             <AuthProvider>
-              <NetworkProvider>
-                <GameFacadeProvider facade={facade}>
-                  <AppContent />
-                </GameFacadeProvider>
-              </NetworkProvider>
+              <GameFacadeProvider facade={facade}>
+                <AppContent />
+              </GameFacadeProvider>
             </AuthProvider>
           </ThemeProvider>
         </ServiceProvider>
