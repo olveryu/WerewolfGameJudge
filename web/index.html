@@ -317,6 +317,25 @@
         }, 5000);
       });
 
+      // Stale Tab Auto-Reload：iOS Safari 长时间后台后 WebSocket/JS 运行时可能不可恢复，
+      // 社区标准做法（Slack/Discord/Figma PWA）— 超过阈值直接 reload 重建所有连接。
+      // URL linking + DB 持久化保证 reload 后导航状态和游戏状态完整恢复。
+      (function () {
+        var STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+        var lastHiddenAt = 0;
+
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'hidden') {
+            lastHiddenAt = Date.now();
+          } else if (document.visibilityState === 'visible' && lastHiddenAt > 0) {
+            if (Date.now() - lastHiddenAt > STALE_THRESHOLD_MS) {
+              console.log('Stale tab detected, reloading…');
+              window.location.reload();
+            }
+          }
+        });
+      })();
+
       // 注册 Service Worker（如果支持）
       if ('serviceWorker' in navigator) {
         // 首次安装时 controller 为 null，此时 controllerchange 不应 reload
