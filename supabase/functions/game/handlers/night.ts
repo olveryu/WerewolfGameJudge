@@ -247,9 +247,12 @@ export const handleGroupConfirmAck: HandlerFn = async (req) => {
       }
       // Idempotent: already acked → no-op success
       const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
+      const isCupidLoversReveal = stepId === 'cupidLoversReveal';
       const acks = isConversionReveal
         ? (state.conversionRevealAcks ?? [])
-        : (state.piperRevealAcks ?? []);
+        : isCupidLoversReveal
+          ? (state.cupidLoversRevealAcks ?? [])
+          : (state.piperRevealAcks ?? []);
       if (acks.includes(seat)) {
         return { success: true, actions: [] };
       }
@@ -257,7 +260,9 @@ export const handleGroupConfirmAck: HandlerFn = async (req) => {
       // Build action: ack this single seat only (dispatch to the correct ack field)
       const actions: StateAction[] = isConversionReveal
         ? [{ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat } }]
-        : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
+        : isCupidLoversReveal
+          ? [{ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } }]
+          : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
 
       return { success: true, actions };
     },

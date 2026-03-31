@@ -122,9 +122,14 @@ export interface GroupRevealEffect {
   readonly kind: 'groupReveal';
 }
 
-/** ChooseCard effect — 从底牌中选择一张身份牌（treasureMaster） */
+/** ChooseCard effect — 从底牌中选择一张身份牌（treasureMaster / thief） */
 export interface ChooseCardEffect {
   readonly kind: 'chooseCard';
+}
+
+/** ChooseLovers effect — 选择两名玩家成为情侣（cupid） */
+export interface ChooseLoversEffect {
+  readonly kind: 'chooseLovers';
 }
 
 /**
@@ -150,7 +155,8 @@ export type AbilityEffect =
   | ConvertEffect
   | GroupRevealEffect
   | ConfirmEffect
-  | ChooseCardEffect;
+  | ChooseCardEffect
+  | ChooseLoversEffect;
 
 // ---------------------------------------------------------------------------
 // Abilities (what a role can do)
@@ -319,6 +325,10 @@ export interface NightStepUi {
   readonly blockedTitle?: string;
   readonly blockedMessage?: string;
   readonly blockedSkipButtonText?: string;
+  /** Cupid lovers reveal: text shown to a lover (use {seat} placeholder for partner seat) */
+  readonly loverText?: string;
+  /** Cupid lovers reveal: text shown to a non-lover */
+  readonly notLoverText?: string;
 }
 
 // ---------------------------------------------------------------------------

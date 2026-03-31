@@ -94,6 +94,15 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'treasureMasterChosenCard',
   'effectiveTeam',
   'bottomCardStepRoles',
+
+  // 盗贼
+  'thiefSeat',
+  'thiefChosenCard',
+
+  // 丘比特
+  'loverSeats',
+  'cupidSeat',
+  'cupidLoversRevealAcks',
 ];
 
 describe('normalizeState contract', () => {
@@ -173,6 +182,15 @@ describe('normalizeState contract', () => {
 
       // 详细信息分享权限
       nightReviewAllowedSeats: [0, 2],
+
+      // 盗贼
+      thiefSeat: 0,
+      thiefChosenCard: 'wolf',
+
+      // 丘比特
+      loverSeats: [1, 3] as readonly [number, number],
+      cupidSeat: 4,
+      cupidLoversRevealAcks: [1],
     };
   };
 

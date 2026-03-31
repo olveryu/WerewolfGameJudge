@@ -51,7 +51,7 @@ export function computeEffectiveTeam(bottomCards: readonly RoleId[]): Team {
 }
 
 export const treasureMasterChooseResolver: ResolverFn = (context, input) => {
-  const { actorSeat, currentNightResults, treasureMasterContext } = context;
+  const { actorSeat, currentNightResults, bottomCardContext } = context;
   const cardIndex = input.cardIndex;
 
   // Nightmare block → skip allowed
@@ -63,11 +63,11 @@ export const treasureMasterChooseResolver: ResolverFn = (context, input) => {
   }
 
   // Context must exist
-  if (!treasureMasterContext) {
+  if (!bottomCardContext) {
     return { valid: false, rejectReason: REJECT_NO_CONTEXT };
   }
 
-  const { bottomCards } = treasureMasterContext;
+  const { bottomCards } = bottomCardContext;
 
   // Validate index range
   if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= BOTTOM_CARD_COUNT) {

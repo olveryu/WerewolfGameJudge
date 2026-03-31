@@ -173,6 +173,10 @@ export function useConfigScreenState({
     }
   }, [navigation]);
 
+  const handleTemplatePillPress = useCallback(() => {
+    navigation.navigate('BoardPicker');
+  }, [navigation]);
+
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
     setSelectedTemplate('__custom__');
@@ -475,6 +479,7 @@ export function useConfigScreenState({
 
     // Navigation
     handleGoBack,
+    handleTemplatePillPress,
     handleCreateRoom,
 
     // Role toggling

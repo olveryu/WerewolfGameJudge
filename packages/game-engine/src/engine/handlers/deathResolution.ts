@@ -61,6 +61,7 @@ export function buildRoleSeatMap(
   effectiveRoleSeatMap: Map<RoleId, number>,
   reflectionSources: readonly ReflectionSource[],
   isBonded: boolean,
+  coupleLinkSeats: RoleSeatMap['coupleLinkSeats'],
 ): RoleSeatMap {
   const poisonImmuneSeats: number[] = [];
   const reflectsDamageSeats: number[] = [];
@@ -114,6 +115,7 @@ export function buildRoleSeatMap(
     guardProtectorSeat,
     poisonSourceSeat,
     bondedLinkSeats,
+    coupleLinkSeats,
     poisonImmuneSeats,
     reflectsDamageSeats,
     reflectionSources,
@@ -232,7 +234,9 @@ export function buildNightActions(state: NonNullState): NightActions {
       votes.set(seat, targetSeat);
     }
 
-    const resolved = resolveWolfVotes(votes);
+    const resolved = resolveWolfVotes(votes, {
+      requireUnanimity: state.templateRoles.includes('cupid'),
+    });
     if (typeof resolved === 'number') {
       nightActions.wolfKill = resolved;
     }

@@ -16,8 +16,8 @@ import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 const allIds = Object.keys(ROLE_SPECS).sort() as RoleId[];
 
 describe('ROLE_SPECS registry', () => {
-  it('should have exactly 39 roles', () => {
-    expect(allIds).toHaveLength(39);
+  it('should have exactly 41 roles', () => {
+    expect(allIds).toHaveLength(41);
   });
 });
 
@@ -198,13 +198,24 @@ describe('V2 faction/team consistency', () => {
     }
   });
 
-  it('third-party roles should have team=Third', () => {
+  it('third-party roles should have team=Third (except thief/cupid which have dynamic teams)', () => {
+    // thief and cupid are Special faction but start as Team.Good:
+    // - thief: identity changes to chosen card (effective team is chosen role's team)
+    // - cupid: seer查验=好人, effective team computed from lover composition
+    const DYNAMIC_TEAM_SPECIALS: RoleId[] = ['thief', 'cupid'];
     const thirdRoles = allIds.filter(
-      (id) => (ROLE_SPECS[id] as RoleSpec).faction === Faction.Special,
+      (id) =>
+        (ROLE_SPECS[id] as RoleSpec).faction === Faction.Special &&
+        !DYNAMIC_TEAM_SPECIALS.includes(id),
     );
     for (const roleId of thirdRoles) {
       const spec = ROLE_SPECS[roleId] as RoleSpec;
       expect(spec.team).toBe(Team.Third);
+    }
+    // Dynamic team roles should have team=Good (base state)
+    for (const roleId of DYNAMIC_TEAM_SPECIALS) {
+      const spec = ROLE_SPECS[roleId] as RoleSpec;
+      expect(spec.team).toBe(Team.Good);
     }
   });
 });

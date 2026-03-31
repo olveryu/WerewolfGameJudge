@@ -342,6 +342,10 @@ export interface GroupConfirmSchema extends BaseActionSchema {
     readonly hypnotizedText?: string;
     /** 未被催眠玩家看到的文案 */
     readonly notHypnotizedText?: string;
+    /** 情侣看到的文案，支持 {seat} 占位符（显示搭档座位号） */
+    readonly loverText?: string;
+    /** 非情侣看到的文案 */
+    readonly notLoverText?: string;
   };
 }
 

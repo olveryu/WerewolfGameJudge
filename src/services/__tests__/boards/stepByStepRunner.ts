@@ -278,6 +278,9 @@ function executeCurrentStep(ctx: GameContext, customActions: CustomActions): voi
     if (state2.treasureMasterChosenCard === roleId && state2.treasureMasterSeat != null) {
       actorSeat = state2.treasureMasterSeat;
       actorRole = 'treasureMaster' as RoleId; // Gate 4b/5b 要求发送实际座位角色
+    } else if (state2.thiefChosenCard === roleId && state2.thiefSeat != null) {
+      actorSeat = state2.thiefSeat;
+      actorRole = 'thief' as RoleId;
     } else {
       // 该角色不在模板中，跳过（advanceNight 会在外层调用）
       return;
@@ -304,7 +307,7 @@ function submitActionForStep(
   actorSeat: number,
   actionValue: ActionValue | undefined,
 ): void {
-  if (stepId === 'treasureMasterChoose') {
+  if (stepId === 'treasureMasterChoose' || stepId === 'thiefChoose') {
     submitChooseCardAction(ctx, stepId, roleId, actorSeat, actionValue);
   } else if (stepId === 'wolfKill') {
     submitWolfKillAction(ctx, stepId, actorSeat, actionValue);
@@ -320,10 +323,15 @@ function submitActionForStep(
     submitConfirmAction(ctx, stepId, roleId, actorSeat, actionValue);
   } else if (stepId === 'piperHypnotize') {
     submitPiperHypnotizeAction(ctx, stepId, roleId, actorSeat, actionValue);
+  } else if (stepId === 'cupidChooseLovers') {
+    submitCupidChooseLoversAction(ctx, stepId, roleId, actorSeat, actionValue);
   } else if (stepId === 'piperHypnotizedReveal') {
     // groupConfirm: auto-completes after audio, no action submission needed
     return;
   } else if (stepId === 'awakenedGargoyleConvertReveal') {
+    // groupConfirm: auto-completes after audio, no action submission needed
+    return;
+  } else if (stepId === 'cupidLoversReveal') {
     // groupConfirm: auto-completes after audio, no action submission needed
     return;
   } else {
@@ -529,6 +537,37 @@ function submitPiperHypnotizeAction(
   } else {
     // Default: hypnotize seat 0 (test convenience — pick any valid seat)
     targets = [0];
+  }
+
+  sendMessageOrThrow(
+    ctx,
+    {
+      type: 'ACTION',
+      seat: actorSeat,
+      role: roleId,
+      target: null,
+      extra: { targets },
+    },
+    { stepId },
+  );
+}
+
+/**
+ * 提交丘比特选情侣 action（multiChooseSeat, 2 targets）
+ */
+function submitCupidChooseLoversAction(
+  ctx: GameContext,
+  stepId: SchemaId,
+  roleId: RoleId,
+  actorSeat: number,
+  actionValue: ActionValue | undefined,
+): void {
+  let targets: readonly number[];
+  if (actionValue && typeof actionValue === 'object' && 'targets' in actionValue) {
+    targets = actionValue.targets;
+  } else {
+    // Default: connect seats 0 and 1 (test convenience)
+    targets = [0, 1];
   }
 
   sendMessageOrThrow(

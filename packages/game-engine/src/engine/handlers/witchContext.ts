@@ -45,7 +45,9 @@ function computeWitchContext(state: NonNullState): {
       if (!Number.isFinite(seat) || typeof targetSeat !== 'number') continue;
       votes.set(seat, targetSeat);
     }
-    const resolved = resolveWolfVotes(votes);
+    const resolved = resolveWolfVotes(votes, {
+      requireUnanimity: state.templateRoles.includes('cupid'),
+    });
     if (typeof resolved === 'number') {
       killedSeat = resolved;
     }

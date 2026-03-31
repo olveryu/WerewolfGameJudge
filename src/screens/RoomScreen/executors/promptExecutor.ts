@@ -64,7 +64,11 @@ export const actionPromptExecutor: IntentExecutor = (_intent, ctx) => {
     throw new Error(`[FAIL-FAST] Missing schema.ui.prompt for role: ${currentActionRole}`);
   }
   const title = currentActionRole ? `${getRoleDisplayName(currentActionRole)}行动` : '夜间行动';
-  actionDialogs.showRoleActionPrompt(title, currentSchema.ui.prompt, () => {});
+  const promptText =
+    hintApplies && hint.message
+      ? `${currentSchema.ui.prompt}\n\n⚠️ ${hint.message}`
+      : currentSchema.ui.prompt;
+  actionDialogs.showRoleActionPrompt(title, promptText, () => {});
 };
 
 export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {

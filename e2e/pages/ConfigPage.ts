@@ -15,6 +15,7 @@ const VARIANT_TO_BASE: Record<string, string> = {
   awakenedGargoyle: 'gargoyle',
   drunkSeer: 'mirrorSeer',
   poisoner: 'witch',
+  treasureMaster: 'thief',
   wildChild: 'slacker',
 };
 

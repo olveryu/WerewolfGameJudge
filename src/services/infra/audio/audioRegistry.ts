@@ -139,6 +139,14 @@ export const AUDIO_REGISTRY: Partial<Record<RoleId, RoleAudioEntry>> = {
     begin: require('../../../../assets/audio/treasure_master.mp3'),
     end: require('../../../../assets/audio_end/treasure_master.mp3'),
   },
+  thief: {
+    begin: require('../../../../assets/audio/thief.mp3'),
+    end: require('../../../../assets/audio_end/thief.mp3'),
+  },
+  cupid: {
+    begin: require('../../../../assets/audio/cupid.mp3'),
+    end: require('../../../../assets/audio_end/cupid.mp3'),
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -172,6 +180,10 @@ export const STEP_AUDIO: Record<string, RoleAudioEntry> = {
   awakenedGargoyleConvertReveal: {
     begin: require('../../../../assets/audio/awakened_gargoyle_convert_reveal.mp3'),
     end: require('../../../../assets/audio_end/awakened_gargoyle_convert_reveal.mp3'),
+  },
+  cupidLoversReveal: {
+    begin: require('../../../../assets/audio/cupid_lovers_reveal.mp3'),
+    end: require('../../../../assets/audio_end/cupid_lovers_reveal.mp3'),
   },
 };
 

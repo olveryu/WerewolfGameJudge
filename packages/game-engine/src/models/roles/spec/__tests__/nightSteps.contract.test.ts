@@ -144,7 +144,7 @@ describe('NIGHT_STEPS contract', () => {
     it('getAllStepIds should return all stepIds in order', () => {
       const stepIds = getAllStepIds();
       expect(stepIds.length).toBe(NIGHT_STEPS.length);
-      expect(stepIds[0]).toBe('treasureMasterChoose');
+      expect(stepIds[0]).toBe('thiefChoose');
     });
   });
 });

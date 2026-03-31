@@ -1,16 +1,16 @@
 /**
- * V2 Role Specs Registry — 全部 39 角色声明式定义
+ * V2 Role Specs Registry — 全部 41 角色声明式定义
  *
  * Single source of truth: 角色固有属性 + 行为（abilities / effects）+ 夜间步骤 + UI 元数据
  * 合并了 V1 的 ROLE_SPECS + SCHEMAS + NIGHT_STEPS 三表。
  *
- * 39 roles total:
+ * 41 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, poisoner, hunter, guard, idiot, knight, magician, witcher, psychic,
  *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder, crow (17)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle,
  *   awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden (13)
- * - Third-party: slacker, wildChild, piper, shadow, avenger, treasureMaster (6)
+ * - Third-party: slacker, wildChild, piper, shadow, avenger, thief, cupid, treasureMaster (8)
  *
  * 纯数据，JSON-serializable。不含业务逻辑、副作用、平台依赖。
  */
@@ -1637,6 +1637,109 @@ export const ROLE_SPECS = {
             wolfText: '你属于狼人阵营',
             bondedText: '你与影子绑定，同属第三方阵营',
           },
+        },
+      },
+    ],
+  },
+
+  thief: {
+    id: 'thief',
+    displayName: '盗贼',
+    shortName: '窃',
+    emoji: '🃏',
+    faction: Faction.Special,
+    team: Team.Good,
+    description:
+      '首夜第一个行动，从法官手中的两张底牌中选择一张永久作为自身身份；底牌中有狼人阵营的牌时必须选择狼人；被查验时以选择的身份为准；未选中的底牌角色步骤照常进行但无人操作；底牌最多含1张狼人阵营的牌',
+    structuredDescription: {
+      skill:
+        '首夜第一个行动，从法官手中的两张底牌中选择一张永久作为自身身份；未选中的底牌角色步骤照常进行但无人操作',
+      restriction: '底牌中有狼人阵营的牌时必须选择狼人；底牌最多含1张狼人阵营的牌',
+      passive: '被查验时以选择的身份为准',
+    },
+    tags: ['transform'],
+    abilities: [
+      {
+        type: 'active',
+        timing: 'night',
+        actionKind: 'chooseCard',
+        canSkip: false,
+        effects: [{ kind: 'chooseCard' }],
+        activeOnNight1: true,
+      },
+    ],
+    nightSteps: [
+      {
+        stepId: 'thiefChoose',
+        displayName: '盗取',
+        audioKey: 'thief',
+        actionKind: 'chooseCard',
+        ui: {
+          prompt: '请选择一张底牌作为你的身份',
+          confirmText: '确认选择此身份？',
+          bottomActionText: '选择底牌',
+        },
+      },
+    ],
+  },
+
+  cupid: {
+    id: 'cupid',
+    displayName: '丘比特',
+    shortName: '丘',
+    emoji: '💘',
+    faction: Faction.Special,
+    team: Team.Good,
+    description:
+      '首夜选择两名玩家成为情侣（可含自己）；情侣互认但不知对方身份；任一情侣出局则另一人殉情；双好人时属好人阵营，双狼时属狼人阵营，一好一狼时与情侣组成第三方阵营',
+    structuredDescription: {
+      skill: '首夜选择两名玩家成为情侣（可含自己）',
+      passive: '情侣互认但不知对方身份；任一情侣出局则另一人殉情',
+      winCondition:
+        '双好人时属好人阵营；双狼时属狼人阵营；一好一狼时与情侣组成第三方阵营，情侣杀死其他所有玩家则第三方获胜',
+    },
+    tags: ['link'],
+    deathCalcRole: 'coupleLink',
+    abilities: [
+      {
+        type: 'active',
+        timing: 'night',
+        actionKind: 'multiChooseSeat',
+        target: {
+          count: { min: 2, max: 2 },
+          constraints: [],
+        },
+        canSkip: false,
+        effects: [{ kind: 'chooseLovers' }],
+        activeOnNight1: true,
+      },
+    ],
+    nightSteps: [
+      {
+        stepId: 'cupidChooseLovers',
+        displayName: '连接情侣',
+        audioKey: 'cupid',
+        actionKind: 'multiChooseSeat',
+        ui: {
+          confirmTitle: '确认行动',
+          prompt: '请选择两名玩家成为情侣，可以选择自己',
+          confirmText: '确定让这两名玩家成为情侣吗？',
+          bottomActionText: '不用技能',
+          confirmButtonText: '确认连接({count}人)',
+        },
+      },
+      {
+        stepId: 'cupidLoversReveal',
+        displayName: '情侣确认',
+        audioKey: 'cupidLoversReveal',
+        audioEndKey: 'cupidLoversReveal',
+        actionKind: 'groupConfirm',
+        ui: {
+          prompt: '所有玩家请睁眼，请看手机确认情侣信息',
+          bottomActionText: '情侣状态',
+          loverText: '你是情侣之一，你的另一半是：{seat}号',
+          notLoverText: '你不是情侣',
+          confirmButtonText: '我知道了',
         },
       },
     ],

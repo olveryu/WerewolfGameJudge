@@ -75,6 +75,7 @@ export const ConfigScreen: React.FC = () => {
     totalCount,
     variantOverrides,
     handleGoBack,
+    handleTemplatePillPress,
     handleCreateRoom,
     toggleRole,
     handleClearSelection,
@@ -104,7 +105,11 @@ export const ConfigScreen: React.FC = () => {
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>
         <View style={styles.headerCenter} pointerEvents="box-none">
-          <TouchableOpacity style={styles.templatePill} activeOpacity={0.7} onPress={handleGoBack}>
+          <TouchableOpacity
+            style={styles.templatePill}
+            activeOpacity={0.7}
+            onPress={handleTemplatePillPress}
+          >
             <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
             <Ionicons
               name="chevron-down"

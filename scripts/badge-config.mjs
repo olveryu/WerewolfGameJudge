@@ -29,6 +29,7 @@ export const EMOJI_MAP = {
   // God faction
   seer: ['Crystal ball', 'crystal_ball', false],
   witch: ['Woman mage', 'woman_mage', true],
+  poisoner: ['Skull and crossbones', 'skull_and_crossbones', false],
   hunter: ['Bow and arrow', 'bow_and_arrow', false],
   guard: ['Shield', 'shield', false],
   idiot: ['Clown face', 'clown_face', false],
@@ -62,6 +63,12 @@ export const EMOJI_MAP = {
   slacker: ['Sleeping face', 'sleeping_face', false],
   wildChild: ['Baby', 'baby', true],
   piper: ['Flute', 'flute', false],
+  shadow: ['Ghost', 'ghost', false],
+  avenger: ['Kitchen knife', 'kitchen_knife', false],
+  treasureMaster: ['Gem stone', 'gem_stone', false],
+  thief: ['Joker', 'joker', false],
+  cupid: ['Heart with arrow', 'heart_with_arrow', false],
+  crow: ['Black bird', 'black_bird', false],
 };
 
 // ---------------------------------------------------------------------------

@@ -27,6 +27,18 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
       ? gcSchema!.ui!.hypnotizedText!
       : gcSchema!.ui!.notHypnotizedText!;
     dialogTitle = '转化信息';
+  } else if (schemaId === 'cupidLoversReveal') {
+    // Cupid: loverSeats pair. Show partner seat to lovers, "not a lover" to others.
+    const loverSeats = gameState?.loverSeats;
+    const isLover = mySeat !== null && loverSeats?.includes(mySeat);
+    if (isLover && loverSeats) {
+      const partnerSeat = loverSeats[0] === mySeat ? loverSeats[1] : loverSeats[0];
+      const template = gcSchema!.ui!.loverText!;
+      personalMessage = template.replace('{seat}', `${partnerSeat + 1}`);
+    } else {
+      personalMessage = gcSchema!.ui!.notLoverText!;
+    }
+    dialogTitle = '情侣信息';
   } else {
     // Piper: hypnotizedSeats array with {seats} placeholder
     const hypnotizedSeats = gameState?.hypnotizedSeats ?? [];

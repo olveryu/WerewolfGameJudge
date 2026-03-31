@@ -136,6 +136,13 @@ export function handleApplyResolverResult(
       ? updates.bottomCardStepRoles
       : state.bottomCardStepRoles;
 
+  // Sync thief fields from resolver updates to top-level state
+  const thiefChosenCard =
+    updates && 'thiefChosenCard' in updates ? updates.thiefChosenCard : state.thiefChosenCard;
+
+  // Sync cupid fields from resolver updates to top-level state
+  const loverSeats = updates && 'loverSeats' in updates ? updates.loverSeats : state.loverSeats;
+
   return {
     ...state,
     currentNightResults,
@@ -146,6 +153,8 @@ export function handleApplyResolverResult(
     treasureMasterChosenCard,
     effectiveTeam,
     bottomCardStepRoles,
+    thiefChosenCard,
+    loverSeats,
     seerReveal: seerReveal ?? state.seerReveal,
     mirrorSeerReveal: mirrorSeerReveal ?? state.mirrorSeerReveal,
     drunkSeerReveal: drunkSeerReveal ?? state.drunkSeerReveal,

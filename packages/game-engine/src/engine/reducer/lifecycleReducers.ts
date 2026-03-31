@@ -125,6 +125,15 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     effectiveTeam: undefined,
     bottomCardStepRoles: undefined,
 
+    // 盗贼
+    thiefSeat: undefined,
+    thiefChosenCard: undefined,
+
+    // 丘比特
+    loverSeats: undefined,
+    cupidSeat: undefined,
+    cupidLoversRevealAcks: [],
+
     // ── 重开时更新 nonce 和 resolved 动画 ─────────────────
     roleRevealRandomNonce: newNonce,
     resolvedRoleRevealAnimation: resolvedAnimation,
@@ -241,7 +250,8 @@ export function handleUpdatePlayerProfile(
 }
 
 export function handleAssignRoles(state: GameState, action: AssignRolesAction): GameState {
-  const { assignments, seerLabelMap, bottomCards, treasureMasterSeat } = action.payload;
+  const { assignments, seerLabelMap, bottomCards, treasureMasterSeat, thiefSeat, cupidSeat } =
+    action.payload;
   const newPlayers = { ...state.players };
 
   for (const [seatStr, role] of Object.entries(assignments)) {
@@ -259,6 +269,8 @@ export function handleAssignRoles(state: GameState, action: AssignRolesAction): 
     seerLabelMap,
     bottomCards,
     treasureMasterSeat,
+    thiefSeat,
+    cupidSeat,
   };
 }
 

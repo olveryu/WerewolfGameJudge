@@ -155,6 +155,14 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return { ...state, conversionRevealAcks: [...acks, seat] };
     }
 
+    case 'ADD_CUPID_LOVERS_REVEAL_ACK': {
+      const acks = state.cupidLoversRevealAcks ?? [];
+      const seat = action.payload.seat;
+      // Idempotent: ignore duplicate ack
+      if (acks.includes(seat)) return state;
+      return { ...state, cupidLoversRevealAcks: [...acks, seat] };
+    }
+
     default: {
       const _exhaustive: never = action;
       return _exhaustive;

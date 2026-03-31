@@ -12,10 +12,12 @@ import {
   awakenedGargoyleConvertResolver,
   awakenedGargoyleConvertRevealResolver,
 } from './awakenedGargoyle';
+import { cupidChooseLoversResolver, cupidLoversRevealResolver } from './cupid';
 import { createGenericResolver } from './genericResolver';
 import { magicianSwapResolver } from './magician';
 import { piperHypnotizedRevealResolver, piperHypnotizeResolver } from './piper';
 import { shadowChooseMimicResolver } from './shadow';
+import { thiefChooseResolver } from './thief';
 import { treasureMasterChooseResolver } from './treasureMaster';
 import type { ResolverRegistry } from './types';
 import { witchActionResolver } from './witch';
@@ -58,6 +60,9 @@ export const RESOLVERS: ResolverRegistry = {
   piperHypnotize: piperHypnotizeResolver,
   piperHypnotizedReveal: piperHypnotizedRevealResolver,
   treasureMasterChoose: treasureMasterChooseResolver,
+  thiefChoose: thiefChooseResolver,
+  cupidChooseLovers: cupidChooseLoversResolver,
+  cupidLoversReveal: cupidLoversRevealResolver,
 };
 
 // Re-export types for convenience (SERVER-ONLY consumers)

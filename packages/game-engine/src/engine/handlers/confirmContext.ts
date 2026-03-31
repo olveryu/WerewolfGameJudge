@@ -74,7 +74,8 @@ function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmSt
   }
 
   const poisonedSeat = state.currentNightResults?.poisonedSeat;
-  const canShoot = poisonedSeat !== roleSeat;
+  // 殉情不能开枪：情侣一方死亡导致另一方殉情时，殉情方不能开枪
+  const canShoot = poisonedSeat !== roleSeat && !isCoupleDeathVictim(roleSeat, state);
 
   return { role, canShoot };
 }
@@ -90,6 +91,33 @@ function computeAvengerConfirmStatus(state: NonNullState): ConfirmStatus {
     role: 'avenger',
     faction: state.currentNightResults?.avengerFaction ?? Team.Good,
   };
+}
+
+/**
+ * 判断该座位是否会因情侣殉情而死亡。
+ *
+ * 检查该座位是否为情侣之一，且搭档是否会被狼人击杀（未获救）或被毒杀。
+ * 仅在 hunterConfirm / darkWolfKingConfirm 步骤时调用（此时 wolf/witch 已行动）。
+ */
+function isCoupleDeathVictim(seat: number, state: NonNullState): boolean {
+  const loverSeats = state.loverSeats;
+  if (!loverSeats || !loverSeats.includes(seat)) return false;
+
+  const partnerSeat = loverSeats[0] === seat ? loverSeats[1] : loverSeats[0];
+  const results = state.currentNightResults;
+
+  // Partner poisoned → will die → 殉情
+  if (results?.poisonedSeat === partnerSeat) return true;
+
+  // Partner killed by wolves (witchContext.killedSeat is the resolved wolf kill target, after guard)
+  const wolfKillTarget = state.witchContext?.killedSeat;
+  if (wolfKillTarget !== undefined && wolfKillTarget >= 0 && wolfKillTarget === partnerSeat) {
+    // Witch saved partner → partner survives → no 殉情
+    if (results?.savedSeat === partnerSeat) return false;
+    return true;
+  }
+
+  return false;
 }
 
 /**

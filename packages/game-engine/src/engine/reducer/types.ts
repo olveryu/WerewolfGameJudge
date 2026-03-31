@@ -86,10 +86,14 @@ export interface AssignRolesAction {
     assignments: Record<number, RoleId>;
     /** Seer label map - set when both seer + mirrorSeer are in template */
     seerLabelMap?: Readonly<Record<string, number>>;
-    /** 盗宝大师底牌（3 张），仅 treasureMaster 在场时存在 */
+    /** 底牌角色列表（盗宝大师 3 张 / 盗贼 2 张），仅底牌角色在场时存在 */
     bottomCards?: readonly RoleId[];
     /** 盗宝大师所在座位号 */
     treasureMasterSeat?: number;
+    /** 盗贼所在座位号 */
+    thiefSeat?: number;
+    /** 丘比特所在座位号 */
+    cupidSeat?: number;
   };
 }
 
@@ -201,7 +205,7 @@ export interface SetUiHintAction {
   type: 'SET_UI_HINT';
   payload: {
     currentActorHint: {
-      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled';
+      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled' | 'wolf_unanimity_required';
       targetRoleIds: RoleId[];
       message: string;
       bottomAction?: 'skipOnly' | 'wolfEmptyOnly';
@@ -391,6 +395,21 @@ export interface AddConversionRevealAckAction {
 }
 
 // =============================================================================
+// 丘比特 groupConfirm ACK
+// =============================================================================
+
+/**
+ * 记录某座位已确认情侣状态（幂等：重复 ack 忽略）。
+ * 所有在座玩家 ack 后，服务端推进到下一步骤。
+ */
+export interface AddCupidLoversRevealAckAction {
+  type: 'ADD_CUPID_LOVERS_REVEAL_ACK';
+  payload: {
+    seat: number;
+  };
+}
+
+// =============================================================================
 // StateAction 联合类型
 // =============================================================================
 
@@ -445,4 +464,6 @@ export type StateAction =
   // 吹笛者 groupConfirm ACK
   | AddPiperRevealAckAction
   // 觉醒石像鬼 groupConfirm ACK
-  | AddConversionRevealAckAction;
+  | AddConversionRevealAckAction
+  // 丘比特 groupConfirm ACK
+  | AddCupidLoversRevealAckAction;

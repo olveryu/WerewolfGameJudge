@@ -82,8 +82,11 @@ BEGIN_TEXT: dict[str, str] = {
     "piper": "吹笛者请睁眼，请选择要催眠的玩家。",
     "shadow": "影子请睁眼，请选择你要模仿的玩家。",
     "avenger": "复仇者请睁眼，请查看你的阵营信息。",
+    "thief": "盗贼请睁眼，请查看底牌并选择一张作为你的身份。",
+    "cupid": "丘比特请睁眼，请选择两名玩家成为情侣。",
     "piper_hypnotized_reveal": "所有玩家请睁眼，请看手机确认信息。",
     "awakened_gargoyle_convert_reveal": "所有玩家请睁眼，请看手机确认转化信息。",
+    "cupid_lovers_reveal": "所有玩家请睁眼，请看手机确认信息。",
 }
 
 END_TEXT: dict[str, str] = {
@@ -116,8 +119,11 @@ END_TEXT: dict[str, str] = {
     "piper": "吹笛者请闭眼。",
     "shadow": "影子请闭眼。",
     "avenger": "复仇者请闭眼。",
+    "thief": "盗贼请闭眼。",
+    "cupid": "丘比特请闭眼。",
     "piper_hypnotized_reveal": "所有玩家请闭眼。",
     "awakened_gargoyle_convert_reveal": "所有玩家请闭眼。",
+    "cupid_lovers_reveal": "所有玩家请闭眼。",
 }
 
 

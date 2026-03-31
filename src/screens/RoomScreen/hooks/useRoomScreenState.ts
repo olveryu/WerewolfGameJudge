@@ -10,6 +10,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec/specs';
+import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -677,7 +679,7 @@ export function useRoomScreenState(
   const notepad = useNotepad(facade);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Choose card handler (treasureMaster bottom card selection)
+  // Choose card handler (treasureMaster / thief bottom card selection)
   // ═══════════════════════════════════════════════════════════════════════════
 
   const handleChooseCard = useCallback(
@@ -687,6 +689,50 @@ export function useRoomScreenState(
     },
     [closeChooseCardModal, submitAction],
   );
+
+  // Compute disabled indices / hint / team label for ChooseBottomCardModal.
+  // TreasureMaster: wolf cards disabled. Thief: non-wolf disabled when wolf exists.
+  const isThiefChoose = currentSchema?.id === 'thiefChoose';
+  const bottomCards = gameState?.bottomCards;
+
+  const { bottomCardDisabledIndices, bottomCardDisabledHint, bottomCardSubtitle } = useMemo(() => {
+    if (!bottomCards)
+      return {
+        bottomCardDisabledIndices: [],
+        bottomCardDisabledHint: undefined,
+        bottomCardSubtitle: '',
+      };
+
+    const factions = bottomCards.map((r) => ROLE_SPECS[r as keyof typeof ROLE_SPECS]?.faction);
+    const hasWolf = factions.some((f) => f === Faction.Wolf);
+
+    if (isThiefChoose) {
+      // Thief: when wolf exists, must choose wolf → non-wolf disabled
+      const disabled = hasWolf
+        ? bottomCards.map((_, i) => i).filter((i) => factions[i] !== Faction.Wolf)
+        : [];
+      return {
+        bottomCardDisabledIndices: disabled,
+        bottomCardDisabledHint: hasWolf ? '必须选择狼人阵营' : undefined,
+        bottomCardSubtitle: hasWolf ? '底牌含狼人阵营' : '底牌均为好人阵营',
+      };
+    }
+
+    // TreasureMaster: wolf cards disabled
+    const disabled = bottomCards.map((_, i) => i).filter((i) => factions[i] === Faction.Wolf);
+    const godCount = factions.filter((f) => f === Faction.God).length;
+    const villagerCount = factions.filter((f) => f === Faction.Villager).length;
+    let team = '好人阵营';
+    if (hasWolf) team = '狼人阵营';
+    else if (godCount >= 2) team = '神职阵营';
+    else if (villagerCount >= 2) team = '平民阵营';
+
+    return {
+      bottomCardDisabledIndices: disabled,
+      bottomCardDisabledHint: '狼人阵营 · 不可选',
+      bottomCardSubtitle: `你的阵营：${team}`,
+    };
+  }, [bottomCards, isThiefChoose]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Return bag
@@ -794,9 +840,12 @@ export function useRoomScreenState(
     // ── Notepad (from useNotepad) ──
     notepad,
 
-    // ── Choose card modal (treasureMaster) ──
+    // ── Choose card modal (treasureMaster / thief) ──
     chooseCardModalVisible,
     closeChooseCardModal,
     handleChooseCard,
+    bottomCardDisabledIndices,
+    bottomCardDisabledHint,
+    bottomCardSubtitle,
   };
 }

@@ -20,6 +20,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     hypnotizedSeats: [],
     piperRevealAcks: [],
     conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     ...overrides,
   };
 }

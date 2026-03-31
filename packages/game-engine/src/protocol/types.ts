@@ -310,7 +310,7 @@ export interface GameState {
    */
   ui?: {
     currentActorHint?: {
-      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled';
+      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled' | 'wolf_unanimity_required';
       /**
        * 哪些角色能看到这个 hint（UI 按 myRole 过滤）
        * - blocked_by_nightmare: [被封锁角色的 roleId]
@@ -411,6 +411,39 @@ export interface GameState {
    * handleStartNight / treasureMasterChoose resolver 写入。
    */
   bottomCardStepRoles?: readonly RoleId[];
+
+  // --- 盗贼（Thief）---
+  /**
+   * 盗贼所在座位号。
+   * 发牌时写入，用于 resolver actor 路由和查验伪装。
+   */
+  thiefSeat?: number;
+
+  /**
+   * 盗贼选中的底牌身份。
+   * thiefChoose resolver 写入。
+   * 查验 thiefSeat 时返回此身份。
+   */
+  thiefChosenCard?: RoleId;
+
+  // --- 丘比特（Cupid）---
+  /**
+   * 情侣座位对（sorted ascending）。
+   * cupidChooseLovers resolver 写入。
+   */
+  loverSeats?: readonly [number, number];
+
+  /**
+   * 丘比特所在座位号。
+   * 发牌时写入。
+   */
+  cupidSeat?: number;
+
+  /**
+   * cupidLoversReveal 步骤中已确认（ack）的座位列表。
+   * 所有存活玩家 ack 后，服务端推进到下一步骤。
+   */
+  cupidLoversRevealAcks?: readonly number[];
 }
 
 // =============================================================================

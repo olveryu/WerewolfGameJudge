@@ -27,9 +27,9 @@ import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import {
-  BOTTOM_CARD_COUNT,
   createTemplateFromRoles,
   GameTemplate,
+  getBottomCardCount,
   getPlayerCount,
   PRESET_TEMPLATES,
 } from '@werewolf/game-engine/models/Template';
@@ -126,33 +126,47 @@ export function createGame(
     });
   }
 
-  // TreasureMaster: derive bottomCards and treasureMasterSeat
-  const hasTreasureMaster = template.roles.includes('treasureMaster' as RoleId);
+  // Bottom card roles (treasureMaster / thief): derive bottomCards and seat
+  const hasBottomCardRole =
+    template.roles.includes('treasureMaster' as RoleId) ||
+    template.roles.includes('thief' as RoleId);
   let bottomCards: readonly RoleId[] | undefined;
   let treasureMasterSeat: number | undefined;
+  let thiefSeat: number | undefined;
 
-  if (hasTreasureMaster) {
+  if (hasBottomCardRole) {
     if (options?.bottomCards) {
       bottomCards = options.bottomCards;
     } else {
-      // Auto-derive: last BOTTOM_CARD_COUNT roles in templateRoles that are not assigned
+      // Auto-derive: last N roles in templateRoles that are not assigned
       const assignedRoles = new Set(Object.values(assignments));
       const remaining = template.roles.filter((r) => !assignedRoles.has(r));
-      bottomCards = remaining.slice(0, BOTTOM_CARD_COUNT);
+      const cardCount = getBottomCardCount(template.roles);
+      bottomCards = remaining.slice(0, cardCount);
     }
 
-    // Find treasureMaster seat
+    // Find bottom card role seats
     for (const [seatStr, role] of Object.entries(assignments)) {
       if (role === 'treasureMaster') {
         treasureMasterSeat = Number.parseInt(seatStr, 10);
-        break;
+      } else if (role === 'thief') {
+        thiefSeat = Number.parseInt(seatStr, 10);
       }
+    }
+  }
+
+  // Cupid seat
+  let cupidSeat: number | undefined;
+  for (const [seatStr, role] of Object.entries(assignments)) {
+    if (role === 'cupid') {
+      cupidSeat = Number.parseInt(seatStr, 10);
+      break;
     }
   }
 
   state = gameReducer(state, {
     type: 'ASSIGN_ROLES',
-    payload: { assignments, bottomCards, treasureMasterSeat },
+    payload: { assignments, bottomCards, treasureMasterSeat, thiefSeat, cupidSeat },
   });
 
   for (let i = 0; i < template.numberOfPlayers; i++) {

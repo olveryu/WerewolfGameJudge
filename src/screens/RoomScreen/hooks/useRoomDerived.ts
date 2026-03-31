@@ -81,9 +81,18 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
       showReadyBadges: roomStatus === GameStatus.Assigned || roomStatus === GameStatus.Ready,
       groupConfirmAcks:
         currentSchema?.kind === 'groupConfirm'
-          ? currentSchema.id === 'awakenedGargoyleConvertReveal'
-            ? (gameState.conversionRevealAcks ?? [])
-            : (gameState.piperRevealAcks ?? [])
+          ? (() => {
+              const acksMap: Record<string, readonly number[] | undefined> = {
+                awakenedGargoyleConvertReveal: gameState.conversionRevealAcks,
+                cupidLoversReveal: gameState.cupidLoversRevealAcks,
+                piperHypnotizedReveal: gameState.piperRevealAcks,
+              };
+              const id = currentSchema.id;
+              if (!(id in acksMap)) {
+                throw new Error(`Unknown groupConfirm step: ${id}`);
+              }
+              return acksMap[id] ?? [];
+            })()
           : undefined,
     });
   }, [

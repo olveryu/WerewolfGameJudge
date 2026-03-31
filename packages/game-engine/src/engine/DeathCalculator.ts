@@ -106,6 +106,12 @@ export interface RoleSeatMap {
    * When active, if either seat dies, the other dies too.
    */
   bondedLinkSeats: readonly [number, number] | null;
+
+  /**
+   * Couple link seats (cupid lovers). null = no lovers.
+   * When active, if either seat dies, the other dies too (殉情).
+   */
+  coupleLinkSeats: readonly [number, number] | null;
 }
 
 /**
@@ -120,6 +126,7 @@ const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
   reflectsDamageSeats: [],
   reflectionSources: [],
   bondedLinkSeats: null,
+  coupleLinkSeats: null,
 };
 
 // =============================================================================
@@ -152,6 +159,9 @@ export function calculateDeaths(
 
   // 3.5. Process bonded link death (shadow ↔ avenger)
   processBondedLink(roleSeatMap, deaths);
+
+  // 3.6. Process couple link death (cupid lovers 殉情)
+  processCoupleLink(roleSeatMap, deaths);
 
   // 4. Process dreamcatcher effect (protection + link death)
   processDreamcatcherEffect(actions, roleSeatMap, deaths);
@@ -305,6 +315,29 @@ function processBondedLink(roleSeatMap: RoleSeatMap, deaths: Set<number>): void 
   const bDead = deaths.has(seatB);
 
   // If either is dead, the other dies too
+  if (aDead && !bDead) {
+    deaths.add(seatB);
+  } else if (bDead && !aDead) {
+    deaths.add(seatA);
+  }
+}
+
+/**
+ * Process couple link death (cupid lovers 殉情).
+ *
+ * Rules:
+ * - If either lover dies, the other dies too (殉情)
+ * - Bidirectional: same logic as bonded link
+ * - Only active when coupleLinkSeats is non-null (cupid chose lovers)
+ */
+function processCoupleLink(roleSeatMap: RoleSeatMap, deaths: Set<number>): void {
+  const { coupleLinkSeats } = roleSeatMap;
+  if (!coupleLinkSeats) return;
+
+  const [seatA, seatB] = coupleLinkSeats;
+  const aDead = deaths.has(seatA);
+  const bDead = deaths.has(seatB);
+
   if (aDead && !bDead) {
     deaths.add(seatB);
   } else if (bDead && !aDead) {

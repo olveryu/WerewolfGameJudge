@@ -154,4 +154,5 @@ export type DeathCalcRole =
   | 'poisonSource'
   | 'guardProtector'
   | 'reflectTarget'
-  | 'bondedLink';
+  | 'bondedLink'
+  | 'coupleLink';

@@ -21,7 +21,7 @@ import { gameReducer } from '../reducer/gameReducer';
 import type { ActionRejectedAction, RecordActionAction, StateAction } from '../reducer/types';
 import {
   checkNightmareBlockGuard,
-  isTreasureMasterActorOverride,
+  isBottomCardActorOverride,
   validateActionPreconditions,
 } from './actionGuards';
 import { decideWolfVoteTimerAction, isWolfVoteAllComplete } from './progressionEvaluator';
@@ -31,7 +31,7 @@ import { STANDARD_SIDE_EFFECTS } from './types';
 
 // Re-export moved symbols for backward compatibility
 export { checkNightmareBlockGuard, isSkipAction } from './actionGuards';
-export { isTreasureMasterActorOverride } from './actionGuards';
+export { isBottomCardActorOverride } from './actionGuards';
 export { handleViewedRole } from './viewedRoleHandler';
 
 /**
@@ -61,11 +61,11 @@ function buildResolverContext(
       isNight1: true, // Night-1 only
       hypnotizedSeats: state.hypnotizedSeats ?? [],
     },
-    ...(state.bottomCards && state.treasureMasterSeat != null
+    ...(state.bottomCards && (state.treasureMasterSeat != null || state.thiefSeat != null)
       ? {
-          treasureMasterContext: {
+          bottomCardContext: {
             bottomCards: state.bottomCards,
-            treasureMasterSeat: state.treasureMasterSeat,
+            actorSeat: state.treasureMasterSeat ?? state.thiefSeat!,
           },
         }
       : {}),
@@ -135,12 +135,14 @@ export function handleSubmitAction(
   // 获取 resolver
   const resolver = RESOLVERS[schemaId]!;
 
-  // TreasureMaster actor override: when acting on the chosen card's step,
+  // Bottom card actor override: when acting on the chosen card's step,
   // use the chosen card's role for the resolver context
-  const resolverRole =
-    role === ('treasureMaster' as RoleId) && isTreasureMasterActorOverride(state, schemaId)
-      ? (state.treasureMasterChosenCard as RoleId)
-      : role;
+  let resolverRole = role;
+  if (role === ('treasureMaster' as RoleId) && isBottomCardActorOverride(state, schemaId)) {
+    resolverRole = state.treasureMasterChosenCard as RoleId;
+  } else if (role === ('thief' as RoleId) && isBottomCardActorOverride(state, schemaId)) {
+    resolverRole = state.thiefChosenCard as RoleId;
+  }
 
   // 构建上下文
   const resolverContext = buildResolverContext(state, seat, resolverRole);

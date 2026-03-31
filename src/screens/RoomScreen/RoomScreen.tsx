@@ -222,10 +222,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     handleBgmChange,
     // Notepad
     notepad,
-    // Choose card modal (treasureMaster)
+    // Choose card modal (treasureMaster / thief)
     chooseCardModalVisible,
     closeChooseCardModal,
     handleChooseCard,
+    bottomCardDisabledIndices,
+    bottomCardDisabledHint,
+    bottomCardSubtitle,
   } = useRoomScreenState(route.params, navigation);
 
   // ─── Page Guide (3-layer: overview + assigned + ongoing) ───────────────
@@ -689,12 +692,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         styles={chatStyles}
       />
 
-      {/* Choose Bottom Card Modal — 盗宝大师底牌选择 */}
+      {/* Choose Bottom Card Modal — 盗宝大师 / 盗贼底牌选择 */}
       {chooseCardModalVisible && gameState?.bottomCards && (
         <ChooseBottomCardModal
           visible={chooseCardModalVisible}
           bottomCards={gameState.bottomCards}
           confirmText={currentSchema?.ui?.confirmText ?? ''}
+          disabledIndices={bottomCardDisabledIndices}
+          disabledHint={bottomCardDisabledHint}
+          subtitle={bottomCardSubtitle}
           onChoose={handleChooseCard}
           onClose={closeChooseCardModal}
         />

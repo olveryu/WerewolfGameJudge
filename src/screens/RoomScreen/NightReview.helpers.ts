@@ -64,6 +64,15 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     const chosenName = getRoleDisplayName(gameState.treasureMasterChosenCard as RoleId);
     lines.push(`${getRoleEmoji('treasureMaster' as RoleId)} 盗宝大师选择了 ${chosenName}`);
   }
+  if (gameState.thiefChosenCard) {
+    const chosenName = getRoleDisplayName(gameState.thiefChosenCard as RoleId);
+    lines.push(`${getRoleEmoji('thief' as RoleId)} 盗贼选择了 ${chosenName}`);
+  }
+  if (gameState.loverSeats && gameState.loverSeats.length === 2) {
+    lines.push(
+      `${getRoleEmoji('cupid' as RoleId)} 丘比特连线了 ${s(gameState.loverSeats[0])} 和 ${s(gameState.loverSeats[1])}`,
+    );
+  }
 
   // 1. Wolf kill vote
   if (nr.wolfVotesBySeat && Object.keys(nr.wolfVotesBySeat).length > 0) {

@@ -210,7 +210,8 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
 
   // 构建 RoleSeatMap（deathCalcRole 驱动）
   const isBonded = state.currentNightResults?.avengerFaction === Team.Third;
-  const roleSeatMap = buildRoleSeatMap(effectiveMap, reflectionSources, isBonded);
+  const coupleLinkSeats = state.loverSeats ?? null;
+  const roleSeatMap = buildRoleSeatMap(effectiveMap, reflectionSources, isBonded, coupleLinkSeats);
 
   // DEBUG: 打印死亡计算输入
   nightFlowLog.debug('handleEndNight: calculating deaths', {

@@ -247,12 +247,14 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
     };
   }
 
-  // groupConfirm schema (piperHypnotizedReveal / awakenedGargoyleConvertReveal)
+  // groupConfirm schema (piperHypnotizedReveal / awakenedGargoyleConvertReveal / cupidLoversReveal)
   if (currentSchema.kind === 'groupConfirm') {
     const acks =
       currentSchema.id === 'awakenedGargoyleConvertReveal'
         ? (gameState.conversionRevealAcks ?? [])
-        : (gameState.piperRevealAcks ?? []);
+        : currentSchema.id === 'cupidLoversReveal'
+          ? (gameState.cupidLoversRevealAcks ?? [])
+          : (gameState.piperRevealAcks ?? []);
     if (actorSeatNumber !== null && acks.includes(actorSeatNumber)) {
       return EMPTY;
     }

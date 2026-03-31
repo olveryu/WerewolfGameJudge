@@ -1,8 +1,14 @@
 /**
  * resolveWolfVotes - Pure function for resolving wolf voting results
+ *
+ * @param votes - Map of wolf seat → target seat (-1 = abstain)
+ * @param options.requireUnanimity - When true, all non-abstain votes must target
+ *   the same seat; any disagreement results in no kill. Used when cupid is in the template.
  */
-
-export function resolveWolfVotes(votes: Map<number, number>): number | null {
+export function resolveWolfVotes(
+  votes: Map<number, number>,
+  options?: { requireUnanimity?: boolean },
+): number | null {
   // Convention in this codebase: -1 means “abstain / no-kill”.
   // It should not participate in majority/tie calculations.
   const nonAbstainVotes = Array.from(votes.values()).filter((v) => v !== -1);
@@ -36,6 +42,11 @@ export function resolveWolfVotes(votes: Map<number, number>): number | null {
   // Tie => no kill.
   if (maxCountTargets !== 1 || maxTarget === null) {
     return null;
+  }
+
+  // Unanimity mode (cupid board): ALL non-abstain votes must be the same target.
+  if (options?.requireUnanimity) {
+    return maxCount === nonAbstainVotes.length ? maxTarget : null;
   }
 
   // Require strict majority among *non-abstain* votes.

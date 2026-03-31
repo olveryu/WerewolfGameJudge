@@ -79,13 +79,39 @@ export interface GameTemplate {
 /** 盗宝大师底牌数量 */
 export const BOTTOM_CARD_COUNT = 3;
 
+/** 盗贼底牌数量 */
+export const THIEF_BOTTOM_CARD_COUNT = 2;
+
+/** 底牌角色 ID 列表（互斥：同一模板最多一个） */
+const BOTTOM_CARD_ROLE_IDS = ['treasureMaster', 'thief'] as const;
+
+/**
+ * 获取模板中底牌角色的 ID（如有）。
+ * treasureMaster 和 thief 互斥。
+ */
+export function getBottomCardRoleId(roles: readonly RoleId[]): RoleId | null {
+  for (const id of BOTTOM_CARD_ROLE_IDS) {
+    if (roles.includes(id as RoleId)) return id as RoleId;
+  }
+  return null;
+}
+
+/**
+ * 获取底牌张数。treasureMaster=3, thief=2, 无底牌角色=0。
+ */
+export function getBottomCardCount(roles: readonly RoleId[]): number {
+  const bottomCardRole = getBottomCardRoleId(roles);
+  if (bottomCardRole === 'treasureMaster') return BOTTOM_CARD_COUNT;
+  if (bottomCardRole === 'thief') return THIEF_BOTTOM_CARD_COUNT;
+  return 0;
+}
+
 /**
  * 计算实际玩家数（座位数）。
- * 含 treasureMaster 时，roles 比座位多 BOTTOM_CARD_COUNT 张底牌。
+ * 含底牌角色时，roles 比座位多 N 张底牌。
  */
 export function getPlayerCount(roles: readonly RoleId[]): number {
-  const hasTreasureMaster = roles.includes('treasureMaster' as RoleId);
-  return hasTreasureMaster ? roles.length - BOTTOM_CARD_COUNT : roles.length;
+  return roles.length - getBottomCardCount(roles);
 }
 
 // Create custom template (roles are NOT shuffled here - shuffling happens at "分配角色")
@@ -485,6 +511,26 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
       'dreamcatcher',
       'crow',
       'treasureMaster',
+    ],
+  },
+  {
+    name: '盗贼丘比特',
+    category: TemplateCategory.ThirdParty,
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'seer',
+      'witch',
+      'hunter',
+      'idiot',
+      'thief',
+      'cupid',
     ],
   },
 ];

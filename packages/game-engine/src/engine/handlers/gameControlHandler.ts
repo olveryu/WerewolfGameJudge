@@ -16,7 +16,7 @@ import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../../models/roles/spec/schema.types';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import { Faction } from '../../models/roles/spec/types';
-import { BOTTOM_CARD_COUNT, getPlayerCount } from '../../models/Template';
+import { getBottomCardCount, getBottomCardRoleId, getPlayerCount } from '../../models/Template';
 import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { randomHex } from '../../utils/id';
@@ -90,8 +90,9 @@ export function handleAssignRoles(
   }
 
   const seatCount = Object.keys(state.players).length;
-  const hasTreasureMaster = state.templateRoles.includes('treasureMaster' as RoleId);
-  const expectedRoleCount = hasTreasureMaster ? seatCount + BOTTOM_CARD_COUNT : seatCount;
+  const bottomCardRoleId = getBottomCardRoleId(state.templateRoles);
+  const bottomCardCount = getBottomCardCount(state.templateRoles);
+  const expectedRoleCount = seatCount + bottomCardCount;
 
   // 验证：模板角色数量与座位数匹配（含底牌）
   if (state.templateRoles.length !== expectedRoleCount) {
@@ -105,11 +106,16 @@ export function handleAssignRoles(
   let seatedRoles: RoleId[];
   let bottomCards: RoleId[] | undefined;
   let treasureMasterSeat: number | undefined;
+  let thiefSeat: number | undefined;
+  let cupidSeat: number | undefined;
 
-  if (hasTreasureMaster) {
-    // 盗宝大师在场：15 张 shuffle → 前 12 分配座位 + 后 3 为底牌
-    // 底牌约束：最多 1 只普通狼人（无技能狼）；不全神；不全民
-    const result = shuffleWithBottomCardConstraints(state.templateRoles, seatCount);
+  if (bottomCardRoleId) {
+    // 底牌角色在场：shuffle → 前 seatCount 分配座位 + 后 N 为底牌
+    const result = shuffleWithBottomCardConstraints(
+      state.templateRoles,
+      seatCount,
+      bottomCardRoleId,
+    );
     seatedRoles = result.seatedRoles;
     bottomCards = result.bottomCards;
   } else {
@@ -124,19 +130,27 @@ export function handleAssignRoles(
     assignments[seats[i]] = seatedRoles[i];
   }
 
-  // 记录盗宝大师座位
-  if (hasTreasureMaster) {
+  // 记录底牌角色/丘比特座位
+  if (bottomCardRoleId) {
     for (const [seatStr, roleId] of Object.entries(assignments)) {
       if (roleId === 'treasureMaster') {
         treasureMasterSeat = Number.parseInt(seatStr, 10);
-        break;
+      } else if (roleId === 'thief') {
+        thiefSeat = Number.parseInt(seatStr, 10);
       }
+    }
+  }
+  // 记录丘比特座位（无论是否有底牌角色）
+  for (const [seatStr, roleId] of Object.entries(assignments)) {
+    if (roleId === 'cupid') {
+      cupidSeat = Number.parseInt(seatStr, 10);
+      break;
     }
   }
 
   // 当多个 seerFamily 标签角色同时在场，随机分配编号标签
   // 注意：需要用全部角色（含底牌）来判断 seer 家族
-  const allRoles = hasTreasureMaster ? [...seatedRoles, ...bottomCards!] : seatedRoles;
+  const allRoles = bottomCards ? [...seatedRoles, ...bottomCards] : seatedRoles;
   const seerLikeRoles = [
     ...new Set(
       allRoles.filter((r) => {
@@ -158,7 +172,8 @@ export function handleAssignRoles(
     payload: {
       assignments,
       ...(seerLabelMap ? { seerLabelMap } : {}),
-      ...(bottomCards ? { bottomCards, treasureMasterSeat } : {}),
+      ...(bottomCards ? { bottomCards, treasureMasterSeat, thiefSeat } : {}),
+      ...(cupidSeat !== undefined ? { cupidSeat } : {}),
     },
   };
 
@@ -179,21 +194,21 @@ const MAX_SHUFFLE_RETRIES = 100;
 /**
  * Shuffle roles and split into seated + bottom cards with constraints.
  *
- * Bottom card constraints:
- * - 最多 1 只普通狼人（faction === Wolf && 无技能 = 仅 'wolf'）
- * - 不会全部是神职（faction === God）
- * - 不会全部是平民（faction === Villager 且 role === 'villager'）
+ * Bottom card constraints vary by role:
+ * - treasureMaster: 最多1只普通狼人；不全神；不全民；无技能狼
+ * - thief: ≤1张狼队伍牌（含技能狼）；不能2张都是狼队伍牌
  */
 function shuffleWithBottomCardConstraints(
   templateRoles: readonly RoleId[],
   seatCount: number,
+  bottomCardRoleId: RoleId,
 ): { seatedRoles: RoleId[]; bottomCards: RoleId[] } {
   for (let attempt = 0; attempt < MAX_SHUFFLE_RETRIES; attempt++) {
     const shuffled = shuffleArray([...templateRoles]);
     const seated = shuffled.slice(0, seatCount);
     const bottom = shuffled.slice(seatCount);
 
-    if (validateBottomCards(bottom)) {
+    if (validateBottomCards(bottom, bottomCardRoleId)) {
       return { seatedRoles: seated, bottomCards: bottom };
     }
   }
@@ -205,34 +220,60 @@ function shuffleWithBottomCardConstraints(
 }
 
 /**
- * Validate bottom card constraints.
+ * Validate bottom card constraints (parameterized by bottom card role).
  */
-function validateBottomCards(cards: RoleId[]): boolean {
-  // Constraint 1: 最多 1 只普通狼人（id === 'wolf'，技能狼不算）
+function validateBottomCards(cards: RoleId[], bottomCardRoleId: RoleId): boolean {
+  // Common: bottom card role itself must not be in bottom cards
+  if (cards.includes(bottomCardRoleId)) return false;
+
+  // Common: cupid must not be in bottom cards
+  if (cards.includes('cupid' as RoleId)) return false;
+
+  if (bottomCardRoleId === 'treasureMaster') {
+    return validateTreasureMasterBottomCards(cards);
+  }
+  if (bottomCardRoleId === 'thief') {
+    return validateThiefBottomCards(cards);
+  }
+  return true;
+}
+
+/** TreasureMaster 底牌约束 */
+function validateTreasureMasterBottomCards(cards: RoleId[]): boolean {
+  // 最多 1 只普通狼人
   const plainWolfCount = cards.filter((r) => r === ('wolf' as RoleId)).length;
   if (plainWolfCount > 1) return false;
 
-  // Constraint 2: 不全神
+  // 不全神
   const allGod = cards.every((r) => {
     const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
     return spec?.faction === Faction.God;
   });
   if (allGod) return false;
 
-  // Constraint 3: 不全民
+  // 不全民
   const allVillager = cards.every((r) => r === ('villager' as RoleId));
   if (allVillager) return false;
 
-  // Constraint 4: 盗宝大师不可在底牌（必须分配给玩家）
-  if (cards.includes('treasureMaster' as RoleId)) return false;
-
-  // Constraint 5: 禁止技能狼（底牌只允许普通狼 'wolf'，不允许 faction=Wolf 的技能狼）
+  // 禁止技能狼
   const hasSkillWolf = cards.some((r) => {
-    if (r === ('wolf' as RoleId)) return false; // 普通狼由 Constraint 1 控制
+    if (r === ('wolf' as RoleId)) return false;
     const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
     return spec?.faction === Faction.Wolf;
   });
   if (hasSkillWolf) return false;
+
+  return true;
+}
+
+/** Thief 底牌约束 */
+function validateThiefBottomCards(cards: RoleId[]): boolean {
+  // ≤1 张狼队伍牌（含技能狼）
+  const wolfFactionCount = cards.filter((r) => {
+    const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
+    return spec?.faction === Faction.Wolf;
+  }).length;
+  if (wolfFactionCount > 1) return false;
 
   return true;
 }

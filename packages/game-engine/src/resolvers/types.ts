@@ -80,6 +80,12 @@ export interface CurrentNightResults {
 
   /** TreasureMaster: bottom card roles revealed during step (for UI display) */
   readonly bottomCardStepRoles?: readonly RoleId[];
+
+  /** Thief: chosen card role ID */
+  readonly thiefChosenCard?: RoleId;
+
+  /** Cupid: lover seat pair (sorted ascending) */
+  readonly loverSeats?: readonly [number, number];
 }
 
 /** Context passed to resolvers */
@@ -112,8 +118,8 @@ export interface ResolverContext {
     readonly hypnotizedSeats?: readonly number[];
   };
 
-  /** TreasureMaster context (only present when game includes treasureMaster role) */
-  readonly treasureMasterContext?: TreasureMasterContext;
+  /** Bottom-card context (only present when game includes treasureMaster or thief role) */
+  readonly bottomCardContext?: BottomCardContext;
 }
 
 /** Action input from player */
@@ -232,12 +238,12 @@ interface WolfRobotContext {
 }
 
 /**
- * TreasureMaster context from GameState.
- * Passed to the treasureMaster resolver for card selection.
+ * Bottom-card context from GameState.
+ * Passed to the treasureMaster / thief resolver for card selection.
  */
-export interface TreasureMasterContext {
+export interface BottomCardContext {
   readonly bottomCards: readonly RoleId[];
-  readonly treasureMasterSeat: number;
+  readonly actorSeat: number;
 }
 
 // =============================================================================
@@ -258,12 +264,12 @@ export interface TreasureMasterContext {
  *    return the chosen card's role instead.
  * 4. Otherwise return the effective role.
  *
- * @param context - The resolver context (contains players, currentNightResults, wolfRobotContext, treasureMasterContext)
+ * @param context - The resolver context (contains players, currentNightResults, wolfRobotContext, bottomCardContext)
  * @param seat - The seat to check
  * @returns The role to use for checks (after swap, disguise, and card selection)
  */
 export function resolveRoleForChecks(context: ResolverContext, seat: number): RoleId | undefined {
-  const { players, currentNightResults, wolfRobotContext, treasureMasterContext } = context;
+  const { players, currentNightResults, wolfRobotContext, bottomCardContext } = context;
 
   // Step 1: Get role after magician swap
   const effectiveRole = getRoleAfterSwap(seat, players, currentNightResults.swappedSeats);
@@ -278,11 +284,16 @@ export function resolveRoleForChecks(context: ResolverContext, seat: number): Ro
 
   // Step 3: Apply treasureMaster identity masquerade if applicable
   if (
-    treasureMasterContext &&
+    bottomCardContext &&
     effectiveRole === 'treasureMaster' &&
     currentNightResults.treasureMasterChosenCard
   ) {
     return currentNightResults.treasureMasterChosenCard;
+  }
+
+  // Step 4: Apply thief identity masquerade if applicable
+  if (effectiveRole === 'thief' && currentNightResults.thiefChosenCard) {
+    return currentNightResults.thiefChosenCard;
   }
 
   return effectiveRole;

@@ -114,6 +114,9 @@ const schemaToRole: Record<string, string> = {
   piperHypnotize: 'piper',
   piperHypnotizedReveal: 'piper',
   treasureMasterChoose: 'treasureMaster',
+  thiefChoose: 'thief',
+  cupidChooseLovers: 'cupid',
+  cupidLoversReveal: 'cupid',
 };
 
 function roleForSchemaId(schemaId: string): string {

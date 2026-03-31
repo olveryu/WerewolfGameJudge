@@ -263,6 +263,8 @@ describe('NightReview.helpers', () => {
         [25, makePlayer(25, 'crow')],
         [26, makePlayer(26, 'poisoner')],
         [27, makePlayer(27, 'treasureMaster')],
+        [28, makePlayer(28, 'thief')],
+        [29, makePlayer(29, 'cupid')],
       ]);
 
       const actions = new Map<RoleId, ReturnType<typeof makeActionTarget>>([
@@ -299,6 +301,8 @@ describe('NightReview.helpers', () => {
         wolfWitchReveal: { targetSeat: 6, result: '猎人' },
         wolfRobotReveal: { targetSeat: 7, result: '猎人', learnedRoleId: 'hunter' },
         treasureMasterChosenCard: 'seer',
+        thiefChosenCard: 'villager',
+        loverSeats: [28, 29],
       } as unknown as LocalGameState;
 
       const lines = buildActionLines(gs);

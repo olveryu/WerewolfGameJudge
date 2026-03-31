@@ -55,6 +55,8 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   piper: require('../../assets/badges/png/512/role_piper.png'),
   shadow: require('../../assets/badges/png/512/role_shadow.png'),
   avenger: require('../../assets/badges/png/512/role_avenger.png'),
+  thief: require('../../assets/badges/png/512/role_thief.png'),
+  cupid: require('../../assets/badges/png/512/role_cupid.png'),
   treasureMaster: require('../../assets/badges/png/512/role_treasureMaster.png'),
 };
 /* eslint-enable @typescript-eslint/no-require-imports */

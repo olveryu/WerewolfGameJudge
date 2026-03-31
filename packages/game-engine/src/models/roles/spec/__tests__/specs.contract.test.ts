@@ -21,8 +21,8 @@ import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
-  it('should have exactly 39 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(39);
+  it('should have exactly 41 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(41);
   });
 
   it('every role should have required fields', () => {
@@ -125,11 +125,13 @@ describe('ROLE_SPECS contract', () => {
 
   describe('night-1 action roles', () => {
     const expectedNight1Roles: RoleId[] = [
+      'thief', // first to act (bottom card)
       'magician', // -2
       'slacker', // -1
       'wildChild', // -1
       'shadow', // -0.5
       'avenger', // -0.4
+      'cupid', // after bottom card, before special roles
       'wolfRobot', // 0
       'dreamcatcher', // 1
       'gargoyle', // 1

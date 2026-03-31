@@ -498,13 +498,16 @@ describe('canSkip behavior alignment', () => {
 // === 6. NIGHT_STEPS order stability ===
 
 describe('NIGHT_STEPS order stability', () => {
-  it('should have exactly 30 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(30);
+  it('should have exactly 33 steps', () => {
+    expect(NIGHT_STEPS).toHaveLength(33);
   });
 
   it('step order should match expected sequence', () => {
     const expectedOrder = [
+      'thiefChoose',
       'treasureMasterChoose',
+      'cupidChooseLovers',
+      'cupidLoversReveal',
       'magicianSwap',
       'slackerChooseIdol',
       'wildChildChooseIdol',

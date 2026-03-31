@@ -143,5 +143,14 @@ export function normalizeState(raw: GameState): GameState {
     treasureMasterChosenCard: raw.treasureMasterChosenCard,
     effectiveTeam: raw.effectiveTeam,
     bottomCardStepRoles: raw.bottomCardStepRoles,
+
+    // 盗贼（透传）
+    thiefSeat: raw.thiefSeat,
+    thiefChosenCard: raw.thiefChosenCard,
+
+    // 丘比特（透传）
+    loverSeats: raw.loverSeats,
+    cupidSeat: raw.cupidSeat,
+    cupidLoversRevealAcks: raw.cupidLoversRevealAcks ?? [],
   } satisfies Complete<GameState>;
 }

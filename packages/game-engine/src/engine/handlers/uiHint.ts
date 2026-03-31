@@ -85,6 +85,22 @@ export function maybeCreateUiHintAction(
     };
   }
 
+  // Case 1.5: wolfVote 且 cupid 在模板中 → 所有狼人看到一致性提示
+  if (schema?.kind === 'wolfVote' && state.templateRoles.includes('cupid')) {
+    const wolfRoleIds = getWolfRoleIds();
+    nightFlowLog.debug('[UI Hint] setting wolf_unanimity_required hint (cupid board)');
+    return {
+      type: 'SET_UI_HINT',
+      payload: {
+        currentActorHint: {
+          kind: 'wolf_unanimity_required',
+          targetRoleIds: wolfRoleIds,
+          message: '投票不一致将导致空刀',
+        },
+      },
+    };
+  }
+
   // Case 2: 下一步行动者被 nightmare 封锁
   if (nextActorSeat !== null && state.nightmareBlockedSeat === nextActorSeat) {
     nightFlowLog.debug('[UI Hint] setting blocked_by_nightmare hint', { nextActorSeat, roleId });

@@ -33,9 +33,9 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     players: createPlayers(),
     currentNightResults: {},
     gameState: { isNight1: true },
-    treasureMasterContext: {
+    bottomCardContext: {
       bottomCards: BOTTOM_CARDS,
-      treasureMasterSeat: 0,
+      actorSeat: 0,
     },
     ...overrides,
   };
@@ -120,8 +120,8 @@ describe('treasureMasterChooseResolver', () => {
     expect(result.updates).toBeUndefined();
   });
 
-  it('should reject when missing treasureMasterContext', () => {
-    const ctx = createContext({ treasureMasterContext: undefined });
+  it('should reject when missing bottomCardContext', () => {
+    const ctx = createContext({ bottomCardContext: undefined });
     const result = treasureMasterChooseResolver(ctx, createInput(0));
     expect(result.valid).toBe(false);
     expect(result.rejectReason).toBe('缺少盗宝大师上下文');

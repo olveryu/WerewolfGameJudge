@@ -19,18 +19,23 @@ import type { ActionInput } from '../../resolvers/types';
 import type { HandlerResult, NonNullState } from './types';
 
 /**
- * Check if the given step is the treasureMaster's chosen card role's step.
+ * Check if the given step is a bottom card role's chosen card role's step.
  *
  * Used for Gate 4b override and for resolver role substitution.
+ * Supports both treasureMaster and thief.
  */
-export function isTreasureMasterActorOverride(state: NonNullState, stepId: SchemaId): boolean {
-  const { treasureMasterChosenCard } = state;
-  if (!treasureMasterChosenCard) return false;
-
-  const step = getStepSpec(stepId);
-  if (!step) return false;
-
-  return step.roleId === treasureMasterChosenCard;
+export function isBottomCardActorOverride(state: NonNullState, stepId: SchemaId): boolean {
+  // treasureMaster
+  if (state.treasureMasterChosenCard) {
+    const step = getStepSpec(stepId);
+    if (step && step.roleId === state.treasureMasterChosenCard) return true;
+  }
+  // thief
+  if (state.thiefChosenCard) {
+    const step = getStepSpec(stepId);
+    if (step && step.roleId === state.thiefChosenCard) return true;
+  }
+  return false;
 }
 
 /**
@@ -111,8 +116,11 @@ export function validateActionPreconditions(
   // via ROLE_SPECS[*].wolfMeeting.participatesInWolfVote instead of role->schema mapping.
   if (currentStepId === 'wolfKill' && doesRoleParticipateInWolfVote(role)) {
     // ok
-  } else if (role === 'treasureMaster' && isTreasureMasterActorOverride(state, currentStepId)) {
-    // TreasureMaster acting on the chosen card's step — allowed
+  } else if (
+    (role === 'treasureMaster' || role === 'thief') &&
+    isBottomCardActorOverride(state, currentStepId)
+  ) {
+    // Bottom card role acting on the chosen card's step — allowed
   } else if (expectedSchemaId !== currentStepId) {
     return {
       valid: false,

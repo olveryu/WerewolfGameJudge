@@ -1,13 +1,11 @@
 /**
- * ChooseBottomCardModal — 盗宝大师底牌选择弹窗
+ * ChooseBottomCardModal — 底牌选择弹窗（盗宝大师 / 盗贼共用）
  *
- * 展示 3 张底牌供盗宝大师选择。狼人阵营卡牌灰色 disabled，非狼牌可点击。
- * 点击后弹出确认对话框，确认后通过 onChoose(cardIndex) 回调提交。
- * 纯展示组件：不 import service，不含业务逻辑判断。
+ * 纯展示组件：调用方通过 disabledIndices 控制哪些卡牌灰色 disabled。
+ * 点击可选牌后弹出确认对话框，确认后通过 onChoose(cardIndex) 回调提交。
+ * 不 import service，不含业务逻辑判断。
  */
 import { getRoleDisplayName, type RoleId } from '@werewolf/game-engine/models/roles';
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec/specs';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { memo, useMemo } from 'react';
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -25,27 +23,18 @@ import { getRoleBadge } from '@/utils/roleBadges';
 interface BottomCardItem {
   roleId: string;
   displayName: string;
-  isWolf: boolean;
-}
-
-/**
- * 根据底牌 Faction 分布计算阵营显示文案。
- * 规则（同 description）：含狼→狼人阵营；无狼+≥2神→神职阵营；无狼+≥2民→平民阵营。
- */
-function getTeamDisplayLabel(bottomCards: readonly string[]): string {
-  const factions = bottomCards.map((r) => ROLE_SPECS[r as keyof typeof ROLE_SPECS]?.faction);
-  if (factions.some((f) => f === Faction.Wolf)) return '狼人阵营';
-  const godCount = factions.filter((f) => f === Faction.God).length;
-  if (godCount >= 2) return '神职阵营';
-  const villagerCount = factions.filter((f) => f === Faction.Villager).length;
-  if (villagerCount >= 2) return '平民阵营';
-  return '好人阵营';
 }
 
 interface ChooseBottomCardModalProps {
   visible: boolean;
   bottomCards: readonly string[];
   confirmText: string;
+  /** Indices of cards that should be greyed out and non-clickable. */
+  disabledIndices: number[];
+  /** Hint text shown below disabled card names (e.g. "狼人阵营 · 不可选"). */
+  disabledHint?: string;
+  /** Full subtitle text displayed below the title. */
+  subtitle: string;
   onChoose: (cardIndex: number) => void;
   onClose: () => void;
 }
@@ -129,6 +118,9 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
   visible,
   bottomCards,
   confirmText,
+  disabledIndices,
+  disabledHint,
+  subtitle,
   onChoose,
   onClose,
 }) => {
@@ -137,14 +129,10 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
 
   const cards: BottomCardItem[] = useMemo(
     () =>
-      bottomCards.map((roleId) => {
-        const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS];
-        return {
-          roleId,
-          displayName: getRoleDisplayName(roleId),
-          isWolf: spec?.faction === Faction.Wolf,
-        };
-      }),
+      bottomCards.map((roleId) => ({
+        roleId,
+        displayName: getRoleDisplayName(roleId),
+      })),
     [bottomCards],
   );
 
@@ -159,25 +147,30 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.container}>
           <Text style={styles.title}>选择底牌</Text>
-          <Text style={styles.teamSubtitle}>你的阵营：{getTeamDisplayLabel(bottomCards)}</Text>
+          <Text style={styles.teamSubtitle}>{subtitle}</Text>
           <View style={styles.cardList}>
-            {cards.map((card, index) => (
-              <TouchableOpacity
-                key={`${card.roleId}-${index}`}
-                style={[styles.card, card.isWolf && styles.cardDisabled]}
-                disabled={card.isWolf}
-                activeOpacity={0.7}
-                onPress={() => handleCardPress(index, card)}
-              >
-                <Image source={getRoleBadge(card.roleId as RoleId)} style={styles.cardBadge} />
-                <View style={styles.cardInfo}>
-                  <Text style={[styles.cardName, card.isWolf && styles.cardNameDisabled]}>
-                    {card.displayName}
-                  </Text>
-                  {card.isWolf && <Text style={styles.cardHint}>狼人阵营 · 不可选</Text>}
-                </View>
-              </TouchableOpacity>
-            ))}
+            {cards.map((card, index) => {
+              const isDisabled = disabledIndices.includes(index);
+              return (
+                <TouchableOpacity
+                  key={`${card.roleId}-${index}`}
+                  style={[styles.card, isDisabled && styles.cardDisabled]}
+                  disabled={isDisabled}
+                  activeOpacity={0.7}
+                  onPress={() => handleCardPress(index, card)}
+                >
+                  <Image source={getRoleBadge(card.roleId as RoleId)} style={styles.cardBadge} />
+                  <View style={styles.cardInfo}>
+                    <Text style={[styles.cardName, isDisabled && styles.cardNameDisabled]}>
+                      {card.displayName}
+                    </Text>
+                    {isDisabled && disabledHint && (
+                      <Text style={styles.cardHint}>{disabledHint}</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
           <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.7}>
             <Text style={styles.cancelText}>取消</Text>
