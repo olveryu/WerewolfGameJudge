@@ -16,8 +16,8 @@ jest.mock('@/utils/alert', () => ({
   showAlert: (...args: unknown[]) => mockShowAlert(...args),
 }));
 
-// Toast is mapped via moduleNameMapper → __mocks__/react-native-toast-message.ts
-import Toast from 'react-native-toast-message';
+// Toast is mapped via moduleNameMapper → __mocks__/sonner-native.ts
+import { toast } from 'sonner-native';
 
 // ---- Factory helpers ----
 
@@ -99,10 +99,8 @@ describe('useGameActions - game control', () => {
     await act(() => result.current.assignRoles());
 
     expect(mockShowAlert).not.toHaveBeenCalled();
-    expect(Toast.show).toHaveBeenCalledWith({
-      type: 'error',
-      text1: '分配角色失败',
-      text2: '角色数量与座位数不匹配',
+    expect(toast.error).toHaveBeenCalledWith('分配角色失败', {
+      description: '角色数量与座位数不匹配',
     });
   });
 
@@ -404,10 +402,8 @@ describe('useGameActions - handleMutationResult', () => {
     await act(() => result.current.clearAllSeats());
 
     expect(mockShowAlert).not.toHaveBeenCalled();
-    expect(Toast.show).toHaveBeenCalledWith({
-      type: 'error',
-      text1: '全员起立失败',
-      text2: '请稍后重试',
+    expect(toast.error).toHaveBeenCalledWith('全员起立失败', {
+      description: '请稍后重试',
     });
   });
 
@@ -468,10 +464,8 @@ describe('useGameActions - handleMutationResult', () => {
     await act(() => result.current.submitRevealAck());
 
     expect(mockShowAlert).not.toHaveBeenCalled();
-    expect(Toast.show).toHaveBeenCalledWith({
-      type: 'error',
-      text1: '确认揭示失败',
-      text2: '请等待语音播放完毕',
+    expect(toast.error).toHaveBeenCalledWith('确认揭示失败', {
+      description: '请等待语音播放完毕',
     });
   });
 
@@ -485,6 +479,6 @@ describe('useGameActions - handleMutationResult', () => {
     await act(() => result.current.submitRevealAck());
 
     expect(mockShowAlert).toHaveBeenCalledWith('确认揭示失败', '网络异常，请检查网络后重试');
-    expect(Toast.show).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

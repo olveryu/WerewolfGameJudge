@@ -16,7 +16,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback } from 'react';
-import Toast from 'react-native-toast-message';
+import { toast } from 'sonner-native';
 
 import { NETWORK_ERROR, SERVER_ERROR } from '@/config/errorMessages';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -42,7 +42,7 @@ type BusinessErrorHandler = (title: string, message: string) => void;
 
 /** 轻量 toast 错误提示 — 作为 onBusinessError 回调传入 handleMutationResult */
 function toastError(title: string, message: string): void {
-  Toast.show({ type: 'error', text1: title, text2: message });
+  toast.error(title, { description: message });
 }
 
 function handleMutationResult(

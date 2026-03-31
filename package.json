@@ -80,9 +80,9 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.23.0",
     "react-native-svg": "15.15.3",
-    "react-native-toast-message": "^2.3.3",
     "react-native-view-shot": "^4.0.3",
-    "react-native-web": "^0.21.0"
+    "react-native-web": "^0.21.0",
+    "sonner-native": "^0.23.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
