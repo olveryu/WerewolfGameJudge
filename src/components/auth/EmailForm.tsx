@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { FormTextField } from '@/components/FormTextField';
 import { fixed } from '@/theme';
 
 import { EmailDomainDropdown } from './EmailDomainDropdown';
@@ -57,10 +58,8 @@ export const EmailForm = memo<EmailFormProps>(
       <View style={styles.formContainer}>
         <Text style={styles.formTitle}>{formTitle ?? (isSignUp ? '注册账号' : '邮箱登录')}</Text>
 
-        <TextInput
-          style={styles.input}
+        <FormTextField
           placeholder="邮箱"
-          placeholderTextColor={colors.textSecondary}
           value={email}
           onChangeText={onEmailChange}
           keyboardType="email-address"
@@ -75,11 +74,10 @@ export const EmailForm = memo<EmailFormProps>(
         <EmailDomainDropdown email={email} onSelect={handleDomainSelect} styles={styles} />
 
         <View style={styles.passwordWrapper}>
-          <TextInput
+          <FormTextField
             ref={passwordRef}
-            style={[styles.input, styles.passwordInput]}
+            style={styles.passwordInput}
             placeholder="密码"
-            placeholderTextColor={colors.textSecondary}
             value={password}
             onChangeText={onPasswordChange}
             secureTextEntry={!showPassword}
@@ -104,11 +102,9 @@ export const EmailForm = memo<EmailFormProps>(
         </View>
 
         {isSignUp && (
-          <TextInput
+          <FormTextField
             ref={nameRef}
-            style={styles.input}
             placeholder="昵称（可选）"
-            placeholderTextColor={colors.textSecondary}
             value={displayName}
             onChangeText={onDisplayNameChange}
             textContentType="name"

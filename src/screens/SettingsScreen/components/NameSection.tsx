@@ -6,9 +6,10 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { FormTextField } from '@/components/FormTextField';
 import { UI_ICONS } from '@/config/iconTokens';
 import { ThemeColors, typography } from '@/theme';
 
@@ -38,7 +39,7 @@ export const NameSection = memo<NameSectionProps>(
     onSave,
     onCancel,
     styles,
-    colors,
+    colors: _colors,
   }) => {
     if (isAnonymous) {
       return null;
@@ -47,12 +48,11 @@ export const NameSection = memo<NameSectionProps>(
     if (isEditingName) {
       return (
         <View style={styles.editNameRow}>
-          <TextInput
+          <FormTextField
             style={styles.nameInput}
             value={editName}
             onChangeText={onEditNameChange}
             placeholder="输入名字"
-            placeholderTextColor={colors.textSecondary}
           />
           <Button variant="primary" size="sm" onPress={onSave}>
             保存

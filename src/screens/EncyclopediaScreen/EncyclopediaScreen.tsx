@@ -24,12 +24,12 @@ import {
   type SectionListData,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { FormTextField } from '@/components/FormTextField';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { ENCYCLOPEDIA_GUIDE } from '@/config/guideContent';
 import { usePageGuide } from '@/hooks/usePageGuide';
@@ -321,18 +321,16 @@ export const EncyclopediaScreen: React.FC = () => {
 
       {/* Search Bar */}
       {searchVisible && (
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={componentSizes.icon.sm} color={colors.textMuted} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="搜索角色名/技能..."
-            placeholderTextColor={colors.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoFocus
-            returnKeyType="search"
-          />
-        </View>
+        <FormTextField
+          variant="search"
+          icon="search"
+          containerStyle={styles.searchBar}
+          placeholder="搜索角色名/技能..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoFocus
+          returnKeyType="search"
+        />
       )}
 
       {/* Faction Tabs */}
