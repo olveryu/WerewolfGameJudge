@@ -12,7 +12,6 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -30,7 +29,6 @@ import {
 } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
-import { useGameFacade } from '@/contexts';
 import { componentSizes, fixed, typography, useTheme } from '@/theme';
 
 import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
@@ -45,7 +43,12 @@ const PULSE_CYCLES = 3;
 /** Duration of one pulse cycle in ms */
 const PULSE_DURATION = 1000;
 
-export const AIChatBubble: React.FC = () => {
+interface AIChatBubbleProps {
+  /** When this transitions from false → true, trigger a pulse animation */
+  triggerPulse?: boolean;
+}
+
+export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false }) => {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const flatListRef = useRef<FlatList>(null);
@@ -53,39 +56,26 @@ export const AIChatBubble: React.FC = () => {
   const chatHeight = getChatHeight(screenHeight);
 
   const chat = useAIChat();
-  const facade = useGameFacade();
 
   // ── Pulse animation after roles are assigned ────────
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const wasAssignedRef = useRef(
-    (() => {
-      const s = facade.getState();
-      return s !== null && s.status !== GameStatus.Unseated && s.status !== GameStatus.Seated;
-    })(),
-  );
+  const prevTriggerRef = useRef(triggerPulse);
 
   useEffect(() => {
-    const unsubscribe = facade.addListener((state) => {
-      const isAssigned =
-        state !== null &&
-        state.status !== GameStatus.Unseated &&
-        state.status !== GameStatus.Seated;
-      if (!wasAssignedRef.current && isAssigned) {
-        // Roles just assigned → start pulse
-        pulseAnim.setValue(0);
-        Animated.loop(
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: PULSE_DURATION,
-            useNativeDriver: Platform.OS !== 'web',
-          }),
-          { iterations: PULSE_CYCLES },
-        ).start();
-      }
-      wasAssignedRef.current = isAssigned;
-    });
-    return unsubscribe;
-  }, [facade, pulseAnim]);
+    if (!prevTriggerRef.current && triggerPulse) {
+      // Roles just assigned → start pulse
+      pulseAnim.setValue(0);
+      Animated.loop(
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: PULSE_DURATION,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        { iterations: PULSE_CYCLES },
+      ).start();
+    }
+    prevTriggerRef.current = triggerPulse;
+  }, [triggerPulse, pulseAnim]);
 
   // ── Scroll-to-bottom state ─────────────────────────
   const [showScrollBtn, setShowScrollBtn] = useState(false);

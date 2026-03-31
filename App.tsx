@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import { GameStore } from '@werewolf/game-engine/engine/store';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
@@ -13,6 +14,7 @@ import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { ThemedToast } from '@/components/ThemedToast';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, NetworkProvider, ServiceProvider } from '@/contexts';
+import { useGameFacade } from '@/contexts';
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { AppNavigator } from '@/navigation';
 import { GameFacade } from '@/services/facade/GameFacade';
@@ -48,6 +50,24 @@ const appLog = log.extend('App');
 function AppContent() {
   const { colors, isDark } = useTheme();
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
+  const facade = useGameFacade();
+
+  // Compute triggerPulse: true when game has progressed past Unseated/Seated
+  const [triggerPulse, setTriggerPulse] = useState(() => {
+    const s = facade.getState();
+    return s !== null && s.status !== GameStatus.Unseated && s.status !== GameStatus.Seated;
+  });
+
+  useEffect(() => {
+    const unsubscribe = facade.addListener((state) => {
+      const isAssigned =
+        state !== null &&
+        state.status !== GameStatus.Unseated &&
+        state.status !== GameStatus.Seated;
+      setTriggerPulse(isAssigned);
+    });
+    return unsubscribe;
+  }, [facade]);
 
   // Pre-compile Skia GPU shaders via offscreen texture (eliminates first-frame jank)
   useSkiaShaderWarmup();
@@ -91,7 +111,7 @@ function AppContent() {
           onClose={handleAlertClose}
         />
       )}
-      <AIChatBubble />
+      <AIChatBubble triggerPulse={triggerPulse} />
       <ThemedToast />
     </>
   );
