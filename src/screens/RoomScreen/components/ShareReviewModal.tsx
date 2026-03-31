@@ -7,7 +7,6 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import {
   View,
 } from 'react-native';
 
+import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -52,9 +52,11 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
 }) => {
   const colors = useColors();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const styles = useMemo(
-    () => createStyles(colors, screenWidth, screenHeight),
-    [colors, screenWidth, screenHeight],
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const contentStyle = useMemo(
+    () => ({ width: screenWidth * 0.88, maxHeight: screenHeight * 0.7 }),
+    [screenWidth, screenHeight],
   );
 
   // Visible seat numbers — used to filter out stale entries (e.g. host's own seat)
@@ -99,74 +101,60 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
   const selectedCount = selected.size;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.modalBox} testID={TESTIDS.shareReviewModal}>
-          <Text style={styles.title}>分享详细信息</Text>
-          <Text style={styles.subtitle}>选择可查看「详细信息」的玩家</Text>
+    <BaseCenterModal
+      visible={visible}
+      onClose={onClose}
+      contentStyle={contentStyle}
+      testID={TESTIDS.shareReviewModal}
+    >
+      <Text style={styles.title}>分享详细信息</Text>
+      <Text style={styles.subtitle}>选择可查看「详细信息」的玩家</Text>
 
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-            {seats.map(({ seat, displayName }) => {
-              const isSelected = selected.has(seat);
-              return (
-                <TouchableOpacity
-                  key={String(seat)}
-                  style={[styles.seatRow, isSelected && styles.seatRowSelected]}
-                  onPress={() => toggleSeat(seat)}
-                  activeOpacity={fixed.activeOpacity}
-                >
-                  <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.seatLabel}>
-                    {seat + 1}号 {displayName}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          <View style={styles.buttonRow}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {seats.map(({ seat, displayName }) => {
+          const isSelected = selected.has(seat);
+          return (
             <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={onClose}
+              key={String(seat)}
+              style={[styles.seatRow, isSelected && styles.seatRowSelected]}
+              onPress={() => toggleSeat(seat)}
               activeOpacity={fixed.activeOpacity}
             >
-              <Text style={styles.cancelButtonText}>取消</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.confirmButton, submitting && styles.confirmButtonDisabled]}
-              onPress={handleConfirm}
-              disabled={submitting}
-            >
-              <Text style={styles.confirmButtonText}>
-                {submitting
-                  ? '提交中…'
-                  : `确认${selectedCount > 0 ? `（${selectedCount}人）` : ''}`}
+              <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.seatLabel}>
+                {seat + 1}号 {displayName}
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          );
+        })}
+      </ScrollView>
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={onClose}
+          activeOpacity={fixed.activeOpacity}
+        >
+          <Text style={styles.cancelButtonText}>取消</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.confirmButton, submitting && styles.confirmButtonDisabled]}
+          onPress={handleConfirm}
+          disabled={submitting}
+        >
+          <Text style={styles.confirmButtonText}>
+            {submitting ? '提交中…' : `确认${selectedCount > 0 ? `（${selectedCount}人）` : ''}`}
+          </Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
+    </BaseCenterModal>
   );
 };
 
-function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: number) {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    modalBox: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.large,
-      width: screenWidth * 0.88,
-      maxHeight: screenHeight * 0.7,
-    },
     title: {
       fontSize: typography.subtitle,
       lineHeight: typography.lineHeights.subtitle,

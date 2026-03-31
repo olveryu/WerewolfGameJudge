@@ -6,10 +6,11 @@
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
 
+import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 import {
@@ -114,59 +115,56 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   }, [isSharing, onShareImage, getBase64]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-        testID={TESTIDS.qrCodeModal}
-      >
-        <TouchableOpacity style={styles.modalBox} activeOpacity={1} onPress={undefined}>
-          <Text style={styles.title}>分享房间</Text>
+    <BaseCenterModal
+      visible={visible}
+      onClose={onClose}
+      dismissOnOverlayPress
+      contentStyle={styles.modalBox}
+      testID={TESTIDS.qrCodeModal}
+    >
+      <Text style={styles.title}>分享房间</Text>
 
-          {/* Share card: captured as image via react-native-view-shot */}
-          <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
-            <View style={styles.qrContainer}>
-              {/* Logo is overlaid as a separate View instead of using the
+      {/* Share card: captured as image via react-native-view-shot */}
+      <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
+        <View style={styles.qrContainer}>
+          {/* Logo is overlaid as a separate View instead of using the
                   library's logo prop, because html2canvas cannot render
                   SVG <image> elements embedded by react-native-qrcode-svg. */}
-              <View style={styles.qrWrapper}>
-                <QRCode
-                  value={roomUrl}
-                  size={QR_SIZE}
-                  color={colors.primary}
-                  backgroundColor={colors.surface}
-                  ecl="H"
-                />
-                <View style={styles.logoContainer}>
-                  <Image source={appLogo} style={styles.logoImage} />
-                </View>
-              </View>
+          <View style={styles.qrWrapper}>
+            <QRCode
+              value={roomUrl}
+              size={QR_SIZE}
+              color={colors.primary}
+              backgroundColor={colors.surface}
+              ecl="H"
+            />
+            <View style={styles.logoContainer}>
+              <Image source={appLogo} style={styles.logoImage} />
             </View>
-            <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
-            <Text style={styles.hint}>扫一扫二维码，加入房间</Text>
           </View>
+        </View>
+        <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
+        <Text style={styles.hint}>扫一扫二维码，加入房间</Text>
+      </View>
 
-          {/* Action buttons */}
-          <View style={styles.buttonRow}>
-            <Button
-              variant="primary"
-              onPress={handleShare}
-              loading={isSharing || !isPreCaptureReady}
-              testID={TESTIDS.qrCodeShareButton}
-            >
-              分享图片
-            </Button>
-            <Button variant="secondary" onPress={onCopyLink}>
-              复制链接
-            </Button>
-            <Button variant="secondary" onPress={onClose} accessibilityLabel="关闭">
-              关闭
-            </Button>
-          </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+      {/* Action buttons */}
+      <View style={styles.buttonRow}>
+        <Button
+          variant="primary"
+          onPress={handleShare}
+          loading={isSharing || !isPreCaptureReady}
+          testID={TESTIDS.qrCodeShareButton}
+        >
+          分享图片
+        </Button>
+        <Button variant="secondary" onPress={onCopyLink}>
+          复制链接
+        </Button>
+        <Button variant="secondary" onPress={onClose} accessibilityLabel="关闭">
+          关闭
+        </Button>
+      </View>
+    </BaseCenterModal>
   );
 };
 
@@ -176,12 +174,6 @@ export const QRCodeModal = memo(QRCodeModalComponent);
 
 function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
     modalBox: {
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xlarge,

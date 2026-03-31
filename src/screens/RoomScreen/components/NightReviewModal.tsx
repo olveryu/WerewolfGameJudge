@@ -7,7 +7,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import {
   View,
 } from 'react-native';
 
+import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { STATUS_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import {
@@ -39,80 +39,70 @@ interface NightReviewModalProps {
 export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, data, onClose }) => {
   const colors = useColors();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const styles = useMemo(
-    () => createStyles(colors, screenWidth, screenHeight),
-    [colors, screenWidth, screenHeight],
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const contentStyle = useMemo(
+    () => ({ width: screenWidth * 0.88, maxHeight: screenHeight * 0.75 }),
+    [screenWidth, screenHeight],
   );
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.modalBox} testID={TESTIDS.nightReviewModal}>
-          <Text style={styles.title}>夜晚行动回顾</Text>
+    <BaseCenterModal
+      visible={visible}
+      onClose={onClose}
+      contentStyle={contentStyle}
+      testID={TESTIDS.nightReviewModal}
+    >
+      <Text style={styles.title}>夜晚行动回顾</Text>
 
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-            {/* Fair play reminder */}
-            <Text style={styles.disclaimer}>
-              <Ionicons
-                name={STATUS_ICONS.WARNING}
-                size={typography.secondary}
-                color={colors.warning}
-              />
-              {' 仅供裁判及观战者参考'}
-            </Text>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Fair play reminder */}
+        <Text style={styles.disclaimer}>
+          <Ionicons
+            name={STATUS_ICONS.WARNING}
+            size={typography.secondary}
+            color={colors.warning}
+          />
+          {' 仅供裁判及观战者参考'}
+        </Text>
 
-            {/* Action summary section */}
-            <Text style={styles.sectionTitle}>行动摘要</Text>
-            {data.actionLines.map((line, i) => (
-              <Text key={`action-${i}`} style={styles.line}>
-                {line}
-              </Text>
-            ))}
+        {/* Action summary section */}
+        <Text style={styles.sectionTitle}>行动摘要</Text>
+        {data.actionLines.map((line, i) => (
+          <Text key={`action-${i}`} style={styles.line}>
+            {line}
+          </Text>
+        ))}
 
-            {/* Divider */}
-            <View style={styles.divider} />
+        {/* Divider */}
+        <View style={styles.divider} />
 
-            {/* Identity table section */}
-            <Text style={styles.sectionTitle}>全员身份</Text>
-            {data.identityLines.map((line, i) => (
-              <Text key={`identity-${i}`} style={styles.line}>
-                {line}
-              </Text>
-            ))}
-          </ScrollView>
+        {/* Identity table section */}
+        <Text style={styles.sectionTitle}>全员身份</Text>
+        {data.identityLines.map((line, i) => (
+          <Text key={`identity-${i}`} style={styles.line}>
+            {line}
+          </Text>
+        ))}
+      </ScrollView>
 
-          {/* Action buttons */}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={onClose}
-              activeOpacity={fixed.activeOpacity}
-              accessibilityLabel="关闭"
-            >
-              <Text style={styles.closeButtonText}>关闭</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+      {/* Action buttons */}
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={onClose}
+          activeOpacity={fixed.activeOpacity}
+          accessibilityLabel="关闭"
+        >
+          <Text style={styles.closeButtonText}>关闭</Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
+    </BaseCenterModal>
   );
 };
 
-function createStyles(colors: ThemeColors, screenWidth: number, screenHeight: number) {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    modalBox: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.large,
-      width: screenWidth * 0.88,
-      maxHeight: screenHeight * 0.75,
-    },
     title: {
       fontSize: typography.subtitle,
       lineHeight: typography.lineHeights.subtitle,
