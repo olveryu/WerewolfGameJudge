@@ -102,7 +102,8 @@ export class ConfigPage {
   /** Expect template pill to be visible (config screen identity check). */
   async expectTemplateVisible() {
     // The template pill shows the short label (e.g. "预女猎白"), not the full name
-    await expect(this.page.getByText('预女猎白')).toBeVisible();
+    const root = this.page.locator(`[data-testid="${TESTIDS.configScreenRoot}"]`);
+    await expect(root.getByText('预女猎白')).toBeVisible();
   }
 
   // ---------------------------------------------------------------------------

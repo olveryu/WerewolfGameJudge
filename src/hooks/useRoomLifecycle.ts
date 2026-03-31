@@ -117,7 +117,13 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return true;
       } catch (err) {
         const message = getErrorMessage(err, '房间初始化失败，请重试');
-        handleError(err, { label: '房间初始化', logger: gameRoomLog, alertTitle: false });
+        handleError(err, {
+          label: '房间初始化',
+          logger: gameRoomLog,
+          alertTitle: false,
+          isExpected: (e) =>
+            e instanceof Error && e.message.includes('channel closed before subscribe'),
+        });
         setError(message);
         return false;
       } finally {

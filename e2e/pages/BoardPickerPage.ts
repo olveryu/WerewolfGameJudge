@@ -1,7 +1,6 @@
 import { expect, Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
-import { getVisibleText } from '../helpers/ui';
 
 /**
  * BoardPickerPage Page Object
@@ -40,14 +39,15 @@ export class BoardPickerPage {
    * to navigate, we need to expand first, then click "选择此模板".
    */
   async selectTemplate(name: string) {
+    const root = this.page.locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`);
     // Click the card to expand it
-    const cardTitle = getVisibleText(this.page, name);
+    const cardTitle = root.getByText(name, { exact: true }).first();
     await cardTitle.scrollIntoViewIfNeeded();
     await expect(cardTitle).toBeVisible({ timeout: 5000 });
     await cardTitle.click();
 
     // Click the "选择此模板" button in the expanded card
-    const selectButton = getVisibleText(this.page, '选择此模板');
+    const selectButton = root.getByText('选择此模板').first();
     await expect(selectButton).toBeVisible({ timeout: 3000 });
     await selectButton.click();
   }
@@ -63,7 +63,8 @@ export class BoardPickerPage {
    * Click the custom config entry at the bottom.
    */
   async clickCustomConfig() {
-    const customBtn = getVisibleText(this.page, '从零开始自定义配置');
+    const root = this.page.locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`);
+    const customBtn = root.getByText('从零开始自定义配置');
     await expect(customBtn).toBeVisible({ timeout: 5000 });
     await customBtn.click();
   }

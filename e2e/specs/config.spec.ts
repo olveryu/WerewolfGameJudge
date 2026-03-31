@@ -37,7 +37,8 @@ test.describe('Config Screen', () => {
     await config.waitForCreateMode();
 
     // Verify the selected template is shown
-    await expect(app.page.getByText('狼美守卫')).toBeVisible({ timeout: 5000 });
+    const configRoot = app.page.locator(`[data-testid="config-screen-root"]`);
+    await expect(configRoot.getByText('狼美守卫')).toBeVisible({ timeout: 5000 });
 
     await config.clickBack();
   });
@@ -58,7 +59,8 @@ test.describe('Config Screen', () => {
 
     // Should be back on config screen with new template
     await config.waitForCreateMode();
-    await expect(app.page.getByText('狼美守卫')).toBeVisible({ timeout: 5000 });
+    const configRoot2 = app.page.locator(`[data-testid="config-screen-root"]`);
+    await expect(configRoot2.getByText('狼美守卫')).toBeVisible({ timeout: 5000 });
 
     await config.clickBack();
   });
