@@ -11,7 +11,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useCallback, useRef, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
-import { CANCEL_BUTTON, confirmButton, showAlert } from '@/utils/alert';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomSeatDialogsParams {
@@ -110,7 +110,7 @@ export function useRoomSeatDialogs({
           roomScreenLog.warn('[SeatDialogs] takeSeat failed (occupied)', { seat });
           setSeatModalVisible(false);
           setPendingSeat(null);
-          showAlert('入座失败', `${seat + 1}号座位已被占用，请选择其他位置。`);
+          showErrorAlert('入座失败', `${seat + 1}号座位已被占用，请选择其他位置。`);
         }
       })
       .finally(() => {
@@ -163,7 +163,7 @@ export function useRoomSeatDialogs({
 
   const handleLeaveRoom = useCallback(() => {
     // Always show confirmation dialog regardless of room status
-    showAlert('离开房间？', '', [CANCEL_BUTTON, confirmButton(doLeaveRoom)]);
+    showConfirmAlert('离开房间？', '', doLeaveRoom);
   }, [doLeaveRoom]);
 
   return {

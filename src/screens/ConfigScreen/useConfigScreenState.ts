@@ -27,7 +27,7 @@ import type { AuthService } from '@/services/infra/AuthService';
 import type { RoomService } from '@/services/infra/RoomService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { ThemeColors } from '@/theme';
-import { showAlert } from '@/utils/alert';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
 
@@ -194,14 +194,14 @@ export function useConfigScreenState({
 
     const roles = selectionToRoles(selection, variantOverrides);
     if (roles.length === 0) {
-      showAlert('配置有误', '请至少选择一个角色');
+      showErrorAlert('配置有误', '请至少选择一个角色');
       creatingRef.current = false;
       return;
     }
 
     const validationError = validateTemplateRoles(roles);
     if (validationError) {
-      showAlert('配置有误', validationError);
+      showErrorAlert('配置有误', validationError);
       creatingRef.current = false;
       return;
     }
@@ -215,7 +215,7 @@ export function useConfigScreenState({
       if (isEditMode && existingRoomNumber) {
         const result = await facade.updateTemplate(template);
         if (!result.success) {
-          showAlert('更新失败', result.reason ?? '更新房间设置失败，请重试');
+          showErrorAlert('更新失败', result.reason ?? '更新房间设置失败，请重试');
           return;
         }
         await facade.setRoleRevealAnimation(roleRevealAnimation);

@@ -19,7 +19,7 @@ import {
   typography,
   useColors,
 } from '@/theme';
-import { CANCEL_BUTTON, confirmButton, showAlert } from '@/utils/alert';
+import { showConfirmAlert } from '@/utils/alertPresets';
 import { getRoleBadge } from '@/utils/roleBadges';
 
 interface BottomCardItem {
@@ -149,10 +149,9 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
   );
 
   const handleCardPress = (cardIndex: number, card: BottomCardItem) => {
-    showAlert('确认选择', `${confirmText}\n\n${card.displayName}`, [
-      CANCEL_BUTTON,
-      confirmButton(() => onChoose(cardIndex)),
-    ]);
+    showConfirmAlert('确认选择', `${confirmText}\n\n${card.displayName}`, () =>
+      onChoose(cardIndex),
+    );
   };
 
   return (

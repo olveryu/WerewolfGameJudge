@@ -36,7 +36,7 @@ import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { componentSizes, useTheme } from '@/theme';
-import { showAlert } from '@/utils/alert';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { homeLog } from '@/utils/logger';
 
 import { createHomeScreenStyles, InstallMenuItem, JoinRoomModal, TipCard } from './components';
@@ -184,7 +184,7 @@ export const HomeScreen: React.FC = () => {
 
   const handleReturnToLastGame = useCallback(() => {
     if (!lastRoomNumber) {
-      showAlert('无记录', '没有上局游戏记录');
+      showErrorAlert('无记录', '没有上局游戏记录');
       return;
     }
     navigation.navigate('Room', { roomNumber: lastRoomNumber, isHost: false });

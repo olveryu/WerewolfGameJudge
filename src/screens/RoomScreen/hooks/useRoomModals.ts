@@ -9,7 +9,8 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { useCallback, useRef, useState } from 'react';
 
-import { CANCEL_BUTTON, DISMISS_BUTTON, showAlert } from '@/utils/alert';
+import { DISMISS_BUTTON, showAlert } from '@/utils/alert';
+import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
 /** useRoomModals 依赖 */
 interface UseRoomModalsDeps {
@@ -98,13 +99,12 @@ export function useRoomModals({
   const detailAlertOpenRef = useRef(false);
 
   const confirmOpenNightReview = useCallback(() => {
-    showAlert('提示', '请确保你是裁判或观战玩家，再查看详细信息', [
-      { text: '取消', style: 'cancel' },
-      {
-        text: '确定查看',
-        onPress: () => setNightReviewVisible(true),
-      },
-    ]);
+    showConfirmAlert(
+      '提示',
+      '请确保你是裁判或观战玩家，再查看详细信息',
+      () => setNightReviewVisible(true),
+      { confirmText: '确定查看' },
+    );
   }, []);
 
   /**
@@ -210,30 +210,29 @@ export function useRoomModals({
 
   // ── Last night info ──
   const showLastNightInfo = useCallback(() => {
-    showAlert('提示', '请在警长竞选结束后再查看，请勿作弊', [
-      CANCEL_BUTTON,
-      {
-        text: '确定查看',
-        onPress: () => {
-          const info = getLastNightInfo();
-          const curseInfo = getCurseInfo();
-          const buttons: {
-            text: string;
-            onPress?: () => void;
-            style?: 'default' | 'cancel' | 'destructive';
-          }[] = [DISMISS_BUTTON];
-          if (curseInfo != null) {
-            buttons.unshift({
-              text: '查看诅咒',
-              onPress: () => {
-                showAlert('乌鸦诅咒', curseInfo, [DISMISS_BUTTON]);
-              },
-            });
-          }
-          showAlert('昨夜信息', info, buttons);
-        },
+    showConfirmAlert(
+      '提示',
+      '请在警长竞选结束后再查看，请勿作弊',
+      () => {
+        const info = getLastNightInfo();
+        const curseInfo = getCurseInfo();
+        const buttons: {
+          text: string;
+          onPress?: () => void;
+          style?: 'default' | 'cancel' | 'destructive';
+        }[] = [DISMISS_BUTTON];
+        if (curseInfo != null) {
+          buttons.unshift({
+            text: '查看诅咒',
+            onPress: () => {
+              showDismissAlert('乌鸦诅咒', curseInfo);
+            },
+          });
+        }
+        showAlert('昨夜信息', info, buttons);
       },
-    ]);
+      { confirmText: '确定查看' },
+    );
   }, [getLastNightInfo, getCurseInfo]);
 
   return {

@@ -21,7 +21,7 @@ import Toast from 'react-native-toast-message';
 import { NETWORK_ERROR, SERVER_ERROR } from '@/config/errorMessages';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { showAlert } from '@/utils/alert';
+import { showErrorAlert } from '@/utils/alertPresets';
 
 import type { BgmControlState } from './useBgmControl';
 import type { DebugModeState } from './useDebugMode';
@@ -54,7 +54,7 @@ function handleMutationResult(
 
   // 网络/基础设施错误 → 请求没到服务器，始终弹 alert
   if (reason === 'NETWORK_ERROR' || reason === 'SERVER_ERROR') {
-    showAlert(`${actionLabel}失败`, reason === 'NETWORK_ERROR' ? NETWORK_ERROR : SERVER_ERROR);
+    showErrorAlert(`${actionLabel}失败`, reason === 'NETWORK_ERROR' ? NETWORK_ERROR : SERVER_ERROR);
     return;
   }
 

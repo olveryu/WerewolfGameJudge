@@ -35,6 +35,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { componentSizes, spacing, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -88,7 +89,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         if (result === 'copied') {
           showAlert('已复制', '房间链接已复制到剪贴板');
         } else if (result === 'failed') {
-          showAlert('链接分享失败', '无法复制链接，请手动分享房间号');
+          showErrorAlert('链接分享失败', '无法复制链接，请手动分享房间号');
         }
         // 'shared' → system share sheet already provided feedback
         // 'cancelled' → user dismissed intentionally, no alert needed

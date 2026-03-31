@@ -19,7 +19,7 @@ import { useNotepad } from '@/components/AIChatBubble/useNotepad';
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { RootStackParamList } from '@/navigation/types';
-import { showAlert } from '@/utils/alert';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -224,7 +224,7 @@ export function useRoomScreenState(
     roomScreenLog.debug('[useRoomScreenState] Fatal room error, redirecting to Home', {
       error: gameRoomError,
     });
-    showAlert('房间异常', gameRoomError);
+    showErrorAlert('房间异常', gameRoomError);
     navigation.navigate('Home');
   }, [gameRoomError, navigation]);
 
@@ -272,7 +272,7 @@ export function useRoomScreenState(
   useEffect(() => {
     if (lastSeatError) {
       roomScreenLog.warn('[useRoomScreenState] Seat error received', { lastSeatError });
-      showAlert('入座失败', '该座位已被占用，请选择其他位置。');
+      showErrorAlert('入座失败', '该座位已被占用，请选择其他位置。');
       clearLastSeatError();
     }
   }, [lastSeatError, clearLastSeatError]);
@@ -485,7 +485,7 @@ export function useRoomScreenState(
 
   const shareNightReviewReportDirectly = useCallback(async () => {
     if (!nightReviewData) {
-      showAlert('分享失败', '当前暂无可分享的战报');
+      showErrorAlert('分享失败', '当前暂无可分享的战报');
       return;
     }
 
@@ -494,7 +494,7 @@ export function useRoomScreenState(
     if (base64) {
       const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomNumber);
       if (result === 'failed') {
-        showAlert('分享失败', '无法分享战报，请稍后重试');
+        showErrorAlert('分享失败', '无法分享战报，请稍后重试');
       }
       return;
     }
@@ -502,7 +502,7 @@ export function useRoomScreenState(
     // Fallback: on-demand capture (Chrome may download instead of share due to activation expiry)
     const freshBase64 = await beginReportCapture();
     if (!freshBase64) {
-      showAlert('分享失败', '无法生成战报截图，请稍后重试');
+      showErrorAlert('分享失败', '无法生成战报截图，请稍后重试');
       return;
     }
     const result = await shareNightReviewReportImage(
@@ -510,7 +510,7 @@ export function useRoomScreenState(
       roomNumber,
     );
     if (result === 'failed') {
-      showAlert('分享失败', '无法分享战报，请稍后重试');
+      showErrorAlert('分享失败', '无法分享战报，请稍后重试');
     }
   }, [nightReviewData, roomNumber, beginReportCapture]);
 

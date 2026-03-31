@@ -10,7 +10,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { CANCEL_BUTTON, confirmButton, DISMISS_BUTTON, showAlert } from '@/utils/alert';
+import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 import { roomScreenLog } from '@/utils/logger';
 
 /**
@@ -84,21 +84,18 @@ export const useRoomHostDialogs = ({
         seatedCount,
         totalSeats,
       });
-      showAlert('无法开始游戏', '还有空位未入座', [DISMISS_BUTTON]);
+      showDismissAlert('无法开始游戏', '还有空位未入座');
       return;
     }
 
-    showAlert('分配角色？', '所有座位已满，将洗牌并分配角色', [
-      CANCEL_BUTTON,
-      confirmButton(() => {
-        if (submittingRef.current) return;
-        markSubmitting(true);
-        roomScreenLog.debug('[HostDialogs] Assigning roles');
-        void assignRoles().finally(() => {
-          markSubmitting(false);
-        });
-      }),
-    ]);
+    showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', () => {
+      if (submittingRef.current) return;
+      markSubmitting(true);
+      roomScreenLog.debug('[HostDialogs] Assigning roles');
+      void assignRoles().finally(() => {
+        markSubmitting(false);
+      });
+    });
   }, [gameState, assignRoles, markSubmitting]);
 
   const handleStartGame = useCallback(async () => {
@@ -115,26 +112,20 @@ export const useRoomHostDialogs = ({
   }, [markSubmitting, setIsStartingGame, startGame]);
 
   const showStartGameDialog = useCallback(() => {
-    showAlert('开始游戏？', '请将手机音量调到最大', [
-      CANCEL_BUTTON,
-      confirmButton(() => {
-        void handleStartGame();
-      }),
-    ]);
+    showConfirmAlert('开始游戏？', '请将手机音量调到最大', () => {
+      void handleStartGame();
+    });
   }, [handleStartGame]);
 
   const showRestartDialog = useCallback(() => {
-    showAlert('重新开始游戏？', '使用相同配置开始新一局', [
-      CANCEL_BUTTON,
-      confirmButton(() => {
-        if (submittingRef.current) return;
-        markSubmitting(true);
-        roomScreenLog.debug('[HostDialogs] Restarting game');
-        void restartGame().finally(() => {
-          markSubmitting(false);
-        });
-      }),
-    ]);
+    showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', () => {
+      if (submittingRef.current) return;
+      markSubmitting(true);
+      roomScreenLog.debug('[HostDialogs] Restarting game');
+      void restartGame().finally(() => {
+        markSubmitting(false);
+      });
+    });
   }, [restartGame, markSubmitting]);
 
   const handleSettingsPress = useCallback(() => {

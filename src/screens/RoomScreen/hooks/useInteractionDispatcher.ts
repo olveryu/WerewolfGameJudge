@@ -20,7 +20,7 @@ import {
 } from '@/screens/RoomScreen/policy';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { DISMISS_BUTTON, showAlert } from '@/utils/alert';
+import { showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -220,7 +220,7 @@ export function useInteractionDispatcher({
 
         case 'ALERT':
           roomScreenLog.debug('[dispatchInteraction] ALERT', { title: result.title });
-          showAlert(result.title, result.message, [DISMISS_BUTTON]);
+          showDismissAlert(result.title, result.message);
           return;
 
         case 'SHOW_DIALOG':

@@ -11,7 +11,8 @@
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback } from 'react';
 
-import { CANCEL_BUTTON, confirmButton, DISMISS_BUTTON, showAlert } from '@/utils/alert';
+import { showAlert } from '@/utils/alert';
+import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
 /**
  * Witch context for UI display (simplified from WitchContextPayload).
@@ -81,7 +82,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showActionRejectedAlert = useCallback((reason: string) => {
-    showAlert('操作无效', reason, [DISMISS_BUTTON]);
+    showDismissAlert('操作无效', reason);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -91,7 +92,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   const showMagicianFirstAlert = useCallback((seat: number, schema: ActionSchema) => {
     const title = schema.ui!.firstTargetTitle!;
     const body = schema.ui!.firstTargetPromptTemplate!.replace('{seat}', `${seat + 1}`);
-    showAlert(title, body, [DISMISS_BUTTON]);
+    showDismissAlert(title, body);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -99,7 +100,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showRevealDialog = useCallback((title: string, message: string, onConfirm: () => void) => {
-    showAlert(title, message, [{ ...DISMISS_BUTTON, onPress: onConfirm }]);
+    showDismissAlert(title, message, onConfirm);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -108,10 +109,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   const showConfirmDialog = useCallback(
     (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
-      showAlert(title, message, [
-        { ...CANCEL_BUTTON, onPress: onCancel },
-        confirmButton(onConfirm),
-      ]);
+      showConfirmAlert(title, message, onConfirm, onCancel ? { onCancel } : undefined);
     },
     [],
   );
@@ -140,7 +138,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
           .replace('{seat}', `${targetSeat + 1}`);
       }
 
-      showAlert(title, msg, [CANCEL_BUTTON, confirmButton(onConfirm)]);
+      showConfirmAlert(title, msg, onConfirm);
     },
     [],
   );
@@ -162,7 +160,6 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
           : undefined;
 
       const title = currentSchema.ui!.prompt!;
-      const dismiss = [{ ...DISMISS_BUTTON, onPress: onDismiss }];
 
       // Three scenarios (all schema-driven):
       // 1. killedSeat >= 0 && canSave=true  → promptTemplate: "{seat}号被狼人袭击，是否使用解药？"
@@ -171,15 +168,15 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       if (ctx.killedSeat >= 0) {
         if (ctx.canSave) {
           const msg = saveStep!.ui!.promptTemplate!.replace('{seat}', `${ctx.killedSeat + 1}`);
-          showAlert(title, msg, dismiss);
+          showDismissAlert(title, msg, onDismiss);
         } else {
-          showAlert(title, saveStep!.ui!.cannotSavePrompt!, dismiss);
+          showDismissAlert(title, saveStep!.ui!.cannotSavePrompt!, onDismiss);
         }
         return;
       }
 
       // Empty kill (killedSeat < 0)
-      showAlert(currentSchema.ui!.emptyKillTitle!, poisonPrompt!, dismiss);
+      showDismissAlert(currentSchema.ui!.emptyKillTitle!, poisonPrompt!, onDismiss);
     },
     [],
   );

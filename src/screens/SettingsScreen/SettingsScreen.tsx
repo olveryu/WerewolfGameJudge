@@ -33,7 +33,8 @@ import { useAuthForm } from '@/hooks/useAuthForm';
 import { resetAllGuides, usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { componentSizes, fixed, ThemeKey, typography, useTheme } from '@/theme';
-import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
+import { showAlert } from '@/utils/alert';
+import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import {
   AVATAR_KEYS,
   BUILTIN_AVATAR_PREFIX,
@@ -195,7 +196,7 @@ export const SettingsScreen: React.FC = () => {
       } catch (e: unknown) {
         const message = getErrorMessage(e);
         settingsLog.error('Builtin avatar save failed:', message, e);
-        showAlert('保存失败', message);
+        showErrorAlert('保存失败', message);
       } finally {
         setSavingBuiltinAvatar(false);
       }
@@ -217,7 +218,7 @@ export const SettingsScreen: React.FC = () => {
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.error('Custom avatar restore failed:', message, e);
-      showAlert('保存失败', message);
+      showErrorAlert('保存失败', message);
     } finally {
       setSavingBuiltinAvatar(false);
     }
@@ -251,7 +252,7 @@ export const SettingsScreen: React.FC = () => {
         } catch (e: unknown) {
           const message = getErrorMessage(e);
           settingsLog.error('Avatar upload failed:', message, e);
-          showAlert('上传失败', message);
+          showErrorAlert('上传失败', message);
         } finally {
           setUploadingAvatar(false);
         }
@@ -259,7 +260,7 @@ export const SettingsScreen: React.FC = () => {
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.warn('Image picker failed:', message, e);
-      showAlert('选择图片失败', message);
+      showErrorAlert('选择图片失败', message);
     }
   }, [uploadAvatar, facade]);
 
@@ -277,7 +278,7 @@ export const SettingsScreen: React.FC = () => {
       } catch (e: unknown) {
         const message = getErrorMessage(e);
         settingsLog.error('Frame save failed:', message, e);
-        showAlert('保存失败', message);
+        showErrorAlert('保存失败', message);
       } finally {
         setSavingBuiltinAvatar(false);
       }
@@ -305,7 +306,7 @@ export const SettingsScreen: React.FC = () => {
       // AuthContext already reported to Sentry before re-throwing; avoid double-reporting
       const message = getErrorMessage(e);
       settingsLog.error('Update name failed:', message, e);
-      showAlert('更新失败', message);
+      showErrorAlert('更新失败', message);
     }
   }, [editName, updateProfile, facade]);
 
@@ -343,7 +344,7 @@ export const SettingsScreen: React.FC = () => {
         if (isInRoom && isSeated) {
           const result = await facade.leaveSeatWithAck();
           if (!result.success) {
-            showAlert('离座失败', translateReasonCode(result.reason));
+            showErrorAlert('离座失败', translateReasonCode(result.reason));
             return;
           }
         }
@@ -357,15 +358,12 @@ export const SettingsScreen: React.FC = () => {
         Sentry.captureException(e);
         setShowAuthForm(false);
         setIsSwitchingAccount(false);
-        showAlert('切换失败', message);
+        showErrorAlert('切换失败', message);
       }
     };
 
     if (user?.isAnonymous) {
-      showAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', [
-        CANCEL_BUTTON,
-        { text: '确定', style: 'destructive', onPress: doSwitch },
-      ]);
+      showDestructiveAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', '确定', doSwitch);
     } else {
       doSwitch();
     }
@@ -383,7 +381,7 @@ export const SettingsScreen: React.FC = () => {
       const message = getErrorMessage(e);
       settingsLog.error('Sign-out before switch failed:', message, e);
       Sentry.captureException(e);
-      showAlert('切换失败', message);
+      showErrorAlert('切换失败', message);
       return;
     }
     await handleEmailAuth();
@@ -397,22 +395,21 @@ export const SettingsScreen: React.FC = () => {
   );
 
   const handleResetGuides = useCallback(() => {
-    showAlert('重置新手引导', '重置后，每个页面的新手引导将再次显示。', [
-      CANCEL_BUTTON,
-      {
-        text: '确认重置',
-        onPress: () => {
-          resetAllGuides()
-            .then(() => {
-              showAlert('已重置', '引导将重新显示');
-            })
-            .catch((e: unknown) => {
-              settingsLog.error('Reset guides failed:', e);
-              showAlert('重置失败', '请稍后重试');
-            });
-        },
+    showConfirmAlert(
+      '重置新手引导',
+      '重置后，每个页面的新手引导将再次显示。',
+      () => {
+        resetAllGuides()
+          .then(() => {
+            showAlert('已重置', '引导将重新显示');
+          })
+          .catch((e: unknown) => {
+            settingsLog.error('Reset guides failed:', e);
+            showErrorAlert('重置失败');
+          });
       },
-    ]);
+      { confirmText: '确认重置' },
+    );
   }, []);
 
   // ============================================

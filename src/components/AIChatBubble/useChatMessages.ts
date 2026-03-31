@@ -19,7 +19,7 @@ import {
   streamChatMessage,
 } from '@/services/feature/AIChatService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
-import { showAlert } from '@/utils/alert';
+import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { chatLog } from '@/utils/logger';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
@@ -142,7 +142,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
       if (!text || loadingRef.current) return;
       if (cooldownRef.current > 0) return;
       if (!isAIChatReady()) {
-        showAlert('AI 助手', 'AI 助手暂不可用');
+        showErrorAlert('AI 助手', 'AI 助手暂不可用');
         return;
       }
 
@@ -232,7 +232,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
               typewriterTimerRef.current = null;
             }
             setMessages((prev) => prev.filter((m) => m.id !== assistantId));
-            showAlert('发送失败', chunk.content);
+            showErrorAlert('发送失败', chunk.content);
             break;
           }
           // 'done' — streaming finished, let typewriter drain remaining buffer
@@ -300,7 +300,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         chatLog.error('sendMessage failed:', err);
         Sentry.captureException(err);
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
-        showAlert('发送失败', '请稍后重试');
+        showErrorAlert('发送失败');
       } finally {
         setIsLoading(false);
         loadingRef.current = false;
@@ -325,19 +325,17 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
   );
 
   const handleClearHistory = useCallback(() => {
-    showAlert('清除聊天记录', '确定要清除所有聊天记录吗？此操作不可恢复。', [
-      { text: '取消', style: 'cancel' },
-      {
-        text: '清除',
-        style: 'destructive',
-        onPress: () => {
-          setMessages([]);
-          AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch((e) => {
-            chatLog.warn('Failed to clear message storage:', e);
-          });
-        },
+    showDestructiveAlert(
+      '清除聊天记录',
+      '确定要清除所有聊天记录吗？此操作不可恢复。',
+      '清除',
+      () => {
+        setMessages([]);
+        AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch((e) => {
+          chatLog.warn('Failed to clear message storage:', e);
+        });
       },
-    ]);
+    );
   }, []);
 
   return {

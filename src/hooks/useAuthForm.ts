@@ -14,6 +14,7 @@ import { useCallback, useState } from 'react';
 
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { showAlert } from '@/utils/alert';
+import { showErrorAlert } from '@/utils/alertPresets';
 import { getErrorMessage } from '@/utils/errorUtils';
 
 /** Logger interface — matches react-native-logs extended logger */
@@ -94,7 +95,7 @@ export function useAuthForm({
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       logger.warn('Email auth failed:', message);
-      showAlert(isSignUp ? '注册失败' : '登录失败', message);
+      showErrorAlert(isSignUp ? '注册失败' : '登录失败', message);
     }
   }, [
     email,
@@ -117,7 +118,7 @@ export function useAuthForm({
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       logger.warn('Anonymous login failed:', message);
-      showAlert('登录失败', message || '请稍后重试');
+      showErrorAlert('登录失败', message);
     }
   }, [signInAnonymously, onSuccess, logger]);
 
