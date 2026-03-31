@@ -22,6 +22,7 @@ import { NETWORK_ERROR, SERVER_ERROR } from '@/config/errorMessages';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { showErrorAlert } from '@/utils/alertPresets';
+import { translateReasonCode } from '@/utils/errorUtils';
 
 import type { BgmControlState } from './useBgmControl';
 import type { DebugModeState } from './useDebugMode';
@@ -59,7 +60,7 @@ function handleMutationResult(
   }
 
   // 业务拒绝 → 交给调用方
-  onBusinessError?.(`${actionLabel}失败`, reason ?? '请稍后重试');
+  onBusinessError?.(`${actionLabel}失败`, translateReasonCode(reason));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

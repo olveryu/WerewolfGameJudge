@@ -229,7 +229,6 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           label: '入座',
           logger: gameRoomLog,
           alertTitle: '入座失败',
-          alertMessage: '请稍后重试',
         });
         return false;
       }
@@ -246,7 +245,6 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         label: '离座',
         logger: gameRoomLog,
         alertTitle: '离座失败',
-        alertMessage: '请稍后重试',
       });
     }
   }, [facade]);

@@ -109,12 +109,10 @@ export class SettingsService {
       this.#loaded = true;
     } catch (e) {
       // If load fails, use defaults
-      const isQuota = e instanceof Error && e.name === 'QuotaExceededError';
-      if (isQuota) {
-        settingsServiceLog.warn(
-          'Storage quota exceeded while loading settings, using defaults:',
-          e,
-        );
+      const isExpectedStorage =
+        e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'SecurityError');
+      if (isExpectedStorage) {
+        settingsServiceLog.warn('Storage access failed while loading settings, using defaults:', e);
       } else {
         settingsServiceLog.error('Failed to load settings, using defaults:', e);
         Sentry.captureException(e);
@@ -132,9 +130,10 @@ export class SettingsService {
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(this.#settings));
       this.#notifyListeners();
     } catch (e) {
-      const isQuota = e instanceof Error && e.name === 'QuotaExceededError';
-      if (isQuota) {
-        settingsServiceLog.warn('Storage quota exceeded while saving settings:', e);
+      const isExpectedStorage =
+        e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'SecurityError');
+      if (isExpectedStorage) {
+        settingsServiceLog.warn('Storage access failed while saving settings:', e);
       } else {
         settingsServiceLog.error('Failed to save settings:', e);
         Sentry.captureException(e);

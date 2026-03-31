@@ -415,7 +415,7 @@ export const SettingsScreen: React.FC = () => {
           })
           .catch((e: unknown) => {
             settingsLog.error('Reset guides failed:', e);
-            showErrorAlert('重置失败');
+            showErrorAlert('重置失败', getErrorMessage(e));
           });
       },
       { confirmText: '确认重置' },

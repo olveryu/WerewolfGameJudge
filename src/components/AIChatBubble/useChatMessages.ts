@@ -21,7 +21,7 @@ import {
 } from '@/services/feature/AIChatService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
-import { isNetworkError } from '@/utils/errorUtils';
+import { getUserFacingMessage, isNetworkError } from '@/utils/errorUtils';
 import { chatLog } from '@/utils/logger';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
@@ -309,7 +309,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         chatLog.error('sendMessage failed:', err);
         Sentry.captureException(err);
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
-        showErrorAlert('发送失败');
+        showErrorAlert('发送失败', getUserFacingMessage(err));
       } finally {
         setIsLoading(false);
         loadingRef.current = false;

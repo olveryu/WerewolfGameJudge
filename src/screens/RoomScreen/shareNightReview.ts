@@ -7,6 +7,8 @@ import type { RefObject } from 'react';
 import { Platform, type View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
+import { log } from '@/utils/logger';
+
 import { shareImageBase64 } from './shareImage';
 
 type ShareNightReviewResult = 'shared' | 'cancelled' | 'failed';
@@ -47,6 +49,7 @@ export async function shareNightReviewReportImage(
     return 'shared';
   } catch (error) {
     if (isShareCancelledError(error)) return 'cancelled';
+    log.warn('Share night review failed:', error);
     return 'failed';
   }
 }

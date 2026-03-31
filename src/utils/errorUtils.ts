@@ -133,6 +133,36 @@ const REASON_CODE_MAP: Record<string, string> = {
   CONFLICT_RETRY: '操作冲突，请重试',
   ROOM_NOT_FOUND: '房间不存在或已解散',
   INTERNAL_ERROR: '服务器内部错误',
+  // Client API layer
+  NETWORK_ERROR: '网络异常，请检查网络后重试',
+  SERVER_ERROR: '服务暂时不可用，请稍后重试',
+  TIMEOUT: '请求超时，请稍后重试',
+  NOT_CONNECTED: '未连接到房间',
+  // Night flow
+  not_ongoing: '游戏未在进行中',
+  no_pending_acks: '无待确认的操作',
+  no_current_step: '当前步骤异常',
+  not_group_confirm_step: '当前非确认步骤',
+  no_player_at_seat: '该座位没有玩家',
+  uid_mismatch: '身份不匹配',
+  // Game engine
+  invalid_step: '步骤无效',
+  step_mismatch: '步骤不匹配',
+  role_mismatch: '角色不匹配',
+  no_resolver: '操作处理器不存在',
+  wolfrobot_hunter_status_not_viewed: '请先查看猎人状态',
+  night_not_complete: '夜晚流程未完成',
+  not_learned_hunter: '还未获知猎人信息',
+  // HTTP routing
+  MISSING_PARAMS: '请求参数缺失',
+  INVALID_ACTION: '无效操作',
+  MISSING_SEAT: '座位参数缺失',
+  METHOD_NOT_ALLOWED: '请求方法不允许',
+  UNKNOWN_ACTION: '未知操作',
+  UNKNOWN_NIGHT_ACTION: '未知夜间操作',
+  host_only: '仅房主可执行此操作',
+  forbidden: '无权执行此操作',
+  no_db_state: '游戏状态不可用',
 };
 
 /**
@@ -147,4 +177,38 @@ export function translateReasonCode(
 ): string {
   if (!reason) return fallback;
   return REASON_CODE_MAP[reason] ?? fallback;
+}
+
+/**
+ * Extract a user-facing Chinese message from an unknown error object.
+ *
+ * Priority:
+ * 1. Structured `{ reason }` → translateReasonCode
+ * 2. Error.message that matches a known reason code
+ * 3. Chinese message (contains CJK characters) → return as-is
+ * 4. Fallback '操作失败，请稍后重试'
+ */
+export function getUserFacingMessage(error: unknown, fallback = '操作失败，请稍后重试'): string {
+  if (error == null) return fallback;
+
+  // Structured error with reason code (API responses)
+  if (typeof error === 'object' && 'reason' in error) {
+    const reason = (error as { reason: unknown }).reason;
+    if (typeof reason === 'string') {
+      const translated = REASON_CODE_MAP[reason];
+      if (translated) return translated;
+    }
+  }
+
+  // Error.message
+  const message = error instanceof Error ? error.message : '';
+  if (message) {
+    // Check if message itself is a known reason code
+    const translated = REASON_CODE_MAP[message];
+    if (translated) return translated;
+    // Chinese message — already user-friendly
+    if (/[\u4e00-\u9fff]/.test(message)) return message;
+  }
+
+  return fallback;
 }

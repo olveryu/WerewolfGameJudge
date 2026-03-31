@@ -91,7 +91,7 @@ describe('useGameActions - game control', () => {
 
   it('assignRoles should call facade and toast on failure', async () => {
     const facade = createMockFacade({
-      assignRoles: jest.fn().mockResolvedValue({ success: false, reason: '人数不足' }),
+      assignRoles: jest.fn().mockResolvedValue({ success: false, reason: 'role_count_mismatch' }),
     });
     const deps = createDeps({ facade });
     const { result } = renderHook(() => useGameActions(deps));
@@ -102,7 +102,7 @@ describe('useGameActions - game control', () => {
     expect(Toast.show).toHaveBeenCalledWith({
       type: 'error',
       text1: '分配角色失败',
-      text2: '人数不足',
+      text2: '角色数量与座位数不匹配',
     });
   });
 
@@ -458,7 +458,9 @@ describe('useGameActions - handleMutationResult', () => {
 
   it('should show toast on business rejection with toastError callback (submitRevealAck)', async () => {
     const facade = createMockFacade({
-      submitRevealAck: jest.fn().mockResolvedValue({ success: false, reason: 'already_acked' }),
+      submitRevealAck: jest
+        .fn()
+        .mockResolvedValue({ success: false, reason: 'forbidden_while_audio_playing' }),
     });
     const deps = createDeps({ facade });
     const { result } = renderHook(() => useGameActions(deps));
@@ -469,7 +471,7 @@ describe('useGameActions - handleMutationResult', () => {
     expect(Toast.show).toHaveBeenCalledWith({
       type: 'error',
       text1: '确认揭示失败',
-      text2: 'already_acked',
+      text2: '请等待语音播放完毕',
     });
   });
 

@@ -8,6 +8,8 @@
  */
 import { Platform, Share } from 'react-native';
 
+import { log } from '@/utils/logger';
+
 /** Build the room URL from the current origin (web) or production URL (native). */
 export function buildRoomUrl(roomNumber: string): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -31,7 +33,8 @@ export async function shareOrCopyRoomLink(roomNumber: string): Promise<ShareResu
       // iOS returns 'dismissedAction' when user cancels
       if (result.action === Share.dismissedAction) return 'cancelled';
       return 'shared';
-    } catch {
+    } catch (e) {
+      log.warn('Native Share failed:', e);
       return 'failed';
     }
   }
@@ -45,7 +48,8 @@ export async function shareOrCopyRoomLink(roomNumber: string): Promise<ShareResu
     try {
       await navigator.share({ title: text, url });
       return 'shared';
-    } catch {
+    } catch (e) {
+      log.warn('Mobile web share cancelled:', e);
       // User cancelled share sheet
       return 'cancelled';
     }
@@ -56,7 +60,8 @@ export async function shareOrCopyRoomLink(roomNumber: string): Promise<ShareResu
     try {
       await navigator.clipboard.writeText(url);
       return 'copied';
-    } catch {
+    } catch (e) {
+      log.warn('Clipboard write failed:', e);
       // Clipboard blocked — fall through
     }
   }
@@ -66,7 +71,8 @@ export async function shareOrCopyRoomLink(roomNumber: string): Promise<ShareResu
     try {
       await navigator.share({ title: text, url });
       return 'shared';
-    } catch {
+    } catch (e) {
+      log.warn('Desktop web share cancelled:', e);
       return 'cancelled';
     }
   }
