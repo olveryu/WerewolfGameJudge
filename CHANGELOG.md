@@ -5,6 +5,120 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.11.0] - 2026-03-31
+
+- fix(services): unify error code mapping and fix error handling quality
+- fix(services): improve error handling quality across 7 files
+- refactor(components): extract BaseCenterModal from center modals
+- refactor(components): extract FormTextField from repeated TextInput patterns
+- refactor(utils): extract showAlert preset helpers to reduce boilerplate
+- refactor(game-engine): split stepTransitionHandler into focused modules
+- fix(room): stale tab auto-reload after 5min iOS background
+- fix(e2e): scope locators to screen roots to avoid strict mode violations
+- feat(config): replace template picker with full-screen BoardPickerScreen
+- fix(config): catch sw reg.update() to prevent unhandled rejection on iOS
+- fix(room): defer share card capture to user interaction to fix e2e flakiness
+- fix(room): use visibility:hidden for share card to prevent false E2E night-end detection
+- style(theme): unify button and alert modal border radius to capsule shape
+- fix(room): pre-cache share card screenshot & allow shared players to share report
+- fix(pwa): bypass HTTP cache for sw.js to ensure timely updates
+- chore(sw): remove leftover \_\_diag_reload writes from SW update paths
+- fix(settings): suppress LoginOptions flash during auth initialization
+- chore(deps): align @types/react and jest-expo with expo sdk 55
+- fix(config): read navType synchronously so React can access it before mount
+- refactor(game-engine): extract isBlockedByNightmare helper and rename processPoisonDeath
+- refactor(config): unify wolf attack terminology — 刀/击杀/杀人 → 袭击
+- fix(narration): update nightmare prompt to reflect player selection change
+- chore(config): add reload stack proxy + navType DIAG for avatar flash root cause
+- fix(audio): replace recursive re-check with bounded while loop in playPendingAudioEffects
+- fix(theme): use typography.captionSmall token in DIAG banner style
+- fix: update resetAllGuides to use multiRemove for better performance
+- chore(config): add DIAG step tracking to avatar/frame handlers for pagehide root cause
+- feat(pwa): add proactive SW update polling on interval and visibility change
+- fix(night): remove redundant bottom-card skip lines from night review summary
+- refactor(game-engine): unify wolfVoteDeadline + autoSkipDeadline into stepDeadline
+- chore(settings): move reload DIAG into settings red banner
+- chore(sw): add DIAG reload source tracker to find avatar flash cause
+- chore(settings): add auth state DIAG banner to debug avatar flash
+- test(e2e): add treasureMaster night flow E2E test
+- fix(room): remove canShare gate to fix image share on Chrome iOS
+- fix(sw): add update dialog and JS bundle precache to prevent white screen
+- chore: remove DIAG logging after fix verification
+- fix(game-engine): defer autoSkipDeadline until audio finishes to prevent clock race
+- fix(sw): remove leftover DIAG in showUpdateOverlay fallback
+- fix(auth): only clear user on SIGNED_OUT event in onAuthStateChange
+- style(alert): reduce border radius and button padding
+- diag(settings): track auth state transition history
+- chore: add DIAG banner + lifecycle tracking to SettingsScreen
+- fix(night): treasureMaster actioner override + autoSkipDeadline for vacant steps
+- fix(ChooseBottomCardModal): update typography and spacing for card styles
+- fix(config): restore updatefound SW listeners
+- fix(room): update confirmation text in ChooseBottomCardModal to use currentSchema
+- chore: upgrade DIAG to localStorage + pagehide + visible banner
+- fix(room): replace roles.length with numberOfPlayers for seat count
+- fix(config): remove mid-session SW updatefound auto-reload
+- fix(game-engine): use getPlayerCount for bot fill and template picker
+- fix(room): show correct player count and seats for treasureMaster boards
+- feat(game-engine): add 盗宝大师 preset template + board UI test
+- feat(game-engine): add treasureMaster UI + integration tests
+- feat(game-engine): implement treasureMaster role (B-E)
+- revert(config): restore original SW update logic
+- fix(config): prevent mid-session SW update reload
+- feat(game-engine): support treasureMaster bottom card shuffle and lifecycle
+- fix(service-worker): streamline service worker registration code
+- fix(room): fix SealBreak freeze and add tap-to-charge support
+- refactor(game-engine): replace wolfKillDisabled with self-contained wolfKillOverride object
+- feat(models): add crow and poisoner roles with night-1 empty-knife rule
+- fix(audioRegistry): increase BGM volume for better audio clarity
+- fix(room): remove contentContainer wrapper in NightReviewModal
+- fix(AvatarPickerSheet): restructure modal layout for improved usability
+- fix(GameFacade): prevent automatic seat leaving when rejoining room
+- fix(room): responsive layout fixes for small screens
+- fix(RoleDetailSheet): remove emoji display from role details
+- feat(models): add encyclopedia screen redesign with ability tags
+- fix(theme): unify header text sizes across screens
+- fix(room): unify header icon sizes and fix button spacing
+- docs(models): split new-role instructions into concise SOP + templates doc
+- docs: update new-role SOP for genericResolver and night1 removal
+- chore: remove dead code (test-only exports and unused functions)
+- Merge pull request #40 from olveryu/feature/refactor_spec
+- feat(game-engine): implement bonded link death for shadow ↔ avenger
+- refactor(game-engine): derive RoleSeatMap from deathCalcRole + reflectionSources
+- fix(room): close seat modal on takeSeat failure to unblock UI
+- refactor(game-engine): remove Night-2 dead code from piperHypnotizeResolver
+- refactor(game-engine): enhance role ID validation in buildNightPlan and genericResolver
+- refactor(game-engine): use dedicated piperHypnotizeResolver instead of generic
+- refactor(game-engine): remove redundant night1.hasAction field
+- fix(game-engine): use secureRng in genericResolver random transformer
+- ci: deploy edge functions on PR + restore after E2E
+- refactor(game-engine): flatten v2/ into spec/ top level (P10)
+- refactor(game-engine): convert wrappers to re-export stubs + update barrel (P9-C)
+- refactor(game-engine): move helpers + derivation into v2/ files
+- refactor(game-engine): rename V2-suffixed symbols to canonical names
+- chore(game-engine): delete V1 spec.types.ts (P8-C)
+- docs: add P8 section to rolespec-schema-redesign design doc
+- refactor(game-engine): derive SCHEMAS from V2 specs (P8-B)
+- refactor(game-engine): switch specs + helpers to V2 re-exports (P8-A)
+- refactor(game-engine): derive NIGHT_STEPS from V2 specs
+- refactor(game-engine): remove 19 replaced V1 resolver files + 19 tests
+- refactor(game-engine): update consumers to use V2 specs
+- refactor(game-engine): data-drive confirmContext + revealPayload from V2
+- refactor(game-engine): wire V2 nightPlan + schemas into existing consumers
+- test(game-engine): add V2 nightPlan + schemas equivalence tests
+- feat(game-engine): add buildNightPlanFromV2 and buildSchemasFromV2
+- refactor(game-engine): migrate 21 resolvers to genericResolver
+- feat(game-engine): implement genericResolver with all effect processors
+- test(game-engine): add v1-v2 equivalence contract tests
+- feat(game-engine): add v2 specs registry with all 36 roles
+- feat(game-engine): add v2 role spec type definitions
+- feat(role): add interaction field to RoleDescription and update related components
+- feat(room): keep seat confirm modal open with spinner until server responds
+- feat(realtime): enhance channel subscription with retry logic and improve error handling
+- refactor(models): rename 9 preset templates for clarity
+- perf(ui): skia picture API + shader warmup + badge prefetch
+- fix(ui): use safe area insets for reveal effect top-positioned text
+- feat(ui): add lucide icons and semantic label colors to RoleDescriptionView
+
 ## [1.10.0] - 2026-03-26
 
 - fix(service-worker): skip reload on first SW install to prevent double-load
