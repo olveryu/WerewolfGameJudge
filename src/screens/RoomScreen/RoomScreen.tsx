@@ -147,6 +147,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     hasBots,
     fillWithBots,
     markAllBotsViewed,
+    markAllBotsGroupConfirmed,
     clearAllSeats,
     setControlledSeat,
     // Initialization
@@ -373,6 +374,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             }
             showFillWithBots={isHost && roomStatus === GameStatus.Unseated}
             showMarkAllBotsViewed={isHost && isDebugMode && roomStatus === GameStatus.Assigned}
+            showMarkAllBotsGroupConfirmed={
+              isHost &&
+              isDebugMode &&
+              !isAudioPlaying &&
+              roomStatus === GameStatus.Ongoing &&
+              currentSchema?.kind === 'groupConfirm'
+            }
             showClearAllSeats={
               isHost &&
               (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
@@ -392,6 +400,15 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               void markAllBotsViewed().catch((err) => {
                 handleError(err, {
                   label: 'markAllBotsViewed',
+                  logger: roomScreenLog,
+                  alertTitle: false,
+                });
+              })
+            }
+            onMarkAllBotsGroupConfirmed={() =>
+              void markAllBotsGroupConfirmed().catch((err) => {
+                handleError(err, {
+                  label: 'markAllBotsGroupConfirmed',
                   logger: roomScreenLog,
                   alertTitle: false,
                 });

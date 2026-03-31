@@ -169,6 +169,11 @@ export interface IGameFacade {
   markAllBotsViewed(): Promise<{ success: boolean; reason?: string }>;
 
   /**
+   * 标记所有机器人已确认 groupConfirm 步骤（Debug-only, Host-only）
+   */
+  markAllBotsGroupConfirmed(): Promise<{ success: boolean; reason?: string }>;
+
+  /**
    * 全员起立（Host-only）
    * 清空所有座位，仅在 unseated/seated 状态可用
    */

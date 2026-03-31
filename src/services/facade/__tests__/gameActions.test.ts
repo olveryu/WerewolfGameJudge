@@ -39,6 +39,7 @@ import {
   clearRevealAcks,
   endNight,
   fillWithBots,
+  markAllBotsGroupConfirmed,
   markAllBotsViewed,
   postAudioAck,
   postProgression,
@@ -348,6 +349,7 @@ describe('gameActions thin wrappers — NOT_CONNECTED guard', () => {
     ['shareNightReview', (ctx: any) => shareNightReview(ctx, [1, 2])],
     ['fillWithBots', (ctx: any) => fillWithBots(ctx)],
     ['markAllBotsViewed', (ctx: any) => markAllBotsViewed(ctx)],
+    ['markAllBotsGroupConfirmed', (ctx: any) => markAllBotsGroupConfirmed(ctx)],
     ['clearAllSeats', (ctx: any) => clearAllSeats(ctx)],
   ] as const)('%s should return NOT_CONNECTED when roomCode is null', async (_name, fn) => {
     const ctx = createMockCtx(null);

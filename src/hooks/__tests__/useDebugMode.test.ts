@@ -16,6 +16,7 @@ function createMockFacade(overrides: Record<string, unknown> = {}) {
     leaveSeat: jest.fn().mockResolvedValue(undefined),
     fillWithBots: jest.fn().mockResolvedValue({ success: true }),
     markAllBotsViewed: jest.fn().mockResolvedValue({ success: true }),
+    markAllBotsGroupConfirmed: jest.fn().mockResolvedValue({ success: true }),
     ...overrides,
   } as any;
 }

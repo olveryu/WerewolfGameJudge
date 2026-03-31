@@ -104,6 +104,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     effectiveRole: 'wolfQueen',
     fillWithBots: jest.fn(),
     markAllBotsViewed: jest.fn(),
+    markAllBotsGroupConfirmed: jest.fn(),
     setControlledSeat: jest.fn(),
 
     // Actions used by RoomScreen

@@ -180,6 +180,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
       effectiveRole: 'witch' as RoleId,
       fillWithBots: jest.fn(),
       markAllBotsViewed: jest.fn(),
+      markAllBotsGroupConfirmed: jest.fn(),
       setControlledSeat: jest.fn(),
 
       // Reveal animation
@@ -298,6 +299,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
       effectiveRole: 'seer' as RoleId,
       fillWithBots: jest.fn(),
       markAllBotsViewed: jest.fn(),
+      markAllBotsGroupConfirmed: jest.fn(),
       setControlledSeat: jest.fn(),
 
       roleRevealAnimation: null,

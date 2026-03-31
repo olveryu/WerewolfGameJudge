@@ -95,6 +95,7 @@ export function makeBaseUseGameRoomReturn({
     effectiveRole: myRole,
     fillWithBots: jest.fn(),
     markAllBotsViewed: jest.fn(),
+    markAllBotsGroupConfirmed: jest.fn(),
     setControlledSeat: jest.fn(),
 
     joinRoom: jest.fn().mockResolvedValue(true),

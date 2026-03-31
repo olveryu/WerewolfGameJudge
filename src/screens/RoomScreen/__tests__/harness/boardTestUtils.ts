@@ -236,6 +236,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     effectiveRole: myRole,
     fillWithBots: jest.fn(),
     markAllBotsViewed: jest.fn(),
+    markAllBotsGroupConfirmed: jest.fn(),
     setControlledSeat: jest.fn(),
 
     // Actions

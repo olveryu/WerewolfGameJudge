@@ -80,6 +80,7 @@ function createMockFacade(): {
     postProgression: jest.fn().mockResolvedValue({ success: true }),
     fillWithBots: jest.fn().mockResolvedValue({ success: true }),
     markAllBotsViewed: jest.fn().mockResolvedValue({ success: true }),
+    markAllBotsGroupConfirmed: jest.fn().mockResolvedValue({ success: true }),
     clearAllSeats: jest.fn().mockResolvedValue({ success: true }),
     getListenerCount: jest.fn().mockReturnValue(0),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),

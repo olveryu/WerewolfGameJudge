@@ -34,11 +34,14 @@ interface HostMenuDropdownProps {
   showFillWithBots: boolean;
   /** Show mark all bots viewed option (in dropdown) */
   showMarkAllBotsViewed: boolean;
+  /** Show mark all bots group-confirmed option (in dropdown) */
+  showMarkAllBotsGroupConfirmed: boolean;
   /** Show clear all seats option (in dropdown) */
   showClearAllSeats: boolean;
   /** Callbacks */
   onFillWithBots: () => void;
   onMarkAllBotsViewed: () => void;
+  onMarkAllBotsGroupConfirmed: () => void;
   onClearAllSeats: () => void;
   onSettings: () => void;
   onUserSettings: () => void;
@@ -54,9 +57,11 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   showSettings,
   showFillWithBots,
   showMarkAllBotsViewed,
+  showMarkAllBotsGroupConfirmed,
   showClearAllSeats,
   onFillWithBots,
   onMarkAllBotsViewed,
+  onMarkAllBotsGroupConfirmed,
   onClearAllSeats,
   onSettings,
   onUserSettings,
@@ -83,6 +88,11 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     setMenuOpen(false);
     onMarkAllBotsViewed();
   }, [onMarkAllBotsViewed]);
+
+  const handleMarkAllBotsGroupConfirmed = useCallback(() => {
+    setMenuOpen(false);
+    onMarkAllBotsGroupConfirmed();
+  }, [onMarkAllBotsGroupConfirmed]);
 
   const handleClearAllSeats = useCallback(() => {
     setMenuOpen(false);
@@ -115,6 +125,7 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     showSettings ||
     showFillWithBots ||
     showMarkAllBotsViewed ||
+    showMarkAllBotsGroupConfirmed ||
     showClearAllSeats;
 
   return (
@@ -166,9 +177,10 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
 
                   {/* Gap: Actions → Operations */}
                   {(showShareRoom || showSettings || showUserSettings) &&
-                    (showClearAllSeats || showFillWithBots || showMarkAllBotsViewed) && (
-                      <View style={styles.sectionGap} />
-                    )}
+                    (showClearAllSeats ||
+                      showFillWithBots ||
+                      showMarkAllBotsViewed ||
+                      showMarkAllBotsGroupConfirmed) && <View style={styles.sectionGap} />}
 
                   {/* Group 3: Operations */}
                   {showClearAllSeats && (
@@ -187,6 +199,19 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                     <TouchableOpacity style={styles.menuItem} onPress={handleMarkAllBotsViewed}>
                       <Ionicons name="eye-outline" size={MENU_ICON_SIZE} color={colors.text} />
                       <Text style={styles.menuItemText}>标记机器人已查看</Text>
+                    </TouchableOpacity>
+                  )}
+                  {showMarkAllBotsGroupConfirmed && (
+                    <TouchableOpacity
+                      style={styles.menuItem}
+                      onPress={handleMarkAllBotsGroupConfirmed}
+                    >
+                      <Ionicons
+                        name="checkmark-done-outline"
+                        size={MENU_ICON_SIZE}
+                        color={colors.text}
+                      />
+                      <Text style={styles.menuItemText}>标记机器人已确认</Text>
                     </TouchableOpacity>
                   )}
                 </View>

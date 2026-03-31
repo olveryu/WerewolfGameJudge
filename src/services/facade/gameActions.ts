@@ -210,6 +210,12 @@ export const markAllBotsViewed = defineGameAction({
   path: '/game/mark-bots-viewed',
 });
 
+/** Host: 标记所有机器人已确认 groupConfirm 步骤（Debug-only） */
+export const markAllBotsGroupConfirmed = defineGameAction({
+  name: 'markAllBotsGroupConfirmed',
+  path: '/game/night/mark-bots-group-confirmed',
+});
+
 // =============================================================================
 // 玩家资料同步
 // =============================================================================

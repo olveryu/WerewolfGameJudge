@@ -31,6 +31,8 @@ export interface DebugModeState {
   fillWithBots: () => Promise<{ success: boolean; reason?: string }>;
   /** Mark all bot seats as having viewed their roles */
   markAllBotsViewed: () => Promise<{ success: boolean; reason?: string }>;
+  /** Mark all bot seats as having acked groupConfirm step */
+  markAllBotsGroupConfirmed: () => Promise<{ success: boolean; reason?: string }>;
 }
 
 /**
@@ -83,6 +85,17 @@ export function useDebugMode(
     return facade.markAllBotsViewed();
   }, [facade]);
 
+  // Mark all bot seats as having acked groupConfirm step
+  const markAllBotsGroupConfirmed = useCallback(async (): Promise<{
+    success: boolean;
+    reason?: string;
+  }> => {
+    if (!facade.isHostPlayer()) {
+      return { success: false, reason: 'host_only' };
+    }
+    return facade.markAllBotsGroupConfirmed();
+  }, [facade]);
+
   return {
     controlledSeat,
     setControlledSeat,
@@ -91,5 +104,6 @@ export function useDebugMode(
     isDebugMode,
     fillWithBots,
     markAllBotsViewed,
+    markAllBotsGroupConfirmed,
   };
 }

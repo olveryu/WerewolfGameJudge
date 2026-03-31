@@ -271,3 +271,71 @@ export const handleGroupConfirmAck: HandlerFn = async (req) => {
 
   return jsonResponse(result, resultToStatus(result));
 };
+
+/**
+ * Debug-only: batch-ack all bot seats for current groupConfirm step.
+ *
+ * Mirrors handleGroupConfirmAck but operates on all isBot players at once.
+ * Enables inline progression so the step auto-advances once all seats are acked.
+ */
+export const handleMarkBotsGroupConfirmed: HandlerFn = async (req) => {
+  const body = (await req.json()) as { roomCode?: string };
+  const { roomCode } = body;
+
+  if (!roomCode) {
+    return missingParams();
+  }
+
+  const result = await processGameAction(
+    roomCode,
+    (state: GameState) => {
+      // Gate: debug mode must be enabled
+      if (!state.debugMode?.botsEnabled) {
+        return { success: false, reason: 'debug_not_enabled', actions: [] };
+      }
+      // Gate: must be ongoing
+      if (state.status !== GameStatus.Ongoing) {
+        return { success: false, reason: 'not_ongoing', actions: [] };
+      }
+      // Gate: current step must be a groupConfirm schema
+      const stepId = state.currentStepId;
+      if (!stepId) {
+        return { success: false, reason: 'no_current_step', actions: [] };
+      }
+      const schema = SCHEMAS[stepId as SchemaId];
+      if (!schema || schema.kind !== 'groupConfirm') {
+        return { success: false, reason: 'not_group_confirm_step', actions: [] };
+      }
+
+      // Determine which ack array to use
+      const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
+      const isCupidLoversReveal = stepId === 'cupidLoversReveal';
+      const existingAcks = isConversionReveal
+        ? (state.conversionRevealAcks ?? [])
+        : isCupidLoversReveal
+          ? (state.cupidLoversRevealAcks ?? [])
+          : (state.piperRevealAcks ?? []);
+
+      // Build ack actions for all bot seats not yet acked
+      const actions: StateAction[] = [];
+      for (const [seatStr, player] of Object.entries(state.players)) {
+        if (!player?.isBot) continue;
+        const seat = Number.parseInt(seatStr, 10);
+        if (existingAcks.includes(seat)) continue; // idempotent
+
+        if (isConversionReveal) {
+          actions.push({ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat } });
+        } else if (isCupidLoversReveal) {
+          actions.push({ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } });
+        } else {
+          actions.push({ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } });
+        }
+      }
+
+      return { success: true, actions };
+    },
+    { enabled: true },
+  );
+
+  return jsonResponse(result, resultToStatus(result));
+};

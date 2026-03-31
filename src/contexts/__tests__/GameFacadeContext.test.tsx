@@ -28,6 +28,7 @@ function createFakeFacade(): IGameFacade {
     restartGame: async () => ({ success: true }),
     fillWithBots: async () => ({ success: true }),
     markAllBotsViewed: async () => ({ success: true }),
+    markAllBotsGroupConfirmed: async () => ({ success: true }),
     clearAllSeats: async () => ({ success: true }),
     markViewedRole: async () => ({ success: true }),
     submitAction: async () => ({ success: true }),

@@ -527,6 +527,16 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
+   * Host: 标记所有机器人已确认 groupConfirm 步骤（Debug-only）
+   *
+   * 批量为所有 isBot 玩家提交 groupConfirm ack。
+   * 仅在 debugMode.botsEnabled === true && status === Ongoing && 当前步骤为 groupConfirm 时可用。
+   */
+  async markAllBotsGroupConfirmed(): Promise<{ success: boolean; reason?: string }> {
+    return gameActions.markAllBotsGroupConfirmed(this.#getActionsContext());
+  }
+
+  /**
    * Host: 全员起立
    *
    * 清空所有座位上的玩家。仅在 unseated/seated 状态可用。

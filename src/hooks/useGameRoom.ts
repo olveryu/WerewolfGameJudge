@@ -70,6 +70,7 @@ interface UseGameRoomResult {
   isDebugMode: boolean;
   fillWithBots: () => Promise<{ success: boolean; reason?: string }>;
   markAllBotsViewed: () => Promise<{ success: boolean; reason?: string }>;
+  markAllBotsGroupConfirmed: () => Promise<{ success: boolean; reason?: string }>;
 
   // Night-derived (from useNightDerived)
   roomStatus: GameStatus;
@@ -315,6 +316,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     isDebugMode: debug.isDebugMode,
     fillWithBots: debug.fillWithBots,
     markAllBotsViewed: debug.markAllBotsViewed,
+    markAllBotsGroupConfirmed: debug.markAllBotsGroupConfirmed,
     // Night-derived
     roomStatus,
     currentActionRole: nightDerived.currentActionRole,
