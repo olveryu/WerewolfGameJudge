@@ -12,7 +12,7 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 - 测试断言基于 `GameState` 单一真相，禁止直接改 state / 注入 host-only 状态。
 - 测试文件允许 `as` 构造 mock 数据。允许 mock `src/utils/alert.ts` 的 `showAlert`。
 - Jest mock game-engine 模块用包路径 `@werewolf/game-engine/...`，禁止相对路径 mock 存根。静态分析测试从 `packages/game-engine/src/` 读取源文件。
-- 跑测试禁止 `| grep` / `| head` / `| tail` 截断输出。Playwright 必须加 `--reporter=list`。
+- 跑测试禁止 `| grep` / `| head` / `| tail` 截断输出。Playwright 默认使用 `--reporter=list`（如 `pnpm run e2e`）；若执行项目内调试脚本（`e2e:core` / `e2e:remote`）可按脚本使用 `--reporter=line`。
 - 修 bug 优先根因修复，回滚过时 patch。禁止无证据宣称"已修复"：需给 commit hash、修改文件、验证结果。
 
 ## Integration Board Tests（`boards/**`）
