@@ -153,7 +153,7 @@ NIGHT_STEPS (步骤序列)                Step sequence
 
 ### 环境要求 | Requirements
 
-- Node.js >= 20
+- Node.js >= 20.20.1
 - pnpm (项目使用 pnpm 管理依赖 | project uses pnpm)
 - Supabase CLI (可选 optional)
 
@@ -172,9 +172,12 @@ pnpm start
 
 # 4. 运行测试 | Run tests
 pnpm test                    # Unit tests (Jest)
-pnpm run e2e:core            # E2E tests (Playwright)
+pnpm run test:all            # Workspace unit/integration tests
+pnpm run e2e                 # E2E tests (Playwright, --reporter=list)
+pnpm run e2e:remote          # E2E against remote env
 pnpm run typecheck           # TypeScript check
 pnpm run lint                # ESLint
+pnpm run quality             # typecheck + lint + format + test:all
 ```
 
 ### 项目结构 | Project Structure
@@ -229,7 +232,7 @@ pnpm run release -- minor     # minor / major
 | 文档 Document                                        | 说明 Description                                                                     |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | [线下玩法 SOP](docs/offline-sop.md)                  | 完整的线下游戏流程指南<br/>_Complete offline game flow guide_                        |
-| [部署指南](docs/DEPLOYMENT.md)                       | Supabase + Vercel 完整部署流程<br/>_Full deployment with Supabase + Vercel_          |
+| [部署指南](docs/DEPLOYMENT.md)                       | 发版与部署流程（release + git push 自动部署）<br/>_Release & deployment workflow_    |
 | [角色对齐矩阵](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md) | Night-1 角色/Schema/Resolver 对齐<br/>_Night-1 role/schema/resolver alignment_       |
 | [服务器迁移](docs/server-authoritative-migration.md) | 服务器权威架构迁移方案（历史参考）<br/>_Server authoritative migration (historical)_ |
 

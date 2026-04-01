@@ -47,7 +47,7 @@ Some auth settings must be configured manually in the Dashboard:
 
 ### game — 游戏 API
 
-所有游戏逻辑由 `game` Edge Function 承载（服务端权威）。CI 会在 merge 到 main 时自动部署。
+所有游戏逻辑由 `game` Edge Function 承载（服务端权威）。GitHub CI 的 `deploy-edge-functions` job 会在主分支自动部署。
 
 ```bash
 supabase functions deploy game
@@ -74,6 +74,12 @@ supabase functions list
 
 > 客户端只需 Supabase URL + anon key 即可调用，无需知道 Gemini API Key。
 
+如需本地核验完整流程，建议先运行：
+
+```bash
+pnpm run quality
+```
+
 ## Environment Setup
 
 `.env`（已提交到 git）包含生产 Supabase 配置，clone 后即可使用。
@@ -92,7 +98,7 @@ bash scripts/setup-local-env.sh
 | File          | Purpose                                        |
 | ------------- | ---------------------------------------------- |
 | `config.toml` | Supabase CLI configuration                     |
-| `functions/`  | Edge Functions (game, gemini-proxy 等)         |
+| `functions/`  | Edge Functions (`game`, `gemini-proxy`)        |
 | `migrations/` | Database migrations (versioned schema changes) |
 
 ## Creating New Migrations

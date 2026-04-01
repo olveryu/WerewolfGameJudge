@@ -20,7 +20,7 @@
 ### 工具安装
 
 ```bash
-# Node.js (>= 20)
+# Node.js (>= 20.20.1)
 node --version
 
 # Supabase CLI
@@ -191,7 +191,7 @@ pnpm run release -- minor     # 或 minor / major
 
 # 2. 部署自动完成
 # git push 自动触发 Vercel Git Integration（执行 scripts/build.sh）
-# 同时触发 GitHub CI（quality + E2E）
+# 同时触发 GitHub CI（quality + deploy-edge-functions + E2E）
 # 无需手动操作
 ```
 
@@ -328,6 +328,7 @@ vercel alias set <old-deployment-url> werewolf-judge.vercel.app
 | 发版              | `pnpm run release` (patch) / `pnpm run release -- minor` |
 | 部署              | `git push` 自动触发 Vercel Git Integration               |
 | 应急手动部署      | `pnpm run deploy`（仅 Vercel 自动部署故障时）            |
+| 全量质量检查      | `pnpm run quality`                                       |
 | 推送数据库迁移    | `supabase db push`                                       |
 | 部署游戏 API      | `supabase functions deploy game`（CI 自动，手动备用）    |
 | 部署 AI 代理      | `supabase functions deploy gemini-proxy`                 |

@@ -135,6 +135,34 @@
         }
       }
 
+      /* Indeterminate progress bar — matches LoadingScreen component */
+      #splash-screen .progress-track {
+        width: 60%;
+        max-width: 240px;
+        height: 3px;
+        border-radius: 2px;
+        background-color: #dddde3;
+        overflow: hidden;
+        margin-top: 20px;
+      }
+
+      #splash-screen .progress-bar {
+        width: 30%;
+        height: 100%;
+        border-radius: 2px;
+        background-color: #6366f1;
+        animation: slide 1.5s linear infinite;
+      }
+
+      @keyframes slide {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(333%);
+        }
+      }
+
       /* 微信 WebView 引导蒙层 */
       #wechat-guide {
         display: none;
@@ -231,6 +259,7 @@
     <div id="splash-screen">
       <img src="/assets/pwa/icon-192.png" alt="狼人杀电子法官" />
       <div class="loading-text">加载中...</div>
+      <div class="progress-track"><div class="progress-bar"></div></div>
     </div>
 
     <div id="root"></div>
