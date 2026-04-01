@@ -375,6 +375,13 @@ export const BoardPickerScreen: React.FC = () => {
     [filtered, selectedRoleIds],
   );
   const allSections = useMemo(() => groupTemplatesByCategory(roleFiltered), [roleFiltered]);
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<TemplateCategory, number>();
+    for (const s of allSections) {
+      counts.set(s.category, s.data.length);
+    }
+    return counts;
+  }, [allSections]);
   const sections = useMemo(
     () =>
       activeCategory === null
@@ -572,6 +579,7 @@ export const BoardPickerScreen: React.FC = () => {
         <View style={styles.tabBar}>
           {CATEGORY_TABS.map((cat) => {
             const isActive = activeCategory === cat;
+            const count = categoryCounts.get(cat) ?? 0;
             return (
               <Pressable
                 key={cat}
@@ -579,7 +587,7 @@ export const BoardPickerScreen: React.FC = () => {
                 onPress={() => handleTabPress(cat)}
               >
                 <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {TEMPLATE_CATEGORY_LABELS[cat]}
+                  {TEMPLATE_CATEGORY_LABELS[cat]} {count}
                 </Text>
               </Pressable>
             );
