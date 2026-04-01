@@ -30,7 +30,7 @@ import {
 
 // ── Types ────────────────────────────────────────────────
 
-export interface FormTextFieldProps extends Omit<TextInputProps, 'style'> {
+interface FormTextFieldProps extends Omit<TextInputProps, 'style'> {
   /** 变体：'default' = 有边框表单字段 | 'search' = 圆角搜索栏（含容器） */
   variant?: 'default' | 'search';
   /** 左侧图标（Ionicons name），search 变体渲染在容器内 */

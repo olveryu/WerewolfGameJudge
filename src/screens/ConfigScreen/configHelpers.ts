@@ -156,7 +156,7 @@ export const expandSlotToChipEntries = (
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Faction statistics for a template */
-export interface FactionStats {
+interface FactionStats {
   wolfCount: number;
   godCount: number;
   villagerCount: number;
@@ -164,7 +164,7 @@ export interface FactionStats {
 }
 
 /** Role display item (roleId + displayName + count) */
-export interface TemplateRoleItem {
+interface TemplateRoleItem {
   roleId: string;
   displayName: string;
   count: number;

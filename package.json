@@ -107,7 +107,6 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "react-test-renderer": "19.2.0",
-    "sharp": "^0.34.5",
     "ts-jest": "^29.4.6",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.1"
