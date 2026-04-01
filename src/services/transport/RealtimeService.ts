@@ -188,14 +188,20 @@ export class RealtimeService {
     this.#channel = null;
     try {
       await channelRef.unsubscribe();
-      await supabase?.removeChannel(channelRef);
-      // Splice zombie (same workaround as leaveRoom — see comment there)
-      const channels = supabase?.realtime.getChannels() ?? [];
-      const idx = channels.indexOf(channelRef);
-      if (idx !== -1) channels.splice(idx, 1);
     } catch {
-      realtimeLog.warn('cleanupChannel: error during teardown (ignored)');
+      realtimeLog.warn('cleanupChannel: unsubscribe error (ignored)');
     }
+    try {
+      await supabase?.removeChannel(channelRef);
+    } catch {
+      realtimeLog.warn('cleanupChannel: removeChannel error (ignored)');
+    }
+    // Splice zombie unconditionally (same workaround as leaveRoom — see comment there).
+    // Must run even if unsubscribe/removeChannel threw, otherwise SDK reuses the
+    // zombie channel on next supabase.channel(sameTopic) → "cannot add callbacks after subscribe".
+    const channels = supabase?.realtime.getChannels() ?? [];
+    const idx = channels.indexOf(channelRef);
+    if (idx !== -1) channels.splice(idx, 1);
   }
 
   /**
@@ -237,7 +243,8 @@ export class RealtimeService {
       onDbStateChange: callbacks.onDbStateChange,
     };
 
-    // Attempt subscribe, retry once on timeout with fresh transport
+    // Attempt subscribe, retry once on transient failure with fresh transport.
+    // Transient = timeout (WS establishment delay) or CLOSED (Mobile Safari WS drop).
     const SUBSCRIBE_MAX_ATTEMPTS = 2;
     for (let attempt = 1; attempt <= SUBSCRIBE_MAX_ATTEMPTS; attempt++) {
       this.#createChannel(roomCode);
@@ -249,11 +256,14 @@ export class RealtimeService {
         // Clean up failed channel to prevent zombie status corruption
         await this.#cleanupChannel();
 
-        const isTimeout = err instanceof Error && err.message.includes('subscribe timeout');
+        const isTransient =
+          err instanceof Error &&
+          (err.message.includes('subscribe timeout') ||
+            err.message.includes('channel closed before subscribe'));
 
-        if (isTimeout && attempt < SUBSCRIBE_MAX_ATTEMPTS) {
+        if (isTransient && attempt < SUBSCRIBE_MAX_ATTEMPTS) {
           realtimeLog.warn(
-            `Subscribe timeout (attempt ${attempt}/${SUBSCRIBE_MAX_ATTEMPTS}), retrying with fresh transport`,
+            `Subscribe failed (attempt ${attempt}/${SUBSCRIBE_MAX_ATTEMPTS}): ${err instanceof Error ? err.message : err}, retrying with fresh transport`,
           );
           // Force-close stale WS so next subscribe opens a fresh one
           supabase?.realtime.disconnect();
@@ -262,7 +272,7 @@ export class RealtimeService {
           continue;
         }
 
-        // Non-timeout error or final attempt — propagate
+        // Non-transient error or final attempt — propagate
         throw err;
       }
     }
@@ -330,22 +340,30 @@ export class RealtimeService {
   async leaveRoom(): Promise<void> {
     if (this.#channel) {
       const channelRef = this.#channel;
-      await channelRef.unsubscribe();
+      this.#channel = null;
+      try {
+        await channelRef.unsubscribe();
+      } catch {
+        realtimeLog.warn('leaveRoom: unsubscribe error (ignored)');
+      }
       // removeChannel cleans up the channel from supabase client's internal tracking.
       // Must await: removeChannel may call disconnect() when last channel removed,
       // which would tear down a concurrently-created new channel if not serialized.
-      await supabase?.removeChannel(channelRef);
+      try {
+        await supabase?.removeChannel(channelRef);
+      } catch {
+        realtimeLog.warn('leaveRoom: removeChannel error (ignored)');
+      }
 
       // Workaround: realtime-js ≥2.99.3 (PR #2119 phoenix migration) removed
       // the _remove(channel) call from removeChannel(), leaving zombie channels
       // in channels[]. Next supabase.channel(sameTopic) finds the zombie (state=leaving)
       // → subscribe() skips join logic → 8s timeout → infinite reconnect loop.
       // Manually splice the zombie out to restore pre-2.99.3 behavior.
+      // Must run unconditionally — even if unsubscribe/removeChannel threw.
       const channels = supabase?.realtime.getChannels() ?? [];
       const idx = channels.indexOf(channelRef);
       if (idx !== -1) channels.splice(idx, 1);
-
-      this.#channel = null;
     }
     this.#onDbStateChange = null;
     this.#lastJoinParams = null;
