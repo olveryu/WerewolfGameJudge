@@ -14,6 +14,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
+import { AvatarPickerScreen } from '@/screens/AvatarPickerScreen/AvatarPickerScreen';
 import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
@@ -67,6 +68,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       },
       Settings: 'settings',
       Encyclopedia: 'encyclopedia',
+      AvatarPicker: 'avatar-picker',
     },
   },
   // Strip non-serializable params (template, roleRevealAnimation) from browser URL
@@ -121,6 +123,11 @@ export const AppNavigator: React.FC = () => {
           name="Encyclopedia"
           component={EncyclopediaScreen}
           options={{ title: '角色图鉴', presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+          name="AvatarPicker"
+          component={AvatarPickerScreen}
+          options={{ title: '选择形象' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

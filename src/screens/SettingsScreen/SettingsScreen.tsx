@@ -10,7 +10,6 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import * as ImagePicker from 'expo-image-picker';
 import React, {
   useCallback,
   useEffect,
@@ -23,7 +22,6 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmailForm, LoginOptions } from '@/components/auth';
-import type { FrameId } from '@/components/avatarFrames';
 import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { SETTINGS_GUIDE } from '@/config/guideContent';
@@ -35,19 +33,12 @@ import { RootStackParamList } from '@/navigation/types';
 import { componentSizes, fixed, ThemeKey, typography, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
-import {
-  AVATAR_KEYS,
-  BUILTIN_AVATAR_PREFIX,
-  getBuiltinAvatarImage,
-  isBuiltinAvatarUrl,
-  makeBuiltinAvatarUrl,
-} from '@/utils/avatar';
+import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
 import { isExpectedAuthError, mapAuthError, settingsLog } from '@/utils/logger';
 
 import {
   AboutSection,
-  AvatarPickerSheet,
   AvatarSection,
   createSettingsScreenStyles,
   NameSection,
@@ -64,7 +55,6 @@ export const SettingsScreen: React.FC = () => {
     signOut,
     isAuthenticated,
     updateProfile,
-    uploadAvatar,
     error: authError,
     loading: authLoading,
   } = useAuth();
@@ -129,14 +119,10 @@ export const SettingsScreen: React.FC = () => {
   // Edit profile state
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const [savingBuiltinAvatar, setSavingBuiltinAvatar] = useState(false);
 
   // Reset transient states when screen regains focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      setUploadingAvatar(false);
       setIsEditingName(false);
     });
     return unsubscribe;
@@ -153,13 +139,6 @@ export const SettingsScreen: React.FC = () => {
     return null; // default → AvatarSection uses Avatar component
   }, [user?.isAnonymous, user?.avatarUrl]);
 
-  // Resolve current builtin avatar index (-1 if not builtin)
-  const currentBuiltinIndex = useMemo(() => {
-    if (!user?.avatarUrl || !isBuiltinAvatarUrl(user.avatarUrl)) return -1;
-    const key = user.avatarUrl.slice(BUILTIN_AVATAR_PREFIX.length);
-    return AVATAR_KEYS.indexOf(key);
-  }, [user?.avatarUrl]);
-
   // ============================================
   // Stable callback handlers
   // ============================================
@@ -173,118 +152,8 @@ export const SettingsScreen: React.FC = () => {
   }, [navigation]);
 
   const handlePickAvatar = useCallback(() => {
-    setShowAvatarPicker(true);
-  }, []);
-
-  const handleCloseAvatarPicker = useCallback(() => {
-    setShowAvatarPicker(false);
-  }, []);
-
-  const handleSelectBuiltinAvatar = useCallback(
-    async (index: number) => {
-      const builtinUrl = makeBuiltinAvatarUrl(index);
-      setSavingBuiltinAvatar(true);
-      try {
-        await updateProfile({ avatarUrl: builtinUrl });
-        showAlert('头像已更新');
-        setShowAvatarPicker(false);
-
-        // Sync to GameState (if in room & seated, silent failure is fine)
-        facade
-          .updatePlayerProfile(undefined, builtinUrl)
-          .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
-      } catch (e: unknown) {
-        const message = getErrorMessage(e);
-        settingsLog.error('Builtin avatar save failed:', message, e);
-        showErrorAlert('保存失败', message);
-      } finally {
-        setSavingBuiltinAvatar(false);
-      }
-    },
-    [updateProfile, facade],
-  );
-
-  const handleSelectCustomAvatar = useCallback(async () => {
-    if (!user?.customAvatarUrl) return;
-    setSavingBuiltinAvatar(true);
-    try {
-      await updateProfile({ avatarUrl: user.customAvatarUrl });
-      showAlert('头像已更新');
-      setShowAvatarPicker(false);
-
-      facade
-        .updatePlayerProfile(undefined, user.customAvatarUrl)
-        .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
-    } catch (e: unknown) {
-      const message = getErrorMessage(e);
-      settingsLog.error('Custom avatar restore failed:', message, e);
-      showErrorAlert('保存失败', message);
-    } finally {
-      setSavingBuiltinAvatar(false);
-    }
-  }, [user?.customAvatarUrl, updateProfile, facade]);
-
-  const handleUploadFromPicker = useCallback(async () => {
-    setShowAvatarPicker(false);
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        showAlert('需要相册权限才能选择头像');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setUploadingAvatar(true);
-        try {
-          const url = await uploadAvatar(result.assets[0].uri);
-          showAlert('头像已更新');
-
-          facade
-            .updatePlayerProfile(undefined, url)
-            .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
-        } catch (e: unknown) {
-          const message = getErrorMessage(e);
-          settingsLog.error('Avatar upload failed:', message, e);
-          showErrorAlert('上传失败', message);
-        } finally {
-          setUploadingAvatar(false);
-        }
-      }
-    } catch (e: unknown) {
-      const message = getErrorMessage(e);
-      settingsLog.warn('Image picker failed:', message, e);
-      showErrorAlert('选择图片失败', message);
-    }
-  }, [uploadAvatar, facade]);
-
-  const handleSelectFrame = useCallback(
-    async (frameId: FrameId | null) => {
-      setSavingBuiltinAvatar(true);
-      try {
-        await updateProfile({ avatarFrame: frameId ?? '' });
-        showAlert('头像框已更新');
-        setShowAvatarPicker(false);
-
-        facade
-          .updatePlayerProfile(undefined, undefined, frameId ?? '')
-          .catch((err: unknown) => settingsLog.warn('Frame sync to GameState failed:', err));
-      } catch (e: unknown) {
-        const message = getErrorMessage(e);
-        settingsLog.error('Frame save failed:', message, e);
-        showErrorAlert('保存失败', message);
-      } finally {
-        setSavingBuiltinAvatar(false);
-      }
-    },
-    [updateProfile, facade],
-  );
+    navigation.navigate('AvatarPicker');
+  }, [navigation]);
 
   const handleUpdateName = useCallback(async () => {
     if (!editName.trim()) {
@@ -464,7 +333,7 @@ export const SettingsScreen: React.FC = () => {
               avatarSource={avatarSource}
               avatarUrl={user?.avatarUrl}
               avatarFrame={user?.avatarFrame}
-              uploadingAvatar={uploadingAvatar}
+              uploadingAvatar={false}
               displayName={user?.displayName ?? null}
               onPickAvatar={handlePickAvatar}
               styles={styles}
@@ -529,7 +398,7 @@ export const SettingsScreen: React.FC = () => {
               avatarSource={avatarSource}
               avatarUrl={user?.avatarUrl}
               avatarFrame={user?.avatarFrame}
-              uploadingAvatar={uploadingAvatar}
+              uploadingAvatar={false}
               displayName={user?.displayName ?? null}
               onPickAvatar={handlePickAvatar}
               styles={styles}
@@ -632,6 +501,7 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.cardTitle}>
             <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户
           </Text>
+          {/* eslint-disable-next-line react-hooks/refs -- wasAuthenticatedRef is intentionally read during render to suppress LoginOptions flash during transient auth state */}
           {renderAuthSection()}
         </View>
 
@@ -657,26 +527,6 @@ export const SettingsScreen: React.FC = () => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-
-      {/* Avatar picker — readOnly browse for anonymous, full edit for registered */}
-      <AvatarPickerSheet
-        visible={showAvatarPicker}
-        currentIndex={currentBuiltinIndex}
-        customAvatarUrl={user?.customAvatarUrl ?? undefined}
-        currentFrameId={user?.avatarFrame ?? null}
-        uid={user?.uid ?? 'anonymous'}
-        currentAvatarUrl={user?.avatarUrl}
-        saving={savingBuiltinAvatar}
-        readOnly={user?.isAnonymous ?? false}
-        onSelect={handleSelectBuiltinAvatar}
-        onSelectCustom={handleSelectCustomAvatar}
-        onUpload={handleUploadFromPicker}
-        onSelectFrame={handleSelectFrame}
-        onUpgrade={handleShowUpgradeForm}
-        onClose={handleCloseAvatarPicker}
-        styles={styles}
-        colors={colors}
-      />
 
       {/* Page Guide */}
       <PageGuideModal

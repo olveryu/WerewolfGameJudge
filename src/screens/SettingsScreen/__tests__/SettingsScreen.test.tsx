@@ -34,12 +34,6 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-// Mock expo-image-picker
-jest.mock('expo-image-picker', () => ({
-  launchImageLibraryAsync: jest.fn(),
-  MediaTypeOptions: { Images: 'Images' },
-}));
-
 // Mock utils
 jest.mock('../../../utils/alert', () => ({
   ...jest.requireActual('../../../utils/alert'),
@@ -47,13 +41,9 @@ jest.mock('../../../utils/alert', () => ({
 }));
 
 jest.mock('../../../utils/avatar', () => ({
+  AVATAR_IMAGES: Array.from({ length: 8 }, (_, i) => i),
   isBuiltinAvatarUrl: jest.fn(() => false),
   getBuiltinAvatarImage: jest.fn(() => 1),
-  makeBuiltinAvatarUrl: jest.fn(
-    (i: number) => `builtin://villager_${String(i + 1).padStart(3, '0')}`,
-  ),
-  BUILTIN_AVATAR_PREFIX: 'builtin://',
-  AVATAR_IMAGES: [],
   getAvatarImageByIndex: jest.fn(() => 1),
 }));
 

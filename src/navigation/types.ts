@@ -20,6 +20,7 @@ export type RootStackParamList = {
   };
   Settings: undefined;
   Encyclopedia: undefined;
+  AvatarPicker: undefined;
 };
 
 // For type-safe navigation
