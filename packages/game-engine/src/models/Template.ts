@@ -205,6 +205,24 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
+    name: '白狼王守卫',
+    category: TemplateCategory.Classic,
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'wolfKing',
+      'seer',
+      'witch',
+      'hunter',
+      'guard',
+    ],
+  },
+  {
     name: '石像鬼守墓人',
     category: TemplateCategory.Advanced,
     roles: [

@@ -33,9 +33,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 21) {
+  if (boards.length !== 22) {
     throw new Error(
-      `Expected exactly 21 presets, but got ${boards.length}. ` +
+      `Expected exactly 22 presets, but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -216,6 +216,7 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   预女猎白: 'standard.12p.board.ui.test.tsx',
   狼美守卫: 'wolfQueen.12p.board.ui.test.tsx',
   狼王守卫: 'darkWolfKing.12p.board.ui.test.tsx',
+  白狼王守卫: 'wolfKing.12p.board.ui.test.tsx',
   石像鬼守墓人: 'gargoyle.12p.board.ui.test.tsx',
   梦魇守卫: 'nightmare.12p.board.ui.test.tsx',
   血月猎魔: 'bloodMoon.12p.board.ui.test.tsx',
