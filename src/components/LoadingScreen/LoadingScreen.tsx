@@ -4,8 +4,8 @@
  * 带有 logo 脉冲动画，与 PWA 启动画面保持一致。
  * 渲染加载状态 UI 与脉冲动画。不 import service，不含业务逻辑。
  */
-import { useEffect, useRef } from 'react';
-import { Animated, Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Image, LayoutChangeEvent, Platform, StyleSheet, Text, View } from 'react-native';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -26,12 +26,50 @@ interface LoadingScreenProps {
  * 统一的加载界面组件
  * 带有 logo 脉冲动画，与 PWA 启动画面保持一致
  */
+/** Width of the sliding bar relative to track width */
+const BAR_WIDTH_RATIO = 0.3;
+/** Full cycle duration for the sliding animation */
+const PROGRESS_DURATION_MS = 1_500;
+
 export function LoadingScreen({ message = '加载中…', fullScreen = true }: LoadingScreenProps) {
   const { colors } = useTheme();
   const pulseAnimRef = useRef(new Animated.Value(1));
   // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: read Animated.Value from ref during render to bind into styles.
   const pulseAnim = pulseAnimRef.current;
 
+  // ── Indeterminate progress bar ──
+  const progressRef = useRef(new Animated.Value(0));
+  const progress = progressRef.current;
+  const [trackWidth, setTrackWidth] = useState(0);
+
+  const handleTrackLayout = (e: LayoutChangeEvent) => setTrackWidth(e.nativeEvent.layout.width);
+
+  const barPixelWidth = trackWidth * BAR_WIDTH_RATIO;
+  const translateX = useMemo(
+    () =>
+      // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: interpolate Animated.Value during render.
+      progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-barPixelWidth, trackWidth],
+      }),
+    [progress, barPixelWidth, trackWidth],
+  );
+
+  useEffect(() => {
+    if (trackWidth === 0) return;
+    const animation = Animated.loop(
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: PROGRESS_DURATION_MS,
+        useNativeDriver: USE_NATIVE_DRIVER,
+      }),
+    );
+    animation.start();
+    return () => animation.stop();
+    // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: Animated.Value in effect deps.
+  }, [progress, trackWidth]);
+
+  // ── Pulse animation ──
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
@@ -81,6 +119,18 @@ export function LoadingScreen({ message = '加载中…', fullScreen = true }: L
         <Image source={appIcon} style={styles.icon} resizeMode="contain" />
       </Animated.View>
       <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
+      {/* Indeterminate progress bar */}
+      <View
+        style={[styles.progressTrack, { backgroundColor: colors.border }]}
+        onLayout={handleTrackLayout}
+      >
+        <Animated.View
+          style={[
+            styles.progressBar,
+            { width: barPixelWidth, backgroundColor: colors.primary, transform: [{ translateX }] },
+          ]}
+        />
+      </View>
     </View>
   );
 }
@@ -111,5 +161,16 @@ const styles = StyleSheet.create({
   message: {
     fontSize: typography.secondary,
     lineHeight: typography.lineHeights.secondary,
+  },
+  progressTrack: {
+    width: '60%',
+    height: 3,
+    borderRadius: borderRadius.small,
+    overflow: 'hidden',
+    marginTop: spacing.large,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: borderRadius.small,
   },
 });
