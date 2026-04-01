@@ -41,6 +41,7 @@ import {
   AVATAR_KEYS,
   BUILTIN_AVATAR_PREFIX,
   getAvatarImageByIndex,
+  getAvatarThumbByIndex,
   isBuiltinAvatarUrl,
   makeBuiltinAvatarUrl,
 } from '@/utils/avatar';
@@ -328,7 +329,7 @@ export const AvatarPickerScreen: React.FC = () => {
 
       const isCurrentlyUsed = item.index === currentBuiltinIndex;
       const isSelected = item.index === selected;
-      const imageSource = getAvatarImageByIndex(item.index);
+      const imageSource = getAvatarThumbByIndex(item.index);
 
       return (
         <AvatarCell

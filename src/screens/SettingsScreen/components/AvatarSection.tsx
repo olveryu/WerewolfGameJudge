@@ -20,7 +20,7 @@ import { Avatar } from '@/components/Avatar';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { UI_ICONS } from '@/config/iconTokens';
 import { componentSizes, fixed, ThemeColors } from '@/theme';
-import { AVATAR_IMAGES, getAvatarImageByIndex } from '@/utils/avatar';
+import { AVATAR_IMAGES, getAvatarThumbByIndex } from '@/utils/avatar';
 
 import { SettingsScreenStyles } from './styles';
 
@@ -78,7 +78,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
               {PREVIEW_STRIP_INDICES.map((avatarIdx) => (
                 <Image
                   key={avatarIdx}
-                  source={getAvatarImageByIndex(avatarIdx) as ImageSourcePropType}
+                  source={getAvatarThumbByIndex(avatarIdx) as ImageSourcePropType}
                   style={styles.avatarPreviewItem}
                   resizeMode="cover"
                 />

@@ -45,6 +45,7 @@ jest.mock('../../../utils/avatar', () => ({
   isBuiltinAvatarUrl: jest.fn(() => false),
   getBuiltinAvatarImage: jest.fn(() => 1),
   getAvatarImageByIndex: jest.fn(() => 1),
+  getAvatarThumbByIndex: jest.fn(() => 1),
 }));
 
 jest.mock('../../../utils/defaultAvatarIcons', () => ({

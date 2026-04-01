@@ -11,7 +11,7 @@ import { Image, ImageSourcePropType, Text, TouchableOpacity, View } from 'react-
 import { UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import { fixed, typography } from '@/theme';
-import { AVATAR_IMAGES, getAvatarImageByIndex } from '@/utils/avatar';
+import { AVATAR_IMAGES, getAvatarThumbByIndex } from '@/utils/avatar';
 
 import { type LoginOptionsProps } from './types';
 
@@ -46,7 +46,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
             {STRIP_INDICES.map((avatarIdx) => (
               <Image
                 key={avatarIdx}
-                source={getAvatarImageByIndex(avatarIdx) as ImageSourcePropType}
+                source={getAvatarThumbByIndex(avatarIdx) as ImageSourcePropType}
                 style={styles.avatarStripImage}
                 resizeMode="cover"
               />
