@@ -194,6 +194,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const config = CONFIG.roulette;
 
   const [phase, setPhase] = useState<'idle' | 'spinning' | 'stopping' | 'revealed'>('idle');
+  const [credit, setCredit] = useState(1);
   const [shuffledRoles] = useState<RoleData[]>(() => {
     const unique = [...new Set(allRoles.map((r) => r.id))];
     const roles = unique.map((id) => allRoles.find((r) => r.id === id)!);
@@ -319,6 +320,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     if (phase !== 'idle') return;
 
     setPhase('spinning');
+    setCredit(0);
     if (enableHaptics) triggerHaptic('medium', true);
 
     const targetPosition = config.spinRotations * shuffledRoles.length + targetIndex;
@@ -602,7 +604,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
       {/* LED credit display — below machine */}
       <Animated.View style={[styles.ledDisplay, creditStyle]} pointerEvents="none">
-        <Text style={styles.ledText}>CREDIT: 00</Text>
+        <Text style={styles.ledText}>CREDIT: {String(credit).padStart(2, '0')}</Text>
       </Animated.View>
 
       {/* Light pillars — glow when stopping */}
@@ -861,7 +863,7 @@ const styles = StyleSheet.create({
   },
   spinButton: {
     position: 'absolute',
-    bottom: 120,
+    bottom: 155,
     alignSelf: 'center',
     paddingHorizontal: 32,
     paddingVertical: 12,
@@ -898,7 +900,7 @@ const styles = StyleSheet.create({
   },
   ledDisplay: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 115,
     backgroundColor: SLOT_COLORS.ledBg,
     paddingHorizontal: 16,
     paddingVertical: 4,
