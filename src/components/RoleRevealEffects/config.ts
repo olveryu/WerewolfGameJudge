@@ -358,6 +358,66 @@ export const CONFIG = {
   },
 
   // =====================================================
+  // Meteor Strike (流星坠落)
+  // =====================================================
+  meteorStrike: {
+    /** Atmosphere intro duration before meteor appears (ms) */
+    atmosphereDuration: 1400,
+    /** Number of background stars */
+    starCount: 120,
+    /** Meteor speed (px per 16ms frame) */
+    meteorSpeed: 5,
+    /** Hit radius for catching the meteor (px) */
+    catchRadius: 80,
+    /** Number of impact explosion particles */
+    impactParticleCount: 50,
+    /** Meteor trail point count */
+    trailLength: 20,
+    /** Trail point update interval (frames) */
+    trailUpdateInterval: 2,
+    /** Trail point fade duration (ms) */
+    trailFadeDuration: 600,
+    /** Duration for meteor to animate to impact point (ms) */
+    impactAnimDuration: 400,
+    /** Shockwave expand duration (ms) */
+    shockwaveDuration: 800,
+    /** Explosion particle duration (ms) */
+    explosionDuration: 1000,
+    /** Delay before card appears after impact (ms) */
+    cardRevealDelay: 400,
+    /** Card scale-in duration (ms) */
+    cardRevealDuration: 400,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 0,
+  },
+
+  // =====================================================
+  // Film Rewind (胶片倒放)
+  // =====================================================
+  filmRewind: {
+    /** Atmosphere intro duration (ms) */
+    atmosphereDuration: 1000,
+    /** Film border strip width (px) */
+    filmBorderWidth: 30,
+    /** Sprocket hole vertical spacing (px) */
+    sprocketSpacing: 50,
+    /** Number of vertical scratch lines */
+    scratchCount: 4,
+    /** Number of grain noise particles */
+    grainCount: 200,
+    /** Countdown starting number */
+    countdownFrom: 5,
+    /** Interval between countdown ticks (ms) */
+    countdownInterval: 700,
+    /** Delay before card appears after countdown reaches 0 (ms) */
+    cardRevealDelay: 300,
+    /** Card scale-in duration (ms) */
+    cardRevealDuration: 400,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 0,
+  },
+
+  // =====================================================
   // Charge-up phase (pre-reveal anticipation)
   // =====================================================
   chargeUp: {

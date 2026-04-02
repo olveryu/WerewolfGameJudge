@@ -16,6 +16,8 @@
  * - sealBreak: 封印解除动画
  * - chainShatter: 锁链粉碎动画
  * - fortuneWheel: 命运转盘动画
+ * - meteorStrike: 流星捕获动画
+ * - filmRewind: 胶片倒带动画
  * - none: 无动画（简单卡片）
  * - random: 随机选择（Host 解析后广播）
  */
@@ -29,6 +31,8 @@ export type RoleRevealAnimation =
   | 'sealBreak'
   | 'chainShatter'
   | 'fortuneWheel'
+  | 'meteorStrike'
+  | 'filmRewind'
   | 'none'
   | 'random';
 
@@ -47,6 +51,8 @@ export type ResolvedRoleRevealAnimation =
   | 'sealBreak'
   | 'chainShatter'
   | 'fortuneWheel'
+  | 'meteorStrike'
+  | 'filmRewind'
   | 'none';
 
 /**
@@ -61,7 +67,9 @@ export type RandomizableAnimation =
   | 'cardPick'
   | 'sealBreak'
   | 'chainShatter'
-  | 'fortuneWheel';
+  | 'fortuneWheel'
+  | 'meteorStrike'
+  | 'filmRewind';
 
 /**
  * 可随机选择的动画数组（用于 random 解析）
@@ -76,6 +84,8 @@ export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
   'sealBreak',
   'chainShatter',
   'fortuneWheel',
+  'meteorStrike',
+  'filmRewind',
 ] as const;
 
 /**

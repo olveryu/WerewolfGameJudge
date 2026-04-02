@@ -116,6 +116,20 @@ export const ANIMATION_OPTIONS = [
     operationType: 'drag',
   },
   {
+    value: 'meteorStrike',
+    label: '流星',
+    icon: 'flash-outline',
+    shortDesc: '点击捕获流星，冲击波揭晓身份',
+    operationType: 'tap',
+  },
+  {
+    value: 'filmRewind',
+    label: '胶片',
+    icon: 'film-outline',
+    shortDesc: '老胶片倒数放映，自动揭晓身份',
+    operationType: 'auto',
+  },
+  {
     value: 'none',
     label: '关闭',
     icon: 'close-circle-outline',

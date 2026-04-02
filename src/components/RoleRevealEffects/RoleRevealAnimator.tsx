@@ -14,8 +14,10 @@ import { log } from '@/utils/logger';
 import { CardPick } from './CardPick';
 import { ChainShatter } from './ChainShatter';
 import { EnhancedRoulette } from './EnhancedRoulette';
+import { FilmRewind } from './FilmRewind';
 import { FortuneWheel } from './FortuneWheel';
 import { GachaMachine } from './GachaMachine';
+import { MeteorStrike } from './MeteorStrike';
 import { RoleHunt } from './RoleHunt';
 import { ScratchReveal } from './ScratchReveal';
 import { SealBreak } from './SealBreak';
@@ -23,7 +25,7 @@ import { TarotDraw } from './TarotDraw';
 import type { RevealEffectType, RoleData, RoleRevealAnimatorProps } from './types';
 
 /** 自动播放的效果类型（无需手动操作） */
-const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set([]);
+const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set(['filmRewind']);
 
 /** 根据效果类型选择标题：手动操作类引导用户操作，自动类告知即将揭晓 */
 function getTitleForEffect(effectType: RevealEffectType): string {
@@ -102,6 +104,10 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
         return <ChainShatter {...commonProps} />;
       case 'fortuneWheel':
         return <FortuneWheel {...commonProps} allRoles={rouletteRoles} />;
+      case 'meteorStrike':
+        return <MeteorStrike {...commonProps} />;
+      case 'filmRewind':
+        return <FilmRewind {...commonProps} />;
       default:
         // Default to roleHunt if unknown effect type
         return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;

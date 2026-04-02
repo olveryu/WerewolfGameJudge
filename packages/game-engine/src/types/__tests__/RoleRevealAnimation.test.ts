@@ -4,8 +4,8 @@
  * Key contracts:
  * - 'random' is a valid RoleRevealAnimation config value
  * - resolveRandomAnimation() is deterministic (same seed → same result)
- * - resolveRandomAnimation() only returns one of the 9 animation types (never 'none' or 'random')
- * - ANIMATION_VALUES contains exactly the 9 animation types
+ * - resolveRandomAnimation() only returns one of the 11 animation types (never 'none' or 'random')
+ * - ANIMATION_VALUES contains exactly the 11 animation types
  */
 
 import {
@@ -17,8 +17,8 @@ import {
 
 describe('RoleRevealAnimation', () => {
   describe('RANDOMIZABLE_ANIMATIONS', () => {
-    it('should contain exactly 9 animation types', () => {
-      expect(RANDOMIZABLE_ANIMATIONS).toHaveLength(9);
+    it('should contain exactly 11 animation types', () => {
+      expect(RANDOMIZABLE_ANIMATIONS).toHaveLength(11);
     });
 
     it('should contain all expected animations', () => {
@@ -31,6 +31,8 @@ describe('RoleRevealAnimation', () => {
       expect(RANDOMIZABLE_ANIMATIONS).toContain('sealBreak');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('chainShatter');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('fortuneWheel');
+      expect(RANDOMIZABLE_ANIMATIONS).toContain('meteorStrike');
+      expect(RANDOMIZABLE_ANIMATIONS).toContain('filmRewind');
     });
 
     it('should NOT contain "none"', () => {
@@ -71,14 +73,14 @@ describe('RoleRevealAnimation', () => {
       }
     });
 
-    it('should distribute across all 9 animation types', () => {
+    it('should distribute across all 11 animation types', () => {
       // Generate results for many different seeds
       const results = new Set<ResolvedRoleRevealAnimation>();
       for (let i = 0; i < 1000; i++) {
         results.add(resolveRandomAnimation(`seed-${i}`));
       }
-      // Should eventually hit all 9 animations (probabilistic but very likely with 1000 samples)
-      expect(results.size).toBe(9);
+      // Should eventually hit all 11 animations (probabilistic but very likely with 1000 samples)
+      expect(results.size).toBe(11);
     });
 
     it('should return valid ResolvedRoleRevealAnimation type', () => {

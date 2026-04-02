@@ -42,7 +42,9 @@ export type RevealEffectType =
   | 'cardPick'
   | 'sealBreak'
   | 'chainShatter'
-  | 'fortuneWheel';
+  | 'fortuneWheel'
+  | 'meteorStrike'
+  | 'filmRewind';
 
 /**
  * Common props for all reveal effect components
