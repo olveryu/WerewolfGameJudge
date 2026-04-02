@@ -58,6 +58,10 @@ import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/Revea
 import { SkiaSparkle } from '@/components/RoleRevealEffects/common/effects/SkiaSparkle';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import {
+  useAutoTimeoutWarning,
+  useRevealLifecycle,
+} from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -756,7 +760,6 @@ const AnimatedGhost: React.FC<AnimatedGhostProps> = React.memo(
           withTiming(0, { duration: ghost.driftDuration, easing: Easing.inOut(Easing.sin) }),
         ),
         -1,
-        false,
       );
 
       bobProgress.value = withRepeat(
@@ -765,7 +768,6 @@ const AnimatedGhost: React.FC<AnimatedGhostProps> = React.memo(
           withTiming(0, { duration: 1500 + ghost.id * 100, easing: Easing.inOut(Easing.sin) }),
         ),
         -1,
-        false,
       );
 
       // Glow pulse with phase offset per ghost
@@ -777,7 +779,6 @@ const AnimatedGhost: React.FC<AnimatedGhostProps> = React.memo(
             withTiming(0, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
           ),
           -1,
-          false,
         ),
       );
     }, [
@@ -979,14 +980,17 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   const config = CONFIG.roleHunt;
 
   const [phase, setPhase] = useState<'hunting' | 'capturing' | 'revealing' | 'revealed'>('hunting');
-  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
+  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'hunting' && !reducedMotion);
   const [ghostStates, setGhostStates] = useState<
     Record<number, 'floating' | 'captured-miss' | 'captured-hit' | 'hidden'>
   >({});
   const [celebrations, setCelebrations] = useState<CelebrationParticleConfig[]>([]);
   const [hitBurstPos, setHitBurstPos] = useState<{ x: number; y: number } | null>(null);
-  const onCompleteCalledRef = useRef(false);
-  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { fireComplete } = useRevealLifecycle({
+    onComplete,
+    revealHoldDurationMs: config.revealHoldDuration,
+  });
+  const hitRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSelectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Generate ghosts once at mount
@@ -1012,7 +1016,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   // Clean up timers
   useEffect(() => {
     return () => {
-      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      if (hitRevealTimerRef.current) clearTimeout(hitRevealTimerRef.current);
       if (autoSelectTimerRef.current) clearTimeout(autoSelectTimerRef.current);
     };
   }, []);
@@ -1164,7 +1168,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       fogDrifts[i].value = withRepeat(
         withTiming(1, { duration: p.driftSpeed, easing: Easing.linear }),
         -1,
-        false,
       );
       fogBobs[i].value = withRepeat(
         withSequence(
@@ -1172,7 +1175,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
           withTiming(0, { duration: p.bobDuration, easing: Easing.inOut(Easing.sin) }),
         ),
         -1,
-        false,
       );
     });
 
@@ -1181,7 +1183,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       ffDrifts[i].value = withRepeat(
         withTiming(1, { duration: f.driftDuration, easing: Easing.linear }),
         -1,
-        false,
       );
       ffFlickers[i].value = withRepeat(
         withSequence(
@@ -1189,7 +1190,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
           withTiming(0, { duration: f.flickerDuration, easing: Easing.inOut(Easing.sin) }),
         ),
         -1,
-        false,
       );
     });
   }, [reducedMotion, fogParticles, fireflies, fogDrifts, fogBobs, ffDrifts, ffFlickers]);
@@ -1229,10 +1229,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   // Auto-select: if user doesn't find the target in time, auto-capture it
   useEffect(() => {
     if (reducedMotion) return;
-    const warningTimer = setTimeout(
-      () => setAutoTimeoutWarning(true),
-      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
-    );
     autoSelectTimerRef.current = setTimeout(() => {
       if (phase !== 'hunting') return;
       const target = ghosts.find((g) => g.isTarget);
@@ -1242,9 +1238,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
     }, CONFIG.common.autoTimeout);
 
     return () => {
-      clearTimeout(warningTimer);
       if (autoSelectTimerRef.current) clearTimeout(autoSelectTimerRef.current);
-      setAutoTimeoutWarning(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
@@ -1258,7 +1252,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
         withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
       ),
       -1,
-      false,
     );
   }, [hintOpacity, reducedMotion]);
 
@@ -1342,7 +1335,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 
         // Delay reveal to let hit animation play
         const timer = setTimeout(() => startReveal(), config.hitRevealDelay);
-        holdTimerRef.current = timer;
+        hitRevealTimerRef.current = timer;
       } else {
         // Miss — dissolve this ghost with miss flash
         setGhostStates((prev) => ({ ...prev, [ghostId]: 'captured-miss' }));
@@ -1370,11 +1363,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   );
 
   // Glow border done → onComplete
-  const handleGlowComplete = useCallback(() => {
-    if (onCompleteCalledRef.current) return;
-    onCompleteCalledRef.current = true;
-    holdTimerRef.current = setTimeout(() => onComplete(), config.revealHoldDuration);
-  }, [onComplete, config.revealHoldDuration]);
 
   // Reduced motion: skip straight to reveal
   useEffect(() => {
@@ -1383,12 +1371,8 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
     cardScale.value = 1;
     fogOpacity.value = 0;
     setPhase('revealed');
-    holdTimerRef.current = setTimeout(() => {
-      if (onCompleteCalledRef.current) return;
-      onCompleteCalledRef.current = true;
-      onComplete();
-    }, config.revealHoldDuration);
-  }, [reducedMotion, cardOpacity, cardScale, fogOpacity, onComplete, config.revealHoldDuration]);
+    fireComplete();
+  }, [reducedMotion, cardOpacity, cardScale, fogOpacity, fireComplete]);
 
   // ── Animated styles ──
   const cardAnimStyle = useAnimatedStyle(() => ({
@@ -1680,7 +1664,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
               cardWidth={cardWidth}
               cardHeight={cardHeight}
               animate={!reducedMotion}
-              onComplete={handleGlowComplete}
+              onComplete={fireComplete}
             />
           )}
         </Animated.View>

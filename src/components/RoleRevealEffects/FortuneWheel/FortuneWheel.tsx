@@ -24,7 +24,7 @@ import {
 } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -44,6 +44,10 @@ import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/eff
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import {
+  useAutoTimeoutWarning,
+  useRevealLifecycle,
+} from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -233,8 +237,8 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const pointerPath = useMemo(() => buildPointerPath(cx, cy - wheelR - 20, 26), [cx, cy, wheelR]);
 
   const [phase, setPhase] = useState<Phase>('appear');
-  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
-  const onCompleteCalledRef = useRef(false);
+  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'idle');
+  const { fireComplete } = useRevealLifecycle({ onComplete });
 
   const wheelOpacity = useSharedValue(0);
   const wheelScaleVal = useSharedValue(0);
@@ -269,12 +273,6 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   });
 
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
-
-  const handleGlowComplete = useCallback(() => {
-    if (onCompleteCalledRef.current) return;
-    onCompleteCalledRef.current = true;
-    onComplete();
-  }, [onComplete]);
 
   const triggerCardReveal = useCallback(() => {
     if (enableHaptics) triggerHaptic('heavy', true);
@@ -406,19 +404,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   // Auto-spin timeout
   useEffect(() => {
     if (phase !== 'idle') return;
-    const warningTimer = setTimeout(
-      () => setAutoTimeoutWarning(true),
-      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
-    );
     const timer = setTimeout(() => {
       rotation.value = rotation.value + Math.PI * 0.5;
       startDeceleratingToTarget();
     }, CONFIG.common.autoTimeout);
-    return () => {
-      clearTimeout(warningTimer);
-      clearTimeout(timer);
-      setAutoTimeoutWarning(false);
-    };
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
@@ -743,7 +733,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
                   cardWidth={cardWidth}
                   cardHeight={cardHeight}
                   animate={!reducedMotion}
-                  onComplete={handleGlowComplete}
+                  onComplete={fireComplete}
                 />
               )}
             </View>

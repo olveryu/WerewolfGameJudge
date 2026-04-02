@@ -9,7 +9,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -29,6 +29,7 @@ import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/eff
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import { useRevealLifecycle } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -233,7 +234,6 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
       ),
       -1,
-      false,
     );
   }, [frameGlowAnim, reducedMotion]);
 
@@ -397,21 +397,10 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   ]);
 
   // ── Reveal complete handler ──
-  const onCompleteCalledRef = useRef(false);
-  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Clean up hold timer on unmount
-  useEffect(() => {
-    return () => {
-      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    };
-  }, []);
-
-  const handleRevealComplete = useCallback(() => {
-    if (onCompleteCalledRef.current) return;
-    onCompleteCalledRef.current = true;
-    holdTimerRef.current = setTimeout(onComplete, config.revealHoldDuration ?? 1500);
-  }, [onComplete, config.revealHoldDuration]);
+  const { fireComplete } = useRevealLifecycle({
+    onComplete,
+    revealHoldDurationMs: config.revealHoldDuration,
+  });
 
   // ── Animated styles ──
   const scrollStyle = useAnimatedStyle(() => ({
@@ -641,7 +630,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
               cardWidth={cardWidth}
               cardHeight={cardHeight}
               animate={!reducedMotion}
-              onComplete={handleRevealComplete}
+              onComplete={fireComplete}
             />
           )}
         </Animated.View>

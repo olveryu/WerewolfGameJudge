@@ -41,6 +41,10 @@ import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/eff
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import {
+  useAutoTimeoutWarning,
+  useRevealLifecycle,
+} from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -134,9 +138,12 @@ export const CardPick: React.FC<CardPickProps> = ({
   const [phase, setPhase] = useState<'spreading' | 'waiting' | 'picking' | 'flipping' | 'revealed'>(
     'spreading',
   );
-  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
+  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'waiting' && !reducedMotion);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const onCompleteCalledRef = useRef(false);
+  const { fireComplete } = useRevealLifecycle({
+    onComplete,
+    revealHoldDurationMs: config.revealHoldDuration,
+  });
 
   // ── Lock initial card count at mount (grid layout never re-flows) ──
   const initialCardCountRef = useRef(Math.max(1, Math.min(remainingCards, 16)));
@@ -304,13 +311,6 @@ export const CardPick: React.FC<CardPickProps> = ({
     ],
   );
 
-  const handleGlowComplete = useCallback(() => {
-    if (onCompleteCalledRef.current) return;
-    onCompleteCalledRef.current = true;
-    const timer = setTimeout(() => onComplete(), config.revealHoldDuration);
-    return () => clearTimeout(timer);
-  }, [onComplete, config.revealHoldDuration]);
-
   // ── React to other players viewing roles: remove random cards ──
   useEffect(() => {
     if (phase !== 'waiting' && phase !== 'spreading') return;
@@ -345,8 +345,8 @@ export const CardPick: React.FC<CardPickProps> = ({
       otherCardsOpacity.value = 0;
       drawnCardOpacity.value = 1;
       setPhase('revealed');
-      const timer = setTimeout(() => onComplete(), config.revealHoldDuration);
-      return () => clearTimeout(timer);
+      fireComplete();
+      return;
     }
 
     spreadProgress.value = withTiming(
@@ -370,9 +370,8 @@ export const CardPick: React.FC<CardPickProps> = ({
     otherCardsOpacity,
     drawnCardOpacity,
     chipBobble,
-    onComplete,
+    fireComplete,
     config.spreadDuration,
-    config.revealHoldDuration,
   ]);
 
   // ── Auto-select after timeout if user doesn't tap ──
@@ -382,19 +381,11 @@ export const CardPick: React.FC<CardPickProps> = ({
       (i) => !removedIndices.has(i),
     );
     if (aliveIndices.length === 0) return;
-    const warningTimer = setTimeout(
-      () => setAutoTimeoutWarning(true),
-      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
-    );
     const timer = setTimeout(() => {
       const randomIndex = aliveIndices[Math.floor(Math.random() * aliveIndices.length)];
       handleCardSelect(randomIndex);
     }, CONFIG.common.autoTimeout);
-    return () => {
-      clearTimeout(warningTimer);
-      clearTimeout(timer);
-      setAutoTimeoutWarning(false);
-    };
+    return () => clearTimeout(timer);
   }, [phase, reducedMotion, initialCardCount, removedIndices, handleCardSelect]);
 
   // ── Animated styles for drawn card (fly-to-center + flip) ──
@@ -586,7 +577,7 @@ export const CardPick: React.FC<CardPickProps> = ({
                 cardWidth={revealCardWidth}
                 cardHeight={revealCardHeight}
                 animate={!reducedMotion}
-                onComplete={handleGlowComplete}
+                onComplete={fireComplete}
               />
             )}
           </Animated.View>

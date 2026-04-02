@@ -43,6 +43,10 @@ import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/eff
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import {
+  useAutoTimeoutWarning,
+  useRevealLifecycle,
+} from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -447,8 +451,8 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   const decayRate = SB.decayRate / 1000; // per ms
 
   const [phase, setPhase] = useState<Phase>('appear');
-  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
-  const onCompleteCalledRef = useRef(false);
+  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'idle' || phase === 'charging');
+  const { fireComplete } = useRevealLifecycle({ onComplete });
   const shatterTriggeredRef = useRef(false);
 
   // ── Charging state (JS-side for requestAnimationFrame loop) ──
@@ -488,12 +492,6 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
-
-  const handleGlowComplete = useCallback(() => {
-    if (onCompleteCalledRef.current) return;
-    onCompleteCalledRef.current = true;
-    onComplete();
-  }, [onComplete]);
 
   // ── Trigger final shatter ──
   const triggerShatter = useCallback(() => {
@@ -685,10 +683,6 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   // ── Auto-shatter timeout ──
   useEffect(() => {
     if (phase !== 'idle' && phase !== 'charging') return;
-    const warningTimer = setTimeout(
-      () => setAutoTimeoutWarning(true),
-      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
-    );
     const timer = setTimeout(() => {
       if (!shatterTriggeredRef.current) {
         // Force charge to full and trigger shatter directly.
@@ -701,11 +695,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
         triggerShatter();
       }
     }, CONFIG.common.autoTimeout);
-    return () => {
-      clearTimeout(warningTimer);
-      clearTimeout(timer);
-      setAutoTimeoutWarning(false);
-    };
+    return () => clearTimeout(timer);
   }, [phase, charge, crackProgress, triggerShatter]);
 
   // ── Press handlers (dual mode: long-press charges continuously, tap boosts) ──
@@ -1173,7 +1163,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                 cardWidth={cardWidth}
                 cardHeight={cardHeight}
                 animate={!reducedMotion}
-                onComplete={handleGlowComplete}
+                onComplete={fireComplete}
               />
             )}
           </View>

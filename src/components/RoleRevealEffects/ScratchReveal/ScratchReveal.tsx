@@ -38,6 +38,7 @@ import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/eff
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import { useRevealLifecycle } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -209,15 +210,11 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const scratchedAreaRef = useRef(0);
   const lastHapticTime = useRef(0);
   const shavingIdRef = useRef(0);
-  const onCompleteCalledRef = useRef(false);
-  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Clean up hold timer on unmount
-  useEffect(() => {
-    return () => {
-      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
-    };
-  }, []);
+  const { fireComplete } = useRevealLifecycle({
+    onComplete,
+    revealHoldDurationMs: config.revealHoldDuration,
+  });
 
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
@@ -318,13 +315,6 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     prizeStampOpacity,
     prizeStampScale,
   ]);
-
-  // ── Glow complete ──
-  const handleGlowComplete = useCallback(() => {
-    if (onCompleteCalledRef.current) return;
-    onCompleteCalledRef.current = true;
-    holdTimerRef.current = setTimeout(() => onComplete(), config.revealHoldDuration);
-  }, [onComplete, config.revealHoldDuration]);
 
   // ── Add scratch point ──
   const addScratchPoint = useCallback(
@@ -645,7 +635,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
             cardWidth={cardWidth}
             cardHeight={cardHeight}
             animate={!reducedMotion}
-            onComplete={handleGlowComplete}
+            onComplete={fireComplete}
           />
         )}
       </View>

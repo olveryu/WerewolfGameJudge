@@ -22,7 +22,7 @@ import {
 } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -46,6 +46,7 @@ import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/Revea
 import { SkiaSparkle } from '@/components/RoleRevealEffects/common/effects/SkiaSparkle';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import { useRevealLifecycle } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -275,7 +276,10 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
   const [phase, setPhase] = useState<'waiting' | 'drawing' | 'flipping' | 'revealed'>('waiting');
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
-  const onCompleteCalledRef = useRef(false);
+  const { fireComplete } = useRevealLifecycle({
+    onComplete,
+    revealHoldDurationMs: config.revealHoldDuration,
+  });
 
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
@@ -440,13 +444,6 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     ],
   );
 
-  const handleGlowComplete = useCallback(() => {
-    if (onCompleteCalledRef.current) return;
-    onCompleteCalledRef.current = true;
-    const timer = setTimeout(() => onComplete(), config.revealHoldDuration ?? 1200);
-    return () => clearTimeout(timer);
-  }, [onComplete, config.revealHoldDuration]);
-
   // ── Kick-off ──
   useEffect(() => {
     if (reducedMotion) {
@@ -455,16 +452,12 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       drawnCardOpacity.value = 1;
       drawnCardScale.value = 1;
       setPhase('revealed');
-      const timer = setTimeout(() => onComplete(), config.revealHoldDuration ?? 0);
-      return () => clearTimeout(timer);
+      fireComplete();
+      return;
     }
 
     // Slow spin: 4 seconds per revolution, infinite loop
-    wheelRotation.value = withRepeat(
-      withTiming(1, { duration: 4000, easing: Easing.linear }),
-      -1,
-      false,
-    );
+    wheelRotation.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
 
     // Scene animations
     starCycle.value = withRepeat(
@@ -495,8 +488,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     candleFlicker,
     crystalPulse,
     velvetOpacity,
-    onComplete,
-    config.revealHoldDuration,
+    fireComplete,
   ]);
 
   // ── Auto-select after 3s if user doesn't tap ──
@@ -892,7 +884,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
               cardWidth={cardWidth}
               cardHeight={cardHeight}
               animate={!reducedMotion}
-              onComplete={handleGlowComplete}
+              onComplete={fireComplete}
             />
           )}
         </Animated.View>

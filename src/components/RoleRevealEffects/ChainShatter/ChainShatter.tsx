@@ -38,6 +38,10 @@ import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/eff
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import {
+  useAutoTimeoutWarning,
+  useRevealLifecycle,
+} from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -543,13 +547,13 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   const gravity = screenHeight * 0.18;
 
   const [phase, setPhase] = useState<Phase>('appear');
-  const [autoTimeoutWarning, setAutoTimeoutWarning] = useState(false);
+  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'idle' || phase === 'hitting');
   const [cracks, setCracks] = useState<CrackData[]>([]);
   const hitCountRef = useRef(0);
   const [hitCountDisplay, setHitCountDisplay] = useState(0);
   const lastHitTimeRef = useRef(0);
   const shatterTriggeredRef = useRef(false);
-  const onCompleteCalledRef = useRef(false);
+  const { fireComplete } = useRevealLifecycle({ onComplete });
 
   // ── Pre-computed geometry ──
   const chainLinkPaths = useMemo(() => buildChainLinkPaths(cx, cy, lockW, 4), [cx, cy, lockW]);
@@ -652,12 +656,6 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
 
-  const handleGlowComplete = useCallback(() => {
-    if (onCompleteCalledRef.current) return;
-    onCompleteCalledRef.current = true;
-    onComplete();
-  }, [onComplete]);
-
   // ── Appear animation ──
   useEffect(() => {
     if (reducedMotion) {
@@ -669,11 +667,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     }
 
     // Start ambient dust drift
-    dustProgress.value = withRepeat(
-      withTiming(1, { duration: 6000, easing: Easing.linear }),
-      -1,
-      false,
-    );
+    dustProgress.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1);
 
     // Torch flame flicker
     torchFlicker.value = withRepeat(
@@ -709,18 +703,10 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   // ── Auto-shatter timeout ──
   useEffect(() => {
     if (phase !== 'idle' && phase !== 'hitting') return;
-    const warningTimer = setTimeout(
-      () => setAutoTimeoutWarning(true),
-      CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
-    );
     const timer = setTimeout(() => {
       if (phase === 'idle' || phase === 'hitting') triggerShatter();
     }, CONFIG.common.autoTimeout);
-    return () => {
-      clearTimeout(warningTimer);
-      clearTimeout(timer);
-      setAutoTimeoutWarning(false);
-    };
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
@@ -1294,7 +1280,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                 cardWidth={cardWidth}
                 cardHeight={cardHeight}
                 animate={!reducedMotion}
-                onComplete={handleGlowComplete}
+                onComplete={fireComplete}
               />
             )}
           </View>

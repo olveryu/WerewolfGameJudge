@@ -9,7 +9,7 @@
 import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -30,6 +30,7 @@ import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/eff
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import { useRevealLifecycle } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -186,7 +187,10 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   const [phase, setPhase] = useState<
     'ready' | 'spinning' | 'dropping' | 'waiting' | 'opening' | 'revealed'
   >('ready');
-  const onCompleteCalledRef = useRef(false);
+  const { fireComplete } = useRevealLifecycle({
+    onComplete,
+    revealHoldDurationMs: config.revealHoldDuration,
+  });
 
   const { width: screenWidth } = Dimensions.get('window');
   const common = CONFIG.common;
@@ -275,7 +279,6 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         withTiming(-3, { duration: 800, easing: Easing.inOut(Easing.sin) }),
       ),
       -1,
-      false,
     );
 
     // Rotary lights cycle
@@ -309,13 +312,6 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       withTiming(1, { duration: 400, easing: Easing.out(Easing.back(1.5)) }),
     );
   }, [machineOpacityAnim, confettiOpacity, confettiProgress, rarityOpacity, rarityScale]);
-
-  const handleGlowComplete = useCallback(() => {
-    if (onCompleteCalledRef.current) return;
-    onCompleteCalledRef.current = true;
-    const timer = setTimeout(() => onComplete(), config.revealHoldDuration ?? 1200);
-    return () => clearTimeout(timer);
-  }, [onComplete, config.revealHoldDuration]);
 
   // Open capsule → reveal card
   const openCapsule = useCallback(() => {
@@ -408,18 +404,9 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       shellOpacity.value = 0;
       machineOpacityAnim.value = 0;
       setPhase('revealed');
-      const timer = setTimeout(() => onComplete(), config.revealHoldDuration ?? 0);
-      return () => clearTimeout(timer);
+      fireComplete();
     }
-  }, [
-    reducedMotion,
-    cardScale,
-    cardOpacity,
-    shellOpacity,
-    machineOpacityAnim,
-    onComplete,
-    config.revealHoldDuration,
-  ]);
+  }, [reducedMotion, cardScale, cardOpacity, shellOpacity, machineOpacityAnim, fireComplete]);
 
   // ── Auto-spin after 1.5s ──
   useEffect(() => {
@@ -633,7 +620,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
                 cardWidth={cardWidth}
                 cardHeight={cardHeight}
                 animate={!reducedMotion}
-                onComplete={handleGlowComplete}
+                onComplete={fireComplete}
               />
             )}
           </View>
