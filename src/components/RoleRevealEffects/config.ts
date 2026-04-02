@@ -83,8 +83,8 @@ export const CONFIG = {
   scratch: {
     /** Scratch brush radius */
     brushRadius: 28,
-    /** Auto-reveal threshold (percentage scratched) - 10% required */
-    autoRevealThreshold: 0.1,
+    /** Auto-reveal threshold (percentage scratched) - 25% required */
+    autoRevealThreshold: 0.25,
     /** Scratch overlay color */
     overlayColor: '#374151',
     /** Scratch pattern colors */
