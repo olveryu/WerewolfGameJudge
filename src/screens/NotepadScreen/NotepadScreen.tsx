@@ -46,8 +46,7 @@ export const NotepadScreen: React.FC = () => {
       return;
     }
     requestAIChatMessage({ fullText: summary, displayText: '📝 分析我的笔记' });
-    navigation.goBack();
-  }, [notepad.state, notepad.roleTags, notepad.playerCount, navigation]);
+  }, [notepad.state, notepad.roleTags, notepad.playerCount]);
 
   const panelStyles = useMemo(
     () => ({
