@@ -19,6 +19,7 @@ import { Faction } from '../../models/roles/spec/types';
 import { getBottomCardCount, getBottomCardRoleId, getPlayerCount } from '../../models/Template';
 import type { Player } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
+import { formatSeat } from '../../utils/formatSeat';
 import { randomHex } from '../../utils/id';
 import { shuffleArray } from '../../utils/shuffle';
 import type {
@@ -512,7 +513,7 @@ export function handleFillWithBots(
       bots[seat] = {
         uid: `bot-${seat}`,
         seatNumber: seat,
-        displayName: `Bot ${seat}`,
+        displayName: `机器人${formatSeat(seat)}`,
         hasViewedRole: false,
         isBot: true,
       };
