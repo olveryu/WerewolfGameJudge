@@ -22,6 +22,7 @@ import {
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import { getBottomCardEffectiveRole } from '@werewolf/game-engine/utils/playerHelpers';
 
 import type { LocalGameState } from '@/types/GameStateTypes';
 
@@ -117,6 +118,7 @@ export interface SeatViewModel {
  * @param wolfVotes - Map of wolf votes (seat -> target)
  * @param actions - Map of already submitted role actions
  * @param treasureMasterChosenCard - The role treasureMaster chose from bottom cards (if any)
+ * @param thiefChosenCard - The role thief chose from bottom cards (if any)
  */
 export function determineActionerState(
   actorRole: RoleId | null,
@@ -126,8 +128,9 @@ export function determineActionerState(
   wolfVotes: Map<number, number>,
   actions: Map<RoleId, RoleAction> = new Map(),
   treasureMasterChosenCard?: RoleId | null,
+  thiefChosenCard?: RoleId | null,
 ): ActionerState {
-  if (!currentActionRole) {
+  if (!currentActionRole || !actorRole) {
     return { imActioner: false, showWolves: false };
   }
 
@@ -140,19 +143,27 @@ export function determineActionerState(
   const isWolfMeetingSchema =
     currentSchema?.kind === 'wolfVote' && currentSchema.meeting?.canSeeEachOther === true;
 
-  // My role matches current action
-  if (actorRole === currentActionRole) {
-    return handleMatchingRole(actorRole, actorSeatNumber, wolfVotes, actions, isWolfMeetingSchema);
-  }
+  // Effective role: for bottom card actors (thief/treasureMaster), use the chosen card's role
+  const effectiveRole = getBottomCardEffectiveRole(
+    actorRole,
+    thiefChosenCard,
+    treasureMasterChosenCard,
+  );
 
-  // TreasureMaster actor override: chosen card's step is acted by treasureMaster
-  if (actorRole === 'treasureMaster' && treasureMasterChosenCard === currentActionRole) {
-    return handleMatchingRole(actorRole, actorSeatNumber, wolfVotes, actions, isWolfMeetingSchema);
+  // My effective role matches current action
+  if (effectiveRole === currentActionRole) {
+    return handleMatchingRole(
+      effectiveRole,
+      actorSeatNumber,
+      wolfVotes,
+      actions,
+      isWolfMeetingSchema,
+    );
   }
 
   // Wolf meeting phase: participating wolves can see pack list and act
-  if (isWolfMeetingSchema && actorRole && isWolfRole(actorRole)) {
-    if (!doesRoleParticipateInWolfVote(actorRole)) {
+  if (isWolfMeetingSchema && isWolfRole(effectiveRole)) {
+    if (!doesRoleParticipateInWolfVote(effectiveRole)) {
       // Non-voting wolves (e.g., wolfRobot) cannot see the pack
       return { imActioner: false, showWolves: false };
     }

@@ -10,6 +10,7 @@
 export { resolveSeerAudioKey } from './utils/audioKeyOverride';
 export { formatSeat } from './utils/formatSeat';
 export { newRejectionId, newRequestId, randomHex } from './utils/id';
+export { getBottomCardEffectiveRole } from './utils/playerHelpers';
 export {
   createSeededRng,
   randomBool,

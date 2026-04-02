@@ -11,6 +11,7 @@
 
 import { doesRoleParticipateInWolfVote } from '../../models';
 import type { GameState } from '../../protocol/types';
+import { getBottomCardEffectiveRole } from '../../utils/playerHelpers';
 
 /** 狼人投票倒计时毫秒数 */
 export const WOLF_VOTE_COUNTDOWN_MS = 5000;
@@ -39,7 +40,12 @@ export function isWolfVoteAllComplete(state: GameState): boolean {
     const seat = Number.parseInt(seatStr, 10);
     if (!Number.isFinite(seat)) continue;
     if (!player?.role) return false; // fail-closed：role 缺失 → 不确定 → false
-    if (doesRoleParticipateInWolfVote(player.role)) {
+    const effectiveRole = getBottomCardEffectiveRole(
+      player.role,
+      state.thiefChosenCard,
+      state.treasureMasterChosenCard,
+    );
+    if (doesRoleParticipateInWolfVote(effectiveRole)) {
       participatingWolfSeats.push(seat);
     }
   }

@@ -42,3 +42,22 @@ export function forEachSeatedPlayer(
     }
   }
 }
+
+/**
+ * 获取底牌角色（盗贼/盗宝大师）的有效角色。
+ *
+ * 底牌角色选卡后以所选卡的身份行动（狼人投票、女巫用药等），
+ * 但 player.role 始终保留原始角色。此函数统一"原始角色 → 有效角色"映射，
+ * 供狼人投票参与判定、UI actioner 判定、推进完成度检查等场景共用。
+ *
+ * 非底牌角色或尚未选卡时原样返回。
+ */
+export function getBottomCardEffectiveRole(
+  role: RoleId,
+  thiefChosenCard?: RoleId | null,
+  treasureMasterChosenCard?: RoleId | null,
+): RoleId {
+  if (role === 'thief' && thiefChosenCard) return thiefChosenCard;
+  if (role === 'treasureMaster' && treasureMasterChosenCard) return treasureMasterChosenCard;
+  return role;
+}

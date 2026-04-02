@@ -498,10 +498,10 @@ describe('Delegation Seat Identity Contract', () => {
       if (match) {
         const startIndex = match.index;
         // Capture enough to include the isWolf assignment
-        const block = content.substring(startIndex, startIndex + 500);
+        const block = content.substring(startIndex, startIndex + 600);
 
-        // Must use doesRoleParticipateInWolfVote for wolf check
-        expect(block).toMatch(/isWolf\s*=\s*doesRoleParticipateInWolfVote\(actorRole\)/);
+        // Must use doesRoleParticipateInWolfVote for wolf check (via effectiveActorRole)
+        expect(block).toMatch(/doesRoleParticipateInWolfVote\(effectiveActorRole\)/);
 
         // Must NOT use isWolfRole for wolf check
         expect(block).not.toMatch(/isWolf\s*=\s*isWolfRole\(actorRole\)/);

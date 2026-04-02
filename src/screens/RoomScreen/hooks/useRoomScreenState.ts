@@ -265,6 +265,7 @@ export function useRoomScreenState(
     wolfVotes: wolfVotesMap,
     actions: gameState?.actions ?? EMPTY_ACTIONS,
     treasureMasterChosenCard: gameState?.treasureMasterChosenCard,
+    thiefChosenCard: gameState?.thiefChosenCard,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

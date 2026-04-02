@@ -31,6 +31,8 @@ export interface UseActionerStateParams {
   actions: Map<RoleId, RoleAction>;
   /** The role treasureMaster chose from bottom cards (if any) */
   treasureMasterChosenCard?: RoleId | null;
+  /** The role thief chose from bottom cards (if any) */
+  thiefChosenCard?: RoleId | null;
 }
 
 /**
@@ -45,6 +47,7 @@ export function useActionerState({
   wolfVotes,
   actions,
   treasureMasterChosenCard,
+  thiefChosenCard,
 }: UseActionerStateParams): ActionerState {
   return useMemo(() => {
     return determineActionerState(
@@ -55,6 +58,7 @@ export function useActionerState({
       wolfVotes,
       actions,
       treasureMasterChosenCard,
+      thiefChosenCard,
     );
   }, [
     actorRole,
@@ -64,5 +68,6 @@ export function useActionerState({
     wolfVotes,
     actions,
     treasureMasterChosenCard,
+    thiefChosenCard,
   ]);
 }

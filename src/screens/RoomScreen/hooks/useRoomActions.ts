@@ -17,7 +17,8 @@ import {
 } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, RevealKind, SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { isValidSchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
-import { useCallback } from 'react';
+import { getBottomCardEffectiveRole } from '@werewolf/game-engine/utils/playerHelpers';
+import { useCallback, useMemo } from 'react';
 
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -257,6 +258,20 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
   const { hasWolfVoted, getWolfVoteSummary, getWitchContext } = deps;
 
+  // Effective role for bottom card actors (thief/treasureMaster): use the chosen card's role
+  // for wolf participation checks and meeting visibility.
+  const effectiveActorRole = useMemo(
+    () =>
+      actorRole
+        ? getBottomCardEffectiveRole(
+            actorRole,
+            gameState?.thiefChosenCard,
+            gameState?.treasureMasterChosenCard,
+          )
+        : null,
+    [actorRole, gameState?.thiefChosenCard, gameState?.treasureMasterChosenCard],
+  );
+
   // ─────────────────────────────────────────────────────────────────────────
   // Wolf vote helpers
   // ─────────────────────────────────────────────────────────────────────────
@@ -264,12 +279,17 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   const findVotingWolfSeat = useCallback((): number | null => {
     if (!gameState) return null;
     // Only wolves that participate in wolf vote can vote (excludes gargoyle, wolfRobot, etc.)
+    // Uses effective role: thief/treasureMaster who chose a wolf card can vote too.
     // Revote allowed: no longer check hasWolfVoted
-    if (actorSeatNumber !== null && actorRole && doesRoleParticipateInWolfVote(actorRole)) {
+    if (
+      actorSeatNumber !== null &&
+      effectiveActorRole &&
+      doesRoleParticipateInWolfVote(effectiveActorRole)
+    ) {
       return actorSeatNumber;
     }
     return null;
-  }, [gameState, actorSeatNumber, actorRole]);
+  }, [gameState, actorSeatNumber, effectiveActorRole]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Action message builder
@@ -316,7 +336,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const getWolfStatusLine = useCallback((): string | null => {
-    if (!actorRole || !isWolfRole(actorRole)) return null;
+    if (!effectiveActorRole || !isWolfRole(effectiveActorRole)) return null;
     // Only show during the schema-driven wolf-vote step.
     if (currentSchema?.kind !== 'wolfVote') return null;
 
@@ -342,7 +362,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     currentSchema?.kind,
     getWolfVoteSummary,
     hasWolfVoted,
-    actorRole,
+    effectiveActorRole,
     actorSeatNumber,
     gameState?.stepDeadline,
     countdownTick,
@@ -482,7 +502,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         // Participation is defined by ROLE_SPECS[*].wolfMeeting.participatesInWolfVote.
         // Do NOT additionally gate by isWolfRole(): the meeting participation flag is the
         // single source for whether this role can submit WOLF_VOTE during wolfKill.
-        isWolf: doesRoleParticipateInWolfVote(actorRole),
+        // Uses effective role: thief/treasureMaster who chose a wolf card can vote.
+        isWolf: effectiveActorRole ? doesRoleParticipateInWolfVote(effectiveActorRole) : false,
         wolfSeat: findVotingWolfSeat(),
         buildMessage: (idx) => buildActionMessage(idx),
       });
@@ -498,6 +519,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     },
     [
       actorRole,
+      effectiveActorRole,
       currentSchema,
       firstSwapSeat,
       findVotingWolfSeat,
@@ -517,7 +539,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     // MUST use doesRoleParticipateInWolfVote (not isWolfRole) to align with getActionIntent.
     // isWolfRole checks team==='wolf' which includes non-voting wolves (wolfRobot/gargoyle).
     // doesRoleParticipateInWolfVote checks wolfMeeting.participatesInWolfVote (single source of truth).
-    const isWolf = doesRoleParticipateInWolfVote(actorRole);
+    // Uses effective role: thief/treasureMaster who chose a wolf card can vote.
+    const isWolf = effectiveActorRole ? doesRoleParticipateInWolfVote(effectiveActorRole) : false;
     const wolfSeat = findVotingWolfSeat();
     return deriveSkipIntentFromSchema(
       actorRole,
@@ -526,7 +549,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       isWolf,
       wolfSeat,
     );
-  }, [actorRole, currentSchema, findVotingWolfSeat, buildActionMessage]);
+  }, [actorRole, effectiveActorRole, currentSchema, findVotingWolfSeat, buildActionMessage]);
 
   return {
     getActionIntent,
