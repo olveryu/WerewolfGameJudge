@@ -261,7 +261,7 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
 
             {/* Quick questions */}
             <View style={styles.quickQuestionsContainer}>
-              {chat.contextQuestions.slice(0, 4).map((q) => (
+              {chat.contextQuestions.slice(0, 6).map((q) => (
                 <TouchableOpacity
                   key={q}
                   style={[

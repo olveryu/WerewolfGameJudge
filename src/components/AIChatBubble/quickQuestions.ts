@@ -66,11 +66,61 @@ const GENERAL_QUESTIONS = [
   '什么是穿衣服？',
   '什么是裸跳？',
   '什么是深水狼？',
-  '什么是袭击自己？',
+  '什么是自刀？',
   '什么是倒钩？',
   '什么是预言家坑？',
   '首日怎么排听？',
   '怎么上警发言？',
+  // 身份代称
+  '什么是铜水？',
+  '什么是链子？',
+  '什么是金银双水？',
+  '什么是双金水？',
+  '什么是双查杀？',
+  '什么是形势金水？',
+  '身份高低什么意思？',
+  // 局势术语
+  '什么是轮次？',
+  '什么是容错？',
+  '什么是共边打包？',
+  '面是什么意思？',
+  '什么是力度？',
+  '什么是吃信息？',
+  '什么是坑位？',
+  '什么是置位？',
+  '什么是外置位？',
+  '什么是警推在先？',
+  '什么是狼刀在先？',
+  '什么是奶穿？',
+  '什么是板子？',
+  '什么是相面？',
+  // 游戏行为
+  '什么是抿身份？',
+  '什么是诈身份？',
+  '什么是保人捞人？',
+  '什么是钓鱼？',
+  '什么是递话？',
+  '什么是垫飞？',
+  '什么是凿船？',
+  '什么是锁龙？',
+  '什么是追刀？',
+  // 投票术语
+  '什么是分票？',
+  '什么是冲票？',
+  '什么是压票绑票？',
+  '什么是做规矩？',
+  '什么是倒冲？',
+  // 出局与胜负
+  '什么是抗刀挡刀？',
+  '什么是屠边屠城？',
+  '什么是交牌？',
+  // 狼人类型
+  '什么是局气狼？',
+  '什么是煽动狼？',
+  '什么是金刚狼？',
+  '什么是铁狼公共狼？',
+  '什么是阴阳倒钩？',
+  '什么是自刀做局？',
 ];
 
 /** 根据角色生成相关问题（≤10字） */
@@ -588,9 +638,9 @@ export function generateQuickQuestions(state: GameState | null, mySeat: number |
     }
   }
 
-  // 4. 通用问题补满 4 个
-  if (questions.length < 4) {
-    const remaining = 4 - questions.length;
+  // 4. 通用问题补满 6 个
+  if (questions.length < 6) {
+    const remaining = 6 - questions.length;
     const available = GENERAL_QUESTIONS.filter((q) => !used.has(q));
     const shuffled = shuffleArray(available);
     for (let i = 0; i < remaining && i < shuffled.length; i++) {
@@ -598,5 +648,5 @@ export function generateQuickQuestions(state: GameState | null, mySeat: number |
     }
   }
 
-  return questions.slice(0, 4);
+  return questions.slice(0, 6);
 }
