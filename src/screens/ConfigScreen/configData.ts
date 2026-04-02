@@ -62,7 +62,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
     sections: [
       {
         title: '普通村民',
-        roles: [{ roleId: 'villager', count: 5, isBulk: true }],
+        roles: [{ roleId: 'villager', count: 10, isBulk: true }],
       },
       {
         title: '神职',
@@ -97,7 +97,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
     sections: [
       {
         title: '普通狼人',
-        roles: [{ roleId: 'wolf', count: 5, isBulk: true }],
+        roles: [{ roleId: 'wolf', count: 10, isBulk: true }],
       },
       {
         title: '技能狼',
