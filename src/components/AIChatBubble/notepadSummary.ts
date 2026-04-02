@@ -23,19 +23,22 @@ export function buildNotepadSummary(
   playerCount: number,
 ): string | null {
   const seatLines: string[] = [];
+  const handSeats: number[] = [];
 
-  for (let seat = 0; seat < playerCount; seat++) {
+  for (let seat = 1; seat <= playerCount; seat++) {
     const note = state.playerNotes[seat]?.trim();
     const hand = state.handStates[seat];
     const roleGuess = state.roleGuesses[seat];
+
+    if (hand) handSeats.push(seat);
 
     // Skip seats with no information at all
     if (!note && !hand && !roleGuess) continue;
 
     const parts: string[] = [];
 
-    // Seat number (1-based display)
-    parts.push(`${seat + 1}号位`);
+    // Seat number (1-based)
+    parts.push(`${seat}号位`);
 
     // Role guess
     if (roleGuess) {
@@ -74,7 +77,11 @@ export function buildNotepadSummary(
   ];
 
   if (seatLines.length > 0) {
-    sections.push('## 玩家笔记', ...seatLines, '');
+    sections.push('## 玩家笔记');
+    if (handSeats.length > 0) {
+      sections.push(`上警玩家：${handSeats.map((s) => `${s}号`).join('、')}`);
+    }
+    sections.push(...seatLines, '');
   }
 
   if (publicLeft || publicRight) {

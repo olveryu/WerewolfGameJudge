@@ -32,12 +32,12 @@ describe('buildNotepadSummary', () => {
   });
 
   it('returns null when only empty strings in playerNotes', () => {
-    const state = { ...emptyState(), playerNotes: { 0: '', 1: '  ' } };
+    const state = { ...emptyState(), playerNotes: { 1: '', 2: '  ' } };
     expect(buildNotepadSummary(state, mockRoleTags, 6)).toBeNull();
   });
 
-  it('includes seat notes with 1-based seat numbers', () => {
-    const state = { ...emptyState(), playerNotes: { 0: '发言很稳', 2: '有嫌疑' } };
+  it('includes seat notes with correct seat numbers', () => {
+    const state = { ...emptyState(), playerNotes: { 1: '发言很稳', 3: '有嫌疑' } };
     const result = buildNotepadSummary(state, mockRoleTags, 6);
     expect(result).not.toBeNull();
     expect(result).toContain('1号位');
@@ -47,18 +47,19 @@ describe('buildNotepadSummary', () => {
   });
 
   it('shows role guess with displayName', () => {
-    const state = { ...emptyState(), roleGuesses: { 1: 'wolf' as any } };
+    const state = { ...emptyState(), roleGuesses: { 2: 'wolf' as any } };
     const result = buildNotepadSummary(state, mockRoleTags, 6);
     expect(result).not.toBeNull();
     expect(result).toContain('2号位');
     expect(result).toContain('猜测：');
   });
 
-  it('shows 上警 tag', () => {
-    const state = { ...emptyState(), handStates: { 0: true } };
+  it('shows 上警 tag and hand summary', () => {
+    const state = { ...emptyState(), handStates: { 1: true, 3: true } };
     const result = buildNotepadSummary(state, mockRoleTags, 6);
     expect(result).not.toBeNull();
     expect(result).toContain('[上警]');
+    expect(result).toContain('上警玩家：1号、3号');
   });
 
   it('includes public notes', () => {
@@ -78,7 +79,7 @@ describe('buildNotepadSummary', () => {
   });
 
   it('includes role tags context', () => {
-    const state = { ...emptyState(), playerNotes: { 0: '测试' } };
+    const state = { ...emptyState(), playerNotes: { 1: '测试' } };
     const result = buildNotepadSummary(state, mockRoleTags, 6);
     expect(result).toContain('本局角色配置');
     expect(result).toContain('预');
@@ -87,7 +88,7 @@ describe('buildNotepadSummary', () => {
   });
 
   it('includes AI analysis request prompt', () => {
-    const state = { ...emptyState(), playerNotes: { 0: '测试' } };
+    const state = { ...emptyState(), playerNotes: { 1: '测试' } };
     const result = buildNotepadSummary(state, mockRoleTags, 6);
     expect(result).toContain('请根据以下游戏笔记分析局势');
   });
@@ -102,7 +103,7 @@ describe('buildNotepadSummary', () => {
   });
 
   it('skips seats with no information', () => {
-    const state = { ...emptyState(), playerNotes: { 2: '有内容' } };
+    const state = { ...emptyState(), playerNotes: { 3: '有内容' } };
     const result = buildNotepadSummary(state, mockRoleTags, 6);
     expect(result).not.toBeNull();
     expect(result).not.toContain('1号位');
@@ -114,9 +115,9 @@ describe('buildNotepadSummary', () => {
   it('combines role guess, hand state, and note on same seat', () => {
     const state: NotepadState = {
       ...emptyState(),
-      playerNotes: { 0: '逻辑清晰' },
-      handStates: { 0: true },
-      roleGuesses: { 0: 'seer' as any },
+      playerNotes: { 1: '逻辑清晰' },
+      handStates: { 1: true },
+      roleGuesses: { 1: 'seer' as any },
     };
     const result = buildNotepadSummary(state, mockRoleTags, 6);
     expect(result).not.toBeNull();
@@ -127,11 +128,11 @@ describe('buildNotepadSummary', () => {
     const state = { ...emptyState(), roleGuesses: { 3: 'wolf' as any } };
     const result = buildNotepadSummary(state, mockRoleTags, 6);
     expect(result).not.toBeNull();
-    expect(result).toContain('4号位');
+    expect(result).toContain('3号位');
   });
 
   it('handles empty roleTags gracefully', () => {
-    const state = { ...emptyState(), playerNotes: { 0: '测试' } };
+    const state = { ...emptyState(), playerNotes: { 1: '测试' } };
     const result = buildNotepadSummary(state, [], 6);
     expect(result).not.toBeNull();
     expect(result).not.toContain('本局角色配置');
