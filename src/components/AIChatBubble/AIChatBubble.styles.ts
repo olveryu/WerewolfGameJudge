@@ -3,16 +3,15 @@
  *
  * Composes per-group style creators into a single flat ChatStyles object.
  * Owns layout constants and shared types consumed by sibling modules.
- * Does not contain style definitions — those live in bubble/chat/notepad sub-files.
+ * Does not contain style definitions — those live in bubble/chat sub-files.
  */
 
-import { Dimensions, type TextStyle, type ViewStyle } from 'react-native';
+import { Dimensions } from 'react-native';
 
 import type { ThemeColors } from '@/theme';
 
 import { createBubbleStyles } from './bubble.styles';
 import { createChatStyles } from './chat.styles';
-import { createNotepadStyles } from './notepad.styles';
 
 // ── Layout constants ─────────────────────────────────────
 
@@ -45,71 +44,11 @@ export interface DisplayMessage {
   timestamp: number;
 }
 
-// ── NotepadStyles（NotepadPanel 依赖此类型） ─────────────
-
-export interface NotepadStyles {
-  container: ViewStyle;
-  list: ViewStyle;
-  listContent: ViewStyle;
-  card: ViewStyle;
-  cardWolf: ViewStyle;
-  cardGod: ViewStyle;
-  cardVillager: ViewStyle;
-  cardThird: ViewStyle;
-  cardHeader: ViewStyle;
-  seatBtn: ViewStyle;
-  seatNumber: TextStyle;
-  seatPlaceholder: TextStyle;
-  roleBadge: ViewStyle;
-  roleBadgeEmpty: ViewStyle;
-  roleBadgeWolf: ViewStyle;
-  roleBadgeGod: ViewStyle;
-  roleBadgeVillager: ViewStyle;
-  roleBadgeThird: ViewStyle;
-  roleBadgeText: TextStyle;
-  roleBadgeTextWolf: TextStyle;
-  roleBadgeTextGod: TextStyle;
-  roleBadgeTextVillager: TextStyle;
-  roleBadgeTextThird: TextStyle;
-  handTag: ViewStyle;
-  handTagActive: ViewStyle;
-  handTagText: TextStyle;
-  handTagTextActive: TextStyle;
-  noteInput: TextStyle;
-  placeholderColor: string;
-  popoverOverlay: ViewStyle;
-  popover: ViewStyle;
-  popoverTitle: TextStyle;
-  popoverGrid: ViewStyle;
-  popoverTag: ViewStyle;
-  popoverTagSelectedWolf: ViewStyle;
-  popoverTagSelectedGod: ViewStyle;
-  popoverTagSelectedVillager: ViewStyle;
-  popoverTagSelectedThird: ViewStyle;
-  popoverTagText: TextStyle;
-  popoverTagTextWolf: TextStyle;
-  popoverTagTextGod: TextStyle;
-  popoverTagTextVillager: TextStyle;
-  popoverTagTextThird: TextStyle;
-  popoverTagTextSelected: TextStyle;
-  popoverClearBtn: ViewStyle;
-  popoverClearText: TextStyle;
-  legend: ViewStyle;
-  legendItem: ViewStyle;
-  legendDot: ViewStyle;
-  legendDotWolf: ViewStyle;
-  legendDotGod: ViewStyle;
-  legendDotVillager: ViewStyle;
-  legendDotThird: ViewStyle;
-  legendText: TextStyle;
-}
-
 // ── Factory ──────────────────────────────────────────────
 
 export const createStyles = (colors: ThemeColors) => ({
   ...createBubbleStyles(colors, BUBBLE_HEIGHT, BUBBLE_WIDTH),
   ...createChatStyles(colors, CHAT_WIDTH),
-  ...createNotepadStyles(colors),
 });
 
 export type ChatStyles = ReturnType<typeof createStyles>;

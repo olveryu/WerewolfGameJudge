@@ -6,6 +6,7 @@
  * Does not render JSX, own styles, or contain business logic.
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -17,9 +18,9 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
-import { useNotepad } from '@/components/AIChatBubble/useNotepad';
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
+import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import type { RootStackParamList } from '@/navigation/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { fireAndForget } from '@/utils/errorUtils';
@@ -94,7 +95,6 @@ export function useRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
 
   const {
-    facade,
     gameState,
     isHost,
     mySeatNumber,
@@ -674,10 +674,27 @@ export function useRoomScreenState(
   }, [isHost, gameState, roomStatus]);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Notepad (pure client-side per-seat notes via AsyncStorage)
+  // Notepad cleanup on game restart (NotepadScreen is not always mounted)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const notepad = useNotepad(facade);
+  const notepadPrevStatusRef = useRef(roomStatus);
+  useEffect(() => {
+    const prev = notepadPrevStatusRef.current;
+    if (
+      prev !== undefined &&
+      prev !== GameStatus.Unseated &&
+      prev !== GameStatus.Seated &&
+      roomStatus === GameStatus.Seated
+    ) {
+      const key = getNotepadStorageKey(gameState?.roomCode ?? null);
+      if (key) {
+        AsyncStorage.removeItem(key).catch((e) => {
+          roomScreenLog.warn('Failed to clear notepad on restart:', e);
+        });
+      }
+    }
+    notepadPrevStatusRef.current = roomStatus;
+  }, [roomStatus, gameState?.roomCode]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Choose card handler (treasureMaster / thief bottom card selection)
@@ -838,9 +855,6 @@ export function useRoomScreenState(
 
     // ── Settings sheet (from useRoomSettings) ──
     ...roomSettings,
-
-    // ── Notepad (from useNotepad) ──
-    notepad,
 
     // ── Choose card modal (treasureMaster / thief) ──
     chooseCardModalVisible,

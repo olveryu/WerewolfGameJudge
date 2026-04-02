@@ -69,7 +69,8 @@ function emptyState(): NotepadState {
   };
 }
 
-function getStorageKey(roomCode: string | null): string | null {
+/** Build the AsyncStorage key for a given room code. */
+export function getNotepadStorageKey(roomCode: string | null): string | null {
   return roomCode ? `${STORAGE_KEY_PREFIX}${roomCode}` : null;
 }
 
@@ -85,7 +86,7 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
   const playerCount = gameState?.templateRoles?.length ?? 12;
   const templateRoles = gameState?.templateRoles;
   const roomCode = gameState?.roomCode ?? null;
-  const storageKey = getStorageKey(roomCode);
+  const storageKey = getNotepadStorageKey(roomCode);
   const status = gameState?.status;
 
   // ── Derive role tags from templateRoles (schema-driven) ──

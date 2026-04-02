@@ -19,6 +19,7 @@ import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
+import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 import { useColors } from '@/theme';
@@ -68,6 +69,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       },
       Settings: 'settings',
       Encyclopedia: 'encyclopedia',
+      Notepad: 'notepad',
       AvatarPicker: 'avatar-picker',
     },
   },
@@ -123,6 +125,11 @@ export const AppNavigator: React.FC = () => {
           name="Encyclopedia"
           component={EncyclopediaScreen}
           options={{ title: '角色图鉴', presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+          name="Notepad"
+          component={NotepadScreen}
+          options={{ title: '笔记', presentation: 'modal', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
           name="AvatarPicker"

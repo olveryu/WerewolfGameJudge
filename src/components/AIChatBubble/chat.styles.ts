@@ -59,20 +59,6 @@ export function createChatStyles(colors: ThemeColors, chatWidth: number) {
       fontSize: typography.body,
     },
 
-    // Notepad entry chip (subtle surface pill in header)
-    notepadEntryBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.medium,
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.tight,
-    },
-    notepadEntryBtnText: {
-      fontSize: typography.secondary,
-      color: colors.textSecondary,
-    },
-
     // Messages (wrapper for scroll-to-bottom overlay)
     messageListWrapper: {
       flex: 1,

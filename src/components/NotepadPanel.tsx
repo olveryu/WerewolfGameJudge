@@ -1,5 +1,5 @@
 /**
- * NotepadPanel - 笔记面板（全屏 NotepadModal 内嵌单列 12 行）
+ * NotepadPanel - 笔记面板（NotepadScreen 内嵌单列 12 行）
  *
  * 显示玩家卡片列表：每行包含座位号（可点击选角色）+ 角色徽标 + 上警标签 + 笔记输入。
  * 点击座位号弹出角色选择气泡，选中后在座位号旁显示角色徽标。
@@ -25,10 +25,67 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import type { NotepadState, RoleTagInfo } from '@/hooks/useNotepad';
 import { fixed } from '@/theme';
 
-import type { NotepadStyles } from './AIChatBubble.styles';
-import type { NotepadState, RoleTagInfo } from './useNotepad';
+// ── NotepadStyles（NotepadPanel 依赖此类型） ─────────────
+
+export interface NotepadStyles {
+  container: ViewStyle;
+  list: ViewStyle;
+  listContent: ViewStyle;
+  card: ViewStyle;
+  cardWolf: ViewStyle;
+  cardGod: ViewStyle;
+  cardVillager: ViewStyle;
+  cardThird: ViewStyle;
+  cardHeader: ViewStyle;
+  seatBtn: ViewStyle;
+  seatNumber: TextStyle;
+  seatPlaceholder: TextStyle;
+  roleBadge: ViewStyle;
+  roleBadgeEmpty: ViewStyle;
+  roleBadgeWolf: ViewStyle;
+  roleBadgeGod: ViewStyle;
+  roleBadgeVillager: ViewStyle;
+  roleBadgeThird: ViewStyle;
+  roleBadgeText: TextStyle;
+  roleBadgeTextWolf: TextStyle;
+  roleBadgeTextGod: TextStyle;
+  roleBadgeTextVillager: TextStyle;
+  roleBadgeTextThird: TextStyle;
+  handTag: ViewStyle;
+  handTagActive: ViewStyle;
+  handTagText: TextStyle;
+  handTagTextActive: TextStyle;
+  noteInput: TextStyle;
+  placeholderColor: string;
+  popoverOverlay: ViewStyle;
+  popover: ViewStyle;
+  popoverTitle: TextStyle;
+  popoverGrid: ViewStyle;
+  popoverTag: ViewStyle;
+  popoverTagSelectedWolf: ViewStyle;
+  popoverTagSelectedGod: ViewStyle;
+  popoverTagSelectedVillager: ViewStyle;
+  popoverTagSelectedThird: ViewStyle;
+  popoverTagText: TextStyle;
+  popoverTagTextWolf: TextStyle;
+  popoverTagTextGod: TextStyle;
+  popoverTagTextVillager: TextStyle;
+  popoverTagTextThird: TextStyle;
+  popoverTagTextSelected: TextStyle;
+  popoverClearBtn: ViewStyle;
+  popoverClearText: TextStyle;
+  legend: ViewStyle;
+  legendItem: ViewStyle;
+  legendDot: ViewStyle;
+  legendDotWolf: ViewStyle;
+  legendDotGod: ViewStyle;
+  legendDotVillager: ViewStyle;
+  legendDotThird: ViewStyle;
+  legendText: TextStyle;
+}
 
 // ── Constants ────────────────────────────────────────────
 

@@ -16,8 +16,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { createStyles as createChatStyles } from '@/components/AIChatBubble/AIChatBubble.styles';
-import { NotepadModal } from '@/components/AIChatBubble/NotepadModal';
 import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -68,12 +66,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
 
   // ─── Notepad ──────────────────────────────────────────────────────────
-  const chatStyles = useMemo(() => createChatStyles(colors), [colors]);
-  const [notepadOpen, setNotepadOpen] = useState(false);
-
   const handleNotepadPress = useCallback(() => {
-    setNotepadOpen(true);
-  }, []);
+    navigation.navigate('Notepad');
+  }, [navigation]);
 
   // ─── QR Code Modal state ──────────────────────────────────────────────
   const [qrModalVisible, setQrModalVisible] = useState(false);
@@ -221,8 +216,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     handleCloseSettings,
     handleAnimationChange,
     handleBgmChange,
-    // Notepad
-    notepad,
     // Choose card modal (treasureMaster / thief)
     chooseCardModalVisible,
     closeChooseCardModal,
@@ -699,14 +692,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onShareImage={handleShareQRImage}
         onCopyLink={handleCopyLink}
         onClose={() => setQrModalVisible(false)}
-      />
-
-      {/* Notepad Modal — 笔记弹窗 */}
-      <NotepadModal
-        visible={notepadOpen}
-        onClose={() => setNotepadOpen(false)}
-        notepad={notepad}
-        styles={chatStyles}
       />
 
       {/* Choose Bottom Card Modal — 盗宝大师 / 盗贼底牌选择 */}
