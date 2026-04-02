@@ -41,10 +41,11 @@ import Animated, {
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
+import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import {
-  useAutoTimeoutWarning,
+  useAutoTimeout,
   useRevealLifecycle,
 } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -451,7 +452,6 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   const decayRate = SB.decayRate / 1000; // per ms
 
   const [phase, setPhase] = useState<Phase>('appear');
-  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'idle' || phase === 'charging');
   const { fireComplete } = useRevealLifecycle({ onComplete });
   const shatterTriggeredRef = useRef(false);
 
@@ -680,23 +680,16 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     };
   }, [phase, updateCharge]);
 
-  // ── Auto-shatter timeout ──
-  useEffect(() => {
-    if (phase !== 'idle' && phase !== 'charging') return;
-    const timer = setTimeout(() => {
-      if (!shatterTriggeredRef.current) {
-        // Force charge to full and trigger shatter directly.
-        // Cannot use withTiming here: the RAF loop overwrites charge.value
-        // each frame, which cancels the Reanimated animation and causes
-        // the finished callback to never fire → permanent freeze.
-        chargeRef.current = 1;
-        charge.value = 1;
-        crackProgress.value = 1;
-        triggerShatter();
-      }
-    }, CONFIG.common.autoTimeout);
-    return () => clearTimeout(timer);
-  }, [phase, charge, crackProgress, triggerShatter]);
+  // ── Auto-shatter timeout (warning + 8s auto-reveal) ──
+  const autoShatter = useCallback(() => {
+    if (!shatterTriggeredRef.current) {
+      chargeRef.current = 1;
+      charge.value = 1;
+      crackProgress.value = 1;
+      triggerShatter();
+    }
+  }, [charge, crackProgress, triggerShatter]);
+  const autoTimeoutWarning = useAutoTimeout(phase === 'idle' || phase === 'charging', autoShatter);
 
   // ── Press handlers (dual mode: long-press charges continuously, tap boosts) ──
   const handlePressIn = useCallback(() => {
@@ -1117,31 +1110,20 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
       )}
 
       {/* Hint text */}
-      {phase === 'appear' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>{'\uD83D\uDD2E'} 封印凝聚中…</Text>
-        </View>
-      )}
-      {phase === 'idle' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>{'🔮'} 长按或连续点击封印蓄力</Text>
-        </View>
-      )}
-      {phase === 'charging' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>{'\uD83D\uDD2E'} 持续按住或点击…能量灌注中…</Text>
-        </View>
-      )}
-      {autoTimeoutWarning && (phase === 'idle' || phase === 'charging') && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
-        </View>
-      )}
-      {phase === 'shatter' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>{'\u2728'} 封印已破！</Text>
-        </View>
-      )}
+      <HintWithWarning
+        hintText={
+          phase === 'appear'
+            ? '\uD83D\uDD2E 封印凝聚中…'
+            : phase === 'idle'
+              ? '\uD83D\uDD2E 长按或连续点击封印蓄力'
+              : phase === 'charging'
+                ? '\uD83D\uDD2E 持续按住或点击…能量灌注中…'
+                : phase === 'shatter'
+                  ? '\u2728 封印已破！'
+                  : null
+        }
+        showWarning={autoTimeoutWarning}
+      />
 
       {/* Revealed card */}
       {(phase === 'shatter' || phase === 'revealed') && (
@@ -1181,23 +1163,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.chargeGlow,
   },
-  hint: { position: 'absolute', bottom: 80 },
-  hintText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.85)',
-    textShadowColor: 'rgba(139, 26, 26, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  autoTimeoutWarning: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'rgba(255, 200, 50, 0.9)',
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
+
   runeText: {
     position: 'absolute',
     fontSize: 20,

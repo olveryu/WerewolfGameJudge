@@ -36,10 +36,11 @@ import Animated, {
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
+import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import {
-  useAutoTimeoutWarning,
+  useAutoTimeout,
   useRevealLifecycle,
 } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -547,7 +548,6 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   const gravity = screenHeight * 0.18;
 
   const [phase, setPhase] = useState<Phase>('appear');
-  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'idle' || phase === 'hitting');
   const [cracks, setCracks] = useState<CrackData[]>([]);
   const hitCountRef = useRef(0);
   const [hitCountDisplay, setHitCountDisplay] = useState(0);
@@ -700,16 +700,6 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     torchFlicker,
   ]);
 
-  // ── Auto-shatter timeout ──
-  useEffect(() => {
-    if (phase !== 'idle' && phase !== 'hitting') return;
-    const timer = setTimeout(() => {
-      if (phase === 'idle' || phase === 'hitting') triggerShatter();
-    }, CONFIG.common.autoTimeout);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
-
   // ── Trigger final shatter ──
   const triggerShatter = useCallback(() => {
     if (shatterTriggeredRef.current) return;
@@ -779,6 +769,12 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     lightPillarScale,
     lightPillarOpacity,
   ]);
+
+  // ── Auto-timeout (warning + 8s auto-shatter) ──
+  const autoTimeoutWarning = useAutoTimeout(
+    phase === 'idle' || phase === 'hitting',
+    triggerShatter,
+  );
 
   // ── Handle hit ──
   const handlePress = useCallback(() => {
@@ -1225,28 +1221,18 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       </Pressable>
 
       {/* Hint text */}
-      {phase === 'appear' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>⛓️ 锁链封印中…</Text>
-        </View>
-      )}
-      {(phase === 'idle' || phase === 'hitting') && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>
-            ⛓️ 连续点击击碎锁链{hitsRemaining > 0 ? `（剩 ${hitsRemaining} 次）` : ''}
-          </Text>
-        </View>
-      )}
-      {autoTimeoutWarning && (phase === 'idle' || phase === 'hitting') && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
-        </View>
-      )}
-      {phase === 'shatter' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>💥 锁链已碎！</Text>
-        </View>
-      )}
+      <HintWithWarning
+        hintText={
+          phase === 'appear'
+            ? '⛓️ 锁链封印中…'
+            : phase === 'idle' || phase === 'hitting'
+              ? `⛓️ 连续点击击碎锁链${hitsRemaining > 0 ? `（剩 ${hitsRemaining} 次）` : ''}`
+              : phase === 'shatter'
+                ? '💥 锁链已碎！'
+                : null
+        }
+        showWarning={autoTimeoutWarning}
+      />
 
       {/* Exposed spring coils (visible through cracks during hitting) */}
       {phase === 'hitting' && hitCountDisplay >= 3 && (
@@ -1316,23 +1302,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
-  hint: { position: 'absolute', bottom: 80 },
-  hintText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.85)',
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  autoTimeoutWarning: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'rgba(255, 200, 50, 0.9)',
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
+
   cardWrapper: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',

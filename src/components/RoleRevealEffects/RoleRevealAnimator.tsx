@@ -23,7 +23,7 @@ import { TarotDraw } from './TarotDraw';
 import type { RevealEffectType, RoleData, RoleRevealAnimatorProps } from './types';
 
 /** 自动播放的效果类型（无需手动操作） */
-const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set(['roulette']);
+const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set([]);
 
 /** 根据效果类型选择标题：手动操作类引导用户操作，自动类告知即将揭晓 */
 function getTitleForEffect(effectType: RevealEffectType): string {

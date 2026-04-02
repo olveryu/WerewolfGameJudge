@@ -44,9 +44,13 @@ import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/Al
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
 import { SkiaSparkle } from '@/components/RoleRevealEffects/common/effects/SkiaSparkle';
+import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { useRevealLifecycle } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
+import {
+  useAutoTimeout,
+  useRevealLifecycle,
+} from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -491,15 +495,15 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     fireComplete,
   ]);
 
-  // ── Auto-select after 3s if user doesn't tap ──
-  useEffect(() => {
-    if (phase !== 'waiting' || reducedMotion) return;
-    const timer = setTimeout(() => {
-      const randomIndex = Math.floor(Math.random() * wheelCards.length);
-      handleCardSelect(randomIndex);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [phase, reducedMotion, wheelCards.length, handleCardSelect]);
+  // ── Auto-select if user doesn't tap (unified 8s timeout) ──
+  const autoSelectRandom = useCallback(() => {
+    const randomIndex = Math.floor(Math.random() * wheelCards.length);
+    handleCardSelect(randomIndex);
+  }, [wheelCards.length, handleCardSelect]);
+  const autoTimeoutWarning = useAutoTimeout(
+    phase === 'waiting' && !reducedMotion,
+    autoSelectRandom,
+  );
 
   // ── Animated styles ──
   const wheelStyle = useAnimatedStyle(() => ({
@@ -901,6 +905,11 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
           </Animated.Text>
         </Animated.View>
       )}
+
+      <HintWithWarning
+        hintText={phase === 'waiting' ? '✨ 凭直觉选一张牌' : null}
+        showWarning={autoTimeoutWarning}
+      />
     </View>
   );
 };

@@ -21,7 +21,7 @@ import {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -39,16 +39,17 @@ import Animated, {
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
+import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import {
-  useAutoTimeoutWarning,
+  useAutoTimeout,
   useRevealLifecycle,
 } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, crossPlatformTextShadow, useColors } from '@/theme';
+import { borderRadius, useColors } from '@/theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -138,7 +139,6 @@ export const CardPick: React.FC<CardPickProps> = ({
   const [phase, setPhase] = useState<'spreading' | 'waiting' | 'picking' | 'flipping' | 'revealed'>(
     'spreading',
   );
-  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'waiting' && !reducedMotion);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const { fireComplete } = useRevealLifecycle({
     onComplete,
@@ -375,18 +375,18 @@ export const CardPick: React.FC<CardPickProps> = ({
   ]);
 
   // ── Auto-select after timeout if user doesn't tap ──
-  useEffect(() => {
-    if (phase !== 'waiting' || reducedMotion) return;
+  const autoSelectRandom = useCallback(() => {
     const aliveIndices = Array.from({ length: initialCardCount }, (_, i) => i).filter(
       (i) => !removedIndices.has(i),
     );
     if (aliveIndices.length === 0) return;
-    const timer = setTimeout(() => {
-      const randomIndex = aliveIndices[Math.floor(Math.random() * aliveIndices.length)];
-      handleCardSelect(randomIndex);
-    }, CONFIG.common.autoTimeout);
-    return () => clearTimeout(timer);
-  }, [phase, reducedMotion, initialCardCount, removedIndices, handleCardSelect]);
+    const randomIndex = aliveIndices[Math.floor(Math.random() * aliveIndices.length)];
+    handleCardSelect(randomIndex);
+  }, [initialCardCount, removedIndices, handleCardSelect]);
+  const autoTimeoutWarning = useAutoTimeout(
+    phase === 'waiting' && !reducedMotion,
+    autoSelectRandom,
+  );
 
   // ── Animated styles for drawn card (fly-to-center + flip) ──
   const drawnCardStyle = useAnimatedStyle(() => ({
@@ -497,18 +497,17 @@ export const CardPick: React.FC<CardPickProps> = ({
       )}
 
       {/* Prompt text with dealer hand */}
-      {(phase === 'spreading' || phase === 'waiting') && (
-        <View style={styles.promptContainer}>
-          <Animated.Text style={[styles.promptText, { color: TABLE_COLORS.accent }]}>
-            {aliveCount === 1 ? '🤚 最后一张，点击翻开' : `🤚 还剩 ${aliveCount} 张，点选一张`}
-          </Animated.Text>
-        </View>
-      )}
-      {autoTimeoutWarning && phase === 'waiting' && (
-        <View style={styles.promptContainer} pointerEvents="none">
-          <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
-        </View>
-      )}
+      <HintWithWarning
+        hintText={
+          phase === 'spreading' || phase === 'waiting'
+            ? aliveCount === 1
+              ? '🤚 最后一张，点击翻开'
+              : `🤚 还剩 ${aliveCount} 张，点选一张`
+            : null
+        }
+        showWarning={autoTimeoutWarning}
+        hintTextStyle={styles.hintAccent}
+      />
 
       {/* Card grid — all face-down mini cards */}
       {(phase === 'spreading' || phase === 'waiting' || phase === 'picking') && (
@@ -769,21 +768,8 @@ const styles = StyleSheet.create({
   pressableFill: {
     flex: 1,
   },
-  promptContainer: {
-    position: 'absolute',
-    bottom: 80,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  promptText: {
-    fontSize: 20,
-    fontWeight: '600',
+  hintAccent: {
+    color: TABLE_COLORS.accent,
     letterSpacing: 1,
-  },
-  autoTimeoutWarning: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'rgba(255, 200, 50, 0.9)',
-    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 4),
   },
 });

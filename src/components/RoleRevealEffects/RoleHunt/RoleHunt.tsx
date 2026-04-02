@@ -49,10 +49,11 @@ import Animated, {
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
+import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import {
-  useAutoTimeoutWarning,
+  useAutoTimeout,
   useRevealLifecycle,
 } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
@@ -665,7 +666,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   const config = CONFIG.roleHunt;
 
   const [phase, setPhase] = useState<'hunting' | 'capturing' | 'revealing' | 'revealed'>('hunting');
-  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'hunting' && !reducedMotion);
   const [animals, setAnimals] = useState<AnimalData[]>([]);
   const [animalStates, setAnimalStates] = useState<
     Record<number, 'alive' | 'hit-target' | 'hit-miss' | 'dead'>
@@ -679,7 +679,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   });
 
   const hitRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoSelectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const targetSpawnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const phaseRef = useRef(phase);
@@ -863,24 +862,10 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
 
-  // Auto-select timeout
-  useEffect(() => {
-    if (reducedMotion) return;
-    autoSelectTimerRef.current = setTimeout(() => {
-      if (phaseRef.current !== 'hunting') return;
-      startReveal();
-    }, CONFIG.common.autoTimeout);
-    return () => {
-      if (autoSelectTimerRef.current) clearTimeout(autoSelectTimerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
-  }, []);
-
   // Clean up
   useEffect(() => {
     return () => {
       if (hitRevealTimerRef.current) clearTimeout(hitRevealTimerRef.current);
-      if (autoSelectTimerRef.current) clearTimeout(autoSelectTimerRef.current);
       if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
       if (targetSpawnTimerRef.current) clearInterval(targetSpawnTimerRef.current);
     };
@@ -921,6 +906,9 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       },
     );
   }, [cardScale, cardOpacity, atmosphereOpacity, createCelebrations, enableHaptics]);
+
+  // Auto-timeout (warning + 8s auto-reveal)
+  const autoTimeoutWarning = useAutoTimeout(phase === 'hunting' && !reducedMotion, startReveal);
 
   // ── Shooting ──
   const handleShoot = useCallback(
@@ -983,7 +971,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 
           const timer = setTimeout(() => startReveal(), config.hitRevealDelay);
           hitRevealTimerRef.current = timer;
-          if (autoSelectTimerRef.current) clearTimeout(autoSelectTimerRef.current);
         } else {
           setAnimalStates((prev) => ({ ...prev, [animal.id]: 'hit-miss' }));
           if (enableHaptics) triggerHaptic('light', true);
@@ -1073,10 +1060,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 
   const hitFlashStyle = useAnimatedStyle(() => ({
     opacity: hitFlashOpacity.value,
-  }));
-
-  const hintStyle = useAnimatedStyle(() => ({
-    opacity: hintOpacity.value,
   }));
 
   // ── Scope Skia overlay ──
@@ -1223,16 +1206,12 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
         )}
 
         {/* Hint */}
-        {phase === 'hunting' && !reducedMotion && !autoTimeoutWarning && (
-          <Animated.View style={[styles.hintContainer, hintStyle]}>
-            <Text style={styles.hintText}>🔫 移动瞄准，抬手射击 — 找到你的角色！</Text>
-          </Animated.View>
-        )}
-        {autoTimeoutWarning && phase === 'hunting' && (
-          <View style={styles.hintContainer} pointerEvents="none">
-            <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
-          </View>
-        )}
+        <HintWithWarning
+          hintText={
+            phase === 'hunting' && !reducedMotion ? '🔫 移动瞄准，抬手射击 — 找到你的角色！' : null
+          }
+          showWarning={autoTimeoutWarning}
+        />
 
         {/* Celebrations */}
         {celebrations.length > 0 && (
@@ -1287,30 +1266,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 8,
   },
-  hintContainer: {
-    position: 'absolute',
-    bottom: 80,
-    alignSelf: 'center',
-    zIndex: 10,
-  },
-  hintText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: HUNT_COLORS.hintText,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
-  },
-  autoTimeoutWarning: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'rgba(255, 200, 50, 0.9)',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
+
   animalLabel: {
     position: 'absolute',
     alignItems: 'center',

@@ -36,9 +36,13 @@ import Animated, {
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
+import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { useRevealLifecycle } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
+import {
+  useAutoTimeout,
+  useRevealLifecycle,
+} from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -315,6 +319,9 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     prizeStampOpacity,
     prizeStampScale,
   ]);
+
+  // ── Auto-timeout (8s auto-reveal if user doesn't scratch) ──
+  const autoTimeoutWarning = useAutoTimeout(!isRevealed && !reducedMotion, triggerReveal);
 
   // ── Add scratch point ──
   const addScratchPoint = useCallback(
@@ -678,6 +685,9 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
           <Text style={styles.tapButtonText}>点击揭示角色</Text>
         </TouchableOpacity>
       )}
+
+      {/* Auto-timeout warning */}
+      <HintWithWarning hintText={null} showWarning={autoTimeoutWarning} />
     </View>
   );
 };

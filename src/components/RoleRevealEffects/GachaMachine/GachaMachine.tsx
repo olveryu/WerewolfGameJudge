@@ -10,7 +10,7 @@ import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Dimensions, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -28,9 +28,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
+import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { useRevealLifecycle } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
+import {
+  useAutoTimeout,
+  useRevealLifecycle,
+} from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -408,19 +412,9 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     }
   }, [reducedMotion, cardScale, cardOpacity, shellOpacity, machineOpacityAnim, fireComplete]);
 
-  // ── Auto-spin after 1.5s ──
-  useEffect(() => {
-    if (phase !== 'ready' || reducedMotion) return;
-    const timer = setTimeout(() => spinDial(), 1500);
-    return () => clearTimeout(timer);
-  }, [phase, reducedMotion, spinDial]);
-
-  // ── Auto-open capsule after 1s ──
-  useEffect(() => {
-    if (phase !== 'waiting' || reducedMotion) return;
-    const timer = setTimeout(() => openCapsule(), 1000);
-    return () => clearTimeout(timer);
-  }, [phase, reducedMotion, openCapsule]);
+  // ── Auto-timeout for ready and waiting phases ──
+  const readyWarning = useAutoTimeout(phase === 'ready' && !reducedMotion, spinDial);
+  const waitingWarning = useAutoTimeout(phase === 'waiting' && !reducedMotion, openCapsule);
 
   // ── Animated styles ──
   const bobbleStyle = useAnimatedStyle(() => ({
@@ -560,21 +554,18 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       </Animated.View>
 
       {/* Hints */}
-      {phase === 'ready' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🎯 点击旋钮开始</Text>
-        </View>
-      )}
-      {(phase === 'spinning' || phase === 'dropping') && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🎰 扭蛋掉落中…</Text>
-        </View>
-      )}
-      {phase === 'waiting' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>✨ 点击扭蛋打开</Text>
-        </View>
-      )}
+      <HintWithWarning
+        hintText={
+          phase === 'ready'
+            ? '🎯 点击旋钮开始'
+            : phase === 'spinning' || phase === 'dropping'
+              ? '🎰 扭蛋掉落中…'
+              : phase === 'waiting'
+                ? '✨ 点击扭蛋打开'
+                : null
+        }
+        showWarning={readyWarning || waitingWarning}
+      />
 
       {/* Falling capsule */}
       {(phase === 'dropping' || phase === 'waiting' || phase === 'opening') && (
@@ -794,21 +785,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
     overflow: 'hidden',
-  },
-
-  hint: { position: 'absolute', bottom: 80 },
-  hintText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: GACHA_COLORS.hintTextColor,
-    ...Platform.select({
-      web: { textShadow: '0px 1px 4px rgba(0, 0, 0, 0.6)' },
-      native: {
-        textShadowColor: 'rgba(0, 0, 0, 0.6)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
-      },
-    }),
   },
 
   capsule: { position: 'absolute', width: 80, height: 80 },

@@ -58,31 +58,43 @@ export function useRevealLifecycle(options: UseRevealLifecycleOptions): UseRevea
   return { onCompleteCalledRef, fireComplete };
 }
 
-// ─── Auto-timeout warning ──────────────────────────────────────────────
+// ─── Auto-timeout ──────────────────────────────────────────────────────
 
 /**
- * useAutoTimeoutWarning — manages the "hurry up" warning state.
+ * useAutoTimeout — unified auto-timeout for reveal effects.
  *
- * Returns `true` when `CONFIG.common.autoTimeout - autoTimeoutWarningLeadTime` ms
- * have elapsed since `active` became `true`. Resets when `active` becomes `false`.
+ * Combines auto-reveal trigger + "hurry up" warning in one hook:
+ * 1. Fires `onTimeout` after `CONFIG.common.autoTimeout` ms.
+ * 2. Returns `true` when `autoTimeoutWarningLeadTime` ms remain before timeout.
+ *
+ * `active` drives the timer lifecycle (true → start, false → reset).
+ * `onTimeout` captured by ref — callback changes never restart timers.
+ * Returns `active && warning` so the value is immediately false when active flips off.
  */
-export function useAutoTimeoutWarning(active: boolean): boolean {
+export function useAutoTimeout(active: boolean, onTimeout: () => void): boolean {
   const [warning, setWarning] = useState(false);
+  const onTimeoutRef = useRef(onTimeout);
+
+  useEffect(() => {
+    onTimeoutRef.current = onTimeout;
+  });
 
   useEffect(() => {
     if (!active) {
       setWarning(false);
       return;
     }
-    const timer = setTimeout(
+    const warningTimer = setTimeout(
       () => setWarning(true),
       CONFIG.common.autoTimeout - CONFIG.common.autoTimeoutWarningLeadTime,
     );
+    const timeoutTimer = setTimeout(() => onTimeoutRef.current(), CONFIG.common.autoTimeout);
     return () => {
-      clearTimeout(timer);
+      clearTimeout(warningTimer);
+      clearTimeout(timeoutTimer);
       setWarning(false);
     };
   }, [active]);
 
-  return warning;
+  return active && warning;
 }

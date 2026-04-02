@@ -42,16 +42,17 @@ import Animated, {
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
+import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import {
-  useAutoTimeoutWarning,
+  useAutoTimeout,
   useRevealLifecycle,
 } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { crossPlatformTextShadow, useColors } from '@/theme';
+import { useColors } from '@/theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -80,7 +81,6 @@ const SEGMENT_DIVIDER = 'rgba(255, 215, 0, 0.5)';
 const CENTER_FILL = '#1a1a2e';
 const POINTER_FILL = '#E74C3C';
 const POINTER_STROKE_COLOR = '#FFD700';
-const HINT_TEXT_COLOR = 'rgba(255, 255, 255, 0.85)';
 const HINT_ALIGNED_COLOR = '#4ECDC4';
 
 // Gem bulb colors for rim decorations
@@ -237,7 +237,6 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const pointerPath = useMemo(() => buildPointerPath(cx, cy - wheelR - 20, 26), [cx, cy, wheelR]);
 
   const [phase, setPhase] = useState<Phase>('appear');
-  const autoTimeoutWarning = useAutoTimeoutWarning(phase === 'idle');
   const { fireComplete } = useRevealLifecycle({ onComplete });
 
   const wheelOpacity = useSharedValue(0);
@@ -401,16 +400,12 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     return () => clearTimeout(timer);
   }, [phase, triggerCardReveal]);
 
-  // Auto-spin timeout
-  useEffect(() => {
-    if (phase !== 'idle') return;
-    const timer = setTimeout(() => {
-      rotation.value = rotation.value + Math.PI * 0.5;
-      startDeceleratingToTarget();
-    }, CONFIG.common.autoTimeout);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  // Auto-spin timeout (warning + 8s auto-spin)
+  const autoSpin = useCallback(() => {
+    rotation.value = rotation.value + Math.PI * 0.5;
+    startDeceleratingToTarget();
+  }, [rotation, startDeceleratingToTarget]);
+  const autoTimeoutWarning = useAutoTimeout(phase === 'idle', autoSpin);
 
   // Pan gesture (flick to spin)
   const panGesture = useMemo(
@@ -649,31 +644,21 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       />
 
       {/* Phase hints */}
-      {phase === 'appear' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🎰 转盘就绪…</Text>
-        </View>
-      )}
-      {phase === 'idle' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🎰 拨动转盘，揭晓身份</Text>
-        </View>
-      )}
-      {phase === 'spinning' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🎰 命运转动中…</Text>
-        </View>
-      )}
-      {phase === 'stopped' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={[styles.hintText, { color: HINT_ALIGNED_COLOR }]}>✨ 命运已定！</Text>
-        </View>
-      )}
-      {autoTimeoutWarning && phase === 'idle' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.autoTimeoutWarning}>⏳ 即将自动揭晓…</Text>
-        </View>
-      )}
+      <HintWithWarning
+        hintText={
+          phase === 'appear'
+            ? '🎰 转盘就绪…'
+            : phase === 'idle'
+              ? '🎰 拨动转盘，揭晓身份'
+              : phase === 'spinning'
+                ? '🎰 命运转动中…'
+                : phase === 'stopped'
+                  ? '✨ 命运已定！'
+                  : null
+        }
+        showWarning={autoTimeoutWarning}
+        hintTextStyle={phase === 'stopped' ? { color: HINT_ALIGNED_COLOR } : undefined}
+      />
 
       {/* Card reveal */}
       {(phase === 'stopped' || phase === 'revealed') && (
@@ -783,19 +768,7 @@ const styles = StyleSheet.create({
     width: 400,
     height: 400,
   },
-  hint: { position: 'absolute', bottom: 80 },
-  hintText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: HINT_TEXT_COLOR,
-    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 4),
-  },
-  autoTimeoutWarning: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'rgba(255, 200, 50, 0.9)',
-    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 4),
-  },
+
   cardWrapper: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',

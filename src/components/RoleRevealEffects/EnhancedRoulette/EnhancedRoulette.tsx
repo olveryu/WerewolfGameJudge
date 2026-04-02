@@ -10,7 +10,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -27,9 +27,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
+import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { useRevealLifecycle } from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
+import {
+  useAutoTimeout,
+  useRevealLifecycle,
+} from '@/components/RoleRevealEffects/hooks/useRevealLifecycle';
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
@@ -76,7 +80,7 @@ const BOTTOM_BULB_IDS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'] as const;
  * pattern entirely on the UI thread — no `setInterval` / `setState`.
  */
 const AnimatedBulb: React.FC<{
-  phase: 'spinning' | 'stopping' | 'revealed';
+  phase: 'idle' | 'spinning' | 'stopping' | 'revealed';
   reducedMotion: boolean;
   color?: string;
   size?: number;
@@ -189,7 +193,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const { width: screenWidth } = useWindowDimensions();
   const config = CONFIG.roulette;
 
-  const [phase, setPhase] = useState<'spinning' | 'stopping' | 'revealed'>('spinning');
+  const [phase, setPhase] = useState<'idle' | 'spinning' | 'stopping' | 'revealed'>('idle');
   const [shuffledRoles] = useState<RoleData[]>(() => {
     const unique = [...new Set(allRoles.map((r) => r.id))];
     const roles = unique.map((id) => allRoles.find((r) => r.id === id)!);
@@ -312,8 +316,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
   // ── Start spin ──
   const startSpin = useCallback(() => {
-    if (phase !== 'spinning') return;
+    if (phase !== 'idle') return;
 
+    setPhase('spinning');
     if (enableHaptics) triggerHaptic('medium', true);
 
     const targetPosition = config.spinRotations * shuffledRoles.length + targetIndex;
@@ -382,8 +387,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       return () => clearTimeout(timer);
     }
 
-    // Auto-start immediately
-    startSpin();
+    // Wait for user to press SPIN button (or autoTimeout)
   }, [
     reducedMotion,
     cabinetOpacityAnim,
@@ -395,6 +399,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     onComplete,
     startSpin,
   ]);
+
+  // ── Auto-timeout (warning + 8s auto-spin) ──
+  const autoTimeoutWarning = useAutoTimeout(phase === 'idle' && !reducedMotion, startSpin);
 
   // ── Reveal complete handler ──
   const { fireComplete } = useRevealLifecycle({
@@ -654,15 +661,24 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       )}
 
       {/* Hint text */}
-      {phase === 'spinning' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🎰 轮盘转动中…</Text>
-        </View>
-      )}
-      {phase === 'stopping' && (
-        <View style={styles.hint} pointerEvents="none">
-          <Text style={styles.hintText}>🎰 即将揭晓…</Text>
-        </View>
+      <HintWithWarning
+        hintText={
+          phase === 'idle'
+            ? '🎰 点击下方按钮，开始转动'
+            : phase === 'spinning'
+              ? '🎰 轮盘转动中…'
+              : phase === 'stopping'
+                ? '🎰 即将揭晓…'
+                : null
+        }
+        showWarning={autoTimeoutWarning}
+      />
+
+      {/* SPIN button (idle phase) */}
+      {phase === 'idle' && (
+        <Pressable onPress={startSpin} style={styles.spinButton} testID={`${testIDPrefix}-spin`}>
+          <Text style={styles.spinButtonText}>🎰 SPIN</Text>
+        </Pressable>
       )}
     </View>
   );
@@ -842,6 +858,24 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontWeight: '600',
     ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 4),
+  },
+  spinButton: {
+    position: 'absolute',
+    bottom: 120,
+    alignSelf: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    backgroundColor: SLOT_COLORS.gold,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: SLOT_COLORS.goldDark,
+    boxShadow: `0px 4px 8px rgba(0, 0, 0, 0.4)`,
+  },
+  spinButtonText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    letterSpacing: 2,
   },
   particle: {
     position: 'absolute',
