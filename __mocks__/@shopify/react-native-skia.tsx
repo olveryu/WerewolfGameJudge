@@ -73,6 +73,8 @@ const noopPaint = {
   setAlphaf: () => {},
   setStyle: () => {},
   setStrokeWidth: () => {},
+  setStrokeCap: () => {},
+  setShader: () => {},
   setImageFilter: () => {},
   setBlendMode: () => {},
   copy: () => noopPaint,
@@ -110,6 +112,10 @@ export const Skia = {
   },
   ImageFilter: {
     MakeBlur: () => ({}),
+  },
+  Shader: {
+    MakeLinearGradient: () => ({}),
+    MakeRadialGradient: () => ({}),
   },
   RRectXY: () => ({}),
   XYWHRect: () => ({}),
