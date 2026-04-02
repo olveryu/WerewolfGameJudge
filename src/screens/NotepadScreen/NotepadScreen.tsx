@@ -9,6 +9,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import React, { useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +22,7 @@ import { useNotepad } from '@/hooks/useNotepad';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { fixed, typography, useColors } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';
-import { showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
 import { createNotepadScreenStyles } from './NotepadScreen.styles';
 
@@ -40,13 +41,30 @@ export const NotepadScreen: React.FC = () => {
       showErrorAlert('AI 助手', 'AI 助手暂不可用');
       return;
     }
-    const summary = buildNotepadSummary(notepad.state, notepad.playerCount);
+
+    // Build recorder's own role info
+    const mySeat = facade.getMySeatNumber();
+    const gameState = facade.getState();
+    const myRole = mySeat != null ? gameState?.players[mySeat]?.role : undefined;
+    const myRoleInfo =
+      mySeat != null && myRole
+        ? { seat: mySeat, roleName: ROLE_SPECS[myRole]?.displayName ?? myRole }
+        : undefined;
+
+    const summary = buildNotepadSummary(notepad.state, notepad.playerCount, myRoleInfo);
     if (!summary) {
       showErrorAlert('笔记为空', '请先记录一些笔记再进行分析');
       return;
     }
-    requestAIChatMessage({ fullText: summary, displayText: '📝 分析我的笔记' });
-  }, [notepad.state, notepad.playerCount]);
+
+    showConfirmAlert('AI 分析', '将笔记发送给 AI 进行局势分析？', () => {
+      requestAIChatMessage({
+        fullText: summary,
+        displayText: '📝 分析我的笔记',
+        maxTokens: 1024,
+      });
+    });
+  }, [facade, notepad.state, notepad.playerCount]);
 
   const panelStyles = useMemo(
     () => ({

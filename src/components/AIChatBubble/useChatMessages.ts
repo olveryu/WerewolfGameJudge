@@ -51,7 +51,7 @@ export interface UseChatMessagesReturn {
   handleSend: () => Promise<void>;
   handleQuickQuestion: (question: string) => void;
   /** 发送完整文本给 AI，但在聊天气泡中显示简短的 displayText */
-  sendWithDisplay: (fullText: string, displayText: string) => void;
+  sendWithDisplay: (fullText: string, displayText: string, maxTokens?: number) => void;
   handleClearHistory: () => void;
 }
 
@@ -142,7 +142,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
 
   // ── Send message (streaming) ───────────────────────
   const sendMessage = useCallback(
-    async (text: string, displayText?: string) => {
+    async (text: string, displayText?: string, maxTokens?: number) => {
       if (!text || loadingRef.current) return;
       if (cooldownRef.current > 0) return;
       if (!isAIChatReady()) {
@@ -219,6 +219,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
           contextMessages,
           gameContext,
           controller.signal,
+          maxTokens,
         )) {
           if (controller.signal.aborted) {
             if (typewriterTimer) {
@@ -336,8 +337,8 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
   );
 
   const sendWithDisplay = useCallback(
-    (fullText: string, displayText: string) => {
-      void sendMessage(fullText, displayText);
+    (fullText: string, displayText: string, maxTokens?: number) => {
+      void sendMessage(fullText, displayText, maxTokens);
     },
     [sendMessage],
   );

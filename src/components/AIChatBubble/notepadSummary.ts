@@ -13,11 +13,21 @@ import type { NotepadState } from '@/hooks/useNotepad';
 /** 总文本最大字符数（截断公共笔记区） */
 const MAX_SUMMARY_LENGTH = 1500;
 
+/** 记录者自身身份信息 */
+export interface NotepadRoleInfo {
+  seat: number;
+  roleName: string;
+}
+
 /**
  * 将笔记状态构建为 AI 分析请求文本。
  * 空笔记返回 null。
  */
-export function buildNotepadSummary(state: NotepadState, playerCount: number): string | null {
+export function buildNotepadSummary(
+  state: NotepadState,
+  playerCount: number,
+  myRoleInfo?: NotepadRoleInfo,
+): string | null {
   const seatLines: string[] = [];
   const handSeats: number[] = [];
 
@@ -68,10 +78,11 @@ export function buildNotepadSummary(state: NotepadState, playerCount: number): s
   const sections: string[] = [
     '[角色] 你是一名拥有丰富狼人杀复盘经验的专业分析师。基于玩家提供的笔记，输出严谨的局势分析。',
     '',
+    ...(myRoleInfo ? [`[记录者身份] ${myRoleInfo.seat}号位 ${myRoleInfo.roleName}`, ''] : []),
     '[规则]',
     '- 逻辑优先级：收益逻辑＞发言状态＞位置学，禁止无事实支撑的玄学分析',
     '- 所有结论必须锚定笔记中记录的发言、投票、上警等可追溯行为',
-    '- 从记录者自身视角分析（记录者可能是任何身份），不做上帝视角马后炮',
+    '- 从记录者自身视角分析（参考上方记录者身份），不做上帝视角马后炮',
     '- 对争议行为同时拆解正逻辑与反逻辑',
     '- 结合上方"当前游戏状态"中的角色配置和技能进行推理',
     '- 本次分析可以超过150字，控制在300字内',

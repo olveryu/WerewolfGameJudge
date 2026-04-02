@@ -156,6 +156,7 @@ export async function* streamChatMessage(
   messages: ChatMessage[],
   gameContext?: GameContext,
   signal?: AbortSignal,
+  maxTokens?: number,
 ): AsyncGenerator<StreamChunk> {
   if (!isAIChatReady()) {
     yield { type: 'error', content: 'AI 服务未配置' };
@@ -187,7 +188,7 @@ export async function* streamChatMessage(
       body: JSON.stringify({
         model: API_CONFIG.model,
         messages: [{ role: 'system', content: systemPrompt }, ...trimmedMessages],
-        max_tokens: API_CONFIG.maxTokens,
+        max_tokens: maxTokens ?? API_CONFIG.maxTokens,
         temperature: 0.7,
         stream: true,
       }),

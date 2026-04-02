@@ -73,7 +73,7 @@ export function useAIChat(): UseAIChatReturn {
       setIsOpen(true);
       // Use setTimeout to ensure isOpen propagates before sending
       setTimeout(() => {
-        sendWithDisplay(payload.fullText, payload.displayText);
+        sendWithDisplay(payload.fullText, payload.displayText, payload.maxTokens);
       }, 0);
     });
     return () => setAIChatBridgeListener(null);

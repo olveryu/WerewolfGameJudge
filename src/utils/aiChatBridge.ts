@@ -11,6 +11,8 @@ export interface AIChatBridgePayload {
   fullText: string;
   /** 在用户消息气泡中显示的简短文本 */
   displayText: string;
+  /** 可选的 maxTokens 覆盖（默认走 API_CONFIG.maxTokens） */
+  maxTokens?: number;
 }
 
 type AIChatBridgeListener = (payload: AIChatBridgePayload) => void;

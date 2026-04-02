@@ -127,4 +127,18 @@ describe('buildNotepadSummary', () => {
     expect(result).not.toContain('本局角色配置');
     expect(result).toContain('结合上方');
   });
+
+  it('includes recorder role info when provided', () => {
+    const state = { ...emptyState(), playerNotes: { 1: '测试' } };
+    const result = buildNotepadSummary(state, 6, { seat: 3, roleName: '预言家' });
+    expect(result).not.toBeNull();
+    expect(result).toContain('[记录者身份] 3号位 预言家');
+  });
+
+  it('omits recorder role info section when not provided', () => {
+    const state = { ...emptyState(), playerNotes: { 1: '测试' } };
+    const result = buildNotepadSummary(state, 6);
+    expect(result).not.toBeNull();
+    expect(result).not.toContain('[记录者身份]');
+  });
 });
