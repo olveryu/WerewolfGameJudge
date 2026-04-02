@@ -130,6 +130,13 @@ export const ANIMATION_OPTIONS = [
     operationType: 'auto',
   },
   {
+    value: 'vortexCollapse',
+    label: '漩涡',
+    icon: 'planet-outline',
+    shortDesc: '画圈加速漩涡旋转，坍缩爆发揭晓',
+    operationType: 'drag',
+  },
+  {
     value: 'none',
     label: '关闭',
     icon: 'close-circle-outline',

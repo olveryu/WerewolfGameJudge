@@ -44,7 +44,8 @@ export type RevealEffectType =
   | 'chainShatter'
   | 'fortuneWheel'
   | 'meteorStrike'
-  | 'filmRewind';
+  | 'filmRewind'
+  | 'vortexCollapse';
 
 /**
  * Common props for all reveal effect components

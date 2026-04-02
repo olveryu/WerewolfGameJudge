@@ -4,8 +4,8 @@
  * Key contracts:
  * - 'random' is a valid RoleRevealAnimation config value
  * - resolveRandomAnimation() is deterministic (same seed → same result)
- * - resolveRandomAnimation() only returns one of the 11 animation types (never 'none' or 'random')
- * - ANIMATION_VALUES contains exactly the 11 animation types
+ * - resolveRandomAnimation() only returns one of the 12 animation types (never 'none' or 'random')
+ * - ANIMATION_VALUES contains exactly the 12 animation types
  */
 
 import {
@@ -17,8 +17,8 @@ import {
 
 describe('RoleRevealAnimation', () => {
   describe('RANDOMIZABLE_ANIMATIONS', () => {
-    it('should contain exactly 11 animation types', () => {
-      expect(RANDOMIZABLE_ANIMATIONS).toHaveLength(11);
+    it('should contain exactly 12 animation types', () => {
+      expect(RANDOMIZABLE_ANIMATIONS).toHaveLength(12);
     });
 
     it('should contain all expected animations', () => {
@@ -33,6 +33,7 @@ describe('RoleRevealAnimation', () => {
       expect(RANDOMIZABLE_ANIMATIONS).toContain('fortuneWheel');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('meteorStrike');
       expect(RANDOMIZABLE_ANIMATIONS).toContain('filmRewind');
+      expect(RANDOMIZABLE_ANIMATIONS).toContain('vortexCollapse');
     });
 
     it('should NOT contain "none"', () => {
@@ -80,7 +81,7 @@ describe('RoleRevealAnimation', () => {
         results.add(resolveRandomAnimation(`seed-${i}`));
       }
       // Should eventually hit all 11 animations (probabilistic but very likely with 1000 samples)
-      expect(results.size).toBe(11);
+      expect(results.size).toBe(12);
     });
 
     it('should return valid ResolvedRoleRevealAnimation type', () => {

@@ -418,6 +418,30 @@ export const CONFIG = {
   },
 
   // =====================================================
+  // Vortex Collapse (虚空坍缩)
+  // =====================================================
+  vortexCollapse: {
+    /** Atmosphere intro duration (ms) */
+    atmosphereDuration: 1200,
+    /** Number of orbital particles */
+    particleCount: 80,
+    /** Number of debris chunks */
+    debrisCount: 20,
+    /** Spin accumulation needed to trigger collapse (full rotations) */
+    collapseThreshold: 1.0,
+    /** Number of burst explosion particles */
+    burstParticleCount: 80,
+    /** Burst particle animation duration (ms) */
+    burstDuration: 1000,
+    /** Delay before card appears after collapse (ms) */
+    cardRevealDelay: 400,
+    /** Card scale-in duration (ms) */
+    cardRevealDuration: 400,
+    /** Hold duration after reveal before calling onComplete (ms) */
+    revealHoldDuration: 0,
+  },
+
+  // =====================================================
   // Charge-up phase (pre-reveal anticipation)
   // =====================================================
   chargeUp: {

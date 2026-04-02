@@ -23,6 +23,7 @@ import { ScratchReveal } from './ScratchReveal';
 import { SealBreak } from './SealBreak';
 import { TarotDraw } from './TarotDraw';
 import type { RevealEffectType, RoleData, RoleRevealAnimatorProps } from './types';
+import { VortexCollapse } from './VortexCollapse';
 
 /** 自动播放的效果类型（无需手动操作） */
 const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set(['filmRewind']);
@@ -108,6 +109,8 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
         return <MeteorStrike {...commonProps} />;
       case 'filmRewind':
         return <FilmRewind {...commonProps} />;
+      case 'vortexCollapse':
+        return <VortexCollapse {...commonProps} />;
       default:
         // Default to roleHunt if unknown effect type
         return <RoleHunt {...commonProps} allRoles={rouletteRoles} />;
