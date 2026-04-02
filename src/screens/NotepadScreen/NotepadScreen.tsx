@@ -9,15 +9,19 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { buildNotepadSummary } from '@/components/AIChatBubble/notepadSummary';
 import { NotepadPanel } from '@/components/NotepadPanel';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useGameFacade } from '@/contexts';
 import { useNotepad } from '@/hooks/useNotepad';
+import { isAIChatReady } from '@/services/feature/AIChatService';
 import { fixed, typography, useColors } from '@/theme';
+import { requestAIChatMessage } from '@/utils/aiChatBridge';
+import { showErrorAlert } from '@/utils/alertPresets';
 
 import { createNotepadScreenStyles } from './NotepadScreen.styles';
 
@@ -30,6 +34,20 @@ export const NotepadScreen: React.FC = () => {
 
   const facade = useGameFacade();
   const notepad = useNotepad(facade);
+
+  const handleAIAnalysis = useCallback(() => {
+    if (!isAIChatReady()) {
+      showErrorAlert('AI 助手', 'AI 助手暂不可用');
+      return;
+    }
+    const summary = buildNotepadSummary(notepad.state, notepad.roleTags, notepad.playerCount);
+    if (!summary) {
+      showErrorAlert('笔记为空', '请先记录一些笔记再进行分析');
+      return;
+    }
+    requestAIChatMessage({ fullText: summary, displayText: '📝 分析我的笔记' });
+    navigation.goBack();
+  }, [notepad.state, notepad.roleTags, notepad.playerCount, navigation]);
 
   const panelStyles = useMemo(
     () => ({
@@ -100,6 +118,18 @@ export const NotepadScreen: React.FC = () => {
           {' 笔记'}
         </Text>
         <View style={styles.headerButtons}>
+          <TouchableOpacity
+            onPress={handleAIAnalysis}
+            style={styles.aiAnalysisBtn}
+            activeOpacity={fixed.activeOpacity}
+          >
+            <Ionicons
+              name={UI_ICONS.AI_ASSISTANT}
+              size={typography.secondary}
+              color={colors.primary}
+            />
+            <Text style={styles.aiAnalysisBtnText}>AI分析</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={notepad.clearAll}
             style={styles.headerBtn}

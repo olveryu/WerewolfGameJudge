@@ -49,6 +49,21 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       fontSize: typography.body,
       color: colors.textSecondary,
     },
+    aiAnalysisBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.micro,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.micro,
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.primary,
+    },
+    aiAnalysisBtnText: {
+      fontSize: typography.secondary,
+      fontWeight: typography.weights.medium,
+      color: colors.primary,
+    },
 
     // ── Public note section ──────────────────────────
     publicSection: {

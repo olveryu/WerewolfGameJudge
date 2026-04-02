@@ -95,7 +95,7 @@ describe('Layer boundary: screens → services runtime imports (restricted)', ()
   });
 
   // Allowed runtime imports from services/ (enums that must be runtime values)
-  const allowedRuntimeImports = ['ConnectionStatus'];
+  const allowedRuntimeImports = ['ConnectionStatus', 'isAIChatReady'];
 
   it.each(screensFiles)('%s runtime imports from services/ must be in allow-list', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');

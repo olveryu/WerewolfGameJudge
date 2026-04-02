@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Animated, GestureResponderEvent } from 'react-native';
 
 import { useGameFacade } from '@/contexts';
+import { setAIChatBridgeListener } from '@/utils/aiChatBridge';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
 import { generateQuickQuestions } from './quickQuestions';
@@ -64,6 +65,19 @@ export function useAIChat(): UseAIChatReturn {
   const bubble = useBubbleDrag(useCallback(() => setIsOpen(true), []));
   const keyboardHeight = useKeyboardHeight();
   const chat: UseChatMessagesReturn = useChatMessages(facade, isOpen);
+
+  // ── Bridge listener (cross-component message requests) ──
+  const sendWithDisplay = chat.sendWithDisplay;
+  useEffect(() => {
+    setAIChatBridgeListener((payload) => {
+      setIsOpen(true);
+      // Use setTimeout to ensure isOpen propagates before sending
+      setTimeout(() => {
+        sendWithDisplay(payload.fullText, payload.displayText);
+      }, 0);
+    });
+    return () => setAIChatBridgeListener(null);
+  }, [sendWithDisplay]);
 
   // ── Context questions ────────────────────────────────
   const [contextQuestions, setContextQuestions] = useState<string[]>([]);
