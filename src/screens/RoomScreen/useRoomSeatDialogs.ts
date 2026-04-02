@@ -8,6 +8,7 @@
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { useCallback, useRef, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
@@ -110,7 +111,7 @@ export function useRoomSeatDialogs({
           roomScreenLog.warn('[SeatDialogs] takeSeat failed (occupied)', { seat });
           setSeatModalVisible(false);
           setPendingSeat(null);
-          showErrorAlert('入座失败', `${seat + 1}号座位已被占用，请选择其他位置。`);
+          showErrorAlert('入座失败', `${formatSeat(seat)}座位已被占用，请选择其他位置。`);
         }
       })
       .finally(() => {

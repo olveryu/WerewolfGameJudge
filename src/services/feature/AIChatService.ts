@@ -11,6 +11,7 @@
 
 import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { NETWORK_ERROR, RATE_LIMIT_ERROR } from '@/config/errorMessages';
 import { isSupabaseConfigured, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config/supabase';
@@ -86,7 +87,7 @@ function buildGameContextPrompt(context: GameContext): string {
   }
 
   if (context.mySeat !== undefined) {
-    lines.push(`- 我的座位: ${context.mySeat + 1} 号`);
+    lines.push(`- 我的座位: ${formatSeat(context.mySeat)}`);
   }
 
   if (context.myRoleName) {

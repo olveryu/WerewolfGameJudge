@@ -40,13 +40,13 @@ export const NotepadScreen: React.FC = () => {
       showErrorAlert('AI 助手', 'AI 助手暂不可用');
       return;
     }
-    const summary = buildNotepadSummary(notepad.state, notepad.roleTags, notepad.playerCount);
+    const summary = buildNotepadSummary(notepad.state, notepad.playerCount);
     if (!summary) {
       showErrorAlert('笔记为空', '请先记录一些笔记再进行分析');
       return;
     }
     requestAIChatMessage({ fullText: summary, displayText: '📝 分析我的笔记' });
-  }, [notepad.state, notepad.roleTags, notepad.playerCount]);
+  }, [notepad.state, notepad.playerCount]);
 
   const panelStyles = useMemo(
     () => ({

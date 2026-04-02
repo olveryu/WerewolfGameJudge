@@ -15,6 +15,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { useCallback } from 'react';
 import { toast } from 'sonner-native';
 
@@ -260,16 +261,16 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     if (!deaths || deaths.length === 0) {
       parts.push('昨夜平安夜');
     } else {
-      const deathList = deaths.map((d: number) => (d + 1).toString() + '号').join(', ');
+      const deathList = deaths.map((d: number) => formatSeat(d)).join(', ');
       parts.push('昨夜死亡: ' + deathList);
     }
 
     const nr = gameState.currentNightResults;
     if (nr.silencedSeat != null) {
-      parts.push(`${nr.silencedSeat + 1}号被禁言`);
+      parts.push(`${formatSeat(nr.silencedSeat)}被禁言`);
     }
     if (nr.votebannedSeat != null) {
-      parts.push(`${nr.votebannedSeat + 1}号被禁票`);
+      parts.push(`${formatSeat(nr.votebannedSeat)}被禁票`);
     }
 
     return parts.join('\n');
@@ -281,7 +282,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     if (!gameState.template.roles.includes('crow' as RoleId)) return null;
     const { cursedSeat } = gameState.currentNightResults;
     if (cursedSeat == null) return '乌鸦未诅咒任何人';
-    return `${cursedSeat + 1}号被诅咒（放逐+1票）`;
+    return `${formatSeat(cursedSeat)}被诅咒（放逐+1票）`;
   }, [gameState]);
 
   // Check if a wolf has voted

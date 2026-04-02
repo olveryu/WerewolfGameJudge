@@ -4,6 +4,7 @@
  * Performance: Memoized with default shallow compare, receives pre-created styles from parent.
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import React, { memo } from 'react';
 import { Modal, Text, View } from 'react-native';
 
@@ -19,7 +20,7 @@ interface SeatConfirmModalProps {
   visible: boolean;
   /** Type of action - entering or leaving seat */
   modalType: SeatModalType;
-  /** The seat number (1-indexed for display) */
+  /** The seat index (0-based, formatted internally for display) */
   seatNumber: number;
   /** Whether a seat API call is in-flight */
   isSubmitting: boolean;
@@ -41,8 +42,9 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   styles,
 }) => {
   const title = modalType === 'enter' ? '入座' : '离座';
+  const seatLabel = formatSeat(seatNumber);
   const message =
-    modalType === 'enter' ? `确定在${seatNumber}号位入座？` : `确定从${seatNumber}号位离座？`;
+    modalType === 'enter' ? `确定在${seatLabel}位入座？` : `确定从${seatLabel}位离座？`;
   const confirmText = isSubmitting ? (modalType === 'enter' ? '入座中...' : '离座中...') : '确定';
 
   return (

@@ -11,6 +11,7 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { CompoundSchema } from '@werewolf/game-engine/models/roles/spec';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
@@ -141,7 +142,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     });
 
     // Find and click the save button (bottom action button)
-    const saveLabel = `对${killedSeat + 1}号用解药`;
+    const saveLabel = `对${formatSeat(killedSeat)}用解药`;
     const saveButton = getByText(saveLabel);
     fireEvent.press(saveButton);
 
@@ -185,7 +186,7 @@ describe('RoomScreen witch save UI (contract)', () => {
 
     const witchSchema = SCHEMAS.witchAction as CompoundSchema;
     const saveStep = witchSchema.steps[0];
-    const expectedPrompt = saveStep.ui?.promptTemplate?.replace('{seat}', `${killedSeat + 1}`);
+    const expectedPrompt = saveStep.ui?.promptTemplate?.replace('{seat}', formatSeat(killedSeat));
 
     await waitFor(() => {
       const matchingCall = mockShowAlert.mock.calls.find(

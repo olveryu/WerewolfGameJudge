@@ -5,6 +5,8 @@
  * role action prompt with schema-driven confirm button.
  */
 
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+
 import { roomScreenLog } from '@/utils/logger';
 
 import type { IntentExecutor } from './types';
@@ -34,7 +36,7 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
     if (isLover && loverSeats) {
       const partnerSeat = loverSeats[0] === mySeat ? loverSeats[1] : loverSeats[0];
       const template = gcSchema!.ui!.loverText!;
-      personalMessage = template.replace('{seat}', `${partnerSeat + 1}`);
+      personalMessage = template.replace('{seat}', formatSeat(partnerSeat));
     } else {
       personalMessage = gcSchema!.ui!.notLoverText!;
     }
@@ -44,7 +46,7 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
     const hypnotizedSeats = gameState?.hypnotizedSeats ?? [];
     const isHypnotized = mySeat !== null && hypnotizedSeats.includes(mySeat);
     if (isHypnotized) {
-      const seatsText = hypnotizedSeats.map((s) => `${s + 1}号`).join('、');
+      const seatsText = hypnotizedSeats.map((s) => formatSeat(s)).join('、');
       const template = gcSchema!.ui!.hypnotizedText!;
       personalMessage = template.replace('{seats}', seatsText);
     } else {

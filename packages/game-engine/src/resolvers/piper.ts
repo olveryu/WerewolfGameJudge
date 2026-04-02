@@ -12,6 +12,7 @@
 
 import { SCHEMAS } from '../models';
 import type { MultiChooseSeatSchema } from '../models/roles/spec/schema.types';
+import { formatSeat } from '../utils/formatSeat';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverContext, ResolverFn } from './types';
 
@@ -47,7 +48,7 @@ export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, inp
 
     // Target must exist
     if (!players.has(target)) {
-      return { valid: false, rejectReason: `${target}号玩家不存在` };
+      return { valid: false, rejectReason: `${formatSeat(target)}玩家不存在` };
     }
   }
 

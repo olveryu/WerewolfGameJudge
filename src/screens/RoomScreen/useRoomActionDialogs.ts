@@ -9,6 +9,7 @@
  */
 
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { useCallback } from 'react';
 
 import { showAlert } from '@/utils/alert';
@@ -91,7 +92,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
 
   const showMagicianFirstAlert = useCallback((seat: number, schema: ActionSchema) => {
     const title = schema.ui!.firstTargetTitle!;
-    const body = schema.ui!.firstTargetPromptTemplate!.replace('{seat}', `${seat + 1}`);
+    const body = schema.ui!.firstTargetPromptTemplate!.replace('{seat}', formatSeat(seat));
     showDismissAlert(title, body);
   }, []);
 
@@ -135,7 +136,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       } else {
         msg = schema
           .ui!.voteConfirmTemplate!.replace('{wolf}', wolfName)
-          .replace('{seat}', `${targetSeat + 1}`);
+          .replace('{seat}', formatSeat(targetSeat));
       }
 
       showConfirmAlert(title, msg, onConfirm);
@@ -167,7 +168,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       // 3. killedSeat < 0                   → poisonPrompt: "如要使用毒药，请点击座位。"
       if (ctx.killedSeat >= 0) {
         if (ctx.canSave) {
-          const msg = saveStep!.ui!.promptTemplate!.replace('{seat}', `${ctx.killedSeat + 1}`);
+          const msg = saveStep!.ui!.promptTemplate!.replace('{seat}', formatSeat(ctx.killedSeat));
           showDismissAlert(title, msg, onDismiss);
         } else {
           showDismissAlert(title, saveStep!.ui!.cannotSavePrompt!, onDismiss);

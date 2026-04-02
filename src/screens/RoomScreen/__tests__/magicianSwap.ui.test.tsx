@@ -133,8 +133,9 @@ jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
     showMagicianFirstAlert: (seat: number, schema: any) => {
       const { showAlert: mockShowAlert } = require('@/utils/alert');
+      const { formatSeat: fmt } = require('@werewolf/game-engine/utils/formatSeat');
       const title = schema.ui.firstTargetTitle;
-      const body = schema.ui.firstTargetPromptTemplate.replace('{seat}', `${seat + 1}`);
+      const body = schema.ui.firstTargetPromptTemplate.replace('{seat}', fmt(seat));
       mockShowAlert(title, body, [{ text: '好' }]);
     },
     showConfirmDialog: (

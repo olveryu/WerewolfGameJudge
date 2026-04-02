@@ -7,6 +7,8 @@
  * submits via proceedWithAction.
  */
 
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+
 import { roomScreenLog } from '@/utils/logger';
 
 import type { IntentExecutor } from './types';
@@ -41,7 +43,7 @@ export const multiSelectConfirmExecutor: IntentExecutor = async (intent, ctx) =>
 
   // Schema-driven confirm dialog
   const confirmCopy = currentSchema!.ui!.confirmText!;
-  const targetLabels = targets.map((s) => `${s + 1}号`).join('、');
+  const targetLabels = targets.map((s) => formatSeat(s)).join('、');
 
   actionDialogs.showConfirmDialog(confirmCopy, `已选择: ${targetLabels}`, async () => {
     const accepted = await proceedWithAction(null, { targets });

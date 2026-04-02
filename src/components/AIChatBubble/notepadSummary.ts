@@ -8,7 +8,7 @@
 
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 
-import type { NotepadState, RoleTagInfo } from '@/hooks/useNotepad';
+import type { NotepadState } from '@/hooks/useNotepad';
 
 /** 总文本最大字符数（截断公共笔记区） */
 const MAX_SUMMARY_LENGTH = 1500;
@@ -17,11 +17,7 @@ const MAX_SUMMARY_LENGTH = 1500;
  * 将笔记状态构建为 AI 分析请求文本。
  * 空笔记返回 null。
  */
-export function buildNotepadSummary(
-  state: NotepadState,
-  roleTags: readonly RoleTagInfo[],
-  playerCount: number,
-): string | null {
+export function buildNotepadSummary(state: NotepadState, playerCount: number): string | null {
   const seatLines: string[] = [];
   const handSeats: number[] = [];
 
@@ -65,15 +61,25 @@ export function buildNotepadSummary(
     return null;
   }
 
-  // Build available roles context from roleTags
-  const roleListText =
-    roleTags.length > 0 ? `本局角色配置：${roleTags.map((r) => r.shortName).join('、')}\n\n` : '';
+  // Note: 板子角色配置和技能描述已通过 system prompt (buildPlayerContext → buildGameContextPrompt) 注入，
+  // 此处不重复，避免浪费 token。
 
   // Assemble sections
   const sections: string[] = [
-    '请根据以下游戏笔记分析局势，给出角色推理和行动建议：',
+    '[角色] 你是一名拥有丰富狼人杀复盘经验的专业分析师。基于玩家提供的笔记，输出严谨的局势分析。',
     '',
-    roleListText.trim(),
+    '[规则]',
+    '- 逻辑优先级：收益逻辑＞发言状态＞位置学，禁止无事实支撑的玄学分析',
+    '- 所有结论必须锚定笔记中记录的发言、投票、上警等可追溯行为',
+    '- 从记录者自身视角分析（记录者可能是任何身份），不做上帝视角马后炮',
+    '- 对争议行为同时拆解正逻辑与反逻辑',
+    '- 结合上方"当前游戏状态"中的角色配置和技能进行推理',
+    '- 本次分析可以超过150字，控制在300字内',
+    '',
+    '[输出结构]',
+    '1. **身份推理**：逐一分析可疑玩家最可能的身份，锚定具体行为给出依据',
+    '2. **阵营判断**：好人/狼人阵营划分，关键矛盾点与逻辑链',
+    '3. **行动建议**：投票优先级、保护目标、下轮重点关注',
   ];
 
   if (seatLines.length > 0) {

@@ -9,6 +9,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName, getRoleEmoji } from '@werewolf/game-engine/models/roles';
 import { Team } from '@werewolf/game-engine/models/roles/spec/types';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { ACTION, STATUS } from '@/config/emojiTokens';
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
@@ -43,11 +44,6 @@ export interface NightReviewData {
 // Action summary builder
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Seat number → display string (1-indexed) */
-function s(seat: number): string {
-  return `${seat + 1}号`;
-}
-
 /**
  * Build action summary lines from night results + reveal fields.
  */
@@ -70,7 +66,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   }
   if (gameState.loverSeats && gameState.loverSeats.length === 2) {
     lines.push(
-      `${getRoleEmoji('cupid' as RoleId)} 丘比特连线了 ${s(gameState.loverSeats[0])} 和 ${s(gameState.loverSeats[1])}`,
+      `${getRoleEmoji('cupid' as RoleId)} 丘比特连线了 ${formatSeat(gameState.loverSeats[0])} 和 ${formatSeat(gameState.loverSeats[1])}`,
     );
   }
 
@@ -78,7 +74,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   if (nr.wolfVotesBySeat && Object.keys(nr.wolfVotesBySeat).length > 0) {
     const entries = Object.entries(nr.wolfVotesBySeat);
     const voteDesc = entries
-      .map(([voter, target]) => `${s(Number(voter))}→${s(target)}`)
+      .map(([voter, target]) => `${formatSeat(Number(voter))}→${formatSeat(target)}`)
       .join('，');
     lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人袭击：${voteDesc}`);
   }
@@ -90,48 +86,54 @@ export function buildActionLines(gameState: LocalGameState): string[] {
 
   // 2. Nightmare block
   if (nr.blockedSeat != null) {
-    lines.push(`${getRoleEmoji('nightmare' as RoleId)} 梦魇封锁了 ${s(nr.blockedSeat)}`);
+    lines.push(`${getRoleEmoji('nightmare' as RoleId)} 梦魇封锁了 ${formatSeat(nr.blockedSeat)}`);
   }
 
   // 3. Guard
   if (nr.guardedSeat != null) {
-    lines.push(`${ACTION.GUARD} 守卫守护了 ${s(nr.guardedSeat)}`);
+    lines.push(`${ACTION.GUARD} 守卫守护了 ${formatSeat(nr.guardedSeat)}`);
   }
 
   // 3a. SilenceElder
   if (nr.silencedSeat != null) {
-    lines.push(`${getRoleEmoji('silenceElder' as RoleId)} 禁言长老禁言了 ${s(nr.silencedSeat)}`);
+    lines.push(
+      `${getRoleEmoji('silenceElder' as RoleId)} 禁言长老禁言了 ${formatSeat(nr.silencedSeat)}`,
+    );
   }
 
   // 3b. VotebanElder
   if (nr.votebannedSeat != null) {
-    lines.push(`${getRoleEmoji('votebanElder' as RoleId)} 禁票长老禁票了 ${s(nr.votebannedSeat)}`);
+    lines.push(
+      `${getRoleEmoji('votebanElder' as RoleId)} 禁票长老禁票了 ${formatSeat(nr.votebannedSeat)}`,
+    );
   }
 
   // 4. Witch / Poisoner
   if (nr.savedSeat != null) {
-    lines.push(`${ACTION.SAVE} 女巫使用解药救了 ${s(nr.savedSeat)}`);
+    lines.push(`${ACTION.SAVE} 女巫使用解药救了 ${formatSeat(nr.savedSeat)}`);
   }
   if (nr.poisonedSeat != null) {
     const isPoisoner = findSeatByRole(gameState.players, 'poisoner' as RoleId) !== undefined;
     const poisonLabel = isPoisoner ? '毒师毒杀了' : '女巫使用毒药毒杀了';
-    lines.push(`${ACTION.POISON} ${poisonLabel} ${s(nr.poisonedSeat)}`);
+    lines.push(`${ACTION.POISON} ${poisonLabel} ${formatSeat(nr.poisonedSeat)}`);
   }
 
   // 4a. Crow curse
   if (nr.cursedSeat != null) {
-    lines.push(`${getRoleEmoji('crow' as RoleId)} 乌鸦诅咒了 ${s(nr.cursedSeat)}`);
+    lines.push(`${getRoleEmoji('crow' as RoleId)} 乌鸦诅咒了 ${formatSeat(nr.cursedSeat)}`);
   }
 
   // 5. Dreamcatcher
   if (nr.dreamingSeat != null) {
-    lines.push(`${getRoleEmoji('dreamcatcher' as RoleId)} 摄梦人摄梦了 ${s(nr.dreamingSeat)}`);
+    lines.push(
+      `${getRoleEmoji('dreamcatcher' as RoleId)} 摄梦人摄梦了 ${formatSeat(nr.dreamingSeat)}`,
+    );
   }
 
   // 6. Magician swap
   if (nr.swappedSeats) {
     lines.push(
-      `${getRoleEmoji('magician' as RoleId)} 魔术师交换了 ${s(nr.swappedSeats[0])} 和 ${s(nr.swappedSeats[1])}`,
+      `${getRoleEmoji('magician' as RoleId)} 魔术师交换了 ${formatSeat(nr.swappedSeats[0])} 和 ${formatSeat(nr.swappedSeats[1])}`,
     );
   }
 
@@ -139,7 +141,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   const slackerAction = gameState.actions.get('slacker' as RoleId);
   if (slackerAction && slackerAction.kind === 'target') {
     lines.push(
-      `${getRoleEmoji('slacker' as RoleId)} 混子选择了 ${s(slackerAction.targetSeat)} 为榜样`,
+      `${getRoleEmoji('slacker' as RoleId)} 混子选择了 ${formatSeat(slackerAction.targetSeat)} 为榜样`,
     );
   }
 
@@ -147,7 +149,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   const wildChildAction = gameState.actions.get('wildChild' as RoleId);
   if (wildChildAction && wildChildAction.kind === 'target') {
     lines.push(
-      `${getRoleEmoji('wildChild' as RoleId)} 野孩子选择了 ${s(wildChildAction.targetSeat)} 为榜样`,
+      `${getRoleEmoji('wildChild' as RoleId)} 野孩子选择了 ${formatSeat(wildChildAction.targetSeat)} 为榜样`,
     );
   }
 
@@ -155,8 +157,8 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   if (nr.shadowMimicTarget != null) {
     const mimicInfo =
       nr.avengerFaction === Team.Third
-        ? `${getRoleEmoji('shadow' as RoleId)} 影子模仿了 ${s(nr.shadowMimicTarget)}（绑定）`
-        : `${getRoleEmoji('shadow' as RoleId)} 影子模仿了 ${s(nr.shadowMimicTarget)}`;
+        ? `${getRoleEmoji('shadow' as RoleId)} 影子模仿了 ${formatSeat(nr.shadowMimicTarget)}（绑定）`
+        : `${getRoleEmoji('shadow' as RoleId)} 影子模仿了 ${formatSeat(nr.shadowMimicTarget)}`;
     lines.push(mimicInfo);
   }
 
@@ -169,20 +171,20 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   // 6c. WolfQueen charm (from actions Map)
   const wolfQueenAction = gameState.actions.get('wolfQueen' as RoleId);
   if (wolfQueenAction && wolfQueenAction.kind === 'target') {
-    lines.push(`${ACTION.CHARM} 狼美人魅惑了 ${s(wolfQueenAction.targetSeat)}`);
+    lines.push(`${ACTION.CHARM} 狼美人魅惑了 ${formatSeat(wolfQueenAction.targetSeat)}`);
   }
 
   // 6d. AwakenedGargoyle convert
   if (nr.convertedSeat != null) {
     lines.push(
-      `${getRoleEmoji('awakenedGargoyle' as RoleId)} 觉醒石像鬼转化了 ${s(nr.convertedSeat)}`,
+      `${getRoleEmoji('awakenedGargoyle' as RoleId)} 觉醒石像鬼转化了 ${formatSeat(nr.convertedSeat)}`,
     );
   }
 
   // 6e. Piper hypnotize
   if (nr.hypnotizedSeats && nr.hypnotizedSeats.length > 0) {
     const hypnotizedList = (nr.hypnotizedSeats as readonly number[])
-      .map((seat) => s(seat))
+      .map((seat) => formatSeat(seat))
       .join('、');
     lines.push(`${getRoleEmoji('piper' as RoleId)} 吹笛者催眠了 ${hypnotizedList}`);
   }
@@ -201,7 +203,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   for (const { key, label } of revealFields) {
     const reveal = gameState[key];
     if (reveal) {
-      lines.push(`${ACTION.CHECK} ${label}查验 ${s(reveal.targetSeat)}：${reveal.result}`);
+      lines.push(`${ACTION.CHECK} ${label}查验 ${formatSeat(reveal.targetSeat)}：${reveal.result}`);
     }
   }
 
@@ -209,7 +211,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   if (gameState.wolfRobotReveal) {
     const wr = gameState.wolfRobotReveal;
     lines.push(
-      `${ACTION.LEARN} 机械狼学习了 ${s(wr.targetSeat)}（${getRoleDisplayName(wr.learnedRoleId)}）`,
+      `${ACTION.LEARN} 机械狼学习了 ${formatSeat(wr.targetSeat)}（${getRoleDisplayName(wr.learnedRoleId)}）`,
     );
   }
 
@@ -238,7 +240,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   if (deaths.length === 0) {
     lines.push(`${STATUS.PEACEFUL_NIGHT} 昨夜平安夜`);
   } else {
-    const deathList = deaths.map((d) => s(d)).join('、');
+    const deathList = deaths.map((d) => formatSeat(d)).join('、');
     lines.push(`${STATUS.DEATH} 死亡：${deathList}`);
   }
 
@@ -259,11 +261,11 @@ export function buildIdentityLines(players: Map<number, LocalPlayer | null>): st
   for (const seat of seats) {
     const player = players.get(seat);
     if (!player) {
-      lines.push(`${seat + 1}号: 空座`);
+      lines.push(`${formatSeat(seat)}: 空座`);
       continue;
     }
     const roleName = player.role ? getRoleDisplayName(player.role) : '未分配';
-    lines.push(`${seat + 1}号: ${roleName}`);
+    lines.push(`${formatSeat(seat)}: ${roleName}`);
   }
 
   return lines;

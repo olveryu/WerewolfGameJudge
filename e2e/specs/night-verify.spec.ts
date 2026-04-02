@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { type GameSetupWithRolesResult, setupNPlayerGameWithRoles } from '../helpers/multi-player';
@@ -75,12 +76,12 @@ test.describe('Night Verification', () => {
       expect(nightDone, 'Night should have ended').toBe(true);
 
       // Verify the death message mentions the correct seat number (1-based display)
-      const expectedSeatDisplay = villagerSeat + 1; // 0-based → 1-based
+      const expectedSeatDisplay = formatSeat(villagerSeat);
 
       // View last night info
       await viewLastNightInfo(hostPage);
       const infoText = await readAlertText(hostPage);
-      const deathVisible = infoText.includes(`${expectedSeatDisplay}号`);
+      const deathVisible = infoText.includes(expectedSeatDisplay);
 
       // Attach diagnostic info
       await testInfo.attach('2p-death-verify.txt', {
@@ -158,8 +159,8 @@ test.describe('Night Verification', () => {
       const revealText = await readAlertText(seerPage);
 
       // The reveal should mention the checked seat number and "狼人"
-      const expectedRevealSeat = targetWolfSeat + 1; // 0-based → 1-based
-      expect(revealText, 'Reveal should contain seat number').toContain(`${expectedRevealSeat}号`);
+      const expectedRevealSeat = formatSeat(targetWolfSeat);
+      expect(revealText, 'Reveal should contain seat number').toContain(expectedRevealSeat);
       expect(revealText, 'Reveal should say 狼人').toContain('狼人');
 
       // Dismiss the reveal

@@ -182,6 +182,7 @@ jest.mock('../useRoomActionDialogs', () => ({
       schema: any,
     ) => {
       const { showAlert: mockShowAlert } = require('@/utils/alert');
+      const { formatSeat: fmt } = require('@werewolf/game-engine/utils/formatSeat');
       const title = schema.ui.confirmTitle;
       let msg: string;
       if (messageOverride) {
@@ -191,7 +192,7 @@ jest.mock('../useRoomActionDialogs', () => ({
       } else {
         msg = schema.ui.voteConfirmTemplate
           .replace('{wolf}', wolfName)
-          .replace('{seat}', `${targetSeat + 1}`);
+          .replace('{seat}', fmt(targetSeat));
       }
       mockShowAlert(title, msg, [
         { text: '取消', style: 'cancel' },

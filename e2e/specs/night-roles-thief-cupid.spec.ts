@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import {
   clickSeatAndConfirm,
@@ -278,7 +279,7 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
             await clickSeatAndConfirm(pages[seerIdx], thiefSeat);
 
             const revealText = await readAlertText(pages[seerIdx]);
-            expect(revealText).toContain(`${thiefSeat + 1}号`);
+            expect(revealText).toContain(formatSeat(thiefSeat));
             expect(revealText).toContain('好人');
             await dismissAlert(pages[seerIdx]);
           });

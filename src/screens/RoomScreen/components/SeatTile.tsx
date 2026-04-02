@@ -22,6 +22,7 @@ const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
@@ -308,7 +309,9 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
         <TouchableOpacity
           testID={TESTIDS.seatTilePressable(seat)}
           accessibilityLabel={
-            playerDisplayName ? `座位${seat + 1} ${playerDisplayName}` : `座位${seat + 1}`
+            playerDisplayName
+              ? `座位${formatSeat(seat)} ${playerDisplayName}`
+              : `座位${formatSeat(seat)}`
           }
           style={[
             styles.playerTile,

@@ -6,6 +6,7 @@
  */
 
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { showErrorAlert } from '@/utils/alertPresets';
 import { roomScreenLog } from '@/utils/logger';
@@ -47,7 +48,7 @@ export const revealExecutor: IntentExecutor = async (intent, ctx) => {
           : getRoleDisplayName(reveal.result);
       const titlePrefix = ui?.revealTitlePrefix ?? revealKind;
       actionDialogs.showRevealDialog(
-        `${titlePrefix}：${reveal.targetSeat + 1}号是${displayResult}`,
+        `${titlePrefix}：${formatSeat(reveal.targetSeat)}是${displayResult}`,
         '',
         () => {
           submitRevealAckSafe(revealKind);

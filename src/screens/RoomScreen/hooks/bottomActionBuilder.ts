@@ -9,6 +9,7 @@
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -210,7 +211,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
 
     // 1) Save button (confirmTarget): only show when kill exists and canSave.
     if (saveStep && witchCtx.killedSeat >= 0 && witchCtx.canSave) {
-      const label = `对${witchCtx.killedSeat + 1}号用解药`;
+      const label = `对${formatSeat(witchCtx.killedSeat)}用解药`;
       buttons.push({
         key: 'save',
         label,

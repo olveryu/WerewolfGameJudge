@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import {
   clickBottomButton,
@@ -124,7 +125,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Read reveal — "通灵结果：X号是狼人"
         const revealText = await readAlertText(pages[psychicIdx]);
-        expect(revealText).toContain(`${checkSeat + 1}号`);
+        expect(revealText).toContain(formatSeat(checkSeat));
         expect(revealText).toContain('狼人');
         await dismissAlert(pages[psychicIdx]);
 
@@ -181,7 +182,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Read reveal — "石像鬼探查：X号是预言家"
         const revealText = await readAlertText(pages[gargoyleIdx]);
-        expect(revealText).toContain(`${seerSeat + 1}号`);
+        expect(revealText).toContain(formatSeat(seerSeat));
         expect(revealText).toContain('预言家');
         await dismissAlert(pages[gargoyleIdx]);
 
@@ -240,7 +241,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
           // Read reveal — "学习结果：X号是普通村民"
           const revealText = await readAlertText(pages[wrIdx]);
-          expect(revealText).toContain(`${learnSeat + 1}号`);
+          expect(revealText).toContain(formatSeat(learnSeat));
           expect(revealText).toContain('普通村民');
           await dismissAlert(pages[wrIdx]);
         }
@@ -483,7 +484,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         await clickSeatAndConfirm(pages[seerIdx], skSeat);
 
         const revealText = await readAlertText(pages[seerIdx]);
-        expect(revealText).toContain(`${skSeat + 1}号`);
+        expect(revealText).toContain(formatSeat(skSeat));
         expect(revealText).toContain('狼人');
         await dismissAlert(pages[seerIdx]);
 
@@ -548,7 +549,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Read reveal — "纯白查验：X号是普通村民"
         const revealText = await readAlertText(pages[pureWhiteIdx]);
-        expect(revealText).toContain(`${checkSeat + 1}号`);
+        expect(revealText).toContain(formatSeat(checkSeat));
         expect(revealText).toContain('普通村民');
         await dismissAlert(pages[pureWhiteIdx]);
 
@@ -605,7 +606,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Read reveal — "狼巫查验：X号是普通村民"
         const revealText = await readAlertText(pages[wolfWitchIdx]);
-        expect(revealText).toContain(`${checkSeat + 1}号`);
+        expect(revealText).toContain(formatSeat(checkSeat));
         expect(revealText).toContain('普通村民');
         await dismissAlert(pages[wolfWitchIdx]);
 

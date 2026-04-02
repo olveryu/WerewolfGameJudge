@@ -6,6 +6,7 @@
  */
 
 import { getWolfKillImmuneRoleIds } from '@werewolf/game-engine/models/roles';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { roomScreenLog } from '@/utils/logger';
 
@@ -40,7 +41,7 @@ export const wolfVoteExecutor: IntentExecutor = (intent, ctx) => {
     return;
   }
   actionDialogs.showWolfVoteDialog(
-    `${seat + 1}号狼人`,
+    `${formatSeat(seat)}狼人`,
     intent.targetSeat,
     () => {
       void proceedWithAction(intent.targetSeat === -1 ? null : intent.targetSeat);
@@ -54,8 +55,8 @@ export const wolfVoteExecutor: IntentExecutor = (intent, ctx) => {
       if (!immune) return undefined;
       const tpl = currentSchema.ui?.voteConfirmTemplate ?? '';
       const resolved = tpl
-        .replace('{wolf}', `${seat + 1}号狼人`)
-        .replace('{seat}', `${intent.targetSeat + 1}`);
+        .replace('{wolf}', `${formatSeat(seat)}狼人`)
+        .replace('{seat}', `${formatSeat(intent.targetSeat)}`);
       return `${resolved}\n（该角色免疫狼人袭击）`;
     })(),
     currentSchema!,

@@ -21,6 +21,7 @@ import {
 } from '@werewolf/game-engine/models/roles/spec';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import type { LocalGameState } from '@/types/GameStateTypes';
 
@@ -229,7 +230,7 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
  * -1 → schema-defined empty knife text; ≥0 → "袭击{seat+1}号".
  */
 function formatWolfVoteBadge(vote: number): string {
-  return vote === -1 ? SCHEMAS.wolfKill.ui!.emptyVoteText! : `袭击${vote + 1}号`;
+  return vote === -1 ? SCHEMAS.wolfKill.ui!.emptyVoteText! : `袭击${formatSeat(vote)}`;
 }
 
 /**

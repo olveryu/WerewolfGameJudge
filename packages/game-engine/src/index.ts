@@ -8,6 +8,7 @@
 
 // === Utils (platform-agnostic) ===
 export { resolveSeerAudioKey } from './utils/audioKeyOverride';
+export { formatSeat } from './utils/formatSeat';
 export { newRejectionId, newRequestId, randomHex } from './utils/id';
 export {
   createSeededRng,

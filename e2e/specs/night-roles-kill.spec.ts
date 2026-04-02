@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import {
   clickBottomButton,
@@ -422,8 +423,8 @@ test.describe('Night Roles — Kill / Status', () => {
         const alertText = await readAlertText(pages[0]);
 
         // Both shadow and avenger seats should appear in the death list
-        const shadowSeatDisplay = `${shadowSeat + 1}号`;
-        const avengerSeatDisplay = `${avengerSeat + 1}号`;
+        const shadowSeatDisplay = formatSeat(shadowSeat);
+        const avengerSeatDisplay = formatSeat(avengerSeat);
         expect(alertText, `Should contain shadow seat ${shadowSeatDisplay}`).toContain(
           shadowSeatDisplay,
         );

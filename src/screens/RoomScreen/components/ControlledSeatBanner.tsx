@@ -9,6 +9,7 @@
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
 import { Ionicons } from '@expo/vector-icons';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import React, { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
@@ -58,7 +59,7 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
     <View style={styles.container}>
       <Text style={styles.text}>
         <Ionicons name={UI_ICONS.GAMEPAD} size={typography.secondary} />
-        {` 正在操控 ${controlledSeat + 1} 号位（${botDisplayName}）`}
+        {` 正在操控 ${formatSeat(controlledSeat)} 位（${botDisplayName}）`}
       </Text>
       <TouchableOpacity style={styles.releaseButton} onPress={onRelease}>
         <Text style={styles.releaseButtonText}>退出</Text>

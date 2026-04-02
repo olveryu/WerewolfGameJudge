@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import {
   clickBottomButton,
@@ -292,8 +293,8 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
             if (hypnotizedSeats.includes(role.seat)) {
               // Hypnotized player sees seat list
               expect(msg).toContain('催眠');
-              expect(msg).toContain(`${target1Seat + 1}号`);
-              expect(msg).toContain(`${target2Seat + 1}号`);
+              expect(msg).toContain(formatSeat(target1Seat));
+              expect(msg).toContain(formatSeat(target2Seat));
             } else {
               // Non-hypnotized (piper or other players)
               expect(msg).toContain('未被催眠');
