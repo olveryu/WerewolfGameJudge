@@ -173,13 +173,8 @@ jobs:
 
       - name: Create E2E local config
         run: |
-          ANON_KEY=$(supabase status -o env | grep ANON_KEY | cut -d= -f2)
-          cat > env/e2e.local.json << EOF
-          {
-            "EXPO_PUBLIC_SUPABASE_URL": "http://127.0.0.1:54321",
-            "EXPO_PUBLIC_SUPABASE_ANON_KEY": "$ANON_KEY"
-          }
-          EOF
+          ANON_KEY=$(supabase status -o env | grep 'ANON_KEY=' | head -1 | sed 's/.*ANON_KEY=//' | tr -d '"')
+          printf '{\n  "EXPO_PUBLIC_SUPABASE_URL": "http://127.0.0.1:54321",\n  "EXPO_PUBLIC_SUPABASE_ANON_KEY": "%s"\n}\n' "$ANON_KEY" > env/e2e.local.json
 
       - name: Build game-engine ESM (for Edge Functions serve)
         run: pnpm --filter @werewolf/game-engine run build:esm
