@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  deployments: write
   pages: write
   id-token: write
   pull-requests: write
@@ -105,6 +106,40 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    if: |
+      needs.quality.result == 'success' &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: quality
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: bash scripts/build.sh
+        env:
+          CF_PAGES_BRANCH: main
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=werewolfgamejudge
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
   e2e:
     runs-on: ubuntu-latest
