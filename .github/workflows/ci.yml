@@ -17,28 +17,8 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    outputs:
-      edge_changed: ${{ steps.detect-edge.outputs.changed }}
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Detect edge function / game-engine changes
-        id: detect-edge
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- 'supabase/functions/**/*.ts' 'packages/game-engine/src/**')
-            if [[ -n "$CHANGED" ]]; then
-              echo "changed=true" >> "$GITHUB_OUTPUT"
-              echo "Edge-related files changed:"
-              echo "$CHANGED"
-            else
-              echo "changed=false" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
 
       - uses: pnpm/action-setup@v5
 
@@ -75,10 +55,8 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       needs.quality.result == 'success' &&
-      (
-        ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') ||
-        (github.event_name == 'pull_request' && needs.quality.outputs.edge_changed == 'true')
-      )
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
     needs: quality
     steps:
       - uses: actions/checkout@v6
@@ -267,50 +245,3 @@ jobs:
           echo "## 📊 Playwright Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "👉 [${{ steps.deployment.outputs.page_url }}](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
-
-  restore-edge-functions:
-    runs-on: ubuntu-latest
-    if: |
-      always() &&
-      github.event_name == 'pull_request' &&
-      needs.quality.outputs.edge_changed == 'true' &&
-      needs.deploy-edge-functions.result == 'success'
-    needs: [quality, deploy-edge-functions, e2e]
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: main
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Build game-engine ESM (main branch)
-        run: pnpm --filter @werewolf/game-engine run build:esm
-
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Restore production Edge Functions
-        run: |
-          supabase functions deploy game --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy gemini-proxy --project-ref "$SUPABASE_PROJECT_REF"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-
-      - name: Post restore status
-        if: always()
-        uses: marocchino/sticky-pull-request-comment@v3
-        with:
-          header: edge-restore-status
-          message: |
-            ${{ job.status == 'success' && '✅' || '❌' }} **Edge Functions restore**: ${{ job.status }}
-
-            Production edge functions have been ${{ job.status == 'success' && 'restored to `main` branch version.' || '**NOT restored**. Please run `pnpm run deploy` manually or trigger `workflow_dispatch` on main.' }}
