@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.12.0] - 2026-04-03
+
+- docs: update all Vercel references to Cloudflare Pages
+- chore(deploy): remove vercel.json after Cloudflare Pages migration
+- chore(deploy): fix Cloudflare Pages config
+- chore(deploy): add wrangler.json for Cloudflare Pages config
+- chore: add .node-version for Cloudflare Pages build
+- chore(deploy): migrate frontend hosting from Vercel to Cloudflare Pages
+- fix(e2e): seer reveal uses '狼人' not '坏人' for wolf faction
+- fix(e2e): handle thief disabled card and dynamic wolf faction
+- fix(room): use effective role in buildSeatViewModels and bottomActionBuilder
+- fix(room): getWolfVoteSummary uses effective role for vote count
+- fix(game-engine): bottom card actors use effective role for all steps
+- fix(game-engine): use Chinese bot display names with formatSeat
+- feat(services): configurable maxTokens, confirm dialog, recorder identity
+- refactor(game-engine): add formatSeat() and eliminate scattered seat+1 conversions
+- fix(ai-chat): fix 1-based seat keys in notepad summary and add hand summary line
+- fix(notepad): stay on notepad screen after AI analysis request
+- feat(ai-chat): add AI notepad analysis from NotepadScreen
+- feat(night): add VortexCollapse reveal animation
+- refactor(notepad): promote notepad from Modal to independent Screen
+- feat(night): add MeteorStrike and FilmRewind reveal animations
+- feat(ai-chat): add werewolf terminology quick questions and increase to 6 slots
+- fix(night): raise ScratchReveal auto-reveal threshold to 25%
+- fix(night): fix EnhancedRoulette SPIN button overlap and credit display
+- feat(config): increase wolf and villager max count from 5 to 10
+- refactor(night): unify autoTimeout + hint/warning across all 9 reveal effects
+- feat(night): rewrite RoleHunt as scope-sniper reveal animation
+- refactor(components): extract useRevealLifecycle hook from reveal effects
+- fix(services): prevent zombie channel on subscribe failure and retry CLOSED
+- docs(instructions): align rules with executable source of truth
+- feat(web): add indeterminate progress bar to web splash screen
+- perf(avatar): use 512px thumbs for picker grid and preview strips
+- refactor(settings): extract AvatarPickerScreen from bottom sheet to full screen
+- feat(room): add indeterminate progress bar to LoadingScreen
+- feat(game-engine): add 白狼王守卫 preset template
+- chore: update lockfile after sharp removal
+- feat(config): show template count per category tab in BoardPicker
+- chore: remove dead exports (sharp, FormTextFieldProps, FactionStats, TemplateRoleItem)
+- chore(contexts): remove dead NetworkContext (zero consumers)
+- refactor(config): migrate toast library from react-native-toast-message to sonner-native
+- feat(game-engine): add mark-bots-group-confirmed for debug mode
+- refactor(components): extract business logic from AIChatBubble to caller
+- feat(night): add thief & cupid roles with bottom card modal refactor
+
 ## [1.11.0] - 2026-03-31
 
 - fix(services): unify error code mapping and fix error handling quality
