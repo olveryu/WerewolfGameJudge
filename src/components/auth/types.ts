@@ -17,8 +17,10 @@ export interface AuthStyles {
   formSubtitle: TextStyle;
   // Input
   input: TextStyle;
+  passwordInputContainer: ViewStyle;
   passwordInput: TextStyle;
   passwordWrapper: ViewStyle;
+  passwordWrapperFocused: ViewStyle;
   eyeButton: ViewStyle;
   errorText: TextStyle;
   // Email domain dropdown

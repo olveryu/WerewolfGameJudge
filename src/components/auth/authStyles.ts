@@ -4,7 +4,7 @@
  * 提取完全重复的样式 key；各 screen 需通过 spread override 差异化的 key。
  * 仅导出样式工厂函数，不含运行时逻辑。
  */
-import { type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 
 import {
   borderRadius,
@@ -56,21 +56,36 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
     } as TextStyle,
     passwordWrapper: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'stretch',
+      height: spacing.xxlarge,
       backgroundColor: colors.background,
       borderRadius: borderRadius.medium,
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
+      paddingHorizontal: spacing.medium,
       marginBottom: spacing.medium,
     },
-    passwordInput: {
-      marginBottom: 0,
+    passwordWrapperFocused: {
+      borderColor: colors.primary,
+      borderWidth: 2,
+    } as ViewStyle,
+    passwordInputContainer: {
       flex: 1,
+    } as ViewStyle,
+    passwordInput: {
+      flex: 1,
+      marginBottom: 0,
+      paddingHorizontal: 0,
+      borderWidth: 0,
+      backgroundColor: 'transparent',
+      // Web-only: suppress browser focus ring (wrapper provides visual boundary)
+      ...Platform.select({ web: { outlineStyle: 'none' } }),
     } as TextStyle,
     eyeButton: {
-      paddingHorizontal: spacing.small,
+      alignSelf: 'center',
       justifyContent: 'center',
       alignItems: 'center',
+      paddingLeft: spacing.small,
     },
     // Email domain dropdown
     emailDomainDropdown: {

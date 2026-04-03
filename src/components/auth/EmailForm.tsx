@@ -36,6 +36,7 @@ export const EmailForm = memo<EmailFormProps>(
     const passwordRef = useRef<TextInput>(null);
     const nameRef = useRef<TextInput>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [passwordFocused, setPasswordFocused] = useState(false);
 
     const togglePasswordVisibility = useCallback(() => {
       setShowPassword((prev) => !prev);
@@ -73,10 +74,13 @@ export const EmailForm = memo<EmailFormProps>(
 
         <EmailDomainDropdown email={email} onSelect={handleDomainSelect} styles={styles} />
 
-        <View style={styles.passwordWrapper}>
+        <View style={[styles.passwordWrapper, passwordFocused && styles.passwordWrapperFocused]}>
           <FormTextField
             ref={passwordRef}
+            containerStyle={styles.passwordInputContainer}
             style={styles.passwordInput}
+            onFocus={() => setPasswordFocused(true)}
+            onBlur={() => setPasswordFocused(false)}
             placeholder="密码"
             value={password}
             onChangeText={onPasswordChange}

@@ -63,6 +63,8 @@ export interface HomeScreenStyles {
   secondaryButtonText: TextStyle;
   input: TextStyle;
   passwordWrapper: ViewStyle;
+  passwordWrapperFocused: ViewStyle;
+  passwordInputContainer: ViewStyle;
   passwordInput: TextStyle;
   eyeButton: ViewStyle;
   errorText: TextStyle;

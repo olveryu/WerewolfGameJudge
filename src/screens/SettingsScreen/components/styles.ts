@@ -55,6 +55,8 @@ export interface SettingsScreenStyles {
   formSubtitle: TextStyle;
   input: TextStyle;
   passwordWrapper: ViewStyle;
+  passwordWrapperFocused: ViewStyle;
+  passwordInputContainer: ViewStyle;
   passwordInput: TextStyle;
   eyeButton: ViewStyle;
   emailDomainDropdown: ViewStyle;

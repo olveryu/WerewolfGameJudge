@@ -49,6 +49,9 @@ const VALID_ROLE_REVEAL_ANIMATIONS: ReadonlySet<string> = new Set<RoleRevealAnim
   'sealBreak',
   'chainShatter',
   'fortuneWheel',
+  'meteorStrike',
+  'filmRewind',
+  'vortexCollapse',
   'none',
   'random',
 ]);
