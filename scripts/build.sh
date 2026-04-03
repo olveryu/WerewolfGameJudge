@@ -12,12 +12,12 @@
 #   3. 后处理：PWA / 字体 / _expo→assets/js / 自定义 index.html / SW 版本
 #
 # 调用方：
-#   - Vercel buildCommand（Git Integration 自动部署）
+#   - Cloudflare Pages Build（Git Integration 自动部署）
 #   - scripts/deploy.sh（本地手动部署）
 #
 # ✅ 跨平台兼容（macOS + Linux），用 perl 替代 sed -i
-# ❌ 不处理环境变量（Vercel Dashboard 或 deploy.sh 负责）
-# ❌ 不执行部署（Vercel 自动部署或 deploy.sh 负责）
+# ❌ 不处理环境变量（Cloudflare Pages Dashboard 负责）
+# ❌ 不执行部署（Cloudflare Pages 自动部署）
 #
 # ============================================
 

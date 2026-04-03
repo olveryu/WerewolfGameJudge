@@ -5,7 +5,7 @@
 支持线下同桌 & 远程联机的自动化裁判 App  
 _An automated judge app for both in-person and remote Werewolf games_
 
-[![Live Demo](https://img.shields.io/badge/Live-werewolf--judge.vercel.app-blue?style=flat-square)](https://werewolf-judge.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live-werewolfgamejudge.pages.dev-blue?style=flat-square)](https://werewolfgamejudge.pages.dev)
 [![CI](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml/badge.svg)](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![React Native](https://img.shields.io/badge/React%20Native-Expo-purple?style=flat-square&logo=expo)](https://expo.dev/)
@@ -33,7 +33,7 @@ _An automated judge app for both in-person and remote Werewolf games_
 
 ### 线上体验 | Live Demo
 
-👉 **[werewolf-judge.vercel.app](https://werewolf-judge.vercel.app)**
+👉 **[werewolfgamejudge.pages.dev](https://werewolfgamejudge.pages.dev)**
 
 ### 玩家使用 | How to Play
 
@@ -217,11 +217,11 @@ pnpm run release              # patch (default)
 pnpm run release -- minor     # minor / major
 
 # 部署 | Deploy
-# git push 自动触发 Vercel Git Integration 部署 + GitHub CI
-# 无需手动操作，deploy.sh 仅用于应急
+# git push 自动触发 Cloudflare Pages 部署 + GitHub CI
+# 无需手动操作
 ```
 
-**当前生产环境 | Production:** https://werewolf-judge.vercel.app
+**当前生产环境 | Production:** https://werewolfgamejudge.pages.dev
 
 > 详见 [部署指南](docs/DEPLOYMENT.md) | See [Deployment Guide](docs/DEPLOYMENT.md)
 
