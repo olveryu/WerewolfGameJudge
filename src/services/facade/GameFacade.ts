@@ -33,14 +33,14 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import { randomHex } from '@werewolf/game-engine/utils/id';
 
 import { AudioService } from '@/services/infra/AudioService';
-import { RoomService } from '@/services/infra/RoomService';
-import { RealtimeService } from '@/services/transport/RealtimeService';
 import type {
   FacadeStateListener,
   IGameFacade,
   ReconnectTrigger,
 } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { IRealtimeService } from '@/services/types/IRealtimeService';
+import type { IRoomService } from '@/services/types/IRoomService';
 import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
 
@@ -62,18 +62,18 @@ interface GameFacadeDeps {
   /** GameStore 实例 */
   store: GameStore;
   /** RealtimeService 实例 */
-  realtimeService: RealtimeService;
+  realtimeService: IRealtimeService;
   /** AudioService 实例 */
   audioService: AudioService;
   /** RoomService 实例（DB state 持久化） */
-  roomService: RoomService;
+  roomService: IRoomService;
 }
 
 export class GameFacade implements IGameFacade {
   readonly #store: GameStore;
-  readonly #realtimeService: RealtimeService;
+  readonly #realtimeService: IRealtimeService;
   readonly #audioService: AudioService;
-  readonly #roomService: RoomService;
+  readonly #roomService: IRoomService;
   readonly #audioOrchestrator: AudioOrchestrator;
   readonly #connectionRecovery: ConnectionRecoveryManager;
   #isHost = false;

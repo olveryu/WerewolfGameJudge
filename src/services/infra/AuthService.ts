@@ -2,6 +2,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
 
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
+import type { IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
 import { withTimeout } from '@/utils/withTimeout';
@@ -13,7 +14,7 @@ import { withTimeout } from '@/utils/withTimeout';
  * 管理用户昵称和头像元数据。涵盖 Supabase Auth API 调用和用户元数据管理。
  * 不涉及游戏逻辑或游戏状态存储。
  */
-export class AuthService {
+export class AuthService implements IAuthService {
   #currentUserId: string | null = null;
   readonly #initPromise: Promise<void>;
 

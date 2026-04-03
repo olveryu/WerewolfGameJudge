@@ -23,9 +23,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import type { RootStackParamList } from '@/navigation/types';
 import type { SettingsService } from '@/services/feature/SettingsService';
-import type { AuthService } from '@/services/infra/AuthService';
-import type { RoomService } from '@/services/infra/RoomService';
+import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { IRoomService } from '@/services/types/IRoomService';
 import type { ThemeColors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -53,8 +53,8 @@ interface UseConfigScreenStateParams {
   navigation: ConfigNavigationProp;
   facade: IGameFacade;
   settingsService: SettingsService;
-  authService: AuthService;
-  roomService: RoomService;
+  authService: IAuthService;
+  roomService: IRoomService;
   colors: ThemeColors;
 }
 

@@ -7,18 +7,18 @@
  */
 import React, { createContext, use, useMemo } from 'react';
 
-import type { AvatarUploadService } from '@/services/feature/AvatarUploadService';
 import type { SettingsService } from '@/services/feature/SettingsService';
 import type { AudioService } from '@/services/infra/AudioService';
-import type { AuthService } from '@/services/infra/AuthService';
-import type { RoomService } from '@/services/infra/RoomService';
+import type { IAuthService } from '@/services/types/IAuthService';
+import type { IRoomService } from '@/services/types/IRoomService';
+import type { IStorageService } from '@/services/types/IStorageService';
 
 export interface ServiceContextValue {
-  authService: AuthService;
-  roomService: RoomService;
+  authService: IAuthService;
+  roomService: IRoomService;
   settingsService: SettingsService;
   audioService: AudioService;
-  avatarUploadService: AvatarUploadService;
+  avatarUploadService: IStorageService;
 }
 
 const ServiceContext = createContext<ServiceContextValue | null>(null);
