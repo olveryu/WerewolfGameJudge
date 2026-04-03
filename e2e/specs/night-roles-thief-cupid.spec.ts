@@ -290,7 +290,7 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
 
         // === Step 5: Seer checks the thief → faction depends on picked card ===
         if (seerIdx !== -1) {
-          const expectedFaction = thiefPickedWolf ? '坏人' : '好人';
+          const expectedFaction = thiefPickedWolf ? '狼人' : '好人';
           await test.step(`seer checks thief → ${expectedFaction}`, async () => {
             const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
             expect(seerTurn, 'Seer turn should be detected').toBe(true);
