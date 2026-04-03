@@ -304,15 +304,15 @@
 
       // 读取用户保存的主题，应用到 splash
       (function () {
-        var themeKey = 'dark';
+        var themeKey = 'light';
         var settings = localStorage.getItem('@werewolf_settings');
         if (settings) {
           try {
             var parsed = JSON.parse(settings);
-            if (parsed.themeKey) themeKey = parsed.themeKey;
+            if (parsed.themeKey && THEMES[parsed.themeKey]) themeKey = parsed.themeKey;
           } catch (e) {}
         }
-        var theme = THEMES[themeKey] || THEMES.dark;
+        var theme = THEMES[themeKey];
 
         // 应用背景色
         document.documentElement.style.backgroundColor = theme.background;
