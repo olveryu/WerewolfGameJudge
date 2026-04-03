@@ -413,7 +413,15 @@ export function buildSeatViewModels(
   const playerRoles = gameState.template.roles.slice(0, gameState.template.numberOfPlayers);
   return playerRoles.map((role, seat) => {
     const player = gameState.players.get(seat);
-    const effectiveRole = player?.role ?? role;
+    // For bottom card actors (thief/treasureMaster), use the chosen card's role
+    // so they are highlighted as wolf / shown vote badge during wolfKill.
+    const effectiveRole = player?.role
+      ? getBottomCardEffectiveRole(
+          player.role,
+          gameState.thiefChosenCard,
+          gameState.treasureMasterChosenCard,
+        )
+      : role;
     // Wolf visibility is controlled by ActionerState.showWolves.
     // When true, only wolf-faction roles with canSeeWolves=true are highlighted.
     // Roles like gargoyle/wolfRobot (canSeeWolves=false) are hidden from wolf pack view.

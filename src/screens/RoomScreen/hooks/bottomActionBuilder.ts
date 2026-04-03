@@ -10,6 +10,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import { getBottomCardEffectiveRole } from '@werewolf/game-engine/utils/playerHelpers';
 
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -89,7 +90,15 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
   // UI Hint（服务端广播驱动，UI 只读展示）
   // ─────────────────────────────────────────────────────────────────────────
   const hint = gameState.ui?.currentActorHint;
-  const hintApplies = hint && actorRole && hint.targetRoleIds.includes(actorRole);
+  // For bottom card actors (thief/treasureMaster), check hint against effective role
+  const effectiveActorRole = actorRole
+    ? getBottomCardEffectiveRole(
+        actorRole,
+        gameState.thiefChosenCard,
+        gameState.treasureMasterChosenCard,
+      )
+    : null;
+  const hintApplies = hint && effectiveActorRole && hint.targetRoleIds.includes(effectiveActorRole);
   if (hintApplies) {
     if (hint.bottomAction === 'skipOnly') {
       return {
