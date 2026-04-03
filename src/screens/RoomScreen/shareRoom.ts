@@ -15,7 +15,7 @@ export function buildRoomUrl(roomNumber: string): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     return `${window.location.origin}/room/${roomNumber}`;
   }
-  return `https://werewolf-judge.vercel.app/room/${roomNumber}`;
+  return `https://werewolf-judge.pages.dev/room/${roomNumber}`;
 }
 
 /** Result of a share/copy attempt. */

@@ -38,10 +38,15 @@ echo "🔧 编译 game-engine (ESM → Edge Function)..."
 
 echo "🧹 清理 dist/..."
 mkdir -p dist
-find dist -mindepth 1 -maxdepth 1 ! -name '.vercel' -exec rm -rf {} + 2>/dev/null || true
+find dist -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
 
-# Expose Vercel deploy environment to Expo (EXPO_PUBLIC_* prefix required for Metro inlining)
-export EXPO_PUBLIC_DEPLOY_ENV="${VERCEL_ENV:-production}"
+# Expose deploy environment to Expo (EXPO_PUBLIC_* prefix required for Metro inlining)
+# CF_PAGES_BRANCH is set by Cloudflare Pages ("main" = production, others = preview)
+if [ "$CF_PAGES_BRANCH" = "main" ]; then
+  export EXPO_PUBLIC_DEPLOY_ENV="production"
+else
+  export EXPO_PUBLIC_DEPLOY_ENV="${CF_PAGES_BRANCH:-production}"
+fi
 echo "🌐 Deploy env: $EXPO_PUBLIC_DEPLOY_ENV"
 
 echo "📦 构建 Web..."
@@ -70,12 +75,12 @@ if [ -d "$FONT_SRC" ]; then
   rm -rf dist/assets/node_modules
 fi
 
-# Vercel _expo 目录限制（underscore 前缀保留）：将 JS bundle 移到 assets/js/
+# _expo 目录重命名：将 JS bundle 移到 assets/js/（Vercel/Cloudflare 均不保留 underscore 前缀）
 if [ -d dist/_expo/static/js/web ]; then
   mkdir -p dist/assets/js
   cp dist/_expo/static/js/web/*.js dist/assets/js/
   rm -rf dist/_expo
-  echo "✅ JS bundle 移至 assets/js/（规避 Vercel _expo 限制）"
+  echo "✅ JS bundle 移至 assets/js/"
 fi
 
 # 使用自定义 index.html（保留 Expo 生成的所有 JS bundle 引用）
@@ -123,5 +128,10 @@ if [ -f dist/sw.js ]; then
   perl -i -pe "s|/\\* __JS_ASSETS__ \\*/|$JS_ASSET_LIST|g" dist/sw.js
   echo "✅ SW 缓存版本: $SW_VERSION（含 ${JS_COUNT} 个 JS bundle 预缓存）"
 fi
+
+# 复制 Cloudflare Pages 配置文件
+cp web/_headers dist/
+cp web/_redirects dist/
+echo "✅ 已复制 _headers + _redirects"
 
 echo "✅ 构建完成"

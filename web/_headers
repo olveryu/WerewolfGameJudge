@@ -1,0 +1,28 @@
+# Cloudflare Pages custom headers
+# Equivalent to vercel.json headers configuration
+
+# Immutable assets (content-hashed filenames)
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/js/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/audio/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/audio_end/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/pwa/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Service Worker must never be cached
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Security headers for all responses
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
