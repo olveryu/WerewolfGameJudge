@@ -173,6 +173,9 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
         expect(cupidIdx, 'cupid must be a player').not.toBe(-1);
         expect(wolfIndices.length, 'wolf must be a player').toBeGreaterThan(0);
 
+        // Track what the thief picked to adapt later steps dynamically
+        let thiefPickedWolf = false;
+
         // === Step 1: Thief's turn — pick a bottom card ===
         await test.step('thief picks a bottom card', async () => {
           const thiefTurn = await waitForRoleTurn(pages[thiefIdx], ['选择', '底牌'], pages, 120);
@@ -194,21 +197,34 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
             .first()
             .waitFor({ state: 'visible', timeout: 5000 });
 
-          // Pick the first clickable card visible in the modal
+          // Pick the first *enabled* card — disabled cards (opacity 0.4) are still
+          // "visible" to Playwright but won't trigger showConfirmAlert on press.
+          // Strategy: click each candidate, wait for the confirm alert; if it
+          // doesn't appear the card was disabled, so try the next one.
           const CANDIDATE_NAMES = ['普通村民', '预言家', '狼人'];
-          let clicked = false;
+          const alertModal = pages[thiefIdx].locator('[data-testid="alert-modal"]');
+          let picked = false;
           for (const name of CANDIDATE_NAMES) {
             const card = pages[thiefIdx].getByText(name, { exact: true }).first();
-            if (await card.isVisible().catch(() => false)) {
-              await card.click({ force: true });
-              clicked = true;
+            if (!(await card.isVisible().catch(() => false))) continue;
+
+            await card.click({ force: true });
+
+            // If the card was enabled, a confirm alert ("确认选择") appears
+            const appeared = await alertModal
+              .waitFor({ state: 'visible', timeout: 1500 })
+              .then(() => true)
+              .catch(() => false);
+            if (appeared) {
+              const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
+              await confirmBtn.click({ force: true });
+              await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+              thiefPickedWolf = name === '狼人';
+              picked = true;
               break;
             }
           }
-          expect(clicked, 'Should find a bottom card to click').toBe(true);
-
-          // Confirm selection
-          await dismissAlert(pages[thiefIdx]);
+          expect(picked, 'Should pick an enabled bottom card').toBe(true);
         });
 
         // === Step 2: Cupid's turn — link 2 lovers ===
@@ -259,19 +275,23 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
           );
           expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
 
-          // Kill a non-wolf, non-cupid player (villager/seer/thief)
-          const wolfIdxSet = new Set(wolfIndices);
+          // If thief picked wolf, they participate in wolf vote
+          const effectiveWolfIndices = thiefPickedWolf ? [...wolfIndices, thiefIdx] : wolfIndices;
+
+          // Kill a non-wolf, non-cupid player (villager/seer)
+          const wolfIdxSet = new Set(effectiveWolfIndices);
           const killCandidates = [...roleMap.entries()].filter(
             ([idx]) => idx !== cupidIdx && !wolfIdxSet.has(idx),
           );
           const killTarget = killCandidates[0][1].seat;
 
-          await driveWolfVote(pages, wolfIndices, killTarget);
+          await driveWolfVote(pages, effectiveWolfIndices, killTarget);
         });
 
-        // === Step 5: Seer checks the thief → "好人" ===
+        // === Step 5: Seer checks the thief → faction depends on picked card ===
         if (seerIdx !== -1) {
-          await test.step('seer checks thief → 好人', async () => {
+          const expectedFaction = thiefPickedWolf ? '坏人' : '好人';
+          await test.step(`seer checks thief → ${expectedFaction}`, async () => {
             const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
             expect(seerTurn, 'Seer turn should be detected').toBe(true);
 
@@ -280,7 +300,7 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
 
             const revealText = await readAlertText(pages[seerIdx]);
             expect(revealText).toContain(formatSeat(thiefSeat));
-            expect(revealText).toContain('好人');
+            expect(revealText).toContain(expectedFaction);
             await dismissAlert(pages[seerIdx]);
           });
         }
