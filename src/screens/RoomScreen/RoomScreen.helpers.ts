@@ -50,6 +50,8 @@ interface GameRoomLike {
   actions: Map<RoleId, RoleAction>;
   wolfVotes: Map<number, number>;
   currentStepIndex: number;
+  thiefChosenCard?: RoleId | null;
+  treasureMasterChosenCard?: RoleId | null;
 }
 
 export interface ActionerState {
@@ -233,6 +235,8 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
     actions: gameState.actions,
     wolfVotes,
     currentStepIndex: gameState.currentStepIndex,
+    thiefChosenCard: gameState.thiefChosenCard,
+    treasureMasterChosenCard: gameState.treasureMasterChosenCard,
   };
 }
 
@@ -250,8 +254,15 @@ function formatWolfVoteBadge(vote: number): string {
 export function getWolfVoteSummary(room: GameRoomLike): string {
   const wolfSeats: number[] = [];
   room.players.forEach((player, seat) => {
-    if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-      wolfSeats.push(seat);
+    if (player?.role) {
+      const effectiveRole = getBottomCardEffectiveRole(
+        player.role,
+        room.thiefChosenCard,
+        room.treasureMasterChosenCard,
+      );
+      if (doesRoleParticipateInWolfVote(effectiveRole)) {
+        wolfSeats.push(seat);
+      }
     }
   });
   wolfSeats.sort((a, b) => a - b);
