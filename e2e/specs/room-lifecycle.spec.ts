@@ -33,11 +33,9 @@ test.describe('Room Lifecycle', () => {
       await enterRoomCodeViaNumPad(page, '0000');
       await page.getByText('加入', { exact: true }).click();
 
-      // Wait for Room URL to confirm navigation happened (web-first assertion auto-retries)
-      await expect(page).toHaveURL(/\/room\//, { timeout: 15_000 });
-
-      // The app navigates to RoomScreen, which discovers the room doesn't exist.
-      // Fatal error triggers showAlert('房间异常', '房间不存在') + auto-redirect to Home.
+      // The app navigates to RoomScreen, discovers the room doesn't exist,
+      // and immediately redirects back to Home with a fatal error alert.
+      // The round-trip is fast enough that the URL may never visibly change to /room/.
       // Wait for the alert modal to appear (web-first assertion auto-retries)
       const alertModal = page.locator('[data-testid="alert-modal"]');
       await expect(alertModal).toBeVisible({ timeout: 20_000 });
