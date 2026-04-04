@@ -67,8 +67,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── Notepad ──────────────────────────────────────────────────────────
   const handleNotepadPress = useCallback(() => {
-    navigation.navigate('Notepad');
-  }, [navigation]);
+    navigation.navigate('Notepad', { roomNumber: route.params.roomNumber });
+  }, [navigation, route.params.roomNumber]);
 
   // ─── QR Code Modal state ──────────────────────────────────────────────
   const [qrModalVisible, setQrModalVisible] = useState(false);

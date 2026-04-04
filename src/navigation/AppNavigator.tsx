@@ -8,6 +8,7 @@
  */
 import {
   getPathFromState as defaultGetPathFromState,
+  getStateFromPath as defaultGetStateFromPath,
   LinkingOptions,
   NavigationContainer,
 } from '@react-navigation/native';
@@ -69,9 +70,36 @@ const linking: LinkingOptions<RootStackParamList> = {
       },
       Settings: 'settings',
       Encyclopedia: 'encyclopedia',
-      Notepad: 'notepad',
+      Notepad: 'notepad/:roomNumber',
       AvatarPicker: 'avatar-picker',
     },
+  },
+  // Rebuild navigation stack when deep-linking into screens that expect a parent.
+  // e.g. /notepad/ABC123 → [Home, Room({roomNumber: 'ABC123'}), Notepad({roomNumber: 'ABC123'})]
+  getStateFromPath(path, options) {
+    const state = defaultGetStateFromPath(path, options);
+    if (!state) return state;
+
+    const routes = state.routes;
+    const topRoute = routes[routes.length - 1];
+
+    // Notepad requires Room underneath; inject Home + Room when missing
+    if (topRoute?.name === 'Notepad' && routes.length === 1) {
+      const roomNumber = (topRoute.params as { roomNumber?: string })?.roomNumber;
+      if (roomNumber) {
+        return {
+          ...state,
+          routes: [
+            { name: 'Home' as const },
+            { name: 'Room' as const, params: { roomNumber, isHost: false } },
+            topRoute,
+          ],
+          index: 2,
+        };
+      }
+    }
+
+    return state;
   },
   // Strip non-serializable params (template, roleRevealAnimation) from browser URL
   getPathFromState(state, options) {
