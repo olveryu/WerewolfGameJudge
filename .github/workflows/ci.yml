@@ -110,6 +110,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: packages/api-worker
+          packageManager: pnpm
           command: deploy
 
   deploy-frontend:
@@ -142,6 +143,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: pnpm
           command: pages deploy dist --project-name=werewolfgamejudge
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 

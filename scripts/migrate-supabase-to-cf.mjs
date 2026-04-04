@@ -2,26 +2,28 @@
 /**
  * Supabase → Cloudflare 一次性用户 + 头像迁移脚本
  *
- * 功能：
- *   1. 从 Supabase Auth 导出注册用户（非匿名），连同 bcrypt hash
- *   2. 写入 CF D1 users 表（幂等：email 已存在则 skip）
- *   3. 从 Supabase Storage 下载自定义头像 → 上传到 CF R2
- *   4. 更新 D1 users 表的 avatar URL 指向 R2
+ * 使用本地 wrangler CLI（已登录）操作 D1 + R2，无需 Cloudflare API Token。
  *
  * 前置条件：
- *   - SUPABASE_URL             Supabase 项目 URL
- *   - SUPABASE_SERVICE_ROLE_KEY Supabase service_role key（Admin API）
- *   - CF_API_URL               CF Worker URL（如 https://werewolf-api.xxx.workers.dev）
- *   - CF_D1_DATABASE_ID        D1 database ID
- *   - CF_ACCOUNT_ID            Cloudflare Account ID
- *   - CF_API_TOKEN             Cloudflare API Token（D1 + R2 权限）
- *   - CF_R2_BUCKET             R2 bucket name（默认 werewolf-avatars）
+ *   - SUPABASE_URL              Supabase 项目 URL
+ *   - SUPABASE_SERVICE_ROLE_KEY  Supabase service_role key（Admin API）
+ *   - wrangler login 已完成
  *
  * 用法：
- *   node scripts/migrate-supabase-to-cf.mjs
+ *   SUPABASE_URL=https://xxx.supabase.co SUPABASE_SERVICE_ROLE_KEY=xxx node scripts/migrate-supabase-to-cf.mjs
  *
  * 幂等安全：可重复运行，已迁移的用户/头像会被跳过。
  */
+
+import { execSync } from 'node:child_process';
+import { writeFileSync, unlinkSync, mkdtempSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const WRANGLER_CWD = join(__dirname, '..', 'packages', 'api-worker');
+const CF_API_URL = process.env.CF_API_URL || 'https://werewolf-api.olveryu.workers.dev';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config
@@ -29,11 +31,6 @@
 
 const SUPABASE_URL = requireEnv('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-const CF_ACCOUNT_ID = requireEnv('CF_ACCOUNT_ID');
-const CF_API_TOKEN = requireEnv('CF_API_TOKEN');
-const CF_D1_DATABASE_ID = requireEnv('CF_D1_DATABASE_ID');
-const CF_R2_BUCKET = process.env.CF_R2_BUCKET || 'werewolf-avatars';
-const CF_API_URL = process.env.CF_API_URL; // optional, for avatar URL rewriting
 
 function requireEnv(name) {
   const val = process.env[name];
@@ -42,6 +39,73 @@ function requireEnv(name) {
     process.exit(1);
   }
   return val;
+}
+
+/** SQL literal escape — doubles single quotes, wraps in quotes. NULL for null/undefined. */
+function esc(val) {
+  if (val === null || val === undefined) return 'NULL';
+  return `'${String(val).replace(/'/g, "''")}'`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wrangler D1 helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function d1Execute(sql) {
+  const out = execSync(
+    `npx wrangler d1 execute werewolf-db --remote --json --command ${JSON.stringify(sql)}`,
+    {
+      cwd: WRANGLER_CWD,
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    },
+  );
+  try {
+    return JSON.parse(out);
+  } catch {
+    console.error('Failed to parse D1 output:', out.slice(0, 500));
+    throw new Error('D1 JSON parse failed');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wrangler R2 helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function r2Upload(key, buffer, contentType) {
+  const tmpDir = mkdtempSync(join(tmpdir(), 'migrate-'));
+  const tmpFile = join(tmpDir, 'avatar');
+  writeFileSync(tmpFile, Buffer.from(buffer));
+  try {
+    execSync(
+      `npx wrangler r2 object put "werewolf-avatars/${key}" --file "${tmpFile}" --content-type "${contentType}"`,
+      {
+        cwd: WRANGLER_CWD,
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      },
+    );
+  } finally {
+    try {
+      unlinkSync(tmpFile);
+    } catch {
+      /* ignore cleanup errors */
+    }
+  }
+}
+
+function r2ObjectExists(key) {
+  try {
+    execSync(`npx wrangler r2 object head "werewolf-avatars/${key}"`, {
+      cwd: WRANGLER_CWD,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,7 +140,6 @@ async function listRegisteredUsers() {
     if (!Array.isArray(pageUsers) || pageUsers.length === 0) break;
 
     for (const u of pageUsers) {
-      // 跳过匿名用户
       if (u.is_anonymous || !u.email) continue;
       users.push(u);
     }
@@ -84,62 +147,6 @@ async function listRegisteredUsers() {
     page++;
   }
   return users;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Cloudflare D1 API helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function d1Query(sql, params = []) {
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/d1/database/${CF_D1_DATABASE_ID}/query`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${CF_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ sql, params }),
-    },
-  );
-  const json = await res.json();
-  if (!json.success) {
-    throw new Error(`D1 query failed: ${JSON.stringify(json.errors)}`);
-  }
-  return json.result;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Cloudflare R2 API helpers (S3-compatible via CF API)
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function r2Upload(key, buffer, contentType) {
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/r2/buckets/${CF_R2_BUCKET}/objects/${encodeURIComponent(key)}`,
-    {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${CF_API_TOKEN}`,
-        'Content-Type': contentType,
-      },
-      body: buffer,
-    },
-  );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`R2 upload failed for ${key}: ${res.status} ${text}`);
-  }
-}
-
-async function r2ObjectExists(key) {
-  const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/r2/buckets/${CF_R2_BUCKET}/objects/${encodeURIComponent(key)}`,
-    {
-      method: 'HEAD',
-      headers: { Authorization: `Bearer ${CF_API_TOKEN}` },
-    },
-  );
-  return res.ok;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,37 +159,25 @@ async function migrateUsers(users) {
   let skipped = 0;
 
   for (const u of users) {
-    // Check if already exists in D1
-    const existing = await d1Query('SELECT id FROM users WHERE email = ?', [u.email]);
-    if (existing[0]?.results?.length > 0) {
+    const result = d1Execute(`SELECT id FROM users WHERE email = ${esc(u.email)}`);
+    if (result[0]?.results?.length > 0) {
       console.log(`  ⏭  ${u.email} — already exists, skipping`);
       skipped++;
       continue;
     }
 
     const meta = u.user_metadata || {};
-    // Supabase stores bcrypt hash in encrypted_password field (Admin API)
     const passwordHash = u.encrypted_password || null;
 
-    await d1Query(
+    d1Execute(
       `INSERT INTO users (id, email, password_hash, display_name, avatar_url, custom_avatar_url, avatar_frame, is_anonymous)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
-      [
-        u.id,
-        u.email,
-        passwordHash,
-        meta.display_name || u.email.split('@')[0],
-        meta.avatar_url || null,
-        meta.custom_avatar_url || null,
-        meta.avatar_frame || null,
-      ],
+       VALUES (${esc(u.id)}, ${esc(u.email)}, ${esc(passwordHash)}, ${esc(meta.display_name || u.email.split('@')[0])}, ${esc(meta.avatar_url || null)}, ${esc(meta.custom_avatar_url || null)}, ${esc(meta.avatar_frame || null)}, 0)`,
     );
     console.log(`  ✅ ${u.email} (${u.id})`);
     migrated++;
   }
 
   console.log(`\n  Users: ${migrated} migrated, ${skipped} skipped\n`);
-  return migrated;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -190,7 +185,6 @@ async function migrateUsers(users) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function migrateAvatars(users) {
-  // Collect users with custom avatars from Supabase Storage
   const usersWithAvatars = users.filter((u) => {
     const url = u.user_metadata?.custom_avatar_url;
     return url && url.includes('supabase');
@@ -208,8 +202,6 @@ async function migrateAvatars(users) {
 
   for (const u of usersWithAvatars) {
     const avatarUrl = u.user_metadata.custom_avatar_url;
-    // Extract storage path from Supabase URL:
-    // https://xxx.supabase.co/storage/v1/object/public/avatars/{userId}/{file}
     const match = avatarUrl.match(/\/avatars\/(.+)$/);
     if (!match) {
       console.log(`  ⚠️  ${u.email} — cannot parse avatar URL: ${avatarUrl}`);
@@ -217,17 +209,14 @@ async function migrateAvatars(users) {
       continue;
     }
 
-    const r2Key = match[1]; // {userId}/{file}
+    const r2Key = match[1];
 
-    // Check if already in R2
-    const exists = await r2ObjectExists(r2Key);
-    if (exists) {
+    if (r2ObjectExists(r2Key)) {
       console.log(`  ⏭  ${u.email} — avatar already in R2, skipping`);
       skipped++;
       continue;
     }
 
-    // Download from Supabase Storage (public URL)
     try {
       const res = await fetch(avatarUrl);
       if (!res.ok) {
@@ -238,17 +227,11 @@ async function migrateAvatars(users) {
       const buffer = await res.arrayBuffer();
       const contentType = res.headers.get('content-type') || 'image/jpeg';
 
-      // Upload to R2
-      await r2Upload(r2Key, buffer, contentType);
+      r2Upload(r2Key, buffer, contentType);
 
-      // Update D1 with new R2 URL
-      const newUrl = CF_API_URL
-        ? `${CF_API_URL}/avatar/${r2Key}`
-        : `https://werewolf-avatars.${CF_ACCOUNT_ID}.r2.dev/${r2Key}`;
-
-      await d1Query(
-        `UPDATE users SET avatar_url = ?, custom_avatar_url = ?, updated_at = datetime('now') WHERE id = ?`,
-        [newUrl, newUrl, u.id],
+      const newUrl = `${CF_API_URL}/avatar/${r2Key}`;
+      d1Execute(
+        `UPDATE users SET avatar_url = ${esc(newUrl)}, custom_avatar_url = ${esc(newUrl)}, updated_at = datetime('now') WHERE id = ${esc(u.id)}`,
       );
 
       console.log(`  ✅ ${u.email} → ${r2Key}`);
@@ -267,12 +250,10 @@ async function migrateAvatars(users) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('🔄 Supabase → Cloudflare Migration\n');
+  console.log('🔄 Supabase → Cloudflare Migration (via wrangler CLI)\n');
   console.log(`  Supabase: ${SUPABASE_URL}`);
-  console.log(`  CF D1:    ${CF_D1_DATABASE_ID}`);
-  console.log(`  CF R2:    ${CF_R2_BUCKET}\n`);
+  console.log(`  D1 + R2:  via local wrangler (${WRANGLER_CWD})\n`);
 
-  // Step 1: List registered users from Supabase
   console.log('📋 Fetching registered users from Supabase Auth...');
   const users = await listRegisteredUsers();
   console.log(`  Found ${users.length} registered user(s)\n`);
@@ -282,10 +263,7 @@ async function main() {
     return;
   }
 
-  // Step 2: Migrate users to D1
   await migrateUsers(users);
-
-  // Step 3: Migrate avatars to R2
   await migrateAvatars(users);
 
   console.log('✨ Migration complete!');
