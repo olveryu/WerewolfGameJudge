@@ -10,7 +10,7 @@ export interface Env {
   DB: D1Database;
 
   // ── R2 Bucket (Phase 3) ────────────────────────────────────────
-  AVATARS: R2Bucket;
+  AVATARS?: R2Bucket;
 
   // ── Durable Objects (Phase 2) ──────────────────────────────────
   GAME_ROOM: DurableObjectNamespace;

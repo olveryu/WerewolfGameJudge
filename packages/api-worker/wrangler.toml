@@ -8,12 +8,13 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "werewolf-db"
-database_id = "placeholder-replace-after-create"
+database_id = "f6ddfa17-8a27-442c-b6c0-6abf56f06a43"
 
 # ── R2 Bucket (Phase 3: avatar storage) ─────────────────────────────────────
-[[r2_buckets]]
-binding = "AVATARS"
-bucket_name = "werewolf-avatars"
+# Uncomment after enabling R2 in CF Dashboard:
+# [[r2_buckets]]
+# binding = "AVATARS"
+# bucket_name = "werewolf-avatars"
 
 # ── Durable Objects (Phase 2: realtime) ──────────────────────────────────────
 [durable_objects]

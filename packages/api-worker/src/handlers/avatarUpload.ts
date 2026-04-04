@@ -20,6 +20,8 @@ function randomHex(bytes: number): string {
 }
 
 export async function handleAvatarUpload(request: Request, env: Env): Promise<Response> {
+  if (!env.AVATARS) return jsonResponse({ error: 'avatar storage not configured' }, 503, env);
+
   // Auth check
   const token = extractBearerToken(request);
   if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
@@ -84,6 +86,8 @@ export async function handleAvatarServe(
   env: Env,
   key: string,
 ): Promise<Response> {
+  if (!env.AVATARS) return jsonResponse({ error: 'avatar storage not configured' }, 503, env);
+
   const object = await env.AVATARS.get(key);
 
   if (!object) {
