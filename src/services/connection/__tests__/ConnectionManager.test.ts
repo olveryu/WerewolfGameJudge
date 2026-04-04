@@ -359,7 +359,7 @@ describe('ConnectionManager', () => {
       manager.dispose();
     });
 
-    it('transitions to Disconnected on fetch failure', async () => {
+    it('stays in Syncing on fetch failure and retries', async () => {
       const { transport, deps } = createDeps({
         fetchStateFromDB: jest.fn().mockRejectedValue(new Error('DB error')),
       });
@@ -370,7 +370,9 @@ describe('ConnectionManager', () => {
 
       await jest.advanceTimersByTimeAsync(0);
 
-      expect(manager.getState()).toBe(ConnectionState.Disconnected);
+      // Stays in Syncing (not Disconnected), retry scheduled
+      expect(manager.getState()).toBe(ConnectionState.Syncing);
+      expect(manager.getContext().attempt).toBe(1);
 
       manager.dispose();
     });

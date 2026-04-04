@@ -144,6 +144,7 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
         ctx: next,
         effects: [
           log('info', `Syncing → Connected`, { revision: event.revision }),
+          { type: 'CANCEL_RETRY' },
           { type: 'START_REVISION_POLL' },
         ],
       };
@@ -160,20 +161,47 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
         ctx: next,
         effects: [
           log('info', `Syncing → Connected (via STATE_UPDATE)`, { revision: event.revision }),
+          { type: 'CANCEL_RETRY' },
           { type: 'START_REVISION_POLL' },
         ],
       };
     }
     case 'FETCH_FAILURE': {
-      const next: FSMContext = { ...ctx, state: ConnectionState.Disconnected };
-      const delay = calculateBackoff(ctx.attempt);
+      // WS 仍然存活，仅 DB fetch 失败 — 原地重试 fetch，不关闭 WS
+      const nextAttempt = ctx.attempt + 1;
+      if (nextAttempt >= ctx.maxAttempts) {
+        const next: FSMContext = { ...ctx, state: ConnectionState.Failed, attempt: nextAttempt };
+        return {
+          ctx: next,
+          effects: [
+            log('error', `Syncing → Failed (max attempts: ${ctx.maxAttempts})`, {
+              attempt: nextAttempt,
+            }),
+            { type: 'CLOSE_WS' },
+            { type: 'STOP_PING' },
+          ],
+        };
+      }
+      const next: FSMContext = { ...ctx, attempt: nextAttempt };
+      const delay = calculateBackoff(nextAttempt);
       return {
         ctx: next,
         effects: [
-          log('error', `Syncing → Disconnected (FETCH_FAILURE)`),
-          { type: 'CLOSE_WS' },
-          { type: 'STOP_PING' },
+          log('warn', `FETCH_FAILURE in Syncing, scheduling retry`, {
+            attempt: nextAttempt,
+            nextDelay: delay,
+          }),
           { type: 'SCHEDULE_RETRY', delayMs: delay },
+        ],
+      };
+    }
+    case 'RETRY_TIMER_FIRED': {
+      // Fetch retry timer fired — re-issue fetch, stay in Syncing
+      return {
+        ctx,
+        effects: [
+          log('info', `Syncing: retrying fetch`, { attempt: ctx.attempt }),
+          { type: 'FETCH_STATE', roomCode: ctx.roomCode! },
         ],
       };
     }
@@ -404,11 +432,12 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
 function handleReconnecting(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
   switch (event.type) {
     case 'WS_OPEN': {
-      const next: FSMContext = { ...ctx, state: ConnectionState.Syncing, attempt: 0 };
+      // 保留 attempt — 仅在 FETCH_SUCCESS/STATE_UPDATE 到达 Connected 时才清零
+      const next: FSMContext = { ...ctx, state: ConnectionState.Syncing };
       return {
         ctx: next,
         effects: [
-          log('info', `Reconnecting → Syncing`),
+          log('info', `Reconnecting → Syncing`, { attempt: ctx.attempt }),
           { type: 'START_PING' },
           { type: 'FETCH_STATE', roomCode: ctx.roomCode! },
         ],

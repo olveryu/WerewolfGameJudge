@@ -124,12 +124,14 @@ describe('Connecting state', () => {
 describe('Syncing state', () => {
   const syncing = ctx(ConnectionState.Syncing);
 
-  it('FETCH_SUCCESS → Connected + START_REVISION_POLL', () => {
+  it('FETCH_SUCCESS → Connected + CANCEL_RETRY + START_REVISION_POLL', () => {
     const result = transition(syncing, { type: 'FETCH_SUCCESS', revision: 10 });
     expect(result.ctx.state).toBe(ConnectionState.Connected);
     expect(result.ctx.lastRevision).toBe(10);
     expect(result.ctx.attempt).toBe(0);
-    expect(effectTypes(result)).toContain('START_REVISION_POLL');
+    const types = effectTypes(result);
+    expect(types).toContain('CANCEL_RETRY');
+    expect(types).toContain('START_REVISION_POLL');
   });
 
   it('FETCH_SUCCESS keeps higher existing revision', () => {
@@ -142,16 +144,37 @@ describe('Syncing state', () => {
     const result = transition(syncing, { type: 'STATE_UPDATE', revision: 7 });
     expect(result.ctx.state).toBe(ConnectionState.Connected);
     expect(result.ctx.lastRevision).toBe(7);
-    expect(effectTypes(result)).toContain('START_REVISION_POLL');
+    const types = effectTypes(result);
+    expect(types).toContain('CANCEL_RETRY');
+    expect(types).toContain('START_REVISION_POLL');
   });
 
-  it('FETCH_FAILURE → Disconnected + CLOSE_WS + STOP_PING + SCHEDULE_RETRY', () => {
-    const result = transition(syncing, { type: 'FETCH_FAILURE' });
-    expect(result.ctx.state).toBe(ConnectionState.Disconnected);
+  it('FETCH_FAILURE → stays Syncing + increment attempt + SCHEDULE_RETRY (no CLOSE_WS)', () => {
+    const s = ctx(ConnectionState.Syncing, { attempt: 2 });
+    const result = transition(s, { type: 'FETCH_FAILURE' });
+    expect(result.ctx.state).toBe(ConnectionState.Syncing);
+    expect(result.ctx.attempt).toBe(3);
+    const types = effectTypes(result);
+    expect(types).toContain('SCHEDULE_RETRY');
+    expect(types).not.toContain('CLOSE_WS');
+    expect(types).not.toContain('STOP_PING');
+  });
+
+  it('FETCH_FAILURE at maxAttempts → Failed + CLOSE_WS', () => {
+    const s = ctx(ConnectionState.Syncing, { attempt: DEFAULT_MAX_ATTEMPTS - 1 });
+    const result = transition(s, { type: 'FETCH_FAILURE' });
+    expect(result.ctx.state).toBe(ConnectionState.Failed);
+    expect(result.ctx.attempt).toBe(DEFAULT_MAX_ATTEMPTS);
     const types = effectTypes(result);
     expect(types).toContain('CLOSE_WS');
     expect(types).toContain('STOP_PING');
-    expect(types).toContain('SCHEDULE_RETRY');
+  });
+
+  it('RETRY_TIMER_FIRED → re-issues FETCH_STATE (stays Syncing)', () => {
+    const s = ctx(ConnectionState.Syncing, { attempt: 3 });
+    const result = transition(s, { type: 'RETRY_TIMER_FIRED' });
+    expect(result.ctx.state).toBe(ConnectionState.Syncing);
+    expect(effectTypes(result)).toContain('FETCH_STATE');
   });
 
   it('WS_CLOSE → Disconnected + SCHEDULE_RETRY', () => {
@@ -339,10 +362,10 @@ describe('Disconnected state', () => {
 describe('Reconnecting state', () => {
   const reconnecting = ctx(ConnectionState.Reconnecting, { attempt: 3 });
 
-  it('WS_OPEN → Syncing + START_PING + FETCH_STATE', () => {
+  it('WS_OPEN → Syncing + START_PING + FETCH_STATE (preserves attempt)', () => {
     const result = transition(reconnecting, { type: 'WS_OPEN' });
     expect(result.ctx.state).toBe(ConnectionState.Syncing);
-    expect(result.ctx.attempt).toBe(0);
+    expect(result.ctx.attempt).toBe(3);
     const types = effectTypes(result);
     expect(types).toContain('START_PING');
     expect(types).toContain('FETCH_STATE');
@@ -503,5 +526,52 @@ describe('transition sequences', () => {
     expect(r2.ctx.visible).toBe(true);
     expect(effectTypes(r2)).toContain('FETCH_STATE');
     expect(effectTypes(r2)).toContain('START_REVISION_POLL');
+  });
+
+  it('reconnect → WS ok → fetch fails → retry → fetch succeeds', () => {
+    // Start reconnecting at attempt 3
+    const r = ctx(ConnectionState.Reconnecting, { attempt: 3 });
+
+    // WS_OPEN → Syncing (attempt preserved)
+    const r1 = transition(r, { type: 'WS_OPEN' });
+    expect(r1.ctx.state).toBe(ConnectionState.Syncing);
+    expect(r1.ctx.attempt).toBe(3);
+
+    // FETCH_FAILURE → stay Syncing (attempt 4)
+    const r2 = transition(r1.ctx, { type: 'FETCH_FAILURE' });
+    expect(r2.ctx.state).toBe(ConnectionState.Syncing);
+    expect(r2.ctx.attempt).toBe(4);
+    expect(effectTypes(r2)).toContain('SCHEDULE_RETRY');
+
+    // RETRY_TIMER_FIRED → re-fetch
+    const r3 = transition(r2.ctx, { type: 'RETRY_TIMER_FIRED' });
+    expect(r3.ctx.state).toBe(ConnectionState.Syncing);
+    expect(effectTypes(r3)).toContain('FETCH_STATE');
+
+    // FETCH_SUCCESS → Connected (attempt reset to 0)
+    const r4 = transition(r3.ctx, { type: 'FETCH_SUCCESS', revision: 20 });
+    expect(r4.ctx.state).toBe(ConnectionState.Connected);
+    expect(r4.ctx.attempt).toBe(0);
+    expect(r4.ctx.lastRevision).toBe(20);
+  });
+
+  it('fetch failures exhaust attempts → Failed', () => {
+    // Start Syncing near maxAttempts
+    const s = ctx(ConnectionState.Syncing, { attempt: DEFAULT_MAX_ATTEMPTS - 2 });
+
+    // First FETCH_FAILURE → still retrying
+    const r1 = transition(s, { type: 'FETCH_FAILURE' });
+    expect(r1.ctx.state).toBe(ConnectionState.Syncing);
+    expect(r1.ctx.attempt).toBe(DEFAULT_MAX_ATTEMPTS - 1);
+
+    // RETRY_TIMER_FIRED → re-fetch
+    const r2 = transition(r1.ctx, { type: 'RETRY_TIMER_FIRED' });
+    expect(effectTypes(r2)).toContain('FETCH_STATE');
+
+    // Second FETCH_FAILURE → maxAttempts reached → Failed
+    const r3 = transition(r2.ctx, { type: 'FETCH_FAILURE' });
+    expect(r3.ctx.state).toBe(ConnectionState.Failed);
+    expect(r3.ctx.attempt).toBe(DEFAULT_MAX_ATTEMPTS);
+    expect(effectTypes(r3)).toContain('CLOSE_WS');
   });
 });
