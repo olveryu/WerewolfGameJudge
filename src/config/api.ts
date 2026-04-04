@@ -18,7 +18,7 @@ const SUPABASE_API_URL =
 /**
  * Cloudflare Workers base URL
  */
-const CF_API_URL = process.env.EXPO_PUBLIC_CF_API_URL ?? 'https://werewolf-api.eyan.workers.dev';
+const CF_API_URL = process.env.EXPO_PUBLIC_CF_API_URL ?? 'https://werewolf-api.olveryu.workers.dev';
 
 /**
  * API base URL — 根据后端选择自动切换
