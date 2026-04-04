@@ -5,8 +5,14 @@
  * Styles 创建一次后传入所有 SeatTile。
  * 渲染 UI 并通过回调上报 onSeatPress，不 import service / showAlert，不包含业务逻辑判断。
  */
-import React, { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
-import { PixelRatio, StyleSheet, useWindowDimensions, View } from 'react-native';
+import React, { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  type LayoutChangeEvent,
+  PixelRatio,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { spacing, type ThemeColors, useColors } from '@/theme';
@@ -47,14 +53,22 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const gridColumns = getGridColumns(screenWidth);
+  const pixelRatio = PixelRatio.get();
+
+  // Use onLayout to measure real container width (immune to scrollbar width on Web).
+  // Fall back to screenWidth minus parent padding so the first render isn't empty.
+  const [containerWidth, setContainerWidth] = useState(0);
+  const effectiveWidth = containerWidth || screenWidth - spacing.medium * 2;
+
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    setContainerWidth(e.nativeEvent.layout.width);
+  }, []);
+
   // Floor to nearest device pixel to prevent sub-pixel rounding overflow
   // (roundToNearestPixel can round UP, causing the last column to wrap)
-  const pixelRatio = PixelRatio.get();
   const tileSize =
-    Math.floor(
-      ((screenWidth - spacing.medium * 2 - spacing.small * (gridColumns - 1)) / gridColumns) *
-        pixelRatio,
-    ) / pixelRatio;
+    Math.floor(((effectiveWidth - spacing.small * (gridColumns - 1)) / gridColumns) * pixelRatio) /
+    pixelRatio;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Create SeatTile styles once and pass to all tiles (performance optimization)
@@ -102,7 +116,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   );
 
   return (
-    <View style={styles.gridContainer}>
+    <View style={styles.gridContainer} onLayout={handleLayout}>
       {seats.map((seat) => (
         <SeatTile
           key={`seat-${seat.seat}`}
