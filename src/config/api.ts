@@ -22,9 +22,11 @@ const CF_API_URL = process.env.EXPO_PUBLIC_CF_API_URL ?? 'https://werewolf-api.o
 
 /**
  * API base URL — 根据后端选择自动切换
+ *
+ * BACKEND=cloudflare 时只认 EXPO_PUBLIC_CF_API_URL；
+ * BACKEND=supabase 时认 EXPO_PUBLIC_API_URL（向后兼容）。
  */
-export const API_BASE_URL: string =
-  process.env.EXPO_PUBLIC_API_URL ?? (BACKEND === 'cloudflare' ? CF_API_URL : SUPABASE_API_URL);
+export const API_BASE_URL: string = BACKEND === 'cloudflare' ? CF_API_URL : SUPABASE_API_URL;
 
 /**
  * Edge Function 区域路由 header 值。
