@@ -67,5 +67,8 @@ package-lock.json
 assets/badges/.cache/
 assets/badges/report.json
 
+# Wrangler local state
+.wrangler/
+
 # asdf version manager (pnpm version managed by package.json "packageManager")
 .tool-versions
