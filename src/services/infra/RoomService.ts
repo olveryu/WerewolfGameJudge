@@ -18,16 +18,12 @@
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
+import type { IRoomService, RoomRecord } from '@/services/types/IRoomService';
 import { handleError } from '@/utils/errorPipeline';
 import { roomLog } from '@/utils/logger';
 import { generateRoomCode } from '@/utils/roomCode';
 
-// Minimal room record stored in Supabase
-export interface RoomRecord {
-  roomNumber: string;
-  hostUid: string;
-  createdAt: Date;
-}
+export type { RoomRecord } from '@/services/types/IRoomService';
 
 // Database row format
 interface DbRoomRecord {
@@ -38,7 +34,7 @@ interface DbRoomRecord {
   updated_at: string;
 }
 
-export class RoomService {
+export class RoomService implements IRoomService {
   constructor() {}
 
   #isConfigured(): boolean {

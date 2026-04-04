@@ -1,19 +1,32 @@
 /**
  * api - API base URL 配置
  *
- * 提供 Supabase Edge Functions 的 base URL，导出 API_BASE_URL。
- * 生产环境指向 Supabase Edge Functions，开发环境可通过环境变量覆盖。
+ * 根据 EXPO_PUBLIC_BACKEND 环境变量选择 Supabase Edge Functions 或 Cloudflare Workers。
  * 纯配置模块，不包含业务逻辑或副作用。
  */
 
+type BackendType = 'supabase' | 'cloudflare';
+const BACKEND: BackendType =
+  (process.env.EXPO_PUBLIC_BACKEND as BackendType | undefined) ?? 'supabase';
+
 /**
- * API base URL
- *
- * - 生产环境（Supabase Edge Functions）：`https://<project-ref>.supabase.co/functions/v1`
- * - 开发环境：可通过 EXPO_PUBLIC_API_URL 覆盖（如 `http://localhost:54321/functions/v1`）
+ * Supabase Edge Functions base URL
  */
-export const API_BASE_URL: string =
+const SUPABASE_API_URL =
   process.env.EXPO_PUBLIC_API_URL ?? 'https://abmzjezdvpzyeooqhhsn.supabase.co/functions/v1';
+
+/**
+ * Cloudflare Workers base URL
+ */
+const CF_API_URL = process.env.EXPO_PUBLIC_CF_API_URL ?? 'https://werewolf-api.olveryu.workers.dev';
+
+/**
+ * API base URL — 根据后端选择自动切换
+ *
+ * BACKEND=cloudflare 时只认 EXPO_PUBLIC_CF_API_URL；
+ * BACKEND=supabase 时认 EXPO_PUBLIC_API_URL（向后兼容）。
+ */
+export const API_BASE_URL: string = BACKEND === 'cloudflare' ? CF_API_URL : SUPABASE_API_URL;
 
 /**
  * Edge Function 区域路由 header 值。

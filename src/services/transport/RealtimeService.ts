@@ -18,10 +18,8 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { ConnectionStatusListener, IRealtimeService } from '@/services/types/IRealtimeService';
 import { realtimeLog } from '@/utils/logger';
-
-/** Status change listener */
-type ConnectionStatusListener = (status: ConnectionStatus) => void;
 
 /** Cached joinRoom params for rejoinCurrentRoom (dead channel recovery) */
 interface JoinRoomParams {
@@ -34,7 +32,7 @@ interface JoinRoomParams {
 // Service Implementation
 // =============================================================================
 
-export class RealtimeService {
+export class RealtimeService implements IRealtimeService {
   /** Single postgres_changes channel for state synchronization + connection detection */
   #channel: RealtimeChannel | null = null;
 

@@ -1,7 +1,8 @@
 import { randomHex } from '@werewolf/game-engine/utils/id';
 
-import type { AuthService } from '@/services/infra/AuthService';
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
+import type { IAuthService } from '@/services/types/IAuthService';
+import type { IStorageService } from '@/services/types/IStorageService';
 import { log } from '@/utils/logger';
 
 const avatarLog = log.extend('Avatar');
@@ -13,10 +14,10 @@ const avatarLog = log.extend('Avatar');
  * 涵盖 Supabase Storage API 调用和文件格式转换。
  * 不涉及游戏逻辑或游戏状态存储。
  */
-export class AvatarUploadService {
-  readonly #authService: AuthService;
+export class AvatarUploadService implements IStorageService {
+  readonly #authService: IAuthService;
 
-  constructor(authService: AuthService) {
+  constructor(authService: IAuthService) {
     this.#authService = authService;
   }
 

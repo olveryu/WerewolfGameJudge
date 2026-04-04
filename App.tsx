@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react-native';
-import { GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -15,15 +14,8 @@ import { ThemedToast } from '@/components/ThemedToast';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
-import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { AppNavigator } from '@/navigation';
-import { GameFacade } from '@/services/facade/GameFacade';
-import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
-import { SettingsService } from '@/services/feature/SettingsService';
-import { AudioService } from '@/services/infra/AudioService';
-import { AuthService } from '@/services/infra/AuthService';
-import { RoomService } from '@/services/infra/RoomService';
-import { RealtimeService } from '@/services/transport/RealtimeService';
+import { createAllServices } from '@/services/registry';
 import { ThemeProvider, useTheme } from '@/theme';
 import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { signalAppReady } from '@/utils/appReady';
@@ -120,25 +112,9 @@ function AppContent() {
 export default function App() {
   appLog.debug('render');
 
-  // Composition root: 创建所有 service 实例（useState lazy init 保证仅创建一次）
-  const [services] = useState<ServiceContextValue>(() => {
-    const authService = new AuthService();
-    const roomService = new RoomService();
-    const settingsService = new SettingsService();
-    const audioService = new AudioService();
-    const avatarUploadService = new AvatarUploadService(authService);
-    return { authService, roomService, settingsService, audioService, avatarUploadService };
-  });
-
-  const [facade] = useState(
-    () =>
-      new GameFacade({
-        store: new GameStore(),
-        realtimeService: new RealtimeService(),
-        audioService: services.audioService,
-        roomService: services.roomService,
-      }),
-  );
+  // Composition root: 通过 ServiceRegistry 创建所有 service 实例
+  // useState lazy init 保证仅创建一次
+  const [{ services, facade }] = useState(() => createAllServices());
 
   return (
     <ErrorBoundary>

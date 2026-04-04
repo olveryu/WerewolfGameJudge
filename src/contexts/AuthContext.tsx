@@ -10,12 +10,12 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
 import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
+import type { AuthUser } from '@/services/types/IAuthService';
 import { isAbortError, isNetworkError } from '@/utils/errorUtils';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
 
@@ -65,17 +65,17 @@ const userEquals = (a: User | null, b: User | null): boolean => {
   );
 };
 
-// Convert Supabase user to our User type
-const toUser = (supabaseUser: SupabaseUser | null): User | null => {
-  if (!supabaseUser) return null;
+// Convert auth user to our User type
+const toUser = (authUser: AuthUser | null): User | null => {
+  if (!authUser) return null;
   return {
-    uid: supabaseUser.id,
-    email: supabaseUser.email || null,
-    displayName: supabaseUser.user_metadata?.display_name || null,
-    avatarUrl: supabaseUser.user_metadata?.avatar_url || null,
-    customAvatarUrl: supabaseUser.user_metadata?.custom_avatar_url || null,
-    avatarFrame: supabaseUser.user_metadata?.avatar_frame || null,
-    isAnonymous: supabaseUser.is_anonymous || false,
+    uid: authUser.id,
+    email: authUser.email || null,
+    displayName: (authUser.user_metadata?.display_name as string) || null,
+    avatarUrl: (authUser.user_metadata?.avatar_url as string) || null,
+    customAvatarUrl: (authUser.user_metadata?.custom_avatar_url as string) || null,
+    avatarFrame: (authUser.user_metadata?.avatar_frame as string) || null,
+    isAnonymous: authUser.is_anonymous || false,
   };
 };
 

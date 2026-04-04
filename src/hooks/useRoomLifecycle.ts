@@ -18,10 +18,11 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
-import type { AuthService } from '@/services/infra/AuthService';
-import type { RoomRecord, RoomService } from '@/services/infra/RoomService';
+import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { IRoomService } from '@/services/types/IRoomService';
+import type { RoomRecord } from '@/services/types/IRoomService';
 import { handleError } from '@/utils/errorPipeline';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { gameRoomLog } from '@/utils/logger';
@@ -61,8 +62,8 @@ interface RoomLifecycleState {
 
 interface RoomLifecycleDeps {
   facade: IGameFacade;
-  authService: AuthService;
-  roomService: RoomService;
+  authService: IAuthService;
+  roomService: IRoomService;
   connection: ConnectionSyncActions;
   setRoomRecord: (record: RoomRecord | null) => void;
 }
