@@ -26,6 +26,7 @@ export { GameRoom } from './durableObjects/GameRoom';
 // Auth handlers
 import {
   handleAnonymousSignIn,
+  handleChangePassword,
   handleGetUser,
   handleSignIn,
   handleSignOut,
@@ -155,8 +156,13 @@ export default {
         if (request.method === 'GET' && route === 'user') {
           return handleGetUser(request, env);
         }
-        if (request.method === 'PUT' && route === 'profile') {
-          return handleAuthUpdateProfile(request, env);
+        if (request.method === 'PUT') {
+          switch (route) {
+            case 'profile':
+              return handleAuthUpdateProfile(request, env);
+            case 'password':
+              return handleChangePassword(request, env);
+          }
         }
         return jsonResponse({ error: 'not found' }, 404, env);
       }

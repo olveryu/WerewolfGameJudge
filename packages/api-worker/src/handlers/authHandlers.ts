@@ -311,6 +311,55 @@ export async function handleUpdateProfile(request: Request, env: Env): Promise<R
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PUT /auth/password — 修改密码（已登录用户）
+// ─────────────────────────────────────────────────────────────────────────────
+export async function handleChangePassword(request: Request, env: Env): Promise<Response> {
+  const token = extractBearerToken(request);
+  if (!token) {
+    return jsonResponse({ error: 'unauthorized' }, 401, env);
+  }
+  const payload = await verifyToken(token, env);
+  if (!payload) {
+    return jsonResponse({ error: 'unauthorized' }, 401, env);
+  }
+
+  const body = (await request.json()) as {
+    oldPassword?: string;
+    newPassword?: string;
+  };
+
+  if (!body.oldPassword || !body.newPassword) {
+    return jsonResponse({ error: 'oldPassword and newPassword required' }, 400, env);
+  }
+
+  if (body.newPassword.length < 6) {
+    return jsonResponse({ error: 'password must be at least 6 characters' }, 400, env);
+  }
+
+  const user = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
+    .bind(payload.sub)
+    .first<{ password_hash: string | null }>();
+
+  if (!user || !user.password_hash) {
+    return jsonResponse({ error: 'account has no password (anonymous user)' }, 400, env);
+  }
+
+  const result = await verifyPassword(body.oldPassword, user.password_hash);
+  if (!result.valid) {
+    return jsonResponse({ error: 'invalid old password' }, 401, env);
+  }
+
+  const newHash = await hashPassword(body.newPassword);
+  await env.DB.prepare(
+    `UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`,
+  )
+    .bind(newHash, payload.sub)
+    .run();
+
+  return jsonResponse({ success: true }, 200, env);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/signout — 登出（JWT 是无状态的，客户端清除 token 即可）
 // ─────────────────────────────────────────────────────────────────────────────
 export async function handleSignOut(_request: Request, env: Env): Promise<Response> {

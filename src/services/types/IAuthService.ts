@@ -71,6 +71,9 @@ export interface IAuthService {
   /** 登出 */
   signOut(): Promise<void>;
 
+  /** 修改密码（已登录邮箱用户） */
+  changePassword(oldPassword: string, newPassword: string): Promise<void>;
+
   /** 从本地 session 恢复认证，返回 userId 或 null */
   initAuth(): Promise<string | null>;
 

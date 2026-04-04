@@ -40,6 +40,7 @@ import { isExpectedAuthError, mapAuthError, settingsLog } from '@/utils/logger';
 import {
   AboutSection,
   AvatarSection,
+  ChangePasswordForm,
   createSettingsScreenStyles,
   NameSection,
   ThemeSelector,
@@ -55,6 +56,7 @@ export const SettingsScreen: React.FC = () => {
     signOut,
     isAuthenticated,
     updateProfile,
+    changePassword,
     error: authError,
     loading: authLoading,
   } = useAuth();
@@ -77,6 +79,7 @@ export const SettingsScreen: React.FC = () => {
   // Auth form state
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
@@ -448,6 +451,29 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
 
           {/* Zone 3: Account operations */}
+          {showChangePassword ? (
+            <ChangePasswordForm
+              onSubmit={async (oldPw, newPw) => {
+                await changePassword(oldPw, newPw);
+                setShowChangePassword(false);
+                showAlert('密码已修改');
+              }}
+              onCancel={() => setShowChangePassword(false)}
+              styles={styles}
+              colors={colors}
+            />
+          ) : (
+            <Button
+              variant="ghost"
+              buttonColor={colors.background}
+              textColor={colors.text}
+              onPress={() => setShowChangePassword(true)}
+              style={styles.logoutBtn}
+            >
+              修改密码
+            </Button>
+          )}
+
           {canSwitchAccount && (
             <Button
               variant="ghost"

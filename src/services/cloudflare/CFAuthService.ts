@@ -118,6 +118,10 @@ export class CFAuthService implements IAuthService {
     this.#currentUserId = null;
   }
 
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    await cfPut('/auth/password', { oldPassword, newPassword });
+  }
+
   async initAuth(): Promise<string | null> {
     const token = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
     if (!token) return null;

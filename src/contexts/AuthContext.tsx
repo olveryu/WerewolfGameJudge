@@ -46,6 +46,7 @@ interface AuthContextValue {
   }) => Promise<void>;
   uploadAvatar: (fileUri: string) => Promise<string>;
   signOut: () => Promise<void>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -249,6 +250,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [authService, handleAuthError]);
 
+  const changePassword = useCallback(
+    async (oldPassword: string, newPassword: string) => {
+      setError(null);
+      try {
+        await authService.changePassword(oldPassword, newPassword);
+      } catch (e: unknown) {
+        handleAuthError(e, 'Change password failed', { rethrow: true });
+      }
+    },
+    [authService, handleAuthError],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -261,6 +274,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateProfile,
       uploadAvatar,
       signOut,
+      changePassword,
     }),
     [
       user,
@@ -272,6 +286,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateProfile,
       uploadAvatar,
       signOut,
+      changePassword,
     ],
   );
 
