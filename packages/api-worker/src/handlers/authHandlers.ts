@@ -164,9 +164,19 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
     return jsonResponse({ error: 'invalid credentials' }, 401, env);
   }
 
-  const valid = await verifyPassword(body.password, user.password_hash);
-  if (!valid) {
+  const result = await verifyPassword(body.password, user.password_hash);
+  if (!result.valid) {
     return jsonResponse({ error: 'invalid credentials' }, 401, env);
+  }
+
+  // Lazy migration: bcrypt → PBKDF2 rehash on first successful login
+  if (result.needsRehash && result.newHash) {
+    await env.DB.prepare(
+      `UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`,
+    )
+      .bind(result.newHash, user.id)
+      .run();
+    console.log(`Rehashed password for user ${user.id} (bcrypt → PBKDF2)`);
   }
 
   const token = await signToken(user.id, env, { email });
