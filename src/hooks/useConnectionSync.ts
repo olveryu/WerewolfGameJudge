@@ -5,11 +5,10 @@
  * - RealtimeService connection status subscription
  * - Foreground DB fetch (immediate data recovery on tab visible)
  *
- * Recovery strategy: Supabase SDK handles WebSocket lifecycle (heartbeat +
- * auto-reconnect). When the user switches back to the app, we immediately
- * read the latest state from DB to cover any broadcasts missed while
- * backgrounded. This is the standard community pattern for Supabase
- * Realtime apps.
+ * Recovery strategy: CFRealtimeService handles WebSocket lifecycle (auto-reconnect
+ * on close + ping/pong keepalive). When the user switches back to the app, we
+ * immediately read the latest state from DB to cover any broadcasts missed
+ * while backgrounded.
  *
  * 订阅 RealtimeService 连接状态并提供前台 DB 拉取。
  * 不直接修改游戏状态，不包含业务校验逻辑。
@@ -166,7 +165,10 @@ export function useConnectionSync(
 
     const onOnline = () => {
       const currentStatus = connectionStatusRef.current;
-      if (currentStatus === ConnectionStatus.Live) return; // 已连接，无需重连
+      // Only act when truly Disconnected. If Connecting/Syncing, a recovery
+      // attempt is already in progress — interrupting it wastes attempts and
+      // can kill a healthy handshake. If Live, nothing to do.
+      if (currentStatus !== ConnectionStatus.Disconnected) return;
 
       connectionSyncLog.info('Browser online event: resetting retries and reconnecting', {
         currentStatus,
@@ -175,7 +177,6 @@ export function useConnectionSync(
       deadChannelRetriesRef.current = 0;
       exhaustedNotifiedRef.current = false;
 
-      // 无论是 Disconnected（dead channel）还是其他非 Live 状态，都尝试重建
       reconnectWithTelemetry('online', 'L3');
     };
 
@@ -184,7 +185,7 @@ export function useConnectionSync(
   }, [roomRecord, facade, reconnectWithTelemetry]);
 
   // ── L6 补充：5s revision 轮询 → 检测遗漏广播 ──
-  // Supabase postgres_changes 不保证消息送达，连接正常时也可能丢失广播。
+  // WebSocket 广播不保证消息送达（网络抖动、浏览器节流等），连接正常时也可能丢失广播。
   // 5 秒轮询 DB revision，如果落后于服务端则自动拉取完整 state。
   // 仅在连接 Live + 页面可见 + 已加入房间时启用。
   useEffect(() => {
@@ -208,10 +209,9 @@ export function useConnectionSync(
   }, [connectionStatus, roomRecord, facade]);
 
   // ── Dead Channel Detector ──
-  // Supabase SDK gives up reconnecting after repeated CHANNEL_ERROR / TIMED_OUT
-  // (common on mobile background/foreground cycles). When Disconnected persists
-  // beyond DEAD_CHANNEL_THRESHOLD_MS without SDK self-healing, tear down the
-  // dead channel and rebuild from scratch.
+  // WebSocket 连接可能在移动端后台/前台切换时彻底断开，且 L1 自动重连
+  // 耗尽 MAX_RECONNECT_ATTEMPTS 后不再尝试。当 Disconnected 状态
+  // 持续超过阈值时，销毁死连接并从头重建。
 
   useEffect(() => {
     if (!roomRecord) return;

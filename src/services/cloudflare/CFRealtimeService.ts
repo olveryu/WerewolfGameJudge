@@ -4,10 +4,10 @@
  * 实现 IRealtimeService 接口，通过原生 WebSocket 连接到 Workers DO。
  * DO 推送 STATE_UPDATE 消息，本服务解析后调用 onDbStateChange 回调。
  *
- * 简化的重连策略（对比 Supabase 6 层恢复）：
+ * 简化的重连策略：
  * - L1: WebSocket onclose → 自动重连（指数退避，最多 5 次）
- * - L2: Browser online event → 立即重连
- * - L3: visibilitychange → visible → 拉取最新 state（由上层 useConnectionSync 处理）
+ * - Ping/pong keepalive（30s）
+ * 上层 useConnectionSync 负责 browser online / visibilitychange / dead channel 恢复。
  * DO WebSocket 已有服务端心跳（ping/pong），无需客户端额外保活。
  *
  * 不包含游戏逻辑，不持久化状态。
@@ -36,7 +36,6 @@ export class CFRealtimeService implements IRealtimeService {
   #lastJoinParams: JoinRoomParams | null = null;
   #reconnectAttempt = 0;
   #reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  #onlineHandler: (() => void) | null = null;
   #pingInterval: ReturnType<typeof setInterval> | null = null;
 
   addStatusListener(listener: ConnectionStatusListener): () => void {
@@ -73,9 +72,6 @@ export class CFRealtimeService implements IRealtimeService {
 
     this.#reconnectAttempt = 0;
     await this.#connect(roomCode, userId, callbacks.onDbStateChange);
-
-    // Register browser online event for reconnection (Web only)
-    this.#registerOnlineHandler();
   }
 
   async #connect(
@@ -89,11 +85,15 @@ export class CFRealtimeService implements IRealtimeService {
       const wsUrl = `${wsBase}/ws?roomCode=${encodeURIComponent(roomCode)}&userId=${encodeURIComponent(userId)}`;
 
       const ws = new WebSocket(wsUrl);
-      let resolved = false;
+      let settled = false;
+      // Track whether onopen fired. WebSocket spec: onerror always followed by
+      // onclose. Without this flag, a failed connect triggers scheduleReconnect
+      // from BOTH the .catch() caller AND onclose — doubling attempt consumption.
+      let opened = false;
 
       const timeout = setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
+        if (!settled) {
+          settled = true;
           ws.close();
           this.#setConnectionStatus(ConnectionStatus.Disconnected);
           reject(new Error('WebSocket connection timeout'));
@@ -101,8 +101,9 @@ export class CFRealtimeService implements IRealtimeService {
       }, 8000);
 
       ws.onopen = () => {
-        if (resolved) return;
-        resolved = true;
+        if (settled) return;
+        settled = true;
+        opened = true;
         clearTimeout(timeout);
         this.#ws = ws;
         this.#reconnectAttempt = 0;
@@ -126,18 +127,22 @@ export class CFRealtimeService implements IRealtimeService {
       };
 
       ws.onclose = () => {
-        if (!resolved) {
-          resolved = true;
+        if (!settled) {
+          // Connection failed before open — reject promise.
+          // The caller's .catch() is the single reconnect entry point.
+          settled = true;
           clearTimeout(timeout);
           this.#setConnectionStatus(ConnectionStatus.Disconnected);
           reject(new Error('WebSocket closed before open'));
           return;
         }
 
+        if (!opened) return; // onerror already rejected; avoid double reconnect
+
+        // Connection was established then dropped — auto-reconnect from onclose
         this.#stopPing();
         this.#ws = null;
 
-        // Only auto-reconnect if we have cached params (not intentionally left)
         if (this.#lastJoinParams) {
           this.#setConnectionStatus(ConnectionStatus.Disconnected);
           this.#scheduleReconnect();
@@ -145,8 +150,8 @@ export class CFRealtimeService implements IRealtimeService {
       };
 
       ws.onerror = () => {
-        if (!resolved) {
-          resolved = true;
+        if (!settled) {
+          settled = true;
           clearTimeout(timeout);
           this.#setConnectionStatus(ConnectionStatus.Disconnected);
           reject(new Error('WebSocket connection error'));
@@ -161,6 +166,12 @@ export class CFRealtimeService implements IRealtimeService {
     if (this.#reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
       realtimeLog.warn('Max reconnect attempts reached');
       return;
+    }
+
+    // Cancel any previously scheduled reconnect to prevent overlapping timers
+    if (this.#reconnectTimer) {
+      clearTimeout(this.#reconnectTimer);
+      this.#reconnectTimer = null;
     }
 
     const delay = BASE_RECONNECT_DELAY_MS * Math.pow(2, this.#reconnectAttempt);
@@ -179,41 +190,6 @@ export class CFRealtimeService implements IRealtimeService {
         this.#scheduleReconnect();
       });
     }, delay);
-  }
-
-  #registerOnlineHandler(): void {
-    if (typeof globalThis.window?.addEventListener !== 'function') return;
-
-    this.#onlineHandler = () => {
-      if (!this.#lastJoinParams) return;
-      if (this.#connectionStatus === ConnectionStatus.Live) return;
-
-      realtimeLog.info('Browser online event — triggering reconnect');
-      // Clear any pending reconnect timer
-      if (this.#reconnectTimer) {
-        clearTimeout(this.#reconnectTimer);
-        this.#reconnectTimer = null;
-      }
-      this.#reconnectAttempt = 0;
-      const { roomCode, userId, onDbStateChange } = this.#lastJoinParams;
-      this.#setConnectionStatus(ConnectionStatus.Connecting);
-      this.#connect(roomCode, userId, onDbStateChange).catch((err) => {
-        realtimeLog.warn(
-          'Online-triggered reconnect failed:',
-          err instanceof Error ? err.message : err,
-        );
-        this.#scheduleReconnect();
-      });
-    };
-
-    globalThis.window.addEventListener('online', this.#onlineHandler);
-  }
-
-  #unregisterOnlineHandler(): void {
-    if (this.#onlineHandler && typeof globalThis.window?.removeEventListener === 'function') {
-      globalThis.window.removeEventListener('online', this.#onlineHandler);
-      this.#onlineHandler = null;
-    }
   }
 
   #startPing(): void {
@@ -269,7 +245,6 @@ export class CFRealtimeService implements IRealtimeService {
       clearTimeout(this.#reconnectTimer);
       this.#reconnectTimer = null;
     }
-    this.#unregisterOnlineHandler();
     this.#closeWebSocket();
     this.#lastJoinParams = null;
     this.#setConnectionStatus(ConnectionStatus.Disconnected);

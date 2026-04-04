@@ -121,7 +121,7 @@ export class GameFacade implements IGameFacade {
       isAborted: () => this.#aborted,
     });
 
-    // Connection recovery: L1 SDK reconnect + L3 browser online → fetchStateFromDB
+    // Connection recovery: L1 WS reconnect → fetchStateFromDB
     this.#connectionRecovery = new ConnectionRecoveryManager({
       addStatusListener: (fn) => deps.realtimeService.addStatusListener(fn),
       fetchStateFromDB: () => this.fetchStateFromDB(),
@@ -198,7 +198,7 @@ export class GameFacade implements IGameFacade {
   /**
    * Dead Channel Recovery.
    *
-   * Tears down the dead Supabase Realtime channel, creates a fresh one with
+   * Tears down the dead WebSocket connection, creates a fresh one with
    * the same room/callbacks, then fetches latest state from DB.
    * Called by useConnectionSync when Disconnected persists beyond threshold.
    *
@@ -289,7 +289,7 @@ export class GameFacade implements IGameFacade {
     const initialState = buildInitialGameState(roomCode, hostUid, template);
     this.#store.initialize(initialState);
 
-    // 加入频道（所有客户端统一监听 postgres_changes onDbStateChange）
+    // 加入频道（所有客户端统一监听 WS STATE_UPDATE）
     await this.#realtimeService.joinRoom(roomCode, hostUid, {
       onDbStateChange: (state: GameState, revision: number) => {
         this.#store.applySnapshot(state, revision);
@@ -299,9 +299,6 @@ export class GameFacade implements IGameFacade {
 
     // 新建房间无需从 DB 读快照（本地已初始化），channel 已 SUBSCRIBED，直接标记 Live
     this.#realtimeService.markAsLive();
-
-    // L3 通用：注册 online 事件 → fetchStateFromDB（Web 平台 SDK 不触发 Live 时的兜底）
-    this.#connectionRecovery.registerOnlineFetch();
   }
 
   /**
@@ -362,9 +359,6 @@ export class GameFacade implements IGameFacade {
     // 但必须 markAsLive，否则 connectionStatus 卡在 'syncing'，auto-heal 无法触发
     this.#realtimeService.markAsLive();
 
-    // L3 通用：注册 online 事件 → fetchStateFromDB（Web 平台 SDK 不触发 Live 时的兜底）
-    this.#connectionRecovery.registerOnlineFetch();
-
     return { success: true };
   }
 
@@ -404,7 +398,6 @@ export class GameFacade implements IGameFacade {
     this.#reconnectPromise = null;
     this.#sessionId = null;
     this.#audioOrchestrator.reset();
-    this.#connectionRecovery.setAborted(true);
     this.#connectionRecovery.dispose();
 
     // 不自动离座——玩家回到房间时按 UID 恢复原座位
@@ -492,7 +485,7 @@ export class GameFacade implements IGameFacade {
   /**
    * Host: 重新开始游戏（HTTP API）
    *
-   * 服务端重置 state → postgres_changes 推送新状态到所有客户端。
+   * 服务端重置 state → WS 广播推送新状态到所有客户端。
    */
   async restartGame(): Promise<{ success: boolean; reason?: string }> {
     // Stop current audio then release preloaded resources (stop before clearPreloaded)

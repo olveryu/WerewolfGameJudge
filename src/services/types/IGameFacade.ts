@@ -278,8 +278,8 @@ export interface IGameFacade {
   addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void;
 
   /**
-   * Dead Channel Recovery: 销毁死掉的 Realtime channel 并重建。
-   * 当 Supabase SDK 放弃重连（反复 CHANNEL_ERROR / TIMED_OUT）时，
+   * Dead Channel Recovery: 销毁死掉的 WebSocket 连接并重建。
+   * 当 L1 自动重连耗尽后 Disconnected 状态持续，
    * 由 useConnectionSync 的 dead channel detector 自动触发。
    * 内部流程：rejoinCurrentRoom → fetchStateFromDB → markAsLive。
    *
@@ -289,4 +289,4 @@ export interface IGameFacade {
 }
 
 /** Trigger source for reconnectChannel — used in observability logs */
-export type ReconnectTrigger = 'deadChannel' | 'foreground' | 'online' | 'sdkReconnect';
+export type ReconnectTrigger = 'deadChannel' | 'foreground' | 'online';

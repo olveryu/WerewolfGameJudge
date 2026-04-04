@@ -130,56 +130,6 @@ describe('ConnectionRecoveryManager', () => {
   });
 
   // =========================================================================
-  // L3: Browser online → fetchStateFromDB
-  // =========================================================================
-
-  describe('L3: online event → fetchStateFromDB', () => {
-    it('calls fetchStateFromDB on online event', () => {
-      const listeners: Record<string, (() => void)[]> = {};
-
-      Object.defineProperty(globalThis, 'window', {
-        value: {
-          addEventListener: jest.fn((event: string, fn: () => void) => {
-            listeners[event] = listeners[event] ?? [];
-            listeners[event]!.push(fn);
-          }),
-          removeEventListener: jest.fn(),
-        },
-        writable: true,
-      });
-
-      const { manager, mockFetch } = createManager();
-      manager.registerOnlineFetch();
-
-      // Simulate online event
-      listeners['online']?.forEach((fn) => fn());
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not call fetch when aborted', () => {
-      const listeners: Record<string, (() => void)[]> = {};
-
-      Object.defineProperty(globalThis, 'window', {
-        value: {
-          addEventListener: jest.fn((event: string, fn: () => void) => {
-            listeners[event] = listeners[event] ?? [];
-            listeners[event]!.push(fn);
-          }),
-          removeEventListener: jest.fn(),
-        },
-        writable: true,
-      });
-
-      const { manager, mockFetch } = createManager();
-      manager.registerOnlineFetch();
-      manager.setAborted(true);
-
-      listeners['online']?.forEach((fn) => fn());
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-  });
-
-  // =========================================================================
   // Dispose
   // =========================================================================
 
@@ -194,23 +144,6 @@ describe('ConnectionRecoveryManager', () => {
 
       // After dispose, listener should be removed
       expect(statusListeners.size).toBe(0);
-    });
-
-    it('unregisters online fetch handler', () => {
-      const mockRemoveEventListener = jest.fn();
-      Object.defineProperty(globalThis, 'window', {
-        value: {
-          addEventListener: jest.fn(),
-          removeEventListener: mockRemoveEventListener,
-        },
-        writable: true,
-      });
-
-      const { manager } = createManager();
-      manager.registerOnlineFetch();
-      manager.dispose();
-
-      expect(mockRemoveEventListener).toHaveBeenCalledWith('online', expect.any(Function));
     });
   });
 });
