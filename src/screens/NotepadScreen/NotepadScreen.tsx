@@ -8,7 +8,9 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import React, { useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -19,6 +21,7 @@ import { NotepadPanel } from '@/components/NotepadPanel';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useGameFacade } from '@/contexts';
 import { useNotepad } from '@/hooks/useNotepad';
+import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { fixed, typography, useColors } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';
@@ -31,10 +34,20 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
 export const NotepadScreen: React.FC = () => {
   const colors = useColors();
   const styles = useMemo(() => createNotepadScreenStyles(colors), [colors]);
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Notepad'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Notepad'>>();
 
   const facade = useGameFacade();
   const notepad = useNotepad(facade);
+
+  const handleGoBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // Stale Tab reload: stack lost, navigate back to Room with roomNumber from URL
+      navigation.navigate('Room', { roomNumber: route.params.roomNumber, isHost: false });
+    }
+  }, [navigation, route.params.roomNumber]);
 
   const handleAIAnalysis = useCallback(() => {
     if (!isAIChatReady()) {
@@ -155,7 +168,7 @@ export const NotepadScreen: React.FC = () => {
             <Ionicons name={UI_ICONS.DELETE} size={typography.body} style={styles.headerBtnText} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={handleGoBack}
             style={styles.headerBtn}
             activeOpacity={fixed.activeOpacity}
           >

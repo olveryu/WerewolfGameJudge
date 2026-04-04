@@ -20,7 +20,7 @@ export type RootStackParamList = {
   };
   Settings: undefined;
   Encyclopedia: undefined;
-  Notepad: undefined;
+  Notepad: { roomNumber: string };
   AvatarPicker: undefined;
 };
 
