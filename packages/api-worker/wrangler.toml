@@ -1,0 +1,35 @@
+#:schema ./node_modules/wrangler/config-schema.json
+name = "werewolf-api"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── D1 Database ──────────────────────────────────────────────────────────────
+[[d1_databases]]
+binding = "DB"
+database_name = "werewolf-db"
+database_id = "placeholder-replace-after-create"
+
+# ── R2 Bucket (Phase 3: avatar storage) ─────────────────────────────────────
+[[r2_buckets]]
+binding = "AVATARS"
+bucket_name = "werewolf-avatars"
+
+# ── Durable Objects (Phase 2: realtime) ──────────────────────────────────────
+[durable_objects]
+bindings = [
+  { name = "GAME_ROOM", class_name = "GameRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]
+
+# ── Environment Variables ────────────────────────────────────────────────────
+[vars]
+ENVIRONMENT = "production"
+CORS_ORIGIN = "*"
+
+# ── Development Overrides ────────────────────────────────────────────────────
+[env.dev]
+vars = { ENVIRONMENT = "development", CORS_ORIGIN = "*" }

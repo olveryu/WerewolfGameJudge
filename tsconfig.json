@@ -20,6 +20,7 @@
     "**/*.tsx"
   ],
   "exclude": [
-    "supabase/functions"
+    "supabase/functions",
+    "packages/api-worker"
   ]
 }

@@ -1,0 +1,20 @@
+{
+  "name": "@werewolf/api-worker",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply werewolf-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply werewolf-db --remote",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@werewolf/game-engine": "workspace:*",
+    "jose": "^6.0.11"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260401.0",
+    "wrangler": "^4.14.0"
+  }
+}

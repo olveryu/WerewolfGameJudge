@@ -265,4 +265,28 @@ export default tseslint.config(
       '@typescript-eslint/naming-convention': 'off',
     },
   },
+
+  // =========================================================================
+  // Cloudflare Workers (api-worker) — Workers runtime, no React
+  // Analogous to Supabase Edge Functions: allow console, disable React rules.
+  // =========================================================================
+  {
+    files: ['packages/api-worker/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+      },
+    },
+    rules: {
+      // Workers use console for logging (no project logger available in this runtime)
+      'no-console': 'off',
+      // Disable React / React Native rules — no UI framework in Workers
+      'react/no-unknown-property': 'off',
+      'react-native/no-raw-text': 'off',
+      'react-native/split-platform-components': 'off',
+      'react-native/no-single-element-style-arrays': 'off',
+      'react-native/no-inline-styles': 'off',
+      '@typescript-eslint/naming-convention': 'off',
+    },
+  },
 );

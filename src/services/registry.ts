@@ -2,13 +2,16 @@
  * ServiceRegistry - 服务工厂，根据后端配置实例化基础服务
  *
  * 读取 EXPO_PUBLIC_BACKEND env flag（'supabase' | 'cloudflare'）决定使用哪套实现。
- * Phase 0 仅包含 Supabase 实现，Cloudflare 分支 throw 'Not implemented'。
  * 由 App.tsx composition root 调用，不含业务逻辑。
  */
 
 import { GameStore } from '@werewolf/game-engine/engine/store';
 
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
+import { CFAuthService } from '@/services/cloudflare/CFAuthService';
+import { CFRealtimeService } from '@/services/cloudflare/CFRealtimeService';
+import { CFRoomService } from '@/services/cloudflare/CFRoomService';
+import { CFStorageService } from '@/services/cloudflare/CFStorageService';
 import { GameFacade } from '@/services/facade/GameFacade';
 import { AvatarUploadService } from '@/services/feature/AvatarUploadService';
 import { SettingsService } from '@/services/feature/SettingsService';
@@ -45,6 +48,25 @@ function createSupabaseServices(): {
   };
 }
 
+/** 创建 Cloudflare Workers 基础服务实例 */
+function createCloudflareServices(): {
+  services: ServiceContextValue;
+  realtimeService: IRealtimeService;
+} {
+  const authService: IAuthService = new CFAuthService();
+  const roomService: IRoomService = new CFRoomService();
+  const settingsService = new SettingsService();
+  const audioService = new AudioService();
+  // CFStorageService reads token from cfFetch's tokenProvider (set by CFAuthService constructor)
+  const avatarUploadService: IStorageService = new CFStorageService();
+  const realtimeService: IRealtimeService = new CFRealtimeService();
+
+  return {
+    services: { authService, roomService, settingsService, audioService, avatarUploadService },
+    realtimeService,
+  };
+}
+
 /** 创建 GameFacade（依赖基础服务） */
 function createFacade(
   services: ServiceContextValue,
@@ -67,7 +89,9 @@ export function createAllServices(): {
   facade: IGameFacade;
 } {
   if (BACKEND === 'cloudflare') {
-    throw new Error('Cloudflare backend not yet implemented');
+    const { services, realtimeService } = createCloudflareServices();
+    const facade = createFacade(services, realtimeService);
+    return { services, facade };
   }
 
   const { services, realtimeService } = createSupabaseServices();
