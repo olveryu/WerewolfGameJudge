@@ -34,6 +34,13 @@ CORS_ORIGIN = "*"
 [triggers]
 crons = ["0 3 * * *"]   # Daily at UTC 03:00 — cleanup stale anonymous users
 
+# ── Local Dev Server ─────────────────────────────────────────────────────────
+# Bind to localhost so Expo Web (localhost:8081) and wrangler share the same
+# hostname, avoiding cross-origin preflight issues in the browser.
+[dev]
+ip = "localhost"
+port = 8787
+
 # ── Development Overrides ────────────────────────────────────────────────────
 [env.dev]
 vars = { ENVIRONMENT = "development", CORS_ORIGIN = "*" }
