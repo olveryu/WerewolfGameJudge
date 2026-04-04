@@ -7,7 +7,7 @@
  * 纯展示层，不 import service，不包含业务逻辑。
  */
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Faction, type RoleId } from '@werewolf/game-engine/models/roles';
 import type { PresetTemplate } from '@werewolf/game-engine/models/Template';
@@ -59,6 +59,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'BoardPicker'>;
+type BoardPickerRouteProp = RouteProp<RootStackParamList, 'BoardPicker'>;
 
 /** Tab order for category filter bar */
 const CATEGORY_TABS: TemplateCategory[] = [
@@ -321,6 +322,8 @@ BoardCard.displayName = 'BoardCard';
 export const BoardPickerScreen: React.FC = () => {
   const colors = useColors();
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<BoardPickerRouteProp>();
+  const existingRoomNumber = route.params?.existingRoomNumber;
   const styles = useMemo(() => createBoardPickerStyles(colors), [colors]);
   const { width: screenWidth } = useWindowDimensions();
   const maxChips = useMemo(() => estimateMaxChips(screenWidth), [screenWidth]);
@@ -401,14 +404,14 @@ export const BoardPickerScreen: React.FC = () => {
 
   const handleSelect = useCallback(
     (presetName: string) => {
-      navigation.navigate('Config', { presetName });
+      navigation.navigate('Config', { presetName, existingRoomNumber });
     },
-    [navigation],
+    [navigation, existingRoomNumber],
   );
 
   const handleCustom = useCallback(() => {
-    navigation.navigate('Config');
-  }, [navigation]);
+    navigation.navigate('Config', existingRoomNumber ? { existingRoomNumber } : undefined);
+  }, [navigation, existingRoomNumber]);
 
   const handleRolePress = useCallback((roleId: string) => {
     setPreviewRoleId(roleId as RoleId);

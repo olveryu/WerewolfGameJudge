@@ -174,8 +174,8 @@ export function useConfigScreenState({
   }, [navigation]);
 
   const handleTemplatePillPress = useCallback(() => {
-    navigation.navigate('BoardPicker');
-  }, [navigation]);
+    navigation.navigate('BoardPicker', existingRoomNumber ? { existingRoomNumber } : undefined);
+  }, [navigation, existingRoomNumber]);
 
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
