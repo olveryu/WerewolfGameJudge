@@ -28,6 +28,9 @@ export function jsonResponse(body: unknown, status: number, env: Env): Response 
 export function corsPreflightResponse(env: Env): Response {
   return new Response(null, {
     status: 204,
-    headers: corsHeaders(env),
+    headers: {
+      ...corsHeaders(env),
+      'Access-Control-Max-Age': '3600',
+    },
   });
 }

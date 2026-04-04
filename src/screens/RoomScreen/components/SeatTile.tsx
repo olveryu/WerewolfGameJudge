@@ -430,10 +430,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     mySpotTile: {},
     wolfTile: {
       backgroundColor: withAlpha(colors.wolf, 0.08),
-      shadowColor: colors.wolf,
-      shadowOpacity: 0.4,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 0 },
+      boxShadow: `0px 0px 8px ${withAlpha(colors.wolf, 0.4)}`,
       elevation: 6,
     },
     selectedTile: {

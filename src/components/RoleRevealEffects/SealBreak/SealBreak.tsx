@@ -51,7 +51,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { useColors } from '@/theme';
+import { crossPlatformTextShadow, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 /** Background gradient: deep crimson-black to complement gold seal glow */
@@ -1029,7 +1029,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                     left: r.x - 12,
                     top: r.y - 12,
                     color: COLORS.rune,
-                    textShadowColor: COLORS.runeGlow,
+                    ...crossPlatformTextShadow(COLORS.runeGlow, 0, 0, 8),
                   },
                 ]}
               >
@@ -1168,17 +1168,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontSize: 20,
     fontWeight: '700',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
   },
   outerRuneText: {
     position: 'absolute',
     fontSize: 16,
     fontWeight: '500',
     color: 'rgba(255, 215, 0, 0.5)',
-    textShadowColor: 'rgba(255, 215, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
+    ...crossPlatformTextShadow('rgba(255, 215, 0, 0.3)', 0, 0, 6),
   },
   percentContainer: {
     position: 'absolute',
@@ -1189,9 +1185,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     color: COLORS.progressRing,
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 6),
   },
   cardWrapper: {
     ...StyleSheet.absoluteFillObject,
@@ -1206,9 +1200,7 @@ const styles = StyleSheet.create({
   chainText: {
     position: 'absolute',
     fontSize: 20,
-    textShadowColor: 'rgba(200, 200, 200, 0.3)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 4,
+    ...crossPlatformTextShadow('rgba(200, 200, 200, 0.3)', 0, 0, 4),
   },
   ancientText: {
     position: 'absolute',

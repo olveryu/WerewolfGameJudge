@@ -9,6 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Modal, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { crossPlatformTextShadow } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { CardPick } from './CardPick';
@@ -173,9 +174,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     overflow: 'hidden',
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 4),
     letterSpacing: 2,
   },
 });

@@ -52,7 +52,7 @@ import {
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { useColors } from '@/theme';
+import { crossPlatformTextShadow, useColors } from '@/theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -789,9 +789,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.8)', 0, 1, 3),
   },
   centerTextWrap: {
     position: 'absolute',
@@ -804,8 +802,6 @@ const styles = StyleSheet.create({
     color: GOLD,
     fontSize: 22,
     fontWeight: '900',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.5)', 0, 1, 2),
   },
 });

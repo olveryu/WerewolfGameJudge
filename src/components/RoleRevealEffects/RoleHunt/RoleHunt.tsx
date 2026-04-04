@@ -60,7 +60,7 @@ import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEff
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { CELEBRATION_EMOJIS } from '@/config/emojiTokens';
-import { useColors } from '@/theme';
+import { crossPlatformTextShadow, useColors } from '@/theme';
 import { getRoleBadge } from '@/utils/roleBadges';
 
 // ─── Visual constants ──────────────────────────────────────────────────
@@ -1278,9 +1278,7 @@ const styles = StyleSheet.create({
   },
   animalEmoji: {
     fontSize: 44,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.5)', 0, 2, 4),
   },
   animalNameBg: {
     backgroundColor: HUNT_COLORS.animalNameBg,

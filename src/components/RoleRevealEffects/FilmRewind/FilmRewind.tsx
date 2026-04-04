@@ -48,7 +48,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { useColors } from '@/theme';
+import { crossPlatformTextShadow, useColors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#0a0906', '#0d0b08', '#0a0906'] as const;
@@ -604,9 +604,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: 'Courier New',
     color: 'rgba(220, 200, 160, 0.9)',
-    textShadowColor: 'rgba(0, 0, 0, 0.6)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 2, 8),
   },
   cardWrapper: {
     ...StyleSheet.absoluteFillObject,
