@@ -33,6 +33,7 @@ export const TESTIDS = {
 
   configScreenRoot: 'config-screen-root',
   configBackButton: 'config-back-button',
+  configTemplatePill: 'config-template-pill',
 
   boardPickerScreenRoot: 'board-picker-screen-root',
 

@@ -109,6 +109,7 @@ export const ConfigScreen: React.FC = () => {
             style={styles.templatePill}
             activeOpacity={0.7}
             onPress={handleTemplatePillPress}
+            testID={TESTIDS.configTemplatePill}
           >
             <Text style={styles.templatePillText}>{selectedTemplateLabel}</Text>
             <Ionicons

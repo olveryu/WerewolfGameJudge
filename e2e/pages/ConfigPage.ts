@@ -84,12 +84,11 @@ export class ConfigPage {
 
   /**
    * Click the template pill in the header.
-   * In create mode this navigates back to BoardPicker.
+   * In create mode this navigates to BoardPicker.
    */
   async clickTemplatePill() {
-    // Use the back button which navigates back to BoardPicker in create mode
-    const backBtn = this.page.locator(`[data-testid="${TESTIDS.configBackButton}"]`);
-    await backBtn.click();
+    const pill = this.page.locator(`[data-testid="${TESTIDS.configTemplatePill}"]`);
+    await pill.click();
   }
 
   /**
