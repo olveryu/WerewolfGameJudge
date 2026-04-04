@@ -134,8 +134,7 @@ jobs:
         run: bash scripts/build.sh
         env:
           CF_PAGES_BRANCH: main
-          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_BACKEND: cloudflare
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
       - name: Deploy to Cloudflare Pages
