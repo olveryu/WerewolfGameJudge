@@ -49,6 +49,7 @@ export type ConnectionEvent =
   | { type: 'RETRY_TIMER_FIRED' }
   | { type: 'MANUAL_RECONNECT' }
   | { type: 'REVISION_DRIFT'; dbRevision: number }
+  | { type: 'DISCONNECT' }
   | { type: 'DISPOSE' };
 
 // ─────────────────────────────────────────────────────────────────────────────

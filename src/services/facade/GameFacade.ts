@@ -317,7 +317,7 @@ export class GameFacade implements IGameFacade {
     this.#audioService.stop();
     this.#audioService.clearPreloaded();
 
-    this.#connectionManager.dispose();
+    this.#connectionManager.disconnect();
     this.#store.reset();
     this.#myUid = null;
     this.#isHost = false;

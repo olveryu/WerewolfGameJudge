@@ -91,6 +91,9 @@ function handleIdle(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
       ],
     };
   }
+  if (event.type === 'DISCONNECT') {
+    return noop(ctx); // Already Idle
+  }
   if (event.type === 'DISPOSE') {
     return toDisposed(ctx);
   }
@@ -127,6 +130,8 @@ function handleConnecting(ctx: FSMContext, event: ConnectionEvent): TransitionRe
     }
     case 'WS_ERROR':
       return { ctx, effects: [log('warn', 'WS_ERROR during Connecting (waiting for WS_CLOSE)')] };
+    case 'DISCONNECT':
+      return toIdle(ctx);
     case 'DISPOSE':
       return toDisposed(ctx);
     default:
@@ -233,6 +238,8 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
         ],
       };
     }
+    case 'DISCONNECT':
+      return toIdle(ctx);
     case 'DISPOSE':
       return toDisposed(ctx);
     default:
@@ -333,6 +340,8 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
     case 'FETCH_FAILURE':
       // Non-critical in Connected state — log and continue
       return { ctx, effects: [log('warn', 'Revision fetch failed (Connected)')] };
+    case 'DISCONNECT':
+      return toIdle(ctx);
     case 'DISPOSE':
       return toDisposed(ctx);
     default:
@@ -445,6 +454,8 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
         ],
       };
     }
+    case 'DISCONNECT':
+      return toIdle(ctx);
     case 'DISPOSE':
       return toDisposed(ctx);
     default:
@@ -495,6 +506,8 @@ function handleReconnecting(ctx: FSMContext, event: ConnectionEvent): Transition
     }
     case 'WS_ERROR':
       return { ctx, effects: [log('warn', 'WS_ERROR during Reconnecting')] };
+    case 'DISCONNECT':
+      return toIdle(ctx);
     case 'DISPOSE':
       return toDisposed(ctx);
     default:
@@ -529,6 +542,8 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
         ],
       };
     }
+    case 'DISCONNECT':
+      return toIdle(ctx);
     case 'DISPOSE':
       return toDisposed(ctx);
     default:
@@ -542,6 +557,18 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
 
 function noop(ctx: FSMContext): TransitionResult {
   return { ctx, effects: [] };
+}
+
+function toIdle(ctx: FSMContext): TransitionResult {
+  const next = createInitialContext({ maxAttempts: ctx.maxAttempts });
+  const effects: SideEffect[] = [
+    log('info', `${ctx.state} → Idle (disconnect)`),
+    { type: 'CLOSE_WS' },
+    { type: 'CANCEL_RETRY' },
+    { type: 'STOP_PING' },
+    { type: 'STOP_REVISION_POLL' },
+  ];
+  return { ctx: next, effects };
 }
 
 function toDisposed(ctx: FSMContext): TransitionResult {

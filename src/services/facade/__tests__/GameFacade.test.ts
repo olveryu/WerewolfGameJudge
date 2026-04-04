@@ -70,6 +70,7 @@ describe('GameFacade', () => {
   let mockConnectionManager: {
     connectAndWait: jest.Mock;
     connect: jest.Mock;
+    disconnect: jest.Mock;
     dispose: jest.Mock;
     manualReconnect: jest.Mock;
     addStateListener: jest.Mock;
@@ -90,6 +91,7 @@ describe('GameFacade', () => {
     mockConnectionManager = {
       connectAndWait: jest.fn().mockResolvedValue(undefined),
       connect: jest.fn(),
+      disconnect: jest.fn(),
       dispose: jest.fn(),
       manualReconnect: jest.fn(),
       addStateListener: jest.fn().mockReturnValue(() => {}),
@@ -496,7 +498,7 @@ describe('GameFacade', () => {
       await facade.createRoom('ABCD', 'host-uid', mockTemplate);
       await facade.leaveRoom();
 
-      expect(mockConnectionManager.dispose).toHaveBeenCalled();
+      expect(mockConnectionManager.disconnect).toHaveBeenCalled();
       expect(facade.getMyUid()).toBeNull();
       expect(facade.isHostPlayer()).toBe(false);
     });
@@ -1329,6 +1331,7 @@ describe('GameFacade', () => {
       retryConnectionManager = {
         connectAndWait: jest.fn().mockResolvedValue(undefined),
         connect: jest.fn(),
+        disconnect: jest.fn(),
         dispose: jest.fn(),
         manualReconnect: jest.fn(),
         addStateListener: jest.fn().mockImplementation((listener: (s: string) => void) => {

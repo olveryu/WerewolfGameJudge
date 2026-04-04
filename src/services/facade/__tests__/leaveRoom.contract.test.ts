@@ -33,6 +33,7 @@ const mockConnectionManager = () =>
   ({
     connectAndWait: jest.fn().mockResolvedValue(undefined),
     connect: jest.fn(),
+    disconnect: jest.fn(),
     dispose: jest.fn(),
     manualReconnect: jest.fn(),
     addStateListener: jest.fn().mockReturnValue(() => {}),

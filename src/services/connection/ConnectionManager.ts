@@ -164,6 +164,12 @@ export class ConnectionManager {
     this.#dispatch({ type: 'MANUAL_RECONNECT' });
   }
 
+  /** Disconnect — clean up connection, return to Idle. Can reconnect later. */
+  disconnect(): void {
+    this.#settleConnectWait(new Error('Connection disconnected'));
+    this.#dispatch({ type: 'DISCONNECT' });
+  }
+
   /** Dispose — clean up all resources, stop all timers, ignore all future events */
   dispose(): void {
     this.#settleConnectWait(new Error('Connection disposed'));

@@ -113,6 +113,15 @@ describe('Connecting state', () => {
     expect(result.ctx.state).toBe(ConnectionState.Connecting);
   });
 
+  it('DISCONNECT → Idle + full cleanup', () => {
+    const result = transition(connecting, { type: 'DISCONNECT' });
+    expect(result.ctx.state).toBe(ConnectionState.Idle);
+    expect(result.ctx.roomCode).toBeNull();
+    const types = effectTypes(result);
+    expect(types).toContain('CLOSE_WS');
+    expect(types).toContain('STOP_PING');
+  });
+
   it('DISPOSE → Disposed + cleanup effects', () => {
     const result = transition(connecting, { type: 'DISPOSE' });
     expect(result.ctx.state).toBe(ConnectionState.Disposed);
@@ -288,6 +297,17 @@ describe('Connected state', () => {
   it('FETCH_FAILURE in Connected → log warn, stay Connected', () => {
     const result = transition(connected, { type: 'FETCH_FAILURE' });
     expect(result.ctx.state).toBe(ConnectionState.Connected);
+  });
+
+  it('DISCONNECT → Idle + full cleanup', () => {
+    const result = transition(connected, { type: 'DISCONNECT' });
+    expect(result.ctx.state).toBe(ConnectionState.Idle);
+    expect(result.ctx.roomCode).toBeNull();
+    expect(result.ctx.attempt).toBe(0);
+    const types = effectTypes(result);
+    expect(types).toContain('CLOSE_WS');
+    expect(types).toContain('STOP_PING');
+    expect(types).toContain('STOP_REVISION_POLL');
   });
 
   it('DISPOSE → Disposed + full cleanup', () => {
