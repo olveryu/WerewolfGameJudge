@@ -16,6 +16,7 @@ export default tseslint.config(
       'node_modules/',
       '.venv/',
       '**/dist/',
+      '**/.wrangler/',
       'build/',
       'playwright-report/',
       'test-results/',

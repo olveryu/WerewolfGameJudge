@@ -32,6 +32,8 @@ import {
   handleSignUp,
   handleUpdateProfile as handleAuthUpdateProfile,
 } from './handlers/authHandlers';
+// Cron handlers
+import { runScheduledCleanup } from './handlers/cronHandlers';
 // Avatar handlers
 import { handleAvatarServe, handleAvatarUpload } from './handlers/avatarUpload';
 // Game control handlers
@@ -225,5 +227,9 @@ export default {
       console.error('[worker] Unhandled error:', err);
       return jsonResponse({ success: false, reason: 'INTERNAL_ERROR' }, 500, env);
     }
+  },
+
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(runScheduledCleanup(env));
   },
 };

@@ -169,22 +169,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # ── Local Supabase ──────────────────────────────────
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Start local Supabase
-        run: supabase start
-
-      - name: Create E2E local config
-        run: |
-          ANON_KEY=$(supabase status -o env | grep 'ANON_KEY=' | head -1 | sed 's/.*ANON_KEY=//' | tr -d '"')
-          printf '{\n  "EXPO_PUBLIC_SUPABASE_URL": "http://127.0.0.1:54321",\n  "EXPO_PUBLIC_SUPABASE_ANON_KEY": "%s"\n}\n' "$ANON_KEY" > env/e2e.local.json
-
-      - name: Build game-engine ESM (for Edge Functions serve)
-        run: pnpm --filter @werewolf/game-engine run build:esm
-
       # ── Playwright ──────────────────────────────────────
       - name: Get Playwright version
         id: pw-version
@@ -208,7 +192,7 @@ jobs:
       - name: Run E2E tests (shard ${{ matrix.shard }}/4)
         run: pnpm exec playwright test --shard=${{ matrix.shard }}/4 --reporter=list --reporter=blob
         env:
-          E2E_ENV: local
+          E2E_ENV: cloudflare
 
       - name: Upload blob report
         uses: actions/upload-artifact@v7

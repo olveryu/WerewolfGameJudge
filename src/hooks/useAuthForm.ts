@@ -114,13 +114,16 @@ export function useAuthForm({
   const handleAnonymousLogin = useCallback(async () => {
     try {
       await signInAnonymously();
+      if (showSuccessOnLogin) {
+        showAlert('登录成功');
+      }
       onSuccess();
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       logger.warn('Anonymous login failed:', message);
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymously, onSuccess, logger]);
+  }, [signInAnonymously, onSuccess, logger, showSuccessOnLogin]);
 
   const toggleSignUp = useCallback(() => {
     setIsSignUp((prev) => !prev);

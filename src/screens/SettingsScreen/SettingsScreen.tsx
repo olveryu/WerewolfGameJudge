@@ -151,6 +151,11 @@ export const SettingsScreen: React.FC = () => {
     }
   }, [navigation]);
 
+  const handleSignOut = useCallback(async () => {
+    wasAuthenticatedRef.current = false;
+    await signOut();
+  }, [signOut]);
+
   const handlePickAvatar = useCallback(() => {
     navigation.navigate('AvatarPicker');
   }, [navigation]);
@@ -250,6 +255,7 @@ export const SettingsScreen: React.FC = () => {
    */
   const handleSwitchAuthSubmit = useCallback(async () => {
     try {
+      wasAuthenticatedRef.current = false;
       await signOut();
     } catch (e: unknown) {
       const raw = e instanceof Error ? e.message : String(e);
@@ -377,7 +383,7 @@ export const SettingsScreen: React.FC = () => {
                 variant="ghost"
                 buttonColor={colors.background}
                 textColor={colors.text}
-                onPress={signOut}
+                onPress={handleSignOut}
                 style={styles.logoutBtn}
               >
                 登出
@@ -459,7 +465,7 @@ export const SettingsScreen: React.FC = () => {
               variant="ghost"
               buttonColor={colors.background}
               textColor={colors.text}
-              onPress={signOut}
+              onPress={handleSignOut}
               style={styles.logoutBtn}
             >
               登出

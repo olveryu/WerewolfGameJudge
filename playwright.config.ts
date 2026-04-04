@@ -21,11 +21,13 @@ process.env.E2E_BASE_URL = E2E_BASE_URL;
  * Playwright configuration for Werewolf Game E2E tests.
  *
  * ENVIRONMENT SWITCHING:
- *   E2E_ENV=local npx playwright test   # Use local Supabase (127.0.0.1:54321)
- *   E2E_ENV=remote npx playwright test  # Use remote Supabase
+ *   E2E_ENV=local       npx playwright test   # Local Supabase (Docker)
+ *   E2E_ENV=remote      npx playwright test   # Remote Supabase
+ *   E2E_ENV=cloudflare  npx playwright test   # Local wrangler dev (no Docker)
  *
  * Configuration is loaded from env/e2e.{local,remote}.json by scripts/run-e2e-web.mjs.
- * Local mode starts Edge Functions + Expo web; remote mode starts Expo web only.
+ * Cloudflare mode needs no config file — uses wrangler dev --local on :8787.
+ * CI uses E2E_ENV=cloudflare (no Docker dependency).
  *
  * CONNECTION_REFUSED HANDLING:
  *   If tests fail with ERR_CONNECTION_REFUSED:

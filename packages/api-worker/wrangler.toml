@@ -30,6 +30,10 @@ new_sqlite_classes = ["GameRoom"]
 ENVIRONMENT = "production"
 CORS_ORIGIN = "*"
 
+# ── Cron Triggers ────────────────────────────────────────────────────────────
+[triggers]
+crons = ["0 3 * * *"]   # Daily at UTC 03:00 — cleanup stale anonymous users
+
 # ── Development Overrides ────────────────────────────────────────────────────
 [env.dev]
 vars = { ENVIRONMENT = "development", CORS_ORIGIN = "*" }
