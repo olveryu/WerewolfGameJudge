@@ -15,14 +15,9 @@ jest.mock('../../../utils/logger', () => ({
   log: { extend: () => ({ debug: jest.fn(), warn: jest.fn(), error: jest.fn() }) },
 }));
 
-// Variable to control supabase config
-let mockConfigured = true;
-jest.mock('@/config/supabase', () => ({
-  get isSupabaseConfigured() {
-    return () => mockConfigured;
-  },
-  SUPABASE_URL: 'https://test.supabase.co',
-  SUPABASE_ANON_KEY: 'test-anon-key',
+// Mock api config
+jest.mock('@/config/api', () => ({
+  API_BASE_URL: 'https://test-api.workers.dev',
 }));
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -31,14 +26,8 @@ import type { GameContext } from '@/services/feature/AIChatService';
 import { isAIChatReady, streamChatMessage } from '@/services/feature/AIChatService';
 
 describe('AIChatService - isAIChatReady', () => {
-  it('returns true when supabase is configured', () => {
-    mockConfigured = true;
+  it('returns true', () => {
     expect(isAIChatReady()).toBe(true);
-  });
-
-  it('returns false when supabase is not configured', () => {
-    mockConfigured = false;
-    expect(isAIChatReady()).toBe(false);
   });
 });
 
@@ -47,20 +36,9 @@ describe('AIChatService - streamChatMessage', () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
-    mockConfigured = true;
-  });
-
-  it('yields error when AI service not configured', async () => {
-    mockConfigured = false;
-    const gen = streamChatMessage([{ role: 'user', content: 'test' }]);
-    const result = await gen.next();
-
-    expect(result.value).toEqual({ type: 'error', content: 'AI 服务未配置' });
-    expect((await gen.next()).done).toBe(true);
   });
 
   it('yields error on network failure', async () => {
-    mockConfigured = true;
     global.fetch = jest.fn().mockRejectedValue(new TypeError('network error'));
 
     const gen = streamChatMessage([{ role: 'user', content: 'test' }]);
@@ -73,7 +51,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('re-throws AbortError', async () => {
-    mockConfigured = true;
     const abortErr = new Error('AbortError');
     abortErr.name = 'AbortError';
     global.fetch = jest.fn().mockRejectedValue(abortErr);
@@ -83,7 +60,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('yields error on HTTP 401', async () => {
-    mockConfigured = true;
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 401,
@@ -97,7 +73,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('yields error on HTTP 429', async () => {
-    mockConfigured = true;
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 429,
@@ -111,7 +86,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('yields error on HTTP 500', async () => {
-    mockConfigured = true;
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 500,
@@ -125,7 +99,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('yields error when response body has no reader', async () => {
-    mockConfigured = true;
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -139,7 +112,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('parses SSE stream and yields deltas', async () => {
-    mockConfigured = true;
     const encoder = new TextEncoder();
 
     const chunks = [
@@ -179,7 +151,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('skips malformed JSON chunks in SSE', async () => {
-    mockConfigured = true;
     const encoder = new TextEncoder();
 
     const chunks = [
@@ -216,7 +187,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('includes game context in request when provided', async () => {
-    mockConfigured = true;
     const encoder = new TextEncoder();
 
     const mockReader = {
@@ -261,7 +231,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('trims message history when exceeding maxHistoryRounds', async () => {
-    mockConfigured = true;
     const encoder = new TextEncoder();
     const mockReader = {
       read: jest
@@ -298,7 +267,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('includes boardRoleDetails in context prompt', async () => {
-    mockConfigured = true;
     const encoder = new TextEncoder();
     const mockReader = {
       read: jest
@@ -344,7 +312,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('handles context with inRoom=false', async () => {
-    mockConfigured = true;
     const encoder = new TextEncoder();
     const mockReader = {
       read: jest
@@ -374,7 +341,6 @@ describe('AIChatService - streamChatMessage', () => {
   });
 
   it('yields done when stream ends without [DONE] marker', async () => {
-    mockConfigured = true;
     const encoder = new TextEncoder();
     const mockReader = {
       read: jest

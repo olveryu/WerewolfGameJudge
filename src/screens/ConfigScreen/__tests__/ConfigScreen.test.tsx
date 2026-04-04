@@ -40,9 +40,7 @@ jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-// Mock services used by useGameRoom (now called from ConfigScreen)
-jest.mock('../../../services/infra/RoomService');
-jest.mock('../../../services/infra/AuthService');
+// Services are injected via DI (ServiceContext), no concrete mocks needed here.
 
 // Mock facade for testing
 const createMockFacade = (): IGameFacade =>

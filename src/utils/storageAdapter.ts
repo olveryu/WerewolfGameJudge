@@ -37,7 +37,7 @@ function detectBrowserEnvironment(): boolean {
 function canUseLocalStorage(): boolean {
   if (!detectBrowserEnvironment()) return false;
 
-  const testKey = '__supabase_storage_test__';
+  const testKey = '__storage_test__';
   try {
     globalThis.localStorage.setItem(testKey, 'test');
     globalThis.localStorage.removeItem(testKey);

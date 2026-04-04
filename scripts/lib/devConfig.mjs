@@ -2,17 +2,11 @@
  * Shared dev-server configuration utilities.
  *
  * Single source of truth for:
- * - Required env field list
- * - Loading & validating config from env/*.json
  * - Writing managed vars to .env.local
  * - Spawning child processes with signal forwarding
+ * - Cloudflare wrangler dev helpers (writeDevVars, applyD1Migrations)
  *
- * Consumed by: run-e2e-web.mjs, dev-api.mjs
- *
- * Supports three E2E_ENV modes:
- *   - local:      Supabase CLI + Edge Functions (Docker required)
- *   - remote:     Remote Supabase (Edge Functions already deployed)
- *   - cloudflare: wrangler dev --local (no Docker, no Supabase)
+ * Consumed by: run-e2e-web.mjs
  */
 
 import { execSync, spawn } from 'node:child_process';
@@ -28,89 +22,15 @@ const __dirname = dirname(__filename);
 const ROOT_DIR = join(__dirname, '..', '..');
 
 /**
- * All env fields that MUST be present in env/e2e.*.json (Supabase modes).
- * Edge Functions auto-inject DB URL via supabase CLI — only client-facing vars needed.
- * Cloudflare mode does not require these fields.
- */
-const SUPABASE_REQUIRED_FIELDS = ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY'];
-
-/**
  * Keys written into .env.local (managed section).
  * Metro reads EXPO_PUBLIC_* at bundle time; non-managed lines are preserved.
  */
-export const MANAGED_ENV_KEYS = [
-  'EXPO_PUBLIC_SUPABASE_URL',
-  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
-  'EXPO_PUBLIC_API_URL',
-  'EXPO_PUBLIC_BACKEND',
-  'EXPO_PUBLIC_CF_API_URL',
-];
-
-/**
- * Supabase Edge Functions base URL for local development.
- * `supabase functions serve` routes through the local API gateway.
- */
-export const LOCAL_FUNCTIONS_URL = 'http://127.0.0.1:54321/functions/v1';
+export const MANAGED_ENV_KEYS = ['EXPO_PUBLIC_CF_API_URL'];
 
 /**
  * Local wrangler dev URL (default port for `wrangler dev`).
  */
 export const LOCAL_CF_API_URL = 'http://127.0.0.1:8787';
-
-// ─── loadConfig ──────────────────────────────────────────────────────────────
-
-/**
- * Load and validate configuration from env/e2e.{envName}.json.
- *
- * @param {string} envName - 'local' | 'remote' | 'cloudflare'
- * @param {{ allowEnvFallback?: boolean }} opts
- *   When true, missing JSON fields fall back to process.env (used for remote).
- * @returns {Record<string, string>} validated config object (empty for cloudflare)
- */
-export function loadConfig(envName, opts = {}) {
-  // Cloudflare mode needs no config file — everything is hard-coded / env-driven
-  if (envName === 'cloudflare') {
-    return {};
-  }
-
-  const configPath = join(ROOT_DIR, 'env', `e2e.${envName}.json`);
-
-  if (!existsSync(configPath)) {
-    console.error(`❌ Config file not found: ${configPath}`);
-    console.error(`   Run: cp env/e2e.local.example.json env/e2e.local.json`);
-    process.exit(1);
-  }
-
-  let config;
-  try {
-    config = JSON.parse(readFileSync(configPath, 'utf-8'));
-  } catch (err) {
-    console.error(`❌ Failed to parse: ${configPath}`, err.message);
-    process.exit(1);
-  }
-
-  // Optional: fall back to process.env for missing fields (remote CI)
-  if (opts.allowEnvFallback) {
-    for (const field of SUPABASE_REQUIRED_FIELDS) {
-      if (!config[field] && process.env[field]) {
-        config[field] = process.env[field];
-      }
-    }
-  }
-
-  const missing = SUPABASE_REQUIRED_FIELDS.filter((f) => !config[f]);
-  if (missing.length) {
-    console.error(`❌ Missing required config fields: ${missing.join(', ')}`);
-    if (opts.allowEnvFallback) {
-      console.error(
-        '   For remote env, set these via environment variables or edit env/e2e.remote.json',
-      );
-    }
-    process.exit(1);
-  }
-
-  return config;
-}
 
 // ─── writeEnvLocal ───────────────────────────────────────────────────────────
 
@@ -140,44 +60,6 @@ export function writeEnvLocal(vars, opts = {}) {
 
   const finalContent = preserved ? envContent + '\n' + preserved + '\n' : envContent + '\n';
   writeFileSync(envLocalPath, finalContent, 'utf-8');
-}
-
-// ─── ensureSupabaseRunning ───────────────────────────────────────────────────
-
-/**
- * Ensure local Supabase stack is running (idempotent).
- *
- * Checks `supabase status` — if not running, runs `supabase start`.
- * Requires Docker and supabase CLI to be installed.
- */
-export function ensureSupabaseRunning() {
-  try {
-    execSync('supabase status', { cwd: ROOT_DIR, stdio: 'ignore' });
-    console.log('✅ Supabase is already running');
-  } catch {
-    console.log('🐳 Supabase not running — starting...');
-    try {
-      execSync('supabase start', { cwd: ROOT_DIR, stdio: 'inherit' });
-      console.log('✅ Supabase started');
-    } catch (err) {
-      console.error('❌ Failed to start Supabase. Is Docker running? Is supabase CLI installed?');
-      console.error('   Install: brew install supabase/tap/supabase');
-      process.exit(1);
-    }
-  }
-}
-
-// ─── buildGameEngineEsm ─────────────────────────────────────────────────────
-
-/**
- * Build game-engine ESM bundle (required by supabase functions serve).
- */
-export function buildGameEngineEsm() {
-  console.log('🔧 Building game-engine ESM bundle...');
-  execSync('pnpm --filter @werewolf/game-engine run build:esm', {
-    cwd: ROOT_DIR,
-    stdio: 'inherit',
-  });
 }
 
 // ─── writeDevVars ────────────────────────────────────────────────────────────

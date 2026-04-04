@@ -16,11 +16,6 @@ import { GameStore } from '@werewolf/game-engine/engine/store';
 
 import { GameFacade } from '@/services/facade/GameFacade';
 
-// Mock RealtimeService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
-jest.mock('../../transport/RealtimeService', () => ({
-  RealtimeService: jest.fn().mockImplementation(() => ({})),
-}));
-
 // P0-1: Mock AudioService
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,

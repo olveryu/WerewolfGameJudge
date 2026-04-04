@@ -239,37 +239,7 @@ export default tseslint.config(
   },
 
   // =========================================================================
-  // Supabase Edge Functions — Deno runtime, no React
-  // Disable type-aware rules (not in root tsconfig) and React plugins.
-  // =========================================================================
-  {
-    files: ['supabase/functions/**/*.ts'],
-    languageOptions: {
-      globals: {
-        Deno: 'readonly',
-      },
-      parserOptions: {
-        projectService: false,
-      },
-    },
-    rules: {
-      // Deno Edge Functions use console for logging (no project logger available)
-      'no-console': 'off',
-      // Disable React / React Native rules — no UI framework in Edge Functions
-      'react/no-unknown-property': 'off',
-      'react-native/no-raw-text': 'off',
-      'react-native/split-platform-components': 'off',
-      'react-native/no-single-element-style-arrays': 'off',
-      'react-native/no-inline-styles': 'off',
-      // Import sorting still applies
-      // Naming convention: relax for Deno namespace and external API shapes
-      '@typescript-eslint/naming-convention': 'off',
-    },
-  },
-
-  // =========================================================================
   // Cloudflare Workers (api-worker) — Workers runtime, no React
-  // Analogous to Supabase Edge Functions: allow console, disable React rules.
   // =========================================================================
   {
     files: ['packages/api-worker/**/*.ts'],

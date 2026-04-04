@@ -1,11 +1,11 @@
 /**
- * AI Chat Service - Gemini (3.1 Flash Lite) via Supabase Edge Function
+ * AI Chat Service - Gemini (3.1 Flash Lite) via Cloudflare Workers
  *
- * 通过 Supabase Edge Function 代理 Gemini API（OpenAI 兼容层），API key 仅存在服务端。
+ * 通过 Cloudflare Workers 代理 Gemini API（OpenAI 兼容层），API key 仅存在服务端。
  * 免费额度：250K TPM, 500 RPD, 15 RPM
  * 文档: https://ai.google.dev/gemini-api/docs/rate-limits
  *
- * 负责调用 Edge Function 代理、管理对话历史、流式解析 SSE 响应。
+ * 负责调用 Workers 代理、管理对话历史、流式解析 SSE 响应。
  * 不直接访问第三方 API，不存储 API key，不操作游戏状态。
  */
 
@@ -13,15 +13,15 @@ import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
+import { API_BASE_URL } from '@/config/api';
 import { NETWORK_ERROR, RATE_LIMIT_ERROR } from '@/config/errorMessages';
-import { isSupabaseConfigured, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/config/supabase';
 import { log } from '@/utils/logger';
 
 const chatLog = log.extend('AIChatService');
 
 const API_CONFIG = {
-  /** Edge Function endpoint（代理到 Gemini） */
-  baseURL: `${SUPABASE_URL}/functions/v1/gemini-proxy`,
+  /** Workers endpoint（代理到 Gemini） */
+  baseURL: `${API_BASE_URL}/gemini-proxy`,
   model: 'gemini-3.1-flash-lite-preview',
   maxTokens: 512,
 };
@@ -32,10 +32,10 @@ const TOKEN_OPTIMIZATION = {
 };
 
 /**
- * 检查 AI 服务是否就绪（Supabase 已配置）
+ * 检查 AI 服务是否就绪
  */
 export function isAIChatReady(): boolean {
-  return isSupabaseConfigured();
+  return true;
 }
 
 /**
@@ -143,9 +143,9 @@ interface StreamChunk {
 }
 
 /**
- * 流式发送聊天消息到 AI（SSE，通过 Edge Function 代理）
+ * 流式发送聊天消息到 AI（SSE，通过 Workers 代理）
  *
- * 使用 Supabase Edge Function 代理 Gemini streaming endpoint，逐 token 返回。
+ * 使用 Cloudflare Workers 代理 Gemini streaming endpoint，逐 token 返回。
  * 调用者用 `for await (const chunk of streamChatMessage(...))` 消费。
  *
  * @param messages 聊天消息历史
@@ -182,8 +182,6 @@ export async function* streamChatMessage(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        apikey: SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({
         model: API_CONFIG.model,

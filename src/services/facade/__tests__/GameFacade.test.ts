@@ -17,11 +17,6 @@ import type { Player } from '@werewolf/game-engine/protocol/types';
 import { GameFacade } from '@/services/facade/GameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 
-// Mock RealtimeService (constructor mock — DI 测试直接注入，此处仅防止真实 import)
-jest.mock('../../transport/RealtimeService', () => ({
-  RealtimeService: jest.fn().mockImplementation(() => ({})),
-}));
-
 // P0-1: Mock AudioService
 const mockAudioServiceInstance = {
   playNightAudio: jest.fn().mockResolvedValue(undefined),

@@ -41,50 +41,6 @@ jobs:
       - name: Test
         run: pnpm run test:all
 
-      - name: Build game-engine ESM (needed by Deno tests)
-        run: pnpm --filter @werewolf/game-engine run build:esm
-
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: 2.7.7
-
-      - name: Deno Edge Function tests
-        run: deno test --no-check --allow-env --allow-net --allow-read supabase/functions/
-
-  deploy-edge-functions:
-    runs-on: ubuntu-latest
-    if: |
-      needs.quality.result == 'success' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      github.ref == 'refs/heads/main'
-    needs: quality
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Build game-engine ESM
-        run: pnpm --filter @werewolf/game-engine run build:esm
-
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Deploy Edge Functions
-        run: |
-          supabase functions deploy game --project-ref "$SUPABASE_PROJECT_REF"
-          supabase functions deploy gemini-proxy --project-ref "$SUPABASE_PROJECT_REF"
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-
   deploy-api-worker:
     runs-on: ubuntu-latest
     if: |
@@ -138,7 +94,6 @@ jobs:
         run: bash scripts/build.sh
         env:
           CF_PAGES_BRANCH: main
-          EXPO_PUBLIC_BACKEND: cloudflare
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
 
       - name: Deploy to Cloudflare Pages
@@ -194,8 +149,6 @@ jobs:
 
       - name: Run E2E tests (shard ${{ matrix.shard }}/4)
         run: pnpm exec playwright test --shard=${{ matrix.shard }}/4 --reporter=list --reporter=blob
-        env:
-          E2E_ENV: cloudflare
 
       - name: Upload blob report
         uses: actions/upload-artifact@v7

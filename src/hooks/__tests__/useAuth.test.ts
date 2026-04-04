@@ -8,12 +8,6 @@ import { useAuthContext as useAuth, type User } from '@/contexts/AuthContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 
-// Mock supabase config
-jest.mock('../../services/infra/supabaseClient', () => ({
-  supabase: null,
-  isSupabaseConfigured: jest.fn(() => false),
-}));
-
 // Mock service functions used by AuthProvider via useServices()
 const mockSignInAnonymously = jest.fn();
 const mockSignUpWithEmail = jest.fn();
@@ -78,7 +72,7 @@ describe('useAuth hook', () => {
   });
 
   describe('Initial state', () => {
-    it('should start with null user when supabase is not configured', async () => {
+    it('should start with null user when not authenticated', async () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
@@ -382,8 +376,8 @@ describe('useAuth hook', () => {
   });
 
   describe('User type conversion', () => {
-    it('should correctly convert supabase user to User type', async () => {
-      const mockSupabaseUser = {
+    it('should correctly convert auth user to User type', async () => {
+      const mockAuthUser = {
         id: 'user-456',
         email: 'full@example.com',
         user_metadata: {
@@ -392,7 +386,7 @@ describe('useAuth hook', () => {
         },
         is_anonymous: false,
       };
-      mockSignUpWithEmail.mockResolvedValue({ user: mockSupabaseUser });
+      mockSignUpWithEmail.mockResolvedValue({ user: mockAuthUser });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -416,13 +410,13 @@ describe('useAuth hook', () => {
     });
 
     it('should handle anonymous users correctly', async () => {
-      const mockSupabaseUser = {
+      const mockAuthUser = {
         id: 'anon-123',
         email: null,
         user_metadata: {},
         is_anonymous: true,
       };
-      mockSignUpWithEmail.mockResolvedValue({ user: mockSupabaseUser });
+      mockSignUpWithEmail.mockResolvedValue({ user: mockAuthUser });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -446,12 +440,12 @@ describe('useAuth hook', () => {
     });
 
     it('should handle missing user_metadata', async () => {
-      const mockSupabaseUser = {
+      const mockAuthUser = {
         id: 'user-789',
         email: 'test@example.com',
         is_anonymous: false,
       };
-      mockSignUpWithEmail.mockResolvedValue({ user: mockSupabaseUser });
+      mockSignUpWithEmail.mockResolvedValue({ user: mockAuthUser });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 

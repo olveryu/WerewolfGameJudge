@@ -50,12 +50,6 @@
       "matchPackageNames": ["/@sentry//"]
     },
     {
-      "description": "Group Supabase packages",
-      "groupName": "supabase",
-      "groupSlug": "supabase",
-      "matchPackageNames": ["/@supabase//"]
-    },
-    {
       "description": "Group dev tooling (prettier, husky, lint-staged, typescript)",
       "matchPackageNames": ["prettier", "husky", "lint-staged", "typescript", "globals", "glob"],
       "groupName": "dev-tooling",

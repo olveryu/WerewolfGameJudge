@@ -213,7 +213,7 @@ export const SettingsScreen: React.FC = () => {
     setShowAuthForm(true);
   }, [setIsSignUp]);
 
-  /** 切换账号：先离座（如在房间内），弹登录表单，登录成功后旧 session 由 Supabase 原子替换 */
+  /** 切换账号：先离座（如在房间内），弹登录表单，登录成功后替换本地 session */
   const handleSwitchAccount = useCallback(() => {
     const doSwitch = async () => {
       try {
@@ -502,7 +502,7 @@ export const SettingsScreen: React.FC = () => {
     }
 
     // Suppress LoginOptions during auth initialization or transient auth state flashes
-    // (e.g. Supabase SDK onAuthStateChange glitch, or initial session restore)
+    // (e.g. auth SDK glitch, or initial session restore)
     if (wasAuthenticatedRef.current || authLoading) {
       return null;
     }

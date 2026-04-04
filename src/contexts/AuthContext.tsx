@@ -14,7 +14,6 @@ import React, { createContext, use, useCallback, useEffect, useMemo, useState } 
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
-import { isSupabaseConfigured, supabase } from '@/services/infra/supabaseClient';
 import type { AuthUser } from '@/services/types/IAuthService';
 import { isAbortError, isNetworkError } from '@/utils/errorUtils';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
@@ -111,17 +110,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load current user on mount - runs ONCE at app startup
   useEffect(() => {
-    // Don't do anything if Supabase is not configured
-    if (!isSupabaseConfigured() || !supabase) {
-      setLoading(false);
-      return;
-    }
-
     const loadUser = async () => {
       try {
         const result = await authService.getCurrentUser();
         if (result?.data?.user) {
-          updateUserIfChanged(toUser(result.data.user));
+          const u = toUser(result.data.user);
+          updateUserIfChanged(u);
+          if (u) Sentry.setUser({ id: u.uid });
         }
       } catch (e: unknown) {
         handleAuthError(e, 'Failed to load user');
@@ -131,26 +126,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     loadUser();
-
-    // Listen for auth state changes - single subscription for entire app
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      authLog.info('Auth state changed:', event);
-      if (session?.user) {
-        updateUserIfChanged(toUser(session.user));
-        Sentry.setUser({ id: session.user.id });
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        Sentry.setUser(null);
-      }
-      // Only set loading false if it was true (avoid unnecessary re-render)
-      setLoading((prev) => (prev ? false : prev));
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
   }, [authService, handleAuthError, updateUserIfChanged]);
 
   const signInAnonymously = useCallback(async () => {

@@ -1,8 +1,5 @@
 {
-  "_comment": "Copy to e2e.local.json and fill in your local Supabase credentials",
-  "EXPO_PUBLIC_SUPABASE_URL": "http://127.0.0.1:54321",
-  "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-local-anon-key-here",
+  "_comment": "Copy to e2e.local.json. Cloudflare mode uses wrangler dev --local, no config needed.",
   "EXPO_PUBLIC_API_REGION": "us-west-1",
-  "EXPO_PUBLIC_API_TIMEOUT_MS": "8000",
-  "DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+  "EXPO_PUBLIC_API_TIMEOUT_MS": "8000"
 }

@@ -61,9 +61,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 跳过 Supabase API 请求（需要实时数据）
+  // 跳过 API 请求（需要实时数据）
   var hostname = new URL(event.request.url).hostname;
-  if (hostname.endsWith('.supabase.co') || hostname.endsWith('.supabase.in')) {
+  if (hostname.endsWith('.workers.dev')) {
     return;
   }
 

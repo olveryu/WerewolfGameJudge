@@ -10,10 +10,6 @@ import { GameStore } from '@werewolf/game-engine/engine/store';
 // Mocks
 // ---------------------------------------------------------------------------
 
-jest.mock('../../transport/RealtimeService', () => ({
-  RealtimeService: jest.fn().mockImplementation(() => ({})),
-}));
-
 const mockAudioServiceInstance = {
   playNightAudio: jest.fn().mockResolvedValue(undefined),
   playNightEndAudio: jest.fn().mockResolvedValue(undefined),
@@ -33,10 +29,6 @@ const mockRoomService = () => ({
   getGameState: jest.fn().mockResolvedValue(null),
   createRoom: jest.fn().mockResolvedValue(undefined),
 });
-jest.mock('../../infra/RoomService', () => ({
-  __esModule: true,
-  RoomService: jest.fn(() => mockRoomService()),
-}));
 
 jest.mock('../../../utils/logger', () => ({
   facadeLog: {

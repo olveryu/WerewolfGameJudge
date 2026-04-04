@@ -388,44 +388,6 @@ jest.mock(
   { virtual: true },
 );
 
-// Mock Supabase client
-jest.mock('./src/services/infra/supabaseClient', () => ({
-  supabase: {
-    auth: {
-      getSession: jest.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      signInAnonymously: jest
-        .fn()
-        .mockResolvedValue({ data: { user: { id: 'test-user-id' } }, error: null }),
-      signOut: jest.fn().mockResolvedValue({ error: null }),
-      onAuthStateChange: jest
-        .fn()
-        .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
-    },
-    channel: jest.fn().mockReturnValue({
-      on: jest.fn().mockReturnThis(),
-      subscribe: jest.fn().mockReturnValue({ status: 'SUBSCRIBED' }),
-      unsubscribe: jest.fn().mockResolvedValue(undefined),
-      send: jest.fn().mockResolvedValue({ status: 'ok' }),
-    }),
-    from: jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null, error: null }),
-    }),
-  },
-  isSupabaseConfigured: jest.fn(() => true),
-}));
-
-// Mock Supabase config values (pure config — no client creation)
-jest.mock('./src/config/supabase', () => ({
-  SUPABASE_URL: 'https://test.supabase.co',
-  SUPABASE_ANON_KEY: 'test-anon-key',
-  isSupabaseConfigured: jest.fn(() => true),
-}));
-
 // Mock navigationRef — prevents createNavigationContainerRef from being called
 // in tests where @react-navigation/native is mocked as empty object.
 jest.mock('./src/navigation/navigationRef', () => ({

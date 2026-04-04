@@ -56,7 +56,7 @@ interface HandleErrorOptions {
 /**
  * Extract HTTP status code from error shapes commonly seen in the codebase:
  * - `{ status: number }` (fetch Response-like)
- * - `{ code: number | string }` (Supabase PostgrestError)
+ * - `{ code: number | string }` (PostgrestError-like)
  */
 function extractStatusCode(err: unknown): number | undefined {
   if (err == null || typeof err !== 'object') return undefined;
