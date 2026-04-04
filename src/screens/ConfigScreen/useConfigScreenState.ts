@@ -104,6 +104,19 @@ export function useConfigScreenState({
     [selection, variantOverrides],
   );
 
+  // ── Apply preset when returning from BoardPicker (popTo updates params
+  //    but useState won't re-initialize on an already-mounted screen) ───────
+
+  useEffect(() => {
+    if (!presetName) return;
+    const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
+    if (!preset) return;
+    const restored = restoreFromTemplateRoles(preset.roles);
+    setSelection(restored.selection);
+    setVariantOverrides(restored.variantOverrides);
+    setSelectedTemplate(restored.matchedPreset ?? '__custom__');
+  }, [presetName]);
+
   // ── Load settings (animation + BGM) for new rooms ────────────────────────
 
   useEffect(() => {

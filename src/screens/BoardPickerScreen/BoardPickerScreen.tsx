@@ -404,13 +404,13 @@ export const BoardPickerScreen: React.FC = () => {
 
   const handleSelect = useCallback(
     (presetName: string) => {
-      navigation.navigate('Config', { presetName, existingRoomNumber });
+      navigation.popTo('Config', { presetName, existingRoomNumber });
     },
     [navigation, existingRoomNumber],
   );
 
   const handleCustom = useCallback(() => {
-    navigation.navigate('Config', existingRoomNumber ? { existingRoomNumber } : undefined);
+    navigation.popTo('Config', existingRoomNumber ? { existingRoomNumber } : undefined);
   }, [navigation, existingRoomNumber]);
 
   const handleRolePress = useCallback((roleId: string) => {
