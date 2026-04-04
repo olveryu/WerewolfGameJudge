@@ -334,8 +334,11 @@
 
       // 隐藏启动画面 — 由 React App.tsx 控制。
       // 这里仅作超时 fallback（5 秒后强制隐藏，防止 JS 加载失败时永久卡 splash）。
+      // 仅在 React 已挂载（#root 有子元素）时移除，否则保留 splash 避免白屏。
       window.addEventListener('load', function () {
         setTimeout(function () {
+          var root = document.getElementById('root');
+          if (!root || root.children.length === 0) return;
           var splash = document.getElementById('splash-screen');
           if (splash) {
             splash.classList.add('hidden');
