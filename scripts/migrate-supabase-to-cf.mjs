@@ -71,9 +71,7 @@ async function listRegisteredUsers() {
   const perPage = 50;
 
   while (true) {
-    const data = await supabaseAdminFetch(
-      `/auth/v1/admin/users?page=${page}&per_page=${perPage}`,
-    );
+    const data = await supabaseAdminFetch(`/auth/v1/admin/users?page=${page}&per_page=${perPage}`);
     const pageUsers = data.users || data;
     if (!Array.isArray(pageUsers) || pageUsers.length === 0) break;
 
