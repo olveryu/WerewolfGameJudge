@@ -13,6 +13,8 @@ import { ALL_GUIDE_DISMISSED_KEYS } from './src/config/storageKeys';
  * Override: E2E_BASE_URL=https://... npx playwright test
  */
 const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+const LOCAL_CF_API_URL = 'http://127.0.0.1:8787';
+const WEB_PORT = process.env.WEB_PORT || '8081';
 
 // Export to process.env so ui.ts and webServer can access it
 process.env.E2E_BASE_URL = E2E_BASE_URL;
@@ -21,17 +23,13 @@ process.env.E2E_BASE_URL = E2E_BASE_URL;
  * Playwright configuration for Werewolf Game E2E tests.
  *
  * ENVIRONMENT:
- *   Uses wrangler dev --local for API + Expo web for frontend.
- *   No config file needed — uses wrangler dev --local on :8787.
+ *   Two webServers launched in parallel (Playwright native):
+ *   1. API — wrangler dev --local on :8787 (with D1 migration + .dev.vars setup)
+ *   2. Web — Expo Metro on :8081 (reads EXPO_PUBLIC_CF_API_URL via env injection)
  *
- * CONNECTION_REFUSED HANDLING:
- *   If tests fail with ERR_CONNECTION_REFUSED:
- *   1. Check webServer logs in terminal (stdout: 'pipe')
- *   2. Verify port 8081 not occupied: lsof -i :8081
- *   3. webServer.timeout is 120s to allow slow server starts
- *   4. Tests use gotoWithRetry() for automatic retry on connection issues
+ *   Playwright waits for BOTH servers to be ready before running tests.
  *
- * @see https://playwright.dev/docs/test-configuration
+ * @see https://playwright.dev/docs/test-webserver
  */
 export default defineConfig({
   testDir: './e2e/specs',
@@ -48,7 +46,7 @@ export default defineConfig({
   /* Retry on CI only - helps with transient connection issues */
   retries: process.env.CI ? 2 : 0,
 
-  /* Limit workers on CI to reduce Supabase concurrent connection pressure */
+  /* Limit workers on CI to reduce concurrent connection pressure */
   workers: process.env.CI ? 2 : undefined,
 
   /* Reporter to use */
@@ -98,19 +96,28 @@ export default defineConfig({
     },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'node scripts/run-e2e-web.mjs',
-    // Playwright waits for this URL to be accessible before running tests
-    // This is the primary "ready check" - ensures server is actually serving
-    url: E2E_BASE_URL,
-    // Local: reuse existing server (faster dev iteration)
-    // CI: always start fresh (reproducible)
-    reuseExistingServer: !process.env.CI,
-    // 2 minutes for slow server starts (Metro bundler can be slow on first run)
-    timeout: 120 * 1000,
-    // Pipe output for diagnosis when server fails to start
-    stdout: 'pipe',
-    stderr: 'pipe',
-  },
+  /* Launch API + Web servers in parallel, wait for both before running tests */
+  webServer: [
+    {
+      name: 'API',
+      command: 'node scripts/setup-e2e-api.mjs && pnpm --filter @werewolf/api-worker run dev',
+      url: `${LOCAL_CF_API_URL}/health`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+    {
+      name: 'Web',
+      command: `npx expo start --web --port ${WEB_PORT}`,
+      url: E2E_BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: {
+        EXPO_PUBLIC_CF_API_URL: LOCAL_CF_API_URL,
+      },
+    },
+  ],
 });

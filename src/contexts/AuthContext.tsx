@@ -133,12 +133,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       await authService.signInAnonymously();
+      const result = await authService.getCurrentUser();
+      if (result?.data?.user) {
+        const u = toUser(result.data.user);
+        updateUserIfChanged(u);
+        if (u) Sentry.setUser({ id: u.uid });
+      }
     } catch (e: unknown) {
       handleAuthError(e, 'Anonymous sign-in failed', { rethrow: true });
     } finally {
       setLoading(false);
     }
-  }, [authService, handleAuthError]);
+  }, [authService, handleAuthError, updateUserIfChanged]);
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string, displayName?: string) => {
@@ -147,7 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const result = await authService.signUpWithEmail(email, password, displayName);
         if (result.user) {
-          setUser(toUser(result.user));
+          const u = toUser(result.user);
+          setUser(u);
+          if (u) Sentry.setUser({ id: u.uid });
         }
       } catch (e: unknown) {
         handleAuthError(e, 'Email sign-up failed', { rethrow: true });
@@ -166,7 +174,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await authService.signInWithEmail(email, password);
         const result = await authService.getCurrentUser();
         if (result?.data?.user) {
-          setUser(toUser(result.data.user));
+          const u = toUser(result.data.user);
+          setUser(u);
+          if (u) Sentry.setUser({ id: u.uid });
         }
       } catch (e: unknown) {
         handleAuthError(e, 'Email sign-in failed', { rethrow: true });
@@ -218,6 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authService.signOut();
       await AsyncStorage.removeItem(LAST_ROOM_NUMBER_KEY);
       setUser(null);
+      Sentry.setUser(null);
     } catch (e: unknown) {
       handleAuthError(e, 'Sign-out failed');
     } finally {
