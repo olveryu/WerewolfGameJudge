@@ -32,10 +32,10 @@ import {
   handleSignUp,
   handleUpdateProfile as handleAuthUpdateProfile,
 } from './handlers/authHandlers';
-// Cron handlers
-import { runScheduledCleanup } from './handlers/cronHandlers';
 // Avatar handlers
 import { handleAvatarServe, handleAvatarUpload } from './handlers/avatarUpload';
+// Cron handlers
+import { runScheduledCleanup } from './handlers/cronHandlers';
 // Game control handlers
 import {
   handleAssign,
