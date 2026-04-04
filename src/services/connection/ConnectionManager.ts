@@ -134,6 +134,9 @@ export class ConnectionManager {
     }
 
     return new Promise<void>((resolve, reject) => {
+      // Settle any pending connectAndWait before creating a new one (P2)
+      this.#settleConnectWait(new Error('Superseded by new connectAndWait'));
+
       this.#connectWaitResolve = resolve;
       this.#connectWaitReject = reject;
 

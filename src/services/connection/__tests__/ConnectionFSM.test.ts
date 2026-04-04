@@ -75,6 +75,14 @@ describe('Idle state', () => {
   ])('ignores $type', (event) => {
     expectNoop(transition(idle, event), idle);
   });
+
+  it('DISPOSE → Disposed', () => {
+    const result = transition(idle, { type: 'DISPOSE' });
+    expect(result.ctx.state).toBe(ConnectionState.Disposed);
+    const types = effectTypes(result);
+    expect(types).toContain('CLOSE_WS');
+    expect(types).toContain('STOP_PING');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,7 +95,6 @@ describe('Connecting state', () => {
   it('WS_OPEN → Syncing + START_PING + FETCH_STATE', () => {
     const result = transition(connecting, { type: 'WS_OPEN' });
     expect(result.ctx.state).toBe(ConnectionState.Syncing);
-    expect(result.ctx.attempt).toBe(0);
     const types = effectTypes(result);
     expect(types).toContain('START_PING');
     expect(types).toContain('FETCH_STATE');
@@ -320,6 +327,20 @@ describe('Disconnected state', () => {
     const types = effectTypes(result);
     expect(types).toContain('CANCEL_RETRY');
     expect(types).toContain('OPEN_WS');
+  });
+
+  it('NETWORK_ONLINE at maxAttempts → Failed', () => {
+    const d = ctx(ConnectionState.Disconnected, { attempt: DEFAULT_MAX_ATTEMPTS });
+    const result = transition(d, { type: 'NETWORK_ONLINE' });
+    expect(result.ctx.state).toBe(ConnectionState.Failed);
+    expect(effectTypes(result)).toContain('CANCEL_RETRY');
+  });
+
+  it('VISIBILITY_VISIBLE at maxAttempts → Failed', () => {
+    const d = ctx(ConnectionState.Disconnected, { attempt: DEFAULT_MAX_ATTEMPTS, visible: false });
+    const result = transition(d, { type: 'VISIBILITY_VISIBLE' });
+    expect(result.ctx.state).toBe(ConnectionState.Failed);
+    expect(effectTypes(result)).toContain('CANCEL_RETRY');
   });
 
   it('VISIBILITY_VISIBLE → Reconnecting + cancel retry + OPEN_WS', () => {

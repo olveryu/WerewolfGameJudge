@@ -91,13 +91,16 @@ function handleIdle(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
       ],
     };
   }
+  if (event.type === 'DISPOSE') {
+    return toDisposed(ctx);
+  }
   return noop(ctx);
 }
 
 function handleConnecting(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
   switch (event.type) {
     case 'WS_OPEN': {
-      const next: FSMContext = { ...ctx, state: ConnectionState.Syncing, attempt: 0 };
+      const next: FSMContext = { ...ctx, state: ConnectionState.Syncing };
       return {
         ctx: next,
         effects: [
@@ -362,6 +365,16 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
       };
     }
     case 'NETWORK_ONLINE': {
+      if (ctx.attempt >= ctx.maxAttempts) {
+        const next: FSMContext = { ...ctx, state: ConnectionState.Failed, networkOnline: true };
+        return {
+          ctx: next,
+          effects: [
+            log('error', 'Disconnected → Failed (max attempts on NETWORK_ONLINE)'),
+            { type: 'CANCEL_RETRY' },
+          ],
+        };
+      }
       const next: FSMContext = {
         ...ctx,
         state: ConnectionState.Reconnecting,
@@ -380,6 +393,16 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
       };
     }
     case 'VISIBILITY_VISIBLE': {
+      if (ctx.attempt >= ctx.maxAttempts) {
+        const next: FSMContext = { ...ctx, state: ConnectionState.Failed, visible: true };
+        return {
+          ctx: next,
+          effects: [
+            log('error', 'Disconnected → Failed (max attempts on VISIBILITY_VISIBLE)'),
+            { type: 'CANCEL_RETRY' },
+          ],
+        };
+      }
       const next: FSMContext = {
         ...ctx,
         state: ConnectionState.Reconnecting,

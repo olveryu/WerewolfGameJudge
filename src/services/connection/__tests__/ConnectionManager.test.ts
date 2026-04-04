@@ -132,17 +132,35 @@ describe('ConnectionManager', () => {
       manager.dispose();
     });
 
-    it('rejects when connection enters Failed state', async () => {
+    it('rejects when connection enters Disposed state', async () => {
       const { deps } = createDeps();
       const manager = new ConnectionManager(deps);
 
-      // Use a very high maxAttempts to avoid fast failure, we'll test Failed via dispose
       const promise = manager.connectAndWait('ROOM1', 'USER1');
 
-      // Dispose triggers Failed-like behavior
       manager.dispose();
 
       await expect(promise).rejects.toThrow();
+    });
+
+    it('rejects old promise when called again before settling', async () => {
+      const { transport, deps } = createDeps();
+      const manager = new ConnectionManager(deps);
+
+      const promise1 = manager.connectAndWait('ROOM1', 'USER1');
+
+      // Second call before first settles
+      const promise2 = manager.connectAndWait('ROOM1', 'USER1');
+
+      // Old promise should be rejected
+      await expect(promise1).rejects.toThrow('Superseded');
+
+      // Resolve new connection: WS_OPEN → Syncing → FETCH_SUCCESS → Connected
+      transport.handlers.onOpen();
+      await jest.advanceTimersByTimeAsync(0);
+      await expect(promise2).resolves.toBeUndefined();
+
+      manager.dispose();
     });
   });
 
