@@ -1,7 +1,7 @@
 /**
  * calculateBackoff — 指数退避 + jitter
  *
- * 社区标准实现：exponential backoff with full jitter。
+ * 社区标准实现：exponential backoff with equal jitter。
  * 纯函数，无副作用，可穷举测试。
  *
  * @param attempt - 当前重试次数（0-based）
@@ -18,7 +18,7 @@ export function calculateBackoff(
 ): number {
   const exponential = baseMs * Math.pow(2, attempt);
   const capped = Math.min(exponential, maxMs);
-  // Full jitter: uniform random in [capped * 0.5, capped]
+  // Equal jitter: uniform random in [capped * 0.5, capped]
   const jitter = capped * (0.5 + random() * 0.5);
   return Math.round(jitter);
 }

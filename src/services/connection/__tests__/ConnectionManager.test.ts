@@ -143,6 +143,14 @@ describe('ConnectionManager', () => {
       await expect(promise).rejects.toThrow();
     });
 
+    it('rejects immediately if already disposed', async () => {
+      const { deps } = createDeps();
+      const manager = new ConnectionManager(deps);
+      manager.dispose();
+
+      await expect(manager.connectAndWait('ROOM1', 'USER1')).rejects.toThrow('disposed');
+    });
+
     it('rejects old promise when called again before settling', async () => {
       const { transport, deps } = createDeps();
       const manager = new ConnectionManager(deps);

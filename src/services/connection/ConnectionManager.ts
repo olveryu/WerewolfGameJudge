@@ -133,6 +133,11 @@ export class ConnectionManager {
       return;
     }
 
+    // Disposed — no recovery possible, reject immediately
+    if (this.#ctx.state === ConnectionState.Disposed) {
+      throw new Error('Cannot connect: ConnectionManager is disposed');
+    }
+
     return new Promise<void>((resolve, reject) => {
       // Settle any pending connectAndWait before creating a new one (P2)
       this.#settleConnectWait(new Error('Superseded by new connectAndWait'));

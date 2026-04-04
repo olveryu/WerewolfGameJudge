@@ -23,7 +23,7 @@ export enum ConnectionState {
   Disconnected = 'Disconnected',
   /** 正在重连（WS + fetch） */
   Reconnecting = 'Reconnecting',
-  /** 重连次数耗尽，需要手动干预 */
+  /** 重连次数耗尽，等待手动干预或网络恢复 */
   Failed = 'Failed',
   /** 已销毁，不再接受任何事件 */
   Disposed = 'Disposed',
