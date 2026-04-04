@@ -36,7 +36,7 @@ import {
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ConnectionStateListener = (state: ConnectionState) => void;
+type ConnectionStateListener = (state: ConnectionState) => void;
 
 export interface ConnectionManagerDeps {
   /** WebSocket 传输层（IRealtimeTransport） */

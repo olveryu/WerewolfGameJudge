@@ -12,7 +12,7 @@ const ROOM_MAX_AGE_HOURS = 24;
 const ANON_INACTIVE_DAYS = 14;
 const BATCH_LIMIT = 1000;
 
-export async function cleanupStaleRooms(env: Env): Promise<{ deleted: number }> {
+async function cleanupStaleRooms(env: Env): Promise<{ deleted: number }> {
   const result = await env.DB.prepare(
     `DELETE FROM rooms WHERE created_at < datetime('now', ? || ' hours')`,
   )
@@ -24,7 +24,7 @@ export async function cleanupStaleRooms(env: Env): Promise<{ deleted: number }> 
   return { deleted };
 }
 
-export async function cleanupAnonymousUsers(env: Env): Promise<{ deleted: number }> {
+async function cleanupAnonymousUsers(env: Env): Promise<{ deleted: number }> {
   const result = await env.DB.prepare(
     `DELETE FROM users
      WHERE id IN (

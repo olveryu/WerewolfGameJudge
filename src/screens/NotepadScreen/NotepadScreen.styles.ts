@@ -344,5 +344,3 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
     placeholderColor: colors.textMuted,
   };
 }
-
-export type NotepadScreenStyles = ReturnType<typeof createNotepadScreenStyles>;

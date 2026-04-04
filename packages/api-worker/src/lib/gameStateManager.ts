@@ -19,7 +19,7 @@ import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 /** processGameAction 回调的返回值 */
-export interface ProcessResult {
+interface ProcessResult {
   success: boolean;
   reason?: string;
   actions: StateAction[];

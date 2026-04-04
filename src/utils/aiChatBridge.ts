@@ -6,7 +6,7 @@
  * 不引入 React 组件、service 或游戏状态。
  */
 
-export interface AIChatBridgePayload {
+interface AIChatBridgePayload {
   /** 发送给 AI 的完整文本（含笔记内容 + prompt） */
   fullText: string;
   /** 在用户消息气泡中显示的简短文本 */

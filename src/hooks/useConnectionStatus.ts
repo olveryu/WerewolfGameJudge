@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 
-export interface ConnectionStatusState {
+interface ConnectionStatusState {
   connectionStatus: ConnectionStatus;
   lastStateReceivedAt: number | null;
   setLastStateReceivedAt: (ts: number | null) => void;

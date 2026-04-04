@@ -50,5 +50,3 @@ export const createStyles = (colors: ThemeColors) => ({
   ...createBubbleStyles(colors, BUBBLE_HEIGHT, BUBBLE_WIDTH),
   ...createChatStyles(colors, CHAT_WIDTH),
 });
-
-export type ChatStyles = ReturnType<typeof createStyles>;

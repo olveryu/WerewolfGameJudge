@@ -14,7 +14,7 @@ import type { NotepadState } from '@/hooks/useNotepad';
 const MAX_SUMMARY_LENGTH = 1500;
 
 /** 记录者自身身份信息 */
-export interface NotepadRoleInfo {
+interface NotepadRoleInfo {
   seat: number;
   roleName: string;
 }

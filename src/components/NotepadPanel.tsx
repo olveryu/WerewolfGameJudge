@@ -30,7 +30,7 @@ import { fixed } from '@/theme';
 
 // ── NotepadStyles（NotepadPanel 依赖此类型） ─────────────
 
-export interface NotepadStyles {
+interface NotepadStyles {
   container: ViewStyle;
   list: ViewStyle;
   listContent: ViewStyle;

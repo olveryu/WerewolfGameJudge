@@ -13,7 +13,7 @@ const SALT_BYTES = 16;
 const HASH_BYTES = 32;
 
 /** 密码验证结果，携带 rehash 信号供调用方更新 DB */
-export interface VerifyResult {
+interface VerifyResult {
   valid: boolean;
   /** 如果为 true，调用方应将 newHash 写回 DB 替换旧的 bcrypt hash */
   needsRehash: boolean;

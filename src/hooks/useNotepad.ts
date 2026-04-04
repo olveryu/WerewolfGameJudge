@@ -40,7 +40,7 @@ export interface NotepadState {
   publicNoteRight: string;
 }
 
-export interface UseNotepadReturn {
+interface UseNotepadReturn {
   state: NotepadState;
   playerCount: number;
   roleTags: readonly RoleTagInfo[];
