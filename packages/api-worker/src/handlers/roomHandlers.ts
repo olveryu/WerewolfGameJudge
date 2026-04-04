@@ -32,7 +32,6 @@ export async function handleCreateRoom(request: Request, env: Env): Promise<Resp
     sql =
       'INSERT INTO rooms (id, code, host_id, game_state, state_revision) VALUES (?, ?, ?, ?, 1)';
     params.push(JSON.stringify(body.initialState));
-    params.push('1');
   }
 
   try {
