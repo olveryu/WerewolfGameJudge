@@ -4,7 +4,7 @@
  * Orchestrates 6 sub-hooks into a single flat interface:
  * - useRoomLifecycle: room creation/joining/leaving + seat management
  * - useGameActions: game control + night actions
- * - useConnectionSync: connection status + Player auto-recovery
+ * - useConnectionStatus: connection status subscription (FSM-driven)
  * - useBgmControl: BGM state management
  * - useDebugMode: debug bot control
  * - useNightDerived: pure night-phase derivations
@@ -31,12 +31,12 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { ConnectionStatus, IGameFacade } from '@/services/types/IGameFacade';
 import type { RoomRecord } from '@/services/types/IRoomService';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { setAlertBlocked, showAlert } from '@/utils/alert';
+import { setAlertBlocked } from '@/utils/alert';
 import { gameRoomLog } from '@/utils/logger';
 
 import { toLocalState } from './adapters/toLocalState';
 import { useBgmControl } from './useBgmControl';
-import { useConnectionSync } from './useConnectionSync';
+import { useConnectionStatus } from './useConnectionStatus';
 import { useDebugMode } from './useDebugMode';
 import { useGameActions } from './useGameActions';
 import { useNightDerived } from './useNightDerived';
@@ -82,7 +82,7 @@ interface UseGameRoomResult {
   currentSchema: ActionSchema | null;
   currentStepId: SchemaId | null;
 
-  // Connection (from useConnectionSync)
+  // Connection (from useConnectionStatus)
   connectionStatus: ConnectionStatus;
 
   // Sync status
@@ -143,7 +143,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const isFocused = useIsFocused();
   const { user } = useAuthContext();
 
-  // roomRecord is owned here so both useConnectionSync and useRoomLifecycle can use it
+  // roomRecord is owned here so useRoomLifecycle can set it and screens can read it
   const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
 
   // =========================================================================
@@ -162,27 +162,8 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Sub-hooks
   // =========================================================================
 
-  const handleDeadChannelExhausted = useCallback(
-    ({ attempt, roomNumber }: { attempt: number; roomNumber: string }) => {
-      gameRoomLog.warn('Dead channel retries exhausted, showing manual recovery alert', {
-        attempt,
-        roomNumber,
-      });
-      showAlert('连接恢复失败', '网络恢复多次重试仍未成功，请点击“立即重连”再次尝试。', [
-        { text: '稍后再试', style: 'cancel' },
-        {
-          text: '立即重连',
-          onPress: () => {
-            void facade.reconnectChannel('deadChannel');
-          },
-        },
-      ]);
-    },
-    [facade],
-  );
-
-  // Connection status + foreground DB fetch
-  const connection = useConnectionSync(facade, roomRecord, handleDeadChannelExhausted);
+  // Connection status subscription (FSM-driven)
+  const connection = useConnectionStatus(facade);
 
   // Rejoin overlay state: shown when Host rejoins an ongoing game
   const [showContinueOverlay, setShowContinueOverlay] = useState(false);
@@ -258,7 +239,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     facade,
     authService,
     roomService,
-    connection,
     setRoomRecord,
   });
 

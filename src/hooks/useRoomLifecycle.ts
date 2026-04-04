@@ -20,14 +20,11 @@ import { useCallback, useState } from 'react';
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { IRoomService } from '@/services/types/IRoomService';
 import type { RoomRecord } from '@/services/types/IRoomService';
 import { handleError } from '@/utils/errorPipeline';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { gameRoomLog } from '@/utils/logger';
-
-import type { ConnectionSyncActions } from './useConnectionSync';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -64,7 +61,6 @@ interface RoomLifecycleDeps {
   facade: IGameFacade;
   authService: IAuthService;
   roomService: IRoomService;
-  connection: ConnectionSyncActions;
   setRoomRecord: (record: RoomRecord | null) => void;
 }
 
@@ -73,13 +69,7 @@ interface RoomLifecycleDeps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
-  const {
-    facade,
-    authService,
-    roomService,
-    connection: { setConnectionStatus },
-    setRoomRecord,
-  } = deps;
+  const { facade, authService, roomService, setRoomRecord } = deps;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -294,20 +284,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   // Force sync: read latest state from DB (reliable, bypasses broadcast channel)
   const requestSnapshot = useCallback(async (): Promise<boolean> => {
     try {
-      setConnectionStatus(ConnectionStatus.Syncing);
-      const result = await facade.fetchStateFromDB();
-      if (result) {
-        setConnectionStatus(ConnectionStatus.Live);
-      } else {
-        setConnectionStatus(ConnectionStatus.Disconnected);
-      }
-      return result;
+      return await facade.fetchStateFromDB();
     } catch (err) {
       handleError(err, { label: '同步状态', logger: gameRoomLog, alertTitle: false });
-      setConnectionStatus(ConnectionStatus.Disconnected);
       return false;
     }
-  }, [facade, setConnectionStatus]);
+  }, [facade]);
 
   // Clear seat error (BUG-2 fix)
   const clearLastSeatError = useCallback(() => {

@@ -33,11 +33,15 @@ jest.mock('../../infra/AudioService', () => ({
 
 describe('restartGame Contract (HTTP API)', () => {
   let facade: GameFacade;
-  let mockRealtimeService: {
-    joinRoom: jest.Mock;
-    leaveRoom: jest.Mock;
-    markAsLive: jest.Mock;
-    addStatusListener: jest.Mock;
+  let mockConnectionManager: {
+    connectAndWait: jest.Mock;
+    connect: jest.Mock;
+    dispose: jest.Mock;
+    manualReconnect: jest.Mock;
+    addStateListener: jest.Mock;
+    updateRevision: jest.Mock;
+    getState: jest.Mock;
+    getContext: jest.Mock;
   };
 
   const originalFetch = global.fetch;
@@ -50,17 +54,21 @@ describe('restartGame Contract (HTTP API)', () => {
   };
 
   beforeEach(async () => {
-    mockRealtimeService = {
-      joinRoom: jest.fn().mockResolvedValue(undefined),
-      leaveRoom: jest.fn().mockResolvedValue(undefined),
-      markAsLive: jest.fn(),
-      addStatusListener: jest.fn().mockReturnValue(() => {}),
+    mockConnectionManager = {
+      connectAndWait: jest.fn().mockResolvedValue(undefined),
+      connect: jest.fn(),
+      dispose: jest.fn(),
+      manualReconnect: jest.fn(),
+      addStateListener: jest.fn().mockReturnValue(() => {}),
+      updateRevision: jest.fn(),
+      getState: jest.fn().mockReturnValue('Idle'),
+      getContext: jest.fn(),
     };
 
     // DI: 直接注入 mock
     facade = new GameFacade({
       store: new GameStore(),
-      realtimeService: mockRealtimeService as any,
+      connectionManager: mockConnectionManager as any,
       audioService: {
         playNightAudio: jest.fn().mockResolvedValue(undefined),
         playNightEndAudio: jest.fn().mockResolvedValue(undefined),

@@ -253,12 +253,6 @@ export interface IGameFacade {
   fetchStateFromDB(): Promise<boolean>;
 
   /**
-   * 轻量级 revision 比对：从 DB 读 state_revision，若落后则 fetchStateFromDB。
-   * 由 useConnectionSync 5s 轮询调用，用于检测遗漏的广播消息。
-   */
-  checkRevision(): Promise<void>;
-
-  /**
    * Host rejoin 后是否有音频被中断
    */
   readonly wasAudioInterrupted: boolean;
@@ -278,15 +272,8 @@ export interface IGameFacade {
   addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void;
 
   /**
-   * Dead Channel Recovery: 销毁死掉的 WebSocket 连接并重建。
-   * 当 L1 自动重连耗尽后 Disconnected 状态持续，
-   * 由 useConnectionSync 的 dead channel detector 自动触发。
-   * 内部流程：rejoinCurrentRoom → fetchStateFromDB → markAsLive。
-   *
-   * @param trigger - 触发来源，用于可观测性日志
+   * Manual reconnect: 用户点击"重连"按钮时调用。
+   * 委托给 ConnectionManager FSM 触发 MANUAL_RECONNECT 事件。
    */
-  reconnectChannel(trigger?: ReconnectTrigger): Promise<void>;
+  manualReconnect(): void;
 }
-
-/** Trigger source for reconnectChannel — used in observability logs */
-export type ReconnectTrigger = 'deadChannel' | 'foreground' | 'online';

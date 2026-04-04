@@ -15,7 +15,7 @@ import type { AudioEffect } from '@werewolf/game-engine/protocol/types';
 import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverride';
 
 import type { AudioService } from '@/services/infra/AudioService';
-import type { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
 
@@ -98,7 +98,7 @@ export class AudioOrchestrator {
 
     // L2: Retry — 断线期间 postAudioAck 失败 → 重连 live 后重播音频 + 重试 ack
     this.#unsubscribeStatus = deps.addStatusListener((status) => {
-      if (status !== ('Live' as ConnectionStatus)) return;
+      if (status !== ConnectionStatus.Live) return;
       if (!deps.isHost()) return;
       if (!this.#pendingAudioAckRetry) return;
       this.#unregisterOnlineRetry();

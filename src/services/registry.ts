@@ -11,11 +11,11 @@ import { CFAuthService } from '@/services/cloudflare/CFAuthService';
 import { CFRealtimeService } from '@/services/cloudflare/CFRealtimeService';
 import { CFRoomService } from '@/services/cloudflare/CFRoomService';
 import { CFStorageService } from '@/services/cloudflare/CFStorageService';
+import { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { GameFacade } from '@/services/facade/GameFacade';
 import { SettingsService } from '@/services/feature/SettingsService';
 import { AudioService } from '@/services/infra/AudioService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
-import type { IRealtimeService } from '@/services/types/IRealtimeService';
 
 /**
  * 顶层入口：创建全部 services + facade。
@@ -31,7 +31,16 @@ export function createAllServices(): {
   const audioService = new AudioService();
   // CFStorageService reads token from cfFetch's tokenProvider (set by CFAuthService constructor)
   const avatarUploadService = new CFStorageService();
-  const realtimeService: IRealtimeService = new CFRealtimeService();
+
+  const store = new GameStore();
+  const transport = new CFRealtimeService();
+  const connectionManager = new ConnectionManager({
+    transport,
+    fetchStateFromDB: async (roomCode) => roomService.getGameState(roomCode),
+    getStateRevision: async (roomCode) => roomService.getStateRevision(roomCode),
+    onStateUpdate: (state, revision) => store.applySnapshot(state, revision),
+    onFetchedState: (state, revision) => store.applySnapshot(state, revision),
+  });
 
   const services: ServiceContextValue = {
     authService,
@@ -42,8 +51,8 @@ export function createAllServices(): {
   };
 
   const facade = new GameFacade({
-    store: new GameStore(),
-    realtimeService,
+    store,
+    connectionManager,
     audioService,
     roomService,
   });

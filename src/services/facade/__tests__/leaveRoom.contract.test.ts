@@ -29,18 +29,22 @@ const mockAudio = () =>
     clearPreloaded: jest.fn(),
   }) as any;
 
-const mockRealtimeService = () =>
+const mockConnectionManager = () =>
   ({
-    joinRoom: jest.fn().mockResolvedValue(undefined),
-    leaveRoom: jest.fn().mockResolvedValue(undefined),
-    markAsLive: jest.fn(),
-    addStatusListener: jest.fn().mockReturnValue(() => {}),
+    connectAndWait: jest.fn().mockResolvedValue(undefined),
+    connect: jest.fn(),
+    dispose: jest.fn(),
+    manualReconnect: jest.fn(),
+    addStateListener: jest.fn().mockReturnValue(() => {}),
+    updateRevision: jest.fn(),
+    getState: jest.fn().mockReturnValue('Idle'),
+    getContext: jest.fn(),
   }) as any;
 
 const createTestFacade = () =>
   new GameFacade({
     store: new GameStore(),
-    realtimeService: mockRealtimeService(),
+    connectionManager: mockConnectionManager(),
     audioService: mockAudio(),
     roomService: {
       upsertGameState: jest.fn().mockResolvedValue(undefined),

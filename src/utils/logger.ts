@@ -66,6 +66,7 @@ export const authLog = log.extend('Auth');
 export const roomLog = log.extend('Room');
 export const gameRoomLog = log.extend('GameRoom');
 export const connectionSyncLog = log.extend('ConnectionSync');
+export const connectionLog = log.extend('Connection');
 export const configLog = log.extend('Config');
 export const roomScreenLog = log.extend('RoomScreen');
 export const homeLog = log.extend('Home');

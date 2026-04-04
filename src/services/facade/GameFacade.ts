@@ -6,7 +6,7 @@
  * - 管理生命周期和身份状态
  * - 对外暴露统一的 public API
  * - 委托音频编排给 AudioOrchestrator
- * - 委托断线恢复给 ConnectionRecoveryManager
+ * - 委托连接生命周期给 ConnectionManager
  *
  * 实例化方式：
  * - 由 composition root（App.tsx）通过 `new GameFacade(deps)` 创建
@@ -20,7 +20,7 @@
  * - gameActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction）
  * - seatActions.ts: 座位操作编排（takeSeat/leaveSeat + player ACK 等待逻辑）
  * - AudioOrchestrator.ts: Host 音频编排 + ack 重试
- * - ConnectionRecoveryManager.ts: 通用断线恢复（L1/L3）
+ * - ConnectionManager: FSM 驱动的连接生命周期（重连/ping/pong/revision poll）
  */
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
@@ -30,22 +30,17 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { randomHex } from '@werewolf/game-engine/utils/id';
 
+import type { ConnectionManager } from '@/services/connection/ConnectionManager';
+import { ConnectionState } from '@/services/connection/types';
 import { AudioService } from '@/services/infra/AudioService';
-import type {
-  FacadeStateListener,
-  IGameFacade,
-  ReconnectTrigger,
-} from '@/services/types/IGameFacade';
+import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
-import type { IRealtimeService } from '@/services/types/IRealtimeService';
 import type { IRoomService } from '@/services/types/IRoomService';
 import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
 
 import { AudioOrchestrator } from './AudioOrchestrator';
-import { ConnectionRecoveryManager } from './ConnectionRecoveryManager';
 // 子模块
 import type { GameActionsContext } from './gameActions';
 import * as gameActions from './gameActions';
@@ -61,21 +56,38 @@ import * as seatActions from './seatActions';
 interface GameFacadeDeps {
   /** GameStore 实例 */
   store: GameStore;
-  /** RealtimeService 实例 */
-  realtimeService: IRealtimeService;
+  /** ConnectionManager 实例（FSM 驱动的连接生命周期） */
+  connectionManager: ConnectionManager;
   /** AudioService 实例 */
   audioService: AudioService;
   /** RoomService 实例（DB state 持久化） */
   roomService: IRoomService;
 }
 
+/** Map internal ConnectionState → UI ConnectionStatus */
+function mapConnectionStatus(state: ConnectionState): ConnectionStatus {
+  switch (state) {
+    case ConnectionState.Connecting:
+    case ConnectionState.Reconnecting:
+      return ConnectionStatus.Connecting;
+    case ConnectionState.Syncing:
+      return ConnectionStatus.Syncing;
+    case ConnectionState.Connected:
+      return ConnectionStatus.Live;
+    case ConnectionState.Idle:
+    case ConnectionState.Disconnected:
+    case ConnectionState.Failed:
+    case ConnectionState.Disposed:
+      return ConnectionStatus.Disconnected;
+  }
+}
+
 export class GameFacade implements IGameFacade {
   readonly #store: GameStore;
-  readonly #realtimeService: IRealtimeService;
+  readonly #connectionManager: ConnectionManager;
   readonly #audioService: AudioService;
   readonly #roomService: IRoomService;
   readonly #audioOrchestrator: AudioOrchestrator;
-  readonly #connectionRecovery: ConnectionRecoveryManager;
   #isHost = false;
   #myUid: string | null = null;
   /** Cached roomCode: survives store.reset(), used by fetchStateFromDB fallback */
@@ -89,25 +101,11 @@ export class GameFacade implements IGameFacade {
   #aborted = false;
 
   /**
-   * Promise dedup: prevents concurrent reconnectChannel() calls from trampling each other.
-   * Multiple triggers (Dead Channel Detector, foreground handler, online handler) can fire
-   * simultaneously — only the first creates the actual reconnect; others await the same promise.
-   * Auto-cleared in .finally().
-   */
-  #reconnectPromise: Promise<void> | null = null;
-
-  /**
-   * Session ID: generated per joinRoom/createRoom, used in all reconnection logs
-   * to correlate events belonging to the same connection session.
-   */
-  #sessionId: string | null = null;
-
-  /**
    * @param deps - 必须由 composition root 或测试显式提供所有依赖。
    */
   constructor(deps: GameFacadeDeps) {
     this.#store = deps.store;
-    this.#realtimeService = deps.realtimeService;
+    this.#connectionManager = deps.connectionManager;
     this.#audioService = deps.audioService;
     this.#roomService = deps.roomService;
 
@@ -115,16 +113,10 @@ export class GameFacade implements IGameFacade {
     this.#audioOrchestrator = new AudioOrchestrator({
       store: deps.store,
       audioService: deps.audioService,
-      addStatusListener: (fn) => deps.realtimeService.addStatusListener(fn),
+      addStatusListener: (fn) => this.addConnectionStatusListener(fn),
       getActionsContext: () => this.#getActionsContext(),
       isHost: () => this.#isHost,
       isAborted: () => this.#aborted,
-    });
-
-    // Connection recovery: L1 WS reconnect → fetchStateFromDB
-    this.#connectionRecovery = new ConnectionRecoveryManager({
-      addStatusListener: (fn) => deps.realtimeService.addStatusListener(fn),
-      fetchStateFromDB: () => this.fetchStateFromDB(),
     });
   }
 
@@ -192,69 +184,18 @@ export class GameFacade implements IGameFacade {
   }
 
   addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void {
-    return this.#realtimeService.addStatusListener(fn);
+    return this.#connectionManager.addStateListener((state) => {
+      fn(mapConnectionStatus(state));
+    });
   }
 
   /**
-   * Dead Channel Recovery.
-   *
-   * Tears down the dead WebSocket connection, creates a fresh one with
-   * the same room/callbacks, then fetches latest state from DB.
-   * Called by useConnectionSync when Disconnected persists beyond threshold.
-   *
-   * Promise dedup: multiple triggers can fire concurrently (Dead Channel Detector,
-   * foreground handler, online handler). Only the first creates the actual reconnect;
-   * subsequent callers await the same promise to avoid WebSocket trampling.
+   * Manual reconnect: user clicked "reconnect" button.
+   * Delegates to ConnectionManager FSM (MANUAL_RECONNECT event).
    */
-  async reconnectChannel(trigger?: ReconnectTrigger): Promise<void> {
+  manualReconnect(): void {
     if (this.#aborted) return;
-    if (this.#reconnectPromise) {
-      facadeLog.info('reconnectChannel: already in progress, deduping', {
-        trigger,
-        sessionId: this.#sessionId,
-      });
-      return this.#reconnectPromise;
-    }
-    this.#reconnectPromise = this.#doReconnectChannel(trigger).finally(() => {
-      this.#reconnectPromise = null;
-    });
-    return this.#reconnectPromise;
-  }
-
-  async #doReconnectChannel(trigger?: ReconnectTrigger): Promise<void> {
-    const layer =
-      trigger === 'deadChannel'
-        ? 'L5'
-        : trigger === 'foreground'
-          ? 'L4'
-          : trigger === 'online'
-            ? 'L3'
-            : undefined;
-    const startMs = Date.now();
-    facadeLog.info('reconnectChannel: starting dead channel recovery', {
-      trigger,
-      layer,
-      sessionId: this.#sessionId,
-    });
-    try {
-      await this.#realtimeService.rejoinCurrentRoom();
-      await this.fetchStateFromDB();
-      facadeLog.info('reconnectChannel: recovery complete', {
-        trigger,
-        layer,
-        elapsed: Date.now() - startMs,
-        sessionId: this.#sessionId,
-      });
-    } catch (e) {
-      facadeLog.error('reconnectChannel: recovery failed', {
-        trigger,
-        layer,
-        elapsed: Date.now() - startMs,
-        sessionId: this.#sessionId,
-        error: e,
-      });
-      throw e;
-    }
+    this.#connectionManager.manualReconnect();
   }
 
   /**
@@ -277,10 +218,7 @@ export class GameFacade implements IGameFacade {
 
   async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     this.#aborted = false;
-    this.#reconnectPromise = null;
-    this.#sessionId = randomHex(8);
     this.#audioOrchestrator.reset();
-    this.#connectionRecovery.reset();
     this.#isHost = true;
     this.#myUid = hostUid;
     this.#roomCode = roomCode;
@@ -289,24 +227,15 @@ export class GameFacade implements IGameFacade {
     const initialState = buildInitialGameState(roomCode, hostUid, template);
     this.#store.initialize(initialState);
 
-    // 加入频道（所有客户端统一监听 WS STATE_UPDATE）
-    await this.#realtimeService.joinRoom(roomCode, hostUid, {
-      onDbStateChange: (state: GameState, revision: number) => {
-        this.#store.applySnapshot(state, revision);
-        this.#realtimeService.markAsLive();
-      },
-    });
-
-    // 新建房间无需从 DB 读快照（本地已初始化），channel 已 SUBSCRIBED，直接标记 Live
-    this.#realtimeService.markAsLive();
+    // 连接 WS + 等待 Connected（FSM: Idle → Connecting → Syncing → Connected）
+    await this.#connectionManager.connectAndWait(roomCode, hostUid);
   }
 
   /**
    * 加入已有房间（Host rejoin + Player join 统一入口）
    *
-   * 社区标准模式 "subscribe first, then fetch"：
-   * 先订阅频道（不丢事件），再从 DB 读取初始状态。
-   * Host rejoin 预设 #wasAudioInterrupted guard 阻断订阅期间可能到达的 pendingAudioEffects。
+   * connectAndWait() 会 WS 连接 + 自动 fetchDB（FSM Syncing → Connected）。
+   * Host rejoin 预设 #wasAudioInterrupted guard 阻断 reactive 误播。
    *
    * @returns success=false 仅在 Host rejoin 且无 DB 状态时
    */
@@ -316,38 +245,26 @@ export class GameFacade implements IGameFacade {
     isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }> {
     this.#aborted = false;
-    this.#reconnectPromise = null;
-    this.#sessionId = randomHex(8);
     this.#audioOrchestrator.reset();
-    this.#connectionRecovery.reset();
     this.#isHost = isHost;
     this.#myUid = uid;
     this.#roomCode = roomCode;
     this.#store.reset();
 
     // Host rejoin: 预设 guard，阻断 subscribe 阶段收到 pendingAudioEffects 时 reactive 误播
-    // （非 ongoing 状态无 pendingAudioEffects，pre-set 无害；DB fetch 后按实际状态修正）
     if (isHost) this.#audioOrchestrator.setWasAudioInterrupted(true);
 
-    // 1. Subscribe first（社区标准：不丢 gap 期间的事件）
-    await this.#realtimeService.joinRoom(roomCode, uid, {
-      onDbStateChange: (state: GameState, revision: number) => {
-        this.#store.applySnapshot(state, revision);
-        this.#realtimeService.markAsLive();
-      },
-    });
+    // connectAndWait: WS 连接 + fetchDB + 等待 Connected
+    // FSM 的 Syncing 阶段会自动 fetchDB → onFetchedState → store.applySnapshot
+    await this.#connectionManager.connectAndWait(roomCode, uid);
 
-    // 2. Then fetch（统一 Host/Player 路径）
-    const dbState = await this.#roomService.getGameState(roomCode);
+    // After connectAndWait, store should have state from DB (if any)
+    const dbState = this.#store.getState();
 
     if (dbState) {
       if (isHost) {
-        // 在 applySnapshot 之前修正：applySnapshot 同步触发 listener，
-        // listener 检查 wasAudioInterrupted 决定是否弹 overlay。
-        this.#audioOrchestrator.setWasAudioInterrupted(dbState.state.status === GameStatus.Ongoing);
+        this.#audioOrchestrator.setWasAudioInterrupted(dbState.status === GameStatus.Ongoing);
       }
-      this.#store.applySnapshot(dbState.state, dbState.revision);
-      this.#realtimeService.markAsLive();
     } else if (isHost) {
       // Host rejoin 无 DB 状态：无法恢复
       this.#audioOrchestrator.setWasAudioInterrupted(false);
@@ -355,9 +272,6 @@ export class GameFacade implements IGameFacade {
       this.#myUid = null;
       return { success: false, reason: 'no_db_state' };
     }
-    // Player 无 DB 状态：正常 — 状态将通过 broadcast 到达
-    // 但必须 markAsLive，否则 connectionStatus 卡在 'syncing'，auto-heal 无法触发
-    this.#realtimeService.markAsLive();
 
     return { success: true };
   }
@@ -395,10 +309,7 @@ export class GameFacade implements IGameFacade {
   async leaveRoom(): Promise<void> {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this.#aborted = true;
-    this.#reconnectPromise = null;
-    this.#sessionId = null;
     this.#audioOrchestrator.reset();
-    this.#connectionRecovery.dispose();
 
     // 不自动离座——玩家回到房间时按 UID 恢复原座位
 
@@ -406,7 +317,7 @@ export class GameFacade implements IGameFacade {
     this.#audioService.stop();
     this.#audioService.clearPreloaded();
 
-    await this.#realtimeService.leaveRoom();
+    this.#connectionManager.dispose();
     this.#store.reset();
     this.#myUid = null;
     this.#isHost = false;
@@ -633,39 +544,13 @@ export class GameFacade implements IGameFacade {
       const dbState = await this.#roomService.getGameState(roomCode);
       if (dbState) {
         this.#store.applySnapshot(dbState.state, dbState.revision);
-        this.#realtimeService.markAsLive();
+        this.#connectionManager.updateRevision(dbState.revision);
         return true;
       }
       return false;
     } catch (e) {
       handleError(e, { label: 'fetchStateFromDB', logger: facadeLog, alertTitle: false });
       return false;
-    }
-  }
-
-  /**
-   * 轻量级 revision 比对：从 DB 读 state_revision，若落后则 fetchStateFromDB。
-   * 由 useConnectionSync 5s 轮询调用，用于检测遗漏的广播消息。
-   */
-  async checkRevision(): Promise<void> {
-    const roomCode = this.#store.getState()?.roomCode ?? this.#roomCode;
-    if (!roomCode) return;
-
-    try {
-      const dbRevision = await this.#roomService.getStateRevision(roomCode);
-      if (dbRevision == null) return;
-
-      const localRevision = this.#store.getRevision();
-      if (dbRevision > localRevision) {
-        facadeLog.info('Revision drift detected, fetching full state from DB', {
-          localRevision,
-          dbRevision,
-        });
-        await this.fetchStateFromDB();
-      }
-    } catch (e) {
-      // Polling failure is non-critical — log and continue
-      facadeLog.warn('checkRevision failed:', e);
     }
   }
 
