@@ -104,6 +104,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Build game-engine (api-worker dependency)
+        run: pnpm --filter @werewolf/game-engine run build
+
       - name: Deploy API Worker
         uses: cloudflare/wrangler-action@v3
         with:
