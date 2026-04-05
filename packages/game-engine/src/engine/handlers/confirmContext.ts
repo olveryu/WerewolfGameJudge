@@ -11,7 +11,11 @@
  * - 纯函数：不 IO、不读外部、不写 state
  * - 与 witchContext.ts 对称：step-entry context，在步骤开始前就位
  *
- * 可读取 currentNightResults.poisonedSeat 判断是否被毒，不包含 IO（网络 / 音频 / Alert）。
+ * canShoot 判定：仅被狼人袭击或公投放逐出局时可发动。以下夜间死法均不能开枪：
+ * - 被女巫/毒师毒杀
+ * - 丘比特殉情（搭档夜间死亡）
+ * - 摄梦连锁死亡（摄梦人夜间死亡 → 梦游者连带死亡）
+ * - 狼美人魅惑连锁（狼美人夜间死亡 → 被魅惑者连带死亡）
  */
 
 import { type SchemaId } from '../../models/roles/spec';
@@ -47,25 +51,35 @@ function deriveConfirmStepRoleMap(): Record<string, ConfirmRole> {
 const CONFIRM_STEP_ROLE: Record<string, ConfirmRole> = deriveConfirmStepRoleMap();
 
 /**
+ * 判断某座位夜间是否可以开枪（仅被狼人袭击或公投放逐出局时可发动）。
+ *
+ * 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
+ * 供 confirmContext（猎人/黑狼王）和 actionHandler（wolfRobot 学到猎人）共用。
+ */
+export function computeCanShootForSeat(seat: number, state: NonNullState): boolean {
+  const results = state.currentNightResults;
+  return (
+    results?.poisonedSeat !== seat &&
+    !isCoupleDeathVictim(seat, state) &&
+    !isDreamLinkedDeath(seat, state) &&
+    !isWolfQueenCharmVictim(seat, state)
+  );
+}
+
+/**
  * 计算 confirmStatus（纯函数）
  *
- * 猎人/黑狼王：被女巫毒杀的角色不能发动技能（canShoot = false）。
- * 复仇者：阵营由 shadow resolver 预计算存入 currentNightResults.avengerFaction，此处直接读取。
- *   影子模仿好人 → 影子变好人阵营 → 复仇者为狼人阵营（faction = Team.Wolf）
- *   影子模仿狼人 → 影子变狼人阵营 → 复仇者为好人阵营（faction = Team.Good）
- *   影子未选人（被梦魇封锁/不在模板中）→ 兜底好人阵营（faction = Team.Good）
- *   影子模仿复仇者 → 绑定，同属第三方阵营（faction = Team.Third）
+ * 猎人/黑狼王：仅被狼人袭击或公投放逐出局时可发动。
+ * 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
  *
- * @param role 角色 ID
- * @param state 当前游戏状态
- * @returns ConfirmStatus (discriminated by role)
+ * 复仇者：阵营由 shadow resolver 预计算存入 currentNightResults.avengerFaction，此处直接读取。
  */
 function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmStatus {
   if (role === 'avenger') {
     return computeAvengerConfirmStatus(state);
   }
 
-  // Hunter / DarkWolfKing: poisoned → can't shoot
+  // Hunter / DarkWolfKing
   const roleSeat = findSeatByRole(state.players, role);
 
   // Fail-closed: 如果找不到角色座位，canShoot = false（异常态不应发技能）
@@ -73,11 +87,7 @@ function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmSt
     return { role, canShoot: false };
   }
 
-  const poisonedSeat = state.currentNightResults?.poisonedSeat;
-  // 殉情不能开枪：情侣一方死亡导致另一方殉情时，殉情方不能开枪
-  const canShoot = poisonedSeat !== roleSeat && !isCoupleDeathVictim(roleSeat, state);
-
-  return { role, canShoot };
+  return { role, canShoot: computeCanShootForSeat(roleSeat, state) };
 }
 
 /**
@@ -93,31 +103,73 @@ function computeAvengerConfirmStatus(state: NonNullState): ConfirmStatus {
   };
 }
 
+// =============================================================================
+// 夜间非正常死亡判定（canShoot = false 的条件）
+// =============================================================================
+
+/**
+ * 判断某座位是否会在夜间死亡（被狼刀且未被救/被毒杀）。
+ *
+ * 仅用于连锁死亡判断的子条件。
+ * 在 hunterConfirm / darkWolfKingConfirm 步骤时调用（此时 wolf/witch 已行动）。
+ */
+function willDieTonight(seat: number, state: NonNullState): boolean {
+  const results = state.currentNightResults;
+
+  // 被毒杀
+  if (results?.poisonedSeat === seat) return true;
+
+  // 被狼刀且未被女巫救
+  const wolfKillTarget = state.witchContext?.killedSeat;
+  if (wolfKillTarget !== undefined && wolfKillTarget >= 0 && wolfKillTarget === seat) {
+    if (results?.savedSeat === seat) return false;
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * 判断该座位是否会因情侣殉情而死亡。
  *
- * 检查该座位是否为情侣之一，且搭档是否会被狼人击杀（未获救）或被毒杀。
- * 仅在 hunterConfirm / darkWolfKingConfirm 步骤时调用（此时 wolf/witch 已行动）。
+ * 检查该座位是否为情侣之一，且搭档是否会在夜间死亡。
  */
 function isCoupleDeathVictim(seat: number, state: NonNullState): boolean {
   const loverSeats = state.loverSeats;
   if (!loverSeats || !loverSeats.includes(seat)) return false;
 
   const partnerSeat = loverSeats[0] === seat ? loverSeats[1] : loverSeats[0];
+  return willDieTonight(partnerSeat, state);
+}
+
+/**
+ * 判断该座位是否会因摄梦连锁而死亡。
+ *
+ * 条件：该座位是摄梦目标（dreamingSeat）且摄梦人当夜会死亡。
+ */
+function isDreamLinkedDeath(seat: number, state: NonNullState): boolean {
   const results = state.currentNightResults;
+  if (results?.dreamingSeat !== seat) return false;
 
-  // Partner poisoned → will die → 殉情
-  if (results?.poisonedSeat === partnerSeat) return true;
+  const dreamcatcherSeat = findSeatByRole(state.players, 'dreamcatcher');
+  if (dreamcatcherSeat === null) return false;
 
-  // Partner killed by wolves (witchContext.killedSeat is the resolved wolf kill target, after guard)
-  const wolfKillTarget = state.witchContext?.killedSeat;
-  if (wolfKillTarget !== undefined && wolfKillTarget >= 0 && wolfKillTarget === partnerSeat) {
-    // Witch saved partner → partner survives → no 殉情
-    if (results?.savedSeat === partnerSeat) return false;
-    return true;
-  }
+  return willDieTonight(dreamcatcherSeat, state);
+}
 
-  return false;
+/**
+ * 判断该座位是否会因狼美人魅惑连锁而死亡。
+ *
+ * 条件：该座位是狼美人魅惑目标（charmedSeat）且狼美人当夜会死亡。
+ */
+function isWolfQueenCharmVictim(seat: number, state: NonNullState): boolean {
+  const results = state.currentNightResults;
+  if (results?.charmedSeat !== seat) return false;
+
+  const wolfQueenSeat = findSeatByRole(state.players, 'wolfQueen');
+  if (wolfQueenSeat === null) return false;
+
+  return willDieTonight(wolfQueenSeat, state);
 }
 
 /**

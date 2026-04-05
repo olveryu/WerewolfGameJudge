@@ -18,7 +18,7 @@ import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '../types'
 // Confirm Status (discriminated union, role tag)
 // =============================================================================
 
-/** 猎人/黑狼王：被毒则不能发动技能 */
+/** 猎人/黑狼王：仅被狼人袭击或公投放逐出局时可发动 */
 export interface ShootConfirmStatus {
   readonly role: 'hunter' | 'darkWolfKing';
   readonly canShoot: boolean;
@@ -248,7 +248,7 @@ export interface GameState {
   /**
    * Confirm status (discriminated by role).
    *
-   * - hunter / darkWolfKing → ShootConfirmStatus（canShoot：被毒则不能发动）
+   * - hunter / darkWolfKing → ShootConfirmStatus（canShoot：仅被狼人袭击或放逐时可发动）
    * - avenger → FactionConfirmStatus（faction：好人/狼人/绑定）
    *
    * Only display to that role via UI filter.

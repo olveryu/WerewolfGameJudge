@@ -48,6 +48,9 @@ export interface CurrentNightResults {
   /** Seat dreaming (protected by dreamcatcher) */
   readonly dreamingSeat?: number;
 
+  /** Seat charmed by wolfQueen (link death if wolfQueen dies at night) */
+  readonly charmedSeat?: number;
+
   /** Seats swapped by magician */
   readonly swappedSeats?: readonly [number, number];
 

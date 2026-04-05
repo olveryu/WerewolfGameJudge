@@ -21,6 +21,8 @@ function makeGameState(
     bottomCards: readonly RoleId[];
     bottomCardStepRoles: readonly RoleId[];
     treasureMasterChosenCard: RoleId;
+    witchContext: { killedSeat: number; canSave: boolean; canPoison: boolean };
+    loverSeats: readonly [number, number];
   }> = {},
 ): LocalGameState {
   return {
@@ -33,6 +35,8 @@ function makeGameState(
     bottomCards: overrides.bottomCards,
     bottomCardStepRoles: overrides.bottomCardStepRoles,
     treasureMasterChosenCard: overrides.treasureMasterChosenCard,
+    witchContext: overrides.witchContext,
+    loverSeats: overrides.loverSeats,
   } as unknown as LocalGameState;
 }
 
@@ -200,6 +204,63 @@ describe('NightReview.helpers', () => {
         makeGameState({ players, currentNightResults: { poisonedSeat: 2 } }),
       );
       expect(lines).toContainEqual(expect.stringContaining('黑狼王不能发动技能'));
+    });
+
+    it('shows hunter cannot shoot when dream-linked death (dreamcatcher killed)', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'hunter')],
+        [1, makePlayer(1, 'dreamcatcher')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          currentNightResults: { dreamingSeat: 0, poisonedSeat: 1 },
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('猎人不能发动技能'));
+    });
+
+    it('shows hunter can shoot when dream target but dreamcatcher alive', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'hunter')],
+        [1, makePlayer(1, 'dreamcatcher')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          currentNightResults: { dreamingSeat: 0 },
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('猎人可以发动技能'));
+    });
+
+    it('shows hunter cannot shoot when wolfQueen charm victim (wolfQueen killed)', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'hunter')],
+        [1, makePlayer(1, 'wolfQueen')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          currentNightResults: { charmedSeat: 0, poisonedSeat: 1 },
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('猎人不能发动技能'));
+    });
+
+    it('shows hunter cannot shoot when couple death (partner wolf-killed)', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'hunter')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          loverSeats: [0, 1],
+          witchContext: { killedSeat: 1, canSave: true, canPoison: true },
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('猎人不能发动技能'));
     });
   });
 

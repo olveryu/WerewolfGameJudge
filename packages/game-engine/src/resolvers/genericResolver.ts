@@ -8,7 +8,7 @@
  * - writeSlot: 写入 CurrentNightResults 槽位（guard/dreamcatcher/silenceElder/votebanElder/wolfQueen）
  * - chooseIdol: 选择榜样（slacker/wildChild）
  * - check: 查验阵营/身份（seer family/psychic/gargoyle/wolfWitch/pureWhite）
- * - charm: 魅惑目标（wolfQueen — writeSlot 的语义变体）
+ * - charm: 魅惑目标（wolfQueen — writeSlot charmedSeat + result）
  * - block: 封锁目标技能（nightmare）
  * - learn: 学习目标身份和技能（wolfRobot）
  * - confirm: 确认类（hunter/darkWolfKing/avenger）
@@ -86,7 +86,7 @@ function processWriteSlot(
 }
 
 /**
- * charm: 魅惑目标（wolfQueen — 不写 updates，只 result）
+ * charm: 魅惑目标（wolfQueen — 写入 charmedSeat + result）
  */
 function processCharm(
   _ability: ActiveAbility,
@@ -96,6 +96,7 @@ function processCharm(
 ): ResolverResult {
   return {
     valid: true,
+    updates: { charmedSeat: target },
     result: { charmTarget: target },
   };
 }
@@ -248,10 +249,10 @@ function processLearn(
   };
 
   // Gate triggers (e.g., hunter → canShootAsHunter)
+  // Resolver 仅标记"学到了 gate role"，权威 canShoot 计算由 actionHandler 层
+  // 使用完整 GameState + computeCanShootForSeat 覆盖。
   if (effect.gateTriggersOnRoles?.includes(effectiveRoleId)) {
-    // wolfRobot: canShoot=false if wolfRobot itself is poisoned
-    const isPoisoned = context.currentNightResults.poisonedSeat === context.actorSeat;
-    result.canShootAsHunter = !isPoisoned;
+    result.canShootAsHunter = true;
   }
 
   return {

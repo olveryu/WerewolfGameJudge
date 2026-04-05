@@ -24,6 +24,7 @@ import {
   isBottomCardActorOverride,
   validateActionPreconditions,
 } from './actionGuards';
+import { computeCanShootForSeat } from './confirmContext';
 import { decideWolfVoteTimerAction, isWolfVoteAllComplete } from './progressionEvaluator';
 import { buildRevealPayload } from './revealPayload';
 import type { HandlerContext, HandlerResult, NonNullState } from './types';
@@ -148,10 +149,19 @@ export function handleSubmitAction(
   const resolverContext = buildResolverContext(state, seat, resolverRole);
 
   // 调用 resolver（resolver-first）
-  const result = resolver(resolverContext, actionInput);
+  let result = resolver(resolverContext, actionInput);
 
   if (!result.valid) {
     return buildRejectionResult(schemaId, result.rejectReason, state, seat);
+  }
+
+  // wolfRobot 学到猎人时，resolver 仅标记 canShootAsHunter=true（不含完整死因信息），
+  // 此处用完整 GameState 做权威覆盖（与 confirmContext 猎人/黑狼王共用同一逻辑）。
+  if (result.result?.canShootAsHunter !== undefined) {
+    result = {
+      ...result,
+      result: { ...result.result, canShootAsHunter: computeCanShootForSeat(seat, state) },
+    };
   }
 
   // 构建成功结果

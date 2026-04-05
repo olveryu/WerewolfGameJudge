@@ -322,10 +322,10 @@ export const ROLE_SPECS = {
     emoji: '🏹',
     faction: Faction.God,
     team: Team.Good,
-    description: '出局时可开枪带走一名玩家；被毒杀则不能开枪',
+    description: '出局时可开枪带走一名玩家；仅被狼人袭击或公投放逐出局时可发动',
     structuredDescription: {
       trigger: '出局时可开枪带走一名玩家',
-      restriction: '被毒杀则不能开枪',
+      restriction: '仅被狼人袭击或公投放逐出局时可发动',
     },
     tags: ['kill'],
     abilities: [
@@ -902,11 +902,11 @@ export const ROLE_SPECS = {
     faction: Faction.Wolf,
     team: Team.Wolf,
     description:
-      '每晚可魅惑一名玩家；白天出局时被魅惑者随之殉情出局，被魅惑者不知情；不能自爆，不能袭击自己',
+      '每晚可魅惑一名玩家；出局时被魅惑者随之殉情出局，被魅惑者不知情；不能自爆，不能袭击自己',
     structuredDescription: {
       skill: '每晚可魅惑一名玩家',
       restriction: '不能自爆；不能袭击自己',
-      trigger: '白天出局时被魅惑者随之殉情出局，被魅惑者不知情',
+      trigger: '出局时被魅惑者随之殉情出局，被魅惑者不知情',
     },
     tags: ['control', 'link'],
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
@@ -977,10 +977,10 @@ export const ROLE_SPECS = {
     emoji: '🖤🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
-    description: '出局时可开枪带走一名玩家；被毒杀则不能开枪',
+    description: '出局时可开枪带走一名玩家；仅被狼人袭击或公投放逐出局时可发动',
     structuredDescription: {
       trigger: '出局时可开枪带走一名玩家',
-      restriction: '被毒杀则不能开枪',
+      restriction: '仅被狼人袭击或公投放逐出局时可发动',
     },
     tags: ['kill'],
     recognition: { canSeeWolves: true, participatesInWolfVote: true },

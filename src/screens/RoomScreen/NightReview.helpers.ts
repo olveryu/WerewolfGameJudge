@@ -29,6 +29,58 @@ function findSeatByRole(
   return undefined;
 }
 
+/**
+ * 判断某座位是否会在夜间死亡（被狼刀且未被救/被毒杀）。
+ * 用于连锁死亡判断的子条件。
+ */
+function willDieTonight(seat: number, gameState: LocalGameState): boolean {
+  const nr = gameState.currentNightResults;
+
+  if (nr.poisonedSeat === seat) return true;
+
+  const wolfKillTarget = gameState.witchContext?.killedSeat;
+  if (wolfKillTarget !== undefined && wolfKillTarget >= 0 && wolfKillTarget === seat) {
+    if (nr.savedSeat === seat) return false;
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * 判断某座位的猎人/黑狼王是否可以开枪。
+ *
+ * 仅被狼人袭击或公投放逐出局时可发动。
+ * 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
+ */
+function canShootForSeat(seat: number, gameState: LocalGameState): boolean {
+  const nr = gameState.currentNightResults;
+
+  // 被毒杀
+  if (nr.poisonedSeat === seat) return false;
+
+  // 殉情
+  const loverSeats = gameState.loverSeats;
+  if (loverSeats && loverSeats.includes(seat)) {
+    const partnerSeat = loverSeats[0] === seat ? loverSeats[1] : loverSeats[0];
+    if (willDieTonight(partnerSeat, gameState)) return false;
+  }
+
+  // 摄梦连锁
+  if (nr.dreamingSeat === seat) {
+    const dcSeat = findSeatByRole(gameState.players, 'dreamcatcher' as RoleId);
+    if (dcSeat !== undefined && willDieTonight(dcSeat, gameState)) return false;
+  }
+
+  // 狼美人魅惑连锁
+  if (nr.charmedSeat === seat) {
+    const wqSeat = findSeatByRole(gameState.players, 'wolfQueen' as RoleId);
+    if (wqSeat !== undefined && willDieTonight(wqSeat, gameState)) return false;
+  }
+
+  return true;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,22 +268,22 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   }
 
   // 9. Hunter / DarkWolfKing canShoot status
-  // confirmStatus is cleared on step advance, so we re-derive from poisonedSeat + players
+  // confirmStatus is cleared on step advance, so we re-derive canShoot.
+  // Rule: 仅被狼人袭击或公投放逐出局时可发动。
+  // 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
   const hunterSeat = findSeatByRole(gameState.players, 'hunter' as RoleId);
   if (hunterSeat !== undefined) {
-    const canShoot = nr.poisonedSeat !== hunterSeat;
-    lines.push(
-      canShoot ? `${ACTION.SHOOT} 猎人可以发动技能` : `${ACTION.SHOOT} 猎人不能发动技能（被毒杀）`,
-    );
+    const canShoot = canShootForSeat(hunterSeat, gameState);
+    lines.push(canShoot ? `${ACTION.SHOOT} 猎人可以发动技能` : `${ACTION.SHOOT} 猎人不能发动技能`);
   }
 
   const darkWolfKingSeat = findSeatByRole(gameState.players, 'darkWolfKing' as RoleId);
   if (darkWolfKingSeat !== undefined) {
-    const canShoot = nr.poisonedSeat !== darkWolfKingSeat;
+    const canShoot = canShootForSeat(darkWolfKingSeat, gameState);
     lines.push(
       canShoot
         ? `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王可以发动技能`
-        : `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王不能发动技能（被毒杀）`,
+        : `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王不能发动技能`,
     );
   }
 

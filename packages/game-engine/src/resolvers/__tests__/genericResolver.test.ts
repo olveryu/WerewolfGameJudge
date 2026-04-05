@@ -161,12 +161,12 @@ describe('genericResolver: writeSlot effect', () => {
 describe('genericResolver: charm effect', () => {
   const resolver = createGenericResolver('wolfQueen');
 
-  it('should return charmTarget without updates', () => {
+  it('should return charmTarget with charmedSeat update', () => {
     const ctx = createContext({ actorSeat: 6, actorRoleId: 'wolfQueen' as RoleId });
     const result = resolver(ctx, createInput('wolfQueenCharm', 4));
     expect(result.valid).toBe(true);
     expect(result.result?.charmTarget).toBe(4);
-    expect(result.updates).toBeUndefined();
+    expect(result.updates).toEqual({ charmedSeat: 4 });
   });
 
   it('should reject self-target (NotSelf constraint)', () => {
@@ -472,7 +472,7 @@ describe('genericResolver: learn effect', () => {
     expect(result.result?.canShootAsHunter).toBe(true);
   });
 
-  it('should set canShootAsHunter=false when wolfRobot itself is poisoned', () => {
+  it('should set canShootAsHunter=true when wolfRobot itself is poisoned (authoritative override in handler)', () => {
     const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter' });
     const ctx = createContext({
       actorSeat: 5,
@@ -482,7 +482,8 @@ describe('genericResolver: learn effect', () => {
     });
     const result = resolver(ctx, createInput('wolfRobotLearn', 4));
     expect(result.valid).toBe(true);
-    expect(result.result?.canShootAsHunter).toBe(false);
+    // Resolver always sets true; actionHandler overrides with authoritative computation
+    expect(result.result?.canShootAsHunter).toBe(true);
   });
 
   it('should set canShootAsHunter=true when target is poisoned but wolfRobot is not', () => {
@@ -495,6 +496,34 @@ describe('genericResolver: learn effect', () => {
     });
     const result = resolver(ctx, createInput('wolfRobotLearn', 4));
     expect(result.valid).toBe(true);
+    expect(result.result?.canShootAsHunter).toBe(true);
+  });
+
+  it('should set canShootAsHunter=true even when dream-linked (authoritative override in handler)', () => {
+    const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter', 3: 'dreamcatcher' });
+    const ctx = createContext({
+      actorSeat: 5,
+      actorRoleId: 'wolfRobot' as RoleId,
+      players,
+      currentNightResults: { dreamingSeat: 5, poisonedSeat: 3 },
+    });
+    const result = resolver(ctx, createInput('wolfRobotLearn', 4));
+    expect(result.valid).toBe(true);
+    // Resolver always sets true; actionHandler overrides with authoritative computation
+    expect(result.result?.canShootAsHunter).toBe(true);
+  });
+
+  it('should set canShootAsHunter=true even when charm victim (authoritative override in handler)', () => {
+    const players = createPlayers({ 5: 'wolfRobot', 4: 'hunter', 2: 'wolfQueen' });
+    const ctx = createContext({
+      actorSeat: 5,
+      actorRoleId: 'wolfRobot' as RoleId,
+      players,
+      currentNightResults: { charmedSeat: 5, poisonedSeat: 2 },
+    });
+    const result = resolver(ctx, createInput('wolfRobotLearn', 4));
+    expect(result.valid).toBe(true);
+    // Resolver always sets true; actionHandler overrides with authoritative computation
     expect(result.result?.canShootAsHunter).toBe(true);
   });
 
