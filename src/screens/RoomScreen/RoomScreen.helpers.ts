@@ -22,7 +22,10 @@ import {
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
-import { getBottomCardEffectiveRole } from '@werewolf/game-engine/utils/playerHelpers';
+import {
+  getBottomCardEffectiveRole,
+  isBottomCardWolfVoteExcluded,
+} from '@werewolf/game-engine/utils/playerHelpers';
 
 import type { LocalGameState } from '@/types/GameStateTypes';
 
@@ -165,6 +168,9 @@ export function determineActionerState(
 
   // Wolf meeting phase: participating wolves can see pack list and act
   if (isWolfMeetingSchema && isWolfRole(effectiveRole)) {
+    if (isBottomCardWolfVoteExcluded(actorRole)) {
+      return { imActioner: false, showWolves: false };
+    }
     if (!doesRoleParticipateInWolfVote(effectiveRole)) {
       // Non-voting wolves (e.g., wolfRobot) cannot see the pack
       return { imActioner: false, showWolves: false };
@@ -260,7 +266,10 @@ export function getWolfVoteSummary(room: GameRoomLike): string {
         room.thiefChosenCard,
         room.treasureMasterChosenCard,
       );
-      if (doesRoleParticipateInWolfVote(effectiveRole)) {
+      if (
+        doesRoleParticipateInWolfVote(effectiveRole) &&
+        !isBottomCardWolfVoteExcluded(player.role)
+      ) {
         wolfSeats.push(seat);
       }
     }
@@ -425,7 +434,13 @@ export function buildSeatViewModels(
     // Wolf visibility is controlled by ActionerState.showWolves.
     // When true, only wolf-faction roles with canSeeWolves=true are highlighted.
     // Roles like gargoyle/wolfRobot (canSeeWolves=false) are hidden from wolf pack view.
-    const isWolf = showWolves && isWolfRole(effectiveRole) && canRoleSeeWolves(effectiveRole);
+    // treasureMaster never meets wolves even when choosing a wolf card.
+    const originalRole = player?.role ?? role;
+    const isWolf =
+      showWolves &&
+      isWolfRole(effectiveRole) &&
+      canRoleSeeWolves(effectiveRole) &&
+      !isBottomCardWolfVoteExcluded(originalRole);
 
     // UX-only early rejection based on schema constraints.
     // IMPORTANT: Server remains the authority. This is just early UI guidance.
