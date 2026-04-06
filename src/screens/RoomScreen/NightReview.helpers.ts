@@ -7,7 +7,7 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName, getRoleEmoji } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName, getRoleEmoji, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import { Team } from '@werewolf/game-engine/models/roles/spec/types';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
@@ -81,6 +81,32 @@ function canShootForSeat(seat: number, gameState: LocalGameState): boolean {
   return true;
 }
 
+/** Resolve wolf kill target from majority vote. Tie = no kill. */
+function resolveWolfKillTarget(
+  wolfVotesBySeat: Readonly<Record<string, number>> | undefined,
+): number | undefined {
+  if (!wolfVotesBySeat) return undefined;
+  const entries = Object.entries(wolfVotesBySeat);
+  if (entries.length === 0) return undefined;
+  const counts = new Map<number, number>();
+  for (const [, target] of entries) {
+    counts.set(target, (counts.get(target) ?? 0) + 1);
+  }
+  let maxCount = 0;
+  let maxTarget: number | undefined;
+  let tied = false;
+  for (const [target, count] of counts) {
+    if (count > maxCount) {
+      maxCount = count;
+      maxTarget = target;
+      tied = false;
+    } else if (count === maxCount) {
+      tied = true;
+    }
+  }
+  return tied ? undefined : maxTarget;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,6 +155,13 @@ export function buildActionLines(gameState: LocalGameState): string[] {
       .map(([voter, target]) => `${formatSeat(Number(voter))}→${formatSeat(target)}`)
       .join('，');
     lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人袭击：${voteDesc}`);
+  } else if (
+    !nr.wolfKillOverride &&
+    Array.from(gameState.players.values()).some(
+      (p) => p?.role && ROLE_SPECS[p.role]?.team === Team.Wolf,
+    )
+  ) {
+    lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人空刀（未选择目标）`);
   }
 
   if (nr.wolfKillOverride) {
@@ -138,12 +171,23 @@ export function buildActionLines(gameState: LocalGameState): string[] {
 
   // 2. Nightmare block
   if (nr.blockedSeat != null) {
-    lines.push(`${getRoleEmoji('nightmare' as RoleId)} 梦魇封锁了 ${formatSeat(nr.blockedSeat)}`);
+    const blockedPlayer = gameState.players.get(nr.blockedSeat);
+    const roleSuffix = blockedPlayer?.role
+      ? `（${getRoleDisplayName(blockedPlayer.role)}，技能无效）`
+      : '';
+    lines.push(
+      `${getRoleEmoji('nightmare' as RoleId)} 梦魇封锁了 ${formatSeat(nr.blockedSeat)}${roleSuffix}`,
+    );
   }
 
   // 3. Guard
   if (nr.guardedSeat != null) {
     lines.push(`${ACTION.GUARD} 守卫守护了 ${formatSeat(nr.guardedSeat)}`);
+  } else {
+    const guardSeat = findSeatByRole(gameState.players, 'guard' as RoleId);
+    if (guardSeat !== undefined && nr.blockedSeat !== guardSeat) {
+      lines.push(`${ACTION.GUARD} 守卫未守护`);
+    }
   }
 
   // 3a. SilenceElder
@@ -168,6 +212,30 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     const isPoisoner = findSeatByRole(gameState.players, 'poisoner' as RoleId) !== undefined;
     const poisonLabel = isPoisoner ? '毒师毒杀了' : '女巫使用毒药毒杀了';
     lines.push(`${ACTION.POISON} ${poisonLabel} ${formatSeat(nr.poisonedSeat)}`);
+  }
+
+  // 4x. Witch/Poisoner "did nothing" annotations
+  {
+    const witchSeat = findSeatByRole(gameState.players, 'witch' as RoleId);
+    const poisonerSeat = findSeatByRole(gameState.players, 'poisoner' as RoleId);
+    const witchBlocked = witchSeat !== undefined && nr.blockedSeat === witchSeat;
+    const poisonerBlocked = poisonerSeat !== undefined && nr.blockedSeat === poisonerSeat;
+
+    if (witchSeat !== undefined && !witchBlocked) {
+      const noSave = nr.savedSeat == null;
+      const witchOwnsPoison = poisonerSeat === undefined;
+      const noPoison = nr.poisonedSeat == null;
+
+      if (noSave && witchOwnsPoison && noPoison) {
+        lines.push(`${ACTION.SAVE} 女巫未使用药水`);
+      } else {
+        if (noSave) lines.push(`${ACTION.SAVE} 女巫未使用解药`);
+        if (witchOwnsPoison && noPoison) lines.push(`${ACTION.POISON} 女巫未使用毒药`);
+      }
+    }
+    if (poisonerSeat !== undefined && !poisonerBlocked && nr.poisonedSeat == null) {
+      lines.push(`${ACTION.POISON} 毒师未使用毒药`);
+    }
   }
 
   // 4a. Crow curse
@@ -285,6 +353,56 @@ export function buildActionLines(gameState: LocalGameState): string[] {
         ? `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王可以发动技能`
         : `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王不能发动技能`,
     );
+  }
+
+  // ── Interaction annotations ──
+
+  // 同守同救 warning
+  const wolfTarget = resolveWolfKillTarget(nr.wolfVotesBySeat);
+  if (wolfTarget !== undefined && nr.guardedSeat === wolfTarget && nr.savedSeat === wolfTarget) {
+    lines.push(`⚠️ 同守同救：${formatSeat(wolfTarget)} 仍然死亡`);
+  }
+
+  // Poison immunity warning
+  if (nr.poisonedSeat != null) {
+    const poisonedPlayer = gameState.players.get(nr.poisonedSeat);
+    if (poisonedPlayer?.role) {
+      const hasImmunity = ROLE_SPECS[poisonedPlayer.role]?.abilities?.some(
+        (a) => a.type === 'passive' && a.effect === 'immuneToPoison',
+      );
+      if (hasImmunity) {
+        lines.push(
+          `⚠️ ${formatSeat(nr.poisonedSeat)}（${getRoleDisplayName(poisonedPlayer.role)}）免疫毒药`,
+        );
+      }
+    }
+  }
+
+  // Damage reflection warning
+  const revealChecks = [
+    { key: 'seerReveal' as const, roleId: 'seer' as RoleId },
+    { key: 'mirrorSeerReveal' as const, roleId: 'mirrorSeer' as RoleId },
+    { key: 'drunkSeerReveal' as const, roleId: 'drunkSeer' as RoleId },
+    { key: 'psychicReveal' as const, roleId: 'psychic' as RoleId },
+    { key: 'gargoyleReveal' as const, roleId: 'gargoyle' as RoleId },
+    { key: 'pureWhiteReveal' as const, roleId: 'pureWhite' as RoleId },
+    { key: 'wolfWitchReveal' as const, roleId: 'wolfWitch' as RoleId },
+  ];
+  for (const { key, roleId } of revealChecks) {
+    const reveal = gameState[key];
+    if (reveal) {
+      const targetPlayer = gameState.players.get(reveal.targetSeat);
+      if (targetPlayer?.role) {
+        const reflects = ROLE_SPECS[targetPlayer.role]?.abilities?.some(
+          (a) => a.type === 'passive' && a.effect === 'reflectsDamage',
+        );
+        if (reflects) {
+          lines.push(
+            `⚠️ ${getRoleDisplayName(roleId)} 查验了 ${formatSeat(reveal.targetSeat)}（${getRoleDisplayName(targetPlayer.role)}），遭到反伤`,
+          );
+        }
+      }
+    }
   }
 
   // 10. Final deaths

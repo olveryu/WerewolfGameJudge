@@ -262,6 +262,225 @@ describe('NightReview.helpers', () => {
       );
       expect(lines).toContainEqual(expect.stringContaining('猎人不能发动技能'));
     });
+
+    // ── P3: Wolf empty kill (空刀) ──
+
+    it('shows wolf empty kill when wolves present but no votes and no override', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const lines = buildActionLines(makeGameState({ players }));
+      expect(lines).toContainEqual(expect.stringContaining('狼人空刀'));
+    });
+
+    it('does not show wolf empty kill when wolfKillOverride is present', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          currentNightResults: {
+            wolfKillOverride: {
+              source: 'nightmare',
+              ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
+            },
+          },
+        }),
+      );
+      const joined = lines.join('\n');
+      expect(joined).not.toContain('空刀');
+      expect(joined).toContain('放弃袭击');
+    });
+
+    it('does not show wolf empty kill when no wolves in game', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'villager')],
+        [1, makePlayer(1, 'seer')],
+      ]);
+      const lines = buildActionLines(makeGameState({ players }));
+      const joined = lines.join('\n');
+      expect(joined).not.toContain('空刀');
+    });
+
+    // ── P2: Nightmare block role name ──
+
+    it('shows nightmare block with role name', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'guard')],
+        [1, makePlayer(1, 'nightmare')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({ players, currentNightResults: { blockedSeat: 0 } }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('梦魇封锁了 1号'));
+      expect(lines).toContainEqual(expect.stringContaining('守卫'));
+      expect(lines).toContainEqual(expect.stringContaining('技能无效'));
+    });
+
+    // ── P1: Guard "did nothing" ──
+
+    it('shows guard did nothing when guard present but not guarding', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'guard')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const lines = buildActionLines(makeGameState({ players }));
+      expect(lines).toContainEqual(expect.stringContaining('守卫未守护'));
+    });
+
+    it('does not show guard did nothing when guard is blocked by nightmare', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'guard')],
+        [1, makePlayer(1, 'nightmare')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({ players, currentNightResults: { blockedSeat: 0 } }),
+      );
+      const joined = lines.join('\n');
+      expect(joined).not.toContain('守卫未守护');
+    });
+
+    // ── P1: Witch "did nothing" ──
+
+    it('shows witch did nothing when witch present and used neither potion', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'witch')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const lines = buildActionLines(makeGameState({ players }));
+      expect(lines).toContainEqual(expect.stringContaining('女巫未使用药水'));
+    });
+
+    it('shows witch did not use save when witch saved nothing but poisoned', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'witch')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({ players, currentNightResults: { poisonedSeat: 1 } }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('女巫未使用解药'));
+      const joined = lines.join('\n');
+      expect(joined).not.toContain('未使用药水');
+    });
+
+    it('shows witch did not use poison when witch saved but did not poison', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'witch')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({ players, currentNightResults: { savedSeat: 1 } }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('女巫未使用毒药'));
+      const joined = lines.join('\n');
+      expect(joined).not.toContain('未使用解药');
+    });
+
+    it('does not show witch did nothing when witch is blocked by nightmare', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'witch')],
+        [1, makePlayer(1, 'nightmare')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({ players, currentNightResults: { blockedSeat: 0 } }),
+      );
+      const joined = lines.join('\n');
+      expect(joined).not.toContain('女巫未使用');
+    });
+
+    it('shows poisoner did nothing when poisoner present but did not poison', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'poisoner')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const lines = buildActionLines(makeGameState({ players }));
+      expect(lines).toContainEqual(expect.stringContaining('毒师未使用毒药'));
+    });
+
+    it('witch does not show poison unused when poisoner owns the poison', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'witch')],
+        [1, makePlayer(1, 'poisoner')],
+      ]);
+      const lines = buildActionLines(makeGameState({ players }));
+      // Witch shows "未使用解药", NOT "未使用药水" (poisoner owns poison)
+      expect(lines).toContainEqual(expect.stringContaining('女巫未使用解药'));
+      expect(lines).toContainEqual(expect.stringContaining('毒师未使用毒药'));
+      const joined = lines.join('\n');
+      expect(joined).not.toContain('女巫未使用毒药');
+      expect(joined).not.toContain('女巫未使用药水');
+    });
+
+    // ── P2: 同守同救 warning ──
+
+    it('shows 同守同救 warning when guard and witch both save wolf target', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'wolf')],
+        [1, makePlayer(1, 'guard')],
+        [2, makePlayer(2, 'witch')],
+        [3, makePlayer(3, 'villager')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          currentNightResults: {
+            wolfVotesBySeat: { '0': 3 },
+            guardedSeat: 3,
+            savedSeat: 3,
+          },
+          lastNightDeaths: [3],
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('同守同救'));
+      expect(lines).toContainEqual(expect.stringContaining('4号'));
+    });
+
+    // ── P3: Poison immunity warning ──
+
+    it('shows poison immunity warning when poisoned target is immune', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'witch')],
+        [1, makePlayer(1, 'witcher')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({ players, currentNightResults: { poisonedSeat: 1 } }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('免疫毒药'));
+      expect(lines).toContainEqual(expect.stringContaining('猎魔人'));
+    });
+
+    it('does not show poison immunity for non-immune target', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'witch')],
+        [1, makePlayer(1, 'villager')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({ players, currentNightResults: { poisonedSeat: 1 } }),
+      );
+      const joined = lines.join('\n');
+      expect(joined).not.toContain('免疫毒药');
+    });
+
+    // ── P3: Damage reflection warning ──
+
+    it('shows reflection warning when seer checks a reflectsDamage target', () => {
+      const players = new Map<number, LocalPlayer | null>([
+        [0, makePlayer(0, 'seer')],
+        [1, makePlayer(1, 'spiritKnight')],
+      ]);
+      const lines = buildActionLines(
+        makeGameState({
+          players,
+          seerReveal: { targetSeat: 1, result: '狼人' },
+        } as Parameters<typeof makeGameState>[0]),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('反伤'));
+      expect(lines).toContainEqual(expect.stringContaining('灵骑士'));
+    });
   });
 
   describe('buildIdentityLines', () => {
