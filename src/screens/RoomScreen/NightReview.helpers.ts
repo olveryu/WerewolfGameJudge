@@ -22,8 +22,8 @@ import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 const DEATH_REASON_LABELS: Record<DeathReason, string> = {
   wolfKill: '狼杀',
   poison: '毒杀',
-  checkDeath: '查杀',
-  wolfQueenLink: '狼王连锁',
+  checkDeath: '查验致死',
+  wolfQueenLink: '魅惑连锁',
   bondedLink: '绑定连锁',
   coupleLink: '殉情',
   dreamcatcherLink: '摄梦连锁',
