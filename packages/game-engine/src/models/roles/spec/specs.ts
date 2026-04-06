@@ -1498,10 +1498,11 @@ export const ROLE_SPECS = {
     faction: Faction.Special,
     team: Team.Third,
     description:
-      '每晚可选择 1~2 名玩家进行催眠，被催眠的玩家会醒来互相确认；当所有其他存活玩家均被催眠时获胜',
+      '每晚可选择 1~2 名玩家进行催眠，被催眠的玩家会醒来互相确认；当所有其他存活玩家均被催眠时获胜。若好人或狼人任一方先达成胜利条件，游戏结束，吹笛者判负',
     structuredDescription: {
       skill: '每晚可选择 1~2 名玩家进行催眠，被催眠的玩家会醒来互相确认',
-      winCondition: '当所有其他存活玩家均被催眠时获胜',
+      winCondition:
+        '当所有其他存活玩家均被催眠时获胜。若好人或狼人任一方先达成胜利条件，游戏结束，吹笛者判负',
     },
     tags: ['control'],
     abilities: [
