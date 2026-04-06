@@ -150,7 +150,7 @@ describe('shadowChooseMimicResolver', () => {
   });
 
   describe('nightmare block', () => {
-    it('被梦魇封锁时 resolver 不拒绝非跳过行动（由 handler 层统一处理）', () => {
+    it('被噩梦之影封锁时 resolver 不拒绝非跳过行动（由 handler 层统一处理）', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 4 },
       });
@@ -161,7 +161,7 @@ describe('shadowChooseMimicResolver', () => {
       expect(result.valid).toBe(true);
     });
 
-    it('被梦魇封锁时可以跳过（虽然 canSkip=false，但被 block 时允许 skip）', () => {
+    it('被噩梦之影封锁时可以跳过（虽然 canSkip=false，但被 block 时允许 skip）', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 4 },
       });

@@ -241,7 +241,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '梦魇守卫',
+    name: '噩梦之影守卫',
     category: TemplateCategory.Advanced,
     roles: [
       'villager',
@@ -313,7 +313,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     ],
   },
   {
-    name: '机械狼通灵师',
+    name: '机械狼人通灵师',
     category: TemplateCategory.Advanced,
     roles: [
       'villager',

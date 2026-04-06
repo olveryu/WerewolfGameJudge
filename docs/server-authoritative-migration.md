@@ -740,7 +740,7 @@ const result = await processGameAction(roomCode, (state) => {
 5.     → validateActionPreconditions() — 7 步验证：
 6.       host_only → state → status=ongoing → 音频未播放 →
 7.       step 匹配 → seat 有效 → role 匹配（wolfKill 步允许所有狼人）→ resolver 存在
-8.     → checkNightmareBlockGuard() — 梦魇阻断检查
+8.     → checkNightmareBlockGuard() — 噩梦之影阻断检查
 9.     → RESOLVERS[schemaId](input, context) — 调用 resolver 纯函数
 10.    → resolver 返回 valid: false → buildRejectionResult() → ACTION_REJECTED action
 11.    → resolver 返回 valid: true → buildSuccessResult():

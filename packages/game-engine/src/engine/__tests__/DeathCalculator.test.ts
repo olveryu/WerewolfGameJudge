@@ -457,7 +457,7 @@ describe('DeathCalculator', () => {
     it('封锁狼人 → 狼人无法袭击', () => {
       const actions: NightActions = {
         wolfKill: 0, // 狼想杀0号
-        isWolfBlockedByNightmare: true, // 梦魇封锁了狼人
+        isWolfBlockedByNightmare: true, // 噩梦之影封锁了狼人
       };
 
       const deaths = calculateDeaths(actions);
@@ -681,7 +681,7 @@ describe('DeathCalculator', () => {
       expect(deaths).toContain(5);
     });
 
-    it('女巫被梦魇封锁时毒恶灵骑士 → 无反伤', () => {
+    it('女巫被噩梦之影封锁时毒恶灵骑士 → 无反伤', () => {
       // Nightmare-blocked sources are excluded at construction time,
       // so reflectionSources is empty when witch is blocked.
       const actions: NightActions = {

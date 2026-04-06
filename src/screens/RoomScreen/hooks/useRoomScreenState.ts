@@ -737,10 +737,11 @@ export function useRoomScreenState(
       };
     }
 
-    // TreasureMaster (S21): all cards selectable, always wolf team
+    // TreasureMaster (S21): wolf cards disabled, always wolf team
+    const disabledWolf = bottomCards.map((_, i) => i).filter((i) => factions[i] === Faction.Wolf);
     return {
-      bottomCardDisabledIndices: [],
-      bottomCardDisabledHint: undefined,
+      bottomCardDisabledIndices: disabledWolf,
+      bottomCardDisabledHint: disabledWolf.length > 0 ? '不可选择狼人阵营' : undefined,
       bottomCardSubtitle: '你的阵营：狼人阵营',
     };
   }, [bottomCards, isThiefChoose]);

@@ -1,7 +1,7 @@
 /**
  * Night-1 Integration Test: WolfRobot Disguise - Seer Reveal
  *
- * 主题：机械狼学习后伪装身份，预言家查验显示伪装阵营
+ * 主题：机械狼人学习后伪装身份，预言家查验显示伪装阵营
  *
  * 自定义模板（12人，含 wolfRobot + seer + magician）
  * 固定 seat-role assignment:

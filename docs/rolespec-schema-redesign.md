@@ -1504,7 +1504,7 @@ export const ROLE_SPECS_V2 = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请点击下方按钮查看技能发动状态',
-          confirmText: '确定查看黑狼王发动状态吗？',
+          confirmText: '确定查看狼王发动状态吗？',
           bottomActionText: '发动状态',
           confirmStatusUi: {
             kind: 'shoot',

@@ -273,7 +273,7 @@ test.describe('Night Roles — Kill / Status', () => {
         // Click "发动状态"
         await clickBottomButton(pages[dwkIdx], '发动状态');
 
-        // Read alert — "黑狼王可以发动技能" or "黑狼王不能发动技能"
+        // Read alert — "狼王可以发动技能" or "狼王不能发动技能"
         const alertText = await readAlertText(pages[dwkIdx]);
         expect(alertText).toContain('狼王');
         expect(alertText).toMatch(/可以发动技能|不能发动技能/);

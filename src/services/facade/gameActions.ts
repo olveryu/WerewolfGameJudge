@@ -166,7 +166,7 @@ export const submitGroupConfirmAck = defineGameAction<[number]>({
   },
 });
 
-/** Host/Player: 机械狼查看猎人状态 */
+/** Host/Player: 机械狼人查看猎人状态 */
 export const setWolfRobotHunterStatusViewed = defineGameAction<[number]>({
   name: 'setWolfRobotHunterStatusViewed',
   path: '/game/night/wolf-robot-viewed',

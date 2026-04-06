@@ -203,7 +203,7 @@ describe('witchActionResolver', () => {
     // The resolver itself does NOT reject blocked actions.
     // These tests verify resolver behavior when invoked directly (skip returns empty result)
 
-    it('被梦魇封锁时跳过返回空结果', () => {
+    it('被噩梦之影封锁时跳过返回空结果', () => {
       const ctx = createContext({
         currentNightResults: { blockedSeat: 5 }, // witch is blocked
       });

@@ -223,7 +223,7 @@ export interface IGameFacade {
   submitGroupConfirmAck(seat: number): Promise<{ success: boolean; reason?: string }>;
 
   /**
-   * 提交机械狼查看猎人状态确认
+   * 提交机械狼人查看猎人状态确认
    * @param seat - wolfRobot 的座位号（必须由调用方传入 effectiveSeat，以支持 debug bot 接管）
    */
   sendWolfRobotHunterStatusViewed(seat: number): Promise<{ success: boolean; reason?: string }>;

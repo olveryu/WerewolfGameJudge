@@ -102,7 +102,7 @@ describe('schema-resolver constraint alignment', () => {
 
   describe('schemas without notSelf constraint (neutral judge - can target self)', () => {
     const schemasWithoutNotSelf = [
-      'nightmareBlock', // 梦魇可以封自己
+      'nightmareBlock', // 噩梦之影可以封自己
       'wolfKill', // 狼可以杀自己
       'guardProtect', // 守卫可以守自己
     ] as const;

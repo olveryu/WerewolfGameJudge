@@ -84,7 +84,7 @@ describe('maybeCreateConfirmStatusAction', () => {
 
   // ---- darkWolfKing canShoot 正确性 ----
 
-  it('黑狼王被毒 → canShoot = false', () => {
+  it('狼王被毒 → canShoot = false', () => {
     const state = createOngoingState({
       templateRoles: ['wolf', 'darkWolfKing', 'villager', 'villager', 'seer', 'witch', 'hunter'],
       players: {
@@ -105,7 +105,7 @@ describe('maybeCreateConfirmStatusAction', () => {
     });
   });
 
-  it('黑狼王未被毒 → canShoot = true', () => {
+  it('狼王未被毒 → canShoot = true', () => {
     const state = createOngoingState({
       templateRoles: ['wolf', 'darkWolfKing', 'villager', 'villager', 'seer', 'witch', 'hunter'],
       players: {
@@ -234,7 +234,7 @@ describe('maybeCreateConfirmStatusAction', () => {
     });
   });
 
-  it('摄梦人摄黑狼王 + 摄梦人被毒杀 → canShoot = false', () => {
+  it('摄梦人摄狼王 + 摄梦人被毒杀 → canShoot = false', () => {
     const state = createOngoingState({
       templateRoles: [
         'wolf',

@@ -519,7 +519,7 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
-   * 提交机械狼查看猎人状态确认（HTTP API）
+   * 提交机械狼人查看猎人状态确认（HTTP API）
    *
    * Host/Player 统一调用 HTTP API
    *

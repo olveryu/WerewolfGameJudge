@@ -1,7 +1,7 @@
 /**
  * TreasureMaster Resolver Unit Tests
  *
- * Validates card selection (including wolf-faction cards per S21),
+ * Validates card selection (wolf-faction cards rejected),
  * effectiveTeam computation, skip handling (nightmare block),
  * and invalid index rejection.
  */
@@ -70,12 +70,11 @@ describe('treasureMasterChooseResolver', () => {
     expect(result.updates?.treasureMasterChosenCard).toBe('villager');
   });
 
-  it('should accept wolf-faction card (S21: all cards selectable)', () => {
+  it('should reject wolf-faction card selection', () => {
     const ctx = createContext();
     const result = treasureMasterChooseResolver(ctx, createInput(1)); // wolf
-    expect(result.valid).toBe(true);
-    expect(result.updates?.treasureMasterChosenCard).toBe('wolf');
-    expect(result.updates?.effectiveTeam).toBe(Team.Wolf);
+    expect(result.valid).toBe(false);
+    expect(result.rejectReason).toBe('不可选择狼人阵营底牌');
   });
 
   it('should reject cardIndex out of range (negative)', () => {

@@ -1,7 +1,7 @@
 /**
  * Night-1 Integration Test: WolfRobot learns Hunter + Witch poison scenarios
  *
- * 主题：机械狼学习到猎人后，女巫毒与不毒他的两种结局
+ * 主题：机械狼人学习到猎人后，女巫毒与不毒他的两种结局
  *
  * 自定义模板（12人，含 wolfRobot + witch + hunter）
  * 固定 seat-role assignment:
@@ -150,7 +150,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
   });
 
   describe('Case A: 学到猎人 + 女巫毒他', () => {
-    it('女巫毒杀学到猎人的机械狼，机械狼死亡但 wolfRobotReveal/wolfRobotContext 仍存在', () => {
+    it('女巫毒杀学到猎人的机械狼人，机械狼人死亡但 wolfRobotReveal/wolfRobotContext 仍存在', () => {
       ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // Step 1: 按顺序执行到 wolfRobotLearn 步骤
@@ -220,7 +220,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
   });
 
   describe('Case B: 学到猎人 + 女巫不毒他', () => {
-    it('女巫不毒机械狼，机械狼存活且 wolfRobotReveal 仍存在', () => {
+    it('女巫不毒机械狼人，机械狼人存活且 wolfRobotReveal 仍存在', () => {
       ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // Step 1: 按顺序执行到 wolfRobotLearn 步骤

@@ -1,9 +1,9 @@
 /**
  * Night-1 Integration Test: WolfRobot Disguise - Psychic Reveal
  *
- * 主题：机械狼学习后伪装身份，通灵师查验显示伪装角色
+ * 主题：机械狼人学习后伪装身份，通灵师查验显示伪装角色
  *
- * 模板：机械狼通灵师
+ * 模板：机械狼人通灵师
  * 固定 seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
@@ -25,7 +25,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '机械狼通灵师';
+const TEMPLATE_NAME = '机械狼人通灵师';
 
 /**
  * 固定 seat-role assignment（按模板顺序）

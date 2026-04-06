@@ -1,9 +1,9 @@
 /**
  * Night-1 Integration Test: Nightmare Blocks Actions and Disables Wolf Kill
  *
- * 主题：梦魇阻断神职技能 + 选中狼导致禁止袭击。
+ * 主题：噩梦之影阻断神职技能 + 选中狼导致禁止袭击。
  *
- * 模板：梦魇守卫
+ * 模板：噩梦之影守卫
  * 固定 seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
@@ -26,7 +26,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeStepsUntil } from './stepByStepRunner';
 
-const TEMPLATE_NAME = '梦魇守卫';
+const TEMPLATE_NAME = '噩梦之影守卫';
 
 /**
  * 固定 seat-role assignment
