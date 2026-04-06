@@ -49,6 +49,8 @@ const NO_ROLES: RoleSeatMap = {
   coupleLinkSeats: null,
   poisonImmuneSeats: [],
   reflectsDamageSeats: [],
+  wolfKillSilentImmuneSeats: [],
+  checkDeathTargetSeats: [],
   reflectionSources: [],
 };
 
@@ -798,6 +800,114 @@ describe('DeathCalculator', () => {
 
       const deaths = calculateDeaths(actions);
       expect(deaths).toEqual([0]);
+    });
+  });
+
+  // ===========================================================================
+  // Cursed Fox (咒狐)
+  // ===========================================================================
+
+  describe('Cursed Fox (咒狐)', () => {
+    it('狼刀咒狐 → 咒狐不死（静默免疫）', () => {
+      const actions: NightActions = { wolfKill: 5 };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        wolfKillSilentImmuneSeats: [5],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([]);
+    });
+
+    it('预言家查验咒狐 → 咒狐出局', () => {
+      const actions: NightActions = {};
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        checkDeathTargetSeats: [5],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([5]);
+    });
+
+    it('同夜狼刀 + 预言查验咒狐 → 咒狐出局（狼刀无效，查验致死生效）', () => {
+      const actions: NightActions = { wolfKill: 5 };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        wolfKillSilentImmuneSeats: [5],
+        checkDeathTargetSeats: [5],
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([5]);
+    });
+
+    it('同夜狼刀 + 毒药 + 预言查验咒狐 → 咒狐出局（三重交互）', () => {
+      const actions: NightActions = {
+        wolfKill: 5,
+        witchAction: makeWitchPoison(5),
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        wolfKillSilentImmuneSeats: [5],
+        checkDeathTargetSeats: [5],
+        poisonSourceSeat: 3,
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([5]);
+    });
+
+    it('女巫毒药毒杀咒狐 → 咒狐正常出局', () => {
+      const actions: NightActions = {
+        witchAction: makeWitchPoison(5),
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        poisonSourceSeat: 3,
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([5]);
+    });
+
+    it('狼刀咒狐 + 女巫救咒狐 → 咒狐不死，解药浪费', () => {
+      // 咒狐免疫狼刀，所以 processWolfKill 直接 return（不加死亡）
+      // 女巫的 save 实际上不影响结果（因为没人会死），解药被浪费
+      const actions: NightActions = {
+        wolfKill: 5,
+        witchAction: makeWitchSave(5),
+      };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        wolfKillSilentImmuneSeats: [5],
+        poisonSourceSeat: 3,
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([]);
+    });
+
+    it('狼刀非咒狐目标 → 正常死亡（咒狐不影响其他人）', () => {
+      const actions: NightActions = { wolfKill: 2 };
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        wolfKillSilentImmuneSeats: [5], // 咒狐在5号位但被刀的是2号位
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([2]);
+    });
+
+    it('预言家未查验咒狐 → 咒狐不出局', () => {
+      const actions: NightActions = {};
+      const roleSeatMap: RoleSeatMap = {
+        ...NO_ROLES,
+        // checkDeathTargetSeats 为空，因为预言家查验的不是咒狐
+      };
+
+      const deaths = calculateDeaths(actions, roleSeatMap);
+      expect(deaths).toEqual([]);
     });
   });
 });

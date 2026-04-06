@@ -217,7 +217,8 @@ export type PassiveEffectKind =
   | 'immuneToPoison'
   | 'immuneToNightDamage'
   | 'reflectsDamage'
-  | 'disguiseAsSeer';
+  | 'disguiseAsSeer'
+  | 'silentWolfKillImmune';
 
 /**
  * Triggered ability — 事件触发

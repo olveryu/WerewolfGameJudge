@@ -438,4 +438,44 @@ test.describe('Night Roles — Kill / Status', () => {
       },
     );
   });
+
+  // --------------------------------------------------------------------------
+  // Wolf kills cursedFox → silent immunity → 平安夜
+  // --------------------------------------------------------------------------
+  test('wolf kills cursedFox → silent immunity → 平安夜', async ({ browser }) => {
+    await withSetup(
+      browser,
+      {
+        playerCount: 3,
+        configure: async (c) =>
+          c.configureCustomTemplate({
+            wolves: 1,
+            villagers: 1,
+            specialRoles: ['cursedFox'],
+          }),
+      },
+      async ({ pages, roleMap }) => {
+        const wolfIdx = findRolePageIndex(roleMap, '狼人');
+        const cursedFoxIdx = findRolePageIndex(roleMap, '咒狐');
+        expect(wolfIdx).not.toBe(-1);
+        expect(cursedFoxIdx).not.toBe(-1);
+
+        const cursedFoxSeat = roleMap.get(cursedFoxIdx)!.seat;
+
+        // Wolf targets cursedFox
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        expect(wolfTurn).toBe(true);
+        await driveWolfVote(pages, [wolfIdx], cursedFoxSeat);
+
+        // Night ends — wolf kill silently fails
+        const ended = await waitForNightEnd(pages, 80);
+        expect(ended).toBe(true);
+
+        // Verify: 平安夜 (cursedFox immune, no other kills)
+        await viewLastNightInfo(pages[0]);
+        const peaceful = await isTextVisible(pages[0], '平安夜');
+        expect(peaceful, 'Should be 平安夜 — wolf kill silently fails on cursedFox').toBe(true);
+      },
+    );
+  });
 });

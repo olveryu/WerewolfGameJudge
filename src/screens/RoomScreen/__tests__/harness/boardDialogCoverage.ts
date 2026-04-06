@@ -33,9 +33,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 22) {
+  if (boards.length !== 23) {
     throw new Error(
-      `Expected exactly 22 presets, but got ${boards.length}. ` +
+      `Expected exactly 23 presets, but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -235,4 +235,5 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   影子复仇者: 'shadowAvenger.11p.board.ui.test.tsx',
   盗宝大师: 'treasureMaster.12p.board.ui.test.tsx',
   盗贼丘比特: 'thiefCupid.12p.board.ui.test.tsx',
+  咒狐乌鸦: 'cursedFox.12p.board.ui.test.tsx',
 };

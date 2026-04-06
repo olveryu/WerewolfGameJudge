@@ -678,4 +678,65 @@ test.describe('Night Roles — Check / Reveal', () => {
       },
     );
   });
+
+  // --------------------------------------------------------------------------
+  // Seer checks cursedFox → sees 好人 → cursedFox dies from check
+  // --------------------------------------------------------------------------
+  test('seer checks cursedFox → sees 好人 → cursedFox dies', async ({ browser }) => {
+    await withSetup(
+      browser,
+      {
+        playerCount: 4,
+        configure: async (c) =>
+          c.configureCustomTemplate({
+            wolves: 1,
+            villagers: 1,
+            goodRoles: ['seer'],
+            specialRoles: ['cursedFox'],
+          }),
+      },
+      async ({ pages, roleMap }) => {
+        const wolfIdx = findRolePageIndex(roleMap, '狼人');
+        const seerIdx = findRolePageIndex(roleMap, '预言家');
+        const cursedFoxIdx = findRolePageIndex(roleMap, '咒狐');
+        expect(wolfIdx).not.toBe(-1);
+        expect(seerIdx).not.toBe(-1);
+        expect(cursedFoxIdx).not.toBe(-1);
+
+        const cursedFoxSeat = roleMap.get(cursedFoxIdx)!.seat;
+        const villagerEntry = [...roleMap.entries()].find(
+          ([, info]) => info.displayName === '普通村民',
+        );
+        const killSeat = villagerEntry?.[1].seat ?? 0;
+
+        // Wolf kills villager (not cursedFox or seer)
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        expect(wolfTurn).toBe(true);
+        await driveWolfVote(pages, [wolfIdx], killSeat);
+
+        // Seer checks cursedFox → should see 好人 (Team.Third → 好人)
+        const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
+        expect(seerTurn).toBe(true);
+        await clickSeatAndConfirm(pages[seerIdx], cursedFoxSeat);
+
+        const revealText = await readAlertText(pages[seerIdx]);
+        expect(revealText).toContain(formatSeat(cursedFoxSeat));
+        expect(revealText).toContain('好人');
+        await dismissAlert(pages[seerIdx]);
+
+        // Night ends — cursedFox dies from check
+        const ended = await waitForNightEnd(pages, 120);
+        expect(ended).toBe(true);
+
+        // Verify cursedFox is in death list
+        await viewLastNightInfo(pages[0]);
+        const nightInfo = await readAlertText(pages[0]);
+        expect(nightInfo).toContain(formatSeat(cursedFoxSeat));
+
+        // Should not be 平安夜 (villager wolf-killed + cursedFox check-killed)
+        const peaceful = await isTextVisible(pages[0], '平安夜');
+        expect(peaceful, 'Should not be 平安夜 with cursedFox check death').toBe(false);
+      },
+    );
+  });
 });

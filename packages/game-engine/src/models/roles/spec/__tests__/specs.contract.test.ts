@@ -21,8 +21,8 @@ import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
-  it('should have exactly 42 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(42);
+  it('should have exactly 43 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(43);
   });
 
   it('every role should have required fields', () => {
@@ -181,6 +181,7 @@ describe('ROLE_SPECS contract', () => {
       'masquerade',
       'warden',
       'maskedMan',
+      'cursedFox',
     ];
 
     it('should have correct no-action roles', () => {

@@ -155,4 +155,5 @@ export type DeathCalcRole =
   | 'guardProtector'
   | 'reflectTarget'
   | 'bondedLink'
-  | 'coupleLink';
+  | 'coupleLink'
+  | 'checkDeathTarget';

@@ -98,6 +98,15 @@ export interface RoleSeatMap {
   /** Seats of roles with reflectsDamage flag (spiritKnight, etc.) */
   reflectsDamageSeats: number[];
 
+  /** Seats of roles with silentWolfKillImmune (cursedFox: wolves can target but kill is silently negated) */
+  wolfKillSilentImmuneSeats: number[];
+
+  /**
+   * Seats of roles vulnerable to check death (cursedFox: dies when checked by seer family).
+   * Only populated with seats that were ACTUALLY checked this night.
+   */
+  checkDeathTargetSeats: number[];
+
   /** Pre-built reflection pairs (check/poison source → target). Empty = no reflection possible */
   reflectionSources: readonly ReflectionSource[];
 
@@ -124,6 +133,8 @@ const DEFAULT_ROLE_SEAT_MAP: RoleSeatMap = {
   guardProtectorSeat: -1,
   poisonImmuneSeats: [],
   reflectsDamageSeats: [],
+  wolfKillSilentImmuneSeats: [],
+  checkDeathTargetSeats: [],
   reflectionSources: [],
   bondedLinkSeats: null,
   coupleLinkSeats: null,
@@ -150,6 +161,9 @@ export function calculateDeaths(
 
   // 1. Process wolf kill (with guard/witch/nightmare interaction)
   processWolfKill(actions, roleSeatMap, deaths);
+
+  // 1.5. Process check death (cursedFox: dies when checked by seer family)
+  processCheckDeath(roleSeatMap, deaths);
 
   // 2. Process poison death (witch or poisoner, with immunity and nightmare block)
   processPoisonDeath(actions, roleSeatMap, deaths);
@@ -217,6 +231,11 @@ function processWolfKill(
   // No wolf kill or empty kill
   if (wolfKill === undefined) return;
 
+  // Silent wolf kill immunity (cursedFox): wolves CAN target, but kill is silently negated.
+  // Unlike regular immunity (which prevents targeting), this lets the kill go through the
+  // motion — wolves don't know they failed. Witch save on this target wastes the antidote.
+  if (roleSeatMap.wolfKillSilentImmuneSeats.includes(wolfKill)) return;
+
   // Check if guard protection is effective (not blocked by nightmare)
   // NOTE: Both nightmareBlock and roleSeatMap seats are in the same coordinate
   // space (physical seats). buildRoleSeatMap maps effective-role → physical-seat,
@@ -240,6 +259,20 @@ function processWolfKill(
 
   if (diesFromWolf) {
     deaths.add(wolfKill);
+  }
+}
+
+/**
+ * Process check death (cursedFox: dies when checked by seer family).
+ *
+ * Rules:
+ * - checkDeathTargetSeats contains seats that are BOTH vulnerable to check death AND were
+ *   actually checked this night (intersection computed by deathResolution.ts).
+ * - These seats die unconditionally (seer check result still shows '好人').
+ */
+function processCheckDeath(roleSeatMap: RoleSeatMap, deaths: Set<number>): void {
+  for (const seat of roleSeatMap.checkDeathTargetSeats) {
+    deaths.add(seat);
   }
 }
 

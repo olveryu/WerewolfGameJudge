@@ -35,6 +35,8 @@ const NO_ROLES: RoleSeatMap = {
   coupleLinkSeats: null,
   poisonImmuneSeats: [],
   reflectsDamageSeats: [],
+  wolfKillSilentImmuneSeats: [],
+  checkDeathTargetSeats: [],
   reflectionSources: [],
 };
 

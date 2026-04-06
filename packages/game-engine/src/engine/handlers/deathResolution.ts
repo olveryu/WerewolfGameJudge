@@ -62,9 +62,12 @@ export function buildRoleSeatMap(
   reflectionSources: readonly ReflectionSource[],
   isBonded: boolean,
   coupleLinkSeats: RoleSeatMap['coupleLinkSeats'],
+  checkedSeats: readonly number[],
 ): RoleSeatMap {
   const poisonImmuneSeats: number[] = [];
   const reflectsDamageSeats: number[] = [];
+  const wolfKillSilentImmuneSeats: number[] = [];
+  const checkDeathVulnerableSeats: number[] = [];
   const bondedLinkCandidates: number[] = [];
   let wolfQueenLinkSeat = -1;
   let dreamcatcherLinkSeat = -1;
@@ -80,6 +83,10 @@ export function buildRoleSeatMap(
     }
     if (spec.abilities.some((a) => a.type === 'passive' && a.effect === 'reflectsDamage')) {
       reflectsDamageSeats.push(seat);
+    }
+    // Silent wolf kill immunity (cursedFox): wolves CAN target, kill silently negated
+    if (spec.abilities.some((a) => a.type === 'passive' && a.effect === 'silentWolfKillImmune')) {
+      wolfKillSilentImmuneSeats.push(seat);
     }
 
     // deathCalcRole-driven fields
@@ -99,6 +106,9 @@ export function buildRoleSeatMap(
       case 'bondedLink':
         bondedLinkCandidates.push(seat);
         break;
+      case 'checkDeathTarget':
+        checkDeathVulnerableSeats.push(seat);
+        break;
       // 'checkSource' and 'reflectTarget' don't need dedicated fields
     }
   }
@@ -109,6 +119,9 @@ export function buildRoleSeatMap(
       ? [bondedLinkCandidates[0], bondedLinkCandidates[1]]
       : null;
 
+  // checkDeathTargetSeats = intersection of vulnerable seats AND actually-checked seats
+  const checkDeathTargetSeats = checkDeathVulnerableSeats.filter((s) => checkedSeats.includes(s));
+
   return {
     wolfQueenLinkSeat,
     dreamcatcherLinkSeat,
@@ -118,8 +131,42 @@ export function buildRoleSeatMap(
     coupleLinkSeats,
     poisonImmuneSeats,
     reflectsDamageSeats,
+    wolfKillSilentImmuneSeats,
+    checkDeathTargetSeats,
     reflectionSources,
   };
+}
+
+/**
+ * 构建本夜被查验的目标座位列表。
+ *
+ * 扫描 deathCalcRole='checkSource' 的角色，从 ProtocolAction 中提取实际查验目标。
+ * 用于计算 checkDeathTargetSeats（与 checkDeathVulnerable 取交集）。
+ */
+export function buildCheckedSeats(
+  effectiveRoleSeatMap: Map<RoleId, number>,
+  protocolActions: readonly ProtocolAction[],
+  nightActions: NightActions,
+): number[] {
+  const checkedSeats: number[] = [];
+  const { nightmareBlock } = nightActions;
+
+  for (const [roleId, seat] of effectiveRoleSeatMap) {
+    const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec;
+    if (spec.deathCalcRole !== 'checkSource') continue;
+
+    // Skip nightmare-blocked check sources
+    if (nightmareBlock !== undefined && nightmareBlock === seat) continue;
+
+    const stepId = spec.nightSteps?.[0]?.stepId;
+    if (!stepId) continue;
+    const action = protocolActions.find((a) => a.schemaId === stepId);
+    if (action?.targetSeat !== undefined) {
+      checkedSeats.push(action.targetSeat);
+    }
+  }
+
+  return checkedSeats;
 }
 
 /**

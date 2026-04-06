@@ -551,4 +551,22 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
       'cupid',
     ],
   },
+  {
+    name: '咒狐乌鸦',
+    category: TemplateCategory.ThirdParty,
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'darkWolfKing',
+      'cursedFox',
+      'seer',
+      'witch',
+      'hunter',
+      'crow',
+    ],
+  },
 ];

@@ -1,7 +1,7 @@
 /**
  * avatar - Local avatar image registry and selection utilities
  *
- * 39 dark fantasy role portraits from assets/avatars/raw/.
+ * 43 dark fantasy role portraits from assets/avatars/raw/.
  * 提供头像图片映射、基于 uid/roomId 的稳定 hash 分配和去重。
  * 不引入 React、service，也不发起网络请求。
  *
@@ -22,6 +22,7 @@ export const AVATAR_KEYS: readonly string[] = [
   'awakenedGargoyle',
   'bloodMoon',
   'crow',
+  'cursedFox',
   'cupid',
   'dancer',
   'darkWolfKing',
@@ -69,6 +70,7 @@ const AVATAR_IMAGES: number[] = [
   require('../../assets/avatars/raw/awakenedGargoyle.png'),
   require('../../assets/avatars/raw/bloodMoon.png'),
   require('../../assets/avatars/raw/crow.png'),
+  require('../../assets/avatars/raw/cursedFox.png'),
   require('../../assets/avatars/raw/cupid.png'),
   require('../../assets/avatars/raw/dancer.png'),
   require('../../assets/avatars/raw/darkWolfKing.png'),
@@ -123,6 +125,7 @@ const AVATAR_THUMBS: number[] = [
   require('../../assets/badges/png/512/role_awakenedGargoyle.png'),
   require('../../assets/badges/png/512/role_bloodMoon.png'),
   require('../../assets/badges/png/512/role_crow.png'),
+  require('../../assets/badges/png/512/role_cursedFox.png'),
   require('../../assets/badges/png/512/role_cupid.png'),
   require('../../assets/badges/png/512/role_dancer.png'),
   require('../../assets/badges/png/512/role_darkWolfKing.png'),

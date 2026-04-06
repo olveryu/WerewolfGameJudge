@@ -16,8 +16,8 @@ import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 const allIds = Object.keys(ROLE_SPECS).sort() as RoleId[];
 
 describe('ROLE_SPECS registry', () => {
-  it('should have exactly 42 roles', () => {
-    expect(allIds).toHaveLength(42);
+  it('should have exactly 43 roles', () => {
+    expect(allIds).toHaveLength(43);
   });
 });
 

@@ -1808,6 +1808,25 @@ export const ROLE_SPECS = {
       },
     ],
   },
+
+  cursedFox: {
+    id: 'cursedFox',
+    displayName: '咒狐',
+    shortName: '狐',
+    emoji: '🦊',
+    faction: Faction.Special,
+    team: Team.Third,
+    description:
+      '独立第三方阵营，免疫狼人袭击；被预言家查验时直接出局，查验结果仍为好人；任一阵营达成胜利条件时若咒狐存活，则咒狐窃取胜利成为唯一赢家',
+    structuredDescription: {
+      passive: '独立第三方阵营，免疫狼人袭击',
+      trigger: '被预言家查验时直接出局，查验结果仍为好人',
+      winCondition: '任一阵营达成胜利条件时若咒狐存活，则咒狐窃取胜利成为唯一赢家',
+    },
+    tags: ['immune'],
+    abilities: [{ type: 'passive', effect: 'silentWolfKillImmune' }],
+    deathCalcRole: 'checkDeathTarget',
+  },
 } as const satisfies Record<string, RoleSpec>;
 
 /** Role ID type (auto-derived from registry keys) */

@@ -30,6 +30,7 @@ import type {
 } from '../reducer/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
 import {
+  buildCheckedSeats,
   buildEffectiveRoleSeatMap,
   buildNightActions,
   buildReflectionSources,
@@ -208,10 +209,19 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   // 构建反伤来源（从 spec.deathCalcRole + ProtocolAction 扫描）
   const reflectionSources = buildReflectionSources(effectiveMap, state.actions, nightActions);
 
+  // 构建本夜被查验的目标座位（用于查验致死判定）
+  const checkedSeats = buildCheckedSeats(effectiveMap, state.actions, nightActions);
+
   // 构建 RoleSeatMap（deathCalcRole 驱动）
   const isBonded = state.currentNightResults?.avengerFaction === Team.Third;
   const coupleLinkSeats = state.loverSeats ?? null;
-  const roleSeatMap = buildRoleSeatMap(effectiveMap, reflectionSources, isBonded, coupleLinkSeats);
+  const roleSeatMap = buildRoleSeatMap(
+    effectiveMap,
+    reflectionSources,
+    isBonded,
+    coupleLinkSeats,
+    checkedSeats,
+  );
 
   // DEBUG: 打印死亡计算输入
   nightFlowLog.debug('handleEndNight: calculating deaths', {

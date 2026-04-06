@@ -49,7 +49,7 @@ applyTo: ''
 | 6 | 音频文件 | `assets/audio/` + `scripts/generate_audio_edge_tts.py` | 编写旁白 → `python3 scripts/generate_audio_edge_tts.py --only <key>` |
 | 7 | 注册音频 | `src/services/infra/audio/audioRegistry.ts` | `AUDIO_REGISTRY` + 多步骤角色用 `STEP_AUDIO` |
 | 8 | ConfigScreen | `src/screens/ConfigScreen/configData.ts` | `FACTION_GROUPS` 对应阵营添加条目 |
-| 8b | 角色徽章 | `assets/badges/png/512/` + `src/utils/roleBadges.ts` | AI 生成 512×512 PNG → 放置 → 注册 BADGE_MAP |
+| 8b | 角色徽章 | `assets/avatars/raw/` + `assets/badges/png/512/` + `src/utils/roleBadges.ts` | 用户提供原始 PNG → Copilot 重命名为 `<roleId>.png` 放入 `assets/avatars/raw/` → 运行 `python3 scripts/process_avatars.py` 生成 512px badge → 注册 BADGE_MAP |
 | 9 | Resolver 单测 | `game-engine/src/resolvers/__tests__/` | 跳过 / 有效 / 不存在 / 约束违反 + 角色特有 case |
 | 10 | 合约测试计数 | `specs.contract.test.ts` + `v2Specs.contract.test.ts` | 角色总数 +1；同步添加 V2 spec |
 | 11 | 验证 | — | `pnpm run quality`；snapshot 变更用 `pnpm exec jest --updateSnapshot` |
