@@ -9,6 +9,7 @@
  * - RoleSlot with `count` > 1 generates multiple selection keys (e.g. wolf, wolf1, wolf2...)
  * - RoleSlot with `count` = 1 (default) generates a single key matching the roleId
  */
+import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 
 // ============================================
@@ -26,7 +27,7 @@ interface RoleSlot {
   count?: number;
   /**
    * If true, this slot uses a stepper ([-][+]) instead of individual chips.
-   * Typically used for generic roles like 普通狼人/普通村民.
+   * Typically used for generic roles like 普通狼人/平民.
    * @default false
    */
   isBulk?: boolean;
@@ -61,7 +62,7 @@ export const FACTION_GROUPS: FactionGroup[] = [
     faction: Faction.Villager, // covers both Villager & God faction visually
     sections: [
       {
-        title: '普通村民',
+        title: getRoleDisplayName('villager'),
         roles: [{ roleId: 'villager', count: 10, isBulk: true }],
       },
       {

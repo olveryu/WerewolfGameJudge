@@ -19,7 +19,7 @@ import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '../types'
 // Confirm Status (discriminated union, role tag)
 // =============================================================================
 
-/** 猎人/黑狼王：仅被狼人袭击或公投放逐出局时可发动 */
+/** 猎人/狼王：仅被狼人袭击或公投放逐出局时可发动 */
 export interface ShootConfirmStatus {
   readonly role: 'hunter' | 'darkWolfKing';
   readonly canShoot: boolean;
@@ -139,7 +139,7 @@ export interface GameState {
   /** 上一夜死亡原因（座位 → 死因） */
   deathReasons?: Readonly<Record<number, DeathReason>>;
 
-  // --- 梦魇封锁 ---
+  // --- 噩梦之影封锁 ---
   nightmareBlockedSeat?: number;
 
   /**
@@ -148,9 +148,9 @@ export interface GameState {
    */
   wolfKillOverride?: WolfKillOverride;
 
-  // --- 机械狼伪装上下文 ---
+  // --- 机械狼人伪装上下文 ---
   /**
-   * 机械狼伪装上下文（用于“查验类”resolver 的身份解析）
+   * 机械狼人伪装上下文（用于“查验类”resolver 的身份解析）
    *
    * 职责：这是给 server-only resolvers/engine 用的“计算上下文”，用于统一的
    * `resolveRoleForChecks()`：当某座位的有效身份为 wolfRobot 时，需要把它
@@ -219,7 +219,7 @@ export interface GameState {
   };
 
   /**
-   * 机械狼学习结果（公开广播的“事实结果”）
+   * 机械狼人学习结果（公开广播的“事实结果”）
    *
    * 职责：描述 wolfRobot 在 wolfRobotLearn 这一步的计算结果（学了谁/学到什么）。
    * 这是单一真相（Single source of truth）：服务端执行 resolver 后写入并广播。
@@ -239,7 +239,7 @@ export interface GameState {
   };
 
   /**
-   * Gate（流程前置条件）：机械狼学到猎人后，必须“查看状态”才能推进夜晚
+   * Gate（流程前置条件）：机械狼人学到猎人后，必须“查看状态”才能推进夜晚
    *
    * 职责：这是 server-authoritative 的流程 gate。
    * - 服务端写入：当 `wolfRobotReveal.learnedRoleId === 'hunter'` 时设置为 false（需要查看）。

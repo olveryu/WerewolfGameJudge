@@ -65,7 +65,7 @@ import { Team } from './spec/types';
  * Falls back to '未知角色' for unknown roleIds, with warning log.
  *
  * @param roleId - The role ID to look up
- * @returns The Chinese display name (e.g., '普通村民', '狼人', '预言家')
+ * @returns The Chinese display name (e.g., '平民', '狼人', '预言家')
  */
 export function getRoleDisplayName(roleId: string): string {
   if (!isValidRoleId(roleId)) {
@@ -104,7 +104,7 @@ export function canRoleSeeWolves(roleId: string): boolean {
  * IMPORTANT:
  * - participatesInWolfVote 仅表示“是否参与 wolfKill（wolf vote）会议/投票”
  * - canSeeWolves 仅表示“在狼队可见阶段，是否能看到/高亮狼队友”
- *   （例如机械狼/石像鬼：不参会，因此即使是狼阵营也不应该进入投票流程；
+ *   （例如机械狼人/石像鬼：不参会，因此即使是狼阵营也不应该进入投票流程；
  *    他们各自行动的步骤也不是 wolfVote schema，自然不会触发狼队可见 UI）
  */
 export function doesRoleParticipateInWolfVote(roleId: string): boolean {

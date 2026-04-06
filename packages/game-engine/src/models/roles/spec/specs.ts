@@ -26,7 +26,7 @@ export const ROLE_SPECS = {
 
   villager: {
     id: 'villager',
-    displayName: '普通村民',
+    displayName: '平民',
     shortName: '民',
     emoji: '👤',
     faction: Faction.Villager,
@@ -413,8 +413,8 @@ export const ROLE_SPECS = {
 
   idiot: {
     id: 'idiot',
-    displayName: '白痴',
-    shortName: '白',
+    displayName: '愚者',
+    shortName: '愚',
     emoji: '🤡',
     faction: Faction.God,
     team: Team.Good,
@@ -847,11 +847,10 @@ export const ROLE_SPECS = {
     faction: Faction.God,
     team: Team.Good,
     description:
-      '负伤免死，整局仅可触发1次；首次受到致死伤害（狼人袭击/毒药/摄梦连带）时转为负伤状态而非出局；白天被公投可翻牌触发免死，转为负伤状态，免除此轮出局；进入负伤状态后，于下一次白天公投结束后强制出局',
+      '负伤免死；首次在夜晚受到致命伤害（狼人袭击/毒药/摄梦连带等）时转为负伤状态而非出局；进入负伤状态后，于下一次白天公投结束后强制出局',
     structuredDescription: {
-      passive: '负伤免死，整局仅可触发1次',
-      trigger:
-        '首次受到致死伤害（狼人袭击/毒药/摄梦连带）时转为负伤状态而非出局；白天被公投可翻牌触发免死，转为负伤状态，免除此轮出局',
+      passive: '负伤免死',
+      trigger: '首次在夜晚受到致命伤害（狼人袭击/毒药/摄梦连带等）时转为负伤状态而非出局',
       restriction: '进入负伤状态后，于下一次白天公投结束后强制出局',
     },
     tags: ['immune'],
@@ -970,7 +969,7 @@ export const ROLE_SPECS = {
   wolfKing: {
     id: 'wolfKing',
     displayName: '白狼王',
-    shortName: '王',
+    shortName: '白',
     emoji: '👑🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
@@ -992,8 +991,8 @@ export const ROLE_SPECS = {
 
   darkWolfKing: {
     id: 'darkWolfKing',
-    displayName: '黑狼王',
-    shortName: '黑',
+    displayName: '狼王',
+    shortName: '王',
     emoji: '🖤🐺',
     faction: Faction.Wolf,
     team: Team.Wolf,
@@ -1029,13 +1028,13 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请点击下方按钮查看技能发动状态',
-          confirmText: '确定查看黑狼王发动状态吗？',
+          confirmText: '确定查看狼王发动状态吗？',
           bottomActionText: '发动状态',
           confirmStatusUi: {
             kind: 'shoot',
             statusDialogTitle: '技能状态',
-            canText: '黑狼王可以发动技能',
-            cannotText: '黑狼王不能发动技能',
+            canText: '狼王可以发动技能',
+            cannotText: '狼王不能发动技能',
           },
         },
       },
@@ -1044,7 +1043,7 @@ export const ROLE_SPECS = {
 
   nightmare: {
     id: 'nightmare',
-    displayName: '梦魇',
+    displayName: '噩梦之影',
     shortName: '魇',
     emoji: '😱',
     faction: Faction.Wolf,
@@ -1220,7 +1219,7 @@ export const ROLE_SPECS = {
 
   wolfRobot: {
     id: 'wolfRobot',
-    displayName: '机械狼',
+    displayName: '机械狼人',
     shortName: '机',
     emoji: '🤖🐺',
     faction: Faction.Wolf,
@@ -1403,7 +1402,7 @@ export const ROLE_SPECS = {
 
   slacker: {
     id: 'slacker',
-    displayName: '混子',
+    displayName: '混血儿',
     shortName: '混',
     emoji: '😴',
     faction: Faction.Special,

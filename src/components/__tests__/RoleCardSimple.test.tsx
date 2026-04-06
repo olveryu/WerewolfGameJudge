@@ -163,7 +163,7 @@ describe('RoleCardSimple', () => {
   it('shows correct faction for villager role', () => {
     const { getByText } = render(<RoleCardSimple {...defaultProps} roleId="villager" />);
     expect(getByText('好人阵营')).toBeTruthy();
-    expect(getByText('普通村民')).toBeTruthy();
+    expect(getByText('平民')).toBeTruthy();
   });
 
   it('shows correct icon for witch role', () => {

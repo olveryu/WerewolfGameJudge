@@ -79,7 +79,7 @@ test.describe('Night Roles — TreasureMaster', () => {
 
         // Pick the first non-wolf card visible in the modal.
         // Wolf cards are disabled; good/villager cards are clickable.
-        const CANDIDATE_NAMES = ['普通村民', '预言家', '毒师'];
+        const CANDIDATE_NAMES = ['平民', '预言家', '毒师'];
         let clicked = false;
         for (const name of CANDIDATE_NAMES) {
           const card = pages[tmIdx].getByText(name, { exact: true }).first();

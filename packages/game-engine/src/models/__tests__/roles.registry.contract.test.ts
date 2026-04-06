@@ -45,7 +45,7 @@ describe('Role Registry Contract Tests', () => {
     it('returns spec for valid roleId', () => {
       const spec = getRoleSpec('villager');
       expect(spec).toBeDefined();
-      expect(spec.displayName).toBe('普通村民');
+      expect(spec.displayName).toBe('平民');
       expect(spec.faction).toBe(Faction.Villager);
     });
 
@@ -167,7 +167,7 @@ describe('Role Registry Contract Tests', () => {
 
   describe('getRoleDisplayName (UI helper)', () => {
     it('returns Chinese displayName for valid roleId', () => {
-      expect(getRoleDisplayName('villager')).toBe('普通村民');
+      expect(getRoleDisplayName('villager')).toBe('平民');
       expect(getRoleDisplayName('wolf')).toBe('狼人');
       expect(getRoleDisplayName('seer')).toBe('预言家');
       expect(getRoleDisplayName('witch')).toBe('女巫');
@@ -175,7 +175,7 @@ describe('Role Registry Contract Tests', () => {
       expect(getRoleDisplayName('guard')).toBe('守卫');
       expect(getRoleDisplayName('psychic')).toBe('通灵师');
       expect(getRoleDisplayName('gargoyle')).toBe('石像鬼');
-      expect(getRoleDisplayName('wolfRobot')).toBe('机械狼');
+      expect(getRoleDisplayName('wolfRobot')).toBe('机械狼人');
     });
 
     it('returns "未知角色" for unknown roleId with warning log', () => {

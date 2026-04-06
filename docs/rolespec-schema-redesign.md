@@ -634,7 +634,7 @@ export const ROLE_SPECS_V2 = {
 
   villager: {
     id: 'villager',
-    displayName: '普通村民',
+    displayName: '平民',
     shortName: '民',
     emoji: '👤',
     faction: Faction.Villager,
@@ -938,7 +938,7 @@ export const ROLE_SPECS_V2 = {
 
   idiot: {
     id: 'idiot',
-    displayName: '白痴',
+    displayName: '愚者',
     shortName: '白',
     emoji: '🤡',
     faction: Faction.God,
@@ -1468,7 +1468,7 @@ export const ROLE_SPECS_V2 = {
 
   darkWolfKing: {
     id: 'darkWolfKing',
-    displayName: '黑狼王',
+    displayName: '狼王',
     shortName: '黑',
     emoji: '🖤🐺',
     faction: Faction.Wolf,
@@ -1509,8 +1509,8 @@ export const ROLE_SPECS_V2 = {
           confirmStatusUi: {
             kind: 'shoot',
             statusDialogTitle: '技能状态',
-            canText: '黑狼王可以发动技能',
-            cannotText: '黑狼王不能发动技能',
+            canText: '狼王可以发动技能',
+            cannotText: '狼王不能发动技能',
           },
         },
       },
@@ -1519,7 +1519,7 @@ export const ROLE_SPECS_V2 = {
 
   nightmare: {
     id: 'nightmare',
-    displayName: '梦魇',
+    displayName: '噩梦之影',
     shortName: '魇',
     emoji: '😱',
     faction: Faction.Wolf,
@@ -1705,7 +1705,7 @@ export const ROLE_SPECS_V2 = {
 
   wolfRobot: {
     id: 'wolfRobot',
-    displayName: '机械狼',
+    displayName: '机械狼人',
     shortName: '机',
     emoji: '🤖🐺',
     faction: Faction.Wolf,
@@ -1918,7 +1918,7 @@ export const ROLE_SPECS_V2 = {
 
   slacker: {
     id: 'slacker',
-    displayName: '混子',
+    displayName: '混血儿',
     shortName: '混',
     emoji: '😴',
     faction: Faction.Special,

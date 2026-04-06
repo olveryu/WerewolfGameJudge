@@ -475,7 +475,7 @@ describe('handleSubmitAction', () => {
       const result = handleSubmitAction(intent, context);
 
       expect(result.success).toBe(false);
-      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.reason).toContain('被噩梦之影封锁');
       expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
     });
 
@@ -546,7 +546,7 @@ describe('handleSubmitAction', () => {
 
       // MUST reject: schema-aware guard should detect targets array
       expect(result.success).toBe(false);
-      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.reason).toContain('被噩梦之影封锁');
       expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
     });
 
@@ -604,7 +604,7 @@ describe('handleSubmitAction', () => {
       const result = handleSubmitAction(intent, context);
 
       expect(result.success).toBe(false);
-      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.reason).toContain('被噩梦之影封锁');
       expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
     });
 
@@ -632,7 +632,7 @@ describe('handleSubmitAction', () => {
       const result = handleSubmitAction(intent, context);
 
       expect(result.success).toBe(false);
-      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.reason).toContain('被噩梦之影封锁');
       expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
     });
 
@@ -719,7 +719,7 @@ describe('handleSubmitAction', () => {
 
       // MUST reject: blocked hunter can only skip
       expect(result.success).toBe(false);
-      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.reason).toContain('被噩梦之影封锁');
     });
 
     it('should allow blocked hunter to skip (confirmed !== true)', () => {
@@ -824,7 +824,7 @@ describe('handleSubmitAction', () => {
       const result = handleSubmitAction(intent, context);
 
       expect(result.success).toBe(false);
-      expect(result.reason).toContain('被梦魇封锁');
+      expect(result.reason).toContain('被噩梦之影封锁');
     });
 
     it('should reject non-blocked darkWolfKing trying to skip', () => {

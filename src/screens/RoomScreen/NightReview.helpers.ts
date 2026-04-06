@@ -65,7 +65,7 @@ function willDieTonight(seat: number, gameState: LocalGameState): boolean {
 }
 
 /**
- * 判断某座位的猎人/黑狼王是否可以开枪。
+ * 判断某座位的猎人/狼王是否可以开枪。
  *
  * 仅被狼人袭击或公投放逐出局时可发动。
  * 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
@@ -182,7 +182,10 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   }
 
   if (nr.wolfKillOverride) {
-    const reason = nr.wolfKillOverride.source === 'poisoner' ? '毒师在场' : '被梦魇封锁';
+    const reason =
+      nr.wolfKillOverride.source === 'poisoner'
+        ? '毒师在场'
+        : `被${getRoleDisplayName('nightmare' as RoleId)}封锁`;
     lines.push(`${getRoleEmoji('wolf' as RoleId)} 狼人放弃袭击（${reason}）`);
   }
 
@@ -193,7 +196,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
       ? `（${getRoleDisplayName(blockedPlayer.role)}，技能无效）`
       : '';
     lines.push(
-      `${getRoleEmoji('nightmare' as RoleId)} 梦魇封锁了 ${formatSeat(nr.blockedSeat)}${roleSuffix}`,
+      `${getRoleEmoji('nightmare' as RoleId)} ${getRoleDisplayName('nightmare' as RoleId)}封锁了 ${formatSeat(nr.blockedSeat)}${roleSuffix}`,
     );
   }
 
@@ -278,7 +281,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   const slackerAction = gameState.actions.get('slacker' as RoleId);
   if (slackerAction && slackerAction.kind === 'target') {
     lines.push(
-      `${getRoleEmoji('slacker' as RoleId)} 混子选择了 ${formatSeat(slackerAction.targetSeat)} 为榜样`,
+      `${getRoleEmoji('slacker' as RoleId)} ${getRoleDisplayName('slacker' as RoleId)}选择了 ${formatSeat(slackerAction.targetSeat)} 为榜样`,
     );
   }
 
@@ -348,7 +351,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   if (gameState.wolfRobotReveal) {
     const wr = gameState.wolfRobotReveal;
     lines.push(
-      `${ACTION.LEARN} 机械狼学习了 ${formatSeat(wr.targetSeat)}（${getRoleDisplayName(wr.learnedRoleId)}）`,
+      `${ACTION.LEARN} ${getRoleDisplayName('wolfRobot' as RoleId)}学习了 ${formatSeat(wr.targetSeat)}（${getRoleDisplayName(wr.learnedRoleId)}）`,
     );
   }
 
@@ -367,8 +370,8 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     const canShoot = canShootForSeat(darkWolfKingSeat, gameState);
     lines.push(
       canShoot
-        ? `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王可以发动技能`
-        : `${getRoleEmoji('darkWolfKing' as RoleId)} 黑狼王不能发动技能`,
+        ? `${getRoleEmoji('darkWolfKing' as RoleId)} ${getRoleDisplayName('darkWolfKing' as RoleId)}可以发动技能`
+        : `${getRoleEmoji('darkWolfKing' as RoleId)} ${getRoleDisplayName('darkWolfKing' as RoleId)}不能发动技能`,
     );
   }
 

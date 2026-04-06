@@ -217,7 +217,7 @@ export function isSkipAction(schema: ActionSchema, actionInput: ActionInput): bo
  *
  * 规则（MUST follow）：
  *
- * 1. 被梦魇封锁 = 规则禁止输入，只能跳过
+ * 1. 被噩梦之影封锁 = 规则禁止输入，只能跳过
  *    - 被 block 时：只有 skip 是 valid，任何非 skip 行动都必须 reject
  *
  * 2. confirm 类（hunter/darkWolfKing）的 skip 规则：
@@ -231,7 +231,7 @@ export function isSkipAction(schema: ActionSchema, actionInput: ActionInput): bo
  * @param seat - 行动者座位
  * @param schema - 当前步骤的 schema 定义
  * @param actionInput - 构建好的 ActionInput（包含所有 payload 字段）
- * @param blockedSeat - 被梦魇封锁的座位
+ * @param blockedSeat - 被噩梦之影封锁的座位
  * @returns rejectReason if rejected, undefined if allowed
  */
 export function checkNightmareBlockGuard(

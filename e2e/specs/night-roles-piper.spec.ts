@@ -171,7 +171,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
       async ({ pages, roleMap }) => {
         const piperIdx = findRolePageIndex(roleMap, '吹笛者');
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
-        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const villagerIdx = findRolePageIndex(roleMap, '平民');
         expect(piperIdx).not.toBe(-1);
         expect(wolfIdx).not.toBe(-1);
 
@@ -258,7 +258,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
         // Pick a villager for wolf to kill
         const villagerEntry = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
+          ([, info]) => info.displayName === '平民',
         );
         const killTarget = villagerEntry ? villagerEntry[1].seat : 0;
 
@@ -329,7 +329,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
       async ({ pages, roleMap }) => {
         const piperIdx = findRolePageIndex(roleMap, '吹笛者');
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
-        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const villagerIdx = findRolePageIndex(roleMap, '平民');
         expect(piperIdx).not.toBe(-1);
         expect(wolfIdx).not.toBe(-1);
 

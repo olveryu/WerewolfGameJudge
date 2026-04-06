@@ -156,7 +156,7 @@ export function handleSubmitAction(
   }
 
   // wolfRobot 学到猎人时，resolver 仅标记 canShootAsHunter=true（不含完整死因信息），
-  // 此处用完整 GameState 做权威覆盖（与 confirmContext 猎人/黑狼王共用同一逻辑）。
+  // 此处用完整 GameState 做权威覆盖（与 confirmContext 猎人/狼王共用同一逻辑）。
   if (result.result?.canShootAsHunter !== undefined) {
     result = {
       ...result,

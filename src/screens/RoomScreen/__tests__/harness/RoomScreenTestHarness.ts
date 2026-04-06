@@ -150,7 +150,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
     type: 'wolfRobotReveal',
     match: (t) =>
       !t.endsWith('行动') &&
-      (t.includes('机械狼') || t.includes('你学习了') || t.includes('学习结果')),
+      (t.includes('机械狼人') || t.includes('你学习了') || t.includes('学习结果')),
   },
 
   // Magician

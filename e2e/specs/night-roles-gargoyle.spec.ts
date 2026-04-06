@@ -115,7 +115,7 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // Find villager seats (non-gargoyle players)
         const villagerEntries = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
+          ([, info]) => info.displayName === '平民',
         );
         expect(villagerEntries.length).toBe(2);
 
@@ -194,7 +194,7 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // Find villager entries
         const villagerEntries = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
+          ([, info]) => info.displayName === '平民',
         );
         expect(villagerEntries.length).toBe(2);
 

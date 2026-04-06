@@ -54,7 +54,7 @@ test.describe('Network reconnect during night', () => {
 
       const guardIdx = findRolePageIndex(roleMap, '守卫');
       const wolfIdx = findRolePageIndex(roleMap, '狼人');
-      const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+      const villagerIdx = findRolePageIndex(roleMap, '平民');
       expect(guardIdx).not.toBe(-1);
       expect(wolfIdx).not.toBe(-1);
 
@@ -233,7 +233,7 @@ test.describe('Network reconnect during night', () => {
 
       const guardIdx = findRolePageIndex(roleMap, '守卫');
       const wolfIdx = findRolePageIndex(roleMap, '狼人');
-      const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+      const villagerIdx = findRolePageIndex(roleMap, '平民');
       expect(guardIdx).not.toBe(-1);
       expect(wolfIdx).not.toBe(-1);
 
@@ -395,7 +395,7 @@ test.describe('Network reconnect during night', () => {
 
       const guardIdx = findRolePageIndex(roleMap, '守卫');
       const wolfIdx = findRolePageIndex(roleMap, '狼人');
-      const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+      const villagerIdx = findRolePageIndex(roleMap, '平民');
       expect(guardIdx).not.toBe(-1);
       expect(wolfIdx).not.toBe(-1);
 
@@ -556,7 +556,7 @@ test.describe('Network reconnect during night', () => {
 
       const guardIdx = findRolePageIndex(roleMap, '守卫');
       const wolfIdx = findRolePageIndex(roleMap, '狼人');
-      const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+      const villagerIdx = findRolePageIndex(roleMap, '平民');
       expect(guardIdx).not.toBe(-1);
       expect(wolfIdx).not.toBe(-1);
 

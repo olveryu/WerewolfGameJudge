@@ -1,7 +1,7 @@
 /**
  * WolfRobot Hunter Gate Handler
  *
- * 处理机械狼学到猎人后的"查看状态"gate。
+ * 处理机械狼人人学到猎人后的"查看状态"gate。
  *
  * 职责：
  * - 校验 gate 条件（host_only、step、learnedRoleId、seat）
@@ -20,7 +20,7 @@ import { STANDARD_SIDE_EFFECTS } from './types';
 const handlerLog = getEngineLogger().extend('WolfRobotHunterGateHandler');
 
 /**
- * Intent 类型：设置机械狼查看猎人状态
+ * Intent 类型：设置机械狼人人查看猎人状态
  */
 interface SetWolfRobotHunterStatusViewedIntent {
   type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED';
@@ -28,7 +28,7 @@ interface SetWolfRobotHunterStatusViewedIntent {
 }
 
 /**
- * 处理机械狼查看猎人状态
+ * 处理机械狼人人查看猎人状态
  *
  * 校验：
  * 1. state 存在

@@ -1,6 +1,6 @@
 {
   "villager": {
-    "displayName": "普通村民",
+    "displayName": "平民",
     "faction": "Villager",
     "png": {
       "128": "png/128/role_villager.png"
@@ -49,7 +49,7 @@
     }
   },
   "idiot": {
-    "displayName": "白痴",
+    "displayName": "愚者",
     "faction": "God",
     "png": {
       "128": "png/128/role_idiot.png"
@@ -147,14 +147,14 @@
     }
   },
   "darkWolfKing": {
-    "displayName": "黑狼王",
+    "displayName": "狼王",
     "faction": "Wolf",
     "png": {
       "128": "png/128/role_darkWolfKing.png"
     }
   },
   "nightmare": {
-    "displayName": "梦魇",
+    "displayName": "噩梦之影",
     "faction": "Wolf",
     "png": {
       "128": "png/128/role_nightmare.png"
@@ -182,7 +182,7 @@
     }
   },
   "wolfRobot": {
-    "displayName": "机械狼",
+    "displayName": "机械狼人",
     "faction": "Wolf",
     "png": {
       "128": "png/128/role_wolfRobot.png"
@@ -217,7 +217,7 @@
     }
   },
   "slacker": {
-    "displayName": "混子",
+    "displayName": "混血儿",
     "faction": "Special",
     "png": {
       "128": "png/128/role_slacker.png"

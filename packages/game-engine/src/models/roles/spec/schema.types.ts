@@ -9,7 +9,7 @@
 
 // === Confirm Status Dialog UI (discriminated union, kind tag) ===
 
-/** 二态确认 UI — 猎人/黑狼王：可/不可发动技能 */
+/** 二态确认 UI — 猎人/狼王：可/不可发动技能 */
 export interface ShootConfirmUi {
   readonly kind: 'shoot';
   readonly statusDialogTitle: string;
@@ -37,7 +37,7 @@ export type ConfirmStatusUi = ShootConfirmUi | FactionConfirmUi;
  */
 export const BLOCKED_UI_DEFAULTS = {
   title: '技能被封锁',
-  message: '你被梦魇封锁了，本回合无法行动',
+  message: '你被噩梦之影封锁了，本回合无法行动',
   skipButtonText: '跳过（技能被封锁）',
   dismissButtonText: '知道了',
 } as const;

@@ -54,8 +54,8 @@ describe('Reveal Dialog Classification', () => {
   });
 
   describe('wolfRobotReveal', () => {
-    it('classifies wolfRobot reveal by title containing "机械狼"', () => {
-      mockShowAlert('机械狼学习结果', '你学习了预言家', [{ text: '知道了' }]);
+    it('classifies wolfRobot reveal by title containing "机械狼人"', () => {
+      mockShowAlert('机械狼人学习结果', '你学习了预言家', [{ text: '知道了' }]);
       expect(harness.hasSeen('wolfRobotReveal')).toBe(true);
     });
 

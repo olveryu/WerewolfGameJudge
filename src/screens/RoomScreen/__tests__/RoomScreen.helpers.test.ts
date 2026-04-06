@@ -209,7 +209,7 @@ describe('determineActionerState', () => {
 
     expect(stats.villagerCount).toBe(2);
     expect(stats.wolfRoles).toContain('狼人');
-    expect(stats.wolfRoles).toContain('黑狼王');
+    expect(stats.wolfRoles).toContain('狼王');
     expect(stats.godRoles).toContain('守卫');
   });
 });

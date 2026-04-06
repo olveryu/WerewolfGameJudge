@@ -58,7 +58,7 @@ const NIGHT_STEP_ORDER_INTERNAL = [
   'hunterConfirm',
   'darkWolfKingConfirm',
 
-  // === 最后四个角色（机械狼 → 预言家 → 石像鬼 → 通灵师）===
+  // === 最后四个角色（机械狼人 → 预言家 → 石像鬼 → 通灵师）===
   'wolfRobotLearn',
   'seerCheck',
   'mirrorSeerCheck',

@@ -15,9 +15,9 @@ export enum TemplateCategory {
   Classic = 'classic',
   /** 进阶板（石像鬼、血月猎魔等需要经验的阵容） */
   Advanced = 'advanced',
-  /** 特色板（梦魇、灯影、假面等独特机制） */
+  /** 特色板（噩梦之影、灯影、假面等独特机制） */
   Special = 'special',
-  /** 第三方板（混子、吹笛、野孩等含第三方阵营） */
+  /** 第三方板（混血儿、吹笛、野孩等含第三方阵营） */
   ThirdParty = 'thirdParty',
 }
 

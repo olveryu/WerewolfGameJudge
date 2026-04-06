@@ -35,7 +35,7 @@ const mockGodRole: RoleData = createRoleData(
 
 const mockVillagerRole: RoleData = createRoleData(
   'villager',
-  '普通村民',
+  '平民',
   'villager',
   '👤',
   '没有特殊技能',

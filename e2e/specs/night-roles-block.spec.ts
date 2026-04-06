@@ -99,7 +99,7 @@ test.describe('Night Roles — Block / Skip', () => {
           }),
       },
       async ({ pages, roleMap }) => {
-        const nightmareIdx = findRolePageIndex(roleMap, '梦魇');
+        const nightmareIdx = findRolePageIndex(roleMap, '噩梦之影');
         const guardIdx = findRolePageIndex(roleMap, '守卫');
         expect(nightmareIdx).not.toBe(-1);
         expect(guardIdx).not.toBe(-1);
@@ -108,7 +108,7 @@ test.describe('Night Roles — Block / Skip', () => {
 
         // Find a villager seat for wolf kill target
         const villagerEntry = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
+          ([, info]) => info.displayName === '平民',
         );
         const killSeat = villagerEntry ? villagerEntry[1].seat : 0;
 
@@ -159,7 +159,7 @@ test.describe('Night Roles — Block / Skip', () => {
           }),
       },
       async ({ pages, roleMap }) => {
-        const slackerIdx = findRolePageIndex(roleMap, '混子');
+        const slackerIdx = findRolePageIndex(roleMap, '混血儿');
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
         expect(slackerIdx).not.toBe(-1);
         expect(wolfIdx).not.toBe(-1);
@@ -176,7 +176,7 @@ test.describe('Night Roles — Block / Skip', () => {
         const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         const villagerEntry = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
+          ([, info]) => info.displayName === '平民',
         );
         await driveWolfVote(pages, [wolfIdx], villagerEntry ? villagerEntry[1].seat : 0);
 
@@ -204,7 +204,7 @@ test.describe('Night Roles — Block / Skip', () => {
           }),
       },
       async ({ pages, roleMap }) => {
-        const nightmareIdx = findRolePageIndex(roleMap, '梦魇');
+        const nightmareIdx = findRolePageIndex(roleMap, '噩梦之影');
         const seerIdx = findRolePageIndex(roleMap, '预言家');
         expect(nightmareIdx).not.toBe(-1);
         expect(seerIdx).not.toBe(-1);
@@ -221,9 +221,7 @@ test.describe('Night Roles — Block / Skip', () => {
           (v, i, a) => a.indexOf(v) === i,
         );
 
-        const killTarget = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const wolfTurn = await waitForRoleTurn(
           pages[allWolfIndices[0]],
           ['袭击', '选择'],
@@ -266,7 +264,7 @@ test.describe('Night Roles — Block / Skip', () => {
           }),
       },
       async ({ pages, roleMap }) => {
-        const nightmareIdx = findRolePageIndex(roleMap, '梦魇');
+        const nightmareIdx = findRolePageIndex(roleMap, '噩梦之影');
         const witchIdx = findRolePageIndex(roleMap, '女巫');
         expect(nightmareIdx).not.toBe(-1);
         expect(witchIdx).not.toBe(-1);
@@ -283,9 +281,7 @@ test.describe('Night Roles — Block / Skip', () => {
           (v, i, a) => a.indexOf(v) === i,
         );
 
-        const killTarget = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const wolfTurn = await waitForRoleTurn(
           pages[allWolfIndices[0]],
           ['袭击', '选择'],
@@ -327,7 +323,7 @@ test.describe('Night Roles — Block / Skip', () => {
           }),
       },
       async ({ pages, roleMap }) => {
-        const nightmareIdx = findRolePageIndex(roleMap, '梦魇');
+        const nightmareIdx = findRolePageIndex(roleMap, '噩梦之影');
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
         expect(nightmareIdx).not.toBe(-1);
         expect(wolfIdx).not.toBe(-1);
@@ -409,9 +405,7 @@ test.describe('Night Roles — Block / Skip', () => {
         expect(seerIdx).not.toBe(-1);
 
         // Drive wolf kill
-        const killTarget = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
@@ -449,7 +443,7 @@ test.describe('Night Roles — Block / Skip', () => {
           }),
       },
       async ({ pages, roleMap }) => {
-        const nightmareIdx = findRolePageIndex(roleMap, '梦魇');
+        const nightmareIdx = findRolePageIndex(roleMap, '噩梦之影');
         const dcIdx = findRolePageIndex(roleMap, '摄梦人');
         expect(nightmareIdx).not.toBe(-1);
         expect(dcIdx).not.toBe(-1);
@@ -484,9 +478,7 @@ test.describe('Night Roles — Block / Skip', () => {
           (v, i, a) => a.indexOf(v) === i,
         );
 
-        const killTarget = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const wolfTurn = await waitForRoleTurn(
           pages[allWolfIndices[0]],
           ['袭击', '选择'],
@@ -532,9 +524,7 @@ test.describe('Night Roles — Block / Skip', () => {
         await dismissAlert(pages[guardIdx]);
 
         // Drive wolf kill
-        const killTarget = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);

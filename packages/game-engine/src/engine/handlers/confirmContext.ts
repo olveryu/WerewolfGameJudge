@@ -1,5 +1,5 @@
 /**
- * Confirm Context - 猎人/黑狼王/复仇者确认上下文计算
+ * Confirm Context - 猎人/狼王/复仇者确认上下文计算
  *
  * 纯函数模块，负责：
  * - 在进入 hunterConfirm / darkWolfKingConfirm 步骤前，计算 canShoot
@@ -54,7 +54,7 @@ const CONFIRM_STEP_ROLE: Record<string, ConfirmRole> = deriveConfirmStepRoleMap(
  * 判断某座位夜间是否可以开枪（仅被狼人袭击或公投放逐出局时可发动）。
  *
  * 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
- * 供 confirmContext（猎人/黑狼王）和 actionHandler（wolfRobot 学到猎人）共用。
+ * 供 confirmContext（猎人/狼王）和 actionHandler（wolfRobot 学到猎人）共用。
  */
 export function computeCanShootForSeat(seat: number, state: NonNullState): boolean {
   const results = state.currentNightResults;
@@ -69,7 +69,7 @@ export function computeCanShootForSeat(seat: number, state: NonNullState): boole
 /**
  * 计算 confirmStatus（纯函数）
  *
- * 猎人/黑狼王：仅被狼人袭击或公投放逐出局时可发动。
+ * 猎人/狼王：仅被狼人袭击或公投放逐出局时可发动。
  * 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
  *
  * 复仇者：阵营由 shadow resolver 预计算存入 currentNightResults.avengerFaction，此处直接读取。

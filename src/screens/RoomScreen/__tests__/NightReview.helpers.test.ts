@@ -89,7 +89,7 @@ describe('NightReview.helpers', () => {
 
     it('shows nightmare block', () => {
       const lines = buildActionLines(makeGameState({ currentNightResults: { blockedSeat: 0 } }));
-      expect(lines).toContainEqual(expect.stringContaining('梦魇封锁了 1号'));
+      expect(lines).toContainEqual(expect.stringContaining('噩梦之影封锁了 1号'));
     });
 
     it('shows dreamcatcher protection', () => {
@@ -117,7 +117,7 @@ describe('NightReview.helpers', () => {
           wolfRobotReveal: { targetSeat: 5, result: '猎人', learnedRoleId: 'hunter' },
         }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('机械狼学习了 6号'));
+      expect(lines).toContainEqual(expect.stringContaining('机械狼人学习了 6号'));
       expect(lines).toContainEqual(expect.stringContaining('猎人'));
     });
 
@@ -177,7 +177,7 @@ describe('NightReview.helpers', () => {
       expect(lines).toContainEqual(expect.stringContaining('底牌组成'));
       expect(lines).toContainEqual(expect.stringContaining('预言家'));
       expect(lines).toContainEqual(expect.stringContaining('守卫'));
-      expect(lines).toContainEqual(expect.stringContaining('普通村民'));
+      expect(lines).toContainEqual(expect.stringContaining('平民'));
     });
 
     it('shows treasureMaster chosen card', () => {
@@ -188,7 +188,7 @@ describe('NightReview.helpers', () => {
     it('shows slacker idol choice', () => {
       const actions = new Map([['slacker' as RoleId, makeActionTarget(3)]]);
       const lines = buildActionLines(makeGameState({ actions }));
-      expect(lines).toContainEqual(expect.stringContaining('混子选择了 4号 为榜样'));
+      expect(lines).toContainEqual(expect.stringContaining('混血儿选择了 4号 为榜样'));
     });
 
     it('shows wildChild idol choice', () => {
@@ -226,7 +226,7 @@ describe('NightReview.helpers', () => {
     it('shows darkWolfKing can shoot when not poisoned', () => {
       const players = new Map<number, LocalPlayer | null>([[2, makePlayer(2, 'darkWolfKing')]]);
       const lines = buildActionLines(makeGameState({ players }));
-      expect(lines).toContainEqual(expect.stringContaining('黑狼王可以发动技能'));
+      expect(lines).toContainEqual(expect.stringContaining('狼王可以发动技能'));
     });
 
     it('shows darkWolfKing cannot shoot when poisoned', () => {
@@ -234,7 +234,7 @@ describe('NightReview.helpers', () => {
       const lines = buildActionLines(
         makeGameState({ players, currentNightResults: { poisonedSeat: 2 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('黑狼王不能发动技能'));
+      expect(lines).toContainEqual(expect.stringContaining('狼王不能发动技能'));
     });
 
     it('shows hunter cannot shoot when dream-linked death (dreamcatcher killed)', () => {
@@ -346,7 +346,7 @@ describe('NightReview.helpers', () => {
       const lines = buildActionLines(
         makeGameState({ players, currentNightResults: { blockedSeat: 0 } }),
       );
-      expect(lines).toContainEqual(expect.stringContaining('梦魇封锁了 1号'));
+      expect(lines).toContainEqual(expect.stringContaining('噩梦之影封锁了 1号'));
       expect(lines).toContainEqual(expect.stringContaining('守卫'));
       expect(lines).toContainEqual(expect.stringContaining('技能无效'));
     });
@@ -527,7 +527,7 @@ describe('NightReview.helpers', () => {
       ]);
       const lines = buildIdentityLines(players);
       expect(lines[0]).toBe('1号: 狼人');
-      expect(lines[1]).toBe('2号: 普通村民');
+      expect(lines[1]).toBe('2号: 平民');
       expect(lines[2]).toBe('3号: 预言家');
     });
 

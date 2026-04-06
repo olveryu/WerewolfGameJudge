@@ -363,7 +363,7 @@ describe('SCHEMAS contract', () => {
     it('values snapshot (change detection)', () => {
       // If these values change, tests will fail - forcing explicit review
       expect(BLOCKED_UI_DEFAULTS.title).toBe('技能被封锁');
-      expect(BLOCKED_UI_DEFAULTS.message).toBe('你被梦魇封锁了，本回合无法行动');
+      expect(BLOCKED_UI_DEFAULTS.message).toBe('你被噩梦之影封锁了，本回合无法行动');
       expect(BLOCKED_UI_DEFAULTS.skipButtonText).toBe('跳过（技能被封锁）');
       expect(BLOCKED_UI_DEFAULTS.dismissButtonText).toBe('知道了');
     });

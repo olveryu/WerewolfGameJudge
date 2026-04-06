@@ -55,7 +55,7 @@ test.describe('Night Roles — Check / Reveal', () => {
       async ({ pages, roleMap }) => {
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
         const seerIdx = findRolePageIndex(roleMap, '预言家');
-        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const villagerIdx = findRolePageIndex(roleMap, '平民');
         expect(seerIdx).not.toBe(-1);
         expect(wolfIdx).not.toBe(-1);
 
@@ -165,9 +165,7 @@ test.describe('Night Roles — Check / Reveal', () => {
           (v, i, a) => a.indexOf(v) === i,
         );
 
-        const killTarget = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
 
         const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
@@ -209,9 +207,9 @@ test.describe('Night Roles — Check / Reveal', () => {
           }),
       },
       async ({ pages, roleMap }) => {
-        const wrIdx = findRolePageIndex(roleMap, '机械狼');
+        const wrIdx = findRolePageIndex(roleMap, '机械狼人');
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
-        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const villagerIdx = findRolePageIndex(roleMap, '平民');
         expect(wrIdx !== -1 || wolfIdx !== -1, 'Need wolf faction').toBe(true);
 
         // All wolf faction indices (wolfRobot is also a wolf)
@@ -220,9 +218,7 @@ test.describe('Night Roles — Check / Reveal', () => {
           ...(wrIdx !== -1 ? [wrIdx] : []),
         ].filter((v, i, a) => a.indexOf(v) === i);
 
-        const killTarget = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
 
         // Drive wolf kill
         const firstWolf = allWolfIndices[0];
@@ -242,7 +238,7 @@ test.describe('Night Roles — Check / Reveal', () => {
           // Read reveal — "学习结果：X号是普通村民"
           const revealText = await readAlertText(pages[wrIdx]);
           expect(revealText).toContain(formatSeat(learnSeat));
-          expect(revealText).toContain('普通村民');
+          expect(revealText).toContain('平民');
           await dismissAlert(pages[wrIdx]);
         }
 
@@ -277,9 +273,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfIdx).not.toBe(-1);
 
         const wolfSeat = roleMap.get(wolfIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const villagerSeat = villagers[0]?.[1].seat ?? 0;
         const killTargetSeat = villagers[1]?.[1].seat ?? villagerSeat;
 
@@ -336,9 +330,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(gargoyleIdx).not.toBe(-1);
 
         const wolfSeat = roleMap.get(wolfIdx !== -1 ? wolfIdx : 0)!.seat;
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const villagerSeat = villagers[0]?.[1].seat ?? 0;
         const killTargetSeat = villagers[1]?.[1].seat ?? villagerSeat;
 
@@ -367,7 +359,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         await clickSeatAndConfirm(pages[gargoyleIdx], wolfSeat);
 
         const revealText = await readAlertText(pages[gargoyleIdx]);
-        expect(revealText).toContain('普通村民');
+        expect(revealText).toContain('平民');
         await dismissAlert(pages[gargoyleIdx]);
 
         const ended = await waitForNightEnd(pages, 120);
@@ -402,9 +394,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfIdx).not.toBe(-1);
 
         const wolfSeat = roleMap.get(wolfIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const villagerSeat = villagers[0]?.[1].seat ?? 0;
         const killTargetSeat = villagers[1]?.[1].seat ?? villagerSeat;
 
@@ -424,7 +414,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         await clickSeatAndConfirm(pages[psychicIdx], wolfSeat);
 
         const revealText = await readAlertText(pages[psychicIdx]);
-        expect(revealText).toContain('普通村民');
+        expect(revealText).toContain('平民');
         await dismissAlert(pages[psychicIdx]);
 
         const ended = await waitForNightEnd(pages, 120);
@@ -458,9 +448,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(skIdx).not.toBe(-1);
 
         const skSeat = roleMap.get(skIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const killSeat = villagers[0]?.[1].seat ?? 0;
 
         // Both spiritKnight and wolf are wolf faction
@@ -522,7 +510,7 @@ test.describe('Night Roles — Check / Reveal', () => {
       async ({ pages, roleMap }) => {
         const pureWhiteIdx = findRolePageIndex(roleMap, '纯白之女');
         const wolfWitchIdx = findRolePageIndex(roleMap, '狼巫');
-        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const villagerIdx = findRolePageIndex(roleMap, '平民');
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
         expect(pureWhiteIdx).not.toBe(-1);
         expect(wolfWitchIdx).not.toBe(-1);
@@ -550,7 +538,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         // Read reveal — "纯白查验：X号是普通村民"
         const revealText = await readAlertText(pages[pureWhiteIdx]);
         expect(revealText).toContain(formatSeat(checkSeat));
-        expect(revealText).toContain('普通村民');
+        expect(revealText).toContain('平民');
         await dismissAlert(pages[pureWhiteIdx]);
 
         // Finish night
@@ -579,7 +567,7 @@ test.describe('Night Roles — Check / Reveal', () => {
       async ({ pages, roleMap }) => {
         const wolfWitchIdx = findRolePageIndex(roleMap, '狼巫');
         const pureWhiteIdx = findRolePageIndex(roleMap, '纯白之女');
-        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const villagerIdx = findRolePageIndex(roleMap, '平民');
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
         expect(wolfWitchIdx).not.toBe(-1);
 
@@ -607,7 +595,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         // Read reveal — "狼巫查验：X号是普通村民"
         const revealText = await readAlertText(pages[wolfWitchIdx]);
         expect(revealText).toContain(formatSeat(checkSeat));
-        expect(revealText).toContain('普通村民');
+        expect(revealText).toContain('平民');
         await dismissAlert(pages[wolfWitchIdx]);
 
         // Finish night
@@ -634,15 +622,13 @@ test.describe('Night Roles — Check / Reveal', () => {
           }),
       },
       async ({ pages, roleMap }) => {
-        const wrIdx = findRolePageIndex(roleMap, '机械狼');
+        const wrIdx = findRolePageIndex(roleMap, '机械狼人');
         const hunterIdx = findRolePageIndex(roleMap, '猎人');
         expect(wrIdx).not.toBe(-1);
         expect(hunterIdx).not.toBe(-1);
 
         const hunterSeat = roleMap.get(hunterIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const killSeat = villagers[0]?.[1].seat ?? 0;
 
         // wolfRobot does NOT participate in wolf vote
@@ -705,7 +691,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         const cursedFoxSeat = roleMap.get(cursedFoxIdx)!.seat;
         const villagerEntry = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
+          ([, info]) => info.displayName === '平民',
         );
         const killSeat = villagerEntry?.[1].seat ?? 0;
 

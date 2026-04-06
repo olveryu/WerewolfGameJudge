@@ -201,7 +201,7 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
           // "visible" to Playwright but won't trigger showConfirmAlert on press.
           // Strategy: click each candidate, wait for the confirm alert; if it
           // doesn't appear the card was disabled, so try the next one.
-          const CANDIDATE_NAMES = ['普通村民', '预言家', '狼人'];
+          const CANDIDATE_NAMES = ['平民', '预言家', '狼人'];
           const alertModal = pages[thiefIdx].locator('[data-testid="alert-modal"]');
           let picked = false;
           for (const name of CANDIDATE_NAMES) {

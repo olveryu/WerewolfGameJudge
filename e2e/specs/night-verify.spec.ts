@@ -53,7 +53,7 @@ test.describe('Night Verification', () => {
 
       // Identify wolf and villager
       const wolfIdx = findRolePageIndex(roleMap, '狼人');
-      const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+      const villagerIdx = findRolePageIndex(roleMap, '平民');
       expect(wolfIdx, 'Wolf page should be identified').not.toBe(-1);
       expect(villagerIdx, 'Villager page should be identified').not.toBe(-1);
 

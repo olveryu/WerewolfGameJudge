@@ -157,7 +157,7 @@
 | **UI 目标限制**    | 所有座位                                         |                  |
 | **失败原因**       | `目标玩家不存在`                                 |                  |
 
-### 8. nightmareBlock (梦魇)
+### 8. nightmareBlock (噩梦之影)
 
 | 属性               | 值                                                    | 说明                     |
 | ------------------ | ----------------------------------------------------- | ------------------------ |
@@ -167,7 +167,7 @@
 | **canSkip**        | `true`                                                |                          |
 | **prompt**         | "请选择要封锁的玩家"                                  |                          |
 | **revealKind**     | 无                                                    |                          |
-| **nightmare 阻断** | ❌ 不适用                                             | 梦魇本身不能被封         |
+| **nightmare 阻断** | ❌ 不适用                                             | 噩梦之影本身不能被封     |
 | **特殊规则**       | 封锁狼人 → `wolfKillDisabled=true`                    |                          |
 | **结果落点**       | `currentNightResults.blockedSeat`, `wolfKillDisabled` |                          |
 | **UI 目标限制**    | 所有座位                                              |                          |
@@ -201,7 +201,7 @@
 | **prompt**                  | "请选择袭击目标"                      |                                                                                                  |
 | **emptyVoteText**           | "放弃袭击"                            |                                                                                                  |
 | **revealKind**              | 无                                    |                                                                                                  |
-| **wolfKillDisabled**        | ✅ 检查                               | 梦魇封狼则无法袭击                                                                               |
+| **wolfKillDisabled**        | ✅ 检查                               | 噩梦之影封狼则无法袭击                                                                           |
 | **结果落点**                | `currentNightResults.wolfVotesBySeat` |                                                                                                  |
 | **UI 目标限制**             | 所有座位（含狼队友/自己）             |                                                                                                  |
 | **Host 权威拒绝**           | ✅                                    | 免疫袭击目标会被 Host/Resolver 拒绝，并通过 `actionRejected` 统一弹“操作无效”提示（UI 不做禁用） |
@@ -289,7 +289,7 @@
 | **UI 行为**          | 点击按钮确认                             |                      |
 | **失败原因**         | 无                                       | 始终 valid           |
 
-### 16. darkWolfKingConfirm (黑狼王)
+### 16. darkWolfKingConfirm (狼王)
 
 | 属性                 | 值                                             | 说明       |
 | -------------------- | ---------------------------------------------- | ---------- |

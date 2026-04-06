@@ -61,9 +61,7 @@ test.describe('Night Roles — Kill / Status', () => {
         expect(witchIdx).not.toBe(-1);
 
         // Find two villagers
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const killTargetSeat = villagers[0]?.[1].seat ?? 0;
         const poisonTargetSeat = villagers[1]?.[1].seat ?? 1;
 
@@ -213,9 +211,7 @@ test.describe('Night Roles — Kill / Status', () => {
         expect(wqIdx !== -1 || wolfIdx !== -1, 'Need wolf faction').toBe(true);
 
         // Drive wolf kill
-        const killTarget = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const firstWolf = allWolfIndices[0];
         const wolfTurn = await waitForRoleTurn(pages[firstWolf], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
@@ -258,13 +254,11 @@ test.describe('Night Roles — Kill / Status', () => {
           }),
       },
       async ({ pages, roleMap }) => {
-        const dwkIdx = findRolePageIndex(roleMap, '黑狼王');
+        const dwkIdx = findRolePageIndex(roleMap, '狼王');
         expect(dwkIdx).not.toBe(-1);
 
         // darkWolfKing is a wolf — drive wolf kill first
-        const killTarget = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const wolfTurn = await waitForRoleTurn(pages[dwkIdx], ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [dwkIdx], killTarget ? killTarget[1].seat : 0);
@@ -281,7 +275,7 @@ test.describe('Night Roles — Kill / Status', () => {
 
         // Read alert — "黑狼王可以发动技能" or "黑狼王不能发动技能"
         const alertText = await readAlertText(pages[dwkIdx]);
-        expect(alertText).toContain('黑狼王');
+        expect(alertText).toContain('狼王');
         expect(alertText).toMatch(/可以发动技能|不能发动技能/);
         await dismissAlert(pages[dwkIdx]);
 
@@ -316,9 +310,7 @@ test.describe('Night Roles — Kill / Status', () => {
         expect(hunterIdx).not.toBe(-1);
 
         const hunterSeat = roleMap.get(hunterIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const killSeat = villagers[0]?.[1].seat ?? 0;
 
         // Wolf kills a villager

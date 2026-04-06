@@ -53,7 +53,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
       async ({ pages, roleMap }) => {
         const guardIdx = findRolePageIndex(roleMap, '守卫');
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
-        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const villagerIdx = findRolePageIndex(roleMap, '平民');
         expect(guardIdx).not.toBe(-1);
         expect(wolfIdx).not.toBe(-1);
 
@@ -100,7 +100,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
       },
       async ({ pages, roleMap }) => {
         const wolfIdx = findRolePageIndex(roleMap, '狼人');
-        const villagerIdx = findRolePageIndex(roleMap, '普通村民');
+        const villagerIdx = findRolePageIndex(roleMap, '平民');
         const witchIdx = findRolePageIndex(roleMap, '女巫');
         expect(wolfIdx).not.toBe(-1);
         expect(witchIdx).not.toBe(-1);
@@ -182,7 +182,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
 
         // Pick a villager as target
         const villagerEntry = [...roleMap.entries()].find(
-          ([, info]) => info.displayName === '普通村民',
+          ([, info]) => info.displayName === '平民',
         );
         const targetSeat = villagerEntry ? villagerEntry[1].seat : roleMap.get(dcIdx)!.seat;
 
@@ -230,9 +230,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         expect(dcIdx).not.toBe(-1);
         expect(wolfIdx).not.toBe(-1);
 
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         expect(villagers.length).toBeGreaterThanOrEqual(2);
 
         const dreamSeat = villagers[0][1].seat; // dream this one
@@ -334,9 +332,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         expect(wolfIdx).not.toBe(-1);
 
         const skSeat = roleMap.get(skIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const validTarget = villagers[0]?.[1].seat ?? 0;
 
         // Both spiritKnight and wolf are wolf faction
@@ -398,9 +394,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         expect(skIdx).not.toBe(-1);
 
         const skSeat = roleMap.get(skIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const killSeat = villagers[0]?.[1].seat ?? 0;
 
         // Both spiritKnight and wolf are wolf faction
@@ -465,9 +459,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         expect(wolfIdx).not.toBe(-1);
 
         const dcSeat = roleMap.get(dcIdx)!.seat;
-        const villagers = [...roleMap.entries()].filter(
-          ([, info]) => info.displayName === '普通村民',
-        );
+        const villagers = [...roleMap.entries()].filter(([, info]) => info.displayName === '平民');
         const villagerSeat = villagers[0]?.[1].seat ?? 0;
 
         // Dreamcatcher dreams the villager
