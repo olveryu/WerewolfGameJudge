@@ -17,7 +17,10 @@ import {
 } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, RevealKind, SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { isValidSchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
-import { getBottomCardEffectiveRole } from '@werewolf/game-engine/utils/playerHelpers';
+import {
+  getBottomCardEffectiveRole,
+  isBottomCardWolfVoteExcluded,
+} from '@werewolf/game-engine/utils/playerHelpers';
 import { useCallback, useMemo } from 'react';
 
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
@@ -279,17 +282,19 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   const findVotingWolfSeat = useCallback((): number | null => {
     if (!gameState) return null;
     // Only wolves that participate in wolf vote can vote (excludes gargoyle, wolfRobot, etc.)
-    // Uses effective role: thief/treasureMaster who chose a wolf card can vote too.
+    // treasureMaster never participates in wolfVote even if chosen card is wolf.
     // Revote allowed: no longer check hasWolfVoted
     if (
       actorSeatNumber !== null &&
+      actorRole &&
       effectiveActorRole &&
-      doesRoleParticipateInWolfVote(effectiveActorRole)
+      doesRoleParticipateInWolfVote(effectiveActorRole) &&
+      !isBottomCardWolfVoteExcluded(actorRole)
     ) {
       return actorSeatNumber;
     }
     return null;
-  }, [gameState, actorSeatNumber, effectiveActorRole]);
+  }, [gameState, actorSeatNumber, actorRole, effectiveActorRole]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Action message builder

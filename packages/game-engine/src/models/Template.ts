@@ -527,7 +527,7 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
       'poisoner',
       'hunter',
       'dreamcatcher',
-      'crow',
+      'maskedMan',
       'treasureMaster',
     ],
   },

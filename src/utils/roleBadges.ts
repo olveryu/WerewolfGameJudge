@@ -32,6 +32,7 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   silenceElder: require('../../assets/badges/png/512/role_silenceElder.png'),
   votebanElder: require('../../assets/badges/png/512/role_votebanElder.png'),
   crow: require('../../assets/badges/png/512/role_crow.png'),
+  maskedMan: require('../../assets/badges/png/512/role_maskedMan.png'),
   poisoner: require('../../assets/badges/png/512/role_poisoner.png'),
 
   // ── Wolf ──

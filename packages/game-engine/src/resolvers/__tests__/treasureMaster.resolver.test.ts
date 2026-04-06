@@ -1,8 +1,9 @@
 /**
  * TreasureMaster Resolver Unit Tests
  *
- * Validates card selection, wolf-faction rejection, effectiveTeam computation,
- * skip handling (nightmare block), and invalid index rejection.
+ * Validates card selection (including wolf-faction cards per S21),
+ * effectiveTeam computation, skip handling (nightmare block),
+ * and invalid index rejection.
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -69,11 +70,12 @@ describe('treasureMasterChooseResolver', () => {
     expect(result.updates?.treasureMasterChosenCard).toBe('villager');
   });
 
-  it('should reject wolf-faction card', () => {
+  it('should accept wolf-faction card (S21: all cards selectable)', () => {
     const ctx = createContext();
     const result = treasureMasterChooseResolver(ctx, createInput(1)); // wolf
-    expect(result.valid).toBe(false);
-    expect(result.rejectReason).toBe('不能选择狼人阵营的卡牌');
+    expect(result.valid).toBe(true);
+    expect(result.updates?.treasureMasterChosenCard).toBe('wolf');
+    expect(result.updates?.effectiveTeam).toBe(Team.Wolf);
   });
 
   it('should reject cardIndex out of range (negative)', () => {

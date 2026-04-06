@@ -737,19 +737,11 @@ export function useRoomScreenState(
       };
     }
 
-    // TreasureMaster: wolf cards disabled
-    const disabled = bottomCards.map((_, i) => i).filter((i) => factions[i] === Faction.Wolf);
-    const godCount = factions.filter((f) => f === Faction.God).length;
-    const villagerCount = factions.filter((f) => f === Faction.Villager).length;
-    let team = '好人阵营';
-    if (hasWolf) team = '狼人阵营';
-    else if (godCount >= 2) team = '神职阵营';
-    else if (villagerCount >= 2) team = '平民阵营';
-
+    // TreasureMaster (S21): all cards selectable, always wolf team
     return {
-      bottomCardDisabledIndices: disabled,
-      bottomCardDisabledHint: '狼人阵营 · 不可选',
-      bottomCardSubtitle: `你的阵营：${team}`,
+      bottomCardDisabledIndices: [],
+      bottomCardDisabledHint: undefined,
+      bottomCardSubtitle: '你的阵营：狼人阵营',
     };
   }, [bottomCards, isThiefChoose]);
 

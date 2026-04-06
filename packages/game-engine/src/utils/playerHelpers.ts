@@ -61,3 +61,11 @@ export function getBottomCardEffectiveRole(
   if (role === 'treasureMaster' && treasureMasterChosenCard) return treasureMasterChosenCard;
   return role;
 }
+
+/**
+ * treasureMaster 永远不参与 wolfVote（即使选了狼牌也不见面、不投票）。
+ * 在所有 wolfVote 消费点使用 originalRole 做排除。
+ */
+export function isBottomCardWolfVoteExcluded(originalRole: RoleId): boolean {
+  return originalRole === 'treasureMaster';
+}

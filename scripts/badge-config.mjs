@@ -69,6 +69,7 @@ export const EMOJI_MAP = {
   thief: ['Joker', 'joker', false],
   cupid: ['Heart with arrow', 'heart_with_arrow', false],
   crow: ['Black bird', 'black_bird', false],
+  maskedMan: ['Disguised face', 'disguised_face', false],
 };
 
 // ---------------------------------------------------------------------------

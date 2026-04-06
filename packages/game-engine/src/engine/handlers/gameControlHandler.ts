@@ -239,32 +239,16 @@ function validateBottomCards(cards: RoleId[], bottomCardRoleId: RoleId): boolean
   return true;
 }
 
-/** TreasureMaster 底牌约束 */
+/** TreasureMaster 底牌约束：S21 严格 1Wolf + 1God + 1Villager */
 function validateTreasureMasterBottomCards(cards: RoleId[]): boolean {
-  // 最多 1 只普通狼人
-  const plainWolfCount = cards.filter((r) => r === ('wolf' as RoleId)).length;
-  if (plainWolfCount > 1) return false;
-
-  // 不全神
-  const allGod = cards.every((r) => {
+  const factions = cards.map((r) => {
     const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
-    return spec?.faction === Faction.God;
+    return spec?.faction;
   });
-  if (allGod) return false;
-
-  // 不全民
-  const allVillager = cards.every((r) => r === ('villager' as RoleId));
-  if (allVillager) return false;
-
-  // 禁止技能狼
-  const hasSkillWolf = cards.some((r) => {
-    if (r === ('wolf' as RoleId)) return false;
-    const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
-    return spec?.faction === Faction.Wolf;
-  });
-  if (hasSkillWolf) return false;
-
-  return true;
+  const wolfCount = factions.filter((f) => f === Faction.Wolf).length;
+  const godCount = factions.filter((f) => f === Faction.God).length;
+  const villagerCount = factions.filter((f) => f === Faction.Villager).length;
+  return wolfCount === 1 && godCount === 1 && villagerCount === 1;
 }
 
 /** Thief 底牌约束 */

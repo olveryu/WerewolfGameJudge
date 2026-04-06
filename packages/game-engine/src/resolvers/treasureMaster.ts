@@ -2,8 +2,8 @@
  * TreasureMaster Resolver (SERVER-ONLY, 纯函数)
  *
  * 职责：校验底牌选择 + 计算 effectiveTeam + 写入 treasureMasterChosenCard。
- * treasureMaster 先于所有角色行动，从底牌三张中选择一张非狼阵营卡牌作为自身身份。
- * effectiveTeam 由底牌组成决定（含狼→狼队，否则按多数阵营归属）。
+ * treasureMaster 先于所有角色行动，从底牌三张中选择一张卡牌（含狼阵营）作为自身身份。
+ * S21 规则：底牌固定 1Wolf+1God+1Villager，永久狼阵营，不与狼队见面，不参与刀人。
  * 不包含 IO（网络 / 音频 / Alert）。
  */
 
@@ -16,9 +16,6 @@ const REJECT_MUST_CHOOSE = '必须选择一张底牌' as const;
 
 /** cardIndex 超出范围 */
 const REJECT_INVALID_INDEX = '无效的卡牌索引' as const;
-
-/** 不能选择狼人阵营卡牌 */
-const REJECT_WOLF_FACTION = '不能选择狼人阵营的卡牌' as const;
 
 /** 缺少盗宝大师上下文 */
 const REJECT_NO_CONTEXT = '缺少盗宝大师上下文' as const;
@@ -76,12 +73,6 @@ export const treasureMasterChooseResolver: ResolverFn = (context, input) => {
 
   // Get the chosen role
   const chosenRoleId = bottomCards[cardIndex];
-  const chosenSpec = ROLE_SPECS[chosenRoleId];
-
-  // Reject wolf-faction cards
-  if (chosenSpec.faction === Faction.Wolf) {
-    return { valid: false, rejectReason: REJECT_WOLF_FACTION };
-  }
 
   // Compute effective team from all bottom cards
   const effectiveTeam = computeEffectiveTeam(bottomCards);

@@ -11,7 +11,10 @@
 
 import { doesRoleParticipateInWolfVote } from '../../models';
 import type { GameState } from '../../protocol/types';
-import { getBottomCardEffectiveRole } from '../../utils/playerHelpers';
+import {
+  getBottomCardEffectiveRole,
+  isBottomCardWolfVoteExcluded,
+} from '../../utils/playerHelpers';
 
 /** 狼人投票倒计时毫秒数 */
 export const WOLF_VOTE_COUNTDOWN_MS = 5000;
@@ -45,7 +48,10 @@ export function isWolfVoteAllComplete(state: GameState): boolean {
       state.thiefChosenCard,
       state.treasureMasterChosenCard,
     );
-    if (doesRoleParticipateInWolfVote(effectiveRole)) {
+    if (
+      doesRoleParticipateInWolfVote(effectiveRole) &&
+      !isBottomCardWolfVoteExcluded(player.role)
+    ) {
       participatingWolfSeats.push(seat);
     }
   }
