@@ -6,6 +6,7 @@
  * 不 import service / hook / React；仅依赖 game-engine 类型与 getRoleDisplayName。
  */
 
+import type { DeathReason } from '@werewolf/game-engine/engine/DeathCalculator';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName, getRoleEmoji, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import { Team } from '@werewolf/game-engine/models/roles/spec/types';
@@ -13,6 +14,22 @@ import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { ACTION, STATUS } from '@/config/emojiTokens';
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Death reason labels
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DEATH_REASON_LABELS: Record<DeathReason, string> = {
+  wolfKill: '狼杀',
+  poison: '毒杀',
+  checkDeath: '查杀',
+  wolfQueenLink: '狼王连锁',
+  bondedLink: '绑定连锁',
+  coupleLink: '殉情',
+  dreamcatcherLink: '摄梦连锁',
+  reflection: '反伤',
+  magicianSwap: '魔术师交换',
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Internal helpers
@@ -410,7 +427,13 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   if (deaths.length === 0) {
     lines.push(`${STATUS.PEACEFUL_NIGHT} 昨夜平安夜`);
   } else {
-    const deathList = deaths.map((d) => formatSeat(d)).join('、');
+    const { deathReasons } = gameState;
+    const deathList = deaths
+      .map((d) => {
+        const reason = deathReasons?.[d];
+        return reason ? `${formatSeat(d)}（${DEATH_REASON_LABELS[reason]}）` : formatSeat(d);
+      })
+      .join('、');
     lines.push(`${STATUS.DEATH} 死亡：${deathList}`);
   }
 

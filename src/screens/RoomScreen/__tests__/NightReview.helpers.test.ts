@@ -1,3 +1,4 @@
+import type { DeathReason } from '@werewolf/game-engine/engine/DeathCalculator';
 import { makeActionTarget } from '@werewolf/game-engine/models/actions/RoleAction';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
@@ -14,6 +15,7 @@ function makeGameState(
   overrides: Partial<{
     currentNightResults: LocalGameState['currentNightResults'];
     lastNightDeaths: number[];
+    deathReasons: Record<number, DeathReason>;
     players: Map<number, LocalPlayer | null>;
     actions: Map<RoleId, ReturnType<typeof makeActionTarget>>;
     seerReveal: { targetSeat: number; result: '好人' | '狼人' };
@@ -28,6 +30,7 @@ function makeGameState(
   return {
     currentNightResults: overrides.currentNightResults ?? {},
     lastNightDeaths: overrides.lastNightDeaths ?? [],
+    deathReasons: overrides.deathReasons,
     players: overrides.players ?? new Map(),
     actions: overrides.actions ?? new Map(),
     seerReveal: overrides.seerReveal,
@@ -121,6 +124,34 @@ describe('NightReview.helpers', () => {
     it('shows death list', () => {
       const lines = buildActionLines(makeGameState({ lastNightDeaths: [0, 3] }));
       expect(lines).toContainEqual(expect.stringContaining('死亡：1号、4号'));
+    });
+
+    it('shows death list with reason labels when deathReasons present', () => {
+      const lines = buildActionLines(
+        makeGameState({
+          lastNightDeaths: [0, 3],
+          deathReasons: { 0: 'wolfKill', 3: 'poison' },
+        }),
+      );
+      expect(lines).toContainEqual(expect.stringContaining('死亡：1号（狼杀）、4号（毒杀）'));
+    });
+
+    it('shows death list without labels when deathReasons is undefined', () => {
+      const lines = buildActionLines(makeGameState({ lastNightDeaths: [0, 3] }));
+      expect(lines).toContainEqual(expect.stringContaining('死亡：1号、4号'));
+      expect(lines.join()).not.toContain('（');
+    });
+
+    it('shows all death reason types correctly', () => {
+      const lines = buildActionLines(
+        makeGameState({
+          lastNightDeaths: [0, 1, 2],
+          deathReasons: { 0: 'wolfKill', 1: 'coupleLink', 2: 'magicianSwap' },
+        }),
+      );
+      expect(lines).toContainEqual(
+        expect.stringContaining('1号（狼杀）、2号（殉情）、3号（魔术师交换）'),
+      );
     });
 
     it('shows wolf kill disabled', () => {

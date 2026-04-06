@@ -20,7 +20,7 @@ import { buildNightPlan, getStepSpec } from '../../models/roles/spec';
 import { Team } from '../../models/roles/spec/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { getEngineLogger } from '../../utils/logger';
-import { calculateDeaths } from '../DeathCalculator';
+import { calculateDeathsDetailed } from '../DeathCalculator';
 import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
 import type {
   AdvanceToNextActionAction,
@@ -232,14 +232,14 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   });
 
   // 调用 DeathCalculator（复用，不重写）
-  const deaths = calculateDeaths(nightActions, roleSeatMap);
+  const { deaths, deathReasons } = calculateDeathsDetailed(nightActions, roleSeatMap);
 
   // DEBUG: 打印死亡计算结果
-  nightFlowLog.debug('handleEndNight: deaths calculated', { deaths });
+  nightFlowLog.debug('handleEndNight: deaths calculated', { deaths, deathReasons });
 
   const endNightAction: EndNightAction = {
     type: 'END_NIGHT',
-    payload: { deaths },
+    payload: { deaths, deathReasons },
   };
 
   return {

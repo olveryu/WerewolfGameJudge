@@ -92,6 +92,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     actions: [],
     currentNightResults: undefined,
     lastNightDeaths: undefined,
+    deathReasons: undefined,
     witchContext: undefined,
     seerReveal: undefined,
     mirrorSeerReveal: undefined,

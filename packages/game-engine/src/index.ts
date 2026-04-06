@@ -97,6 +97,7 @@ export {
 } from './resolvers/types';
 
 // === Engine ===
+export type { DeathReason, DeathsDetailed } from './engine/DeathCalculator';
 export { handleSubmitAction, handleViewedRole } from './engine/handlers/actionHandler';
 export {
   handleAssignRoles,

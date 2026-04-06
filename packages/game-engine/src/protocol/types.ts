@@ -8,6 +8,7 @@
  */
 
 // ⚠️ 以现有 repo 导出路径为准
+import type { DeathReason } from '../engine/DeathCalculator';
 import type { GameStatus, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
@@ -134,6 +135,9 @@ export interface GameState {
 
   /** 上一夜死亡 */
   lastNightDeaths?: number[];
+
+  /** 上一夜死亡原因（座位 → 死因） */
+  deathReasons?: Readonly<Record<number, DeathReason>>;
 
   // --- 梦魇封锁 ---
   nightmareBlockedSeat?: number;

@@ -34,6 +34,7 @@
 
 import {
   calculateDeaths,
+  calculateDeathsDetailed,
   NightActions,
   RoleSeatMap,
 } from '@werewolf/game-engine/engine/DeathCalculator';
@@ -909,5 +910,124 @@ describe('DeathCalculator', () => {
       const deaths = calculateDeaths(actions, roleSeatMap);
       expect(deaths).toEqual([]);
     });
+  });
+});
+
+// =============================================================================
+// calculateDeathsDetailed — death reason tracking
+// =============================================================================
+
+describe('calculateDeathsDetailed', () => {
+  it('wolf kill → reason wolfKill', () => {
+    const result = calculateDeathsDetailed({ wolfKill: 3 });
+    expect(result.deaths).toEqual([3]);
+    expect(result.deathReasons).toEqual({ 3: 'wolfKill' });
+  });
+
+  it('poison kill → reason poison', () => {
+    const result = calculateDeathsDetailed(
+      { witchAction: makeWitchPoison(5) },
+      { ...NO_ROLES, poisonSourceSeat: 2 },
+    );
+    expect(result.deaths).toEqual([5]);
+    expect(result.deathReasons).toEqual({ 5: 'poison' });
+  });
+
+  it('wolf kill + poison → both reasons', () => {
+    const result = calculateDeathsDetailed(
+      { wolfKill: 1, witchAction: makeWitchPoison(5) },
+      { ...NO_ROLES, poisonSourceSeat: 2 },
+    );
+    expect(result.deaths).toEqual([1, 5]);
+    expect(result.deathReasons).toEqual({ 1: 'wolfKill', 5: 'poison' });
+  });
+
+  it('check death → reason checkDeath', () => {
+    const result = calculateDeathsDetailed({}, { ...NO_ROLES, checkDeathTargetSeats: [4] });
+    expect(result.deaths).toEqual([4]);
+    expect(result.deathReasons).toEqual({ 4: 'checkDeath' });
+  });
+
+  it('wolf queen link → reason wolfQueenLink', () => {
+    const result = calculateDeathsDetailed(
+      { wolfKill: 2, wolfQueenCharm: 7 },
+      { ...NO_ROLES, wolfQueenLinkSeat: 2 },
+    );
+    expect(result.deaths).toEqual([2, 7]);
+    expect(result.deathReasons).toEqual({ 2: 'wolfKill', 7: 'wolfQueenLink' });
+  });
+
+  it('bonded link → reason bondedLink', () => {
+    const result = calculateDeathsDetailed(
+      { wolfKill: 3 },
+      { ...NO_ROLES, bondedLinkSeats: [3, 8] },
+    );
+    expect(result.deaths).toEqual([3, 8]);
+    expect(result.deathReasons).toEqual({ 3: 'wolfKill', 8: 'bondedLink' });
+  });
+
+  it('couple link → reason coupleLink', () => {
+    const result = calculateDeathsDetailed(
+      { wolfKill: 1 },
+      { ...NO_ROLES, coupleLinkSeats: [1, 6] },
+    );
+    expect(result.deaths).toEqual([1, 6]);
+    expect(result.deathReasons).toEqual({ 1: 'wolfKill', 6: 'coupleLink' });
+  });
+
+  it('dreamcatcher protection clears reason, link death adds dreamcatcherLink', () => {
+    const result = calculateDeathsDetailed(
+      { wolfKill: 5, dreamcatcherDream: 5 },
+      { ...NO_ROLES, dreamcatcherLinkSeat: 9 },
+    );
+    // dream target 5 is protected, dreamcatcher 9 is not dead → no deaths
+    expect(result.deaths).toEqual([]);
+    expect(result.deathReasons).toEqual({});
+  });
+
+  it('dreamcatcher dies → dream target gets dreamcatcherLink reason', () => {
+    const result = calculateDeathsDetailed(
+      { wolfKill: 9, dreamcatcherDream: 5 },
+      { ...NO_ROLES, dreamcatcherLinkSeat: 9 },
+    );
+    expect(result.deaths).toEqual([5, 9]);
+    expect(result.deathReasons).toEqual({ 9: 'wolfKill', 5: 'dreamcatcherLink' });
+  });
+
+  it('reflection → reason reflection', () => {
+    const result = calculateDeathsDetailed(
+      {},
+      {
+        ...NO_ROLES,
+        reflectsDamageSeats: [4],
+        reflectionSources: [{ sourceSeat: 2, targetSeat: 4 }],
+      },
+    );
+    expect(result.deaths).toEqual([2]);
+    expect(result.deathReasons).toEqual({ 2: 'reflection' });
+  });
+
+  it('magician swap → swapped seat gets magicianSwap reason', () => {
+    const result = calculateDeathsDetailed({
+      wolfKill: 3,
+      magicianSwap: { first: 3, second: 7 },
+    });
+    expect(result.deaths).toEqual([7]);
+    expect(result.deathReasons).toEqual({ 7: 'magicianSwap' });
+  });
+
+  it('peaceful night → empty reasons', () => {
+    const result = calculateDeathsDetailed({});
+    expect(result.deaths).toEqual([]);
+    expect(result.deathReasons).toEqual({});
+  });
+
+  it('calculateDeaths delegates to calculateDeathsDetailed (same deaths)', () => {
+    const actions: NightActions = { wolfKill: 1, witchAction: makeWitchPoison(5) };
+    const roleSeatMap: RoleSeatMap = { ...NO_ROLES, poisonSourceSeat: 2 };
+
+    const deaths = calculateDeaths(actions, roleSeatMap);
+    const detailed = calculateDeathsDetailed(actions, roleSeatMap);
+    expect(deaths).toEqual(detailed.deaths);
   });
 });

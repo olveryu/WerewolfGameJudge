@@ -10,6 +10,7 @@ import type { ConfirmStatus, Player, ProtocolAction } from '../../protocol/types
 import type { AudioEffect } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
 import type { RoleRevealAnimation } from '../../types';
+import type { DeathReason } from '../DeathCalculator';
 
 // =============================================================================
 // 游戏生命周期动作
@@ -119,6 +120,7 @@ export interface EndNightAction {
   type: 'END_NIGHT';
   payload: {
     deaths: number[];
+    deathReasons?: Record<number, DeathReason>;
   };
 }
 

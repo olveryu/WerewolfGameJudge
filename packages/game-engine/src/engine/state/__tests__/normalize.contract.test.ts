@@ -40,6 +40,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'currentNightResults',
   'pendingRevealAcks',
   'lastNightDeaths',
+  'deathReasons',
 
   // 梦魇封锁
   'nightmareBlockedSeat',

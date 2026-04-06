@@ -85,6 +85,7 @@ export function normalizeState(raw: GameState): GameState {
     currentNightResults,
     pendingRevealAcks: raw.pendingRevealAcks ?? [],
     lastNightDeaths: raw.lastNightDeaths,
+    deathReasons: raw.deathReasons,
 
     // Night flow 状态（关键：currentStepId 必须透传）
     currentStepId: raw.currentStepId,

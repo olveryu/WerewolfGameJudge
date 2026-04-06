@@ -59,13 +59,14 @@ export function handleAdvanceToNextAction(
 }
 
 export function handleEndNight(state: GameState, action: EndNightAction): GameState {
-  const { deaths } = action.payload;
+  const { deaths, deathReasons } = action.payload;
   return {
     ...state,
     // Terminal state for this app's scope (Night-1-only): results are ready.
     // This is NOT a winner decision; players decide outcomes offline.
     status: GameStatus.Ended,
     lastNightDeaths: deaths,
+    deathReasons,
     currentStepIndex: -1,
     // PR6 contract: 夜晚结束清空 stepId 和 isAudioPlaying
     currentStepId: undefined,
