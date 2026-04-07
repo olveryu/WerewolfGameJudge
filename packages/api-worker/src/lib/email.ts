@@ -8,7 +8,7 @@
 import type { Env } from '../env';
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
-const FROM_ADDRESS = '狼人杀裁判 <noreply@send.werewolfjudge.eu.org>';
+const FROM_ADDRESS = '狼人杀裁判 <noreply@werewolfjudge.eu.org>';
 
 interface SendEmailOptions {
   to: string;
