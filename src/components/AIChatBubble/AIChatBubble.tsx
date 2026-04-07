@@ -97,6 +97,17 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
     }
   }, [showScrollBtn]);
 
+  // Auto-scroll when a new message is added (covers all sources: input, bridge, quick question)
+  const msgCount = chat.messages.length;
+  const prevMsgCountRef = useRef(msgCount);
+  useEffect(() => {
+    if (msgCount > prevMsgCountRef.current) {
+      setShowScrollBtn(false);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+    }
+    prevMsgCountRef.current = msgCount;
+  }, [msgCount]);
+
   // Wrap send/quickQuestion to force scroll-to-bottom on user action
   const { handleSend, handleQuickQuestion } = chat;
 
