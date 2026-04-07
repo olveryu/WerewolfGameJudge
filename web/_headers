@@ -5,8 +5,11 @@
 /assets/fonts/*
   Cache-Control: public, max-age=31536000, immutable
 
+# JS bundles: Metro uses source-hash (not content-hash) for filenames,
+# so the same filename may have different content across builds.
+# Must revalidate on every request to avoid cross-build module mismatch.
 /assets/js/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: no-cache
 
 /assets/audio/*
   Cache-Control: public, max-age=31536000, immutable
