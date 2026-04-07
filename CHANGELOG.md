@@ -5,6 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [1.13.0] - 2026-04-06
+
+- chore(models): update maskedMan avatar and badge
+- fix(config): neutralize screen flash color to prevent alignment leakage
+- refactor(models): replace badge images with animal emojis in RoleHunt animation
+- refactor(models): align template names, audio, docs with official terminology
+- refactor(models): align role displayNames with official NetEase Werewolf terminology
+- docs(models): clarify piper loss condition in description
+- fix(night): correct death reason labels for wolfQueenLink and checkDeath
+- feat(game-engine): add deathReasons tracking via calculateDeathsDetailed
+- fix(night): add missing annotations to night review summary
+- feat(models): add cursedFox role and 咒狐乌鸦 12p template
+- feat(game-engine): add maskedMan role and treasureMaster S21 board support
+- fix(models): normalize maskedMan/treasureMaster descriptions and fix wolf vote visibility
+- fix(engine): authoritative canShoot for all linked-death causes
+- fix(theme): migrate deprecated shadow style props to cross-platform API
+- fix(deps): pin react 19.2.0 for Expo SDK 55 compatibility
+- chore(deps): upgrade compatible dependencies
+- fix(room): use onLayout for PlayerGrid tile size calculation
+- chore: remove unused exports, types, and dead barrel file
+- fix(services): add disconnect() to prevent permanent Disposed state
+- fix(services): address second FSM review findings
+- fix(services): address FSM review findings P1-P4 + #7
+- fix(services): preserve attempt counter across Syncing, retry fetch in-place
+- refactor(services): rewrite reconnection as deterministic FSM
+- fix(pwa): add Cache-Control no-cache for HTML to prevent white screen
+- refactor(services): clean up reconnection system for CF architecture
+- fix(settings): hide switch-account and logout buttons during password change
+- fix(e2e): remove flaky URL assertion in non-existent room test
+- refactor(e2e): remove run-e2e-web.mjs and simplify devConfig
+- fix(auth): update user state after signInAnonymously
+- chore: remove all Supabase code, Edge Functions, and dependencies
+- feat(auth): add change password for logged-in email users
+- fix(ci): build game-engine before deploying api-worker
+- style(api-worker): autofix import sort in index.ts
+- ci(e2e): switch from local Supabase to wrangler dev --local
+- fix(e2e): click template pill instead of back button in ConfigPage
+- chore: remove temp migration scripts, gitignore .wrangler/
+- fix(ci): add packageManager: pnpm to wrangler-action
+- style: format migration script
+- Merge pull request #42 from olveryu/feat/cf-full-migration
+- ci(frontend): switch deploy-frontend to cloudflare backend, drop supabase env vars
+- ci: add deploy-api-worker job for Cloudflare Workers auto-deploy
+- fix(config): separate env vars per backend to avoid .env.local override
+- fix(api-worker): remove extra param binding in room create with initialState
+- fix(notepad): preserve Room in nav stack after Stale Tab reload
+- chore(config): set real CF Worker URL in api.ts
+- chore(api-worker): enable R2 bucket binding
+- chore(api-worker): set D1 database_id, make R2 optional
+- feat(services): add bcrypt dual-hash verification + user migration script
+- fix(notepad): preserve Room in nav stack after Stale Tab reload
+- fix(config): use popTo to return to Config from BoardPicker
+- fix(config): preserve edit mode when navigating to BoardPicker
+- feat(services): implement cloudflare workers backend (phases 1-4)
+- refactor(services): extract service interfaces and create ServiceRegistry
+- feat: init Supabase to Cloudflare full-stack migration
+- feat: init Supabase → Cloudflare full-stack migration
+- fix(config): default splash theme to light, validate themeKey before use
+- fix(config): password input styling & animation validation
+- ci: remove PR edge deploy + restore-edge-functions job
+- fix(ci): fix JSON generation for local Supabase config
+- ci(deploy): add Cloudflare Pages deploy job via wrangler-action
+- ci(e2e): switch from remote to local Supabase
+
 ## [1.12.0] - 2026-04-03
 
 - docs: update all Vercel references to Cloudflare Pages
