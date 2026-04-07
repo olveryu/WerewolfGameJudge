@@ -92,6 +92,17 @@ export function mapAuthError(message: string): string {
   if (lower.includes('signups not allowed')) return '注册功能已关闭';
   if (lower.includes('email rate limit exceeded')) return '操作过于频繁，请稍后重试';
   if (lower.includes('only request this once every')) return '请求过于频繁，请稍等后重试';
+  if (lower.includes('too many reset requests')) return '重置请求过于频繁，请稍后重试';
+  if (lower.includes('email already registered')) return '该邮箱已注册';
+  if (lower.includes('email and password required')) return '请输入邮箱和密码';
+  if (lower.includes('email required')) return '请输入邮箱';
+  if (lower.includes('invalid credentials')) return '邮箱或密码错误';
+  if (lower.includes('invalid old password')) return '原密码错误';
+  if (lower.includes('invalid or expired code')) return '验证码无效或已过期';
+  if (lower.includes('failed to send email')) return '邮件发送失败，请稍后重试';
+  if (lower.includes('account has no password')) return '该账户未设置密码';
+  if (lower.includes('oldpassword and newpassword required')) return '请输入原密码和新密码';
+  if (lower.includes('email, code and newpassword required')) return '请填写完整信息';
   if (lower.includes('network') || lower.includes('fetch')) return NETWORK_ERROR;
 
   // 其他未匹配的英文错误信息，返回通用中文提示，避免用户看到原始英文
@@ -118,6 +129,16 @@ export function isExpectedAuthError(message: string): boolean {
     lower.includes('unable to validate email address') ||
     lower.includes('email rate limit exceeded') ||
     lower.includes('only request this once every') ||
-    lower.includes('signups not allowed')
+    lower.includes('signups not allowed') ||
+    lower.includes('too many reset requests') ||
+    lower.includes('email already registered') ||
+    lower.includes('email and password required') ||
+    lower.includes('email required') ||
+    lower.includes('invalid credentials') ||
+    lower.includes('invalid old password') ||
+    lower.includes('invalid or expired code') ||
+    lower.includes('account has no password') ||
+    lower.includes('oldpassword and newpassword required') ||
+    lower.includes('email, code and newpassword required')
   );
 }

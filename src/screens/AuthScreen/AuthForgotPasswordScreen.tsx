@@ -39,6 +39,7 @@ export const AuthForgotPasswordScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = useCallback(async () => {
+    if (loading) return;
     if (!email) {
       showAlert('请输入邮箱');
       return;
@@ -56,7 +57,7 @@ export const AuthForgotPasswordScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [email, forgotPassword, navigation]);
+  }, [email, loading, forgotPassword, navigation]);
 
   const handleBack = useCallback(() => {
     navigation.goBack();

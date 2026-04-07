@@ -52,6 +52,45 @@ describe('mapAuthError', () => {
     expect(mapAuthError('fetch failed')).toBe('网络异常，请检查网络后重试');
   });
 
+  // CF API error mappings
+  it('maps CF API "too many reset requests"', () => {
+    expect(mapAuthError('too many reset requests, try again later')).toBe(
+      '重置请求过于频繁，请稍后重试',
+    );
+  });
+
+  it('maps CF API "email already registered"', () => {
+    expect(mapAuthError('email already registered')).toBe('该邮箱已注册');
+  });
+
+  it('maps CF API "email and password required"', () => {
+    expect(mapAuthError('email and password required')).toBe('请输入邮箱和密码');
+  });
+
+  it('maps CF API "email required"', () => {
+    expect(mapAuthError('email required')).toBe('请输入邮箱');
+  });
+
+  it('maps CF API "invalid credentials"', () => {
+    expect(mapAuthError('invalid credentials')).toBe('邮箱或密码错误');
+  });
+
+  it('maps CF API "invalid old password"', () => {
+    expect(mapAuthError('invalid old password')).toBe('原密码错误');
+  });
+
+  it('maps CF API "invalid or expired code"', () => {
+    expect(mapAuthError('invalid or expired code')).toBe('验证码无效或已过期');
+  });
+
+  it('maps CF API "failed to send email"', () => {
+    expect(mapAuthError('failed to send email, try again later')).toBe('邮件发送失败，请稍后重试');
+  });
+
+  it('maps CF API "account has no password"', () => {
+    expect(mapAuthError('account has no password (anonymous user)')).toBe('该账户未设置密码');
+  });
+
   it('falls back to generic Chinese message for unknown English errors', () => {
     expect(mapAuthError('Something unexpected happened')).toBe('操作失败，请稍后重试');
   });
@@ -79,6 +118,17 @@ describe('isExpectedAuthError', () => {
   it('returns true for rate-limit errors', () => {
     expect(isExpectedAuthError('Email rate limit exceeded')).toBe(true);
     expect(isExpectedAuthError('you can only request this once every 60 seconds')).toBe(true);
+    expect(isExpectedAuthError('too many reset requests, try again later')).toBe(true);
+  });
+
+  it('returns true for CF API user-input errors', () => {
+    expect(isExpectedAuthError('email already registered')).toBe(true);
+    expect(isExpectedAuthError('email and password required')).toBe(true);
+    expect(isExpectedAuthError('email required')).toBe(true);
+    expect(isExpectedAuthError('invalid credentials')).toBe(true);
+    expect(isExpectedAuthError('invalid old password')).toBe(true);
+    expect(isExpectedAuthError('invalid or expired code')).toBe(true);
+    expect(isExpectedAuthError('account has no password (anonymous user)')).toBe(true);
   });
 
   it('returns false for unexpected errors', () => {
