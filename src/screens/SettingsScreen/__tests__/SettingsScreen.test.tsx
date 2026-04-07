@@ -96,7 +96,7 @@ describe('SettingsScreen', () => {
     it('should show login options when not authenticated', () => {
       const { getByText } = render(<SettingsScreen />);
 
-      // Unauthenticated state shows login options
+      // Unauthenticated state shows inline LoginOptions
       expect(getByText(/邮箱登录/)).toBeTruthy();
       expect(getByText(/匿名登录/)).toBeTruthy();
     });

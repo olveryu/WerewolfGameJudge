@@ -1,21 +1,22 @@
 /**
  * AuthGateOverlay — 首次通过直连 URL 进入房间时的登录选择界面
  *
- * 自包含 useAuth + useAuthForm hooks。仅当 needsAuth=true 时由 RoomScreen 渲染，
- * hooks 只在挂载时执行，因此不需要所有 RoomScreen 测试都 mock AuthContext。
- * 复用 HomeScreen 的 AuthStyles + LoginOptions/EmailForm 共享组件。
+ * 导航到 AuthLogin modal screen 处理全部登录/注册/忘记密码流程。
+ * 仅当 needsAuth=true 时由 RoomScreen 渲染。
+ * 登录成功后 auth screen goBack() → RoomScreen focus → onSuccess()。
  * 不含游戏业务逻辑，不 import service 层。
  */
-import React, { useCallback, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useEffect, useRef } from 'react';
 import { useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
-import { EmailForm, LoginOptions } from '@/components/auth';
-import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useAuthForm } from '@/hooks/useAuthForm';
+import { Button } from '@/components/Button';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { RootStackParamList } from '@/navigation/types';
 import { createHomeScreenStyles } from '@/screens/HomeScreen/components';
 import { useColors } from '@/theme';
-import { roomScreenLog } from '@/utils/logger';
 
 interface AuthGateOverlayProps {
   /** Called after successful login (anonymous or email) */
@@ -28,71 +29,42 @@ export const AuthGateOverlay: React.FC<AuthGateOverlayProps> = ({ onSuccess, onC
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [colors, screenWidth]);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user } = useAuthContext();
 
-  const [showEmailForm, setShowEmailForm] = useState(false);
-  const { loading: authLoading, error: authError } = useAuth();
+  // Track whether we've navigated to auth screen
+  const hasNavigatedRef = useRef(false);
 
-  const handleAuthSuccess = useCallback(() => {
-    setShowEmailForm(false);
-    onSuccess();
-  }, [onSuccess]);
+  // Navigate to auth screen on mount
+  useEffect(() => {
+    if (!hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      navigation.navigate('AuthLogin', {
+        loginTitle: '登录',
+        loginSubtitle: '选择登录方式以加入房间',
+      });
+    }
+  }, [navigation]);
 
-  const {
-    email,
-    setEmail,
-    password,
-    setPassword,
-    displayName,
-    setDisplayName,
-    isSignUp,
-    setIsSignUp,
-    handleEmailAuth,
-    handleAnonymousLogin,
-    toggleSignUp,
-  } = useAuthForm({ onSuccess: handleAuthSuccess, logger: roomScreenLog });
+  // When user becomes authenticated (auth screen success + goBack), call onSuccess
+  useEffect(() => {
+    if (user && hasNavigatedRef.current) {
+      onSuccess();
+    }
+  }, [user, onSuccess]);
 
-  const handleShowSignUp = useCallback(() => {
-    setIsSignUp(true);
-    setShowEmailForm(true);
-  }, [setIsSignUp]);
-
-  const handleShowSignIn = useCallback(() => {
-    setIsSignUp(false);
-    setShowEmailForm(true);
-  }, [setIsSignUp]);
-
+  // Fallback UI while auth modal is presented (overlay behind the modal)
   return (
     <View style={styles.modalOverlay}>
       <View style={styles.modalContent}>
-        {showEmailForm ? (
-          <EmailForm
-            isSignUp={isSignUp}
-            email={email}
-            password={password}
-            displayName={displayName}
-            authError={authError}
-            authLoading={authLoading}
-            onEmailChange={setEmail}
-            onPasswordChange={setPassword}
-            onDisplayNameChange={setDisplayName}
-            onSubmit={handleEmailAuth}
-            onToggleMode={toggleSignUp}
-            onBack={() => setShowEmailForm(false)}
-            styles={styles}
-            colors={colors}
-          />
-        ) : (
-          <LoginOptions
-            authLoading={authLoading}
-            title="登录"
-            subtitle="选择登录方式以加入房间"
-            onEmailSignUp={handleShowSignUp}
-            onEmailSignIn={handleShowSignIn}
-            onAnonymousLogin={handleAnonymousLogin}
-            onCancel={onCancel}
-            styles={styles}
-          />
-        )}
+        <Button
+          variant="ghost"
+          buttonColor={colors.background}
+          textColor={colors.textSecondary}
+          onPress={onCancel}
+        >
+          返回首页
+        </Button>
       </View>
     </View>
   );

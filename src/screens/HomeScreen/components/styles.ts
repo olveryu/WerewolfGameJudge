@@ -87,7 +87,11 @@ export interface HomeScreenStyles {
   avatarStripContainer: ViewStyle;
   avatarStripRow: ViewStyle;
   avatarStripImage: ImageStyle;
+  avatarStripImageWrapper: ViewStyle;
+  avatarStripLockOverlay: ViewStyle;
+  avatarStripLockIcon: TextStyle;
   avatarStripText: TextStyle;
+  avatarStripLink: TextStyle;
   // Tip Card (contextual tips between action row and footer)
   tipCard: ViewStyle;
   tipCardIcon: ViewStyle;
@@ -331,6 +335,9 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     formTitle: {
       ...createAuthBaseStyles(colors).formTitle,
       ...textStyles.titleBold,
+    },
+    formSubtitle: {
+      ...createAuthBaseStyles(colors).formSubtitle,
     },
     linkButton: {
       padding: spacing.small,

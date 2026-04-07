@@ -15,8 +15,11 @@ import { AVATAR_IMAGES, getAvatarThumbByIndex } from '@/utils/avatar';
 
 import { type LoginOptionsProps } from './types';
 
-/** Number of avatars shown in the preview strip. */
-const STRIP_COUNT = 3;
+/** Total avatars shown in the preview strip. */
+const STRIP_COUNT = 5;
+
+/** Number of unlocked (visible) avatars in the strip. */
+const UNLOCKED_COUNT = 3;
 
 /** Evenly-spaced indices into AVATAR_IMAGES for the preview strip. */
 const STRIP_INDICES: number[] = (() => {
@@ -32,6 +35,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
     onEmailSignUp,
     onEmailSignIn,
     onAnonymousLogin,
+    onBrowseAvatars,
     onCancel,
     styles,
   }) => {
@@ -43,16 +47,33 @@ export const LoginOptions = memo<LoginOptionsProps>(
         {/* Avatar preview card */}
         <View style={styles.avatarStripContainer}>
           <View style={styles.avatarStripRow}>
-            {STRIP_INDICES.map((avatarIdx) => (
-              <Image
-                key={avatarIdx}
-                source={getAvatarThumbByIndex(avatarIdx) as ImageSourcePropType}
-                style={styles.avatarStripImage}
-                resizeMode="cover"
-              />
+            {STRIP_INDICES.map((avatarIdx, i) => (
+              <View key={avatarIdx} style={styles.avatarStripImageWrapper}>
+                <Image
+                  source={getAvatarThumbByIndex(avatarIdx) as ImageSourcePropType}
+                  style={styles.avatarStripImage}
+                  resizeMode="cover"
+                />
+                {i >= UNLOCKED_COUNT && (
+                  <View style={styles.avatarStripLockOverlay}>
+                    <Ionicons
+                      name="lock-closed"
+                      size={typography.title}
+                      color={styles.avatarStripLockIcon.color as string}
+                    />
+                  </View>
+                )}
+              </View>
             ))}
           </View>
-          <Text style={styles.avatarStripText}>{`${AVATAR_IMAGES.length} 款暗黑头像`}</Text>
+          <Text style={styles.avatarStripText}>
+            {`绑定邮箱，解锁 ${AVATAR_IMAGES.length} 款暗黑头像、自定义昵称和头像框`}
+          </Text>
+          {onBrowseAvatars != null && (
+            <TouchableOpacity onPress={onBrowseAvatars} activeOpacity={fixed.activeOpacity}>
+              <Text style={styles.avatarStripLink}>浏览全部头像 ›</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* 邮箱注册 — 主按钮 */}

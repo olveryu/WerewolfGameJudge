@@ -79,7 +79,11 @@ export interface SettingsScreenStyles {
   avatarStripContainer: ViewStyle;
   avatarStripRow: ViewStyle;
   avatarStripImage: ImageStyle;
+  avatarStripImageWrapper: ViewStyle;
+  avatarStripLockOverlay: ViewStyle;
+  avatarStripLockIcon: TextStyle;
   avatarStripText: TextStyle;
+  avatarStripLink: TextStyle;
   // Theme section
   themeSection: ViewStyle;
   themeRow: ViewStyle;
@@ -309,20 +313,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     errorText: {
       ...createAuthBaseStyles(colors).errorText,
       marginBottom: spacing.medium,
-    },
-    outlineButton: {
-      backgroundColor: colors.background,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      height: componentSizes.button.lg,
-      borderRadius: borderRadius.full,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: spacing.medium,
-    },
-    outlineButtonText: {
-      ...textStyles.bodyMedium,
-      color: colors.text,
     },
     // Theme section
     themeSection: {

@@ -148,15 +148,18 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       lineHeight: typography.lineHeights.secondary,
     },
     outlineButton: {
+      backgroundColor: colors.background,
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
+      padding: spacing.medium,
       borderRadius: borderRadius.full,
+      justifyContent: 'center',
       alignItems: 'center',
       marginBottom: spacing.medium,
     },
     outlineButtonText: {
       ...textStyles.bodyMedium,
-      color: colors.textSecondary,
+      color: colors.text,
     },
     buttonDisabled: {
       opacity: fixed.disabledOpacity,
@@ -200,15 +203,45 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       gap: spacing.small,
       marginBottom: spacing.small,
     },
+    avatarStripImageWrapper: {
+      position: 'relative',
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
+      borderRadius: borderRadius.medium,
+      overflow: 'hidden',
+    },
     avatarStripImage: {
       width: componentSizes.avatar.md,
       height: componentSizes.avatar.md,
       borderRadius: borderRadius.medium,
     },
+    avatarStripLockOverlay: {
+      ...({
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+      } as ViewStyle),
+      backgroundColor: colors.overlayLight,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarStripLockIcon: {
+      color: colors.surface,
+    },
     avatarStripText: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    avatarStripLink: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.primary,
+      fontWeight: typography.weights.medium,
+      marginTop: spacing.small,
     },
   };
 }

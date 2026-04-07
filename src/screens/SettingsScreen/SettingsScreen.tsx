@@ -21,13 +21,12 @@ import React, {
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { EmailForm, LoginOptions } from '@/components/auth';
+import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { SETTINGS_GUIDE } from '@/config/guideContent';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
-import { useAuthForm } from '@/hooks/useAuthForm';
 import { resetAllGuides, usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { componentSizes, fixed, ThemeKey, typography, useTheme } from '@/theme';
@@ -54,10 +53,10 @@ export const SettingsScreen: React.FC = () => {
   const {
     user,
     signOut,
+    signInAnonymously,
     isAuthenticated,
     updateProfile,
     changePassword,
-    error: authError,
     loading: authLoading,
   } = useAuth();
   const settingsGuide = usePageGuide('settings');
@@ -76,9 +75,6 @@ export const SettingsScreen: React.FC = () => {
     gameState?.status === GameStatus.Unseated ||
     gameState?.status === GameStatus.Seated;
 
-  // Auth form state
-  const [showAuthForm, setShowAuthForm] = useState(false);
-  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
 
   // Track anonymous→email upgrade: sync new displayName to GameState
@@ -98,26 +94,6 @@ export const SettingsScreen: React.FC = () => {
     wasAnonymousRef.current = isAnonymous;
     if (isAuthenticated) wasAuthenticatedRef.current = true;
   }, [user, facade, isAuthenticated]);
-
-  const handleAuthSuccess = useCallback(() => {
-    setShowAuthForm(false);
-    setIsSwitchingAccount(false);
-  }, []);
-
-  const {
-    email,
-    setEmail,
-    password,
-    setPassword,
-    displayName,
-    setDisplayName,
-    isSignUp,
-    setIsSignUp,
-    handleEmailAuth,
-    handleAnonymousLogin,
-    resetForm,
-    toggleSignUp,
-  } = useAuthForm({ onSuccess: handleAuthSuccess, logger: settingsLog, showSuccessOnLogin: true });
 
   // Edit profile state
   const [isEditingName, setIsEditingName] = useState(false);
@@ -187,12 +163,6 @@ export const SettingsScreen: React.FC = () => {
     }
   }, [editName, updateProfile, facade]);
 
-  const handleCancelAuthForm = useCallback(() => {
-    setShowAuthForm(false);
-    setIsSwitchingAccount(false);
-    resetForm();
-  }, [resetForm]);
-
   const handleStartEditName = useCallback(() => {
     setEditName(user?.displayName || '');
     setIsEditingName(true);
@@ -202,16 +172,15 @@ export const SettingsScreen: React.FC = () => {
     setIsEditingName(false);
   }, []);
 
-  const handleShowAuthForm = useCallback(() => {
-    setIsSignUp(false);
-    setShowAuthForm(true);
-  }, [setIsSignUp]);
-
   /** 匿名用户「绑定邮箱」：直接进入注册模式 */
   const handleShowUpgradeForm = useCallback(() => {
-    setIsSignUp(true);
-    setShowAuthForm(true);
-  }, [setIsSignUp]);
+    navigation.navigate('AuthEmail', {
+      mode: 'signUp',
+      formTitle: '绑定邮箱',
+      showToggleMode: false,
+      showSuccessOnLogin: true,
+    });
+  }, [navigation]);
 
   /** 切换账号：先离座（如在房间内），弹登录表单，登录成功后替换本地 session */
   const handleSwitchAccount = useCallback(() => {
@@ -226,9 +195,11 @@ export const SettingsScreen: React.FC = () => {
           }
         }
 
-        setIsSwitchingAccount(true);
-        setShowAuthForm(true);
-        setIsSignUp(false);
+        navigation.navigate('AuthEmail', {
+          mode: 'signIn',
+          signOutFirst: true,
+          showSuccessOnLogin: true,
+        });
       } catch (e: unknown) {
         const raw = e instanceof Error ? e.message : String(e);
         const message = mapAuthError(raw);
@@ -238,8 +209,6 @@ export const SettingsScreen: React.FC = () => {
           settingsLog.error('Account switch failed:', raw, e);
           Sentry.captureException(e);
         }
-        setShowAuthForm(false);
-        setIsSwitchingAccount(false);
         showErrorAlert('切换失败', message);
       }
     };
@@ -249,31 +218,7 @@ export const SettingsScreen: React.FC = () => {
     } else {
       doSwitch();
     }
-  }, [user?.isAnonymous, facade, setIsSignUp, isInRoom, isSeated]);
-
-  /**
-   * 切换账号模式下的表单提交：先 signOut 再走正常 auth 流程。
-   * signInWithPassword 可原子替换 session，但 signUp 在匿名用户下会触发 identity linking，
-   * 所以统一先 signOut 确保语义正确。
-   */
-  const handleSwitchAuthSubmit = useCallback(async () => {
-    try {
-      wasAuthenticatedRef.current = false;
-      await signOut();
-    } catch (e: unknown) {
-      const raw = e instanceof Error ? e.message : String(e);
-      const message = mapAuthError(raw);
-      if (isExpectedAuthError(raw)) {
-        settingsLog.warn('Sign-out before switch expected error:', raw, e);
-      } else {
-        settingsLog.error('Sign-out before switch failed:', raw, e);
-        Sentry.captureException(e);
-      }
-      showErrorAlert('切换失败', message);
-      return;
-    }
-    await handleEmailAuth();
-  }, [signOut, handleEmailAuth]);
+  }, [user?.isAnonymous, facade, navigation, isInRoom, isSeated]);
 
   const handleThemeChange = useCallback(
     (key: string) => {
@@ -304,33 +249,30 @@ export const SettingsScreen: React.FC = () => {
   // Render helpers
   // ============================================
 
-  // Whether form should show a custom title
-  const isUpgradeFlow = isAuthenticated && user?.isAnonymous && showAuthForm && !isSwitchingAccount;
+  const handleEmailSignUp = useCallback(() => {
+    navigation.navigate('AuthEmail', { mode: 'signUp', navigateSettingsOnSignUp: true });
+  }, [navigation]);
+
+  const handleEmailSignIn = useCallback(() => {
+    navigation.navigate('AuthEmail', { mode: 'signIn' });
+  }, [navigation]);
+
+  const handleAnonymousLogin = useCallback(async () => {
+    try {
+      await signInAnonymously();
+      showAlert('登录成功');
+    } catch (e: unknown) {
+      const message = getErrorMessage(e);
+      settingsLog.warn('Anonymous login failed:', message);
+      showErrorAlert('登录失败', message);
+    }
+  }, [signInAnonymously]);
+
+  const handleBrowseAvatars = useCallback(() => {
+    navigation.navigate('AvatarPicker');
+  }, [navigation]);
 
   const renderAuthSection = () => {
-    // EmailForm takes priority — both anonymous-upgrade and unauthenticated flows
-    if (showAuthForm) {
-      return (
-        <EmailForm
-          formTitle={isUpgradeFlow ? '绑定邮箱' : undefined}
-          isSignUp={isSignUp}
-          email={email}
-          password={password}
-          displayName={displayName}
-          authError={authError}
-          authLoading={authLoading}
-          onEmailChange={setEmail}
-          onPasswordChange={setPassword}
-          onDisplayNameChange={setDisplayName}
-          onSubmit={isSwitchingAccount ? handleSwitchAuthSubmit : handleEmailAuth}
-          onToggleMode={isUpgradeFlow ? undefined : toggleSignUp}
-          onBack={handleCancelAuthForm}
-          styles={styles}
-          colors={colors}
-        />
-      );
-    }
-
     if (isAuthenticated) {
       // ── Anonymous user: avatar + teaser card + account operations ──
       if (user?.isAnonymous) {
@@ -510,9 +452,10 @@ export const SettingsScreen: React.FC = () => {
     return (
       <LoginOptions
         authLoading={authLoading}
-        onEmailSignUp={handleShowUpgradeForm}
-        onEmailSignIn={handleShowAuthForm}
+        onEmailSignUp={handleEmailSignUp}
+        onEmailSignIn={handleEmailSignIn}
         onAnonymousLogin={handleAnonymousLogin}
+        onBrowseAvatars={handleBrowseAvatars}
         styles={styles}
       />
     );
@@ -533,7 +476,7 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.cardTitle}>
             <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户
           </Text>
-          {/* eslint-disable-next-line react-hooks/refs -- wasAuthenticatedRef is intentionally read during render to suppress LoginOptions flash during transient auth state */}
+          {/* eslint-disable-next-line react-hooks/refs -- wasAuthenticatedRef is intentionally read during render to suppress auth UI flash during transient auth state */}
           {renderAuthSection()}
         </View>
 
