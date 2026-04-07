@@ -18,6 +18,7 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
+import { SupersededError } from '@/services/connection/types';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { IRoomService } from '@/services/types/IRoomService';
@@ -107,6 +108,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return true;
       } catch (err) {
+        // Superseded = old connectAndWait cancelled by a newer call (retry).
+        // The new call is already in progress — silently ignore.
+        if (err instanceof SupersededError) {
+          gameRoomLog.debug('[initializeRoom] Superseded by retry, ignoring');
+          return false;
+        }
         const message = getErrorMessage(err, '房间初始化失败，请重试');
         handleError(err, {
           label: '房间初始化',
@@ -168,6 +175,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return true;
       } catch (err) {
+        // Superseded = old connectAndWait cancelled by a newer call (retry).
+        // The new call is already in progress — silently ignore.
+        if (err instanceof SupersededError) {
+          gameRoomLog.debug('[joinRoom] Superseded by retry, ignoring');
+          return false;
+        }
         const message = getErrorMessage(err, '加入房间失败，请重试');
         handleError(err, {
           label: '加入房间',

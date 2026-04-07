@@ -6,7 +6,7 @@ import type {
 } from '@/services/types/IRealtimeTransport';
 
 import { ConnectionManager, type ConnectionManagerDeps } from '../ConnectionManager';
-import { ConnectionState, PING_INTERVAL_MS, PONG_TIMEOUT_MS } from '../types';
+import { ConnectionState, PING_INTERVAL_MS, PONG_TIMEOUT_MS, SupersededError } from '../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock Transport
@@ -160,8 +160,8 @@ describe('ConnectionManager', () => {
       // Second call before first settles
       const promise2 = manager.connectAndWait('ROOM1', 'USER1');
 
-      // Old promise should be rejected
-      await expect(promise1).rejects.toThrow('Superseded');
+      // Old promise should be rejected with SupersededError
+      await expect(promise1).rejects.toBeInstanceOf(SupersededError);
 
       // Resolve new connection: WS_OPEN → Syncing → FETCH_SUCCESS → Connected
       transport.handlers.onOpen();

@@ -95,6 +95,21 @@ export interface TransitionResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Errors
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Thrown when a pending connectAndWait() is cancelled by a newer call.
+ * Catch with `instanceof SupersededError` — not a real failure, just cancellation.
+ */
+export class SupersededError extends Error {
+  constructor() {
+    super('Superseded by new connectAndWait');
+    this.name = 'SupersededError';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 

@@ -616,3 +616,41 @@ describe('transition sequences', () => {
     expect(effectTypes(r3)).toContain('CLOSE_WS');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONNECT as global transition (from any non-Idle/non-Disposed state)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('CONNECT from non-Idle states (global transition)', () => {
+  const connectEvent = { type: 'CONNECT' as const, roomCode: 'NEW', userId: 'U2' };
+
+  it.each([
+    ConnectionState.Connecting,
+    ConnectionState.Syncing,
+    ConnectionState.Connected,
+    ConnectionState.Disconnected,
+    ConnectionState.Reconnecting,
+    ConnectionState.Failed,
+  ])('%s → Connecting + full cleanup + OPEN_WS', (state) => {
+    const c = ctx(state, { attempt: 5, lastRevision: 10 });
+    const result = transition(c, connectEvent);
+
+    expect(result.ctx.state).toBe(ConnectionState.Connecting);
+    expect(result.ctx.roomCode).toBe('NEW');
+    expect(result.ctx.userId).toBe('U2');
+    expect(result.ctx.attempt).toBe(0);
+    expect(result.ctx.lastRevision).toBe(0);
+
+    const types = effectTypes(result);
+    expect(types).toContain('CLOSE_WS');
+    expect(types).toContain('CANCEL_RETRY');
+    expect(types).toContain('STOP_PING');
+    expect(types).toContain('STOP_REVISION_POLL');
+    expect(types).toContain('OPEN_WS');
+  });
+
+  it('Disposed ignores CONNECT', () => {
+    const disposed = ctx(ConnectionState.Disposed);
+    expectNoop(transition(disposed, connectEvent), disposed);
+  });
+});

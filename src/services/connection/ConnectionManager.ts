@@ -30,6 +30,7 @@ import {
   PONG_TIMEOUT_MS,
   REVISION_POLL_INTERVAL_MS,
   type SideEffect,
+  SupersededError,
 } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -140,7 +141,7 @@ export class ConnectionManager {
 
     return new Promise<void>((resolve, reject) => {
       // Settle any pending connectAndWait before creating a new one (P2)
-      this.#settleConnectWait(new Error('Superseded by new connectAndWait'));
+      this.#settleConnectWait(new SupersededError());
 
       this.#connectWaitResolve = resolve;
       this.#connectWaitReject = reject;
@@ -149,7 +150,8 @@ export class ConnectionManager {
         this.#settleConnectWait(new Error(`connectAndWait timeout after ${timeoutMs}ms`));
       }, timeoutMs);
 
-      // Dispatch CONNECT → triggers OPEN_WS side effect
+      // Dispatch CONNECT → triggers OPEN_WS side effect.
+      // FSM handles CONNECT as a global transition from any non-Disposed state.
       this.#dispatch({ type: 'CONNECT', roomCode, userId });
     });
   }

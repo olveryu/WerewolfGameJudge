@@ -102,6 +102,8 @@ function handleIdle(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
 
 function handleConnecting(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
   switch (event.type) {
+    case 'CONNECT':
+      return toConnecting(ctx, event);
     case 'WS_OPEN': {
       const next: FSMContext = { ...ctx, state: ConnectionState.Syncing };
       return {
@@ -238,6 +240,8 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
         ],
       };
     }
+    case 'CONNECT':
+      return toConnecting(ctx, event);
     case 'DISCONNECT':
       return toIdle(ctx);
     case 'DISPOSE':
@@ -340,6 +344,8 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
     case 'FETCH_FAILURE':
       // Non-critical in Connected state — log and continue
       return { ctx, effects: [log('warn', 'Revision fetch failed (Connected)')] };
+    case 'CONNECT':
+      return toConnecting(ctx, event);
     case 'DISCONNECT':
       return toIdle(ctx);
     case 'DISPOSE':
@@ -454,6 +460,8 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
         ],
       };
     }
+    case 'CONNECT':
+      return toConnecting(ctx, event);
     case 'DISCONNECT':
       return toIdle(ctx);
     case 'DISPOSE':
@@ -506,6 +514,8 @@ function handleReconnecting(ctx: FSMContext, event: ConnectionEvent): Transition
     }
     case 'WS_ERROR':
       return { ctx, effects: [log('warn', 'WS_ERROR during Reconnecting')] };
+    case 'CONNECT':
+      return toConnecting(ctx, event);
     case 'DISCONNECT':
       return toIdle(ctx);
     case 'DISPOSE':
@@ -542,6 +552,8 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
         ],
       };
     }
+    case 'CONNECT':
+      return toConnecting(ctx, event);
     case 'DISCONNECT':
       return toIdle(ctx);
     case 'DISPOSE':
@@ -580,6 +592,36 @@ function toDisposed(ctx: FSMContext): TransitionResult {
     { type: 'STOP_REVISION_POLL' },
   ];
   return { ctx: { ...ctx, state: ConnectionState.Disposed }, effects };
+}
+
+/**
+ * Global transition: any non-Disposed state → Connecting.
+ * Cleans up current state (WS, timers, polls) and starts a fresh connection.
+ * Used when CONNECT is dispatched from a non-Idle state (e.g., retry).
+ */
+function toConnecting(
+  ctx: FSMContext,
+  event: Extract<ConnectionEvent, { type: 'CONNECT' }>,
+): TransitionResult {
+  const next: FSMContext = {
+    ...ctx,
+    state: ConnectionState.Connecting,
+    roomCode: event.roomCode,
+    userId: event.userId,
+    attempt: 0,
+    lastRevision: 0,
+  };
+  return {
+    ctx: next,
+    effects: [
+      log('info', `${ctx.state} → Connecting (CONNECT)`, { roomCode: event.roomCode }),
+      { type: 'CLOSE_WS' },
+      { type: 'CANCEL_RETRY' },
+      { type: 'STOP_PING' },
+      { type: 'STOP_REVISION_POLL' },
+      { type: 'OPEN_WS', roomCode: event.roomCode, userId: event.userId },
+    ],
+  };
 }
 
 function log(
