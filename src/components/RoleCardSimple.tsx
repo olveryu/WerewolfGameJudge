@@ -6,8 +6,9 @@
  * 有变体的角色在卡片下方显示变体切换 pill bar，点击 pill 切换卡片内容并同步回调。
  * 渲染 Modal 与按钮。不 import service，不含业务逻辑，不重复卡片 UI。
  */
+import { Ionicons } from '@expo/vector-icons';
 import { isValidRoleId, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   Modal,
   Pressable,
@@ -18,11 +19,14 @@ import {
   View,
 } from 'react-native';
 
+import { buildRolePlayGuidePrompt } from '@/components/AIChatBubble/rolePlayGuide';
 import { Button } from '@/components/Button';
 import {
   getFactionColor,
   RoleCardContent,
 } from '@/components/RoleRevealEffects/common/RoleCardContent';
+import { UI_ICONS } from '@/config/iconTokens';
+import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -33,6 +37,8 @@ import {
   useColors,
   withAlpha,
 } from '@/theme';
+import { requestAIChatMessage } from '@/utils/aiChatBridge';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 interface RoleCardSimpleProps {
   visible: boolean;
@@ -72,8 +78,27 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(screenWidth * 0.82, 360);
-  const cardHeight = cardWidth * 1.38;
+  const cardHeight = cardWidth * 1.5;
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const showAIButton = isAIChatReady();
+  const displayRoleId = activeVariant ?? roleId;
+
+  const handleAskAI = useCallback(() => {
+    if (!displayRoleId) return;
+    const prompt = buildRolePlayGuidePrompt(displayRoleId as RoleId);
+    if (!prompt) return;
+    const spec = ROLE_SPECS[displayRoleId as RoleId];
+    const roleName = spec?.displayName ?? displayRoleId;
+    showConfirmAlert('AI 攻略', `让 AI 分析「${roleName}」的玩法？`, () => {
+      onClose();
+      requestAIChatMessage({
+        fullText: prompt,
+        displayText: `${roleName} 攻略`,
+        maxTokens: 1024,
+      });
+    });
+  }, [displayRoleId, onClose]);
 
   if (!visible || !roleId) return null;
 
@@ -95,6 +120,22 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
             showRealIdentity={showRealIdentity}
             seerLabel={seerLabel}
           />
+
+          {/* AI pill — overlaid on card, below faction badge */}
+          {showAIButton && (
+            <Pressable
+              style={[styles.aiPill, { backgroundColor: withAlpha(factionColor, 0.15) }]}
+              onPress={handleAskAI}
+              accessibilityLabel="AI 攻略"
+            >
+              <Ionicons
+                name={UI_ICONS.AI_ASSISTANT}
+                size={typography.caption}
+                color={factionColor}
+              />
+              <Text style={[styles.aiPillText, { color: factionColor }]}>AI 攻略</Text>
+            </Pressable>
+          )}
 
           {/* Variant pill bar */}
           {showVariantBar && (
@@ -127,9 +168,11 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
             </View>
           )}
 
-          <Button variant="primary" buttonColor={factionColor} onPress={onClose}>
-            知道了
-          </Button>
+          <View style={styles.confirmButton}>
+            <Button variant="primary" buttonColor={factionColor} onPress={onClose}>
+              知道了
+            </Button>
+          </View>
         </View>
       </View>
     </Modal>
@@ -148,6 +191,25 @@ function createStyles(colors: ThemeColors) {
       alignItems: 'center',
       position: 'relative',
       zIndex: 1,
+    },
+    confirmButton: {
+      marginTop: spacing.medium,
+      width: '100%',
+    },
+    aiPill: {
+      position: 'absolute',
+      right: spacing.small,
+      top: spacing.xlarge,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
+      borderRadius: borderRadius.full,
+    },
+    aiPillText: {
+      fontSize: typography.caption,
+      fontWeight: typography.weights.semibold,
     },
     variantBar: {
       flexDirection: 'row',

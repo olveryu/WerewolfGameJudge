@@ -5,6 +5,7 @@
  * structuredDescription（复用 RoleDescriptionView）+ 能力 tag chips。
  * 纯展示组件，不 import service，不含业务逻辑。
  */
+import { Ionicons } from '@expo/vector-icons';
 import {
   getRoleSpec,
   getRoleStructuredDescription,
@@ -13,12 +14,15 @@ import {
   type RoleId,
 } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { buildRolePlayGuidePrompt } from '@/components/AIChatBubble/rolePlayGuide';
 import { Button } from '@/components/Button';
 import { RoleDescriptionView } from '@/components/RoleDescriptionView';
+import { UI_ICONS } from '@/config/iconTokens';
+import { isAIChatReady } from '@/services/feature/AIChatService';
 import {
   borderRadius,
   componentSizes,
@@ -31,6 +35,8 @@ import {
   useColors,
   withAlpha,
 } from '@/theme';
+import { requestAIChatMessage } from '@/utils/aiChatBridge';
+import { showConfirmAlert } from '@/utils/alertPresets';
 import { getRoleBadge } from '@/utils/roleBadges';
 
 import { TAG_COLOR_KEY, TAG_LABELS } from './constants';
@@ -69,6 +75,24 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors, insets.bottom), [colors, insets.bottom]);
+
+  const showAIButton = isAIChatReady();
+
+  const handleAskAI = useCallback(() => {
+    if (!roleId) return;
+    const prompt = buildRolePlayGuidePrompt(roleId);
+    if (!prompt) return;
+    const spec = getRoleSpec(roleId);
+    const roleName = spec?.displayName ?? roleId;
+    showConfirmAlert('AI 攻略', `让 AI 分析「${roleName}」的玩法？`, () => {
+      onClose();
+      requestAIChatMessage({
+        fullText: prompt,
+        displayText: `${roleName} 攻略`,
+        maxTokens: 1024,
+      });
+    });
+  }, [roleId, onClose]);
 
   if (!visible || !roleId) return null;
 
@@ -114,6 +138,21 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
                   </Text>
                 </View>
               </View>
+              {/* AI pill */}
+              {showAIButton && (
+                <Pressable
+                  style={[styles.aiPill, { backgroundColor: withAlpha(factionColor, 0.15) }]}
+                  onPress={handleAskAI}
+                  accessibilityLabel="AI 攻略"
+                >
+                  <Ionicons
+                    name={UI_ICONS.AI_ASSISTANT}
+                    size={typography.caption}
+                    color={factionColor}
+                  />
+                  <Text style={[styles.aiPillText, { color: factionColor }]}>AI 攻略</Text>
+                </Pressable>
+              )}
             </View>
 
             {/* Ability Tags */}
@@ -145,7 +184,7 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
               />
             </View>
 
-            {/* Close button */}
+            {/* Action button */}
             <Button variant="primary" buttonColor={factionColor} onPress={onClose}>
               知道了
             </Button>
@@ -182,6 +221,22 @@ function createStyles(colors: ThemeColors, bottomInset: number) {
     },
     scrollContent: {
       paddingBottom: Math.max(spacing.medium, bottomInset + spacing.small),
+    },
+    // AI pill in hero section
+    aiPill: {
+      position: 'absolute',
+      right: spacing.small,
+      top: spacing.small,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.tight,
+      borderRadius: borderRadius.full,
+    },
+    aiPillText: {
+      fontSize: typography.caption,
+      fontWeight: typography.weights.semibold,
     },
     // Hero
     heroSection: {
