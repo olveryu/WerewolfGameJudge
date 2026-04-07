@@ -1,6 +1,6 @@
 # 🚀 部署指南
 
-本文档覆盖从零到生产环境的完整部署流程，包括 Supabase 数据库配置和 Vercel 前端部署。
+本文档覆盖从零到生产环境的完整部署流程，包括 Supabase 配置、Cloudflare Pages 前端部署和 Cloudflare Worker Auth API 部署。
 
 ---
 
@@ -10,8 +10,9 @@
 2. [Supabase 配置](#supabase-配置)
 3. [环境变量配置](#环境变量配置)
 4. [Web 构建与部署](#web-构建与部署)
-5. [验证部署](#验证部署)
-6. [常见问题](#常见问题)
+5. [缓存策略](#缓存策略)
+6. [验证部署](#验证部署)
+7. [常见问题](#常见问题)
 
 ---
 
@@ -23,19 +24,22 @@
 # Node.js (>= 20.20.1)
 node --version
 
+# pnpm (workspace monorepo)
+pnpm --version
+
 # Supabase CLI
 brew install supabase/tap/supabase
 supabase --version
 
-# Vercel CLI
-npm install -g vercel
-vercel --version
+# Wrangler CLI (Cloudflare Workers / Pages)
+pnpm add -g wrangler
+wrangler --version
 ```
 
 ### 账号准备
 
 - [Supabase](https://supabase.com) 账号
-- [Vercel](https://vercel.com) 账号（可用 GitHub 登录）
+- [Cloudflare](https://dash.cloudflare.com) 账号
 
 ---
 
@@ -174,28 +178,54 @@ bash scripts/setup-local-env.sh
 
 ## Web 构建与部署
 
+### 架构总览
+
+| 组件                          | 平台                                               | 部署方式                                                                 |
+| ----------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| **前端**（Expo Web 静态资源） | Cloudflare Pages                                   | CI `deploy-frontend` job（`scripts/build.sh` + `wrangler pages deploy`） |
+| **Auth API**（密码重置/登录） | Cloudflare Worker（`packages/api-worker`）         | CI `deploy-api-worker` job                                               |
+| **游戏 API**（游戏逻辑权威）  | Supabase Edge Functions（`game` + `gemini-proxy`） | `scripts/deploy.sh`（手动应急）                                          |
+| **AI 代理**                   | Supabase Edge Function（`gemini-proxy`）           | 同上                                                                     |
+
+### CI 自动部署流水线
+
+```
+git push main
+  → quality (typecheck + lint + test)
+  → deploy-api-worker (Cloudflare Worker)
+  + deploy-frontend (Cloudflare Pages + CDN cache purge)
+  → e2e (Playwright)
+```
+
+GitHub CI（`.github/workflows/ci.yml`）在 push 到 `main` 时自动执行：
+
+1. **`quality`** — `pnpm run quality`（typecheck + lint + format + test）
+2. **`deploy-api-worker`** — 编译 game-engine → `wrangler deploy`（`packages/api-worker`）
+3. **`deploy-frontend`** — `scripts/build.sh` → `wrangler pages deploy dist` → 清除 CDN 缓存（`purge_everything`）
+4. **`e2e`** — Playwright 端到端测试（4 shards 并行）
+
 ### 职责分离
 
-| 脚本                   | 职责                                                   | 命令               |
-| ---------------------- | ------------------------------------------------------ | ------------------ |
-| `scripts/release.sh`   | 版本号 + commit + tag + push                           | `pnpm run release` |
-| Vercel Git Integration | `git push` 自动触发构建部署（执行 `scripts/build.sh`） | 自动               |
-| `scripts/deploy.sh`    | **应急手动部署**（Vercel 自动部署故障时）              | `pnpm run deploy`  |
+| 脚本                          | 职责                                               | 命令                     |
+| ----------------------------- | -------------------------------------------------- | ------------------------ |
+| `scripts/release.sh`          | 版本号 + CHANGELOG + commit + tag + push           | `pnpm run release`       |
+| GitHub CI `deploy-frontend`   | 自动构建 + 部署到 Cloudflare Pages + 清除 CDN 缓存 | 自动                     |
+| GitHub CI `deploy-api-worker` | 自动部署 Auth API Worker                           | 自动                     |
+| `scripts/deploy.sh`           | **应急手动部署** Supabase Edge Functions           | `bash scripts/deploy.sh` |
 
 ### 标准流程（推荐）
 
 ```bash
-# 1. 发版（bump version → commit → tag → push）
+# 1. 发版（bump version → CHANGELOG → commit → tag → push）
 pnpm run release              # 默认 patch
 pnpm run release -- minor     # 或 minor / major
 
 # 2. 部署自动完成
-# git push 自动触发 Vercel Git Integration（执行 scripts/build.sh）
-# 同时触发 GitHub CI（quality + deploy-edge-functions + E2E）
+# git push 自动触发 GitHub CI：
+#   - deploy-frontend: build.sh → Cloudflare Pages → 清除 CDN 缓存
+#   - deploy-api-worker: packages/api-worker → Cloudflare Worker
 # 无需手动操作
 ```
-
-> ⚠️ `pnpm run deploy`（`scripts/deploy.sh`）仅用于 Vercel 自动部署故障时的应急手动部署，日常不使用。
 
 ### `release.sh` 做了什么
 
@@ -205,51 +235,59 @@ pnpm run release -- minor     # 或 minor / major
 4. `git commit -m "release: vX.Y.Z"` + `git tag vX.Y.Z`
 5. `git push --tags`
 
-### `deploy.sh` 做了什么
+### `deploy.sh` 做了什么（Supabase Edge Functions 应急部署）
 
-1. 校验 `.env` 存在（已提交到 git，包含生产 Supabase）
-2. 临时移走 `.env.local`（让 `.env` 生效），保留 Gemini key
-3. `npx expo export --platform web --clear`
-4. 恢复 `.env.local`（`trap` 保护，即使构建失败也恢复）
-5. 复制 PWA 文件、修复字体路径、注入自定义 `index.html`
-6. 复制 `vercel.json`（SPA rewrites + 缓存头）
-7. `vercel --prod` 部署 + 设置别名
+1. 编译 game-engine ESM bundle
+2. `supabase functions deploy game`
+3. `supabase functions deploy gemini-proxy`
 
-### 手动部署
+> ⚠️ `deploy.sh` 仅用于 Supabase Edge Functions，不涉及前端或 Auth API。日常部署通过 CI 自动完成。
 
-> ⚠️ 手动部署会缺少 PWA 文件复制、字体路径修复等步骤。建议优先使用 `pnpm run deploy`。
+---
 
-```bash
-# 构建（确保 .env.local 不存在或不含 Supabase 本地值）
-npx expo export --platform web --clear
+## 缓存策略
 
-# 验证
-grep -o "supabase.co\|127.0.0.1" dist/_expo/static/js/web/*.js
-# 应该输出 supabase.co，而不是 127.0.0.1
+### `web/_headers`（Cloudflare Pages 自定义头）
 
-# 部署
-cd dist && vercel --prod --yes
-vercel alias <deployment-url> werewolf-judge.vercel.app
-```
+前端缓存通过 `web/_headers` 文件控制（构建时复制到 `dist/`）：
+
+| 路径                                     | Cache-Control                         | 原因                                                                  |
+| ---------------------------------------- | ------------------------------------- | --------------------------------------------------------------------- |
+| `/assets/fonts/*`                        | `immutable, max-age=31536000`         | 内容哈希文件名，永不变更                                              |
+| `/assets/audio/*`、`/assets/audio_end/*` | `immutable, max-age=31536000`         | 同上                                                                  |
+| `/assets/js/*`                           | `no-cache`                            | Metro 使用 source-hash（非 content-hash），同名文件跨构建内容可能不同 |
+| `/`、`/index.html`                       | `no-cache`                            | HTML 必须每次验证，否则引用已删除 JS → 白屏                           |
+| `/sw.js`                                 | `no-cache, no-store, must-revalidate` | Service Worker 必须始终最新                                           |
+
+### CDN 缓存清除
+
+CI `deploy-frontend` job 在部署后自动调用 Cloudflare API `purge_everything`，确保 Zone CDN 缓存立即更新。
+
+> ⚠️ Cloudflare Dashboard → Zone → Caching → Browser Cache TTL 必须设为 **Respect Existing Headers**，否则 Zone CDN 会覆盖 `_headers` 中定义的策略。
 
 ---
 
 ## 验证部署
 
-### 1. 检查 Supabase 连接
+### 1. 检查前端
 
-访问 https://werewolf-judge.vercel.app：
+访问 https://werewolfjudge.eu.org（或 https://werewolfgamejudge.pages.dev）：
+
+- 页面正常加载，无白屏
+- 检查 JS 请求的 `Cache-Control` header 是否为 `no-cache`
+
+### 2. 检查 Supabase 连接
 
 - 点击「创建房间」
 - 如果成功创建房间，说明数据库连接正常
 
-### 2. 测试多设备同步
+### 3. 测试多设备同步
 
 1. 在设备 A 创建房间，记录房间号
 2. 在设备 B 输入房间号加入
 3. 如果设备 B 能看到房间状态，说明 Realtime 正常
 
-### 3. 检查匿名登录
+### 4. 检查匿名登录
 
 - 无需注册即可创建/加入房间 ✓
 - 如果提示「需要登录」，检查 Supabase 的匿名登录设置
@@ -272,20 +310,28 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-### Q2: 部署后页面空白 / 手机上登录失败 (Load failed)
+### Q2: 部署后页面白屏
 
-**原因**: 构建时 `.env.local` 未移走，使用了本地 `127.0.0.1`
+**可能原因**:
 
-**解决**:
+1. **CDN 缓存未清除** — CI 正常部署时会自动清除。手动部署后需手动清除：
 
-```bash
-# 检查构建中使用的 URL
-grep -o "supabase.co\|127.0.0.1" dist/_expo/static/js/web/*.js
+   ```bash
+   curl -sf -X POST \
+     "https://api.cloudflare.com/client/v4/zones/<ZONE_ID>/purge_cache" \
+     -H "Authorization: Bearer <API_TOKEN>" \
+     -H "Content-Type: application/json" \
+     --data '{"purge_everything":true}'
+   ```
 
-# 如果输出 127.0.0.1，重新部署即可：
-pnpm run deploy
-# deploy.sh 会自动移走 .env.local，使用 .env 中的生产值
-```
+2. **构建时使用了本地 Supabase URL** — 检查构建产物：
+
+   ```bash
+   grep -o "supabase.co\|127.0.0.1" dist/assets/js/*.js
+   # 应该输出 supabase.co，而不是 127.0.0.1
+   ```
+
+3. **Browser Cache TTL 设置错误** — 确认 Cloudflare Dashboard → Caching → Browser Cache TTL 为 **Respect Existing Headers**。
 
 ### Q3: Realtime 不工作（加入房间后看不到更新）
 
@@ -299,52 +345,55 @@ pnpm run deploy
 ### Q4: 如何更新部署？
 
 ```bash
-pnpm run release    # 版本号 + commit + tag + push
-# git push 自动触发 Vercel Git Integration 部署
-# 仅应急时才用: pnpm run deploy
+pnpm run release    # 版本号 + CHANGELOG + commit + tag + push
+# git push 自动触发 CI：deploy-frontend + deploy-api-worker
+# Supabase Edge Functions 如需更新：bash scripts/deploy.sh
 ```
 
 ### Q5: 如何回滚？
 
 ```bash
-# 查看部署历史
-vercel ls
+# Cloudflare Pages 支持按 deployment 回滚：
+# Dashboard → Pages → werewolfgamejudge → Deployments → 选择旧部署 → Rollback
 
-# 将某个旧部署设为生产
-vercel alias set <old-deployment-url> werewolf-judge.vercel.app
+# 或通过 wrangler CLI：
+wrangler pages deployments list --project-name=werewolfgamejudge
+wrangler pages deployments rollback --project-name=werewolfgamejudge <deployment-id>
 ```
 
 ---
 
 ## 快速参考
 
-| 操作              | 命令                                                     |
-| ----------------- | -------------------------------------------------------- |
-| **本地开发**      |                                                          |
-| 启动本地 Supabase | `supabase start`                                         |
-| 停止本地 Supabase | `supabase stop`                                          |
-| 启动开发服务器    | `pnpm start`                                             |
-| **生产部署**      |                                                          |
-| 发版              | `pnpm run release` (patch) / `pnpm run release -- minor` |
-| 部署              | `git push` 自动触发 Vercel Git Integration               |
-| 应急手动部署      | `pnpm run deploy`（仅 Vercel 自动部署故障时）            |
-| 全量质量检查      | `pnpm run quality`                                       |
-| 推送数据库迁移    | `supabase db push`                                       |
-| 部署游戏 API      | `supabase functions deploy game`（CI 自动，手动备用）    |
-| 部署 AI 代理      | `supabase functions deploy gemini-proxy`                 |
-| 设置 Gemini 密钥  | `supabase secrets set GEMINI_API_KEY=AIza...`            |
-| 获取 API Keys     | `supabase projects api-keys --project-ref <ref>`         |
-| 查看部署别名      | `vercel alias ls`                                        |
-| 回滚部署          | `vercel alias set <old-url> werewolf-judge.vercel.app`   |
+| 操作                    | 命令                                                     |
+| ----------------------- | -------------------------------------------------------- |
+| **本地开发**            |                                                          |
+| 启动本地 Supabase       | `supabase start`                                         |
+| 停止本地 Supabase       | `supabase stop`                                          |
+| 启动开发服务器          | `pnpm start`                                             |
+| **生产部署**            |                                                          |
+| 发版                    | `pnpm run release` (patch) / `pnpm run release -- minor` |
+| 前端 + Auth API 部署    | `git push` 自动触发 GitHub CI                            |
+| 应急部署 Edge Functions | `bash scripts/deploy.sh`                                 |
+| 全量质量检查            | `pnpm run quality`                                       |
+| 推送数据库迁移          | `supabase db push`                                       |
+| 部署游戏 API            | `supabase functions deploy game`（CI 无自动，手动执行）  |
+| 部署 AI 代理            | `supabase functions deploy gemini-proxy`                 |
+| 设置 Gemini 密钥        | `supabase secrets set GEMINI_API_KEY=AIza...`            |
+| 获取 API Keys           | `supabase projects api-keys --project-ref <ref>`         |
+| 清除 CDN 缓存           | CI 自动执行；手动见 Q2                                   |
+| 回滚前端                | Cloudflare Pages Dashboard → Rollback                    |
 
 ---
 
 ## 当前生产环境
 
-| 服务         | URL                                      |
-| ------------ | ---------------------------------------- |
-| **前端**     | https://werewolf-judge.vercel.app        |
-| **后端**     | https://abmzjezdvpzyeooqhhsn.supabase.co |
-| **游戏 API** | Edge Function `game`                     |
-| **AI 代理**  | Edge Function `gemini-proxy`             |
-| **崩溃监控** | Sentry                                   |
+| 服务                   | URL                                                   |
+| ---------------------- | ----------------------------------------------------- |
+| **前端**（自定义域名） | https://werewolfjudge.eu.org                          |
+| **前端**（Pages 默认） | https://werewolfgamejudge.pages.dev                   |
+| **Auth API**           | https://api.werewolfjudge.eu.org（Cloudflare Worker） |
+| **后端**               | https://abmzjezdvpzyeooqhhsn.supabase.co              |
+| **游戏 API**           | Edge Function `game`                                  |
+| **AI 代理**            | Edge Function `gemini-proxy`                          |
+| **崩溃监控**           | Sentry                                                |

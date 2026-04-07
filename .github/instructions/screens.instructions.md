@@ -93,6 +93,10 @@ applyTo: 'src/screens/**,src/components/**'
 | `RoomScreen` | `screens/RoomScreen/` | 房间主屏 — 座位、夜晚流程、所有游戏交互 |
 | `EncyclopediaScreen` | `screens/EncyclopediaScreen/` | 角色图鉴 — 展示所有角色，按阵营筛选，点击查看详情 |
 | `SettingsScreen` | `screens/SettingsScreen/` | 用户设置 — 主题切换、账户管理等 |
+| `AuthLoginScreen` | `screens/AuthScreen/` | 登录入口 — 邮箱/密码登录 |
+| `AuthEmailScreen` | `screens/AuthScreen/` | 邮箱注册/验证 |
+| `AuthForgotPasswordScreen` | `screens/AuthScreen/` | 忘记密码 — 发送重置邮件 |
+| `AuthResetPasswordScreen` | `screens/AuthScreen/` | 重置密码 — 通过邮件链接设置新密码 |
 
 ## RoomScreen 子目录
 
