@@ -72,7 +72,7 @@ export const AvatarPickerScreen: React.FC = () => {
   const { user, updateProfile, uploadAvatar } = useAuth();
   const facade = useGameFacade();
 
-  const readOnly = user?.isAnonymous ?? false;
+  const readOnly = !user || (user.isAnonymous ?? false);
 
   // Resolve current builtin avatar index (-1 if not builtin)
   const currentBuiltinIndex = useMemo(() => {
@@ -251,10 +251,7 @@ export const AvatarPickerScreen: React.FC = () => {
   }, [selected, selectedFrame, user?.customAvatarUrl, updateProfile, facade, navigation]);
 
   const handleUpgrade = useCallback(() => {
-    // Go back to Settings so the upgrade auth form can be shown there
     navigation.goBack();
-    // Small delay so goBack completes before SettingsScreen processes the upgrade intent
-    // The user will tap "绑定邮箱" on SettingsScreen
   }, [navigation]);
 
   const keyExtractor = useCallback((item: BuiltinCellItem) => item.key, []);
@@ -523,7 +520,7 @@ export const AvatarPickerScreen: React.FC = () => {
               <Text style={styles.pickerUpgradeBenefit}>· 设置昵称</Text>
             </View>
             <Button variant="primary" onPress={handleUpgrade}>
-              立即绑定
+              {user ? '立即绑定' : '立即注册'}
             </Button>
           </View>
         ) : (

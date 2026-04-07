@@ -11,17 +11,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { EmailForm, LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { PressableScale } from '@/components/PressableScale';
@@ -31,7 +23,6 @@ import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useAuthForm } from '@/hooks/useAuthForm';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
@@ -50,9 +41,8 @@ export const HomeScreen: React.FC = () => {
   const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [colors, screenWidth]);
 
   const navigation = useNavigation<NavigationProp>();
-  const { user, loading: authLoading, error: authError } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const homeGuide = usePageGuide('home');
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
@@ -63,52 +53,31 @@ export const HomeScreen: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
-  // Prevent transient UI states from getting stuck if we navigate away
+  const pendingActionRef = useRef<(() => void) | null>(null);
+
+  // Prevent transient UI states from getting stuck if we navigate away.
+  // Also clear stale pending auth action if user didn't complete login before leaving.
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       setIsCreating(false);
       setIsJoining(false);
+      if (!user) {
+        pendingActionRef.current = null;
+      }
     });
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, user]);
 
-  const [showEmailForm, setShowEmailForm] = useState(false);
-
-  const pendingActionRef = useRef<(() => void) | null>(null);
-  const isSignUpRef = useRef(false);
-
-  const handleAuthSuccess = useCallback(() => {
-    setShowLoginModal(false);
-    setShowEmailForm(false);
-    const action = pendingActionRef.current;
-    pendingActionRef.current = null;
-    const wasSignUp = isSignUpRef.current;
-
-    if (action) action();
-
-    // 注册成功 → 导航到 Settings 设置形象（stack push，返回回到之前页面）
-    if (wasSignUp) {
-      navigation.navigate('Settings');
+  // When user state changes from null to non-null, run pending action (after auth modal)
+  const prevUserRef = useRef(user);
+  useEffect(() => {
+    if (!prevUserRef.current && user) {
+      const action = pendingActionRef.current;
+      pendingActionRef.current = null;
+      if (action) action();
     }
-  }, [navigation]);
-
-  const {
-    email,
-    setEmail,
-    password,
-    setPassword,
-    displayName,
-    setDisplayName,
-    isSignUp,
-    setIsSignUp,
-    handleEmailAuth,
-    handleAnonymousLogin,
-    resetForm,
-    toggleSignUp,
-  } = useAuthForm({ onSuccess: handleAuthSuccess, logger: homeLog });
-
-  // Keep ref in sync for handleAuthSuccess (defined before useAuthForm)
-  isSignUpRef.current = isSignUp;
+    prevUserRef.current = user;
+  }, [user]);
 
   // Load last room number on mount and when returning to screen
   // (room-not-found clears AsyncStorage, need to re-read on focus)
@@ -142,24 +111,13 @@ export const HomeScreen: React.FC = () => {
     (action: () => void) => {
       if (!user) {
         pendingActionRef.current = action;
-        setShowLoginModal(true);
+        navigation.navigate('AuthLogin', { loginTitle: '登录', loginSubtitle: '选择登录方式继续' });
         return;
       }
       action();
     },
-    [user],
+    [user, navigation],
   );
-
-  // ============================================
-  // Stable callback handlers
-  // ============================================
-
-  const resetLoginModal = useCallback(() => {
-    setShowLoginModal(false);
-    setShowEmailForm(false);
-    pendingActionRef.current = null;
-    resetForm();
-  }, [resetForm]);
 
   const handleJoinRoom = useCallback(async () => {
     if (roomCode.length !== 4) {
@@ -209,20 +167,6 @@ export const HomeScreen: React.FC = () => {
   const handleNavigateSettings = useCallback(() => {
     navigation.navigate('Settings');
   }, [navigation]);
-
-  const handleShowSignUp = useCallback(() => {
-    setIsSignUp(true);
-    setShowEmailForm(true);
-  }, [setIsSignUp]);
-
-  const handleShowSignIn = useCallback(() => {
-    setIsSignUp(false);
-    setShowEmailForm(true);
-  }, [setIsSignUp]);
-
-  const handleHideEmailForm = useCallback(() => {
-    setShowEmailForm(false);
-  }, []);
 
   // ============================================
   // Memoized menu item handlers (stable references)
@@ -293,7 +237,7 @@ export const HomeScreen: React.FC = () => {
         icon: UI_ICONS.USER,
         title: '登录后解锁全部功能',
         subtitle: '创建房间、设置昵称头像需要登录',
-        onPress: () => setShowLoginModal(true),
+        onPress: () => navigation.navigate('AuthLogin'),
       });
     }
     if (user?.isAnonymous) {
@@ -457,43 +401,6 @@ export const HomeScreen: React.FC = () => {
           <InstallMenuItem styles={styles} colors={colors} />
         </View>
       </ScrollView>
-
-      {/* Login Modal */}
-      <Modal visible={showLoginModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {showEmailForm ? (
-              <EmailForm
-                isSignUp={isSignUp}
-                email={email}
-                password={password}
-                displayName={displayName}
-                authError={authError}
-                authLoading={authLoading}
-                onEmailChange={setEmail}
-                onPasswordChange={setPassword}
-                onDisplayNameChange={setDisplayName}
-                onSubmit={handleEmailAuth}
-                onToggleMode={toggleSignUp}
-                onBack={handleHideEmailForm}
-                styles={styles}
-                colors={colors}
-              />
-            ) : (
-              <LoginOptions
-                authLoading={authLoading}
-                title="登录"
-                subtitle="选择登录方式继续"
-                onEmailSignUp={handleShowSignUp}
-                onEmailSignIn={handleShowSignIn}
-                onAnonymousLogin={handleAnonymousLogin}
-                onCancel={resetLoginModal}
-                styles={styles}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
 
       {/* Join Room Modal */}
       <JoinRoomModal
