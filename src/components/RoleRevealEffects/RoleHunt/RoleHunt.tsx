@@ -28,10 +28,9 @@ import {
   vec,
 } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { isValidRoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
@@ -61,7 +60,6 @@ import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { CELEBRATION_EMOJIS } from '@/config/emojiTokens';
 import { crossPlatformTextShadow, useColors } from '@/theme';
-import { getRoleBadge } from '@/utils/roleBadges';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 
@@ -72,6 +70,34 @@ const GROUND_TOP_RATIO = 0.52;
 const GROUND_BOTTOM_PADDING_RATIO = 0.16;
 const SPAWN_INTERVAL_MS = 1200;
 const TARGET_SPAWN_INTERVAL_MS = 3500;
+
+/** Forest animal emojis — same roleId always maps to the same animal */
+const HUNT_ANIMAL_EMOJIS = [
+  '🐰',
+  '🦌',
+  '🐻',
+  '🦊',
+  '🐗',
+  '🦝',
+  '🐿️',
+  '🦉',
+  '🦔',
+  '🐇',
+  '🦡',
+  '🐑',
+  '🦢',
+  '🕊️',
+  '🐈‍⬛',
+  '🐒',
+] as const;
+
+function roleIdToAnimalEmoji(roleId: string): string {
+  let hash = 0;
+  for (let i = 0; i < roleId.length; i++) {
+    hash = (hash * 31 + roleId.charCodeAt(i)) | 0;
+  }
+  return HUNT_ANIMAL_EMOJIS[Math.abs(hash) % HUNT_ANIMAL_EMOJIS.length];
+}
 
 const SKY_COLORS = {
   top: '#0b1a2d',
@@ -126,6 +152,8 @@ interface AnimalData {
   facingLeft: boolean;
   /** Timestamp (ms since mount) when this animal was spawned */
   spawnTime: number;
+  /** Forest animal emoji derived from role ID */
+  emoji: string;
 }
 
 // ─── Firefly data ───────────────────────────────────────────────────────
@@ -318,8 +346,6 @@ const AnimatedAnimal: React.FC<AnimatedAnimalProps> = React.memo(
     const hitScale = useSharedValue(1);
     const hitOpacity = useSharedValue(1);
 
-    const badgeSource = isValidRoleId(animal.role.id) ? getRoleBadge(animal.role.id) : undefined;
-
     useEffect(() => {
       const travelDistance = screenWidth + ANIMAL_SIZE * 4;
       const duration = (travelDistance / Math.abs(animal.speed)) * 1000;
@@ -381,12 +407,8 @@ const AnimatedAnimal: React.FC<AnimatedAnimalProps> = React.memo(
 
     return (
       <Animated.View style={[styles.animalLabel, animStyle]} pointerEvents="none">
-        {badgeSource ? (
-          <Image source={badgeSource} resizeMode="contain" style={styles.animalBadge} />
-        ) : (
-          <Text style={styles.animalEmoji}>{animal.role.avatar ?? '🐾'}</Text>
-        )}
-        <View style={styles.animalNameBg}>
+        <Text style={styles.animalEmoji}>{animal.emoji}</Text>
+        <View style={[styles.animalNameBg, animal.facingLeft && { transform: [{ scaleX: -1 }] }]}>
           <Text style={styles.animalName}>{animal.role.name}</Text>
         </View>
       </Animated.View>
@@ -632,6 +654,7 @@ function createAnimal(
     scale: 0.85 + Math.random() * 0.3,
     facingLeft: !fromLeft,
     spawnTime: Date.now(),
+    emoji: roleIdToAnimalEmoji(role.id),
   };
 }
 
@@ -1271,10 +1294,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     zIndex: 5,
-  },
-  animalBadge: {
-    width: 52,
-    height: 52,
   },
   animalEmoji: {
     fontSize: 44,
