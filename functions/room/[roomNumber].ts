@@ -8,7 +8,7 @@
  */
 
 const CRAWLER_UA =
-  /facebookexternalhit|Facebot|Twitterbot|TelegramBot|LinkedInBot|WhatsApp|Slackbot|Discordbot|MicroMessenger|QQBrowser|DingTalk|Applebot|Googlebot|bingbot/i;
+  /facebookexternalhit|Facebot|Twitterbot|TelegramBot|LinkedInBot|WhatsApp|Slackbot|Discordbot|DingTalk|Applebot|Googlebot|bingbot/i;
 
 /** Max room code length to prevent abuse in OG output. */
 const MAX_ROOM_CODE_LENGTH = 10;
