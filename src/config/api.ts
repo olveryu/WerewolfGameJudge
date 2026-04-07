@@ -8,7 +8,7 @@
  * Cloudflare Workers base URL
  */
 export const API_BASE_URL: string =
-  process.env.EXPO_PUBLIC_CF_API_URL ?? 'https://werewolf-api.olveryu.workers.dev';
+  process.env.EXPO_PUBLIC_CF_API_URL ?? 'https://api.werewolfjudge.eu.org';
 
 /**
  * Edge Function 区域路由 header 值。

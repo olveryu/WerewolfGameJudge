@@ -3,6 +3,7 @@ name = "werewolf-api"
 main = "src/index.ts"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = false
 
 # ── D1 Database ──────────────────────────────────────────────────────────────
 [[d1_databases]]
@@ -24,6 +25,11 @@ bindings = [
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
+
+# ── Custom Domain (workers.dev 在中国大陆不可达) ────────────────────────────────
+[[routes]]
+pattern = "api.werewolfjudge.eu.org"
+custom_domain = true
 
 # ── Environment Variables ────────────────────────────────────────────────────
 [vars]
