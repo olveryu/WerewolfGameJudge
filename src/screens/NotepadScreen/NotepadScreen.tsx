@@ -61,7 +61,7 @@ export const NotepadScreen: React.FC = () => {
     const myRole = mySeat != null ? gameState?.players[mySeat]?.role : undefined;
     const myRoleInfo =
       mySeat != null && myRole
-        ? { seat: mySeat, roleName: ROLE_SPECS[myRole]?.displayName ?? myRole }
+        ? { seat: mySeat + 1, roleName: ROLE_SPECS[myRole]?.displayName ?? myRole }
         : undefined;
 
     const summary = buildNotepadSummary(notepad.state, notepad.playerCount, myRoleInfo);
