@@ -292,13 +292,10 @@ export const CONFIG = {
     // ── Screen flash ──
     /** Screen flash duration (ms) */
     screenFlashDuration: 600,
-    /** Screen flash peak opacity per alignment */
-    screenFlashOpacity: {
-      wolf: 0.45,
-      god: 0.5,
-      third: 0.4,
-      villager: 0.3,
-    } as Record<string, number>,
+    /** Neutral flash color — unified across alignments to prevent leaking role identity */
+    screenFlashColor: '#FFFFFF',
+    /** Unified screen flash peak opacity */
+    screenFlashOpacity: 0.4,
 
     // ── Card content entrance animations ──
     /** Emoji pop animation delay after reveal (ms) */

@@ -69,20 +69,18 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
   };
 
   const breathingDuration = AE.breathingDuration[alignment] ?? 2500;
-  const screenFlashOpacity = AE.screenFlashOpacity[alignment] ?? 0.45;
-  const screenFlashDelay = alignment === 'wolf' ? 200 : 250;
 
   return (
     <View style={styles.effectContainer} pointerEvents="none">
-      {/* Full-screen radial flash from card center */}
+      {/* Full-screen radial flash — neutral color to prevent leaking alignment */}
       <ScreenFlash
-        color={theme.primaryColor}
-        peakOpacity={screenFlashOpacity}
+        color={AE.screenFlashColor}
+        peakOpacity={AE.screenFlashOpacity}
         duration={AE.screenFlashDuration}
         animate={animate}
         centerX={cardWidth / 2}
         centerY={cardHeight * 0.42}
-        delay={screenFlashDelay}
+        delay={250}
       />
 
       {/* Alignment-specific visual effects */}
