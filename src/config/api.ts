@@ -1,8 +1,14 @@
 /**
- * api - API base URL 配置
+ * api - API / Site URL 配置
  *
- * Cloudflare Workers 后端。纯配置模块，不包含业务逻辑或副作用。
+ * Cloudflare Workers 后端 + 前端站点 URL。纯配置模块，不包含业务逻辑或副作用。
  */
+
+/**
+ * 前端站点 URL（自定义域名）。
+ * Native 端分享链接、deep link prefix 等消费。
+ */
+export const SITE_URL: string = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://werewolfjudge.eu.org';
 
 /**
  * Cloudflare Workers base URL

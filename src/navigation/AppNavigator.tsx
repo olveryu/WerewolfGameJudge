@@ -15,6 +15,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
+import { SITE_URL } from '@/config/api';
 import {
   AuthEmailScreen,
   AuthForgotPasswordScreen,
@@ -58,7 +59,7 @@ const TRANSIENT_PARAMS = ['template', 'roleRevealAnimation'];
 
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: [],
+  prefixes: [SITE_URL, 'https://werewolfgamejudge.pages.dev'],
   config: {
     screens: {
       Home: '',

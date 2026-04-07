@@ -34,7 +34,7 @@ describe('shareOrCopyRoomLink', () => {
     const result = await shareOrCopyRoomLink('1234');
     expect(result).toBe('shared');
     expect(Share.share).toHaveBeenCalledWith(
-      expect.objectContaining({ url: 'https://werewolfgamejudge.pages.dev/room/1234' }),
+      expect.objectContaining({ url: 'https://werewolfjudge.eu.org/room/1234' }),
     );
   });
 

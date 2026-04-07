@@ -8,6 +8,7 @@
  */
 import { Platform, Share } from 'react-native';
 
+import { SITE_URL } from '@/config/api';
 import { log } from '@/utils/logger';
 
 /** Build the room URL from the current origin (web) or production URL (native). */
@@ -15,7 +16,7 @@ export function buildRoomUrl(roomNumber: string): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     return `${window.location.origin}/room/${roomNumber}`;
   }
-  return `https://werewolfgamejudge.pages.dev/room/${roomNumber}`;
+  return `${SITE_URL}/room/${roomNumber}`;
 }
 
 /** Result of a share/copy attempt. */
