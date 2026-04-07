@@ -105,6 +105,14 @@ jobs:
           command: pages deploy dist --project-name=werewolfgamejudge
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Purge CDN cache
+        run: |
+          curl -sf -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
+
   e2e:
     runs-on: ubuntu-latest
     if: |
