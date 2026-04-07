@@ -109,6 +109,21 @@ const linking: LinkingOptions<RootStackParamList> = {
       }
     }
 
+    // Auth modal screens need Home underneath so goBack() can dismiss to Home
+    const AUTH_SCREENS: readonly string[] = [
+      'AuthLogin',
+      'AuthEmail',
+      'AuthForgotPassword',
+      'AuthResetPassword',
+    ];
+    if (topRoute && AUTH_SCREENS.includes(topRoute.name) && routes.length === 1) {
+      return {
+        ...state,
+        routes: [{ name: 'Home' as const }, topRoute],
+        index: 1,
+      };
+    }
+
     return state;
   },
   // Strip non-serializable params (template, roleRevealAnimation) from browser URL
