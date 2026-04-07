@@ -56,7 +56,8 @@ const navLog = log.extend('AppNavigator');
 /** Params that are programmatic-only and should never appear in the URL. */
 const TRANSIENT_PARAMS = ['template', 'roleRevealAnimation'];
 
-const linking: LinkingOptions<RootStackParamList> = {
+/** @internal Exported for contract testing only. */
+export const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [],
   config: {
     screens: {
@@ -93,30 +94,26 @@ const linking: LinkingOptions<RootStackParamList> = {
     const routes = state.routes;
     const topRoute = routes[routes.length - 1];
 
-    // Notepad requires Room underneath; inject Home + Room when missing
-    if (topRoute?.name === 'Notepad' && routes.length === 1) {
-      const roomNumber = (topRoute.params as { roomNumber?: string })?.roomNumber;
-      if (roomNumber) {
-        return {
-          ...state,
-          routes: [
-            { name: 'Home' as const },
-            { name: 'Room' as const, params: { roomNumber, isHost: false } },
-            topRoute,
-          ],
-          index: 2,
-        };
+    // Ensure Home is always at the bottom of the stack for deep-linked screens.
+    // Without this, goBack()/cancel on directly-opened URLs would have nowhere to go.
+    if (topRoute && topRoute.name !== 'Home' && routes.length === 1) {
+      // Notepad requires Room underneath; inject Home + Room
+      if (topRoute.name === 'Notepad') {
+        const roomNumber = (topRoute.params as { roomNumber?: string })?.roomNumber;
+        if (roomNumber) {
+          return {
+            ...state,
+            routes: [
+              { name: 'Home' as const },
+              { name: 'Room' as const, params: { roomNumber, isHost: false } },
+              topRoute,
+            ],
+            index: 2,
+          };
+        }
       }
-    }
 
-    // Auth modal screens need Home underneath so goBack() can dismiss to Home
-    const AUTH_SCREENS: readonly string[] = [
-      'AuthLogin',
-      'AuthEmail',
-      'AuthForgotPassword',
-      'AuthResetPassword',
-    ];
-    if (topRoute && AUTH_SCREENS.includes(topRoute.name) && routes.length === 1) {
+      // All other screens: inject Home as base route
       return {
         ...state,
         routes: [{ name: 'Home' as const }, topRoute],
