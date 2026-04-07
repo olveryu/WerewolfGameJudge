@@ -132,6 +132,7 @@ fi
 # 复制 Cloudflare Pages 配置文件
 cp web/_headers dist/
 cp web/_redirects dist/
-echo "✅ 已复制 _headers + _redirects"
+cp web/_routes.json dist/
+echo "✅ 已复制 _headers + _redirects + _routes.json"
 
 echo "✅ 构建完成"

@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "description": "Only /room/* invokes the Pages Function (OG preview). All other routes are free static assets.",
+  "include": ["/room/*"],
+  "exclude": []
+}
