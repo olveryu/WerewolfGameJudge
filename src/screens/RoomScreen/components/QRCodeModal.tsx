@@ -151,16 +151,16 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
 
       {/* Action buttons */}
       <View style={styles.buttonRow}>
+        <Button variant="primary" onPress={onCopyLink}>
+          复制链接（推荐）
+        </Button>
         <Button
-          variant="primary"
+          variant="secondary"
           onPress={handleShare}
           loading={isSharing || !isPreCaptureReady}
           testID={TESTIDS.qrCodeShareButton}
         >
           分享图片
-        </Button>
-        <Button variant="secondary" onPress={onCopyLink}>
-          复制链接
         </Button>
         <Button variant="secondary" onPress={onClose} accessibilityLabel="关闭">
           关闭
