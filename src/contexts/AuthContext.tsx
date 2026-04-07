@@ -46,6 +46,8 @@ interface AuthContextValue {
   uploadAvatar: (fileUri: string) => Promise<string>;
   signOut: () => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -248,6 +250,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [authService, handleAuthError],
   );
 
+  const forgotPassword = useCallback(
+    async (email: string) => {
+      setError(null);
+      try {
+        await authService.forgotPassword(email);
+      } catch (e: unknown) {
+        handleAuthError(e, 'Forgot password failed', { rethrow: true });
+      }
+    },
+    [authService, handleAuthError],
+  );
+
+  const resetPassword = useCallback(
+    async (email: string, code: string, newPassword: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await authService.resetPassword(email, code, newPassword);
+        const result = await authService.getCurrentUser();
+        if (result?.data?.user) {
+          const u = toUser(result.data.user);
+          setUser(u);
+          if (u) Sentry.setUser({ id: u.uid });
+        }
+      } catch (e: unknown) {
+        handleAuthError(e, 'Reset password failed', { rethrow: true });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [authService, handleAuthError],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -261,6 +296,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       uploadAvatar,
       signOut,
       changePassword,
+      forgotPassword,
+      resetPassword,
     }),
     [
       user,
@@ -273,6 +310,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       uploadAvatar,
       signOut,
       changePassword,
+      forgotPassword,
+      resetPassword,
     ],
   );
 

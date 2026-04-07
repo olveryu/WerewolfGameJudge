@@ -74,6 +74,12 @@ export interface IAuthService {
   /** 修改密码（已登录邮箱用户） */
   changePassword(oldPassword: string, newPassword: string): Promise<void>;
 
+  /** 发送密码重置验证码邮件 */
+  forgotPassword(email: string): Promise<void>;
+
+  /** 用验证码重置密码，成功后自动登录，返回 userId */
+  resetPassword(email: string, code: string, newPassword: string): Promise<string>;
+
   /** 从本地 session 恢复认证，返回 userId 或 null */
   initAuth(): Promise<string | null>;
 

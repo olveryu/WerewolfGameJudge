@@ -9,6 +9,7 @@
 import type { Env } from '../env';
 import { extractBearerToken, signToken, verifyToken } from '../lib/auth';
 import { jsonResponse } from '../lib/cors';
+import { sendPasswordResetEmail } from '../lib/email';
 import { hashPassword, verifyPassword } from '../lib/password';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -366,4 +367,167 @@ export async function handleSignOut(_request: Request, env: Env): Promise<Respon
   // JWT is stateless — signout is client-side token removal.
   // Server acknowledges; any future request with old token still validates until expiry.
   return jsonResponse({ success: true }, 200, env);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /auth/forgot-password — 发送密码重置验证码邮件
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Rate limit: max reset requests per email per hour */
+const RESET_RATE_LIMIT = 3;
+/** Reset code TTL in minutes */
+const RESET_CODE_TTL_MINUTES = 15;
+
+async function sha256(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+export async function handleForgotPassword(request: Request, env: Env): Promise<Response> {
+  const body = (await request.json()) as { email?: string };
+
+  if (!body.email) {
+    return jsonResponse({ error: 'email required' }, 400, env);
+  }
+
+  const email = body.email.toLowerCase().trim();
+
+  // Check user exists (non-anonymous with password)
+  const user = await env.DB.prepare(
+    'SELECT id FROM users WHERE email = ? AND is_anonymous = 0 AND password_hash IS NOT NULL',
+  )
+    .bind(email)
+    .first<{ id: string }>();
+
+  if (!user) {
+    // Don't reveal whether email exists — return success either way
+    return jsonResponse({ success: true }, 200, env);
+  }
+
+  // Rate limit: max N requests per email per hour
+  const recentCount = await env.DB.prepare(
+    `SELECT COUNT(*) as count FROM password_reset_tokens
+     WHERE user_id = ? AND created_at > datetime('now', '-1 hour')`,
+  )
+    .bind(user.id)
+    .first<{ count: number }>();
+
+  if (recentCount && recentCount.count >= RESET_RATE_LIMIT) {
+    return jsonResponse({ error: 'too many reset requests, try again later' }, 429, env);
+  }
+
+  // Invalidate any previous unused tokens for this user
+  await env.DB.prepare(`UPDATE password_reset_tokens SET used = 1 WHERE user_id = ? AND used = 0`)
+    .bind(user.id)
+    .run();
+
+  // Generate 6-digit code (CSPRNG) and store hashed
+  const randomBuf = new Uint32Array(1);
+  crypto.getRandomValues(randomBuf);
+  const code = String(100000 + (randomBuf[0] % 900000));
+  const tokenHash = await sha256(code + email);
+  const expiresAt = new Date(Date.now() + RESET_CODE_TTL_MINUTES * 60 * 1000).toISOString();
+
+  await env.DB.prepare(
+    `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)`,
+  )
+    .bind(user.id, tokenHash, expiresAt)
+    .run();
+
+  // Send email (fire-and-forget resilience: if email fails, user can retry)
+  try {
+    await sendPasswordResetEmail(env, email, code);
+  } catch (error) {
+    console.error('Failed to send reset email:', error);
+    return jsonResponse({ error: 'failed to send email, try again later' }, 500, env);
+  }
+
+  return jsonResponse({ success: true }, 200, env);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /auth/reset-password — 验证码重置密码 + 自动登录
+// ─────────────────────────────────────────────────────────────────────────────
+export async function handleResetPassword(request: Request, env: Env): Promise<Response> {
+  const body = (await request.json()) as {
+    email?: string;
+    code?: string;
+    newPassword?: string;
+  };
+
+  if (!body.email || !body.code || !body.newPassword) {
+    return jsonResponse({ error: 'email, code and newPassword required' }, 400, env);
+  }
+
+  if (body.newPassword.length < 6) {
+    return jsonResponse({ error: 'password must be at least 6 characters' }, 400, env);
+  }
+
+  const email = body.email.toLowerCase().trim();
+  const tokenHash = await sha256(body.code + email);
+
+  // Find valid token
+  const token = await env.DB.prepare(
+    `SELECT t.id, t.user_id FROM password_reset_tokens t
+     JOIN users u ON t.user_id = u.id
+     WHERE t.token_hash = ? AND u.email = ? AND t.used = 0
+       AND t.expires_at > datetime('now')`,
+  )
+    .bind(tokenHash, email)
+    .first<{ id: string; user_id: string }>();
+
+  if (!token) {
+    return jsonResponse({ error: 'invalid or expired code' }, 400, env);
+  }
+
+  // Mark token as used
+  await env.DB.prepare(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`)
+    .bind(token.id)
+    .run();
+
+  // Update password
+  const newHash = await hashPassword(body.newPassword);
+  await env.DB.prepare(
+    `UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`,
+  )
+    .bind(newHash, token.user_id)
+    .run();
+
+  // Auto-login: return JWT
+  const jwt = await signToken(token.user_id, env, { email });
+
+  // Fetch user metadata for response
+  const user = await env.DB.prepare(
+    `SELECT display_name, avatar_url, custom_avatar_url, avatar_frame FROM users WHERE id = ?`,
+  )
+    .bind(token.user_id)
+    .first<{
+      display_name: string | null;
+      avatar_url: string | null;
+      custom_avatar_url: string | null;
+      avatar_frame: string | null;
+    }>();
+
+  return jsonResponse(
+    {
+      success: true,
+      access_token: jwt,
+      user: {
+        id: token.user_id,
+        email,
+        is_anonymous: false,
+        user_metadata: {
+          display_name: user?.display_name,
+          avatar_url: user?.avatar_url,
+          custom_avatar_url: user?.custom_avatar_url,
+          avatar_frame: user?.avatar_frame,
+        },
+      },
+    },
+    200,
+    env,
+  );
 }

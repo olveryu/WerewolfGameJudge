@@ -11,6 +11,8 @@
  *   GET  /auth/user               — 获取当前用户
  *   PUT  /auth/profile            — 更新资料
  *   POST /auth/signout            — 登出
+ *   POST /auth/forgot-password    — 发送密码重置验证码
+ *   POST /auth/reset-password     — 验证码重置密码
  *   POST /game/{assign,seat,...}  — 游戏控制 API
  *   POST /game/night/{action,...} — 夜晚流程 API
  *   POST /gemini-proxy            — Gemini AI 代理
@@ -27,7 +29,9 @@ export { GameRoom } from './durableObjects/GameRoom';
 import {
   handleAnonymousSignIn,
   handleChangePassword,
+  handleForgotPassword,
   handleGetUser,
+  handleResetPassword,
   handleSignIn,
   handleSignOut,
   handleSignUp,
@@ -151,6 +155,10 @@ export default {
               return handleSignIn(request, env);
             case 'signout':
               return handleSignOut(request, env);
+            case 'forgot-password':
+              return handleForgotPassword(request, env);
+            case 'reset-password':
+              return handleResetPassword(request, env);
           }
         }
         if (request.method === 'GET' && route === 'user') {

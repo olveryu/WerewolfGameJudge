@@ -29,6 +29,7 @@ export const EmailForm = memo<EmailFormProps>(
     onDisplayNameChange,
     onSubmit,
     onToggleMode,
+    onForgotPassword,
     onBack,
     styles,
     colors,
@@ -135,6 +136,12 @@ export const EmailForm = memo<EmailFormProps>(
             <Text style={styles.linkButtonText}>
               {isSignUp ? '已有账号？去登录' : '没有账号？去注册'}
             </Text>
+          </TouchableOpacity>
+        )}
+
+        {!isSignUp && onForgotPassword && (
+          <TouchableOpacity style={styles.linkButton} onPress={onForgotPassword}>
+            <Text style={styles.linkButtonText}>忘记密码？</Text>
           </TouchableOpacity>
         )}
 

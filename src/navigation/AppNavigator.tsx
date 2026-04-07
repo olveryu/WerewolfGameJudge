@@ -15,6 +15,12 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
+import {
+  AuthEmailScreen,
+  AuthForgotPasswordScreen,
+  AuthLoginScreen,
+  AuthResetPasswordScreen,
+} from '@/screens/AuthScreen';
 import { AvatarPickerScreen } from '@/screens/AvatarPickerScreen/AvatarPickerScreen';
 import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
@@ -72,6 +78,10 @@ const linking: LinkingOptions<RootStackParamList> = {
       Encyclopedia: 'encyclopedia',
       Notepad: 'notepad/:roomNumber',
       AvatarPicker: 'avatar-picker',
+      AuthLogin: 'auth/login',
+      AuthEmail: 'auth/email',
+      AuthForgotPassword: 'auth/forgot-password',
+      AuthResetPassword: 'auth/reset-password',
     },
   },
   // Rebuild navigation stack when deep-linking into screens that expect a parent.
@@ -164,6 +174,31 @@ export const AppNavigator: React.FC = () => {
           component={AvatarPickerScreen}
           options={{ title: '选择形象' }}
         />
+        {/* Auth modal screens — transparent overlay with centered card */}
+        <Stack.Group
+          screenOptions={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        >
+          <Stack.Screen name="AuthLogin" component={AuthLoginScreen} options={{ title: '登录' }} />
+          <Stack.Screen
+            name="AuthEmail"
+            component={AuthEmailScreen}
+            options={{ title: '邮箱认证' }}
+          />
+          <Stack.Screen
+            name="AuthForgotPassword"
+            component={AuthForgotPasswordScreen}
+            options={{ title: '忘记密码' }}
+          />
+          <Stack.Screen
+            name="AuthResetPassword"
+            component={AuthResetPasswordScreen}
+            options={{ title: '重置密码' }}
+          />
+        </Stack.Group>
       </Stack.Navigator>
     </NavigationContainer>
   );

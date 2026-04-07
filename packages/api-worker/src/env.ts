@@ -24,4 +24,7 @@ export interface Env {
 
   /** Gemini API key — set via `wrangler secret put GEMINI_API_KEY` */
   GEMINI_API_KEY?: string;
+
+  /** Resend API key — set via `wrangler secret put RESEND_API_KEY` */
+  RESEND_API_KEY?: string;
 }
