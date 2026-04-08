@@ -281,12 +281,18 @@
       });
 
       // 微信 WebView 检测：引导用户用外部浏览器打开
+      // 微信内阻止 SPA 加载，避免路由改变 URL（用户点"在浏览器中打开"时需要保留原始链接）
       // localhost 排除，方便开发调试
       var ua = navigator.userAgent;
       var isWechat = /MicroMessenger/i.test(ua);
       if (isWechat && location.hostname !== 'localhost') {
         var guide = document.getElementById('wechat-guide');
         if (guide) guide.style.display = 'flex';
+        // 移除 SPA 挂载点和启动画面，阻止 Expo bundle 执行
+        var root = document.getElementById('root');
+        if (root) root.remove();
+        var splash = document.getElementById('splash-screen');
+        if (splash) splash.remove();
       }
 
       // 动态视口高度（修复移动浏览器 100vh 不准，Safari/Chrome 地址栏收缩）
