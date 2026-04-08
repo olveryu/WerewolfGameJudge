@@ -28,7 +28,7 @@ import { computeCanShootForSeat } from './confirmContext';
 import { decideWolfVoteTimerAction, isWolfVoteAllComplete } from './progressionEvaluator';
 import { buildRevealPayload } from './revealPayload';
 import type { HandlerContext, HandlerResult, NonNullState } from './types';
-import { STANDARD_SIDE_EFFECTS } from './types';
+import { handlerRejection, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 
 // Re-export moved symbols for backward compatibility
 export { checkNightmareBlockGuard, isSkipAction } from './actionGuards';
@@ -175,7 +175,7 @@ export function handleSubmitAction(
   );
 
   // Wolf vote timer: wolfVote 步骤提交后，管理 stepDeadline
-  if (schema.kind === 'wolfVote' && handlerResult.success) {
+  if (schema.kind === 'wolfVote' && handlerResult.kind === 'success') {
     // 临时 reduce 所有 actions 以获取投票最新状态
     let tempState = state as import('../../protocol/types').GameState;
     for (const action of handlerResult.actions) {
@@ -185,13 +185,17 @@ export function handleSubmitAction(
     const hasExistingTimer = tempState.stepDeadline != null;
     const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, Date.now());
 
+    const extraActions: StateAction[] = [];
     if (timerAction.type === 'set') {
-      handlerResult.actions.push({
+      extraActions.push({
         type: 'SET_STEP_DEADLINE' as const,
         payload: { deadline: timerAction.deadline },
       });
     } else if (timerAction.type === 'clear') {
-      handlerResult.actions.push({ type: 'CLEAR_STEP_DEADLINE' as const });
+      extraActions.push({ type: 'CLEAR_STEP_DEADLINE' as const });
+    }
+    if (extraActions.length > 0) {
+      return handlerSuccess([...handlerResult.actions, ...extraActions], handlerResult.sideEffects);
     }
   }
 
@@ -221,12 +225,11 @@ function buildRejectionResult(
     },
   };
 
-  return {
-    success: false,
-    reason: rejectReason,
-    actions: [rejectAction],
-    sideEffects: [{ type: 'BROADCAST_STATE' }],
-  };
+  return handlerRejection(
+    rejectReason ?? 'invalid_action',
+    [rejectAction],
+    [{ type: 'BROADCAST_STATE' }],
+  );
 }
 
 /**
@@ -288,9 +291,5 @@ function buildSuccessResult(
     });
   }
 
-  return {
-    success: true,
-    actions,
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
 }

@@ -11,20 +11,11 @@
  * 使用 D1 prepared statements 替代 PostgREST HTTP API。
  */
 
-import type { SideEffect } from '@werewolf/game-engine/engine/handlers/types';
+import type { HandlerResult, SideEffect } from '@werewolf/game-engine/engine/handlers/types';
 import { runInlineProgression } from '@werewolf/game-engine/engine/inlineProgression';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
-import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
-
-/** processGameAction 回调的返回值 */
-interface ProcessResult {
-  success: boolean;
-  reason?: string;
-  actions: StateAction[];
-  sideEffects?: readonly SideEffect[];
-}
 
 /** processGameAction 的最终返回值 */
 export interface GameActionResult {
@@ -51,7 +42,7 @@ interface InlineProgressionOptions {
 export async function processGameAction(
   db: D1Database,
   roomCode: string,
-  process: (state: GameState, revision: number) => ProcessResult,
+  process: (state: GameState, revision: number) => HandlerResult,
   inlineProgression?: InlineProgressionOptions,
 ): Promise<GameActionResult> {
   try {
@@ -74,9 +65,13 @@ export async function processGameAction(
       // Step 2: 调用 game-engine 纯函数
       const result = process(currentState, currentRevision);
 
-      if (!result.success) {
+      // 'error': infrastructure/precondition failure → early return, nothing to persist.
+      if (result.kind === 'error') {
         return { success: false, reason: result.reason };
       }
+
+      // 'success' | 'rejection': both carry actions that must be applied + persisted + broadcast.
+      const isSuccess = result.kind === 'success';
 
       // Step 3: apply actions → 新 state
       let newState = currentState;
@@ -86,8 +81,8 @@ export async function processGameAction(
         totalActionsApplied++;
       }
 
-      // Step 3.5: 内联推进（可选）
-      if (inlineProgression?.enabled) {
+      // Step 3.5: 内联推进（可选，仅 success 时执行）
+      if (isSuccess && inlineProgression?.enabled) {
         const progressionResult = runInlineProgression(
           newState,
           newState.hostUid,
@@ -102,8 +97,8 @@ export async function processGameAction(
       // No-op guard
       if (totalActionsApplied === 0) {
         return {
-          success: result.success,
-          reason: result.reason,
+          success: isSuccess,
+          reason: isSuccess ? undefined : result.reason,
           state: currentState,
           revision: currentRevision,
         };
@@ -131,8 +126,8 @@ export async function processGameAction(
       }
 
       return {
-        success: result.success,
-        reason: result.reason,
+        success: isSuccess,
+        reason: isSuccess ? undefined : result.reason,
         state: newState,
         revision: currentRevision + 1,
         sideEffects: result.sideEffects,

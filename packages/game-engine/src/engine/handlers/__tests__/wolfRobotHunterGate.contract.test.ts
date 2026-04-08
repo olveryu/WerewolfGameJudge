@@ -22,6 +22,8 @@ import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engi
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
+import { expectError, expectSuccess } from './handlerTestUtils';
+
 // Create minimal state for testing
 function createTestState(overrides?: Partial<GameState>): GameState {
   return {
@@ -65,8 +67,8 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('wolfrobot_hunter_status_not_viewed');
+      const err = expectError(result);
+      expect(err.reason).toBe('wolfrobot_hunter_status_not_viewed');
     });
 
     it('allows advance when wolfRobotHunterStatusViewed === true', () => {
@@ -82,7 +84,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     it('allows advance when not learned hunter (no gate needed)', () => {
@@ -103,7 +105,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     it('[边界] 不在 wolfRobotLearn step 时，即使 wolfRobotHunterStatusViewed === false 也必须允许推进', () => {
@@ -121,7 +123,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
       const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, context);
 
       // Gate 5 只在 wolfRobotLearn step 生效，其他 step 不阻挡
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     it('allows advance when canShootAsHunter === false but status is viewed', () => {
@@ -145,7 +147,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
   });
 });
@@ -164,8 +166,8 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         seat: 0,
       });
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('no_state');
+      const err = expectError(result);
+      expect(err.reason).toBe('no_state');
     });
 
     it('rejects when step is not wolfRobotLearn', () => {
@@ -183,8 +185,8 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         seat: 0,
       });
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_step');
+      const err = expectError(result);
+      expect(err.reason).toBe('invalid_step');
     });
 
     it('rejects when not learned hunter', () => {
@@ -206,8 +208,8 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         seat: 0,
       });
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('not_learned_hunter');
+      const err = expectError(result);
+      expect(err.reason).toBe('not_learned_hunter');
     });
 
     it('rejects when seat is not wolfRobot', () => {
@@ -223,8 +225,8 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         seat: 1, // hunter seat, not wolfRobot
       });
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_seat');
+      const err = expectError(result);
+      expect(err.reason).toBe('invalid_seat');
     });
   });
 
@@ -242,9 +244,9 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         seat: 0, // wolfRobot seat
       });
 
-      expect(result.success).toBe(true);
-      expect(result.actions).toHaveLength(1);
-      expect(result.actions[0]).toEqual({
+      const success = expectSuccess(result);
+      expect(success.actions).toHaveLength(1);
+      expect(success.actions[0]).toEqual({
         type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
         payload: { viewed: true },
       });
@@ -265,15 +267,15 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
       };
 
       const advanceResult1 = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, ctx1);
-      expect(advanceResult1.success).toBe(false);
-      expect(advanceResult1.reason).toBe('wolfrobot_hunter_status_not_viewed');
+      const err = expectError(advanceResult1);
+      expect(err.reason).toBe('wolfrobot_hunter_status_not_viewed');
 
       // Step 2: Call handler to set viewed
       const handlerResult = handleSetWolfRobotHunterStatusViewed(ctx1, {
         type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
         seat: 0,
       });
-      expect(handlerResult.success).toBe(true);
+      expectSuccess(handlerResult);
 
       // Step 3: Simulate reducer applying the action
       const updatedState = createTestState({
@@ -288,7 +290,7 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
 
       // Step 4: Now advance should succeed
       const advanceResult2 = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, ctx2);
-      expect(advanceResult2.success).toBe(true);
+      expectSuccess(advanceResult2);
     });
   });
 });

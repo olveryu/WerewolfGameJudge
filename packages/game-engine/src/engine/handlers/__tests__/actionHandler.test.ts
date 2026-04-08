@@ -15,6 +15,8 @@ import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 
+import { expectError, expectRejection, expectSuccess } from './handlerTestUtils';
+
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
@@ -68,9 +70,9 @@ describe('handleViewedRole', () => {
 
     const result = handleViewedRole(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
   });
 
   it('should succeed when non-host views own seat', () => {
@@ -83,9 +85,9 @@ describe('handleViewedRole', () => {
 
     const result = handleViewedRole(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
   });
 
   it('should fail when non-host views another seat (not_my_seat)', () => {
@@ -98,8 +100,8 @@ describe('handleViewedRole', () => {
 
     const result = handleViewedRole(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('not_my_seat');
+    const err = expectError(result);
+    expect(err.reason).toBe('not_my_seat');
   });
 
   it('should fail when state is null (no_state)', () => {
@@ -115,8 +117,8 @@ describe('handleViewedRole', () => {
 
     const result = handleViewedRole(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('no_state');
+    const err = expectError(result);
+    expect(err.reason).toBe('no_state');
   });
 
   it('should fail when status is not assigned (invalid_status)', () => {
@@ -129,8 +131,8 @@ describe('handleViewedRole', () => {
 
     const result = handleViewedRole(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 
   it('should fail when seat is empty (not_seated)', () => {
@@ -145,8 +147,8 @@ describe('handleViewedRole', () => {
 
     const result = handleViewedRole(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('not_seated');
+    const err = expectError(result);
+    expect(err.reason).toBe('not_seated');
   });
 
   it('should include BROADCAST_STATE and SAVE_STATE side effects', () => {
@@ -159,8 +161,9 @@ describe('handleViewedRole', () => {
 
     const result = handleViewedRole(intent, context);
 
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    const success = expectSuccess(result);
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 });
 
@@ -203,10 +206,10 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions.length).toBeGreaterThanOrEqual(1);
+    const success = expectSuccess(result);
+    expect(success.actions.length).toBeGreaterThanOrEqual(1);
     // 必须产生 RECORD_ACTION
-    expect(result.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
+    expect(success.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
   });
 
   it('should produce RECORD_ACTION and APPLY_RESOLVER_RESULT on success', () => {
@@ -219,8 +222,8 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(true);
-    const actionTypes = result.actions.map((a) => a.type);
+    const success = expectSuccess(result);
+    const actionTypes = success.actions.map((a) => a.type);
     expect(actionTypes).toContain('RECORD_ACTION');
     expect(actionTypes).toContain('APPLY_RESOLVER_RESULT');
   });
@@ -235,8 +238,9 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    const success = expectSuccess(result);
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
   // === Gate: no_state ===
@@ -254,8 +258,8 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('no_state');
+    const err = expectError(result);
+    expect(err.reason).toBe('no_state');
   });
 
   // === Gate: invalid_status ===
@@ -270,8 +274,8 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 
   // === Gate: forbidden_while_audio_playing ===
@@ -286,8 +290,8 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('forbidden_while_audio_playing');
+    const err = expectError(result);
+    expect(err.reason).toBe('forbidden_while_audio_playing');
   });
 
   // === Gate: invalid_step ===
@@ -302,8 +306,8 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_step');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_step');
   });
 
   // === Gate: step_mismatch ===
@@ -326,8 +330,8 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('step_mismatch');
+    const err = expectError(result);
+    expect(err.reason).toBe('step_mismatch');
   });
 
   // === Gate: not_seated ===
@@ -348,8 +352,8 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('not_seated');
+    const err = expectError(result);
+    expect(err.reason).toBe('not_seated');
   });
 
   // === Gate: role_mismatch ===
@@ -365,8 +369,8 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('role_mismatch');
+    const err = expectError(result);
+    expect(err.reason).toBe('role_mismatch');
   });
 
   // === Reject also broadcasts ===
@@ -381,7 +385,7 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
+    expectError(result);
     // Gate rejection 不产生 sideEffects（只有 resolver rejection 才有）
     // 但根据 PR4 要求，reject 也必须 broadcast - 需要修复
   });
@@ -412,12 +416,12 @@ describe('handleSubmitAction', () => {
       const result = handleSubmitAction(intent, context);
 
       // resolver 应 reject，原因来自 constraintValidator
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('不能选择自己');
+      const rej = expectRejection(result);
+      expect(rej.reason).toContain('不能选择自己');
       // resolver rejection 产生 ACTION_REJECTED action
-      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+      expect(rej.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
       // resolver rejection 必须 broadcast
-      expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+      expect(rej.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     });
 
     it('should allow other target when schema has notSelf constraint', () => {
@@ -439,8 +443,8 @@ describe('handleSubmitAction', () => {
       const result = handleSubmitAction(intent, context);
 
       // 应该成功
-      expect(result.success).toBe(true);
-      expect(result.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
+      const success = expectSuccess(result);
+      expect(success.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
     });
   });
 
@@ -474,9 +478,9 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('被噩梦之影封锁');
-      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+      const rej = expectRejection(result);
+      expect(rej.reason).toContain('被噩梦之影封锁');
+      expect(rej.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
     });
 
     it('should allow blocked seer to skip (target=null)', () => {
@@ -496,7 +500,7 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     it('should allow non-blocked seer to take action', () => {
@@ -516,7 +520,7 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     // --- swap schema (targets-based skip) - schema-aware test ---
@@ -545,9 +549,9 @@ describe('handleSubmitAction', () => {
       const result = handleSubmitAction(intent, context);
 
       // MUST reject: schema-aware guard should detect targets array
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('被噩梦之影封锁');
-      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+      const rej = expectRejection(result);
+      expect(rej.reason).toContain('被噩梦之影封锁');
+      expect(rej.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
     });
 
     it('should allow blocked magician to skip (empty targets)', () => {
@@ -572,7 +576,7 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     // --- compound schema (witch) - stepResults-based skip ---
@@ -603,9 +607,9 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('被噩梦之影封锁');
-      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+      const rej = expectRejection(result);
+      expect(rej.reason).toContain('被噩梦之影封锁');
+      expect(rej.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
     });
 
     it('should reject blocked witch with non-skip stepResults (poison)', () => {
@@ -631,9 +635,9 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('被噩梦之影封锁');
-      expect(result.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
+      const rej = expectRejection(result);
+      expect(rej.reason).toContain('被噩梦之影封锁');
+      expect(rej.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
     });
 
     it('should allow blocked witch to skip (stepResults all null)', () => {
@@ -660,7 +664,7 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     it('should allow non-blocked witch to use abilities', () => {
@@ -690,7 +694,7 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     // --- confirm schema (hunter/darkWolfKing special rules) ---
@@ -718,8 +722,8 @@ describe('handleSubmitAction', () => {
       const result = handleSubmitAction(intent, context);
 
       // MUST reject: blocked hunter can only skip
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('被噩梦之影封锁');
+      const rej = expectRejection(result);
+      expect(rej.reason).toContain('被噩梦之影封锁');
     });
 
     it('should allow blocked hunter to skip (confirmed !== true)', () => {
@@ -744,7 +748,7 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     it('should reject non-blocked hunter trying to skip (confirm requires action)', () => {
@@ -770,8 +774,8 @@ describe('handleSubmitAction', () => {
       const result = handleSubmitAction(intent, context);
 
       // MUST reject: non-blocked confirm schema cannot skip
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('当前无法跳过');
+      const rej = expectRejection(result);
+      expect(rej.reason).toContain('当前无法跳过');
     });
 
     it('should allow non-blocked hunter to confirm', () => {
@@ -796,7 +800,7 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
 
     // --- darkWolfKing confirm (same rules as hunter) ---
@@ -823,8 +827,8 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('被噩梦之影封锁');
+      const rej = expectRejection(result);
+      expect(rej.reason).toContain('被噩梦之影封锁');
     });
 
     it('should reject non-blocked darkWolfKing trying to skip', () => {
@@ -849,8 +853,8 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('当前无法跳过');
+      const rej = expectRejection(result);
+      expect(rej.reason).toContain('当前无法跳过');
     });
   });
 });

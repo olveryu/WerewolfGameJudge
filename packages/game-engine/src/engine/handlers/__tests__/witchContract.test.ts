@@ -19,6 +19,8 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
+import { expectSuccess } from './handlerTestUtils';
+
 // =============================================================================
 // Test Helpers
 // =============================================================================
@@ -55,7 +57,7 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
   };
 }
 
-function getApplyResolverResult(result: ReturnType<typeof handleSubmitAction>) {
+function getApplyResolverResult(result: { actions: readonly { type: string }[] }) {
   const action = result.actions.find(
     (a): a is ApplyResolverResultAction => a.type === 'APPLY_RESOLVER_RESULT',
   );
@@ -85,8 +87,8 @@ describe('Witch buildActionInput contract', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
-      const applyAction = getApplyResolverResult(result);
+      const success = expectSuccess(result);
+      const applyAction = getApplyResolverResult(success);
       expect(applyAction?.payload.updates?.savedSeat).toBe(0);
     });
 
@@ -105,8 +107,8 @@ describe('Witch buildActionInput contract', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
-      const applyAction = getApplyResolverResult(result);
+      const success = expectSuccess(result);
+      const applyAction = getApplyResolverResult(success);
       expect(applyAction?.payload.updates?.poisonedSeat).toBe(2);
     });
 
@@ -125,8 +127,8 @@ describe('Witch buildActionInput contract', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      expect(result.success).toBe(true);
-      const applyAction = getApplyResolverResult(result);
+      const success = expectSuccess(result);
+      const applyAction = getApplyResolverResult(success);
       // Skip means no updates to savedSeat/poisonedSeat
       expect(applyAction?.payload.updates?.savedSeat).toBeUndefined();
       expect(applyAction?.payload.updates?.poisonedSeat).toBeUndefined();

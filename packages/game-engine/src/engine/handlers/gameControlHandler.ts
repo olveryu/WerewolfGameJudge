@@ -48,7 +48,7 @@ import type {
 import type { GameState } from '../store/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
 import type { HandlerContext, HandlerResult, SideEffect } from './types';
-import { STANDARD_SIDE_EFFECTS } from './types';
+import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
 
 // ---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ type StateGuardFail = { ok: false; result: HandlerResult };
 
 function requireState(context: HandlerContext): StateGuardOk | StateGuardFail {
   if (!context.state) {
-    return { ok: false, result: { success: false, reason: 'no_state', actions: [] } };
+    return { ok: false, result: handlerError('no_state') };
   }
   return { ok: true, state: context.state };
 }
@@ -83,11 +83,7 @@ export function handleAssignRoles(
 
   // Gate: game status must be GameStatus.Seated
   if (state.status !== GameStatus.Seated) {
-    return {
-      success: false,
-      reason: 'invalid_status',
-      actions: [],
-    };
+    return handlerError('invalid_status');
   }
 
   const seatCount = Object.keys(state.players).length;
@@ -97,11 +93,7 @@ export function handleAssignRoles(
 
   // 验证：模板角色数量与座位数匹配（含底牌）
   if (state.templateRoles.length !== expectedRoleCount) {
-    return {
-      success: false,
-      reason: 'role_count_mismatch',
-      actions: [],
-    };
+    return handlerError('role_count_mismatch');
   }
 
   let seatedRoles: RoleId[];
@@ -178,11 +170,7 @@ export function handleAssignRoles(
     },
   };
 
-  return {
-    success: true,
-    actions: [assignRolesAction],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([assignRolesAction], STANDARD_SIDE_EFFECTS);
 }
 
 // ---------------------------------------------------------------------------
@@ -289,11 +277,7 @@ export function handleStartNight(
 
   // Gate: status must be GameStatus.Ready
   if (state.status !== GameStatus.Ready) {
-    return {
-      success: false,
-      reason: 'invalid_status',
-      actions: [],
-    };
+    return handlerError('invalid_status');
   }
 
   // 首步来自 buildNightPlan 表驱动单源（按当前模板角色过滤）
@@ -305,11 +289,7 @@ export function handleStartNight(
       type: 'END_NIGHT',
       payload: { deaths: [] },
     };
-    return {
-      success: true,
-      actions: [endNightAction],
-      sideEffects: STANDARD_SIDE_EFFECTS,
-    };
+    return handlerSuccess([endNightAction], STANDARD_SIDE_EFFECTS);
   }
 
   const firstStepId = nightPlan.steps[0].stepId;
@@ -368,11 +348,7 @@ export function handleStartNight(
     });
   }
 
-  return {
-    success: true,
-    actions,
-    sideEffects,
-  };
+  return handlerSuccess(actions, sideEffects);
 }
 
 /**
@@ -390,11 +366,7 @@ export function handleRestartGame(
     nonce: randomHex(8),
   };
 
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
 }
 
 /**
@@ -415,12 +387,9 @@ export function handleUpdateTemplate(
   const canUpdateTemplateBeforeView =
     state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
   if (!canUpdateTemplateBeforeView) {
-    return {
-      success: false,
-      reason:
-        '只能在“分配角色”前修改设置（未入座/已入座阶段）。如果已经不是该阶段，请先点击“重新开始”回到准备阶段再修改。',
-      actions: [],
-    };
+    return handlerError(
+      '只能在"分配角色"前修改设置（未入座/已入座阶段）。如果已经不是该阶段，请先点击"重新开始"回到准备阶段再修改。',
+    );
   }
 
   const action: UpdateTemplateAction = {
@@ -428,11 +397,7 @@ export function handleUpdateTemplate(
     payload: { templateRoles: intent.payload.templateRoles },
   };
 
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
 }
 
 /**
@@ -454,11 +419,7 @@ export function handleSetRoleRevealAnimation(
     nonce: intent.animation === 'random' ? randomHex(8) : undefined,
   };
 
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
 }
 
 /**
@@ -481,11 +442,7 @@ export function handleFillWithBots(
 
   // Gate: 只允许在 unseated 阶段填充 bot
   if (state.status !== GameStatus.Unseated) {
-    return {
-      success: false,
-      reason: 'invalid_status',
-      actions: [],
-    };
+    return handlerError('invalid_status');
   }
 
   // 计算空座位并生成 bot players
@@ -515,11 +472,7 @@ export function handleFillWithBots(
     payload: { bots },
   };
 
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
 }
 
 /**
@@ -541,31 +494,19 @@ export function handleMarkAllBotsViewed(
 
   // Gate: debugMode.botsEnabled 必须为 true
   if (!state.debugMode?.botsEnabled) {
-    return {
-      success: false,
-      reason: 'debug_not_enabled',
-      actions: [],
-    };
+    return handlerError('debug_not_enabled');
   }
 
   // Gate: status 必须是 assigned
   if (state.status !== GameStatus.Assigned) {
-    return {
-      success: false,
-      reason: 'invalid_status',
-      actions: [],
-    };
+    return handlerError('invalid_status');
   }
 
   const action: MarkAllBotsViewedAction = {
     type: 'MARK_ALL_BOTS_VIEWED',
   };
 
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
 }
 
 /**
@@ -583,7 +524,7 @@ export function handleShareNightReview(
   const { state } = guard;
 
   if (state.status !== GameStatus.Ended) {
-    return { success: false, reason: 'invalid_status', actions: [] };
+    return handlerError('invalid_status');
   }
 
   const action: SetNightReviewAllowedSeatsAction = {
@@ -591,9 +532,5 @@ export function handleShareNightReview(
     allowedSeats: intent.allowedSeats,
   };
 
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
 }

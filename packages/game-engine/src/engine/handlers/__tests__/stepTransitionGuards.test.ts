@@ -11,6 +11,7 @@ import {
   validateSetAudioPlayingPreconditions,
 } from '../stepTransitionGuards';
 import type { HandlerContext, NonNullState } from '../types';
+import { expectError } from './handlerTestUtils';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -43,21 +44,30 @@ describe('validateNightFlowPreconditions', () => {
   it('should reject when state is null (Gate 1)', () => {
     const result = validateNightFlowPreconditions(createContext(null));
     expect(result.valid).toBe(false);
-    if (!result.valid) expect(result.result.reason).toBe('no_state');
+    if (!result.valid) {
+      const err = expectError(result.result);
+      expect(err.reason).toBe('no_state');
+    }
   });
 
   it('should reject when status is not Ongoing (Gate 2)', () => {
     const state = createMinimalState({ status: GameStatus.Unseated });
     const result = validateNightFlowPreconditions(createContext(state));
     expect(result.valid).toBe(false);
-    if (!result.valid) expect(result.result.reason).toBe('invalid_status');
+    if (!result.valid) {
+      const err = expectError(result.result);
+      expect(err.reason).toBe('invalid_status');
+    }
   });
 
   it('should reject when audio is playing (Gate 3)', () => {
     const state = createMinimalState({ isAudioPlaying: true });
     const result = validateNightFlowPreconditions(createContext(state));
     expect(result.valid).toBe(false);
-    if (!result.valid) expect(result.result.reason).toBe('forbidden_while_audio_playing');
+    if (!result.valid) {
+      const err = expectError(result.result);
+      expect(err.reason).toBe('forbidden_while_audio_playing');
+    }
   });
 
   it('should reject when wolfRobot learned a gate role but not viewed (Gate 4)', () => {
@@ -73,7 +83,10 @@ describe('validateNightFlowPreconditions', () => {
     } as Partial<NonNullState>);
     const result = validateNightFlowPreconditions(createContext(state));
     expect(result.valid).toBe(false);
-    if (!result.valid) expect(result.result.reason).toBe('wolfrobot_hunter_status_not_viewed');
+    if (!result.valid) {
+      const err = expectError(result.result);
+      expect(err.reason).toBe('wolfrobot_hunter_status_not_viewed');
+    }
   });
 
   it('should pass when wolfRobot learned a gate role and already viewed', () => {
@@ -121,14 +134,20 @@ describe('validateSetAudioPlayingPreconditions', () => {
   it('should reject when state is null', () => {
     const result = validateSetAudioPlayingPreconditions(createContext(null));
     expect(result.valid).toBe(false);
-    if (!result.valid) expect(result.result.reason).toBe('no_state');
+    if (!result.valid) {
+      const err = expectError(result.result);
+      expect(err.reason).toBe('no_state');
+    }
   });
 
   it('should reject when status is Unseated', () => {
     const state = createMinimalState({ status: GameStatus.Unseated });
     const result = validateSetAudioPlayingPreconditions(createContext(state));
     expect(result.valid).toBe(false);
-    if (!result.valid) expect(result.result.reason).toBe('invalid_status');
+    if (!result.valid) {
+      const err = expectError(result.result);
+      expect(err.reason).toBe('invalid_status');
+    }
   });
 
   it('should pass when status is Ongoing', () => {

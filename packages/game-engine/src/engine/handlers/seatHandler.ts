@@ -31,7 +31,7 @@ import type {
   UpdatePlayerProfileAction,
 } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
-import { STANDARD_SIDE_EFFECTS } from './types';
+import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 
 /**
  * 处理加入座位
@@ -43,48 +43,28 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
 
   // 校验：state 是否存在
   if (!state) {
-    return {
-      success: false,
-      reason: REASON_NO_STATE,
-      actions: [],
-    };
+    return handlerError(REASON_NO_STATE);
   }
 
   // 校验：uid 是否有效
   if (!uid) {
-    return {
-      success: false,
-      reason: REASON_NOT_AUTHENTICATED,
-      actions: [],
-    };
+    return handlerError(REASON_NOT_AUTHENTICATED);
   }
 
   // 验证：座位是否存在
   if (!(seat in state.players)) {
-    return {
-      success: false,
-      reason: REASON_INVALID_SEAT,
-      actions: [],
-    };
+    return handlerError(REASON_INVALID_SEAT);
   }
 
   // 验证：座位是否已被占用（被其他玩家）
   const existingPlayer = state.players[seat];
   if (existingPlayer !== null && existingPlayer.uid !== uid) {
-    return {
-      success: false,
-      reason: REASON_SEAT_TAKEN,
-      actions: [],
-    };
+    return handlerError(REASON_SEAT_TAKEN);
   }
 
   // 验证：游戏状态是否允许加入
   if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
-    return {
-      success: false,
-      reason: REASON_GAME_IN_PROGRESS,
-      actions: [],
-    };
+    return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
   const actions: (PlayerJoinAction | PlayerLeaveAction)[] = [];
@@ -121,11 +101,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   };
   actions.push(joinAction);
 
-  return {
-    success: true,
-    actions,
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
 }
 
 /**
@@ -143,38 +119,22 @@ export function handleLeaveMySeat(
 
   // 校验：state 是否存在
   if (!state) {
-    return {
-      success: false,
-      reason: REASON_NO_STATE,
-      actions: [],
-    };
+    return handlerError(REASON_NO_STATE);
   }
 
   // 校验：uid 是否有效
   if (!uid) {
-    return {
-      success: false,
-      reason: REASON_NOT_AUTHENTICATED,
-      actions: [],
-    };
+    return handlerError(REASON_NOT_AUTHENTICATED);
   }
 
   // 校验：是否已入座
   if (mySeat === null) {
-    return {
-      success: false,
-      reason: REASON_NOT_SEATED,
-      actions: [],
-    };
+    return handlerError(REASON_NOT_SEATED);
   }
 
   // 验证：游戏状态是否允许离开
   if (state.status === GameStatus.Ongoing) {
-    return {
-      success: false,
-      reason: REASON_GAME_IN_PROGRESS,
-      actions: [],
-    };
+    return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
   const action: PlayerLeaveAction = {
@@ -182,11 +142,7 @@ export function handleLeaveMySeat(
     payload: { seat: mySeat },
   };
 
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
 }
 
 /**
@@ -202,11 +158,11 @@ export function handleClearAllSeats(
   const { state } = context;
 
   if (!state) {
-    return { success: false, reason: REASON_NO_STATE, actions: [] };
+    return handlerError(REASON_NO_STATE);
   }
 
   if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
-    return { success: false, reason: REASON_GAME_IN_PROGRESS, actions: [] };
+    return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
   const actions: PlayerLeaveAction[] = [];
@@ -214,11 +170,7 @@ export function handleClearAllSeats(
     actions.push({ type: 'PLAYER_LEAVE', payload: { seat } });
   });
 
-  return {
-    success: true,
-    actions,
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
 }
 
 /**
@@ -235,15 +187,15 @@ export function handleUpdatePlayerProfile(
   const { state, mySeat } = context;
 
   if (!state) {
-    return { success: false, reason: REASON_NO_STATE, actions: [] };
+    return handlerError(REASON_NO_STATE);
   }
 
   if (!uid) {
-    return { success: false, reason: REASON_NOT_AUTHENTICATED, actions: [] };
+    return handlerError(REASON_NOT_AUTHENTICATED);
   }
 
   if (mySeat === null) {
-    return { success: false, reason: REASON_NOT_SEATED, actions: [] };
+    return handlerError(REASON_NOT_SEATED);
   }
 
   const action: UpdatePlayerProfileAction = {
@@ -256,9 +208,5 @@ export function handleUpdatePlayerProfile(
     },
   };
 
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
 }

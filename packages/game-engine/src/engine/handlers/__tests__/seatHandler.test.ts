@@ -24,6 +24,8 @@ import {
   REASON_SEAT_TAKEN,
 } from '@werewolf/game-engine/protocol/reasonCodes';
 
+import { expectError, expectSuccess } from './handlerTestUtils';
+
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
@@ -66,9 +68,9 @@ describe('handleJoinSeat', () => {
 
     const result = handleJoinSeat(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('PLAYER_JOIN');
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('PLAYER_JOIN');
   });
 
   it('should fail when seat is taken', () => {
@@ -91,8 +93,8 @@ describe('handleJoinSeat', () => {
 
     const result = handleJoinSeat(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_SEAT_TAKEN);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_SEAT_TAKEN);
   });
 
   it('should fail when seat does not exist', () => {
@@ -109,8 +111,8 @@ describe('handleJoinSeat', () => {
 
     const result = handleJoinSeat(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_INVALID_SEAT);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_INVALID_SEAT);
   });
 
   it('should fail when game is in progress', () => {
@@ -127,8 +129,8 @@ describe('handleJoinSeat', () => {
 
     const result = handleJoinSeat(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_GAME_IN_PROGRESS);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_GAME_IN_PROGRESS);
   });
 
   it('should fail when state is null (no_state)', () => {
@@ -144,8 +146,8 @@ describe('handleJoinSeat', () => {
 
     const result = handleJoinSeat(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NO_STATE);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NO_STATE);
   });
 
   it('should fail when uid is empty (not_authenticated)', () => {
@@ -162,8 +164,8 @@ describe('handleJoinSeat', () => {
 
     const result = handleJoinSeat(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NOT_AUTHENTICATED);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NOT_AUTHENTICATED);
   });
 
   it('should include BROADCAST_STATE and SAVE_STATE side effects', () => {
@@ -180,8 +182,9 @@ describe('handleJoinSeat', () => {
 
     const result = handleJoinSeat(intent, context);
 
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    const success = expectSuccess(result);
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
   it('should handle seat switching (leave old seat, join new seat)', () => {
@@ -210,12 +213,12 @@ describe('handleJoinSeat', () => {
 
     const result = handleJoinSeat(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(2);
-    expect(result.actions[0].type).toBe('PLAYER_LEAVE');
-    expect((result.actions[0] as { payload: { seat: number } }).payload.seat).toBe(0);
-    expect(result.actions[1].type).toBe('PLAYER_JOIN');
-    expect((result.actions[1] as { payload: { seat: number } }).payload.seat).toBe(2);
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(2);
+    expect(success.actions[0].type).toBe('PLAYER_LEAVE');
+    expect((success.actions[0] as { payload: { seat: number } }).payload.seat).toBe(0);
+    expect(success.actions[1].type).toBe('PLAYER_JOIN');
+    expect((success.actions[1] as { payload: { seat: number } }).payload.seat).toBe(2);
   });
 
   it('should allow player to re-sit on same seat without leaving', () => {
@@ -244,9 +247,9 @@ describe('handleJoinSeat', () => {
 
     const result = handleJoinSeat(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1); // Only join, no leave
-    expect(result.actions[0].type).toBe('PLAYER_JOIN');
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1); // Only join, no leave
+    expect(success.actions[0].type).toBe('PLAYER_JOIN');
   });
 });
 
@@ -267,10 +270,10 @@ describe('handleLeaveMySeat', () => {
 
     const result = handleLeaveMySeat(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('PLAYER_LEAVE');
-    expect((result.actions[0] as { payload: { seat: number } }).payload.seat).toBe(0);
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('PLAYER_LEAVE');
+    expect((success.actions[0] as { payload: { seat: number } }).payload.seat).toBe(0);
   });
 
   it('should fail with not_seated when mySeat is null', () => {
@@ -283,8 +286,8 @@ describe('handleLeaveMySeat', () => {
 
     const result = handleLeaveMySeat(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NOT_SEATED);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NOT_SEATED);
   });
 
   it('should fail with no_state when state is null', () => {
@@ -296,8 +299,8 @@ describe('handleLeaveMySeat', () => {
 
     const result = handleLeaveMySeat(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NO_STATE);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NO_STATE);
   });
 
   it('should fail with not_authenticated when uid is empty', () => {
@@ -316,8 +319,8 @@ describe('handleLeaveMySeat', () => {
 
     const result = handleLeaveMySeat(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NOT_AUTHENTICATED);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NOT_AUTHENTICATED);
   });
 
   it('should fail with game_in_progress when game is ongoing', () => {
@@ -337,8 +340,8 @@ describe('handleLeaveMySeat', () => {
 
     const result = handleLeaveMySeat(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_GAME_IN_PROGRESS);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_GAME_IN_PROGRESS);
   });
 
   it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
@@ -357,9 +360,9 @@ describe('handleLeaveMySeat', () => {
 
     const result = handleLeaveMySeat(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    const success = expectSuccess(result);
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 });
 
@@ -379,8 +382,8 @@ describe('handleUpdatePlayerProfile', () => {
     const context = createContext(null);
     const result = handleUpdatePlayerProfile(makeIntent(), context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NO_STATE);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NO_STATE);
   });
 
   it('should fail when uid is missing', () => {
@@ -388,8 +391,8 @@ describe('handleUpdatePlayerProfile', () => {
     const context = createContext(state);
     const result = handleUpdatePlayerProfile(makeIntent({ uid: '' }), context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NOT_AUTHENTICATED);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NOT_AUTHENTICATED);
   });
 
   it('should fail when user is not seated', () => {
@@ -397,8 +400,8 @@ describe('handleUpdatePlayerProfile', () => {
     const context = createContext(state, { mySeat: null });
     const result = handleUpdatePlayerProfile(makeIntent(), context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(REASON_NOT_SEATED);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NOT_SEATED);
   });
 
   it('should succeed and produce UPDATE_PLAYER_PROFILE action when seated', () => {
@@ -414,14 +417,14 @@ describe('handleUpdatePlayerProfile', () => {
 
     const result = handleUpdatePlayerProfile(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]).toEqual({
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0]).toEqual({
       type: 'UPDATE_PLAYER_PROFILE',
       payload: { seat: 0, displayName: 'Alice', avatarUrl: 'https://img/a.png' },
     });
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
   it('should pass only displayName when avatarUrl is undefined', () => {
@@ -437,8 +440,8 @@ describe('handleUpdatePlayerProfile', () => {
 
     const result = handleUpdatePlayerProfile(intent, context);
 
-    expect(result.success).toBe(true);
-    const action = result.actions[0];
+    const success = expectSuccess(result);
+    const action = success.actions[0];
     expect(action.type).toBe('UPDATE_PLAYER_PROFILE');
     expect(action).toEqual({
       type: 'UPDATE_PLAYER_PROFILE',

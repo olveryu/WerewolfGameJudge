@@ -16,7 +16,7 @@ import { getEngineLogger } from '../../utils/logger';
 import type { SetWolfRobotHunterStatusViewedAction } from '../reducer/types';
 import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerResult } from './types';
-import { STANDARD_SIDE_EFFECTS } from './types';
+import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 
 const handlerLog = getEngineLogger().extend('WolfRobotHunterGateHandler');
 
@@ -53,7 +53,7 @@ export function handleSetWolfRobotHunterStatusViewed(
   const state = ctx.state;
   if (!state) {
     handlerLog.debug('rejected: no_state');
-    return { success: false, reason: 'no_state', actions: [] };
+    return handlerError('no_state');
   }
 
   // Gate 2: 当前 step 必须是 wolfRobotLearn
@@ -62,7 +62,7 @@ export function handleSetWolfRobotHunterStatusViewed(
       currentStepId: state.currentStepId,
       expected: 'wolfRobotLearn',
     });
-    return { success: false, reason: 'invalid_step', actions: [] };
+    return handlerError('invalid_step');
   }
 
   // Gate 3: wolfRobotReveal.learnedRoleId 必须在 gate 触发角色列表中
@@ -73,7 +73,7 @@ export function handleSetWolfRobotHunterStatusViewed(
     handlerLog.warn('rejected: not_learned_gate_role', {
       learnedRoleId: state.wolfRobotReveal?.learnedRoleId,
     });
-    return { success: false, reason: 'not_learned_hunter', actions: [] };
+    return handlerError('not_learned_hunter');
   }
 
   // Gate 4: seat 必须是 wolfRobot 的 seat
@@ -83,7 +83,7 @@ export function handleSetWolfRobotHunterStatusViewed(
       seat: intent.seat,
       playerRole: player?.role,
     });
-    return { success: false, reason: 'invalid_seat', actions: [] };
+    return handlerError('invalid_seat');
   }
 
   // 构建 action
@@ -94,9 +94,5 @@ export function handleSetWolfRobotHunterStatusViewed(
 
   handlerLog.debug('success: returning SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED action');
 
-  return {
-    success: true,
-    actions: [action],
-    sideEffects: STANDARD_SIDE_EFFECTS,
-  };
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
 }

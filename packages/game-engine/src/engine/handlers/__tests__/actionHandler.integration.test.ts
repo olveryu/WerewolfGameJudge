@@ -5,6 +5,8 @@
 import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
+import { expectSuccess } from './handlerTestUtils';
+
 const baseContext: any = {
   myUid: 'HOST',
   mySeat: 0,
@@ -45,9 +47,9 @@ describe('handleSubmitAction', () => {
       baseContext,
     );
 
-    expect(result.success).toBe(true);
+    const success = expectSuccess(result);
     // There should be a RECORD_ACTION with targetSeat undefined.
-    const record = result.actions.find(
+    const record = success.actions.find(
       (a): a is { type: 'RECORD_ACTION'; payload: { action: any } } =>
         (a as any).type === 'RECORD_ACTION',
     );
@@ -55,7 +57,7 @@ describe('handleSubmitAction', () => {
     expect(record!.payload.action.targetSeat).toBeUndefined();
 
     // APPLY_RESOLVER_RESULT should not contain a reveal with targetSeat=0.
-    const apply = result.actions.find(
+    const apply = success.actions.find(
       (a): a is { type: 'APPLY_RESOLVER_RESULT'; payload: any } =>
         (a as any).type === 'APPLY_RESOLVER_RESULT',
     );
@@ -72,7 +74,8 @@ describe('handleSubmitAction', () => {
       baseContext,
     );
 
-    const record = result.actions.find(
+    const success = expectSuccess(result);
+    const record = success.actions.find(
       (a): a is { type: 'RECORD_ACTION'; payload: { action: any } } =>
         (a as any).type === 'RECORD_ACTION',
     );

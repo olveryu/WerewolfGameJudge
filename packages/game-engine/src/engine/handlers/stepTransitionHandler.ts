@@ -41,6 +41,7 @@ import {
   validateSetAudioPlayingPreconditions,
 } from './stepTransitionGuards';
 import type { HandlerContext, HandlerResult, SideEffect } from './types';
+import { handlerError, handlerSuccess } from './types';
 import { maybeCreateUiHintAction } from './uiHint';
 import { maybeCreateWitchContextAction } from './witchContext';
 
@@ -151,11 +152,7 @@ export function handleAdvanceNight(
     }
   }
 
-  return {
-    success: true,
-    actions,
-    sideEffects,
-  };
+  return handlerSuccess(actions, sideEffects);
 }
 
 // =============================================================================
@@ -193,11 +190,7 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
     nightFlowLog.error('handleEndNight: night_not_complete - currentStepId is still set', {
       currentStepId: state.currentStepId,
     });
-    return {
-      success: false,
-      reason: 'night_not_complete',
-      actions: [],
-    };
+    return handlerError('night_not_complete');
   }
 
   // 构建 NightActions
@@ -242,16 +235,15 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
     payload: { deaths, deathReasons },
   };
 
-  return {
-    success: true,
-    actions: [endNightAction],
-    sideEffects: [
+  return handlerSuccess(
+    [endNightAction],
+    [
       { type: 'BROADCAST_STATE' },
       { type: 'SAVE_STATE' },
       // P0-1: 返回夜晚结束音频播放副作用
       { type: 'PLAY_AUDIO', audioKey: 'night_end' },
     ],
-  };
+  );
 }
 
 // =============================================================================
@@ -286,9 +278,5 @@ export function handleSetAudioPlaying(
     payload: { isPlaying: intent.payload.isPlaying },
   };
 
-  return {
-    success: true,
-    actions: [setAudioAction],
-    sideEffects: [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }],
-  };
+  return handlerSuccess([setAudioAction], [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }]);
 }

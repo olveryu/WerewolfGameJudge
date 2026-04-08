@@ -11,6 +11,7 @@
 import { GameStatus } from '../../models';
 import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerResult, NonNullState } from './types';
+import { handlerError } from './types';
 
 /**
  * 验证前置条件（ADVANCE_NIGHT / END_NIGHT 共用）
@@ -30,7 +31,7 @@ export function validateNightFlowPreconditions(
   if (!state) {
     return {
       valid: false,
-      result: { success: false, reason: 'no_state', actions: [] },
+      result: handlerError('no_state'),
     };
   }
 
@@ -38,7 +39,7 @@ export function validateNightFlowPreconditions(
   if (state.status !== GameStatus.Ongoing) {
     return {
       valid: false,
-      result: { success: false, reason: 'invalid_status', actions: [] },
+      result: handlerError('invalid_status'),
     };
   }
 
@@ -46,7 +47,7 @@ export function validateNightFlowPreconditions(
   if (state.isAudioPlaying) {
     return {
       valid: false,
-      result: { success: false, reason: 'forbidden_while_audio_playing', actions: [] },
+      result: handlerError('forbidden_while_audio_playing'),
     };
   }
 
@@ -60,7 +61,7 @@ export function validateNightFlowPreconditions(
   ) {
     return {
       valid: false,
-      result: { success: false, reason: 'wolfrobot_hunter_status_not_viewed', actions: [] },
+      result: handlerError('wolfrobot_hunter_status_not_viewed'),
     };
   }
 
@@ -85,7 +86,7 @@ export function validateSetAudioPlayingPreconditions(
   if (!state) {
     return {
       valid: false,
-      result: { success: false, reason: 'no_state', actions: [] },
+      result: handlerError('no_state'),
     };
   }
 
@@ -94,7 +95,7 @@ export function validateSetAudioPlayingPreconditions(
   if (state.status !== GameStatus.Ongoing && state.status !== GameStatus.Ended) {
     return {
       valid: false,
-      result: { success: false, reason: 'invalid_status', actions: [] },
+      result: handlerError('invalid_status'),
     };
   }
 

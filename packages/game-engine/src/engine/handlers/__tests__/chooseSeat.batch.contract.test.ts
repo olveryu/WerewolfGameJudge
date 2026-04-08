@@ -26,6 +26,8 @@ import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
 
+import { expectRejection, expectSuccess } from './handlerTestUtils';
+
 // =============================================================================
 // Test Data
 // =============================================================================
@@ -151,7 +153,7 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
   };
 }
 
-function getApplyResolverResult(result: ReturnType<typeof handleSubmitAction>) {
+function getApplyResolverResult(result: { actions: readonly { type: string }[] }) {
   return result.actions.find(
     (a): a is ApplyResolverResultAction => a.type === 'APPLY_RESOLVER_RESULT',
   );
@@ -199,14 +201,14 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const result = handleSubmitAction(intent, context);
 
-        expect(result.success).toBe(true);
+        const success = expectSuccess(result);
         // 有 reveal 的 schema 会额外产生 ADD_REVEAL_ACK action
         const expectedLength = hasReveal ? 3 : 2;
-        expect(result.actions).toHaveLength(expectedLength);
-        expect(result.actions[0].type).toBe('RECORD_ACTION');
-        expect(result.actions[1].type).toBe('APPLY_RESOLVER_RESULT');
+        expect(success.actions).toHaveLength(expectedLength);
+        expect(success.actions[0].type).toBe('RECORD_ACTION');
+        expect(success.actions[1].type).toBe('APPLY_RESOLVER_RESULT');
         if (hasReveal) {
-          expect(result.actions[2].type).toBe('ADD_REVEAL_ACK');
+          expect(success.actions[2].type).toBe('ADD_REVEAL_ACK');
         }
       },
     );
@@ -230,7 +232,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const result = handleSubmitAction(intent, context);
 
-        expect(result.success).toBe(true);
+        expectSuccess(result);
       },
     );
   });
@@ -258,8 +260,8 @@ describe('chooseSeat Batch Handler Contract', () => {
         const result = handleSubmitAction(intent, context);
 
         // 只断言失败，不断言具体文案（避免中文依赖）
-        expect(result.success).toBe(false);
-        expect(result.reason).toBeDefined();
+        const rej = expectRejection(result);
+        expect(rej.reason).toBeDefined();
       },
     );
 
@@ -277,7 +279,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const result = handleSubmitAction(intent, context);
 
-        expect(result.success).toBe(true);
+        expectSuccess(result);
       },
     );
   });
@@ -298,9 +300,9 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const result = handleSubmitAction(intent, context);
 
-        expect(result.success).toBe(false);
+        const rej = expectRejection(result);
         // 使用常量断言，避免中文文案依赖
-        expect(result.reason).toBe(BLOCKED_UI_DEFAULTS.message);
+        expect(rej.reason).toBe(BLOCKED_UI_DEFAULTS.message);
       },
     );
 
@@ -325,7 +327,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const result = handleSubmitAction(intent, context);
 
-        expect(result.success).toBe(true);
+        expectSuccess(result);
       },
     );
   });
@@ -346,8 +348,8 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const result = handleSubmitAction(intent, context);
 
-        expect(result.success).toBe(true);
-        const applyAction = getApplyResolverResult(result);
+        const success = expectSuccess(result);
+        const applyAction = getApplyResolverResult(success);
         expect(applyAction).toBeDefined();
 
         // 验证 reveal 结果存在
@@ -373,9 +375,9 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const result = handleSubmitAction(intent, context);
 
-        expect(result.success).toBe(true);
-        expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-        expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+        const success = expectSuccess(result);
+        expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+        expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
       },
     );
   });
@@ -397,6 +399,6 @@ describe('chooseSeat canSkip=false edge case', () => {
     // canSkip=false 时跳过应该失败
     // 注意：当前 handler 可能允许 skip，这里验证预期行为
     // 如果 handler 不校验 canSkip，此测试会失败，需要修复 handler
-    expect(result.success).toBe(false);
+    expectRejection(result);
   });
 });

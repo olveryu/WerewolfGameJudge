@@ -19,7 +19,9 @@ export function broadcastIfNeeded(
   result: GameActionResult,
   ctx: ExecutionContext,
 ): void {
-  if (!result.success || !result.state || result.revision == null) return;
+  // Don't gate on result.success — business rejections (e.g. ACTION_REJECTED)
+  // carry state + revision + BROADCAST_STATE and must reach WebSocket clients.
+  if (!result.state || result.revision == null) return;
 
   // Check for BROADCAST_STATE side effect
   const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;

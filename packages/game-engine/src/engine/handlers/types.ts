@@ -28,20 +28,52 @@ export interface HandlerContext {
 }
 
 /**
- * Handler 结果
+ * Handler 结果 — discriminated union
+ *
+ * 三种结果语义：
+ * - `success`：正常完成，有 actions 需要 apply + persist + broadcast
+ * - `rejection`：业务拒绝（如免疫袭击），有 actions（ACTION_REJECTED 等）需要 persist + broadcast
+ * - `error`：基础设施/前置条件失败（state 不存在、状态不对），无 actions，直接返回 HTTP 错误
  */
-export interface HandlerResult {
-  /** 是否成功 */
-  success: boolean;
+export type HandlerResult = HandlerSuccess | HandlerRejection | HandlerError;
 
-  /** 失败原因 */
-  reason?: string;
+export interface HandlerSuccess {
+  readonly kind: 'success';
+  readonly actions: StateAction[];
+  readonly sideEffects?: readonly SideEffect[];
+}
 
-  /** 要执行的 StateAction 列表 */
-  actions: StateAction[];
+export interface HandlerRejection {
+  readonly kind: 'rejection';
+  readonly reason: string;
+  readonly actions: StateAction[];
+  readonly sideEffects?: readonly SideEffect[];
+}
 
-  /** 副作用（如需要播放音频、发送消息等） */
-  sideEffects?: readonly SideEffect[];
+export interface HandlerError {
+  readonly kind: 'error';
+  readonly reason: string;
+}
+
+// ── Factory functions ───────────────────────────────────────────────────────
+
+export function handlerSuccess(
+  actions: StateAction[],
+  sideEffects?: readonly SideEffect[],
+): HandlerSuccess {
+  return { kind: 'success', actions, sideEffects };
+}
+
+export function handlerRejection(
+  reason: string,
+  actions: StateAction[],
+  sideEffects?: readonly SideEffect[],
+): HandlerRejection {
+  return { kind: 'rejection', reason, actions, sideEffects };
+}
+
+export function handlerError(reason: string): HandlerError {
+  return { kind: 'error', reason };
 }
 
 /**

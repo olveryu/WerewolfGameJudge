@@ -21,6 +21,7 @@ import {
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
 } from '@werewolf/game-engine/engine/handlers/seatHandler';
+import { handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
 import { handleViewedRole } from '@werewolf/game-engine/engine/handlers/viewedRoleHandler';
 import type {
   JoinSeatIntent,
@@ -125,11 +126,11 @@ export const handleStart: HandlerFn = async (req, env, ctx) => {
   const result = await processGameAction(env.DB, roomCode, (state: GameState) => {
     const handlerCtx = buildHandlerContext(state, state.hostUid);
     const handlerResult = handleStartNight({ type: 'START_NIGHT' }, handlerCtx);
-    if (!handlerResult.success) return handlerResult;
+    if (handlerResult.kind === 'error') return handlerResult;
 
     const extraActions = extractAudioActions(handlerResult.sideEffects);
     if (extraActions.length > 0) {
-      return { ...handlerResult, actions: [...handlerResult.actions, ...extraActions] };
+      return handlerSuccess([...handlerResult.actions, ...extraActions], handlerResult.sideEffects);
     }
     return handlerResult;
   });

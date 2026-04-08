@@ -15,6 +15,7 @@ import {
   handleEndNight,
 } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
 import type { HandlerContext, HandlerResult } from '@werewolf/game-engine/engine/handlers/types';
+import { handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer';
@@ -241,17 +242,16 @@ export function createGame(
   };
 
   const executeHandler = (result: HandlerResult): { success: boolean; reason?: string } => {
-    if (!result.success) {
-      // Mirror production gameStateManager: apply actions even on failure
-      // (e.g. ACTION_REJECTED must be applied so gameState.actionRejected is set)
-      if (result.actions.length > 0) {
-        internal.state = normalizeState(applyActions(internal.state, result.actions));
-        internal.revision++;
-      }
+    if (result.kind === 'error') {
       return { success: false, reason: result.reason };
     }
+    // 'success' | 'rejection': apply actions (mirror production gameStateManager)
+    // (e.g. ACTION_REJECTED must be applied so gameState.actionRejected is set)
     internal.state = normalizeState(applyActions(internal.state, result.actions));
     internal.revision++;
+    if (result.kind === 'rejection') {
+      return { success: false, reason: result.reason };
+    }
     return { success: true };
   };
 
@@ -298,9 +298,9 @@ export function createGame(
   const endNight = (): { success: boolean; deaths: number[] } => {
     const context = createContext(internal.state);
     const result = handleEndNight({ type: 'END_NIGHT' }, context);
-    if (!result.success) {
+    if (result.kind !== 'success') {
       // FAIL-FAST: 如果是 night_not_complete，说明测试代码试图中途 endNight，这是架构违规
-      if (result.reason === 'night_not_complete') {
+      if (result.kind === 'error' && result.reason === 'night_not_complete') {
         throw new Error(
           `endNight() called before night plan completed. currentStepId=${internal.state.currentStepId}. ` +
             `You must advanceNight() through all steps first.`,
@@ -360,11 +360,10 @@ export function createGame(
         if (!internal.state.pendingRevealAcks || internal.state.pendingRevealAcks.length === 0) {
           return { success: false, reason: 'no_pending_acks' };
         }
-        const revealAckResult: HandlerResult = {
-          success: true,
-          actions: [{ type: 'CLEAR_REVEAL_ACKS' as const }],
-          sideEffects: [{ type: 'BROADCAST_STATE' as const }],
-        };
+        const revealAckResult: HandlerResult = handlerSuccess(
+          [{ type: 'CLEAR_REVEAL_ACKS' as const }],
+          [{ type: 'BROADCAST_STATE' as const }],
+        );
         return executeHandler(revealAckResult);
       }
 

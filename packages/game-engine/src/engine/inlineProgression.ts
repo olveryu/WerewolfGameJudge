@@ -191,7 +191,7 @@ export function runInlineProgression(
 
     if (decision === 'advance') {
       const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, ctx);
-      if (!result.success) {
+      if (result.kind === 'error') {
         log.warn('Inline advance failed', { reason: result.reason });
         break;
       }
@@ -210,7 +210,7 @@ export function runInlineProgression(
 
     if (decision === 'end_night') {
       const result = handleEndNight({ type: 'END_NIGHT' }, ctx);
-      if (!result.success) {
+      if (result.kind === 'error') {
         log.warn('Inline endNight failed', { reason: result.reason });
         break;
       }

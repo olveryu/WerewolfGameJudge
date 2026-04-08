@@ -13,6 +13,7 @@ import {
   validateActionPreconditions,
 } from '../actionGuards';
 import type { NonNullState } from '../types';
+import { expectError } from './handlerTestUtils';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -274,7 +275,8 @@ describe('validateActionPreconditions', () => {
     const result = validateActionPreconditions(null, 0, 'seer');
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.result.reason).toBe('no_state');
+      const err = expectError(result.result);
+      expect(err.reason).toBe('no_state');
     }
   });
 
@@ -283,7 +285,8 @@ describe('validateActionPreconditions', () => {
     const result = validateActionPreconditions(state, 0, 'seer');
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.result.reason).toBe('invalid_status');
+      const err = expectError(result.result);
+      expect(err.reason).toBe('invalid_status');
     }
   });
 
@@ -292,7 +295,8 @@ describe('validateActionPreconditions', () => {
     const result = validateActionPreconditions(state, 0, 'seer');
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.result.reason).toBe('forbidden_while_audio_playing');
+      const err = expectError(result.result);
+      expect(err.reason).toBe('forbidden_while_audio_playing');
     }
   });
 
@@ -301,7 +305,8 @@ describe('validateActionPreconditions', () => {
     const result = validateActionPreconditions(state, 0, 'seer');
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.result.reason).toBe('invalid_step');
+      const err = expectError(result.result);
+      expect(err.reason).toBe('invalid_step');
     }
   });
 
@@ -311,7 +316,8 @@ describe('validateActionPreconditions', () => {
     const result = validateActionPreconditions(state, 1, 'wolf');
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.result.reason).toBe('step_mismatch');
+      const err = expectError(result.result);
+      expect(err.reason).toBe('step_mismatch');
     }
   });
 
@@ -326,7 +332,8 @@ describe('validateActionPreconditions', () => {
     const result = validateActionPreconditions(state, 0, 'seer');
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.result.reason).toBe('not_seated');
+      const err = expectError(result.result);
+      expect(err.reason).toBe('not_seated');
     }
   });
 
@@ -336,7 +343,8 @@ describe('validateActionPreconditions', () => {
     const result = validateActionPreconditions(state, 0, 'witch' as any);
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.result.reason).toMatch(/mismatch/);
+      const err = expectError(result.result);
+      expect(err.reason).toMatch(/mismatch/);
     }
   });
 

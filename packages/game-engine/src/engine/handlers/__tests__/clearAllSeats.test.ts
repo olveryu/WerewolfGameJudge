@@ -8,6 +8,8 @@ import type { ClearAllSeatsIntent } from '@werewolf/game-engine/engine/intents/t
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
+import { expectError, expectSuccess } from './handlerTestUtils';
+
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
@@ -47,9 +49,9 @@ describe('handleClearAllSeats', () => {
   it('should succeed and emit PLAYER_LEAVE for all seated players', () => {
     const context = createContext(seatedState);
     const result = handleClearAllSeats(intent, context);
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(3);
-    expect(result.actions).toEqual(
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(3);
+    expect(success.actions).toEqual(
       expect.arrayContaining([
         { type: 'PLAYER_LEAVE', payload: { seat: 0 } },
         { type: 'PLAYER_LEAVE', payload: { seat: 1 } },
@@ -69,46 +71,47 @@ describe('handleClearAllSeats', () => {
     });
     const context = createContext(state);
     const result = handleClearAllSeats(intent, context);
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]).toEqual({ type: 'PLAYER_LEAVE', payload: { seat: 0 } });
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0]).toEqual({ type: 'PLAYER_LEAVE', payload: { seat: 0 } });
   });
 
   it('should succeed with 0 actions when no players seated', () => {
     const state = createMinimalState({ status: GameStatus.Unseated });
     const context = createContext(state);
     const result = handleClearAllSeats(intent, context);
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(0);
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(0);
   });
 
   it('should reject when state is null', () => {
     const context: HandlerContext = { state: null, myUid: 'host-1', mySeat: null };
     const result = handleClearAllSeats(intent, context);
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('no_state');
+    const err = expectError(result);
+    expect(err.reason).toBe('no_state');
   });
 
   it('should reject when status is assigned', () => {
     const state = createMinimalState({ status: GameStatus.Assigned });
     const context = createContext(state);
     const result = handleClearAllSeats(intent, context);
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('game_in_progress');
+    const err = expectError(result);
+    expect(err.reason).toBe('game_in_progress');
   });
 
   it('should reject when status is ongoing', () => {
     const state = createMinimalState({ status: GameStatus.Ongoing });
     const context = createContext(state);
     const result = handleClearAllSeats(intent, context);
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('game_in_progress');
+    const err = expectError(result);
+    expect(err.reason).toBe('game_in_progress');
   });
 
   it('should include BROADCAST_STATE and SAVE_STATE side effects', () => {
     const context = createContext(seatedState);
     const result = handleClearAllSeats(intent, context);
-    expect(result.sideEffects).toEqual(
+    const success = expectSuccess(result);
+    expect(success.sideEffects).toEqual(
       expect.arrayContaining([{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }]),
     );
   });

@@ -16,6 +16,8 @@ import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { Player } from '@werewolf/game-engine/protocol/types';
 
+import { expectError, expectSuccess } from './handlerTestUtils';
+
 // =============================================================================
 // Test Utilities
 // =============================================================================
@@ -79,11 +81,11 @@ describe('handleFillWithBots', () => {
 
       const result = handleFillWithBots({ type: 'FILL_WITH_BOTS' }, context);
 
-      expect(result.success).toBe(true);
-      expect(result.actions).toHaveLength(1);
-      expect(result.actions[0].type).toBe('FILL_WITH_BOTS');
+      const success = expectSuccess(result);
+      expect(success.actions).toHaveLength(1);
+      expect(success.actions[0].type).toBe('FILL_WITH_BOTS');
 
-      const action = result.actions[0] as {
+      const action = success.actions[0] as {
         type: 'FILL_WITH_BOTS';
         payload: { bots: Record<number, Player> };
       };
@@ -116,9 +118,9 @@ describe('handleFillWithBots', () => {
 
       const result = handleFillWithBots({ type: 'FILL_WITH_BOTS' }, context);
 
-      expect(result.success).toBe(true);
+      const success = expectSuccess(result);
 
-      const action = result.actions[0] as {
+      const action = success.actions[0] as {
         type: 'FILL_WITH_BOTS';
         payload: { bots: Record<number, Player> };
       };
@@ -140,16 +142,16 @@ describe('handleFillWithBots', () => {
       });
       const result = handleFillWithBots({ type: 'FILL_WITH_BOTS' }, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
+      const err = expectError(result);
+      expect(err.reason).toBe('invalid_status');
     });
 
     it('should reject when no state', () => {
       const context = createTestContext({ state: null });
       const result = handleFillWithBots({ type: 'FILL_WITH_BOTS' }, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('no_state');
+      const err = expectError(result);
+      expect(err.reason).toBe('no_state');
     });
   });
 });
@@ -182,9 +184,9 @@ describe('handleMarkAllBotsViewed', () => {
 
       const result = handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, context);
 
-      expect(result.success).toBe(true);
-      expect(result.actions).toHaveLength(1);
-      expect(result.actions[0].type).toBe('MARK_ALL_BOTS_VIEWED');
+      const success = expectSuccess(result);
+      expect(success.actions).toHaveLength(1);
+      expect(success.actions[0].type).toBe('MARK_ALL_BOTS_VIEWED');
     });
   });
 
@@ -203,8 +205,8 @@ describe('handleMarkAllBotsViewed', () => {
 
       const result = handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('debug_not_enabled');
+      const err = expectError(result);
+      expect(err.reason).toBe('debug_not_enabled');
     });
 
     it('should reject when status is not assigned', () => {
@@ -221,8 +223,8 @@ describe('handleMarkAllBotsViewed', () => {
 
       const result = handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
+      const err = expectError(result);
+      expect(err.reason).toBe('invalid_status');
     });
   });
 });

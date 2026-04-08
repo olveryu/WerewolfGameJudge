@@ -17,6 +17,7 @@ import { BLOCKED_UI_DEFAULTS, getStepSpec, NIGHT_STEPS } from '../../models/role
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput } from '../../resolvers/types';
 import type { HandlerResult, NonNullState } from './types';
+import { handlerError } from './types';
 
 /**
  * Check if the given step is a bottom card role's chosen card role's step.
@@ -72,7 +73,7 @@ export function validateActionPreconditions(
   if (!state) {
     return {
       valid: false,
-      result: { success: false, reason: 'no_state', actions: [] },
+      result: handlerError('no_state'),
     };
   }
 
@@ -80,7 +81,7 @@ export function validateActionPreconditions(
   if (state.status !== GameStatus.Ongoing) {
     return {
       valid: false,
-      result: { success: false, reason: 'invalid_status', actions: [] },
+      result: handlerError('invalid_status'),
     };
   }
 
@@ -88,7 +89,7 @@ export function validateActionPreconditions(
   if (state.isAudioPlaying) {
     return {
       valid: false,
-      result: { success: false, reason: 'forbidden_while_audio_playing', actions: [] },
+      result: handlerError('forbidden_while_audio_playing'),
     };
   }
 
@@ -97,7 +98,7 @@ export function validateActionPreconditions(
   if (!currentStepId) {
     return {
       valid: false,
-      result: { success: false, reason: 'invalid_step', actions: [] },
+      result: handlerError('invalid_step'),
     };
   }
 
@@ -105,7 +106,7 @@ export function validateActionPreconditions(
   if (!schema) {
     return {
       valid: false,
-      result: { success: false, reason: 'invalid_step', actions: [] },
+      result: handlerError('invalid_step'),
     };
   }
 
@@ -124,7 +125,7 @@ export function validateActionPreconditions(
   } else if (expectedSchemaId !== currentStepId) {
     return {
       valid: false,
-      result: { success: false, reason: 'step_mismatch', actions: [] },
+      result: handlerError('step_mismatch'),
     };
   }
 
@@ -133,7 +134,7 @@ export function validateActionPreconditions(
   if (!player) {
     return {
       valid: false,
-      result: { success: false, reason: 'not_seated', actions: [] },
+      result: handlerError('not_seated'),
     };
   }
 
@@ -141,7 +142,7 @@ export function validateActionPreconditions(
   if (player.role !== role) {
     return {
       valid: false,
-      result: { success: false, reason: 'role_mismatch', actions: [] },
+      result: handlerError('role_mismatch'),
     };
   }
 
@@ -149,7 +150,7 @@ export function validateActionPreconditions(
   if (!RESOLVERS[currentStepId]) {
     return {
       valid: false,
-      result: { success: false, reason: 'no_resolver', actions: [] },
+      result: handlerError('no_resolver'),
     };
   }
 

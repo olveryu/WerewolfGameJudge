@@ -20,6 +20,8 @@ import type {
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
+import { expectError, expectSuccess } from './handlerTestUtils';
+
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
@@ -64,10 +66,10 @@ describe('handleAssignRoles', () => {
 
     const result = handleAssignRoles(intent, context);
 
-    expect(result.success).toBe(true);
+    const success = expectSuccess(result);
     // PR1: 只产生 ASSIGN_ROLES，不产生 START_NIGHT
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('ASSIGN_ROLES');
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('ASSIGN_ROLES');
   });
 
   it('should assign all template roles', () => {
@@ -76,7 +78,8 @@ describe('handleAssignRoles', () => {
 
     const result = handleAssignRoles(intent, context);
 
-    const assignAction = result.actions.find((a) => a.type === 'ASSIGN_ROLES');
+    const success = expectSuccess(result);
+    const assignAction = success.actions.find((a) => a.type === 'ASSIGN_ROLES');
     expect(assignAction).toBeDefined();
     if (assignAction?.type === 'ASSIGN_ROLES') {
       const assignedRoles = Object.values(assignAction.payload.assignments);
@@ -92,8 +95,8 @@ describe('handleAssignRoles', () => {
 
     const result = handleAssignRoles(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 
   it('should fail when status is assigned (edge case)', () => {
@@ -110,8 +113,8 @@ describe('handleAssignRoles', () => {
 
     const result = handleAssignRoles(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 
   it('should fail when role count mismatches seat count', () => {
@@ -129,8 +132,8 @@ describe('handleAssignRoles', () => {
 
     const result = handleAssignRoles(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('role_count_mismatch');
+    const err = expectError(result);
+    expect(err.reason).toBe('role_count_mismatch');
   });
 
   it('should include side effects', () => {
@@ -139,8 +142,9 @@ describe('handleAssignRoles', () => {
 
     const result = handleAssignRoles(intent, context);
 
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    const success = expectSuccess(result);
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 });
 
@@ -164,9 +168,9 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('START_NIGHT');
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('START_NIGHT');
   });
 
   it('should set currentStepIndex to 0', () => {
@@ -175,7 +179,8 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
+    const success = expectSuccess(result);
+    const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
     if (startNightAction?.type === 'START_NIGHT') {
       expect(startNightAction.payload.currentStepIndex).toBe(0);
@@ -188,7 +193,8 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
+    const success = expectSuccess(result);
+    const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
     if (startNightAction?.type === 'START_NIGHT') {
       // 首步来自 buildNightPlan 表驱动单源，按模板角色过滤
@@ -213,19 +219,19 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    expect(result.success).toBe(true);
+    const success = expectSuccess(result);
 
     // 应该有 START_NIGHT + SET_WITCH_CONTEXT 两个 actions
-    expect(result.actions.length).toBe(2);
+    expect(success.actions.length).toBe(2);
 
-    const startNightAction = result.actions.find((a) => a.type === 'START_NIGHT');
+    const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
     if (startNightAction?.type === 'START_NIGHT') {
       // 首步应该是 witchAction（无狼，跳过 wolfKill）
       expect(startNightAction.payload.currentStepId).toBe('witchAction');
     }
 
-    const witchContextAction = result.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
+    const witchContextAction = success.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
     expect(witchContextAction).toBeDefined();
     if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
       // 无人死亡
@@ -247,8 +253,8 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('no_state');
+    const err = expectError(result);
+    expect(err.reason).toBe('no_state');
   });
 
   it('should fail when status is assigned (gate: invalid_status)', () => {
@@ -265,8 +271,8 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 
   it('should fail when status is ongoing (gate: invalid_status)', () => {
@@ -283,8 +289,8 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 
   it('should fail when status is ended (gate: invalid_status)', () => {
@@ -294,8 +300,8 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 
   it('should include side effects', () => {
@@ -304,8 +310,9 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    const success = expectSuccess(result);
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
   it('should skip night and return END_NIGHT with empty deaths for all-villager template', () => {
@@ -323,14 +330,14 @@ describe('handleStartNight', () => {
 
     const result = handleStartNight(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('END_NIGHT');
-    if (result.actions[0].type === 'END_NIGHT') {
-      expect(result.actions[0].payload.deaths).toEqual([]);
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('END_NIGHT');
+    if (success.actions[0].type === 'END_NIGHT') {
+      expect(success.actions[0].payload.deaths).toEqual([]);
     }
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 });
 
@@ -342,9 +349,9 @@ describe('handleRestartGame', () => {
 
     const result = handleRestartGame(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('RESTART_GAME');
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('RESTART_GAME');
   });
 
   it('should include side effects', () => {
@@ -354,8 +361,9 @@ describe('handleRestartGame', () => {
 
     const result = handleRestartGame(intent, context);
 
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    const success = expectSuccess(result);
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 });
 
@@ -375,11 +383,11 @@ describe('handleUpdateTemplate', () => {
 
     const result = handleUpdateTemplate(updateIntent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('UPDATE_TEMPLATE');
-    expect(result.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(result.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('UPDATE_TEMPLATE');
+    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
   it('should succeed when status is seated', () => {
@@ -395,9 +403,9 @@ describe('handleUpdateTemplate', () => {
 
     const result = handleUpdateTemplate(updateIntent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('UPDATE_TEMPLATE');
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('UPDATE_TEMPLATE');
   });
 
   it('should fail when state is null (gate: no_state)', () => {
@@ -409,8 +417,8 @@ describe('handleUpdateTemplate', () => {
 
     const result = handleUpdateTemplate(updateIntent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('no_state');
+    const err = expectError(result);
+    expect(err.reason).toBe('no_state');
   });
 
   it.each([GameStatus.Assigned, GameStatus.Ready, GameStatus.Ongoing, GameStatus.Ended] as const)(
@@ -421,9 +429,8 @@ describe('handleUpdateTemplate', () => {
 
       const result = handleUpdateTemplate(updateIntent, context);
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('只能在\u201c分配角色\u201d前修改设置');
-      expect(result.actions).toHaveLength(0);
+      const err = expectError(result);
+      expect(err.reason).toContain('只能在"分配角色"前修改设置');
     },
   );
 });
@@ -451,9 +458,9 @@ describe('handleShareNightReview', () => {
     const context = createContext(endedState);
     const result = handleShareNightReview(intent, context);
 
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0]).toEqual({
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0]).toEqual({
       type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS',
       allowedSeats: [0, 2],
     });
@@ -470,8 +477,8 @@ describe('handleShareNightReview', () => {
     const context = createContext(state);
     const result = handleShareNightReview(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 
   it('should accept empty allowedSeats (revoke all)', () => {
@@ -481,8 +488,8 @@ describe('handleShareNightReview', () => {
       context,
     );
 
-    expect(result.success).toBe(true);
-    expect(result.actions[0]).toEqual({
+    const success = expectSuccess(result);
+    expect(success.actions[0]).toEqual({
       type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS',
       allowedSeats: [],
     });

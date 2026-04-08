@@ -9,6 +9,7 @@ import type { ViewedRoleIntent } from '../../intents/types';
 import type { GameState } from '../../store/types';
 import type { HandlerContext } from '../types';
 import { handleViewedRole } from '../viewedRoleHandler';
+import { expectError, expectSuccess } from './handlerTestUtils';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -50,33 +51,33 @@ function intent(seat: number): ViewedRoleIntent {
 describe('handleViewedRole', () => {
   it('should reject when state is null', () => {
     const result = handleViewedRole(intent(0), createContext(null));
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('no_state');
+    const err = expectError(result);
+    expect(err.reason).toBe('no_state');
   });
 
   it('should reject when non-host tries to mark another seat', () => {
     const state = createMinimalState();
     const ctx = createContext(state, { myUid: 'p1', mySeat: 1 });
     const result = handleViewedRole(intent(0), ctx);
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('not_my_seat');
+    const err = expectError(result);
+    expect(err.reason).toBe('not_my_seat');
   });
 
   it('should allow host to mark any seat (bot control)', () => {
     const state = createMinimalState();
     const ctx = createContext(state, { myUid: 'host-1', mySeat: 0 });
     const result = handleViewedRole(intent(1), ctx);
-    expect(result.success).toBe(true);
-    expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
   });
 
   it('should allow player to mark their own seat', () => {
     const state = createMinimalState();
     const ctx = createContext(state, { myUid: 'p0', mySeat: 0 });
     const result = handleViewedRole(intent(0), ctx);
-    expect(result.success).toBe(true);
-    expect(result.actions[0]).toEqual({
+    const success = expectSuccess(result);
+    expect(success.actions[0]).toEqual({
       type: 'PLAYER_VIEWED_ROLE',
       payload: { seat: 0 },
     });
@@ -85,8 +86,8 @@ describe('handleViewedRole', () => {
   it('should reject when status is not Assigned', () => {
     const state = createMinimalState({ status: GameStatus.Ongoing });
     const result = handleViewedRole(intent(0), createContext(state));
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 
   it('should reject when seat has no player', () => {
@@ -95,17 +96,17 @@ describe('handleViewedRole', () => {
     });
     const ctx = createContext(state, { myUid: 'host-1', mySeat: 0 });
     const result = handleViewedRole(intent(0), ctx);
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('not_seated');
+    const err = expectError(result);
+    expect(err.reason).toBe('not_seated');
   });
 
   it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
     const state = createMinimalState();
     const ctx = createContext(state, { myUid: 'p0', mySeat: 0 });
     const result = handleViewedRole(intent(0), ctx);
-    expect(result.success).toBe(true);
-    expect(result.sideEffects).toBeDefined();
-    const types = result.sideEffects!.map((se) => se.type);
+    const success = expectSuccess(result);
+    expect(success.sideEffects).toBeDefined();
+    const types = success.sideEffects!.map((se) => se.type);
     expect(types).toContain('BROADCAST_STATE');
     expect(types).toContain('SAVE_STATE');
   });

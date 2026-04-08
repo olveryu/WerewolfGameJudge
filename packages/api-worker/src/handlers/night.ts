@@ -9,6 +9,7 @@ import {
   handleEndNight,
   handleSetAudioPlaying,
 } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
+import { handlerError, handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
 import type {
   EndNightIntent,
@@ -77,15 +78,12 @@ export const handleAudioAck: HandlerFn = async (req, env, ctx) => {
         !state.isAudioPlaying &&
         (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0)
       ) {
-        return { success: true, actions: [] };
+        return handlerSuccess([]);
       }
-      return {
-        success: true,
-        actions: [
-          { type: 'CLEAR_PENDING_AUDIO_EFFECTS' as const },
-          { type: 'SET_AUDIO_PLAYING' as const, payload: { isPlaying: false } },
-        ],
-      };
+      return handlerSuccess([
+        { type: 'CLEAR_PENDING_AUDIO_EFFECTS' as const },
+        { type: 'SET_AUDIO_PLAYING' as const, payload: { isPlaying: false } },
+      ]);
     },
     { enabled: true },
   );
@@ -119,11 +117,11 @@ export const handleEnd: HandlerFn = async (req, env, ctx) => {
     const handlerCtx = buildHandlerContext(state, state.hostUid);
     const intent: EndNightIntent = { type: 'END_NIGHT' };
     const handlerResult = handleEndNight(intent, handlerCtx);
-    if (!handlerResult.success) return handlerResult;
+    if (handlerResult.kind === 'error') return handlerResult;
 
     const extraActions = extractAudioActions(handlerResult.sideEffects);
     if (extraActions.length > 0) {
-      return { ...handlerResult, actions: [...handlerResult.actions, ...extraActions] };
+      return handlerSuccess([...handlerResult.actions, ...extraActions], handlerResult.sideEffects);
     }
     return handlerResult;
   });
@@ -141,9 +139,9 @@ export const handleProgression: HandlerFn = async (req, env, ctx) => {
     roomCode,
     (state) => {
       if (state.status !== GameStatus.Ongoing) {
-        return { success: false, reason: 'not_ongoing', actions: [] };
+        return handlerError('not_ongoing');
       }
-      return { success: true, actions: [] };
+      return handlerSuccess([]);
     },
     { enabled: true },
   );
@@ -161,13 +159,12 @@ export const handleRevealAck: HandlerFn = async (req, env, ctx) => {
     roomCode,
     (state) => {
       if (!state.pendingRevealAcks || state.pendingRevealAcks.length === 0) {
-        return { success: false, reason: 'no_pending_acks', actions: [] };
+        return handlerError('no_pending_acks');
       }
-      return {
-        success: true,
-        actions: [{ type: 'CLEAR_REVEAL_ACKS' as const }],
-        sideEffects: [{ type: 'BROADCAST_STATE' as const }],
-      };
+      return handlerSuccess(
+        [{ type: 'CLEAR_REVEAL_ACKS' as const }],
+        [{ type: 'BROADCAST_STATE' as const }],
+      );
     },
     { enabled: true },
   );
@@ -206,18 +203,18 @@ export const handleGroupConfirmAck: HandlerFn = async (req, env, ctx) => {
     roomCode,
     (state: GameState) => {
       if (state.status !== GameStatus.Ongoing) {
-        return { success: false, reason: 'not_ongoing', actions: [] };
+        return handlerError('not_ongoing');
       }
       const stepId = state.currentStepId;
-      if (!stepId) return { success: false, reason: 'no_current_step', actions: [] };
+      if (!stepId) return handlerError('no_current_step');
       const schema = SCHEMAS[stepId as SchemaId];
       if (!schema || schema.kind !== 'groupConfirm') {
-        return { success: false, reason: 'not_group_confirm_step', actions: [] };
+        return handlerError('not_group_confirm_step');
       }
       const player = state.players[seat];
-      if (!player) return { success: false, reason: 'no_player_at_seat', actions: [] };
+      if (!player) return handlerError('no_player_at_seat');
       if (player.uid !== uid && uid !== state.hostUid) {
-        return { success: false, reason: 'uid_mismatch', actions: [] };
+        return handlerError('uid_mismatch');
       }
 
       const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
@@ -227,7 +224,7 @@ export const handleGroupConfirmAck: HandlerFn = async (req, env, ctx) => {
         : isCupidLoversReveal
           ? (state.cupidLoversRevealAcks ?? [])
           : (state.piperRevealAcks ?? []);
-      if (acks.includes(seat)) return { success: true, actions: [] };
+      if (acks.includes(seat)) return handlerSuccess([]);
 
       const actions: StateAction[] = isConversionReveal
         ? [{ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat } }]
@@ -235,7 +232,7 @@ export const handleGroupConfirmAck: HandlerFn = async (req, env, ctx) => {
           ? [{ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } }]
           : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } }];
 
-      return { success: true, actions };
+      return handlerSuccess(actions);
     },
     { enabled: true },
   );
@@ -253,16 +250,16 @@ export const handleMarkBotsGroupConfirmed: HandlerFn = async (req, env, ctx) => 
     roomCode,
     (state: GameState) => {
       if (!state.debugMode?.botsEnabled) {
-        return { success: false, reason: 'debug_not_enabled', actions: [] };
+        return handlerError('debug_not_enabled');
       }
       if (state.status !== GameStatus.Ongoing) {
-        return { success: false, reason: 'not_ongoing', actions: [] };
+        return handlerError('not_ongoing');
       }
       const stepId = state.currentStepId;
-      if (!stepId) return { success: false, reason: 'no_current_step', actions: [] };
+      if (!stepId) return handlerError('no_current_step');
       const schema = SCHEMAS[stepId as SchemaId];
       if (!schema || schema.kind !== 'groupConfirm') {
-        return { success: false, reason: 'not_group_confirm_step', actions: [] };
+        return handlerError('not_group_confirm_step');
       }
 
       const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
@@ -288,7 +285,7 @@ export const handleMarkBotsGroupConfirmed: HandlerFn = async (req, env, ctx) => 
         }
       }
 
-      return { success: true, actions };
+      return handlerSuccess(actions);
     },
     { enabled: true },
   );

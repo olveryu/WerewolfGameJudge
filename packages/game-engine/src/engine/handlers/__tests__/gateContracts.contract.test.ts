@@ -23,6 +23,8 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
+import { expectError, expectRejection, expectSuccess } from './handlerTestUtils';
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -146,10 +148,10 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe(BLOCKED_UI_DEFAULTS.message);
+    const rej = expectRejection(result);
+    expect(rej.reason).toBe(BLOCKED_UI_DEFAULTS.message);
     // Must produce ACTION_REJECTED action for UI broadcast
-    const rejectedAction = result.actions.find((a) => a.type === 'ACTION_REJECTED');
+    const rejectedAction = rej.actions.find((a) => a.type === 'ACTION_REJECTED');
     expect(rejectedAction).toBeTruthy();
     expect((rejectedAction as any).payload.reason).toBe(BLOCKED_UI_DEFAULTS.message);
   });
@@ -174,9 +176,9 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(true);
+    const success = expectSuccess(result);
     // Must produce RECORD_ACTION so progression can advance
-    expect(result.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
+    expect(success.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
   });
 });
 
@@ -209,9 +211,9 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
+    const err = expectError(result);
     // Must be audio gate, NOT step_mismatch
-    expect(result.reason).toBe('forbidden_while_audio_playing');
+    expect(err.reason).toBe('forbidden_while_audio_playing');
   });
 
   it('forbidden_while_audio_playing beats not_seated (submitAction)', () => {
@@ -231,8 +233,8 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('forbidden_while_audio_playing');
+    const err = expectError(result);
+    expect(err.reason).toBe('forbidden_while_audio_playing');
   });
 
   it('forbidden_while_audio_playing beats role_mismatch (submitAction)', () => {
@@ -251,8 +253,8 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('forbidden_while_audio_playing');
+    const err = expectError(result);
+    expect(err.reason).toBe('forbidden_while_audio_playing');
   });
 
   it('forbidden_while_audio_playing beats nightmare block (submitAction)', () => {
@@ -272,9 +274,9 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
+    const err = expectError(result);
     // Audio gate must fire BEFORE nightmare block guard
-    expect(result.reason).toBe('forbidden_while_audio_playing');
+    expect(err.reason).toBe('forbidden_while_audio_playing');
   });
 
   it('forbidden_while_audio_playing beats wolf-specific gates (submitAction wolfKill step)', () => {
@@ -293,9 +295,9 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
+    const err = expectError(result);
     // Audio gate must fire before role_mismatch
-    expect(result.reason).toBe('forbidden_while_audio_playing');
+    expect(err.reason).toBe('forbidden_while_audio_playing');
   });
 });
 
@@ -328,8 +330,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     };
 
     const result1 = handleSubmitAction(intent, context1);
-    expect(result1.success).toBe(true);
-
+    expectSuccess(result1);
     // After progression: currentStepId has changed to next step
     const state2 = createMinimalState({
       currentStepId: 'witchAction' as SchemaId, // advanced past seerCheck
@@ -343,8 +344,8 @@ describe('Gate Contract: duplicate submit idempotency', () => {
 
     // Second submit for seer (same role, but step has advanced)
     const result2 = handleSubmitAction(intent, context2);
-    expect(result2.success).toBe(false);
-    expect(result2.reason).toBe('step_mismatch');
+    const err = expectError(result2);
+    expect(err.reason).toBe('step_mismatch');
   });
 
   it('same-step re-submit (pre-progression) → resolver processes again (no handler-level dedup)', () => {
@@ -366,16 +367,18 @@ describe('Gate Contract: duplicate submit idempotency', () => {
 
     // First submit
     const result1 = handleSubmitAction(intent, context);
-    expect(result1.success).toBe(true);
+    expectSuccess(result1);
 
     // Same-step re-submit (progression hasn't happened yet)
     // Handler has no already_acted gate; resolver processes again
     const result2 = handleSubmitAction(intent, context);
-    expect(result2.success).toBe(true);
+    expectSuccess(result2);
 
     // Both produce RECORD_ACTION (idempotent at resolver level)
-    expect(result1.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
-    expect(result2.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
+    const success1 = expectSuccess(result1);
+    const success2 = expectSuccess(result2);
+    expect(success1.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
+    expect(success2.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
   });
 
   it('wolf vote after step advances → step_mismatch', () => {
@@ -394,8 +397,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     };
 
     const result1 = handleSubmitAction(intent1, context1);
-    expect(result1.success).toBe(true);
-
+    expectSuccess(result1);
     // After progression: step advanced to seerCheck
     const state2 = createMinimalState({
       currentStepId: 'seerCheck' as SchemaId,
@@ -409,8 +411,8 @@ describe('Gate Contract: duplicate submit idempotency', () => {
 
     // Second wolf vote (step has advanced past wolfKill)
     const result2 = handleSubmitAction(intent1, context2);
-    expect(result2.success).toBe(false);
-    expect(result2.reason).toBe('step_mismatch');
+    const wolfErr = expectError(result2);
+    expect(wolfErr.reason).toBe('step_mismatch');
   });
 
   /**
@@ -430,8 +432,8 @@ describe('Gate Contract: duplicate submit idempotency', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('invalid_status');
+    const err = expectError(result);
+    expect(err.reason).toBe('invalid_status');
   });
 });
 
@@ -489,7 +491,8 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
     };
 
     const result = handleSubmitAction(intent, context);
-    expect(result.reason).toBe('no_state');
+    const err1 = expectError(result);
+    expect(err1.reason).toBe('no_state');
   });
 
   it('invalid_status fires before forbidden_while_audio_playing', () => {
@@ -504,7 +507,8 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
     };
 
     const result = handleSubmitAction(intent, context);
-    expect(result.reason).toBe('invalid_status');
+    const err2 = expectError(result);
+    expect(err2.reason).toBe('invalid_status');
   });
 
   it('forbidden_while_audio_playing fires before invalid_step', () => {
@@ -519,7 +523,8 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
     };
 
     const result = handleSubmitAction(intent, context);
-    expect(result.reason).toBe('forbidden_while_audio_playing');
+    const err3 = expectError(result);
+    expect(err3.reason).toBe('forbidden_while_audio_playing');
   });
 
   it('invalid_step fires before not_seated', () => {
@@ -534,6 +539,7 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
     };
 
     const result = handleSubmitAction(intent, context);
-    expect(result.reason).toBe('invalid_step');
+    const err4 = expectError(result);
+    expect(err4.reason).toBe('invalid_step');
   });
 });
