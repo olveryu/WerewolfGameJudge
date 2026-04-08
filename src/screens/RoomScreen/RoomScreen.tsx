@@ -113,20 +113,20 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const handleAvatarPress = useCallback(() => {
-    navigation.navigate('Settings');
-  }, [navigation]);
+    navigation.navigate('Settings', { roomNumber: route.params.roomNumber });
+  }, [navigation, route.params.roomNumber]);
 
   const handleEncyclopedia = useCallback(() => {
-    navigation.navigate('Encyclopedia');
-  }, [navigation]);
+    navigation.navigate('Encyclopedia', { roomNumber: route.params.roomNumber });
+  }, [navigation, route.params.roomNumber]);
 
   const handleAnimationSettings = useCallback(() => {
-    navigation.navigate('AnimationSettings');
-  }, [navigation]);
+    navigation.navigate('AnimationSettings', { roomNumber: route.params.roomNumber });
+  }, [navigation, route.params.roomNumber]);
 
   const handleMusicSettings = useCallback(() => {
-    navigation.navigate('MusicSettings');
-  }, [navigation]);
+    navigation.navigate('MusicSettings', { roomNumber: route.params.roomNumber });
+  }, [navigation, route.params.roomNumber]);
 
   const {
     // Route params

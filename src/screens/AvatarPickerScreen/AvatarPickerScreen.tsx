@@ -210,33 +210,36 @@ export const AvatarPickerScreen: React.FC = () => {
   const handleConfirm = useCallback(async () => {
     setSaving(true);
     try {
-      // Save avatar selection
+      // Resolve new avatar URL (if changed)
+      let newAvatarUrl: string | undefined;
       if (selected === 'custom') {
-        if (user?.customAvatarUrl) {
-          await updateProfile({ avatarUrl: user.customAvatarUrl });
-          facade
-            .updatePlayerProfile(undefined, user.customAvatarUrl)
-            .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
-        }
+        newAvatarUrl = user?.customAvatarUrl ?? undefined;
       } else if (selected !== null) {
-        const builtinUrl = makeBuiltinAvatarUrl(selected);
-        await updateProfile({ avatarUrl: builtinUrl });
-        facade
-          .updatePlayerProfile(undefined, builtinUrl)
-          .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
+        newAvatarUrl = makeBuiltinAvatarUrl(selected);
       }
 
-      // Save frame selection (independent of avatar)
+      // Resolve new frame (if changed)
+      let newFrame: string | undefined;
       if (selectedFrame === 'none') {
-        await updateProfile({ avatarFrame: '' });
-        facade
-          .updatePlayerProfile(undefined, undefined, '')
-          .catch((err: unknown) => settingsLog.warn('Frame sync to GameState failed:', err));
+        newFrame = '';
       } else if (selectedFrame !== null) {
-        await updateProfile({ avatarFrame: selectedFrame });
-        facade
-          .updatePlayerProfile(undefined, undefined, selectedFrame)
-          .catch((err: unknown) => settingsLog.warn('Frame sync to GameState failed:', err));
+        newFrame = selectedFrame;
+      }
+
+      // Persist to auth profile
+      const profilePatch: Record<string, string> = {};
+      if (newAvatarUrl !== undefined) profilePatch.avatarUrl = newAvatarUrl;
+      if (newFrame !== undefined) profilePatch.avatarFrame = newFrame;
+      if (Object.keys(profilePatch).length > 0) {
+        await updateProfile(profilePatch);
+      }
+
+      // Single awaited call to sync both fields to GameState
+      if (newAvatarUrl !== undefined || newFrame !== undefined) {
+        const result = await facade.updatePlayerProfile(undefined, newAvatarUrl, newFrame);
+        if (!result.success) {
+          settingsLog.warn('Avatar/frame sync to GameState failed:', result.reason);
+        }
       }
 
       showAlert('形象已更新');

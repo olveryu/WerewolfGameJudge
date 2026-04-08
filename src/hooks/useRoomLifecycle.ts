@@ -259,11 +259,13 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       try {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
+        const avatarFrame = await authService.getCurrentAvatarFrame();
 
         const result = await facade.takeSeatWithAck(
           seatNumber,
           displayName ?? undefined,
           avatarUrl ?? undefined,
+          avatarFrame ?? undefined,
         );
 
         // Wire up seat error for downstream consumers (e.g., showAlert in useRoomScreenState)

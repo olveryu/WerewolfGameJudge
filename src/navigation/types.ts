@@ -18,10 +18,10 @@ export type RootStackParamList = {
     template?: GameTemplate;
     roleRevealAnimation?: RoleRevealAnimation;
   };
-  Settings: undefined;
-  AnimationSettings: undefined;
-  MusicSettings: undefined;
-  Encyclopedia: undefined;
+  Settings: { roomNumber?: string } | undefined;
+  AnimationSettings: { roomNumber?: string } | undefined;
+  MusicSettings: { roomNumber?: string } | undefined;
+  Encyclopedia: { roomNumber?: string } | undefined;
   Notepad: { roomNumber: string };
   AvatarPicker: undefined;
   // Auth modal screens

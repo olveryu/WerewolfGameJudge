@@ -78,10 +78,10 @@ export const linking: LinkingOptions<RootStackParamList> = {
           isHost: (isHost: boolean) => (isHost ? 'true' : 'false'),
         },
       },
-      Settings: 'settings',
-      AnimationSettings: 'settings/animation',
-      MusicSettings: 'settings/music',
-      Encyclopedia: 'encyclopedia',
+      Settings: 'settings/:roomNumber?',
+      AnimationSettings: 'settings/animation/:roomNumber?',
+      MusicSettings: 'settings/music/:roomNumber?',
+      Encyclopedia: 'encyclopedia/:roomNumber?',
       Notepad: 'notepad/:roomNumber',
       AvatarPicker: 'avatar-picker',
       AuthLogin: 'auth/login',
@@ -102,8 +102,16 @@ export const linking: LinkingOptions<RootStackParamList> = {
     // Ensure Home is always at the bottom of the stack for deep-linked screens.
     // Without this, goBack()/cancel on directly-opened URLs would have nowhere to go.
     if (topRoute && topRoute.name !== 'Home' && routes.length === 1) {
-      // Notepad requires Room underneath; inject Home + Room
-      if (topRoute.name === 'Notepad') {
+      // Screens that can be opened from Room: inject Home + Room when roomNumber is present.
+      // Without roomNumber, they were opened from Home — just inject Home as base.
+      const ROOM_CHILD_SCREENS = new Set([
+        'Notepad',
+        'AnimationSettings',
+        'MusicSettings',
+        'Settings',
+        'Encyclopedia',
+      ]);
+      if (ROOM_CHILD_SCREENS.has(topRoute.name)) {
         const roomNumber = (topRoute.params as { roomNumber?: string })?.roomNumber;
         if (roomNumber) {
           return {
