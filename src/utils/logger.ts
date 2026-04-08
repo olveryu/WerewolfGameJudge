@@ -93,6 +93,7 @@ export function mapAuthError(message: string): string {
   if (lower.includes('email rate limit exceeded')) return '操作过于频繁，请稍后重试';
   if (lower.includes('only request this once every')) return '请求过于频繁，请稍等后重试';
   if (lower.includes('too many reset requests')) return '重置请求过于频繁，请稍后重试';
+  if (lower.includes('too many login attempts')) return '登录尝试过于频繁，请稍后重试';
   if (lower.includes('email already registered')) return '该邮箱已注册';
   if (lower.includes('email and password required')) return '请输入邮箱和密码';
   if (lower.includes('email required')) return '请输入邮箱';
@@ -131,6 +132,7 @@ export function isExpectedAuthError(message: string): boolean {
     lower.includes('only request this once every') ||
     lower.includes('signups not allowed') ||
     lower.includes('too many reset requests') ||
+    lower.includes('too many login attempts') ||
     lower.includes('email already registered') ||
     lower.includes('email and password required') ||
     lower.includes('email required') ||

@@ -117,7 +117,8 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const updateTemplate = useCallback(
     async (template: GameTemplate): Promise<void> => {
       if (!facade.isHostPlayer()) return;
-      await facade.updateTemplate(template);
+      const result = await facade.updateTemplate(template);
+      handleMutationResult(result, '更新模板', toastError);
     },
     [facade],
   );

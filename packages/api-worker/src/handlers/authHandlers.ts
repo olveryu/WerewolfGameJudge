@@ -136,6 +136,12 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/signin — 邮箱密码登录
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Max failed login attempts per email within the rate limit window */
+const SIGN_IN_MAX_ATTEMPTS = 10;
+/** Rate limit window in minutes */
+const SIGN_IN_WINDOW_MINUTES = 15;
+
 export async function handleSignIn(request: Request, env: Env): Promise<Response> {
   const body = (await request.json()) as {
     email?: string;
@@ -147,6 +153,19 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
   }
 
   const email = body.email.toLowerCase().trim();
+  const emailHash = await sha256(email);
+
+  // Rate limit check BEFORE password verification to limit brute-force
+  const recentAttempts = await env.DB.prepare(
+    `SELECT COUNT(*) as count FROM login_attempts
+     WHERE email_hash = ? AND attempted_at > datetime('now', ? || ' minutes')`,
+  )
+    .bind(emailHash, `-${SIGN_IN_WINDOW_MINUTES}`)
+    .first<{ count: number }>();
+
+  if (recentAttempts && recentAttempts.count >= SIGN_IN_MAX_ATTEMPTS) {
+    return jsonResponse({ error: 'too many login attempts, try again later' }, 429, env);
+  }
 
   const user = await env.DB.prepare(
     'SELECT id, password_hash, display_name, avatar_url, custom_avatar_url, avatar_frame FROM users WHERE email = ?',
@@ -162,13 +181,18 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
     }>();
 
   if (!user || !user.password_hash) {
+    await recordFailedLogin(env, emailHash);
     return jsonResponse({ error: 'invalid credentials' }, 401, env);
   }
 
   const result = await verifyPassword(body.password, user.password_hash);
   if (!result.valid) {
+    await recordFailedLogin(env, emailHash);
     return jsonResponse({ error: 'invalid credentials' }, 401, env);
   }
+
+  // Successful login — clear failed attempts for this email
+  await env.DB.prepare('DELETE FROM login_attempts WHERE email_hash = ?').bind(emailHash).run();
 
   // Lazy migration: bcrypt → PBKDF2 rehash on first successful login
   if (result.needsRehash && result.newHash) {
@@ -386,6 +410,10 @@ async function sha256(input: string): Promise<string> {
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
+}
+
+async function recordFailedLogin(env: Env, emailHash: string): Promise<void> {
+  await env.DB.prepare('INSERT INTO login_attempts (email_hash) VALUES (?)').bind(emailHash).run();
 }
 
 /** Fetch the stored token_hash for a given token id (used after attempt-count check). */

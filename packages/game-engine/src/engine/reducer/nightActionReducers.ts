@@ -199,6 +199,7 @@ export function handleSetWolfKillOverride(
     currentNightResults: {
       ...state.currentNightResults,
       wolfKillOverride: override,
+      blockedSeat,
     },
   };
 }

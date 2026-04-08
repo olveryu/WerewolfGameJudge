@@ -1139,6 +1139,7 @@ describe('gameReducer', () => {
       expect(newState.wolfKillOverride).toBeDefined();
       expect(newState.wolfKillOverride?.source).toBe('nightmare');
       expect(newState.nightmareBlockedSeat).toBe(3);
+      expect(newState.currentNightResults?.blockedSeat).toBe(3);
     });
 
     it('should clear wolfKillOverride and nightmareBlockedSeat when override is undefined', () => {

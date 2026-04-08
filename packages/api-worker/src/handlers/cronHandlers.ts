@@ -44,11 +44,22 @@ async function cleanupAnonymousUsers(env: Env): Promise<{ deleted: number }> {
   return { deleted };
 }
 
+async function cleanupOldLoginAttempts(env: Env): Promise<{ deleted: number }> {
+  const result = await env.DB.prepare(
+    `DELETE FROM login_attempts WHERE attempted_at < datetime('now', '-1 hour')`,
+  ).run();
+
+  const deleted = result.meta.changes ?? 0;
+  console.log(`[cron] cleanupOldLoginAttempts: deleted ${deleted} rows`);
+  return { deleted };
+}
+
 /** Run all scheduled cleanup tasks. */
 export async function runScheduledCleanup(env: Env): Promise<void> {
   const rooms = await cleanupStaleRooms(env);
   const users = await cleanupAnonymousUsers(env);
+  const logins = await cleanupOldLoginAttempts(env);
   console.log(
-    `[cron] cleanup complete — rooms: ${rooms.deleted}, anonymousUsers: ${users.deleted}`,
+    `[cron] cleanup complete — rooms: ${rooms.deleted}, anonymousUsers: ${users.deleted}, loginAttempts: ${logins.deleted}`,
   );
 }

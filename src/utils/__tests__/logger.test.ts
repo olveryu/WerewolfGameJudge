@@ -59,6 +59,12 @@ describe('mapAuthError', () => {
     );
   });
 
+  it('maps CF API "too many login attempts"', () => {
+    expect(mapAuthError('too many login attempts, try again later')).toBe(
+      '登录尝试过于频繁，请稍后重试',
+    );
+  });
+
   it('maps CF API "email already registered"', () => {
     expect(mapAuthError('email already registered')).toBe('该邮箱已注册');
   });
