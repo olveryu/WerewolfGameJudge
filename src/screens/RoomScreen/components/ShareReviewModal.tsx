@@ -5,6 +5,7 @@
  * 纯展示组件：渲染多选座位列表 + 确认/取消按钮，通过回调上报选择结果。
  * 不 import service，不含业务逻辑。
  */
+import { Ionicons } from '@expo/vector-icons';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -122,7 +123,13 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
               activeOpacity={fixed.activeOpacity}
             >
               <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                {isSelected && (
+                  <Ionicons
+                    name="checkmark"
+                    size={typography.secondary}
+                    color={colors.textInverse}
+                  />
+                )}
               </View>
               <Text style={styles.seatLabel}>
                 {formatSeat(seat)} {displayName}

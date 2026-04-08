@@ -496,8 +496,11 @@ export const SettingsScreen: React.FC = () => {
           textColor={colors.textSecondary}
           onPress={handleResetGuides}
           style={styles.logoutBtn}
+          icon={
+            <Ionicons name="refresh-outline" size={typography.body} color={colors.textSecondary} />
+          }
         >
-          🔄 重置新手引导
+          重置新手引导
         </Button>
 
         <View style={styles.bottomSpacer} />

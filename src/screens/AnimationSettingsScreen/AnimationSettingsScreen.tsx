@@ -25,7 +25,7 @@ import { ANIMATION_OPTIONS } from '@/components/SettingsSheet/animationOptions';
 import { SettingsOptionGroup } from '@/components/SettingsSheet/SettingsOptionGroup';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
-import { componentSizes, useColors } from '@/theme';
+import { componentSizes, typography, useColors } from '@/theme';
 
 import { createAnimationSettingsStyles } from './styles';
 
@@ -140,8 +140,9 @@ export const AnimationSettingsScreen: React.FC = () => {
             textColor={colors.primary}
             onPress={handlePreview}
             style={styles.previewButton}
+            icon={<Ionicons name="play" size={typography.body} color={colors.primary} />}
           >
-            ▶ 预览当前效果
+            预览当前效果
           </Button>
         </View>
       )}

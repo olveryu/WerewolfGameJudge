@@ -4,6 +4,7 @@
  * 所有揭示效果共用的底部文字 UI：当 autoTimeoutWarning 激活时替换 hintText。
  * 不 import service，不含业务逻辑。
  */
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { type StyleProp, StyleSheet, Text, type TextStyle, View } from 'react-native';
 
@@ -29,7 +30,9 @@ export const HintWithWarning: React.FC<HintWithWarningProps> = ({
   if (showWarning) {
     return (
       <View style={styles.container} pointerEvents="none">
-        <Text style={styles.warningText}>⏳ 即将自动揭晓…</Text>
+        <Text style={styles.warningText}>
+          <Ionicons name="hourglass-outline" size={18} color={WARNING_COLOR} /> 即将自动揭晓…
+        </Text>
       </View>
     );
   }

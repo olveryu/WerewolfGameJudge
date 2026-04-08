@@ -77,7 +77,7 @@ export const NotepadScreen: React.FC = () => {
     showConfirmAlert('AI 分析', '将笔记发送给 AI 进行局势分析？', () => {
       requestAIChatMessage({
         fullText: summary,
-        displayText: '📝 分析我的笔记',
+        displayText: '分析我的笔记',
         maxTokens: 1024,
       });
     });
@@ -176,7 +176,7 @@ export const NotepadScreen: React.FC = () => {
             style={styles.headerBtn}
             activeOpacity={fixed.activeOpacity}
           >
-            <Text style={styles.headerBtnText}>✕</Text>
+            <Ionicons name="close" size={typography.body} style={styles.headerBtnText} />
           </TouchableOpacity>
         </View>
       </View>

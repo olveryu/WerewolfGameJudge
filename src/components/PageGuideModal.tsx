@@ -5,6 +5,7 @@
  * 弹出: scale(0.9→1) + fadeIn 250ms spring。关闭: fadeOut 200ms。
  * 纯展示组件，接收 visible / items / callbacks。不 import service，不含业务逻辑。
  */
+import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Animated,
@@ -176,7 +177,9 @@ export const PageGuideModal: React.FC<PageGuideModalProps> = ({
             testID={TESTIDS.pageGuideCheckbox}
           >
             <View style={[styles.checkbox, dontShowAgain && styles.checkboxChecked]}>
-              {dontShowAgain && <Text style={styles.checkmark}>✓</Text>}
+              {dontShowAgain && (
+                <Ionicons name="checkmark" size={typography.caption} color={colors.textInverse} />
+              )}
             </View>
             <Text style={styles.checkboxLabel}>下次不再显示</Text>
           </TouchableOpacity>

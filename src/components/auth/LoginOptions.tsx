@@ -87,7 +87,9 @@ export const LoginOptions = memo<LoginOptionsProps>(
             {' 邮箱注册'}
           </Text>
           <Text style={styles.buttonCaptionInverse}>选头像起昵称，解锁绚丽头像框</Text>
-          <Text style={styles.buttonCaptionInverseMuted}>✦ 免验证，输入即注册</Text>
+          <Text style={styles.buttonCaptionInverseMuted}>
+            <Ionicons name="sparkles-outline" size={typography.caption} /> 免验证，输入即注册
+          </Text>
         </TouchableOpacity>
 
         {/* 邮箱登录 — 次级按钮 */}

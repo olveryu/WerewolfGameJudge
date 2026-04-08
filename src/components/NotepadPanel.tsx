@@ -8,6 +8,7 @@
  * 不直接调用 service / AsyncStorage / game-engine。
  */
 
+import { Ionicons } from '@expo/vector-icons';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { useCallback, useState } from 'react';
@@ -259,7 +260,7 @@ const RolePickerModal: React.FC<RolePickerModalProps> = React.memo(
                 style={styles.popoverClearBtn}
                 activeOpacity={fixed.activeOpacity}
               >
-                <Text style={styles.popoverClearText}>✕</Text>
+                <Ionicons name="close-circle-outline" style={styles.popoverClearText} />
               </TouchableOpacity>
             </View>
           </View>

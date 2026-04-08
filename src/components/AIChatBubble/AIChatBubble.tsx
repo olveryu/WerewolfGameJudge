@@ -227,7 +227,7 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
                   />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => chat.setIsOpen(false)} style={styles.headerBtn}>
-                  <Text style={styles.headerBtnText}>✕</Text>
+                  <Ionicons name="close" size={typography.body} style={styles.headerBtnText} />
                 </TouchableOpacity>
               </View>
             </View>
