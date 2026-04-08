@@ -186,6 +186,21 @@ export function useRoomScreenState(
   const [pendingSeat, setPendingSeat] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
+  // ── Sync animation setting from route params (popTo from AnimationSettingsScreen) ──
+  // AnimationSettingsScreen saves to SettingsService and passes the value back
+  // via navigation.popTo('Room', { roleRevealAnimation }). Detect the change
+  // here and sync to gameState via facade (same pattern as Config ← BoardPicker).
+  useEffect(() => {
+    if (!isHost || !initialRoleRevealAnimation) return;
+    if (initialRoleRevealAnimation !== roleRevealAnimation) {
+      fireAndForget(
+        setRoleRevealAnimation(initialRoleRevealAnimation),
+        '[useRoomScreenState] sync animation from route params',
+        roomScreenLog,
+      );
+    }
+  }, [initialRoleRevealAnimation]); // eslint-disable-line react-hooks/exhaustive-deps -- intentionally only re-run when route param changes
+
   // ── Step deadline countdown tick ──────────────────────────────────────────
   const countdownTick = useStepDeadlineCountdown({
     stepDeadline: gameState?.stepDeadline,

@@ -7,8 +7,11 @@
  * 不含游戏逻辑，不 import GameFacade。
  */
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { randomPick } from '@werewolf/game-engine/utils/random';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -40,6 +43,8 @@ export const AnimationSettingsScreen: React.FC = () => {
   const styles = useMemo(() => createAnimationSettingsStyles(colors), [colors]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'AnimationSettings'>>();
+  const route =
+    useRoute<NativeStackScreenProps<RootStackParamList, 'AnimationSettings'>['route']>();
   const { settingsService } = useServices();
 
   const [selected, setSelected] = useState<RoleRevealAnimation>('random');
@@ -69,10 +74,16 @@ export const AnimationSettingsScreen: React.FC = () => {
   );
 
   const handleGoBack = useCallback(() => {
-    if (navigation.canGoBack()) {
+    if (route.params?.roomNumber) {
+      navigation.popTo('Room', {
+        roomNumber: route.params.roomNumber,
+        isHost: true,
+        roleRevealAnimation: selected,
+      });
+    } else if (navigation.canGoBack()) {
       navigation.goBack();
     }
-  }, [navigation]);
+  }, [navigation, route.params?.roomNumber, selected]);
 
   const handlePreview = useCallback(() => {
     setShowPreview(true);
