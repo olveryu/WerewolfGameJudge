@@ -36,7 +36,7 @@ import {
 
 // ── Night handlers ──────────────────────────────────────────────────────────
 
-export const handleAction: HandlerFn = async (req, env) => {
+export const handleAction: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as {
     roomCode?: string;
     seat?: number;
@@ -60,11 +60,11 @@ export const handleAction: HandlerFn = async (req, env) => {
     },
     { enabled: true },
   );
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleAudioAck: HandlerFn = async (req, env) => {
+export const handleAudioAck: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string };
   const { roomCode } = body;
   if (!roomCode) return missingParams(env);
@@ -89,11 +89,11 @@ export const handleAudioAck: HandlerFn = async (req, env) => {
     },
     { enabled: true },
   );
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleAudioGate: HandlerFn = async (req, env) => {
+export const handleAudioGate: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string; isPlaying?: boolean };
   const { roomCode, isPlaying } = body;
   if (!roomCode || typeof isPlaying !== 'boolean') return missingParams(env);
@@ -106,11 +106,11 @@ export const handleAudioGate: HandlerFn = async (req, env) => {
     };
     return handleSetAudioPlaying(intent, handlerCtx);
   });
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleEnd: HandlerFn = async (req, env) => {
+export const handleEnd: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string };
   const { roomCode } = body;
   if (!roomCode) return missingParams(env);
@@ -127,11 +127,11 @@ export const handleEnd: HandlerFn = async (req, env) => {
     }
     return handlerResult;
   });
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleProgression: HandlerFn = async (req, env) => {
+export const handleProgression: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string };
   const { roomCode } = body;
   if (!roomCode) return missingParams(env);
@@ -147,11 +147,11 @@ export const handleProgression: HandlerFn = async (req, env) => {
     },
     { enabled: true },
   );
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleRevealAck: HandlerFn = async (req, env) => {
+export const handleRevealAck: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string };
   const { roomCode } = body;
   if (!roomCode) return missingParams(env);
@@ -171,11 +171,11 @@ export const handleRevealAck: HandlerFn = async (req, env) => {
     },
     { enabled: true },
   );
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleWolfRobotViewed: HandlerFn = async (req, env) => {
+export const handleWolfRobotViewed: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string; seat?: number };
   const { roomCode, seat } = body;
   if (!roomCode || !isValidSeat(seat)) return missingParams(env);
@@ -192,11 +192,11 @@ export const handleWolfRobotViewed: HandlerFn = async (req, env) => {
     },
     { enabled: true },
   );
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleGroupConfirmAck: HandlerFn = async (req, env) => {
+export const handleGroupConfirmAck: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string; seat?: number; uid?: string };
   const { roomCode, seat, uid } = body;
   if (!roomCode || !isValidSeat(seat) || !uid) return missingParams(env);
@@ -239,11 +239,11 @@ export const handleGroupConfirmAck: HandlerFn = async (req, env) => {
     },
     { enabled: true },
   );
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleMarkBotsGroupConfirmed: HandlerFn = async (req, env) => {
+export const handleMarkBotsGroupConfirmed: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string };
   const { roomCode } = body;
   if (!roomCode) return missingParams(env);
@@ -292,6 +292,6 @@ export const handleMarkBotsGroupConfirmed: HandlerFn = async (req, env) => {
     },
     { enabled: true },
   );
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };

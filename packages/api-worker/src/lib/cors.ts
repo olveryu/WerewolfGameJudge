@@ -10,7 +10,7 @@ import type { Env } from '../env';
 export function corsHeaders(env: Env): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': env.CORS_ORIGIN ?? '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-region, x-request-id',
   };
 }

@@ -80,7 +80,6 @@ describe('restartGame Contract (HTTP API)', () => {
         stop: jest.fn(),
       } as any,
       roomService: {
-        upsertGameState: jest.fn().mockResolvedValue(undefined),
         getGameState: jest.fn().mockResolvedValue(null),
       } as any,
     });

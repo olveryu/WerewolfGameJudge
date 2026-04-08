@@ -77,7 +77,6 @@ import {
   handleGetGameState,
   handleGetRevision,
   handleGetRoom,
-  handleUpsertGameState,
 } from './handlers/roomHandlers';
 import type { HandlerFn } from './handlers/shared';
 
@@ -113,7 +112,7 @@ const NIGHT_ROUTES: Record<string, HandlerFn> = {
 // ── Worker entry ────────────────────────────────────────────────────────────
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // CORS preflight
     if (request.method === 'OPTIONS') {
       return corsPreflightResponse(env);
@@ -188,8 +187,6 @@ export default {
             return handleGetGameState(request, env);
           case 'revision':
             return handleGetRevision(request, env);
-          case 'upsert-state':
-            return handleUpsertGameState(request, env);
         }
         return jsonResponse({ error: 'not found' }, 404, env);
       }
@@ -203,14 +200,14 @@ export default {
         // /game/night/{handler}
         if (segments[1] === 'night' && segments[2]) {
           const handler = NIGHT_ROUTES[segments[2]];
-          if (handler) return handler(request, env);
+          if (handler) return handler(request, env, ctx);
           return jsonResponse({ error: 'not found' }, 404, env);
         }
 
         // /game/{handler}
         if (segments[1]) {
           const handler = GAME_ROUTES[segments[1]];
-          if (handler) return handler(request, env);
+          if (handler) return handler(request, env, ctx);
           return jsonResponse({ error: 'not found' }, 404, env);
         }
 

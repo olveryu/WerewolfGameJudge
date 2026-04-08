@@ -38,12 +38,6 @@ export interface IRoomService {
   /** 删除房间 */
   deleteRoom(roomNumber: string): Promise<void>;
 
-  /**
-   * 持久化 game_state snapshot（供断线恢复）。
-   * Fire-and-forget 语义：失败只 warn，不阻塞游戏。
-   */
-  upsertGameState(roomCode: string, state: GameState, revision: number): Promise<void>;
-
   /** 读取 state_revision（轻量级轮询） */
   getStateRevision(roomCode: string): Promise<number | null>;
 

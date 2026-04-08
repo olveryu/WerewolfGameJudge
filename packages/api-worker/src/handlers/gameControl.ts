@@ -64,7 +64,7 @@ export const handleRestart = createSimpleHandler(handleRestartGame, {
 
 // ── Parameterized handlers ──────────────────────────────────────────────────
 
-export const handleSeat: HandlerFn = async (req, env) => {
+export const handleSeat: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as {
     roomCode?: string;
     action?: string;
@@ -97,11 +97,11 @@ export const handleSeat: HandlerFn = async (req, env) => {
       return handleLeaveMySeat(intent, handlerCtx);
     }
   });
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleSetAnimation: HandlerFn = async (req, env) => {
+export const handleSetAnimation: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string; animation?: string };
   const { roomCode, animation } = body;
   if (!roomCode || !animation) return missingParams(env);
@@ -113,11 +113,11 @@ export const handleSetAnimation: HandlerFn = async (req, env) => {
       handlerCtx,
     );
   });
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleStart: HandlerFn = async (req, env) => {
+export const handleStart: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string };
   const { roomCode } = body;
   if (!roomCode) return missingParams(env);
@@ -133,11 +133,11 @@ export const handleStart: HandlerFn = async (req, env) => {
     }
     return handlerResult;
   });
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleUpdateTemplateRoute: HandlerFn = async (req, env) => {
+export const handleUpdateTemplateRoute: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string; templateRoles?: string[] };
   const { roomCode, templateRoles } = body;
   if (!roomCode || !templateRoles || !Array.isArray(templateRoles)) {
@@ -151,11 +151,11 @@ export const handleUpdateTemplateRoute: HandlerFn = async (req, env) => {
       handlerCtx,
     );
   });
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleViewRole: HandlerFn = async (req, env) => {
+export const handleViewRole: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string; uid?: string; seat?: number };
   const { roomCode, uid, seat } = body;
   if (!roomCode || !uid || !isValidSeat(seat)) return missingParams(env);
@@ -164,11 +164,11 @@ export const handleViewRole: HandlerFn = async (req, env) => {
     const handlerCtx = buildHandlerContext(state, uid);
     return handleViewedRole({ type: 'VIEWED_ROLE', payload: { seat } }, handlerCtx);
   });
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleShareReview: HandlerFn = async (req, env) => {
+export const handleShareReview: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as { roomCode?: string; allowedSeats?: number[] };
   const { roomCode, allowedSeats } = body;
   if (!roomCode || !Array.isArray(allowedSeats)) return missingParams(env);
@@ -177,11 +177,11 @@ export const handleShareReview: HandlerFn = async (req, env) => {
     const handlerCtx = buildHandlerContext(state, state.hostUid);
     return handleShareNightReview({ type: 'SHARE_NIGHT_REVIEW', allowedSeats }, handlerCtx);
   });
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };
 
-export const handleUpdateProfileRoute: HandlerFn = async (req, env) => {
+export const handleUpdateProfileRoute: HandlerFn = async (req, env, ctx) => {
   const body = (await req.json()) as {
     roomCode?: string;
     uid?: string;
@@ -200,6 +200,6 @@ export const handleUpdateProfileRoute: HandlerFn = async (req, env) => {
     };
     return handleUpdatePlayerProfile(intent, handlerCtx);
   });
-  broadcastIfNeeded(env, roomCode, result);
+  broadcastIfNeeded(env, roomCode, result, ctx);
   return jsonResponse(result, resultToStatus(result), env);
 };

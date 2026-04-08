@@ -144,25 +144,3 @@ export async function handleGetRevision(request: Request, env: Env): Promise<Res
 
   return jsonResponse({ revision: row?.state_revision ?? null }, 200, env);
 }
-
-// ── POST /room/upsert-state ─────────────────────────────────────────────────
-// 客户端 fire-and-forget 持久化 state
-export async function handleUpsertGameState(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as {
-    roomCode?: string;
-    state?: unknown;
-    revision?: number;
-  };
-  if (!body.roomCode || !body.state || body.revision == null) {
-    return jsonResponse({ error: 'roomCode, state, revision required' }, 400, env);
-  }
-
-  await env.DB.prepare(
-    `UPDATE rooms SET game_state = ?, state_revision = ?, updated_at = datetime('now')
-     WHERE code = ?`,
-  )
-    .bind(JSON.stringify(body.state), body.revision, body.roomCode)
-    .run();
-
-  return jsonResponse({ success: true }, 200, env);
-}

@@ -48,7 +48,6 @@ const createTestFacade = () =>
     connectionManager: mockConnectionManager(),
     audioService: mockAudio(),
     roomService: {
-      upsertGameState: jest.fn().mockResolvedValue(undefined),
       getGameState: jest.fn().mockResolvedValue(null),
     } as any,
   });

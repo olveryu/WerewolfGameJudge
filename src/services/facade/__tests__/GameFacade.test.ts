@@ -36,7 +36,6 @@ jest.mock('../../infra/AudioService', () => ({
 // Mock RoomService (DB state persistence)
 const mockRoomService = () =>
   ({
-    upsertGameState: jest.fn().mockResolvedValue(undefined),
     getGameState: jest.fn().mockResolvedValue(null),
   }) as any;
 
@@ -700,7 +699,6 @@ describe('GameFacade', () => {
       // Player also goes through HTTP now (no sendToHost for VIEWED_ROLE)
       const playerStore = new GameStore();
       const playerRoomService = {
-        upsertGameState: jest.fn().mockResolvedValue(undefined),
         // Return a state with roomCode so the player store has it
         getGameState: jest.fn().mockResolvedValue({
           state: {
@@ -1116,7 +1114,6 @@ describe('GameFacade', () => {
       const dbState = buildOngoingDbState();
       const rejoinStore = new GameStore();
       const rejoinRoomService = {
-        upsertGameState: jest.fn().mockResolvedValue(undefined),
         getGameState: jest.fn().mockResolvedValue(dbState),
       };
       const facadeWithDb = new GameFacade({
@@ -1138,7 +1135,6 @@ describe('GameFacade', () => {
       const dbState = buildOngoingDbState({ status: GameStatus.Ready });
       const rejoinStore2 = new GameStore();
       const rejoinRoomService2 = {
-        upsertGameState: jest.fn().mockResolvedValue(undefined),
         getGameState: jest.fn().mockResolvedValue(dbState),
       };
       const facadeWithDb = new GameFacade({
@@ -1213,7 +1209,6 @@ describe('GameFacade', () => {
 
       const rejoinStore = new GameStore();
       const rejoinRoomService = {
-        upsertGameState: jest.fn().mockResolvedValue(undefined),
         getGameState: jest.fn().mockResolvedValue(dbState),
       };
       const f = new GameFacade({
@@ -1351,7 +1346,6 @@ describe('GameFacade', () => {
         connectionManager: retryConnectionManager as any,
         audioService: mockAudioServiceInstance as any,
         roomService: {
-          upsertGameState: jest.fn().mockResolvedValue(undefined),
           getGameState: jest.fn().mockResolvedValue({
             state: {
               roomCode: 'RTRY',

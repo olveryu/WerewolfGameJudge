@@ -19,8 +19,8 @@ import { broadcastIfNeeded } from '../lib/broadcast';
 import { jsonResponse } from '../lib/cors';
 import { processGameAction } from '../lib/gameStateManager';
 
-/** A route handler that receives the original Request + Env and returns a Response. */
-export type HandlerFn = (req: Request, env: Env) => Promise<Response>;
+/** A route handler that receives the original Request + Env + ExecutionContext and returns a Response. */
+export type HandlerFn = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
 
 /** Respond with 400 MISSING_PARAMS */
 export function missingParams(env: Env): Response {
@@ -79,7 +79,7 @@ export function createSimpleHandler<I extends { type: string }>(
   handlerFn: (intent: I, ctx: HandlerContext) => HandlerResult,
   intent: I,
 ): HandlerFn {
-  return async (req: Request, env: Env) => {
+  return async (req: Request, env: Env, ctx: ExecutionContext) => {
     const body = (await req.json()) as { roomCode?: string };
     const { roomCode } = body;
     if (!roomCode) return missingParams(env);
@@ -88,7 +88,7 @@ export function createSimpleHandler<I extends { type: string }>(
       const handlerCtx = buildHandlerContext(state, state.hostUid);
       return handlerFn(intent, handlerCtx);
     });
-    broadcastIfNeeded(env, roomCode, result);
+    broadcastIfNeeded(env, roomCode, result, ctx);
     return jsonResponse(result, resultToStatus(result), env);
   };
 }

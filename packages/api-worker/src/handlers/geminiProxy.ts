@@ -7,12 +7,18 @@
  */
 
 import type { Env } from '../env';
+import { extractBearerToken, verifyToken } from '../lib/auth';
 import { corsHeaders, jsonResponse } from '../lib/cors';
 
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
 const MAX_TOKENS_CAP = 4096;
 
 export async function handleGeminiProxy(request: Request, env: Env): Promise<Response> {
+  const token = extractBearerToken(request);
+  if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
+  const payload = await verifyToken(token, env);
+  if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
+
   if (!env.GEMINI_API_KEY) {
     return jsonResponse({ error: 'GEMINI_API_KEY not configured' }, 500, env);
   }

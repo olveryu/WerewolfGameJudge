@@ -83,14 +83,6 @@ export class CFRoomService implements IRoomService {
     await cfPost('/room/delete', { roomCode: roomNumber });
   }
 
-  async upsertGameState(roomCode: string, state: GameState, revision: number): Promise<void> {
-    try {
-      await cfPost('/room/upsert-state', { roomCode, state, revision });
-    } catch (err) {
-      roomLog.warn('upsertGameState failed:', err instanceof Error ? err.message : err);
-    }
-  }
-
   async getStateRevision(roomCode: string): Promise<number | null> {
     const data = await cfPost<{ revision: number | null }>('/room/revision', {
       roomCode,
