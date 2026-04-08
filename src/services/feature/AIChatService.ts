@@ -15,6 +15,7 @@ import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { API_BASE_URL } from '@/config/api';
 import { NETWORK_ERROR, RATE_LIMIT_ERROR } from '@/config/errorMessages';
+import { getCurrentToken } from '@/services/cloudflare/cfFetch';
 import { log } from '@/utils/logger';
 
 const chatLog = log.extend('AIChatService');
@@ -176,13 +177,19 @@ export async function* streamChatMessage(
     hasContext: !!gameContext,
   });
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  const token = getCurrentToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   let response: Response;
   try {
     response = await fetch(API_CONFIG.baseURL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         model: API_CONFIG.model,
         messages: [{ role: 'system', content: systemPrompt }, ...trimmedMessages],
