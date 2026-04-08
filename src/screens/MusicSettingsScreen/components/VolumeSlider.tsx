@@ -8,6 +8,7 @@ import { memo, useCallback, useMemo, useRef } from 'react';
 import {
   type LayoutChangeEvent,
   PanResponder,
+  Platform,
   StyleSheet,
   Text,
   type TextStyle,
@@ -125,6 +126,8 @@ function getStyles(colors: ThemeColors): SliderStyles {
       borderRadius: borderRadius.small,
       justifyContent: 'center',
       position: 'relative',
+      // Web: prevent browser scroll/swipe while dragging the slider
+      ...(Platform.OS === 'web' && ({ touchAction: 'none', cursor: 'pointer' } as ViewStyle)),
     },
     fill: {
       position: 'absolute',
