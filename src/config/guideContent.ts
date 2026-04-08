@@ -34,11 +34,11 @@ export const CONFIG_GUIDE = {
   items: [
     {
       emoji: '📋',
-      text: `选择模板 —— ${PRESET_TEMPLATES.length} 个预设一键选，新手推荐"预女猎白"`,
+      text: `顶部模板 —— 点击可跳转选择 ${PRESET_TEMPLATES.length} 个预设板子`,
     },
     { emoji: '🎛️', text: '自定义角色 —— 下方可自由增减任意角色' },
     { emoji: '👆', text: '长按角色 —— 可查看技能详情和变体' },
-    { emoji: '👥', text: '底部按钮 —— 显示总人数，点击即创建房间' },
+    { emoji: '🚀', text: '底部"创建房间" —— 配好角色后一键开局' },
   ] satisfies GuideItem[],
 };
 
@@ -55,17 +55,17 @@ const ROOM_BASE_ITEMS: GuideItem[] = [
 
 const ROOM_MENU_ITEM_NON_HOST: GuideItem = {
   emoji: '⋯',
-  text: '右上角菜单 —— 角色百科、分享房间、个人设置',
+  text: '右上角 📖 查看角色百科，⋯ 菜单可分享房间、用户设置',
 };
 
 const ROOM_MENU_ITEM_HOST: GuideItem = {
   emoji: '⋯',
-  text: '右上角菜单 —— 角色百科、分享房间、游戏设置等',
+  text: '右上角 📖 查看角色百科，⋯ 菜单可分享房间、游戏设置等',
 };
 
 const ROOM_HOST_ITEM: GuideItem = {
   emoji: '👑',
-  text: '你是房主 —— 底部有分配角色、开始天黑等控制按钮',
+  text: '你是房主 —— 底部有分配角色、开始游戏等控制按钮',
 };
 
 export function getRoomGuideItems(isHost: boolean): GuideItem[] {
@@ -91,7 +91,7 @@ export const ROOM_ASSIGNED_GUIDE = {
   items: [
     { emoji: '👆', text: '点"查看身份"翻牌看你的角色' },
     { emoji: '🤫', text: '看完后不要声张，悄悄记住' },
-    { emoji: '🔍', text: '不认识角色？点右上角 ⋯ → 角色百科查看' },
+    { emoji: '🔍', text: '不认识角色？点右上角 📖 图标查看角色百科' },
   ] satisfies GuideItem[],
 } as const;
 
@@ -151,7 +151,7 @@ export const BOARD_PICKER_GUIDE = {
     { emoji: '🔍', text: '搜索栏支持按模板名或角色名过滤' },
     { emoji: '🎛️', text: '漏斗图标可按角色筛选模板' },
     { emoji: '👆', text: '展开卡片查看完整角色列表，点角色看技能' },
-    { emoji: '✏️', text: '底部"自定义配置"可从零开始组角色' },
+    { emoji: '✏️', text: '底部可从零开始自定义配置角色' },
   ] satisfies GuideItem[],
 } as const;
 
@@ -165,7 +165,7 @@ export const NOTEPAD_GUIDE = {
   items: [
     { emoji: '🏷️', text: '点击座位可标记猜测的角色' },
     { emoji: '✍️', text: '每个座位下方可记录发言要点' },
-    { emoji: '✋', text: '举手标记 —— 标注发过言的玩家' },
+    { emoji: '✋', text: '上警标记 —— 标记竞选警长的玩家' },
     { emoji: '🤖', text: 'AI 分析 —— 发送笔记给 AI 帮你理清局势' },
     { emoji: '🗑️', text: '右上清除按钮一键重置所有笔记' },
   ] satisfies GuideItem[],
