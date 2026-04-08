@@ -26,8 +26,8 @@ export interface MusicSettingsStyles {
   scrollContent: ViewStyle;
   card: ViewStyle;
   sectionHeader: ViewStyle;
+  sectionTitleRow: ViewStyle;
   sectionTitle: TextStyle;
-  sectionIcon: TextStyle;
   randomRow: ViewStyle;
   randomLabel: TextStyle;
   randomLabelSelected: TextStyle;
@@ -86,12 +86,14 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
       justifyContent: 'space-between',
       marginBottom: spacing.medium,
     },
+    sectionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
+    },
     sectionTitle: {
       ...textStyles.subtitleSemibold,
       color: colors.text,
-    },
-    sectionIcon: {
-      ...textStyles.subtitle,
     },
     randomRow: {
       flexDirection: 'row',

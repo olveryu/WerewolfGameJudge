@@ -222,7 +222,10 @@ export const MusicSettingsScreen: React.FC = () => {
         {/* ── Section 1: BGM ── */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🎵 背景音乐</Text>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="musical-notes" size={componentSizes.icon.sm} color={colors.primary} />
+              <Text style={styles.sectionTitle}>背景音乐</Text>
+            </View>
             <Switch
               value={bgmEnabled}
               onValueChange={handleBgmToggle}
@@ -246,10 +249,15 @@ export const MusicSettingsScreen: React.FC = () => {
               <View style={[styles.radioOuter, bgmTrack === 'random' && styles.radioOuterSelected]}>
                 {bgmTrack === 'random' && <View style={styles.radioInner} />}
               </View>
+              <Ionicons
+                name="shuffle"
+                size={componentSizes.icon.sm}
+                color={bgmTrack === 'random' ? colors.primary : colors.textSecondary}
+              />
               <Text
                 style={[styles.randomLabel, bgmTrack === 'random' && styles.randomLabelSelected]}
               >
-                🎲 随机播放
+                随机播放
               </Text>
             </TouchableOpacity>
 
@@ -294,7 +302,10 @@ export const MusicSettingsScreen: React.FC = () => {
         {/* ── Section 2: Role Audio ── */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🔊 角色音效</Text>
+            <View style={styles.sectionTitleRow}>
+              <Ionicons name="volume-high" size={componentSizes.icon.sm} color={colors.primary} />
+              <Text style={styles.sectionTitle}>角色音效</Text>
+            </View>
           </View>
 
           <Text style={styles.volumeLabel}>音量</Text>
