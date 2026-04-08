@@ -1,22 +1,22 @@
 /**
- * VolumeSlider — 简单音量滑块组件
+ * VolumeSlider — 音量滑块组件
  *
- * 使用 PanResponder 实现水平拖拽。展示当前值百分比。
+ * 基于 react-native-awesome-slider（Reanimated + Gesture Handler），
+ * 全程 UI Thread 驱动，拖动丝滑无延迟。
+ * 自定义 thumb（白底+阴影+主色内圆）+ 左右音量图标。
  * 纯 Presentational 组件：接收 value + onValueChange 回调，不 import service。
  */
-import { memo, useCallback, useMemo, useRef } from 'react';
-import {
-  type LayoutChangeEvent,
-  PanResponder,
-  Platform,
-  StyleSheet,
-  Text,
-  type TextStyle,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { memo, useCallback, useEffect, useMemo } from 'react';
+import { StyleSheet, type TextStyle, View, type ViewStyle } from 'react-native';
+import { Slider } from 'react-native-awesome-slider';
+import { useSharedValue } from 'react-native-reanimated';
 
-import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, componentSizes, shadows, spacing, type ThemeColors } from '@/theme';
+
+const SLIDER_HEIGHT = 8;
+const THUMB_OUTER = 24;
+const THUMB_INNER = 12;
 
 interface VolumeSliderProps {
   value: number; // 0.0–1.0
@@ -32,70 +32,70 @@ export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
   onSlidingComplete,
   colors,
 }) {
-  const trackWidthRef = useRef(0);
+  const progress = useSharedValue(value);
+  const min = useSharedValue(0);
+  const max = useSharedValue(100);
 
-  const clamp = (v: number) => Math.max(0, Math.min(1, v));
+  // Sync external value → shared value (e.g. on initial load)
+  useEffect(() => {
+    progress.value = Math.round(value * 100);
+  }, [value, progress]);
 
-  const resolveValue = useCallback(
-    (pageX: number, trackX: number) => {
-      const width = trackWidthRef.current;
-      if (width <= 0) return value;
-      return clamp((pageX - trackX) / width);
+  const handleValueChange = useCallback(
+    (v: number) => {
+      onValueChange(v / 100);
     },
-    [value],
+    [onValueChange],
   );
 
-  const trackRef = useRef<View>(null);
-
-  /* eslint-disable react-hooks/refs -- trackRef is only read in PanResponder event callbacks, not during render */
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (evt) => {
-          trackRef.current?.measure((_x, _y, _w, _h, pageX) => {
-            const newVal = resolveValue(evt.nativeEvent.pageX, pageX);
-            onValueChange(newVal);
-          });
-        },
-        onPanResponderMove: (evt) => {
-          trackRef.current?.measure((_x, _y, _w, _h, pageX) => {
-            const newVal = resolveValue(evt.nativeEvent.pageX, pageX);
-            onValueChange(newVal);
-          });
-        },
-        onPanResponderRelease: (evt) => {
-          trackRef.current?.measure((_x, _y, _w, _h, pageX) => {
-            const newVal = resolveValue(evt.nativeEvent.pageX, pageX);
-            onSlidingComplete?.(newVal);
-          });
-        },
-      }),
-    [resolveValue, onValueChange, onSlidingComplete],
+  const handleSlidingComplete = useCallback(
+    (v: number) => {
+      onSlidingComplete?.(v / 100);
+    },
+    [onSlidingComplete],
   );
-  /* eslint-enable react-hooks/refs */
 
-  const handleLayout = useCallback((e: LayoutChangeEvent) => {
-    trackWidthRef.current = e.nativeEvent.layout.width;
-  }, []);
+  const formatBubble = useCallback((v: number) => `${Math.round(v)}%`, []);
 
-  const percent = Math.round(clamp(value) * 100);
+  const theme = useMemo(
+    () => ({
+      minimumTrackTintColor: colors.primary,
+      maximumTrackTintColor: colors.border,
+      bubbleBackgroundColor: colors.primary,
+    }),
+    [colors.primary, colors.border],
+  );
 
-  const styles = getStyles(colors);
+  const styles = useMemo(() => getStyles(colors), [colors]);
+
+  const renderThumb = useCallback(
+    () => (
+      <View style={styles.thumbOuter}>
+        <View style={[styles.thumbInner, { backgroundColor: colors.primary }]} />
+      </View>
+    ),
+    [styles, colors.primary],
+  );
 
   return (
     <View style={styles.container}>
-      <View
-        ref={trackRef}
-        style={styles.track}
-        onLayout={handleLayout}
-        {...panResponder.panHandlers}
-      >
-        <View style={[styles.fill, { width: `${percent}%` }]} />
-        <View style={[styles.thumb, { left: `${percent}%` }]} />
+      <Ionicons name="volume-low" size={componentSizes.icon.sm} color={colors.textSecondary} />
+      <View style={styles.sliderWrap}>
+        <Slider
+          progress={progress}
+          minimumValue={min}
+          maximumValue={max}
+          onValueChange={handleValueChange}
+          onSlidingComplete={handleSlidingComplete}
+          theme={theme}
+          sliderHeight={SLIDER_HEIGHT}
+          thumbWidth={THUMB_OUTER}
+          renderThumb={renderThumb}
+          bubble={formatBubble}
+          containerStyle={styles.slider}
+        />
       </View>
-      <Text style={styles.label}>{percent}%</Text>
+      <Ionicons name="volume-high" size={componentSizes.icon.sm} color={colors.textSecondary} />
     </View>
   );
 });
@@ -106,9 +106,10 @@ export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
 
 interface SliderStyles {
   container: ViewStyle;
-  track: ViewStyle;
-  fill: ViewStyle;
-  thumb: ViewStyle;
+  sliderWrap: ViewStyle;
+  slider: ViewStyle;
+  thumbOuter: ViewStyle;
+  thumbInner: ViewStyle;
   label: TextStyle;
 }
 
@@ -119,39 +120,29 @@ function getStyles(colors: ThemeColors): SliderStyles {
       alignItems: 'center',
       gap: spacing.small,
     },
-    track: {
+    sliderWrap: {
       flex: 1,
-      height: spacing.small,
-      backgroundColor: colors.border,
-      borderRadius: borderRadius.small,
       justifyContent: 'center',
-      position: 'relative',
-      // Web: prevent browser scroll/swipe while dragging the slider
-      ...(Platform.OS === 'web' && ({ touchAction: 'none', cursor: 'pointer' } as ViewStyle)),
     },
-    fill: {
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      backgroundColor: colors.primary,
-      borderRadius: borderRadius.small,
+    slider: {
+      borderRadius: borderRadius.full,
     },
-    thumb: {
-      position: 'absolute',
-      width: spacing.large,
-      height: spacing.large,
-      borderRadius: spacing.large / 2,
-      backgroundColor: colors.primary,
-      marginLeft: -(spacing.large / 2),
-      top: -(spacing.large / 2 - spacing.small / 2),
+    thumbOuter: {
+      width: THUMB_OUTER,
+      height: THUMB_OUTER,
+      borderRadius: THUMB_OUTER / 2,
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...shadows.md,
+    },
+    thumbInner: {
+      width: THUMB_INNER,
+      height: THUMB_INNER,
+      borderRadius: THUMB_INNER / 2,
     },
     label: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
-      width: 40,
-      textAlign: 'right',
+      // kept for potential future use
     },
   });
 }
