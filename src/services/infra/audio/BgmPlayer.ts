@@ -32,10 +32,12 @@ export class BgmPlayer {
   #playlist: AudioAsset[] = [];
   #currentIndex = 0;
   #isPlaylist = false;
+  #volume = BGM_VOLUME;
 
   // ── Web backend ──
   #webElement: HTMLAudioElement | null = null;
   #webAudioCtx: AudioContext | null = null;
+  #webGainNode: GainNode | null = null;
   #webEndedHandler: (() => void) | null = null;
 
   // ── Native backend ──
@@ -44,6 +46,19 @@ export class BgmPlayer {
 
   getIsBgmPlaying(): boolean {
     return this.#isPlaying;
+  }
+
+  /**
+   * Update BGM volume (0.0–1.0). Applies immediately to current playback.
+   */
+  setVolume(volume: number): void {
+    this.#volume = Math.max(0, Math.min(1, volume));
+    if (this.#webGainNode) {
+      this.#webGainNode.gain.value = this.#volume;
+    }
+    if (this.#nativePlayer) {
+      this.#nativePlayer.volume = this.#volume;
+    }
   }
 
   /**
@@ -143,12 +158,13 @@ export class BgmPlayer {
     const ctx = new AudioContext();
     const source = ctx.createMediaElementSource(audio);
     const gain = ctx.createGain();
-    gain.gain.value = BGM_VOLUME;
+    gain.gain.value = this.#volume;
     source.connect(gain);
     gain.connect(ctx.destination);
 
     this.#webElement = audio;
     this.#webAudioCtx = ctx;
+    this.#webGainNode = gain;
 
     if (!loop) {
       this.#webEndedHandler = () => this.#onTrackEnded();
@@ -166,7 +182,7 @@ export class BgmPlayer {
   #playNative(asset: AudioAsset, loop: boolean): void {
     const player = createAudioPlayer(asset);
     this.#nativePlayer = player;
-    player.volume = BGM_VOLUME;
+    player.volume = this.#volume;
     player.loop = loop;
 
     if (!loop) {
@@ -222,6 +238,7 @@ export class BgmPlayer {
       }
       this.#webAudioCtx = null;
     }
+    this.#webGainNode = null;
 
     // Native cleanup
     if (this.#nativeSubscription) {

@@ -112,6 +112,12 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       gap: spacing.small,
       zIndex: 1,
     },
+    headerLeft: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.small,
+      zIndex: 1,
+    },
     scrollView: {
       flex: 1,
     },

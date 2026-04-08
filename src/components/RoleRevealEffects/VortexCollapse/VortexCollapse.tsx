@@ -302,6 +302,8 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
 
   // Spiral arm paths (3 arms, rebuilt each frame)
   const spiralPathSV = useSharedValue('');
+  const spiralOpacitySV = useSharedValue(0.06);
+  const spiralStrokeWidthSV = useSharedValue(2);
 
   // Orbital particle positions (flat arrays for Skia)
   const particleXSV = useRef(ORBITAL_PARTICLES.map(() => makeMutable(0))).current;
@@ -417,33 +419,35 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
       timeSV.value = t;
 
       // Decay spin velocity
-      spinVelRef.current *= 0.96;
-      const totalSpin = t * 0.5 + spinVelRef.current * 20;
+      spinVelRef.current *= 0.985;
+      const totalSpin = t * 0.5 + spinVelRef.current * 40;
       const intensity = Math.min(1, spinRef.current / VC.collapseThreshold);
 
       // Update shared value for UI
       spinSV.value = intensity;
 
       // Vortex center glow
-      vortexGlowR.value = 60 + intensity * 40;
-      vortexGlowOpacity.value = 0.4 + intensity * 0.3;
-      eventHorizonR.value = 12 + intensity * 8;
-      eventHorizonRingR.value = 14 + intensity * 8;
-      eventHorizonRingOpacity.value = 0.3 + intensity * 0.4;
+      vortexGlowR.value = 60 + intensity * 80;
+      vortexGlowOpacity.value = 0.4 + intensity * 0.4;
+      eventHorizonR.value = 12 + intensity * 25;
+      eventHorizonRingR.value = 14 + intensity * 25;
+      eventHorizonRingOpacity.value = 0.3 + intensity * 0.5;
 
       // Spiral arms
       spiralPathSV.value = buildSpiralPath(totalSpin, intensity);
+      spiralOpacitySV.value = 0.06 + intensity * 0.29;
+      spiralStrokeWidthSV.value = 2 + intensity * 3;
 
       // Update orbital particles
       const particles = particlesRef.current;
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         p.angle += (p.speed + spinVelRef.current) * 0.02;
-        const pullD = Math.max(10, p.dist - intensity * 1.5);
-        p.dist += (pullD - p.dist) * 0.01;
+        const pullD = Math.max(10, p.dist * (1 - intensity * 0.6));
+        p.dist += (pullD - p.dist) * 0.05;
         particleXSV[i].value = cx + Math.cos(p.angle + totalSpin * 0.3) * p.dist;
         particleYSV[i].value = cy + Math.sin(p.angle + totalSpin * 0.3) * p.dist;
-        particleOpacitySV[i].value = p.alpha * (0.5 + intensity * 0.5);
+        particleOpacitySV[i].value = p.alpha * (0.3 + intensity * 0.9);
       }
 
       // Update debris
@@ -470,6 +474,8 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
       eventHorizonRingR,
       eventHorizonRingOpacity,
       spiralPathSV,
+      spiralOpacitySV,
+      spiralStrokeWidthSV,
       particleXSV,
       particleYSV,
       particleOpacitySV,
@@ -632,8 +638,9 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
             <Path
               path={spiralPathSV}
               style="stroke"
-              strokeWidth={2}
-              color={hslString(260, 60, 60, 0.12)}
+              strokeWidth={spiralStrokeWidthSV}
+              color={hslString(260, 60, 60, 1)}
+              opacity={spiralOpacitySV}
             />
 
             {/* ── Orbital particles ── */}

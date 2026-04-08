@@ -130,7 +130,10 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
 
     // BGM controls
     isBgmEnabled: true,
+    isBgmPlaying: false,
     toggleBgm: jest.fn(),
+    playBgm: jest.fn(),
+    stopBgm: jest.fn(),
 
     ...overrides,
   };

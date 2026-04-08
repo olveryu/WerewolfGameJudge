@@ -217,7 +217,10 @@ describe('Vertical Slice: real state → UI rendering', () => {
 
       // BGM
       isBgmEnabled: false,
+      isBgmPlaying: false,
       toggleBgm: jest.fn(),
+      playBgm: jest.fn(),
+      stopBgm: jest.fn(),
     };
 
     // 4. Render and verify
@@ -332,7 +335,10 @@ describe('Vertical Slice: real state → UI rendering', () => {
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
       isBgmEnabled: false,
+      isBgmPlaying: false,
       toggleBgm: jest.fn(),
+      playBgm: jest.fn(),
+      stopBgm: jest.fn(),
     };
 
     const { getByTestId } = render(

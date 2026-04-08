@@ -20,9 +20,13 @@ import { bgmLog } from '@/utils/logger';
 
 export interface BgmControlState {
   isBgmEnabled: boolean;
+  /** Whether BGM is currently playing (local UI state) */
+  isBgmPlaying: boolean;
   toggleBgm: () => Promise<void>;
   /** Start BGM if enabled — call when game starts */
   startBgmIfEnabled: () => void;
+  /** Start BGM unconditionally (respects track setting) — for manual user trigger */
+  playBgm: () => void;
   /** Stop BGM immediately */
   stopBgm: () => void;
 }
@@ -49,6 +53,7 @@ export function useBgmControl(
   isAudioPlaying: boolean,
 ): BgmControlState {
   const [isBgmEnabled, setIsBgmEnabled] = useState(true);
+  const [isBgmPlaying, setIsBgmPlaying] = useState(false);
   const { settingsService, audioService } = useServices();
   const settingsRef = useRef(settingsService);
   const audioRef = useRef(audioService);
@@ -58,6 +63,9 @@ export function useBgmControl(
     const loadSettings = async () => {
       await settingsRef.current.load();
       setIsBgmEnabled(settingsRef.current.isBgmEnabled());
+      // Apply persisted volume to audio service
+      audioRef.current.setBgmVolume(settingsRef.current.getBgmVolume());
+      audioRef.current.setRoleAudioVolume(settingsRef.current.getRoleAudioVolume());
     };
     loadSettings().catch((e) => {
       bgmLog.warn('Failed to load BGM settings:', e);
@@ -71,6 +79,7 @@ export function useBgmControl(
     if (!isHost) return;
     if (gameStatus === GameStatus.Ended && !isAudioPlaying) {
       audioRef.current.stopBgm();
+      setIsBgmPlaying(false);
     }
   }, [isHost, gameStatus, isAudioPlaying]);
 
@@ -86,9 +95,11 @@ export function useBgmControl(
         audioRef.current.startBgm(assets).catch((e) => {
           bgmLog.warn('BGM start failed after toggle:', e);
         });
+        setIsBgmPlaying(true);
       }
     } else {
       audioRef.current.stopBgm();
+      setIsBgmPlaying(false);
     }
   }, [gameStatus]);
 
@@ -100,18 +111,31 @@ export function useBgmControl(
       audioRef.current.startBgm(assets).catch((e) => {
         bgmLog.warn('BGM start failed:', e);
       });
+      setIsBgmPlaying(true);
     }
   }, []);
 
-  // Stop BGM (called by restartGame)
+  // Start BGM unconditionally, respecting track setting (manual user trigger)
+  const playBgm = useCallback(() => {
+    const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
+    audioRef.current.startBgm(assets).catch((e) => {
+      bgmLog.warn('BGM manual play failed:', e);
+    });
+    setIsBgmPlaying(true);
+  }, []);
+
+  // Stop BGM (called by restartGame or manual user trigger)
   const stopBgm = useCallback(() => {
     audioRef.current.stopBgm();
+    setIsBgmPlaying(false);
   }, []);
 
   return {
     isBgmEnabled,
+    isBgmPlaying,
     toggleBgm,
     startBgmIfEnabled,
+    playBgm,
     stopBgm,
   };
 }

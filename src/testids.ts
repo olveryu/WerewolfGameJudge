@@ -57,6 +57,7 @@ export const TESTIDS = {
   startGameButton: 'start-game-button',
   restartButton: 'restart-button',
   lastNightInfoButton: 'last-night-info-button',
+  bgmToggleButton: 'bgm-toggle-button',
   connectionStatusContainer: 'connection-status-container',
 
   // ActionMessage / BottomActionPanel

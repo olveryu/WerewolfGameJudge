@@ -42,7 +42,6 @@ import { useRoomDerived } from './useRoomDerived';
 import { useRoomIdentity } from './useRoomIdentity';
 import { useRoomInit } from './useRoomInit';
 import { useRoomModals } from './useRoomModals';
-import { useRoomSettings } from './useRoomSettings';
 import { useSpeakingOrder } from './useSpeakingOrder';
 import { useStepDeadlineCountdown } from './useStepDeadlineCountdown';
 
@@ -88,7 +87,7 @@ export function useRoomScreenState(
     roleRevealAnimation: initialRoleRevealAnimation,
   } = params;
 
-  const { audioService, settingsService } = useServices();
+  const { audioService } = useServices();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Core game room hook
@@ -144,6 +143,10 @@ export function useRoomScreenState(
     effectiveRole,
     // Progression
     postProgression,
+    // BGM manual control
+    isBgmPlaying,
+    playBgm,
+    stopBgm,
     // Rejoin recovery
     resumeAfterRejoin,
     needsContinueOverlay,
@@ -182,9 +185,6 @@ export function useRoomScreenState(
   const [seatModalVisible, setSeatModalVisible] = useState(false);
   const [pendingSeat, setPendingSeat] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
-
-  // ── Settings sheet (delegated to useRoomSettings) ─────────────────────────
-  const roomSettings = useRoomSettings({ settingsService, setRoleRevealAnimation });
 
   // ── Step deadline countdown tick ──────────────────────────────────────────
   const countdownTick = useStepDeadlineCountdown({
@@ -778,6 +778,11 @@ export function useRoomScreenState(
     requestSnapshot,
     setControlledSeat,
 
+    // ── BGM manual control ──
+    isBgmPlaying,
+    playBgm,
+    stopBgm,
+
     // ── Initialization (from useRoomInit) ──
     ...init,
 
@@ -846,9 +851,6 @@ export function useRoomScreenState(
     shareReviewVisible,
     closeShareReview,
     shareNightReview: handleShareNightReview,
-
-    // ── Settings sheet (from useRoomSettings) ──
-    ...roomSettings,
 
     // ── Choose card modal (treasureMaster / thief) ──
     chooseCardModalVisible,

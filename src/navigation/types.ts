@@ -19,6 +19,8 @@ export type RootStackParamList = {
     roleRevealAnimation?: RoleRevealAnimation;
   };
   Settings: undefined;
+  AnimationSettings: undefined;
+  MusicSettings: undefined;
   Encyclopedia: undefined;
   Notepad: { roomNumber: string };
   AvatarPicker: undefined;

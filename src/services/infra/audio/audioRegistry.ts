@@ -212,22 +212,22 @@ export interface BgmTrackEntry {
 export const BGM_TRACKS: readonly BgmTrackEntry[] = [
   {
     id: 'theGodfatherWaltz',
-    label: '教父华尔兹',
+    label: 'The Godfather Waltz',
     asset: require('../../../../assets/bgm/the_godfather_waltz.m4a'),
   },
   {
     id: 'speakSoftlyLove',
-    label: '柔声倾诉',
+    label: 'Speak Softly Love',
     asset: require('../../../../assets/bgm/speak_softly_love.m4a'),
   },
   {
     id: 'theImmigrant',
-    label: '移民',
+    label: 'The Immigrant',
     asset: require('../../../../assets/bgm/the_immigrant.m4a'),
   },
   {
     id: 'finale',
-    label: '终曲',
+    label: 'Finale',
     asset: require('../../../../assets/bgm/finale.m4a'),
   },
 ] as const;

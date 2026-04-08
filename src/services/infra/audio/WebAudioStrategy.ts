@@ -15,6 +15,7 @@ import { AUDIO_TIMEOUT_MS, audioAssetToUrl } from './types';
 export class WebAudioStrategy implements AudioPlaybackStrategy {
   #audioElement: HTMLAudioElement | null = null;
   #isPlaying = false;
+  #volume = 1.0;
   #resolve: (() => void) | null = null;
   #timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -91,6 +92,7 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
           this.#settle();
         }, AUDIO_TIMEOUT_MS);
 
+        audio.volume = this.#volume;
         audio.src = audioUrl;
         audioLog.debug(`[${label}] [WEB] calling audio.play()`);
 
@@ -145,6 +147,13 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
         audioLog.warn('[visibility] error resuming web audio', e);
       });
       audioLog.debug('[visibility] resumed web audio');
+    }
+  }
+
+  setVolume(volume: number): void {
+    this.#volume = Math.max(0, Math.min(1, volume));
+    if (this.#audioElement) {
+      this.#audioElement.volume = this.#volume;
     }
   }
 

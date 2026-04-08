@@ -45,6 +45,8 @@ export interface AudioPlaybackStrategy {
   resume(): void;
   /** Preload a single audio file for faster first-play. */
   preloadFile(key: string, asset: AudioAsset): Promise<void>;
+  /** Set playback volume (0.0–1.0). Applied to current and future playback. */
+  setVolume(volume: number): void;
   /** Release all preloaded audio resources. */
   clearPreloaded(): void;
   /** Release all resources (players, listeners, preloaded cache). */

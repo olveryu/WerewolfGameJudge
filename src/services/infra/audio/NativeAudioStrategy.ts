@@ -21,6 +21,7 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
   #player: AudioPlayer | null = null;
   #subscription: ReturnType<AudioPlayer['addListener']> | null = null;
   #isPlaying = false;
+  #volume = 1.0;
   #resolve: (() => void) | null = null;
   #timeoutId: ReturnType<typeof setTimeout> | null = null;
   #label = 'audio';
@@ -102,6 +103,7 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
           this.#settle();
         }, AUDIO_TIMEOUT_MS);
 
+        player.volume = this.#volume;
         audioLog.debug(`[${label}] calling player.play()`);
         player.play();
         audioLog.debug(`[${label}] player.play() returned`);
@@ -174,6 +176,17 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
         audioLog.debug('[visibility] resumed main audio');
       } catch (e) {
         audioLog.warn('[visibility] error resuming player', e);
+      }
+    }
+  }
+
+  setVolume(volume: number): void {
+    this.#volume = Math.max(0, Math.min(1, volume));
+    if (this.#player) {
+      try {
+        this.#player.volume = this.#volume;
+      } catch {
+        // player may be in an invalid state
       }
     }
   }

@@ -487,6 +487,25 @@ export const SettingsScreen: React.FC = () => {
           styles={styles}
         />
 
+        {/* Settings sub-pages */}
+        <TouchableOpacity
+          style={styles.dresserEntry}
+          onPress={() => navigation.navigate('AnimationSettings')}
+          activeOpacity={fixed.activeOpacity}
+        >
+          <Text style={styles.dresserEntryText}>🎬 翻牌动画</Text>
+          <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.dresserEntry}
+          onPress={() => navigation.navigate('MusicSettings')}
+          activeOpacity={fixed.activeOpacity}
+        >
+          <Text style={styles.dresserEntryText}>🎵 音乐设置</Text>
+          <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.textMuted} />
+        </TouchableOpacity>
+
         <AboutSection styles={styles} />
 
         {/* Reset Guides */}

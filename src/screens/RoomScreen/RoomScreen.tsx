@@ -21,7 +21,6 @@ import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { SettingsSheet } from '@/components/SettingsSheet';
 import {
   getRoomGuideItems,
   ROOM_ASSIGNED_GUIDE,
@@ -121,6 +120,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     navigation.navigate('Encyclopedia');
   }, [navigation]);
 
+  const handleAnimationSettings = useCallback(() => {
+    navigation.navigate('AnimationSettings');
+  }, [navigation]);
+
+  const handleMusicSettings = useCallback(() => {
+    navigation.navigate('MusicSettings');
+  }, [navigation]);
+
   const {
     // Route params
     roomNumber,
@@ -131,7 +138,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     roomStatus,
     currentSchema,
     isAudioPlaying,
-    roleRevealAnimation,
     resolvedRoleRevealAnimation,
     connectionStatus,
     gameRoomError,
@@ -145,6 +151,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     markAllBotsGroupConfirmed,
     clearAllSeats,
     setControlledSeat,
+    // BGM manual control
+    isBgmPlaying,
+    playBgm,
+    stopBgm,
     // Initialization
     isInitialized,
     loadingMessage,
@@ -209,15 +219,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     shareReviewVisible,
     closeShareReview,
     shareNightReview,
-    // Settings sheet
-    settingsSheetVisible,
-    bgmEnabled,
-    bgmTrack,
-    handleOpenSettings,
-    handleCloseSettings,
-    handleAnimationChange,
-    handleBgmChange,
-    handleBgmTrackChange,
     // Choose card modal (treasureMaster / thief)
     chooseCardModalVisible,
     closeChooseCardModal,
@@ -333,15 +334,32 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Header */}
       <View style={styles.header} testID={TESTIDS.roomHeader}>
         <BlurView intensity={60} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-        <TouchableOpacity
-          onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}
-          style={styles.backButton}
-          testID={TESTIDS.roomBackButton}
-        >
-          <Text style={styles.backButtonText}>
-            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}
+            style={styles.backButton}
+            testID={TESTIDS.roomBackButton}
+          >
+            <Text style={styles.backButtonText}>
+              <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
+            </Text>
+          </TouchableOpacity>
+          {/* BGM Toggle — all players, ended phase only, right of back button */}
+          {roomStatus === GameStatus.Ended && !isAudioPlaying && (
+            <TouchableOpacity
+              onPress={isBgmPlaying ? stopBgm : playBgm}
+              style={styles.backButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              testID={TESTIDS.bgmToggleButton}
+            >
+              <Ionicons
+                name={isBgmPlaying ? 'pause' : 'musical-notes'}
+                size={componentSizes.icon.md}
+                color={isBgmPlaying ? colors.primary : colors.text}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
         <View style={styles.headerCenter}>
           <TouchableOpacity onPress={handleDebugTitleTap} activeOpacity={1}>
             <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
@@ -361,11 +379,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             visible
             showUserSettings
             showShareRoom={roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated}
-            showSettings={
-              isHost &&
-              !isStartingGame &&
-              !isAudioPlaying &&
-              (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated)
+            showAnimationSettings={
+              isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing
+            }
+            showMusicSettings={
+              isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing
             }
             showFillWithBots={isHost && roomStatus === GameStatus.Unseated}
             showMarkAllBotsViewed={isHost && isDebugMode && roomStatus === GameStatus.Assigned}
@@ -418,7 +436,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 });
               })
             }
-            onSettings={handleOpenSettings}
+            onAnimationSettings={handleAnimationSettings}
+            onMusicSettings={handleMusicSettings}
             onUserSettings={handleAvatarPress}
             onShareRoom={handleShareRoom}
             styles={componentStyles.hostMenuDropdown}
@@ -709,20 +728,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onClose={closeChooseCardModal}
         />
       )}
-
-      {/* Settings Sheet — Host 可调动画和 BGM 设置 */}
-      <SettingsSheet
-        visible={settingsSheetVisible}
-        onClose={handleCloseSettings}
-        roleRevealAnimation={roleRevealAnimation}
-        bgmValue={bgmEnabled ? 'on' : 'off'}
-        bgmTrack={bgmTrack}
-        onAnimationChange={handleAnimationChange}
-        onBgmChange={handleBgmChange}
-        onBgmTrackChange={handleBgmTrackChange}
-        resolvedAnimation={resolvedRoleRevealAnimation}
-        overlayTestID={TESTIDS.roomSettingsOverlay}
-      />
 
       {/* Page Guide — Room overview */}
       <PageGuideModal

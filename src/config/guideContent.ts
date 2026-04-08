@@ -60,7 +60,7 @@ const ROOM_MENU_ITEM_NON_HOST: GuideItem = {
 
 const ROOM_MENU_ITEM_HOST: GuideItem = {
   emoji: '⋯',
-  text: '右上角 📖 查看角色百科，⋯ 菜单可分享房间、游戏设置等',
+  text: '右上角 📖 查看角色百科，⋯ 菜单可分享房间、翻牌动画、音乐设置等',
 };
 
 const ROOM_HOST_ITEM: GuideItem = {

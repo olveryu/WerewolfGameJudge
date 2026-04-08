@@ -28,8 +28,10 @@ interface HostMenuDropdownProps {
   showUserSettings: boolean;
   /** Show share room option (only in unseated/seated phase) */
   showShareRoom: boolean;
-  /** Show game settings option (only before game starts) */
-  showSettings: boolean;
+  /** Show animation settings option (only before game starts) */
+  showAnimationSettings: boolean;
+  /** Show music settings option (only before game starts) */
+  showMusicSettings: boolean;
   /** Show fill with bots option (in dropdown) */
   showFillWithBots: boolean;
   /** Show mark all bots viewed option (in dropdown) */
@@ -43,7 +45,8 @@ interface HostMenuDropdownProps {
   onMarkAllBotsViewed: () => void;
   onMarkAllBotsGroupConfirmed: () => void;
   onClearAllSeats: () => void;
-  onSettings: () => void;
+  onAnimationSettings: () => void;
+  onMusicSettings: () => void;
   onUserSettings: () => void;
   onShareRoom: () => void;
   /** Pre-created styles from parent */
@@ -54,7 +57,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   visible,
   showUserSettings,
   showShareRoom,
-  showSettings,
+  showAnimationSettings,
+  showMusicSettings,
   showFillWithBots,
   showMarkAllBotsViewed,
   showMarkAllBotsGroupConfirmed,
@@ -63,7 +67,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   onMarkAllBotsViewed,
   onMarkAllBotsGroupConfirmed,
   onClearAllSeats,
-  onSettings,
+  onAnimationSettings,
+  onMusicSettings,
   onUserSettings,
   onShareRoom,
   styles,
@@ -99,10 +104,15 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     onClearAllSeats();
   }, [onClearAllSeats]);
 
-  const handleSettings = useCallback(() => {
+  const handleAnimationSettings = useCallback(() => {
     setMenuOpen(false);
-    onSettings();
-  }, [onSettings]);
+    onAnimationSettings();
+  }, [onAnimationSettings]);
+
+  const handleMusicSettings = useCallback(() => {
+    setMenuOpen(false);
+    onMusicSettings();
+  }, [onMusicSettings]);
 
   const handleUserSettings = useCallback(() => {
     setMenuOpen(false);
@@ -122,7 +132,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   const hasDropdownItems =
     showUserSettings ||
     showShareRoom ||
-    showSettings ||
+    showAnimationSettings ||
+    showMusicSettings ||
     showFillWithBots ||
     showMarkAllBotsViewed ||
     showMarkAllBotsGroupConfirmed ||
@@ -162,10 +173,24 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                       <Text style={styles.menuItemText}>分享房间</Text>
                     </TouchableOpacity>
                   )}
-                  {showSettings && (
-                    <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
-                      <Ionicons name="settings-outline" size={MENU_ICON_SIZE} color={colors.text} />
-                      <Text style={styles.menuItemText}>游戏设置</Text>
+                  {showAnimationSettings && (
+                    <TouchableOpacity style={styles.menuItem} onPress={handleAnimationSettings}>
+                      <Ionicons
+                        name="color-wand-outline"
+                        size={MENU_ICON_SIZE}
+                        color={colors.text}
+                      />
+                      <Text style={styles.menuItemText}>翻牌动画</Text>
+                    </TouchableOpacity>
+                  )}
+                  {showMusicSettings && (
+                    <TouchableOpacity style={styles.menuItem} onPress={handleMusicSettings}>
+                      <Ionicons
+                        name="musical-notes-outline"
+                        size={MENU_ICON_SIZE}
+                        color={colors.text}
+                      />
+                      <Text style={styles.menuItemText}>音乐设置</Text>
                     </TouchableOpacity>
                   )}
                   {showUserSettings && (
@@ -176,7 +201,10 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                   )}
 
                   {/* Gap: Actions → Operations */}
-                  {(showShareRoom || showSettings || showUserSettings) &&
+                  {(showShareRoom ||
+                    showAnimationSettings ||
+                    showMusicSettings ||
+                    showUserSettings) &&
                     (showClearAllSeats ||
                       showFillWithBots ||
                       showMarkAllBotsViewed ||

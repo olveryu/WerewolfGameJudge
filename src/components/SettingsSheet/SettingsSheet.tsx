@@ -47,10 +47,10 @@ const BGM_OPTIONS: readonly SettingsOption[] = [
 
 const BGM_TRACK_OPTIONS: readonly SettingsOption[] = [
   { value: 'random', label: '随机' },
-  { value: 'theGodfatherWaltz', label: '教父华尔兹' },
-  { value: 'speakSoftlyLove', label: '柔声倾诉' },
-  { value: 'theImmigrant', label: '移民' },
-  { value: 'finale', label: '终曲' },
+  { value: 'theGodfatherWaltz', label: 'The Godfather Waltz' },
+  { value: 'speakSoftlyLove', label: 'Speak Softly Love' },
+  { value: 'theImmigrant', label: 'The Immigrant' },
+  { value: 'finale', label: 'Finale' },
 ] as const;
 
 /** Stable style to let ScrollView fill remaining space inside maxHeight parent */

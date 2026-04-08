@@ -25,6 +25,10 @@ interface UserSettings {
   bgmEnabled: boolean;
   /** Selected BGM track or 'random' for shuffle playlist (default: 'random') */
   bgmTrack: BgmTrackSetting;
+  /** BGM volume 0.0–1.0 (default: 0.1) */
+  bgmVolume: number;
+  /** Role audio (TTS narration) volume 0.0–1.0 (default: 1.0) */
+  roleAudioVolume: number;
   /** Selected theme (default: 'dark') */
   themeKey: ThemeKey;
   /** Role reveal animation style (default: 'roulette') */
@@ -64,6 +68,8 @@ const VALID_ROLE_REVEAL_ANIMATIONS: ReadonlySet<string> = new Set<RoleRevealAnim
 const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
   bgmTrack: 'random',
+  bgmVolume: 0.1,
+  roleAudioVolume: 1.0,
   themeKey: 'light',
   roleRevealAnimation: 'random',
 };
@@ -117,6 +123,26 @@ export class SettingsService {
               merged.bgmTrack,
             );
             merged.bgmTrack = DEFAULT_SETTINGS.bgmTrack;
+          }
+          // Validate + clamp bgmVolume to [0, 1]
+          if (typeof merged.bgmVolume !== 'number' || !isFinite(merged.bgmVolume)) {
+            settingsServiceLog.warn(
+              'Invalid persisted bgmVolume, resetting to default:',
+              merged.bgmVolume,
+            );
+            merged.bgmVolume = DEFAULT_SETTINGS.bgmVolume;
+          } else {
+            merged.bgmVolume = Math.max(0, Math.min(1, merged.bgmVolume));
+          }
+          // Validate + clamp roleAudioVolume to [0, 1]
+          if (typeof merged.roleAudioVolume !== 'number' || !isFinite(merged.roleAudioVolume)) {
+            settingsServiceLog.warn(
+              'Invalid persisted roleAudioVolume, resetting to default:',
+              merged.roleAudioVolume,
+            );
+            merged.roleAudioVolume = DEFAULT_SETTINGS.roleAudioVolume;
+          } else {
+            merged.roleAudioVolume = Math.max(0, Math.min(1, merged.roleAudioVolume));
           }
           this.#settings = merged;
         }
@@ -193,6 +219,40 @@ export class SettingsService {
    */
   async setBgmTrack(track: BgmTrackSetting): Promise<void> {
     this.#settings.bgmTrack = track;
+    await this.#save();
+  }
+
+  /**
+   * Get BGM volume (0.0–1.0).
+   */
+  getBgmVolume(): number {
+    return this.#settings.bgmVolume;
+  }
+
+  /**
+   * Set BGM volume and persist. Clamped to [0, 1].
+   */
+  async setBgmVolume(volume: number): Promise<void> {
+    this.#settings.bgmVolume = Math.max(0, Math.min(1, volume));
+    await this.#save();
+  }
+
+  // =========================================================================
+  // Role Audio Volume Settings
+  // =========================================================================
+
+  /**
+   * Get role audio (TTS narration) volume (0.0–1.0).
+   */
+  getRoleAudioVolume(): number {
+    return this.#settings.roleAudioVolume;
+  }
+
+  /**
+   * Set role audio volume and persist. Clamped to [0, 1].
+   */
+  async setRoleAudioVolume(volume: number): Promise<void> {
+    this.#settings.roleAudioVolume = Math.max(0, Math.min(1, volume));
     await this.#save();
   }
 

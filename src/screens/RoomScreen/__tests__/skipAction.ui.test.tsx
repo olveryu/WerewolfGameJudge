@@ -128,7 +128,10 @@ jest.mock('../../../hooks/useGameRoom', () => {
         submitRevealAck: jest.fn(),
 
         isBgmEnabled: true,
+        isBgmPlaying: false,
         toggleBgm: jest.fn(),
+        playBgm: jest.fn(),
+        stopBgm: jest.fn(),
       };
     },
   };

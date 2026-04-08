@@ -279,6 +279,11 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     needsContinueOverlay: false,
     dismissContinueOverlay: jest.fn(),
 
+    // BGM manual control
+    isBgmPlaying: false,
+    playBgm: jest.fn(),
+    stopBgm: jest.fn(),
+
     ...hookOverrides,
   };
 }

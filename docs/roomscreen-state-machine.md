@@ -18,7 +18,8 @@
 | 菜单项           | 可见条件                                             |
 | ---------------- | ---------------------------------------------------- |
 | 角色图鉴         | 所有用户，始终可见                                   |
-| 游戏设置         | `isHost && !isAudioPlaying && (Unseated \| Seated)`  |
+| 翻牌动画         | `isHost && !isAudioPlaying && (Unseated \| Seated)`  |
+| 音乐设置         | `isHost && !isAudioPlaying && (Unseated \| Seated)`  |
 | 用户设置         | 所有用户，始终可见                                   |
 | 全员起立         | `isHost && (Unseated \| Seated) && anyPlayersSeated` |
 | 填充机器人       | `isHost && Unseated`                                 |
@@ -48,7 +49,7 @@
 | `ShareReviewModal`     | Host 点击「昨夜信息」                  | Host              |
 | `QRCodeModal`          | 点击「分享房间」                       | 所有用户          |
 | `NotepadModal`         | 点击 BoardInfoCard 笔记图标            | 所有用户          |
-| `SettingsSheet`        | ⋯ → 游戏设置                           | Host              |
+| `SettingsSheet`        | ConfigScreen 内游戏设置                | Host              |
 
 ## SeatTile 视觉状态
 

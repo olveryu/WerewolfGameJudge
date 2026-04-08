@@ -235,8 +235,8 @@ export class RoomPage {
   /**
    * Disable role reveal animation so E2E tests see the static "知道了" card.
    *
-   * Opens HostMenuDropdown → clicks "游戏设置" → selects "无动画" → closes sheet.
-   * Uses stable testID selectors where available, text selector for menu item.
+   * Opens HostMenuDropdown → clicks "翻牌动画" → navigates to AnimationSettingsScreen
+   * → selects "关闭" (none) → goes back to room.
    */
   async setAnimationNone() {
     // Open host menu via ⋯ button
@@ -244,20 +244,20 @@ export class RoomPage {
     await menuBtn.waitFor({ state: 'visible', timeout: 3000 });
     await menuBtn.click();
 
-    // Click "游戏设置" in dropdown menu → opens SettingsSheet
-    const settingsItem = this.page.getByText('游戏设置', { exact: true });
-    await settingsItem.waitFor({ state: 'visible', timeout: 3000 });
-    await settingsItem.click();
+    // Click "翻牌动画" in dropdown menu → navigates to AnimationSettingsScreen
+    const animItem = this.page.getByText('翻牌动画', { exact: true });
+    await animItem.waitFor({ state: 'visible', timeout: 3000 });
+    await animItem.click();
 
-    // Click the "无动画" option
-    const noneOption = this.page.locator('[data-testid="settings-animation-option-none"]');
+    // Click the "关闭" option (none)
+    const noneOption = this.page.locator('[data-testid="anim-settings-option-none"]');
     await noneOption.waitFor({ state: 'visible', timeout: 3000 });
     await noneOption.click();
 
-    // Close settings sheet by clicking the overlay backdrop
-    const overlay = this.page.locator('[data-testid="room-settings-overlay"]');
-    await overlay.click({ position: { x: 5, y: 5 }, force: true });
-    await overlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    // Navigate back to room
+    const backButton = this.page.locator('[data-testid="anim-settings-back"]');
+    await backButton.waitFor({ state: 'visible', timeout: 3000 });
+    await backButton.click();
   }
 
   /** Check if "昨夜信息" button is visible (night ended indicator). */

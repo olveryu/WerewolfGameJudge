@@ -16,6 +16,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
 import { SITE_URL } from '@/config/api';
+import { AnimationSettingsScreen } from '@/screens/AnimationSettingsScreen/AnimationSettingsScreen';
 import {
   AuthEmailScreen,
   AuthForgotPasswordScreen,
@@ -27,6 +28,7 @@ import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
+import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
 import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
@@ -77,6 +79,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
         },
       },
       Settings: 'settings',
+      AnimationSettings: 'settings/animation',
+      MusicSettings: 'settings/music',
       Encyclopedia: 'encyclopedia',
       Notepad: 'notepad/:roomNumber',
       AvatarPicker: 'avatar-picker',
@@ -171,6 +175,16 @@ export const AppNavigator: React.FC = () => {
           name="Settings"
           component={SettingsScreen}
           options={{ title: '设置', presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+          name="AnimationSettings"
+          component={AnimationSettingsScreen}
+          options={{ title: '翻牌动画' }}
+        />
+        <Stack.Screen
+          name="MusicSettings"
+          component={MusicSettingsScreen}
+          options={{ title: '音乐设置' }}
         />
         <Stack.Screen
           name="Encyclopedia"

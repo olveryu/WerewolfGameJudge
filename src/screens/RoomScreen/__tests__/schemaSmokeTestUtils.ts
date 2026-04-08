@@ -121,7 +121,10 @@ export function makeBaseUseGameRoomReturn({
     submitGroupConfirmAck: jest.fn(),
 
     isBgmEnabled: true,
+    isBgmPlaying: false,
     toggleBgm: jest.fn(),
+    playBgm: jest.fn(),
+    stopBgm: jest.fn(),
 
     ...(overrides ?? {}),
   };

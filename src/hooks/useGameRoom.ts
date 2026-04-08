@@ -124,6 +124,11 @@ interface UseGameRoomResult {
   /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
   postProgression: () => Promise<boolean>;
 
+  // BGM manual control (for ended-phase UI)
+  isBgmPlaying: boolean;
+  playBgm: () => void;
+  stopBgm: () => void;
+
   // Rejoin recovery
   resumeAfterRejoin: () => void;
   needsContinueOverlay: boolean;
@@ -340,6 +345,10 @@ export const useGameRoom = (): UseGameRoomResult => {
     getCurseInfo: actions.getCurseInfo,
     hasWolfVoted: actions.hasWolfVoted,
     postProgression: actions.postProgression,
+    // BGM manual control
+    isBgmPlaying: bgm.isBgmPlaying,
+    playBgm: bgm.playBgm,
+    stopBgm: bgm.stopBgm,
     // Rejoin recovery
     resumeAfterRejoin,
     // 失焦的隐藏 screen 不渲染 Modal（Web 上 Modal 浮于顶层不受 CSS 隐藏控制）

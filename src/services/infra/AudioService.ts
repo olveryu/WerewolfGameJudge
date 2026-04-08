@@ -153,6 +153,14 @@ export class AudioService {
     this.#bgm.stop();
   }
 
+  setBgmVolume(volume: number): void {
+    this.#bgm.setVolume(volume);
+  }
+
+  setRoleAudioVolume(volume: number): void {
+    this.#strategy.setVolume(volume);
+  }
+
   // ============ Preload ============
 
   /**
