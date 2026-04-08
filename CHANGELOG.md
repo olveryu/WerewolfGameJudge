@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.0.0] - 2026-04-08
+
+- refactor(game-engine,api-worker,client): replace HandlerResult boolean with discriminated union
+- refactor(client): replace emoji with Ionicons in UI elements
+- refactor(client): upgrade VolumeSlider to react-native-awesome-slider
+- style(client): move 'none' animation option next to 'random' in picker
+- refactor(client): replace emoji with Ionicons in MusicSettingsScreen
+- feat(client): redesign MusicSettingsScreen with improved UX
+- fix(client): sync animation setting to gameState via popTo
+- fix(client): inject JWT token in AIChatService streaming request
+- docs: mark P5 layer-A fixes in code-audit report
+- test(game-engine): add unit tests for untested handlers and utils
+- docs: mark completed audit items in code-audit report (P0-P4)
+- fix(api-worker,game-engine,client): resolve P4 audit issues (M22, M14, M35)
+- fix(client,api-worker): resolve P5 layer-A runtime risk issues from audit
+- refactor(client,game-engine): resolve P3 code quality issues from audit
+- fix(api-worker): patch 4 P1 security issues from code audit
+- fix(game-engine,client): resolve P2 correctness bugs from code audit
+- fix(api-worker): patch 4 P0 security/reliability issues
+- refactor(settings): remove animation and music entries from SettingsScreen
+- fix(slider): add touch-action none to prevent browser scroll during drag
+- fix(avatar): await profile sync and add missing avatarFrame to takeSeatWithAck
+- fix(lint): use sourceType commonjs for **mocks**/\*.js instead of no-undef off
+- feat(audio): add BGM toggle in room header + music/animation settings screens
+- refactor(instructions): slim copilot-instructions, extract RoomScreen state machine to docs
+- feat(skills): add new-role and new-board skills, consolidate old instruction files
+- feat(audio): add BGM track selection with playlist shuffle mode
+- Add files via upload
+- Add files via upload
+- Add files via upload
+- Add files via upload
+- fix(config): correct 8 inaccurate guide content items to match actual UI
+- feat(config): add page guide for BoardPicker and Notepad screens
+- chore: sync pnpm-lock.yaml after esbuild removal from game-engine
+- feat(splash): add refresh button after 8s timeout with cache clearing
+- fix(wechat): block SPA loading in WeChat WebView to preserve original URL
+- refactor(og): replace UA detection with HTMLRewriter for universal dynamic OG
+- fix(og): remove MicroMessenger/QQBrowser from crawler UA list
+- feat(room): promote copy-link button to primary in QR modal
+- feat(config): add custom domain support (SITE_URL, OG meta, linking prefixes)
+- feat(config): add custom domain support (SITE_URL, OG meta, linking prefixes)
+- docs: update deployment docs from vercel to cloudflare pages
+- fix(navigation): generalize deep-link Home injection + add contract test
+- fix(config): increase testTimeout to 10s for parallel board UI tests
+- fix(navigation): inject Home under auth screens for web deep-link/refresh
+- fix(auth): use correct Resend verified domain in FROM address
+- fix(auth): map CF API errors to Chinese + prevent double-submit on forgot password
+- ci(config): purge CDN cache after frontend deploy
+- fix(web): disable immutable cache for JS bundles
+- fix(auth): clear stale pending action and fix AvatarPicker readOnly
+- feat(auth): upgrade avatar preview card and unify button styles
+- feat(auth): add password reset flow with email verification
+- chore(deps): update expo packages to compatible versions
+- feat(config): bind custom domain api.werewolfjudge.eu.org
+- fix(hooks): auto-scroll chat to bottom on bridge-initiated messages
+- feat(components): add AI role play guide to role cards
+- fix(services): convert 0-based seat to 1-based in AI notepad analysis
+- fix(services): make CONNECT a global FSM transition and use typed SupersededError
+
 ## [1.13.0] - 2026-04-06
 
 - chore(models): update maskedMan avatar and badge
