@@ -53,6 +53,13 @@ export const ANIMATION_OPTIONS = [
     isRandom: true,
   },
   {
+    value: 'none',
+    label: '关闭',
+    icon: 'close-circle-outline',
+    shortDesc: '跳过动画，直接显示身份',
+    isNone: true,
+  },
+  {
     value: 'roulette',
     label: '轮盘',
     icon: 'radio-button-on-outline',
@@ -135,13 +142,6 @@ export const ANIMATION_OPTIONS = [
     icon: 'planet-outline',
     shortDesc: '画圈加速漩涡旋转，坍缩爆发揭晓',
     operationType: 'drag',
-  },
-  {
-    value: 'none',
-    label: '关闭',
-    icon: 'close-circle-outline',
-    shortDesc: '跳过动画，直接显示身份',
-    isNone: true,
   },
 ] as const satisfies readonly AnimationOptionConfig[];
 
