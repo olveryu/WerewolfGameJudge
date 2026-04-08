@@ -76,6 +76,7 @@
 ### P5 — TypeScript 类型安全 + DRY + 代码异味 + 性能微优化
 
 > 剩余 MEDIUM（类型断言、DRY、风格）+ 全部 LOW。
+> Layer-A（运行时风险）已修复 → 见 P4 中 M27/M33/M42/M46/M58 + 下方 L69 `230acf8a`
 
 **MEDIUM — 类型安全 & 断言清理**
 
@@ -137,7 +138,7 @@
 84. L33-L38 — Services LOW（冗余 await、三次 HTTP、非空断言、无 timeout）
 85. L39-L43 — Hooks LOW（不必要 useMemo、长文件、重复调用）
 86. L44-L63 — Screens LOW（未用参数、重复 JSDoc、log 级别、setTimeout 变通等）
-87. L64-L69 — Components LOW（未用 props、未 memo、硬编码 borderWidth）
+87. L64-L69 — Components LOW（未用 props、未 memo、硬编码 borderWidth）— ✅ L69 useBubbleDrag 错误日志已补 `230acf8a`
 88. L70-L75 — Utils LOW（空数组替换、as const 冲突、hash DRY、精度）
 89. L76-L77 — Contexts LOW（unreachable throw、deps 注释矛盾）
 90. L78 — Navigation/Top-Level LOW（splash setTimeout 无 cleanup）
@@ -535,14 +536,14 @@
 
 ### Components
 
-| #   | 文件                            | 描述                               |
-| --- | ------------------------------- | ---------------------------------- |
-| L64 | `Avatar.tsx:17-19`              | 未使用的 props roomId, avatarIndex |
-| L65 | `NotepadPanel.tsx:240`          | 未 React.memo                      |
-| L66 | `bubble.styles.ts:38`           | 硬编码 borderWidth: 2              |
-| L67 | `SimpleMarkdown.tsx:97`         | borderRadius.none + 3 魔法值       |
-| L68 | `SettingsOptionGroup.tsx:61-88` | 子组件自建 StyleSheet              |
-| L69 | `useBubbleDrag.ts:109`          | AsyncStorage 错误静默吞掉          |
+| #   | 文件                            | 描述                                             |
+| --- | ------------------------------- | ------------------------------------------------ |
+| L64 | `Avatar.tsx:17-19`              | 未使用的 props roomId, avatarIndex               |
+| L65 | `NotepadPanel.tsx:240`          | 未 React.memo                                    |
+| L66 | `bubble.styles.ts:38`           | 硬编码 borderWidth: 2                            |
+| L67 | `SimpleMarkdown.tsx:97`         | borderRadius.none + 3 魔法值                     |
+| L68 | `SettingsOptionGroup.tsx:61-88` | 子组件自建 StyleSheet                            |
+| L69 | `useBubbleDrag.ts:109`          | ✅ AsyncStorage 错误已加 chatLog.warn `230acf8a` |
 
 ### Utils
 
