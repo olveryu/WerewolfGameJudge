@@ -66,6 +66,10 @@ export interface ExecutorContext {
 
   // ── Dialog layer ──
   actionDialogs: UseRoomActionDialogsResult;
+
+  // ── Lifecycle ──
+  /** Ref tracking whether the owning component is still mounted. */
+  mountedRef: MutableRefObject<boolean>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

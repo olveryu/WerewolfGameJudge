@@ -35,7 +35,7 @@ function deriveGateTriggerRoles(): readonly string[] {
   return [];
 }
 
-const WOLF_ROBOT_GATE_ROLES = deriveGateTriggerRoles();
+export const WOLF_ROBOT_GATE_ROLES = deriveGateTriggerRoles();
 
 // ---------------------------------------------------------------------------
 // Type aliases

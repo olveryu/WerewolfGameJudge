@@ -11,7 +11,7 @@ import { GameStatus } from '@werewolf/game-engine/models';
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import type { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { Team } from '@werewolf/game-engine/models/roles/spec/types';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { chatLog } from '@/utils/logger';
@@ -81,8 +81,10 @@ export function getNotepadStorageKey(roomCode: string | null): string | null {
 export function useNotepad(facade: IGameFacade): UseNotepadReturn {
   const [state, setState] = useState<NotepadState>(emptyState);
 
-  // Derive player count from game state
-  const gameState = facade.getState();
+  // Subscribe to facade state via useSyncExternalStore (reactive to gameState changes)
+  const subscribe = useCallback((cb: () => void) => facade.subscribe(cb), [facade]);
+  const getSnapshot = useCallback(() => facade.getState(), [facade]);
+  const gameState = useSyncExternalStore(subscribe, getSnapshot);
   const playerCount = gameState?.templateRoles?.length ?? 12;
   const templateRoles = gameState?.templateRoles;
   const roomCode = gameState?.roomCode ?? null;

@@ -9,6 +9,7 @@
  */
 
 import { GameStatus } from '../../models';
+import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerResult, NonNullState } from './types';
 
 /**
@@ -50,10 +51,11 @@ export function validateNightFlowPreconditions(
   }
 
   // Gate 4: wolfrobot_hunter_status_not_viewed
-  // If current step is wolfRobotLearn and learned hunter but not viewed, reject advance
+  // If current step is wolfRobotLearn and learned a gate-triggering role but not viewed, reject advance
   if (
     state.currentStepId === 'wolfRobotLearn' &&
-    state.wolfRobotReveal?.learnedRoleId === 'hunter' &&
+    state.wolfRobotReveal?.learnedRoleId != null &&
+    WOLF_ROBOT_GATE_ROLES.includes(state.wolfRobotReveal.learnedRoleId) &&
     state.wolfRobotHunterStatusViewed === false
   ) {
     return {

@@ -230,6 +230,8 @@ export function handleActionRejected(state: GameState, action: ActionRejectedAct
 export function handleAddRevealAck(state: GameState, action: AddRevealAckAction): GameState {
   const { ackKey } = action.payload;
   const existing = state.pendingRevealAcks;
+  // Idempotent: ignore duplicate ack
+  if (existing.includes(ackKey)) return state;
   return {
     ...state,
     pendingRevealAcks: [...existing, ackKey],

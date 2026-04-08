@@ -15,7 +15,7 @@ import { getRevealDataFromState } from '../hooks/actionIntentHelpers';
 import type { IntentExecutor } from './types';
 
 export const revealExecutor: IntentExecutor = async (intent, ctx) => {
-  const { gameState, gameStateRef, currentSchema, confirmThenAct } = ctx;
+  const { gameState, gameStateRef, currentSchema, confirmThenAct, mountedRef } = ctx;
   const { submitRevealAckSafe, setPendingRevealDialog, actionDialogs } = ctx;
 
   if (!gameState) return;
@@ -35,10 +35,13 @@ export const revealExecutor: IntentExecutor = async (intent, ctx) => {
 
     for (let i = 0; i < maxRetries; i++) {
       await new Promise((resolve) => setTimeout(resolve, retryInterval));
+      if (!mountedRef.current) return;
       const state = gameStateRef.current;
       if (state) reveal = getRevealDataFromState(state, revealKind);
       if (reveal) break;
     }
+
+    if (!mountedRef.current) return;
 
     if (reveal) {
       const ui = currentSchema?.kind !== 'compound' ? currentSchema?.ui : undefined;

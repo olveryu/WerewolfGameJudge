@@ -133,9 +133,9 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const startGame = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
 
-    // Start BGM if enabled
-    bgm.startBgmIfEnabled();
     const result = await facade.startNight();
+    // Start BGM only after successful startNight to avoid music playing on failure
+    if (result.success) bgm.startBgmIfEnabled();
     handleMutationResult(result, '开始游戏', toastError);
   }, [facade, bgm]);
 

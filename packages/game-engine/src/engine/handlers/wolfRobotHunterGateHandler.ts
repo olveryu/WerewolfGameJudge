@@ -14,6 +14,7 @@
 
 import { getEngineLogger } from '../../utils/logger';
 import type { SetWolfRobotHunterStatusViewedAction } from '../reducer/types';
+import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerResult } from './types';
 import { STANDARD_SIDE_EFFECTS } from './types';
 
@@ -33,7 +34,7 @@ interface SetWolfRobotHunterStatusViewedIntent {
  * 校验：
  * 1. state 存在
  * 2. currentStepId === 'wolfRobotLearn'
- * 3. wolfRobotReveal.learnedRoleId === 'hunter'
+ * 3. wolfRobotReveal.learnedRoleId in WOLF_ROBOT_GATE_ROLES
  * 4. seat 对应的 player.role === 'wolfRobot'
  *
  * 返回：
@@ -64,9 +65,12 @@ export function handleSetWolfRobotHunterStatusViewed(
     return { success: false, reason: 'invalid_step', actions: [] };
   }
 
-  // Gate 3: wolfRobotReveal.learnedRoleId 必须是 hunter
-  if (state.wolfRobotReveal?.learnedRoleId !== 'hunter') {
-    handlerLog.warn('rejected: not_learned_hunter', {
+  // Gate 3: wolfRobotReveal.learnedRoleId 必须在 gate 触发角色列表中
+  if (
+    !state.wolfRobotReveal?.learnedRoleId ||
+    !WOLF_ROBOT_GATE_ROLES.includes(state.wolfRobotReveal.learnedRoleId)
+  ) {
+    handlerLog.warn('rejected: not_learned_gate_role', {
       learnedRoleId: state.wolfRobotReveal?.learnedRoleId,
     });
     return { success: false, reason: 'not_learned_hunter', actions: [] };

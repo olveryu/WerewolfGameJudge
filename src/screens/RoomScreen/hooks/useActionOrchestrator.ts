@@ -130,6 +130,14 @@ export function useActionOrchestrator({
   const gameStateRef = useRef<LocalGameState | null>(null);
   const lastAutoIntentKeyRef = useRef<string | null>(null);
   const lastRejectedKeyRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+
+  // Clear mountedRef on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Keep gameStateRef in sync
   useEffect(() => {
@@ -247,6 +255,7 @@ export function useActionOrchestrator({
         setPendingHunterStatusViewed,
         openChooseCardModal,
         actionDialogs,
+        mountedRef,
       };
 
       const handled = await dispatchIntent(intent, ctx);
