@@ -19,7 +19,7 @@
 - `.github/copilot-instructions.md` — 主指令文件（项目概览、协作规则、架构边界、编码约定）
 - `.github/instructions/game-engine.instructions.md`
 - `.github/instructions/models.instructions.md`
-- `.github/instructions/new-role.instructions.md`
+- `.github/skills/new-role/SKILL.md`
 - `.github/instructions/screens.instructions.md`
 - `.github/instructions/services.instructions.md`
 - `.github/instructions/tests.instructions.md`

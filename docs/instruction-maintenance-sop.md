@@ -6,13 +6,13 @@
 
 | 变更类型               | 影响的 instruction / 文档          | 具体更新项                                                                                                                          |
 | ---------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **加新角色**           | `new-role.instructions.md`         | §参考角色索引表、§C2 `CurrentNightResults` 字段列表、`TargetConstraint` 枚举（如有新值）、`ResolverResult.result` 字段列表          |
+| **加新角色**           | `.github/skills/new-role/SKILL.md` | §参考角色索引表、§C2 `CurrentNightResults` 字段列表、`TargetConstraint` 枚举（如有新值）、`ResolverResult.result` 字段列表          |
 |                        | `README.md`                        | 角色总数、阵营分组表                                                                                                                |
 |                        | `NIGHT1_ROLE_ALIGNMENT_MATRIX.md`  | NIGHT_STEPS 表、行为对齐节、UX-only 限制表、三层对齐表、日期、测试统计                                                              |
 | **改 UI 组件/弹窗**    | `screens.instructions.md`          | §Overlay/Modal 表格、§底部按钮映射、§⋯菜单项                                                                                        |
 | **改 GameState 字段**  | `services.instructions.md`         | §状态管理 Anti-drift                                                                                                                |
 |                        | `game-engine.instructions.md`      | §normalizeState 提醒                                                                                                                |
-| **改 Schema Kind**     | `new-role.instructions.md`         | §C4 Schema Kinds 列表、§步骤2 模板                                                                                                  |
+| **改 Schema Kind**     | `.github/skills/new-role/SKILL.md` | §C4 Schema Kinds 列表、§步骤2 模板                                                                                                  |
 |                        | `screens.instructions.md`          | §Schema Kind→交互模式表                                                                                                             |
 | **改 theme token**     | `screens.instructions.md`          | §Theme Token 规则                                                                                                                   |
 | **改测试规范**         | `tests.instructions.md`            | 对应规则                                                                                                                            |
