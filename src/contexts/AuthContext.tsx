@@ -156,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const result = await authService.signUpWithEmail(email, password, displayName);
         if (result.user) {
           const u = toUser(result.user);
-          setUser(u);
+          updateUserIfChanged(u);
           if (u) Sentry.setUser({ id: u.uid });
         }
       } catch (e: unknown) {
@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     },
-    [authService, handleAuthError],
+    [authService, handleAuthError, updateUserIfChanged],
   );
 
   const signInWithEmail = useCallback(
@@ -177,7 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const result = await authService.getCurrentUser();
         if (result?.data?.user) {
           const u = toUser(result.data.user);
-          setUser(u);
+          updateUserIfChanged(u);
           if (u) Sentry.setUser({ id: u.uid });
         }
       } catch (e: unknown) {
@@ -186,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     },
-    [authService, handleAuthError],
+    [authService, handleAuthError, updateUserIfChanged],
   );
 
   const updateProfile = useCallback(
@@ -196,13 +196,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await authService.updateProfile(updates);
         const result = await authService.getCurrentUser();
         if (result?.data?.user) {
-          setUser(toUser(result.data.user));
+          updateUserIfChanged(toUser(result.data.user));
         }
       } catch (e: unknown) {
         handleAuthError(e, 'Update profile failed', { rethrow: true });
       }
     },
-    [authService, handleAuthError],
+    [authService, handleAuthError, updateUserIfChanged],
   );
 
   const uploadAvatar = useCallback(
@@ -212,7 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const url = await avatarUploadService.uploadAvatar(fileUri);
         const result = await authService.getCurrentUser();
         if (result?.data?.user) {
-          setUser(toUser(result.data.user));
+          updateUserIfChanged(toUser(result.data.user));
         }
         return url;
       } catch (e: unknown) {
@@ -221,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw e; // unreachable — TS control-flow hint
       }
     },
-    [authService, avatarUploadService, handleAuthError],
+    [authService, avatarUploadService, handleAuthError, updateUserIfChanged],
   );
 
   const signOut = useCallback(async () => {
@@ -271,7 +271,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const result = await authService.getCurrentUser();
         if (result?.data?.user) {
           const u = toUser(result.data.user);
-          setUser(u);
+          updateUserIfChanged(u);
           if (u) Sentry.setUser({ id: u.uid });
         }
       } catch (e: unknown) {
@@ -280,7 +280,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     },
-    [authService, handleAuthError],
+    [authService, handleAuthError, updateUserIfChanged],
   );
 
   const value = useMemo<AuthContextValue>(

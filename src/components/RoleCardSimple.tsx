@@ -19,14 +19,12 @@ import {
   View,
 } from 'react-native';
 
-import { buildRolePlayGuidePrompt } from '@/components/AIChatBubble/rolePlayGuide';
 import { Button } from '@/components/Button';
 import {
   getFactionColor,
   RoleCardContent,
 } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { UI_ICONS } from '@/config/iconTokens';
-import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -37,8 +35,6 @@ import {
   useColors,
   withAlpha,
 } from '@/theme';
-import { requestAIChatMessage } from '@/utils/aiChatBridge';
-import { showConfirmAlert } from '@/utils/alertPresets';
 
 interface RoleCardSimpleProps {
   visible: boolean;
@@ -63,6 +59,11 @@ interface RoleCardSimpleProps {
   activeVariant?: string;
   /** 用户点击 pill 切换变体时的回调。 */
   onVariantSelect?: (variantId: string) => void;
+  /**
+   * 点击 AI 攻略按钮的回调，接收当前显示的 roleId（含变体切换）。
+   * 存在时显示 AI 按钮，不存在时隐藏。
+   */
+  onAskAI?: (displayRoleId: RoleId) => void;
 }
 
 export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
@@ -74,6 +75,7 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   variantIds,
   activeVariant,
   onVariantSelect,
+  onAskAI,
 }) => {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
@@ -81,24 +83,13 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   const cardHeight = cardWidth * 1.5;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const showAIButton = isAIChatReady();
+  const showAIButton = !!onAskAI;
   const displayRoleId = activeVariant ?? roleId;
 
   const handleAskAI = useCallback(() => {
-    if (!displayRoleId) return;
-    const prompt = buildRolePlayGuidePrompt(displayRoleId as RoleId);
-    if (!prompt) return;
-    const spec = ROLE_SPECS[displayRoleId as RoleId];
-    const roleName = spec?.displayName ?? displayRoleId;
-    showConfirmAlert('AI 攻略', `让 AI 分析「${roleName}」的玩法？`, () => {
-      onClose();
-      requestAIChatMessage({
-        fullText: prompt,
-        displayText: `${roleName} 攻略`,
-        maxTokens: 1024,
-      });
-    });
-  }, [displayRoleId, onClose]);
+    if (!displayRoleId || !onAskAI) return;
+    onAskAI(displayRoleId as RoleId);
+  }, [displayRoleId, onAskAI]);
 
   if (!visible || !roleId) return null;
 

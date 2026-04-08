@@ -31,6 +31,8 @@ import {
   type RoleData,
   RoleRevealAnimator,
 } from '@/components/RoleRevealEffects';
+import { isAIChatReady } from '@/services/feature/AIChatService';
+import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { log } from '@/utils/logger';
 import { getRoleBadge } from '@/utils/roleBadges';
 
@@ -123,7 +125,13 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
 
   if (resolvedAnimation === 'none' || !shouldPlayAnimation || animationDone) {
     return (
-      <RoleCardSimple visible={visible} roleId={roleId} onClose={onClose} seerLabel={seerLabel} />
+      <RoleCardSimple
+        visible={visible}
+        roleId={roleId}
+        onClose={onClose}
+        seerLabel={seerLabel}
+        onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, onClose) : undefined}
+      />
     );
   }
 

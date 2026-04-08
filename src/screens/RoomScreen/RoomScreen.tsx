@@ -29,8 +29,10 @@ import {
 } from '@/config/guideContent';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
+import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { componentSizes, spacing, useTheme } from '@/theme';
+import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -666,6 +668,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         roleId={skillPreviewRoleId}
         onClose={handleSkillPreviewClose}
         showRealIdentity
+        onAskAI={
+          isAIChatReady() ? (rid) => askAIAboutRole(rid, handleSkillPreviewClose) : undefined
+        }
       />
 
       {/* Night Review Modal — 裁判/观战者用，显示夜晚行动 + 全员身份 */}

@@ -3,8 +3,13 @@
  *
  * Module-level singleton callback，允许非 AIChatBubble 组件（如 NotepadScreen）
  * 请求 AI 聊天发送消息。模式与 alert.ts 的 setAlertListener 一致。
- * 不引入 React 组件、service 或游戏状态。
+ * 不引入 React 组件或游戏状态。
  */
+
+import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
+
+import { buildRolePlayGuidePrompt } from '@/components/AIChatBubble/rolePlayGuide';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 interface AIChatBridgePayload {
   /** 发送给 AI 的完整文本（含笔记内容 + prompt） */
@@ -33,4 +38,25 @@ export function setAIChatBridgeListener(cb: AIChatBridgeListener | null): void {
  */
 export function requestAIChatMessage(payload: AIChatBridgePayload): void {
   listener?.(payload);
+}
+
+/**
+ * 弹出确认后请求 AI 分析指定角色的玩法。
+ *
+ * 从 RoleCardSimple 提取的业务逻辑，供 Screen 层通过 `onAskAI` prop 传入。
+ * roleId 无效或 prompt 构建失败时静默返回。
+ */
+export function askAIAboutRole(roleId: RoleId, onClose: () => void): void {
+  const prompt = buildRolePlayGuidePrompt(roleId);
+  if (!prompt) return;
+  const spec = ROLE_SPECS[roleId];
+  const roleName = spec?.displayName ?? roleId;
+  showConfirmAlert('AI 攻略', `让 AI 分析「${roleName}」的玩法？`, () => {
+    onClose();
+    requestAIChatMessage({
+      fullText: prompt,
+      displayText: `${roleName} 攻略`,
+      maxTokens: 1024,
+    });
+  });
 }

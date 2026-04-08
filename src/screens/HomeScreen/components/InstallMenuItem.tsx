@@ -13,7 +13,7 @@ import { Modal, Text, TouchableOpacity, View, type ViewStyle } from 'react-nativ
 
 import { Button } from '@/components/Button';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
-import { fixed, spacing, type ThemeColors } from '@/theme';
+import { componentSizes, fixed, spacing, type ThemeColors } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
 
@@ -50,7 +50,7 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
         onPress={handlePress}
         activeOpacity={fixed.activeOpacity}
       >
-        <Ionicons name="download-outline" size={14} color={colors.primary} />
+        <Ionicons name="download-outline" size={componentSizes.icon.sm} color={colors.primary} />
         <Text style={styles.footerLinkText}>安装到主屏幕</Text>
       </TouchableOpacity>
 
@@ -68,7 +68,12 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
                   <View style={styles.guideStepRow}>
                     <Text style={styles.guideStepNumber}>①</Text>
                     <Text style={styles.guideStepText}>
-                      点击右上角 <Ionicons name="share-outline" size={16} color={colors.primary} />{' '}
+                      点击右上角{' '}
+                      <Ionicons
+                        name="share-outline"
+                        size={componentSizes.icon.sm}
+                        color={colors.primary}
+                      />{' '}
                       分享按钮
                     </Text>
                   </View>
@@ -88,7 +93,12 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
                     <Text style={styles.guideStepNumber}>①</Text>
                     <Text style={styles.guideStepText}>
                       点击底部工具栏的{' '}
-                      <Ionicons name="share-outline" size={16} color={colors.primary} /> 分享按钮
+                      <Ionicons
+                        name="share-outline"
+                        size={componentSizes.icon.sm}
+                        color={colors.primary}
+                      />{' '}
+                      分享按钮
                     </Text>
                   </View>
                   <View style={styles.guideStepRow}>

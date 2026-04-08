@@ -51,8 +51,10 @@ import {
   groupTemplatesByCategory,
   type TemplateSectionData,
 } from '@/screens/ConfigScreen/configHelpers';
+import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { componentSizes, fixed, layout, spacing, typography, useColors, withAlpha } from '@/theme';
+import { askAIAboutRole } from '@/utils/aiChatBridge';
 
 import { type BoardPickerStyles, createBoardPickerStyles } from './styles';
 
@@ -716,6 +718,7 @@ export const BoardPickerScreen: React.FC = () => {
         roleId={previewRoleId}
         onClose={handlePreviewClose}
         showRealIdentity
+        onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, handlePreviewClose) : undefined}
       />
 
       {/* Page Guide */}

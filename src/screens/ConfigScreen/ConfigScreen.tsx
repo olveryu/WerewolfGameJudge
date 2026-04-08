@@ -23,8 +23,10 @@ import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
+import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { componentSizes, useColors } from '@/theme';
+import { askAIAboutRole } from '@/utils/aiChatBridge';
 
 import {
   createConfigScreenStyles,
@@ -236,6 +238,7 @@ export const ConfigScreen: React.FC = () => {
         variantIds={roleInfoVariantIds}
         activeVariant={roleInfoActiveVariant}
         onVariantSelect={handleRoleInfoVariantSelect}
+        onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, handleCloseRoleInfo) : undefined}
       />
 
       {/* Page Guide */}

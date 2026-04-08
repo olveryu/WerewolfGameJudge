@@ -45,7 +45,7 @@ export const TipCard = memo<TipCardProps>(
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel="关闭提示"
           >
-            <Ionicons name="close" size={16} color={colors.textMuted} />
+            <Ionicons name="close" size={componentSizes.icon.sm} color={colors.textMuted} />
           </TouchableOpacity>
         )}
       </>
