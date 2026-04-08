@@ -103,7 +103,9 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
   useEffect(() => {
     if (msgCount > prevMsgCountRef.current) {
       setShowScrollBtn(false);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+      const tid = setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+      prevMsgCountRef.current = msgCount;
+      return () => clearTimeout(tid);
     }
     prevMsgCountRef.current = msgCount;
   }, [msgCount]);

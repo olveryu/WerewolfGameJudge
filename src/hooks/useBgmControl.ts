@@ -57,6 +57,10 @@ export function useBgmControl(
   const { settingsService, audioService } = useServices();
   const settingsRef = useRef(settingsService);
   const audioRef = useRef(audioService);
+  useEffect(() => {
+    settingsRef.current = settingsService;
+    audioRef.current = audioService;
+  }, [settingsService, audioService]);
 
   // Load settings on mount
   useEffect(() => {

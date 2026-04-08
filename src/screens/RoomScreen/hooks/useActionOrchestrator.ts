@@ -186,8 +186,8 @@ export function useActionOrchestrator({
       onAccepted: () => Promise<void> | void,
       opts?: { title?: string; message?: string },
     ) => {
-      const title = opts?.title ?? currentSchema!.ui!.confirmTitle!;
-      const message = opts?.message ?? currentSchema!.ui!.confirmText!;
+      const title = opts?.title ?? currentSchema?.ui?.confirmTitle ?? '确认操作';
+      const message = opts?.message ?? currentSchema?.ui?.confirmText ?? '确定要执行此操作吗？';
 
       actionDialogs.showConfirmDialog(title, message, async () => {
         const accepted = await proceedWithAction(targetSeat);

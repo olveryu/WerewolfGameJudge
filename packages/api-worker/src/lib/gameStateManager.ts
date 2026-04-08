@@ -75,9 +75,7 @@ export async function processGameAction(
       const result = process(currentState, currentRevision);
 
       if (!result.success) {
-        if (!result.actions || result.actions.length === 0) {
-          return { success: false, reason: result.reason };
-        }
+        return { success: false, reason: result.reason };
       }
 
       // Step 3: apply actions → 新 state

@@ -129,8 +129,8 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
 
   const handleTouchEnd = useCallback(() => {
     if (isDraggingRef.current) {
-      AsyncStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify(positionRef.current)).catch(
-        () => {},
+      AsyncStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify(positionRef.current)).catch((e) =>
+        chatLog.warn('Failed to save bubble position:', e),
       );
       justHandledTouchRef.current = true;
     } else {

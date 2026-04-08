@@ -234,7 +234,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
     }
 
     // 2) Skip button: always available; should mean save=false AND poison=false.
-    const skipLabel = poisonStep!.ui!.bottomActionText!;
+    const skipLabel = poisonStep?.ui?.bottomActionText ?? '跳过';
     buttons.push({
       key: 'skip',
       label: skipLabel,
