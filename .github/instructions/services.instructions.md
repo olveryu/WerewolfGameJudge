@@ -64,6 +64,10 @@ expo-audio `AudioPlayer` 等原生资源被替换时必须 track 旧实例，在
 
 `new Promise()` 构造器必须保证所有路径（成功/错误/取消/stop）都 `resolve` 或 `reject`。`stopCurrentPlayer()` 等中断操作必须 settle 正在进行的 playback promise，禁止 dangling promise。
 
+## 持久化数据 Validate + Clamp
+
+从 AsyncStorage / DB 加载的 UI 状态（坐标、枚举、配置值）必须 validate 类型 + clamp 到当前有效范围，不能直接 trust。例如屏幕坐标需 clamp 到当前 viewport。
+
 ## 音频编排
 
 单一编排来源：Handler 声明 → Facade 执行 → UI 只读。

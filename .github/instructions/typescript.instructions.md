@@ -5,8 +5,6 @@ applyTo: 'src/**/*.ts,src/**/*.tsx'
 
 # TypeScript & React Hooks 规范
 
-> 项目已启用 `strict: true`。
-
 ## 类型安全
 
 - 用 type guard / `satisfies` / 泛型推导替代 `as` 断言（`as const` 和测试 mock 除外）。

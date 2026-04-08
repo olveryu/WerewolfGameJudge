@@ -6,68 +6,35 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker (D1 + D
 
 ## Tech Stack
 
-- React Native 0.83 + React 19 + Expo SDK 55
-- TypeScript ~5.9
+- React Native 0.83 + React 19 + Expo SDK 55 | TypeScript ~5.9
 - **pnpm workspace monorepo**（`packages/game-engine` + `packages/api-worker` + 根项目）
-- `@werewolf/game-engine` — 纯游戏逻辑共享包（models / protocol / resolvers / engine），客户端与服务端共用
+- `@werewolf/game-engine` — 纯游戏逻辑共享包，客户端与服务端共用
 - `@werewolf/api-worker` — Game API + Auth API（Cloudflare Worker + D1 + Durable Objects）
-- Sentry (crash reporting, production only)
-- expo-image (remote avatar caching), expo-splash-screen
-- Gemini 3.1 Flash Lite (AI chat via Worker proxy)
-- Jest 29 (单元/集成测试) | Playwright (E2E)
-- ESLint 9 (`eslint.config.mjs`) | Prettier
+- Sentry (production only) | Jest 29 | Playwright (E2E) | ESLint 9 | Prettier
 - Path alias: `@/` → `src/`（仅根项目；game-engine 内使用相对路径）
 
-## Key Directories
-
-### `packages/game-engine/src/` — 纯游戏逻辑共享包（详见 `game-engine.instructions.md`）
-
-### `src/` — 客户端
-
-- `services/facade/` — Facade 编排 + IO（详见 `services.instructions.md`）
-- `services/cloudflare/` — CFAuthService / CFRoomService / CFRealtimeService / CFStorageService
-- `services/infra/` — AudioService
-- `services/feature/` — SettingsService / AvatarUploadService / AIChatService
-- `models/roles/spec/` — 角色 spec 测试（模型定义在 `@werewolf/game-engine`）
-- `screens/` — React Native screens（详见 `screens.instructions.md`）
-- `theme/` — Design tokens (`tokens.ts`) + themes (`themes.ts`)
-- `components/` — 通用 UI 组件
-- `hooks/` — 通用 hooks
-- `contexts/` — React Context（AuthContext / GameFacadeContext / ServiceContext）
-- `utils/` — logger / alert / avatar / roomCode / mobileDebug / storageAdapter / withTimeout / appReady / errorPipeline / errorUtils / roleBadges / defaultAvatarIcons
-- `config/` — api / version / errorMessages / storageKeys / guideContent / emojiTokens / iconTokens 配置（纯配置值，禁止业务逻辑/副作用）
-- `navigation/` — React Navigation 路由
-
-### 质量命令
+## 质量命令
 
 - `pnpm run test:all` — 单元/集成测试（全 workspace）
 - `pnpm run e2e` — E2E 标准入口（`--reporter=list`）
-- `pnpm run e2e:core` / `pnpm run e2e:remote` — 调试入口（允许脚本使用 `--reporter=line`）
+- `pnpm run e2e:core` / `pnpm run e2e:remote` — 调试入口
 - `pnpm exec tsc --noEmit` — 类型检查
 - `pnpm run quality` — typecheck + lint + format + test 一次全跑
-- `npx knip --no-exit-code` — 死代码检测（unused files / exports / dependencies / types）。定期运行，清理未使用的导出和文件。注意甄别误报：runtime 入口文件（`metro.config.js`、`web/sw.js`）和 Expo Web 隐式依赖（`react-dom`）会被误报为 unused。
-
-### 发版 & 部署
-
-- `pnpm run release` — bump 版本号 → 更新 CHANGELOG → commit → git tag → push。每次发版必须通过此脚本。
-- `git push` 自动触发 **GitHub CI**（quality → deploy-api-worker + deploy-frontend → E2E）。`deploy-frontend` 执行 `scripts/build.sh` 后部署到 **Cloudflare Pages** 并自动清除 CDN 缓存。
-- Auth API + Game API 由 `packages/api-worker`（Cloudflare Worker + D1 + Durable Objects）承载，CI `deploy-api-worker` job 自动部署。
+- `npx knip --no-exit-code` — 死代码检测。注意甄别误报：`metro.config.js`、`web/sw.js`、`react-dom` 等会被误报。
+- `pnpm run release` — bump 版本号 → CHANGELOG → commit → tag → push
 
 ---
 
-## ⚠️⚠️⚠️ 第一原则：社区惯例优先 ⚠️⚠️⚠️
+## ⚠️ 第一原则：社区惯例优先
 
-> **在思考、制定方案、写任何一行代码之前，必须先查阅并遵循社区通行做法。**
+> **写任何代码之前，必须先查阅并遵循社区通行做法。此规则优先级最高。**
 >
-> - 新增依赖/模式/架构决策，优先采用成熟、广泛认可的方案。
-> - 发现现有代码不符合社区惯例时，主动指出。
-> - 如果不确定社区做法是什么，先搜索/查阅文档，不要凭记忆臆断。
-> - **版本号与命令以可执行配置为唯一权威来源。** 依赖与运行时版本以 `package.json`/锁文件为准，CI/部署流程以 `.github/workflows/*.yml` 与脚本文件为准；instruction/README 仅作同步说明，发现冲突时先修文档使其与权威来源一致。
-> - **禁止 hardcode 魔法值。** 枚举用枚举引用、常量用命名常量、配置用配置项。`as any` / `as unknown` 不能作为绕过借口——测试中也一样。仅以下情况允许字面量：① 单次使用且语义自明的数字/字符串（如 `timeout: 3000`、测试描述文本）；② 类型系统已通过其他机制保证安全（如 `keyof typeof OBJ`）。
-> - **禁止臆造事实。** 不确定的 API 签名、库行为、项目结构，必须先用工具验证（`grep_search` / `read_file` / 查文档）。禁止凭记忆编造函数名、参数、文件路径或项目约定。说错不如说"我不确定，需要确认"。
-> - **禁止图省事走捷径。** 不得因为"简单"就采用非正规做法（如用 `?.` 绕过 required 字段、用 `as any` 消除类型错误、在生产代码加防御性兜底掩盖测试 mock 不完整）。遇到问题时先查社区惯例，按正规方式解决。
-> - **不要总想着用最简单的方法做。** 简单≠正确。面对问题时应追求**正确且健壮**的方案，而非最省力的方案。如果正确做法需要多几步、多写几行代码，那就多写——不要为了省事而降低质量或留下隐患。
-> - **这条规则的优先级高于本文件中的所有其他规则。**
+> - 新增依赖/模式/架构决策，优先采用成熟方案。发现现有代码不符合社区惯例时主动指出。
+> - 不确定就先查文档/搜索，不要凭记忆臆断。
+> - **版本号与命令以可执行配置为唯一权威来源。** `package.json`/锁文件 > instruction/README。
+> - **禁止 hardcode 魔法值。** 枚举用引用、常量用命名常量、配置用配置项。仅允许语义自明的单次字面量（`timeout: 3000`）或类型系统保证安全的场景。
+> - **禁止臆造事实。** 不确定的 API/库行为/项目结构必须用工具验证。说错不如说"我不确定，需要确认"。
+> - **禁止走捷径。** 不得用 `?.` 绕过 required 字段、`as any` 消除类型错误、防御性兜底掩盖 mock 不完整。追求正确且健壮，而非最省力。
 
 ---
 
@@ -75,105 +42,65 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker (D1 + D
 
 ### 未确认禁止写代码
 
-- 允许只读检查（read/search/list/grep）、运行测试/格式化/类型检查。
+- 允许只读检查、运行测试/格式化/类型检查。
 - 未经用户确认禁止修改代码。需先列出"文件 + 变更点 + 风险"等待确认。
-- 收到修改需求时：分解问题 → 收集上下文 → 制定变更计划 → 验证假设 → 列变更计划等待确认。
 
 ### 修改代码时逐符号验证
 
-每个受影响符号必须用 `grep_search` 或 `list_code_usages` 独立验证所有消费者。禁止批量推断"无影响"。修改前列出验证结论（`符号名 → 消费者: 无 / 有 [文件]`）。
+每个受影响符号必须用 `grep_search` 或 `list_code_usages` 独立验证所有消费者。禁止批量推断"无影响"。
 
 ### 改参数 / 校验条件时双向追踪
 
-修改函数**调用方**的参数构造（如 `isHost`、`mySeat` 等上下文字段）时，必须追踪**被调用方**对该参数的消费逻辑，确认语义仍然正确。反之亦然：修改被调用方的校验条件时，必须检查所有调用方传入的值是否满足新条件。
+修改调用方参数构造时追踪被调用方消费逻辑，反之亦然。
 
 ### 调试策略
 
-静态分析首选。较多时间仍无法确定根因时，主动加 `[DIAG]` 前缀诊断日志（项目 logger，禁止 `console.*`），让用户测试。修复后必须清除所有 `[DIAG]` 日志。
+静态分析首选。无法确定根因时加 `[DIAG]` 前缀诊断日志（项目 logger），修复后清除。
 
 ### 验证流水线
 
-- pre-commit hook（husky + lint-staged）：eslint --fix + prettier --write。
-- pre-push hook：`npx tsc --noEmit`。
-- 手动完整验证：`pnpm run quality`。任一步骤失败必须修复后重跑。
+- pre-commit：eslint --fix + prettier --write
+- pre-push：`npx tsc --noEmit`
+- 手动完整验证：`pnpm run quality`。失败必须修复后重跑。
 
 ---
 
 ## 不可协商规则
 
-- **服务端是唯一的游戏逻辑权威。** Cloudflare Worker（Durable Objects）负责读-算-写-广播。客户端完全平等。
-- **"Host" 只是 UI 角色标记。** `isHost` 决定按钮可见性和音频播放。Host 设备同时也是玩家。
+- **服务端是唯一的游戏逻辑权威。** Worker（DO）负责读-算-写-广播。客户端完全平等。
+- **"Host" 只是 UI 角色标记。** `isHost` 决定按钮可见性和音频播放。Host 同时也是玩家。
 - **仅 Night-1 范围。** 禁止跨夜状态/规则。
-- **`GameState` 是单一真相。** 所有信息公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift/PRIVATE_EFFECT。
-- **信任模型：默认不作弊。** 这是面对面 party game，玩家物理同桌。API 不做 JWT 鉴权，reveal 数据不做服务端隔离，仅靠客户端 UI 按角色过滤显示。不要为防作弊引入额外架构复杂度。
-- **优先使用成熟库。**
-- **DRY（Don't Repeat Yourself）。** 同一逻辑只写一处，其他地方复用。发现重复实现时主动提取公共函数/模块。
-- **SRP ~400 行拆分信号**（行数是信号不是判决）。
+- **`GameState` 是单一真相。** 公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift。
+- **信任模型：默认不作弊。** 面对面 party game，不引入额外防作弊架构。
+- **DRY + SRP ~400 行拆分信号。**
 
-不清楚就先问再写代码。不要臆造仓库事实。
+不清楚就先问。不要臆造仓库事实。
 
 ---
 
 ## 架构边界
 
-- **Cloudflare Worker（Durable Objects）** — 游戏逻辑（game-engine → D1 持久化 → WebSocket 广播）。
-- **Cloudflare Worker（D1）** — 房间生命周期、auth、game_state 持久化。
-- **Cloudflare Pages** — 仅承载前端静态资源（Expo Web build）。
-- **客户端** — HTTP API 提交 + WebSocket 接收 + `applySnapshot` + 音频播放（Host）。
-- 所有客户端完全平等。禁止 P2P 消息。断线恢复统一读 DB。
-
-### 断线恢复架构（FSM 三层）
-
-三层分离：IRealtimeTransport（薄 WS）→ ConnectionManager（FSM 执行器）→ GameFacade（业务）。
-
-**Transport 层**（CFRealtimeService / IRealtimeTransport）：
-
-- 仅负责 WS 创建/销毁、消息解析、8s 连接超时。不含重连/ping/状态逻辑。
-
-**连接管理层**（ConnectionManager + ConnectionFSM）：
-
-- 8 状态（Idle → Connecting → Syncing → Connected → Disconnected → Reconnecting → Failed → Disposed）× 16 事件的确定性 FSM。
-- Functional core（`ConnectionFSM.transition()`）/ imperative shell（`ConnectionManager`）。
-- Ping/pong keepalive（25s interval, 10s timeout）
-- 指数退避 + full jitter（base 1s, max 30s, max 15 attempts）
-- Revision 轮询（5s, Connected + visible）
-- 平台事件（online/offline, visibilitychange）
-- `connectAndWait()`：Promise 语义的初始连接，供 createRoom/joinRoom 使用
-
-**Facade 层**（GameFacade）：
-
-- `addConnectionStatusListener()` 将 `ConnectionState`（8 种） 映射为 `ConnectionStatus`（4 种：Connecting/Syncing/Live/Disconnected）供 UI 消费。
-- `useConnectionStatus` hook 替代旧 `useConnectionSync`。
+- **Worker（DO）** — 游戏逻辑 + D1 持久化 + WebSocket 广播。
+- **Worker（D1）** — 房间生命周期、auth。
+- **Cloudflare Pages** — 前端静态资源。
+- **客户端** — HTTP 提交 + WebSocket 接收 + `applySnapshot` + 音频（Host）。
+- 禁止 P2P 消息。断线恢复统一读 DB。
 
 ### 日志
 
-- 统一从 `src/utils/logger.ts` 获取命名 logger（`gameRoomLog`、`roomScreenLog` 等）。状态迁移、action 提交、错误、关键分支决策必须打日志。
-- 禁止 `src/**` 业务代码使用 `console.*`。
-- 禁止 `__tests__/**`、`e2e/**` 测试代码使用 `console.*`。
-- `scripts/**`、`jest.setup.ts` 中允许使用 `console.*`。
+统一用 `src/utils/logger.ts` 命名 logger。禁止业务代码和测试代码 `console.*`（`scripts/**`、`jest.setup.ts` 例外，ESLint `no-console: 'error'` 已强制）。
 
 ### 错误处理
 
-关键 catch 块三层齐备：`log.error()` + `Sentry.captureException()` + `showAlert(中文友好提示)`。可预期错误（用户取消、权限受限、**用户输入错误、速率限制**）只需 `log.warn()` + UI 反馈，**禁止上报 Sentry**。具体地：**HTTP 状态码 `401` / `403` / `429` 是可预期错误**，catch 块应先按状态码分支处理可预期情况，fallback 才上报 Sentry。auth 错误用 `mapAuthError()` 映射中文，用 `isExpectedAuthError()` 判断是否可预期。面向用户文本一律中文，`showAlert` title 用具体动作（`'创建失败'`），未知错误 fallback `'请稍后重试'`。`ErrorBoundary.componentDidCatch` 使用 `Sentry.withScope` 附加 `componentStack`。
-
-Fail fast：handler / reducer / 纯函数保持严格校验，违反前置条件立即报错，禁止防御性兜底或 silent fallback 掩盖上层调用错误。修正应在调用方（跳过无效调用 / 修正参数），而非在被调用方放宽校验。
-
-### API Handler 幂等性
-
-服务端 handler 对重复请求必须幂等 no-op。例如 audio-ack 在 `isAudioPlaying=false` 且无 `pendingAudioEffects` 时应跳过返回失败，不重复推进。同一 `{revision, currentStepId}` 最多执行一次状态变更。
-
-### Realtime Channel 错误处理
-
-- Fire-and-forget `.catch()` 必须 `log.error()`（或服务端 `console.error()`），禁止空 catch body。
-
-### 持久化数据加载后 Validate + Clamp
-
-从 AsyncStorage / DB 加载的 UI 状态（坐标、枚举、配置值）必须 validate 类型 + clamp 到当前有效范围，不能直接 trust。例如屏幕坐标需 clamp 到当前 viewport。
+- 关键 catch 三层齐备：`log.error()` + `Sentry.captureException()` + `showAlert(中文提示)`。
+- 可预期错误（`401`/`403`/`429`、用户取消）只 `log.warn()` + UI 反馈，禁止报 Sentry。auth 错误用 `mapAuthError()` / `isExpectedAuthError()`。
+- 面向用户文本一律中文，`showAlert` title 用具体动作（`'创建失败'`），fallback `'请稍后重试'`。
+- Fail fast：纯函数/handler 严格校验，禁止防御性兜底。修正在调用方。
 
 ---
 
 ## 编码约定
 
-- **Git Commit**：`<type>(<scope>): <description>`（Conventional Commits，英文小写祈使语气，单 commit 单事）。Scope：`night` / `room` / `config` / `hooks` / `theme` / `e2e` / `models` / `services` / `audio` / `game-engine`。
-- **终端**：跑测试禁止 `| grep` / `| head` / `| tail` 截断。Playwright 默认走脚本约定：常规用 `pnpm run e2e`（`--reporter=list`），调试场景允许 `e2e:core` / `e2e:remote` 的 `--reporter=line`。
-- **JSDoc**：每个 class/module 头部注释：第一行摘要（名称 + 一句话职责），后续段落展开细节，最后用自然语言点明边界约束（不做什么）。
+- **Git Commit**：`<type>(<scope>): <description>`（Conventional Commits，英文小写祈使语气）。
+- **终端**：跑测试禁止 `| grep` / `| head` / `| tail` 截断。
+- **JSDoc**：class/module 头部注释，第一行摘要 + 边界约束。

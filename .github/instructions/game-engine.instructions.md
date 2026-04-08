@@ -42,8 +42,5 @@ applyTo: packages/game-engine/**
 | **ResolveWolfVotes** | `engine/resolveWolfVotes.ts` | 狼人投票聚合计算 |
 | **DeathCalculator** | `engine/DeathCalculator.ts` | 夜晚死亡结算（守护/毒药/袭击/连带）|
 
-## Utils
-
-`utils/` 包含：`logger.ts`（DI 模式 `getEngineLogger` / `setEngineLogger`）/ `random.ts` / `shuffle.ts` / `playerHelpers.ts` / `id.ts` / `audioKeyOverride.ts`。
 
 ```
