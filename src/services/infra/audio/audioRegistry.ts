@@ -198,7 +198,47 @@ export const NIGHT_END_AUDIO: AudioAsset = require('../../../../assets/audio/nig
 // Background music
 // ---------------------------------------------------------------------------
 
-export const BGM_NIGHT: AudioAsset = require('../../../../assets/audio/bgm_night.mp3');
+/** Available BGM track identifiers. */
+export type BgmTrackId = 'finale' | 'speakSoftlyLove' | 'theGodfatherWaltz' | 'theImmigrant';
+
+/** BGM track metadata + asset mapping. */
+export interface BgmTrackEntry {
+  readonly id: BgmTrackId;
+  readonly label: string;
+  readonly asset: AudioAsset;
+}
+
+/** All available BGM tracks, ordered for display. */
+export const BGM_TRACKS: readonly BgmTrackEntry[] = [
+  {
+    id: 'theGodfatherWaltz',
+    label: '教父华尔兹',
+    asset: require('../../../../assets/bgm/the_godfather_waltz.m4a'),
+  },
+  {
+    id: 'speakSoftlyLove',
+    label: '柔声倾诉',
+    asset: require('../../../../assets/bgm/speak_softly_love.m4a'),
+  },
+  {
+    id: 'theImmigrant',
+    label: '移民',
+    asset: require('../../../../assets/bgm/the_immigrant.m4a'),
+  },
+  {
+    id: 'finale',
+    label: '终曲',
+    asset: require('../../../../assets/bgm/finale.m4a'),
+  },
+] as const;
+
+/** Valid BGM track IDs for runtime validation. */
+export const VALID_BGM_TRACK_IDS: ReadonlySet<string> = new Set<BgmTrackId>(
+  BGM_TRACKS.map((t) => t.id),
+);
+
+/** BGM setting value: a specific track or 'random' (shuffle playlist). */
+export type BgmTrackSetting = BgmTrackId | 'random';
 
 /** BGM volume (0.0 to 1.0) — keep low so TTS narration is clearly audible. */
 export const BGM_VOLUME = 0.1;

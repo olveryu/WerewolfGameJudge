@@ -145,8 +145,8 @@ export class AudioService {
 
   // ============ BGM ============
 
-  async startBgm(): Promise<void> {
-    return this.#bgm.start();
+  async startBgm(assets: AudioAsset[]): Promise<void> {
+    return this.#bgm.start(assets);
   }
 
   stopBgm(): void {

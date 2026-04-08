@@ -14,6 +14,8 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
+import { BGM_TRACKS } from '@/services/infra/audio/audioRegistry';
+import type { AudioAsset } from '@/services/infra/audio/types';
 import { bgmLog } from '@/utils/logger';
 
 export interface BgmControlState {
@@ -23,6 +25,18 @@ export interface BgmControlState {
   startBgmIfEnabled: () => void;
   /** Stop BGM immediately */
   stopBgm: () => void;
+}
+
+/**
+ * Resolve BGM track setting to asset array.
+ * 'random' → all tracks (BgmPlayer will shuffle); specific track → single-element array.
+ */
+function resolveBgmAssets(track: string): AudioAsset[] {
+  if (track === 'random') {
+    return BGM_TRACKS.map((t) => t.asset);
+  }
+  const entry = BGM_TRACKS.find((t) => t.id === track);
+  return entry ? [entry.asset] : BGM_TRACKS.map((t) => t.asset);
 }
 
 /**
@@ -68,7 +82,8 @@ export function useBgmControl(
     if (newValue) {
       // Only start if game is ongoing
       if (gameStatus === GameStatus.Ongoing) {
-        audioRef.current.startBgm().catch((e) => {
+        const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
+        audioRef.current.startBgm(assets).catch((e) => {
           bgmLog.warn('BGM start failed after toggle:', e);
         });
       }
@@ -81,7 +96,8 @@ export function useBgmControl(
   const startBgmIfEnabled = useCallback(() => {
     const bgmEnabled = settingsRef.current.isBgmEnabled();
     if (bgmEnabled) {
-      audioRef.current.startBgm().catch((e) => {
+      const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
+      audioRef.current.startBgm(assets).catch((e) => {
         bgmLog.warn('BGM start failed:', e);
       });
     }

@@ -17,9 +17,14 @@ type ThemeKey = 'light' | 'sand' | 'jade' | 'sky' | 'dark' | 'midnight' | 'blood
 
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
+import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
+import { VALID_BGM_TRACK_IDS } from '@/services/infra/audio/audioRegistry';
+
 interface UserSettings {
   /** Whether to play background music during night phase (default: true) */
   bgmEnabled: boolean;
+  /** Selected BGM track or 'random' for shuffle playlist (default: 'random') */
+  bgmTrack: BgmTrackSetting;
   /** Selected theme (default: 'dark') */
   themeKey: ThemeKey;
   /** Role reveal animation style (default: 'roulette') */
@@ -58,6 +63,7 @@ const VALID_ROLE_REVEAL_ANIMATIONS: ReadonlySet<string> = new Set<RoleRevealAnim
 
 const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
+  bgmTrack: 'random',
   themeKey: 'light',
   roleRevealAnimation: 'random',
 };
@@ -104,6 +110,13 @@ export class SettingsService {
               merged.bgmEnabled,
             );
             merged.bgmEnabled = DEFAULT_SETTINGS.bgmEnabled;
+          }
+          if (merged.bgmTrack !== 'random' && !VALID_BGM_TRACK_IDS.has(merged.bgmTrack)) {
+            settingsServiceLog.warn(
+              'Invalid persisted bgmTrack, resetting to default:',
+              merged.bgmTrack,
+            );
+            merged.bgmTrack = DEFAULT_SETTINGS.bgmTrack;
           }
           this.#settings = merged;
         }
@@ -166,6 +179,21 @@ export class SettingsService {
     this.#settings.bgmEnabled = !this.#settings.bgmEnabled;
     await this.#save();
     return this.#settings.bgmEnabled;
+  }
+
+  /**
+   * Get selected BGM track setting.
+   */
+  getBgmTrack(): BgmTrackSetting {
+    return this.#settings.bgmTrack;
+  }
+
+  /**
+   * Set BGM track and persist.
+   */
+  async setBgmTrack(track: BgmTrackSetting): Promise<void> {
+    this.#settings.bgmTrack = track;
+    await this.#save();
   }
 
   // =========================================================================

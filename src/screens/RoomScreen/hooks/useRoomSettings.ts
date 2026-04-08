@@ -1,7 +1,7 @@
 /**
  * useRoomSettings — Settings sheet state and handlers for RoomScreen.
  *
- * Owns settingsSheetVisible, bgmEnabled, and the four callbacks that
+ * Owns settingsSheetVisible, bgmEnabled, bgmTrack, and the callbacks that
  * open/close the sheet and change animation/BGM settings. Pure UI state
  * management — does not contain game logic.
  */
@@ -10,6 +10,7 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import { useCallback, useState } from 'react';
 
 import type { SettingsService } from '@/services/feature/SettingsService';
+import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -25,10 +26,12 @@ interface UseRoomSettingsInput {
 interface UseRoomSettingsResult {
   settingsSheetVisible: boolean;
   bgmEnabled: boolean;
+  bgmTrack: BgmTrackSetting;
   handleOpenSettings: () => void;
   handleCloseSettings: () => void;
   handleAnimationChange: (v: string) => void;
   handleBgmChange: (v: string) => void;
+  handleBgmTrackChange: (v: string) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -40,6 +43,7 @@ export function useRoomSettings(input: UseRoomSettingsInput): UseRoomSettingsRes
 
   const [settingsSheetVisible, setSettingsSheetVisible] = useState(false);
   const [bgmEnabled, setBgmEnabled] = useState(() => settingsService.isBgmEnabled());
+  const [bgmTrack, setBgmTrack] = useState<BgmTrackSetting>(() => settingsService.getBgmTrack());
 
   const handleOpenSettings = useCallback(() => {
     setSettingsSheetVisible(true);
@@ -74,12 +78,27 @@ export function useRoomSettings(input: UseRoomSettingsInput): UseRoomSettingsRes
     [settingsService],
   );
 
+  const handleBgmTrackChange = useCallback(
+    (v: string) => {
+      const track = v as BgmTrackSetting;
+      setBgmTrack(track);
+      fireAndForget(
+        settingsService.setBgmTrack(track),
+        '[handleBgmTrackChange] failed',
+        roomScreenLog,
+      );
+    },
+    [settingsService],
+  );
+
   return {
     settingsSheetVisible,
     bgmEnabled,
+    bgmTrack,
     handleOpenSettings,
     handleCloseSettings,
     handleAnimationChange,
     handleBgmChange,
+    handleBgmTrackChange,
   };
 }

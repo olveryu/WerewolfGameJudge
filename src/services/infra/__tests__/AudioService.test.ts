@@ -51,7 +51,6 @@ jest.mock('../../../../assets/audio/wolf_witch.mp3', () => 'wolf_witch-audio', {
 jest.mock('../../../../assets/audio/wild_child.mp3', () => 'wild_child-audio', { virtual: true });
 jest.mock('../../../../assets/audio/night.mp3', () => 'night-audio', { virtual: true });
 jest.mock('../../../../assets/audio/night_end.mp3', () => 'night_end-audio', { virtual: true });
-jest.mock('../../../../assets/audio/bgm_night.mp3', () => 'bgm_night-audio', { virtual: true });
 jest.mock('../../../../assets/audio/seer_1.mp3', () => 'seer_1-audio', { virtual: true });
 jest.mock('../../../../assets/audio/seer_2.mp3', () => 'seer_2-audio', { virtual: true });
 
@@ -542,7 +541,7 @@ describe('AudioService - BGM (native path)', () => {
     };
     createAudioPlayer.mockReturnValueOnce(mockPlayer);
 
-    await audioService.startBgm();
+    await audioService.startBgm(['test-asset']);
 
     expect(createAudioPlayer).toHaveBeenCalled();
     expect(mockPlayer.volume).toBe(BGM_VOLUME);
@@ -562,11 +561,11 @@ describe('AudioService - BGM (native path)', () => {
     };
     createAudioPlayer.mockReturnValue(mockPlayer);
 
-    await audioService.startBgm();
+    await audioService.startBgm(['test-asset']);
     createAudioPlayer.mockClear();
 
     // Second call should be no-op
-    await audioService.startBgm();
+    await audioService.startBgm(['test-asset']);
     expect(createAudioPlayer).not.toHaveBeenCalled();
   });
 
@@ -576,7 +575,7 @@ describe('AudioService - BGM (native path)', () => {
       throw new Error('player creation failed');
     });
 
-    await expect(audioService.startBgm()).resolves.toBeUndefined();
+    await expect(audioService.startBgm(['test-asset'])).resolves.toBeUndefined();
   });
 
   it('stopBgm should pause and remove bgm player', async () => {
@@ -591,7 +590,7 @@ describe('AudioService - BGM (native path)', () => {
     };
     createAudioPlayer.mockReturnValueOnce(mockPlayer);
 
-    await audioService.startBgm();
+    await audioService.startBgm(['test-asset']);
     jest.clearAllMocks();
 
     audioService.stopBgm();

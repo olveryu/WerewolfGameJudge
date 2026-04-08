@@ -1,122 +1,81 @@
 /**
  * BgmPlayer — background music lifecycle manager.
  *
- * Handles loop playback of night BGM with platform-specific backends
- * (Web Audio API GainNode on Web, expo-audio on Native). Supports pause/resume
- * for visibility changes. Independent of TTS playback — AudioService composes both.
+ * Supports two modes:
+ * - **Single track**: loop one track (when user selects a specific BGM).
+ * - **Playlist**: shuffle all tracks, play sequentially, re-shuffle on cycle end.
+ *
+ * Platform-specific backends: Web Audio API GainNode on Web, expo-audio on Native.
+ * Supports pause/resume for visibility changes. Independent of TTS playback —
+ * AudioService composes both.
  *
  * Web uses AudioContext + GainNode instead of HTMLAudioElement.volume because
  * iOS Safari ignores HTMLAudioElement.volume (always 1.0, hardware-only control).
  */
 
+import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
 import type { AudioPlayer } from 'expo-audio';
 import { createAudioPlayer } from 'expo-audio';
 import { Platform } from 'react-native';
 
 import { audioLog } from '@/utils/logger';
 
-import { BGM_NIGHT, BGM_VOLUME } from './audioRegistry';
+import { BGM_VOLUME } from './audioRegistry';
+import type { AudioAsset } from './types';
 import { audioAssetToUrl } from './types';
 
 const isWeb = Platform.OS === 'web';
 
 export class BgmPlayer {
-  #nativePlayer: AudioPlayer | null = null;
+  // ── Shared state ──
+  #isPlaying = false;
+  #playlist: AudioAsset[] = [];
+  #currentIndex = 0;
+  #isPlaylist = false;
+
+  // ── Web backend ──
   #webElement: HTMLAudioElement | null = null;
   #webAudioCtx: AudioContext | null = null;
-  #isPlaying = false;
+  #webEndedHandler: (() => void) | null = null;
+
+  // ── Native backend ──
+  #nativePlayer: AudioPlayer | null = null;
+  #nativeSubscription: { remove(): void } | null = null;
 
   getIsBgmPlaying(): boolean {
     return this.#isPlaying;
   }
 
-  async start(): Promise<void> {
-    if (this.#isPlaying || this.#nativePlayer || this.#webElement) {
+  /**
+   * Start BGM playback.
+   * @param assets - Single asset = loop mode; multiple assets = playlist (shuffle + sequential).
+   */
+  async start(assets: AudioAsset[]): Promise<void> {
+    if (this.#isPlaying) {
       audioLog.debug('BGM already playing, skipping');
       return;
     }
-
-    try {
-      audioLog.debug('Starting BGM...');
-
-      if (isWeb && typeof document !== 'undefined') {
-        const audioUrl = audioAssetToUrl(BGM_NIGHT);
-        const audio = new Audio(audioUrl);
-        audio.loop = true;
-
-        // Use Web Audio API GainNode for volume control.
-        // iOS Safari ignores HTMLAudioElement.volume (read-only, always 1.0).
-        const ctx = new AudioContext();
-        const source = ctx.createMediaElementSource(audio);
-        const gain = ctx.createGain();
-        gain.gain.value = BGM_VOLUME;
-        source.connect(gain);
-        gain.connect(ctx.destination);
-
-        this.#webElement = audio;
-        this.#webAudioCtx = ctx;
-        this.#isPlaying = true;
-
-        audio.play().catch((err) => {
-          audioLog.warn('Web BGM play() rejected (autoplay policy?):', err);
-          this.#isPlaying = false;
-          this.#cleanupWeb();
-        });
-        audioLog.debug('BGM started successfully (Web Audio API)');
-        return;
-      }
-
-      // Native: use expo-audio player
-      const player = createAudioPlayer(BGM_NIGHT);
-      this.#nativePlayer = player;
-      this.#isPlaying = true;
-      player.volume = BGM_VOLUME;
-      player.loop = true;
-      player.play();
-      audioLog.debug('BGM started successfully');
-    } catch (error) {
-      audioLog.warn('Failed to start BGM:', error);
-      this.#isPlaying = false;
-      this.#nativePlayer = null;
-      this.#cleanupWeb();
+    if (assets.length === 0) {
+      audioLog.warn('BGM start called with empty assets');
+      return;
     }
-  }
 
-  #cleanupWeb(): void {
-    if (this.#webAudioCtx) {
-      try {
-        void this.#webAudioCtx.close();
-      } catch {
-        // Ignore
-      }
-    }
-    this.#webElement = null;
-    this.#webAudioCtx = null;
+    this.#isPlaylist = assets.length > 1;
+    this.#playlist = this.#isPlaylist ? shuffleArray(assets) : assets;
+    this.#currentIndex = 0;
+    this.#isPlaying = true;
+
+    audioLog.debug('Starting BGM', {
+      mode: this.#isPlaylist ? 'playlist' : 'loop',
+      count: assets.length,
+    });
+    this.#playCurrentTrack();
   }
 
   stop(): void {
-    if (this.#webElement) {
-      try {
-        this.#webElement.pause();
-        this.#webElement.src = '';
-      } catch {
-        // Ignore errors
-      }
-      this.#cleanupWeb();
-      this.#isPlaying = false;
-      audioLog.debug('BGM stopped (Web)');
-    }
-    if (this.#nativePlayer) {
-      try {
-        this.#nativePlayer.pause();
-        this.#nativePlayer.remove();
-      } catch {
-        // Ignore errors
-      }
-      this.#nativePlayer = null;
-      this.#isPlaying = false;
-      audioLog.debug('BGM stopped');
-    }
+    this.#isPlaying = false;
+    this.#cleanupCurrentPlayer();
+    audioLog.debug('BGM stopped');
   }
 
   pause(): void {
@@ -138,7 +97,6 @@ export class BgmPlayer {
   resume(): void {
     if (!this.#isPlaying) return;
     if (this.#webElement) {
-      // Resume AudioContext if suspended (iOS Safari requires user gesture)
       if (this.#webAudioCtx?.state === 'suspended') {
         void this.#webAudioCtx.resume();
       }
@@ -153,6 +111,131 @@ export class BgmPlayer {
       } catch (e) {
         audioLog.warn('[visibility] error resuming bgm', e);
       }
+    }
+  }
+
+  // ─── Internal: play current track ──────────────────────────────────────
+
+  #playCurrentTrack(): void {
+    if (!this.#isPlaying) return;
+
+    const asset = this.#playlist[this.#currentIndex];
+    const loop = !this.#isPlaylist; // single-track = loop; playlist = no loop
+
+    try {
+      if (isWeb && typeof document !== 'undefined') {
+        this.#playWeb(asset, loop);
+      } else {
+        this.#playNative(asset, loop);
+      }
+    } catch (error) {
+      audioLog.warn('Failed to start BGM track:', error);
+      this.#isPlaying = false;
+      this.#cleanupCurrentPlayer();
+    }
+  }
+
+  #playWeb(asset: AudioAsset, loop: boolean): void {
+    const audioUrl = audioAssetToUrl(asset);
+    const audio = new Audio(audioUrl);
+    audio.loop = loop;
+
+    const ctx = new AudioContext();
+    const source = ctx.createMediaElementSource(audio);
+    const gain = ctx.createGain();
+    gain.gain.value = BGM_VOLUME;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+
+    this.#webElement = audio;
+    this.#webAudioCtx = ctx;
+
+    if (!loop) {
+      this.#webEndedHandler = () => this.#onTrackEnded();
+      audio.addEventListener('ended', this.#webEndedHandler);
+    }
+
+    audio.play().catch((err) => {
+      audioLog.warn('Web BGM play() rejected (autoplay policy?):', err);
+      this.#isPlaying = false;
+      this.#cleanupCurrentPlayer();
+    });
+    audioLog.debug('BGM track started (Web)', { index: this.#currentIndex });
+  }
+
+  #playNative(asset: AudioAsset, loop: boolean): void {
+    const player = createAudioPlayer(asset);
+    this.#nativePlayer = player;
+    player.volume = BGM_VOLUME;
+    player.loop = loop;
+
+    if (!loop) {
+      this.#nativeSubscription = player.addListener('playbackStatusUpdate', (status) => {
+        if ('didJustFinish' in status && status.didJustFinish) {
+          this.#onTrackEnded();
+        }
+      });
+    }
+
+    player.play();
+    audioLog.debug('BGM track started (Native)', { index: this.#currentIndex });
+  }
+
+  #onTrackEnded(): void {
+    if (!this.#isPlaying) return;
+
+    this.#cleanupCurrentPlayer();
+    this.#currentIndex++;
+
+    if (this.#currentIndex >= this.#playlist.length) {
+      // Re-shuffle and restart from beginning
+      this.#playlist = shuffleArray(this.#playlist);
+      this.#currentIndex = 0;
+      audioLog.debug('BGM playlist cycle complete, re-shuffled');
+    }
+
+    this.#playCurrentTrack();
+  }
+
+  // ─── Cleanup ───────────────────────────────────────────────────────────
+
+  #cleanupCurrentPlayer(): void {
+    // Web cleanup
+    if (this.#webElement) {
+      if (this.#webEndedHandler) {
+        this.#webElement.removeEventListener('ended', this.#webEndedHandler);
+        this.#webEndedHandler = null;
+      }
+      try {
+        this.#webElement.pause();
+        this.#webElement.src = '';
+      } catch {
+        /* ignore */
+      }
+      this.#webElement = null;
+    }
+    if (this.#webAudioCtx) {
+      try {
+        void this.#webAudioCtx.close();
+      } catch {
+        /* ignore */
+      }
+      this.#webAudioCtx = null;
+    }
+
+    // Native cleanup
+    if (this.#nativeSubscription) {
+      this.#nativeSubscription.remove();
+      this.#nativeSubscription = null;
+    }
+    if (this.#nativePlayer) {
+      try {
+        this.#nativePlayer.pause();
+        this.#nativePlayer.remove();
+      } catch {
+        /* ignore */
+      }
+      this.#nativePlayer = null;
     }
   }
 }

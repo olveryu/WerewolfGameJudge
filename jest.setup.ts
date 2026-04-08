@@ -461,6 +461,8 @@ jest.mock('./src/contexts/ServiceContext', () => {
       setRoleRevealAnimation: jest.fn(),
       isBgmEnabled: jest.fn().mockReturnValue(true),
       toggleBgm: jest.fn().mockResolvedValue(false),
+      getBgmTrack: jest.fn().mockReturnValue('random'),
+      setBgmTrack: jest.fn(),
       getThemeKey: jest.fn().mockReturnValue('dark'),
       setThemeKey: jest.fn(),
       addListener: jest.fn().mockReturnValue(jest.fn()),

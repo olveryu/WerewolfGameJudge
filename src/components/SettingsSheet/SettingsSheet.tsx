@@ -45,6 +45,14 @@ const BGM_OPTIONS: readonly SettingsOption[] = [
   { value: 'off', label: '关' },
 ] as const;
 
+const BGM_TRACK_OPTIONS: readonly SettingsOption[] = [
+  { value: 'random', label: '随机' },
+  { value: 'theGodfatherWaltz', label: '教父华尔兹' },
+  { value: 'speakSoftlyLove', label: '柔声倾诉' },
+  { value: 'theImmigrant', label: '移民' },
+  { value: 'finale', label: '终曲' },
+] as const;
+
 /** Stable style to let ScrollView fill remaining space inside maxHeight parent */
 const scrollViewFlex = { flex: 1 } as const;
 
@@ -57,8 +65,10 @@ interface SettingsSheetProps {
   onClose: () => void;
   roleRevealAnimation: string;
   bgmValue: string;
+  bgmTrack: string;
   onAnimationChange: (value: string) => void;
   onBgmChange: (value: string) => void;
+  onBgmTrackChange: (value: string) => void;
   /** 当选中"随机"时，实际解析出的动画 value（如 'roulette'），用于显示"本局: X" */
   resolvedAnimation?: string;
   /** testID prefix for animation cards (default: 'settings-animation') */
@@ -78,8 +88,10 @@ export const SettingsSheet = memo(function SettingsSheet({
   onClose,
   roleRevealAnimation,
   bgmValue,
+  bgmTrack,
   onAnimationChange,
   onBgmChange,
+  onBgmTrackChange,
   resolvedAnimation,
   animationTestIDPrefix = 'settings-animation',
   bgmTestIDPrefix = 'settings-bgm',
@@ -100,6 +112,13 @@ export const SettingsSheet = memo(function SettingsSheet({
       onBgmChange(value);
     },
     [onBgmChange],
+  );
+
+  const handleBgmTrackSelect = useCallback(
+    (value: string) => {
+      onBgmTrackChange(value);
+    },
+    [onBgmTrackChange],
   );
 
   return (
@@ -143,16 +162,27 @@ export const SettingsSheet = memo(function SettingsSheet({
               resolvedAnimation={resolvedAnimation}
               testIDPrefix={animationTestIDPrefix}
             />
-          </ScrollView>
 
-          <SettingsChipGroup
-            label="BGM"
-            options={BGM_OPTIONS}
-            selectedValue={bgmValue}
-            onSelect={handleBgmSelect}
-            styles={styles.bgmGroup}
-            testIDPrefix={bgmTestIDPrefix}
-          />
+            <SettingsChipGroup
+              label="BGM"
+              options={BGM_OPTIONS}
+              selectedValue={bgmValue}
+              onSelect={handleBgmSelect}
+              styles={styles.bgmGroup}
+              testIDPrefix={bgmTestIDPrefix}
+            />
+
+            {bgmValue === 'on' && (
+              <SettingsChipGroup
+                label="曲目"
+                options={BGM_TRACK_OPTIONS}
+                selectedValue={bgmTrack}
+                onSelect={handleBgmTrackSelect}
+                styles={styles.bgmGroup}
+                testIDPrefix="settings-bgm-track"
+              />
+            )}
+          </ScrollView>
         </View>
       </TouchableOpacity>
     </Modal>

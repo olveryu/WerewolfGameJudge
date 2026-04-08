@@ -36,5 +36,6 @@ module.exports = {
     '^react-native-qrcode-svg$': '<rootDir>/__mocks__/react-native-qrcode-svg.tsx',
     '^react-native-view-shot$': '<rootDir>/__mocks__/react-native-view-shot.ts',
     '^@shopify/react-native-skia$': '<rootDir>/__mocks__/@shopify/react-native-skia.tsx',
+    '\\.m4a$': '<rootDir>/__mocks__/audioFileMock.js',
   },
 };

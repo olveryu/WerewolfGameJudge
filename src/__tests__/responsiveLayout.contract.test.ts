@@ -139,7 +139,7 @@ const KNOWN_VIOLATIONS: Record<string, { rule: string; line: number }[]> = {
     { rule: 'no-flexGrow-zero', line: 101 },
   ],
   'src/components/SettingsSheet/SettingsOptionGroup.tsx': [{ rule: 'no-flexGrow-zero', line: 127 }],
-  'src/components/SettingsSheet/SettingsSheet.tsx': [{ rule: 'no-flexGrow-zero', line: 278 }],
+  'src/components/SettingsSheet/SettingsSheet.tsx': [{ rule: 'no-flexGrow-zero', line: 308 }],
 };
 
 // ─── Test ───────────────────────────────────────────────────────────────────

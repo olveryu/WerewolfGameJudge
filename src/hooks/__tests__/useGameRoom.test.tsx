@@ -97,6 +97,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       settingsService: {
         load: jest.fn(),
         isBgmEnabled: jest.fn().mockReturnValue(true),
+        getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
         getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
       },
@@ -377,6 +378,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       settingsService: {
         load: jest.fn(),
         isBgmEnabled: jest.fn().mockReturnValue(true),
+        getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
         getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
       },
@@ -641,6 +643,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       settingsService: {
         load: jest.fn(),
         isBgmEnabled: jest.fn().mockReturnValue(true),
+        getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
         getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
       },

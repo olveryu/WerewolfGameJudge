@@ -54,6 +54,7 @@ describe('useAuth hook', () => {
       settingsService: {
         load: jest.fn(),
         isBgmEnabled: jest.fn().mockReturnValue(true),
+        getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
         getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
         getThemeKey: jest.fn().mockReturnValue('dark'),

@@ -212,10 +212,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Settings sheet
     settingsSheetVisible,
     bgmEnabled,
+    bgmTrack,
     handleOpenSettings,
     handleCloseSettings,
     handleAnimationChange,
     handleBgmChange,
+    handleBgmTrackChange,
     // Choose card modal (treasureMaster / thief)
     chooseCardModalVisible,
     closeChooseCardModal,
@@ -714,8 +716,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onClose={handleCloseSettings}
         roleRevealAnimation={roleRevealAnimation}
         bgmValue={bgmEnabled ? 'on' : 'off'}
+        bgmTrack={bgmTrack}
         onAnimationChange={handleAnimationChange}
         onBgmChange={handleBgmChange}
+        onBgmTrackChange={handleBgmTrackChange}
         resolvedAnimation={resolvedRoleRevealAnimation}
         overlayTestID={TESTIDS.roomSettingsOverlay}
       />
