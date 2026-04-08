@@ -138,3 +138,35 @@ export const ENCYCLOPEDIA_GUIDE = {
     { emoji: '💡', text: '不认识的角色？开局前来这里提前了解' },
   ] satisfies GuideItem[],
 } as const;
+
+// ============================================
+// BoardPickerScreen
+// ============================================
+
+export const BOARD_PICKER_GUIDE = {
+  titleEmoji: '🎯',
+  title: '选择板子',
+  items: [
+    { emoji: '🏷️', text: '顶部切换分类 —— 经典 / 进阶 / 特色 / 第三方' },
+    { emoji: '🔍', text: '搜索栏支持按模板名或角色名过滤' },
+    { emoji: '🎛️', text: '漏斗图标可按角色筛选模板' },
+    { emoji: '👆', text: '展开卡片查看完整角色列表，点角色看技能' },
+    { emoji: '✏️', text: '底部"自定义配置"可从零开始组角色' },
+  ] satisfies GuideItem[],
+} as const;
+
+// ============================================
+// NotepadScreen
+// ============================================
+
+export const NOTEPAD_GUIDE = {
+  titleEmoji: '📝',
+  title: '笔记本',
+  items: [
+    { emoji: '🏷️', text: '点击座位可标记猜测的角色' },
+    { emoji: '✍️', text: '每个座位下方可记录发言要点' },
+    { emoji: '✋', text: '举手标记 —— 标注发过言的玩家' },
+    { emoji: '🤖', text: 'AI 分析 —— 发送笔记给 AI 帮你理清局势' },
+    { emoji: '🗑️', text: '右上清除按钮一键重置所有笔记' },
+  ] satisfies GuideItem[],
+} as const;

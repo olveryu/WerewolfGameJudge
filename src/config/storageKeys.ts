@@ -17,11 +17,13 @@ const GUIDE_DISMISSED_PREFIX = '@werewolf_guide_dismissed:';
 export type GuidePageKey =
   | 'home'
   | 'config'
+  | 'boardPicker'
   | 'room'
   | 'room:assigned'
   | 'room:ongoing'
   | 'settings'
-  | 'encyclopedia';
+  | 'encyclopedia'
+  | 'notepad';
 
 /** 根据 pageKey 生成 AsyncStorage key */
 export const guideStorageKey = (pageKey: GuidePageKey): string =>
@@ -29,5 +31,15 @@ export const guideStorageKey = (pageKey: GuidePageKey): string =>
 
 /** 所有引导 dismissed key（用于重置） */
 export const ALL_GUIDE_DISMISSED_KEYS: string[] = (
-  ['home', 'config', 'room', 'room:assigned', 'room:ongoing', 'settings', 'encyclopedia'] as const
+  [
+    'home',
+    'config',
+    'boardPicker',
+    'room',
+    'room:assigned',
+    'room:ongoing',
+    'settings',
+    'encyclopedia',
+    'notepad',
+  ] as const
 ).map(guideStorageKey);

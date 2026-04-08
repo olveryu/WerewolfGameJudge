@@ -36,7 +36,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { FactionChip } from '@/components/FactionChip';
 import { FormTextField } from '@/components/FormTextField';
+import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { BOARD_PICKER_GUIDE } from '@/config/guideContent';
+import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import {
   computeFactionStats,
@@ -327,6 +330,8 @@ export const BoardPickerScreen: React.FC = () => {
   const styles = useMemo(() => createBoardPickerStyles(colors), [colors]);
   const { width: screenWidth } = useWindowDimensions();
   const maxChips = useMemo(() => estimateMaxChips(screenWidth), [screenWidth]);
+
+  const boardPickerGuide = usePageGuide('boardPicker');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchVisible, setSearchVisible] = useState(false);
@@ -711,6 +716,17 @@ export const BoardPickerScreen: React.FC = () => {
         roleId={previewRoleId}
         onClose={handlePreviewClose}
         showRealIdentity
+      />
+
+      {/* Page Guide */}
+      <PageGuideModal
+        visible={boardPickerGuide.visible}
+        title={BOARD_PICKER_GUIDE.title}
+        titleEmoji={BOARD_PICKER_GUIDE.titleEmoji}
+        items={BOARD_PICKER_GUIDE.items}
+        dontShowAgain={boardPickerGuide.dontShowAgain}
+        onToggleDontShowAgain={boardPickerGuide.toggleDontShowAgain}
+        onDismiss={boardPickerGuide.dismiss}
       />
     </SafeAreaView>
   );
