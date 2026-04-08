@@ -197,11 +197,13 @@ export default tseslint.config(
   // =========================================================================
   {
     files: ['__mocks__/**'],
+    languageOptions: {
+      sourceType: 'commonjs',
+    },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       'no-console': 'off',
-      'no-undef': 'off',
     },
   },
 
