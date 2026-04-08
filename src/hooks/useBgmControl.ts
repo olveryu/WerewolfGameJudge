@@ -7,7 +7,7 @@
  * - Auto-stopping BGM when game ends AND ending audio finishes (Host only)
  *
  * 读写 BGM 设置、监听 game status 变化。
- * 不直接操作游戏状态，不调用 Supabase。
+ * 不直接操作游戏状态。
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';

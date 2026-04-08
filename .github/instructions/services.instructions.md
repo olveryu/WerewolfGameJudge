@@ -12,7 +12,7 @@ applyTo: src/services/**
 ## 核心规则
 
 - Resolver / calculator / validator 是纯函数，禁止 IO/UI。
-- 服务端业务逻辑（night flow / death calc / state transition / reducer）由 Supabase Edge Functions 执行。
+- 服务端业务逻辑（night flow / death calc / state transition / reducer）由 Cloudflare Worker（Durable Objects）执行。
 - 客户端 facade 负责：HTTP API 提交 + Realtime 接收 + 音频编排。客户端禁止运行 resolvers / reducers / death calculation。
 - Infra service 允许平台 API（AsyncStorage / Platform / expo-audio 等）。
 - 纯类型文件（`src/services/types/**`）可被任意层 `import type`。

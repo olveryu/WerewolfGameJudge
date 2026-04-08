@@ -31,11 +31,10 @@
 
 > 以下文档记录已完成的迁移/重构方案，仅供追溯，不反映当前架构。
 
-| 文档                                                                   | 说明                                                        |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------- |
-| [server-authoritative-migration.md](server-authoritative-migration.md) | ⚠️ 已完成。服务器权威架构迁移方案                           |
-| [edge-function-migration.md](edge-function-migration.md)               | ⚠️ 已完成。Vercel Serverless → Supabase Edge Functions 迁移 |
-| [refactoring-plan.md](refactoring-plan.md)                             | ⚠️ 已完成。大规模重构方案（25 commits）                     |
-| [refactoring-baseline.md](refactoring-baseline.md)                     | 重构基线指标快照                                            |
-| [code-review-changes.md](code-review-changes.md)                       | 代码审查变更计划（feature/optimize_1）                      |
-| [apple-design-uplift.md](apple-design-uplift.md)                       | Apple 风格 UI 提升方案                                      |
+| 文档                                                                   | 说明                                    |
+| ---------------------------------------------------------------------- | --------------------------------------- |
+| [server-authoritative-migration.md](server-authoritative-migration.md) | ⚠️ 已完成。服务器权威架构迁移方案       |
+| [refactoring-plan.md](refactoring-plan.md)                             | ⚠️ 已完成。大规模重构方案（25 commits） |
+| [refactoring-baseline.md](refactoring-baseline.md)                     | 重构基线指标快照                        |
+| [code-review-changes.md](code-review-changes.md)                       | 代码审查变更计划（feature/optimize_1）  |
+| [apple-design-uplift.md](apple-design-uplift.md)                       | Apple 风格 UI 提升方案                  |

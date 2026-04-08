@@ -2,12 +2,11 @@
  * IAuthService - 认证服务接口
  *
  * 定义认证服务的公共 API 契约，覆盖匿名登录、邮箱认证、用户资料管理。
- * Supabase 和 Cloudflare 实现均需满足此接口。
  * 不涉及游戏逻辑或游戏状态存储。
  */
 
 /**
- * 抽象用户类型 — 去除对 @supabase/supabase-js 的 User 类型依赖。
+ * 抽象用户类型。
  * 仅包含业务代码实际读取的字段。
  */
 export interface AuthUser {
@@ -19,7 +18,6 @@ export interface AuthUser {
 
 /**
  * getCurrentUser() 返回值。
- * 与 Supabase `auth.getUser()` 返回值结构兼容，但不引用 Supabase 类型。
  */
 export interface GetCurrentUserResponse {
   data: { user: AuthUser | null };
@@ -35,7 +33,7 @@ export interface IAuthService {
    */
   ensureAuthenticated(): Promise<string>;
 
-  /** Supabase 是否已配置（环境变量齐全 + client 已初始化） */
+  /** 服务是否已配置（环境变量齐全 + client 已初始化） */
   isConfigured(): boolean;
 
   /** 当前用户 ID（同步读取缓存值） */

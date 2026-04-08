@@ -2,7 +2,6 @@
  * IRoomService - 房间记录 + 游戏状态持久化接口
  *
  * 定义房间 CRUD 和 game_state 读写的公共 API 契约。
- * Supabase 和 Cloudflare (D1) 实现均需满足此接口。
  * 不校验游戏逻辑，不涉及 realtime 传输。
  */
 

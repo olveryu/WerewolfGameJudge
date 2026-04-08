@@ -60,7 +60,7 @@ cp assets/pwa/*.png dist/assets/pwa/
 cp web/manifest.json dist/
 cp web/sw.js dist/
 
-# 字体路径修复：Expo 将字体放在 node_modules/ 路径下，Vercel 不提供该路径
+# 字体路径修复：Expo 将字体放在 node_modules/ 路径下，部署平台不提供该路径
 FONT_SRC="dist/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts"
 FONT_DST="dist/assets/fonts"
 if [ -d "$FONT_SRC" ]; then
@@ -75,7 +75,7 @@ if [ -d "$FONT_SRC" ]; then
   rm -rf dist/assets/node_modules
 fi
 
-# _expo 目录重命名：将 JS bundle 移到 assets/js/（Vercel/Cloudflare 均不保留 underscore 前缀）
+# _expo 目录重命名：将 JS bundle 移到 assets/js/（Cloudflare Pages 不保留 underscore 前缀）
 if [ -d dist/_expo/static/js/web ]; then
   mkdir -p dist/assets/js
   cp dist/_expo/static/js/web/*.js dist/assets/js/

@@ -4,7 +4,7 @@
  * Provides pure logic for determining what action to take when user interacts.
  * Returns ActionIntent objects that RoomScreen orchestrator handles.
  * Uses pure logic and helper functions to return ActionIntent. Does not call dialogs,
- * does not import services/nightFlow/supabase, and does not call Room model functions.
+ * does not import services, and does not call Room model functions.
  *
  * Phase 3: Schema-driven - uses currentSchema.kind instead of role names
  */

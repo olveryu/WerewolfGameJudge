@@ -10,7 +10,7 @@
  * - Seat error tracking
  *
  * 通过 facade 管理房间/座位，使用 authService/roomService。
- * 不直接调用 Supabase，不绕过 facade 修改游戏状态。
+ * 不绕过 facade 修改游戏状态。
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';

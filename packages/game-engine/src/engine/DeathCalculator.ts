@@ -11,7 +11,7 @@
  *
  * NOT responsible for:
  * - Accessing internal game state
- * - Calling Supabase / Broadcast
+ * - Calling external services / Broadcast
  * - Playing audio
  * - Modifying any UI
  */

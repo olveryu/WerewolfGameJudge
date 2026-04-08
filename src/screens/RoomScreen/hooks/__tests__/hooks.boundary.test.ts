@@ -33,7 +33,6 @@ function checkForbiddenImports(file: string): boolean {
     'RealtimeService',
     'NightFlowController',
     'RoomService',
-    'supabase',
   ];
   const filePath = path.join(HOOKS_DIR, file);
   if (!fs.existsSync(filePath)) return false; // skip if not exists

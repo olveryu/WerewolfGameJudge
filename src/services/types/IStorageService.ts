@@ -2,7 +2,6 @@
  * IStorageService - 文件存储服务接口
  *
  * 定义头像上传的公共 API 契约。
- * Supabase Storage 和 Cloudflare R2 实现均需满足此接口。
  * 不涉及游戏逻辑或认证逻辑（认证由 IAuthService 管理）。
  */
 

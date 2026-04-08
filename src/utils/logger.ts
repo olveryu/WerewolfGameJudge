@@ -76,7 +76,7 @@ export const bgmLog = log.extend('BGM');
 export const chatLog = log.extend('Chat');
 
 /**
- * Map Supabase/GoTrue error messages to user-friendly Chinese messages.
+ * Map auth error messages to user-friendly Chinese messages.
  *
  * 纯字符串映射，不包含副作用，不依赖外部状态。
  */

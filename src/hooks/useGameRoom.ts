@@ -11,7 +11,7 @@
  *
  * Server is the Single Source of Truth for all game state.
  * 组合子 hooks、订阅 facade state、派生 identity/roomStatus。
- * 不直接调用 Supabase，不包含业务 callback 逻辑（应在子 hooks 中）。
+ * 不直接调用服务层，不包含业务 callback 逻辑（应在子 hooks 中）。
  */
 
 import { useIsFocused } from '@react-navigation/native';

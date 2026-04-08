@@ -1,3 +1,3 @@
 # Cloudflare Pages SPA fallback
-# All non-asset routes serve index.html (equivalent to vercel.json rewrites)
+# All non-asset routes serve index.html
 /*  /index.html  200

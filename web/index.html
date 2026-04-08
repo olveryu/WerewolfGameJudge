@@ -172,6 +172,27 @@
         }
       }
 
+      #splash-refresh {
+        display: none;
+        margin-top: 24px;
+        padding: 10px 28px;
+        border: none;
+        border-radius: 8px;
+        background-color: #6366f1;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      #splash-refresh:active {
+        opacity: 0.7;
+      }
+
       /* 微信 WebView 引导蒙层 */
       #wechat-guide {
         display: none;
@@ -269,6 +290,7 @@
       <img src="/assets/pwa/icon-192.png" alt="狼人杀电子法官" />
       <div class="loading-text">加载中...</div>
       <div class="progress-track"><div class="progress-bar"></div></div>
+      <button id="splash-refresh">刷新页面</button>
     </div>
 
     <div id="root"></div>
@@ -350,6 +372,7 @@
       // 隐藏启动画面 — 由 React App.tsx 控制。
       // 这里仅作超时 fallback（5 秒后强制隐藏，防止 JS 加载失败时永久卡 splash）。
       // 仅在 React 已挂载（#root 有子元素）时移除，否则保留 splash 避免白屏。
+      // 8 秒后若 splash 仍在，显示「刷新页面」按钮（清缓存 + reload）。
       window.addEventListener('load', function () {
         setTimeout(function () {
           var root = document.getElementById('root');
@@ -362,6 +385,54 @@
             }, 300);
           }
         }, 5000);
+
+        // 8 秒后 splash 仍显示（React 未接管 / 加载卡住）→ 显示刷新按钮
+        setTimeout(function () {
+          var splash = document.getElementById('splash-screen');
+          if (!splash || splash.classList.contains('hidden')) return;
+          var btn = document.getElementById('splash-refresh');
+          if (btn) {
+            // 继承当前主题色
+            var primary =
+              document.documentElement.style.getPropertyValue('--theme-primary') || '#6366f1';
+            btn.style.backgroundColor = primary;
+            btn.style.display = 'inline-block';
+          }
+        }, 8000);
+      });
+
+      // 刷新按钮：注销 Service Worker + 清除所有缓存 + 强制 reload
+      document.getElementById('splash-refresh').addEventListener('click', function () {
+        this.textContent = '正在刷新...';
+        this.disabled = true;
+        Promise.all([
+          // 注销所有 Service Worker
+          navigator.serviceWorker
+            ? navigator.serviceWorker.getRegistrations().then(function (regs) {
+                return Promise.all(
+                  regs.map(function (r) {
+                    return r.unregister();
+                  }),
+                );
+              })
+            : Promise.resolve(),
+          // 清除所有 Cache Storage
+          typeof caches !== 'undefined'
+            ? caches.keys().then(function (keys) {
+                return Promise.all(
+                  keys.map(function (k) {
+                    return caches.delete(k);
+                  }),
+                );
+              })
+            : Promise.resolve(),
+        ])
+          .then(function () {
+            window.location.reload();
+          })
+          .catch(function () {
+            window.location.reload();
+          });
       });
 
       // Stale Tab Auto-Reload：iOS Safari 长时间后台后 WebSocket/JS 运行时可能不可恢复，

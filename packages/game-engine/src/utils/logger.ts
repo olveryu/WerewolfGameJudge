@@ -39,7 +39,7 @@ let _root: EngineLogger = noopLogger;
  * import { setEngineLogger } from '@werewolf/game-engine';
  * setEngineLogger(log);
  *
- * // Vercel 服务端
+ * // Cloudflare Worker 服务端
  * setEngineLogger(consoleLogger);
  */
 export function setEngineLogger(logger: EngineLogger): void {

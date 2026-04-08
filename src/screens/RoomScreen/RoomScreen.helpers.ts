@@ -3,7 +3,7 @@
  *
  * These are pure utility functions with no side effects.
  * They only depend on types and the roles registry (getRoleSpec, isWolfRole).
- * Does not import services, Supabase, navigation, or React.
+ * Does not import services, navigation, or React.
  */
 
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';

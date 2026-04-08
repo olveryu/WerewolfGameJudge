@@ -1,5 +1,4 @@
 # Cloudflare Pages custom headers
-# Equivalent to vercel.json headers configuration
 
 # Immutable assets (content-hashed filenames)
 /assets/fonts/*
@@ -20,8 +19,8 @@
 /assets/pwa/*
   Cache-Control: public, max-age=31536000, immutable
 
-# HTML must revalidate on every request (Vercel did this implicitly;
-# Cloudflare Pages does not — stale HTML references deleted JS bundles → white screen)
+# HTML must revalidate on every request
+# (stale HTML references deleted JS bundles → white screen)
 /
   Cache-Control: no-cache
 /index.html

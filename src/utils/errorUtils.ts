@@ -24,8 +24,7 @@ export function getErrorMessage(e: unknown, fallback = '请稍后重试'): strin
  *
  * Handles two shapes:
  * - Standard `Error` instance with `name === 'AbortError'`
- * - Supabase `PostgrestError` plain object `{ message, code, details, hint }`
- *   where `message` contains the string "AbortError"
+ * - Plain object `{ message, code, details, hint }` where `message` contains "AbortError"
  */
 export function isAbortError(err: unknown): boolean {
   if (err instanceof Error) return err.name === 'AbortError';
@@ -44,7 +43,7 @@ export function isAbortError(err: unknown): boolean {
  * - `TypeError: Load failed` — Safari (newer)
  * - `TypeError: cancelled` — Safari (request cancelled by OS)
  * - `ECONNREFUSED` / `ETIMEDOUT` — Node.js / SSR environments
- * - `network` / `fetch` (case-insensitive) — Supabase SDK error messages
+ * - `network` / `fetch` (case-insensitive) — SDK error messages
  * - `Operation timed out after` — withTimeout() utility
  * - `subscribe timeout` — RealtimeService channel subscription timeout
  */
