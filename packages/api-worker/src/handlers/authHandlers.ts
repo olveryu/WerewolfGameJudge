@@ -377,6 +377,8 @@ export async function handleSignOut(_request: Request, env: Env): Promise<Respon
 const RESET_RATE_LIMIT = 3;
 /** Reset code TTL in minutes */
 const RESET_CODE_TTL_MINUTES = 15;
+/** Max verification attempts per reset code before invalidation */
+const RESET_VERIFY_ATTEMPT_LIMIT = 5;
 
 async function sha256(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
@@ -384,6 +386,14 @@ async function sha256(input: string): Promise<string> {
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
+}
+
+/** Fetch the stored token_hash for a given token id (used after attempt-count check). */
+async function getTokenHash(tokenId: string, env: Env): Promise<string | null> {
+  const row = await env.DB.prepare('SELECT token_hash FROM password_reset_tokens WHERE id = ?')
+    .bind(tokenId)
+    .first<{ token_hash: string }>();
+  return row?.token_hash ?? null;
 }
 
 export async function handleForgotPassword(request: Request, env: Env): Promise<Response> {
@@ -395,6 +405,20 @@ export async function handleForgotPassword(request: Request, env: Env): Promise<
 
   const email = body.email.toLowerCase().trim();
 
+  // Rate limit BEFORE user lookup to avoid email enumeration via 429 vs 200.
+  const recentCount = await env.DB.prepare(
+    `SELECT COUNT(*) as count FROM password_reset_tokens t
+     JOIN users u ON t.user_id = u.id
+     WHERE u.email = ? AND t.created_at > datetime('now', '-1 hour')`,
+  )
+    .bind(email)
+    .first<{ count: number }>();
+
+  if (recentCount && recentCount.count >= RESET_RATE_LIMIT) {
+    // Return 200 (not 429) so attackers cannot distinguish registered vs unregistered
+    return jsonResponse({ success: true }, 200, env);
+  }
+
   // Check user exists (non-anonymous with password)
   const user = await env.DB.prepare(
     'SELECT id FROM users WHERE email = ? AND is_anonymous = 0 AND password_hash IS NOT NULL',
@@ -405,18 +429,6 @@ export async function handleForgotPassword(request: Request, env: Env): Promise<
   if (!user) {
     // Don't reveal whether email exists — return success either way
     return jsonResponse({ success: true }, 200, env);
-  }
-
-  // Rate limit: max N requests per email per hour
-  const recentCount = await env.DB.prepare(
-    `SELECT COUNT(*) as count FROM password_reset_tokens
-     WHERE user_id = ? AND created_at > datetime('now', '-1 hour')`,
-  )
-    .bind(user.id)
-    .first<{ count: number }>();
-
-  if (recentCount && recentCount.count >= RESET_RATE_LIMIT) {
-    return jsonResponse({ error: 'too many reset requests, try again later' }, 429, env);
   }
 
   // Invalidate any previous unused tokens for this user
@@ -469,17 +481,37 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
   const email = body.email.toLowerCase().trim();
   const tokenHash = await sha256(body.code + email);
 
-  // Find valid token
+  // Find valid token (also check verify_attempts limit)
   const token = await env.DB.prepare(
-    `SELECT t.id, t.user_id FROM password_reset_tokens t
+    `SELECT t.id, t.user_id, t.verify_attempts FROM password_reset_tokens t
      JOIN users u ON t.user_id = u.id
-     WHERE t.token_hash = ? AND u.email = ? AND t.used = 0
-       AND t.expires_at > datetime('now')`,
+     WHERE u.email = ? AND t.used = 0
+       AND t.expires_at > datetime('now')
+     ORDER BY t.created_at DESC LIMIT 1`,
   )
-    .bind(tokenHash, email)
-    .first<{ id: string; user_id: string }>();
+    .bind(email)
+    .first<{ id: string; user_id: string; verify_attempts: number }>();
 
-  if (!token) {
+  if (!token || token.verify_attempts >= RESET_VERIFY_ATTEMPT_LIMIT) {
+    return jsonResponse({ error: 'invalid or expired code' }, 400, env);
+  }
+
+  // Increment verify attempts before checking hash to prevent brute force
+  await env.DB.prepare(
+    `UPDATE password_reset_tokens SET verify_attempts = verify_attempts + 1 WHERE id = ?`,
+  )
+    .bind(token.id)
+    .run();
+
+  // Invalidate token if attempt limit now reached
+  if (token.verify_attempts + 1 >= RESET_VERIFY_ATTEMPT_LIMIT) {
+    await env.DB.prepare(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`)
+      .bind(token.id)
+      .run();
+  }
+
+  // Verify hash
+  if (tokenHash !== (await getTokenHash(token.id, env))) {
     return jsonResponse({ error: 'invalid or expired code' }, 400, env);
   }
 

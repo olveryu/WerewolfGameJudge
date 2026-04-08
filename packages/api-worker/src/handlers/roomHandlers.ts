@@ -99,7 +99,14 @@ export async function handleDeleteRoom(request: Request, env: Env): Promise<Resp
     return jsonResponse({ error: 'roomCode required' }, 400, env);
   }
 
-  await env.DB.prepare('DELETE FROM rooms WHERE code = ?').bind(body.roomCode).run();
+  // Only the room host can delete the room
+  const result = await env.DB.prepare('DELETE FROM rooms WHERE code = ? AND host_id = ?')
+    .bind(body.roomCode, payload.sub)
+    .run();
+
+  if (!result.meta.changes) {
+    return jsonResponse({ error: 'room not found or not authorized' }, 403, env);
+  }
 
   return jsonResponse({ success: true }, 200, env);
 }

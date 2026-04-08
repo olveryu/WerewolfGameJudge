@@ -41,9 +41,10 @@ export async function handleAvatarUpload(request: Request, env: Env): Promise<Re
   // Workers runtime: non-string FormData entries are File objects
   const file = rawFile as unknown as File;
 
-  // Validate file type
-  if (!file.type.startsWith('image/')) {
-    return jsonResponse({ error: 'invalid file type' }, 400, env);
+  // Validate file type — whitelist safe raster formats; reject SVG (XSS risk)
+  const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    return jsonResponse({ error: 'invalid file type, only JPEG/PNG/WebP allowed' }, 400, env);
   }
 
   // Validate file size (max 5MB)
