@@ -1,7 +1,9 @@
 /**
  * MusicSettingsScreen — 音乐设置页
  *
- * BGM 开关、曲目选择（附试听）、音量滑块。
+ * 两大区域：BGM（开关+曲目选择+试听+音量） + 角色音效（开关+音量+试听）。
+ * 试听与选择解耦——试听不自动切换选中曲目。
+ * BGM 关闭时曲目列表保留但 disable（避免布局跳跃）。
  * 设置持久化通过 SettingsService（AsyncStorage）。
  * 试听通过 AudioService.startBgm / stopBgm。
  * 不含游戏逻辑，不 import GameFacade。
@@ -10,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -18,10 +20,10 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
 import { BGM_TRACKS } from '@/services/infra/audio/audioRegistry';
-import { componentSizes, fixed, spacing, useColors, withAlpha } from '@/theme';
+import { componentSizes, fixed, useColors, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
-import { VolumeSlider } from './components/VolumeSlider';
+import { NowPlayingBar, TrackRow, VolumeSlider } from './components';
 import { createMusicSettingsStyles } from './styles';
 
 const musicSettingsLog = log.extend('MusicSettingsScreen');
@@ -94,24 +96,19 @@ export const MusicSettingsScreen: React.FC = () => {
     [settingsService, audioService],
   );
 
-  // Track selection
+  // Track selection (does NOT stop preview — selection and preview are independent)
   const handleTrackSelect = useCallback(
-    (track: BgmTrackSetting) => {
+    (trackId: string) => {
+      const track = trackId as BgmTrackSetting;
       setBgmTrack(track);
       settingsService.setBgmTrack(track).catch((e: unknown) => {
         musicSettingsLog.warn('Failed to persist bgmTrack:', e);
       });
-      // Stop preview when changing selection
-      if (previewActiveRef.current) {
-        audioService.stopBgm();
-        previewActiveRef.current = false;
-        setPreviewingTrack(null);
-      }
     },
-    [settingsService, audioService],
+    [settingsService],
   );
 
-  // Preview playback
+  // Preview playback (independent of selection)
   const handlePreviewToggle = useCallback(
     (trackId: string) => {
       if (previewingTrack === trackId) {
@@ -136,6 +133,13 @@ export const MusicSettingsScreen: React.FC = () => {
     },
     [previewingTrack, audioService],
   );
+
+  // Stop current preview (used by NowPlayingBar)
+  const handleStopPreview = useCallback(() => {
+    audioService.stopBgm();
+    previewActiveRef.current = false;
+    setPreviewingTrack(null);
+  }, [audioService]);
 
   // Volume change (live — applies immediately)
   const handleVolumeChange = useCallback(
@@ -193,6 +197,13 @@ export const MusicSettingsScreen: React.FC = () => {
     }
   }, [previewingRoleAudio, audioService]);
 
+  // Resolve previewing track label for NowPlayingBar
+  const previewingTrackLabel = useMemo(() => {
+    if (!previewingTrack) return '';
+    const entry = BGM_TRACKS.find((t) => t.id === previewingTrack);
+    return entry ? entry.label : '';
+  }, [previewingTrack]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -208,120 +219,85 @@ export const MusicSettingsScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* BGM Toggle */}
+        {/* ── Section 1: BGM ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>背景音乐</Text>
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>BGM</Text>
-            <View style={styles.chipWrap}>
-              <TouchableOpacity
-                style={[styles.chip, bgmEnabled && styles.chipSelected]}
-                onPress={() => handleBgmToggle(true)}
-                activeOpacity={fixed.activeOpacity}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🎵 背景音乐</Text>
+            <Switch
+              value={bgmEnabled}
+              onValueChange={handleBgmToggle}
+              trackColor={{
+                false: colors.border,
+                true: withAlpha(colors.primary, 0.4),
+              }}
+              thumbColor={bgmEnabled ? colors.primary : colors.textSecondary}
+            />
+          </View>
+
+          {/* Track list — stays visible but disabled when BGM off */}
+          <View style={!bgmEnabled ? styles.disabledOverlay : undefined}>
+            {/* Random option */}
+            <TouchableOpacity
+              style={styles.randomRow}
+              onPress={() => handleTrackSelect('random')}
+              activeOpacity={fixed.activeOpacity}
+              disabled={!bgmEnabled}
+            >
+              <View style={[styles.radioOuter, bgmTrack === 'random' && styles.radioOuterSelected]}>
+                {bgmTrack === 'random' && <View style={styles.radioInner} />}
+              </View>
+              <Text
+                style={[styles.randomLabel, bgmTrack === 'random' && styles.randomLabelSelected]}
               >
-                <Text style={[styles.chipText, bgmEnabled && styles.chipTextSelected]}>开</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.chip, !bgmEnabled && styles.chipSelected]}
-                onPress={() => handleBgmToggle(false)}
-                activeOpacity={fixed.activeOpacity}
-              >
-                <Text style={[styles.chipText, !bgmEnabled && styles.chipTextSelected]}>关</Text>
-              </TouchableOpacity>
+                🎲 随机播放
+              </Text>
+            </TouchableOpacity>
+
+            {/* Individual tracks */}
+            {BGM_TRACKS.map((track) => (
+              <TrackRow
+                key={track.id}
+                track={track}
+                isSelected={bgmTrack === track.id}
+                isPreviewing={previewingTrack === track.id}
+                disabled={!bgmEnabled}
+                onSelect={handleTrackSelect}
+                onPreviewToggle={handlePreviewToggle}
+                colors={colors}
+              />
+            ))}
+
+            {/* Now Playing Bar — visible only when previewing */}
+            {previewingTrack !== null && (
+              <NowPlayingBar
+                trackLabel={previewingTrackLabel}
+                onStop={handleStopPreview}
+                colors={colors}
+              />
+            )}
+
+            {/* Volume */}
+            <View style={styles.volumeSection}>
+              <Text style={styles.volumeLabel}>音量</Text>
+              <View style={styles.volumeRow}>
+                <VolumeSlider
+                  value={bgmVolume}
+                  onValueChange={handleVolumeChange}
+                  onSlidingComplete={handleVolumeComplete}
+                  colors={colors}
+                />
+              </View>
             </View>
           </View>
         </View>
 
-        {/* Track Selection — only visible when BGM enabled */}
-        {bgmEnabled && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>曲目选择</Text>
-
-            {/* Random option */}
-            <TouchableOpacity
-              style={[
-                styles.trackRow,
-                bgmTrack === 'random' && {
-                  backgroundColor: withAlpha(colors.primary, 0.12),
-                  borderColor: colors.primary,
-                },
-              ]}
-              onPress={() => handleTrackSelect('random')}
-              activeOpacity={fixed.activeOpacity}
-            >
-              <View style={styles.trackInfo}>
-                <Text
-                  style={[styles.trackLabel, bgmTrack === 'random' && styles.trackLabelSelected]}
-                >
-                  🎲 随机播放
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Individual tracks */}
-            {BGM_TRACKS.map((track) => {
-              const isSelected = bgmTrack === track.id;
-              const isPreviewing = previewingTrack === track.id;
-
-              return (
-                <TouchableOpacity
-                  key={track.id}
-                  style={[
-                    styles.trackRow,
-                    isSelected && {
-                      backgroundColor: withAlpha(colors.primary, 0.12),
-                      borderColor: colors.primary,
-                    },
-                  ]}
-                  onPress={() => handleTrackSelect(track.id)}
-                  activeOpacity={fixed.activeOpacity}
-                >
-                  <View style={styles.trackInfo}>
-                    <Text style={[styles.trackLabel, isSelected && styles.trackLabelSelected]}>
-                      {track.label}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.playButton}
-                    onPress={() => handlePreviewToggle(track.id)}
-                    hitSlop={{
-                      top: spacing.small,
-                      bottom: spacing.small,
-                      left: spacing.small,
-                      right: spacing.small,
-                    }}
-                    activeOpacity={fixed.activeOpacity}
-                  >
-                    <Ionicons
-                      name={isPreviewing ? 'stop-circle' : 'play-circle'}
-                      size={componentSizes.icon.lg}
-                      color={isPreviewing ? colors.primary : colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
-
-        {/* Volume */}
-        {bgmEnabled && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>背景音乐音量</Text>
-            <View style={styles.volumeRow}>
-              <VolumeSlider
-                value={bgmVolume}
-                onValueChange={handleVolumeChange}
-                onSlidingComplete={handleVolumeComplete}
-                colors={colors}
-              />
-            </View>
-          </View>
-        )}
-
-        {/* Role Audio Volume — always visible */}
+        {/* ── Section 2: Role Audio ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>角色音效音量</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🔊 角色音效</Text>
+          </View>
+
+          <Text style={styles.volumeLabel}>音量</Text>
           <View style={styles.volumeRow}>
             <VolumeSlider
               value={roleAudioVolume}
@@ -330,6 +306,7 @@ export const MusicSettingsScreen: React.FC = () => {
               colors={colors}
             />
           </View>
+
           <TouchableOpacity
             style={styles.previewRow}
             onPress={handleRoleAudioPreview}

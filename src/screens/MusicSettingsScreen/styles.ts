@@ -6,7 +6,6 @@
 import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import {
-  borderRadius,
   componentSizes,
   createSharedStyles,
   fixed,
@@ -26,24 +25,21 @@ export interface MusicSettingsStyles {
   scrollView: ViewStyle;
   scrollContent: ViewStyle;
   card: ViewStyle;
-  cardTitle: TextStyle;
-  row: ViewStyle;
-  rowLabel: TextStyle;
-  chipWrap: ViewStyle;
-  chip: ViewStyle;
-  chipSelected: ViewStyle;
-  chipText: TextStyle;
-  chipTextSelected: TextStyle;
-  trackRow: ViewStyle;
-  trackInfo: ViewStyle;
-  trackLabel: TextStyle;
-  trackLabelSelected: TextStyle;
-  playButton: ViewStyle;
-  playingIndicator: TextStyle;
+  sectionHeader: ViewStyle;
+  sectionTitle: TextStyle;
+  sectionIcon: TextStyle;
+  randomRow: ViewStyle;
+  randomLabel: TextStyle;
+  randomLabelSelected: TextStyle;
+  radioOuter: ViewStyle;
+  radioOuterSelected: ViewStyle;
+  radioInner: ViewStyle;
+  volumeSection: ViewStyle;
   volumeRow: ViewStyle;
   volumeLabel: TextStyle;
   previewRow: ViewStyle;
   previewText: TextStyle;
+  disabledOverlay: ViewStyle;
   bottomSpacer: ViewStyle;
 }
 
@@ -84,77 +80,59 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
       ...createSharedStyles(colors).cardBase,
       marginBottom: spacing.screenH,
     },
-    cardTitle: {
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.medium,
+    },
+    sectionTitle: {
       ...textStyles.subtitleSemibold,
       color: colors.text,
-      marginBottom: spacing.medium,
     },
-    row: {
+    sectionIcon: {
+      ...textStyles.subtitle,
+    },
+    randomRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: spacing.medium,
-    },
-    rowLabel: {
-      ...textStyles.body,
-      color: colors.text,
-    },
-    chipWrap: {
-      flexDirection: 'row',
       gap: spacing.small,
-    },
-    chip: {
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-    },
-    chipSelected: {
-      backgroundColor: withAlpha(colors.primary, 0.12),
-      borderColor: colors.primary,
-    },
-    chipText: {
-      ...textStyles.secondary,
-      color: colors.text,
-    },
-    chipTextSelected: {
-      color: colors.primary,
-      fontWeight: typography.weights.semibold,
-    },
-    trackRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
       paddingVertical: spacing.small,
       paddingHorizontal: spacing.small,
       marginBottom: spacing.tight,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
     },
-    trackInfo: {
-      flex: 1,
-    },
-    trackLabel: {
+    randomLabel: {
       ...textStyles.body,
       color: colors.text,
+      flex: 1,
     },
-    trackLabelSelected: {
+    randomLabelSelected: {
       color: colors.primary,
       fontWeight: typography.weights.semibold,
     },
-    playButton: {
-      width: componentSizes.button.sm,
-      height: componentSizes.button.sm,
-      borderRadius: borderRadius.full,
+    radioOuter: {
+      width: spacing.large,
+      height: spacing.large,
+      borderRadius: spacing.large / 2,
+      borderWidth: fixed.borderWidthThick,
+      borderColor: colors.border,
       justifyContent: 'center',
       alignItems: 'center',
     },
-    playingIndicator: {
-      color: colors.primary,
+    radioOuterSelected: {
+      borderColor: colors.primary,
+    },
+    radioInner: {
+      width: spacing.small,
+      height: spacing.small,
+      borderRadius: spacing.small / 2,
+      backgroundColor: colors.primary,
+    },
+    volumeSection: {
+      marginTop: spacing.medium,
+      paddingTop: spacing.medium,
+      borderTopWidth: fixed.borderWidth,
+      borderTopColor: withAlpha(colors.border, 0.5),
     },
     volumeRow: {
       marginTop: spacing.small,
@@ -174,6 +152,9 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
     previewText: {
       ...textStyles.body,
       color: colors.textSecondary,
+    },
+    disabledOverlay: {
+      opacity: fixed.disabledOpacity,
     },
     bottomSpacer: {
       height: spacing.xlarge,

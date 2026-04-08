@@ -205,6 +205,10 @@ export type BgmTrackId = 'finale' | 'speakSoftlyLove' | 'theGodfatherWaltz' | 't
 export interface BgmTrackEntry {
   readonly id: BgmTrackId;
   readonly label: string;
+  /** 中文副标题 */
+  readonly subtitle: string;
+  /** 氛围/风格标签 */
+  readonly mood: string;
   readonly asset: AudioAsset;
 }
 
@@ -213,21 +217,29 @@ export const BGM_TRACKS: readonly BgmTrackEntry[] = [
   {
     id: 'theGodfatherWaltz',
     label: 'The Godfather Waltz',
+    subtitle: '教父华尔兹',
+    mood: '优雅庄重',
     asset: require('../../../../assets/bgm/the_godfather_waltz.m4a'),
   },
   {
     id: 'speakSoftlyLove',
     label: 'Speak Softly Love',
+    subtitle: '温柔倾诉',
+    mood: '浪漫深情',
     asset: require('../../../../assets/bgm/speak_softly_love.m4a'),
   },
   {
     id: 'theImmigrant',
     label: 'The Immigrant',
+    subtitle: '移民者',
+    mood: '悠远苍凉',
     asset: require('../../../../assets/bgm/the_immigrant.m4a'),
   },
   {
     id: 'finale',
     label: 'Finale',
+    subtitle: '终曲',
+    mood: '紧张宏大',
     asset: require('../../../../assets/bgm/finale.m4a'),
   },
 ] as const;

@@ -2,7 +2,7 @@
  * VolumeSlider — 简单音量滑块组件
  *
  * 使用 PanResponder 实现水平拖拽。展示当前值百分比。
- * 纯 UI 组件：接收 value + onValueChange 回调，不 import service。
+ * 纯 Presentational 组件：接收 value + onValueChange 回调，不 import service。
  */
 import { memo, useCallback, useMemo, useRef } from 'react';
 import {
