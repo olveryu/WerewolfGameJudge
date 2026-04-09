@@ -13,8 +13,8 @@ import { RoomPage } from '../pages/RoomPage';
  *
  * Regression tests for seat management:
  * 1. Single player manual seat + green seat badge
- * 2. Two player seat conflict detection
- * 3. Occupied seat rejection alert
+ * 2. Two player seating (non-host occupied seat noop)
+ * 3. Host kicks seated player
  * 4. Host sees joiner seat update (broadcast)
  * 5. Seat switching clears old seat
  * 6. Stand up broadcasts empty seat
@@ -31,13 +31,6 @@ async function settleAfterRoomReady(page: import('@playwright/test').Page) {
   await page
     .locator('[data-testid="room-screen-root"]')
     .waitFor({ state: 'visible', timeout: 3000 })
-    .catch(() => {});
-}
-
-async function dismissAnyConfirmAlert(page: import('@playwright/test').Page) {
-  await page
-    .getByText('确定', { exact: true })
-    .click({ timeout: 1000 })
     .catch(() => {});
 }
 
@@ -163,32 +156,10 @@ test.describe('Seating', () => {
 
       const roomB = new RoomPage(pageB);
 
-      // Joiner tries to click host's seat (index 0)
+      // Joiner taps host's occupied seat (index 0) — should be silent noop
       await roomB.getSeatTile(0).click();
-
-      // Should show "入座" confirm dialog → confirm → rejection alert
-      const hasRuZuo = await pageB
-        .getByText('入座', { exact: true })
-        .waitFor({ state: 'visible', timeout: 5000 })
-        .then(() => true)
-        .catch(() => false);
-      if (hasRuZuo) {
-        await pageB.getByText('确定', { exact: true }).click();
-      }
-
-      // Wait for and dismiss the "入座失败" rejection alert
-      const hasRejection = await pageB
-        .getByText('入座失败')
-        .waitFor({ state: 'visible', timeout: 5000 })
-        .then(() => true)
-        .catch(() => false);
-      if (hasRejection) {
-        await dismissAnyConfirmAlert(pageB);
-        await pageB
-          .getByText('入座失败')
-          .waitFor({ state: 'hidden', timeout: 3000 })
-          .catch(() => {});
-      }
+      // No dialog should appear (non-host tapping occupied seat = noop)
+      await expect(pageB.getByText('入座', { exact: true })).not.toBeVisible({ timeout: 1000 });
 
       // Joiner takes seat 2 instead
       await roomB.seatAt(1);
@@ -204,7 +175,7 @@ test.describe('Seating', () => {
     }
   });
 
-  test('joiner gets rejection alert for occupied seat', async ({ browser }, testInfo) => {
+  test('host kicks seated player', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 2);
     const [pageA, pageB] = fixture.pages;
 
@@ -224,7 +195,7 @@ test.describe('Seating', () => {
       await settleAfterRoomReady(pageA);
       const roomNumber = await roomA.getRoomNumber();
 
-      // Joiner joins
+      // Joiner joins and takes seat 2
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
       await enterRoomCodeViaNumPad(pageB, roomNumber);
@@ -233,39 +204,29 @@ test.describe('Seating', () => {
       await settleAfterRoomReady(pageB);
 
       const roomB = new RoomPage(pageB);
+      await roomB.seatAt(1);
 
-      // Click occupied seat 0
-      await roomB.getSeatTile(0).click();
+      // Host sees seat 2 occupied
+      await pollSeatOccupied(roomA, 2);
 
-      // If "入座" modal shows, confirm it
-      const hasRuZuo = await pageB
-        .getByText('入座', { exact: true })
-        .waitFor({ state: 'visible', timeout: 5000 })
-        .then(() => true)
-        .catch(() => false);
-      if (hasRuZuo) {
-        await pageB.getByText('确定', { exact: true }).click();
-      }
+      // Host taps joiner's seat → kick confirmation dialog
+      await roomA.getSeatTile(1).click();
+      await expect(pageA.getByText('踢出玩家')).toBeVisible({ timeout: 5000 });
+      await expect(pageA.getByText(/确定要将.*踢出房间吗/)).toBeVisible({ timeout: 3000 });
 
-      // Should see rejection alert
-      const hasRejection = await pageB
-        .getByText('入座失败')
-        .waitFor({ state: 'visible', timeout: 5000 })
-        .then(() => true)
-        .catch(() => false);
-      const hasSeatTaken = await pageB
-        .getByText('座位已被占用')
-        .waitFor({ state: 'visible', timeout: 3000 })
-        .then(() => true)
-        .catch(() => false);
+      // Confirm kick
+      await pageA.getByText('踢出', { exact: true }).click();
 
-      expect(hasRejection, 'Should see rejection alert').toBe(true);
-      expect(hasSeatTaken, 'Should mention seat is taken').toBe(true);
+      // Host sees seat 2 become empty
+      const hostSeat2After = await pollSeatEmpty(roomA, 2);
+      expect(hostSeat2After.isEmpty, 'Kicked seat should be empty').toBe(true);
 
-      // Dismiss
-      await dismissAnyConfirmAlert(pageB);
+      // Joiner sees their seat badge disappear (kicked)
+      await expect(pageB.locator('[data-testid="my-seat-badge"]')).not.toBeVisible({
+        timeout: 10_000,
+      });
 
-      await roomB.screenshot(testInfo, 'rejection-alert.png');
+      await roomA.screenshot(testInfo, 'host-kick.png');
     } finally {
       await closeAll(fixture);
     }

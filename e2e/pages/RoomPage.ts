@@ -72,6 +72,25 @@ export class RoomPage {
     });
   }
 
+  /**
+   * Host kicks a player from their seat.
+   * Taps the occupied seat → confirms "踢出" destructive dialog → waits for seat to empty.
+   */
+  async kickPlayer(seat: number) {
+    await this.getSeatTile(seat).click();
+    await expect(this.page.getByText('踢出玩家')).toBeVisible({ timeout: 5000 });
+    await this.page.getByText('踢出', { exact: true }).click();
+    // Wait for kicked seat to show as empty via broadcast
+    const tile = this.getSeatTile(seat);
+    await expect
+      .poll(() => tile.textContent().then((t) => t?.includes('空') ?? false), {
+        timeout: 10_000,
+        intervals: [250],
+        message: `Seat ${seat} did not become empty after kick within 10s`,
+      })
+      .toBeTruthy();
+  }
+
   /** Check if green seat badge (my seat) is visible anywhere. */
   async expectMyBadgeVisible() {
     await expect(this.page.locator('[data-testid="my-seat-badge"]')).toBeVisible({ timeout: 3000 });
