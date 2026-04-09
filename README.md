@@ -30,7 +30,6 @@
 - [常见问题](#常见问题)
 - [文档](#文档)
 - [贡献](#贡献)
-- [Star History](#star-history)
 - [Contributors](#contributors)
 - [许可证](#许可证)
 
@@ -235,6 +234,7 @@ iOS、Android 和任何现代浏览器（Chrome、Safari、Firefox、Edge）。W
 - [线下玩法 SOP](docs/offline-sop.md)
 - [部署指南](docs/DEPLOYMENT.md)
 - [角色技能对照表](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)
+- [预设板子参考](docs/PRESET_BOARDS.md)
 
 ## 贡献
 
@@ -245,18 +245,6 @@ iOS、Android 和任何现代浏览器（Chrome、Safari、Firefox、Edge）。W
 ## 安全
 
 发现安全漏洞？请参阅 [SECURITY.md](SECURITY.md)
-
----
-
-## Star History
-
-<a href="https://star-history.com/#olveryu/WerewolfGameJudge&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=olveryu/WerewolfGameJudge&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=olveryu/WerewolfGameJudge&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=olveryu/WerewolfGameJudge&type=Date" width="100%" />
- </picture>
-</a>
 
 ## Contributors
 

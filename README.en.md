@@ -30,7 +30,6 @@
 - [FAQ](#faq)
 - [Docs](#docs)
 - [Contributing](#contributing)
-- [Star History](#star-history)
 - [Contributors](#contributors)
 - [License](#license)
 
@@ -235,6 +234,7 @@ Absolutely. Beyond the 27 preset templates, you can freely combine roles to crea
 - [Offline Game Guide](docs/offline-sop.md)
 - [Deployment Guide](docs/DEPLOYMENT.md)
 - [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)
+- [Preset Boards Reference](docs/PRESET_BOARDS.md)
 
 ## Contributing
 
@@ -245,18 +245,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.m
 ## Security
 
 See [SECURITY.md](SECURITY.md)
-
----
-
-## Star History
-
-<a href="https://star-history.com/#olveryu/WerewolfGameJudge&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=olveryu/WerewolfGameJudge&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=olveryu/WerewolfGameJudge&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=olveryu/WerewolfGameJudge&type=Date" width="100%" />
- </picture>
-</a>
 
 ## Contributors
 

@@ -1,6 +1,6 @@
 # Night-1 角色对齐矩阵
 
-> 更新日期: 2026-03-26
+> 更新日期: 2026-04-09
 > 版本: Handler→Facade→UI 架构
 
 ## 概述
@@ -11,33 +11,39 @@
 
 | 序号 | stepId                          | roleId             | audioKey                        | audioEndKey                     |
 | ---- | ------------------------------- | ------------------ | ------------------------------- | ------------------------------- |
-| 0    | `magicianSwap`                  | `magician`         | `magician`                      | (同)                            |
-| 1    | `slackerChooseIdol`             | `slacker`          | `slacker`                       | (同)                            |
-| 2    | `wildChildChooseIdol`           | `wildChild`        | `wildChild`                     | (同)                            |
-| 3    | `shadowChooseMimic`             | `shadow`           | `shadow`                        | (同)                            |
-| 4    | `avengerConfirm`                | `avenger`          | `avenger`                       | (同)                            |
-| 5    | `nightmareBlock`                | `nightmare`        | `nightmare`                     | (同)                            |
-| 6    | `dreamcatcherDream`             | `dreamcatcher`     | `dreamcatcher`                  | (同)                            |
-| 7    | `guardProtect`                  | `guard`            | `guard`                         | (同)                            |
-| 8    | `silenceElderSilence`           | `silenceElder`     | `silenceElder`                  | (同)                            |
-| 9    | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (同)                            |
-| 10   | `wolfKill`                      | `wolf`             | `wolf`                          | (同)                            |
-| 11   | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (同)                            |
-| 12   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
-| 13   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
-| 14   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
-| 15   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
-| 16   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
-| 17   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
-| 18   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
-| 19   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
-| 20   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
-| 21   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
-| 22   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
-| 23   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
-| 24   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
-| 25   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
-| 26   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
+| 0    | `thiefChoose`                   | `thief`            | `thief`                         | (同)                            |
+| 1    | `treasureMasterChoose`          | `treasureMaster`   | `treasureMaster`                | (同)                            |
+| 2    | `cupidChooseLovers`             | `cupid`            | `cupid`                         | (同)                            |
+| 3    | `cupidLoversReveal`             | `cupid`            | `cupidLoversReveal`             | `cupidLoversReveal`             |
+| 4    | `magicianSwap`                  | `magician`         | `magician`                      | (同)                            |
+| 5    | `slackerChooseIdol`             | `slacker`          | `slacker`                       | (同)                            |
+| 6    | `wildChildChooseIdol`           | `wildChild`        | `wildChild`                     | (同)                            |
+| 7    | `shadowChooseMimic`             | `shadow`           | `shadow`                        | (同)                            |
+| 8    | `avengerConfirm`                | `avenger`          | `avenger`                       | (同)                            |
+| 9    | `nightmareBlock`                | `nightmare`        | `nightmare`                     | (同)                            |
+| 10   | `dreamcatcherDream`             | `dreamcatcher`     | `dreamcatcher`                  | (同)                            |
+| 11   | `guardProtect`                  | `guard`            | `guard`                         | (同)                            |
+| 12   | `silenceElderSilence`           | `silenceElder`     | `silenceElder`                  | (同)                            |
+| 13   | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (同)                            |
+| 14   | `crowCurse`                     | `crow`             | `crow`                          | (同)                            |
+| 15   | `wolfKill`                      | `wolf`             | `wolf`                          | (同)                            |
+| 16   | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (同)                            |
+| 17   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
+| 18   | `poisonerPoison`                | `poisoner`         | `poisoner`                      | (同)                            |
+| 19   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
+| 20   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
+| 21   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
+| 22   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
+| 23   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
+| 24   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
+| 25   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
+| 26   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
+| 27   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
+| 28   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
+| 29   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
+| 30   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
+| 31   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
+| 32   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
 
 **合约保证**：
 
@@ -47,6 +53,69 @@
 ---
 
 ## 全角色行为对齐矩阵
+
+### 0. thiefChoose (盗贼)
+
+| 属性               | 值                                                           | 说明                             |
+| ------------------ | ------------------------------------------------------------ | -------------------------------- |
+| **schemaId**       | `thiefChoose`                                                |                                  |
+| **kind**           | `chooseCard`                                                 | 从底牌中选择 1 张                |
+| **constraints**    | 无                                                           |                                  |
+| **canSkip**        | `false`                                                      | **必须选择**                     |
+| **prompt**         | "请选择一张底牌作为你的身份"                                 |                                  |
+| **revealKind**     | 无                                                           |                                  |
+| **nightmare 阻断** | ✅ 支持                                                      | 阻断时允许 skip                  |
+| **特殊规则**       | 底牌中有狼人阵营的牌时**必须选择**狼人                       |                                  |
+| **结果落点**       | `{ thiefChosenCard: RoleId, bottomCardStepRoles: RoleId[] }` |                                  |
+| **失败原因**       | `必须选择一张底牌` / `底牌中有狼人阵营的牌时必须选择狼人`    |                                  |
+| **Resolver**       | 独立 `thiefChooseResolver`                                   | 验证 cardIndex、校验狼牌强制选择 |
+
+### 0b. treasureMasterChoose (盗宝大师)
+
+| 属性               | 值                                                                                   | 说明                                               |
+| ------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| **schemaId**       | `treasureMasterChoose`                                                               |                                                    |
+| **kind**           | `chooseCard`                                                                         | 从 3 张底牌中选 1 张                               |
+| **constraints**    | 无                                                                                   |                                                    |
+| **canSkip**        | `false`                                                                              | **必须选择**                                       |
+| **prompt**         | "请选择一张底牌作为你的身份"                                                         |                                                    |
+| **revealKind**     | 无                                                                                   |                                                    |
+| **nightmare 阻断** | ✅ 支持                                                                              | 阻断时允许 skip                                    |
+| **特殊规则**       | **不能选择狼人阵营底牌**；底牌固定 1 狼+1 神+1 民                                    |                                                    |
+| **结果落点**       | `{ treasureMasterChosenCard: RoleId, effectiveTeam, bottomCardStepRoles: RoleId[] }` |                                                    |
+| **失败原因**       | `必须选择一张底牌` / `不能选择狼人阵营底牌`                                          |                                                    |
+| **Resolver**       | 独立 `treasureMasterChooseResolver`                                                  | 验证 cardIndex、校验不可选狼牌、计算 effectiveTeam |
+
+### 0c. cupidChooseLovers (丘比特)
+
+| 属性               | 值                                                     | 说明                          |
+| ------------------ | ------------------------------------------------------ | ----------------------------- |
+| **schemaId**       | `cupidChooseLovers`                                    |                               |
+| **kind**           | `multiChooseSeat`                                      | 选择 2 名目标                 |
+| **constraints**    | `[]`                                                   | 可选自己                      |
+| **minTargets**     | `2`                                                    |                               |
+| **maxTargets**     | `2`                                                    |                               |
+| **canSkip**        | `false`                                                | **必须选择**                  |
+| **prompt**         | "请选择两名玩家成为情侣，可以选择自己"                 |                               |
+| **revealKind**     | 无                                                     |                               |
+| **nightmare 阻断** | ✅ 支持                                                |                               |
+| **结果落点**       | `{ loverSeats: [seatA, seatB] }`                       | 排序后存储                    |
+| **失败原因**       | `必须选择两名玩家` / `不能选择同一玩家` / `目标不存在` |                               |
+| **Resolver**       | 独立 `cupidChooseLoversResolver`                       | 验证恰好 2 名、无重复、均存在 |
+
+### 0d. cupidLoversReveal (情侣确认)
+
+| 属性                  | 值                                     | 说明                  |
+| --------------------- | -------------------------------------- | --------------------- |
+| **schemaId**          | `cupidLoversReveal`                    |                       |
+| **kind**              | `groupConfirm`                         | 全员确认              |
+| **requireAllAcks**    | `true`                                 | 所有玩家须确认        |
+| **prompt**            | "所有玩家请睁眼，请看手机确认情侣信息" |                       |
+| **loverText**         | "你是情侣之一，你的另一半是：{seat}号" |                       |
+| **notLoverText**      | "你不是情侣"                           |                       |
+| **confirmButtonText** | "我知道了"                             |                       |
+| **nightmare 阻断**    | ❌ 不适用                              | groupConfirm 无需检查 |
+| **失败原因**          | 无                                     | 始终 valid            |
 
 ### 1. magicianSwap (魔术师)
 
@@ -188,6 +257,22 @@
 | **UI 目标限制**    | 所有座位                          |                          |
 | **失败原因**       | 无（canSkip=true）                |                          |
 
+### 9b. crowCurse (乌鸦)
+
+| 属性               | 值                                | 说明                |
+| ------------------ | --------------------------------- | ------------------- |
+| **schemaId**       | `crowCurse`                       |                     |
+| **kind**           | `chooseSeat`                      |                     |
+| **constraints**    | `['notSelf']`                     | 不能选自己          |
+| **canSkip**        | `true`                            |                     |
+| **prompt**         | "请选择要诅咒的玩家"              |                     |
+| **revealKind**     | 无                                |                     |
+| **nightmare 阻断** | ✅ 支持                           |                     |
+| **结果落点**       | `currentNightResults.cursedSeat`  | 被诅咒者次日投票 +1 |
+| **UI 目标限制**    | 排除自己                          |                     |
+| **失败原因**       | `不能选择自己` / `目标玩家不存在` |                     |
+| **Resolver**       | generic（writeSlot → cursedSeat） |                     |
+
 ### 10. wolfKill (袭击)
 
 | 属性                        | 值                                    | 说明                                                                                             |
@@ -240,6 +325,23 @@
 | **结果落点**       | `currentNightResults.savedSeat`, `poisonedSeat`                            |                         |
 | **UI 目标限制**    | save: 被杀者（非自己）; poison: 任意                                       |                         |
 | **失败原因**       | `女巫不能自救` / `只能救被狼人袭击的玩家` / `同一晚不能同时使用解药和毒药` |                         |
+
+### 12b. poisonerPoison (毒师)
+
+| 属性               | 值                                                  | 说明         |
+| ------------------ | --------------------------------------------------- | ------------ |
+| **schemaId**       | `poisonerPoison`                                    |              |
+| **kind**           | `chooseSeat`                                        |              |
+| **constraints**    | `[]`                                                | 可选任意座位 |
+| **canSkip**        | `true`                                              |              |
+| **prompt**         | "请选择要毒杀的玩家"                                |              |
+| **revealKind**     | 无                                                  |              |
+| **nightmare 阻断** | ✅ 支持                                             |              |
+| **特殊规则**       | 一次性毒药（uses: 1）；有毒师在场时首夜狼人无法袭击 |              |
+| **结果落点**       | `currentNightResults.poisonedSeat`                  |              |
+| **UI 目标限制**    | 所有座位                                            |              |
+| **失败原因**       | `目标玩家不存在`                                    |              |
+| **Resolver**       | generic（writeSlot → poisonedSeat）                 |              |
 
 ### 13. seerCheck (预言家)
 
@@ -510,10 +612,10 @@
 
 ```
 === Night-1 Role Coverage Report ===
-Total Steps: 25
-With Schema: 25/25 (100%)
-With Resolver: 25/25 (100%)
-With Audio: 25/25 (100%)
+Total Steps: 32
+With Schema: 32/32 (100%)
+With Resolver: 32/32 (100%)
+With Audio: 32/32 (100%)
 ```
 
 ---
@@ -537,11 +639,15 @@ With Audio: 25/25 (100%)
 
 | 角色                 | Schema 约束                                              | UI 行为                | UX-only 限制                                                                    |
 | -------------------- | -------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------- |
+| thief                | `chooseCard`                                             | 底牌选择面板           | ❌ 无（来自 schema）                                                            |
+| treasureMaster       | `chooseCard`                                             | 底牌选择面板           | ❌ 无（来自 schema）                                                            |
+| cupid                | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
 | nightmare            | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
 | dreamcatcher         | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | guard                | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
 | silenceElder         | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
 | votebanElder         | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
+| crow                 | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | seer                 | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | mirrorSeer           | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | drunkSeer            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
@@ -551,6 +657,7 @@ With Audio: 25/25 (100%)
 | wolfWitch            | `['notWolfFaction']`                                     | 狼人阵营座位禁用       | ❌ 无（来自 schema）                                                            |
 | wolf（袭击）         | `[]`                                                     | UI 不禁用任何目标      | ❌ 无（改为 Host/Resolver 权威拒绝免疫目标，UI 统一用 `actionRejected` 弹提示） |
 | witch（save/poison） | save: `['notSelf']`                                      | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
+| poisoner             | `[]`                                                     | 可选任意座位           | ❌ 无                                                                           |
 | slacker              | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | wildChild            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
 | wolfQueen            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |

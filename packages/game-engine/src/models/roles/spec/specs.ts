@@ -1,16 +1,16 @@
 /**
- * V2 Role Specs Registry — 全部 41 角色声明式定义
+ * V2 Role Specs Registry — 全部 43 角色声明式定义
  *
  * Single source of truth: 角色固有属性 + 行为（abilities / effects）+ 夜间步骤 + UI 元数据
  * 合并了 V1 的 ROLE_SPECS + SCHEMAS + NIGHT_STEPS 三表。
  *
- * 41 roles total:
+ * 43 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, poisoner, hunter, guard, idiot, knight, magician, witcher, psychic,
- *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder, crow (17)
+ *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder, crow, maskedMan (18)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle,
  *   awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden (13)
- * - Third-party: slacker, wildChild, piper, shadow, avenger, thief, cupid, treasureMaster (8)
+ * - Third-party: slacker, wildChild, piper, shadow, avenger, thief, cupid, treasureMaster, cursedFox (9)
  *
  * 纯数据，JSON-serializable。不含业务逻辑、副作用、平台依赖。
  */
