@@ -460,7 +460,7 @@ export function buildSeatViewModels(
     const hasWolfVoteBadge = isWolf && wolfVotesBySeat != null && String(seat) in wolfVotesBySeat;
     const readyBadge =
       !hasWolfVoteBadge &&
-      ((options?.showReadyBadges && player != null && (player.hasViewedRole ?? false)) ||
+      ((options?.showReadyBadges && player != null && player.hasViewedRole) ||
         (options?.groupConfirmAcks?.includes(seat) ?? false));
 
     return {
