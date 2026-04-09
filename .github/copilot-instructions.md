@@ -59,9 +59,10 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 
 ### 验证流水线
 
-- pre-commit：eslint --fix + prettier --write
+- pre-commit：eslint --fix + prettier --write（husky + lint-staged 自动执行）
 - pre-push：`npx tsc --noEmit`
 - 手动完整验证：`pnpm run quality`。失败必须修复后重跑。
+- **禁止 `--no-verify`。** 不得跳过 git hooks，除非用户明确要求。
 
 ---
 
