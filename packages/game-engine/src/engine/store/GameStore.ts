@@ -28,6 +28,9 @@ export class GameStore implements IWritableGameStore {
   /** 乐观更新前的 revision（用于检测是否已被 applySnapshot 覆盖） */
   #confirmedRevision: number = 0;
 
+  /** 最近一次广播携带的 action 类型（一次性消费） */
+  #lastAction: string | null = null;
+
   /**
    * 获取当前状态
    */
@@ -58,7 +61,7 @@ export class GameStore implements IWritableGameStore {
    * 仅当 incoming revision > local revision 时应用
    * 应用 normalizeState 确保 Host/Player shape 一致（anti-drift）
    */
-  applySnapshot(state: GameState, revision: number): void {
+  applySnapshot(state: GameState, revision: number, lastAction?: string): void {
     if (revision <= this.#revision) {
       // 丢弃旧版本
       return;
@@ -68,6 +71,7 @@ export class GameStore implements IWritableGameStore {
     this.#confirmedState = null;
     this.#state = normalizeState(state);
     this.#revision = revision;
+    this.#lastAction = lastAction ?? null;
 
     this.#notifyListeners();
   }
@@ -141,6 +145,7 @@ export class GameStore implements IWritableGameStore {
     this.#state = null;
     this.#revision = 0;
     this.#confirmedState = null;
+    this.#lastAction = null;
     // 注意：不清除 listeners，因为 React useEffect 的 listener 生命周期独立于 store
     // 通知 listeners state 已变为 null
     for (const listener of this.#listeners) {
@@ -160,7 +165,17 @@ export class GameStore implements IWritableGameStore {
     this.#state = null;
     this.#revision = 0;
     this.#confirmedState = null;
+    this.#lastAction = null;
     this.#listeners.clear();
+  }
+
+  /**
+   * 消费最近一次广播携带的 lastAction（一次性读取，读后清除）
+   */
+  consumeLastAction(): string | null {
+    const action = this.#lastAction;
+    this.#lastAction = null;
+    return action;
   }
 
   /**

@@ -122,7 +122,11 @@ export class CFRealtimeService implements IRealtimeTransport {
       const data = JSON.parse(event.data as string);
       if (data.type === 'STATE_UPDATE' && data.state && data.revision != null) {
         realtimeLog.debug('Transport: STATE_UPDATE', { revision: data.revision });
-        this.#handlers?.onStateUpdate(data.state as GameState, data.revision as number);
+        this.#handlers?.onStateUpdate(
+          data.state as GameState,
+          data.revision as number,
+          data.lastAction as string | undefined,
+        );
       } else if (data.type === 'pong') {
         this.#handlers?.onPong();
       }

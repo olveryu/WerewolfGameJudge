@@ -47,7 +47,7 @@ export interface ConnectionManagerDeps {
   /** 轻量 revision 比对：从 DB 读 state_revision */
   getStateRevision: (roomCode: string) => Promise<number | null>;
   /** WS 广播收到 STATE_UPDATE 时的回调 */
-  onStateUpdate: (state: GameState, revision: number) => void;
+  onStateUpdate: (state: GameState, revision: number, lastAction?: string) => void;
   /** fetch 或 WS 广播获得新 state 后的回调（用于 store.applySnapshot） */
   onFetchedState: (state: GameState, revision: number) => void;
 }
@@ -86,8 +86,8 @@ export class ConnectionManager {
       onOpen: () => this.#dispatch({ type: 'WS_OPEN' }),
       onClose: (code, reason) => this.#dispatch({ type: 'WS_CLOSE', code, reason }),
       onError: (error) => this.#dispatch({ type: 'WS_ERROR', error }),
-      onStateUpdate: (state, revision) => {
-        deps.onStateUpdate(state, revision);
+      onStateUpdate: (state, revision, lastAction) => {
+        deps.onStateUpdate(state, revision, lastAction);
         this.#dispatch({ type: 'STATE_UPDATE', revision });
       },
       onPong: () => this.#handlePong(),

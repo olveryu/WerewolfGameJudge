@@ -183,6 +183,10 @@ export class GameFacade implements IGameFacade {
     return this.#store.getRevision();
   }
 
+  consumeLastAction(): string | null {
+    return this.#store.consumeLastAction();
+  }
+
   addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void {
     return this.#connectionManager.addStateListener((state) => {
       fn(mapConnectionStatus(state));

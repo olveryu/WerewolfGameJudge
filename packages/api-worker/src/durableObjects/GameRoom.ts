@@ -78,26 +78,29 @@ export class GameRoom extends DurableObject<Env> {
   // ── Private helpers ─────────────────────────────────────────────────────
 
   #processAction(
-    ...args: Parameters<typeof processAction> extends [infer _First, ...infer Rest] ? Rest : never
+    processFn: Parameters<typeof processAction>[1],
+    inlineProgression?: Parameters<typeof processAction>[2],
+    lastAction?: string,
   ): GameActionResult {
-    const result = processAction(this.ctx.storage.sql, ...args);
+    const result = processAction(this.ctx.storage.sql, processFn, inlineProgression);
 
     // 广播 — output gate 保证 write 持久化后才发送
     if (result.state && result.revision != null) {
       const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
       if (shouldBroadcast) {
-        this.#broadcast(result.state, result.revision);
+        this.#broadcast(result.state, result.revision, lastAction);
       }
     }
 
     return result;
   }
 
-  #broadcast(state: GameState, revision: number): void {
+  #broadcast(state: GameState, revision: number, lastAction?: string): void {
     const message = JSON.stringify({
       type: 'STATE_UPDATE',
       state,
       revision,
+      ...(lastAction && { lastAction }),
     });
 
     const sockets = this.ctx.getWebSockets();
@@ -113,24 +116,36 @@ export class GameRoom extends DurableObject<Env> {
   // ── (A) No-arg RPC methods ──────────────────────────────────────────────
 
   async assignRoles(): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
-      return handleAssignRoles({ type: 'ASSIGN_ROLES' }, ctx);
-    });
+    return this.#processAction(
+      (state) => {
+        const ctx = buildHandlerContext(state, state.hostUid);
+        return handleAssignRoles({ type: 'ASSIGN_ROLES' }, ctx);
+      },
+      undefined,
+      'ASSIGN_ROLES',
+    );
   }
 
   async restartGame(): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
-      return handleRestartGame({ type: 'RESTART_GAME' }, ctx);
-    });
+    return this.#processAction(
+      (state) => {
+        const ctx = buildHandlerContext(state, state.hostUid);
+        return handleRestartGame({ type: 'RESTART_GAME' }, ctx);
+      },
+      undefined,
+      'RESTART_GAME',
+    );
   }
 
   async clearAllSeats(): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
-      return handleClearAllSeats({ type: 'CLEAR_ALL_SEATS' }, ctx);
-    });
+    return this.#processAction(
+      (state) => {
+        const ctx = buildHandlerContext(state, state.hostUid);
+        return handleClearAllSeats({ type: 'CLEAR_ALL_SEATS' }, ctx);
+      },
+      undefined,
+      'CLEAR_ALL_SEATS',
+    );
   }
 
   async fillWithBots(): Promise<GameActionResult> {
@@ -158,28 +173,35 @@ export class GameRoom extends DurableObject<Env> {
     avatarFrame?: string,
     targetSeat?: number,
   ): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, uid);
-      if (action === 'sit') {
-        return handleJoinSeat(
-          {
-            type: 'JOIN_SEAT',
-            payload: {
-              seat: seatNum!,
-              uid,
-              displayName: displayName ?? '',
-              avatarUrl,
-              avatarFrame,
+    return this.#processAction(
+      (state) => {
+        const ctx = buildHandlerContext(state, uid);
+        if (action === 'sit') {
+          return handleJoinSeat(
+            {
+              type: 'JOIN_SEAT',
+              payload: {
+                seat: seatNum!,
+                uid,
+                displayName: displayName ?? '',
+                avatarUrl,
+                avatarFrame,
+              },
             },
-          },
-          ctx,
-        );
-      }
-      if (action === 'kick') {
-        return handleKickPlayer({ type: 'KICK_PLAYER', payload: { targetSeat: targetSeat! } }, ctx);
-      }
-      return handleLeaveMySeat({ type: 'LEAVE_MY_SEAT', payload: { uid } }, ctx);
-    });
+            ctx,
+          );
+        }
+        if (action === 'kick') {
+          return handleKickPlayer(
+            { type: 'KICK_PLAYER', payload: { targetSeat: targetSeat! } },
+            ctx,
+          );
+        }
+        return handleLeaveMySeat({ type: 'LEAVE_MY_SEAT', payload: { uid } }, ctx);
+      },
+      undefined,
+      action === 'kick' ? 'KICK_PLAYER' : undefined,
+    );
   }
 
   async submitAction(
@@ -282,31 +304,39 @@ export class GameRoom extends DurableObject<Env> {
   // ── (C) Night RPC methods with post-processing ──────────────────────────
 
   async startNight(): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
-      const result = handleStartNight({ type: 'START_NIGHT' }, ctx);
-      if (result.kind === 'error') return result;
+    return this.#processAction(
+      (state) => {
+        const ctx = buildHandlerContext(state, state.hostUid);
+        const result = handleStartNight({ type: 'START_NIGHT' }, ctx);
+        if (result.kind === 'error') return result;
 
-      const extraActions = extractAudioActions(result.sideEffects);
-      if (extraActions.length > 0) {
-        return handlerSuccess([...result.actions, ...extraActions], result.sideEffects);
-      }
-      return result;
-    });
+        const extraActions = extractAudioActions(result.sideEffects);
+        if (extraActions.length > 0) {
+          return handlerSuccess([...result.actions, ...extraActions], result.sideEffects);
+        }
+        return result;
+      },
+      undefined,
+      'START_NIGHT',
+    );
   }
 
   async endNight(): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
-      const result = handleEndNight({ type: 'END_NIGHT' }, ctx);
-      if (result.kind === 'error') return result;
+    return this.#processAction(
+      (state) => {
+        const ctx = buildHandlerContext(state, state.hostUid);
+        const result = handleEndNight({ type: 'END_NIGHT' }, ctx);
+        if (result.kind === 'error') return result;
 
-      const extraActions = extractAudioActions(result.sideEffects);
-      if (extraActions.length > 0) {
-        return handlerSuccess([...result.actions, ...extraActions], result.sideEffects);
-      }
-      return result;
-    });
+        const extraActions = extractAudioActions(result.sideEffects);
+        if (extraActions.length > 0) {
+          return handlerSuccess([...result.actions, ...extraActions], result.sideEffects);
+        }
+        return result;
+      },
+      undefined,
+      'END_NIGHT',
+    );
   }
 
   async audioAck(): Promise<GameActionResult> {

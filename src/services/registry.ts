@@ -38,7 +38,8 @@ export function createAllServices(): {
     transport,
     fetchStateFromDB: async (roomCode) => roomService.getGameState(roomCode),
     getStateRevision: async (roomCode) => roomService.getStateRevision(roomCode),
-    onStateUpdate: (state, revision) => store.applySnapshot(state, revision),
+    onStateUpdate: (state, revision, lastAction) =>
+      store.applySnapshot(state, revision, lastAction),
     onFetchedState: (state, revision) => store.applySnapshot(state, revision),
   });
 

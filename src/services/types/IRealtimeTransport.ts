@@ -19,7 +19,7 @@ export interface TransportEventHandlers {
   onOpen(): void;
   onClose(code: number, reason: string): void;
   onError(error: unknown): void;
-  onStateUpdate(state: GameState, revision: number): void;
+  onStateUpdate(state: GameState, revision: number, lastAction?: string): void;
   onPong(): void;
 }
 

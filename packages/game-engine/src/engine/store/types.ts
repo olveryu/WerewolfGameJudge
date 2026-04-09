@@ -28,7 +28,10 @@ interface IGameStore {
   subscribe(listener: StoreStateListener): () => void;
 
   /** 应用快照（玩家端） */
-  applySnapshot(state: GameState, revision: number): void;
+  applySnapshot(state: GameState, revision: number, lastAction?: string): void;
+
+  /** 消费最近一次广播携带的 lastAction（一次性读取，读后清除） */
+  consumeLastAction(): string | null;
 
   /** 乐观更新（发 fetch 前立即渲染预测 state） */
   applyOptimistic(state: GameState): void;

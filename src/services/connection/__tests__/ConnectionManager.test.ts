@@ -364,7 +364,7 @@ describe('ConnectionManager', () => {
       const newState = { revision: 5 } as unknown as GameState;
       transport.handlers.onStateUpdate(newState, 5);
 
-      expect(deps.onStateUpdate).toHaveBeenCalledWith(newState, 5);
+      expect(deps.onStateUpdate).toHaveBeenCalledWith(newState, 5, undefined);
 
       manager.dispose();
     });

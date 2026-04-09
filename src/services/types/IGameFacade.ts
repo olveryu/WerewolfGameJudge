@@ -65,6 +65,12 @@ export interface IGameFacade {
    */
   getStateRevision(): number;
 
+  /**
+   * 消费最近一次广播携带的 lastAction（一次性读取，读后清除）
+   * 用于客户端检测被动操作（kick/clearAllSeats/assignRoles 等）并显示 toast
+   */
+  consumeLastAction(): string | null;
+
   // === Room Lifecycle ===
   /**
    * Host: 创建新房间

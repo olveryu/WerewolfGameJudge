@@ -322,4 +322,42 @@ describe('GameStore', () => {
       expect(store.getListenerCount()).toBe(2);
     });
   });
+
+  describe('consumeLastAction()', () => {
+    it('should return null when no lastAction set', () => {
+      expect(store.consumeLastAction()).toBeNull();
+    });
+
+    it('should return lastAction from applySnapshot and clear it', () => {
+      store.applySnapshot(createMinimalState(), 5, 'KICK_PLAYER');
+
+      expect(store.consumeLastAction()).toBe('KICK_PLAYER');
+      // Second call returns null (consumed)
+      expect(store.consumeLastAction()).toBeNull();
+    });
+
+    it('should set lastAction to null when applySnapshot has no lastAction', () => {
+      store.applySnapshot(createMinimalState(), 5, 'KICK_PLAYER');
+      // Overwrite with no lastAction
+      store.applySnapshot(createMinimalState({ status: GameStatus.Seated }), 6);
+
+      expect(store.consumeLastAction()).toBeNull();
+    });
+
+    it('should reset lastAction on store.reset()', () => {
+      store.applySnapshot(createMinimalState(), 5, 'ASSIGN_ROLES');
+
+      store.reset();
+
+      expect(store.consumeLastAction()).toBeNull();
+    });
+
+    it('should reset lastAction on store.destroy()', () => {
+      store.applySnapshot(createMinimalState(), 5, 'START_NIGHT');
+
+      store.destroy();
+
+      expect(store.consumeLastAction()).toBeNull();
+    });
+  });
 });

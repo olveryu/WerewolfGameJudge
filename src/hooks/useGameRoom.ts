@@ -39,6 +39,7 @@ import { useBgmControl } from './useBgmControl';
 import { useConnectionStatus } from './useConnectionStatus';
 import { useDebugMode } from './useDebugMode';
 import { useGameActions } from './useGameActions';
+import { useLastActionToast } from './useLastActionToast';
 import { useNightDerived } from './useNightDerived';
 import { useRoomLifecycle } from './useRoomLifecycle';
 
@@ -205,6 +206,9 @@ export const useGameRoom = (): UseGameRoomResult => {
   const isHost = snapshot !== null && facade.isHostPlayer();
   const myUid = snapshot !== null ? facade.getMyUid() : null;
   const mySeatNumber = snapshot !== null ? facade.getMySeatNumber() : null;
+
+  // Toast notifications for passive actions (kick, clearAllSeats, assignRoles, etc.)
+  useLastActionToast({ facade, isHost, mySeatNumber, isFocused });
 
   // Side effects: sync metadata + rejoin overlay
   const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;
