@@ -86,13 +86,11 @@
         touch-action: manipulation;
       }
 
-      /* iOS 安全区域适配 */
-      body {
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-      }
+      /*
+       * iOS 安全区域由 react-native-safe-area-context 的 SafeAreaView 统一处理。
+       * 不在 body 上加 env() padding，避免与 SafeAreaView (additive mode) 双重扣减。
+       * viewport-fit=cover 保留在 <meta viewport> 中，让浏览器暴露 inset 值给 JS 读取。
+       */
 
       /* 启动画面样式 - 使用 light 主题 primary 色 */
       #splash-screen {
