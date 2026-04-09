@@ -1,6 +1,6 @@
 # 🚀 部署指南
 
-本文档覆盖从零到生产环境的完整部署流程，包括 Cloudflare Pages 前端部署和 Cloudflare Worker (D1 + Durable Objects) API 部署。
+本文档覆盖从零到生产环境的完整部署流程，包括 Cloudflare Pages 前端部署和 Cloudflare Worker (DO + D1 + R2) API 部署。
 
 ---
 

@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker (D1 + Durable Objects) 负责 API、持久化、realtime 传输。支持 iOS / Android / Web。
+React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durable Objects（游戏状态）+ D1（房间/用户元数据）负责 API、持久化、realtime 传输。支持 iOS / Android / Web。
 
 ## Tech Stack
 
 - React Native 0.83 + React 19 + Expo SDK 55 | TypeScript ~5.9
 - **pnpm workspace monorepo**（`packages/game-engine` + `packages/api-worker` + 根项目）
 - `@werewolf/game-engine` — 纯游戏逻辑共享包，客户端与服务端共用
-- `@werewolf/api-worker` — Game API + Auth API（Cloudflare Worker + D1 + Durable Objects）
+- `@werewolf/api-worker` — Game API + Auth API（Cloudflare Worker + DO SQLite + D1 + R2）
 - Sentry (production only) | Jest 29 | Playwright (E2E) | ESLint 9 | Prettier
 - Path alias: `@/` → `src/`（仅根项目；game-engine 内使用相对路径）
 
@@ -80,11 +80,11 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker (D1 + D
 
 ## 架构边界
 
-- **Worker（DO）** — 游戏逻辑 + D1 持久化 + WebSocket 广播。
-- **Worker（D1）** — 房间生命周期、auth。
+- **Worker（DO）** — 游戏逻辑 + DO SQLite 持久化 + WebSocket 广播。
+- **Worker（D1）** — 房间元数据、auth、rate limit。
 - **Cloudflare Pages** — 前端静态资源。
 - **客户端** — HTTP 提交 + WebSocket 接收 + `applySnapshot` + 音频（Host）。
-- 禁止 P2P 消息。断线恢复统一读 DB。
+- 禁止 P2P 消息。断线恢复统一读 DO（`/room/state` → `stub.getState()`）。
 
 ### 日志
 

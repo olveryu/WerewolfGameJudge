@@ -62,7 +62,7 @@ Share a 4-digit room code after creating a room. Everyone joins via browser or a
 
 ### 🔌 Auto-Recovery on Disconnect
 
-Game state is persisted in Cloudflare D1. Reconnecting after a network drop automatically restores the latest state — zero progress lost.
+Game state is persisted in Cloudflare Durable Objects (edge SQLite). Reconnecting after a network drop automatically restores the latest state — zero progress lost.
 
 ### 🎭 43 Roles · 27 Preset Boards
 
@@ -209,7 +209,7 @@ iOS, Android, and any modern browser (Chrome, Safari, Firefox, Edge). The web ve
 <details>
 <summary><b>Where is game data stored?</b></summary>
 
-All game state is stored in Cloudflare D1 (edge SQLite). Your data is never sent to any third party. Rooms are automatically cleaned up after 24 hours of inactivity.
+All game state is stored in Cloudflare Durable Objects (edge SQLite), with room metadata in D1. Your data is never sent to any third party. Rooms are automatically cleaned up after 24 hours of inactivity.
 
 </details>
 

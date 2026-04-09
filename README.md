@@ -62,7 +62,7 @@
 
 ### 🔌 断线自动恢复
 
-游戏状态持久化在 Cloudflare D1 数据库。网络断开后重连自动恢复到最新状态，不会丢失任何进度。
+游戏状态持久化在 Cloudflare Durable Objects（边缘 SQLite）。网络断开后重连自动恢复到最新状态，不会丢失任何进度。
 
 ### 🎭 43 种角色 · 27 套预设板子
 
@@ -209,7 +209,7 @@ iOS、Android 和任何现代浏览器（Chrome、Safari、Firefox、Edge）。W
 <details>
 <summary><b>游戏数据存储在哪里？</b></summary>
 
-所有游戏状态存储在 Cloudflare D1（边缘 SQLite 数据库）。你的数据不会发送到任何第三方。房间在 24 小时无活动后自动清理。
+所有游戏状态存储在 Cloudflare Durable Objects（边缘 SQLite），房间元数据存储在 D1。你的数据不会发送到任何第三方。房间在 24 小时无活动后自动清理。
 
 </details>
 
