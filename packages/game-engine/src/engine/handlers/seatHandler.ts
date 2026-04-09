@@ -135,8 +135,8 @@ export function handleLeaveMySeat(
     return handlerError(REASON_NOT_SEATED);
   }
 
-  // 验证：游戏状态是否允许离开
-  if (state.status === GameStatus.Ongoing) {
+  // 验证：游戏状态是否允许离开（仅 Unseated/Seated 允许）
+  if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
 

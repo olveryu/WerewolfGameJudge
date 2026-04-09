@@ -81,6 +81,25 @@ export interface Player {
 }
 
 // =============================================================================
+// 板子建议（Board Nomination）
+// =============================================================================
+
+/**
+ * 板子建议（BoardNomination）— 任何已连接玩家可提交。
+ * 每人最多一个（以 uid 为 key，后提交覆盖前）。
+ */
+export interface BoardNomination {
+  /** 提交者 uid（冗余存储，方便 UI 渲染） */
+  readonly uid: string;
+  /** 提交者显示名 */
+  readonly displayName: string;
+  /** 建议的角色配置 */
+  readonly roles: readonly RoleId[];
+  /** 点赞的 uid 列表 */
+  readonly upvoters: readonly string[];
+}
+
+// =============================================================================
 // 游戏状态（GameState）— 线协议
 // =============================================================================
 
@@ -448,6 +467,15 @@ export interface GameState {
    * 所有存活玩家 ack 后，服务端推进到下一步骤。
    */
   cupidLoversRevealAcks?: readonly number[];
+
+  // --- 板子建议（Board Nomination）---
+  /**
+   * 板子建议列表（uid → BoardNomination）。
+   * 任何已连接玩家可提交建议，每人最多一条（后提交覆盖前）。
+   * Host 可采纳某条建议（触发 UPDATE_TEMPLATE）。
+   * UPDATE_TEMPLATE / RESTART_GAME 时清空。
+   */
+  boardNominations?: Readonly<Record<string, BoardNomination>>;
 }
 
 // =============================================================================

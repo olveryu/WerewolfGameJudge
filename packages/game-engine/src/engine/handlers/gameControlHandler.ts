@@ -24,6 +24,9 @@ import { randomHex } from '../../utils/id';
 import { shuffleArray } from '../../utils/shuffle';
 import type {
   AssignRolesIntent,
+  BoardNominateIntent,
+  BoardUpvoteIntent,
+  BoardWithdrawIntent,
   FillWithBotsIntent,
   MarkAllBotsViewedIntent,
   RestartGameIntent,
@@ -38,12 +41,15 @@ import type {
   FillWithBotsAction,
   MarkAllBotsViewedAction,
   RestartGameAction,
+  SetBoardNominationAction,
   SetNightReviewAllowedSeatsAction,
   SetRoleRevealAnimationAction,
   SetWolfKillOverrideAction,
   StartNightAction,
   StateAction,
   UpdateTemplateAction,
+  UpvoteBoardNominationAction,
+  WithdrawBoardNominationAction,
 } from '../reducer/types';
 import type { GameState } from '../store/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
@@ -530,6 +536,114 @@ export function handleShareNightReview(
   const action: SetNightReviewAllowedSeatsAction = {
     type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS',
     allowedSeats: intent.allowedSeats,
+  };
+
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+}
+
+// =============================================================================
+// 板子建议 Handlers（任意已连接玩家）
+// =============================================================================
+
+/**
+ * 提交板子建议
+ *
+ * 任何已连接玩家可提交，每人最多一条（后覆盖前）。
+ * 前置条件：status === Unseated | Seated
+ */
+export function handleBoardNominate(
+  intent: BoardNominateIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const guard = requireState(context);
+  if (!guard.ok) return guard.result;
+  const { state } = guard;
+
+  const canNominate = state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
+  if (!canNominate) {
+    return handlerError('invalid_status');
+  }
+
+  if (intent.payload.roles.length === 0) {
+    return handlerError('角色列表不能为空');
+  }
+
+  const action: SetBoardNominationAction = {
+    type: 'SET_BOARD_NOMINATION',
+    payload: {
+      nomination: {
+        uid: intent.payload.uid,
+        displayName: intent.payload.displayName,
+        roles: intent.payload.roles,
+        upvoters: [],
+      },
+    },
+  };
+
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+}
+
+/**
+ * 点赞板子建议
+ *
+ * 前置条件：
+ * - status === Unseated | Seated
+ * - 不能给自己点赞
+ * - 目标建议必须存在
+ */
+export function handleBoardUpvote(
+  intent: BoardUpvoteIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const guard = requireState(context);
+  if (!guard.ok) return guard.result;
+  const { state } = guard;
+
+  const canVote = state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
+  if (!canVote) {
+    return handlerError('invalid_status');
+  }
+
+  const { targetUid, voterUid } = intent.payload;
+
+  if (!state.boardNominations?.[targetUid]) {
+    return handlerError('目标建议不存在');
+  }
+
+  const action: UpvoteBoardNominationAction = {
+    type: 'UPVOTE_BOARD_NOMINATION',
+    payload: { targetUid, voterUid },
+  };
+
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+}
+
+/**
+ * 撤回板子建议
+ *
+ * 仅建议提交者本人可撤回。
+ * 前置条件：status === Unseated | Seated + 建议存在
+ */
+export function handleBoardWithdraw(
+  intent: BoardWithdrawIntent,
+  context: HandlerContext,
+): HandlerResult {
+  const guard = requireState(context);
+  if (!guard.ok) return guard.result;
+  const { state } = guard;
+
+  const canWithdraw = state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
+  if (!canWithdraw) {
+    return handlerError('invalid_status');
+  }
+
+  if (!state.boardNominations?.[intent.payload.uid]) {
+    return handlerError('建议不存在或已被撤回');
+  }
+
+  const action: WithdrawBoardNominationAction = {
+    type: 'WITHDRAW_BOARD_NOMINATION',
+    payload: { uid: intent.payload.uid },
   };
 
   return handlerSuccess([action], STANDARD_SIDE_EFFECTS);

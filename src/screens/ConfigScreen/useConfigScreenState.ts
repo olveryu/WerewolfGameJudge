@@ -11,6 +11,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { Faction } from '@werewolf/game-engine/models/roles';
 import {
   createCustomTemplate,
@@ -18,7 +19,7 @@ import {
   validateTemplateRoles,
 } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import type { RootStackParamList } from '@/navigation/types';
@@ -50,6 +51,7 @@ type ConfigNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Confi
 interface UseConfigScreenStateParams {
   existingRoomNumber: string | undefined;
   presetName: string | undefined;
+  nominateMode: { roomCode: string } | undefined;
   navigation: ConfigNavigationProp;
   facade: IGameFacade;
   settingsService: SettingsService;
@@ -65,6 +67,7 @@ interface UseConfigScreenStateParams {
 export function useConfigScreenState({
   existingRoomNumber,
   presetName,
+  nominateMode,
   navigation,
   facade,
   settingsService,
@@ -73,6 +76,7 @@ export function useConfigScreenState({
   colors,
 }: UseConfigScreenStateParams) {
   const isEditMode = !!existingRoomNumber;
+  const isNominateMode = !!nominateMode;
 
   // ── Core state ────────────────────────────────────────────────────────────
 
@@ -85,13 +89,16 @@ export function useConfigScreenState({
   }, [presetName]);
 
   const [selection, setSelection] = useState(
-    () => presetInitial?.selection ?? (isEditMode ? getInitialSelection() : getEmptySelection()),
+    () =>
+      presetInitial?.selection ??
+      (isEditMode || isNominateMode ? getInitialSelection() : getEmptySelection()),
   );
   const [isCreating, setIsCreating] = useState(false);
-  const [isLoading, setIsLoading] = useState(isEditMode);
+  const [isLoading, setIsLoading] = useState(isEditMode || isNominateMode);
   const [roleRevealAnimation, setRoleRevealAnimation] = useState<RoleRevealAnimation>('random');
   const [selectedTemplate, setSelectedTemplate] = useState(
-    presetInitial?.matchedPreset ?? (isEditMode ? (PRESET_TEMPLATES[0]?.name ?? '') : '__custom__'),
+    presetInitial?.matchedPreset ??
+      (isEditMode || isNominateMode ? (PRESET_TEMPLATES[0]?.name ?? '') : '__custom__'),
   );
   const [bgmEnabled, setBgmEnabled] = useState(true);
   const [overflowVisible, setOverflowVisible] = useState(false);
@@ -133,16 +140,18 @@ export function useConfigScreenState({
     configLog.debug(
       ' useEffect triggered, isEditMode:',
       isEditMode,
+      'isNominateMode:',
+      isNominateMode,
       'existingRoomNumber:',
       existingRoomNumber,
     );
-    if (!isEditMode || !existingRoomNumber) {
-      configLog.debug(' Skipping load - not in edit mode or no room number');
+    if ((!isEditMode && !isNominateMode) || (!existingRoomNumber && !isNominateMode)) {
+      configLog.debug(' Skipping load - not in edit/nominate mode');
       return;
     }
 
     const loadCurrentRoles = () => {
-      configLog.debug(' Loading room:', existingRoomNumber);
+      configLog.debug(' Loading room:', existingRoomNumber ?? nominateMode?.roomCode);
       try {
         const state = facade.getState();
         configLog.debug(' State loaded:', state ? 'success' : 'not found');
@@ -165,7 +174,7 @@ export function useConfigScreenState({
     };
 
     loadCurrentRoles();
-  }, [isEditMode, existingRoomNumber, facade, settingsService]);
+  }, [isEditMode, isNominateMode, existingRoomNumber, nominateMode, facade, settingsService]);
 
   // ── Reset transient states when screen regains focus ─────────────────────
 
@@ -175,6 +184,25 @@ export function useConfigScreenState({
     });
     return unsubscribe;
   }, [navigation]);
+
+  // ── Auto-navigate back when game progresses past nomination phase ───────
+
+  const subscribe = useCallback((cb: () => void) => facade.subscribe(cb), [facade]);
+  const getSnapshot = useCallback(() => facade.getState(), [facade]);
+  const gameState = useSyncExternalStore(subscribe, getSnapshot);
+
+  useEffect(() => {
+    if (!isNominateMode) return;
+    if (!gameState) return;
+    const canNominate =
+      gameState.status === GameStatus.Unseated || gameState.status === GameStatus.Seated;
+    if (!canNominate) {
+      navigation.popTo('Room', {
+        roomNumber: nominateMode!.roomCode,
+        isHost: false,
+      });
+    }
+  }, [isNominateMode, gameState, gameState?.status, nominateMode, navigation]);
 
   // ── Callback handlers ────────────────────────────────────────────────────
 
@@ -187,8 +215,11 @@ export function useConfigScreenState({
   }, [navigation]);
 
   const handleTemplatePillPress = useCallback(() => {
-    navigation.navigate('BoardPicker', existingRoomNumber ? { existingRoomNumber } : undefined);
-  }, [navigation, existingRoomNumber]);
+    navigation.navigate('BoardPicker', {
+      ...(existingRoomNumber ? { existingRoomNumber } : {}),
+      ...(nominateMode ? { nominateMode } : {}),
+    });
+  }, [navigation, existingRoomNumber, nominateMode]);
 
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -225,6 +256,22 @@ export function useConfigScreenState({
 
     setIsCreating(true);
     try {
+      // ── Nominate mode: submit board nomination ──
+      if (isNominateMode) {
+        await authService.waitForInit();
+        const displayName = (await authService.getCurrentDisplayName()) ?? '匿名玩家';
+        const result = await facade.boardNominate(displayName, roles);
+        if (!result.success) {
+          showErrorAlert('提交失败', result.reason ?? '提交建议失败，请重试');
+          return;
+        }
+        navigation.popTo('Room', {
+          roomNumber: nominateMode!.roomCode,
+          isHost: false,
+        });
+        return;
+      }
+
       const template = createCustomTemplate(roles);
 
       await settingsService.setBgmEnabled(bgmEnabled);
@@ -276,6 +323,7 @@ export function useConfigScreenState({
     selection,
     navigation,
     isEditMode,
+    isNominateMode,
     existingRoomNumber,
     facade,
     roleRevealAnimation,
@@ -283,6 +331,7 @@ export function useConfigScreenState({
     bgmEnabled,
     isLoading,
     authService,
+    nominateMode,
     roomService,
     variantOverrides,
   ]);
@@ -479,6 +528,7 @@ export function useConfigScreenState({
   return {
     // Mode
     isEditMode,
+    isNominateMode,
     isDisabled,
     isLoading,
     isCreating,

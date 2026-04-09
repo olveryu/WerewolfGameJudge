@@ -88,6 +88,27 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         textAlign: 'center',
         marginTop: spacing.small,
       },
+      nominationButtonRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: spacing.medium,
+        marginTop: spacing.small,
+      },
+      nominationBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.micro,
+        backgroundColor: withAlpha(colors.primary, 0.1),
+        borderRadius: borderRadius.small,
+        paddingHorizontal: spacing.small,
+        paddingVertical: spacing.micro,
+      },
+      nominationBtnText: {
+        fontSize: typography.caption,
+        lineHeight: typography.lineHeights.caption,
+        fontWeight: typography.weights.semibold,
+        color: colors.primary,
+      },
     }),
 
     nightProgressIndicator: StyleSheet.create<NightProgressIndicatorStyles>({

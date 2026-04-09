@@ -153,3 +153,55 @@ export const handleUpdateProfileRoute: HandlerFn = async (req, env) => {
   if (doResult instanceof Response) return doResult;
   return jsonResponse(doResult, resultToStatus(doResult), env);
 };
+
+// ── Board Nomination handlers ───────────────────────────────────────────────
+
+export const handleBoardNominate: HandlerFn = async (req, env) => {
+  const body = (await req.json()) as {
+    roomCode?: string;
+    uid?: string;
+    displayName?: string;
+    roles?: string[];
+  };
+  const { roomCode, uid, displayName, roles } = body;
+  if (!roomCode || !uid || !displayName || !Array.isArray(roles)) {
+    return missingParams(env);
+  }
+
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.boardNominate(uid, displayName, roles as RoleId[]);
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
+};
+
+export const handleBoardUpvote: HandlerFn = async (req, env) => {
+  const body = (await req.json()) as {
+    roomCode?: string;
+    uid?: string;
+    targetUid?: string;
+  };
+  const { roomCode, uid, targetUid } = body;
+  if (!roomCode || !uid || !targetUid) return missingParams(env);
+
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.boardUpvote(uid, targetUid);
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
+};
+
+export const handleBoardWithdraw: HandlerFn = async (req, env) => {
+  const body = (await req.json()) as { roomCode?: string; uid?: string };
+  const { roomCode, uid } = body;
+  if (!roomCode || !uid) return missingParams(env);
+
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.boardWithdraw(uid);
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
+};

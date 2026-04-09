@@ -75,6 +75,7 @@ export {
 // === Protocol ===
 export {
   type AudioEffect,
+  type BoardNomination,
   type ConfirmStatus,
   type FactionConfirmStatus,
   type GameState,
@@ -101,6 +102,9 @@ export type { DeathReason, DeathsDetailed } from './engine/DeathCalculator';
 export { handleSubmitAction, handleViewedRole } from './engine/handlers/actionHandler';
 export {
   handleAssignRoles,
+  handleBoardNominate,
+  handleBoardUpvote,
+  handleBoardWithdraw,
   handleFillWithBots,
   handleMarkAllBotsViewed,
   handleRestartGame,
@@ -134,6 +138,9 @@ export {
   runInlineProgression,
 } from './engine/inlineProgression';
 export type {
+  BoardNominateIntent,
+  BoardUpvoteIntent,
+  BoardWithdrawIntent,
   EndNightIntent,
   JoinSeatIntent,
   LeaveMySeatIntent,

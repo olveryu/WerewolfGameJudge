@@ -53,6 +53,7 @@ export const ConfigScreen: React.FC = () => {
   const route = useRoute<ConfigRouteProp>();
   const existingRoomNumber = route.params?.existingRoomNumber;
   const presetName = route.params?.presetName;
+  const nominateMode = route.params?.nominateMode;
 
   const facade = useGameFacade();
   const { settingsService, authService, roomService } = useServices();
@@ -60,6 +61,7 @@ export const ConfigScreen: React.FC = () => {
   const state = useConfigScreenState({
     existingRoomNumber,
     presetName,
+    nominateMode,
     navigation,
     facade,
     settingsService,
@@ -70,6 +72,7 @@ export const ConfigScreen: React.FC = () => {
 
   const {
     isEditMode,
+    isNominateMode,
     isDisabled,
     isLoading,
     isCreating,
@@ -225,7 +228,7 @@ export const ConfigScreen: React.FC = () => {
           disabled={isDisabled}
           loading={isCreating}
         >
-          {isEditMode ? '保存配置' : '创建房间'}
+          {isNominateMode ? '提交建议' : isEditMode ? '保存配置' : '创建房间'}
         </Button>
       </View>
 

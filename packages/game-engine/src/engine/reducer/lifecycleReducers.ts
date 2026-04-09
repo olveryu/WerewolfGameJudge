@@ -17,9 +17,12 @@ import type {
   PlayerLeaveAction,
   PlayerViewedRoleAction,
   RestartGameAction,
+  SetBoardNominationAction,
   SetRoleRevealAnimationAction,
   UpdatePlayerProfileAction,
   UpdateTemplateAction,
+  UpvoteBoardNominationAction,
+  WithdrawBoardNominationAction,
 } from './types';
 
 export function handleInitializeGame(state: GameState, action: InitializeGameAction): GameState {
@@ -135,6 +138,9 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     cupidSeat: undefined,
     cupidLoversRevealAcks: [],
 
+    // 板子建议（重开时清空）
+    boardNominations: undefined,
+
     // ── 重开时更新 nonce 和 resolved 动画 ─────────────────
     roleRevealRandomNonce: newNonce,
     resolvedRoleRevealAnimation: resolvedAnimation,
@@ -172,6 +178,8 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
     templateRoles: newTemplateRoles,
     players: newPlayers,
     status: allSeated ? GameStatus.Seated : GameStatus.Unseated,
+    // 更换模板后清空板子建议
+    boardNominations: undefined,
   };
 }
 
@@ -348,5 +356,75 @@ export function handleMarkAllBotsViewed(state: GameState): GameState {
     ...state,
     players: newPlayers,
     status: newStatus,
+  };
+}
+
+// =============================================================================
+// 板子建议 Reducers
+// =============================================================================
+
+export function handleSetBoardNomination(
+  state: GameState,
+  action: SetBoardNominationAction,
+): GameState {
+  const { nomination } = action.payload;
+  return {
+    ...state,
+    boardNominations: {
+      ...state.boardNominations,
+      [nomination.uid]: nomination,
+    },
+  };
+}
+
+export function handleUpvoteBoardNomination(
+  state: GameState,
+  action: UpvoteBoardNominationAction,
+): GameState {
+  const { targetUid, voterUid } = action.payload;
+  const nominations = state.boardNominations;
+  const target = nominations?.[targetUid];
+  if (!target) return state;
+
+  // Toggle：已点赞则取消，未点赞则添加（每人全局只能投一条）
+  const alreadyVoted = target.upvoters.includes(voterUid);
+  const updatedUpvoters = alreadyVoted
+    ? target.upvoters.filter((uid) => uid !== voterUid)
+    : [...target.upvoters, voterUid];
+
+  // 投新票时，从其他建议中撤回旧票（单选）
+  let updatedNominations = {
+    ...nominations,
+    [targetUid]: { ...target, upvoters: updatedUpvoters },
+  };
+  if (!alreadyVoted) {
+    for (const [uid, nom] of Object.entries(updatedNominations)) {
+      if (uid !== targetUid && nom.upvoters.includes(voterUid)) {
+        updatedNominations = {
+          ...updatedNominations,
+          [uid]: { ...nom, upvoters: nom.upvoters.filter((u) => u !== voterUid) },
+        };
+      }
+    }
+  }
+
+  return {
+    ...state,
+    boardNominations: updatedNominations,
+  };
+}
+
+export function handleWithdrawBoardNomination(
+  state: GameState,
+  action: WithdrawBoardNominationAction,
+): GameState {
+  const { uid } = action.payload;
+  const nominations = state.boardNominations;
+  if (!nominations?.[uid]) return state;
+
+  const { [uid]: _, ...rest } = nominations;
+  return {
+    ...state,
+    boardNominations: Object.keys(rest).length > 0 ? rest : undefined,
   };
 }

@@ -74,6 +74,9 @@ describe('useGameRoom - ACK reason transparency', () => {
     updateMyUid: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
     kickPlayer: jest.fn().mockResolvedValue({ success: true }),
+    boardNominate: jest.fn().mockResolvedValue({ success: true }),
+    boardUpvote: jest.fn().mockResolvedValue({ success: true }),
+    boardWithdraw: jest.fn().mockResolvedValue({ success: true }),
     ...overrides,
   });
 
@@ -362,6 +365,9 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     updateMyUid: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
     kickPlayer: jest.fn().mockResolvedValue({ success: true }),
+    boardNominate: jest.fn().mockResolvedValue({ success: true }),
+    boardUpvote: jest.fn().mockResolvedValue({ success: true }),
+    boardWithdraw: jest.fn().mockResolvedValue({ success: true }),
     ...overrides,
   });
 
@@ -631,6 +637,9 @@ describe('useGameRoom - rejoin continue overlay', () => {
     updateMyUid: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
     kickPlayer: jest.fn().mockResolvedValue({ success: true }),
+    boardNominate: jest.fn().mockResolvedValue({ success: true }),
+    boardUpvote: jest.fn().mockResolvedValue({ success: true }),
+    boardWithdraw: jest.fn().mockResolvedValue({ success: true }),
     ...overrides,
   });
 

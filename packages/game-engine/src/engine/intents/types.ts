@@ -221,3 +221,46 @@ export interface FillWithBotsIntent {
 export interface MarkAllBotsViewedIntent {
   type: 'MARK_ALL_BOTS_VIEWED';
 }
+
+// =============================================================================
+// 板子建议 Intent（任意已连接玩家）
+// =============================================================================
+
+/**
+ * 提交板子建议 Intent
+ * 任何已连接玩家可提交，每人最多一条（后覆盖前）。
+ * 前置条件：status === Unseated | Seated（分配角色前）
+ */
+export interface BoardNominateIntent {
+  type: 'BOARD_NOMINATE';
+  payload: {
+    uid: string;
+    displayName: string;
+    roles: RoleId[];
+  };
+}
+
+/**
+ * 点赞板子建议 Intent
+ * 前置条件：目标建议存在，不能给自己点赞
+ */
+export interface BoardUpvoteIntent {
+  type: 'BOARD_UPVOTE';
+  payload: {
+    /** 被点赞建议的提交者 uid */
+    targetUid: string;
+    /** 点赞者 uid */
+    voterUid: string;
+  };
+}
+
+/**
+ * 撤回板子建议 Intent
+ * 仅建议提交者本人可撤回
+ */
+export interface BoardWithdrawIntent {
+  type: 'BOARD_WITHDRAW';
+  payload: {
+    uid: string;
+  };
+}

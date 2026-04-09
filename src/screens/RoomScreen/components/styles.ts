@@ -28,6 +28,9 @@ export interface BoardInfoCardStyles {
   roleCategoryText: TextStyle;
   roleChipRow: ViewStyle;
   boardInfoHint: TextStyle;
+  nominationButtonRow: ViewStyle;
+  nominationBtn: ViewStyle;
+  nominationBtnText: TextStyle;
 }
 
 export interface BottomActionPanelStyles {

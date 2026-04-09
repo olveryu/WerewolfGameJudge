@@ -153,5 +153,8 @@ export function normalizeState(raw: GameState): GameState {
     loverSeats: raw.loverSeats,
     cupidSeat: raw.cupidSeat,
     cupidLoversRevealAcks: raw.cupidLoversRevealAcks ?? [],
+
+    // 板子建议（透传）
+    boardNominations: raw.boardNominations,
   } satisfies Complete<GameState>;
 }

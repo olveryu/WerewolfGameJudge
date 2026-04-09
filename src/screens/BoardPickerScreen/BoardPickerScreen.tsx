@@ -34,7 +34,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
-import { FactionChip } from '@/components/FactionChip';
+import { FactionRoleList } from '@/components/FactionRoleList';
 import { FormTextField } from '@/components/FormTextField';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
@@ -47,7 +47,6 @@ import {
   filterTemplates,
   getDistinctiveRoles,
   getKeyRoles,
-  groupRolesByFaction,
   groupTemplatesByCategory,
   type TemplateSectionData,
 } from '@/screens/ConfigScreen/configHelpers';
@@ -110,11 +109,6 @@ const BoardCard = React.memo<BoardCardProps>(
       const totalSpecial = template.roles.filter((r) => r !== 'wolf' && r !== 'villager').length;
       return Math.max(0, totalSpecial - keyRoles.length);
     }, [template.roles, keyRoles]);
-
-    const { wolfItems, godItems, villagerItems, thirdItems } = useMemo(
-      () => groupRolesByFaction(template.roles),
-      [template.roles],
-    );
 
     const handleToggle = useCallback(() => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -221,88 +215,15 @@ const BoardCard = React.memo<BoardCardProps>(
         {isExpanded && (
           <View style={styles.cardExpanded}>
             <View style={styles.cardDivider} />
-            <View style={styles.roleListContainer}>
-              {wolfItems.length > 0 && (
-                <View style={styles.factionRow}>
-                  <Text style={styles.factionRowLabel}>狼人</Text>
-                  <View style={styles.factionChipWrap}>
-                    {wolfItems.map((item) => (
-                      <FactionChip
-                        key={item.roleId}
-                        label={
-                          item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName
-                        }
-                        color={colors.wolf}
-                        size="sm"
-                        onPress={() => onRolePress(item.roleId)}
-                      />
-                    ))}
-                  </View>
-                </View>
-              )}
-              {godItems.length > 0 && (
-                <View style={styles.factionRow}>
-                  <Text style={styles.factionRowLabel}>神职</Text>
-                  <View style={styles.factionChipWrap}>
-                    {godItems.map((item) => (
-                      <FactionChip
-                        key={item.roleId}
-                        label={
-                          item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName
-                        }
-                        color={colors.god}
-                        size="sm"
-                        onPress={() => onRolePress(item.roleId)}
-                      />
-                    ))}
-                  </View>
-                </View>
-              )}
-              {villagerItems.length > 0 && (
-                <View style={styles.factionRow}>
-                  <Text style={styles.factionRowLabel}>村民</Text>
-                  <View style={styles.factionChipWrap}>
-                    {villagerItems.map((item) => (
-                      <FactionChip
-                        key={item.roleId}
-                        label={
-                          item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName
-                        }
-                        color={colors.villager}
-                        size="sm"
-                        onPress={() => onRolePress(item.roleId)}
-                      />
-                    ))}
-                  </View>
-                </View>
-              )}
-              {thirdItems.length > 0 && (
-                <View style={styles.factionRow}>
-                  <Text style={styles.factionRowLabel}>特殊</Text>
-                  <View style={styles.factionChipWrap}>
-                    {thirdItems.map((item) => (
-                      <FactionChip
-                        key={item.roleId}
-                        label={
-                          item.count > 1 ? `${item.displayName}×${item.count}` : item.displayName
-                        }
-                        color={colors.third}
-                        size="sm"
-                        onPress={() => onRolePress(item.roleId)}
-                      />
-                    ))}
-                  </View>
-                </View>
-              )}
-              <Text style={styles.roleListHint}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={componentSizes.icon.xs}
-                  color={colors.textMuted}
-                />{' '}
-                点击角色名查看能力说明
-              </Text>
-            </View>
+            <FactionRoleList roles={template.roles} showStats={false} onRolePress={onRolePress} />
+            <Text style={styles.roleListHint}>
+              <Ionicons
+                name="information-circle-outline"
+                size={componentSizes.icon.xs}
+                color={colors.textMuted}
+              />{' '}
+              点击角色名查看能力说明
+            </Text>
             <Button
               variant="primary"
               size="sm"
@@ -329,6 +250,7 @@ export const BoardPickerScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BoardPickerRouteProp>();
   const existingRoomNumber = route.params?.existingRoomNumber;
+  const nominateMode = route.params?.nominateMode;
   const styles = useMemo(() => createBoardPickerStyles(colors), [colors]);
   const { width: screenWidth } = useWindowDimensions();
   const maxChips = useMemo(() => estimateMaxChips(screenWidth), [screenWidth]);
@@ -411,14 +333,24 @@ export const BoardPickerScreen: React.FC = () => {
 
   const handleSelect = useCallback(
     (presetName: string) => {
-      navigation.popTo('Config', { presetName, existingRoomNumber });
+      if (nominateMode) {
+        // replace so BoardPicker is removed from stack; goBack() in Config returns to Room.
+        // getId on Config ensures this won't collide with the create/edit instance.
+        navigation.replace('Config', { presetName, nominateMode });
+      } else {
+        navigation.popTo('Config', { presetName, existingRoomNumber });
+      }
     },
-    [navigation, existingRoomNumber],
+    [navigation, existingRoomNumber, nominateMode],
   );
 
   const handleCustom = useCallback(() => {
-    navigation.popTo('Config', existingRoomNumber ? { existingRoomNumber } : undefined);
-  }, [navigation, existingRoomNumber]);
+    if (nominateMode) {
+      navigation.replace('Config', { nominateMode });
+    } else {
+      navigation.popTo('Config', existingRoomNumber ? { existingRoomNumber } : undefined);
+    }
+  }, [navigation, existingRoomNumber, nominateMode]);
 
   const handleRolePress = useCallback((roleId: string) => {
     setPreviewRoleId(roleId as RoleId);

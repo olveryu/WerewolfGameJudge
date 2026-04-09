@@ -104,6 +104,9 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'loverSeats',
   'cupidSeat',
   'cupidLoversRevealAcks',
+
+  // 板子建议
+  'boardNominations',
 ];
 
 describe('normalizeState contract', () => {
@@ -192,6 +195,16 @@ describe('normalizeState contract', () => {
       loverSeats: [1, 3] as readonly [number, number],
       cupidSeat: 4,
       cupidLoversRevealAcks: [1],
+
+      // 板子建议
+      boardNominations: {
+        'user-1': {
+          uid: 'user-1',
+          displayName: 'Alice',
+          roles: ['villager', 'wolf'],
+          upvoters: ['user-2'],
+        },
+      },
     };
   };
 

@@ -177,6 +177,11 @@ export const AppNavigator: React.FC = () => {
           name="Config"
           component={ConfigScreen}
           options={{ title: '创建房间', presentation: 'modal', animation: 'slide_from_bottom' }}
+          getId={({ params }) => {
+            if (params?.nominateMode) return 'nominate';
+            if (params?.existingRoomNumber) return `edit-${params.existingRoomNumber}`;
+            return undefined;
+          }}
         />
         <Stack.Screen name="Room" component={RoomScreen} options={{ title: '房间' }} />
         <Stack.Screen

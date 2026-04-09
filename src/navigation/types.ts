@@ -3,13 +3,21 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 
 export type RootStackParamList = {
   Home: undefined;
-  BoardPicker: { existingRoomNumber?: string } | undefined;
+  BoardPicker:
+    | {
+        existingRoomNumber?: string;
+        nominateMode?: { roomCode: string };
+      }
+    | undefined;
   Config:
     | {
         // Optional: if provided, update existing room instead of creating new one
         existingRoomNumber?: string;
         // Optional: if provided, auto-apply this preset template
         presetName?: string;
+        // Optional: if provided, ConfigScreen is in "nominate" mode
+        // User edits roles and submits as a board nomination
+        nominateMode?: { roomCode: string };
       }
     | undefined;
   Room: {

@@ -144,6 +144,10 @@ export function useRoomScreenState(
     effectiveRole,
     // Progression
     postProgression,
+    // Board nomination
+    boardNominate,
+    boardUpvote,
+    boardWithdraw,
     // BGM manual control
     isBgmPlaying,
     playBgm,
@@ -794,6 +798,11 @@ export function useRoomScreenState(
     clearAllSeats,
     requestSnapshot,
     setControlledSeat,
+
+    // ── Board nomination ──
+    boardNominate,
+    boardUpvote,
+    boardWithdraw,
 
     // ── BGM manual control ──
     isBgmPlaying,

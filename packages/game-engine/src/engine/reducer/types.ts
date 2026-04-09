@@ -7,7 +7,7 @@
 import type { RoleId, SchemaId } from '../../models';
 import type { WolfKillOverride } from '../../models/roles/spec/schema.types';
 import type { ConfirmStatus, Player, ProtocolAction } from '../../protocol/types';
-import type { AudioEffect } from '../../protocol/types';
+import type { AudioEffect, BoardNomination } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
 import type { RoleRevealAnimation } from '../../types';
 import type { DeathReason } from '../DeathCalculator';
@@ -412,6 +412,37 @@ export interface AddCupidLoversRevealAckAction {
 }
 
 // =============================================================================
+// 板子建议动作
+// =============================================================================
+
+/** 提交/更新板子建议（每 uid 仅一条，后覆盖前） */
+export interface SetBoardNominationAction {
+  type: 'SET_BOARD_NOMINATION';
+  payload: {
+    nomination: BoardNomination;
+  };
+}
+
+/** 点赞板子建议 */
+export interface UpvoteBoardNominationAction {
+  type: 'UPVOTE_BOARD_NOMINATION';
+  payload: {
+    /** 被点赞的建议提交者 uid */
+    targetUid: string;
+    /** 点赞者 uid */
+    voterUid: string;
+  };
+}
+
+/** 撤回板子建议 */
+export interface WithdrawBoardNominationAction {
+  type: 'WITHDRAW_BOARD_NOMINATION';
+  payload: {
+    uid: string;
+  };
+}
+
+// =============================================================================
 // StateAction 联合类型
 // =============================================================================
 
@@ -468,4 +499,8 @@ export type StateAction =
   // 觉醒石像鬼 groupConfirm ACK
   | AddConversionRevealAckAction
   // 丘比特 groupConfirm ACK
-  | AddCupidLoversRevealAckAction;
+  | AddCupidLoversRevealAckAction
+  // 板子建议
+  | SetBoardNominationAction
+  | UpvoteBoardNominationAction
+  | WithdrawBoardNominationAction;

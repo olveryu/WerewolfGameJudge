@@ -13,6 +13,9 @@
 import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import {
   handleAssignRoles,
+  handleBoardNominate,
+  handleBoardUpvote,
+  handleBoardWithdraw,
   handleFillWithBots,
   handleMarkAllBotsViewed,
   handleRestartGame,
@@ -243,6 +246,36 @@ export class GameRoom extends DurableObject<Env> {
     return this.#processAction((state) => {
       const ctx = buildHandlerContext(state, state.hostUid);
       return handleShareNightReview({ type: 'SHARE_NIGHT_REVIEW', allowedSeats }, ctx);
+    });
+  }
+
+  // ── (D) Board Nomination RPC methods ────────────────────────────────────
+
+  async boardNominate(
+    uid: string,
+    displayName: string,
+    roles: RoleId[],
+  ): Promise<GameActionResult> {
+    return this.#processAction((state) => {
+      const ctx = buildHandlerContext(state, uid);
+      return handleBoardNominate(
+        { type: 'BOARD_NOMINATE', payload: { uid, displayName, roles } },
+        ctx,
+      );
+    });
+  }
+
+  async boardUpvote(voterUid: string, targetUid: string): Promise<GameActionResult> {
+    return this.#processAction((state) => {
+      const ctx = buildHandlerContext(state, voterUid);
+      return handleBoardUpvote({ type: 'BOARD_UPVOTE', payload: { targetUid, voterUid } }, ctx);
+    });
+  }
+
+  async boardWithdraw(uid: string): Promise<GameActionResult> {
+    return this.#processAction((state) => {
+      const ctx = buildHandlerContext(state, uid);
+      return handleBoardWithdraw({ type: 'BOARD_WITHDRAW', payload: { uid } }, ctx);
     });
   }
 

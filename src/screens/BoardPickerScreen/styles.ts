@@ -9,7 +9,6 @@ import { StyleSheet } from 'react-native';
 
 import {
   borderRadius,
-  componentSizes,
   createSharedStyles,
   fixed,
   layout,
@@ -79,11 +78,7 @@ export interface BoardPickerStyles {
   keyRoleChip: ViewStyle;
   keyRoleChipText: TextStyle;
   keyRoleMore: TextStyle;
-  // ── Role list by faction (expanded) ──
-  roleListContainer: ViewStyle;
-  factionRow: ViewStyle;
-  factionRowLabel: TextStyle;
-  factionChipWrap: ViewStyle;
+  // ── Role list hint (expanded) ──
   roleListHint: TextStyle;
   // ── Empty state ──
   emptyContainer: ViewStyle;
@@ -406,29 +401,7 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
       fontWeight: typography.weights.medium,
     },
 
-    // ── Role list by faction (expanded) ───────────
-    roleListContainer: {
-      gap: spacing.small,
-    },
-    factionRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.small,
-    },
-    factionRowLabel: {
-      fontSize: typography.caption,
-      lineHeight: typography.lineHeights.secondary,
-      fontWeight: typography.weights.medium,
-      color: colors.textSecondary,
-      width: componentSizes.button.sm + spacing.tight,
-      flexShrink: 0,
-    },
-    factionChipWrap: {
-      flex: 1,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.tight,
-    },
+    // ── Role list hint (expanded) ─────────────
     roleListHint: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,

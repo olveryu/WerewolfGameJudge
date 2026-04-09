@@ -125,6 +125,11 @@ interface UseGameRoomResult {
   /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
   postProgression: () => Promise<boolean>;
 
+  // Board nomination (任意已连接玩家)
+  boardNominate: (displayName: string, roles: RoleId[]) => Promise<void>;
+  boardUpvote: (targetUid: string) => Promise<void>;
+  boardWithdraw: () => Promise<void>;
+
   // BGM manual control (for ended-phase UI)
   isBgmPlaying: boolean;
   playBgm: () => void;
@@ -347,6 +352,10 @@ export const useGameRoom = (): UseGameRoomResult => {
     getCurseInfo: actions.getCurseInfo,
     hasWolfVoted: actions.hasWolfVoted,
     postProgression: actions.postProgression,
+    // Board nomination
+    boardNominate: actions.boardNominate,
+    boardUpvote: actions.boardUpvote,
+    boardWithdraw: actions.boardWithdraw,
     // BGM manual control
     isBgmPlaying: bgm.isBgmPlaying,
     playBgm: bgm.playBgm,

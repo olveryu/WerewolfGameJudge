@@ -201,6 +201,25 @@ export interface IGameFacade {
    */
   shareNightReview(allowedSeats: number[]): Promise<{ success: boolean; reason?: string }>;
 
+  // === Board Nomination (任意已连接玩家) ===
+  /**
+   * 提交板子建议（每人最多一条，后覆盖前）
+   */
+  boardNominate(
+    displayName: string,
+    roles: RoleId[],
+  ): Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * 点赞板子建议
+   */
+  boardUpvote(targetUid: string): Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * 撤回板子建议（仅提交者本人）
+   */
+  boardWithdraw(): Promise<{ success: boolean; reason?: string }>;
+
   // === Player Actions ===
   /**
    * 玩家确认已查看角色

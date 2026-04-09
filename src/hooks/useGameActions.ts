@@ -88,6 +88,11 @@ interface GameActionsState {
   /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
   postProgression: () => Promise<boolean>;
 
+  // Board nomination (任意已连接玩家)
+  boardNominate: (displayName: string, roles: RoleId[]) => Promise<void>;
+  boardUpvote: (targetUid: string) => Promise<void>;
+  boardWithdraw: () => Promise<void>;
+
   // Game state queries
   getLastNightInfo: () => string;
   getCurseInfo: () => string | null;
@@ -250,6 +255,31 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   }, [facade]);
 
   // =========================================================================
+  // Board Nomination (任意已连接玩家)
+  // =========================================================================
+
+  const boardNominate = useCallback(
+    async (displayName: string, roles: RoleId[]): Promise<void> => {
+      const result = await facade.boardNominate(displayName, roles);
+      handleMutationResult(result, '提交建议', toastError);
+    },
+    [facade],
+  );
+
+  const boardUpvote = useCallback(
+    async (targetUid: string): Promise<void> => {
+      const result = await facade.boardUpvote(targetUid);
+      handleMutationResult(result, '点赞', toastError);
+    },
+    [facade],
+  );
+
+  const boardWithdraw = useCallback(async (): Promise<void> => {
+    const result = await facade.boardWithdraw();
+    handleMutationResult(result, '撤回建议', toastError);
+  }, [facade]);
+
+  // =========================================================================
   // Game state queries
   // =========================================================================
 
@@ -310,6 +340,9 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed,
     postProgression,
+    boardNominate,
+    boardUpvote,
+    boardWithdraw,
     getLastNightInfo,
     getCurseInfo,
     hasWolfVoted,

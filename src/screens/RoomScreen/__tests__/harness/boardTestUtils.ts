@@ -263,6 +263,11 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     postProgression: jest.fn().mockResolvedValue(undefined),
     kickPlayer: jest.fn().mockResolvedValue({ success: true }),
 
+    // Board nominations
+    boardNominate: jest.fn().mockResolvedValue({ success: true }),
+    boardUpvote: jest.fn().mockResolvedValue({ success: true }),
+    boardWithdraw: jest.fn().mockResolvedValue({ success: true }),
+
     // Error plumbing
     lastSeatError: null,
     clearLastSeatError: jest.fn(),

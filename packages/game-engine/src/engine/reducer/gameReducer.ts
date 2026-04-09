@@ -20,9 +20,12 @@ import {
   handlePlayerLeave,
   handlePlayerViewedRole,
   handleRestartGame,
+  handleSetBoardNomination,
   handleSetRoleRevealAnimation,
   handleUpdatePlayerProfile,
   handleUpdateTemplate,
+  handleUpvoteBoardNomination,
+  handleWithdrawBoardNomination,
 } from './lifecycleReducers';
 import {
   handleActionRejected,
@@ -162,6 +165,14 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       if (acks.includes(seat)) return state;
       return { ...state, cupidLoversRevealAcks: [...acks, seat] };
     }
+
+    // ── Board Nomination ─────────────────────────────────
+    case 'SET_BOARD_NOMINATION':
+      return handleSetBoardNomination(state, action);
+    case 'UPVOTE_BOARD_NOMINATION':
+      return handleUpvoteBoardNomination(state, action);
+    case 'WITHDRAW_BOARD_NOMINATION':
+      return handleWithdrawBoardNomination(state, action);
 
     default: {
       const _exhaustive: never = action;

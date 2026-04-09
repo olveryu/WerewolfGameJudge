@@ -47,6 +47,9 @@ function createFakeFacade(): IGameFacade {
     updateMyUid: () => {},
     updatePlayerProfile: async () => ({ success: true }),
     kickPlayer: async () => ({ success: true }),
+    boardNominate: async () => ({ success: true }),
+    boardUpvote: async () => ({ success: true }),
+    boardWithdraw: async () => ({ success: true }),
   };
 }
 

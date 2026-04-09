@@ -348,6 +348,30 @@ describe('handleLeaveMySeat', () => {
     expect(err.reason).toBe(REASON_GAME_IN_PROGRESS);
   });
 
+  it.each([GameStatus.Assigned, GameStatus.Ready, GameStatus.Ended])(
+    'should fail with game_in_progress when status is %s',
+    (status) => {
+      const state = createMinimalState({
+        status,
+        players: {
+          0: { uid: 'player-1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: null,
+          2: null,
+        },
+      });
+      const context = createContext(state, { mySeat: 0 });
+      const intent: LeaveMySeatIntent = {
+        type: 'LEAVE_MY_SEAT',
+        payload: { uid: 'player-1' },
+      };
+
+      const result = handleLeaveMySeat(intent, context);
+
+      const err = expectError(result);
+      expect(err.reason).toBe(REASON_GAME_IN_PROGRESS);
+    },
+  );
+
   it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
     const state = createMinimalState({
       players: {

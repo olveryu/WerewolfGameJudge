@@ -227,3 +227,30 @@ export const updatePlayerProfile = defineGameAction<[string?, string?, string?]>
   needsUid: true,
   body: (displayName, avatarUrl, avatarFrame) => ({ displayName, avatarUrl, avatarFrame }),
 });
+
+// =============================================================================
+// 板子建议
+// =============================================================================
+
+/** 提交板子建议（任意已连接玩家，每人最多一条） */
+export const boardNominate = defineGameAction<[string, RoleId[]]>({
+  name: 'boardNominate',
+  path: '/game/board-nominate',
+  needsUid: true,
+  body: (displayName, roles) => ({ displayName, roles }),
+});
+
+/** 点赞板子建议（任意已连接玩家） */
+export const boardUpvote = defineGameAction<[string]>({
+  name: 'boardUpvote',
+  path: '/game/board-upvote',
+  needsUid: true,
+  body: (targetUid) => ({ targetUid }),
+});
+
+/** 撤回板子建议（仅提交者本人） */
+export const boardWithdraw = defineGameAction({
+  name: 'boardWithdraw',
+  path: '/game/board-withdraw',
+  needsUid: true,
+});

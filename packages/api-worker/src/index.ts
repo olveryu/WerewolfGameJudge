@@ -44,6 +44,9 @@ import { runScheduledCleanup } from './handlers/cronHandlers';
 // Game control handlers
 import {
   handleAssign,
+  handleBoardNominate,
+  handleBoardUpvote,
+  handleBoardWithdraw,
   handleClearSeats,
   handleFillBots,
   handleMarkBotsViewed,
@@ -84,6 +87,9 @@ import type { HandlerFn } from './handlers/shared';
 
 const GAME_ROUTES: Record<string, HandlerFn> = {
   assign: handleAssign,
+  'board-nominate': handleBoardNominate,
+  'board-upvote': handleBoardUpvote,
+  'board-withdraw': handleBoardWithdraw,
   'clear-seats': handleClearSeats,
   'fill-bots': handleFillBots,
   'mark-bots-viewed': handleMarkBotsViewed,

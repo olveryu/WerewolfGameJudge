@@ -482,6 +482,25 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
+  // Board Nomination (委托给 gameActions)
+  // =========================================================================
+
+  async boardNominate(
+    displayName: string,
+    roles: RoleId[],
+  ): Promise<{ success: boolean; reason?: string }> {
+    return gameActions.boardNominate(this.#getActionsContext(), displayName, roles);
+  }
+
+  async boardUpvote(targetUid: string): Promise<{ success: boolean; reason?: string }> {
+    return gameActions.boardUpvote(this.#getActionsContext(), targetUid);
+  }
+
+  async boardWithdraw(): Promise<{ success: boolean; reason?: string }> {
+    return gameActions.boardWithdraw(this.#getActionsContext());
+  }
+
+  // =========================================================================
   // Night Actions (委托给 gameActions)
   // =========================================================================
 

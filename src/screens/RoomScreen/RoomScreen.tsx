@@ -41,6 +41,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
+import { BoardNominationModal } from './components/BoardNominationList';
 import { BottomActionPanel } from './components/BottomActionPanel';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
@@ -75,6 +76,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── QR Code Modal state ──────────────────────────────────────────────
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [nominationModalVisible, setNominationModalVisible] = useState(false);
   const hasAutoShownQR = useRef(false);
 
   const handleShareRoom = useCallback(() => {
@@ -155,6 +157,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     markAllBotsGroupConfirmed,
     clearAllSeats,
     setControlledSeat,
+    // Board nomination
+    boardUpvote,
+    boardWithdraw,
     // BGM manual control
     isBgmPlaying,
     playBgm,
@@ -267,6 +272,31 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     !showAssignedGuide &&
     roomStatus === GameStatus.Ongoing &&
     ongoingGuide.visible;
+
+  // ─── Board nomination callbacks ────────────────────────────────────────
+  const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
+
+  const nominationCount = gameState?.boardNominations
+    ? Object.keys(gameState.boardNominations).length
+    : 0;
+  const hasMyNomination = user?.uid ? !!gameState?.boardNominations?.[user.uid] : false;
+
+  const handleNominate = useCallback(() => {
+    navigation.navigate('BoardPicker', {
+      nominateMode: { roomCode: roomNumber },
+    });
+  }, [navigation, roomNumber]);
+
+  const handleViewNominations = useCallback(() => {
+    setNominationModalVisible(true);
+  }, []);
+
+  // Auto-close nomination modal when game progresses past setup phase
+  useEffect(() => {
+    if (!showNominations) {
+      setNominationModalVisible(false);
+    }
+  }, [showNominations]);
 
   // ─── Auto-show QR invite card after room creation ─────────────────────
   // Wait until page guide is dismissed (or already not showing) to avoid stacking modals.
@@ -492,6 +522,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onRolePress={handleSkillPreviewOpen}
           onNotepadPress={handleNotepadPress}
           styles={componentStyles.boardInfoCard}
+          showNominations={showNominations}
+          hasMyNomination={hasMyNomination}
+          nominationCount={nominationCount}
+          onNominatePress={handleNominate}
+          onViewNominations={handleViewNominations}
         />
 
         {/* Player Grid */}
@@ -722,6 +757,21 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onCopyLink={handleCopyLink}
         onClose={() => setQrModalVisible(false)}
       />
+
+      {/* Board Nomination Modal — 板子建议列表 */}
+      {nominationModalVisible && (
+        <BoardNominationModal
+          visible={nominationModalVisible}
+          nominations={gameState?.boardNominations}
+          myUid={user?.uid ?? null}
+          isHost={isHost}
+          currentPlayerCount={gameState?.template.numberOfPlayers ?? 0}
+          onUpvote={boardUpvote}
+          onWithdraw={boardWithdraw}
+          clearAllSeats={clearAllSeats}
+          onClose={() => setNominationModalVisible(false)}
+        />
+      )}
 
       {/* Choose Bottom Card Modal — 盗宝大师 / 盗贼底牌选择 */}
       {chooseCardModalVisible && gameState?.bottomCards && (
