@@ -186,6 +186,7 @@ describe('Night-1: <主题描述> (12p)', () => {
 ### Phase 6 — 收尾
 
 - 确认 `pnpm run quality` 全绿
+- 更新 `README.md` 和 `README.en.md` 中的预设板子数量（如：「27 套预设板子」→「28 套预设板子」）
 - 总结变更文件清单
 - 提示用户提交：`feat(models): add <boardName> preset template`
 
@@ -238,4 +239,5 @@ describe('Night-1: <主题描述> (12p)', () => {
 - [ ] Template.contract 测试通过
 - [ ] boards.coverage.contract 测试通过
 - [ ] nightPlanSchemas.contract 测试通过
+- [ ] `README.md` + `README.en.md` 预设板子数量已更新
 - [ ] `pnpm run quality` 全绿

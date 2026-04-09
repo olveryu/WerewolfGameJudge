@@ -2,27 +2,84 @@
 
 [简体中文](./README.md) | **English**
 
-Night-1 automated judge for in-person and remote Werewolf games.
+> In every Werewolf game someone has to be the judge — but the judge can't play.
+> **This app replaces the judge.** Fully automated Night-1 voice narration so everyone (including the host) can close their eyes and play.
 
-[![Live](https://img.shields.io/badge/Play-werewolfjudge.eu.org-blue?style=flat-square)](https://werewolfjudge.eu.org)
+[![Live](https://img.shields.io/badge/▶_Play-werewolfjudge.eu.org-blue?style=for-the-badge)](https://werewolfjudge.eu.org)
+
 [![CI](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml/badge.svg)](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TS-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Expo](https://img.shields.io/badge/Expo_SDK-55-000020?style=flat-square&logo=expo)](https://expo.dev/)
 [![Cloudflare](https://img.shields.io/badge/CF-Workers%20+%20D1-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/olveryu/WerewolfGameJudge?style=flat-square&logo=github)](https://github.com/olveryu/WerewolfGameJudge/stargazers)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](https://github.com/olveryu/WerewolfGameJudge/pulls)
 
-> **👉 [werewolfjudge.eu.org](https://werewolfjudge.eu.org)** — Instant play, no registration
+---
+
+<details>
+<summary><b>📑 Table of Contents</b></summary>
+
+- [Why This Exists](#why-this-exists)
+- [Features](#features)
+- [How to Play](#how-to-play)
+- [Architecture](#architecture)
+- [Roles at a Glance](#-43-roles-at-a-glance)
+- [Development](#development)
+- [Deployment](#deployment)
+- [FAQ](#faq)
+- [Docs](#docs)
+- [Contributing](#contributing)
+- [Star History](#star-history)
+- [Contributors](#contributors)
+- [License](#license)
+
+</details>
+
+---
+
+## Why This Exists
+
+Playing Werewolf in-person has a fundamental problem — **being the judge sucks**:
+
+- 🙅 The judge can't play, only moderate from the sidelines
+- 📖 Inexperienced judges mess up the flow, ruining the experience
+- 🔇 Verbal narration is error-prone, especially for complex role sets
+- 📱 Playing remotely? Good luck coordinating over voice chat alone
+
+**Werewolf Game Judge** turns your phone into the judge — automated voice narration guides every Night-1 step, so everyone (including the room host) can close their eyes and play for real. Share a 4-digit room code, and you're good to go — in-person or remote.
 
 ---
 
 ## Features
 
-- **Auto Voice Narration** — Fully guided Night-1 flow; Host can close eyes too
-- **Multi-device Sync** — Create room, share 4-digit code, others join
-- **Auto-Recovery** — D1 persistence + WebSocket, zero state loss
-- **43 Roles · 27 Preset Boards** — Full role library with special wolves, gods & third-party
-- **AI Assistant** — Floating chat bubble for rules & strategy (Gemini 3.1 Flash Lite)
-- **8 Themes** — Light / Sand / Jade / Sky / Dark / Midnight / Blood / Forest
-- **Cross-platform** — iOS · Android · Web (PWA)
+### 🔊 Auto Voice Narration
+
+Full Night-1 voice guidance covering identity reveal, skill actions, and dawn announcements. The host can close their eyes too — no more being a spectator. BGM and sound effects enhance the atmosphere.
+
+### 📱 Multi-device Real-time Sync
+
+Share a 4-digit room code after creating a room. Everyone joins via browser or app. WebSocket pushes game state in real-time with instant sync.
+
+### 🔌 Auto-Recovery on Disconnect
+
+Game state is persisted in Cloudflare D1. Reconnecting after a network drop automatically restores the latest state — zero progress lost.
+
+### 🎭 43 Roles · 27 Preset Boards
+
+Full coverage of classic and expansion roles — Seer, Witch, Hunter, Guard and more gods; Wolf Queen, White Wolf King, Blood Moon and more special wolves; plus Cupid, Thief, Piper and more third-party roles. 27 preset templates for 6–18 players, plus custom board creation.
+
+### 🤖 AI Assistant
+
+Unsure about a rule? Tap the AI bubble on any role card for instant skill details and strategy tips. Powered by Gemini 3.1 Flash Lite via a Worker proxy.
+
+### 🎨 8 Themes
+
+Light / Sand / Jade / Sky / Dark / Midnight / Blood / Forest — light and dark options for every atmosphere.
+
+### 🌐 Cross-platform
+
+iOS · Android · Web (PWA). The web version works instantly with no install. PWA mode supports offline launch and add-to-home-screen.
 
 ---
 
@@ -65,9 +122,9 @@ Night-1 automated judge for in-person and remote Werewolf games.
 
 **Core Constraints:**
 
-- Server (Worker + Durable Objects) is the single authority for game logic
+- Server (Worker + Durable Objects) is the single authority for game logic; clients make no logic decisions
 - All clients are equal; Host only controls UI visibility & audio playback
-- `GameState` is the single source of truth
+- `GameState` is the single source of truth; server reads-computes-writes-broadcasts
 
 ---
 
@@ -134,6 +191,45 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for details.
 
 ---
 
+## FAQ
+
+<details>
+<summary><b>Do I need to register?</b></summary>
+
+No. Just open the website to create or join a room. If you want to save custom templates, you can opt for anonymous or email sign-in.
+
+</details>
+
+<details>
+<summary><b>What platforms are supported?</b></summary>
+
+iOS, Android, and any modern browser (Chrome, Safari, Firefox, Edge). The web version supports PWA — add it to your home screen and use it like a native app.
+
+</details>
+
+<details>
+<summary><b>Where is game data stored?</b></summary>
+
+All game state is stored in Cloudflare D1 (edge SQLite). Your data is never sent to any third party. Rooms are automatically cleaned up after 24 hours of inactivity.
+
+</details>
+
+<details>
+<summary><b>Does the app only handle Night-1? What about daytime?</b></summary>
+
+Yes, the app automates Night-1 — identity reveals, skill actions, and dawn resolution. Daytime discussion, voting, and elimination are done by the players themselves, which is the most fun social part of Werewolf.
+
+</details>
+
+<details>
+<summary><b>Can I create custom boards?</b></summary>
+
+Absolutely. Beyond the 27 preset templates, you can freely combine roles to create custom templates and save them for future use.
+
+</details>
+
+---
+
 ## Docs
 
 - [Offline Game Guide](docs/offline-sop.md)
@@ -142,12 +238,34 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for details.
 
 ## Contributing
 
+Contributions are welcome! Whether it's bug reports, feature suggestions, or code PRs — we appreciate them all.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
 ## Security
 
 See [SECURITY.md](SECURITY.md)
 
+---
+
+## Star History
+
+<a href="https://star-history.com/#olveryu/WerewolfGameJudge&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=olveryu/WerewolfGameJudge&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=olveryu/WerewolfGameJudge&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=olveryu/WerewolfGameJudge&type=Date" width="100%" />
+ </picture>
+</a>
+
+## Contributors
+
+<a href="https://github.com/olveryu/WerewolfGameJudge/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=olveryu/WerewolfGameJudge" />
+</a>
+
+---
+
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © 2024-present
