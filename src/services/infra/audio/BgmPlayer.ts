@@ -33,6 +33,8 @@ export class BgmPlayer {
   #currentIndex = 0;
   #isPlaylist = false;
   #volume = BGM_VOLUME;
+  /** Timer for inter-track gap in playlist mode. */
+  #gapTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ── Web backend ──
   #webElement: HTMLAudioElement | null = null;
@@ -89,6 +91,10 @@ export class BgmPlayer {
 
   stop(): void {
     this.#isPlaying = false;
+    if (this.#gapTimer) {
+      clearTimeout(this.#gapTimer);
+      this.#gapTimer = null;
+    }
     this.#cleanupCurrentPlayer();
     audioLog.debug('BGM stopped');
   }
@@ -210,7 +216,11 @@ export class BgmPlayer {
       audioLog.debug('BGM playlist cycle complete, re-shuffled');
     }
 
-    this.#playCurrentTrack();
+    // Brief silence between tracks so the listener notices the transition
+    this.#gapTimer = setTimeout(() => {
+      this.#gapTimer = null;
+      this.#playCurrentTrack();
+    }, 2000);
   }
 
   // ─── Cleanup ───────────────────────────────────────────────────────────
