@@ -25,7 +25,7 @@ import { ANIMATION_OPTIONS } from '@/components/SettingsSheet/animationOptions';
 import { SettingsOptionGroup } from '@/components/SettingsSheet/SettingsOptionGroup';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
-import { componentSizes, layout, spacing, typography, useColors } from '@/theme';
+import { componentSizes, layout, typography, useColors } from '@/theme';
 
 import { createAnimationSettingsStyles } from './styles';
 
@@ -110,7 +110,7 @@ export const AnimationSettingsScreen: React.FC = () => {
   const canPreview = selected !== 'none';
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack} testID="anim-settings-back">
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
@@ -121,10 +121,7 @@ export const AnimationSettingsScreen: React.FC = () => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          !canPreview && insets.bottom > 0 && { paddingBottom: insets.bottom + spacing.screenH },
-        ]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <SettingsOptionGroup
@@ -137,9 +134,7 @@ export const AnimationSettingsScreen: React.FC = () => {
       </ScrollView>
 
       {canPreview && (
-        <View
-          style={[styles.previewContainer, insets.bottom > 0 && { paddingBottom: insets.bottom }]}
-        >
+        <View style={styles.previewContainer}>
           <Button
             variant="ghost"
             buttonColor={colors.surface}

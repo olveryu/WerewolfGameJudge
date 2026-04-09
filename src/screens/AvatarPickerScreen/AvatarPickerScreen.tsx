@@ -351,7 +351,7 @@ export const AvatarPickerScreen: React.FC = () => {
   // ── Render sections ──
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack}>
@@ -513,7 +513,7 @@ export const AvatarPickerScreen: React.FC = () => {
       </View>
 
       {/* Footer */}
-      <View style={[styles.pickerFooter, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
+      <View style={styles.pickerFooter}>
         {readOnly ? (
           <View style={styles.pickerUpgradeCard}>
             <Text style={styles.pickerUpgradeTitle}>绑定邮箱，解锁自定义形象</Text>

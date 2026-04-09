@@ -367,7 +367,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['left', 'right']}
+      edges={['bottom', 'left', 'right']}
       testID={TESTIDS.roomScreenRoot}
     >
       {/* Header */}
@@ -555,7 +555,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         showMessage={!isAudioPlaying && (imActioner || roomStatus === GameStatus.Ended)}
         styles={componentStyles.bottomActionPanel}
         isDark={isDark}
-        bottomInset={insets.bottom}
       >
         {/* Actioner: schema-driven bottom action buttons */}
         {(() => {

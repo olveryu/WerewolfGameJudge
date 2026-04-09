@@ -145,7 +145,7 @@ export const NotepadScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right']}>
+    <SafeAreaView style={styles.screen} edges={['bottom', 'left', 'right']}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.small }]}>
         <Text style={styles.headerTitle}>
@@ -222,7 +222,7 @@ export const NotepadScreen: React.FC = () => {
       </View>
 
       {/* Legend */}
-      <View style={[panelStyles.legend, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
+      <View style={panelStyles.legend}>
         <View style={panelStyles.legendItem}>
           <View style={[panelStyles.legendDot, panelStyles.legendDotGod]} />
           <Text style={panelStyles.legendText}>神职</Text>

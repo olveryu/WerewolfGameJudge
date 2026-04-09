@@ -464,7 +464,7 @@ export const BoardPickerScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['left', 'right']}
+      edges={['bottom', 'left', 'right']}
       testID={TESTIDS.boardPickerScreenRoot}
     >
       {/* Header */}
@@ -643,7 +643,7 @@ export const BoardPickerScreen: React.FC = () => {
       />
 
       {/* Bottom bar — custom entry */}
-      <View style={[styles.bottomBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
+      <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.customButtonRow} activeOpacity={0.7} onPress={handleCustom}>
           <Ionicons name="create-outline" size={componentSizes.icon.md} color={colors.primary} />
           <Text style={styles.customButtonText}>从零开始自定义配置</Text>

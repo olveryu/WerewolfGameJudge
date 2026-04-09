@@ -86,6 +86,15 @@ function AppContent() {
     signalAppReady();
   }, []);
 
+  // Web: sync HTML theme-color meta and body background with current theme
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', colors.surface);
+    document.body.style.backgroundColor = colors.background;
+    document.documentElement.style.backgroundColor = colors.background;
+  }, [colors.surface, colors.background]);
+
   const handleAlertClose = useCallback(() => {
     setAlertConfig(null);
   }, []);
