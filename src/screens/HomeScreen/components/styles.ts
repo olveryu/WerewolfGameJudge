@@ -92,6 +92,24 @@ export interface HomeScreenStyles {
   avatarStripLockIcon: TextStyle;
   avatarStripText: TextStyle;
   avatarStripLink: TextStyle;
+  // Random Role Card (F8 — flip animation)
+  randomRoleWrapper: ViewStyle;
+  randomRoleCard: ViewStyle;
+  randomRoleCardAbsolute: ViewStyle;
+  randomRoleBackContent: ViewStyle;
+  randomRoleBackEmoji: TextStyle;
+  randomRoleBackText: TextStyle;
+  randomRoleFrontRow: ViewStyle;
+  randomRoleAvatar: ImageStyle;
+  randomRoleFrontInfo: ViewStyle;
+  randomRoleNameRow: ViewStyle;
+  randomRoleName: TextStyle;
+  randomRoleBadge: ViewStyle;
+  randomRoleBadgeText: TextStyle;
+  randomRoleDesc: TextStyle;
+  randomRoleActions: ViewStyle;
+  randomRoleActionBtn: ViewStyle;
+  randomRoleActionText: TextStyle;
   // Tip Card (contextual tips between action row and footer)
   tipCard: ViewStyle;
   tipCardIcon: ViewStyle;
@@ -226,6 +244,91 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       lineHeight: typography.lineHeights.caption,
       color: colors.textSecondary,
       textAlign: 'center',
+    },
+    // ── Random Role Card ─────────────────────────────────────
+    randomRoleWrapper: {
+      marginHorizontal: spacing.screenH,
+      marginBottom: spacing.medium,
+      height: componentSizes.avatar.xl + spacing.xlarge + spacing.medium,
+    },
+    randomRoleCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      padding: spacing.medium,
+      ...shadows.sm,
+    },
+    randomRoleCardAbsolute: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    randomRoleBackContent: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: spacing.small,
+    },
+    randomRoleBackEmoji: {
+      fontSize: typography.display,
+    },
+    randomRoleBackText: {
+      ...textStyles.bodySemibold,
+      color: colors.textSecondary,
+    },
+    randomRoleFrontRow: {
+      flexDirection: 'row',
+      gap: spacing.small,
+    },
+    randomRoleAvatar: {
+      width: componentSizes.avatar.lg,
+      height: componentSizes.avatar.lg,
+      borderRadius: borderRadius.medium,
+    },
+    randomRoleFrontInfo: {
+      flex: 1,
+      gap: spacing.tight,
+    },
+    randomRoleNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
+    },
+    randomRoleName: {
+      ...textStyles.bodySemibold,
+      color: colors.text,
+    },
+    randomRoleBadge: {
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.micro,
+      borderRadius: borderRadius.small,
+    },
+    randomRoleBadgeText: {
+      fontSize: typography.captionSmall,
+      lineHeight: typography.lineHeights.captionSmall,
+      fontWeight: typography.weights.medium,
+    },
+    randomRoleDesc: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textSecondary,
+    },
+    randomRoleActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: spacing.small,
+    },
+    randomRoleActionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
+      paddingVertical: spacing.tight,
+    },
+    randomRoleActionText: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      fontWeight: typography.weights.medium,
     },
     // ── Tip Card ─────────────────────────────────────────────
     tipCard: {

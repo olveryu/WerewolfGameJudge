@@ -1,5 +1,5 @@
 /**
- * Modal & menu styles — HostMenuDropdown, SeatConfirmModal.
+ * Modal & menu styles — HeaderActions, SeatConfirmModal.
  */
 import { StyleSheet } from 'react-native';
 
@@ -15,16 +15,16 @@ import {
   typography,
 } from '@/theme';
 
-import type { HostMenuDropdownStyles, SeatConfirmModalStyles } from './styles';
+import type { HeaderActionsStyles, SeatConfirmModalStyles } from './styles';
 
 export function createModalMenuStyles(colors: ThemeColors): {
-  hostMenuDropdown: HostMenuDropdownStyles;
+  headerActions: HeaderActionsStyles;
   seatConfirmModal: SeatConfirmModalStyles;
 } {
   const shared = createSharedStyles(colors);
 
   return {
-    hostMenuDropdown: StyleSheet.create<HostMenuDropdownStyles>({
+    headerActions: StyleSheet.create<HeaderActionsStyles>({
       headerRightContainer: {
         flexDirection: 'row',
         alignItems: 'center',

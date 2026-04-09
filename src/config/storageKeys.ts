@@ -43,3 +43,19 @@ export const ALL_GUIDE_DISMISSED_KEYS: string[] = (
     'notepad',
   ] as const
 ).map(guideStorageKey);
+
+// ── 主页 Tip 卡片 ──────────────────────────────────────────────────────
+
+/** 主页 tip dismissed key 前缀 */
+const TIP_DISMISSED_PREFIX = '@werewolf_tip_dismissed:';
+
+/** 所有可能的 tipId */
+export type TipId = 'share' | 'login' | 'upgrade' | 'nickname' | 'theme';
+
+/** 根据 tipId 生成 AsyncStorage key */
+export const tipStorageKey = (tipId: TipId): string => `${TIP_DISMISSED_PREFIX}${tipId}`;
+
+/** 所有 tip dismissed key（用于重置） */
+export const ALL_TIP_DISMISSED_KEYS: string[] = (
+  ['share', 'login', 'upgrade', 'nickname', 'theme'] as const
+).map(tipStorageKey);

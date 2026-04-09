@@ -1,7 +1,8 @@
 /**
  * HomeScreen - 主页入口（登录、加入房间、创建房间）
  *
- * Apple HIG 风格布局：TopBar 品牌+头像+设置 → Hero Card → Action Row → TipCards → Footer。
+ * Apple HIG 风格布局：TopBar 品牌+头像 → Hero Card → Action Row →
+ * RandomRoleCard → TipCards → Footer。
  * 性能优化：styles factory 集中创建一次，通过 props 传入子组件；handlers 用 useCallback 稳定化。
  * 负责编排子组件、调用 service/navigation/showAlert。
  * 不使用硬编码样式值，不使用 console.*。
@@ -10,6 +11,13 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  Faction,
+  getAllRoleIds,
+  getRoleSpec,
+  isWolfRole,
+} from '@werewolf/game-engine/models/roles';
+import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,10 +25,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { PressableScale } from '@/components/PressableScale';
+import { getDailyQuote } from '@/config/dailyQuotes';
 import { BRAND } from '@/config/emojiTokens';
 import { HOME_GUIDE } from '@/config/guideContent';
 import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
-import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
+import { LAST_ROOM_NUMBER_KEY, type TipId, tipStorageKey } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { usePageGuide } from '@/hooks/usePageGuide';
@@ -28,9 +37,17 @@ import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { componentSizes, useTheme } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
+import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 import { homeLog } from '@/utils/logger';
 
-import { createHomeScreenStyles, InstallMenuItem, JoinRoomModal, TipCard } from './components';
+import {
+  createHomeScreenStyles,
+  InstallMenuItem,
+  JoinRoomModal,
+  RandomRoleCard,
+  TipCard,
+  UserAvatar,
+} from './components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -47,6 +64,7 @@ export const HomeScreen: React.FC = () => {
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
   const [dismissedTips, setDismissedTips] = useState<Set<string>>(new Set());
+  const [_tipsLoaded, setTipsLoaded] = useState(false);
 
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
@@ -54,6 +72,53 @@ export const HomeScreen: React.FC = () => {
   const [joinError, setJoinError] = useState<string | null>(null);
 
   const pendingActionRef = useRef<(() => void) | null>(null);
+
+  // Load persisted tip dismissals from AsyncStorage
+  useEffect(() => {
+    const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'theme'];
+    const keys = tipIds.map(tipStorageKey);
+    AsyncStorage.multiGet(keys)
+      .then((results) => {
+        const dismissed = new Set<string>();
+        results.forEach(([key, value]) => {
+          if (value === '1') {
+            // Extract tipId from storage key
+            const tipId = tipIds.find((id) => tipStorageKey(id) === key);
+            if (tipId) dismissed.add(tipId);
+          }
+        });
+        setDismissedTips(dismissed);
+      })
+      .catch((e: unknown) => {
+        homeLog.warn('Failed to read tip dismissed state', e);
+      })
+      .finally(() => {
+        setTipsLoaded(true);
+      });
+  }, []);
+
+  // Reload dismissed tips when screen regains focus (after Settings reset)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'theme'];
+      const keys = tipIds.map(tipStorageKey);
+      AsyncStorage.multiGet(keys)
+        .then((results) => {
+          const dismissed = new Set<string>();
+          results.forEach(([key, value]) => {
+            if (value === '1') {
+              const tipId = tipIds.find((id) => tipStorageKey(id) === key);
+              if (tipId) dismissed.add(tipId);
+            }
+          });
+          setDismissedTips(dismissed);
+        })
+        .catch((e: unknown) => {
+          homeLog.warn('Failed to reload tip dismissed state', e);
+        });
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   // Prevent transient UI states from getting stuck if we navigate away.
   // Also clear stale pending auth action if user didn't complete login before leaving.
@@ -168,6 +233,62 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('Settings');
   }, [navigation]);
 
+  const handleNavigateEncyclopedia = useCallback(() => {
+    navigation.navigate('Encyclopedia');
+  }, [navigation]);
+
+  // ============================================
+  // Random Role Card state (F8)
+  // ============================================
+
+  const allRoleIds = useMemo(() => getAllRoleIds(), []);
+  const [randomRoleIndex, setRandomRoleIndex] = useState(() =>
+    randomIntInclusive(0, getAllRoleIds().length - 1),
+  );
+
+  const handleRefreshRole = useCallback(() => {
+    setRandomRoleIndex((prev) => {
+      let next: number;
+      do {
+        next = randomIntInclusive(0, allRoleIds.length - 1);
+      } while (next === prev && allRoleIds.length > 1);
+      return next;
+    });
+  }, [allRoleIds.length]);
+
+  const randomRoleData = useMemo(() => {
+    const roleId = allRoleIds[randomRoleIndex % allRoleIds.length];
+    const spec = getRoleSpec(roleId);
+    // Map faction to color + label
+    let factionColor = colors.villager;
+    let factionLabel = '村民';
+    if (isWolfRole(roleId)) {
+      factionColor = colors.wolf;
+      factionLabel = '狼人';
+    } else if (spec.faction === Faction.God) {
+      factionColor = colors.god;
+      factionLabel = '神职';
+    } else if (spec.faction === Faction.Special) {
+      factionColor = colors.third;
+      factionLabel = '第三方';
+    }
+    // Avatar image: AVATAR_KEYS matches RoleId names, use indexOf for exact match
+    const avatarKeyIdx = AVATAR_KEYS.indexOf(roleId);
+    const avatarImage = avatarKeyIdx >= 0 ? AVATAR_IMAGES[avatarKeyIdx] : AVATAR_IMAGES[0];
+    return {
+      roleId,
+      displayName: spec.displayName,
+      description: spec.description,
+      factionColor,
+      factionLabel,
+      avatarImage,
+    };
+  }, [allRoleIds, randomRoleIndex, colors]);
+
+  const handleRoleDetail = useCallback(() => {
+    navigation.navigate('Encyclopedia', { roleId: randomRoleData.roleId });
+  }, [navigation, randomRoleData.roleId]);
+
   // ============================================
   // Memoized menu item handlers (stable references)
   // Use ref pattern so MenuItem can be memoized without comparing onPress,
@@ -224,13 +345,8 @@ export const HomeScreen: React.FC = () => {
       onPress?: () => void;
       dismissable?: boolean;
     }[] = [];
-    all.push({
-      id: 'share',
-      icon: UI_ICONS.SHARE,
-      title: '邀请朋友？试试分享二维码',
-      subtitle: '在房间内点击「分享房间」生成二维码',
-      dismissable: false,
-    });
+
+    // Priority tips for unauthenticated / anonymous users first
     if (!user) {
       all.push({
         id: 'login',
@@ -249,6 +365,16 @@ export const HomeScreen: React.FC = () => {
         onPress: () => navigation.navigate('Settings'),
       });
     }
+
+    // Share tip
+    all.push({
+      id: 'share',
+      icon: UI_ICONS.SHARE,
+      title: '邀请朋友？试试分享二维码',
+      subtitle: '在房间内点击「分享房间」生成二维码',
+    });
+
+    // Feature discovery tips for authenticated users
     if (user && !user.isAnonymous) {
       all.push({
         id: 'nickname',
@@ -265,11 +391,25 @@ export const HomeScreen: React.FC = () => {
       subtitle: '8 种主题风格可选',
       onPress: () => navigation.navigate('Settings'),
     });
-    return all.filter((tip) => tip.dismissable === false || !dismissedTips.has(tip.id));
+
+    // Daily quote (always visible, not dismissable)
+    all.push({
+      id: 'daily-quote',
+      icon: UI_ICONS.BOT,
+      title: '每日一句',
+      subtitle: getDailyQuote(),
+      dismissable: false,
+    });
+
+    return all.filter((tip) => tip.dismissable === false || !dismissedTips.has(tip.id)).slice(0, 3);
   }, [dismissedTips, user, navigation]);
 
   const handleDismissTip = useCallback((tipId: string) => {
     setDismissedTips((prev) => new Set(prev).add(tipId));
+    // Persist to AsyncStorage
+    AsyncStorage.setItem(tipStorageKey(tipId as TipId), '1').catch((e: unknown) => {
+      homeLog.warn('Failed to persist tip dismissal', e);
+    });
   }, []);
 
   return (
@@ -288,7 +428,7 @@ export const HomeScreen: React.FC = () => {
           <View style={styles.topBarActions}>
             <Button
               variant="icon"
-              onPress={() => navigation.navigate('Encyclopedia')}
+              onPress={handleNavigateEncyclopedia}
               testID={TESTIDS.homeEncyclopediaButton}
               accessibilityLabel="角色图鉴"
             >
@@ -299,18 +439,13 @@ export const HomeScreen: React.FC = () => {
               />
             </Button>
 
-            <Button
-              variant="icon"
+            <UserAvatar
+              user={user}
               onPress={handleNavigateSettings}
-              accessibilityLabel="设置"
+              styles={styles}
+              colors={colors}
               testID={TESTIDS.homeSettingsButton}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={componentSizes.icon.md}
-                color={colors.textSecondary}
-              />
-            </Button>
+            />
           </View>
         </View>
 
@@ -378,6 +513,20 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </PressableScale>
         </View>
+
+        {/* ── Random Role Card (F8) ───────────────── */}
+        <RandomRoleCard
+          roleId={randomRoleData.roleId}
+          displayName={randomRoleData.displayName}
+          description={randomRoleData.description}
+          factionColor={randomRoleData.factionColor}
+          factionLabel={randomRoleData.factionLabel}
+          avatarImage={randomRoleData.avatarImage}
+          onRefresh={handleRefreshRole}
+          onDetail={handleRoleDetail}
+          styles={styles}
+          colors={colors}
+        />
 
         {/* ── Contextual Tips ────────────────────────── */}
         {activeTips.map((tip) => (

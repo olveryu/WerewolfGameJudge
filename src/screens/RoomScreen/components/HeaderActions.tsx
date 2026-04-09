@@ -1,29 +1,31 @@
 /**
- * HostMenuDropdown.tsx - Dropdown menu for Host actions
+ * HeaderActions — 房间顶栏右侧操作区
  *
- * Shows a "..." button in the header that opens a dropdown menu with:
- * - Fill with Bots (填充机器人) - only in unseated phase
- * - Mark All Bots Viewed (标记机器人已查看) - only in assigned phase with debug mode
- * - Clear All Seats (全员起立) - only in unseated/seated phase when players are seated
+ * 仅一个可见项时直接渲染按钮（如用户头像）；多项时显示 "..." 打开下拉菜单。
+ * 菜单项包括：分享房间、翻牌动画、音乐设置、用户设置、填充机器人、全员起立等。
  *
- * Performance: Memoized, receives pre-created styles from parent.
- * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
+ * Memoized，接收 parent 预创建的 styles。不 import Service / showAlert。
  */
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
+import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
-import { componentSizes, useColors } from '@/theme';
+import { borderRadius, componentSizes, spacing, useColors, withAlpha } from '@/theme';
 
-import { type HostMenuDropdownStyles } from './styles';
+import { type HeaderActionsStyles } from './styles';
 
 const MENU_ICON_SIZE = componentSizes.icon.md;
+const AVATAR_SIZE = componentSizes.avatar.sm;
+const AVATAR_WRAPPER_SIZE = AVATAR_SIZE + spacing.tight * 2;
 
-interface HostMenuDropdownProps {
+interface HeaderActionsProps {
   /** Whether to show the menu (Host only) */
   visible: boolean;
+  /** Current user (for avatar in menu item) */
+  user: { uid: string; avatarUrl?: string | null } | null;
   /** Show user settings option */
   showUserSettings: boolean;
   /** Show share room option (only in unseated/seated phase) */
@@ -50,11 +52,12 @@ interface HostMenuDropdownProps {
   onUserSettings: () => void;
   onShareRoom: () => void;
   /** Pre-created styles from parent */
-  styles: HostMenuDropdownStyles;
+  styles: HeaderActionsStyles;
 }
 
-const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
+const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
   visible,
+  user,
   showUserSettings,
   showShareRoom,
   showAnimationSettings,
@@ -129,8 +132,8 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     return <View style={styles.triggerButton} />;
   }
 
-  const hasDropdownItems =
-    showUserSettings ||
+  // When only "用户设置" is visible, show its icon directly instead of the "..." dropdown
+  const hasOtherItems =
     showShareRoom ||
     showAnimationSettings ||
     showMusicSettings ||
@@ -138,6 +141,42 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
     showMarkAllBotsViewed ||
     showMarkAllBotsGroupConfirmed ||
     showClearAllSeats;
+
+  const hasDropdownItems = showUserSettings || hasOtherItems;
+
+  // Single item: render avatar/icon button directly (same size as HomeScreen UserAvatar)
+  if (showUserSettings && !hasOtherItems) {
+    const wrapperStyle = {
+      width: AVATAR_WRAPPER_SIZE,
+      height: AVATAR_WRAPPER_SIZE,
+      borderRadius: borderRadius.full,
+      backgroundColor: withAlpha(colors.primary, 0.08),
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    };
+    return (
+      <View style={styles.headerRightContainer}>
+        <Button variant="icon" onPress={onUserSettings}>
+          <View style={wrapperStyle}>
+            {user ? (
+              <Avatar
+                value={user.uid}
+                size={AVATAR_SIZE}
+                avatarUrl={user.avatarUrl}
+                borderRadius={AVATAR_SIZE / 2}
+              />
+            ) : (
+              <Ionicons
+                name="person-circle-outline"
+                size={componentSizes.icon.md}
+                color={colors.textSecondary}
+              />
+            )}
+          </View>
+        </Button>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.headerRightContainer}>
@@ -195,7 +234,16 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
                   )}
                   {showUserSettings && (
                     <TouchableOpacity style={styles.menuItem} onPress={handleUserSettings}>
-                      <Ionicons name="person-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                      {user ? (
+                        <Avatar
+                          value={user.uid}
+                          size={MENU_ICON_SIZE}
+                          avatarUrl={user.avatarUrl}
+                          borderRadius={MENU_ICON_SIZE / 2}
+                        />
+                      ) : (
+                        <Ionicons name="person-outline" size={MENU_ICON_SIZE} color={colors.text} />
+                      )}
                       <Text style={styles.menuItemText}>用户设置</Text>
                     </TouchableOpacity>
                   )}
@@ -252,6 +300,6 @@ const HostMenuDropdownComponent: React.FC<HostMenuDropdownProps> = ({
   );
 };
 
-export const HostMenuDropdown = memo(HostMenuDropdownComponent);
+export const HeaderActions = memo(HeaderActionsComponent);
 
-HostMenuDropdown.displayName = 'HostMenuDropdown';
+HeaderActions.displayName = 'HeaderActions';

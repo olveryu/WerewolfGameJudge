@@ -6,17 +6,18 @@
  * 纯展示屏，不依赖 service，不含业务逻辑。
  */
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import {
   Faction,
   getAllRoleIds,
   getRoleSpec,
+  isValidRoleId,
   isWolfRole,
   ROLE_SPECS,
   type RoleAbilityTag,
   type RoleId,
 } from '@werewolf/game-engine/models/roles';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -33,6 +34,7 @@ import { FormTextField } from '@/components/FormTextField';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { ENCYCLOPEDIA_GUIDE } from '@/config/guideContent';
 import { usePageGuide } from '@/hooks/usePageGuide';
+import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -164,6 +166,7 @@ function buildSections(
 export const EncyclopediaScreen: React.FC = () => {
   const colors = useColors();
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<RootStackParamList, 'Encyclopedia'>>();
   const encyclopediaGuide = usePageGuide('encyclopedia');
 
   const [activeFilter, setActiveFilter] = useState<FactionFilterKey>('all');
@@ -172,6 +175,14 @@ export const EncyclopediaScreen: React.FC = () => {
   const [searchVisible, setSearchVisible] = useState(false);
   const [selectedRole, setSelectedRole] = useState<RoleId | null>(null);
   const [tagDropdownVisible, setTagDropdownVisible] = useState(false);
+
+  // Auto-open role detail if navigated with roleId param
+  useEffect(() => {
+    const roleId = route.params?.roleId;
+    if (roleId && isValidRoleId(roleId)) {
+      setSelectedRole(roleId as RoleId);
+    }
+  }, [route.params?.roleId]);
 
   const allRoleIds = useMemo(() => getAllRoleIds(), []);
 

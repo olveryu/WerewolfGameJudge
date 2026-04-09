@@ -8,7 +8,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
 
-import { ALL_GUIDE_DISMISSED_KEYS, type GuidePageKey, guideStorageKey } from '@/config/storageKeys';
+import {
+  ALL_GUIDE_DISMISSED_KEYS,
+  ALL_TIP_DISMISSED_KEYS,
+  type GuidePageKey,
+  guideStorageKey,
+} from '@/config/storageKeys';
 import { appReadyPromise } from '@/utils/appReady';
 import { log } from '@/utils/logger';
 
@@ -102,8 +107,8 @@ export function usePageGuide(pageKey: GuidePageKey): PageGuideResult {
   return { visible: shouldShow, dontShowAgain, toggleDontShowAgain, dismiss };
 }
 
-/** 重置所有页面的新手引导（SettingsScreen 调用） */
+/** 重置所有页面的新手引导 + 主页 tips（SettingsScreen 调用） */
 export async function resetAllGuides(): Promise<void> {
   sessionDismissed.clear();
-  await AsyncStorage.multiRemove(ALL_GUIDE_DISMISSED_KEYS);
+  await AsyncStorage.multiRemove([...ALL_GUIDE_DISMISSED_KEYS, ...ALL_TIP_DISMISSED_KEYS]);
 }

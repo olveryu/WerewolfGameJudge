@@ -67,7 +67,7 @@ export interface StatusRibbonStyles {
   speakingOrderSubText: TextStyle;
 }
 
-export interface HostMenuDropdownStyles {
+export interface HeaderActionsStyles {
   triggerButton: ViewStyle;
   triggerText: TextStyle;
   modalOverlay: ViewStyle;
@@ -107,7 +107,7 @@ interface RoomScreenComponentStyles {
   connectionStatusBar: ConnectionStatusBarStyles;
   controlledSeatBanner: ControlledSeatBannerStyles;
   hostGuideBanner: HostGuideBannerStyles;
-  hostMenuDropdown: HostMenuDropdownStyles;
+  headerActions: HeaderActionsStyles;
   nightProgressIndicator: NightProgressIndicatorStyles;
   seatConfirmModal: SeatConfirmModalStyles;
   statusRibbon: StatusRibbonStyles;

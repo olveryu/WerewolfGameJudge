@@ -21,7 +21,7 @@ export type RootStackParamList = {
   Settings: { roomNumber?: string } | undefined;
   AnimationSettings: { roomNumber?: string } | undefined;
   MusicSettings: { roomNumber?: string } | undefined;
-  Encyclopedia: { roomNumber?: string } | undefined;
+  Encyclopedia: { roomNumber?: string; roleId?: string } | undefined;
   Notepad: { roomNumber: string };
   AvatarPicker: undefined;
   // Auth modal screens

@@ -27,6 +27,7 @@ import {
   ROOM_GUIDE_TITLE,
   ROOM_ONGOING_GUIDE,
 } from '@/config/guideContent';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
@@ -43,8 +44,8 @@ import { BoardInfoCard } from './components/BoardInfoCard';
 import { BottomActionPanel } from './components/BottomActionPanel';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
+import { HeaderActions } from './components/HeaderActions';
 import { HostControlButtons } from './components/HostControlButtons';
-import { HostMenuDropdown } from './components/HostMenuDropdown';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { PlayerGrid } from './components/PlayerGrid';
@@ -62,6 +63,7 @@ import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { user } = useAuthContext();
   const { colors, isDark } = useTheme();
   const styles = useMemo(() => createRoomScreenStyles(colors), [colors]);
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
@@ -377,8 +379,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           >
             <Ionicons name="book-outline" size={componentSizes.icon.md} color={colors.text} />
           </TouchableOpacity>
-          <HostMenuDropdown
+          <HeaderActions
             visible
+            user={user}
             showUserSettings
             showShareRoom={roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated}
             showAnimationSettings={
@@ -442,7 +445,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             onMusicSettings={handleMusicSettings}
             onUserSettings={handleAvatarPress}
             onShareRoom={handleShareRoom}
-            styles={componentStyles.hostMenuDropdown}
+            styles={componentStyles.headerActions}
           />
         </View>
       </View>
