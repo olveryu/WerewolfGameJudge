@@ -72,6 +72,7 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
     },
     scrollView: {
       flex: 1,
+      backgroundColor: colors.background,
     },
     scrollContent: {
       padding: spacing.screenH,

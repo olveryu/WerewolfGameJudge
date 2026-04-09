@@ -434,6 +434,7 @@ export const EncyclopediaScreen: React.FC = () => {
           renderSectionHeader={renderSectionHeader}
           keyExtractor={keyExtractor}
           stickySectionHeadersEnabled={false}
+          style={styles.listStyle}
           contentContainerStyle={[
             styles.listContent,
             insets.bottom > 0 && { paddingBottom: spacing.xlarge + insets.bottom },
@@ -623,6 +624,10 @@ function createStyles(colors: ThemeColors) {
       color: colors.error,
     },
     // Section List
+    listStyle: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
     listContent: {
       paddingBottom: spacing.xlarge,
     },

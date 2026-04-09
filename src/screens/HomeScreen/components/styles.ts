@@ -139,6 +139,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     scrollView: {
       flex: 1,
+      backgroundColor: colors.background,
     },
     scrollContent: {
       flexGrow: 1,

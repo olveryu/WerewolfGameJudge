@@ -638,6 +638,7 @@ export const BoardPickerScreen: React.FC = () => {
         ListEmptyComponent={ListEmptyComponent}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
+        style={styles.listStyle}
         contentContainerStyle={styles.listContent}
       />
 

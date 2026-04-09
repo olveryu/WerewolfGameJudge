@@ -189,6 +189,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   // ── Scroll area ─────────────────────────────
   scrollView: {
     flex: 1,
+    backgroundColor: colors.background,
   } satisfies ViewStyle,
   scrollContent: {
     paddingBottom: spacing.large,

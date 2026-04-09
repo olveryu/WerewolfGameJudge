@@ -94,6 +94,7 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
     },
     content: {
       flex: 1,
+      backgroundColor: colors.background,
     },
     // Picker grid
     pickerGrid: {

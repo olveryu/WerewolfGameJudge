@@ -55,6 +55,7 @@ export const createAnimationSettingsStyles = (colors: ThemeColors): AnimationSet
     },
     scrollView: {
       flex: 1,
+      backgroundColor: colors.background,
     },
     scrollContent: {
       padding: spacing.screenH,

@@ -103,6 +103,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
     },
     list: {
       flex: 1,
+      backgroundColor: colors.background,
     },
     listContent: {
       padding: spacing.tight,

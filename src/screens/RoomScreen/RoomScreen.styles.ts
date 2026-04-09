@@ -120,6 +120,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     },
     scrollView: {
       flex: 1,
+      backgroundColor: colors.background,
     },
     scrollContent: {
       padding: spacing.medium,

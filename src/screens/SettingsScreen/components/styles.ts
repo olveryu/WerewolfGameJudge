@@ -151,6 +151,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     scrollView: {
       flex: 1,
       padding: spacing.screenH,
+      backgroundColor: colors.background,
     },
     card: {
       ...createSharedStyles(colors).cardBase,

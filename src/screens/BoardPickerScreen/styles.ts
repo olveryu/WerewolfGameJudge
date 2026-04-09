@@ -54,6 +54,7 @@ export interface BoardPickerStyles {
   filterBadge: ViewStyle;
   filterBadgeText: TextStyle;
   // ── SectionList ──
+  listStyle: ViewStyle;
   listContent: ViewStyle;
   sectionHeader: ViewStyle;
   sectionAccent: ViewStyle;
@@ -284,6 +285,10 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
     },
 
     // ── SectionList ───────────────────────────────
+    listStyle: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
     listContent: {
       paddingBottom: spacing.xxlarge + spacing.xlarge,
     },
