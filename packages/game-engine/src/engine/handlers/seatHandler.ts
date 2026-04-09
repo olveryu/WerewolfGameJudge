@@ -215,10 +215,10 @@ export function handleUpdatePlayerProfile(
 }
 
 /**
- * 处理踢出玩家（Host-only）
+ * 处理移出座位（Host-only）
  *
- * Host 可以在 Unseated/Seated 阶段踢出指定座位的玩家。
- * 踢出后座位变空，如果之前是 Seated 状态会回退到 Unseated。
+ * Host 可以在 Unseated/Seated 阶段将指定座位的玩家移出座位。
+ * 移出后座位变空，如果之前是 Seated 状态会回退到 Unseated。
  */
 export function handleKickPlayer(intent: KickPlayerIntent, context: HandlerContext): HandlerResult {
   const { targetSeat } = intent.payload;

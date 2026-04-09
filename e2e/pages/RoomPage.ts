@@ -74,12 +74,12 @@ export class RoomPage {
 
   /**
    * Host kicks a player from their seat.
-   * Taps the occupied seat → confirms "踢出" destructive dialog → waits for seat to empty.
+   * Taps the occupied seat → confirms "移出" destructive dialog → waits for seat to empty.
    */
   async kickPlayer(seat: number) {
     await this.getSeatTile(seat).click();
-    await expect(this.page.getByText('踢出玩家')).toBeVisible({ timeout: 5000 });
-    await this.page.getByText('踢出', { exact: true }).click();
+    await expect(this.page.getByTestId('alert-title')).toHaveText('移出座位', { timeout: 5000 });
+    await this.page.getByText('移出', { exact: true }).click();
     // Wait for kicked seat to show as empty via broadcast
     const tile = this.getSeatTile(seat);
     await expect

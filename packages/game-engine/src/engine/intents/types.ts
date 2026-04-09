@@ -44,7 +44,7 @@ export interface ClearAllSeatsIntent {
 }
 
 /**
- * 踢出玩家 Intent（Host-only）
+ * 移出座位 Intent（Host-only）
  * 前置条件：status === Unseated | Seated，目标座位非空
  */
 export interface KickPlayerIntent {

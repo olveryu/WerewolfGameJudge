@@ -211,11 +211,11 @@ test.describe('Seating', () => {
 
       // Host taps joiner's seat → kick confirmation dialog
       await roomA.getSeatTile(1).click();
-      await expect(pageA.getByText('踢出玩家')).toBeVisible({ timeout: 5000 });
-      await expect(pageA.getByText(/确定要将.*踢出房间吗/)).toBeVisible({ timeout: 3000 });
+      await expect(pageA.getByTestId('alert-title')).toHaveText('移出座位', { timeout: 5000 });
+      await expect(pageA.getByText(/确定要将.*移出座位吗/)).toBeVisible({ timeout: 3000 });
 
       // Confirm kick
-      await pageA.getByText('踢出', { exact: true }).click();
+      await pageA.getByText('移出', { exact: true }).click();
 
       // Host sees seat 2 become empty
       const hostSeat2After = await pollSeatEmpty(roomA, 2);

@@ -299,7 +299,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       try {
         return await facade.kickPlayer(targetSeat);
       } catch (err) {
-        handleError(err, { label: '踢出玩家', logger: gameRoomLog, alertTitle: '踢出失败' });
+        handleError(err, { label: '移出座位', logger: gameRoomLog, alertTitle: '移出失败' });
         return { success: false, reason: String(err) };
       }
     },

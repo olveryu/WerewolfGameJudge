@@ -379,12 +379,12 @@ export function useInteractionDispatcher({
           const player = gameState?.players.get(kickSeat);
           const playerName = player?.displayName ?? `${kickSeat + 1}号座位`;
           roomScreenLog.debug('[dispatchInteraction] KICK_CONFIRM', { seat: kickSeat });
-          showDestructiveAlert('踢出玩家', `确定要将 ${playerName} 踢出房间吗？`, '踢出', () => {
+          showDestructiveAlert('移出座位', `确定要将 ${playerName} 移出座位吗？`, '移出', () => {
             void kickPlayer(kickSeat).catch((err) => {
               handleError(err, {
                 label: 'kickPlayer',
                 logger: roomScreenLog,
-                alertTitle: '踢出失败',
+                alertTitle: '移出失败',
               });
             });
           });

@@ -128,7 +128,7 @@ export async function leaveSeatWithAck(
 }
 
 /**
- * 踢出玩家（Host-only）
+ * 将玩家移出座位（Host-only）
  */
 export async function kickPlayer(
   ctx: SeatActionsContext,
