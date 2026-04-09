@@ -30,13 +30,7 @@ export async function handleCreateRoom(request: Request, env: Env): Promise<Resp
   }
 
   const params: string[] = [crypto.randomUUID(), body.roomCode, payload.sub];
-  let sql = 'INSERT INTO rooms (id, code, host_id) VALUES (?, ?, ?)';
-
-  if (body.initialState) {
-    sql =
-      'INSERT INTO rooms (id, code, host_id, game_state, state_revision) VALUES (?, ?, ?, ?, 1)';
-    params.push(JSON.stringify(body.initialState));
-  }
+  const sql = 'INSERT INTO rooms (id, code, host_id) VALUES (?, ?, ?)';
 
   try {
     await env.DB.prepare(sql)
@@ -137,7 +131,7 @@ export async function handleDeleteRoom(request: Request, env: Env): Promise<Resp
 }
 
 // ── POST /room/state ────────────────────────────────────────────────────────
-// 从 DO 读取完整 game_state + revision
+// 从 DO 读取完整 state + revision
 export async function handleGetGameState(request: Request, env: Env): Promise<Response> {
   const body = (await request.json()) as { roomCode?: string };
   if (!body.roomCode) {
