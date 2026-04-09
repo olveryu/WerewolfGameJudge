@@ -1,5 +1,4 @@
 import { render } from '@testing-library/react-native';
-import React from 'react';
 
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 
@@ -27,11 +26,6 @@ jest.mock('../../../contexts/AuthContext', () => ({
     uploadAvatar: jest.fn(),
     signInAnonymously: jest.fn(),
   }),
-}));
-
-// Mock SafeAreaContext
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 // Mock utils

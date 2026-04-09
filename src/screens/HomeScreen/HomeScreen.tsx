@@ -20,7 +20,7 @@ import {
 import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
@@ -53,6 +53,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export const HomeScreen: React.FC = () => {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   // Create styles once and pass to all sub-components
   const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [colors, screenWidth]);
@@ -413,10 +414,17 @@ export const HomeScreen: React.FC = () => {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container} testID={TESTIDS.homeScreenRoot}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+      testID={TESTIDS.homeScreenRoot}
+    >
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          insets.bottom > 0 && { paddingBottom: insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Top Bar ─────────────────────────────────── */}

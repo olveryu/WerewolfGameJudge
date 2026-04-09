@@ -6,11 +6,8 @@
 // Reanimated jest mock (must be before any component imports)
 require('react-native-reanimated').setUpTests();
 
-// Safe area context — official mock for test environments
-jest.mock(
-  'react-native-safe-area-context',
-  () => require('react-native-safe-area-context/jest/mock').default,
-);
+// Safe area context — global mock via __mocks__/react-native-safe-area-context.tsx
+// (resolved by moduleNameMapper in jest.config.js)
 
 // ---------------------------------------------------------------------------
 // Suppress noisy React warnings (common in async component tests)

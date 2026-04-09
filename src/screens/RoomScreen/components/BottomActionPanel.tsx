@@ -25,6 +25,8 @@ interface BottomActionPanelProps {
   styles: BottomActionPanelStyles;
   /** Dark theme — determines BlurView tint */
   isDark?: boolean;
+  /** Safe area bottom inset — applied as paddingBottom when > styles.container.paddingBottom */
+  bottomInset?: number;
 }
 
 const localStyles = StyleSheet.create({
@@ -40,6 +42,7 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
   children,
   styles,
   isDark = false,
+  bottomInset = 0,
 }) => {
   // C6: Fade-in + slide-up animation when message text changes (native only)
   // On web, RN Animated with useNativeDriver=false applies inline opacity:0 synchronously,
@@ -71,8 +74,11 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
   const hasButtons = React.Children.count(children) > 0;
   if (!hasButtons && !showMessage) return null;
 
+  const containerStyle =
+    bottomInset > 0 ? [styles.container, { paddingBottom: bottomInset }] : styles.container;
+
   return (
-    <View style={styles.container} testID={TESTIDS.bottomActionPanel}>
+    <View style={containerStyle} testID={TESTIDS.bottomActionPanel}>
       <BlurView
         intensity={60}
         tint={isDark ? 'dark' : 'light'}

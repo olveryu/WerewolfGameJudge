@@ -24,7 +24,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
@@ -67,6 +67,7 @@ interface BuiltinCellItem {
 
 export const AvatarPickerScreen: React.FC = () => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createAvatarPickerScreenStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AvatarPicker'>>();
   const { user, updateProfile, uploadAvatar } = useAuth();
@@ -350,7 +351,7 @@ export const AvatarPickerScreen: React.FC = () => {
   // ── Render sections ──
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
         <Button variant="icon" onPress={handleGoBack}>
@@ -512,7 +513,7 @@ export const AvatarPickerScreen: React.FC = () => {
       </View>
 
       {/* Footer */}
-      <View style={styles.pickerFooter}>
+      <View style={[styles.pickerFooter, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
         {readOnly ? (
           <View style={styles.pickerUpgradeCard}>
             <Text style={styles.pickerUpgradeTitle}>绑定邮箱，解锁自定义形象</Text>

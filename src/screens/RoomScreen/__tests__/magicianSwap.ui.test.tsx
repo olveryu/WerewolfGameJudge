@@ -21,12 +21,6 @@ const mockNavigation = {
 
 jest.mock('@react-navigation/native', () => ({}));
 
-// Use MockSafeAreaView from harness to preserve testID
-jest.mock('react-native-safe-area-context', () => {
-  const { MockSafeAreaView } = require('./harness');
-  return { SafeAreaView: MockSafeAreaView };
-});
-
 const mockSubmitAction = jest.fn();
 
 jest.mock('../../../hooks/useGameRoom', () => {

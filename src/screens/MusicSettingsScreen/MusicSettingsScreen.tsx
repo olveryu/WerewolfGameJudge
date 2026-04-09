@@ -13,14 +13,14 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
 import { BGM_TRACKS } from '@/services/infra/audio/audioRegistry';
-import { componentSizes, fixed, useColors, withAlpha } from '@/theme';
+import { componentSizes, fixed, spacing, useColors, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { NowPlayingBar, TrackRow, VolumeSlider } from './components';
@@ -30,6 +30,7 @@ const musicSettingsLog = log.extend('MusicSettingsScreen');
 
 export const MusicSettingsScreen: React.FC = () => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createMusicSettingsStyles(colors), [colors]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'MusicSettings'>>();
@@ -205,7 +206,7 @@ export const MusicSettingsScreen: React.FC = () => {
   }, [previewingTrack]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Button variant="icon" onPress={handleGoBack} testID="music-settings-back">
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
@@ -216,7 +217,10 @@ export const MusicSettingsScreen: React.FC = () => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          insets.bottom > 0 && { paddingBottom: insets.bottom + spacing.screenH },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Section 1: BGM ── */}

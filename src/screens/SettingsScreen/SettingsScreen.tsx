@@ -19,7 +19,7 @@ import React, {
   useSyncExternalStore,
 } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
@@ -47,6 +47,7 @@ import {
 
 export const SettingsScreen: React.FC = () => {
   const { colors, themeKey, setTheme, availableThemes } = useTheme();
+  const insets = useSafeAreaInsets();
   // Create styles once and pass to all sub-components
   const styles = useMemo(() => createSettingsScreenStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Settings'>>();
@@ -462,7 +463,7 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Button variant="icon" onPress={handleGoBack}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
@@ -471,7 +472,11 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={insets.bottom > 0 ? { paddingBottom: insets.bottom } : undefined}
+      >
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
             <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户

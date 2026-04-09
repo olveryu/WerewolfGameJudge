@@ -16,7 +16,7 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import { randomPick } from '@werewolf/game-engine/utils/random';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import type { RoleData } from '@/components/RoleRevealEffects';
@@ -25,7 +25,7 @@ import { ANIMATION_OPTIONS } from '@/components/SettingsSheet/animationOptions';
 import { SettingsOptionGroup } from '@/components/SettingsSheet/SettingsOptionGroup';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
-import { componentSizes, typography, useColors } from '@/theme';
+import { componentSizes, spacing, typography, useColors } from '@/theme';
 
 import { createAnimationSettingsStyles } from './styles';
 
@@ -40,6 +40,7 @@ const PREVIEW_ROLE: RoleData = createRoleData(
 
 export const AnimationSettingsScreen: React.FC = () => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createAnimationSettingsStyles(colors), [colors]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'AnimationSettings'>>();
@@ -109,7 +110,7 @@ export const AnimationSettingsScreen: React.FC = () => {
   const canPreview = selected !== 'none';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Button variant="icon" onPress={handleGoBack} testID="anim-settings-back">
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
@@ -120,7 +121,10 @@ export const AnimationSettingsScreen: React.FC = () => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          !canPreview && insets.bottom > 0 && { paddingBottom: insets.bottom + spacing.screenH },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <SettingsOptionGroup
@@ -133,7 +137,9 @@ export const AnimationSettingsScreen: React.FC = () => {
       </ScrollView>
 
       {canPreview && (
-        <View style={styles.previewContainer}>
+        <View
+          style={[styles.previewContainer, insets.bottom > 0 && { paddingBottom: insets.bottom }]}
+        >
           <Button
             variant="ghost"
             buttonColor={colors.surface}

@@ -12,7 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -47,6 +47,7 @@ type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
 export const ConfigScreen: React.FC = () => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createConfigScreenStyles(colors), [colors]);
 
   const navigation = useNavigation<NavigationProp>();
@@ -103,7 +104,11 @@ export const ConfigScreen: React.FC = () => {
   const configGuide = usePageGuide('config');
 
   return (
-    <SafeAreaView style={styles.container} testID={TESTIDS.configScreenRoot}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+      testID={TESTIDS.configScreenRoot}
+    >
       {/* Header row — ← | 预女猎白 12人 | ⋯ */}
       <View style={styles.header}>
         <Button variant="icon" onPress={handleGoBack} testID={TESTIDS.configBackButton}>
@@ -218,7 +223,7 @@ export const ConfigScreen: React.FC = () => {
       )}
 
       {/* Bottom Create Button */}
-      <View style={styles.bottomCreateBar}>
+      <View style={[styles.bottomCreateBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
         <Text style={styles.cardBFooterHint}>
           长按角色查看技能说明{'\n'}粗边框角色可长按切换变体
         </Text>

@@ -7,7 +7,6 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import React from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
@@ -36,11 +35,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
   setItem: jest.fn(() => Promise.resolve()),
   removeItem: jest.fn(() => Promise.resolve()),
-}));
-
-// Mock SafeAreaContext
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 jest.mock('../../../utils/alert', () => ({

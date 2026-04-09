@@ -27,7 +27,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
@@ -165,6 +165,7 @@ function buildSections(
 
 export const EncyclopediaScreen: React.FC = () => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'Encyclopedia'>>();
   const encyclopediaGuide = usePageGuide('encyclopedia');
@@ -300,7 +301,11 @@ export const EncyclopediaScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} testID={TESTIDS.encyclopediaScreenRoot}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+      testID={TESTIDS.encyclopediaScreenRoot}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
@@ -429,7 +434,10 @@ export const EncyclopediaScreen: React.FC = () => {
           renderSectionHeader={renderSectionHeader}
           keyExtractor={keyExtractor}
           stickySectionHeadersEnabled={false}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            insets.bottom > 0 && { paddingBottom: spacing.xlarge + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
         />
       ) : (

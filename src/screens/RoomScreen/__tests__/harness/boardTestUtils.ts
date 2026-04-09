@@ -12,16 +12,11 @@ import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { Team } from '@werewolf/game-engine/models/roles/spec/types';
 import type { ConfirmStatus } from '@werewolf/game-engine/protocol/types';
 import React from 'react';
-import { View } from 'react-native';
 
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
 
 import { RoomScreenTestHarness } from './RoomScreenTestHarness';
-
-// =============================================================================
-// SafeAreaView Mock (MUST preserve testID)
-// =============================================================================
 
 /** Build a default ConfirmStatus for confirm-trigger test chains. */
 function defaultConfirmStatus(role: RoleId): ConfirmStatus {
@@ -31,35 +26,6 @@ function defaultConfirmStatus(role: RoleId): ConfirmStatus {
   // All other confirm roles (hunter, darkWolfKing) are shoot-type
   return { role: role as 'hunter' | 'darkWolfKing', canShoot: true };
 }
-
-/**
- * Mock SafeAreaView that preserves testID and other props.
- *
- * PURPOSE: The default react-native-safe-area-context mock (`({ children }) => children`)
- * loses the `testID` prop, causing `room-screen-root` to be missing from the render tree.
- * This breaks all board UI tests that use `waitForRoomScreen()`.
- *
- * REQUIREMENT: All board UI tests MUST use this mock via:
- * ```
- * jest.mock('react-native-safe-area-context', () => {
- *   const { MockSafeAreaView } = require('./harness');
- *   return { SafeAreaView: MockSafeAreaView };
- * });
- * ```
- *
- * DO NOT write inline SafeAreaView mocks in individual test files.
- */
-export const MockSafeAreaView = ({
-  children,
-  testID,
-  style,
-  ...rest
-}: {
-  children?: React.ReactNode;
-  testID?: string;
-  style?: any;
-  [key: string]: any;
-}) => React.createElement(View, { testID, style, ...rest }, children);
 
 // =============================================================================
 // Mock Navigation
@@ -252,6 +218,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     startGame: jest.fn(),
     restartGame: jest.fn(),
     clearAllSeats: jest.fn(),
+    kickPlayer: jest.fn().mockResolvedValue({ success: true }),
     shareNightReview: jest.fn().mockResolvedValue(undefined),
     setRoleRevealAnimation: jest.fn().mockResolvedValue(undefined),
     submitAction: jest.fn().mockResolvedValue(undefined),
@@ -261,7 +228,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     submitGroupConfirmAck: jest.fn().mockResolvedValue(undefined),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
     postProgression: jest.fn().mockResolvedValue(undefined),
-    kickPlayer: jest.fn().mockResolvedValue({ success: true }),
 
     // Board nominations
     boardNominate: jest.fn().mockResolvedValue({ success: true }),

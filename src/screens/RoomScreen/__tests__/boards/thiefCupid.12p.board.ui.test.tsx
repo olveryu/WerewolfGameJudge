@@ -52,11 +52,6 @@ jest.mock('../../../../utils/alert', () => ({
 
 jest.mock('@react-navigation/native', () => ({}));
 
-jest.mock('react-native-safe-area-context', () => {
-  const { MockSafeAreaView } = require('@/screens/RoomScreen/__tests__/harness');
-  return { SafeAreaView: MockSafeAreaView };
-});
-
 jest.mock('../../useRoomHostDialogs', () => ({
   useRoomHostDialogs: () => ({
     showPrepareToFlipDialog: jest.fn(),

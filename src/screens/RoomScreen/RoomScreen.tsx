@@ -14,7 +14,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { BlurView } from 'expo-blur';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
@@ -66,6 +66,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuthContext();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createRoomScreenStyles(colors), [colors]);
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
 
@@ -364,7 +365,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container} testID={TESTIDS.roomScreenRoot}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+      testID={TESTIDS.roomScreenRoot}
+    >
       {/* Header */}
       <View style={styles.header} testID={TESTIDS.roomHeader}>
         <BlurView intensity={60} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
@@ -547,6 +552,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         showMessage={!isAudioPlaying && (imActioner || roomStatus === GameStatus.Ended)}
         styles={componentStyles.bottomActionPanel}
         isDark={isDark}
+        bottomInset={insets.bottom}
       >
         {/* Actioner: schema-driven bottom action buttons */}
         {(() => {

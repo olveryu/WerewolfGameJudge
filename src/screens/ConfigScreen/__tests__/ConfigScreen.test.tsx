@@ -29,11 +29,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(() => Promise.resolve()),
 }));
 
-// Mock SafeAreaContext
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
-}));
-
 // Mock utils
 jest.mock('../../../utils/alert', () => ({
   ...jest.requireActual('../../../utils/alert'),

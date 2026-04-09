@@ -14,7 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import React, { useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { buildNotepadSummary } from '@/components/AIChatBubble/notepadSummary';
 import { NotepadPanel } from '@/components/NotepadPanel';
@@ -36,6 +36,7 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
 
 export const NotepadScreen: React.FC = () => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createNotepadScreenStyles(colors), [colors]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Notepad'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Notepad'>>();
@@ -144,7 +145,7 @@ export const NotepadScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
@@ -221,7 +222,7 @@ export const NotepadScreen: React.FC = () => {
       </View>
 
       {/* Legend */}
-      <View style={panelStyles.legend}>
+      <View style={[panelStyles.legend, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
         <View style={panelStyles.legendItem}>
           <View style={[panelStyles.legendDot, panelStyles.legendDotGod]} />
           <Text style={panelStyles.legendText}>神职</Text>

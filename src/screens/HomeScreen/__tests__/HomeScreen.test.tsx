@@ -1,5 +1,4 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import React from 'react';
 
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 
@@ -42,11 +41,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   removeItem: jest.fn(() => Promise.resolve()),
   multiGet: jest.fn(() => Promise.resolve([])),
-}));
-
-// Mock SafeAreaContext
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 // Mock utils

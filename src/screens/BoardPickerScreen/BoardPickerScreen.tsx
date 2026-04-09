@@ -31,7 +31,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import { FactionRoleList } from '@/components/FactionRoleList';
@@ -247,6 +247,7 @@ BoardCard.displayName = 'BoardCard';
 
 export const BoardPickerScreen: React.FC = () => {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BoardPickerRouteProp>();
   const existingRoomNumber = route.params?.existingRoomNumber;
@@ -461,7 +462,11 @@ export const BoardPickerScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} testID={TESTIDS.boardPickerScreenRoot}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+      testID={TESTIDS.boardPickerScreenRoot}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Button
@@ -637,7 +642,7 @@ export const BoardPickerScreen: React.FC = () => {
       />
 
       {/* Bottom bar — custom entry */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.customButtonRow} activeOpacity={0.7} onPress={handleCustom}>
           <Ionicons name="create-outline" size={componentSizes.icon.md} color={colors.primary} />
           <Text style={styles.customButtonText}>从零开始自定义配置</Text>

@@ -7,12 +7,6 @@ import { makeBaseUseGameRoomReturn, mockNavigation } from './schemaSmokeTestUtil
 
 jest.mock('@react-navigation/native', () => ({}));
 
-// Use MockSafeAreaView from harness to preserve testID
-jest.mock('react-native-safe-area-context', () => {
-  const { MockSafeAreaView } = require('./harness');
-  return { SafeAreaView: MockSafeAreaView };
-});
-
 jest.mock('../../../utils/alert', () => ({
   ...jest.requireActual('../../../utils/alert'),
   showAlert: jest.fn(),
