@@ -9,12 +9,13 @@ import { Ionicons } from '@expo/vector-icons';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { createCustomTemplate, getPlayerCount } from '@werewolf/game-engine/models/Template';
 import type { BoardNomination } from '@werewolf/game-engine/protocol/types';
-import { memo, useCallback, useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { FactionRoleList } from '@/components/FactionRoleList';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { computeFactionStats } from '@/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,
   componentSizes,
@@ -71,6 +72,8 @@ function NominationCard({
   const hasUpvoted = myUid ? nomination.upvoters.includes(myUid) : false;
   const roles = nomination.roles as RoleId[];
   const nominationPlayerCount = getPlayerCount(roles);
+  const [expanded, setExpanded] = useState(false);
+  const stats = useMemo(() => computeFactionStats(roles), [roles]);
   const handleUpvote = useCallback(() => {
     onUpvote(nomination.uid);
   }, [nomination.uid, onUpvote]);
@@ -79,25 +82,40 @@ function NominationCard({
     onAdopt(nomination.roles);
   }, [nomination.roles, onAdopt]);
 
+  const toggleExpand = useCallback(() => setExpanded((v) => !v), []);
+
   return (
     <View style={[styles.card, { backgroundColor: colors.card }]}>
-      {/* Header: author + player count */}
-      <View style={styles.cardHeader}>
+      {/* Tappable header: author + compact stats + chevron */}
+      <Pressable onPress={toggleExpand} style={styles.cardHeader}>
         <Text style={[styles.cardAuthor, { color: colors.text }]} numberOfLines={1}>
           {nomination.displayName}
           {isMine && <Text style={{ color: colors.textSecondary }}> (我)</Text>}
         </Text>
-        <View style={[styles.playerBadge, { backgroundColor: withAlpha(colors.primary, 0.12) }]}>
-          <Text style={[styles.playerBadgeText, { color: colors.primary }]}>
-            {nominationPlayerCount}人
+        <View style={styles.compactStats}>
+          <View style={[styles.playerBadge, { backgroundColor: withAlpha(colors.primary, 0.12) }]}>
+            <Text style={[styles.playerBadgeText, { color: colors.primary }]}>
+              {nominationPlayerCount}人
+            </Text>
+          </View>
+          <Text style={[styles.statSummary, { color: colors.textSecondary }]}>
+            狼{stats.wolfCount} 神{stats.godCount} 民{stats.villagerCount}
+            {stats.thirdCount > 0 ? ` 特${stats.thirdCount}` : ''}
           </Text>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={componentSizes.icon.sm}
+            color={colors.textSecondary}
+          />
         </View>
-      </View>
+      </Pressable>
 
-      {/* Faction stats + chip rows (shared component) */}
-      <View style={styles.roleListSpacing}>
-        <FactionRoleList roles={roles} />
-      </View>
+      {/* Expanded: full faction chip rows */}
+      {expanded && (
+        <View style={styles.roleListSpacing}>
+          <FactionRoleList roles={roles} showStats={false} />
+        </View>
+      )}
 
       {/* Action buttons */}
       <View style={styles.actionRow}>
@@ -283,11 +301,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.small,
-    marginBottom: spacing.small,
   },
   cardAuthor: {
     ...textStyles.bodySemibold,
     flex: 1,
+  },
+  compactStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight,
+  },
+  statSummary: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
   },
   playerBadge: {
     paddingHorizontal: spacing.small,
