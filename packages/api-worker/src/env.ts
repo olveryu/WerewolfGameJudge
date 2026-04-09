@@ -12,8 +12,8 @@ export interface Env {
   // ── R2 Bucket (Phase 3) ────────────────────────────────────────
   AVATARS: R2Bucket;
 
-  // ── Durable Objects (Phase 2) ──────────────────────────────────
-  GAME_ROOM: DurableObjectNamespace;
+  // ── Durable Objects ─────────────────────────────────────────────
+  GAME_ROOM: DurableObjectNamespace<import('./durableObjects/GameRoom').GameRoom>;
 
   // ── Environment Variables ──────────────────────────────────────
   ENVIRONMENT: string;

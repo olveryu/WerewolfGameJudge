@@ -104,3 +104,57 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker (D1 + D
 - **Git Commit**：`<type>(<scope>): <description>`（Conventional Commits，英文小写祈使语气）。
 - **终端**：跑测试禁止 `| grep` / `| head` / `| tail` 截断。
 - **JSDoc**：class/module 头部注释，第一行摘要 + 边界约束。
+
+---
+
+## Escalation Protocol
+
+遇到阻塞时，不要无限重试：
+
+- **同一方案尝试 3 次仍失败** → 立即停止，报告状态。
+- **不确定安全敏感变更的正确性** → 立即停止，提请用户。
+- **变更范围超出可验证范围** → 立即停止，提请用户。
+
+上报格式：
+
+```
+STATUS: BLOCKED | NEEDS_CONTEXT
+REASON: [1-2 句说明]
+ATTEMPTED: [已尝试的方法]
+RECOMMENDATION: [建议用户下一步]
+```
+
+**交付差的结果比不交付更糟。** 上报不会被惩罚。
+
+---
+
+## Completion Status Protocol
+
+**多步骤任务完成时**，用以下状态之一收尾：
+
+- **DONE** — 所有步骤完成，每个断言有证据支撑。
+- **DONE_WITH_CONCERNS** — 已完成，但有用户应知悉的问题。逐条列出。
+- **BLOCKED** — 无法继续。说明阻塞点和已尝试的方法。
+- **NEEDS_CONTEXT** — 缺少必要信息。明确列出需要什么。
+
+---
+
+## 输出语言规范
+
+- **禁止 AI 空洞词汇：** delve, crucial, robust, comprehensive, nuanced, leverage, streamline, cutting-edge, seamless, utilize, facilitate, moreover, furthermore, in order to, it's worth noting。
+- **禁止空洞套话：** 不说"经过仔细分析"、"让我来帮你"、"这是一个很好的问题"。直接给结论。
+- **代码注释 / commit / PR 描述：** 命名具体文件、函数、命令。不用模糊词。
+- **面向用户文本：** 中文，具体，不空洞。
+
+---
+
+## Session 末尾反思
+
+在长 session（≥5 轮交互）结束前，简要检视：
+
+- 有没有命令意外失败？
+- 有没有走错方向后回退？
+- 有没有发现项目特有的 quirk（构建顺序、环境变量、时序、配置）？
+- 有没有因为缺少某个 flag 或配置而多花时间？
+
+如果有，记录到 `/memories/repo/` 或 `/memories/` 中，供后续 session 使用。不记录一次性瞬态错误（网络抖动、限流）。判断标准：**知道这个能否在未来 session 省 5 分钟？**

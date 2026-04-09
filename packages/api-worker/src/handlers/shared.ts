@@ -1,23 +1,14 @@
 /**
  * handlers/shared — 通用工具函数（Workers 版）
  *
- * 与 Edge Functions 的 shared.ts 逻辑一致。
- * `createSimpleHandler` 接受 `D1Database` 参数。
+ * 提供 Worker handler 共用的参数校验、DO stub 获取、错误处理工具。
+ * game-engine 相关的 buildHandlerContext/extractAudioActions 已迁移到 gameProcessor.ts。
  */
 
-import type {
-  HandlerContext,
-  HandlerResult,
-  SideEffect,
-} from '@werewolf/game-engine/engine/handlers/types';
-import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
-import type { AudioEffect } from '@werewolf/game-engine/protocol/types';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
-
+import type { GameActionResult } from '../durableObjects/gameProcessor';
+import type { GameRoom } from '../durableObjects/GameRoom';
 import type { Env } from '../env';
-import { broadcastIfNeeded } from '../lib/broadcast';
 import { jsonResponse } from '../lib/cors';
-import { processGameAction } from '../lib/gameStateManager';
 
 /** A route handler that receives the original Request + Env + ExecutionContext and returns a Response. */
 export type HandlerFn = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
@@ -38,57 +29,52 @@ export function resultToStatus(result: { success: boolean; reason?: string }): n
   return result.reason === 'INTERNAL_ERROR' ? 500 : 400;
 }
 
-/** Find seat number by UID */
-function findSeatByUid(state: GameState, uid: string): number | null {
-  for (const [seatKey, player] of Object.entries(state.players)) {
-    if (player?.uid === uid) return Number(seatKey);
-  }
-  return null;
-}
-
-/** Build HandlerContext for game-engine pure handler functions */
-export function buildHandlerContext(state: GameState, uid: string): HandlerContext {
-  return {
-    state,
-    myUid: uid,
-    mySeat: findSeatByUid(state, uid),
-  };
-}
-
-/** Extract PLAY_AUDIO side effects into AudioEffect state actions. */
-export function extractAudioActions(sideEffects: readonly SideEffect[] | undefined): StateAction[] {
-  const audioEffects: AudioEffect[] = (sideEffects ?? [])
-    .filter(
-      (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
-        e.type === 'PLAY_AUDIO',
-    )
-    .map((e) => ({ audioKey: e.audioKey, isEndAudio: e.isEndAudio }));
-
-  if (audioEffects.length === 0) return [];
-
-  return [
-    { type: 'SET_PENDING_AUDIO_EFFECTS', payload: { effects: audioEffects } },
-    { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: true } },
-  ];
+/** Get a typed DO stub for the given room code. */
+export function getGameRoomStub(env: Env, roomCode: string): DurableObjectStub<GameRoom> {
+  const id = env.GAME_ROOM.idFromName(roomCode);
+  return env.GAME_ROOM.get(id);
 }
 
 /**
- * Factory for simple handlers that only need roomCode.
+ * 包装 DO RPC 调用，处理 DO 特有的错误属性。
+ * 若 err.retryable === true，返回 503 让客户端 retry。
+ * 若 err.overloaded === true，返回 429。
  */
-export function createSimpleHandler<I extends { type: string }>(
-  handlerFn: (intent: I, ctx: HandlerContext) => HandlerResult,
-  intent: I,
+export async function callDO<T>(fn: () => Promise<T>, env: Env): Promise<T | Response> {
+  try {
+    return await fn();
+  } catch (err: unknown) {
+    const doErr = err as { retryable?: boolean; overloaded?: boolean; message?: string };
+    if (doErr.retryable) {
+      return jsonResponse({ success: false, reason: 'SERVICE_UNAVAILABLE' }, 503, env);
+    }
+    if (doErr.overloaded) {
+      return jsonResponse({ success: false, reason: 'OVERLOADED' }, 429, env);
+    }
+    throw err;
+  }
+}
+
+/**
+ * Factory for simple handlers that only need roomCode (no-arg RPC).
+ *
+ * Note: RPC stub methods return serialized types (tuples → arrays),
+ * so the lambda returns Promise<unknown> and the result is cast via resultToStatus.
+ */
+export function createSimpleHandler(
+  rpcMethod: (stub: DurableObjectStub<GameRoom>) => Promise<unknown>,
 ): HandlerFn {
-  return async (req: Request, env: Env, ctx: ExecutionContext) => {
+  return async (req: Request, env: Env) => {
     const body = (await req.json()) as { roomCode?: string };
     const { roomCode } = body;
     if (!roomCode) return missingParams(env);
 
-    const result = await processGameAction(env.DB, roomCode, (state: GameState) => {
-      const handlerCtx = buildHandlerContext(state, state.hostUid);
-      return handlerFn(intent, handlerCtx);
-    });
-    broadcastIfNeeded(env, roomCode, result, ctx);
+    const doResult = await callDO(() => {
+      const stub = getGameRoomStub(env, roomCode);
+      return rpcMethod(stub);
+    }, env);
+    if (doResult instanceof Response) return doResult;
+    const result = doResult as GameActionResult;
     return jsonResponse(result, resultToStatus(result), env);
   };
 }

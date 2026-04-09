@@ -1,73 +1,34 @@
 /**
  * handlers/gameControl — 游戏生命周期 handlers (Workers 版)
  *
- * 与 Edge Functions 的 gameControl.ts 逻辑一致。
- * 差异：`processGameAction` 多接 `db` 参数；`jsonResponse`/`missingParams` 多接 `env`。
+ * Thin router 层：参数校验 → DO RPC → 错误处理 → 返回响应。
+ * 游戏逻辑在 DO (GameRoom) 内部执行。
  */
 
-import {
-  handleAssignRoles,
-  handleFillWithBots,
-  handleMarkAllBotsViewed,
-  handleRestartGame,
-  handleSetRoleRevealAnimation,
-  handleShareNightReview,
-  handleStartNight,
-  handleUpdateTemplate,
-} from '@werewolf/game-engine/engine/handlers/gameControlHandler';
-import {
-  handleClearAllSeats,
-  handleJoinSeat,
-  handleKickPlayer,
-  handleLeaveMySeat,
-  handleUpdatePlayerProfile,
-} from '@werewolf/game-engine/engine/handlers/seatHandler';
-import { handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
-import { handleViewedRole } from '@werewolf/game-engine/engine/handlers/viewedRoleHandler';
-import type {
-  JoinSeatIntent,
-  KickPlayerIntent,
-  LeaveMySeatIntent,
-  UpdatePlayerProfileIntent,
-} from '@werewolf/game-engine/engine/intents/types';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
-import { broadcastIfNeeded } from '../lib/broadcast';
 import { jsonResponse } from '../lib/cors';
-import { processGameAction } from '../lib/gameStateManager';
 import {
-  buildHandlerContext,
+  callDO,
   createSimpleHandler,
-  extractAudioActions,
+  getGameRoomStub,
   type HandlerFn,
   isValidSeat,
   missingParams,
   resultToStatus,
 } from './shared';
 
-// ── Simple intent-only handlers ─────────────────────────────────────────────
+// ── Simple no-arg handlers (roomCode only) ──────────────────────────────────
 
-export const handleAssign = createSimpleHandler(handleAssignRoles, {
-  type: 'ASSIGN_ROLES' as const,
-});
-export const handleFillBots = createSimpleHandler(handleFillWithBots, {
-  type: 'FILL_WITH_BOTS' as const,
-});
-export const handleMarkBotsViewed = createSimpleHandler(handleMarkAllBotsViewed, {
-  type: 'MARK_ALL_BOTS_VIEWED' as const,
-});
-export const handleClearSeats = createSimpleHandler(handleClearAllSeats, {
-  type: 'CLEAR_ALL_SEATS' as const,
-});
-export const handleRestart = createSimpleHandler(handleRestartGame, {
-  type: 'RESTART_GAME' as const,
-});
+export const handleAssign = createSimpleHandler((stub) => stub.assignRoles());
+export const handleFillBots = createSimpleHandler((stub) => stub.fillWithBots());
+export const handleMarkBotsViewed = createSimpleHandler((stub) => stub.markAllBotsViewed());
+export const handleClearSeats = createSimpleHandler((stub) => stub.clearAllSeats());
+export const handleRestart = createSimpleHandler((stub) => stub.restartGame());
 
 // ── Parameterized handlers ──────────────────────────────────────────────────
 
-export const handleSeat: HandlerFn = async (req, env, ctx) => {
+export const handleSeat: HandlerFn = async (req, env) => {
   const body = (await req.json()) as {
     roomCode?: string;
     action?: string;
@@ -91,110 +52,90 @@ export const handleSeat: HandlerFn = async (req, env, ctx) => {
     return jsonResponse({ success: false, reason: 'MISSING_SEAT' }, 400, env);
   }
 
-  const result = await processGameAction(env.DB, roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, uid);
-    if (action === 'sit') {
-      const intent: JoinSeatIntent = {
-        type: 'JOIN_SEAT',
-        payload: { seat: seat!, uid, displayName: displayName ?? '', avatarUrl, avatarFrame },
-      };
-      return handleJoinSeat(intent, handlerCtx);
-    } else if (action === 'kick') {
-      const intent: KickPlayerIntent = {
-        type: 'KICK_PLAYER',
-        payload: { targetSeat: targetSeat! },
-      };
-      return handleKickPlayer(intent, handlerCtx);
-    } else {
-      const intent: LeaveMySeatIntent = { type: 'LEAVE_MY_SEAT', payload: { uid } };
-      return handleLeaveMySeat(intent, handlerCtx);
-    }
-  });
-  broadcastIfNeeded(env, roomCode, result, ctx);
-  return jsonResponse(result, resultToStatus(result), env);
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.seat(
+      action as 'sit' | 'standup' | 'kick',
+      uid,
+      seat ?? null,
+      displayName,
+      avatarUrl,
+      avatarFrame,
+      targetSeat,
+    );
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
 };
 
-export const handleSetAnimation: HandlerFn = async (req, env, ctx) => {
+export const handleSetAnimation: HandlerFn = async (req, env) => {
   const body = (await req.json()) as { roomCode?: string; animation?: string };
   const { roomCode, animation } = body;
   if (!roomCode || !animation) return missingParams(env);
 
-  const result = await processGameAction(env.DB, roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, state.hostUid);
-    return handleSetRoleRevealAnimation(
-      { type: 'SET_ROLE_REVEAL_ANIMATION', animation: animation as RoleRevealAnimation },
-      handlerCtx,
-    );
-  });
-  broadcastIfNeeded(env, roomCode, result, ctx);
-  return jsonResponse(result, resultToStatus(result), env);
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.setAnimation(animation);
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
 };
 
-export const handleStart: HandlerFn = async (req, env, ctx) => {
+export const handleStart: HandlerFn = async (req, env) => {
   const body = (await req.json()) as { roomCode?: string };
   const { roomCode } = body;
   if (!roomCode) return missingParams(env);
 
-  const result = await processGameAction(env.DB, roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, state.hostUid);
-    const handlerResult = handleStartNight({ type: 'START_NIGHT' }, handlerCtx);
-    if (handlerResult.kind === 'error') return handlerResult;
-
-    const extraActions = extractAudioActions(handlerResult.sideEffects);
-    if (extraActions.length > 0) {
-      return handlerSuccess([...handlerResult.actions, ...extraActions], handlerResult.sideEffects);
-    }
-    return handlerResult;
-  });
-  broadcastIfNeeded(env, roomCode, result, ctx);
-  return jsonResponse(result, resultToStatus(result), env);
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.startNight();
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
 };
 
-export const handleUpdateTemplateRoute: HandlerFn = async (req, env, ctx) => {
+export const handleUpdateTemplateRoute: HandlerFn = async (req, env) => {
   const body = (await req.json()) as { roomCode?: string; templateRoles?: string[] };
   const { roomCode, templateRoles } = body;
   if (!roomCode || !templateRoles || !Array.isArray(templateRoles)) {
     return missingParams(env);
   }
 
-  const result = await processGameAction(env.DB, roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, state.hostUid);
-    return handleUpdateTemplate(
-      { type: 'UPDATE_TEMPLATE', payload: { templateRoles: templateRoles as RoleId[] } },
-      handlerCtx,
-    );
-  });
-  broadcastIfNeeded(env, roomCode, result, ctx);
-  return jsonResponse(result, resultToStatus(result), env);
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.updateTemplate(templateRoles as RoleId[]);
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
 };
 
-export const handleViewRole: HandlerFn = async (req, env, ctx) => {
+export const handleViewRole: HandlerFn = async (req, env) => {
   const body = (await req.json()) as { roomCode?: string; uid?: string; seat?: number };
   const { roomCode, uid, seat } = body;
   if (!roomCode || !uid || !isValidSeat(seat)) return missingParams(env);
 
-  const result = await processGameAction(env.DB, roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, uid);
-    return handleViewedRole({ type: 'VIEWED_ROLE', payload: { seat } }, handlerCtx);
-  });
-  broadcastIfNeeded(env, roomCode, result, ctx);
-  return jsonResponse(result, resultToStatus(result), env);
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.viewRole(uid, seat);
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
 };
 
-export const handleShareReview: HandlerFn = async (req, env, ctx) => {
+export const handleShareReview: HandlerFn = async (req, env) => {
   const body = (await req.json()) as { roomCode?: string; allowedSeats?: number[] };
   const { roomCode, allowedSeats } = body;
   if (!roomCode || !Array.isArray(allowedSeats)) return missingParams(env);
 
-  const result = await processGameAction(env.DB, roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, state.hostUid);
-    return handleShareNightReview({ type: 'SHARE_NIGHT_REVIEW', allowedSeats }, handlerCtx);
-  });
-  broadcastIfNeeded(env, roomCode, result, ctx);
-  return jsonResponse(result, resultToStatus(result), env);
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.shareReview(allowedSeats);
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
 };
 
-export const handleUpdateProfileRoute: HandlerFn = async (req, env, ctx) => {
+export const handleUpdateProfileRoute: HandlerFn = async (req, env) => {
   const body = (await req.json()) as {
     roomCode?: string;
     uid?: string;
@@ -205,14 +146,10 @@ export const handleUpdateProfileRoute: HandlerFn = async (req, env, ctx) => {
   const { roomCode, uid, displayName, avatarUrl, avatarFrame } = body;
   if (!roomCode || !uid) return missingParams(env);
 
-  const result = await processGameAction(env.DB, roomCode, (state: GameState) => {
-    const handlerCtx = buildHandlerContext(state, uid);
-    const intent: UpdatePlayerProfileIntent = {
-      type: 'UPDATE_PLAYER_PROFILE',
-      payload: { uid, displayName, avatarUrl, avatarFrame },
-    };
-    return handleUpdatePlayerProfile(intent, handlerCtx);
-  });
-  broadcastIfNeeded(env, roomCode, result, ctx);
-  return jsonResponse(result, resultToStatus(result), env);
+  const doResult = await callDO(() => {
+    const stub = getGameRoomStub(env, roomCode);
+    return stub.updateProfile(uid, displayName, avatarUrl, avatarFrame);
+  }, env);
+  if (doResult instanceof Response) return doResult;
+  return jsonResponse(doResult, resultToStatus(doResult), env);
 };
