@@ -21,7 +21,7 @@ import {
 export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     overflow: 'hidden', // Ensures flex children respect height constraints on web
   } satisfies ViewStyle,
 

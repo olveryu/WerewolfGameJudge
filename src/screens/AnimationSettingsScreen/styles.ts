@@ -30,7 +30,7 @@ export const createAnimationSettingsStyles = (colors: ThemeColors): AnimationSet
   StyleSheet.create<AnimationSettingsStyles>({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
     },
     header: {
       flexDirection: 'row',

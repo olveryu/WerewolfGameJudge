@@ -26,7 +26,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
       overflow: 'hidden',
     },
     loadingContainer: {

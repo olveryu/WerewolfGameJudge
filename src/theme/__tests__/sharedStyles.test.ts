@@ -64,8 +64,8 @@ describe('createSharedStyles', () => {
 
   // ── Theme adapts ──────────────────────────────────────────────────────
   it('adapts background to theme colors', () => {
-    expect(dark.screenContainer.backgroundColor).toBe(darkColors.background);
-    expect(light.screenContainer.backgroundColor).toBe(lightColors.background);
+    expect(dark.screenContainer.backgroundColor).toBe(darkColors.surface);
+    expect(light.screenContainer.backgroundColor).toBe(lightColors.surface);
     expect(dark.screenContainer.backgroundColor).not.toBe(light.screenContainer.backgroundColor);
   });
 

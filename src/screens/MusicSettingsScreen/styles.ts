@@ -47,7 +47,7 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
   StyleSheet.create<MusicSettingsStyles>({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
     },
     header: {
       flexDirection: 'row',
