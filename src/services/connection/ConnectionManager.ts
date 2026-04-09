@@ -129,8 +129,10 @@ export class ConnectionManager {
    * @throws Error if connection fails or times out
    */
   async connectAndWait(roomCode: string, userId: string, timeoutMs = 15_000): Promise<void> {
-    // If already connected to this room, just return
+    // If already connected to this room, re-fetch state (store may have been reset)
+    // but skip the full WS reconnect cycle.
     if (this.#ctx.state === ConnectionState.Connected && this.#ctx.roomCode === roomCode) {
+      await this.#fetchState(roomCode);
       return;
     }
 

@@ -252,8 +252,13 @@ export class GameFacade implements IGameFacade {
     this.#audioOrchestrator.reset();
     this.#isHost = isHost;
     this.#myUid = uid;
+
+    // Only reset store when switching rooms; same-room rejoin keeps cached state
+    // (connectAndWait will fetch latest from DB regardless)
+    if (roomCode !== this.#roomCode) {
+      this.#store.reset();
+    }
     this.#roomCode = roomCode;
-    this.#store.reset();
 
     // Host rejoin: 预设 guard，阻断 subscribe 阶段收到 pendingAudioEffects 时 reactive 误播
     if (isHost) this.#audioOrchestrator.setWasAudioInterrupted(true);

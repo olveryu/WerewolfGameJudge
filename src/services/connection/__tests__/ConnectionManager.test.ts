@@ -126,8 +126,11 @@ describe('ConnectionManager', () => {
       await jest.advanceTimersByTimeAsync(0);
       await p1;
 
-      // Second connect to same room — should resolve immediately
+      // Second connect to same room — should re-fetch state but not re-open WS
+      const fetchSpy = deps.fetchStateFromDB as jest.Mock;
+      const callsBefore = fetchSpy.mock.calls.length;
       await expect(manager.connectAndWait('ROOM1', 'USER1')).resolves.toBeUndefined();
+      expect(fetchSpy).toHaveBeenCalledTimes(callsBefore + 1);
 
       manager.dispose();
     });
