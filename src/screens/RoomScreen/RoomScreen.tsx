@@ -32,7 +32,7 @@ import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { componentSizes, spacing, useTheme } from '@/theme';
+import { componentSizes, layout, spacing, useTheme } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -367,11 +367,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['top', 'left', 'right']}
+      edges={['left', 'right']}
       testID={TESTIDS.roomScreenRoot}
     >
       {/* Header */}
-      <View style={styles.header} testID={TESTIDS.roomHeader}>
+      <View
+        style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}
+        testID={TESTIDS.roomHeader}
+      >
         <BlurView intensity={60} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
         <View style={styles.headerLeft}>
           <TouchableOpacity

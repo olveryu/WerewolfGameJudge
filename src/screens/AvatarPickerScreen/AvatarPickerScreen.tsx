@@ -33,7 +33,7 @@ import { UI_ICONS } from '@/config/iconTokens';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { RootStackParamList } from '@/navigation/types';
-import { componentSizes, fixed, useColors } from '@/theme';
+import { componentSizes, fixed, layout, useColors } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
 import {
@@ -351,9 +351,9 @@ export const AvatarPickerScreen: React.FC = () => {
   // ── Render sections ──
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>

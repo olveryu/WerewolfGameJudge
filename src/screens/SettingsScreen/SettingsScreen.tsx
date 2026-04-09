@@ -29,7 +29,7 @@ import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { resetAllGuides, usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
-import { componentSizes, fixed, ThemeKey, typography, useTheme } from '@/theme';
+import { componentSizes, fixed, layout, ThemeKey, typography, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
@@ -463,8 +463,8 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>

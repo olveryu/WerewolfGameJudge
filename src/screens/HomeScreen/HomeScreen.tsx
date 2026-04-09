@@ -35,7 +35,7 @@ import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { componentSizes, useTheme } from '@/theme';
+import { componentSizes, layout, useTheme } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 import { homeLog } from '@/utils/logger';
@@ -416,7 +416,7 @@ export const HomeScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['top', 'left', 'right']}
+      edges={['left', 'right']}
       testID={TESTIDS.homeScreenRoot}
     >
       <ScrollView
@@ -428,7 +428,7 @@ export const HomeScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Top Bar ─────────────────────────────────── */}
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, { paddingTop: insets.top + layout.headerPaddingV }]}>
           <View style={styles.topBarBrand}>
             <Text style={styles.topBarLogo}>{BRAND.APP}</Text>
             <Text style={styles.topBarTitle}>狼人杀法官</Text>

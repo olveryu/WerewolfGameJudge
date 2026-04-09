@@ -303,11 +303,11 @@ export const EncyclopediaScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['top', 'left', 'right']}
+      edges={['left', 'right']}
       testID={TESTIDS.encyclopediaScreenRoot}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>
@@ -479,7 +479,7 @@ function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
     },
     // Header
     header: {

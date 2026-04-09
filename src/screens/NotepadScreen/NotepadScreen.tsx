@@ -26,7 +26,7 @@ import { useNotepad } from '@/hooks/useNotepad';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
-import { fixed, typography, useColors } from '@/theme';
+import { fixed, spacing, typography, useColors } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -145,9 +145,9 @@ export const NotepadScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.small }]}>
         <Text style={styles.headerTitle}>
           <Ionicons name={UI_ICONS.NOTE} size={typography.subtitle} />
           {' 笔记'}

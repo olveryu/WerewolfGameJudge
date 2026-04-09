@@ -25,7 +25,7 @@ import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { componentSizes, useColors } from '@/theme';
+import { componentSizes, layout, useColors } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 
 import {
@@ -106,11 +106,11 @@ export const ConfigScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['top', 'left', 'right']}
+      edges={['left', 'right']}
       testID={TESTIDS.configScreenRoot}
     >
       {/* Header row — ← | 预女猎白 12人 | ⋯ */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack} testID={TESTIDS.configBackButton}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>

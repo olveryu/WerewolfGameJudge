@@ -25,7 +25,7 @@ import { ANIMATION_OPTIONS } from '@/components/SettingsSheet/animationOptions';
 import { SettingsOptionGroup } from '@/components/SettingsSheet/SettingsOptionGroup';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
-import { componentSizes, spacing, typography, useColors } from '@/theme';
+import { componentSizes, layout, spacing, typography, useColors } from '@/theme';
 
 import { createAnimationSettingsStyles } from './styles';
 
@@ -110,8 +110,8 @@ export const AnimationSettingsScreen: React.FC = () => {
   const canPreview = selected !== 'none';
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack} testID="anim-settings-back">
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>

@@ -22,7 +22,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
     // ── Screen chrome ────────────────────────────────
     screen: {
       flex: 1,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
     },
     header: {
       flexDirection: 'row',
@@ -30,6 +30,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.small,
+      backgroundColor: colors.surface,
       borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },

@@ -70,7 +70,7 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
   StyleSheet.create<AvatarPickerScreenStyles>({
     container: {
       flex: 1,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
     },
     header: {
       flexDirection: 'row',

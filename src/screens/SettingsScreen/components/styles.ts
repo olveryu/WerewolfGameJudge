@@ -124,7 +124,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
   StyleSheet.create<SettingsScreenStyles>({
     container: {
       flex: 1,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.background,
       overflow: 'hidden',
     },
     header: {

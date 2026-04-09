@@ -464,11 +464,11 @@ export const BoardPickerScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['top', 'left', 'right']}
+      edges={['left', 'right']}
       testID={TESTIDS.boardPickerScreenRoot}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button
           variant="icon"
           onPress={handleGoBack}
