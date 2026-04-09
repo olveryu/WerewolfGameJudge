@@ -45,12 +45,19 @@ interface SeatTapResultActionFlow {
   seat: number;
 }
 
+/** Result when host kick confirmation should be shown */
+interface SeatTapResultKickConfirm {
+  kind: 'KICK_CONFIRM';
+  seat: number;
+}
+
 /** Union of all possible seat tap results */
 type SeatTapResult =
   | SeatTapResultNoop
   | SeatTapResultAlert
   | SeatTapResultSeatingFlow
-  | SeatTapResultActionFlow;
+  | SeatTapResultActionFlow
+  | SeatTapResultKickConfirm;
 
 /** Input context for seat tap policy decision */
 export interface SeatTapPolicyInput {
@@ -66,6 +73,10 @@ export interface SeatTapPolicyInput {
   imActioner: boolean;
   /** Whether game state exists */
   hasGameState: boolean;
+  /** Whether the current user is the Host */
+  isHost: boolean;
+  /** Whether the tapped seat is occupied by another player (not self) */
+  isSeatOccupiedByOther: boolean;
 }
 
 // =============================================================================
@@ -82,7 +93,16 @@ export interface SeatTapPolicyInput {
  * @returns An instruction telling the caller what to do
  */
 export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
-  const { roomStatus, isAudioPlaying, seat, disabledReason, imActioner, hasGameState } = input;
+  const {
+    roomStatus,
+    isAudioPlaying,
+    seat,
+    disabledReason,
+    imActioner,
+    hasGameState,
+    isHost,
+    isSeatOccupiedByOther,
+  } = input;
 
   // Guard: no game state
   if (!hasGameState) {
@@ -116,6 +136,11 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
 
   // Seating phase: allow seat selection/leaving
   if (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) {
+    // Tapping another player's occupied seat
+    if (isSeatOccupiedByOther) {
+      // Host can kick; non-Host gets no-op (community convention)
+      return isHost ? { kind: 'KICK_CONFIRM', seat } : { kind: 'NOOP', reason: 'other_status' };
+    }
     return { kind: 'SEATING_FLOW', seat };
   }
 

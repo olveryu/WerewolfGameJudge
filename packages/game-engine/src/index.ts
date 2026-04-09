@@ -117,6 +117,7 @@ export {
 export {
   handleClearAllSeats,
   handleJoinSeat,
+  handleKickPlayer,
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
 } from './engine/handlers/seatHandler';

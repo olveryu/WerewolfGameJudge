@@ -261,6 +261,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     submitGroupConfirmAck: jest.fn().mockResolvedValue(undefined),
     sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
     postProgression: jest.fn().mockResolvedValue(undefined),
+    kickPlayer: jest.fn().mockResolvedValue({ success: true }),
 
     // Error plumbing
     lastSeatError: null,

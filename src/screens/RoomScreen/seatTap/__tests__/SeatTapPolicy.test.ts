@@ -25,6 +25,8 @@ describe('SeatTapPolicy', () => {
         disabledReason: undefined,
         imActioner: true,
         hasGameState: true,
+        isHost: false,
+        isSeatOccupiedByOther: false,
       };
 
       const result = getSeatTapResult(input);
@@ -45,6 +47,8 @@ describe('SeatTapPolicy', () => {
         disabledReason: '不能选择自己', // Would normally trigger ALERT
         imActioner: true,
         hasGameState: true,
+        isHost: false,
+        isSeatOccupiedByOther: false,
       };
 
       const result = getSeatTapResult(input);
@@ -66,6 +70,8 @@ describe('SeatTapPolicy', () => {
         disabledReason: undefined,
         imActioner: false,
         hasGameState: true,
+        isHost: false,
+        isSeatOccupiedByOther: false,
       };
 
       const result = getSeatTapResult(input);
@@ -86,6 +92,8 @@ describe('SeatTapPolicy', () => {
         disabledReason: '不能选择自己',
         imActioner: true,
         hasGameState: true,
+        isHost: false,
+        isSeatOccupiedByOther: false,
       };
 
       const result = getSeatTapResult(input);
@@ -105,6 +113,8 @@ describe('SeatTapPolicy', () => {
         disabledReason: '某个原因',
         imActioner: false,
         hasGameState: true,
+        isHost: false,
+        isSeatOccupiedByOther: false,
       };
 
       const result = getSeatTapResult(input);
@@ -129,6 +139,8 @@ describe('SeatTapPolicy', () => {
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
+          isHost: false,
+          isSeatOccupiedByOther: false,
         };
 
         const result = getSeatTapResult(input);
@@ -147,6 +159,8 @@ describe('SeatTapPolicy', () => {
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
+          isHost: false,
+          isSeatOccupiedByOther: false,
         };
 
         const result = getSeatTapResult(input);
@@ -154,6 +168,66 @@ describe('SeatTapPolicy', () => {
         expect(result.kind).toBe('SEATING_FLOW');
         if (result.kind === 'SEATING_FLOW') {
           expect(result.seat).toBe(5);
+        }
+      });
+
+      it('returns KICK_CONFIRM when host taps occupied seat in unseated phase', () => {
+        const input: SeatTapPolicyInput = {
+          roomStatus: GameStatus.Unseated,
+          isAudioPlaying: false,
+          seat: 2,
+          disabledReason: undefined,
+          imActioner: false,
+          hasGameState: true,
+          isHost: true,
+          isSeatOccupiedByOther: true,
+        };
+
+        const result = getSeatTapResult(input);
+
+        expect(result.kind).toBe('KICK_CONFIRM');
+        if (result.kind === 'KICK_CONFIRM') {
+          expect(result.seat).toBe(2);
+        }
+      });
+
+      it('returns KICK_CONFIRM when host taps occupied seat in seated phase', () => {
+        const input: SeatTapPolicyInput = {
+          roomStatus: GameStatus.Seated,
+          isAudioPlaying: false,
+          seat: 3,
+          disabledReason: undefined,
+          imActioner: false,
+          hasGameState: true,
+          isHost: true,
+          isSeatOccupiedByOther: true,
+        };
+
+        const result = getSeatTapResult(input);
+
+        expect(result.kind).toBe('KICK_CONFIRM');
+        if (result.kind === 'KICK_CONFIRM') {
+          expect(result.seat).toBe(3);
+        }
+      });
+
+      it('returns NOOP when non-host taps occupied seat', () => {
+        const input: SeatTapPolicyInput = {
+          roomStatus: GameStatus.Seated,
+          isAudioPlaying: false,
+          seat: 1,
+          disabledReason: undefined,
+          imActioner: false,
+          hasGameState: true,
+          isHost: false,
+          isSeatOccupiedByOther: true,
+        };
+
+        const result = getSeatTapResult(input);
+
+        expect(result.kind).toBe('NOOP');
+        if (result.kind === 'NOOP') {
+          expect(result.reason).toBe('other_status');
         }
       });
     });
@@ -167,6 +241,8 @@ describe('SeatTapPolicy', () => {
           disabledReason: undefined,
           imActioner: true,
           hasGameState: true,
+          isHost: false,
+          isSeatOccupiedByOther: false,
         };
 
         const result = getSeatTapResult(input);
@@ -185,6 +261,8 @@ describe('SeatTapPolicy', () => {
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
+          isHost: false,
+          isSeatOccupiedByOther: false,
         };
 
         const result = getSeatTapResult(input);
@@ -205,6 +283,8 @@ describe('SeatTapPolicy', () => {
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
+          isHost: false,
+          isSeatOccupiedByOther: false,
         };
 
         const result = getSeatTapResult(input);
@@ -223,6 +303,8 @@ describe('SeatTapPolicy', () => {
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
+          isHost: false,
+          isSeatOccupiedByOther: false,
         };
 
         const result = getSeatTapResult(input);
@@ -241,6 +323,8 @@ describe('SeatTapPolicy', () => {
           disabledReason: undefined,
           imActioner: false,
           hasGameState: true,
+          isHost: false,
+          isSeatOccupiedByOther: false,
         };
 
         const result = getSeatTapResult(input);
@@ -265,6 +349,8 @@ describe('SeatTapPolicy', () => {
         disabledReason: undefined,
         imActioner: true,
         hasGameState: false,
+        isHost: false,
+        isSeatOccupiedByOther: false,
       };
 
       const result = getSeatTapResult(input);
@@ -283,6 +369,8 @@ describe('SeatTapPolicy', () => {
         disabledReason: undefined,
         imActioner: true,
         hasGameState: false, // No game state means undefined status
+        isHost: false,
+        isSeatOccupiedByOther: false,
       };
 
       const result = getSeatTapResult(input);

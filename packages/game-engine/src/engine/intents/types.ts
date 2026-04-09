@@ -43,6 +43,17 @@ export interface ClearAllSeatsIntent {
   type: 'CLEAR_ALL_SEATS';
 }
 
+/**
+ * 踢出玩家 Intent（Host-only）
+ * 前置条件：status === Unseated | Seated，目标座位非空
+ */
+export interface KickPlayerIntent {
+  type: 'KICK_PLAYER';
+  payload: {
+    targetSeat: number;
+  };
+}
+
 // =============================================================================
 // 游戏生命周期 Intent
 // =============================================================================

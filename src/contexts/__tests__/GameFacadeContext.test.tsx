@@ -46,6 +46,7 @@ function createFakeFacade(): IGameFacade {
     manualReconnect: () => {},
     updateMyUid: () => {},
     updatePlayerProfile: async () => ({ success: true }),
+    kickPlayer: async () => ({ success: true }),
   };
 }
 

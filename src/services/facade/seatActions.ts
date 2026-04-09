@@ -126,3 +126,28 @@ export async function leaveSeatWithAck(
     ctx.store,
   );
 }
+
+/**
+ * 踢出玩家（Host-only）
+ */
+export async function kickPlayer(
+  ctx: SeatActionsContext,
+  targetSeat: number,
+): Promise<{ success: boolean; reason?: string }> {
+  const roomCode = ctx.getRoomCode();
+  if (!roomCode || !ctx.myUid) {
+    return { success: false, reason: 'NOT_CONNECTED' };
+  }
+
+  facadeLog.debug('kickPlayer', { targetSeat, uid: ctx.myUid });
+
+  return callSeatApi(
+    roomCode,
+    {
+      action: 'kick',
+      uid: ctx.myUid,
+      targetSeat,
+    },
+    ctx.store,
+  );
+}

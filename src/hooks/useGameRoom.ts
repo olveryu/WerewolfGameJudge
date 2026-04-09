@@ -100,6 +100,7 @@ interface UseGameRoomResult {
   leaveSeat: () => Promise<void>;
   takeSeatWithAck: (seatNumber: number) => Promise<{ success: boolean; reason?: string }>;
   leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
+  kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
   requestSnapshot: () => Promise<boolean>;
   lastSeatError: { seat: number; reason: 'seat_taken' } | null;
   clearLastSeatError: () => void;
@@ -324,6 +325,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     leaveSeat: lifecycle.leaveSeat,
     takeSeatWithAck: lifecycle.takeSeatWithAck,
     leaveSeatWithAck: lifecycle.leaveSeatWithAck,
+    kickPlayer: lifecycle.kickPlayer,
     requestSnapshot: lifecycle.requestSnapshot,
     lastSeatError: lifecycle.lastSeatError,
     clearLastSeatError: lifecycle.clearLastSeatError,

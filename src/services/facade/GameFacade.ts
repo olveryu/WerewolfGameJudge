@@ -366,6 +366,10 @@ export class GameFacade implements IGameFacade {
     return seatActions.leaveSeatWithAck(this.#getSeatActionsContext());
   }
 
+  async kickPlayer(targetSeat: number): Promise<{ success: boolean; reason?: string }> {
+    return seatActions.kickPlayer(this.#getSeatActionsContext(), targetSeat);
+  }
+
   // =========================================================================
   // Game Control (委托给 gameActions)
   // =========================================================================

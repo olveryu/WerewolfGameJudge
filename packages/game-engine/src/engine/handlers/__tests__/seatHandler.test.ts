@@ -4,12 +4,14 @@
 
 import {
   handleJoinSeat,
+  handleKickPlayer,
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
 } from '@werewolf/game-engine/engine/handlers/seatHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type {
   JoinSeatIntent,
+  KickPlayerIntent,
   LeaveMySeatIntent,
   UpdatePlayerProfileIntent,
 } from '@werewolf/game-engine/engine/intents/types';
@@ -20,7 +22,9 @@ import {
   REASON_INVALID_SEAT,
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
+  REASON_NOT_HOST,
   REASON_NOT_SEATED,
+  REASON_SEAT_EMPTY,
   REASON_SEAT_TAKEN,
 } from '@werewolf/game-engine/protocol/reasonCodes';
 
@@ -446,6 +450,78 @@ describe('handleUpdatePlayerProfile', () => {
     expect(action).toEqual({
       type: 'UPDATE_PLAYER_PROFILE',
       payload: { seat: 0, displayName: 'Bob', avatarUrl: undefined },
+    });
+  });
+});
+
+describe('handleKickPlayer', () => {
+  const makeKickIntent = (targetSeat = 1): KickPlayerIntent => ({
+    type: 'KICK_PLAYER',
+    payload: { targetSeat },
+  });
+
+  it('should fail when state is null', () => {
+    const context = createContext(null, { myUid: 'host-1' });
+    const result = handleKickPlayer(makeKickIntent(), context);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NO_STATE);
+  });
+
+  it('should fail when caller is not host', () => {
+    const state = createMinimalState({
+      hostUid: 'host-1',
+      players: {
+        0: null,
+        1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+        2: null,
+      },
+    });
+    const context = createContext(state, { myUid: 'not-host' });
+    const result = handleKickPlayer(makeKickIntent(1), context);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_NOT_HOST);
+  });
+
+  it('should fail when game is in progress', () => {
+    const state = createMinimalState({ status: GameStatus.Ongoing });
+    const context = createContext(state, { myUid: 'host-1' });
+    const result = handleKickPlayer(makeKickIntent(), context);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_GAME_IN_PROGRESS);
+  });
+
+  it('should fail when seat is empty', () => {
+    const state = createMinimalState();
+    const context = createContext(state, { myUid: 'host-1' });
+    const result = handleKickPlayer(makeKickIntent(1), context);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_SEAT_EMPTY);
+  });
+
+  it('should fail when seat is invalid', () => {
+    const state = createMinimalState();
+    const context = createContext(state, { myUid: 'host-1' });
+    const result = handleKickPlayer(makeKickIntent(99), context);
+    const err = expectError(result);
+    expect(err.reason).toBe(REASON_INVALID_SEAT);
+  });
+
+  it('should succeed and return PLAYER_LEAVE action', () => {
+    const state = createMinimalState({
+      status: GameStatus.Seated,
+      players: {
+        0: { uid: 'host-1', seatNumber: 0, role: null, hasViewedRole: false },
+        1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+        2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+      },
+    });
+    const context = createContext(state, { myUid: 'host-1' });
+    const result = handleKickPlayer(makeKickIntent(1), context);
+    const success = expectSuccess(result);
+    expect(success.actions).toHaveLength(1);
+    expect(success.actions[0]).toEqual({
+      type: 'PLAYER_LEAVE',
+      payload: { seat: 1 },
     });
   });
 });

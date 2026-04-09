@@ -53,6 +53,7 @@ interface RoomLifecycleState {
   leaveSeat: () => Promise<void>;
   takeSeatWithAck: (seatNumber: number) => Promise<{ success: boolean; reason?: string }>;
   leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
+  kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
 
   // Sync
   requestSnapshot: () => Promise<boolean>;
@@ -292,6 +293,19 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     }
   }, [facade]);
 
+  // Kick player (Host-only)
+  const kickPlayer = useCallback(
+    async (targetSeat: number): Promise<{ success: boolean; reason?: string }> => {
+      try {
+        return await facade.kickPlayer(targetSeat);
+      } catch (err) {
+        handleError(err, { label: '踢出玩家', logger: gameRoomLog, alertTitle: '踢出失败' });
+        return { success: false, reason: String(err) };
+      }
+    },
+    [facade],
+  );
+
   // =========================================================================
   // Sync
   // =========================================================================
@@ -329,6 +343,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     leaveSeat,
     takeSeatWithAck,
     leaveSeatWithAck,
+    kickPlayer,
     requestSnapshot,
   };
 }

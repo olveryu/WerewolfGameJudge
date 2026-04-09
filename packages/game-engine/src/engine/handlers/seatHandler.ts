@@ -15,13 +15,16 @@ import {
   REASON_INVALID_SEAT,
   REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
+  REASON_NOT_HOST,
   REASON_NOT_SEATED,
+  REASON_SEAT_EMPTY,
   REASON_SEAT_TAKEN,
 } from '../../protocol/reasonCodes';
 import { forEachSeatedPlayer } from '../../utils/playerHelpers';
 import type {
   ClearAllSeatsIntent,
   JoinSeatIntent,
+  KickPlayerIntent,
   LeaveMySeatIntent,
   UpdatePlayerProfileIntent,
 } from '../intents/types';
@@ -206,6 +209,48 @@ export function handleUpdatePlayerProfile(
       avatarUrl,
       avatarFrame,
     },
+  };
+
+  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+}
+
+/**
+ * 处理踢出玩家（Host-only）
+ *
+ * Host 可以在 Unseated/Seated 阶段踢出指定座位的玩家。
+ * 踢出后座位变空，如果之前是 Seated 状态会回退到 Unseated。
+ */
+export function handleKickPlayer(intent: KickPlayerIntent, context: HandlerContext): HandlerResult {
+  const { targetSeat } = intent.payload;
+  const { state } = context;
+
+  if (!state) {
+    return handlerError(REASON_NO_STATE);
+  }
+
+  // 校验：只有 Host 可以踢人
+  if (state.hostUid !== context.myUid) {
+    return handlerError(REASON_NOT_HOST);
+  }
+
+  // 校验：仅在 Unseated/Seated 阶段
+  if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
+    return handlerError(REASON_GAME_IN_PROGRESS);
+  }
+
+  // 校验：座位有效
+  if (!(targetSeat in state.players)) {
+    return handlerError(REASON_INVALID_SEAT);
+  }
+
+  // 校验：座位非空
+  if (state.players[targetSeat] === null) {
+    return handlerError(REASON_SEAT_EMPTY);
+  }
+
+  const action: PlayerLeaveAction = {
+    type: 'PLAYER_LEAVE',
+    payload: { seat: targetSeat },
   };
 
   return handlerSuccess([action], STANDARD_SIDE_EFFECTS);

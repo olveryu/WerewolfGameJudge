@@ -20,7 +20,7 @@ import {
 } from '@/screens/RoomScreen/policy';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { showDismissAlert } from '@/utils/alertPresets';
+import { showDestructiveAlert, showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -72,6 +72,7 @@ interface UseInteractionDispatcherParams {
   submitRevealAckSafe: () => void;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   setControlledSeat: (seat: number | null) => void;
+  kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
 
   // ── Role card state setters (owned by RoomScreen) ──
   setPendingRevealDialog: (v: boolean) => void;
@@ -124,6 +125,7 @@ export function useInteractionDispatcher({
   submitRevealAckSafe,
   sendWolfRobotHunterStatusViewed,
   setControlledSeat,
+  kickPlayer,
   setPendingRevealDialog,
   setRoleCardVisible,
   setShouldPlayRevealAnimation,
@@ -184,6 +186,10 @@ export function useInteractionDispatcher({
         return Array.from(gameState.players.entries())
           .filter(([, player]) => player?.isBot)
           .map(([seat]) => seat);
+      },
+      isSeatOccupied: (seat: number) => {
+        if (!gameState) return false;
+        return gameState.players.get(seat) != null;
       },
     }),
     [
@@ -368,6 +374,23 @@ export function useInteractionDispatcher({
           setControlledSeat(null);
           return;
 
+        case 'KICK_CONFIRM': {
+          const kickSeat = result.seat;
+          const player = gameState?.players.get(kickSeat);
+          const playerName = player?.displayName ?? `${kickSeat + 1}号座位`;
+          roomScreenLog.debug('[dispatchInteraction] KICK_CONFIRM', { seat: kickSeat });
+          showDestructiveAlert('踢出玩家', `确定要将 ${playerName} 踢出房间吗？`, '踢出', () => {
+            void kickPlayer(kickSeat).catch((err) => {
+              handleError(err, {
+                label: 'kickPlayer',
+                logger: roomScreenLog,
+                alertTitle: '踢出失败',
+              });
+            });
+          });
+          return;
+        }
+
         default: {
           const _exhaustive: never = result;
           roomScreenLog.warn('[dispatchInteraction] Unhandled result kind', _exhaustive);
@@ -391,6 +414,7 @@ export function useInteractionDispatcher({
       submitRevealAckSafe,
       sendWolfRobotHunterStatusViewed,
       setControlledSeat,
+      kickPlayer,
       effectiveSeat,
       pendingHunterStatusViewed,
       gameState,

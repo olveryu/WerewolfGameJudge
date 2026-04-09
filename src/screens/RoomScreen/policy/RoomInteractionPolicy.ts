@@ -110,6 +110,9 @@ function handleSeatTap(
     disabledReason: event.disabledReason,
     imActioner: ctx.imActioner,
     hasGameState: ctx.hasGameState,
+    isHost: ctx.isHost,
+    isSeatOccupiedByOther:
+      event.seat !== ctx.mySeatNumber && (ctx.isSeatOccupied?.(event.seat) ?? false),
   });
 
   // Map SeatTapResult to InteractionResult
@@ -122,6 +125,8 @@ function handleSeatTap(
       return { kind: 'SEATING_FLOW', seat: seatResult.seat };
     case 'ACTION_FLOW':
       return { kind: 'ACTION_FLOW', seat: seatResult.seat };
+    case 'KICK_CONFIRM':
+      return { kind: 'KICK_CONFIRM', seat: seatResult.seat };
   }
 }
 

@@ -28,6 +28,12 @@ export const REASON_GAME_IN_PROGRESS = 'game_in_progress' as const;
 /** 玩家未入座 */
 export const REASON_NOT_SEATED = 'not_seated' as const;
 
+/** 非 Host 不允许操作 */
+export const REASON_NOT_HOST = 'not_host' as const;
+
+/** 目标座位为空 */
+export const REASON_SEAT_EMPTY = 'seat_empty' as const;
+
 // ============================================================
 // Type Union
 // ============================================================

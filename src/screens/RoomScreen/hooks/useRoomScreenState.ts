@@ -132,6 +132,7 @@ export function useRoomScreenState(
     submitRevealAck,
     submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed,
+    kickPlayer,
     // Debug mode
     isDebugMode,
     fillWithBots,
@@ -605,6 +606,7 @@ export function useRoomScreenState(
     showPrepareToFlipDialog,
     showStartGameDialog,
     showRestartDialog,
+    kickPlayer,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

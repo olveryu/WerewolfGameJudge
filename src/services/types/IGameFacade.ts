@@ -128,6 +128,12 @@ export interface IGameFacade {
    */
   leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }>;
 
+  /**
+   * 踢出玩家（Host-only）
+   * 仅在 Unseated/Seated 阶段可用
+   */
+  kickPlayer(targetSeat: number): Promise<{ success: boolean; reason?: string }>;
+
   // === Game Control (Host-only) ===
   /**
    * 分配角色

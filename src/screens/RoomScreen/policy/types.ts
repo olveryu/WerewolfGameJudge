@@ -211,6 +211,12 @@ export interface InteractionResultReleaseBotSeat {
   kind: 'RELEASE_BOT_SEAT';
 }
 
+/** Host kick confirmation */
+export interface InteractionResultKickConfirm {
+  kind: 'KICK_CONFIRM';
+  seat: number;
+}
+
 /** Union of all possible interaction results */
 export type InteractionResult =
   | InteractionResultNoop
@@ -222,7 +228,8 @@ export type InteractionResult =
   | InteractionResultRevealAck
   | InteractionResultHunterStatusViewed
   | InteractionResultTakeoverBotSeat
-  | InteractionResultReleaseBotSeat;
+  | InteractionResultReleaseBotSeat
+  | InteractionResultKickConfirm;
 
 // =============================================================================
 // Interaction Context - Minimal state needed for policy decisions
@@ -259,6 +266,8 @@ export interface InteractionContext {
   isDelegating: boolean;
   /** Function to get all bot seat indices (for takeover logic) */
   getBotSeats?: () => number[];
+  /** Check if a seat is occupied (for kick logic) */
+  isSeatOccupied?: (seat: number) => boolean;
 }
 
 // =============================================================================

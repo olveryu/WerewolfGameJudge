@@ -18,6 +18,7 @@ import {
 import {
   handleClearAllSeats,
   handleJoinSeat,
+  handleKickPlayer,
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
 } from '@werewolf/game-engine/engine/handlers/seatHandler';
@@ -25,6 +26,7 @@ import { handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
 import { handleViewedRole } from '@werewolf/game-engine/engine/handlers/viewedRoleHandler';
 import type {
   JoinSeatIntent,
+  KickPlayerIntent,
   LeaveMySeatIntent,
   UpdatePlayerProfileIntent,
 } from '@werewolf/game-engine/engine/intents/types';
@@ -71,17 +73,21 @@ export const handleSeat: HandlerFn = async (req, env, ctx) => {
     action?: string;
     uid?: string;
     seat?: number;
+    targetSeat?: number;
     displayName?: string;
     avatarUrl?: string;
     avatarFrame?: string;
   };
-  const { roomCode, action, uid, seat, displayName, avatarUrl, avatarFrame } = body;
+  const { roomCode, action, uid, seat, targetSeat, displayName, avatarUrl, avatarFrame } = body;
 
   if (!roomCode || !uid || !action) return missingParams(env);
-  if (action !== 'sit' && action !== 'standup') {
+  if (action !== 'sit' && action !== 'standup' && action !== 'kick') {
     return jsonResponse({ success: false, reason: 'INVALID_ACTION' }, 400, env);
   }
   if (action === 'sit' && (seat == null || !isValidSeat(seat))) {
+    return jsonResponse({ success: false, reason: 'MISSING_SEAT' }, 400, env);
+  }
+  if (action === 'kick' && (targetSeat == null || !isValidSeat(targetSeat))) {
     return jsonResponse({ success: false, reason: 'MISSING_SEAT' }, 400, env);
   }
 
@@ -93,6 +99,12 @@ export const handleSeat: HandlerFn = async (req, env, ctx) => {
         payload: { seat: seat!, uid, displayName: displayName ?? '', avatarUrl, avatarFrame },
       };
       return handleJoinSeat(intent, handlerCtx);
+    } else if (action === 'kick') {
+      const intent: KickPlayerIntent = {
+        type: 'KICK_PLAYER',
+        payload: { targetSeat: targetSeat! },
+      };
+      return handleKickPlayer(intent, handlerCtx);
     } else {
       const intent: LeaveMySeatIntent = { type: 'LEAVE_MY_SEAT', payload: { uid } };
       return handleLeaveMySeat(intent, handlerCtx);

@@ -73,6 +73,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     manualReconnect: jest.fn(),
     updateMyUid: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
+    kickPlayer: jest.fn().mockResolvedValue({ success: true }),
     ...overrides,
   });
 
@@ -360,6 +361,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     manualReconnect: jest.fn(),
     updateMyUid: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
+    kickPlayer: jest.fn().mockResolvedValue({ success: true }),
     ...overrides,
   });
 
@@ -628,11 +630,14 @@ describe('useGameRoom - rejoin continue overlay', () => {
     manualReconnect: jest.fn(),
     updateMyUid: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
+    kickPlayer: jest.fn().mockResolvedValue({ success: true }),
     ...overrides,
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Override global useServices mock with test-specific values
     mockUseServices.mockReturnValue({
       authService: {
         waitForInit: jest.fn().mockResolvedValue(undefined),
