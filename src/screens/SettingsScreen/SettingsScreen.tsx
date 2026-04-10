@@ -417,26 +417,24 @@ export const SettingsScreen: React.FC = () => {
           {/* Zone 3: Account operations */}
           {canSwitchAccount && !user?.email && isMiniProgram() && (
             <>
-              <Button
-                variant="ghost"
-                buttonColor={colors.background}
-                textColor={colors.primary}
+              <TouchableOpacity
+                style={styles.bindCard}
+                activeOpacity={0.7}
                 onPress={handleBindExistingEmail}
-                style={styles.logoutBtn}
               >
-                绑定已有账号
-              </Button>
-              <Text style={styles.bindHint}>输入之前注册的邮箱和密码，恢复昵称、头像等数据</Text>
-              <Button
-                variant="ghost"
-                buttonColor={colors.background}
-                textColor={colors.primary}
+                <Text style={styles.bindCardTitle}>绑定已有账号</Text>
+                <Text style={styles.bindCardDesc}>
+                  输入之前注册的邮箱和密码，恢复昵称、头像等数据
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.bindCard}
+                activeOpacity={0.7}
                 onPress={handleBindNewEmail}
-                style={styles.logoutBtn}
               >
-                注册新邮箱
-              </Button>
-              <Text style={styles.bindHint}>绑定后可在网页端登录，数据不丢失</Text>
+                <Text style={styles.bindCardTitle}>注册新邮箱</Text>
+                <Text style={styles.bindCardDesc}>绑定后可在网页端登录，数据不丢失</Text>
+              </TouchableOpacity>
             </>
           )}
           {canSwitchAccount && !user?.email && !isMiniProgram() && (

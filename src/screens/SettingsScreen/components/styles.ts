@@ -30,7 +30,9 @@ export interface SettingsScreenStyles {
   accountRow: ViewStyle;
   accountLabel: TextStyle;
   accountValue: TextStyle;
-  bindHint: TextStyle;
+  bindCard: ViewStyle;
+  bindCardTitle: TextStyle;
+  bindCardDesc: TextStyle;
   statusBadge: ViewStyle;
   statusDot: ViewStyle;
   statusText: TextStyle;
@@ -180,11 +182,25 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       color: colors.text,
       fontFamily: 'monospace',
     },
-    bindHint: {
+    bindCard: {
+      marginTop: spacing.medium,
+      padding: spacing.medium,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+    },
+    bindCardTitle: {
+      fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
+      fontWeight: typography.weights.semibold,
+      color: colors.primary,
+      marginBottom: spacing.tight,
+    },
+    bindCardDesc: {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
       color: colors.textMuted,
-      textAlign: 'center',
     },
     statusBadge: {
       flexDirection: 'row',
