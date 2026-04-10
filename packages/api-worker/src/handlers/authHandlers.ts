@@ -99,15 +99,15 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
       }
 
       // Migrate openid to the email account and delete the WeChat shell account.
-      // DELETE first to release the UNIQUE wechat_openid index before UPDATE.
+      // Use batch() for atomicity: clear openid → transfer → delete, all-or-nothing.
       try {
-        await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(existingUserId).run();
-
-        await env.DB.prepare(
-          `UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?`,
-        )
-          .bind(callerRow.wechat_openid, existing.id)
-          .run();
+        await env.DB.batch([
+          env.DB.prepare('UPDATE users SET wechat_openid = NULL WHERE id = ?').bind(existingUserId),
+          env.DB.prepare(
+            `UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?`,
+          ).bind(callerRow.wechat_openid, existing.id),
+          env.DB.prepare('DELETE FROM users WHERE id = ?').bind(existingUserId),
+        ]);
       } catch (dbErr: unknown) {
         const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
         console.error('Account merge DB error:', msg);
