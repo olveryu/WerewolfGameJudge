@@ -78,7 +78,7 @@
 
 ### 🌐 跨平台
 
-iOS · Android · Web (PWA) 三端支持。Web 版即开即用，无需下载安装。PWA 模式支持离线启动和添加到主屏幕。
+iOS · Android · Web (PWA) · 微信小程序 四端支持。Web 版即开即用，无需下载安装。PWA 模式支持离线启动和添加到主屏幕。微信搜索「狼人杀自助电子法官」即可使用。
 
 ---
 
@@ -111,12 +111,12 @@ iOS · Android · Web (PWA) 三端支持。Web 版即开即用，无需下载安
 │                 Cloudflare D1                     │
 └─────────────────────┬───────────────────────────┘
                       │
-          ┌───────────┼───────────┐
-          │           │           │
-       iOS App    Android App   Web (PWA)
-       ──────────────────────────────────
-       HTTP 提交 · WebSocket 接收
-       Host: 音频播放
+     ┌────────────┬───┼───────────┐
+     │            │   │           │
+  iOS App   Android  Web (PWA)  微信小程序
+  ────────────────────────────  (web-view)
+  HTTP 提交 · WebSocket 接收
+  Host: 音频播放
 ```
 
 **核心约束：**
@@ -158,6 +158,7 @@ pnpm run e2e          # Playwright E2E
 packages/
   api-worker/         Cloudflare Worker — REST API + Auth + Durable Objects (WebSocket)
   game-engine/        纯游戏逻辑共享包 — models / resolvers / engine（客户端与服务端共用）
+miniapp/              微信小程序 web-view 壳（AppID: wx7f0c3bea5873908c）
 src/
   screens/            React Native 页面
   services/           facade / transport (WebSocket) / infra / feature
@@ -174,6 +175,7 @@ src/
 | **AI**     | Gemini 3.1 Flash Lite（Worker 代理）                       |
 | **测试**   | Jest · Testing Library · Playwright                        |
 | **部署**   | Cloudflare Pages (Web) + Workers (API) · GitHub Actions CI |
+| **小程序** | 微信小程序 web-view 壳 · miniprogram-ci 上传               |
 | **监控**   | Sentry                                                     |
 
 ---
@@ -202,7 +204,7 @@ pnpm run release -- major   # major 发版
 <details>
 <summary><b>支持哪些平台？</b></summary>
 
-iOS、Android 和任何现代浏览器（Chrome、Safari、Firefox、Edge）。Web 版支持 PWA，可以添加到手机主屏幕像原生 App 一样使用。
+iOS、Android、微信小程序和任何现代浏览器（Chrome、Safari、Firefox、Edge）。Web 版支持 PWA，可以添加到手机主屏幕像原生 App 一样使用。微信搜索「狼人杀自助电子法官」可直接使用。
 
 </details>
 

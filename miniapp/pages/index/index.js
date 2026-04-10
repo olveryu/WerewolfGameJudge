@@ -10,7 +10,7 @@ Page({
   },
   onShareAppMessage() {
     return {
-      title: '狼人杀电子法官 - 扫码加入房间',
+      title: '狼人杀自助电子法官',
       path: '/pages/index/index'
     }
   }

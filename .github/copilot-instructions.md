@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durable Objects（游戏状态）+ D1（房间/用户元数据）负责 API、持久化、realtime 传输。支持 iOS / Android / Web。
+React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durable Objects（游戏状态）+ D1（房间/用户元数据）负责 API、持久化、realtime 传输。支持 iOS / Android / Web / 微信小程序（web-view 壳）。
 
 ## Tech Stack
 
@@ -10,6 +10,7 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 - **pnpm workspace monorepo**（`packages/game-engine` + `packages/api-worker` + 根项目）
 - `@werewolf/game-engine` — 纯游戏逻辑共享包，客户端与服务端共用
 - `@werewolf/api-worker` — Game API + Auth API（Cloudflare Worker + DO SQLite + D1 + R2）
+- `miniapp/` — 微信小程序 web-view 壳（AppID `wx7f0c3bea5873908c`，miniprogram-ci 上传）
 - Sentry (production only) | Jest 29 | Playwright (E2E) | ESLint 9 | Prettier
 - Path alias: `@/` → `src/`（仅根项目；game-engine 内使用相对路径）
 
@@ -84,6 +85,7 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 - **Worker（DO）** — 游戏逻辑 + DO SQLite 持久化 + WebSocket 广播。
 - **Worker（D1）** — 房间元数据、auth、rate limit。
 - **Cloudflare Pages** — 前端静态资源。
+- **微信小程序** — web-view 壳，加载 Cloudflare Pages 托管的 Web 版。小程序原生代码在 `miniapp/`，不含游戏逻辑。
 - **客户端** — HTTP 提交 + WebSocket 接收 + `applySnapshot` + 音频（Host）。
 - 禁止 P2P 消息。断线恢复统一读 DO（`/room/state` → `stub.getState()`）。
 
