@@ -137,7 +137,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
           {/* Mini program: guide user to use WeChat native forward */}
           <View style={styles.shareCard}>
             <Ionicons
-              name="chatbubble-ellipses-outline"
+              name="paper-plane-outline"
               size={componentSizes.icon.xl * 2}
               color={colors.primary}
               style={styles.guideIcon}
@@ -145,7 +145,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
             <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
             <Text style={styles.guideStep}>1. 点击右上角 ··· 按钮</Text>
             <Text style={styles.guideStep}>2. 选择「转发给朋友」</Text>
-            <Text style={styles.guideStep}>好友打开即可加入房间</Text>
+            <Text style={styles.guideStep}>好友打开直接进入房间 🎉</Text>
           </View>
           <View style={styles.buttonRow}>
             <Button variant="primary" onPress={onClose} accessibilityLabel="关闭">
