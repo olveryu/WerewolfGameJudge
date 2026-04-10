@@ -28,6 +28,7 @@ export { GameRoom } from './durableObjects/GameRoom';
 // Auth handlers
 import {
   handleAnonymousSignIn,
+  handleBindWechat,
   handleChangePassword,
   handleForgotPassword,
   handleGetUser,
@@ -36,6 +37,7 @@ import {
   handleSignOut,
   handleSignUp,
   handleUpdateProfile as handleAuthUpdateProfile,
+  handleWechatSignIn,
 } from './handlers/authHandlers';
 // Avatar handlers
 import { handleAvatarServe, handleAvatarUpload } from './handlers/avatarUpload';
@@ -164,6 +166,10 @@ export default {
               return handleForgotPassword(request, env);
             case 'reset-password':
               return handleResetPassword(request, env);
+            case 'wechat':
+              return handleWechatSignIn(request, env);
+            case 'bind-wechat':
+              return handleBindWechat(request, env);
           }
         }
         if (request.method === 'GET' && route === 'user') {

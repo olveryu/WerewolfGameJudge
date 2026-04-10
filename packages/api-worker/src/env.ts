@@ -27,4 +27,10 @@ export interface Env {
 
   /** Resend API key — set via `wrangler secret put RESEND_API_KEY` */
   RESEND_API_KEY?: string;
+
+  /** WeChat Mini Program AppID — set via `wrangler secret put WECHAT_APP_ID` */
+  WECHAT_APP_ID?: string;
+
+  /** WeChat Mini Program AppSecret — set via `wrangler secret put WECHAT_APP_SECRET` */
+  WECHAT_APP_SECRET?: string;
 }

@@ -591,3 +591,179 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
     env,
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /auth/wechat — 微信小程序登录（wx.login code → openid → JWT）
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface WechatCode2SessionResponse {
+  openid?: string;
+  session_key?: string;
+  errcode?: number;
+  errmsg?: string;
+}
+
+export async function handleWechatSignIn(request: Request, env: Env): Promise<Response> {
+  const body = (await request.json()) as { code?: string };
+
+  if (!body.code) {
+    return jsonResponse({ error: 'code required' }, 400, env);
+  }
+
+  if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
+    return jsonResponse({ error: 'WeChat login not configured' }, 500, env);
+  }
+
+  // Exchange code for openid via WeChat code2Session API
+  const wxUrl = new URL('https://api.weixin.qq.com/sns/jscode2session');
+  wxUrl.searchParams.set('appid', env.WECHAT_APP_ID);
+  wxUrl.searchParams.set('secret', env.WECHAT_APP_SECRET);
+  wxUrl.searchParams.set('js_code', body.code);
+  wxUrl.searchParams.set('grant_type', 'authorization_code');
+
+  const wxResp = await fetch(wxUrl.toString());
+  const wxData: WechatCode2SessionResponse = await wxResp.json();
+
+  if (!wxData.openid) {
+    const errMsg = wxData.errmsg || 'code2Session failed';
+    return jsonResponse({ error: errMsg, errcode: wxData.errcode }, 401, env);
+  }
+
+  const openid = wxData.openid;
+
+  // Look up existing user by wechat_openid
+  const existing = await env.DB.prepare(
+    `SELECT id, email, display_name, avatar_url, custom_avatar_url, avatar_frame
+     FROM users WHERE wechat_openid = ?`,
+  )
+    .bind(openid)
+    .first<{
+      id: string;
+      email: string | null;
+      display_name: string | null;
+      avatar_url: string | null;
+      custom_avatar_url: string | null;
+      avatar_frame: string | null;
+    }>();
+
+  if (existing) {
+    // Return existing user
+    const token = await signToken(existing.id, env, {
+      email: existing.email ?? undefined,
+    });
+
+    return jsonResponse(
+      {
+        access_token: token,
+        user: {
+          id: existing.id,
+          email: existing.email,
+          is_anonymous: false,
+          user_metadata: {
+            display_name: existing.display_name,
+            avatar_url: existing.avatar_url,
+            custom_avatar_url: existing.custom_avatar_url,
+            avatar_frame: existing.avatar_frame,
+          },
+        },
+      },
+      200,
+      env,
+    );
+  }
+
+  // Create new user with wechat_openid
+  const userId = crypto.randomUUID();
+
+  await env.DB.prepare(`INSERT INTO users (id, wechat_openid, is_anonymous) VALUES (?, ?, 0)`)
+    .bind(userId, openid)
+    .run();
+
+  const token = await signToken(userId, env);
+
+  return jsonResponse(
+    {
+      access_token: token,
+      user: {
+        id: userId,
+        email: null,
+        is_anonymous: false,
+        user_metadata: {},
+      },
+    },
+    200,
+    env,
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /auth/bind-wechat — 已登录用户绑定微信（邮箱账号 + wxcode → 绑定 openid）
+// ─────────────────────────────────────────────────────────────────────────────
+export async function handleBindWechat(request: Request, env: Env): Promise<Response> {
+  const bearerToken = extractBearerToken(request);
+  if (!bearerToken) {
+    return jsonResponse({ error: 'unauthorized' }, 401, env);
+  }
+  const payload = await verifyToken(bearerToken, env);
+  if (!payload) {
+    return jsonResponse({ error: 'unauthorized' }, 401, env);
+  }
+
+  const body = (await request.json()) as { code?: string };
+  if (!body.code) {
+    return jsonResponse({ error: 'code required' }, 400, env);
+  }
+
+  if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
+    return jsonResponse({ error: 'WeChat login not configured' }, 500, env);
+  }
+
+  // Exchange code for openid
+  const wxUrl = new URL('https://api.weixin.qq.com/sns/jscode2session');
+  wxUrl.searchParams.set('appid', env.WECHAT_APP_ID);
+  wxUrl.searchParams.set('secret', env.WECHAT_APP_SECRET);
+  wxUrl.searchParams.set('js_code', body.code);
+  wxUrl.searchParams.set('grant_type', 'authorization_code');
+
+  const wxResp = await fetch(wxUrl.toString());
+  const wxData: WechatCode2SessionResponse = await wxResp.json();
+
+  if (!wxData.openid) {
+    const errMsg = wxData.errmsg || 'code2Session failed';
+    return jsonResponse({ error: errMsg, errcode: wxData.errcode }, 401, env);
+  }
+
+  const openid = wxData.openid;
+
+  // Check if openid is already bound to another user
+  const existingWxUser = await env.DB.prepare('SELECT id FROM users WHERE wechat_openid = ?')
+    .bind(openid)
+    .first<{ id: string }>();
+
+  if (existingWxUser) {
+    if (existingWxUser.id === payload.sub) {
+      // Already bound to same user — no-op
+      return jsonResponse({ success: true }, 200, env);
+    }
+    // Bound to a different user — check if it's a temporary WeChat-only account
+    const wxUser = await env.DB.prepare('SELECT id, email, password_hash FROM users WHERE id = ?')
+      .bind(existingWxUser.id)
+      .first<{ id: string; email: string | null; password_hash: string | null }>();
+
+    if (wxUser && !wxUser.email && !wxUser.password_hash) {
+      // Temporary WeChat account (no email, no password) — safe to delete and rebind
+      await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(wxUser.id).run();
+    } else {
+      return jsonResponse({ error: 'wechat_already_bound' }, 409, env);
+    }
+  }
+
+  // Bind openid to current user
+  await env.DB.prepare(
+    `UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?`,
+  )
+    .bind(openid, payload.sub)
+    .run();
+
+  return jsonResponse({ success: true }, 200, env);
+}
