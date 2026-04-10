@@ -63,6 +63,15 @@ jobs:
       - name: Build game-engine (api-worker dependency)
         run: pnpm --filter @werewolf/game-engine run build
 
+      - name: Apply D1 migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: packages/api-worker
+          packageManager: pnpm
+          command: d1 migrations apply werewolf-db --remote
+
       - name: Deploy API Worker
         uses: cloudflare/wrangler-action@v3
         with:
