@@ -142,7 +142,7 @@
         }
       }
 
-      /* Indeterminate progress bar — matches LoadingScreen component */
+      /* Real-progress bar — driven by PerformanceObserver resource count */
       #splash-screen .progress-track {
         width: 60%;
         max-width: 240px;
@@ -154,20 +154,11 @@
       }
 
       #splash-screen .progress-bar {
-        width: 30%;
+        width: 0;
         height: 100%;
         border-radius: 2px;
         background-color: #6366f1;
-        animation: slide 1.5s linear infinite;
-      }
-
-      @keyframes slide {
-        0% {
-          transform: translateX(-100%);
-        }
-        100% {
-          transform: translateX(333%);
-        }
+        transition: width 0.3s ease;
       }
 
       #splash-refresh {
@@ -376,24 +367,75 @@
         if (themeMeta) themeMeta.content = theme.primary;
       })();
 
+      // ── Real loading progress via PerformanceObserver ──
+      // Track resource loading (JS bundles, WASM, etc.) and drive the progress bar.
+      // Cap at 90% — the final 10% is set when React mounts and hides splash.
+      (function () {
+        var bar = document.querySelector('#splash-screen .progress-bar');
+        if (!bar) return;
+
+        var loaded = 0;
+        // Expo web typically loads ~15-25 resources (JS chunks, WASM, fonts, images).
+        // Use 20 as expected total; progress is capped at 90% until React takes over.
+        var EXPECTED_TOTAL = 20;
+
+        function setProgress(pct) {
+          bar.style.width = Math.min(pct, 90) + '%';
+        }
+
+        // Count resources already loaded before observer starts
+        if (typeof performance !== 'undefined' && performance.getEntriesByType) {
+          loaded = performance.getEntriesByType('resource').length;
+          setProgress((loaded / EXPECTED_TOTAL) * 100);
+        }
+
+        // Observe new resources as they finish loading
+        if (typeof PerformanceObserver !== 'undefined') {
+          try {
+            var observer = new PerformanceObserver(function (list) {
+              loaded += list.getEntries().length;
+              setProgress((loaded / EXPECTED_TOTAL) * 100);
+            });
+            observer.observe({ type: 'resource', buffered: false });
+          } catch (e) {
+            // PerformanceObserver not supported — bar stays at initial width
+          }
+        }
+
+        // Minimum progress trickle: ensure bar moves even if observer is unsupported
+        var trickle = setInterval(function () {
+          var current = parseFloat(bar.style.width) || 0;
+          if (current < 30) {
+            bar.style.width = current + 2 + '%';
+          } else {
+            clearInterval(trickle);
+          }
+        }, 500);
+      })();
+
       // 隐藏启动画面 — 由 React App.tsx 控制。
       // 这里仅作超时 fallback（5 秒后强制隐藏，防止 JS 加载失败时永久卡 splash）。
       // 仅在 React 已挂载（#root 有子元素）时移除，否则保留 splash 避免白屏。
-      // 8 秒后若 splash 仍在，显示「刷新页面」按钮（清缓存 + reload）。
+      // 5 秒后若 splash 仍在，显示「刷新页面」按钮（清缓存 + reload）。
       window.addEventListener('load', function () {
         setTimeout(function () {
           var root = document.getElementById('root');
           if (!root || root.children.length === 0) return;
           var splash = document.getElementById('splash-screen');
           if (splash) {
-            splash.classList.add('hidden');
+            // Set progress to 100% before hiding
+            var bar = splash.querySelector('.progress-bar');
+            if (bar) bar.style.width = '100%';
             setTimeout(function () {
-              splash.remove();
-            }, 300);
+              splash.classList.add('hidden');
+              setTimeout(function () {
+                splash.remove();
+              }, 300);
+            }, 200);
           }
         }, 5000);
 
-        // 8 秒后 splash 仍显示（React 未接管 / 加载卡住）→ 显示刷新按钮
+        // 5 秒后 splash 仍显示（React 未接管 / 加载卡住）→ 显示刷新按钮
         setTimeout(function () {
           var splash = document.getElementById('splash-screen');
           if (!splash || splash.classList.contains('hidden')) return;
@@ -405,7 +447,7 @@
             btn.style.backgroundColor = primary;
             btn.style.display = 'inline-block';
           }
-        }, 8000);
+        }, 5000);
       });
 
       // 刷新按钮：注销 Service Worker + 清除所有缓存 + 强制 reload
