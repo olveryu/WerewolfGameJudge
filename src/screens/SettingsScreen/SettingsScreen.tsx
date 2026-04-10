@@ -35,6 +35,7 @@ import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
 import { isExpectedAuthError, mapAuthError, settingsLog } from '@/utils/logger';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 import {
   AboutSection,
@@ -178,6 +179,26 @@ export const SettingsScreen: React.FC = () => {
     navigation.navigate('AuthEmail', {
       mode: 'signUp',
       formTitle: '绑定邮箱',
+      showToggleMode: false,
+      showSuccessOnLogin: true,
+    });
+  }, [navigation]);
+
+  /** 微信用户「绑定已有账号」：输入已有邮箱+密码，服务端合并账号 */
+  const handleBindExistingEmail = useCallback(() => {
+    navigation.navigate('AuthEmail', {
+      mode: 'signUp',
+      formTitle: '绑定已有账号',
+      showToggleMode: false,
+      showSuccessOnLogin: true,
+    });
+  }, [navigation]);
+
+  /** 微信用户「注册新邮箱」 */
+  const handleBindNewEmail = useCallback(() => {
+    navigation.navigate('AuthEmail', {
+      mode: 'signUp',
+      formTitle: '注册新邮箱',
       showToggleMode: false,
       showSuccessOnLogin: true,
     });
@@ -394,7 +415,31 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
 
           {/* Zone 3: Account operations */}
-          {canSwitchAccount && !user?.email && (
+          {canSwitchAccount && !user?.email && isMiniProgram() && (
+            <>
+              <Button
+                variant="ghost"
+                buttonColor={colors.background}
+                textColor={colors.primary}
+                onPress={handleBindExistingEmail}
+                style={styles.logoutBtn}
+              >
+                绑定已有账号
+              </Button>
+              <Text style={styles.bindHint}>输入之前注册的邮箱和密码，恢复昵称、头像等数据</Text>
+              <Button
+                variant="ghost"
+                buttonColor={colors.background}
+                textColor={colors.primary}
+                onPress={handleBindNewEmail}
+                style={styles.logoutBtn}
+              >
+                注册新邮箱
+              </Button>
+              <Text style={styles.bindHint}>绑定后可在网页端登录，数据不丢失</Text>
+            </>
+          )}
+          {canSwitchAccount && !user?.email && !isMiniProgram() && (
             <Button
               variant="ghost"
               buttonColor={colors.background}

@@ -30,6 +30,7 @@ export interface SettingsScreenStyles {
   accountRow: ViewStyle;
   accountLabel: TextStyle;
   accountValue: TextStyle;
+  bindHint: TextStyle;
   statusBadge: ViewStyle;
   statusDot: ViewStyle;
   statusText: TextStyle;
@@ -178,6 +179,12 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       lineHeight: typography.lineHeights.secondary,
       color: colors.text,
       fontFamily: 'monospace',
+    },
+    bindHint: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.textMuted,
+      textAlign: 'center',
     },
     statusBadge: {
       flexDirection: 'row',

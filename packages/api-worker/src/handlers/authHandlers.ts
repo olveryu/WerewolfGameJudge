@@ -76,12 +76,69 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
   if (existingUserId) {
     // In-place upgrade (anonymous or WeChat-only → email): preserve UID + existing profile
     // Check email not already taken by another user
-    const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
+    const existing = await env.DB.prepare('SELECT id, password_hash FROM users WHERE email = ?')
       .bind(email)
-      .first<{ id: string }>();
+      .first<{ id: string; password_hash: string | null }>();
 
     if (existing) {
-      return jsonResponse({ error: 'email already registered' }, 409, env);
+      // ── Account merge: WeChat user binding to an existing email account ──
+      // Verify the caller is a WeChat-only user (has openid, no email)
+      const callerRow = await env.DB.prepare('SELECT wechat_openid FROM users WHERE id = ?')
+        .bind(existingUserId)
+        .first<{ wechat_openid: string | null }>();
+
+      if (!callerRow?.wechat_openid || !existing.password_hash) {
+        // Anonymous user or target has no password — cannot merge, plain conflict
+        return jsonResponse({ error: 'email already registered' }, 409, env);
+      }
+
+      // Password is required for merge verification
+      const mergeResult = await verifyPassword(body.password, existing.password_hash);
+      if (!mergeResult.valid) {
+        return jsonResponse({ error: 'invalid credentials' }, 401, env);
+      }
+
+      // Migrate openid to the email account and delete the WeChat shell account
+      await env.DB.prepare(
+        `UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?`,
+      )
+        .bind(callerRow.wechat_openid, existing.id)
+        .run();
+
+      await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(existingUserId).run();
+
+      // Read back merged account profile
+      const merged = await env.DB.prepare(
+        'SELECT display_name, avatar_url, custom_avatar_url, avatar_frame FROM users WHERE id = ?',
+      )
+        .bind(existing.id)
+        .first<{
+          display_name: string | null;
+          avatar_url: string | null;
+          custom_avatar_url: string | null;
+          avatar_frame: string | null;
+        }>();
+
+      const token = await signToken(existing.id, env, { email });
+
+      return jsonResponse(
+        {
+          access_token: token,
+          user: {
+            id: existing.id,
+            email,
+            is_anonymous: false,
+            user_metadata: {
+              display_name: merged?.display_name,
+              avatar_url: merged?.avatar_url,
+              custom_avatar_url: merged?.custom_avatar_url,
+              avatar_frame: merged?.avatar_frame,
+            },
+          },
+        },
+        200,
+        env,
+      );
     }
 
     // Only overwrite display_name if caller explicitly provided one
