@@ -418,22 +418,22 @@ export const SettingsScreen: React.FC = () => {
           {canSwitchAccount && !user?.email && isMiniProgram() && (
             <>
               <TouchableOpacity
-                style={styles.bindCard}
-                activeOpacity={0.7}
+                style={styles.outlineButton}
+                activeOpacity={fixed.activeOpacity}
                 onPress={handleBindExistingEmail}
               >
-                <Text style={styles.bindCardTitle}>绑定已有账号</Text>
-                <Text style={styles.bindCardDesc}>
+                <Text style={styles.outlineButtonText}>绑定已有账号</Text>
+                <Text style={styles.buttonCaption}>
                   输入之前注册的邮箱和密码，恢复昵称、头像等数据
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.bindCard}
-                activeOpacity={0.7}
+                style={styles.outlineButton}
+                activeOpacity={fixed.activeOpacity}
                 onPress={handleBindNewEmail}
               >
-                <Text style={styles.bindCardTitle}>注册新邮箱</Text>
-                <Text style={styles.bindCardDesc}>绑定后可在网页端登录，数据不丢失</Text>
+                <Text style={styles.outlineButtonText}>注册新邮箱</Text>
+                <Text style={styles.buttonCaption}>绑定后可在网页端登录，数据不丢失</Text>
               </TouchableOpacity>
             </>
           )}
