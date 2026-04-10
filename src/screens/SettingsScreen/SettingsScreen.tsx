@@ -487,7 +487,7 @@ export const SettingsScreen: React.FC = () => {
             </Button>
           ) : null}
 
-          {canSwitchAccount && !showChangePassword && !(isMiniProgram() && !user?.email) && (
+          {canSwitchAccount && !showChangePassword && !isMiniProgram() && (
             <Button
               variant="ghost"
               buttonColor={colors.background}
@@ -499,7 +499,7 @@ export const SettingsScreen: React.FC = () => {
             </Button>
           )}
 
-          {!isInRoom && !showChangePassword && !(isMiniProgram() && !user?.email) && (
+          {!isInRoom && !showChangePassword && !isMiniProgram() && (
             <Button
               variant="ghost"
               buttonColor={colors.background}
