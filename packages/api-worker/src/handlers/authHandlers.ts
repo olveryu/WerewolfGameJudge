@@ -49,20 +49,32 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
   const email = body.email.toLowerCase().trim();
   const displayName = body.displayName || email.split('@')[0];
 
-  // Check if request is from authenticated anonymous user (upgrade flow)
+  // Check if request is from authenticated user eligible for in-place upgrade:
+  // - anonymous user (payload.anon)
+  // - WeChat-only user (no email, no password in DB)
   const bearerToken = extractBearerToken(request);
   let existingUserId: string | null = null;
   if (bearerToken) {
     const payload = await verifyToken(bearerToken, env);
-    if (payload?.anon) {
-      existingUserId = payload.sub;
+    if (payload) {
+      if (payload.anon) {
+        existingUserId = payload.sub;
+      } else {
+        // Check DB: WeChat-only user (no email, no password) also eligible
+        const row = await env.DB.prepare('SELECT email, password_hash FROM users WHERE id = ?')
+          .bind(payload.sub)
+          .first<{ email: string | null; password_hash: string | null }>();
+        if (row && !row.email && !row.password_hash) {
+          existingUserId = payload.sub;
+        }
+      }
     }
   }
 
   const passwordHash = await hashPassword(body.password);
 
   if (existingUserId) {
-    // Anonymous → email upgrade: preserve UID
+    // In-place upgrade (anonymous or WeChat-only → email): preserve UID + existing profile
     // Check email not already taken by another user
     const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
       .bind(email)
@@ -72,14 +84,23 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
       return jsonResponse({ error: 'email already registered' }, 409, env);
     }
 
+    // Only overwrite display_name if caller explicitly provided one
+    const updateName = body.displayName ? displayName : null;
+
     await env.DB.prepare(
       `UPDATE users
-       SET email = ?, password_hash = ?, display_name = ?,
+       SET email = ?, password_hash = ?,
+           display_name = COALESCE(?, display_name, ?),
            is_anonymous = 0, updated_at = datetime('now')
        WHERE id = ?`,
     )
-      .bind(email, passwordHash, displayName, existingUserId)
+      .bind(email, passwordHash, updateName, displayName, existingUserId)
       .run();
+
+    // Read back the actual display_name (may be the pre-existing one)
+    const upgraded = await env.DB.prepare('SELECT display_name FROM users WHERE id = ?')
+      .bind(existingUserId)
+      .first<{ display_name: string | null }>();
 
     const token = await signToken(existingUserId, env, { email });
 
@@ -90,7 +111,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
           id: existingUserId,
           email,
           is_anonymous: false,
-          user_metadata: { display_name: displayName },
+          user_metadata: { display_name: upgraded?.display_name ?? displayName },
         },
       },
       200,
