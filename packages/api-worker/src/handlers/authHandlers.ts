@@ -98,14 +98,21 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
         return jsonResponse({ error: 'invalid credentials' }, 401, env);
       }
 
-      // Migrate openid to the email account and delete the WeChat shell account
-      await env.DB.prepare(
-        `UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?`,
-      )
-        .bind(callerRow.wechat_openid, existing.id)
-        .run();
+      // Migrate openid to the email account and delete the WeChat shell account.
+      // DELETE first to release the UNIQUE wechat_openid index before UPDATE.
+      try {
+        await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(existingUserId).run();
 
-      await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(existingUserId).run();
+        await env.DB.prepare(
+          `UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?`,
+        )
+          .bind(callerRow.wechat_openid, existing.id)
+          .run();
+      } catch (dbErr: unknown) {
+        const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
+        console.error('Account merge DB error:', msg);
+        return jsonResponse({ error: 'account merge failed' }, 500, env);
+      }
 
       // Read back merged account profile
       const merged = await env.DB.prepare(

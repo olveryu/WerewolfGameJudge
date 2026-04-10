@@ -102,6 +102,7 @@ export function mapAuthError(message: string): string {
   if (lower.includes('invalid or expired code')) return '验证码无效或已过期';
   if (lower.includes('failed to send email')) return '邮件发送失败，请稍后重试';
   if (lower.includes('account has no password')) return '该账户未设置密码';
+  if (lower.includes('account merge failed')) return '账号合并失败，请稍后重试';
   if (lower.includes('oldpassword and newpassword required')) return '请输入原密码和新密码';
   if (lower.includes('email, code and newpassword required')) return '请填写完整信息';
   if (lower.includes('network') || lower.includes('fetch')) return NETWORK_ERROR;
