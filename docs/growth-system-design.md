@@ -277,11 +277,15 @@ handleEndNight()
 
 ## 7. UI 展示
 
-### 7.1 座位（SeatTile）
+### 7.1 首页（HomeScreen）
+
+右上角头像旁显示 `Lv.X`，点击进入个人主页。登录用户进入首页时调用 `GET /api/user/stats` 获取等级。
+
+### 7.2 座位（SeatTile）
 
 不变。等级不在座位上显示。
 
-### 7.2 个人主页（SettingsScreen 扩展）
+### 7.3 个人主页（SettingsScreen 扩展）
 
 - 等级 + 称号
 - XP 进度条（当前 XP → 下一级所需 XP）
@@ -289,7 +293,7 @@ handleEndNight()
 - 头像框入口
 - 上局月相 banner：`"上局获得 🌕 满月 +65 XP"`（非弹窗，看过消失）
 
-### 7.3 角色图鉴页
+### 7.4 角色图鉴页
 
 - 按阵营分组（狼人 / 神职 / 平民 / 第三方），复用 `assets/badges/` 素材
 - 已收集：彩色 badge；未收集：灰显 + 锁图标
@@ -297,7 +301,7 @@ handleEndNight()
 - 阵营通晓标记
 - 底部展示图鉴解锁头像框进度
 
-### 7.4 头像框选择页
+### 7.5 头像框选择页
 
 AvatarPickerScreen 头像框 tab，未解锁的灰显 + 显示解锁条件文字。
 
@@ -316,19 +320,19 @@ AvatarPickerScreen 头像框 tab，未解锁的灰显 + 显示解锁条件文字
 
 ## 9. 实现优先级
 
-### P0 — 数据管道 + XP/等级 + 座位展示
+### P0 — 数据管道 + XP/等级 + 首页展示
 
 | 内容                                                               | 文件范围                          |
 | ------------------------------------------------------------------ | --------------------------------- |
 | D1 迁移：`user_stats` + `game_results` + `user_role_collection` 表 | `packages/api-worker/migrations/` |
-| `users` 表加 `level` 字段                                          | 同上                              |
 | 月相常量 + `rollMoonPhase()` + `LEVEL_THRESHOLDS` + `getLevel()`   | `packages/game-engine/src/`       |
 | `settleGameResults()` 结算逻辑（含有效局判定）                     | `packages/api-worker/` DO handler |
 | `GET /api/user/stats` API                                          | `packages/api-worker/`            |
+| 首页头像旁显示 Lv                                                  | `src/screens/HomeScreen/`         |
 | 个人主页 XP 进度条 + 等级称号                                      | `src/screens/SettingsScreen/`     |
 | 头像框解锁逻辑（等级线） + AvatarPickerScreen 锁定状态             | `src/screens/AvatarPickerScreen/` |
 
-### P1 — 角色图鉴 + 账号年龄 + 月相 banner
+### P1 — 角色图鉴 + 月相 banner
 
 | 内容                                                 | 文件范围                          |
 | ---------------------------------------------------- | --------------------------------- |

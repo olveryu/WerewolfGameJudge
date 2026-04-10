@@ -116,7 +116,9 @@ export interface SettingsScreenStyles {
   profileRowName: ViewStyle;
   // Settings dresser entry row
   dresserEntry: ViewStyle;
+  dresserEntryContent: ViewStyle;
   dresserEntryText: TextStyle;
+  dresserEntryDesc: TextStyle;
   dresserEntryChevron: TextStyle;
 }
 
@@ -478,9 +480,17 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       borderRadius: borderRadius.medium,
       marginBottom: spacing.medium,
     },
+    dresserEntryContent: {
+      flex: 1,
+    },
     dresserEntryText: {
       ...textStyles.body,
       color: colors.text,
+    },
+    dresserEntryDesc: {
+      ...textStyles.caption,
+      color: colors.textMuted,
+      marginTop: spacing.tight,
     },
     dresserEntryChevron: {
       color: colors.textMuted,

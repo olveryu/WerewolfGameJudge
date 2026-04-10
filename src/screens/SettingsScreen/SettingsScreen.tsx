@@ -423,7 +423,12 @@ export const SettingsScreen: React.FC = () => {
                 activeOpacity={fixed.activeOpacity}
                 onPress={handleBindExistingEmail}
               >
-                <Text style={styles.dresserEntryText}>绑定已有账号</Text>
+                <View style={styles.dresserEntryContent}>
+                  <Text style={styles.dresserEntryText}>绑定已有账号</Text>
+                  <Text style={styles.dresserEntryDesc}>
+                    输入之前注册的邮箱和密码，恢复昵称、头像等数据
+                  </Text>
+                </View>
                 <Ionicons
                   name="chevron-forward"
                   size={componentSizes.icon.md}
@@ -435,7 +440,10 @@ export const SettingsScreen: React.FC = () => {
                 activeOpacity={fixed.activeOpacity}
                 onPress={handleBindNewEmail}
               >
-                <Text style={styles.dresserEntryText}>注册新邮箱</Text>
+                <View style={styles.dresserEntryContent}>
+                  <Text style={styles.dresserEntryText}>注册新邮箱</Text>
+                  <Text style={styles.dresserEntryDesc}>绑定后可在网页端登录，数据不丢失</Text>
+                </View>
                 <Ionicons
                   name="chevron-forward"
                   size={componentSizes.icon.md}
