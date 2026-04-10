@@ -154,3 +154,20 @@ export { resolveWolfVotes } from './engine/resolveWolfVotes';
 export { buildInitialGameState } from './engine/state/buildInitialState';
 export { normalizeState } from './engine/state/normalize';
 export { GameStore } from './engine/store';
+
+// === Growth ===
+export {
+  FRAME_UNLOCK_CONDITIONS,
+  type FrameUnlockCondition,
+  type FrameUnlockType,
+  getFrameUnlockCondition,
+  getLevel,
+  getLevelProgress,
+  getLevelTitle,
+  isFrameUnlocked,
+  LEVEL_THRESHOLDS,
+  LEVEL_TITLES,
+  MOON_PHASES,
+  type MoonPhase,
+  rollMoonPhase,
+} from './growth';

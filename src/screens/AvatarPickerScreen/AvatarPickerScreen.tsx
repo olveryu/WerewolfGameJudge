@@ -10,9 +10,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getFrameUnlockCondition, isFrameUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
@@ -33,6 +34,7 @@ import { UI_ICONS } from '@/config/iconTokens';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { RootStackParamList } from '@/navigation/types';
+import { fetchUserStats } from '@/services/feature/StatsService';
 import { componentSizes, fixed, layout, useColors } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -91,6 +93,22 @@ export const AvatarPickerScreen: React.FC = () => {
   const [selectedFrame, setSelectedFrame] = useState<FrameId | 'none' | null>(null);
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
   const [saving, setSaving] = useState(false);
+
+  // Growth stats for frame unlock check
+  const [userLevel, setUserLevel] = useState(0);
+  const [rolesCollected, setRolesCollected] = useState(0);
+
+  useEffect(() => {
+    if (readOnly) return;
+    fetchUserStats()
+      .then((stats) => {
+        setUserLevel(stats.level);
+        setRolesCollected(stats.rolesCollected);
+      })
+      .catch((e: unknown) => {
+        settingsLog.warn('Failed to fetch user stats for frame unlock', e);
+      });
+  }, [readOnly]);
 
   // ── Derived state ──
 
@@ -154,9 +172,14 @@ export const AvatarPickerScreen: React.FC = () => {
   const handlePressFrame = useCallback(
     (frameId: FrameId | 'none') => {
       if (readOnly) return;
+      if (frameId !== 'none' && !isFrameUnlocked(frameId, userLevel, rolesCollected)) {
+        const condition = getFrameUnlockCondition(frameId);
+        showAlert('未解锁', condition?.description ?? '暂未解锁');
+        return;
+      }
       setSelectedFrame(frameId);
     },
-    [readOnly],
+    [readOnly, userLevel, rolesCollected],
   );
 
   const handleLongPress = useCallback((index: number) => {
@@ -480,6 +503,8 @@ export const AvatarPickerScreen: React.FC = () => {
             {AVATAR_FRAMES.map((frame) => {
               const isActive = currentFrameId === frame.id;
               const isFrameSelected = selectedFrame === frame.id;
+              const unlocked = isFrameUnlocked(frame.id, userLevel, rolesCollected);
+              const condition = !unlocked ? getFrameUnlockCondition(frame.id) : null;
               return (
                 <TouchableOpacity
                   key={frame.id}
@@ -490,6 +515,7 @@ export const AvatarPickerScreen: React.FC = () => {
                       isActive &&
                       selectedFrame === null &&
                       styles.frameGridCellActive,
+                    !unlocked && styles.frameGridCellLocked,
                   ]}
                   onPress={() => handlePressFrame(frame.id)}
                   activeOpacity={0.7}
@@ -503,7 +529,7 @@ export const AvatarPickerScreen: React.FC = () => {
                   <Text
                     style={[styles.frameGridName, isFrameSelected && styles.frameGridNameSelected]}
                   >
-                    {frame.name}
+                    {unlocked ? frame.name : (condition?.description ?? '未解锁')}
                   </Text>
                 </TouchableOpacity>
               );

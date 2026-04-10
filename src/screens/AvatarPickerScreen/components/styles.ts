@@ -56,6 +56,7 @@ export interface AvatarPickerScreenStyles {
   frameGridCell: ViewStyle;
   frameGridCellSelected: ViewStyle;
   frameGridCellActive: ViewStyle;
+  frameGridCellLocked: ViewStyle;
   frameGridName: TextStyle;
   frameGridNameSelected: TextStyle;
   frameGridNoFrame: ViewStyle;
@@ -263,6 +264,9 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
     },
     frameGridCellActive: {
       borderColor: withAlpha(colors.primary, 0.4),
+    },
+    frameGridCellLocked: {
+      opacity: 0.4,
     },
     frameGridName: {
       ...textStyles.caption,

@@ -34,6 +34,7 @@ import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
+import { fetchUserStats } from '@/services/feature/StatsService';
 import { TESTIDS } from '@/testids';
 import { componentSizes, layout, useTheme } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -74,6 +75,9 @@ export const HomeScreen: React.FC = () => {
   const [joinError, setJoinError] = useState<string | null>(null);
 
   const pendingActionRef = useRef<(() => void) | null>(null);
+
+  // User level for top bar display
+  const [userLevel, setUserLevel] = useState<number | null>(null);
 
   // Load persisted tip dismissals from AsyncStorage
   useEffect(() => {
@@ -121,6 +125,30 @@ export const HomeScreen: React.FC = () => {
     });
     return unsubscribe;
   }, [navigation]);
+
+  // Fetch user level on mount and when screen regains focus
+  useEffect(() => {
+    if (!user || user.isAnonymous) {
+      setUserLevel(null);
+      return;
+    }
+    let cancelled = false;
+    const load = () => {
+      fetchUserStats()
+        .then((stats) => {
+          if (!cancelled) setUserLevel(stats.level);
+        })
+        .catch((e: unknown) => {
+          homeLog.warn('Failed to fetch user stats', e);
+        });
+    };
+    load();
+    const unsubscribe = navigation.addListener('focus', load);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [user, navigation]);
 
   // Prevent transient UI states from getting stuck if we navigate away.
   // Also clear stale pending auth action if user didn't complete login before leaving.
@@ -458,6 +486,8 @@ export const HomeScreen: React.FC = () => {
                 color={colors.textSecondary}
               />
             </Button>
+
+            {userLevel !== null && <Text style={styles.levelBadge}>Lv.{userLevel}</Text>}
 
             <UserAvatar
               user={user}
