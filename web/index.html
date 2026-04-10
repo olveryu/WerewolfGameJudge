@@ -277,7 +277,7 @@
     <!-- 启动画面 -->
     <div id="splash-screen">
       <img src="/assets/pwa/icon-192.png" alt="狼人杀电子法官" />
-      <div class="loading-text">加载中...</div>
+      <div class="loading-text">加载中... <span id="splash-pct">0%</span></div>
       <div class="progress-track"><div class="progress-bar"></div></div>
       <button id="splash-refresh">刷新页面</button>
     </div>
@@ -372,6 +372,7 @@
       // Cap at 90% — the final 10% is set when React mounts and hides splash.
       (function () {
         var bar = document.querySelector('#splash-screen .progress-bar');
+        var pctEl = document.getElementById('splash-pct');
         if (!bar) return;
 
         var loaded = 0;
@@ -380,7 +381,9 @@
         var EXPECTED_TOTAL = 20;
 
         function setProgress(pct) {
-          bar.style.width = Math.min(pct, 90) + '%';
+          var clamped = Math.min(Math.round(pct), 90);
+          bar.style.width = clamped + '%';
+          if (pctEl) pctEl.textContent = clamped + '%';
         }
 
         // Count resources already loaded before observer starts
@@ -406,7 +409,9 @@
         var trickle = setInterval(function () {
           var current = parseFloat(bar.style.width) || 0;
           if (current < 30) {
-            bar.style.width = current + 2 + '%';
+            var next = current + 2;
+            bar.style.width = next + '%';
+            if (pctEl) pctEl.textContent = Math.round(next) + '%';
           } else {
             clearInterval(trickle);
           }
@@ -425,7 +430,9 @@
           if (splash) {
             // Set progress to 100% before hiding
             var bar = splash.querySelector('.progress-bar');
+            var pctEl = document.getElementById('splash-pct');
             if (bar) bar.style.width = '100%';
+            if (pctEl) pctEl.textContent = '100%';
             setTimeout(function () {
               splash.classList.add('hidden');
               setTimeout(function () {
