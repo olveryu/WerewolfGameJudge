@@ -14,6 +14,7 @@ import { ThemedToast } from '@/components/ThemedToast';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { AppNavigator } from '@/navigation';
 import { createAllServices } from '@/services/registry';
 import { ThemeProvider, useTheme } from '@/theme';
@@ -72,19 +73,31 @@ function AppContent() {
     return () => setAlertListener(null);
   }, []);
 
-  // Hide splash screen and signal app ready
+  // Hide splash screen and signal app ready — wait for auth to resolve first
+  // so HomeScreen renders with final user state (no tips card flash).
+  const { loading: authLoading } = useAuthContext();
+
   useEffect(() => {
+    if (authLoading) return;
+
     SplashScreen.hideAsync(); // native only; web is no-op
     // Web: remove the HTML splash overlay defined in web/index.html
     if (Platform.OS === 'web') {
       const splash = document.getElementById('splash-screen');
       if (splash) {
-        splash.classList.add('hidden');
-        setTimeout(() => splash.remove(), 300); // match CSS transition duration
+        // Set progress to 100% before hiding
+        const pctEl = document.getElementById('splash-pct');
+        const bar = splash.querySelector<HTMLElement>('.progress-bar');
+        if (bar) bar.style.width = '100%';
+        if (pctEl) pctEl.textContent = '100%';
+        setTimeout(() => {
+          splash.classList.add('hidden');
+          setTimeout(() => splash.remove(), 300); // match CSS transition duration
+        }, 200);
       }
     }
     signalAppReady();
-  }, []);
+  }, [authLoading]);
 
   // Web: sync HTML theme-color meta and body background with current theme
   useEffect(() => {
