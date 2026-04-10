@@ -34,6 +34,7 @@ import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 import { useColors } from '@/theme';
 import { log } from '@/utils/logger';
+import { isMiniProgram, postCurrentUrl } from '@/utils/miniProgram';
 
 import { navigationRef } from './navigationRef';
 import { RootStackParamList } from './types';
@@ -157,8 +158,18 @@ export const AppNavigator: React.FC = () => {
   }
   const colors = useColors();
 
+  // 小程序 web-view：路由变化时通知小程序保存 URL（用于恢复上次浏览位置）
+  const inMiniProgram = isMiniProgram();
+  const handleStateChange = React.useCallback(() => {
+    if (inMiniProgram) postCurrentUrl();
+  }, [inMiniProgram]);
+
   return (
-    <NavigationContainer linking={linking} ref={navigationRef}>
+    <NavigationContainer
+      linking={linking}
+      ref={navigationRef}
+      onStateChange={inMiniProgram ? handleStateChange : undefined}
+    >
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
