@@ -58,7 +58,6 @@ echo "📱 复制 PWA 文件..."
 mkdir -p dist/assets/pwa
 cp assets/pwa/*.png dist/assets/pwa/
 cp web/manifest.json dist/
-cp web/sw.js dist/
 
 # 字体路径修复：Expo 将字体放在 node_modules/ 路径下，部署平台不提供该路径
 FONT_SRC="dist/assets/node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts"
@@ -119,15 +118,6 @@ fi
 for jsfile in dist/assets/js/*.js; do
   perl -i -pe 's|/_expo/static/js/web/|/assets/js/|g' "$jsfile" 2>/dev/null
 done
-
-# Service Worker 缓存版本号（使用构建时间戳自动递增）
-SW_VERSION="werewolf-judge-$(date +%Y%m%d%H%M%S)"
-if [ -f dist/sw.js ]; then
-  perl -i -pe "s|__SW_CACHE_VERSION__|$SW_VERSION|g" dist/sw.js
-  # 注入 JS entry bundle 列表（确保 SW 更新时新 bundle 已预缓存，避免白屏）
-  perl -i -pe "s|/\\* __JS_ASSETS__ \\*/|$JS_ASSET_LIST|g" dist/sw.js
-  echo "✅ SW 缓存版本: $SW_VERSION（含 ${JS_COUNT} 个 JS bundle 预缓存）"
-fi
 
 # 复制 Cloudflare Pages 配置文件
 cp web/_headers dist/

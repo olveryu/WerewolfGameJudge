@@ -21,7 +21,7 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 - `pnpm run e2e:core` / `pnpm run e2e:remote` — 调试入口
 - `pnpm exec tsc --noEmit` — 类型检查
 - `pnpm run quality` — typecheck + lint + format + test 一次全跑
-- `npx knip --no-exit-code` — 死代码检测。注意甄别误报：`metro.config.js`、`web/sw.js`、`react-dom` 等会被误报。
+- `npx knip --no-exit-code` — 死代码检测。注意甄别误报：`metro.config.js`、`react-dom` 等会被误报。
 - `pnpm run release` — bump 版本号 → CHANGELOG → commit → tag → push
 
 ---
