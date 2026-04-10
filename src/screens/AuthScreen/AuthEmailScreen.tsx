@@ -37,6 +37,7 @@ export const AuthEmailScreen: React.FC = () => {
     showToggleMode = true,
     signOutFirst = false,
     showSuccessOnLogin = false,
+    hideDisplayName = false,
     navigateSettingsOnSignUp = false,
     openedFromAuthLogin = false,
   } = route.params;
@@ -118,6 +119,7 @@ export const AuthEmailScreen: React.FC = () => {
         <EmailForm
           formTitle={formTitle}
           isSignUp={isSignUp}
+          hideDisplayName={hideDisplayName}
           email={email}
           password={password}
           displayName={displayName}

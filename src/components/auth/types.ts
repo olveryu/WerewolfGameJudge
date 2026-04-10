@@ -56,6 +56,8 @@ export interface EmailFormProps {
   /** 覆盖表单标题（匿名绑定邮箱时传 '绑定邮箱'）。缺省走 isSignUp 判断。 */
   formTitle?: string;
   isSignUp: boolean;
+  /** Hide display name field even in signUp mode (e.g. bind existing account) */
+  hideDisplayName?: boolean;
   email: string;
   password: string;
   displayName: string;

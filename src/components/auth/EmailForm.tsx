@@ -19,6 +19,7 @@ export const EmailForm = memo<EmailFormProps>(
   ({
     formTitle,
     isSignUp,
+    hideDisplayName = false,
     email,
     password,
     displayName,
@@ -88,8 +89,10 @@ export const EmailForm = memo<EmailFormProps>(
             secureTextEntry={!showPassword}
             textContentType={isSignUp ? 'newPassword' : 'password'}
             autoComplete={isSignUp ? 'new-password' : 'password'}
-            returnKeyType={isSignUp ? 'next' : 'done'}
-            onSubmitEditing={() => (isSignUp ? nameRef.current?.focus() : onSubmit())}
+            returnKeyType={isSignUp && !hideDisplayName ? 'next' : 'done'}
+            onSubmitEditing={() =>
+              isSignUp && !hideDisplayName ? nameRef.current?.focus() : onSubmit()
+            }
             editable={!authLoading}
           />
           <TouchableOpacity
@@ -106,7 +109,7 @@ export const EmailForm = memo<EmailFormProps>(
           </TouchableOpacity>
         </View>
 
-        {isSignUp && (
+        {isSignUp && !hideDisplayName && (
           <FormTextField
             ref={nameRef}
             placeholder="昵称（可选）"

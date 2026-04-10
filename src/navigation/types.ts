@@ -51,6 +51,8 @@ export type RootStackParamList = {
     signOutFirst?: boolean;
     /** Show '登录成功' toast (default: false) */
     showSuccessOnLogin?: boolean;
+    /** Hide display name field in signUp mode (default: false) */
+    hideDisplayName?: boolean;
     /** Navigate to Settings after signUp (default: false) */
     navigateSettingsOnSignUp?: boolean;
     /** True when opened from AuthLogin — success will pop(2) to clear both screens (default: false) */
