@@ -20,7 +20,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
 import { BGM_TRACKS } from '@/services/infra/audio/audioRegistry';
-import { componentSizes, fixed, layout, useColors, withAlpha } from '@/theme';
+import { componentSizes, fixed, layout, spacing, useColors, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { NowPlayingBar, TrackRow, VolumeSlider } from './components';
@@ -206,7 +206,7 @@ export const MusicSettingsScreen: React.FC = () => {
   }, [previewingTrack]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack} testID="music-settings-back">
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
@@ -217,7 +217,10 @@ export const MusicSettingsScreen: React.FC = () => {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          insets.bottom > 0 && { paddingBottom: insets.bottom + spacing.screenH },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Section 1: BGM ── */}

@@ -106,7 +106,7 @@ export const ConfigScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['bottom', 'left', 'right']}
+      edges={['left', 'right']}
       testID={TESTIDS.configScreenRoot}
     >
       {/* Header row — ← | 预女猎白 12人 | ⋯ */}
@@ -223,7 +223,7 @@ export const ConfigScreen: React.FC = () => {
       )}
 
       {/* Bottom Create Button */}
-      <View style={styles.bottomCreateBar}>
+      <View style={[styles.bottomCreateBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
         <Text style={styles.cardBFooterHint}>
           长按角色查看技能说明{'\n'}粗边框角色可长按切换变体
         </Text>

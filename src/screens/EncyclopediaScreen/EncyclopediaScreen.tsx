@@ -303,7 +303,7 @@ export const EncyclopediaScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['bottom', 'left', 'right']}
+      edges={['left', 'right']}
       testID={TESTIDS.encyclopediaScreenRoot}
     >
       {/* Header */}
@@ -435,7 +435,10 @@ export const EncyclopediaScreen: React.FC = () => {
           keyExtractor={keyExtractor}
           stickySectionHeadersEnabled={false}
           style={styles.listStyle}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            insets.bottom > 0 && { paddingBottom: spacing.xlarge + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
         />
       ) : (

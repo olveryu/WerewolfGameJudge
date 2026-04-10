@@ -416,12 +416,15 @@ export const HomeScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['bottom', 'left', 'right']}
+      edges={['left', 'right']}
       testID={TESTIDS.homeScreenRoot}
     >
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          insets.bottom > 0 && { paddingBottom: insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Top Bar ─────────────────────────────────── */}
