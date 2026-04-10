@@ -3,8 +3,10 @@
  *
  * 展示房间 URL 对应的 QR 码 + 房间号。
  * 支持「分享」（生成临时 PNG → 系统分享 sheet）和「复制链接」两种操作。
+ * 小程序 web-view 内改为显示微信转发引导。
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
+import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -15,6 +17,7 @@ import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  componentSizes,
   fixed,
   shadows,
   spacing,
@@ -24,6 +27,7 @@ import {
   useColors,
 } from '@/theme';
 import { log } from '@/utils/logger';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 /**
  * Capture the share card View as a base64-encoded PNG.
@@ -116,6 +120,8 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
     setTimeout(() => setIsSharing(false), 2000);
   }, [isSharing, onShareImage, getBase64]);
 
+  const inMiniProgram = isMiniProgram();
+
   return (
     <BaseCenterModal
       visible={visible}
@@ -126,46 +132,66 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
     >
       <Text style={styles.title}>分享房间</Text>
 
-      {/* Share card: captured as image via react-native-view-shot */}
-      <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
-        <View style={styles.qrContainer}>
-          {/* Logo is overlaid as a separate View instead of using the
-                  library's logo prop, because html2canvas cannot render
-                  SVG <image> elements embedded by react-native-qrcode-svg. */}
-          <View style={styles.qrWrapper}>
-            <QRCode
-              value={roomUrl}
-              size={QR_SIZE}
+      {inMiniProgram ? (
+        <>
+          {/* Mini program: guide user to use WeChat native forward */}
+          <View style={styles.shareCard}>
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={componentSizes.icon.xl * 2}
               color={colors.primary}
-              backgroundColor={colors.surface}
-              ecl="H"
+              style={styles.guideIcon}
             />
-            <View style={styles.logoContainer}>
-              <Image source={appLogo} style={styles.logoImage} />
-            </View>
+            <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
+            <Text style={styles.guideStep}>1. 点击右上角 ··· 按钮</Text>
+            <Text style={styles.guideStep}>2. 选择「转发给朋友」</Text>
+            <Text style={styles.guideStep}>好友打开即可加入房间</Text>
           </View>
-        </View>
-        <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
-        <Text style={styles.hint}>扫一扫二维码，加入房间</Text>
-      </View>
-
-      {/* Action buttons */}
-      <View style={styles.buttonRow}>
-        <Button variant="primary" onPress={onCopyLink}>
-          复制链接（推荐）
-        </Button>
-        <Button
-          variant="secondary"
-          onPress={handleShare}
-          loading={isSharing || !isPreCaptureReady}
-          testID={TESTIDS.qrCodeShareButton}
-        >
-          分享图片
-        </Button>
-        <Button variant="secondary" onPress={onClose} accessibilityLabel="关闭">
-          关闭
-        </Button>
-      </View>
+          <View style={styles.buttonRow}>
+            <Button variant="primary" onPress={onClose} accessibilityLabel="关闭">
+              我知道了
+            </Button>
+          </View>
+        </>
+      ) : (
+        <>
+          {/* Normal web/native: QR code + share/copy buttons */}
+          <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
+            <View style={styles.qrContainer}>
+              <View style={styles.qrWrapper}>
+                <QRCode
+                  value={roomUrl}
+                  size={QR_SIZE}
+                  color={colors.primary}
+                  backgroundColor={colors.surface}
+                  ecl="H"
+                />
+                <View style={styles.logoContainer}>
+                  <Image source={appLogo} style={styles.logoImage} />
+                </View>
+              </View>
+            </View>
+            <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
+            <Text style={styles.hint}>扫一扫二维码，加入房间</Text>
+          </View>
+          <View style={styles.buttonRow}>
+            <Button variant="primary" onPress={onCopyLink}>
+              复制链接（推荐）
+            </Button>
+            <Button
+              variant="secondary"
+              onPress={handleShare}
+              loading={isSharing || !isPreCaptureReady}
+              testID={TESTIDS.qrCodeShareButton}
+            >
+              分享图片
+            </Button>
+            <Button variant="secondary" onPress={onClose} accessibilityLabel="关闭">
+              关闭
+            </Button>
+          </View>
+        </>
+      )}
     </BaseCenterModal>
   );
 };
@@ -235,6 +261,16 @@ function createStyles(colors: ThemeColors) {
       lineHeight: typography.lineHeights.secondary,
       color: colors.textSecondary,
       marginBottom: spacing.large,
+    },
+    guideIcon: {
+      marginBottom: spacing.medium,
+    },
+    guideStep: {
+      fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      marginBottom: spacing.tight,
     },
     buttonRow: {
       gap: spacing.small,
