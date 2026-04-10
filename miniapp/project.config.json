@@ -1,0 +1,17 @@
+{
+  "appid": "wx7f0c3bea5873908c",
+  "compileType": "miniprogram",
+  "projectname": "werewolf-judge",
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "newFeature": true,
+    "autoAudits": false,
+    "urlCheck": true
+  },
+  "condition": {},
+  "description": "狼人杀电子法官 - web-view 壳",
+  "libVersion": "3.7.3"
+}

@@ -6,6 +6,7 @@ ios
 dist
 build
 coverage
+miniapp
 playwright-report
 pnpm-lock.yaml
 .venv
