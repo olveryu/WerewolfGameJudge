@@ -39,6 +39,7 @@ import { componentSizes, layout, useTheme } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 import { homeLog } from '@/utils/logger';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 import {
   createHomeScreenStyles,
@@ -76,7 +77,7 @@ export const HomeScreen: React.FC = () => {
 
   // Load persisted tip dismissals from AsyncStorage
   useEffect(() => {
-    const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'theme'];
+    const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'theme', 'bind-email'];
     const keys = tipIds.map(tipStorageKey);
     AsyncStorage.multiGet(keys)
       .then((results) => {
@@ -101,7 +102,7 @@ export const HomeScreen: React.FC = () => {
   // Reload dismissed tips when screen regains focus (after Settings reset)
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'theme'];
+      const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'theme', 'bind-email'];
       const keys = tipIds.map(tipStorageKey);
       AsyncStorage.multiGet(keys)
         .then((results) => {
@@ -363,6 +364,17 @@ export const HomeScreen: React.FC = () => {
         icon: UI_ICONS.EMAIL,
         title: '升级为邮箱账户',
         subtitle: '绑定邮箱后可设置昵称和头像',
+        onPress: () => navigation.navigate('Settings'),
+      });
+    }
+
+    // WeChat user without email — prompt to bind
+    if (isMiniProgram() && user && !user.isAnonymous && !user.email) {
+      all.push({
+        id: 'bind-email',
+        icon: UI_ICONS.EMAIL,
+        title: '绑定邮箱',
+        subtitle: '绑定后可在网页端登录，数据不丢失',
         onPress: () => navigation.navigate('Settings'),
       });
     }

@@ -373,7 +373,7 @@ export const SettingsScreen: React.FC = () => {
               </View>
               <View style={styles.statusBadge}>
                 <View style={styles.statusDot} />
-                <Text style={styles.statusText}>邮箱登录</Text>
+                <Text style={styles.statusText}>{user?.email ? '邮箱登录' : '微信登录'}</Text>
               </View>
               {user?.email && <Text style={styles.accountValue}>{user.email}</Text>}
             </View>
@@ -394,7 +394,19 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
 
           {/* Zone 3: Account operations */}
-          {showChangePassword ? (
+          {canSwitchAccount && !user?.email && (
+            <Button
+              variant="ghost"
+              buttonColor={colors.background}
+              textColor={colors.primary}
+              onPress={handleShowUpgradeForm}
+              style={styles.logoutBtn}
+            >
+              绑定邮箱
+            </Button>
+          )}
+
+          {user?.email && showChangePassword ? (
             <ChangePasswordForm
               onSubmit={async (oldPw, newPw) => {
                 await changePassword(oldPw, newPw);
@@ -405,7 +417,7 @@ export const SettingsScreen: React.FC = () => {
               styles={styles}
               colors={colors}
             />
-          ) : (
+          ) : user?.email ? (
             <Button
               variant="ghost"
               buttonColor={colors.background}
@@ -415,7 +427,7 @@ export const SettingsScreen: React.FC = () => {
             >
               修改密码
             </Button>
-          )}
+          ) : null}
 
           {canSwitchAccount && !showChangePassword && (
             <Button
