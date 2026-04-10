@@ -139,13 +139,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const loadUser = async () => {
       try {
-        // 小程序环境：优先用 wxcode 登录
         if (wxCode) {
-          try {
-            await authService.signInWithWechat(wxCode);
-            authLog.info('WeChat sign-in succeeded');
-          } catch (e) {
-            authLog.warn('WeChat sign-in failed, falling through to session restore', e);
+          // 先检查本地有没有已存 session（如已用邮箱登录）
+          const existing = await authService.getCurrentUser();
+          const existingUser = existing?.data?.user;
+
+          if (existingUser && !existingUser.is_anonymous) {
+            // 已有注册用户 session → 静默绑定微信，不覆盖 session
+            authLog.info('Existing session found, binding WeChat silently');
+            try {
+              await authService.bindWechat(wxCode);
+              authLog.info('WeChat bind succeeded');
+            } catch (e) {
+              authLog.warn('WeChat bind failed (non-fatal)', e);
+            }
+          } else {
+            // 没有 session 或匿名 → 走微信登录
+            try {
+              await authService.signInWithWechat(wxCode);
+              authLog.info('WeChat sign-in succeeded');
+            } catch (e) {
+              authLog.warn('WeChat sign-in failed, falling through to session restore', e);
+            }
           }
         }
 
