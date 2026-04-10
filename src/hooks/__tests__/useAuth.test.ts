@@ -42,6 +42,8 @@ describe('useAuth hook', () => {
         getCurrentUserId: jest.fn().mockReturnValue('test-uid'),
         getCurrentDisplayName: jest.fn().mockResolvedValue('Test User'),
         getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
+        signInWithWechat: jest.fn().mockResolvedValue('test-uid'),
+        bindWechat: jest.fn().mockResolvedValue(undefined),
         onAuthStateChange: jest
           .fn()
           .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),

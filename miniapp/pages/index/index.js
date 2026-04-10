@@ -6,19 +6,37 @@ Page({
   },
 
   onLoad(options) {
-    // 优先级: 转发 query > storage 恢复 > 默认首页
+    var self = this
+
+    // 1) 确定目标页面 URL
+    var targetUrl
     if (options.url) {
-      this.setData({ url: decodeURIComponent(options.url) })
+      targetUrl = decodeURIComponent(options.url)
     } else {
       try {
         var lastUrl = wx.getStorageSync('lastUrl')
-        if (lastUrl) {
-          this.setData({ url: lastUrl })
-        }
+        if (lastUrl) targetUrl = lastUrl
       } catch (e) {
         console.warn('read lastUrl failed:', e)
       }
     }
+    if (!targetUrl) targetUrl = BASE_URL
+
+    // 2) wx.login 获取 code，拼入 URL 让 web 端自动登录
+    wx.login({
+      success: function (res) {
+        if (res.code) {
+          var sep = targetUrl.indexOf('?') === -1 ? '?' : '&'
+          self.setData({ url: targetUrl + sep + 'wxcode=' + res.code })
+        } else {
+          console.warn('wx.login failed:', res.errMsg)
+          self.setData({ url: targetUrl })
+        }
+      },
+      fail: function () {
+        self.setData({ url: targetUrl })
+      }
+    })
   },
 
   onMessage(e) {

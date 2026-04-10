@@ -32,6 +32,8 @@ jest.mock('../../../contexts/AuthContext', () => ({
     signOut: mockSignOut,
     updateProfile: jest.fn(),
     uploadAvatar: jest.fn(),
+    signInWithWechat: jest.fn(),
+    bindWechat: jest.fn(),
   }),
 }));
 

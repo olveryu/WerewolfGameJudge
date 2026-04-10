@@ -11,6 +11,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
@@ -48,6 +49,8 @@ interface AuthContextValue {
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+  signInWithWechat: (code: string) => Promise<void>;
+  bindWechat: (code: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -81,6 +84,26 @@ const toUser = (authUser: AuthUser | null): User | null => {
   };
 };
 
+/**
+ * 从 URL query 中提取小程序传入的 wxcode 参数并移除，避免刷新时重复使用过期 code。
+ */
+function consumeWxCode(): string | null {
+  if (Platform.OS !== 'web') return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('wxcode');
+    if (!code) return null;
+    // Remove wxcode from URL to prevent reuse on refresh
+    params.delete('wxcode');
+    const qs = params.toString();
+    const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+    window.history.replaceState(null, '', newUrl);
+    return code;
+  } catch {
+    return null;
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,8 +135,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load current user on mount - runs ONCE at app startup
   useEffect(() => {
+    const wxCode = consumeWxCode();
+
     const loadUser = async () => {
       try {
+        // 小程序环境：优先用 wxcode 登录
+        if (wxCode) {
+          try {
+            await authService.signInWithWechat(wxCode);
+            authLog.info('WeChat sign-in succeeded');
+          } catch (e) {
+            authLog.warn('WeChat sign-in failed, falling through to session restore', e);
+          }
+        }
+
         const result = await authService.getCurrentUser();
         if (result?.data?.user) {
           const u = toUser(result.data.user);
@@ -283,6 +318,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [authService, handleAuthError, updateUserIfChanged],
   );
 
+  const signInWithWechat = useCallback(
+    async (code: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await authService.signInWithWechat(code);
+        const result = await authService.getCurrentUser();
+        if (result?.data?.user) {
+          const u = toUser(result.data.user);
+          updateUserIfChanged(u);
+          if (u) Sentry.setUser({ id: u.uid });
+        }
+      } catch (e: unknown) {
+        handleAuthError(e, 'WeChat sign-in failed', { rethrow: true });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [authService, handleAuthError, updateUserIfChanged],
+  );
+
+  const bindWechat = useCallback(
+    async (code: string) => {
+      setError(null);
+      try {
+        await authService.bindWechat(code);
+      } catch (e: unknown) {
+        handleAuthError(e, 'Bind WeChat failed', { rethrow: true });
+      }
+    },
+    [authService, handleAuthError],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -298,6 +366,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       changePassword,
       forgotPassword,
       resetPassword,
+      signInWithWechat,
+      bindWechat,
     }),
     [
       user,
@@ -312,6 +382,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       changePassword,
       forgotPassword,
       resetPassword,
+      signInWithWechat,
+      bindWechat,
     ],
   );
 

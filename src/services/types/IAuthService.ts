@@ -78,6 +78,12 @@ export interface IAuthService {
   /** 用验证码重置密码，成功后自动登录，返回 userId */
   resetPassword(email: string, code: string, newPassword: string): Promise<string>;
 
+  /** 微信小程序 wx.login code 登录，返回 userId */
+  signInWithWechat(code: string): Promise<string>;
+
+  /** 将当前用户绑定微信 openid（已认证用户调用） */
+  bindWechat(code: string): Promise<void>;
+
   /** 从本地 session 恢复认证，返回 userId 或 null */
   initAuth(): Promise<string | null>;
 

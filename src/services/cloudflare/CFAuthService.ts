@@ -137,6 +137,21 @@ export class CFAuthService implements IAuthService {
     return data.user.id;
   }
 
+  async signInWithWechat(code: string): Promise<string> {
+    const data = await cfPost<{
+      access_token: string;
+      user: { id: string };
+    }>('/auth/wechat', { code });
+
+    await this.#saveToken(data.access_token);
+    this.#currentUserId = data.user.id;
+    return data.user.id;
+  }
+
+  async bindWechat(code: string): Promise<void> {
+    await cfPost('/auth/bind-wechat', { code });
+  }
+
   async initAuth(): Promise<string | null> {
     const token = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
     if (!token) return null;
