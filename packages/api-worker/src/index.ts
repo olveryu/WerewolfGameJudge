@@ -85,7 +85,7 @@ import {
 } from './handlers/roomHandlers';
 import type { HandlerFn } from './handlers/shared';
 // Stats handlers
-import { handleGetUserStats } from './handlers/statsHandlers';
+import { handleGetUserCollection, handleGetUserStats } from './handlers/statsHandlers';
 
 // ── Route maps ──────────────────────────────────────────────────────────────
 
@@ -251,6 +251,14 @@ export default {
       if (segments[0] === 'api' && segments[1] === 'user' && segments[2] === 'stats') {
         if (request.method === 'GET') {
           return handleGetUserStats(request, env, ctx);
+        }
+        return jsonResponse({ error: 'method not allowed' }, 405, env);
+      }
+
+      // /api/user/collection (GET) — 角色图鉴收集数据
+      if (segments[0] === 'api' && segments[1] === 'user' && segments[2] === 'collection') {
+        if (request.method === 'GET') {
+          return handleGetUserCollection(request, env, ctx);
         }
         return jsonResponse({ error: 'method not allowed' }, 405, env);
       }

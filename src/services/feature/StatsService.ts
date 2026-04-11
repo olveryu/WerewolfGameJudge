@@ -16,7 +16,21 @@ export interface UserStats {
   lastMoonPhase: { id: string; xpEarned: number } | null;
 }
 
+export interface UserRoleCollectionItem {
+  roleId: string;
+  firstPlayedAt: string;
+}
+
+export interface UserRoleCollection {
+  roles: UserRoleCollectionItem[];
+}
+
 /** 获取当前用户的成长数据 */
 export async function fetchUserStats(): Promise<UserStats> {
   return cfGet<UserStats>('/api/user/stats');
+}
+
+/** 获取当前用户的角色收集数据 */
+export async function fetchUserCollection(): Promise<UserRoleCollection> {
+  return cfGet<UserRoleCollection>('/api/user/collection');
 }

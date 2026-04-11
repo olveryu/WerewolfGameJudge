@@ -49,3 +49,25 @@ export const handleGetUserStats: HandlerFn = async (req, env) => {
     env,
   );
 };
+
+export const handleGetUserCollection: HandlerFn = async (req, env) => {
+  const token = extractBearerToken(req);
+  if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
+  const payload = await verifyToken(token, env);
+  if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
+  if (payload.anon) return jsonResponse({ error: 'anonymous users not supported' }, 403, env);
+
+  const userId = payload.sub;
+
+  const { results } = await env.DB.prepare(
+    `SELECT role_id, first_played_at FROM user_role_collection WHERE user_id = ? ORDER BY first_played_at ASC`,
+  )
+    .bind(userId)
+    .all<{ role_id: string; first_played_at: string }>();
+
+  return jsonResponse(
+    { roles: results.map((r) => ({ roleId: r.role_id, firstPlayedAt: r.first_played_at })) },
+    200,
+    env,
+  );
+};

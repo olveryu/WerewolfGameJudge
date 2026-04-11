@@ -29,6 +29,8 @@ export interface AvatarPickerScreenStyles {
   pickerItem: ViewStyle;
   pickerItemImage: ImageStyle;
   pickerItemSelected: ViewStyle;
+  pickerItemLocked: ViewStyle;
+  pickerItemLockOverlay: ViewStyle;
   pickerCheckBadge: ViewStyle;
   pickerSectionTitle: TextStyle;
   pickerCustomSection: ViewStyle;
@@ -118,6 +120,16 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
     },
     pickerItemSelected: {
       borderColor: colors.primary,
+    },
+    pickerItemLocked: {
+      opacity: 0.35,
+    },
+    pickerItemLockOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: withAlpha(colors.background, 0.4),
+      borderRadius: borderRadius.medium - fixed.borderWidthThick,
     },
     pickerCheckBadge: {
       position: 'absolute',

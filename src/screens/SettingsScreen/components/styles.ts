@@ -120,6 +120,23 @@ export interface SettingsScreenStyles {
   dresserEntryText: TextStyle;
   dresserEntryDesc: TextStyle;
   dresserEntryChevron: TextStyle;
+  // Growth section
+  growthLevelRow: ViewStyle;
+  growthLevelLabel: TextStyle;
+  growthLevelValue: TextStyle;
+  growthXpRow: ViewStyle;
+  growthXpLabel: TextStyle;
+  growthProgressBarBg: ViewStyle;
+  growthProgressBarFill: ViewStyle;
+  growthXpValue: TextStyle;
+  growthMoonBanner: ViewStyle;
+  growthMoonIcon: TextStyle;
+  growthMoonText: TextStyle;
+  growthMoonXp: TextStyle;
+  growthCollectionEntry: ViewStyle;
+  growthCollectionContent: ViewStyle;
+  growthCollectionText: TextStyle;
+  growthCollectionDesc: TextStyle;
 }
 
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
@@ -494,5 +511,103 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     dresserEntryChevron: {
       color: colors.textMuted,
+    },
+    // Growth section
+    growthLevelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.small,
+    },
+    growthLevelLabel: {
+      fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+    },
+    growthLevelValue: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.primary,
+      fontWeight: typography.weights.medium,
+    },
+    growthXpRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
+      marginBottom: spacing.medium,
+    },
+    growthXpLabel: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textSecondary,
+    },
+    growthProgressBarBg: {
+      flex: 1,
+      height: 6,
+      backgroundColor: colors.border,
+      borderRadius: borderRadius.full,
+      overflow: 'hidden',
+    },
+    growthProgressBarFill: {
+      height: '100%',
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.full,
+    },
+    growthXpValue: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textSecondary,
+      minWidth: spacing.xxlarge,
+      textAlign: 'right',
+    },
+    growthMoonBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: withAlpha(colors.primary, 0.08),
+      borderRadius: borderRadius.medium,
+      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.medium,
+      marginBottom: spacing.medium,
+      gap: spacing.small,
+    },
+    growthMoonIcon: {
+      fontSize: typography.title,
+      lineHeight: typography.lineHeights.title,
+    },
+    growthMoonText: {
+      flex: 1,
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.text,
+    },
+    growthMoonXp: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.primary,
+      fontWeight: typography.weights.semibold,
+    },
+    growthCollectionEntry: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.small,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.medium,
+    },
+    growthCollectionContent: {
+      flex: 1,
+    },
+    growthCollectionText: {
+      fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
+      color: colors.text,
+    },
+    growthCollectionDesc: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.micro,
     },
   });
