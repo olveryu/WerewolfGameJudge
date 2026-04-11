@@ -122,6 +122,45 @@ jobs:
             -H "Content-Type: application/json" \
             --data '{"purge_everything":true}'
 
+  deploy-miniapp:
+    runs-on: ubuntu-latest
+    if: |
+      needs.quality.result == 'success' &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: quality
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Check miniapp changes
+        id: changes
+        run: |
+          if git diff --name-only HEAD~1 HEAD -- miniapp/ | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v6
+        if: steps.changes.outputs.changed == 'true'
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Upload to WeChat Mini Program
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          echo "${{ secrets.WECHAT_MINIPROGRAM_PRIVATE_KEY }}" > /tmp/miniapp-key.pem
+          VERSION=$(node -p "require('./package.json').version")
+          npx miniprogram-ci upload \
+            --pp miniapp \
+            --pkp /tmp/miniapp-key.pem \
+            --appid wx7f0c3bea5873908c \
+            --uv "$VERSION" \
+            --desc "CI deploy: $(git log -1 --pretty=%s)" \
+            -r 1
+          rm -f /tmp/miniapp-key.pem
+
   e2e:
     runs-on: ubuntu-latest
     if: |
