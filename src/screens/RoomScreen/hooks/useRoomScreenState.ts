@@ -25,6 +25,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 import { buildNightReviewData } from '../NightReview.helpers';
 import { getWolfVoteSummary, toGameRoomLike } from '../RoomScreen.helpers';
@@ -490,6 +491,10 @@ export function useRoomScreenState(
   const [isCapturingShareCard, setIsCapturingShareCard] = useState(false);
   const cachedShareBase64Ref = useRef<string | null>(null);
 
+  // ── Long-press share overlay (mini program web-view) ──
+  const [longPressShareBase64, setLongPressShareBase64] = useState<string | null>(null);
+  const closeLongPressShareOverlay = useCallback(() => setLongPressShareBase64(null), []);
+
   // Begin report capture on demand (called when user opens "详细信息" alert).
   // Mounts the hidden share card, waits for paint, captures via html2canvas / captureRef.
   const beginReportCapture = useCallback(async (): Promise<string | null> => {
@@ -515,6 +520,22 @@ export function useRoomScreenState(
 
     // Use base64 pre-captured by beginReportCapture (triggered when "详细信息" alert opened)
     const base64 = cachedShareBase64Ref.current;
+
+    // Mini program web-view: show long-press overlay instead of system share
+    if (isMiniProgram()) {
+      if (base64) {
+        setLongPressShareBase64(base64);
+        return;
+      }
+      const freshBase64 = await beginReportCapture();
+      if (!freshBase64) {
+        showErrorAlert('分享失败', '无法生成战报截图，请稍后重试');
+        return;
+      }
+      setLongPressShareBase64(freshBase64);
+      return;
+    }
+
     if (base64) {
       const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomNumber);
       if (result === 'failed') {
@@ -877,6 +898,10 @@ export function useRoomScreenState(
     shareReviewVisible,
     closeShareReview,
     shareNightReview: handleShareNightReview,
+
+    // ── Long-press share overlay (mini program) ──
+    longPressShareBase64,
+    closeLongPressShareOverlay,
 
     // ── Choose card modal (treasureMaster / thief) ──
     chooseCardModalVisible,

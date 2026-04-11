@@ -47,6 +47,7 @@ import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HeaderActions } from './components/HeaderActions';
 import { HostControlButtons } from './components/HostControlButtons';
+import { LongPressShareOverlay } from './components/LongPressShareOverlay';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { PlayerGrid } from './components/PlayerGrid';
@@ -229,6 +230,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     shareReviewVisible,
     closeShareReview,
     shareNightReview,
+    // Long-press share overlay (mini program)
+    longPressShareBase64,
+    closeLongPressShareOverlay,
     // Choose card modal (treasureMaster / thief)
     chooseCardModalVisible,
     closeChooseCardModal,
@@ -828,6 +832,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onToggleDontShowAgain={ongoingGuide.toggleDontShowAgain}
         onDismiss={ongoingGuide.dismiss}
       />
+
+      {/* Long-press share overlay — 小程序 web-view 内长按保存图片 */}
+      {longPressShareBase64 !== null && (
+        <LongPressShareOverlay base64={longPressShareBase64} onClose={closeLongPressShareOverlay} />
+      )}
     </SafeAreaView>
   );
 };
