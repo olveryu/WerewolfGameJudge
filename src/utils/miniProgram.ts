@@ -39,6 +39,27 @@ export function isMiniProgram(): boolean {
 }
 
 /**
+ * 从 URL query 中提取小程序传入的 wxcode 参数并移除，避免刷新时重复使用过期 code。
+ * 仅 web 平台有效；无 wxcode 时返回 null。
+ */
+export function consumeWxCode(): string | null {
+  if (Platform.OS !== 'web') return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('wxcode');
+    if (!code) return null;
+    // Remove wxcode from URL to prevent reuse on refresh
+    params.delete('wxcode');
+    const qs = params.toString();
+    const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+    window.history.replaceState(null, '', newUrl);
+    return code;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 通知小程序当前页面 URL，用于恢复上次浏览位置。
  * postMessage 消息会在后退/销毁/分享/复制链接时批量送达小程序 onMessage。
  */

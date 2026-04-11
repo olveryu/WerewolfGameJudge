@@ -13,6 +13,7 @@ import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
+import { consumeWxCode } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
 import { cfGet, cfPost, cfPut, setTokenProvider } from './cfFetch';
@@ -22,6 +23,7 @@ const TOKEN_STORAGE_KEY = 'cf_auth_token';
 export class CFAuthService implements IAuthService {
   #currentUserId: string | null = null;
   #cachedToken: string | null = null;
+  #isAnonymous = false;
   readonly #initPromise: Promise<void>;
 
   constructor() {
@@ -32,8 +34,29 @@ export class CFAuthService implements IAuthService {
 
   async #autoSignIn(): Promise<void> {
     try {
+      const wxCode = consumeWxCode();
       const existingUserId = await this.initAuth();
-      if (existingUserId) {
+
+      if (wxCode) {
+        if (existingUserId && !this.#isAnonymous) {
+          // 已有注册用户 session → 静默绑定微信 openid，不覆盖 session
+          authLog.info('Existing registered session, binding WeChat silently');
+          try {
+            await this.bindWechat(wxCode);
+            authLog.info('WeChat bind succeeded');
+          } catch (e) {
+            authLog.warn('WeChat bind failed (non-fatal)', e);
+          }
+        } else {
+          // 没有 session 或匿名 → 走微信登录
+          try {
+            await this.signInWithWechat(wxCode);
+            authLog.info('WeChat sign-in succeeded:', this.#currentUserId);
+          } catch (e) {
+            authLog.warn('WeChat sign-in failed, falling through', e);
+          }
+        }
+      } else if (existingUserId) {
         authLog.info('Restored session:', existingUserId);
       }
     } catch (error) {
@@ -116,6 +139,7 @@ export class CFAuthService implements IAuthService {
     await cfPost('/auth/signout');
     await this.#clearToken();
     this.#currentUserId = null;
+    this.#isAnonymous = false;
   }
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
@@ -162,6 +186,7 @@ export class CFAuthService implements IAuthService {
       const resp = await cfGet<GetCurrentUserResponse>('/auth/user');
       if (resp.data.user) {
         this.#currentUserId = resp.data.user.id;
+        this.#isAnonymous = resp.data.user.is_anonymous ?? false;
         return this.#currentUserId;
       }
     } catch {

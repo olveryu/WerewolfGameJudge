@@ -11,7 +11,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform } from 'react-native';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
@@ -84,26 +83,6 @@ const toUser = (authUser: AuthUser | null): User | null => {
   };
 };
 
-/**
- * 从 URL query 中提取小程序传入的 wxcode 参数并移除，避免刷新时重复使用过期 code。
- */
-function consumeWxCode(): string | null {
-  if (Platform.OS !== 'web') return null;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('wxcode');
-    if (!code) return null;
-    // Remove wxcode from URL to prevent reuse on refresh
-    params.delete('wxcode');
-    const qs = params.toString();
-    const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
-    window.history.replaceState(null, '', newUrl);
-    return code;
-  } catch {
-    return null;
-  }
-}
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,36 +113,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Load current user on mount - runs ONCE at app startup
+  // wxcode auth is handled by CFAuthService.#autoSignIn (service layer),
+  // so waitForInit() guarantees #currentUserId is ready before we read user state.
   useEffect(() => {
-    const wxCode = consumeWxCode();
-
     const loadUser = async () => {
       try {
-        if (wxCode) {
-          // 先检查本地有没有已存 session（如已用邮箱登录）
-          const existing = await authService.getCurrentUser();
-          const existingUser = existing?.data?.user;
-
-          if (existingUser && !existingUser.is_anonymous) {
-            // 已有注册用户 session → 静默绑定微信，不覆盖 session
-            authLog.info('Existing session found, binding WeChat silently');
-            try {
-              await authService.bindWechat(wxCode);
-              authLog.info('WeChat bind succeeded');
-            } catch (e) {
-              authLog.warn('WeChat bind failed (non-fatal)', e);
-            }
-          } else {
-            // 没有 session 或匿名 → 走微信登录
-            try {
-              await authService.signInWithWechat(wxCode);
-              authLog.info('WeChat sign-in succeeded');
-            } catch (e) {
-              authLog.warn('WeChat sign-in failed, falling through to session restore', e);
-            }
-          }
-        }
-
+        await authService.waitForInit();
         const result = await authService.getCurrentUser();
         if (result?.data?.user) {
           const u = toUser(result.data.user);
