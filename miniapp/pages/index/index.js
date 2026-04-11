@@ -15,7 +15,8 @@ Page({
     } else {
       try {
         var lastUrl = wx.getStorageSync('lastUrl')
-        if (lastUrl) targetUrl = lastUrl
+        // Only restore non-room URLs — rooms are ephemeral and likely expired
+        if (lastUrl && lastUrl.indexOf('/room/') === -1) targetUrl = lastUrl
       } catch (e) {
         console.warn('read lastUrl failed:', e)
       }
