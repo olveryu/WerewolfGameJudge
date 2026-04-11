@@ -5,63 +5,20 @@
  * 提供头像图片映射、基于 uid/roomId 的稳定 hash 分配和去重。
  * 不引入 React、service，也不发起网络请求。
  *
- * 新增头像需同时在 AVATAR_KEYS 和 AVATAR_IMAGES 末尾追加对应条目。
+ * ID 注册表来自 `@werewolf/game-engine/growth/rewardCatalog`（唯一权威来源）。
+ * 新增头像需同时更新 rewardCatalog AVATAR_IDS 和此文件的 AVATAR_IMAGES / AVATAR_THUMBS。
  */
+
+import { AVATAR_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 
 /** Prefix for builtin avatar URLs stored in user_metadata.avatar_url */
 export const BUILTIN_AVATAR_PREFIX = 'builtin://';
 
 /**
- * Role name keys in stable sorted order.
+ * Role name keys in stable sorted order (from shared catalog).
  * Each key matches the filename (without extension) in assets/avatars/raw/.
- * Exported so consumers (e.g. SettingsScreen) can resolve builtin:// URLs back to indices.
  */
-// prettier-ignore
-export const AVATAR_KEYS: readonly string[] = [
-  'avenger',
-  'awakenedGargoyle',
-  'bloodMoon',
-  'crow',
-  'cursedFox',
-  'cupid',
-  'dancer',
-  'darkWolfKing',
-  'dreamcatcher',
-  'drunkSeer',
-  'gargoyle',
-  'graveyardKeeper',
-  'guard',
-  'hunter',
-  'idiot',
-  'knight',
-  'magician',
-  'maskedMan',
-  'masquerade',
-  'mirrorSeer',
-  'nightmare',
-  'piper',
-  'poisoner',
-  'psychic',
-  'pureWhite',
-  'seer',
-  'shadow',
-  'silenceElder',
-  'slacker',
-  'spiritKnight',
-  'thief',
-  'treasureMaster',
-  'villager',
-  'votebanElder',
-  'warden',
-  'wildChild',
-  'witch',
-  'witcher',
-  'wolf',
-  'wolfKing',
-  'wolfQueen',
-  'wolfRobot',
-  'wolfWitch',
-];
+export const AVATAR_KEYS: readonly string[] = AVATAR_IDS;
 
 // Static require list — keep in same order as AVATAR_KEYS.
 // prettier-ignore

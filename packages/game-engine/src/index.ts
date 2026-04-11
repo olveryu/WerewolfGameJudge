@@ -157,16 +157,19 @@ export { GameStore } from './engine/store';
 
 // === Growth ===
 export {
-  FREE_REWARDS,
+  AVATAR_IDS,
+  FRAME_IDS,
+  FREE_AVATAR_IDS,
+  FREE_FRAME_IDS,
   getLevel,
   getLevelProgress,
-  getLevelReward,
   getUnlockedAvatars,
   getUnlockedFrames,
   isFrameUnlocked,
-  LEVEL_REWARDS,
   LEVEL_THRESHOLDS,
-  type LevelReward,
+  pickRandomReward,
+  REWARD_POOL,
+  type RewardItem,
   type RewardType,
   rollXp,
   XP_BASE,

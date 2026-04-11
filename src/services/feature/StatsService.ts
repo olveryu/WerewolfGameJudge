@@ -11,6 +11,7 @@ export interface UserStats {
   xp: number;
   level: number;
   gamesPlayed: number;
+  unlockedItems: readonly string[];
 }
 
 /** 获取当前用户的成长数据 */

@@ -6,7 +6,6 @@
  * - 升级 + 解锁奖励："升级！Lv.{n} 解锁 {奖励名}"
  */
 
-import { getLevelReward } from '@werewolf/game-engine/growth';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { useEffect } from 'react';
 import { toast } from 'sonner-native';
@@ -20,7 +19,7 @@ interface UseSettleToastParams {
   isFocused: boolean;
 }
 
-function getRewardDisplayName(reward: { type: 'avatar' | 'frame'; id: string }): string {
+function getRewardDisplayName(reward: { type: string; id: string }): string {
   if (reward.type === 'avatar') {
     return `头像「${getRoleDisplayName(reward.id)}」`;
   }
@@ -31,10 +30,12 @@ function getRewardDisplayName(reward: { type: 'avatar' | 'frame'; id: string }):
 function showSettleToast(result: SettleResultMessage): void {
   const leveledUp = result.newLevel > result.previousLevel;
 
-  if (leveledUp) {
-    const reward = getLevelReward(result.newLevel);
-    const rewardText = reward ? ` 解锁${getRewardDisplayName(reward)}` : '';
-    toast.success(`升级！Lv.${result.newLevel}${rewardText}`, {
+  if (leveledUp && result.reward) {
+    toast.success(`升级！Lv.${result.newLevel} 解锁${getRewardDisplayName(result.reward)}`, {
+      description: `+${result.xpEarned} XP`,
+    });
+  } else if (leveledUp) {
+    toast.success(`升级！Lv.${result.newLevel}`, {
       description: `+${result.xpEarned} XP`,
     });
   } else {

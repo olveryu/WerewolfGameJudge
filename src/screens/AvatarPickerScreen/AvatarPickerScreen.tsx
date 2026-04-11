@@ -10,11 +10,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  getUnlockedAvatars,
-  isFrameUnlocked,
-  LEVEL_REWARDS,
-} from '@werewolf/game-engine/growth/frameUnlock';
+import { getUnlockedAvatars, isFrameUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
@@ -99,20 +95,20 @@ export const AvatarPickerScreen: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   // Growth stats for unlock check
-  const [userLevel, setUserLevel] = useState(0);
+  const [unlockedIds, setUnlockedIds] = useState<readonly string[]>([]);
 
   useEffect(() => {
     if (readOnly) return;
     fetchUserStats()
       .then((stats) => {
-        setUserLevel(stats.level);
+        setUnlockedIds(stats.unlockedItems);
       })
       .catch((e: unknown) => {
         settingsLog.warn('Failed to fetch user stats for unlock check', e);
       });
   }, [readOnly]);
 
-  const unlockedAvatars = useMemo(() => getUnlockedAvatars(userLevel), [userLevel]);
+  const unlockedAvatars = useMemo(() => getUnlockedAvatars(unlockedIds), [unlockedIds]);
 
   // ── Derived state ──
 
@@ -188,14 +184,13 @@ export const AvatarPickerScreen: React.FC = () => {
   const handlePressFrame = useCallback(
     (frameId: FrameId | 'none') => {
       if (readOnly) return;
-      if (frameId !== 'none' && !isFrameUnlocked(frameId, userLevel)) {
-        const reward = LEVEL_REWARDS.find((r) => r.type === 'frame' && r.id === frameId);
-        showAlert('未解锁', reward ? `达到 Lv.${reward.level} 解锁` : '暂未解锁');
+      if (frameId !== 'none' && !isFrameUnlocked(frameId, unlockedIds)) {
+        showAlert('未解锁', '提升等级后随机解锁');
         return;
       }
       setSelectedFrame(frameId);
     },
-    [readOnly, userLevel],
+    [readOnly, unlockedIds],
   );
 
   const handleLongPress = useCallback((index: number) => {
@@ -530,10 +525,7 @@ export const AvatarPickerScreen: React.FC = () => {
             {AVATAR_FRAMES.map((frame) => {
               const isActive = currentFrameId === frame.id;
               const isFrameSelected = selectedFrame === frame.id;
-              const unlocked = isFrameUnlocked(frame.id, userLevel);
-              const reward = !unlocked
-                ? LEVEL_REWARDS.find((r) => r.type === 'frame' && r.id === frame.id)
-                : null;
+              const unlocked = isFrameUnlocked(frame.id, unlockedIds);
               return (
                 <TouchableOpacity
                   key={frame.id}
@@ -558,7 +550,7 @@ export const AvatarPickerScreen: React.FC = () => {
                   <Text
                     style={[styles.frameGridName, isFrameSelected && styles.frameGridNameSelected]}
                   >
-                    {unlocked ? frame.name : reward ? `Lv.${reward.level} 解锁` : '未解锁'}
+                    {unlocked ? frame.name : '未解锁'}
                   </Text>
                 </TouchableOpacity>
               );

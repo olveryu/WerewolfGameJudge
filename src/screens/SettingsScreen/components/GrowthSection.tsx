@@ -1,10 +1,10 @@
 /**
  * GrowthSection — 成长区块（Memoized）
  *
- * 显示等级、XP 进度条、下一级解锁预告。
+ * 显示等级、XP 进度条。
  * 嵌入账户 card 内部，不自带 card 容器。
  */
-import { getLevelProgress, getLevelReward, LEVEL_THRESHOLDS } from '@werewolf/game-engine/growth';
+import { getLevelProgress, LEVEL_THRESHOLDS } from '@werewolf/game-engine/growth';
 import { memo } from 'react';
 import { Text, View } from 'react-native';
 
@@ -27,14 +27,6 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles }) => {
       ? LEVEL_THRESHOLDS[stats.level + 1]
       : LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
 
-  // Next level reward preview
-  const nextReward = getLevelReward(stats.level + 1);
-  const rewardLabel = nextReward
-    ? nextReward.type === 'frame'
-      ? `头像框「${nextReward.id}」`
-      : `头像「${nextReward.id}」`
-    : null;
-
   return (
     <>
       {/* Level row */}
@@ -54,12 +46,10 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles }) => {
         </Text>
       </View>
 
-      {/* Next reward preview */}
-      {rewardLabel && (
-        <Text style={[styles.growthLevelValue, { color: colors.textMuted }]}>
-          下一级解锁：{rewardLabel}
-        </Text>
-      )}
+      {/* Unlock count */}
+      <Text style={[styles.growthLevelValue, { color: colors.textMuted }]}>
+        已解锁 {stats.unlockedItems.length + 2} / 53 件
+      </Text>
     </>
   );
 });

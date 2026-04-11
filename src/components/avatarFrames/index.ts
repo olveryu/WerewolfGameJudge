@@ -1,10 +1,11 @@
 /**
  * avatarFrames — 头像框注册表
  *
- * 定义 FrameId 联合类型和 AVATAR_FRAMES 配置数组。
+ * FrameId 类型从 `@werewolf/game-engine/growth/rewardCatalog` 的 FRAME_IDS 派生。
  * 通过 getFrameComponent 按 id 获取对应的 SVG 渲染组件。
  * 不引入 service、theme。
  */
+import { FRAME_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 import type React from 'react';
 
 import { BloodThornFrame } from './BloodThornFrame';
@@ -19,18 +20,8 @@ import { PharaohGoldFrame } from './PharaohGoldFrame';
 import { RunicSealFrame } from './RunicSealFrame';
 import { VoidRiftFrame } from './VoidRiftFrame';
 
-/** 可选的 10 款正方形头像框 ID */
-export type FrameId =
-  | 'ironForge'
-  | 'moonSilver'
-  | 'bloodThorn'
-  | 'runicSeal'
-  | 'boneGate'
-  | 'hellFire'
-  | 'darkVine'
-  | 'frostCrystal'
-  | 'pharaohGold'
-  | 'voidRift';
+/** 可选的头像框 ID（从 shared catalog 派生） */
+export type FrameId = (typeof FRAME_IDS)[number];
 
 interface AvatarFrameConfig {
   id: FrameId;
