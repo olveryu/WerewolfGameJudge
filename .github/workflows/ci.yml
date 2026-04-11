@@ -150,7 +150,7 @@ jobs:
       - name: Upload to WeChat Mini Program
         if: steps.changes.outputs.changed == 'true'
         run: |
-          echo "${{ secrets.WECHAT_MINIPROGRAM_PRIVATE_KEY }}" > /tmp/miniapp-key.pem
+          echo "${{ secrets.MINIAPP_UPLOAD_KEY }}" > /tmp/miniapp-key.pem
           VERSION=$(node -p "require('./package.json').version")
           npx miniprogram-ci upload \
             --pp miniapp \
