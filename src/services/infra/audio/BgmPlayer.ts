@@ -11,6 +11,10 @@
  *
  * Web uses AudioContext + GainNode instead of HTMLAudioElement.volume because
  * iOS Safari ignores HTMLAudioElement.volume (always 1.0, hardware-only control).
+ *
+ * WeChat web-view (especially 鸿蒙 ArkWeb) may silently swallow the
+ * HTMLAudioElement `ended` event and the native `loop` behaviour.
+ * A `timeupdate` poll detects track end as a fallback.
  */
 
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
@@ -44,6 +48,9 @@ export class BgmPlayer {
   #webGainNode: GainNode | null = null;
   #webSourceNode: MediaElementAudioSourceNode | null = null;
   #webEndedHandler: (() => void) | null = null;
+  #webTimeupdateHandler: (() => void) | null = null;
+  /** Prevents double-fire when both `ended` and `timeupdate` detect track end. */
+  #trackEndFired = false;
 
   // ── Native backend ──
   #nativePlayer: AudioPlayer | null = null;
@@ -190,11 +197,39 @@ export class BgmPlayer {
 
     this.#webElement = audio;
     this.#webSourceNode = source;
+    this.#trackEndFired = false;
 
     if (!loop) {
-      this.#webEndedHandler = () => this.#onTrackEnded();
+      this.#webEndedHandler = () => this.#handleWebTrackEnd();
       audio.addEventListener('ended', this.#webEndedHandler);
     }
+
+    // Fallback: WeChat web-view (鸿蒙 ArkWeb) may not fire `ended` and may
+    // ignore `audio.loop`. Poll via `timeupdate` to detect track end.
+    this.#webTimeupdateHandler = () => {
+      if (this.#trackEndFired) return;
+      const el = this.#webElement;
+      if (!el || !Number.isFinite(el.duration) || el.duration === 0) return;
+      if (el.currentTime < el.duration - 0.5) return;
+
+      if (loop) {
+        // Single-track loop fallback: seek back to start
+        this.#trackEndFired = true;
+        audioLog.debug('timeupdate loop fallback triggered');
+        el.currentTime = 0;
+        el.play().catch(() => {
+          /* ignore */
+        });
+        // Reset flag shortly after so the next cycle can fire again
+        setTimeout(() => {
+          this.#trackEndFired = false;
+        }, 1000);
+      } else {
+        // Playlist fallback: advance to next track
+        this.#handleWebTrackEnd();
+      }
+    };
+    audio.addEventListener('timeupdate', this.#webTimeupdateHandler);
 
     audio.play().catch((err) => {
       audioLog.warn('Web BGM play() rejected (autoplay policy?):', err);
@@ -202,6 +237,13 @@ export class BgmPlayer {
       this.#cleanupCurrentPlayer();
     });
     audioLog.debug('BGM track started (Web)', { index: this.#currentIndex });
+  }
+
+  /** Deduplicated handler for web track end (called by `ended` or `timeupdate`). */
+  #handleWebTrackEnd(): void {
+    if (this.#trackEndFired) return;
+    this.#trackEndFired = true;
+    this.#onTrackEnded();
   }
 
   #playNative(asset: AudioAsset, loop: boolean): void {
@@ -258,6 +300,10 @@ export class BgmPlayer {
       if (this.#webEndedHandler) {
         this.#webElement.removeEventListener('ended', this.#webEndedHandler);
         this.#webEndedHandler = null;
+      }
+      if (this.#webTimeupdateHandler) {
+        this.#webElement.removeEventListener('timeupdate', this.#webTimeupdateHandler);
+        this.#webTimeupdateHandler = null;
       }
       try {
         this.#webElement.pause();
