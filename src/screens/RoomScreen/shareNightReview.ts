@@ -18,7 +18,12 @@ export async function captureNightReviewCard(ref: RefObject<View | null>): Promi
     const html2canvas = (await import('html2canvas')).default;
     const node = ref.current as unknown as HTMLElement;
     if (!node) throw new Error('Night review share card ref not ready');
-    const canvas = await html2canvas(node, { backgroundColor: null });
+    const canvas = await html2canvas(node, {
+      backgroundColor: null,
+      // Explicit height ensures full capture even if CSS clips the element
+      height: node.scrollHeight,
+      windowHeight: node.scrollHeight,
+    });
     const dataUrl = canvas.toDataURL('image/png');
     const prefix = 'base64,';
     const idx = dataUrl.indexOf(prefix);

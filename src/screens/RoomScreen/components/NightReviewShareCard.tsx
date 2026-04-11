@@ -75,6 +75,8 @@ function createStyles(colors: ThemeColors, screenWidth: number) {
       borderColor: colors.border,
       padding: spacing.large,
       width: screenWidth * 0.88,
+      // Override RN Web default overflow:hidden so html2canvas captures full content
+      overflow: 'visible',
     },
     title: {
       fontSize: typography.subtitle,

@@ -131,6 +131,8 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       position: 'absolute',
       top: -9999,
       left: -9999,
+      // Override RN Web default overflow:hidden so html2canvas captures full content
+      overflow: 'visible',
     },
   });
 }
