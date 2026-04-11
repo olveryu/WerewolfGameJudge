@@ -79,6 +79,7 @@ export const TESTIDS = {
   alertModal: 'alert-modal',
   alertTitle: 'alert-title',
   alertMessage: 'alert-message',
+  alertInput: 'alert-input',
   alertButton: (index: number) => `alert-button-${index}`,
 
   // Button

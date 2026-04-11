@@ -122,6 +122,7 @@ function AppContent() {
           title={alertConfig.title}
           message={alertConfig.message}
           buttons={alertConfig.buttons}
+          input={alertConfig.input}
           onClose={handleAlertClose}
         />
       )}

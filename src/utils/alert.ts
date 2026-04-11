@@ -7,9 +7,11 @@
  */
 import { Alert, Platform } from 'react-native';
 
+import type { AlertInputConfig } from '@/components/AlertModal';
+
 interface AlertButton {
   text: string;
-  onPress?: () => void;
+  onPress?: (inputValue?: string) => void;
   style?: 'default' | 'cancel' | 'destructive';
   loading?: boolean;
   disabled?: boolean;
@@ -54,6 +56,7 @@ export interface AlertConfig {
   title: string;
   message?: string;
   buttons: AlertButton[];
+  input?: AlertInputConfig;
 }
 
 export const setAlertListener = (listener: AlertListener | null) => {
@@ -113,6 +116,62 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
     }
   } else {
     Alert.alert(title, message || '', alertButtons);
+  }
+  return true;
+};
+
+/**
+ * Show a prompt modal with a text input field.
+ * On confirm, calls onConfirm with the trimmed input value.
+ * Uses the custom AlertModal when a listener is set.
+ */
+export const showPrompt = (
+  title: string,
+  options: {
+    message?: string;
+    placeholder?: string;
+    defaultValue?: string;
+    onConfirm: (value: string) => void;
+  },
+): boolean => {
+  const { message, placeholder, defaultValue = '', onConfirm } = options;
+
+  if (alertBlocked) return false;
+
+  const buttons: AlertButton[] = [
+    { text: '取消', style: 'cancel' },
+    {
+      text: '确定',
+      onPress: (inputValue?: string) => onConfirm(inputValue ?? defaultValue),
+    },
+  ];
+
+  const input: AlertInputConfig = { placeholder, defaultValue };
+
+  // Prefer custom modal
+  if (alertListener) {
+    alertListener({ title, message, buttons, input });
+    return true;
+  }
+
+  // Fallback: native prompt
+  if (Platform.OS === 'web') {
+    const result = window.prompt(message ? `${title}\n\n${message}` : title, defaultValue);
+    if (result !== null) {
+      onConfirm(result);
+    }
+  } else {
+    Alert.prompt(
+      title,
+      message || '',
+      [
+        { text: '取消', style: 'cancel' },
+        { text: '确定', onPress: (value?: string) => onConfirm(value ?? defaultValue) },
+      ],
+      'plain-text',
+      defaultValue,
+      placeholder,
+    );
   }
   return true;
 };

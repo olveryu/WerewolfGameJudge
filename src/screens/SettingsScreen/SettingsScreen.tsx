@@ -33,7 +33,7 @@ import { RootStackParamList } from '@/navigation/types';
 import type { UserStats } from '@/services/feature/StatsService';
 import { fetchUserStats } from '@/services/feature/StatsService';
 import { componentSizes, fixed, layout, ThemeKey, typography, useTheme } from '@/theme';
-import { showAlert } from '@/utils/alert';
+import { showAlert, showPrompt } from '@/utils/alert';
 import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
@@ -139,14 +139,10 @@ export const SettingsScreen: React.FC = () => {
     if (isAuthenticated) wasAuthenticatedRef.current = true;
   }, [user, facade, isAuthenticated]);
 
-  // Edit profile state
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editName, setEditName] = useState('');
-
   // Reset transient states when screen regains focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      setIsEditingName(false);
+      // Reserved for future transient state resets
     });
     return unsubscribe;
   }, [navigation]);
@@ -183,38 +179,30 @@ export const SettingsScreen: React.FC = () => {
     navigation.navigate('AvatarPicker');
   }, [navigation]);
 
-  const handleUpdateName = useCallback(async () => {
-    if (!editName.trim()) {
-      showAlert('请输入名字');
-      return;
-    }
-
-    try {
-      const trimmedName = editName.trim();
-      await updateProfile({ displayName: trimmedName });
-      setIsEditingName(false);
-      showAlert('昵称已更新');
-
-      // Sync to GameState (if in room & seated, silent failure is fine)
-      facade
-        .updatePlayerProfile(trimmedName, undefined)
-        .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed:', err));
-    } catch (e: unknown) {
-      // AuthContext already reported to Sentry before re-throwing; avoid double-reporting
-      const message = getErrorMessage(e);
-      settingsLog.error('Update name failed:', message, e);
-      showErrorAlert('更新失败', message);
-    }
-  }, [editName, updateProfile, facade]);
-
   const handleStartEditName = useCallback(() => {
-    setEditName(user?.displayName || '');
-    setIsEditingName(true);
-  }, [user?.displayName]);
-
-  const handleCancelEditName = useCallback(() => {
-    setIsEditingName(false);
-  }, []);
+    showPrompt('修改昵称', {
+      placeholder: '输入名字',
+      defaultValue: user?.displayName || '',
+      onConfirm: async (value: string) => {
+        const trimmed = value.trim();
+        if (!trimmed) {
+          showAlert('请输入名字');
+          return;
+        }
+        try {
+          await updateProfile({ displayName: trimmed });
+          showAlert('昵称已更新');
+          facade
+            .updatePlayerProfile(trimmed, undefined)
+            .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed:', err));
+        } catch (e: unknown) {
+          const message = getErrorMessage(e);
+          settingsLog.error('Update name failed:', message, e);
+          showErrorAlert('更新失败', message);
+        }
+      },
+    });
+  }, [user?.displayName, updateProfile, facade]);
 
   /** 匿名用户「绑定邮箱」：直接进入注册模式 */
   const handleShowUpgradeForm = useCallback(() => {
@@ -425,14 +413,8 @@ export const SettingsScreen: React.FC = () => {
                 <NameSection
                   isAnonymous={false}
                   displayName={user?.displayName ?? null}
-                  isEditingName={isEditingName}
-                  editName={editName}
-                  onEditNameChange={setEditName}
                   onStartEdit={handleStartEditName}
-                  onSave={handleUpdateName}
-                  onCancel={handleCancelEditName}
                   styles={styles}
-                  colors={colors}
                 />
               </View>
               <View style={styles.statusBadge}>

@@ -2,14 +2,16 @@
  * AlertModal - 跨平台自定义 Alert Modal
  *
  * Web 端替代 RN Alert.alert，提供统一的 Modal 弹窗样式。
+ * 支持可选文本输入（prompt 模式）。
  * 渲染 Modal UI，通过 onPress 回调上报用户操作。不 import service，不含业务逻辑。
  */
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -29,10 +31,16 @@ import {
 
 export interface AlertButton {
   text: string;
-  onPress?: () => void;
+  /** Called when pressed. For prompt mode, receives the current input value. */
+  onPress?: (inputValue?: string) => void;
   style?: 'default' | 'cancel' | 'destructive';
   loading?: boolean;
   disabled?: boolean;
+}
+
+export interface AlertInputConfig {
+  placeholder?: string;
+  defaultValue?: string;
 }
 
 /**
@@ -57,6 +65,7 @@ interface AlertModalProps {
   title: string;
   message?: string;
   buttons: AlertButton[];
+  input?: AlertInputConfig;
   onClose: () => void;
 }
 
@@ -65,6 +74,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   title,
   message,
   buttons,
+  input,
   onClose,
 }) => {
   const colors = useColors();
@@ -75,10 +85,22 @@ export const AlertModal: React.FC<AlertModalProps> = ({
     [colors, orderedButtons.length, screenWidth],
   );
 
-  const handleButtonPress = (button: AlertButton) => {
-    onClose();
-    button.onPress?.();
-  };
+  const [inputValue, setInputValue] = useState(input?.defaultValue ?? '');
+
+  // Reset input value when modal opens with new config
+  useEffect(() => {
+    if (visible) {
+      setInputValue(input?.defaultValue ?? '');
+    }
+  }, [visible, input?.defaultValue]);
+
+  const handleButtonPress = useCallback(
+    (button: AlertButton) => {
+      onClose();
+      button.onPress?.(input ? inputValue : undefined);
+    },
+    [onClose, input, inputValue],
+  );
 
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
@@ -91,6 +113,18 @@ export const AlertModal: React.FC<AlertModalProps> = ({
             <Text style={styles.message} testID={TESTIDS.alertMessage}>
               {message}
             </Text>
+          ) : null}
+
+          {input ? (
+            <TextInput
+              style={styles.input}
+              value={inputValue}
+              onChangeText={setInputValue}
+              placeholder={input.placeholder}
+              placeholderTextColor={colors.textMuted}
+              autoFocus
+              testID={TESTIDS.alertInput}
+            />
           ) : null}
 
           <View style={styles.buttonContainer}>
@@ -159,6 +193,18 @@ function createStyles(colors: ThemeColors, buttonCount: number, screenWidth: num
       color: colors.textSecondary,
       textAlign: 'center',
       marginBottom: spacing.large,
+    },
+    input: {
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidth,
+      borderColor: colors.border,
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
+      fontSize: typography.body,
+      lineHeight: typography.lineHeights.body,
+      color: colors.text,
+      marginBottom: spacing.medium,
     },
     buttonContainer: {
       marginTop: spacing.small,

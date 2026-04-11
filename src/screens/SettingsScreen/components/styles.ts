@@ -47,8 +47,6 @@ export interface SettingsScreenStyles {
   nameRow: ViewStyle;
   userName: TextStyle;
   editIcon: TextStyle;
-  editNameRow: ViewStyle;
-  nameInput: TextStyle;
   // Auth form (AuthStyles-compatible)
   formContainer: ViewStyle;
   formTitle: TextStyle;
@@ -300,23 +298,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
     },
-    editNameRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.small,
-    },
-    nameInput: {
-      flex: 1,
-      height: componentSizes.avatar.md,
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-      paddingHorizontal: spacing.small,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      color: colors.text,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-    },
+
     // Auth form (base + SettingsScreen overrides)
     ...createAuthBaseStyles(colors),
     formContainer: {
