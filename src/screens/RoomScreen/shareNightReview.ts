@@ -20,9 +20,16 @@ export async function captureNightReviewCard(ref: RefObject<View | null>): Promi
     if (!node) throw new Error('Night review share card ref not ready');
     const canvas = await html2canvas(node, {
       backgroundColor: null,
-      // Explicit height ensures full capture even if CSS clips the element
-      height: node.scrollHeight,
-      windowHeight: node.scrollHeight,
+      // Walk all ancestors in the *cloned* DOM and clear overflow clipping.
+      // RN Web sets overflow:hidden on View by default; the RoomScreen container
+      // clips the off-screen share card. onclone modifies only the clone.
+      onclone: (_doc: Document, clonedEl: HTMLElement) => {
+        let el: HTMLElement | null = clonedEl;
+        while (el) {
+          el.style.overflow = 'visible';
+          el = el.parentElement;
+        }
+      },
     });
     const dataUrl = canvas.toDataURL('image/png');
     const prefix = 'base64,';
