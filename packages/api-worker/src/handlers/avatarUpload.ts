@@ -76,7 +76,16 @@ export async function handleAvatarUpload(request: Request, env: Env): Promise<Re
   publicUrl.pathname = `/avatar/${key}`;
   publicUrl.search = '';
 
-  return jsonResponse({ url: publicUrl.toString() }, 200, env);
+  const avatarUrlStr = publicUrl.toString();
+
+  // Persist custom_avatar_url to D1 so the client can display it in AvatarPickerScreen
+  await env.DB.prepare(
+    `UPDATE users SET custom_avatar_url = ?, updated_at = datetime('now') WHERE id = ?`,
+  )
+    .bind(avatarUrlStr, userId)
+    .run();
+
+  return jsonResponse({ url: avatarUrlStr }, 200, env);
 }
 
 /**
