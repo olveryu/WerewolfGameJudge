@@ -84,6 +84,8 @@ import {
   handleGetRoom,
 } from './handlers/roomHandlers';
 import type { HandlerFn } from './handlers/shared';
+// Stats handlers
+import { handleGetUserCollection, handleGetUserStats } from './handlers/statsHandlers';
 
 // ── Route maps ──────────────────────────────────────────────────────────────
 
@@ -243,6 +245,22 @@ export default {
       if (segments[0] === 'avatar' && segments.length >= 3 && request.method === 'GET') {
         const key = segments.slice(1).join('/');
         return handleAvatarServe(request, env, key);
+      }
+
+      // /api/user/stats (GET) — 用户成长数据
+      if (segments[0] === 'api' && segments[1] === 'user' && segments[2] === 'stats') {
+        if (request.method === 'GET') {
+          return handleGetUserStats(request, env, ctx);
+        }
+        return jsonResponse({ error: 'method not allowed' }, 405, env);
+      }
+
+      // /api/user/collection (GET) — 角色图鉴收集数据
+      if (segments[0] === 'api' && segments[1] === 'user' && segments[2] === 'collection') {
+        if (request.method === 'GET') {
+          return handleGetUserCollection(request, env, ctx);
+        }
+        return jsonResponse({ error: 'method not allowed' }, 405, env);
       }
 
       return jsonResponse({ error: 'not found' }, 404, env);

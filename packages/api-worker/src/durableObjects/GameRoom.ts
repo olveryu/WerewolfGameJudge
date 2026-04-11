@@ -48,6 +48,7 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../env';
+import { settleGameResults } from '../growth/settleGameResults';
 import {
   buildHandlerContext,
   extractAudioActions,
@@ -322,7 +323,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async endNight(): Promise<GameActionResult> {
-    return this.#processAction(
+    const result = this.#processAction(
       (state) => {
         const ctx = buildHandlerContext(state, state.hostUid);
         const result = handleEndNight({ type: 'END_NIGHT' }, ctx);
@@ -337,6 +338,17 @@ export class GameRoom extends DurableObject<Env> {
       undefined,
       'END_NIGHT',
     );
+
+    // 异步结算成长数据（不阻塞广播响应）
+    if (result.success && result.state) {
+      this.ctx.waitUntil(
+        settleGameResults(result.state, this.env).catch((err) => {
+          console.error('[GameRoom] settleGameResults failed:', err);
+        }),
+      );
+    }
+
+    return result;
   }
 
   async audioAck(): Promise<GameActionResult> {

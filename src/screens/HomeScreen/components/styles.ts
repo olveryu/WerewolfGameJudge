@@ -31,6 +31,7 @@ export interface HomeScreenStyles {
   topBarLogo: TextStyle;
   topBarTitle: TextStyle;
   topBarActions: ViewStyle;
+  levelBadge: TextStyle;
   // User identity (login state, keep testIDs for E2E)
 
   userNameHidden: TextStyle;
@@ -173,6 +174,11 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.small,
+    },
+    levelBadge: {
+      fontSize: typography.caption,
+      fontWeight: typography.weights.semibold,
+      color: colors.primary,
     },
 
     userNameHidden: {

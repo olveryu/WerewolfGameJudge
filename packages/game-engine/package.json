@@ -61,6 +61,14 @@
     "./utils/*": {
       "types": "./src/utils/*.ts",
       "default": "./dist/utils/*.js"
+    },
+    "./growth": {
+      "types": "./src/growth/index.ts",
+      "default": "./dist/growth/index.js"
+    },
+    "./growth/*": {
+      "types": "./src/growth/*.ts",
+      "default": "./dist/growth/*.js"
     }
   },
   "scripts": {

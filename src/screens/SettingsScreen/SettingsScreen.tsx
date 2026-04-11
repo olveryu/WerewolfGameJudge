@@ -6,6 +6,7 @@
  * 不使用硬编码样式值，不使用 console.*。
  */
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
@@ -29,6 +30,8 @@ import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { resetAllGuides, usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
+import type { UserStats } from '@/services/feature/StatsService';
+import { fetchUserStats } from '@/services/feature/StatsService';
 import { componentSizes, fixed, layout, ThemeKey, typography, useTheme } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -42,6 +45,7 @@ import {
   AvatarSection,
   ChangePasswordForm,
   createSettingsScreenStyles,
+  GrowthSection,
   NameSection,
   ThemeSelector,
 } from './components';
@@ -78,6 +82,44 @@ export const SettingsScreen: React.FC = () => {
     gameState?.status === GameStatus.Seated;
 
   const [showChangePassword, setShowChangePassword] = useState(false);
+
+  // Growth system state
+  const [growthStats, setGrowthStats] = useState<UserStats | null>(null);
+  const [showMoonBanner, setShowMoonBanner] = useState(false);
+  const MOON_SEEN_KEY = '@werewolf_moon_phase_seen';
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    fetchUserStats()
+      .then(async (stats) => {
+        if (cancelled) return;
+        setGrowthStats(stats);
+        if (stats.lastMoonPhase) {
+          const seen = await AsyncStorage.getItem(MOON_SEEN_KEY);
+          if (!cancelled && seen !== stats.lastMoonPhase.id) {
+            setShowMoonBanner(true);
+          }
+        }
+      })
+      .catch(() => {
+        // non-critical — growth section simply won't render
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  const handleDismissMoon = useCallback(async () => {
+    setShowMoonBanner(false);
+    if (growthStats?.lastMoonPhase) {
+      await AsyncStorage.setItem(MOON_SEEN_KEY, growthStats.lastMoonPhase.id);
+    }
+  }, [growthStats]);
+
+  const handleOpenCollection = useCallback(() => {
+    navigation.navigate('Collection');
+  }, [navigation]);
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
@@ -550,6 +592,16 @@ export const SettingsScreen: React.FC = () => {
           {/* eslint-disable-next-line react-hooks/refs -- wasAuthenticatedRef is intentionally read during render to suppress auth UI flash during transient auth state */}
           {renderAuthSection()}
         </View>
+
+        {growthStats && (
+          <GrowthSection
+            stats={growthStats}
+            styles={styles}
+            showMoonBanner={showMoonBanner}
+            onDismissMoon={handleDismissMoon}
+            onOpenCollection={handleOpenCollection}
+          />
+        )}
 
         <ThemeSelector
           currentThemeKey={themeKey}

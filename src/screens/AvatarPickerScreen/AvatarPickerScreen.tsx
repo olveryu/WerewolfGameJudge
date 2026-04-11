@@ -10,9 +10,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getFrameUnlockCondition, isFrameUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
@@ -33,6 +34,7 @@ import { UI_ICONS } from '@/config/iconTokens';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { RootStackParamList } from '@/navigation/types';
+import { fetchUserCollection, fetchUserStats } from '@/services/feature/StatsService';
 import { componentSizes, fixed, layout, useColors } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -56,6 +58,9 @@ const scrollViewFlex = { flex: 1 } as const;
 const NUM_COLUMNS = 4;
 const FRAME_GRID_CELL_SIZE = 72;
 const HERO_PREVIEW_SIZE = 80;
+
+/** villager is always unlocked as the free default avatar */
+const FREE_AVATAR_ROLE = 'villager';
 
 type Selection = number | 'custom' | null;
 type PickerTab = 'avatar' | 'frame';
@@ -92,6 +97,31 @@ export const AvatarPickerScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
   const [saving, setSaving] = useState(false);
 
+  // Growth stats for frame unlock check
+  const [userLevel, setUserLevel] = useState(0);
+  const [rolesCollected, setRolesCollected] = useState(0);
+  // Collected role IDs for avatar unlock
+  const [collectedRoleIds, setCollectedRoleIds] = useState<ReadonlySet<string>>(new Set());
+
+  useEffect(() => {
+    if (readOnly) return;
+    fetchUserStats()
+      .then((stats) => {
+        setUserLevel(stats.level);
+        setRolesCollected(stats.rolesCollected);
+      })
+      .catch((e: unknown) => {
+        settingsLog.warn('Failed to fetch user stats for frame unlock', e);
+      });
+    fetchUserCollection()
+      .then((data) => {
+        setCollectedRoleIds(new Set(data.roles.map((r) => r.roleId)));
+      })
+      .catch((e: unknown) => {
+        settingsLog.warn('Failed to fetch user collection for avatar unlock', e);
+      });
+  }, [readOnly]);
+
   // ── Derived state ──
 
   const isCustomActive = currentBuiltinIndex === -1 && !!user?.customAvatarUrl;
@@ -122,6 +152,15 @@ export const AvatarPickerScreen: React.FC = () => {
       key: String(i),
       index: i,
     }));
+    // Sort: unlocked (free + collected) first, locked last
+    items.sort((a, b) => {
+      const aUnlocked =
+        AVATAR_KEYS[a.index] === FREE_AVATAR_ROLE || collectedRoleIds.has(AVATAR_KEYS[a.index]);
+      const bUnlocked =
+        AVATAR_KEYS[b.index] === FREE_AVATAR_ROLE || collectedRoleIds.has(AVATAR_KEYS[b.index]);
+      if (aUnlocked === bUnlocked) return 0;
+      return aUnlocked ? -1 : 1;
+    });
     const remainder = items.length % NUM_COLUMNS;
     if (remainder !== 0) {
       for (let i = 0; i < NUM_COLUMNS - remainder; i++) {
@@ -129,7 +168,7 @@ export const AvatarPickerScreen: React.FC = () => {
       }
     }
     return items;
-  }, []);
+  }, [collectedRoleIds]);
 
   // ── Handlers ──
 
@@ -142,9 +181,14 @@ export const AvatarPickerScreen: React.FC = () => {
   const handlePressBuiltin = useCallback(
     (index: number) => {
       if (readOnly) return;
+      const roleId = AVATAR_KEYS[index];
+      if (roleId && roleId !== FREE_AVATAR_ROLE && !collectedRoleIds.has(roleId)) {
+        showAlert('未解锁', '扮演过该角色后才能使用此头像');
+        return;
+      }
       setSelected(index);
     },
-    [readOnly],
+    [readOnly, collectedRoleIds],
   );
 
   const handlePressCustom = useCallback(() => {
@@ -154,9 +198,14 @@ export const AvatarPickerScreen: React.FC = () => {
   const handlePressFrame = useCallback(
     (frameId: FrameId | 'none') => {
       if (readOnly) return;
+      if (frameId !== 'none' && !isFrameUnlocked(frameId, userLevel, rolesCollected)) {
+        const condition = getFrameUnlockCondition(frameId);
+        showAlert('未解锁', condition?.description ?? '暂未解锁');
+        return;
+      }
       setSelectedFrame(frameId);
     },
-    [readOnly],
+    [readOnly, userLevel, rolesCollected],
   );
 
   const handleLongPress = useCallback((index: number) => {
@@ -331,6 +380,8 @@ export const AvatarPickerScreen: React.FC = () => {
       const isCurrentlyUsed = item.index === currentBuiltinIndex;
       const isSelected = item.index === selected;
       const imageSource = getAvatarThumbByIndex(item.index);
+      const roleId = AVATAR_KEYS[item.index];
+      const locked = !!roleId && roleId !== FREE_AVATAR_ROLE && !collectedRoleIds.has(roleId);
 
       return (
         <AvatarCell
@@ -338,6 +389,7 @@ export const AvatarPickerScreen: React.FC = () => {
           imageSource={imageSource}
           isSelected={isSelected}
           isCurrentlyUsed={isCurrentlyUsed}
+          locked={locked}
           onPress={handlePressBuiltin}
           onLongPress={handleLongPress}
           styles={styles}
@@ -345,7 +397,15 @@ export const AvatarPickerScreen: React.FC = () => {
         />
       );
     },
-    [currentBuiltinIndex, selected, handlePressBuiltin, handleLongPress, styles, colors],
+    [
+      currentBuiltinIndex,
+      selected,
+      collectedRoleIds,
+      handlePressBuiltin,
+      handleLongPress,
+      styles,
+      colors,
+    ],
   );
 
   // ── Render sections ──
@@ -480,6 +540,8 @@ export const AvatarPickerScreen: React.FC = () => {
             {AVATAR_FRAMES.map((frame) => {
               const isActive = currentFrameId === frame.id;
               const isFrameSelected = selectedFrame === frame.id;
+              const unlocked = isFrameUnlocked(frame.id, userLevel, rolesCollected);
+              const condition = !unlocked ? getFrameUnlockCondition(frame.id) : null;
               return (
                 <TouchableOpacity
                   key={frame.id}
@@ -490,6 +552,7 @@ export const AvatarPickerScreen: React.FC = () => {
                       isActive &&
                       selectedFrame === null &&
                       styles.frameGridCellActive,
+                    !unlocked && styles.frameGridCellLocked,
                   ]}
                   onPress={() => handlePressFrame(frame.id)}
                   activeOpacity={0.7}
@@ -503,7 +566,7 @@ export const AvatarPickerScreen: React.FC = () => {
                   <Text
                     style={[styles.frameGridName, isFrameSelected && styles.frameGridNameSelected]}
                   >
-                    {frame.name}
+                    {unlocked ? frame.name : (condition?.description ?? '未解锁')}
                   </Text>
                 </TouchableOpacity>
               );
@@ -560,14 +623,25 @@ interface AvatarCellProps {
   imageSource: number;
   isSelected: boolean;
   isCurrentlyUsed: boolean;
+  locked: boolean;
   onPress: (index: number) => void;
   onLongPress: (index: number) => void;
   styles: AvatarPickerScreenStyles;
-  colors: { textInverse: string };
+  colors: { textInverse: string; textMuted: string };
 }
 
 const AvatarCell = memo<AvatarCellProps>(
-  ({ index, imageSource, isSelected, isCurrentlyUsed, onPress, onLongPress, styles, colors }) => {
+  ({
+    index,
+    imageSource,
+    isSelected,
+    isCurrentlyUsed,
+    locked,
+    onPress,
+    onLongPress,
+    styles,
+    colors,
+  }) => {
     const handlePress = useCallback(() => {
       onPress(index);
     }, [onPress, index]);
@@ -578,7 +652,11 @@ const AvatarCell = memo<AvatarCellProps>(
 
     return (
       <TouchableOpacity
-        style={[styles.pickerItem, isSelected && styles.pickerItemSelected]}
+        style={[
+          styles.pickerItem,
+          isSelected && styles.pickerItemSelected,
+          locked && styles.pickerItemLocked,
+        ]}
         onPress={handlePress}
         onLongPress={handleLongPress}
         activeOpacity={0.7}
@@ -588,7 +666,12 @@ const AvatarCell = memo<AvatarCellProps>(
           style={styles.pickerItemImage}
           resizeMode="cover"
         />
-        {isCurrentlyUsed && !isSelected && (
+        {locked && (
+          <View style={styles.pickerItemLockOverlay}>
+            <Ionicons name="lock-closed" size={componentSizes.icon.sm} color={colors.textMuted} />
+          </View>
+        )}
+        {isCurrentlyUsed && !isSelected && !locked && (
           <View style={styles.pickerCheckBadge}>
             <Ionicons name="checkmark" size={componentSizes.icon.xs} color={colors.textInverse} />
           </View>
