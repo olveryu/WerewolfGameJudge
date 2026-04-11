@@ -42,6 +42,7 @@ import { useGameActions } from './useGameActions';
 import { useLastActionToast } from './useLastActionToast';
 import { useNightDerived } from './useNightDerived';
 import { useRoomLifecycle } from './useRoomLifecycle';
+import { useSettleToast } from './useSettleToast';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Return type
@@ -209,6 +210,9 @@ export const useGameRoom = (): UseGameRoomResult => {
 
   // Toast notifications for passive actions (kick, clearAllSeats, assignRoles, etc.)
   useLastActionToast({ facade, isHost, mySeatNumber, isFocused });
+
+  // Toast notifications for XP gain / level-up after valid game settlement
+  useSettleToast({ facade, isFocused });
 
   // Side effects: sync metadata + rejoin overlay
   const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;

@@ -18,7 +18,7 @@
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
-import type { IRealtimeTransport } from '@/services/types/IRealtimeTransport';
+import type { IRealtimeTransport, SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import { connectionLog } from '@/utils/logger';
 
 import { createInitialContext, transition } from './ConnectionFSM';
@@ -50,6 +50,8 @@ export interface ConnectionManagerDeps {
   onStateUpdate: (state: GameState, revision: number, lastAction?: string) => void;
   /** fetch 或 WS 广播获得新 state 后的回调（用于 store.applySnapshot） */
   onFetchedState: (state: GameState, revision: number) => void;
+  /** 游戏结算结果单播回调（可选） */
+  onSettleResult?: (result: SettleResultMessage) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -91,6 +93,7 @@ export class ConnectionManager {
         this.#dispatch({ type: 'STATE_UPDATE', revision });
       },
       onPong: () => this.#handlePong(),
+      onSettleResult: (result) => deps.onSettleResult?.(result),
     });
 
     this.#registerPlatformListeners();

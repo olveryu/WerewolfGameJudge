@@ -25,7 +25,6 @@ import {
 } from '@/screens/AuthScreen';
 import { AvatarPickerScreen } from '@/screens/AvatarPickerScreen/AvatarPickerScreen';
 import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
-import { CollectionScreen } from '@/screens/CollectionScreen/CollectionScreen';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
@@ -86,7 +85,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Encyclopedia: 'encyclopedia/:roomNumber?',
       Notepad: 'notepad/:roomNumber',
       AvatarPicker: 'avatar-picker',
-      Collection: 'collection',
       AuthLogin: 'auth/login',
       AuthEmail: 'auth/email',
       AuthForgotPassword: 'auth/forgot-password',
@@ -226,11 +224,6 @@ export const AppNavigator: React.FC = () => {
           name="AvatarPicker"
           component={AvatarPickerScreen}
           options={{ title: '选择形象' }}
-        />
-        <Stack.Screen
-          name="Collection"
-          component={CollectionScreen}
-          options={{ title: '角色收集', presentation: 'modal', animation: 'slide_from_bottom' }}
         />
         {/* Auth modal screens — transparent overlay with centered card */}
         <Stack.Group

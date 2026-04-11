@@ -127,6 +127,19 @@ export class CFRealtimeService implements IRealtimeTransport {
           data.revision as number,
           data.lastAction as string | undefined,
         );
+      } else if (
+        data.type === 'SETTLE_RESULT' &&
+        typeof data.xpEarned === 'number' &&
+        typeof data.newXp === 'number' &&
+        typeof data.newLevel === 'number' &&
+        typeof data.previousLevel === 'number'
+      ) {
+        this.#handlers?.onSettleResult({
+          xpEarned: data.xpEarned,
+          newXp: data.newXp,
+          newLevel: data.newLevel,
+          previousLevel: data.previousLevel,
+        });
       } else if (data.type === 'pong') {
         this.#handlers?.onPong();
       }

@@ -1,87 +1,102 @@
-import { FRAME_UNLOCK_CONDITIONS, getFrameUnlockCondition, isFrameUnlocked } from '../frameUnlock';
+import {
+  FREE_REWARDS,
+  getLevelReward,
+  getUnlockedAvatars,
+  getUnlockedFrames,
+  isFrameUnlocked,
+  LEVEL_REWARDS,
+} from '../frameUnlock';
 
-describe('frameUnlock', () => {
-  describe('FRAME_UNLOCK_CONDITIONS', () => {
-    it('has 10 conditions (one per frame)', () => {
-      expect(FRAME_UNLOCK_CONDITIONS).toHaveLength(10);
+describe('levelRewards', () => {
+  describe('LEVEL_REWARDS', () => {
+    it('has 51 entries (Lv.1–Lv.51)', () => {
+      expect(LEVEL_REWARDS).toHaveLength(51);
     });
 
-    it('all frameIds are unique', () => {
-      const ids = FRAME_UNLOCK_CONDITIONS.map((c) => c.frameId);
-      expect(new Set(ids).size).toBe(ids.length);
-    });
-  });
-
-  describe('getFrameUnlockCondition', () => {
-    it('returns condition for known frame', () => {
-      const condition = getFrameUnlockCondition('ironForge');
-      expect(condition).toEqual({
-        frameId: 'ironForge',
-        type: 'register',
-        value: 0,
-        description: '注册即得',
+    it('all levels are unique and sequential', () => {
+      LEVEL_REWARDS.forEach((r, i) => {
+        expect(r.level).toBe(i + 1);
       });
     });
 
-    it('returns undefined for unknown frame', () => {
-      expect(getFrameUnlockCondition('nonExistent')).toBeUndefined();
+    it('contains 42 avatars and 9 frames', () => {
+      const avatars = LEVEL_REWARDS.filter((r) => r.type === 'avatar');
+      const frames = LEVEL_REWARDS.filter((r) => r.type === 'frame');
+      expect(avatars).toHaveLength(42);
+      expect(frames).toHaveLength(9);
+    });
+
+    it('all reward ids are unique', () => {
+      const allIds = [...FREE_REWARDS, ...LEVEL_REWARDS].map((r) => `${r.type}:${r.id}`);
+      expect(new Set(allIds).size).toBe(allIds.length);
+    });
+  });
+
+  describe('FREE_REWARDS', () => {
+    it('grants villager avatar and ironForge frame at Lv.0', () => {
+      expect(FREE_REWARDS).toEqual([
+        { level: 0, type: 'avatar', id: 'villager' },
+        { level: 0, type: 'frame', id: 'ironForge' },
+      ]);
+    });
+  });
+
+  describe('getLevelReward', () => {
+    it('returns reward for valid level', () => {
+      expect(getLevelReward(1)).toEqual({ level: 1, type: 'avatar', id: 'seer' });
+    });
+
+    it('returns undefined for Lv.0', () => {
+      expect(getLevelReward(0)).toBeUndefined();
+    });
+
+    it('returns undefined for out-of-range level', () => {
+      expect(getLevelReward(99)).toBeUndefined();
+    });
+  });
+
+  describe('getUnlockedAvatars', () => {
+    it('returns only villager at Lv.0', () => {
+      expect(getUnlockedAvatars(0)).toEqual(new Set(['villager']));
+    });
+
+    it('includes Lv.1 avatar at Lv.1', () => {
+      const unlocked = getUnlockedAvatars(1);
+      expect(unlocked.has('villager')).toBe(true);
+      expect(unlocked.has('seer')).toBe(true);
+      expect(unlocked.size).toBe(2);
+    });
+
+    it('returns all 43 avatars at Lv.51', () => {
+      expect(getUnlockedAvatars(51).size).toBe(43);
+    });
+  });
+
+  describe('getUnlockedFrames', () => {
+    it('returns only ironForge at Lv.0', () => {
+      expect(getUnlockedFrames(0)).toEqual(new Set(['ironForge']));
+    });
+
+    it('returns all 10 frames at Lv.51', () => {
+      expect(getUnlockedFrames(51).size).toBe(10);
     });
   });
 
   describe('isFrameUnlocked', () => {
-    it('register frame is always unlocked', () => {
-      expect(isFrameUnlocked('ironForge', 0, 0)).toBe(true);
+    it('ironForge is unlocked at Lv.0', () => {
+      expect(isFrameUnlocked('ironForge', 0)).toBe(true);
     });
 
-    it('level frame is locked below required level', () => {
-      expect(isFrameUnlocked('moonSilver', 1, 0)).toBe(false);
+    it('moonSilver is locked below Lv.5', () => {
+      expect(isFrameUnlocked('moonSilver', 4)).toBe(false);
     });
 
-    it('level frame is unlocked at required level', () => {
-      expect(isFrameUnlocked('moonSilver', 2, 0)).toBe(true);
-    });
-
-    it('level frame is unlocked above required level', () => {
-      expect(isFrameUnlocked('moonSilver', 10, 0)).toBe(true);
-    });
-
-    it('collection frame is locked below required count', () => {
-      expect(isFrameUnlocked('boneGate', 0, 4)).toBe(false);
-    });
-
-    it('collection frame is unlocked at required count', () => {
-      expect(isFrameUnlocked('boneGate', 0, 5)).toBe(true);
-    });
-
-    it('collection frame is unlocked above required count', () => {
-      expect(isFrameUnlocked('boneGate', 0, 20)).toBe(true);
+    it('moonSilver is unlocked at Lv.5', () => {
+      expect(isFrameUnlocked('moonSilver', 5)).toBe(true);
     });
 
     it('returns false for unknown frame', () => {
-      expect(isFrameUnlocked('nonExistent', 20, 43)).toBe(false);
-    });
-
-    // Verify all level frames
-    it.each([
-      ['moonSilver', 2],
-      ['darkVine', 5],
-      ['frostCrystal', 10],
-      ['pharaohGold', 15],
-    ] as const)('level frame %s unlocks at Lv.%i', (frameId, level) => {
-      expect(isFrameUnlocked(frameId, level - 1, 0)).toBe(false);
-      expect(isFrameUnlocked(frameId, level, 0)).toBe(true);
-    });
-
-    // Verify all collection frames
-    it.each([
-      ['boneGate', 5],
-      ['runicSeal', 10],
-      ['bloodThorn', 20],
-      ['hellFire', 30],
-      ['voidRift', 40],
-    ] as const)('collection frame %s unlocks at %i roles', (frameId, count) => {
-      expect(isFrameUnlocked(frameId, 0, count - 1)).toBe(false);
-      expect(isFrameUnlocked(frameId, 0, count)).toBe(true);
+      expect(isFrameUnlocked('nonExistent', 51)).toBe(false);
     });
   });
 });

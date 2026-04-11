@@ -48,7 +48,7 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../env';
-import { settleGameResults } from '../growth/settleGameResults';
+import { type PlayerSettleResult, settleGameResults } from '../growth/settleGameResults';
 import {
   buildHandlerContext,
   extractAudioActions,
@@ -110,6 +110,34 @@ export class GameRoom extends DurableObject<Env> {
         ws.send(message);
       } catch {
         // Socket already closed — will be cleaned up in webSocketClose
+      }
+    }
+  }
+
+  /** 单播结算结果给每个已连接的注册玩家 */
+  #sendSettleResults(results: PlayerSettleResult[]): void {
+    if (results.length === 0) return;
+    const resultByUid = new Map(results.map((r) => [r.uid, r]));
+    const sockets = this.ctx.getWebSockets();
+    for (const ws of sockets) {
+      try {
+        const attachment = (
+          ws as unknown as { deserializeAttachment(): WebSocketAttachment }
+        ).deserializeAttachment();
+        const settle = resultByUid.get(attachment.userId);
+        if (settle) {
+          ws.send(
+            JSON.stringify({
+              type: 'SETTLE_RESULT',
+              xpEarned: settle.xpEarned,
+              newXp: settle.newXp,
+              newLevel: settle.newLevel,
+              previousLevel: settle.previousLevel,
+            }),
+          );
+        }
+      } catch {
+        // Socket already closed
       }
     }
   }
@@ -339,12 +367,16 @@ export class GameRoom extends DurableObject<Env> {
       'END_NIGHT',
     );
 
-    // 异步结算成长数据（不阻塞广播响应）
+    // 异步结算成长数据（不阻塞广播响应）+ 单播结算结果
     if (result.success && result.state) {
       this.ctx.waitUntil(
-        settleGameResults(result.state, this.env).catch((err) => {
-          console.error('[GameRoom] settleGameResults failed:', err);
-        }),
+        settleGameResults(result.state, this.env)
+          .then((settleResults) => {
+            this.#sendSettleResults(settleResults);
+          })
+          .catch((err) => {
+            console.error('[GameRoom] settleGameResults failed:', err);
+          }),
       );
     }
 

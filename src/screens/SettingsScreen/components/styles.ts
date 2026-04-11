@@ -127,14 +127,6 @@ export interface SettingsScreenStyles {
   growthProgressBarBg: ViewStyle;
   growthProgressBarFill: ViewStyle;
   growthXpValue: TextStyle;
-  growthMoonBanner: ViewStyle;
-  growthMoonIcon: TextStyle;
-  growthMoonText: TextStyle;
-  growthMoonXp: TextStyle;
-  growthCollectionEntry: ViewStyle;
-  growthCollectionContent: ViewStyle;
-  growthCollectionText: TextStyle;
-  growthCollectionDesc: TextStyle;
 }
 
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
@@ -542,54 +534,5 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       color: colors.textSecondary,
       minWidth: spacing.xxlarge,
       textAlign: 'right',
-    },
-    growthMoonBanner: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: withAlpha(colors.primary, 0.08),
-      borderRadius: borderRadius.medium,
-      paddingVertical: spacing.small,
-      paddingHorizontal: spacing.medium,
-      marginBottom: spacing.medium,
-      gap: spacing.small,
-    },
-    growthMoonIcon: {
-      fontSize: typography.title,
-      lineHeight: typography.lineHeights.title,
-    },
-    growthMoonText: {
-      flex: 1,
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.text,
-    },
-    growthMoonXp: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.primary,
-      fontWeight: typography.weights.semibold,
-    },
-    growthCollectionEntry: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: spacing.small,
-      paddingHorizontal: spacing.small,
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-    },
-    growthCollectionContent: {
-      flex: 1,
-    },
-    growthCollectionText: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      color: colors.text,
-    },
-    growthCollectionDesc: {
-      fontSize: typography.caption,
-      lineHeight: typography.lineHeights.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.micro,
     },
   });

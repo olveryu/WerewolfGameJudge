@@ -10,6 +10,8 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
+import type { SettleResultMessage } from './IRealtimeTransport';
+
 /** Connection status for UI display (re-exported from RealtimeService) */
 export enum ConnectionStatus {
   Connecting = 'Connecting',
@@ -70,6 +72,12 @@ export interface IGameFacade {
    * 用于客户端检测被动操作（kick/clearAllSeats/assignRoles 等）并显示 toast
    */
   consumeLastAction(): string | null;
+
+  /**
+   * 订阅结算结果推送（SETTLE_RESULT WebSocket 单播）
+   * @returns 取消订阅函数
+   */
+  addSettleResultListener(fn: (result: SettleResultMessage) => void): () => void;
 
   // === Room Lifecycle ===
   /**

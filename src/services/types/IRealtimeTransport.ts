@@ -15,11 +15,19 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 // Event Handlers (transport → ConnectionManager)
 // ─────────────────────────────────────────────────────────────────────────────
 
+export interface SettleResultMessage {
+  xpEarned: number;
+  newXp: number;
+  newLevel: number;
+  previousLevel: number;
+}
+
 export interface TransportEventHandlers {
   onOpen(): void;
   onClose(code: number, reason: string): void;
   onError(error: unknown): void;
   onStateUpdate(state: GameState, revision: number, lastAction?: string): void;
+  onSettleResult(result: SettleResultMessage): void;
   onPong(): void;
 }
 

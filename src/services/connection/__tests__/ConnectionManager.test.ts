@@ -23,6 +23,7 @@ function createMockTransport(): IRealtimeTransport & {
     onClose: jest.fn(),
     onError: jest.fn(),
     onStateUpdate: jest.fn(),
+    onSettleResult: jest.fn(),
     onPong: jest.fn(),
   };
 

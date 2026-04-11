@@ -1,15 +1,24 @@
 /**
  * @werewolf/game-engine/growth — 成长体系模块
  *
- * 月相经验 + 等级系统 + 头像框解锁。纯函数，客户端与服务端共用。
+ * 等级系统 + 等级解锁奖励（头像/头像框）。纯函数，客户端与服务端共用。
  */
 
 export {
-  FRAME_UNLOCK_CONDITIONS,
-  type FrameUnlockCondition,
-  type FrameUnlockType,
-  getFrameUnlockCondition,
+  FREE_REWARDS,
+  getLevelReward,
+  getUnlockedAvatars,
+  getUnlockedFrames,
   isFrameUnlocked,
+  LEVEL_REWARDS,
+  type LevelReward,
+  type RewardType,
 } from './frameUnlock';
-export { getLevel, getLevelProgress, getLevelTitle, LEVEL_THRESHOLDS, LEVEL_TITLES } from './level';
-export { MOON_PHASES, type MoonPhase, rollMoonPhase } from './moonPhase';
+export {
+  getLevel,
+  getLevelProgress,
+  LEVEL_THRESHOLDS,
+  rollXp,
+  XP_BASE,
+  XP_RANDOM_MAX,
+} from './level';

@@ -6,7 +6,6 @@
  * 不使用硬编码样式值，不使用 console.*。
  */
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
@@ -85,22 +84,13 @@ export const SettingsScreen: React.FC = () => {
 
   // Growth system state
   const [growthStats, setGrowthStats] = useState<UserStats | null>(null);
-  const [showMoonBanner, setShowMoonBanner] = useState(false);
-  const MOON_SEEN_KEY = '@werewolf_moon_phase_seen';
 
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
     fetchUserStats()
-      .then(async (stats) => {
-        if (cancelled) return;
-        setGrowthStats(stats);
-        if (stats.lastMoonPhase) {
-          const seen = await AsyncStorage.getItem(MOON_SEEN_KEY);
-          if (!cancelled && seen !== stats.lastMoonPhase.id) {
-            setShowMoonBanner(true);
-          }
-        }
+      .then((stats) => {
+        if (!cancelled) setGrowthStats(stats);
       })
       .catch(() => {
         // non-critical — growth section simply won't render
@@ -109,17 +99,6 @@ export const SettingsScreen: React.FC = () => {
       cancelled = true;
     };
   }, [isAuthenticated]);
-
-  const handleDismissMoon = useCallback(async () => {
-    setShowMoonBanner(false);
-    if (growthStats?.lastMoonPhase) {
-      await AsyncStorage.setItem(MOON_SEEN_KEY, growthStats.lastMoonPhase.id);
-    }
-  }, [growthStats]);
-
-  const handleOpenCollection = useCallback(() => {
-    navigation.navigate('Collection');
-  }, [navigation]);
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
@@ -440,15 +419,7 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
 
           {/* Zone 2b: Growth */}
-          {growthStats && (
-            <GrowthSection
-              stats={growthStats}
-              styles={styles}
-              showMoonBanner={showMoonBanner}
-              onDismissMoon={handleDismissMoon}
-              onOpenCollection={handleOpenCollection}
-            />
-          )}
+          {growthStats && <GrowthSection stats={growthStats} styles={styles} />}
 
           {/* Zone 3: Account operations */}
           {canSwitchAccount && !user?.email && isMiniProgram() && (

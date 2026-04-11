@@ -36,6 +36,7 @@ import { ConnectionState } from '@/services/connection/types';
 import { AudioService } from '@/services/infra/AudioService';
 import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import type { IRoomService } from '@/services/types/IRoomService';
 import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
@@ -92,6 +93,8 @@ export class GameFacade implements IGameFacade {
   #myUid: string | null = null;
   /** Cached roomCode: survives store.reset(), used by fetchStateFromDB fallback */
   #roomCode: string | null = null;
+  /** Settle result listeners (push-based, no buffer needed) */
+  readonly #settleResultListeners = new Set<(result: SettleResultMessage) => void>();
 
   /**
    * Abort flag: set to true when leaving room.
@@ -187,6 +190,27 @@ export class GameFacade implements IGameFacade {
     return this.#store.consumeLastAction();
   }
 
+  /**
+   * 接收 WebSocket SETTLE_RESULT 消息，推送给所有订阅者。
+   * 由 ConnectionManager onSettleResult 回调调用。
+   */
+  handleSettleResult(result: SettleResultMessage): void {
+    for (const fn of this.#settleResultListeners) {
+      try {
+        fn(result);
+      } catch {
+        facadeLog.error('SettleResult listener error');
+      }
+    }
+  }
+
+  addSettleResultListener(fn: (result: SettleResultMessage) => void): () => void {
+    this.#settleResultListeners.add(fn);
+    return () => {
+      this.#settleResultListeners.delete(fn);
+    };
+  }
+
   addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void {
     return this.#connectionManager.addStateListener((state) => {
       fn(mapConnectionStatus(state));
@@ -223,6 +247,7 @@ export class GameFacade implements IGameFacade {
   async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
     this.#aborted = false;
     this.#audioOrchestrator.reset();
+    this.#settleResultListeners.clear();
     this.#isHost = true;
     this.#myUid = hostUid;
     this.#roomCode = roomCode;
@@ -250,6 +275,7 @@ export class GameFacade implements IGameFacade {
   ): Promise<{ success: boolean; reason?: string }> {
     this.#aborted = false;
     this.#audioOrchestrator.reset();
+    this.#settleResultListeners.clear();
     this.#isHost = isHost;
     this.#myUid = uid;
 
@@ -331,6 +357,7 @@ export class GameFacade implements IGameFacade {
     this.#myUid = null;
     this.#isHost = false;
     this.#roomCode = null;
+    this.#settleResultListeners.clear();
   }
 
   // =========================================================================

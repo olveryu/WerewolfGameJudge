@@ -157,17 +157,18 @@ export { GameStore } from './engine/store';
 
 // === Growth ===
 export {
-  FRAME_UNLOCK_CONDITIONS,
-  type FrameUnlockCondition,
-  type FrameUnlockType,
-  getFrameUnlockCondition,
+  FREE_REWARDS,
   getLevel,
   getLevelProgress,
-  getLevelTitle,
+  getLevelReward,
+  getUnlockedAvatars,
+  getUnlockedFrames,
   isFrameUnlocked,
+  LEVEL_REWARDS,
   LEVEL_THRESHOLDS,
-  LEVEL_TITLES,
-  MOON_PHASES,
-  type MoonPhase,
-  rollMoonPhase,
+  type LevelReward,
+  type RewardType,
+  rollXp,
+  XP_BASE,
+  XP_RANDOM_MAX,
 } from './growth';

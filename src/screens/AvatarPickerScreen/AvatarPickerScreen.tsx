@@ -10,7 +10,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getFrameUnlockCondition, isFrameUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
+import {
+  getUnlockedAvatars,
+  isFrameUnlocked,
+  LEVEL_REWARDS,
+} from '@werewolf/game-engine/growth/frameUnlock';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
@@ -34,7 +38,7 @@ import { UI_ICONS } from '@/config/iconTokens';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { RootStackParamList } from '@/navigation/types';
-import { fetchUserCollection, fetchUserStats } from '@/services/feature/StatsService';
+import { fetchUserStats } from '@/services/feature/StatsService';
 import { componentSizes, fixed, layout, useColors } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -58,9 +62,6 @@ const scrollViewFlex = { flex: 1 } as const;
 const NUM_COLUMNS = 4;
 const FRAME_GRID_CELL_SIZE = 72;
 const HERO_PREVIEW_SIZE = 80;
-
-/** villager is always unlocked as the free default avatar */
-const FREE_AVATAR_ROLE = 'villager';
 
 type Selection = number | 'custom' | null;
 type PickerTab = 'avatar' | 'frame';
@@ -97,30 +98,21 @@ export const AvatarPickerScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
   const [saving, setSaving] = useState(false);
 
-  // Growth stats for frame unlock check
+  // Growth stats for unlock check
   const [userLevel, setUserLevel] = useState(0);
-  const [rolesCollected, setRolesCollected] = useState(0);
-  // Collected role IDs for avatar unlock
-  const [collectedRoleIds, setCollectedRoleIds] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
     if (readOnly) return;
     fetchUserStats()
       .then((stats) => {
         setUserLevel(stats.level);
-        setRolesCollected(stats.rolesCollected);
       })
       .catch((e: unknown) => {
-        settingsLog.warn('Failed to fetch user stats for frame unlock', e);
-      });
-    fetchUserCollection()
-      .then((data) => {
-        setCollectedRoleIds(new Set(data.roles.map((r) => r.roleId)));
-      })
-      .catch((e: unknown) => {
-        settingsLog.warn('Failed to fetch user collection for avatar unlock', e);
+        settingsLog.warn('Failed to fetch user stats for unlock check', e);
       });
   }, [readOnly]);
+
+  const unlockedAvatars = useMemo(() => getUnlockedAvatars(userLevel), [userLevel]);
 
   // ── Derived state ──
 
@@ -152,12 +144,10 @@ export const AvatarPickerScreen: React.FC = () => {
       key: String(i),
       index: i,
     }));
-    // Sort: unlocked (free + collected) first, locked last
+    // Sort: unlocked first, locked last
     items.sort((a, b) => {
-      const aUnlocked =
-        AVATAR_KEYS[a.index] === FREE_AVATAR_ROLE || collectedRoleIds.has(AVATAR_KEYS[a.index]);
-      const bUnlocked =
-        AVATAR_KEYS[b.index] === FREE_AVATAR_ROLE || collectedRoleIds.has(AVATAR_KEYS[b.index]);
+      const aUnlocked = unlockedAvatars.has(AVATAR_KEYS[a.index]);
+      const bUnlocked = unlockedAvatars.has(AVATAR_KEYS[b.index]);
       if (aUnlocked === bUnlocked) return 0;
       return aUnlocked ? -1 : 1;
     });
@@ -168,7 +158,7 @@ export const AvatarPickerScreen: React.FC = () => {
       }
     }
     return items;
-  }, [collectedRoleIds]);
+  }, [unlockedAvatars]);
 
   // ── Handlers ──
 
@@ -182,13 +172,13 @@ export const AvatarPickerScreen: React.FC = () => {
     (index: number) => {
       if (readOnly) return;
       const roleId = AVATAR_KEYS[index];
-      if (roleId && roleId !== FREE_AVATAR_ROLE && !collectedRoleIds.has(roleId)) {
-        showAlert('未解锁', '扮演过该角色后才能使用此头像');
+      if (roleId && !unlockedAvatars.has(roleId)) {
+        showAlert('未解锁', '提升等级后可解锁更多头像');
         return;
       }
       setSelected(index);
     },
-    [readOnly, collectedRoleIds],
+    [readOnly, unlockedAvatars],
   );
 
   const handlePressCustom = useCallback(() => {
@@ -198,14 +188,14 @@ export const AvatarPickerScreen: React.FC = () => {
   const handlePressFrame = useCallback(
     (frameId: FrameId | 'none') => {
       if (readOnly) return;
-      if (frameId !== 'none' && !isFrameUnlocked(frameId, userLevel, rolesCollected)) {
-        const condition = getFrameUnlockCondition(frameId);
-        showAlert('未解锁', condition?.description ?? '暂未解锁');
+      if (frameId !== 'none' && !isFrameUnlocked(frameId, userLevel)) {
+        const reward = LEVEL_REWARDS.find((r) => r.type === 'frame' && r.id === frameId);
+        showAlert('未解锁', reward ? `达到 Lv.${reward.level} 解锁` : '暂未解锁');
         return;
       }
       setSelectedFrame(frameId);
     },
-    [readOnly, userLevel, rolesCollected],
+    [readOnly, userLevel],
   );
 
   const handleLongPress = useCallback((index: number) => {
@@ -381,7 +371,7 @@ export const AvatarPickerScreen: React.FC = () => {
       const isSelected = item.index === selected;
       const imageSource = getAvatarThumbByIndex(item.index);
       const roleId = AVATAR_KEYS[item.index];
-      const locked = !!roleId && roleId !== FREE_AVATAR_ROLE && !collectedRoleIds.has(roleId);
+      const locked = !!roleId && !unlockedAvatars.has(roleId);
 
       return (
         <AvatarCell
@@ -400,7 +390,7 @@ export const AvatarPickerScreen: React.FC = () => {
     [
       currentBuiltinIndex,
       selected,
-      collectedRoleIds,
+      unlockedAvatars,
       handlePressBuiltin,
       handleLongPress,
       styles,
@@ -540,8 +530,10 @@ export const AvatarPickerScreen: React.FC = () => {
             {AVATAR_FRAMES.map((frame) => {
               const isActive = currentFrameId === frame.id;
               const isFrameSelected = selectedFrame === frame.id;
-              const unlocked = isFrameUnlocked(frame.id, userLevel, rolesCollected);
-              const condition = !unlocked ? getFrameUnlockCondition(frame.id) : null;
+              const unlocked = isFrameUnlocked(frame.id, userLevel);
+              const reward = !unlocked
+                ? LEVEL_REWARDS.find((r) => r.type === 'frame' && r.id === frame.id)
+                : null;
               return (
                 <TouchableOpacity
                   key={frame.id}
@@ -566,7 +558,7 @@ export const AvatarPickerScreen: React.FC = () => {
                   <Text
                     style={[styles.frameGridName, isFrameSelected && styles.frameGridNameSelected]}
                   >
-                    {unlocked ? frame.name : (condition?.description ?? '未解锁')}
+                    {unlocked ? frame.name : reward ? `Lv.${reward.level} 解锁` : '未解锁'}
                   </Text>
                 </TouchableOpacity>
               );

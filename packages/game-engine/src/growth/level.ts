@@ -1,25 +1,32 @@
 /**
  * level — 等级系统
  *
- * 21 级（Lv.0–Lv.20），按累计 XP 升级。称号跟等级自动走。
+ * 52 级（Lv.0–Lv.51），按累计 XP 升级。每级解锁 1 个头像或头像框。
+ * XP/局: 50 + random(0~20)，期望 ~60。前期 1 局/级，后期 2 局/级。
  * 纯函数，无副作用。
  */
 
-export const LEVEL_THRESHOLDS: readonly number[] = [
-  0, 50, 150, 300, 500, 750, 1050, 1400, 1800, 2250, 2750, 3500, 4400, 5500, 6800, 8500, 10500,
-  13000, 16000, 20000, 25000,
-] as const;
+/** XP 基础值 */
+export const XP_BASE = 50;
+
+/** XP 随机范围上限（含） */
+export const XP_RANDOM_MAX = 20;
+
+/**
+ * 累计 XP 阈值表。index = 等级。
+ *
+ * Lv.0 = 0（免费），Lv.1–20 每级 +60，Lv.21–40 每级 +90，Lv.41–51 每级 +120。
+ */
+export const LEVEL_THRESHOLDS: readonly number[] = /* @__PURE__ */ (() => {
+  const t = [0];
+  for (let lv = 1; lv <= 51; lv++) {
+    const delta = lv <= 20 ? 60 : lv <= 40 ? 90 : 120;
+    t.push(t[lv - 1] + delta);
+  }
+  return t;
+})() as readonly number[];
 
 const MAX_LEVEL = LEVEL_THRESHOLDS.length - 1;
-
-export const LEVEL_TITLES: Readonly<Record<number, string>> = {
-  0: '新手',
-  1: '入门',
-  5: '常客',
-  10: '老手',
-  15: '元老',
-  20: '传奇',
-};
 
 /** 根据累计 XP 计算等级 */
 export function getLevel(xp: number): number {
@@ -29,14 +36,6 @@ export function getLevel(xp: number): number {
   return 0;
 }
 
-/** 获取等级称号（向下取最近的有称号等级） */
-export function getLevelTitle(level: number): string {
-  for (let l = level; l >= 0; l--) {
-    if (LEVEL_TITLES[l]) return LEVEL_TITLES[l];
-  }
-  return '新手';
-}
-
 /** 当前等级进度比例 0–1（满级返回 1） */
 export function getLevelProgress(xp: number): number {
   const level = getLevel(xp);
@@ -44,4 +43,11 @@ export function getLevelProgress(xp: number): number {
   const currentThreshold = LEVEL_THRESHOLDS[level];
   const nextThreshold = LEVEL_THRESHOLDS[level + 1];
   return (xp - currentThreshold) / (nextThreshold - currentThreshold);
+}
+
+/** 掷一次经验值（服务端调用）。50 + random(0~20)。 */
+export function rollXp(): number {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return XP_BASE + (array[0] % (XP_RANDOM_MAX + 1));
 }

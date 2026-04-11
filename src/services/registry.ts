@@ -34,6 +34,9 @@ export function createAllServices(): {
 
   const store = new GameStore();
   const transport = new CFRealtimeService();
+
+  // onSettleResult callback reads `facade` via closure at call time (not declaration time),
+  // so the forward reference is safe — facade is initialized before any WS message arrives.
   const connectionManager = new ConnectionManager({
     transport,
     fetchStateFromDB: async (roomCode) => roomService.getGameState(roomCode),
@@ -41,6 +44,7 @@ export function createAllServices(): {
     onStateUpdate: (state, revision, lastAction) =>
       store.applySnapshot(state, revision, lastAction),
     onFetchedState: (state, revision) => store.applySnapshot(state, revision),
+    onSettleResult: (result) => facade.handleSettleResult(result),
   });
 
   const services: ServiceContextValue = {

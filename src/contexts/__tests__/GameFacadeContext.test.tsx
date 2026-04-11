@@ -15,6 +15,7 @@ function createFakeFacade(): IGameFacade {
     getMySeatNumber: () => null,
     getStateRevision: () => 0,
     consumeLastAction: () => null,
+    addSettleResultListener: () => () => {},
     createRoom: async () => {},
     joinRoom: async () => ({ success: true }),
     leaveRoom: async () => {},
