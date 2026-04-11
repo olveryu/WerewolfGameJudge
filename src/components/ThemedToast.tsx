@@ -13,5 +13,5 @@ import { useTheme } from '@/theme';
 export function ThemedToast() {
   const { isDark } = useTheme();
 
-  return <Toaster theme={isDark ? 'dark' : 'light'} richColors position="top-center" />;
+  return <Toaster theme={isDark ? 'dark' : 'light'} richColors position="bottom-center" />;
 }
