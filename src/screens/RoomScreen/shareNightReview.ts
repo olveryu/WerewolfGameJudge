@@ -20,14 +20,21 @@ export async function captureNightReviewCard(ref: RefObject<View | null>): Promi
     if (!node) throw new Error('Night review share card ref not ready');
     const canvas = await html2canvas(node, {
       backgroundColor: null,
-      // Walk all ancestors in the *cloned* DOM and clear overflow clipping.
-      // RN Web sets overflow:hidden on View by default; the RoomScreen container
-      // clips the off-screen share card. onclone modifies only the clone.
+      // Fix html2canvas capture for off-screen share card:
+      // 1. Clear overflow:hidden on all ancestors (RN Web default) with !important
+      // 2. Reposition the off-screen container (top:-9999) back to normal flow
+      // onclone only modifies the cloned DOM in html2canvas's internal iframe.
       onclone: (_doc: Document, clonedEl: HTMLElement) => {
         let el: HTMLElement | null = clonedEl;
         while (el) {
-          el.style.overflow = 'visible';
+          el.style.setProperty('overflow', 'visible', 'important');
           el = el.parentElement;
+        }
+        // Move the hidden container from position:absolute;top:-9999 into
+        // normal document flow so html2canvas lays out content correctly.
+        const container = clonedEl.parentElement;
+        if (container) {
+          container.style.position = 'static';
         }
       },
     });
