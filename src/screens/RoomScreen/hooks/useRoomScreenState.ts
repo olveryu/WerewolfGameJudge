@@ -22,6 +22,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import type { RootStackParamList } from '@/navigation/types';
+import { useColors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
@@ -29,7 +30,11 @@ import { isMiniProgram } from '@/utils/miniProgram';
 
 import { buildNightReviewData } from '../NightReview.helpers';
 import { getWolfVoteSummary, toGameRoomLike } from '../RoomScreen.helpers';
-import { captureNightReviewCard, shareNightReviewReportImage } from '../shareNightReview';
+import {
+  captureNightReviewCard,
+  renderNightReviewToCanvas,
+  shareNightReviewReportImage,
+} from '../shareNightReview';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
 import { useRoomSeatDialogs } from '../useRoomSeatDialogs';
@@ -89,6 +94,7 @@ export function useRoomScreenState(
   } = params;
 
   const { audioService } = useServices();
+  const colors = useColors();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Core game room hook
@@ -521,18 +527,10 @@ export function useRoomScreenState(
     // Use base64 pre-captured by beginReportCapture (triggered when "详细信息" alert opened)
     const base64 = cachedShareBase64Ref.current;
 
-    // Mini program web-view: show long-press overlay instead of system share
+    // Mini program web-view: use Canvas 2D renderer (html2canvas has clipping issues)
     if (isMiniProgram()) {
-      if (base64) {
-        setLongPressShareBase64(base64);
-        return;
-      }
-      const freshBase64 = await beginReportCapture();
-      if (!freshBase64) {
-        showErrorAlert('分享失败', '无法生成战报截图，请稍后重试');
-        return;
-      }
-      setLongPressShareBase64(freshBase64);
+      const canvasBase64 = renderNightReviewToCanvas(nightReviewData, roomNumber, colors);
+      setLongPressShareBase64(canvasBase64);
       return;
     }
 
@@ -557,7 +555,7 @@ export function useRoomScreenState(
     if (result === 'failed') {
       showErrorAlert('分享失败', '无法分享战报，请稍后重试');
     }
-  }, [nightReviewData, roomNumber, beginReportCapture]);
+  }, [nightReviewData, roomNumber, beginReportCapture, colors]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Modal / dialog state (role card, skill preview, night review, share review)
