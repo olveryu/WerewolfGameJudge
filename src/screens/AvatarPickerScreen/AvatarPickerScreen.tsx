@@ -152,6 +152,15 @@ export const AvatarPickerScreen: React.FC = () => {
       key: String(i),
       index: i,
     }));
+    // Sort: unlocked (free + collected) first, locked last
+    items.sort((a, b) => {
+      const aUnlocked =
+        AVATAR_KEYS[a.index] === FREE_AVATAR_ROLE || collectedRoleIds.has(AVATAR_KEYS[a.index]);
+      const bUnlocked =
+        AVATAR_KEYS[b.index] === FREE_AVATAR_ROLE || collectedRoleIds.has(AVATAR_KEYS[b.index]);
+      if (aUnlocked === bUnlocked) return 0;
+      return aUnlocked ? -1 : 1;
+    });
     const remainder = items.length % NUM_COLUMNS;
     if (remainder !== 0) {
       for (let i = 0; i < NUM_COLUMNS - remainder; i++) {
@@ -159,7 +168,7 @@ export const AvatarPickerScreen: React.FC = () => {
       }
     }
     return items;
-  }, []);
+  }, [collectedRoleIds]);
 
   // ── Handlers ──
 
