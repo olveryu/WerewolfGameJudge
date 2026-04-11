@@ -443,7 +443,7 @@ export const HomeScreen: React.FC = () => {
         <View style={[styles.topBar, { paddingTop: insets.top + layout.headerPaddingV }]}>
           <View style={styles.topBarBrand}>
             <Text style={styles.topBarLogo}>{BRAND.APP}</Text>
-            <Text style={styles.topBarTitle}>狼人杀法官</Text>
+            <Text style={styles.topBarTitle}>大柠檬狼助手</Text>
           </View>
           <View style={styles.topBarActions}>
             <Button

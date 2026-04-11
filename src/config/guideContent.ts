@@ -15,7 +15,7 @@ import { AVATAR_IMAGES } from '@/utils/avatar';
 
 export const HOME_GUIDE = {
   titleEmoji: '🏠',
-  title: '欢迎来到狼人杀法官',
+  title: '欢迎来到大柠檬狼助手',
   items: [
     { emoji: '🎯', text: '加入房间 —— 输入朋友给的 4 位房间码' },
     { emoji: '⊕', text: '创建房间 —— 选模板，一键开新局' },
