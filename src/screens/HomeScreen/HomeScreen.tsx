@@ -26,7 +26,6 @@ import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { PressableScale } from '@/components/PressableScale';
 import { getDailyQuote } from '@/config/dailyQuotes';
-import { BRAND } from '@/config/emojiTokens';
 import { HOME_GUIDE } from '@/config/guideContent';
 import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
 import { LAST_ROOM_NUMBER_KEY, type TipId, tipStorageKey } from '@/config/storageKeys';
@@ -470,8 +469,7 @@ export const HomeScreen: React.FC = () => {
         {/* ── Top Bar ─────────────────────────────────── */}
         <View style={[styles.topBar, { paddingTop: insets.top + layout.headerPaddingV }]}>
           <View style={styles.topBarBrand}>
-            <Text style={styles.topBarLogo}>{BRAND.APP}</Text>
-            <Text style={styles.topBarTitle}>大柠檬狼助手</Text>
+            <Text style={styles.topBarTitle}>大柠檬助手</Text>
           </View>
           <View style={styles.topBarActions}>
             <Button

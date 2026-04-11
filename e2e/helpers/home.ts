@@ -56,7 +56,7 @@ const ERROR_RECOVERY_PATTERNS = [
  * Uses app title as hydration indicator.
  */
 export async function waitForAppReady(page: Page, timeoutMs = 15000): Promise<void> {
-  await page.waitForSelector('text=大柠檬狼助手', { timeout: timeoutMs });
+  await page.waitForSelector('text=大柠檬助手', { timeout: timeoutMs });
 }
 
 /**

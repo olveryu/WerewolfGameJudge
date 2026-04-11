@@ -2,7 +2,7 @@
   "pages": ["pages/index/index"],
   "window": {
     "navigationStyle": "default",
-    "navigationBarTitleText": "大柠檬狼助手",
+    "navigationBarTitleText": "大柠檬助手",
     "navigationBarBackgroundColor": "#6366F1",
     "navigationBarTextStyle": "white"
   }
