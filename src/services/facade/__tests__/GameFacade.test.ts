@@ -12,7 +12,7 @@ import { GameStatus } from '@werewolf/game-engine';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStore } from '@werewolf/game-engine/engine/store';
-import type { Player } from '@werewolf/game-engine/protocol/types';
+import type { Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
 
 import { ConnectionState } from '@/services/connection/types';
 import { GameFacade } from '@/services/facade/GameFacade';
@@ -116,18 +116,21 @@ describe('GameFacade', () => {
     let state = testStore.getState()!;
 
     for (let i = 0; i < template.numberOfPlayers; i++) {
+      const uid = i === 0 ? 'host-uid' : `player-${i}`;
       const player: Player = {
-        uid: i === 0 ? 'host-uid' : `player-${i}`,
+        uid,
         seatNumber: i,
-        displayName: `Player ${i}`,
-        avatarUrl: undefined,
         role: null, // 必须包含 role: null
         hasViewedRole: false,
       };
 
+      const rosterEntry: RosterEntry = {
+        displayName: `Player ${i}`,
+      };
+
       const action: PlayerJoinAction = {
         type: 'PLAYER_JOIN',
-        payload: { seat: i, player },
+        payload: { seat: i, player, rosterEntry },
       };
 
       state = gameReducer(state, action);
@@ -326,6 +329,7 @@ describe('GameFacade', () => {
               isAudioPlaying: false,
               actions: [],
               pendingRevealAcks: [],
+              roster: {},
             },
             revision: 2,
           }),
@@ -363,6 +367,7 @@ describe('GameFacade', () => {
         isAudioPlaying: false,
         actions: [],
         pendingRevealAcks: [],
+        roster: {},
       };
 
       testStore.applySnapshot(state as any, 5);

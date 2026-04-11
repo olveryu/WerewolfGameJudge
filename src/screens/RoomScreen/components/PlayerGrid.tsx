@@ -39,6 +39,8 @@ interface PlayerGridProps {
   controlledSeat?: number | null;
   /** Whether to show bot roles (isHost && debugMode?.botsEnabled) */
   showBotRoles?: boolean;
+  /** Whether to show player levels on seat tiles (lobby phases only) */
+  showLevels?: boolean;
 }
 
 const PlayerGridComponent: React.FC<PlayerGridProps> = ({
@@ -49,6 +51,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   disabled = false,
   controlledSeat = null,
   showBotRoles = false,
+  showLevels = false,
 }) => {
   const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
@@ -140,6 +143,8 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           showBotRole={showBotRoles && seat.player?.isBot === true}
           showReadyBadge={seat.showReadyBadge === true}
           wolfVoteBadge={seat.wolfVoteBadge}
+          playerLevel={seat.player?.level}
+          showLevel={showLevels}
           styles={seatTileStyles}
           onPress={handleSeatPress}
           onLongPress={handleSeatLongPress}

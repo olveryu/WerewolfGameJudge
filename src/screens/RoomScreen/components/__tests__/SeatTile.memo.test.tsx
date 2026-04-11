@@ -56,6 +56,7 @@ describe('SeatTile memo optimization', () => {
     playerAvatarUrl: undefined,
     playerDisplayName: 'Player 1',
     isPlayerAnonymous: true,
+    showLevel: false,
     styles: mockStyles,
     onPress: jest.fn(),
   };
@@ -150,6 +151,7 @@ describe('SeatTile memo logic', () => {
       playerAvatarUrl: 'https://example.com/avatar.png',
       playerDisplayName: 'Player 1',
       isPlayerAnonymous: false,
+      showLevel: false,
       styles: mockStyles,
       onPress: jest.fn(),
     };
@@ -183,6 +185,7 @@ describe('SeatTile memo logic', () => {
       playerUid: null,
       playerDisplayName: null,
       isPlayerAnonymous: false,
+      showLevel: false,
       styles: mockStyles,
       onPress: jest.fn(),
     };
@@ -256,6 +259,7 @@ describe('createSeatTileStyles optimization', () => {
     playerAvatarUrl: undefined,
     playerDisplayName: 'Player 1',
     isPlayerAnonymous: true,
+    showLevel: false,
     onPress: jest.fn(),
   };
 });

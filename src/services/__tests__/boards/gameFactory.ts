@@ -89,15 +89,15 @@ export function createGame(
   }
 
   const initialPlayers: Record<number, GameState['players'][number]> = {};
+  const roster: Record<string, { displayName: string }> = {};
   for (let i = 0; i < template.numberOfPlayers; i++) {
     initialPlayers[i] = {
       uid: `player_${i}`,
       seatNumber: i,
-      displayName: `Player ${i + 1}`,
-      avatarUrl: undefined,
       role: null,
       hasViewedRole: false,
     };
+    roster[`player_${i}`] = { displayName: `Player ${i + 1}` };
   }
 
   let state: GameState = {
@@ -110,6 +110,7 @@ export function createGame(
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster,
   };
 
   const assignments: Record<number, RoleId> = {};

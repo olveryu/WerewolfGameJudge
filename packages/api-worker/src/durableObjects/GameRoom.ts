@@ -202,6 +202,7 @@ export class GameRoom extends DurableObject<Env> {
     avatarUrl?: string,
     avatarFrame?: string,
     targetSeat?: number,
+    level?: number,
   ): Promise<GameActionResult> {
     return this.#processAction(
       (state) => {
@@ -216,6 +217,7 @@ export class GameRoom extends DurableObject<Env> {
                 displayName: displayName ?? '',
                 avatarUrl,
                 avatarFrame,
+                level,
               },
             },
             ctx,

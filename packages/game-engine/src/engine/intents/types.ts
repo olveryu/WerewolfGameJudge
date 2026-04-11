@@ -20,6 +20,7 @@ export interface JoinSeatIntent {
     displayName: string;
     avatarUrl?: string;
     avatarFrame?: string;
+    level?: number;
   };
 }
 
@@ -115,7 +116,7 @@ export interface ShareNightReviewIntent {
 // =============================================================================
 
 /**
- * 更新在座玩家的显示资料（displayName / avatarUrl）
+ * 更新在座玩家的展示资料（roster 字段）
  * 任何在座玩家均可调用（更新自己的资料）
  */
 export interface UpdatePlayerProfileIntent {

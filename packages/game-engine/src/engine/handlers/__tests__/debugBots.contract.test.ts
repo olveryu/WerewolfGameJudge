@@ -26,7 +26,6 @@ function createMinimalPlayer(seat: number, overrides?: Partial<Player>): Player 
   return {
     uid: `player-${seat}`,
     seatNumber: seat,
-    displayName: `Player ${seat + 1}`,
     hasViewedRole: false,
     role: null,
     ...overrides,
@@ -50,6 +49,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     currentNightResults: {},
     ...overrides,
   };

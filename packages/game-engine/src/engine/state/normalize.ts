@@ -77,6 +77,8 @@ export function normalizeState(raw: GameState): GameState {
     templateRoles: requireField(raw.templateRoles, 'templateRoles'),
     // ⚠️ Phase 1: players 保持原样，不做 key 规范化
     players: requireField(raw.players, 'players'),
+    // 玩家画像（roster），keyed by uid
+    roster: raw.roster ?? {},
     currentStepIndex: requireField(raw.currentStepIndex, 'currentStepIndex'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
 

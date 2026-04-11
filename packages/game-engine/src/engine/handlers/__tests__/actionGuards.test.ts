@@ -35,6 +35,7 @@ function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     ...overrides,
   } as NonNullState;
 }
@@ -326,7 +327,7 @@ describe('validateActionPreconditions', () => {
       currentStepId: 'seerCheck',
       players: {
         0: null,
-        1: { uid: 'p1', seatNumber: 1, displayName: 'P1', role: 'wolf', hasViewedRole: true },
+        1: { uid: 'p1', seatNumber: 1, role: 'wolf', hasViewedRole: true },
       },
     });
     const result = validateActionPreconditions(state, 0, 'seer');

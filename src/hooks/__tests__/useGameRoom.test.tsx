@@ -140,6 +140,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         'Test Player',
         undefined,
         undefined,
+        undefined,
       );
     });
 

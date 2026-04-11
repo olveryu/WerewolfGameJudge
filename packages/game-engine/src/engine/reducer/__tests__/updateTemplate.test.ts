@@ -8,6 +8,7 @@ import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RosterEntry } from '@werewolf/game-engine/protocol/types';
 
 interface PlayerInput {
   uid: string;
@@ -22,6 +23,7 @@ function createStateWithPlayers(
 ): GameState {
   const templateRoles: RoleId[] = players.map(() => 'villager'); // placeholder
   const playersMap: GameState['players'] = {};
+  const roster: Record<string, RosterEntry> = {};
 
   for (let i = 0; i < players.length; i++) {
     const p = players[i];
@@ -29,10 +31,12 @@ function createStateWithPlayers(
       playersMap[i] = {
         uid: p.uid,
         seatNumber: i,
-        displayName: p.displayName,
-        avatarUrl: p.avatarUrl,
         role: p.role ?? null,
         hasViewedRole: false,
+      };
+      roster[p.uid] = {
+        displayName: p.displayName,
+        avatarUrl: p.avatarUrl,
       };
     } else {
       playersMap[i] = null;
@@ -48,6 +52,7 @@ function createStateWithPlayers(
     status: allSeated ? GameStatus.Seated : GameStatus.Unseated,
     templateRoles,
     players: playersMap,
+    roster,
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],
@@ -69,9 +74,9 @@ describe('UPDATE_TEMPLATE player retention', () => {
     });
 
     expect(newState.players[0]?.uid).toBe('u1');
-    expect(newState.players[0]?.displayName).toBe('Player1');
+    expect(newState.roster['u1']?.displayName).toBe('Player1');
     expect(newState.players[1]?.uid).toBe('u2');
-    expect(newState.players[1]?.displayName).toBe('Player2');
+    expect(newState.roster['u2']?.displayName).toBe('Player2');
     expect(newState.status).toBe(GameStatus.Seated);
   });
 
@@ -133,7 +138,7 @@ describe('UPDATE_TEMPLATE player retention', () => {
       payload: { templateRoles: ['wolf'] },
     });
 
-    expect(newState.players[0]?.avatarUrl).toBe('https://example.com/avatar.png');
+    expect(newState.roster['u1']?.avatarUrl).toBe('https://example.com/avatar.png');
   });
 
   it('should handle partial seating correctly', () => {

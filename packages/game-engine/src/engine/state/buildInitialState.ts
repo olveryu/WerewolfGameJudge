@@ -25,6 +25,7 @@ export function buildInitialGameState(
     status: GameStatus.Unseated,
     templateRoles: template.roles,
     players,
+    roster: {},
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],

@@ -41,6 +41,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     ...overrides,
   };
 }
@@ -199,7 +200,6 @@ describe('handleJoinSeat', () => {
           seatNumber: 0,
           role: null,
           hasViewedRole: false,
-          displayName: 'Alice',
         },
         1: null,
         2: null,
@@ -233,7 +233,6 @@ describe('handleJoinSeat', () => {
           seatNumber: 0,
           role: null,
           hasViewedRole: false,
-          displayName: 'Alice',
         },
         1: null,
         2: null,
@@ -435,7 +434,7 @@ describe('handleUpdatePlayerProfile', () => {
   it('should succeed and produce UPDATE_PLAYER_PROFILE action when seated', () => {
     const state = createMinimalState({
       players: {
-        0: { uid: 'player-1', seatNumber: 0, displayName: 'Old', role: null, hasViewedRole: false },
+        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
       },
@@ -449,7 +448,12 @@ describe('handleUpdatePlayerProfile', () => {
     expect(success.actions).toHaveLength(1);
     expect(success.actions[0]).toEqual({
       type: 'UPDATE_PLAYER_PROFILE',
-      payload: { seat: 0, displayName: 'Alice', avatarUrl: 'https://img/a.png' },
+      payload: {
+        uid: 'player-1',
+        displayName: 'Alice',
+        avatarUrl: 'https://img/a.png',
+        avatarFrame: undefined,
+      },
     });
     expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
@@ -473,7 +477,12 @@ describe('handleUpdatePlayerProfile', () => {
     expect(action.type).toBe('UPDATE_PLAYER_PROFILE');
     expect(action).toEqual({
       type: 'UPDATE_PLAYER_PROFILE',
-      payload: { seat: 0, displayName: 'Bob', avatarUrl: undefined },
+      payload: {
+        uid: 'player-1',
+        displayName: 'Bob',
+        avatarUrl: undefined,
+        avatarFrame: undefined,
+      },
     });
   });
 });

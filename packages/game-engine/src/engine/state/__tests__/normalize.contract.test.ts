@@ -24,6 +24,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'status',
   'templateRoles',
   'players',
+  'roster',
   'currentStepIndex',
   'isAudioPlaying',
 
@@ -123,6 +124,7 @@ describe('normalizeState contract', () => {
       players: {
         1: { uid: 'p1', seatNumber: 1, hasViewedRole: true },
       },
+      roster: { p1: { displayName: 'P1' } },
       currentStepIndex: 0,
       isAudioPlaying: false,
 
@@ -262,6 +264,7 @@ describe('normalizeState contract', () => {
       isAudioPlaying: false,
       actions: [],
       pendingRevealAcks: [],
+      roster: {},
     };
 
     const normalized = normalizeState(minimalState);

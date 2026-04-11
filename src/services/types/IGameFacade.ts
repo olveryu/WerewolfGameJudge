@@ -115,6 +115,7 @@ export interface IGameFacade {
     displayName?: string,
     avatarUrl?: string,
     avatarFrame?: string,
+    level?: number,
   ): Promise<boolean>;
 
   /**
@@ -127,6 +128,7 @@ export interface IGameFacade {
     displayName?: string,
     avatarUrl?: string,
     avatarFrame?: string,
+    level?: number,
   ): Promise<{ success: boolean; reason?: string }>;
 
   /**

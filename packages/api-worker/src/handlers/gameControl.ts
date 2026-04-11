@@ -38,8 +38,10 @@ export const handleSeat: HandlerFn = async (req, env) => {
     displayName?: string;
     avatarUrl?: string;
     avatarFrame?: string;
+    level?: number;
   };
-  const { roomCode, action, uid, seat, targetSeat, displayName, avatarUrl, avatarFrame } = body;
+  const { roomCode, action, uid, seat, targetSeat, displayName, avatarUrl, avatarFrame, level } =
+    body;
 
   if (!roomCode || !uid || !action) return missingParams(env);
   if (action !== 'sit' && action !== 'standup' && action !== 'kick') {
@@ -62,6 +64,7 @@ export const handleSeat: HandlerFn = async (req, env) => {
       avatarUrl,
       avatarFrame,
       targetSeat,
+      level,
     );
   }, env);
   if (doResult instanceof Response) return doResult;

@@ -71,13 +71,30 @@ export interface AudioEffect {
 export interface Player {
   uid: string;
   seatNumber: number;
-  displayName?: string;
-  avatarUrl?: string;
-  avatarFrame?: string;
   role?: RoleId | null;
   hasViewedRole: boolean;
   /** Debug mode: true if this is a bot placeholder (not a real player) */
   isBot?: boolean;
+}
+
+// =============================================================================
+// 玩家画像（RosterEntry）— 展示字段，与游戏逻辑分离
+// =============================================================================
+
+/**
+ * RosterEntry — 房间内玩家的展示信息（昵称 / 头像 / 等级）。
+ *
+ * 与 Player（游戏逻辑字段）分离：
+ * - Player: uid / seatNumber / role / hasViewedRole / isBot
+ * - RosterEntry: displayName / avatarUrl / avatarFrame / level
+ *
+ * keyed by uid in GameState.roster。
+ */
+export interface RosterEntry {
+  displayName: string;
+  avatarUrl?: string;
+  avatarFrame?: string;
+  level?: number;
 }
 
 // =============================================================================
@@ -112,6 +129,13 @@ export interface GameState {
 
   // ⚠️ Phase 1: players 保持 Record<number, ...> 不改，与现有实现一致
   players: Record<number, Player | null>;
+
+  /**
+   * 玩家画像（RosterEntry），keyed by uid。
+   * 展示字段（displayName / avatarUrl / avatarFrame / level）与 Player 分离。
+   * join 时写入，leave 时移除，updateProfile 时更新。
+   */
+  roster: Record<string, RosterEntry>;
 
   currentStepIndex: number;
   isAudioPlaying: boolean;

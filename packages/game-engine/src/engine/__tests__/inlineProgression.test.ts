@@ -36,6 +36,7 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     ...overrides,
   };
 }
@@ -60,6 +61,7 @@ function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     ...overrides,
   };
 }
@@ -238,6 +240,7 @@ describe('runInlineProgression', () => {
         isAudioPlaying: false,
         actions: [],
         pendingRevealAcks: [],
+        roster: {},
         treasureMasterChosenCard: 'seer',
         bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
         treasureMasterSeat: 0,
@@ -276,6 +279,7 @@ describe('runInlineProgression', () => {
         isAudioPlaying: false,
         actions: [],
         pendingRevealAcks: [],
+        roster: {},
         treasureMasterChosenCard: 'seer',
         bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
         treasureMasterSeat: 0,
@@ -317,6 +321,7 @@ describe('runInlineProgression', () => {
         isAudioPlaying: false,
         actions: [{ schemaId: 'wolfKill', actorSeat: 1, timestamp: 1 }],
         pendingRevealAcks: [],
+        roster: {},
         currentNightResults: { wolfVotesBySeat: { '1': 3 } },
         treasureMasterChosenCard: 'seer',
         bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],

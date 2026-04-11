@@ -19,6 +19,7 @@ import { useCallback, useState } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { SupersededError } from '@/services/connection/types';
+import { fetchUserStats } from '@/services/feature/StatsService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { IRoomService } from '@/services/types/IRoomService';
@@ -222,12 +223,16 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
         const avatarFrame = await authService.getCurrentAvatarFrame();
+        const level = await fetchUserStats()
+          .then((s) => s.level)
+          .catch(() => undefined);
 
         return await facade.takeSeat(
           seatNumber,
           displayName ?? undefined,
           avatarUrl ?? undefined,
           avatarFrame ?? undefined,
+          level,
         );
       } catch (err) {
         handleError(err, {
@@ -261,12 +266,16 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
         const avatarFrame = await authService.getCurrentAvatarFrame();
+        const level = await fetchUserStats()
+          .then((s) => s.level)
+          .catch(() => undefined);
 
         const result = await facade.takeSeatWithAck(
           seatNumber,
           displayName ?? undefined,
           avatarUrl ?? undefined,
           avatarFrame ?? undefined,
+          level,
         );
 
         // Wire up seat error for downstream consumers (e.g., showAlert in useRoomScreenState)

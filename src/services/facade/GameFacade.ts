@@ -369,6 +369,7 @@ export class GameFacade implements IGameFacade {
     displayName?: string,
     avatarUrl?: string,
     avatarFrame?: string,
+    level?: number,
   ): Promise<boolean> {
     return seatActions.takeSeat(
       this.#getSeatActionsContext(),
@@ -376,6 +377,7 @@ export class GameFacade implements IGameFacade {
       displayName,
       avatarUrl,
       avatarFrame,
+      level,
     );
   }
 
@@ -384,6 +386,7 @@ export class GameFacade implements IGameFacade {
     displayName?: string,
     avatarUrl?: string,
     avatarFrame?: string,
+    level?: number,
   ): Promise<{ success: boolean; reason?: string }> {
     return seatActions.takeSeatWithAck(
       this.#getSeatActionsContext(),
@@ -391,6 +394,7 @@ export class GameFacade implements IGameFacade {
       displayName,
       avatarUrl,
       avatarFrame,
+      level,
     );
   }
 

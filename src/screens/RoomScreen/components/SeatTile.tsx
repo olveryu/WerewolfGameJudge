@@ -73,6 +73,7 @@ export interface SeatTileStyles {
   playerNameHighlight: TextStyle;
   playerNamePlaceholder: ViewStyle;
   botRoleName: TextStyle;
+  levelLabel: TextStyle;
 }
 
 export interface SeatTileProps {
@@ -103,6 +104,10 @@ export interface SeatTileProps {
   showReadyBadge: boolean;
   /** Pre-formatted wolf vote badge text. Visible to wolf-faction only. */
   wolfVoteBadge?: string;
+  /** Player level (from growth system). */
+  playerLevel?: number;
+  /** Whether to show the level label below the player name (lobby phases only). */
+  showLevel: boolean;
   // Styles (created once in PlayerGrid)
   styles: SeatTileStyles;
   onPress: (seat: number, disabledReason?: string) => void;
@@ -131,6 +136,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   showBotRole,
   showReadyBadge,
   wolfVoteBadge,
+  playerLevel,
+  showLevel,
   styles,
   onPress,
   onLongPress,
@@ -394,6 +401,11 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
               {botRoleDisplayName}
             </Text>
           )}
+          {showLevel && playerLevel != null && !botRoleDisplayName && (
+            <Text style={styles.levelLabel} numberOfLines={1}>
+              Lv.{playerLevel}
+            </Text>
+          )}
         </>
       ) : (
         <View style={styles.playerNamePlaceholder} />
@@ -538,6 +550,13 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       height: typography.subtitle,
     },
     botRoleName: {
+      fontSize: typography.captionSmall,
+      lineHeight: typography.lineHeights.captionSmall,
+      color: colors.textMuted,
+      textAlign: 'center',
+      width: tileSize - spacing.tight,
+    },
+    levelLabel: {
       fontSize: typography.captionSmall,
       lineHeight: typography.lineHeights.captionSmall,
       color: colors.textMuted,

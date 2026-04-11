@@ -22,13 +22,14 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Assigned,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { uid: 'p0', seatNumber: 0, displayName: 'P0', role: 'seer', hasViewedRole: false },
-      1: { uid: 'p1', seatNumber: 1, displayName: 'P1', role: 'wolf', hasViewedRole: false },
+      0: { uid: 'p0', seatNumber: 0, role: 'seer', hasViewedRole: false },
+      1: { uid: 'p1', seatNumber: 1, role: 'wolf', hasViewedRole: false },
     },
     currentStepIndex: -1,
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     ...overrides,
   };
 }

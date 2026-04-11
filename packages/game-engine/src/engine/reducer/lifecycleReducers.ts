@@ -85,6 +85,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     templateRoles: state.templateRoles,
     roleRevealAnimation: state.roleRevealAnimation,
     debugMode: state.debugMode,
+    roster: state.roster,
 
     // ── 重置字段 ─────────────────────────────────────────
     players,
@@ -215,7 +216,7 @@ export function handleSetRoleRevealAnimation(
 }
 
 export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): GameState {
-  const { seat, player } = action.payload;
+  const { seat, player, rosterEntry } = action.payload;
   const newPlayers = { ...state.players, [seat]: player };
   const allSeated = Object.values(newPlayers).every((p) => p !== null);
   const newStatus = allSeated ? GameStatus.Seated : state.status;
@@ -223,15 +224,22 @@ export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): Ga
   return {
     ...state,
     players: newPlayers,
+    roster: { ...state.roster, [player.uid]: rosterEntry },
     status: newStatus,
   };
 }
 
 export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): GameState {
   const { seat } = action.payload;
+  const leavingPlayer = state.players[seat];
+  const newRoster = { ...state.roster };
+  if (leavingPlayer) {
+    delete newRoster[leavingPlayer.uid];
+  }
   return {
     ...state,
     players: { ...state.players, [seat]: null },
+    roster: newRoster,
     status: state.status === GameStatus.Seated ? GameStatus.Unseated : state.status,
   };
 }
@@ -240,16 +248,16 @@ export function handleUpdatePlayerProfile(
   state: GameState,
   action: UpdatePlayerProfileAction,
 ): GameState {
-  const { seat, displayName, avatarUrl, avatarFrame } = action.payload;
-  const player = state.players[seat];
-  if (!player) return state; // no-op if seat is empty (defensive)
+  const { uid, displayName, avatarUrl, avatarFrame } = action.payload;
+  const existing = state.roster[uid];
+  if (!existing) return state; // no-op if uid not in roster
 
   return {
     ...state,
-    players: {
-      ...state.players,
-      [seat]: {
-        ...player,
+    roster: {
+      ...state.roster,
+      [uid]: {
+        ...existing,
         ...(displayName !== undefined && { displayName }),
         ...(avatarUrl !== undefined && { avatarUrl }),
         ...(avatarFrame !== undefined && { avatarFrame }),
@@ -314,7 +322,7 @@ export function handlePlayerViewedRole(
 }
 
 export function handleFillWithBots(state: GameState, action: FillWithBotsAction): GameState {
-  const { bots } = action.payload;
+  const { bots, botRoster } = action.payload;
 
   // 合并现有玩家和 bot
   const newPlayers = { ...state.players };
@@ -329,6 +337,7 @@ export function handleFillWithBots(state: GameState, action: FillWithBotsAction)
   return {
     ...state,
     players: newPlayers,
+    roster: { ...state.roster, ...botRoster },
     status: allSeated ? GameStatus.Seated : state.status,
     debugMode: { botsEnabled: true },
   };

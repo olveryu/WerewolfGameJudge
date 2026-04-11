@@ -37,6 +37,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     currentNightResults: {},
     ...overrides,
   };

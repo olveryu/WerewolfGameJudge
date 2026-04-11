@@ -6,7 +6,7 @@
 
 import type { RoleId, SchemaId } from '../../models';
 import type { WolfKillOverride } from '../../models/roles/spec/schema.types';
-import type { ConfirmStatus, Player, ProtocolAction } from '../../protocol/types';
+import type { ConfirmStatus, Player, ProtocolAction, RosterEntry } from '../../protocol/types';
 import type { AudioEffect, BoardNomination } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
 import type { RoleRevealAnimation } from '../../types';
@@ -54,6 +54,7 @@ export interface PlayerJoinAction {
   payload: {
     seat: number;
     player: Player;
+    rosterEntry: RosterEntry;
   };
 }
 
@@ -65,12 +66,12 @@ export interface PlayerLeaveAction {
 }
 
 /**
- * 更新在座玩家的显示资料（displayName / avatarUrl）
+ * 更新在座玩家的展示资料（roster 字段：displayName / avatarUrl / avatarFrame）
  */
 export interface UpdatePlayerProfileAction {
   type: 'UPDATE_PLAYER_PROFILE';
   payload: {
-    seat: number;
+    uid: string;
     displayName?: string;
     avatarUrl?: string;
     avatarFrame?: string;
@@ -299,6 +300,8 @@ export interface FillWithBotsAction {
   payload: {
     /** bot players to add (keyed by seat number) */
     bots: Record<number, Player>;
+    /** bot roster entries to add (keyed by uid) */
+    botRoster: Record<string, RosterEntry>;
   };
 }
 

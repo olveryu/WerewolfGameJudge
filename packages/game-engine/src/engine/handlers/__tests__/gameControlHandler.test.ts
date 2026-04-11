@@ -33,6 +33,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     ...overrides,
   };
 }

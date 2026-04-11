@@ -27,6 +27,7 @@ export interface LocalPlayer {
   displayName?: string;
   avatarUrl?: string;
   avatarFrame?: string;
+  level?: number;
   role: RoleId | null;
   hasViewedRole: boolean;
   /** Debug mode: true if this is a bot placeholder (not a real player) */
@@ -49,6 +50,7 @@ type TransformedKeys =
   | 'status' // string literal union → GameStatus enum
   | 'templateRoles' // RoleId[] → GameTemplate
   | 'players' // Record<number, Player> → Map<number, LocalPlayer>
+  | 'roster' // merged into LocalPlayer (display fields)
   | 'actions' // ProtocolAction[] → Map<RoleId, RoleAction>
   | 'currentNightResults' // optional → required (default {})
   | 'lastNightDeaths'; // optional → required (default [])

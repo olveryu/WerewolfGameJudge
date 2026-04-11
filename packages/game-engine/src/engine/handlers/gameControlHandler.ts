@@ -17,7 +17,7 @@ import { WOLF_KILL_OVERRIDE_TEXTS } from '../../models/roles/spec/schema.types';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import { Faction } from '../../models/roles/spec/types';
 import { getBottomCardCount, getBottomCardRoleId, getPlayerCount } from '../../models/Template';
-import type { Player } from '../../protocol/types';
+import type { Player, RosterEntry } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { formatSeat } from '../../utils/formatSeat';
 import { randomHex } from '../../utils/id';
@@ -460,22 +460,26 @@ export function handleFillWithBots(
       .map(([seat]) => Number.parseInt(seat, 10)),
   );
   const bots: Record<number, Player> = {};
+  const botRoster: Record<string, RosterEntry> = {};
 
   for (let seat = 0; seat < seatCount; seat++) {
     if (!occupiedSeats.has(seat)) {
+      const uid = `bot-${seat}`;
       bots[seat] = {
-        uid: `bot-${seat}`,
+        uid,
         seatNumber: seat,
-        displayName: `机器人${formatSeat(seat)}`,
         hasViewedRole: false,
         isBot: true,
+      };
+      botRoster[uid] = {
+        displayName: `机器人${formatSeat(seat)}`,
       };
     }
   }
 
   const action: FillWithBotsAction = {
     type: 'FILL_WITH_BOTS',
-    payload: { bots },
+    payload: { bots, botRoster },
   };
 
   return handlerSuccess([action], STANDARD_SIDE_EFFECTS);

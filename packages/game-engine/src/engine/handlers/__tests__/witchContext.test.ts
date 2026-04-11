@@ -17,7 +17,6 @@ function createPlayer(seat: number, role: string): Player {
   return {
     uid: `uid-${seat}`,
     seatNumber: seat,
-    displayName: `Player ${seat}`,
     role: role as Player['role'],
     hasViewedRole: true,
   };
@@ -39,6 +38,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     actions: [],
     currentNightResults: {},
     pendingRevealAcks: [],
+    roster: {},
     deaths: [],
     wolfKillOverride: undefined,
     isAudioPlaying: false,

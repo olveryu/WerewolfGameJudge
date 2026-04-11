@@ -21,20 +21,21 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
-import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
+import type { GameState, Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
 
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
 /**
- * 将 Player 转换为 LocalPlayer
+ * 将 Player + RosterEntry 转换为 LocalPlayer
  */
-function toLocalPlayer(bp: Player, seatNumber: number): LocalPlayer {
+function toLocalPlayer(bp: Player, seatNumber: number, roster?: RosterEntry): LocalPlayer {
   return {
     uid: bp.uid,
     seatNumber,
-    displayName: bp.displayName,
-    avatarUrl: bp.avatarUrl,
-    avatarFrame: bp.avatarFrame,
+    displayName: roster?.displayName,
+    avatarUrl: roster?.avatarUrl,
+    avatarFrame: roster?.avatarFrame,
+    level: roster?.level,
     role: bp.role ?? null,
     hasViewedRole: bp.hasViewedRole,
     isBot: bp.isBot,
@@ -67,6 +68,7 @@ export function toLocalState(state: GameState): LocalGameState {
     currentNightResults: nightResults,
     lastNightDeaths,
     status,
+    roster,
     ...passthroughFields
   } = state;
 
@@ -74,7 +76,7 @@ export function toLocalState(state: GameState): LocalGameState {
   const playersMap = new Map<number, LocalPlayer | null>();
   for (const [seatStr, bp] of Object.entries(protocolPlayers)) {
     const seat = Number.parseInt(seatStr, 10);
-    playersMap.set(seat, bp ? toLocalPlayer(bp, seat) : null);
+    playersMap.set(seat, bp ? toLocalPlayer(bp, seat, roster?.[bp.uid]) : null);
   }
 
   // 2. templateRoles → template (使用 createTemplateFromRoles)

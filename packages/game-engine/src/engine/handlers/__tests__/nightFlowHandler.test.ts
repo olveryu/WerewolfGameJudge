@@ -40,7 +40,6 @@ function createPlayer(seat: number, role: string, overrides?: Partial<Player>): 
   return {
     uid: `player-${seat}`,
     seatNumber: seat,
-    displayName: `Player ${seat}`,
     role: role as Player['role'],
     hasViewedRole: true,
     ...overrides,
@@ -70,6 +69,7 @@ function createOngoingState(overrides?: Partial<GameState>): GameState {
     actions: [],
     currentNightResults: {},
     pendingRevealAcks: [],
+    roster: {},
     ...overrides,
   };
 }
@@ -234,6 +234,7 @@ describe('nightFlowHandler', () => {
           },
           wolfKillOverride: undefined,
           pendingRevealAcks: [],
+          roster: {},
         },
       };
 

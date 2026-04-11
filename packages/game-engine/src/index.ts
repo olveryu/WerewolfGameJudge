@@ -82,6 +82,7 @@ export {
   type Player,
   type PlayerMessage,
   type ProtocolAction,
+  type RosterEntry,
   type ShootConfirmStatus,
 } from './protocol/types';
 

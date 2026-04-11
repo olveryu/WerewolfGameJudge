@@ -36,6 +36,7 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     currentNightResults: {},
     ...overrides,
   };

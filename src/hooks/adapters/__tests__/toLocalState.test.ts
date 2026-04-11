@@ -10,14 +10,19 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'witch', 'seer'] as any,
     players: {
-      0: { uid: 'p0', seatNumber: 0, displayName: 'P1', hasViewedRole: true, role: 'wolf' as any },
-      1: { uid: 'p1', seatNumber: 1, displayName: 'P2', hasViewedRole: true, role: 'witch' as any },
-      2: { uid: 'p2', seatNumber: 2, displayName: 'P3', hasViewedRole: true, role: 'seer' as any },
+      0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' as any },
+      1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'witch' as any },
+      2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' as any },
     },
     currentStepIndex: 0,
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {
+      p0: { displayName: 'P1' },
+      p1: { displayName: 'P2' },
+      p2: { displayName: 'P3' },
+    },
     ...overrides,
   };
 }

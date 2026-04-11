@@ -32,6 +32,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    roster: {},
     ...overrides,
   };
 }
@@ -47,10 +48,10 @@ describe('gameReducer', () => {
           player: {
             uid: 'player-1',
             seatNumber: 0,
-            displayName: 'Alice',
             role: null,
             hasViewedRole: false,
           },
+          rosterEntry: { displayName: 'Alice' },
         },
       };
 
@@ -72,6 +73,7 @@ describe('gameReducer', () => {
         payload: {
           seat: 2,
           player: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+          rosterEntry: { displayName: 'P3' },
         },
       };
 
@@ -1391,7 +1393,13 @@ describe('gameReducer', () => {
       };
       const action = {
         type: 'FILL_WITH_BOTS' as const,
-        payload: { bots },
+        payload: {
+          bots,
+          botRoster: {
+            'bot-1': { displayName: '机器人2号' },
+            'bot-2': { displayName: '机器人3号' },
+          },
+        },
       };
 
       const newState = gameReducer(state, action);
@@ -1531,72 +1539,71 @@ describe('gameReducer', () => {
   });
 
   describe('UPDATE_PLAYER_PROFILE', () => {
-    it('should update displayName of seated player', () => {
-      const state = createMinimalState({
-        players: {
-          0: { uid: 'p1', seatNumber: 0, displayName: 'Old', role: null, hasViewedRole: false },
-          1: null,
-          2: null,
-        },
-      });
-      const action: UpdatePlayerProfileAction = {
-        type: 'UPDATE_PLAYER_PROFILE',
-        payload: { seat: 0, displayName: 'NewName' },
-      };
-
-      const newState = gameReducer(state, action);
-
-      expect(newState.players[0]?.displayName).toBe('NewName');
-    });
-
-    it('should update avatarUrl of seated player', () => {
+    it('should update displayName in roster', () => {
       const state = createMinimalState({
         players: {
           0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
           1: null,
           2: null,
         },
+        roster: { p1: { displayName: 'Old' } },
       });
       const action: UpdatePlayerProfileAction = {
         type: 'UPDATE_PLAYER_PROFILE',
-        payload: { seat: 0, avatarUrl: 'https://img/new.png' },
+        payload: { uid: 'p1', displayName: 'NewName' },
       };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.players[0]?.avatarUrl).toBe('https://img/new.png');
+      expect(newState.roster['p1']?.displayName).toBe('NewName');
     });
 
-    it('should not modify other player fields', () => {
-      const original = {
-        uid: 'p1',
-        seatNumber: 0,
-        displayName: 'Alice',
-        avatarUrl: 'https://img/old.png',
-        role: 'villager' as const,
-        hasViewedRole: true,
-      };
+    it('should update avatarUrl in roster', () => {
       const state = createMinimalState({
-        players: { 0: original, 1: null, 2: null },
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          1: null,
+          2: null,
+        },
+        roster: { p1: { displayName: 'P1' } },
       });
       const action: UpdatePlayerProfileAction = {
         type: 'UPDATE_PLAYER_PROFILE',
-        payload: { seat: 0, displayName: 'Bob' },
+        payload: { uid: 'p1', avatarUrl: 'https://img/new.png' },
       };
 
       const newState = gameReducer(state, action);
 
-      expect(newState.players[0]).toEqual({
-        ...original,
+      expect(newState.roster['p1']?.avatarUrl).toBe('https://img/new.png');
+    });
+
+    it('should not modify other roster fields', () => {
+      const state = createMinimalState({
+        players: {
+          0: { uid: 'p1', seatNumber: 0, role: 'villager' as const, hasViewedRole: true },
+          1: null,
+          2: null,
+        },
+        roster: { p1: { displayName: 'Alice', avatarUrl: 'https://img/old.png' } },
+      });
+      const action: UpdatePlayerProfileAction = {
+        type: 'UPDATE_PLAYER_PROFILE',
+        payload: { uid: 'p1', displayName: 'Bob' },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.roster['p1']).toEqual({
         displayName: 'Bob',
+        avatarUrl: 'https://img/old.png',
       });
     });
 
-    it('should no-op when seat is empty', () => {
+    it('should no-op when uid not in roster', () => {
       const state = createMinimalState();
       const action: UpdatePlayerProfileAction = {
         type: 'UPDATE_PLAYER_PROFILE',
-        payload: { seat: 0, displayName: 'Ghost' },
+        payload: { uid: 'ghost', displayName: 'Ghost' },
       };
 
       const newState = gameReducer(state, action);
