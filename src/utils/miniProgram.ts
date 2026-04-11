@@ -18,6 +18,12 @@ declare global {
         navigateBack(opts?: { delta?: number }): void;
         getEnv(cb: (res: { miniprogram: boolean }) => void): void;
       };
+      previewImage?(opts: {
+        current?: string;
+        urls: string[];
+        success?: () => void;
+        fail?: (err: { errMsg: string }) => void;
+      }): void;
     };
   }
 }
@@ -70,4 +76,22 @@ export function postCurrentUrl(): void {
   } catch {
     // JSSDK 未加载或调用失败，静默忽略
   }
+}
+
+/**
+ * 调用微信 JSSDK wx.previewImage 展示原生图片预览器。
+ * web-view 中可用；用户可长按保存/转发。需要 HTTP(S) URL（不支持 base64）。
+ */
+export function wxPreviewImage(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!window.wx?.previewImage) {
+      reject(new Error('wx.previewImage not available'));
+      return;
+    }
+    window.wx.previewImage({
+      urls: [url],
+      success: () => resolve(),
+      fail: (err) => reject(new Error(err.errMsg)),
+    });
+  });
 }

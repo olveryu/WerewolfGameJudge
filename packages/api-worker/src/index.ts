@@ -84,6 +84,8 @@ import {
   handleGetRoom,
 } from './handlers/roomHandlers';
 import type { HandlerFn } from './handlers/shared';
+// Share image handlers
+import { handleShareImageServe, handleShareImageUpload } from './handlers/shareImage';
 // Stats handlers
 import { handleGetUserStats } from './handlers/statsHandlers';
 
@@ -245,6 +247,17 @@ export default {
       if (segments[0] === 'avatar' && segments.length >= 3 && request.method === 'GET') {
         const key = segments.slice(1).join('/');
         return handleAvatarServe(request, env, key);
+      }
+
+      // /share/image (POST) — 临时分享图片上传到 R2
+      if (segments[0] === 'share' && segments[1] === 'image' && request.method === 'POST') {
+        return handleShareImageUpload(request, env);
+      }
+
+      // /share/:filename (GET) — R2 分享图片提供
+      if (segments[0] === 'share' && segments.length >= 2 && request.method === 'GET') {
+        const key = segments.join('/');
+        return handleShareImageServe(request, env, key);
       }
 
       // /api/user/stats (GET) — 用户成长数据

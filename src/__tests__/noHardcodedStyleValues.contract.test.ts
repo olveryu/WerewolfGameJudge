@@ -165,11 +165,11 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // Emoji fontSize: 28 for 🐺 logo — exempt per instructions
   'src/screens/HomeScreen/components/styles.ts': 1,
 
+  // Badge text on solid primary background (same as RoleCardContent BADGE_TEXT_WHITE)
+  'src/screens/HomeScreen/components/UserAvatar.tsx': 1,
+
   // TODO: Phase 1 — fontSize: 14 → typography.secondary
   'src/screens/RoomScreen/components/SeatTile.tsx': 0,
-
-  // Theme-independent dark lightbox overlay (mini program long-press share)
-  'src/screens/RoomScreen/components/LongPressShareOverlay.tsx': 2,
 
   // statusDot borderRadius: 3 — exempt per instructions (statusDot 6×6)
   'src/screens/SettingsScreen/components/styles.ts': 1,

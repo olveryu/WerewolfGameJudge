@@ -100,6 +100,7 @@ describe('Layer boundary: screens → services runtime imports (restricted)', ()
     'isAIChatReady',
     'BGM_TRACKS',
     'fetchUserStats',
+    'uploadShareImage',
   ];
 
   it.each(screensFiles)('%s runtime imports from services/ must be in allow-list', (filePath) => {

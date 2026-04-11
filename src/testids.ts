@@ -101,9 +101,6 @@ export const TESTIDS = {
   qrCodeModal: 'qr-code-modal',
   qrCodeShareButton: 'qr-code-share-button',
 
-  // LongPressShareOverlay
-  longPressShareOverlay: 'long-press-share-overlay',
-
   // RoleRevealEffects
   // Used by: RoleRevealEffects components, unit tests
   roleRevealModal: 'role-reveal-modal',

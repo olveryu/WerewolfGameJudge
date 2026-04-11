@@ -22,11 +22,12 @@ import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import type { RootStackParamList } from '@/navigation/types';
+import { uploadShareImage } from '@/services/feature/ShareImageService';
 import { useColors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
-import { isMiniProgram } from '@/utils/miniProgram';
+import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 
 import { buildNightReviewData } from '../NightReview.helpers';
 import { getWolfVoteSummary, toGameRoomLike } from '../RoomScreen.helpers';
@@ -497,10 +498,6 @@ export function useRoomScreenState(
   const [isCapturingShareCard, setIsCapturingShareCard] = useState(false);
   const cachedShareBase64Ref = useRef<string | null>(null);
 
-  // ── Long-press share overlay (mini program web-view) ──
-  const [longPressShareBase64, setLongPressShareBase64] = useState<string | null>(null);
-  const closeLongPressShareOverlay = useCallback(() => setLongPressShareBase64(null), []);
-
   // Begin report capture on demand (called when user opens "详细信息" alert).
   // Mounts the hidden share card, waits for paint, captures via html2canvas / captureRef.
   const beginReportCapture = useCallback(async (): Promise<string | null> => {
@@ -527,10 +524,16 @@ export function useRoomScreenState(
     // Use base64 pre-captured by beginReportCapture (triggered when "详细信息" alert opened)
     const base64 = cachedShareBase64Ref.current;
 
-    // Mini program web-view: use Canvas 2D renderer (html2canvas has clipping issues)
+    // Mini program web-view: Canvas 2D → upload to R2 → wx.previewImage
     if (isMiniProgram()) {
-      const canvasBase64 = renderNightReviewToCanvas(nightReviewData, roomNumber, colors);
-      setLongPressShareBase64(canvasBase64);
+      try {
+        const canvasBase64 = renderNightReviewToCanvas(nightReviewData, roomNumber, colors);
+        const url = await uploadShareImage(canvasBase64);
+        await wxPreviewImage(url);
+      } catch (err) {
+        roomScreenLog.error('Mini program share failed', err);
+        showErrorAlert('分享失败', '无法分享战报，请稍后重试');
+      }
       return;
     }
 
@@ -896,10 +899,6 @@ export function useRoomScreenState(
     shareReviewVisible,
     closeShareReview,
     shareNightReview: handleShareNightReview,
-
-    // ── Long-press share overlay (mini program) ──
-    longPressShareBase64,
-    closeLongPressShareOverlay,
 
     // ── Choose card modal (treasureMaster / thief) ──
     chooseCardModalVisible,
