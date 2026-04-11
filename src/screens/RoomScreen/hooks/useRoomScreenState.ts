@@ -17,7 +17,6 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
-import { toast } from 'sonner-native';
 
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
@@ -531,7 +530,6 @@ export function useRoomScreenState(
         const canvasBase64 = renderNightReviewToCanvas(nightReviewData, roomNumber, colors);
         const url = await uploadShareImage(canvasBase64);
         await wxPreviewImage(url);
-        toast.info('长按图片可保存或转发');
       } catch (err) {
         roomScreenLog.error('Mini program share failed', err);
         showErrorAlert('分享失败', '无法分享战报，请稍后重试');
