@@ -37,9 +37,12 @@ export class BgmPlayer {
   #gapTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ── Web backend ──
+  // AudioContext + GainNode are reused across tracks to avoid autoplay policy
+  // issues in WeChat web-view (new AudioContext() outside user gesture is blocked).
   #webElement: HTMLAudioElement | null = null;
   #webAudioCtx: AudioContext | null = null;
   #webGainNode: GainNode | null = null;
+  #webSourceNode: MediaElementAudioSourceNode | null = null;
   #webEndedHandler: (() => void) | null = null;
 
   // ── Native backend ──
@@ -96,6 +99,16 @@ export class BgmPlayer {
       this.#gapTimer = null;
     }
     this.#cleanupCurrentPlayer();
+    // Close the shared AudioContext only on full stop (not between tracks)
+    if (this.#webAudioCtx) {
+      try {
+        void this.#webAudioCtx.close();
+      } catch {
+        /* ignore */
+      }
+      this.#webAudioCtx = null;
+      this.#webGainNode = null;
+    }
     audioLog.debug('BGM stopped');
   }
 
@@ -161,16 +174,22 @@ export class BgmPlayer {
     const audio = new Audio(audioUrl);
     audio.loop = loop;
 
-    const ctx = new AudioContext();
-    const source = ctx.createMediaElementSource(audio);
-    const gain = ctx.createGain();
+    // Reuse AudioContext + GainNode across tracks — creating a new AudioContext
+    // outside a user-gesture callback is silently blocked in WeChat web-view.
+    if (!this.#webAudioCtx || this.#webAudioCtx.state === 'closed') {
+      this.#webAudioCtx = new AudioContext();
+      this.#webGainNode = this.#webAudioCtx.createGain();
+      this.#webGainNode.connect(this.#webAudioCtx.destination);
+    }
+    const ctx = this.#webAudioCtx;
+    const gain = this.#webGainNode!;
     gain.gain.value = this.#volume;
+
+    const source = ctx.createMediaElementSource(audio);
     source.connect(gain);
-    gain.connect(ctx.destination);
 
     this.#webElement = audio;
-    this.#webAudioCtx = ctx;
-    this.#webGainNode = gain;
+    this.#webSourceNode = source;
 
     if (!loop) {
       this.#webEndedHandler = () => this.#onTrackEnded();
@@ -226,7 +245,15 @@ export class BgmPlayer {
   // ─── Cleanup ───────────────────────────────────────────────────────────
 
   #cleanupCurrentPlayer(): void {
-    // Web cleanup
+    // Web cleanup — disconnect source + element, but keep AudioContext + GainNode
+    if (this.#webSourceNode) {
+      try {
+        this.#webSourceNode.disconnect();
+      } catch {
+        /* ignore */
+      }
+      this.#webSourceNode = null;
+    }
     if (this.#webElement) {
       if (this.#webEndedHandler) {
         this.#webElement.removeEventListener('ended', this.#webEndedHandler);
@@ -240,15 +267,6 @@ export class BgmPlayer {
       }
       this.#webElement = null;
     }
-    if (this.#webAudioCtx) {
-      try {
-        void this.#webAudioCtx.close();
-      } catch {
-        /* ignore */
-      }
-      this.#webAudioCtx = null;
-    }
-    this.#webGainNode = null;
 
     // Native cleanup
     if (this.#nativeSubscription) {
