@@ -7,16 +7,24 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { memo } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { PressableScale } from '@/components/PressableScale';
-import { borderRadius, componentSizes, spacing, type ThemeColors, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  componentSizes,
+  spacing,
+  type ThemeColors,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
 
 interface UserAvatarProps {
   user: { uid: string; avatarUrl?: string | null; isAnonymous?: boolean } | null;
+  level?: number | null;
   onPress: () => void;
   styles: HomeScreenStyles;
   colors: ThemeColors;
@@ -27,8 +35,10 @@ interface UserAvatarProps {
 const AVATAR_SIZE = componentSizes.avatar.sm;
 const WRAPPER_SIZE = AVATAR_SIZE + spacing.tight * 2;
 
+const BADGE_SIZE = componentSizes.badge.sm;
+
 export const UserAvatar = memo<UserAvatarProps>(
-  ({ user, onPress, styles: _styles, colors, testID }) => {
+  ({ user, level, onPress, styles: _styles, colors, testID }) => {
     const wrapperStyle = {
       width: WRAPPER_SIZE,
       height: WRAPPER_SIZE,
@@ -37,6 +47,13 @@ export const UserAvatar = memo<UserAvatarProps>(
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     };
+
+    const badge =
+      level != null ? (
+        <View style={[badgeStyles.pill, { backgroundColor: colors.primary }]}>
+          <Text style={badgeStyles.text}>{level}</Text>
+        </View>
+      ) : null;
 
     if (user) {
       return (
@@ -48,6 +65,7 @@ export const UserAvatar = memo<UserAvatarProps>(
               avatarUrl={user.avatarUrl}
               borderRadius={AVATAR_SIZE / 2}
             />
+            {badge}
           </View>
         </PressableScale>
       );
@@ -61,10 +79,32 @@ export const UserAvatar = memo<UserAvatarProps>(
             size={componentSizes.icon.md}
             color={colors.textSecondary}
           />
+          {badge}
         </View>
       </PressableScale>
     );
   },
 );
+
+const BADGE_TEXT_COLOR = '#fff';
+
+const badgeStyles = StyleSheet.create({
+  pill: {
+    position: 'absolute',
+    bottom: -1,
+    right: -2,
+    minWidth: BADGE_SIZE,
+    height: BADGE_SIZE,
+    borderRadius: BADGE_SIZE / 2,
+    paddingHorizontal: spacing.micro,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.bold,
+    color: BADGE_TEXT_COLOR,
+  },
+});
 
 UserAvatar.displayName = 'UserAvatar';

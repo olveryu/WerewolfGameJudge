@@ -485,10 +485,9 @@ export const HomeScreen: React.FC = () => {
               />
             </Button>
 
-            {userLevel !== null && <Text style={styles.levelBadge}>Lv.{userLevel}</Text>}
-
             <UserAvatar
               user={user}
+              level={userLevel}
               onPress={handleNavigateSettings}
               styles={styles}
               colors={colors}
