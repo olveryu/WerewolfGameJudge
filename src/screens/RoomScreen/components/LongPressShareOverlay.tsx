@@ -53,7 +53,7 @@ const LongPressShareOverlayComponent: React.FC<LongPressShareOverlayProps> = ({
   return (
     <View style={styles.overlay} testID={TESTIDS.longPressShareOverlay}>
       <View style={styles.header}>
-        <Text style={styles.hint}>长按图片保存到相册</Text>
+        <Text style={styles.hint}>长按图片 → 转发给好友 / 保存到手机</Text>
         <TouchableOpacity
           onPress={handleClose}
           style={styles.closeButton}

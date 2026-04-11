@@ -135,9 +135,6 @@ function findViolations(content: string): Violation[] {
 // flexGrow: 0 on flex-grid items is intentional (prevents grow beyond basis).
 // ShareReviewModal scrollView uses flexGrow:0 to shrink-wrap a short seat list.
 const KNOWN_VIOLATIONS: Record<string, { rule: string; line: number }[]> = {
-  'src/screens/RoomScreen/components/NightReviewShareCard.tsx': [
-    { rule: 'no-flexGrow-zero', line: 101 },
-  ],
   'src/components/SettingsSheet/SettingsOptionGroup.tsx': [{ rule: 'no-flexGrow-zero', line: 127 }],
   'src/components/SettingsSheet/SettingsSheet.tsx': [{ rule: 'no-flexGrow-zero', line: 308 }],
 };
