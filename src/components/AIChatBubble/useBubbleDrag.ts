@@ -39,6 +39,21 @@ interface UseBubbleDragReturn {
 export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
+  // Stable height that ignores keyboard-induced viewport shrink (WeChat web-view).
+  // Updated only on width change (= rotation) or first mount.
+  const stableHeightRef = useRef(screenHeight);
+  const prevWidthRef = useRef(screenWidth);
+  if (screenWidth !== prevWidthRef.current) {
+    // Width changed → likely rotation, accept new height
+    stableHeightRef.current = screenHeight;
+    prevWidthRef.current = screenWidth;
+  } else if (screenHeight > stableHeightRef.current) {
+    // Height grew (keyboard dismissed) → accept the larger value
+    stableHeightRef.current = screenHeight;
+  }
+  // Height shrank (keyboard opened) → keep the old stableHeight
+  const stableHeight = stableHeightRef.current;
+
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [position, setPosition] = useState(DEFAULT_POSITION);
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
@@ -62,7 +77,7 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
           );
           const clampedY = Math.max(
             BUBBLE_MARGIN + 50,
-            Math.min(screenHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, parsed.y),
+            Math.min(stableHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, parsed.y),
           );
           setPosition({ x: clampedX, y: clampedY });
         }
@@ -71,7 +86,7 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
         chatLog.warn('Failed to load bubble position:', e);
       });
     // Re-clamp when screen dimensions change (rotation)
-  }, [screenWidth, screenHeight]);
+  }, [screenWidth, stableHeight]);
 
   // ── Bubble press (short tap) ───────────────────────
   const handleBubblePress = useCallback(() => {
@@ -118,13 +133,13 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
         );
         const newY = Math.max(
           BUBBLE_MARGIN + 50,
-          Math.min(screenHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, dragStartRef.current.posY + dy),
+          Math.min(stableHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, dragStartRef.current.posY + dy),
         );
 
         setPosition({ x: newX, y: newY });
       }
     },
-    [screenWidth, screenHeight],
+    [screenWidth, stableHeight],
   );
 
   const handleTouchEnd = useCallback(() => {
