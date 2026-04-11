@@ -439,6 +439,17 @@ export const SettingsScreen: React.FC = () => {
             />
           </TouchableOpacity>
 
+          {/* Zone 2b: Growth */}
+          {growthStats && (
+            <GrowthSection
+              stats={growthStats}
+              styles={styles}
+              showMoonBanner={showMoonBanner}
+              onDismissMoon={handleDismissMoon}
+              onOpenCollection={handleOpenCollection}
+            />
+          )}
+
           {/* Zone 3: Account operations */}
           {canSwitchAccount && !user?.email && isMiniProgram() && (
             <>
@@ -574,16 +585,6 @@ export const SettingsScreen: React.FC = () => {
           {/* eslint-disable-next-line react-hooks/refs -- wasAuthenticatedRef is intentionally read during render to suppress auth UI flash during transient auth state */}
           {renderAuthSection()}
         </View>
-
-        {growthStats && (
-          <GrowthSection
-            stats={growthStats}
-            styles={styles}
-            showMoonBanner={showMoonBanner}
-            onDismissMoon={handleDismissMoon}
-            onOpenCollection={handleOpenCollection}
-          />
-        )}
 
         <ThemeSelector
           currentThemeKey={themeKey}

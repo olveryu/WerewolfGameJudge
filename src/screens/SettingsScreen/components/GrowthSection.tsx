@@ -1,8 +1,8 @@
 /**
- * GrowthSection — 成长卡片（Memoized）
+ * GrowthSection — 成长区块（Memoized）
  *
  * 显示等级 + 称号、XP 进度条、上局月相结算横幅、角色收集入口。
- * 纯 UI 组件，数据由 SettingsScreen 传入。
+ * 嵌入账户 card 内部，不自带 card 容器。
  */
 import { Ionicons } from '@expo/vector-icons';
 import { getLevelProgress, getLevelTitle, LEVEL_THRESHOLDS } from '@werewolf/game-engine/growth';
@@ -40,11 +40,7 @@ export const GrowthSection = memo<GrowthSectionProps>(
     }, [stats.lastMoonPhase]);
 
     return (
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>
-          <Ionicons name="moon-outline" size={typography.body} color={colors.text} /> 成长
-        </Text>
-
+      <>
         {/* Level + title */}
         <View style={styles.growthLevelRow}>
           <Text style={styles.growthLevelLabel}>
@@ -87,7 +83,7 @@ export const GrowthSection = memo<GrowthSectionProps>(
           </View>
           <Ionicons name="chevron-forward" size={typography.body} color={colors.textMuted} />
         </TouchableOpacity>
-      </View>
+      </>
     );
   },
 );

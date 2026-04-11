@@ -2,7 +2,8 @@
  * settleGameResults — 有效局结算（D1 写入）
  *
  * endNight() 广播后异步调用，不阻塞客户端。
- * 有效局条件：status === Ended && ≥9 个不同注册用户。
+ * 有效局条件：status === Ended && ≥9 个不同真人玩家（含匿名）。
+ * XP / 角色收集仅写入注册用户。匿名玩家仅计入有效局人数。
  * 幂等：game_results 唯一索引 (room_code, user_id) 保证不重复写入。
  */
 
@@ -11,7 +12,7 @@ import { rollMoonPhase } from '@werewolf/game-engine/growth/moonPhase';
 import { Faction, getRoleSpec, type RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
-const MIN_REGISTERED_USERS = 9;
+const MIN_PLAYERS = 9;
 
 interface SettlementEnv {
   DB: D1Database;
@@ -39,11 +40,11 @@ export async function settleGameResults(state: GameState, env: SettlementEnv): P
     });
   }
 
-  // 去重 uid
+  // 去重 uid（含匿名），判定有效局人数
   const uniqueUids = new Set(playerEntries.map((p) => p.uid));
-  if (uniqueUids.size === 0) return 0;
+  if (uniqueUids.size < MIN_PLAYERS) return 0;
 
-  // 2. 查 D1 过滤匿名用户
+  // 2. 查 D1 过滤匿名用户（仅注册用户写入成长数据）
   const placeholders = [...uniqueUids].map(() => '?').join(',');
   const { results: registeredRows } = await env.DB.prepare(
     `SELECT id FROM users WHERE id IN (${placeholders}) AND is_anonymous = 0`,
@@ -52,7 +53,7 @@ export async function settleGameResults(state: GameState, env: SettlementEnv): P
     .all<{ id: string }>();
 
   const registeredUids = new Set(registeredRows.map((r) => r.id));
-  if (registeredUids.size < MIN_REGISTERED_USERS) return 0;
+  if (registeredUids.size === 0) return 0;
 
   // 3. 遍历注册玩家，写入结算数据
   const playerCount = playerEntries.length;
