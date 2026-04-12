@@ -244,7 +244,7 @@ export const ROLE_SPECS = {
             ui: {
               confirmTitle: '确认行动',
               prompt: '是否使用解药？',
-              promptTemplate: '{seat}号被狼人袭击，是否使用解药？',
+              promptTemplate: '{seat}被狼人袭击，是否使用解药？',
               cannotSavePrompt: '你被狼人袭击，无法自救，可使用毒药或不用技能。',
               confirmText: '确定使用解药吗？',
               bottomActionText: '不用技能',
@@ -499,7 +499,7 @@ export const ROLE_SPECS = {
           confirmText: '确定要交换这两名玩家吗？',
           bottomActionText: '不用技能',
           firstTargetTitle: '已选择第一位玩家',
-          firstTargetPromptTemplate: '{seat}号，请选择第二位玩家',
+          firstTargetPromptTemplate: '{seat}，请选择第二位玩家',
         },
       },
     ],
@@ -901,7 +901,7 @@ export const ROLE_SPECS = {
           confirmTitle: '狼人投票',
           confirmText: '确定袭击该玩家？',
           emptyVoteText: '放弃袭击',
-          voteConfirmTemplate: '{wolf} 确定袭击{seat}号？',
+          voteConfirmTemplate: '{wolf} 确定袭击{seat}？',
           emptyVoteConfirmTemplate: '{wolf} 确定放弃袭击？',
         },
         meeting: {
@@ -1757,7 +1757,7 @@ export const ROLE_SPECS = {
         ui: {
           prompt: '所有玩家请睁眼，请看手机确认情侣信息',
           bottomActionText: '情侣状态',
-          loverText: '你是情侣之一，你的另一半是：{seat}号',
+          loverText: '你是情侣之一，你的另一半是：{seat}',
           notLoverText: '你不是情侣',
           confirmButtonText: '我知道了',
         },

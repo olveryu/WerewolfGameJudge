@@ -130,8 +130,8 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   /** 执行结算并广播结果 + 更新 roster levels */
-  async #runSettle(state: GameState, _revision: number): Promise<void> {
-    const settleResults = await settleGameResults(state, this.env);
+  async #runSettle(state: GameState, revision: number): Promise<void> {
+    const settleResults = await settleGameResults(state, this.env, revision);
     this.#sendSettleResults(settleResults);
     this.#updateRosterLevels(settleResults);
   }

@@ -45,7 +45,10 @@ function cryptoRandomInt(max: number): number {
 export async function settleGameResults(
   state: GameState,
   env: SettlementEnv,
+  revision: number,
 ): Promise<PlayerSettleResult[]> {
+  // Settle key: roomCode:revision — allows re-settle after same-room restart
+  const settleKey = `${state.roomCode}:${revision}`;
   // 1. 收集非空、非 bot 玩家 uid
   const uniqueUids = new Set<string>();
   for (const [, player] of Object.entries(state.players)) {
@@ -73,8 +76,7 @@ export async function settleGameResults(
   for (const uid of registeredUids) {
     const xpEarned = rollXp();
 
-    // Idempotent upsert: WHERE clause ensures duplicate room_code is a no-op (changes === 0)
-    // 7 bind params: uid, xpEarned, roomCode (INSERT), xpEarned, roomCode, roomCode (UPDATE WHERE)
+    // Idempotent upsert: WHERE clause ensures duplicate settleKey is a no-op (changes === 0)
     const { meta } = await env.DB.prepare(
       `INSERT INTO user_stats (user_id, xp, level, games_played, last_room_code, updated_at)
        VALUES (?, ?, 0, 1, ?, datetime('now'))
@@ -86,7 +88,7 @@ export async function settleGameResults(
        WHERE user_stats.last_room_code IS NULL
           OR user_stats.last_room_code != ?`,
     )
-      .bind(uid, xpEarned, state.roomCode, xpEarned, state.roomCode, state.roomCode)
+      .bind(uid, xpEarned, settleKey, xpEarned, settleKey, settleKey)
       .run();
 
     // If no rows changed (already settled for this room), skip
