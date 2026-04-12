@@ -511,40 +511,49 @@ export const AvatarPickerScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
 
-            {/* Frame options */}
-            {AVATAR_FRAMES.map((frame) => {
-              const isActive = currentFrameId === frame.id;
-              const isFrameSelected = selectedFrame === frame.id;
-              const unlocked = isFrameUnlocked(frame.id, unlockedIds);
-              return (
-                <TouchableOpacity
-                  key={frame.id}
-                  style={[
-                    styles.frameGridCell,
-                    isFrameSelected && styles.frameGridCellSelected,
-                    !isFrameSelected &&
-                      isActive &&
-                      selectedFrame === null &&
-                      styles.frameGridCellActive,
-                    !unlocked && styles.frameGridCellLocked,
-                  ]}
-                  onPress={() => handlePressFrame(frame.id)}
-                  activeOpacity={0.7}
-                >
-                  <AvatarWithFrame
-                    value={user?.uid ?? 'anonymous'}
-                    size={FRAME_GRID_CELL_SIZE}
-                    avatarUrl={previewAvatarUrl}
-                    frameId={frame.id}
-                  />
-                  <Text
-                    style={[styles.frameGridName, isFrameSelected && styles.frameGridNameSelected]}
+            {/* Frame options — unlocked first, then locked */}
+            {[...AVATAR_FRAMES]
+              .sort((a, b) => {
+                const aUnlocked = isFrameUnlocked(a.id, unlockedIds) ? 0 : 1;
+                const bUnlocked = isFrameUnlocked(b.id, unlockedIds) ? 0 : 1;
+                return aUnlocked - bUnlocked;
+              })
+              .map((frame) => {
+                const isActive = currentFrameId === frame.id;
+                const isFrameSelected = selectedFrame === frame.id;
+                const unlocked = isFrameUnlocked(frame.id, unlockedIds);
+                return (
+                  <TouchableOpacity
+                    key={frame.id}
+                    style={[
+                      styles.frameGridCell,
+                      isFrameSelected && styles.frameGridCellSelected,
+                      !isFrameSelected &&
+                        isActive &&
+                        selectedFrame === null &&
+                        styles.frameGridCellActive,
+                      !unlocked && styles.frameGridCellLocked,
+                    ]}
+                    onPress={() => handlePressFrame(frame.id)}
+                    activeOpacity={0.7}
                   >
-                    {unlocked ? frame.name : '未解锁'}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <AvatarWithFrame
+                      value={user?.uid ?? 'anonymous'}
+                      size={FRAME_GRID_CELL_SIZE}
+                      avatarUrl={previewAvatarUrl}
+                      frameId={frame.id}
+                    />
+                    <Text
+                      style={[
+                        styles.frameGridName,
+                        isFrameSelected && styles.frameGridNameSelected,
+                      ]}
+                    >
+                      {unlocked ? frame.name : '未解锁'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
           </ScrollView>
         )}
       </View>
