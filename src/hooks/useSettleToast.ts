@@ -33,13 +33,15 @@ function showSettleToast(result: SettleResultMessage): void {
   if (leveledUp && result.reward) {
     toast.success(`升级！Lv.${result.newLevel} 解锁${getRewardDisplayName(result.reward)}`, {
       description: `+${result.xpEarned} XP`,
+      duration: 10000,
     });
   } else if (leveledUp) {
     toast.success(`升级！Lv.${result.newLevel}`, {
       description: `+${result.xpEarned} XP`,
+      duration: 10000,
     });
   } else {
-    toast.info(`+${result.xpEarned} XP`);
+    toast.info(`+${result.xpEarned} XP`, { duration: 10000 });
   }
 }
 

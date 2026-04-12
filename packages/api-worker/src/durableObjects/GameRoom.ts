@@ -114,6 +114,53 @@ export class GameRoom extends DurableObject<Env> {
     }
   }
 
+  /** 如果游戏刚结束（status === Ended），异步触发成长结算 */
+  #settleIfEnded(result: GameActionResult): void {
+    if (result.success && result.state?.status === GameStatus.Ended) {
+      this.ctx.waitUntil(
+        settleGameResults(result.state, this.env, result.revision!)
+          .then((settleResults) => {
+            this.#sendSettleResults(settleResults);
+            this.#updateRosterLevels(settleResults);
+          })
+          .catch((err) => {
+            console.error('[GameRoom] settleGameResults failed:', err);
+          }),
+      );
+    }
+  }
+
+  /** 结算后更新 roster level 并广播，让座位 UI 实时刷新 */
+  #updateRosterLevels(results: PlayerSettleResult[]): void {
+    if (results.length === 0) return;
+
+    const sql = this.ctx.storage.sql;
+    const rows = sql.exec('SELECT game_state, revision FROM room_state WHERE id = 1').toArray();
+    if (rows.length === 0) return;
+
+    const state: GameState = JSON.parse(rows[0].game_state as string);
+    const revision = rows[0].revision as number;
+
+    let changed = false;
+    for (const r of results) {
+      const entry = state.roster?.[r.uid];
+      if (entry && entry.level !== r.newLevel) {
+        entry.level = r.newLevel;
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+
+    const newRevision = revision + 1;
+    sql.exec(
+      'UPDATE room_state SET game_state = ?, revision = ? WHERE id = 1',
+      JSON.stringify(state),
+      newRevision,
+    );
+    this.#broadcast(state, newRevision);
+  }
+
   /** 单播结算结果给每个已连接的注册玩家 */
   #sendSettleResults(results: PlayerSettleResult[]): void {
     if (results.length === 0) return;
@@ -370,24 +417,12 @@ export class GameRoom extends DurableObject<Env> {
       'END_NIGHT',
     );
 
-    // 异步结算成长数据（不阻塞广播响应）+ 单播结算结果
-    if (result.success && result.state) {
-      this.ctx.waitUntil(
-        settleGameResults(result.state, this.env)
-          .then((settleResults) => {
-            this.#sendSettleResults(settleResults);
-          })
-          .catch((err) => {
-            console.error('[GameRoom] settleGameResults failed:', err);
-          }),
-      );
-    }
-
+    // 结算由最后一次 audioAck 触发（音频播完后），此处不 settle
     return result;
   }
 
   async audioAck(): Promise<GameActionResult> {
-    return this.#processAction(
+    const result = this.#processAction(
       (state) => {
         if (
           !state.isAudioPlaying &&
@@ -402,6 +437,8 @@ export class GameRoom extends DurableObject<Env> {
       },
       { enabled: true },
     );
+    this.#settleIfEnded(result);
+    return result;
   }
 
   async audioGate(isPlaying: boolean): Promise<GameActionResult> {
@@ -412,7 +449,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   async progression(): Promise<GameActionResult> {
-    return this.#processAction(
+    const result = this.#processAction(
       (state) => {
         if (state.status !== GameStatus.Ongoing) {
           return handlerError('not_ongoing');
@@ -421,6 +458,8 @@ export class GameRoom extends DurableObject<Env> {
       },
       { enabled: true },
     );
+    // 结算由最后一次 audioAck 触发（音频播完后），此处不 settle
+    return result;
   }
 
   async revealAck(): Promise<GameActionResult> {
