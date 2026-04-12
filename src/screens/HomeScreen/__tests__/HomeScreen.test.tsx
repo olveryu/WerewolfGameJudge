@@ -67,7 +67,7 @@ describe('HomeScreen', () => {
     it('should render the app title', () => {
       const { getByText } = render(<HomeScreen />);
 
-      expect(getByText('大柠檬助手')).toBeTruthy();
+      expect(getByText('狼人kill电子裁判')).toBeTruthy();
     });
 
     it('should render settings button in top bar', () => {

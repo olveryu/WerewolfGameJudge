@@ -178,7 +178,7 @@ export const AppNavigator: React.FC = () => {
           animation: 'default',
         }}
       >
-        <Stack.Screen name="Home" component={HomeScreen} options={{ title: '大柠檬助手' }} />
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: '狼人kill电子裁判' }} />
         <Stack.Screen
           name="BoardPicker"
           component={BoardPickerScreen}

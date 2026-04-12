@@ -2,7 +2,7 @@
   "pages": ["pages/index/index"],
   "window": {
     "navigationStyle": "default",
-    "navigationBarTitleText": "大柠檬助手",
+    "navigationBarTitleText": "狼人kill电子裁判",
     "navigationBarBackgroundColor": "#6366F1",
     "navigationBarTextStyle": "white"
   }
