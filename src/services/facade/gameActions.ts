@@ -120,17 +120,6 @@ export const submitAction = defineGameAction<[number, RoleId, number | null, unk
   },
 });
 
-/** Host: 结束夜晚 */
-export const endNight = defineGameAction({
-  name: 'endNight',
-  path: '/game/night/end',
-  after: (_ctx, result) => {
-    if (!result.success) {
-      facadeLog.warn('endNight failed', { reason: result.reason });
-    }
-  },
-});
-
 /** Host: 设置音频播放状态 */
 export const setAudioPlaying = defineGameAction<[boolean]>({
   name: 'setAudioPlaying',

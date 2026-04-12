@@ -1,7 +1,7 @@
 /**
  * settleGameResults — 有效局结算（D1 写入）
  *
- * endNight() 广播后异步调用，不阻塞客户端。
+ * audioAck() 确认音频播完后异步调用，不阻塞客户端。
  * 有效局条件：status === Ended && ≥9 个不同真人玩家（含匿名）。
  * XP 仅写入注册用户。匿名玩家仅计入有效局人数。
  * 幂等：user_stats.last_room_code 保证不重复写入。

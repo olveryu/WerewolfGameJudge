@@ -53,7 +53,6 @@ function createMockFacade(): IGameFacade & {
     submitAction: jest.fn(),
     submitRevealAck: jest.fn(),
     submitGroupConfirmAck: jest.fn(),
-    endNight: jest.fn(),
     setAudioPlaying: jest.fn(),
     postProgression: jest.fn(),
     fetchStateFromDB: jest.fn(),

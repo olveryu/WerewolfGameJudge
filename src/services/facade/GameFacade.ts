@@ -622,14 +622,6 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
-   * Host: 结束夜晚，进行死亡结算
-   * 夜晚结束音频结束后调用
-   */
-  async endNight(): Promise<{ success: boolean; reason?: string }> {
-    return gameActions.endNight(this.#getActionsContext());
-  }
-
-  /**
    * Host: 设置音频播放状态
    *
    * PR7: 音频时序控制

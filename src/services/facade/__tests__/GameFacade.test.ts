@@ -935,58 +935,6 @@ describe('GameFacade', () => {
   });
 
   // ===========================================================================
-  // PR6: endNight tests
-  // ===========================================================================
-
-  describe('endNight (PR6)', () => {
-    const origFetch = global.fetch;
-    beforeEach(async () => {
-      await facade.createRoom('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-    });
-    afterEach(() => {
-      global.fetch = origFetch;
-    });
-
-    it('should call HTTP API with roomCode', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: true }),
-      });
-
-      await facade.endNight();
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/night/end'),
-        expect.objectContaining({ method: 'POST' }),
-      );
-    });
-
-    it('should pass through failure reason from API', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
-      });
-
-      const result = await facade.endNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('invalid_status');
-    });
-
-    it('should return NETWORK_ERROR on fetch failure', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
-
-      const result = await facade.endNight();
-
-      expect(result.success).toBe(false);
-      expect(result.reason).toBe('NETWORK_ERROR');
-    });
-  });
-
-  // ===========================================================================
   // PR7: setAudioPlaying tests
   // ===========================================================================
   describe('setAudioPlaying (PR7)', () => {
@@ -1047,33 +995,6 @@ describe('GameFacade', () => {
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('NETWORK_ERROR');
-    });
-  });
-
-  // ===========================================================================
-  // PR7: isAudioPlaying gates contract
-  // ===========================================================================
-  describe('PR7 contract: isAudioPlaying gates (server-side validation)', () => {
-    const origFetch = global.fetch;
-    afterEach(() => {
-      global.fetch = origFetch;
-    });
-
-    it('endNight gate is now server-side', async () => {
-      // With HTTP API migration, isAudioPlaying gate is enforced server-side.
-      // Client simply forwards the request; server returns rejection reason.
-      await facade.createRoom('TEST', 'host-uid', mockTemplate);
-      fillAllSeatsViaReducer(facade, mockTemplate);
-
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'forbidden_while_audio_playing' }),
-      });
-
-      const endResult = await facade.endNight();
-      expect(endResult.success).toBe(false);
-      expect(endResult.reason).toBe('forbidden_while_audio_playing');
     });
   });
 

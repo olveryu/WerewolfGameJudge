@@ -72,7 +72,6 @@ describe('RoomScreen hooks boundary constraints', () => {
       /currentStepIndex\s*\+\+/,
       /currentStepIndex\s*\+=\s*1/,
       /setCurrentActionerIndex\s*\(/,
-      /endNight\s*\(/,
       /startNight\s*\(/,
     ];
 

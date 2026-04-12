@@ -37,7 +37,6 @@ import {
   assignRoles,
   clearAllSeats,
   clearRevealAcks,
-  endNight,
   fillWithBots,
   markAllBotsGroupConfirmed,
   markAllBotsViewed,
@@ -359,7 +358,6 @@ describe('gameActions thin wrappers — NOT_CONNECTED guard', () => {
 
   it.each([
     ['submitAction', (ctx: any) => submitAction(ctx, 0, 'wolf', 1)],
-    ['endNight', (ctx: any) => endNight(ctx)],
     ['setAudioPlaying', (ctx: any) => setAudioPlaying(ctx, true)],
     ['clearRevealAcks', (ctx: any) => clearRevealAcks(ctx)],
     ['setWolfRobotHunterStatusViewed', (ctx: any) => setWolfRobotHunterStatusViewed(ctx, 0)],

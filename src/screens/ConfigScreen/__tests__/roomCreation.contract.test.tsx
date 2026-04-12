@@ -65,7 +65,6 @@ const createMockFacade = (): IGameFacade =>
     markViewedRole: jest.fn(),
     submitAction: jest.fn(),
     submitRevealAck: jest.fn(),
-    endNight: jest.fn(),
     setAudioPlaying: jest.fn(),
     requestSnapshot: jest.fn(),
     addConnectionStatusListener: jest.fn(() => jest.fn()),

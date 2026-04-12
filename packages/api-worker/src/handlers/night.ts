@@ -54,8 +54,6 @@ export const handleAudioGate: HandlerFn = async (req, env) => {
   return jsonResponse(doResult, resultToStatus(doResult), env);
 };
 
-export const handleEnd = createSimpleHandler((stub) => stub.endNight());
-
 export const handleProgression = createSimpleHandler((stub) => stub.progression());
 
 export const handleRevealAck = createSimpleHandler((stub) => stub.revealAck());

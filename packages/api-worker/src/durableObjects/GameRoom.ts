@@ -31,10 +31,7 @@ import {
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
 } from '@werewolf/game-engine/engine/handlers/seatHandler';
-import {
-  handleEndNight,
-  handleSetAudioPlaying,
-} from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
+import { handleSetAudioPlaying } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
 import { handlerError, handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
 import { handleViewedRole } from '@werewolf/game-engine/engine/handlers/viewedRoleHandler';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
@@ -398,27 +395,6 @@ export class GameRoom extends DurableObject<Env> {
       undefined,
       'START_NIGHT',
     );
-  }
-
-  async endNight(): Promise<GameActionResult> {
-    const result = this.#processAction(
-      (state) => {
-        const ctx = buildHandlerContext(state, state.hostUid);
-        const result = handleEndNight({ type: 'END_NIGHT' }, ctx);
-        if (result.kind === 'error') return result;
-
-        const extraActions = extractAudioActions(result.sideEffects);
-        if (extraActions.length > 0) {
-          return handlerSuccess([...result.actions, ...extraActions], result.sideEffects);
-        }
-        return result;
-      },
-      undefined,
-      'END_NIGHT',
-    );
-
-    // 结算由最后一次 audioAck 触发（音频播完后），此处不 settle
-    return result;
   }
 
   async audioAck(): Promise<GameActionResult> {

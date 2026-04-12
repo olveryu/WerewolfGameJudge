@@ -271,11 +271,6 @@ export interface IGameFacade {
 
   // === Night Flow (Host-only) ===
   /**
-   * 结束夜晚
-   */
-  endNight(): Promise<{ success: boolean; reason?: string }>;
-
-  /**
    * 设置音频播放状态
    */
   setAudioPlaying(isPlaying: boolean): Promise<{ success: boolean; reason?: string }>;
