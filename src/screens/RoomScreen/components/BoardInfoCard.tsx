@@ -197,44 +197,46 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
               </View>
             </View>
           )}
-          <Text style={styles.boardInfoHint}>
-            <Ionicons name={UI_ICONS.HINT} size={componentSizes.icon.xs} color={colors.textMuted} />
-            {' 点击角色名查看能力说明'}
-          </Text>
-          {showNominations && (
-            <View style={styles.nominationButtonRow}>
-              {onNominatePress != null && (
-                <TouchableOpacity
-                  style={styles.nominationBtn}
-                  onPress={onNominatePress}
-                  activeOpacity={fixed.activeOpacity}
-                >
-                  <Ionicons
-                    name={hasMyNomination ? 'create-outline' : 'bulb-outline'}
-                    size={componentSizes.icon.sm}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.nominationBtnText}>
-                    {hasMyNomination ? '修改建议' : '我来建议'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {nominationCount > 0 && onViewNominations != null && (
-                <TouchableOpacity
-                  style={styles.nominationBtn}
-                  onPress={onViewNominations}
-                  activeOpacity={fixed.activeOpacity}
-                >
-                  <Ionicons
-                    name="list-outline"
-                    size={componentSizes.icon.sm}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.nominationBtnText}>查看建议 ({nominationCount})</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+          <View style={styles.nominationButtonRow}>
+            <Text style={styles.boardInfoHint} numberOfLines={1}>
+              <Ionicons
+                name={UI_ICONS.HINT}
+                size={componentSizes.icon.xs}
+                color={colors.textMuted}
+              />
+              {' 点击角色名查看说明'}
+            </Text>
+            {showNominations && onNominatePress != null && (
+              <TouchableOpacity
+                style={styles.nominationBtn}
+                onPress={onNominatePress}
+                activeOpacity={fixed.activeOpacity}
+              >
+                <Ionicons
+                  name={hasMyNomination ? 'create-outline' : 'bulb-outline'}
+                  size={componentSizes.icon.sm}
+                  color={colors.primary}
+                />
+                <Text style={styles.nominationBtnText}>
+                  {hasMyNomination ? '修改建议' : '我来建议'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {showNominations && nominationCount > 0 && onViewNominations != null && (
+              <TouchableOpacity
+                style={styles.nominationBtn}
+                onPress={onViewNominations}
+                activeOpacity={fixed.activeOpacity}
+              >
+                <Ionicons
+                  name="list-outline"
+                  size={componentSizes.icon.sm}
+                  color={colors.primary}
+                />
+                <Text style={styles.nominationBtnText}>查看建议 ({nominationCount})</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       )}
     </View>

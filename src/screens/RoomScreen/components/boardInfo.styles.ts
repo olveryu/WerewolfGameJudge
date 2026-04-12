@@ -82,16 +82,15 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         gap: spacing.tight,
       },
       boardInfoHint: {
-        fontSize: typography.caption,
-        lineHeight: typography.lineHeights.caption,
+        fontSize: typography.captionSmall,
+        lineHeight: typography.lineHeights.captionSmall,
         color: colors.textMuted,
-        textAlign: 'center',
-        marginTop: spacing.small,
+        flex: 1,
       },
       nominationButtonRow: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        gap: spacing.medium,
+        alignItems: 'center',
+        gap: spacing.small,
         marginTop: spacing.small,
       },
       nominationBtn: {
