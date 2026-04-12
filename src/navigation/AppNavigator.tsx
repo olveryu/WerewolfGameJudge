@@ -32,6 +32,7 @@ import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettings
 import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
+import { UnlocksScreen } from '@/screens/UnlocksScreen/UnlocksScreen';
 import { colors } from '@/theme';
 import { log } from '@/utils/logger';
 import { isMiniProgram, postCurrentUrl } from '@/utils/miniProgram';
@@ -85,6 +86,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Encyclopedia: 'encyclopedia/:roomNumber?',
       Notepad: 'notepad/:roomNumber',
       AvatarPicker: 'avatar-picker',
+      Unlocks: 'unlocks',
       AuthLogin: 'auth/login',
       AuthEmail: 'auth/email',
       AuthForgotPassword: 'auth/forgot-password',
@@ -224,6 +226,7 @@ export const AppNavigator: React.FC = () => {
           component={AvatarPickerScreen}
           options={{ title: '选择形象' }}
         />
+        <Stack.Screen name="Unlocks" component={UnlocksScreen} options={{ title: '解锁一览' }} />
         {/* Auth modal screens — transparent overlay with centered card */}
         <Stack.Group
           screenOptions={{

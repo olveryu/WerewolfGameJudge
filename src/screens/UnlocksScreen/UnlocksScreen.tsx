@@ -1,0 +1,463 @@
+/**
+ * UnlocksScreen — 解锁物品一览
+ *
+ * 顶部 tab 切换"头像"/"头像框"，summary card 显示当前 tab 进度。
+ * 已解锁 cell 高亮 + 绿色对勾角标，未解锁灰暗 + 锁标。
+ */
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  AVATAR_IDS,
+  FRAME_IDS,
+  FREE_AVATAR_IDS,
+  FREE_FRAME_IDS,
+} from '@werewolf/game-engine/growth/rewardCatalog';
+import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  ImageSourcePropType,
+  ListRenderItemInfo,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
+import { AvatarWithFrame } from '@/components/AvatarWithFrame';
+import { Button } from '@/components/Button';
+import { RootStackParamList } from '@/navigation/types';
+import { fetchUserStats, type UserStats } from '@/services/feature/StatsService';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  fixed,
+  layout,
+  shadows,
+  spacing,
+  typography,
+  withAlpha,
+} from '@/theme';
+import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
+import { settingsLog } from '@/utils/logger';
+
+const NUM_COLUMNS = 4;
+const CELL_SIZE = 72;
+
+type TabKey = 'avatar' | 'frame';
+
+const TABS: readonly { key: TabKey; label: string }[] = [
+  { key: 'avatar', label: '头像' },
+  { key: 'frame', label: '头像框' },
+] as const;
+
+interface UnlockItem {
+  id: string;
+  type: TabKey;
+  displayName: string;
+  unlocked: boolean;
+}
+
+export const UnlocksScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Unlocks'>>();
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabKey>('avatar');
+
+  useEffect(() => {
+    fetchUserStats()
+      .then(setStats)
+      .catch((e: unknown) => settingsLog.warn('Failed to fetch stats for unlocks', e))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const unlockedSet = useMemo(
+    () =>
+      new Set([
+        ...Array.from(FREE_AVATAR_IDS),
+        ...Array.from(FREE_FRAME_IDS),
+        ...(stats?.unlockedItems ?? []),
+      ]),
+    [stats],
+  );
+
+  const avatarItems = useMemo(
+    (): UnlockItem[] =>
+      AVATAR_IDS.map((id) => ({
+        id,
+        type: 'avatar' as const,
+        displayName: getRoleDisplayName(id),
+        unlocked: unlockedSet.has(id),
+      })).sort((a, b) => Number(b.unlocked) - Number(a.unlocked)),
+    [unlockedSet],
+  );
+
+  const frameItems = useMemo((): UnlockItem[] => {
+    return FRAME_IDS.map((id) => {
+      const frame = AVATAR_FRAMES.find((f) => f.id === id);
+      return {
+        id,
+        type: 'frame' as const,
+        displayName: frame?.name ?? id,
+        unlocked: unlockedSet.has(id),
+      };
+    }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
+  }, [unlockedSet]);
+
+  const currentItems = activeTab === 'avatar' ? avatarItems : frameItems;
+  const unlockedCount = currentItems.filter((i) => i.unlocked).length;
+  const totalCount = currentItems.length;
+  const progressPercent = Math.round((unlockedCount / totalCount) * 100);
+
+  const handleGoBack = useCallback(() => navigation.goBack(), [navigation]);
+
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<UnlockItem>) => <UnlockCell item={item} />,
+    [],
+  );
+
+  const keyExtractor = useCallback((item: UnlockItem) => `${item.type}-${item.id}`, []);
+
+  const listHeader = useMemo(
+    () => (
+      <>
+        {/* Summary card */}
+        <View style={styles.summaryCard}>
+          <View style={styles.progressRing}>
+            <View style={styles.progressRingInner}>
+              <Text style={styles.progressNumber}>{unlockedCount}</Text>
+              <Text style={styles.progressDenom}>/{totalCount}</Text>
+            </View>
+          </View>
+          <View style={styles.summaryRight}>
+            <Text style={styles.summaryTitle}>收藏进度</Text>
+            <View style={styles.summaryBarBg}>
+              <View style={[styles.summaryBarFill, { width: `${progressPercent}%` }]} />
+            </View>
+            <Text style={styles.summarySubtitle}>已收集 {progressPercent}%，继续游玩解锁更多</Text>
+          </View>
+        </View>
+
+        {/* Tab bar */}
+        <View style={styles.tabBar}>
+          {TABS.map((tab) => {
+            const isActive = tab.key === activeTab;
+            return (
+              <Pressable
+                key={tab.key}
+                style={[styles.tab, isActive && styles.tabActive]}
+                onPress={() => setActiveTab(tab.key)}
+              >
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{tab.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </>
+    ),
+    [unlockedCount, totalCount, progressPercent, activeTab],
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
+        <Button variant="icon" onPress={handleGoBack}>
+          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
+        </Button>
+        <Text style={styles.headerTitle}>解锁一览</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          key={activeTab}
+          data={currentItems}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          numColumns={NUM_COLUMNS}
+          ListHeaderComponent={listHeader}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </SafeAreaView>
+  );
+};
+
+// ── Cell component ──────────────────────────────────────
+
+const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
+  const isAvatar = item.type === 'avatar';
+
+  return (
+    <View style={styles.cell}>
+      <View style={[styles.imageWrapper, item.unlocked ? styles.unlockedBorder : styles.lockedBg]}>
+        {isAvatar ? (
+          <AvatarThumb id={item.id} unlocked={item.unlocked} />
+        ) : (
+          <FrameThumb id={item.id} unlocked={item.unlocked} />
+        )}
+        {/* Badge overlay */}
+        {item.unlocked ? (
+          <View style={styles.checkBadge}>
+            <Ionicons name="checkmark" size={12} color={colors.textInverse} />
+          </View>
+        ) : (
+          <View style={styles.lockBadge}>
+            <Ionicons name="lock-closed" size={10} color={colors.textInverse} />
+          </View>
+        )}
+      </View>
+      <Text style={[styles.cellName, !item.unlocked && styles.lockedText]} numberOfLines={1}>
+        {item.unlocked ? item.displayName : '???'}
+      </Text>
+    </View>
+  );
+});
+
+UnlockCell.displayName = 'UnlockCell';
+
+const AvatarThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
+  const avatarIndex = AVATAR_KEYS.indexOf(id);
+  const thumbSource = avatarIndex >= 0 ? getAvatarThumbByIndex(avatarIndex) : undefined;
+
+  if (thumbSource == null) return null;
+
+  return (
+    <Image
+      source={thumbSource as ImageSourcePropType}
+      style={[styles.avatarImage, !unlocked && styles.grayscale]}
+      resizeMode="cover"
+    />
+  );
+});
+
+AvatarThumb.displayName = 'AvatarThumb';
+
+const FrameThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => (
+  <View style={!unlocked ? styles.grayscale : undefined}>
+    <AvatarWithFrame
+      value="preview"
+      avatarUrl={null}
+      frameId={id as FrameId}
+      size={CELL_SIZE - spacing.small * 2}
+    />
+  </View>
+));
+
+FrameThumb.displayName = 'FrameThumb';
+
+// ── Styles ──────────────────────────────────────────────
+
+const PROGRESS_RING_SIZE = 64;
+const CHECK_BADGE_SIZE = 18;
+const LOCK_BADGE_SIZE = 16;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.screenH,
+    paddingVertical: layout.headerPaddingV,
+    backgroundColor: colors.surface,
+    borderBottomWidth: fixed.borderWidth,
+    borderBottomColor: colors.border,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: layout.headerTitleSize,
+    lineHeight: layout.headerTitleLineHeight,
+    fontWeight: typography.weights.bold,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: componentSizes.avatar.md,
+    height: componentSizes.avatar.md,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listContent: {
+    padding: spacing.screenH,
+    paddingBottom: spacing.xxlarge,
+  },
+
+  // Summary card
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
+    padding: spacing.medium,
+    marginBottom: spacing.large,
+    gap: spacing.medium,
+    ...shadows.md,
+  },
+  progressRing: {
+    width: PROGRESS_RING_SIZE,
+    height: PROGRESS_RING_SIZE,
+    borderRadius: PROGRESS_RING_SIZE / 2,
+    borderWidth: 4,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: withAlpha(colors.primary, 0.06),
+  },
+  progressRingInner: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  progressNumber: {
+    fontSize: typography.title,
+    lineHeight: typography.lineHeights.title,
+    fontWeight: typography.weights.bold,
+    color: colors.primary,
+  },
+  progressDenom: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    color: colors.textMuted,
+  },
+  summaryRight: {
+    flex: 1,
+  },
+  summaryTitle: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.text,
+    marginBottom: spacing.tight,
+  },
+  summaryBarBg: {
+    height: 8,
+    backgroundColor: colors.border,
+    borderRadius: borderRadius.full,
+    overflow: 'hidden',
+    marginBottom: spacing.tight,
+  },
+  summaryBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+  },
+  summarySubtitle: {
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.caption,
+    color: colors.textMuted,
+  },
+
+  // Tab bar
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
+    padding: spacing.tight,
+    marginBottom: spacing.medium,
+    gap: spacing.tight,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.small,
+    borderRadius: borderRadius.medium,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: colors.primary,
+  },
+  tabText: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
+  },
+  tabTextActive: {
+    color: colors.textInverse,
+  },
+
+  // Grid
+  cell: {
+    flex: 1,
+    alignItems: 'center',
+    marginBottom: spacing.medium,
+    maxWidth: `${100 / NUM_COLUMNS}%`,
+  },
+  imageWrapper: {
+    width: CELL_SIZE,
+    height: CELL_SIZE,
+    borderRadius: borderRadius.medium,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: withAlpha(colors.border, 0),
+  },
+  unlockedBorder: {
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
+  },
+  lockedBg: {
+    backgroundColor: withAlpha(colors.border, 0.5),
+    opacity: 0.5,
+  },
+  avatarImage: {
+    width: CELL_SIZE - 4, // account for border
+    height: CELL_SIZE - 4,
+  },
+  grayscale: {
+    opacity: 0.4,
+  },
+
+  // Badges
+  checkBadge: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: CHECK_BADGE_SIZE,
+    height: CHECK_BADGE_SIZE,
+    borderRadius: CHECK_BADGE_SIZE / 2,
+    backgroundColor: colors.success,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lockBadge: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: LOCK_BADGE_SIZE,
+    height: LOCK_BADGE_SIZE,
+    borderRadius: LOCK_BADGE_SIZE / 2,
+    backgroundColor: colors.textMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Cell text
+  cellName: {
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.caption,
+    color: colors.text,
+    marginTop: spacing.tight,
+    textAlign: 'center',
+  },
+  lockedText: {
+    color: colors.textMuted,
+  },
+});

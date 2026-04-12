@@ -112,7 +112,9 @@ export interface SettingsScreenStyles {
   levelPill: ViewStyle;
   levelPillText: TextStyle;
   // Growth section
-  growthLevelValue: TextStyle;
+  growthEntryContent: ViewStyle;
+  growthMiniProgress: ViewStyle;
+  growthMiniProgressFill: ViewStyle;
   growthXpRow: ViewStyle;
   growthXpLabel: TextStyle;
   growthProgressBarBg: ViewStyle;
@@ -440,11 +442,21 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       color: colors.primary,
     },
     // Growth section
-    growthLevelValue: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.primary,
-      fontWeight: typography.weights.medium,
+    growthEntryContent: {
+      flex: 1,
+      marginHorizontal: spacing.small,
+    },
+    growthMiniProgress: {
+      height: 4,
+      backgroundColor: colors.border,
+      borderRadius: borderRadius.full,
+      overflow: 'hidden',
+      marginTop: spacing.tight,
+    },
+    growthMiniProgressFill: {
+      height: '100%',
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.full,
     },
     growthXpRow: {
       flexDirection: 'row',

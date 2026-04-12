@@ -1,33 +1,38 @@
 /**
  * GrowthSection — 成长区块（Memoized）
  *
- * 显示等级、XP 进度条。
+ * 全宽 XP 进度条 + dresserEntry 风格的成长入口行。
+ * 点击跳转 UnlocksScreen。
  * 嵌入账户 card 内部，不自带 card 容器。
  */
+import { Ionicons } from '@expo/vector-icons';
 import { getLevelProgress, LEVEL_THRESHOLDS } from '@werewolf/game-engine/growth';
 import { memo } from 'react';
-import { Text, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import type { UserStats } from '@/services/feature/StatsService';
-import { colors } from '@/theme';
+import { colors, componentSizes, fixed } from '@/theme';
 
 import type { SettingsScreenStyles } from './styles';
 
 interface GrowthSectionProps {
   stats: UserStats;
   styles: SettingsScreenStyles;
+  onPressUnlocks?: () => void;
 }
 
-export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles }) => {
+export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles, onPressUnlocks }) => {
   const progress = getLevelProgress(stats.xp);
   const nextThreshold =
     stats.level < LEVEL_THRESHOLDS.length - 1
       ? LEVEL_THRESHOLDS[stats.level + 1]
       : LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
 
+  const unlockCount = stats.unlockedItems.length + 2;
+
   return (
     <>
-      {/* XP progress bar */}
+      {/* XP progress bar — full width */}
       <View style={styles.growthXpRow}>
         <Text style={styles.growthXpLabel}>XP</Text>
         <View style={styles.growthProgressBarBg}>
@@ -38,10 +43,25 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles }) => {
         </Text>
       </View>
 
-      {/* Stats summary */}
-      <Text style={[styles.growthLevelValue, { color: colors.textMuted }]}>
-        {stats.gamesPlayed} 局 · 已解锁 {stats.unlockedItems.length + 2} / 53 件
-      </Text>
+      {/* Unlocks entry — dresserEntry style */}
+      <TouchableOpacity
+        style={styles.dresserEntry}
+        onPress={onPressUnlocks}
+        activeOpacity={fixed.activeOpacity}
+      >
+        <Ionicons name="trophy-outline" size={componentSizes.icon.md} color={colors.primary} />
+        <View style={styles.growthEntryContent}>
+          <Text style={styles.dresserEntryText}>
+            {stats.gamesPlayed} 局 · 已解锁 {unlockCount}/53
+          </Text>
+          <View style={styles.growthMiniProgress}>
+            <View
+              style={[styles.growthMiniProgressFill, { width: `${(unlockCount / 53) * 100}%` }]}
+            />
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.textMuted} />
+      </TouchableOpacity>
     </>
   );
 });

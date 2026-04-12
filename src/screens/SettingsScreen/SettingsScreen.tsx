@@ -156,6 +156,10 @@ export const SettingsScreen: React.FC = () => {
     navigation.navigate('AvatarPicker');
   }, [navigation]);
 
+  const handleNavigateUnlocks = useCallback(() => {
+    navigation.navigate('Unlocks');
+  }, [navigation]);
+
   const handleStartEditName = useCallback(() => {
     showPrompt('修改昵称', {
       placeholder: '输入名字',
@@ -397,9 +401,17 @@ export const SettingsScreen: React.FC = () => {
                 <Text style={styles.statusText}>{user?.email ? '邮箱登录' : '微信登录'}</Text>
               </View>
               {user?.email && <Text style={styles.accountValue}>{user.email}</Text>}
-              {growthStats && <GrowthSection stats={growthStats} styles={styles} />}
             </View>
           </View>
+
+          {/* Growth — full width below profile row */}
+          {growthStats && (
+            <GrowthSection
+              stats={growthStats}
+              styles={styles}
+              onPressUnlocks={handleNavigateUnlocks}
+            />
+          )}
 
           {/* Zone 2: Dresser entry */}
           <TouchableOpacity
