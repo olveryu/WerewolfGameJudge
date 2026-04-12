@@ -9,6 +9,16 @@ applyTo: src/services/**
 
 游戏逻辑：`@werewolf/game-engine`（详见 `game-engine.instructions.md`）。客户端服务：`facade/`、`transport/`、`infra/`、`feature/`。
 
+## Feature Services
+
+高层 facade，组合 infra/transport 服务对外提供业务能力。
+
+| 服务 | 文件 | 职责 |
+|---|---|---|
+| **StatsService** | `src/services/feature/StatsService.ts` | 用户成长数据查询（XP/等级/解锁物品） |
+| **ShareImageService** | `src/services/feature/ShareImageService.ts` | 分享图片上传到 R2，返回公开 URL |
+| **CFStorageService** | `src/services/infra/CFStorageService.ts` | 自定义头像上传到 Cloudflare R2 |
+
 ## 核心规则
 
 - Resolver / calculator / validator 是纯函数，禁止 IO/UI。

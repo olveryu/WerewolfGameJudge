@@ -41,6 +41,7 @@ applyTo: packages/game-engine/**
 | **InlineProgression** | `engine/inlineProgression.ts` | 服务端单请求内递归推进夜晚步骤（纯函数，最多 20 轮），收集 PLAY_AUDIO sideEffects |
 | **ResolveWolfVotes** | `engine/resolveWolfVotes.ts` | 狼人投票聚合计算 |
 | **DeathCalculator** | `engine/DeathCalculator.ts` | 夜晚死亡结算（守护/毒药/袭击/连带）|
+| **Growth** | `growth/level.ts` + `growth/frameUnlock.ts` + `growth/rewardCatalog.ts` | XP 阈值 · 等级计算 · 奖励解锁（头像/框/座位装饰） |
 
 
 ```

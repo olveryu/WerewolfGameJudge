@@ -47,6 +47,28 @@ applyTo: 'src/screens/**,src/components/**'
 - `RoleRevealEffects` 动画组件通过 `createAlignmentThemes(colors)` 工厂函数派生 glow/particle/gradient 色值（`src/components/RoleRevealEffects/types.ts`）。
 - 新增阵营相关 UI 时，必须覆盖全部 4 个 faction（wolf / god / villager / third）。
 
+## 共享组件注册表
+
+### Avatar 组件系
+
+| 组件 | 文件 | 何时使用 |
+|---|---|---|
+| `Avatar` | `src/components/Avatar.tsx` | 基础头像渲染（内部组件） |
+| `UserAvatar` | `src/components/UserAvatar.tsx` | 用户头像按钮 + 等级 badge（HomeScreen TopBar / RoomScreen HeaderActions 共用） |
+| `AvatarWithFrame` | `src/components/AvatarWithFrame.tsx` | 头像 + 装饰框渲染（SeatTile / AvatarPickerScreen） |
+
+### 座位装饰 (seatFlairs)
+
+`src/components/seatFlairs/` — 10 个 Skia 粒子动画组件，注册表模式同 `avatarFrames/`。
+
+- `index.ts` 导出 `SEAT_FLAIRS` 对象 + `getFlairComponent(flairId)` 工厂函数。
+- 每个 Flair 接收 `FlairProps`（`size` / `progress: SharedValue<number>`），用 Skia Immediate Mode 渲染。
+- 新增 flair：创建组件 → 注册到 `index.ts` → 加入 `rewardCatalog.ts` SEAT_FLAIR_IDS。
+
+### 头像框 (avatarFrames)
+
+`src/components/avatarFrames/` — 注册表模式，`getFrameComponent(frameId)` 工厂函数。新增 frame 同理。
+
 ## Actor Identity 三层语义
 
 - `my*` — 真实身份，仅展示用。
