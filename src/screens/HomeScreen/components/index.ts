@@ -10,4 +10,3 @@ export { RandomRoleCard } from './RandomRoleCard';
 export type { HomeScreenStyles } from './styles';
 export { createHomeScreenStyles } from './styles';
 export { TipCard } from './TipCard';
-export { UserAvatar } from './UserAvatar';

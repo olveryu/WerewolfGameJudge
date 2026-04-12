@@ -25,6 +25,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/Button';
 import { PageGuideModal } from '@/components/PageGuideModal';
 import { PressableScale } from '@/components/PressableScale';
+import { UserAvatar } from '@/components/UserAvatar';
 import { getDailyQuote } from '@/config/dailyQuotes';
 import { HOME_GUIDE } from '@/config/guideContent';
 import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
@@ -47,7 +48,6 @@ import {
   JoinRoomModal,
   RandomRoleCard,
   TipCard,
-  UserAvatar,
 } from './components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -488,8 +488,6 @@ export const HomeScreen: React.FC = () => {
               user={user}
               level={userLevel}
               onPress={handleNavigateSettings}
-              styles={styles}
-              colors={colors}
               testID={TESTIDS.homeSettingsButton}
             />
           </View>

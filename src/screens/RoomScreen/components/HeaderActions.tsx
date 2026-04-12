@@ -8,19 +8,17 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
+import { UserAvatar } from '@/components/UserAvatar';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
+import { colors, componentSizes } from '@/theme';
 
 import { type HeaderActionsStyles } from './styles';
 
 const MENU_ICON_SIZE = componentSizes.icon.md;
-const AVATAR_SIZE = componentSizes.avatar.sm;
-const AVATAR_WRAPPER_SIZE = AVATAR_SIZE + spacing.tight * 2;
-const BADGE_SIZE = componentSizes.badge.sm;
 
 interface HeaderActionsProps {
   /** Whether to show the menu (Host only) */
@@ -147,43 +145,11 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
 
   const hasDropdownItems = showUserSettings || hasOtherItems;
 
-  // Single item: render avatar/icon button directly (same size as HomeScreen UserAvatar)
+  // Single item: render avatar/icon button directly — reuses shared UserAvatar
   if (showUserSettings && !hasOtherItems) {
-    const wrapperStyle = {
-      width: AVATAR_WRAPPER_SIZE,
-      height: AVATAR_WRAPPER_SIZE,
-      borderRadius: borderRadius.full,
-      backgroundColor: withAlpha(colors.primary, 0.08),
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-    };
-    const badge =
-      level != null ? (
-        <View style={[badgeStyles.pill, { backgroundColor: colors.primary }]}>
-          <Text style={badgeStyles.text}>{level}</Text>
-        </View>
-      ) : null;
     return (
       <View style={styles.headerRightContainer}>
-        <Button variant="icon" onPress={onUserSettings}>
-          <View style={wrapperStyle}>
-            {user ? (
-              <Avatar
-                value={user.uid}
-                size={AVATAR_SIZE}
-                avatarUrl={user.avatarUrl}
-                borderRadius={AVATAR_SIZE / 2}
-              />
-            ) : (
-              <Ionicons
-                name="person-circle-outline"
-                size={componentSizes.icon.md}
-                color={colors.textSecondary}
-              />
-            )}
-            {badge}
-          </View>
-        </Button>
+        <UserAvatar user={user} level={level} onPress={onUserSettings} />
       </View>
     );
   }
@@ -313,25 +279,3 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
 export const HeaderActions = memo(HeaderActionsComponent);
 
 HeaderActions.displayName = 'HeaderActions';
-
-// ── Badge styles (matches HomeScreen UserAvatar badge) ──
-
-const badgeStyles = StyleSheet.create({
-  pill: {
-    position: 'absolute',
-    bottom: -1,
-    right: -2,
-    minWidth: BADGE_SIZE,
-    height: BADGE_SIZE,
-    borderRadius: BADGE_SIZE / 2,
-    paddingHorizontal: spacing.micro,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    color: colors.textInverse,
-    fontSize: typography.captionSmall,
-    lineHeight: typography.lineHeights.caption,
-    fontWeight: typography.weights.bold,
-  },
-});
