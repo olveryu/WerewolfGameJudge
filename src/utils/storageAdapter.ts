@@ -51,7 +51,7 @@ function canUseLocalStorage(): boolean {
 // Cache the detection result (只检测一次)
 const localStorageAvailable = canUseLocalStorage();
 
-/** Whether the runtime is a browser environment */
+/** Whether the runtime is a browser environment @public exported for test isolation */
 export const isBrowser = detectBrowserEnvironment();
 
 // ============================================
@@ -94,6 +94,7 @@ interface StorageAdapter {
  * - Web/Browser: use localStorage (works on mobile browsers)
  * - Native: use AsyncStorage
  * - With ?newUser=N: use isolated memory storage per slot (forces new anonymous user)
+ * @public exported for test isolation
  */
 export function getStorageAdapter(): StorageAdapter {
   const slot = getNewUserSlot();

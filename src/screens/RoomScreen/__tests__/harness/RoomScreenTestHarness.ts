@@ -65,6 +65,7 @@ export type DialogType =
 // Dialog Event Record
 // =============================================================================
 
+/** @public used by board test utils */
 export interface DialogEvent {
   type: DialogType;
   title: string;

@@ -29,6 +29,7 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 import { type BottomActionVM, buildBottomAction } from './bottomActionBuilder';
 
 // Re-export for architectural boundary contract (see hooks.boundary.test.ts)
+/** @public architectural boundary contract (see hooks.boundary.test.ts) */
 export type { ActionIntent };
 
 // ─────────────────────────────────────────────────────────────────────────────
