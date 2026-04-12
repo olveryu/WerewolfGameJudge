@@ -6,9 +6,9 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 
-// Mock the theme hook
+// Mock the theme
 jest.mock('../../theme', () => ({
-  useColors: () => ({
+  colors: {
     surface: '#1F2937',
     text: '#FFFFFF',
     textSecondary: '#9CA3AF',
@@ -20,7 +20,7 @@ jest.mock('../../theme', () => ({
     villager: '#22C55E',
     god: '#6366F1',
     third: '#F59E0B',
-  }),
+  },
   withAlpha: (hex: string, opacity: number) => {
     const alpha = Math.round(opacity * 255)
       .toString(16)

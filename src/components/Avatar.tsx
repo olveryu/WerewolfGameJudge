@@ -9,7 +9,7 @@ import { Image as ExpoImage } from 'expo-image';
 import React, { memo, useMemo } from 'react';
 import { Image, ImageSourcePropType, StyleSheet, View } from 'react-native';
 
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 
@@ -43,7 +43,6 @@ const AvatarComponent: React.FC<AvatarProps> = ({
   avatarUrl,
   borderRadius: borderRadiusProp,
 }) => {
-  const colors = useColors();
   const radius = borderRadiusProp ?? size / 4;
 
   // Memoize style object for image-based avatars
@@ -58,7 +57,7 @@ const AvatarComponent: React.FC<AvatarProps> = ({
         overflow: 'hidden' as const,
       },
     ],
-    [size, radius, colors.border],
+    [size, radius],
   );
 
   // Memoize URI source object to prevent new object creation

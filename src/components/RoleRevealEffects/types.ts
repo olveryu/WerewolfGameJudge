@@ -133,7 +133,7 @@ const VILLAGER_THEME: AlignmentTheme = {
 
 /**
  * Create 4-faction alignment themes from current ThemeColors.
- * Consumers should memoize the result via `useMemo(() => createAlignmentThemes(colors), [colors])`.
+ * Consumers should memoize the result via `useMemo(() => createAlignmentThemes(colors), [])`.
  * Villager uses a fixed neutral grey theme matching HTML demo card-normal style.
  */
 export function createAlignmentThemes(colors: ThemeColors): Record<RoleAlignment, AlignmentTheme> {

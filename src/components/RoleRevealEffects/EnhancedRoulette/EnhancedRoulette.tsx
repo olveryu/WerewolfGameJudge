@@ -38,7 +38,7 @@ import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEff
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { CELEBRATION_EMOJIS } from '@/config/emojiTokens';
-import { crossPlatformTextShadow, spacing, typography, useColors } from '@/theme';
+import { colors, crossPlatformTextShadow, spacing, typography } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const SLOT_COLORS = {
@@ -188,7 +188,6 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   enableHaptics = true,
   testIDPrefix = 'enhanced-roulette',
 }) => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const config = CONFIG.roulette;
@@ -226,7 +225,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
-  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
   const centeringOffset = config.itemHeight;
 

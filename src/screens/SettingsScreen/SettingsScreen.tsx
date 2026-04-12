@@ -31,7 +31,7 @@ import { resetAllGuides, usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import type { UserStats } from '@/services/feature/StatsService';
 import { fetchUserStats } from '@/services/feature/StatsService';
-import { componentSizes, fixed, layout, ThemeKey, typography, useTheme } from '@/theme';
+import { colors, componentSizes, fixed, layout, typography } from '@/theme';
 import { showAlert, showPrompt } from '@/utils/alert';
 import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
@@ -46,14 +46,12 @@ import {
   createSettingsScreenStyles,
   GrowthSection,
   NameSection,
-  ThemeSelector,
 } from './components';
 
 export const SettingsScreen: React.FC = () => {
-  const { colors, themeKey, setTheme, availableThemes } = useTheme();
   const insets = useSafeAreaInsets();
   // Create styles once and pass to all sub-components
-  const styles = useMemo(() => createSettingsScreenStyles(colors), [colors]);
+  const styles = useMemo(() => createSettingsScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Settings'>>();
   const {
     user,
@@ -251,13 +249,6 @@ export const SettingsScreen: React.FC = () => {
       doSwitch();
     }
   }, [user?.isAnonymous, facade, navigation, isInRoom, isSeated]);
-
-  const handleThemeChange = useCallback(
-    (key: string) => {
-      setTheme(key as ThemeKey);
-    },
-    [setTheme],
-  );
 
   const handleResetGuides = useCallback(() => {
     showConfirmAlert(
@@ -556,13 +547,6 @@ export const SettingsScreen: React.FC = () => {
           {/* eslint-disable-next-line react-hooks/refs -- wasAuthenticatedRef is intentionally read during render to suppress auth UI flash during transient auth state */}
           {renderAuthSection()}
         </View>
-
-        <ThemeSelector
-          currentThemeKey={themeKey}
-          availableThemes={availableThemes}
-          onThemeChange={handleThemeChange}
-          styles={styles}
-        />
 
         <AboutSection styles={styles} />
 

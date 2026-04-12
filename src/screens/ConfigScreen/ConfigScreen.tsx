@@ -25,7 +25,7 @@ import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { componentSizes, layout, useColors } from '@/theme';
+import { colors, componentSizes, layout } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 
 import {
@@ -46,9 +46,8 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Config'>;
 type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
 export const ConfigScreen: React.FC = () => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createConfigScreenStyles(colors), [colors]);
+  const styles = useMemo(() => createConfigScreenStyles(colors), []);
 
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConfigRouteProp>();
@@ -68,7 +67,6 @@ export const ConfigScreen: React.FC = () => {
     settingsService,
     authService,
     roomService,
-    colors,
   });
 
   const {

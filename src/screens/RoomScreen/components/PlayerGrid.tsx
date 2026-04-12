@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
-import { spacing, type ThemeColors, useColors } from '@/theme';
+import { colors, spacing, type ThemeColors } from '@/theme';
 import { getUniqueAvatarMap } from '@/utils/avatar';
 
 import { createSeatTileStyles, getGridColumns, SeatTile } from './SeatTile';
@@ -53,7 +53,6 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   showBotRoles = false,
   showLevels = false,
 }) => {
-  const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const gridColumns = getGridColumns(screenWidth);
   const pixelRatio = PixelRatio.get();
@@ -72,11 +71,11 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const tileSize =
     Math.floor(((effectiveWidth - spacing.small * (gridColumns - 1)) / gridColumns) * pixelRatio) /
     pixelRatio;
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
 
   // Create SeatTile styles once and pass to all tiles (performance optimization)
   // This avoids each SeatTile calling StyleSheet.create independently
-  const seatTileStyles = useMemo(() => createSeatTileStyles(colors, tileSize), [colors, tileSize]);
+  const seatTileStyles = useMemo(() => createSeatTileStyles(colors, tileSize), [tileSize]);
 
   // Compute room-level unique avatar indices so no two players share an avatar.
   // Only includes players without a custom avatarUrl.

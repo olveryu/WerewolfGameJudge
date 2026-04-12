@@ -32,7 +32,7 @@ import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { componentSizes, layout, spacing, useTheme } from '@/theme';
+import { colors, componentSizes, layout, spacing } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -65,10 +65,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuthContext();
-  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createRoomScreenStyles(colors), [colors]);
-  const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), [colors]);
+  const styles = useMemo(() => createRoomScreenStyles(colors), []);
+  const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), []);
 
   // ─── Notepad ──────────────────────────────────────────────────────────
   const handleNotepadPress = useCallback(() => {
@@ -375,7 +374,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}
         testID={TESTIDS.roomHeader}
       >
-        <BlurView intensity={60} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+        <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
         <View style={styles.headerLeft}>
           <TouchableOpacity
             onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}
@@ -555,7 +554,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         message={actionMessage}
         showMessage={!isAudioPlaying && (imActioner || roomStatus === GameStatus.Ended)}
         styles={componentStyles.bottomActionPanel}
-        isDark={isDark}
         bottomInset={insets.bottom}
       >
         {/* Actioner: schema-driven bottom action buttons */}

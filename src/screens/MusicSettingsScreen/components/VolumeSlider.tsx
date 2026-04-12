@@ -12,7 +12,7 @@ import { StyleSheet, type TextStyle, View, type ViewStyle } from 'react-native';
 import { Slider } from 'react-native-awesome-slider';
 import { useSharedValue } from 'react-native-reanimated';
 
-import { borderRadius, componentSizes, shadows, spacing, type ThemeColors } from '@/theme';
+import { borderRadius, colors, componentSizes, shadows, spacing, type ThemeColors } from '@/theme';
 
 const SLIDER_HEIGHT = 8;
 const THUMB_OUTER = 24;
@@ -30,7 +30,6 @@ export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
   value,
   onValueChange,
   onSlidingComplete,
-  colors,
 }) {
   const progress = useSharedValue(value);
   const min = useSharedValue(0);
@@ -63,10 +62,10 @@ export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
       maximumTrackTintColor: colors.border,
       bubbleBackgroundColor: colors.primary,
     }),
-    [colors.primary, colors.border],
+    [],
   );
 
-  const styles = useMemo(() => getStyles(colors), [colors]);
+  const styles = useMemo(() => getStyles(colors), []);
 
   const renderThumb = useCallback(
     () => (
@@ -74,7 +73,7 @@ export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
         <View style={[styles.thumbInner, { backgroundColor: colors.primary }]} />
       </View>
     ),
-    [styles, colors.primary],
+    [styles],
   );
 
   return (

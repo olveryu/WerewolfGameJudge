@@ -9,7 +9,7 @@ import { memo } from 'react';
 import { Text, View } from 'react-native';
 
 import { APP_VERSION } from '@/config/version';
-import { typography, useColors } from '@/theme';
+import { colors, typography } from '@/theme';
 
 import { SettingsScreenStyles } from './styles';
 
@@ -18,8 +18,6 @@ interface AboutSectionProps {
 }
 
 export const AboutSection = memo<AboutSectionProps>(({ styles }) => {
-  const colors = useColors();
-
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>

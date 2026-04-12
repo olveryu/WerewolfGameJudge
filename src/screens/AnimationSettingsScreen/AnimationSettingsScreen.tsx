@@ -25,7 +25,7 @@ import { ANIMATION_OPTIONS } from '@/components/SettingsSheet/animationOptions';
 import { SettingsOptionGroup } from '@/components/SettingsSheet/SettingsOptionGroup';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
-import { componentSizes, layout, spacing, typography, useColors } from '@/theme';
+import { colors, componentSizes, layout, spacing, typography } from '@/theme';
 
 import { createAnimationSettingsStyles } from './styles';
 
@@ -39,9 +39,8 @@ const PREVIEW_ROLE: RoleData = createRoleData(
 );
 
 export const AnimationSettingsScreen: React.FC = () => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createAnimationSettingsStyles(colors), [colors]);
+  const styles = useMemo(() => createAnimationSettingsStyles(colors), []);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'AnimationSettings'>>();
   const route =

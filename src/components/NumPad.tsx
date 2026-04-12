@@ -8,7 +8,7 @@ import React, { memo, useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { borderRadius, fixed, spacing, ThemeColors, typography, useColors } from '@/theme';
+import { borderRadius, colors, fixed, spacing, ThemeColors, typography } from '@/theme';
 
 interface NumPadProps {
   /** Current value (max 4 digits) */
@@ -90,8 +90,7 @@ const NumPadComponent: React.FC<NumPadProps> = ({
   maxLength = 4,
   disabled = false,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
 
   const handlePress = (key: string) => {
     // NumPad is an input component - disabled means no input accepted

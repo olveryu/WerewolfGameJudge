@@ -12,6 +12,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  colors,
   componentSizes,
   shadows,
   spacing,
@@ -40,7 +41,6 @@ export const RoleListItem = React.memo<RoleListItemProps>(function RoleListItem(
   roleId,
   factionColor,
   onPress,
-  colors,
 }) {
   const spec = ROLE_SPECS[roleId];
   const tags = spec.tags ?? [];

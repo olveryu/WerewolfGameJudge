@@ -54,7 +54,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, crossPlatformTextShadow, useColors } from '@/theme';
+import { borderRadius, colors, crossPlatformTextShadow } from '@/theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -271,10 +271,9 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   enableHaptics = true,
   testIDPrefix = 'tarot-draw',
 }) => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
   const config = CONFIG.tarot ?? { flipDuration: 800, revealHoldDuration: 1500 };
 

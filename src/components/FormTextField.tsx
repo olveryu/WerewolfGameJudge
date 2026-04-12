@@ -20,12 +20,12 @@ import {
 
 import {
   borderRadius,
+  colors,
   componentSizes,
   fixed,
   spacing,
   type ThemeColors,
   typography,
-  useColors,
 } from '@/theme';
 
 // ── Types ────────────────────────────────────────────────
@@ -96,8 +96,7 @@ export const FormTextField = forwardRef<TextInput, FormTextFieldProps>(
     { variant = 'default', icon, error, style, containerStyle, placeholderTextColor, ...rest },
     ref,
   ) => {
-    const colors = useColors();
-    const styles = useMemo(() => createStyles(colors), [colors]);
+    const styles = useMemo(() => createStyles(colors), []);
 
     if (variant === 'search') {
       return (

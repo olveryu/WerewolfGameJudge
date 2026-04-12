@@ -10,7 +10,7 @@ import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { FormTextField } from '@/components/FormTextField';
-import { fixed } from '@/theme';
+import { colors, fixed } from '@/theme';
 
 import { EmailDomainDropdown } from './EmailDomainDropdown';
 import { type EmailFormProps } from './types';
@@ -33,7 +33,6 @@ export const EmailForm = memo<EmailFormProps>(
     onForgotPassword,
     onBack,
     styles,
-    colors,
   }) => {
     const passwordRef = useRef<TextInput>(null);
     const nameRef = useRef<TextInput>(null);

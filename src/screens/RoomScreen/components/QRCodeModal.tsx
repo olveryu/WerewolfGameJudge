@@ -17,6 +17,7 @@ import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  colors,
   componentSizes,
   fixed,
   shadows,
@@ -24,7 +25,6 @@ import {
   textStyles,
   type ThemeColors,
   typography,
-  useColors,
 } from '@/theme';
 import { log } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
@@ -79,8 +79,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   onCopyLink,
   onClose,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
   const shareCardRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
   const preCapturedRef = useRef<string | null>(null);

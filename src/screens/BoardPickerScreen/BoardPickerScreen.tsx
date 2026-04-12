@@ -52,7 +52,7 @@ import {
 } from '@/screens/ConfigScreen/configHelpers';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { componentSizes, fixed, layout, spacing, typography, useColors, withAlpha } from '@/theme';
+import { colors, componentSizes, fixed, layout, spacing, typography, withAlpha } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 
 import { type BoardPickerStyles, createBoardPickerStyles } from './styles';
@@ -98,8 +98,6 @@ interface BoardCardProps {
 
 const BoardCard = React.memo<BoardCardProps>(
   ({ template, isExpanded, onToggleExpand, onSelect, onRolePress, styles, maxChips }) => {
-    const colors = useColors();
-
     const stats = useMemo(() => computeFactionStats(template.roles), [template.roles]);
     const keyRoles = useMemo(
       () => getKeyRoles(template.roles, maxChips),
@@ -246,13 +244,12 @@ BoardCard.displayName = 'BoardCard';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const BoardPickerScreen: React.FC = () => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BoardPickerRouteProp>();
   const existingRoomNumber = route.params?.existingRoomNumber;
   const nominateMode = route.params?.nominateMode;
-  const styles = useMemo(() => createBoardPickerStyles(colors), [colors]);
+  const styles = useMemo(() => createBoardPickerStyles(colors), []);
   const { width: screenWidth } = useWindowDimensions();
   const maxChips = useMemo(() => estimateMaxChips(screenWidth), [screenWidth]);
 
@@ -290,7 +287,7 @@ export const BoardPickerScreen: React.FC = () => {
       }
     }
     return groups;
-  }, [distinctiveRoles, colors]);
+  }, [distinctiveRoles]);
 
   // ── Data pipeline ──
   const filtered = useMemo(() => filterTemplates(PRESET_TEMPLATES, searchQuery), [searchQuery]);
@@ -433,7 +430,7 @@ export const BoardPickerScreen: React.FC = () => {
   const renderSectionHeader = useCallback(
     ({ section }: { section: TemplateSectionData }) => {
       // Pick accent color based on section position
-      const sectionColors: string[] = [colors.primary, colors.god, colors.warning, colors.third];
+      const sectionColors: string[] = [colors.god, colors.warning];
       const sectionIndex = sections.indexOf(section);
       const accentColor = sectionColors[sectionIndex % sectionColors.length];
 
@@ -444,7 +441,7 @@ export const BoardPickerScreen: React.FC = () => {
         </View>
       );
     },
-    [colors, sections, styles],
+    [sections, styles],
   );
 
   const keyExtractor = useCallback((item: PresetTemplate) => item.name, []);

@@ -51,7 +51,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#030008', '#050012', '#030008'] as const;
@@ -254,8 +254,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
   enableHaptics = true,
   testIDPrefix = 'vortex-collapse',
 }) => {
-  const themeColors = useColors();
-  const alignmentThemes = useMemo(() => createAlignmentThemes(themeColors), [themeColors]);
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
 
   const common = CONFIG.common;

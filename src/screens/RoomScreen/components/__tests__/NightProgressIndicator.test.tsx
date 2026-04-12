@@ -8,9 +8,9 @@ import { render } from '@testing-library/react-native';
 import { NightProgressIndicator } from '@/screens/RoomScreen/components/NightProgressIndicator';
 import { createRoomScreenComponentStyles } from '@/screens/RoomScreen/components/styles';
 import { TESTIDS } from '@/testids';
-import { themes } from '@/theme/themes';
+import { colors } from '@/theme';
 
-const mockStyles = createRoomScreenComponentStyles(themes.light.colors).nightProgressIndicator;
+const mockStyles = createRoomScreenComponentStyles(colors).nightProgressIndicator;
 
 describe('NightProgressIndicator', () => {
   it('should render step count correctly', () => {

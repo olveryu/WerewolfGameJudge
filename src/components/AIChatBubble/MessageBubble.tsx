@@ -11,7 +11,7 @@ import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import { spacing, type ThemeColors, typography } from '@/theme';
+import { colors, spacing, type ThemeColors, typography } from '@/theme';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
 import { SimpleMarkdown } from './SimpleMarkdown';
@@ -58,7 +58,6 @@ function BlinkingCursor({ color }: { color: string }) {
 
 export const MessageBubble = memo(function MessageBubble({
   message,
-  colors,
   bubbleStyle,
   textStyle,
   isStreaming = false,

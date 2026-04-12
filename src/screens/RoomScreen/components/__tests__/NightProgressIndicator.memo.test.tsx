@@ -20,11 +20,11 @@ import {
   createRoomScreenComponentStyles,
   type NightProgressIndicatorStyles,
 } from '@/screens/RoomScreen/components/styles';
-import { themes } from '@/theme/themes';
+import { colors } from '@/theme';
 
-// ─── Setup ──────────────────────────────────────────────────────────────────
+// ─── Setup ──────────────────────────────────────────────────────────────────────────
 
-const componentStyles = createRoomScreenComponentStyles(themes.dark.colors);
+const componentStyles = createRoomScreenComponentStyles(colors);
 const indicatorStyles: NightProgressIndicatorStyles = componentStyles.nightProgressIndicator;
 
 let renderCount = 0;

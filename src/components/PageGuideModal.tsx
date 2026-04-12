@@ -22,6 +22,7 @@ import {
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  colors,
   componentSizes,
   fixed,
   shadows,
@@ -29,7 +30,6 @@ import {
   textStyles,
   type ThemeColors,
   typography,
-  useColors,
 } from '@/theme';
 
 import { Button } from './Button';
@@ -75,9 +75,8 @@ export const PageGuideModal: React.FC<PageGuideModalProps> = ({
   onToggleDontShowAgain,
   onDismiss,
 }) => {
-  const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
-  const styles = useMemo(() => createStyles(colors, screenWidth), [colors, screenWidth]);
+  const styles = useMemo(() => createStyles(colors, screenWidth), [screenWidth]);
 
   // Animation values — lazy-initialized, stable across renders
   const [anim] = useState(() => ({

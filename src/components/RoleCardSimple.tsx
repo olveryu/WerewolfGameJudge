@@ -28,11 +28,11 @@ import { UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  colors,
   fixed,
   spacing,
   type ThemeColors,
   typography,
-  useColors,
   withAlpha,
 } from '@/theme';
 
@@ -77,11 +77,10 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   onVariantSelect,
   onAskAI,
 }) => {
-  const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(screenWidth * 0.82, 360);
   const cardHeight = cardWidth * 1.5;
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
 
   const showAIButton = !!onAskAI;
   const displayRoleId = activeVariant ?? roleId;

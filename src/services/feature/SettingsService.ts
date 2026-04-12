@@ -1,7 +1,7 @@
 /**
  * SettingsService - 用户设置持久化服务
  *
- * 使用 AsyncStorage 持久化用户偏好设置（主题/昵称/语言等），
+ * 使用 AsyncStorage 持久化用户偏好设置（音频/动画等），
  * 所有设置存储在单个 key 下的 JSON 对象中。涵盖 AsyncStorage 读写和默认值合并。
  * 不涉及游戏逻辑或游戏状态存储。
  */
@@ -11,9 +11,6 @@ import * as Sentry from '@sentry/react-native';
 import { settingsServiceLog } from '@/utils/logger';
 
 const SETTINGS_KEY = '@werewolf_settings';
-
-/** Valid theme keys (must match themes.ts ThemeKey) */
-type ThemeKey = 'light' | 'sand' | 'jade' | 'sky' | 'dark' | 'midnight' | 'blood' | 'forest';
 
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
@@ -29,23 +26,9 @@ interface UserSettings {
   bgmVolume: number;
   /** Role audio (TTS narration) volume 0.0–1.0 (default: 1.0) */
   roleAudioVolume: number;
-  /** Selected theme (default: 'dark') */
-  themeKey: ThemeKey;
   /** Role reveal animation style (default: 'roulette') */
   roleRevealAnimation: RoleRevealAnimation;
 }
-
-/** Valid theme keys for runtime validation of persisted data */
-const VALID_THEME_KEYS: ReadonlySet<string> = new Set<ThemeKey>([
-  'light',
-  'sand',
-  'jade',
-  'sky',
-  'dark',
-  'midnight',
-  'blood',
-  'forest',
-]);
 
 /** Valid role reveal animation values for runtime validation of persisted data */
 const VALID_ROLE_REVEAL_ANIMATIONS: ReadonlySet<string> = new Set<RoleRevealAnimation>([
@@ -70,7 +53,6 @@ const DEFAULT_SETTINGS: UserSettings = {
   bgmTrack: 'random',
   bgmVolume: 0.1,
   roleAudioVolume: 1.0,
-  themeKey: 'light',
   roleRevealAnimation: 'random',
 };
 
@@ -95,13 +77,6 @@ export class SettingsService {
           const merged = { ...DEFAULT_SETTINGS, ...(parsed as Partial<UserSettings>) };
 
           // Validate + clamp persisted values to current valid ranges
-          if (!VALID_THEME_KEYS.has(merged.themeKey)) {
-            settingsServiceLog.warn(
-              'Invalid persisted themeKey, resetting to default:',
-              merged.themeKey,
-            );
-            merged.themeKey = DEFAULT_SETTINGS.themeKey;
-          }
           if (!VALID_ROLE_REVEAL_ANIMATIONS.has(merged.roleRevealAnimation)) {
             settingsServiceLog.warn(
               'Invalid persisted roleRevealAnimation, resetting to default:',
@@ -253,25 +228,6 @@ export class SettingsService {
    */
   async setRoleAudioVolume(volume: number): Promise<void> {
     this.#settings.roleAudioVolume = Math.max(0, Math.min(1, volume));
-    await this.#save();
-  }
-
-  // =========================================================================
-  // Theme Settings
-  // =========================================================================
-
-  /**
-   * Get current theme key.
-   */
-  getThemeKey(): ThemeKey {
-    return this.#settings.themeKey;
-  }
-
-  /**
-   * Set theme and persist.
-   */
-  async setThemeKey(key: ThemeKey): Promise<void> {
-    this.#settings.themeKey = key;
     await this.#save();
   }
 

@@ -13,7 +13,7 @@ import { useWindowDimensions, View } from 'react-native';
 import { LoginOptions } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RootStackParamList } from '@/navigation/types';
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { getErrorMessage } from '@/utils/errorUtils';
@@ -24,9 +24,8 @@ import { createAuthScreenStyles } from './styles';
 type RouteProp = import('@react-navigation/native').RouteProp<RootStackParamList, 'AuthLogin'>;
 
 export const AuthLoginScreen: React.FC = () => {
-  const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
-  const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [colors, screenWidth]);
+  const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AuthLogin'>>();
   const route = useRoute<RouteProp>();
 

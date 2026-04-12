@@ -16,7 +16,7 @@ import { EmailForm } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { RootStackParamList } from '@/navigation/types';
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
 
@@ -25,9 +25,8 @@ import { createAuthScreenStyles } from './styles';
 type RouteProp = import('@react-navigation/native').RouteProp<RootStackParamList, 'AuthEmail'>;
 
 export const AuthEmailScreen: React.FC = () => {
-  const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
-  const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [colors, screenWidth]);
+  const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AuthEmail'>>();
   const route = useRoute<RouteProp>();
 

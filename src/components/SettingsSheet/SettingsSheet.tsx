@@ -22,13 +22,14 @@ import {
 
 import {
   borderRadius,
+  colors,
   componentSizes,
   fixed,
   layout,
   spacing,
   textStyles,
+  type ThemeColors,
   typography,
-  useColors,
   withAlpha,
 } from '@/theme';
 
@@ -97,8 +98,7 @@ export const SettingsSheet = memo(function SettingsSheet({
   bgmTestIDPrefix = 'settings-bgm',
   overlayTestID,
 }: SettingsSheetProps) {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
 
   const handleAnimSelect = useCallback(
     (value: string) => {
@@ -215,7 +215,7 @@ interface SettingsSheetStyles {
 }
 
 /** Base chip styles for BGM group */
-function createBaseChipStyles(colors: ReturnType<typeof useColors>) {
+function createBaseChipStyles(colors: ThemeColors) {
   return {
     groupLabel: {
       fontSize: typography.secondary,
@@ -251,7 +251,7 @@ function createBaseChipStyles(colors: ReturnType<typeof useColors>) {
   };
 }
 
-function createStyles(colors: ReturnType<typeof useColors>): SettingsSheetStyles {
+function createStyles(colors: ThemeColors): SettingsSheetStyles {
   const baseChip = createBaseChipStyles(colors);
 
   const sheetStyles = StyleSheet.create({

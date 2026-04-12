@@ -19,6 +19,7 @@ import {
 import type { BgmTrackEntry } from '@/services/infra/audio/audioRegistry';
 import {
   borderRadius,
+  colors,
   componentSizes,
   fixed,
   spacing,
@@ -47,7 +48,6 @@ export const TrackRow = memo<TrackRowProps>(function TrackRow({
   disabled,
   onSelect,
   onPreviewToggle,
-  colors,
 }) {
   const s = getStyles(colors);
 

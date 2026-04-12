@@ -29,7 +29,7 @@ import {
 } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
-import { componentSizes, fixed, typography, useTheme } from '@/theme';
+import { colors, componentSizes, fixed, typography } from '@/theme';
 
 import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
 import { MessageBubble } from './MessageBubble';
@@ -49,7 +49,6 @@ interface AIChatBubbleProps {
 }
 
 export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false }) => {
-  const { colors } = useTheme();
   const styles = createStyles(colors);
   const flatListRef = useRef<FlatList>(null);
   const { height: screenHeight } = useWindowDimensions();
@@ -141,7 +140,7 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
         />
       );
     },
-    [styles, colors, chat.isStreaming, lastMessageId],
+    [styles, chat.isStreaming, lastMessageId],
   );
 
   // Web drag style

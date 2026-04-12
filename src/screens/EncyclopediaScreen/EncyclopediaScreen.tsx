@@ -38,6 +38,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  colors,
   componentSizes,
   createSharedStyles,
   fixed,
@@ -46,7 +47,6 @@ import {
   spacing,
   type ThemeColors,
   typography,
-  useColors,
   withAlpha,
 } from '@/theme';
 
@@ -164,7 +164,6 @@ function buildSections(
 // ============================================
 
 export const EncyclopediaScreen: React.FC = () => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'Encyclopedia'>>();
@@ -206,7 +205,7 @@ export const EncyclopediaScreen: React.FC = () => {
     [sections],
   );
 
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
 
   const handleRolePress = useCallback((roleId: RoleId) => {
     setSelectedRole(roleId);
@@ -277,7 +276,7 @@ export const EncyclopediaScreen: React.FC = () => {
         )}
       </View>
     ),
-    [colors, handleRolePress, styles],
+    [handleRolePress, styles],
   );
 
   const renderSectionHeader = useCallback(
@@ -292,7 +291,7 @@ export const EncyclopediaScreen: React.FC = () => {
         </View>
       );
     },
-    [colors, styles],
+    [styles],
   );
 
   const keyExtractor = useCallback(

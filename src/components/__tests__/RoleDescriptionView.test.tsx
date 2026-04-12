@@ -8,7 +8,7 @@ import { RoleDescriptionView } from '@/components/RoleDescriptionView';
 
 // Mock theme
 jest.mock('../../theme', () => ({
-  useColors: () => ({
+  colors: {
     surface: '#1C1C1F',
     text: '#F0F0F3',
     textSecondary: '#9898A8',
@@ -16,7 +16,7 @@ jest.mock('../../theme', () => ({
     border: '#2C2C32',
     warning: '#FBBF24',
     success: '#34D399',
-  }),
+  },
   withAlpha: (hex: string, _opacity: number) => `${hex}4D`,
   spacing: {
     micro: 2,

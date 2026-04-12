@@ -51,7 +51,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { crossPlatformTextShadow, useColors } from '@/theme';
+import { colors, crossPlatformTextShadow } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 /** Background gradient: deep crimson-black to complement gold seal glow */
@@ -434,8 +434,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   enableHaptics = true,
   testIDPrefix = 'seal-break',
 }) => {
-  const colors = useColors();
-  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();

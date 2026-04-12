@@ -52,7 +52,7 @@ import {
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { crossPlatformTextShadow, useColors } from '@/theme';
+import { colors, crossPlatformTextShadow } from '@/theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -172,8 +172,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   enableHaptics = true,
   testIDPrefix = 'fortune-wheel',
 }) => {
-  const appColors = useColors();
-  const alignmentThemes = useMemo(() => createAlignmentThemes(appColors), [appColors]);
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();

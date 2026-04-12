@@ -18,11 +18,11 @@ import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { computeFactionStats } from '@/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,
+  colors,
   componentSizes,
   spacing,
   textStyles,
   typography,
-  useColors,
   withAlpha,
 } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -67,7 +67,6 @@ function NominationCard({
   onWithdraw: () => void;
   onAdopt: (roles: readonly RoleId[]) => Promise<void>;
 }) {
-  const colors = useColors();
   const isMine = nomination.uid === myUid;
   const hasUpvoted = myUid ? nomination.upvoters.includes(myUid) : false;
   const roles = nomination.roles as RoleId[];
@@ -195,7 +194,6 @@ export const BoardNominationModal = memo(function BoardNominationModal({
   clearAllSeats,
   onClose,
 }: BoardNominationModalProps) {
-  const colors = useColors();
   const facade = useGameFacade();
 
   const handleAdopt = useCallback(

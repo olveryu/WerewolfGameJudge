@@ -6,7 +6,7 @@
  * 渲染降级 UI 并记录错误日志。不 import service，不含业务逻辑。
  *
  * 样式例外：使用硬编码颜色/间距，因为 ErrorBoundary 是 class component，
- * 在 ThemeProvider crash 时无法调用 useColors()，必须自包含 fallback 样式。
+ * 处于组件树最顶层，必须自包含 fallback 样式。
  */
 import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';

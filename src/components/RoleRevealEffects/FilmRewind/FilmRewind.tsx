@@ -48,7 +48,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { crossPlatformTextShadow, useColors } from '@/theme';
+import { colors, crossPlatformTextShadow } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#0a0906', '#0d0b08', '#0a0906'] as const;
@@ -239,8 +239,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
   enableHaptics = true,
   testIDPrefix = 'film-rewind',
 }) => {
-  const themeColors = useColors();
-  const alignmentThemes = useMemo(() => createAlignmentThemes(themeColors), [themeColors]);
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
 
   const common = CONFIG.common;

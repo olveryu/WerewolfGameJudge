@@ -4,20 +4,15 @@
  * Ensures createSharedStyles returns all expected keys and
  * each preset references theme-consistent values.
  */
+import { colors } from '../colors';
 import { createSharedStyles, type SharedStyles } from '../sharedStyles';
-import { themes } from '../themes';
 import { shadows } from '../tokens';
 
-const darkColors = themes.dark.colors;
-const lightColors = themes.light.colors;
-
 describe('createSharedStyles', () => {
-  let dark: SharedStyles;
-  let light: SharedStyles;
+  let styles: SharedStyles;
 
   beforeAll(() => {
-    dark = createSharedStyles(darkColors);
-    light = createSharedStyles(lightColors);
+    styles = createSharedStyles(colors);
   });
 
   const expectedKeys: (keyof SharedStyles)[] = [
@@ -37,42 +32,40 @@ describe('createSharedStyles', () => {
 
   it('returns all expected preset keys', () => {
     for (const key of expectedKeys) {
-      expect(dark).toHaveProperty(key);
+      expect(styles).toHaveProperty(key);
     }
   });
 
   // ── Card ──────────────────────────────────────────────────────────────
   it('cardBase uses surface bg, borderRadius, padding, and md shadow', () => {
-    expect(dark.cardBase.backgroundColor).toBe(darkColors.surface);
-    expect(dark.cardBase.borderRadius).toBeGreaterThan(0);
-    expect(dark.cardBase.padding).toBeGreaterThan(0);
-    expect(dark.cardBase).toHaveProperty('boxShadow');
+    expect(styles.cardBase.backgroundColor).toBe(colors.surface);
+    expect(styles.cardBase.borderRadius).toBeGreaterThan(0);
+    expect(styles.cardBase.padding).toBeGreaterThan(0);
+    expect(styles.cardBase).toHaveProperty('boxShadow');
   });
 
   it('cardElevated uses lg shadow (different from cardBase)', () => {
-    expect(dark.cardElevated).toHaveProperty('boxShadow', shadows.lg.boxShadow);
+    expect(styles.cardElevated).toHaveProperty('boxShadow', shadows.lg.boxShadow);
   });
 
   // ── Modal vs Sheet overlay ────────────────────────────────────────────
   it('modalOverlay uses colors.overlay (dark)', () => {
-    expect(dark.modalOverlay.backgroundColor).toBe(darkColors.overlay);
+    expect(styles.modalOverlay.backgroundColor).toBe(colors.overlay);
   });
 
   it('sheetOverlay uses colors.overlayLight (lighter)', () => {
-    expect(dark.sheetOverlay.backgroundColor).toBe(darkColors.overlayLight);
+    expect(styles.sheetOverlay.backgroundColor).toBe(colors.overlayLight);
   });
 
-  // ── Theme adapts ──────────────────────────────────────────────────────
-  it('adapts background to theme colors', () => {
-    expect(dark.screenContainer.backgroundColor).toBe(darkColors.background);
-    expect(light.screenContainer.backgroundColor).toBe(lightColors.background);
-    expect(dark.screenContainer.backgroundColor).not.toBe(light.screenContainer.backgroundColor);
+  // ── Background uses colors ────────────────────────────────────────────
+  it('uses colors.background for screenContainer', () => {
+    expect(styles.screenContainer.backgroundColor).toBe(colors.background);
   });
 
   // ── iconButton backward compat ────────────────────────────────────────
   it('iconButton matches legacy shape', () => {
-    expect(dark.iconButton.width).toBeGreaterThan(0);
-    expect(dark.iconButton.height).toBe(dark.iconButton.width);
-    expect(dark.iconButton.borderRadius).toBeGreaterThan(0);
+    expect(styles.iconButton.width).toBeGreaterThan(0);
+    expect(styles.iconButton.height).toBe(styles.iconButton.width);
+    expect(styles.iconButton.borderRadius).toBeGreaterThan(0);
   });
 });

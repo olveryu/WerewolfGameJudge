@@ -17,11 +17,11 @@ import {
   type BottomActionPanelStyles,
   createRoomScreenComponentStyles,
 } from '@/screens/RoomScreen/components/styles';
-import { themes } from '@/theme/themes';
+import { colors } from '@/theme';
 
-// ─── Setup ──────────────────────────────────────────────────────────────────
+// ─── Setup ──────────────────────────────────────────────────────────────────────────
 
-const componentStyles = createRoomScreenComponentStyles(themes.dark.colors);
+const componentStyles = createRoomScreenComponentStyles(colors);
 const panelStyles: BottomActionPanelStyles = componentStyles.bottomActionPanel;
 
 let renderCount = 0;

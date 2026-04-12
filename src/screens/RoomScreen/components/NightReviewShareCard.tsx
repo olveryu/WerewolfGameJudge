@@ -10,12 +10,12 @@ import { StyleSheet, Text, useWindowDimensions, View as RNView, type View } from
 import { STATUS_ICONS } from '@/config/iconTokens';
 import {
   borderRadius,
+  colors,
   fixed,
   spacing,
   textStyles,
   type ThemeColors,
   typography,
-  useColors,
 } from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
@@ -27,9 +27,8 @@ interface NightReviewShareCardProps {
 
 export const NightReviewShareCard = forwardRef<View, NightReviewShareCardProps>(
   ({ data, roomNumber }, ref) => {
-    const colors = useColors();
     const { width: screenWidth } = useWindowDimensions();
-    const styles = useMemo(() => createStyles(colors, screenWidth), [colors, screenWidth]);
+    const styles = useMemo(() => createStyles(colors, screenWidth), [screenWidth]);
 
     return (
       <RNView ref={ref} collapsable={false} style={styles.card}>

@@ -82,16 +82,6 @@ export interface SettingsScreenStyles {
   avatarStripLockIcon: TextStyle;
   avatarStripText: TextStyle;
   avatarStripLink: TextStyle;
-  // Theme section
-  themeSection: ViewStyle;
-  themeRow: ViewStyle;
-  themeLabel: TextStyle;
-  themeValue: TextStyle;
-  themeOptions: ViewStyle;
-  themeOption: ViewStyle;
-  themeOptionActive: ViewStyle;
-  themeOptionText: TextStyle;
-  themeOptionTextActive: TextStyle;
   // About section
   aboutRow: ViewStyle;
   aboutLabel: TextStyle;
@@ -308,57 +298,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     errorText: {
       ...createAuthBaseStyles(colors).errorText,
       marginBottom: spacing.medium,
-    },
-    // Theme section
-    themeSection: {
-      paddingVertical: spacing.small,
-    },
-    themeRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: spacing.small,
-    },
-    themeLabel: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      color: colors.text,
-    },
-    themeValue: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.primary,
-      fontWeight: typography.weights.medium,
-    },
-    themeOptions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.small,
-      marginTop: spacing.small,
-    },
-    themeOption: {
-      flexBasis: '22%',
-      flexGrow: 1,
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.background,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-    },
-    themeOptionActive: {
-      borderColor: colors.primary,
-      backgroundColor: withAlpha(colors.primary, 0.125),
-    },
-    themeOptionText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.text,
-      textAlign: 'center',
-    },
-    themeOptionTextActive: {
-      color: colors.primary,
-      fontWeight: typography.weights.semibold,
     },
     // About section
     aboutRow: {

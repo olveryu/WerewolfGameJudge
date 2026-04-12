@@ -9,14 +9,7 @@ import { getRoleDisplayName, type RoleId } from '@werewolf/game-engine/models/ro
 import React, { memo, useMemo } from 'react';
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import {
-  borderRadius,
-  spacing,
-  textStyles,
-  type ThemeColors,
-  typography,
-  useColors,
-} from '@/theme';
+import { borderRadius, colors, spacing, textStyles, type ThemeColors, typography } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import { getRoleBadge } from '@/utils/roleBadges';
 
@@ -124,8 +117,7 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
   onChoose,
   onClose,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
 
   const cards: BottomCardItem[] = useMemo(
     () =>

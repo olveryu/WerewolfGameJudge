@@ -10,7 +10,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
 import { UI_ICONS } from '@/config/iconTokens';
-import { componentSizes, fixed, useColors } from '@/theme';
+import { colors, componentSizes, fixed } from '@/theme';
 
 import type { RoleDisplayItem } from '../RoomScreen.helpers';
 import { type BoardInfoCardStyles } from './styles';
@@ -92,7 +92,6 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   onNominatePress,
   onViewNominations,
 }) => {
-  const colors = useColors();
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
   const [userHasInteracted, setUserHasInteracted] = useState(false);
 

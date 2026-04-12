@@ -13,6 +13,7 @@ import { Avatar } from '@/components/Avatar';
 import { PressableScale } from '@/components/PressableScale';
 import {
   borderRadius,
+  colors,
   componentSizes,
   spacing,
   type ThemeColors,
@@ -38,7 +39,7 @@ const WRAPPER_SIZE = AVATAR_SIZE + spacing.tight * 2;
 const BADGE_SIZE = componentSizes.badge.sm;
 
 export const UserAvatar = memo<UserAvatarProps>(
-  ({ user, level, onPress, styles: _styles, colors, testID }) => {
+  ({ user, level, onPress, styles: _styles, testID }) => {
     const wrapperStyle = {
       width: WRAPPER_SIZE,
       height: WRAPPER_SIZE,

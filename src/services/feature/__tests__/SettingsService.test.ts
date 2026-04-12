@@ -23,7 +23,6 @@ describe('SettingsService', () => {
     it('loads settings from AsyncStorage', async () => {
       const storedSettings = {
         bgmEnabled: false,
-        themeKey: 'midnight',
         roleRevealAnimation: 'roleHunt',
       };
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(storedSettings));
@@ -71,23 +70,6 @@ describe('SettingsService', () => {
     });
   });
 
-  describe('themeKey', () => {
-    it('can get and set theme', async () => {
-      await service.setThemeKey('midnight');
-      expect(service.getThemeKey()).toBe('midnight');
-    });
-
-    it('sets and persists theme', async () => {
-      await service.setThemeKey('blood');
-
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-        '@werewolf_settings',
-        expect.stringContaining('"themeKey":"blood"'),
-      );
-      expect(service.getThemeKey()).toBe('blood');
-    });
-  });
-
   describe('bgmEnabled', () => {
     it('can set BGM enabled/disabled', async () => {
       await service.setBgmEnabled(false);
@@ -117,7 +99,6 @@ describe('SettingsService', () => {
       const settings = service.getAll();
 
       expect(settings).toHaveProperty('bgmEnabled');
-      expect(settings).toHaveProperty('themeKey');
       expect(settings).toHaveProperty('roleRevealAnimation');
     });
 

@@ -5,19 +5,19 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Toaster } from 'sonner-native';
 
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
-import { ThemedToast } from '@/components/ThemedToast';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { AppNavigator } from '@/navigation';
 import { createAllServices } from '@/services/registry';
-import { ThemeProvider, useTheme } from '@/theme';
+import { colors } from '@/theme';
 import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { signalAppReady } from '@/utils/appReady';
 import { log } from '@/utils/logger';
@@ -41,7 +41,6 @@ SplashScreen.preventAutoHideAsync();
 const appLog = log.extend('App');
 
 function AppContent() {
-  const { colors, isDark } = useTheme();
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
   const facade = useGameFacade();
 
@@ -106,7 +105,7 @@ function AppContent() {
     if (meta) meta.setAttribute('content', colors.surface);
     document.body.style.backgroundColor = colors.background;
     document.documentElement.style.backgroundColor = colors.background;
-  }, [colors.surface, colors.background]);
+  }, []);
 
   const handleAlertClose = useCallback(() => {
     setAlertConfig(null);
@@ -114,7 +113,7 @@ function AppContent() {
 
   return (
     <>
-      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
+      <StatusBar style="dark" backgroundColor={colors.background} />
       <AppNavigator />
       {alertConfig && (
         <AlertModal
@@ -127,7 +126,7 @@ function AppContent() {
         />
       )}
       <AIChatBubble triggerPulse={triggerPulse} />
-      <ThemedToast />
+      <Toaster theme="light" richColors position="bottom-center" />
     </>
   );
 }
@@ -143,13 +142,11 @@ export default function App() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <ServiceProvider services={services}>
-          <ThemeProvider>
-            <AuthProvider>
-              <GameFacadeProvider facade={facade}>
-                <AppContent />
-              </GameFacadeProvider>
-            </AuthProvider>
-          </ThemeProvider>
+          <AuthProvider>
+            <GameFacadeProvider facade={facade}>
+              <AppContent />
+            </GameFacadeProvider>
+          </AuthProvider>
         </ServiceProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

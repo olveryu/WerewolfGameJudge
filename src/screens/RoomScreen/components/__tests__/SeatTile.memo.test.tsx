@@ -18,10 +18,10 @@ import {
   SeatTileProps,
   SeatTileStyles,
 } from '@/screens/RoomScreen/components/SeatTile';
-import { themes } from '@/theme/themes';
+import { colors } from '@/theme';
 
 // Create mock styles once (simulating what PlayerGrid does)
-const mockStyles: SeatTileStyles = createSeatTileStyles(themes.dark.colors, 80);
+const mockStyles: SeatTileStyles = createSeatTileStyles(colors, 80);
 
 // Track render count
 let renderCount = 0;
@@ -124,7 +124,7 @@ describe('SeatTile memo optimization', () => {
     expect(renderCount).toBe(1);
 
     // Create new styles object (different reference)
-    const newStyles = createSeatTileStyles(themes.dark.colors, 80);
+    const newStyles = createSeatTileStyles(colors, 80);
     rerender(<TrackedSeatTile {...baseProps} styles={newStyles} />);
     expect(renderCount).toBe(2);
   });
@@ -210,7 +210,7 @@ describe('createSeatTileStyles optimization', () => {
     createSpy.mockClear();
 
     // Simulate what PlayerGrid does: create styles once
-    const styles1 = createSeatTileStyles(themes.dark.colors, 80);
+    const styles1 = createSeatTileStyles(colors, 80);
 
     // StyleSheet.create should be called exactly once
     expect(createSpy).toHaveBeenCalledTimes(1);
@@ -225,7 +225,7 @@ describe('createSeatTileStyles optimization', () => {
 
   it('same styles reference should be used for all tiles in a grid', () => {
     // Verify that PlayerGrid pattern: create once, pass to all
-    const gridStyles = createSeatTileStyles(themes.dark.colors, 80);
+    const gridStyles = createSeatTileStyles(colors, 80);
 
     // Simulate 12 tiles receiving the same styles reference
     const tilePropsArray = Array.from({ length: 12 }, (_, i) => ({

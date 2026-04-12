@@ -104,8 +104,6 @@ describe('Room creation → navigation roomNumber contract', () => {
         isBgmEnabled: jest.fn().mockReturnValue(true),
         getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
-        getThemeKey: jest.fn().mockReturnValue('dark'),
-        setThemeKey: jest.fn(),
         addListener: jest.fn().mockReturnValue(jest.fn()),
       },
       audioService: {

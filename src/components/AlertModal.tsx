@@ -20,13 +20,13 @@ import {
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  colors,
   fixed,
   shadows,
   spacing,
   textStyles,
   type ThemeColors,
   typography,
-  useColors,
 } from '@/theme';
 
 export interface AlertButton {
@@ -77,12 +77,11 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   input,
   onClose,
 }) => {
-  const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const orderedButtons = useMemo(() => sortButtons(buttons), [buttons]);
   const styles = useMemo(
     () => createStyles(colors, orderedButtons.length, screenWidth),
-    [colors, orderedButtons.length, screenWidth],
+    [orderedButtons.length, screenWidth],
   );
 
   const [inputValue, setInputValue] = useState(input?.defaultValue ?? '');

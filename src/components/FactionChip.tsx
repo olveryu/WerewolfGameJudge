@@ -10,7 +10,7 @@ import { memo, useMemo } from 'react';
 import type { TextStyle, ViewStyle } from 'react-native';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { borderRadius, fixed, spacing, typography, useColors } from '@/theme';
+import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
 
 type ChipSize = 'sm' | 'md';
 
@@ -54,14 +54,13 @@ const SIZE_TEXT: Record<ChipSize, TextStyle> = {
 };
 
 export const FactionChip = memo<FactionChipProps>(({ label, color, size = 'sm', onPress }) => {
-  const colors = useColors();
   const chipStyle = useMemo<ViewStyle[]>(
     () => [
       BASE_CHIP,
       SIZE_CHIP[size],
       { borderColor: color, backgroundColor: colors.surfaceHover },
     ],
-    [color, colors.surfaceHover, size],
+    [color, size],
   );
 
   const textStyle = useMemo<TextStyle[]>(() => [SIZE_TEXT[size], { color }], [color, size]);

@@ -12,7 +12,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';
 import { computeFactionStats, groupRolesByFaction } from '@/screens/ConfigScreen/configHelpers';
-import { borderRadius, componentSizes, spacing, typography, useColors, withAlpha } from '@/theme';
+import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 
 interface FactionRoleListProps {
   roles: readonly RoleId[];
@@ -27,8 +27,6 @@ export const FactionRoleList = memo<FactionRoleListProps>(function FactionRoleLi
   onRolePress,
   showStats = true,
 }) {
-  const colors = useColors();
-
   const stats = useMemo(() => computeFactionStats(roles as RoleId[]), [roles]);
   const { wolfItems, godItems, villagerItems, thirdItems } = useMemo(
     () => groupRolesByFaction(roles as RoleId[]),

@@ -17,7 +17,7 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
-import { borderRadius, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 
 interface SimpleMarkdownProps {
   content: string;
@@ -87,11 +87,7 @@ function renderInlineFormatting(
       ];
 }
 
-export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({
-  content,
-  colors,
-  inverted = false,
-}) => {
+export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverted = false }) => {
   const textColor = inverted ? colors.textInverse : colors.text;
   const baseStyle = {
     fontSize: typography.secondary,

@@ -11,7 +11,7 @@ import { Ban, Crosshair, Shield, Star, Trophy, Zap } from 'lucide-react-native';
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { spacing, type ThemeColors, typography, useColors, withAlpha } from '@/theme';
+import { colors, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 
 // ─── Constants ───────────────────────────────────────────────
 
@@ -143,8 +143,8 @@ const DescriptionSection: React.FC<{
   labelColor: string;
   colors: ThemeColors;
   isLast: boolean;
-}> = ({ label, icon, text, accentColor, labelColor, colors, isLast }) => {
-  const styles = useMemo(() => createStyles(colors, accentColor), [colors, accentColor]);
+}> = ({ label, icon, text, accentColor, labelColor, isLast }) => {
+  const styles = useMemo(() => createStyles(colors, accentColor), [accentColor]);
   const bullets = splitBullets(text);
   const useBullets = bullets.length > 1;
   const Icon = icon;
@@ -180,8 +180,6 @@ export const RoleDescriptionView: React.FC<RoleDescriptionViewProps> = ({
   factionColor,
   scrollEnabled = true,
 }) => {
-  const colors = useColors();
-
   // Determine rendering mode
   const fields = useMemo(() => {
     if (!structuredDescription) return null;

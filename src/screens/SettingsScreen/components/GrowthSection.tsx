@@ -9,7 +9,7 @@ import { memo } from 'react';
 import { Text, View } from 'react-native';
 
 import type { UserStats } from '@/services/feature/StatsService';
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 
 import type { SettingsScreenStyles } from './styles';
 
@@ -19,8 +19,6 @@ interface GrowthSectionProps {
 }
 
 export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles }) => {
-  const colors = useColors();
-
   const progress = getLevelProgress(stats.xp);
   const nextThreshold =
     stats.level < LEVEL_THRESHOLDS.length - 1

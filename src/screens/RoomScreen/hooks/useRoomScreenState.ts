@@ -23,7 +23,7 @@ import { useGameRoom } from '@/hooks/useGameRoom';
 import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import type { RootStackParamList } from '@/navigation/types';
 import { uploadShareImage } from '@/services/feature/ShareImageService';
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
@@ -95,7 +95,6 @@ export function useRoomScreenState(
   } = params;
 
   const { audioService } = useServices();
-  const colors = useColors();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Core game room hook
@@ -558,7 +557,7 @@ export function useRoomScreenState(
     if (result === 'failed') {
       showErrorAlert('分享失败', '无法分享战报，请稍后重试');
     }
-  }, [nightReviewData, roomNumber, beginReportCapture, colors]);
+  }, [nightReviewData, roomNumber, beginReportCapture]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Modal / dialog state (role card, skill preview, night review, share review)

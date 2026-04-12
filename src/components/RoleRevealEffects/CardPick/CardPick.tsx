@@ -49,7 +49,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, useColors } from '@/theme';
+import { borderRadius, colors } from '@/theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -129,9 +129,8 @@ export const CardPick: React.FC<CardPickProps> = ({
   enableHaptics = true,
   testIDPrefix = 'card-pick',
 }) => {
-  const colors = useColors();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
   const config = CONFIG.cardPick;
   const common = CONFIG.common;

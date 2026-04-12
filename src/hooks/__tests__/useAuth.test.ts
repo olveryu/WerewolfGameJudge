@@ -59,8 +59,6 @@ describe('useAuth hook', () => {
         getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
         getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
-        getThemeKey: jest.fn().mockReturnValue('dark'),
-        setThemeKey: jest.fn(),
         addListener: jest.fn().mockReturnValue(jest.fn()),
       },
       audioService: {

@@ -17,7 +17,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 import { borderRadius, componentSizes, fixed, spacing, textStyles } from '@/theme/tokens';
 
 import { PressableScale } from './PressableScale';
@@ -99,7 +99,6 @@ const ButtonComponent: React.FC<ButtonProps> = ({
   testID,
   accessibilityLabel,
 }) => {
-  const colors = useColors();
   const isDisabled = disabled || loading;
 
   // ── Computed styles ───────────────────────────────────────────────────────
@@ -180,7 +179,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
     }
 
     return { containerStyle: base, resolvedTextColor: txtColor };
-  }, [variant, size, colors, buttonColor, textColorProp, isDisabled]);
+  }, [variant, size, buttonColor, textColorProp, isDisabled]);
 
   // ── Text style ────────────────────────────────────────────────────────────
 

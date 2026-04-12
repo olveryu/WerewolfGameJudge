@@ -25,6 +25,7 @@ import { UI_ICONS } from '@/config/iconTokens';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import {
   borderRadius,
+  colors,
   componentSizes,
   createSharedStyles,
   shadows,
@@ -32,7 +33,6 @@ import {
   textStyles,
   type ThemeColors,
   typography,
-  useColors,
   withAlpha,
 } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';
@@ -72,9 +72,8 @@ interface RoleDetailSheetProps {
 const HERO_BADGE_SIZE = componentSizes.avatar.xl;
 
 export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleId, onClose }) => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createStyles(colors, insets.bottom), [colors, insets.bottom]);
+  const styles = useMemo(() => createStyles(colors, insets.bottom), [insets.bottom]);
 
   const showAIButton = isAIChatReady();
 

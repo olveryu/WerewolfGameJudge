@@ -19,7 +19,7 @@ import {
 import { Avatar } from '@/components/Avatar';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { UI_ICONS } from '@/config/iconTokens';
-import { componentSizes, fixed, ThemeColors } from '@/theme';
+import { colors, componentSizes, fixed, ThemeColors } from '@/theme';
 import { AVATAR_IMAGES, getAvatarThumbByIndex } from '@/utils/avatar';
 
 import { SettingsScreenStyles } from './styles';
@@ -59,7 +59,6 @@ export const AvatarSection = memo<AvatarSectionProps>(
     displayName,
     onPickAvatar,
     styles,
-    colors,
   }) => {
     // Anonymous users: show avatar + name, then a teaser card to upgrade
     if (isAnonymous) {

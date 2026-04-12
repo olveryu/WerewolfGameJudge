@@ -26,7 +26,7 @@ import { useNotepad } from '@/hooks/useNotepad';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
-import { fixed, spacing, typography, useColors } from '@/theme';
+import { colors, fixed, spacing, typography } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -35,9 +35,8 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
 // ── Component ────────────────────────────────────────────
 
 export const NotepadScreen: React.FC = () => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createNotepadScreenStyles(colors), [colors]);
+  const styles = useMemo(() => createNotepadScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Notepad'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Notepad'>>();
 

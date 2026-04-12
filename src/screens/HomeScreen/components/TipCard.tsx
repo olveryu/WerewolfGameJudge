@@ -11,7 +11,7 @@ import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import type { IoniconsName } from '@/config/iconTokens';
-import { componentSizes, fixed, type ThemeColors } from '@/theme';
+import { colors, componentSizes, fixed, type ThemeColors } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
 
@@ -28,7 +28,7 @@ interface TipCardProps {
 }
 
 export const TipCard = memo<TipCardProps>(
-  ({ tipId, icon, title, subtitle, onPress, onDismiss, styles, colors, testID }) => {
+  ({ tipId, icon, title, subtitle, onPress, onDismiss, styles, testID }) => {
     const content = (
       <>
         <View style={styles.tipCardIcon}>

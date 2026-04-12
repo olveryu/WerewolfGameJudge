@@ -13,7 +13,7 @@ import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
-import { borderRadius, componentSizes, spacing, useColors, withAlpha } from '@/theme';
+import { borderRadius, colors, componentSizes, spacing, withAlpha } from '@/theme';
 
 import { type HeaderActionsStyles } from './styles';
 
@@ -76,7 +76,6 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
   onShareRoom,
   styles,
 }) => {
-  const colors = useColors();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleOpenMenu = useCallback(() => {

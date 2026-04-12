@@ -18,6 +18,7 @@ import {
 
 import {
   borderRadius,
+  colors,
   componentSizes,
   fixed,
   spacing,
@@ -38,7 +39,6 @@ interface NowPlayingBarProps {
 export const NowPlayingBar = memo<NowPlayingBarProps>(function NowPlayingBar({
   trackLabel,
   onStop,
-  colors,
 }) {
   const s = getStyles(colors);
 

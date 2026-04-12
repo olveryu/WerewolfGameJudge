@@ -8,7 +8,7 @@ import React, { memo, useMemo } from 'react';
 
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 
 interface HostControlButtonsProps {
   // Visibility flags
@@ -39,8 +39,7 @@ const HostControlButtonsComponent: React.FC<HostControlButtonsProps> = ({
   onStartGamePress,
   onRestartPress,
 }) => {
-  const colors = useColors();
-  const settingsButtonColor = useMemo(() => colors.info, [colors.info]);
+  const settingsButtonColor = useMemo(() => colors.info, []);
 
   if (!isHost) return null;
 

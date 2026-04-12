@@ -9,8 +9,7 @@ import { Animated, Image, LayoutChangeEvent, Platform, StyleSheet, Text, View } 
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import { borderRadius, componentSizes, shadows, spacing, typography } from '@/theme';
-import { useTheme } from '@/theme/ThemeProvider';
+import { borderRadius, colors, componentSizes, shadows, spacing, typography } from '@/theme';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appIcon = require('../../../assets/pwa/icon-192.png');
@@ -32,7 +31,6 @@ const BAR_WIDTH_RATIO = 0.3;
 const PROGRESS_DURATION_MS = 1_500;
 
 export function LoadingScreen({ message = '加载中…', fullScreen = true }: LoadingScreenProps) {
-  const { colors } = useTheme();
   const pulseAnimRef = useRef(new Animated.Value(1));
   // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: read Animated.Value from ref during render to bind into styles.
   const pulseAnim = pulseAnimRef.current;

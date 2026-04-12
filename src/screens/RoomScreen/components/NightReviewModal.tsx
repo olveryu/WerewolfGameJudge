@@ -20,12 +20,12 @@ import { STATUS_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  colors,
   fixed,
   spacing,
   textStyles,
   type ThemeColors,
   typography,
-  useColors,
 } from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
@@ -37,9 +37,8 @@ interface NightReviewModalProps {
 }
 
 export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, data, onClose }) => {
-  const colors = useColors();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
 
   const contentStyle = useMemo(
     () => ({ width: screenWidth * 0.88, maxHeight: screenHeight * 0.75 }),

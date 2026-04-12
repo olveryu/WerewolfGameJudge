@@ -10,7 +10,7 @@ import { memo, useCallback, useRef, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 import { FormTextField } from '@/components/FormTextField';
-import { fixed } from '@/theme';
+import { colors, fixed } from '@/theme';
 import { type ThemeColors } from '@/theme';
 
 import { type AuthStyles } from './types';
@@ -43,7 +43,6 @@ export const ResetPasswordForm = memo<ResetPasswordFormProps>(
     onBack,
     onResend,
     styles,
-    colors,
   }) => {
     const passwordRef = useRef<TextInput>(null);
     const [showPassword, setShowPassword] = useState(false);

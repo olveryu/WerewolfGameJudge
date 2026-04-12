@@ -12,7 +12,7 @@ import { useWindowDimensions, View } from 'react-native';
 import { ForgotPasswordForm } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RootStackParamList } from '@/navigation/types';
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
@@ -25,9 +25,8 @@ type RouteProp = import('@react-navigation/native').RouteProp<
 >;
 
 export const AuthForgotPasswordScreen: React.FC = () => {
-  const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
-  const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [colors, screenWidth]);
+  const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'AuthForgotPassword'>>();
   const route = useRoute<RouteProp>();

@@ -27,7 +27,7 @@ import type { SettingsService } from '@/services/feature/SettingsService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { IRoomService } from '@/services/types/IRoomService';
-import type { ThemeColors } from '@/theme';
+import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { configLog } from '@/utils/logger';
@@ -57,7 +57,6 @@ interface UseConfigScreenStateParams {
   settingsService: SettingsService;
   authService: IAuthService;
   roomService: IRoomService;
-  colors: ThemeColors;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,7 +72,6 @@ export function useConfigScreenState({
   settingsService,
   authService,
   roomService,
-  colors,
 }: UseConfigScreenStateParams) {
   const isEditMode = !!existingRoomNumber;
   const isNominateMode = !!nominateMode;
@@ -466,23 +464,20 @@ export function useConfigScreenState({
     setSelectedTemplate('__custom__');
   }, []);
 
-  const getFactionAccentColor = useCallback(
-    (faction: Faction): string => {
-      switch (faction) {
-        case Faction.Wolf:
-          return colors.wolf;
-        case Faction.God:
-          return colors.god;
-        case Faction.Villager:
-          return colors.villager;
-        case Faction.Special:
-          return colors.third;
-        default:
-          return colors.primary;
-      }
-    },
-    [colors],
-  );
+  const getFactionAccentColor = useCallback((faction: Faction): string => {
+    switch (faction) {
+      case Faction.Wolf:
+        return colors.wolf;
+      case Faction.God:
+        return colors.god;
+      case Faction.Villager:
+        return colors.villager;
+      case Faction.Special:
+        return colors.third;
+      default:
+        return colors.primary;
+    }
+  }, []);
 
   const getFactionSelectedCount = useCallback(
     (group: (typeof FACTION_GROUPS)[number]): number => {

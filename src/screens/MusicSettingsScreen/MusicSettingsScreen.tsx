@@ -20,7 +20,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
 import { BGM_TRACKS } from '@/services/infra/audio/audioRegistry';
-import { componentSizes, fixed, layout, spacing, useColors, withAlpha } from '@/theme';
+import { colors, componentSizes, fixed, layout, spacing, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { NowPlayingBar, TrackRow, VolumeSlider } from './components';
@@ -29,9 +29,8 @@ import { createMusicSettingsStyles } from './styles';
 const musicSettingsLog = log.extend('MusicSettingsScreen');
 
 export const MusicSettingsScreen: React.FC = () => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createMusicSettingsStyles(colors), [colors]);
+  const styles = useMemo(() => createMusicSettingsStyles(colors), []);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'MusicSettings'>>();
   const { settingsService, audioService } = useServices();

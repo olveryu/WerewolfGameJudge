@@ -46,7 +46,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { borderRadius, crossPlatformTextShadow, spacing, typography, useColors } from '@/theme';
+import { borderRadius, colors, crossPlatformTextShadow, spacing, typography } from '@/theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -159,10 +159,9 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   enableHaptics = true,
   testIDPrefix = 'scratch-reveal',
 }) => {
-  const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
   const config = CONFIG.scratch;
-  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), [colors]);
+  const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
 
   const [scratchPoints, setScratchPoints] = useState<ScratchPoint[]>([]);

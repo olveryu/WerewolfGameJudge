@@ -21,12 +21,12 @@ import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
+  colors,
   fixed,
   spacing,
   textStyles,
   type ThemeColors,
   typography,
-  useColors,
   withAlpha,
 } from '@/theme';
 
@@ -52,9 +52,8 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
   onConfirm,
   onClose,
 }) => {
-  const colors = useColors();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
 
   const contentStyle = useMemo(
     () => ({ width: screenWidth * 0.88, maxHeight: screenHeight * 0.7 }),

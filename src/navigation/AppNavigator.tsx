@@ -32,7 +32,7 @@ import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettings
 import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 import { log } from '@/utils/logger';
 import { isMiniProgram, postCurrentUrl } from '@/utils/miniProgram';
 
@@ -156,7 +156,6 @@ export const AppNavigator: React.FC = () => {
   if (__DEV__) {
     navLog.debug('render');
   }
-  const colors = useColors();
 
   // 小程序 web-view：路由变化时通知小程序保存 URL（用于恢复上次浏览位置）
   const inMiniProgram = isMiniProgram();

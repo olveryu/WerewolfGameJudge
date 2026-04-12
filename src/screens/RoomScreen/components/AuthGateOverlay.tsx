@@ -16,7 +16,7 @@ import { Button } from '@/components/Button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RootStackParamList } from '@/navigation/types';
 import { createHomeScreenStyles } from '@/screens/HomeScreen/components';
-import { useColors } from '@/theme';
+import { colors } from '@/theme';
 
 interface AuthGateOverlayProps {
   /** Called after successful login (anonymous or email) */
@@ -26,9 +26,8 @@ interface AuthGateOverlayProps {
 }
 
 export const AuthGateOverlay: React.FC<AuthGateOverlayProps> = ({ onSuccess, onCancel }) => {
-  const colors = useColors();
   const { width: screenWidth } = useWindowDimensions();
-  const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [colors, screenWidth]);
+  const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [screenWidth]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuthContext();
 

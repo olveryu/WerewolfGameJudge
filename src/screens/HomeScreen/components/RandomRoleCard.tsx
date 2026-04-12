@@ -19,7 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { PressableScale } from '@/components/PressableScale';
-import { componentSizes, type ThemeColors, withAlpha } from '@/theme';
+import { colors, componentSizes, type ThemeColors, withAlpha } from '@/theme';
 
 import { type HomeScreenStyles } from './styles';
 
@@ -49,7 +49,6 @@ export const RandomRoleCard = memo<RandomRoleCardProps>(
     onRefresh,
     onDetail,
     styles,
-    colors,
   }) => {
     const rotation = useSharedValue(0);
     const isFlipping = useRef(false);

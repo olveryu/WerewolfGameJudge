@@ -10,12 +10,13 @@ import { StyleSheet, Text, type TextStyle, View, type ViewStyle } from 'react-na
 
 import {
   borderRadius,
+  colors,
   componentSizes,
   fixed,
   spacing,
   textStyles,
+  type ThemeColors,
   typography,
-  useColors,
   withAlpha,
 } from '@/theme';
 
@@ -49,8 +50,7 @@ export const SettingsOptionGroup = memo<SettingsOptionGroupProps>(function Setti
   resolvedAnimation,
   testIDPrefix,
 }) {
-  const colors = useColors();
-  const styles = useMemo(() => createOptionGroupStyles(colors), [colors]);
+  const styles = useMemo(() => createOptionGroupStyles(colors), []);
 
   const handleSelect = useCallback(
     (value: string) => {
@@ -101,7 +101,7 @@ interface OptionGroupStyles {
   card: SettingsOptionCardStyles;
 }
 
-function createOptionGroupStyles(colors: ReturnType<typeof useColors>): OptionGroupStyles {
+function createOptionGroupStyles(colors: ThemeColors): OptionGroupStyles {
   const sheet = StyleSheet.create({
     groupCard: {
       backgroundColor: colors.background,

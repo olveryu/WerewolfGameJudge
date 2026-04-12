@@ -35,7 +35,7 @@ import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { RootStackParamList } from '@/navigation/types';
 import { fetchUserStats } from '@/services/feature/StatsService';
-import { componentSizes, fixed, layout, useColors } from '@/theme';
+import { colors, componentSizes, fixed, layout } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
 import {
@@ -68,9 +68,8 @@ interface BuiltinCellItem {
 }
 
 export const AvatarPickerScreen: React.FC = () => {
-  const colors = useColors();
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createAvatarPickerScreenStyles(colors), [colors]);
+  const styles = useMemo(() => createAvatarPickerScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AvatarPicker'>>();
   const { user, updateProfile, uploadAvatar } = useAuth();
   const facade = useGameFacade();
@@ -352,7 +351,6 @@ export const AvatarPickerScreen: React.FC = () => {
       handlePressCustom,
       handleUpload,
       styles,
-      colors,
     ],
   );
 
@@ -382,15 +380,7 @@ export const AvatarPickerScreen: React.FC = () => {
         />
       );
     },
-    [
-      currentBuiltinIndex,
-      selected,
-      unlockedAvatars,
-      handlePressBuiltin,
-      handleLongPress,
-      styles,
-      colors,
-    ],
+    [currentBuiltinIndex, selected, unlockedAvatars, handlePressBuiltin, handleLongPress, styles],
   );
 
   // ── Render sections ──
@@ -615,17 +605,7 @@ interface AvatarCellProps {
 }
 
 const AvatarCell = memo<AvatarCellProps>(
-  ({
-    index,
-    imageSource,
-    isSelected,
-    isCurrentlyUsed,
-    locked,
-    onPress,
-    onLongPress,
-    styles,
-    colors,
-  }) => {
+  ({ index, imageSource, isSelected, isCurrentlyUsed, locked, onPress, onLongPress, styles }) => {
     const handlePress = useCallback(() => {
       onPress(index);
     }, [onPress, index]);

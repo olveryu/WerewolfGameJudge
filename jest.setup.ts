@@ -62,46 +62,10 @@ const mockColors = {
   third: '#CA8A04',
 };
 
-const mockAvailableThemes = [
-  { key: 'light', name: '浅色', colors: mockColors },
-  { key: 'dark', name: '深色', colors: mockColors },
-];
-
-function mockCreateTheme() {
-  return {
-    colors: mockColors,
-    isDark: false,
-    toggleTheme: jest.fn(),
-    setColorScheme: jest.fn(),
-    themeKey: 'light',
-    setTheme: jest.fn(),
-    availableThemes: mockAvailableThemes,
-  };
-}
-
-// Mock ThemeProvider
-jest.mock('./src/theme/ThemeProvider', () => {
-  const React = require('react');
-  const theme = mockCreateTheme();
-
-  return {
-    ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
-    ThemeContext: React.createContext(theme),
-    useTheme: () => theme,
-    useColors: () => mockColors,
-  };
-});
-
 // Mock theme index - must define all exports inline to avoid circular reference
 jest.mock('./src/theme', () => {
-  const React = require('react');
-  const theme = mockCreateTheme();
-
   return {
-    ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
-    ThemeContext: React.createContext(theme),
-    useTheme: () => theme,
-    useColors: () => mockColors,
+    colors: mockColors,
     spacing: {
       tight: 4,
       small: 8,
@@ -465,8 +429,6 @@ jest.mock('./src/contexts/ServiceContext', () => {
       toggleBgm: jest.fn().mockResolvedValue(false),
       getBgmTrack: jest.fn().mockReturnValue('random'),
       setBgmTrack: jest.fn(),
-      getThemeKey: jest.fn().mockReturnValue('dark'),
-      setThemeKey: jest.fn(),
       addListener: jest.fn().mockReturnValue(jest.fn()),
     },
     audioService: {

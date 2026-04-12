@@ -30,7 +30,7 @@ import { RoleDescriptionView } from '@/components/RoleDescriptionView';
 import { getFactionName } from '@/components/roleDisplayUtils';
 import { WolfCrackBackground } from '@/components/RoleRevealEffects/common/effects/WolfRevealEffect';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { borderRadius, fixed, spacing, type ThemeColors, typography, useColors } from '@/theme';
+import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
 import { getRoleBadge } from '@/utils/roleBadges';
 
 const AE = CONFIG.alignmentEffects;
@@ -114,8 +114,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   revealBorderOpacity = 0.5,
   animateEntrance,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors, width, height), [colors, width, height]);
+  const styles = useMemo(() => createStyles(colors, width, height), [width, height]);
 
   const spec = getRoleSpec(roleId);
 

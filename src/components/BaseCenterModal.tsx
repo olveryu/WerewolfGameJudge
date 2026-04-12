@@ -15,7 +15,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { borderRadius, spacing, useColors } from '@/theme';
+import { borderRadius, colors, spacing, type ThemeColors } from '@/theme';
 
 interface BaseCenterModalProps {
   visible: boolean;
@@ -39,8 +39,7 @@ export const BaseCenterModal: React.FC<BaseCenterModalProps> = ({
   testID,
   children,
 }) => {
-  const colors = useColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors), []);
 
   return (
     <Modal visible={visible} transparent animationType={animationType} onRequestClose={onClose}>
@@ -61,7 +60,7 @@ export const BaseCenterModal: React.FC<BaseCenterModalProps> = ({
   );
 };
 
-function createStyles(colors: ReturnType<typeof useColors>) {
+function createStyles(colors: ThemeColors) {
   return StyleSheet.create({
     overlay: {
       flex: 1,

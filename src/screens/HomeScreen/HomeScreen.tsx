@@ -35,7 +35,7 @@ import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { fetchUserStats } from '@/services/feature/StatsService';
 import { TESTIDS } from '@/testids';
-import { componentSizes, layout, useTheme } from '@/theme';
+import { colors, componentSizes, layout } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 import { homeLog } from '@/utils/logger';
@@ -53,11 +53,10 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export const HomeScreen: React.FC = () => {
-  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   // Create styles once and pass to all sub-components
-  const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [colors, screenWidth]);
+  const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [screenWidth]);
 
   const navigation = useNavigation<NavigationProp>();
   const { user, loading: authLoading } = useAuth();
@@ -312,7 +311,7 @@ export const HomeScreen: React.FC = () => {
       factionLabel,
       avatarImage,
     };
-  }, [allRoleIds, randomRoleIndex, colors]);
+  }, [allRoleIds, randomRoleIndex]);
 
   const handleRoleDetail = useCallback(() => {
     navigation.navigate('Encyclopedia', { roleId: randomRoleData.roleId });
