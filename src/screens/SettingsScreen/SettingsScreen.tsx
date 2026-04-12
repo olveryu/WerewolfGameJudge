@@ -386,12 +386,18 @@ export const SettingsScreen: React.FC = () => {
                   onStartEdit={handleStartEditName}
                   styles={styles}
                 />
+                {growthStats && (
+                  <View style={styles.levelPill}>
+                    <Text style={styles.levelPillText}>Lv.{growthStats.level}</Text>
+                  </View>
+                )}
               </View>
               <View style={styles.statusBadge}>
                 <View style={styles.statusDot} />
                 <Text style={styles.statusText}>{user?.email ? '邮箱登录' : '微信登录'}</Text>
               </View>
               {user?.email && <Text style={styles.accountValue}>{user.email}</Text>}
+              {growthStats && <GrowthSection stats={growthStats} styles={styles} />}
             </View>
           </View>
 
@@ -408,9 +414,6 @@ export const SettingsScreen: React.FC = () => {
               color={colors.textMuted}
             />
           </TouchableOpacity>
-
-          {/* Zone 2b: Growth */}
-          {growthStats && <GrowthSection stats={growthStats} styles={styles} />}
 
           {/* Zone 3: Account operations */}
           {canSwitchAccount && !user?.email && isMiniProgram() && (

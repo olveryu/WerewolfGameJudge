@@ -108,9 +108,10 @@ export interface SettingsScreenStyles {
   dresserEntryText: TextStyle;
   dresserEntryDesc: TextStyle;
   dresserEntryChevron: TextStyle;
+  // Level pill (inline next to name)
+  levelPill: ViewStyle;
+  levelPillText: TextStyle;
   // Growth section
-  growthLevelRow: ViewStyle;
-  growthLevelLabel: TextStyle;
   growthLevelValue: TextStyle;
   growthXpRow: ViewStyle;
   growthXpLabel: TextStyle;
@@ -425,19 +426,20 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     dresserEntryChevron: {
       color: colors.textMuted,
     },
-    // Growth section
-    growthLevelRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: spacing.small,
+    // Level pill (inline next to name)
+    levelPill: {
+      backgroundColor: withAlpha(colors.primary, 0.1),
+      paddingHorizontal: spacing.small,
+      paddingVertical: spacing.micro,
+      borderRadius: borderRadius.full,
     },
-    growthLevelLabel: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
+    levelPillText: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
       fontWeight: typography.weights.semibold,
-      color: colors.text,
+      color: colors.primary,
     },
+    // Growth section
     growthLevelValue: {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,

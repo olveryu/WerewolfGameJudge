@@ -27,12 +27,6 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles }) => {
 
   return (
     <>
-      {/* Level row */}
-      <View style={styles.growthLevelRow}>
-        <Text style={styles.growthLevelLabel}>Lv.{stats.level}</Text>
-        <Text style={styles.growthLevelValue}>{stats.gamesPlayed} 局</Text>
-      </View>
-
       {/* XP progress bar */}
       <View style={styles.growthXpRow}>
         <Text style={styles.growthXpLabel}>XP</Text>
@@ -44,9 +38,9 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles }) => {
         </Text>
       </View>
 
-      {/* Unlock count */}
+      {/* Stats summary */}
       <Text style={[styles.growthLevelValue, { color: colors.textMuted }]}>
-        已解锁 {stats.unlockedItems.length + 2} / 53 件
+        {stats.gamesPlayed} 局 · 已解锁 {stats.unlockedItems.length + 2} / 53 件
       </Text>
     </>
   );
