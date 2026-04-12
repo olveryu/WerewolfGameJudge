@@ -15,7 +15,7 @@ import {
   typography,
 } from '@/theme';
 
-export interface AnimationSettingsStyles {
+interface AnimationSettingsStyles {
   container: ViewStyle;
   header: ViewStyle;
   headerTitle: TextStyle;

@@ -17,7 +17,7 @@ import {
   withAlpha,
 } from '@/theme';
 
-export interface MusicSettingsStyles {
+interface MusicSettingsStyles {
   container: ViewStyle;
   header: ViewStyle;
   headerTitle: TextStyle;

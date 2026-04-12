@@ -20,7 +20,7 @@ interface SendEmailOptions {
  * 通过 Resend 发送邮件。
  * @throws 如果 Resend API 调用失败或未配置 API key
  */
-export async function sendEmail(env: Env, options: SendEmailOptions): Promise<void> {
+async function sendEmail(env: Env, options: SendEmailOptions): Promise<void> {
   if (!env.RESEND_API_KEY) {
     throw new Error('RESEND_API_KEY not configured');
   }

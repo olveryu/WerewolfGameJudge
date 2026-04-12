@@ -10,7 +10,7 @@ import { createAuthBaseStyles } from '@/components/auth/authStyles';
 import { type AuthStyles } from '@/components/auth/types';
 import { borderRadius, spacing, textStyles, type ThemeColors, typography } from '@/theme';
 
-export interface AuthScreenStyles extends AuthStyles {
+interface AuthScreenStyles extends AuthStyles {
   modalOverlay: ViewStyle;
   modalContent: ViewStyle;
 }

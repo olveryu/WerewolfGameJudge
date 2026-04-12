@@ -4,7 +4,7 @@
  * 纯数据模块，按 dayOfYear 循环展示。不含组件/hooks/副作用。
  */
 
-export const DAILY_QUOTES: readonly string[] = [
+const DAILY_QUOTES: readonly string[] = [
   '预言家不开口，好人两行泪。',
   '悍跳不可怕，就怕悍跳有文化。',
   '第一天谁都是好人，第二天谁都可能是狼。',
