@@ -112,7 +112,7 @@ export async function settleGameResults(
 
         // Pick random reward for each level gained (normally 1)
         for (let lv = previousLevel + 1; lv <= newLevel; lv++) {
-          const picked = pickRandomReward(unlockedSet, cryptoRandomInt);
+          const picked = pickRandomReward(unlockedSet, cryptoRandomInt, lv);
           if (picked) {
             unlockedSet.add(picked.id);
             // Only report the last reward in the settle message (typically 1 level per game)

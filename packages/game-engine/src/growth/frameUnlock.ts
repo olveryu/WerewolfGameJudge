@@ -6,22 +6,40 @@
  * 纯函数，客户端与服务端共用。
  */
 
-import { FREE_AVATAR_IDS, FREE_FRAME_IDS, REWARD_POOL, type RewardItem } from './rewardCatalog';
+import {
+  FREE_AVATAR_IDS,
+  FREE_FRAME_IDS,
+  REWARD_POOL,
+  type RewardItem,
+  type RewardType,
+} from './rewardCatalog';
 
 /**
  * 从未解锁池中随机抽取一个奖励。
  *
+ * 规则：每 3 级解锁一个头像框，其余级别解锁头像。
+ * 如果目标类型池已空，fallback 到另一类型。
+ *
  * @param unlockedIds - 玩家已解锁的 id 集合（含免费物品）
  * @param randomFn - 返回 [0, max) 整数的随机函数（服务端用 crypto）
+ * @param level - 本次升到的等级（决定抽取类型）
  * @returns 抽中的奖励，池空则 undefined
  */
 export function pickRandomReward(
   unlockedIds: ReadonlySet<string>,
   randomFn: (max: number) => number,
+  level: number,
 ): RewardItem | undefined {
-  const available = REWARD_POOL.filter((item) => !unlockedIds.has(item.id));
-  if (available.length === 0) return undefined;
-  return available[randomFn(available.length)];
+  const preferredType: RewardType = level % 3 === 0 ? 'frame' : 'avatar';
+  const preferred = REWARD_POOL.filter(
+    (item) => item.type === preferredType && !unlockedIds.has(item.id),
+  );
+  if (preferred.length > 0) return preferred[randomFn(preferred.length)];
+
+  // Fallback: 目标类型已抽完，从另一类型抽
+  const fallback = REWARD_POOL.filter((item) => !unlockedIds.has(item.id));
+  if (fallback.length === 0) return undefined;
+  return fallback[randomFn(fallback.length)];
 }
 
 /** 已解锁头像 id 集合（免费 + 玩家解锁的 avatar 类型） */

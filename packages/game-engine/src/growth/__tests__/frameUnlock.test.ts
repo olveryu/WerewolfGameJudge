@@ -37,23 +37,51 @@ describe('rewardCatalog', () => {
 });
 
 describe('pickRandomReward', () => {
-  it('returns an item not in unlockedIds', () => {
-    const unlocked = new Set(['seer', 'wolf']);
-    const result = pickRandomReward(unlocked, () => 0);
+  it('returns an avatar at non-3x level', () => {
+    const unlocked = new Set<string>();
+    const result = pickRandomReward(unlocked, () => 0, 1);
     expect(result).toBeDefined();
-    expect(unlocked.has(result!.id)).toBe(false);
+    expect(result!.type).toBe('avatar');
+  });
+
+  it('returns a frame at 3x level', () => {
+    const unlocked = new Set<string>();
+    const result = pickRandomReward(unlocked, () => 0, 3);
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('frame');
+  });
+
+  it('returns a frame at level 6', () => {
+    const unlocked = new Set<string>();
+    const result = pickRandomReward(unlocked, () => 0, 6);
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('frame');
+  });
+
+  it('falls back to avatar when all frames are unlocked', () => {
+    const allFrameIds = new Set(REWARD_POOL.filter((r) => r.type === 'frame').map((r) => r.id));
+    const result = pickRandomReward(allFrameIds, () => 0, 3);
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('avatar');
+  });
+
+  it('falls back to frame when all avatars are unlocked', () => {
+    const allAvatarIds = new Set(REWARD_POOL.filter((r) => r.type === 'avatar').map((r) => r.id));
+    const result = pickRandomReward(allAvatarIds, () => 0, 1);
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('frame');
   });
 
   it('returns undefined when pool is exhausted', () => {
     const allIds = new Set(REWARD_POOL.map((r) => r.id));
-    expect(pickRandomReward(allIds, () => 0)).toBeUndefined();
+    expect(pickRandomReward(allIds, () => 0, 1)).toBeUndefined();
   });
 
-  it('uses randomFn to select index', () => {
-    const unlocked = new Set<string>();
-    const pickLast = (max: number) => max - 1;
-    const result = pickRandomReward(unlocked, pickLast);
+  it('does not return already unlocked items', () => {
+    const unlocked = new Set(['seer', 'wolf']);
+    const result = pickRandomReward(unlocked, () => 0, 1);
     expect(result).toBeDefined();
+    expect(unlocked.has(result!.id)).toBe(false);
   });
 });
 
