@@ -411,6 +411,51 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       expect(result.kind).toBe('VIEW_PROFILE');
       expect(result).toHaveProperty('targetUid', 'user-host-target');
     });
+
+    test('routes to VIEW_PROFILE in assigned phase', () => {
+      const ctx = createBaseContext({
+        roomStatus: GameStatus.Assigned,
+        mySeatNumber: 0,
+        isSeatOccupied: () => true,
+        getPlayerUid: () => 'user-assigned',
+      });
+      const event = createSeatTapEvent(1);
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('VIEW_PROFILE');
+      expect(result).toHaveProperty('targetUid', 'user-assigned');
+    });
+
+    test('routes to VIEW_PROFILE in ready phase', () => {
+      const ctx = createBaseContext({
+        roomStatus: GameStatus.Ready,
+        mySeatNumber: 0,
+        isSeatOccupied: () => true,
+        getPlayerUid: () => 'user-ready',
+      });
+      const event = createSeatTapEvent(2);
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('VIEW_PROFILE');
+      expect(result).toHaveProperty('targetUid', 'user-ready');
+    });
+
+    test('routes to VIEW_PROFILE in ended phase', () => {
+      const ctx = createBaseContext({
+        roomStatus: GameStatus.Ended,
+        mySeatNumber: 0,
+        isSeatOccupied: () => true,
+        getPlayerUid: () => 'user-ended',
+      });
+      const event = createSeatTapEvent(4);
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('VIEW_PROFILE');
+      expect(result).toHaveProperty('targetUid', 'user-ended');
+    });
   });
 
   describe('BOTTOM_ACTION', () => {

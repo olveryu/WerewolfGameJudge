@@ -132,15 +132,18 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Priority 3: Room Status routing
+  // Priority 3: View Profile (any non-ongoing phase, tapping other player)
+  // ─────────────────────────────────────────────────────────────────────────
+  if (roomStatus !== GameStatus.Ongoing && isSeatOccupiedByOther && targetUid) {
+    return { kind: 'VIEW_PROFILE', seat, targetUid };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Priority 4: Room Status routing
   // ─────────────────────────────────────────────────────────────────────────
 
   // Seating phase: allow seat selection/leaving
   if (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) {
-    // Tapping another player's occupied seat → show profile card
-    if (isSeatOccupiedByOther && targetUid) {
-      return { kind: 'VIEW_PROFILE', seat, targetUid };
-    }
     return { kind: 'SEATING_FLOW', seat };
   }
 
@@ -153,6 +156,6 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
     return { kind: 'NOOP', reason: 'not_actioner' };
   }
 
-  // Other statuses (assigned, ready, ended): no action on seat tap
+  // Other statuses (assigned, ready, ended) with no occupied target: no action
   return { kind: 'NOOP', reason: 'other_status' };
 }

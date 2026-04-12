@@ -285,7 +285,7 @@ describe('SeatTapPolicy', () => {
     });
 
     describe('Other statuses', () => {
-      it('returns NOOP(other_status) for assigned status', () => {
+      it('returns NOOP(other_status) for assigned status (empty seat)', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.Assigned,
           isAudioPlaying: false,
@@ -304,7 +304,27 @@ describe('SeatTapPolicy', () => {
         }
       });
 
-      it('returns NOOP(other_status) for ready status', () => {
+      it('returns VIEW_PROFILE for assigned status (occupied seat)', () => {
+        const input: SeatTapPolicyInput = {
+          roomStatus: GameStatus.Assigned,
+          isAudioPlaying: false,
+          seat: 2,
+          disabledReason: undefined,
+          imActioner: false,
+          hasGameState: true,
+          isSeatOccupiedByOther: true,
+          targetUid: 'user-assigned',
+        };
+
+        const result = getSeatTapResult(input);
+
+        expect(result.kind).toBe('VIEW_PROFILE');
+        if (result.kind === 'VIEW_PROFILE') {
+          expect(result.targetUid).toBe('user-assigned');
+        }
+      });
+
+      it('returns NOOP(other_status) for ready status (empty seat)', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.Ready,
           isAudioPlaying: false,
@@ -323,7 +343,27 @@ describe('SeatTapPolicy', () => {
         }
       });
 
-      it('returns NOOP(other_status) for ended status', () => {
+      it('returns VIEW_PROFILE for ready status (occupied seat)', () => {
+        const input: SeatTapPolicyInput = {
+          roomStatus: GameStatus.Ready,
+          isAudioPlaying: false,
+          seat: 1,
+          disabledReason: undefined,
+          imActioner: false,
+          hasGameState: true,
+          isSeatOccupiedByOther: true,
+          targetUid: 'user-ready',
+        };
+
+        const result = getSeatTapResult(input);
+
+        expect(result.kind).toBe('VIEW_PROFILE');
+        if (result.kind === 'VIEW_PROFILE') {
+          expect(result.targetUid).toBe('user-ready');
+        }
+      });
+
+      it('returns NOOP(other_status) for ended status (empty seat)', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.Ended,
           isAudioPlaying: false,
@@ -339,6 +379,26 @@ describe('SeatTapPolicy', () => {
         expect(result.kind).toBe('NOOP');
         if (result.kind === 'NOOP') {
           expect(result.reason).toBe('other_status');
+        }
+      });
+
+      it('returns VIEW_PROFILE for ended status (occupied seat)', () => {
+        const input: SeatTapPolicyInput = {
+          roomStatus: GameStatus.Ended,
+          isAudioPlaying: false,
+          seat: 4,
+          disabledReason: undefined,
+          imActioner: false,
+          hasGameState: true,
+          isSeatOccupiedByOther: true,
+          targetUid: 'user-ended',
+        };
+
+        const result = getSeatTapResult(input);
+
+        expect(result.kind).toBe('VIEW_PROFILE');
+        if (result.kind === 'VIEW_PROFILE') {
+          expect(result.targetUid).toBe('user-ended');
         }
       });
     });
