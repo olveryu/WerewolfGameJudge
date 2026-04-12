@@ -51,6 +51,7 @@ import { HostControlButtons } from './components/HostControlButtons';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { PlayerGrid } from './components/PlayerGrid';
+import { PlayerProfileCard } from './components/PlayerProfileCard';
 import { QRCodeModal } from './components/QRCodeModal';
 import { RoleCardModal } from './components/RoleCardModal';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
@@ -217,6 +218,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     onSeatLongPressed,
     getBottomAction,
     handleDebugTitleTap,
+    // Player profile card
+    profileCardVisible,
+    profileCardTargetUid,
+    profileCardTargetSeat,
+    closeProfileCard,
+    handleProfileKick,
     // Local UI state
     isStartingGame,
     isHostActionSubmitting,
@@ -744,6 +751,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onAskAI={
           isAIChatReady() ? (rid) => askAIAboutRole(rid, handleSkillPreviewClose) : undefined
         }
+      />
+
+      {/* Player Profile Card — triggered by tapping another player's seat */}
+      <PlayerProfileCard
+        visible={profileCardVisible}
+        onClose={closeProfileCard}
+        targetUid={profileCardTargetUid}
+        targetSeat={profileCardTargetSeat}
+        isHost={isHost}
+        onKick={handleProfileKick}
       />
 
       {/* Night Review Modal — 裁判/观战者用，显示夜晚行动 + 全员身份 */}

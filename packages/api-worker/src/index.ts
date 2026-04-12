@@ -86,7 +86,7 @@ import type { HandlerFn } from './handlers/shared';
 // Share image handlers
 import { handleShareImageServe, handleShareImageUpload } from './handlers/shareImage';
 // Stats handlers
-import { handleGetUserStats } from './handlers/statsHandlers';
+import { handleGetUserProfile, handleGetUserStats } from './handlers/statsHandlers';
 
 // ── Route maps ──────────────────────────────────────────────────────────────
 
@@ -262,6 +262,19 @@ export default {
       if (segments[0] === 'api' && segments[1] === 'user' && segments[2] === 'stats') {
         if (request.method === 'GET') {
           return handleGetUserStats(request, env, ctx);
+        }
+        return jsonResponse({ error: 'method not allowed' }, 405, env);
+      }
+
+      // /api/user/:userId/profile (GET) — 查看玩家公开资料
+      if (
+        segments[0] === 'api' &&
+        segments[1] === 'user' &&
+        segments[2] &&
+        segments[3] === 'profile'
+      ) {
+        if (request.method === 'GET') {
+          return handleGetUserProfile(request, env, ctx);
         }
         return jsonResponse({ error: 'method not allowed' }, 405, env);
       }

@@ -8,20 +8,8 @@ Page({
   onLoad(options) {
     var self = this
 
-    // 1) 确定目标页面 URL
-    var targetUrl
-    if (options.url) {
-      targetUrl = decodeURIComponent(options.url)
-    } else {
-      try {
-        var lastUrl = wx.getStorageSync('lastUrl')
-        // Only restore non-room URLs — rooms are ephemeral and likely expired
-        if (lastUrl && lastUrl.indexOf('/room/') === -1) targetUrl = lastUrl
-      } catch (e) {
-        console.warn('read lastUrl failed:', e)
-      }
-    }
-    if (!targetUrl) targetUrl = BASE_URL
+    // 1) 确定目标页面 URL — 分享链接走 options.url，否则一律首页
+    var targetUrl = options.url ? decodeURIComponent(options.url) : BASE_URL
 
     // 2) wx.login 获取 code，拼入 URL 让 web 端自动登录
     wx.login({
@@ -40,19 +28,8 @@ Page({
     })
   },
 
-  onMessage(e) {
-    // postMessage 在后退/销毁/分享/复制链接时批量送达
-    var data = e.detail.data
-    if (!data || !data.length) return
-    // 取最后一条消息的 url
-    var last = data[data.length - 1]
-    if (last && last.url) {
-      try {
-        wx.setStorageSync('lastUrl', last.url)
-      } catch (err) {
-        console.warn('save lastUrl failed:', err)
-      }
-    }
+  onMessage(_e) {
+    // No-op — lastUrl restoration removed; share links use options.url
   },
 
   onError(e) {

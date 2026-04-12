@@ -103,6 +103,8 @@ function handleSeatTap(
   ctx: InteractionContext,
   event: { seat: number; disabledReason?: string },
 ): InteractionResult {
+  const targetUid = event.seat !== ctx.mySeatNumber ? ctx.getPlayerUid?.(event.seat) : undefined;
+
   const seatResult = getSeatTapResult({
     roomStatus: ctx.roomStatus,
     isAudioPlaying: ctx.isAudioPlaying,
@@ -110,9 +112,9 @@ function handleSeatTap(
     disabledReason: event.disabledReason,
     imActioner: ctx.imActioner,
     hasGameState: ctx.hasGameState,
-    isHost: ctx.isHost,
     isSeatOccupiedByOther:
       event.seat !== ctx.mySeatNumber && (ctx.isSeatOccupied?.(event.seat) ?? false),
+    targetUid,
   });
 
   // Map SeatTapResult to InteractionResult
@@ -125,8 +127,8 @@ function handleSeatTap(
       return { kind: 'SEATING_FLOW', seat: seatResult.seat };
     case 'ACTION_FLOW':
       return { kind: 'ACTION_FLOW', seat: seatResult.seat };
-    case 'KICK_CONFIRM':
-      return { kind: 'KICK_CONFIRM', seat: seatResult.seat };
+    case 'VIEW_PROFILE':
+      return { kind: 'VIEW_PROFILE', seat: seatResult.seat, targetUid: seatResult.targetUid };
   }
 }
 

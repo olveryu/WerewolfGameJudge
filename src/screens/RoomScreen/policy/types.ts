@@ -217,6 +217,13 @@ export interface InteractionResultKickConfirm {
   seat: number;
 }
 
+/** View player profile card */
+export interface InteractionResultViewProfile {
+  kind: 'VIEW_PROFILE';
+  seat: number;
+  targetUid: string;
+}
+
 /** Union of all possible interaction results */
 export type InteractionResult =
   | InteractionResultNoop
@@ -229,7 +236,8 @@ export type InteractionResult =
   | InteractionResultHunterStatusViewed
   | InteractionResultTakeoverBotSeat
   | InteractionResultReleaseBotSeat
-  | InteractionResultKickConfirm;
+  | InteractionResultKickConfirm
+  | InteractionResultViewProfile;
 
 // =============================================================================
 // Interaction Context - Minimal state needed for policy decisions
@@ -268,6 +276,8 @@ export interface InteractionContext {
   getBotSeats?: () => number[];
   /** Check if a seat is occupied (for kick logic) */
   isSeatOccupied?: (seat: number) => boolean;
+  /** Get the UID of the player at a seat (for profile card) */
+  getPlayerUid?: (seat: number) => string | undefined;
 }
 
 // =============================================================================

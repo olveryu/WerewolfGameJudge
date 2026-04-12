@@ -45,10 +45,11 @@ interface SeatTapResultActionFlow {
   seat: number;
 }
 
-/** Result when host kick confirmation should be shown */
-interface SeatTapResultKickConfirm {
-  kind: 'KICK_CONFIRM';
+/** Result when player profile card should be shown */
+interface SeatTapResultViewProfile {
+  kind: 'VIEW_PROFILE';
   seat: number;
+  targetUid: string;
 }
 
 /** Union of all possible seat tap results */
@@ -57,7 +58,7 @@ type SeatTapResult =
   | SeatTapResultAlert
   | SeatTapResultSeatingFlow
   | SeatTapResultActionFlow
-  | SeatTapResultKickConfirm;
+  | SeatTapResultViewProfile;
 
 /** Input context for seat tap policy decision */
 export interface SeatTapPolicyInput {
@@ -73,10 +74,10 @@ export interface SeatTapPolicyInput {
   imActioner: boolean;
   /** Whether game state exists */
   hasGameState: boolean;
-  /** Whether the current user is the Host */
-  isHost: boolean;
   /** Whether the tapped seat is occupied by another player (not self) */
   isSeatOccupiedByOther: boolean;
+  /** UID of the player occupying the tapped seat (if occupied by other) */
+  targetUid?: string;
 }
 
 // =============================================================================
@@ -100,8 +101,8 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
     disabledReason,
     imActioner,
     hasGameState,
-    isHost,
     isSeatOccupiedByOther,
+    targetUid,
   } = input;
 
   // Guard: no game state
@@ -136,10 +137,9 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
 
   // Seating phase: allow seat selection/leaving
   if (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) {
-    // Tapping another player's occupied seat
-    if (isSeatOccupiedByOther) {
-      // Host can kick; non-Host gets no-op (community convention)
-      return isHost ? { kind: 'KICK_CONFIRM', seat } : { kind: 'NOOP', reason: 'other_status' };
+    // Tapping another player's occupied seat → show profile card
+    if (isSeatOccupiedByOther && targetUid) {
+      return { kind: 'VIEW_PROFILE', seat, targetUid };
     }
     return { kind: 'SEATING_FLOW', seat };
   }

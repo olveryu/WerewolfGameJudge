@@ -598,7 +598,16 @@ export function useRoomScreenState(
   // Interaction Dispatcher
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const { dispatchInteraction, onSeatTapped, onSeatLongPressed } = useInteractionDispatcher({
+  const {
+    dispatchInteraction,
+    onSeatTapped,
+    onSeatLongPressed,
+    profileCardVisible,
+    profileCardTargetUid,
+    profileCardTargetSeat,
+    closeProfileCard,
+    handleProfileKick,
+  } = useInteractionDispatcher({
     gameState,
     roomStatus,
     isAudioPlaying,
@@ -852,6 +861,13 @@ export function useRoomScreenState(
     onSeatLongPressed,
     getBottomAction,
     handleDebugTitleTap,
+
+    // ── Player profile card ──
+    profileCardVisible,
+    profileCardTargetUid,
+    profileCardTargetSeat,
+    closeProfileCard,
+    handleProfileKick,
 
     // ── Local UI state ──
     isStartingGame,

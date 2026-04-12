@@ -378,6 +378,39 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       expect(result.kind).toBe('NOOP');
       expect(result).toHaveProperty('reason', 'other_status');
     });
+
+    test('routes to VIEW_PROFILE when tapping occupied seat in seating phase', () => {
+      const ctx = createBaseContext({
+        roomStatus: GameStatus.Seated,
+        mySeatNumber: 0,
+        isHost: false,
+        isSeatOccupied: () => true,
+        getPlayerUid: () => 'user-xyz',
+      });
+      const event = createSeatTapEvent(3);
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('VIEW_PROFILE');
+      expect(result).toHaveProperty('seat', 3);
+      expect(result).toHaveProperty('targetUid', 'user-xyz');
+    });
+
+    test('host tapping occupied seat also routes to VIEW_PROFILE', () => {
+      const ctx = createBaseContext({
+        roomStatus: GameStatus.Unseated,
+        mySeatNumber: 0,
+        isHost: true,
+        isSeatOccupied: () => true,
+        getPlayerUid: () => 'user-host-target',
+      });
+      const event = createSeatTapEvent(2);
+
+      const result = getInteractionResult(ctx, event);
+
+      expect(result.kind).toBe('VIEW_PROFILE');
+      expect(result).toHaveProperty('targetUid', 'user-host-target');
+    });
   });
 
   describe('BOTTOM_ACTION', () => {

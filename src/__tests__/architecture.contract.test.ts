@@ -100,6 +100,7 @@ describe('Layer boundary: screens → services runtime imports (restricted)', ()
     'isAIChatReady',
     'BGM_TRACKS',
     'fetchUserStats',
+    'fetchUserProfile',
     'uploadShareImage',
   ];
 

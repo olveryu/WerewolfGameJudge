@@ -11,7 +11,7 @@
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import {
   getInteractionResult,
@@ -90,6 +90,12 @@ interface UseInteractionDispatcherResult {
   onSeatLongPressed: (seat: number) => void;
   /** Computed interaction context (exposed for BottomActionPanel / tests). */
   interactionContext: InteractionContext;
+  /** Player profile card state */
+  profileCardVisible: boolean;
+  profileCardTargetUid: string;
+  profileCardTargetSeat: number;
+  closeProfileCard: () => void;
+  handleProfileKick: (seat: number) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -131,6 +137,34 @@ export function useInteractionDispatcher({
   setShouldPlayRevealAnimation,
   setIsLoadingRole,
 }: UseInteractionDispatcherParams): UseInteractionDispatcherResult {
+  // ─── Profile card state ──────────────────────────────────────────────────
+
+  const [profileCardVisible, setProfileCardVisible] = useState(false);
+  const [profileCardTargetUid, setProfileCardTargetUid] = useState('');
+  const [profileCardTargetSeat, setProfileCardTargetSeat] = useState(0);
+
+  const closeProfileCard = useCallback(() => {
+    setProfileCardVisible(false);
+  }, []);
+
+  const handleProfileKick = useCallback(
+    (seat: number) => {
+      const player = gameState?.players.get(seat);
+      const playerName = player?.displayName ?? `${seat + 1}号座位`;
+      roomScreenLog.debug('[handleProfileKick]', { seat });
+      showDestructiveAlert('移出座位', `确定要将 ${playerName} 移出座位吗？`, '移出', () => {
+        void kickPlayer(seat).catch((err) => {
+          handleError(err, {
+            label: 'kickPlayer',
+            logger: roomScreenLog,
+            alertTitle: '移出失败',
+          });
+        });
+      });
+    },
+    [gameState, kickPlayer],
+  );
+
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
 
   const handleSeatingTap = useCallback(
@@ -190,6 +224,9 @@ export function useInteractionDispatcher({
       isSeatOccupied: (seat: number) => {
         if (!gameState) return false;
         return gameState.players.get(seat) != null;
+      },
+      getPlayerUid: (seat: number) => {
+        return gameState?.players.get(seat)?.uid;
       },
     }),
     [
@@ -391,6 +428,16 @@ export function useInteractionDispatcher({
           return;
         }
 
+        case 'VIEW_PROFILE':
+          roomScreenLog.debug('[dispatchInteraction] VIEW_PROFILE', {
+            seat: result.seat,
+            targetUid: result.targetUid,
+          });
+          setProfileCardTargetUid(result.targetUid);
+          setProfileCardTargetSeat(result.seat);
+          setProfileCardVisible(true);
+          return;
+
         default: {
           const _exhaustive: never = result;
           roomScreenLog.warn('[dispatchInteraction] Unhandled result kind', _exhaustive);
@@ -446,5 +493,10 @@ export function useInteractionDispatcher({
     onSeatTapped,
     onSeatLongPressed,
     interactionContext,
+    profileCardVisible,
+    profileCardTargetUid,
+    profileCardTargetSeat,
+    closeProfileCard,
+    handleProfileKick,
   };
 }
