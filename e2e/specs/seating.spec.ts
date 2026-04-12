@@ -156,10 +156,15 @@ test.describe('Seating', () => {
 
       const roomB = new RoomPage(pageB);
 
-      // Joiner taps host's occupied seat (index 0) — should be silent noop
+      // Joiner taps host's occupied seat (index 0) — shows player profile card
       await roomB.getSeatTile(0).click();
-      // No dialog should appear (non-host tapping occupied seat = noop)
+      await expect(pageB.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
+      // No seat dialog should appear (profile card, not "入座")
       await expect(pageB.getByText('入座', { exact: true })).not.toBeVisible({ timeout: 1000 });
+
+      // Dismiss profile card by clicking the overlay backdrop (outside the card)
+      await pageB.mouse.click(5, 5);
+      await expect(pageB.getByTestId('player-profile-card')).not.toBeVisible({ timeout: 3000 });
 
       // Joiner takes seat 2 instead
       await roomB.seatAt(1);
@@ -209,8 +214,12 @@ test.describe('Seating', () => {
       // Host sees seat 2 occupied
       await pollSeatOccupied(roomA, 2);
 
-      // Host taps joiner's seat → kick confirmation dialog
+      // Host taps joiner's seat → profile card opens
       await roomA.getSeatTile(1).click();
+      await expect(pageA.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
+
+      // Click "移出座位" button inside the profile card → kick confirmation dialog
+      await pageA.getByText('移出座位', { exact: true }).click();
       await expect(pageA.getByTestId('alert-title')).toHaveText('移出座位', { timeout: 5000 });
       await expect(pageA.getByText(/确定要将.*移出座位吗/)).toBeVisible({ timeout: 3000 });
 
