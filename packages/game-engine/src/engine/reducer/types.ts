@@ -445,6 +445,14 @@ export interface WithdrawBoardNominationAction {
   };
 }
 
+/** 结算后批量更新 roster level */
+export interface UpdateRosterLevelsAction {
+  type: 'UPDATE_ROSTER_LEVELS';
+  payload: {
+    levels: Record<string, number>;
+  };
+}
+
 // =============================================================================
 // StateAction 联合类型
 // =============================================================================
@@ -506,4 +514,6 @@ export type StateAction =
   // 板子建议
   | SetBoardNominationAction
   | UpvoteBoardNominationAction
-  | WithdrawBoardNominationAction;
+  | WithdrawBoardNominationAction
+  // 成长结算
+  | UpdateRosterLevelsAction;

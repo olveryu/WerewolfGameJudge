@@ -60,6 +60,11 @@ interface WebSocketAttachment {
 }
 
 export class GameRoom extends DurableObject<Env> {
+  /** 结算最大重试次数 */
+  static readonly SETTLE_MAX_RETRIES = 3;
+  /** 重试间隔（毫秒） */
+  static readonly SETTLE_RETRY_DELAY_MS = 30_000;
+
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
@@ -114,48 +119,75 @@ export class GameRoom extends DurableObject<Env> {
   /** 如果游戏刚结束（status === Ended），异步触发成长结算 */
   #settleIfEnded(result: GameActionResult): void {
     if (result.success && result.state?.status === GameStatus.Ended) {
+      const revision = result.revision!;
       this.ctx.waitUntil(
-        settleGameResults(result.state, this.env, result.revision!)
-          .then((settleResults) => {
-            this.#sendSettleResults(settleResults);
-            this.#updateRosterLevels(settleResults);
-          })
-          .catch((err) => {
-            console.error('[GameRoom] settleGameResults failed:', err);
-          }),
+        this.#runSettle(result.state, revision).catch((err) => {
+          console.error('[GameRoom] settleGameResults failed, scheduling retry:', err);
+          this.#scheduleSettleRetry(revision, 0);
+        }),
       );
     }
   }
 
-  /** 结算后更新 roster level 并广播，让座位 UI 实时刷新 */
+  /** 执行结算并广播结果 + 更新 roster levels */
+  async #runSettle(state: GameState, _revision: number): Promise<void> {
+    const settleResults = await settleGameResults(state, this.env);
+    this.#sendSettleResults(settleResults);
+    this.#updateRosterLevels(settleResults);
+  }
+
+  /** 设置 alarm 重试结算 */
+  #scheduleSettleRetry(revision: number, attempt: number): void {
+    if (attempt >= GameRoom.SETTLE_MAX_RETRIES) {
+      console.error('[GameRoom] settle retries exhausted', { revision, attempt });
+      return;
+    }
+    this.ctx.storage.put('settle_pending', { revision, attempt });
+    this.ctx.storage.setAlarm(Date.now() + GameRoom.SETTLE_RETRY_DELAY_MS);
+  }
+
+  /** DO Alarm 回调 — 重试未完成的结算 */
+  async alarm(): Promise<void> {
+    const pending = await this.ctx.storage.get<{ revision: number; attempt: number }>(
+      'settle_pending',
+    );
+    if (!pending) return;
+
+    const rows = this.ctx.storage.sql
+      .exec('SELECT game_state FROM room_state WHERE id = 1')
+      .toArray();
+    if (rows.length === 0) {
+      await this.ctx.storage.delete('settle_pending');
+      return;
+    }
+
+    const state: GameState = JSON.parse(rows[0].game_state as string);
+    if (state.status !== GameStatus.Ended) {
+      await this.ctx.storage.delete('settle_pending');
+      return;
+    }
+
+    try {
+      await this.#runSettle(state, pending.revision);
+      await this.ctx.storage.delete('settle_pending');
+    } catch (err) {
+      console.error('[GameRoom] settle retry failed:', err);
+      this.#scheduleSettleRetry(pending.revision, pending.attempt + 1);
+    }
+  }
+
+  /** 结算后通过 processAction 更新 roster level 并广播 */
   #updateRosterLevels(results: PlayerSettleResult[]): void {
     if (results.length === 0) return;
 
-    const sql = this.ctx.storage.sql;
-    const rows = sql.exec('SELECT game_state, revision FROM room_state WHERE id = 1').toArray();
-    if (rows.length === 0) return;
-
-    const state: GameState = JSON.parse(rows[0].game_state as string);
-    const revision = rows[0].revision as number;
-
-    let changed = false;
+    const levels: Record<string, number> = {};
     for (const r of results) {
-      const entry = state.roster?.[r.uid];
-      if (entry && entry.level !== r.newLevel) {
-        entry.level = r.newLevel;
-        changed = true;
-      }
+      levels[r.uid] = r.newLevel;
     }
 
-    if (!changed) return;
-
-    const newRevision = revision + 1;
-    sql.exec(
-      'UPDATE room_state SET game_state = ?, revision = ? WHERE id = 1',
-      JSON.stringify(state),
-      newRevision,
-    );
-    this.#broadcast(state, newRevision);
+    this.#processAction((_state) => {
+      return handlerSuccess([{ type: 'UPDATE_ROSTER_LEVELS' as const, payload: { levels } }]);
+    });
   }
 
   /** 单播结算结果给每个已连接的注册玩家 */

@@ -174,6 +174,20 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
     case 'WITHDRAW_BOARD_NOMINATION':
       return handleWithdrawBoardNomination(state, action);
 
+    // ── Growth ───────────────────────────────────────────
+    case 'UPDATE_ROSTER_LEVELS': {
+      const { levels } = action.payload;
+      const newRoster = { ...state.roster };
+      let changed = false;
+      for (const [uid, level] of Object.entries(levels)) {
+        if (newRoster[uid] && newRoster[uid].level !== level) {
+          newRoster[uid] = { ...newRoster[uid], level };
+          changed = true;
+        }
+      }
+      return changed ? { ...state, roster: newRoster } : state;
+    }
+
     default: {
       const _exhaustive: never = action;
       return _exhaustive;
