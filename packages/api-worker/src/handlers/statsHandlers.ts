@@ -23,7 +23,12 @@ export const handleGetUserStats: HandlerFn = async (req, env) => {
     `SELECT xp, level, games_played, unlocked_items FROM user_stats WHERE user_id = ?`,
   )
     .bind(userId)
-    .first<{ xp: number; level: number; games_played: number; unlocked_items: string }>();
+    .first<{
+      xp: number;
+      level: number;
+      games_played: number;
+      unlocked_items: string;
+    }>();
 
   const unlockedItems: string[] = statsRow?.unlocked_items
     ? (JSON.parse(statsRow.unlocked_items) as string[])

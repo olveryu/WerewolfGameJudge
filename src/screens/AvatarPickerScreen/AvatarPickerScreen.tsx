@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getUnlockedAvatars, isFrameUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
+import { isFlairUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
@@ -30,12 +31,13 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
+import { type FlairId, getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { RootStackParamList } from '@/navigation/types';
 import { fetchUserStats } from '@/services/feature/StatsService';
-import { colors, componentSizes, fixed, layout } from '@/theme';
+import { borderRadius as borderRadiusToken, colors, componentSizes, fixed, layout } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
 import {
@@ -60,7 +62,7 @@ const FRAME_GRID_CELL_SIZE = 72;
 const HERO_PREVIEW_SIZE = 80;
 
 type Selection = number | 'custom' | null;
-type PickerTab = 'avatar' | 'frame';
+type PickerTab = 'avatar' | 'frame' | 'flair';
 
 interface BuiltinCellItem {
   key: string;
@@ -84,12 +86,14 @@ export const AvatarPickerScreen: React.FC = () => {
   }, [user?.avatarUrl]);
 
   const currentFrameId = user?.avatarFrame ?? null;
+  const currentFlairId = user?.seatFlair ?? null;
 
   // ── Local selection state ──
 
   const [selected, setSelected] = useState<Selection>(null);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [selectedFrame, setSelectedFrame] = useState<FrameId | 'none' | null>(null);
+  const [selectedFlair, setSelectedFlair] = useState<FlairId | 'none' | null>(null);
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
   const [saving, setSaving] = useState(false);
 
@@ -127,10 +131,13 @@ export const AvatarPickerScreen: React.FC = () => {
     ? (AVATAR_FRAMES.find((f) => f.id === effectiveFrame)?.name ?? '')
     : '无框';
 
-  const hasSelection = selected !== null || selectedFrame !== null;
+  const hasSelection = selected !== null || selectedFrame !== null || selectedFlair !== null;
 
   const isNoFrameActive = !currentFrameId;
   const isNoFrameSelected = selectedFrame === 'none';
+
+  const isNoFlairActive = !currentFlairId;
+  const isNoFlairSelected = selectedFlair === 'none';
 
   // ── Grid data ──
 
@@ -188,6 +195,18 @@ export const AvatarPickerScreen: React.FC = () => {
         return;
       }
       setSelectedFrame(frameId);
+    },
+    [readOnly, unlockedIds],
+  );
+
+  const handlePressFlair = useCallback(
+    (flairId: FlairId | 'none') => {
+      if (readOnly) return;
+      if (flairId !== 'none' && !isFlairUnlocked(flairId, unlockedIds)) {
+        showAlert('未解锁', '提升等级后随机解锁');
+        return;
+      }
+      setSelectedFlair(flairId);
     },
     [readOnly, unlockedIds],
   );
@@ -260,19 +279,33 @@ export const AvatarPickerScreen: React.FC = () => {
         newFrame = selectedFrame;
       }
 
+      // Resolve new flair (if changed)
+      let newFlair: string | undefined;
+      if (selectedFlair === 'none') {
+        newFlair = '';
+      } else if (selectedFlair !== null) {
+        newFlair = selectedFlair;
+      }
+
       // Persist to auth profile
       const profilePatch: Record<string, string> = {};
       if (newAvatarUrl !== undefined) profilePatch.avatarUrl = newAvatarUrl;
       if (newFrame !== undefined) profilePatch.avatarFrame = newFrame;
+      if (newFlair !== undefined) profilePatch.seatFlair = newFlair;
       if (Object.keys(profilePatch).length > 0) {
         await updateProfile(profilePatch);
       }
 
       // Single awaited call to sync both fields to GameState
-      if (newAvatarUrl !== undefined || newFrame !== undefined) {
-        const result = await facade.updatePlayerProfile(undefined, newAvatarUrl, newFrame);
+      if (newAvatarUrl !== undefined || newFrame !== undefined || newFlair !== undefined) {
+        const result = await facade.updatePlayerProfile(
+          undefined,
+          newAvatarUrl,
+          newFrame,
+          newFlair,
+        );
         if (!result.success) {
-          settingsLog.warn('Avatar/frame sync to GameState failed:', result.reason);
+          settingsLog.warn('Avatar/frame/flair sync to GameState failed:', result.reason);
         }
       }
 
@@ -285,7 +318,15 @@ export const AvatarPickerScreen: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [selected, selectedFrame, user?.customAvatarUrl, updateProfile, facade, navigation]);
+  }, [
+    selected,
+    selectedFrame,
+    selectedFlair,
+    user?.customAvatarUrl,
+    updateProfile,
+    facade,
+    navigation,
+  ]);
 
   const handleUpgrade = useCallback(() => {
     navigation.goBack();
@@ -399,12 +440,22 @@ export const AvatarPickerScreen: React.FC = () => {
       {/* Hero preview */}
       <View style={styles.heroPreview}>
         <View style={styles.heroPreviewLeft}>
-          <AvatarWithFrame
-            value={user?.uid ?? 'anonymous'}
-            size={HERO_PREVIEW_SIZE}
-            avatarUrl={previewAvatarUrl}
-            frameId={effectiveFrame}
-          />
+          <View>
+            <AvatarWithFrame
+              value={user?.uid ?? 'anonymous'}
+              size={HERO_PREVIEW_SIZE}
+              avatarUrl={previewAvatarUrl}
+              frameId={effectiveFrame}
+            />
+            {(() => {
+              const effectiveFlair =
+                selectedFlair === 'none' ? null : (selectedFlair ?? currentFlairId);
+              const flairConfig = effectiveFlair ? getFlairById(effectiveFlair) : null;
+              if (!flairConfig) return null;
+              const FlairComp = flairConfig.Component;
+              return <FlairComp size={HERO_PREVIEW_SIZE} borderRadius={HERO_PREVIEW_SIZE / 2} />;
+            })()}
+          </View>
         </View>
         <View style={styles.heroPreviewRight}>
           <Text style={styles.heroFrameLabel}>当前框：{frameLabel}</Text>
@@ -456,6 +507,16 @@ export const AvatarPickerScreen: React.FC = () => {
           </Text>
           {activeTab === 'frame' && <View style={styles.pickerTabIndicator} />}
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.pickerTab, activeTab === 'flair' && styles.pickerTabActive]}
+          onPress={() => setActiveTab('flair')}
+          activeOpacity={fixed.activeOpacity}
+        >
+          <Text style={[styles.pickerTabText, activeTab === 'flair' && styles.pickerTabTextActive]}>
+            座位装饰
+          </Text>
+          {activeTab === 'flair' && <View style={styles.pickerTabIndicator} />}
+        </TouchableOpacity>
       </View>
 
       {/* Tab content */}
@@ -473,7 +534,7 @@ export const AvatarPickerScreen: React.FC = () => {
             maxToRenderPerBatch={16}
             windowSize={5}
           />
-        ) : (
+        ) : activeTab === 'frame' ? (
           <ScrollView
             style={scrollViewFlex}
             contentContainerStyle={styles.frameGrid}
@@ -555,7 +616,102 @@ export const AvatarPickerScreen: React.FC = () => {
                 );
               })}
           </ScrollView>
-        )}
+        ) : activeTab === 'flair' ? (
+          <ScrollView
+            style={scrollViewFlex}
+            contentContainerStyle={styles.frameGrid}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* "None" option */}
+            <TouchableOpacity
+              style={[
+                styles.frameGridCell,
+                isNoFlairSelected && styles.frameGridCellSelected,
+                !isNoFlairSelected &&
+                  isNoFlairActive &&
+                  selectedFlair === null &&
+                  styles.frameGridCellActive,
+              ]}
+              onPress={() => handlePressFlair('none')}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.frameGridNoFrame,
+                  { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
+                ]}
+              >
+                <Ionicons
+                  name="close-circle-outline"
+                  size={componentSizes.icon.xl}
+                  color={colors.textMuted}
+                />
+              </View>
+              <Text
+                style={[styles.frameGridName, isNoFlairSelected && styles.frameGridNameSelected]}
+              >
+                无
+              </Text>
+            </TouchableOpacity>
+
+            {/* Flair options — unlocked first, then locked */}
+            {[...SEAT_FLAIRS]
+              .sort((a, b) => {
+                const aUnlocked = isFlairUnlocked(a.id, unlockedIds) ? 0 : 1;
+                const bUnlocked = isFlairUnlocked(b.id, unlockedIds) ? 0 : 1;
+                return aUnlocked - bUnlocked;
+              })
+              .map((flair) => {
+                const isActive = currentFlairId === flair.id;
+                const isFlairSelected = selectedFlair === flair.id;
+                const unlocked = isFlairUnlocked(flair.id, unlockedIds);
+                const FlairComponent = getFlairById(flair.id)?.Component;
+                return (
+                  <TouchableOpacity
+                    key={flair.id}
+                    style={[
+                      styles.frameGridCell,
+                      isFlairSelected && styles.frameGridCellSelected,
+                      !isFlairSelected &&
+                        isActive &&
+                        selectedFlair === null &&
+                        styles.frameGridCellActive,
+                      !unlocked && styles.frameGridCellLocked,
+                    ]}
+                    onPress={() => handlePressFlair(flair.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[
+                        styles.flairPreviewCell,
+                        { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
+                      ]}
+                    >
+                      {FlairComponent && (
+                        <FlairComponent
+                          size={FRAME_GRID_CELL_SIZE}
+                          borderRadius={borderRadiusToken.medium}
+                        />
+                      )}
+                      <AvatarWithFrame
+                        value={user?.uid ?? 'anonymous'}
+                        size={FRAME_GRID_CELL_SIZE - 8}
+                        avatarUrl={previewAvatarUrl}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.frameGridName,
+                        isFlairSelected && styles.frameGridNameSelected,
+                      ]}
+                    >
+                      {unlocked ? flair.name : '未解锁'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+          </ScrollView>
+        ) : null}
       </View>
 
       {/* Footer */}

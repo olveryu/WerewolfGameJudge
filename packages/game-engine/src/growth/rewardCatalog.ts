@@ -6,7 +6,7 @@
  * 新增头像/头像框时只需在此追加 + 客户端追加对应图片/组件。
  */
 
-export type RewardType = 'avatar' | 'frame';
+export type RewardType = 'avatar' | 'frame' | 'seatFlair';
 
 export interface RewardItem {
   readonly type: RewardType;
@@ -79,11 +79,29 @@ export const FRAME_IDS = [
   'voidRift',
 ] as const;
 
+/** 全部座位装饰 ID（与 `seatFlairs/index.ts` Component 注册表 1:1 对应）。 */
+// prettier-ignore
+export const SEAT_FLAIR_IDS = [
+  'emberGlow',
+  'frostAura',
+  'shadowMist',
+  'goldenShine',
+  'bloodMark',
+  'starlight',
+  'thunderBolt',
+  'sakura',
+  'runeCircle',
+  'fireRing',
+] as const;
+
 /** 注册即得的免费头像 ID */
 export const FREE_AVATAR_IDS: ReadonlySet<string> = new Set(['villager']);
 
-/** 注册即得的免费头像框 ID */
-export const FREE_FRAME_IDS: ReadonlySet<string> = new Set(['ironForge']);
+/** 注册即得的免费头像框 ID（无） */
+export const FREE_FRAME_IDS: ReadonlySet<string> = new Set<string>();
+
+/** 注册即得的免费座位装饰 ID（无） */
+export const FREE_FLAIR_IDS: ReadonlySet<string> = new Set<string>();
 
 /**
  * 可抽奖励池（全部可解锁物品 - 免费物品）。
@@ -95,5 +113,8 @@ export const REWARD_POOL: readonly RewardItem[] = [
   ),
   ...FRAME_IDS.filter((id) => !FREE_FRAME_IDS.has(id)).map(
     (id) => ({ type: 'frame', id }) as const,
+  ),
+  ...SEAT_FLAIR_IDS.filter((id) => !FREE_FLAIR_IDS.has(id)).map(
+    (id) => ({ type: 'seatFlair', id }) as const,
   ),
 ];

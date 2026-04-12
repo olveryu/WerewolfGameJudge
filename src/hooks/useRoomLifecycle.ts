@@ -223,6 +223,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
         const avatarFrame = await authService.getCurrentAvatarFrame();
+        const seatFlair = await authService.getCurrentSeatFlair();
         const level = await fetchUserStats()
           .then((s) => s.level)
           .catch(() => undefined);
@@ -232,6 +233,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           displayName ?? undefined,
           avatarUrl ?? undefined,
           avatarFrame ?? undefined,
+          seatFlair ?? undefined,
           level,
         );
       } catch (err) {
@@ -266,6 +268,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
         const avatarFrame = await authService.getCurrentAvatarFrame();
+        const seatFlair = await authService.getCurrentSeatFlair();
         const level = await fetchUserStats()
           .then((s) => s.level)
           .catch(() => undefined);
@@ -275,6 +278,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           displayName ?? undefined,
           avatarUrl ?? undefined,
           avatarFrame ?? undefined,
+          seatFlair ?? undefined,
           level,
         );
 

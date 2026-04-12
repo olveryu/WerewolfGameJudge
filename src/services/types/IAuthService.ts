@@ -58,12 +58,13 @@ export interface IAuthService {
   /** 邮箱密码登录，返回 userId */
   signInWithEmail(email: string, password: string): Promise<string>;
 
-  /** 更新用户资料（昵称 / 头像 / 头像框） */
+  /** 更新用户资料（昵称 / 头像 / 头像框 / 座位装饰） */
   updateProfile(updates: {
     displayName?: string;
     avatarUrl?: string;
     customAvatarUrl?: string;
     avatarFrame?: string;
+    seatFlair?: string;
   }): Promise<void>;
 
   /** 登出 */
@@ -98,4 +99,7 @@ export interface IAuthService {
 
   /** 获取当前用户头像框 ID */
   getCurrentAvatarFrame(): Promise<string | null>;
+
+  /** 获取当前用户座位装饰 ID */
+  getCurrentSeatFlair(): Promise<string | null>;
 }

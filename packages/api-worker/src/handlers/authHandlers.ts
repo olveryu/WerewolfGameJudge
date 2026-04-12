@@ -116,7 +116,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
 
       // Read back merged account profile
       const merged = await env.DB.prepare(
-        'SELECT display_name, avatar_url, custom_avatar_url, avatar_frame FROM users WHERE id = ?',
+        'SELECT display_name, avatar_url, custom_avatar_url, avatar_frame, equipped_flair FROM users WHERE id = ?',
       )
         .bind(existing.id)
         .first<{
@@ -124,6 +124,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
           avatar_url: string | null;
           custom_avatar_url: string | null;
           avatar_frame: string | null;
+          equipped_flair: string | null;
         }>();
 
       const token = await signToken(existing.id, env, { email });
@@ -140,6 +141,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
               avatar_url: merged?.avatar_url,
               custom_avatar_url: merged?.custom_avatar_url,
               avatar_frame: merged?.avatar_frame,
+              seat_flair: merged?.equipped_flair,
             },
           },
         },
@@ -253,7 +255,7 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
   }
 
   const user = await env.DB.prepare(
-    'SELECT id, password_hash, display_name, avatar_url, custom_avatar_url, avatar_frame FROM users WHERE email = ?',
+    'SELECT id, password_hash, display_name, avatar_url, custom_avatar_url, avatar_frame, equipped_flair FROM users WHERE email = ?',
   )
     .bind(email)
     .first<{
@@ -263,6 +265,7 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
       avatar_url: string | null;
       custom_avatar_url: string | null;
       avatar_frame: string | null;
+      equipped_flair: string | null;
     }>();
 
   if (!user || !user.password_hash) {
@@ -303,6 +306,7 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
           avatar_url: user.avatar_url,
           custom_avatar_url: user.custom_avatar_url,
           avatar_frame: user.avatar_frame,
+          seat_flair: user.equipped_flair,
         },
       },
     },
@@ -326,7 +330,7 @@ export async function handleGetUser(request: Request, env: Env): Promise<Respons
   }
 
   const user = await env.DB.prepare(
-    `SELECT id, email, display_name, avatar_url, custom_avatar_url, avatar_frame, is_anonymous
+    `SELECT id, email, display_name, avatar_url, custom_avatar_url, avatar_frame, equipped_flair, is_anonymous
      FROM users WHERE id = ?`,
   )
     .bind(payload.sub)
@@ -337,6 +341,7 @@ export async function handleGetUser(request: Request, env: Env): Promise<Respons
       avatar_url: string | null;
       custom_avatar_url: string | null;
       avatar_frame: string | null;
+      equipped_flair: string | null;
       is_anonymous: number;
     }>();
 
@@ -356,6 +361,7 @@ export async function handleGetUser(request: Request, env: Env): Promise<Respons
             avatar_url: user.avatar_url,
             custom_avatar_url: user.custom_avatar_url,
             avatar_frame: user.avatar_frame,
+            seat_flair: user.equipped_flair,
           },
         },
       },
@@ -383,6 +389,7 @@ export async function handleUpdateProfile(request: Request, env: Env): Promise<R
     avatarUrl?: string;
     customAvatarUrl?: string;
     avatarFrame?: string;
+    seatFlair?: string;
   };
 
   // Build dynamic SET clause for only provided fields
@@ -404,6 +411,10 @@ export async function handleUpdateProfile(request: Request, env: Env): Promise<R
   if (body.avatarFrame !== undefined) {
     sets.push('avatar_frame = ?');
     values.push(body.avatarFrame);
+  }
+  if (body.seatFlair !== undefined) {
+    sets.push('equipped_flair = ?');
+    values.push(body.seatFlair);
   }
 
   if (sets.length === 0) {
@@ -646,7 +657,7 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
 
   // Fetch user metadata for response
   const user = await env.DB.prepare(
-    `SELECT display_name, avatar_url, custom_avatar_url, avatar_frame FROM users WHERE id = ?`,
+    `SELECT display_name, avatar_url, custom_avatar_url, avatar_frame, equipped_flair FROM users WHERE id = ?`,
   )
     .bind(token.user_id)
     .first<{
@@ -654,6 +665,7 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
       avatar_url: string | null;
       custom_avatar_url: string | null;
       avatar_frame: string | null;
+      equipped_flair: string | null;
     }>();
 
   return jsonResponse(
@@ -669,6 +681,7 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
           avatar_url: user?.avatar_url,
           custom_avatar_url: user?.custom_avatar_url,
           avatar_frame: user?.avatar_frame,
+          seat_flair: user?.equipped_flair,
         },
       },
     },
@@ -718,7 +731,7 @@ export async function handleWechatSignIn(request: Request, env: Env): Promise<Re
 
   // Look up existing user by wechat_openid
   const existing = await env.DB.prepare(
-    `SELECT id, email, display_name, avatar_url, custom_avatar_url, avatar_frame
+    `SELECT id, email, display_name, avatar_url, custom_avatar_url, avatar_frame, equipped_flair
      FROM users WHERE wechat_openid = ?`,
   )
     .bind(openid)
@@ -729,6 +742,7 @@ export async function handleWechatSignIn(request: Request, env: Env): Promise<Re
       avatar_url: string | null;
       custom_avatar_url: string | null;
       avatar_frame: string | null;
+      equipped_flair: string | null;
     }>();
 
   if (existing) {
@@ -749,6 +763,7 @@ export async function handleWechatSignIn(request: Request, env: Env): Promise<Re
             avatar_url: existing.avatar_url,
             custom_avatar_url: existing.custom_avatar_url,
             avatar_frame: existing.avatar_frame,
+            seat_flair: existing.equipped_flair,
           },
         },
       },

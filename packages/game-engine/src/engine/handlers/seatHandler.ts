@@ -41,7 +41,7 @@ import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
  * 支持换座：如果玩家已有座位，会先清空旧座位
  */
 export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext): HandlerResult {
-  const { seat, uid, displayName, avatarUrl, avatarFrame, level } = intent.payload;
+  const { seat, uid, displayName, avatarUrl, avatarFrame, seatFlair, level } = intent.payload;
   const { state } = context;
 
   // 校验：state 是否存在
@@ -101,6 +101,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
         displayName,
         avatarUrl,
         avatarFrame,
+        seatFlair,
         level,
       },
     },
@@ -189,7 +190,7 @@ export function handleUpdatePlayerProfile(
   intent: UpdatePlayerProfileIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { uid, displayName, avatarUrl, avatarFrame } = intent.payload;
+  const { uid, displayName, avatarUrl, avatarFrame, seatFlair } = intent.payload;
   const { state, mySeat } = context;
 
   if (!state) {
@@ -211,6 +212,7 @@ export function handleUpdatePlayerProfile(
       displayName,
       avatarUrl,
       avatarFrame,
+      seatFlair,
     },
   };
 

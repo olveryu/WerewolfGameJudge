@@ -8,6 +8,7 @@
 
 import {
   FREE_AVATAR_IDS,
+  FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
   REWARD_POOL,
   type RewardItem,
@@ -17,8 +18,8 @@ import {
 /**
  * 从未解锁池中随机抽取一个奖励。
  *
- * 规则：每 3 级解锁一个头像框，其余级别解锁头像。
- * 如果目标类型池已空，fallback 到另一类型。
+ * 规则：每 5 级优先头像框，每 3 级优先座位装饰，其余级别优先头像。
+ * 如果目标类型池已空，fallback 到任意未解锁物品。
  *
  * @param unlockedIds - 玩家已解锁的 id 集合（含免费物品）
  * @param randomFn - 返回 [0, max) 整数的随机函数（服务端用 crypto）
@@ -30,13 +31,14 @@ export function pickRandomReward(
   randomFn: (max: number) => number,
   level: number,
 ): RewardItem | undefined {
-  const preferredType: RewardType = level % 3 === 0 ? 'frame' : 'avatar';
+  const preferredType: RewardType =
+    level % 5 === 0 ? 'frame' : level % 3 === 0 ? 'seatFlair' : 'avatar';
   const preferred = REWARD_POOL.filter(
     (item) => item.type === preferredType && !unlockedIds.has(item.id),
   );
   if (preferred.length > 0) return preferred[randomFn(preferred.length)];
 
-  // Fallback: 目标类型已抽完，从另一类型抽
+  // Fallback: 目标类型已抽完，从任意未解锁物品抽
   const fallback = REWARD_POOL.filter((item) => !unlockedIds.has(item.id));
   if (fallback.length === 0) return undefined;
   return fallback[randomFn(fallback.length)];
@@ -65,4 +67,19 @@ export function getUnlockedFrames(unlockedIds: readonly string[]): ReadonlySet<s
 /** 头像框是否已解锁 */
 export function isFrameUnlocked(frameId: string, unlockedIds: readonly string[]): boolean {
   return getUnlockedFrames(unlockedIds).has(frameId);
+}
+
+/** 已解锁座位装饰 id 集合（免费 + 玩家解锁的 seatFlair 类型） */
+export function getUnlockedFlairs(unlockedIds: readonly string[]): ReadonlySet<string> {
+  const set = new Set<string>(FREE_FLAIR_IDS);
+  for (const id of unlockedIds) {
+    const item = REWARD_POOL.find((r) => r.id === id);
+    if (item?.type === 'seatFlair') set.add(id);
+  }
+  return set;
+}
+
+/** 座位装饰是否已解锁 */
+export function isFlairUnlocked(flairId: string, unlockedIds: readonly string[]): boolean {
+  return getUnlockedFlairs(unlockedIds).has(flairId);
 }

@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import { toast } from 'sonner-native';
 
 import { AVATAR_FRAMES } from '@/components/avatarFrames';
+import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
 
@@ -22,6 +23,10 @@ interface UseSettleToastParams {
 function getRewardDisplayName(reward: { type: string; id: string }): string {
   if (reward.type === 'avatar') {
     return `头像「${getRoleDisplayName(reward.id)}」`;
+  }
+  if (reward.type === 'seatFlair') {
+    const flair = SEAT_FLAIRS.find((f) => f.id === reward.id);
+    return `座位装饰「${flair?.name ?? reward.id}」`;
   }
   const frame = AVATAR_FRAMES.find((f) => f.id === reward.id);
   return `头像框「${frame?.name ?? reward.id}」`;

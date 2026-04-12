@@ -311,6 +311,7 @@ export const SettingsScreen: React.FC = () => {
               avatarSource={avatarSource}
               avatarUrl={user?.avatarUrl}
               avatarFrame={user?.avatarFrame}
+              seatFlair={user?.seatFlair}
               uploadingAvatar={false}
               displayName={user?.displayName ?? null}
               onPickAvatar={handlePickAvatar}
@@ -376,6 +377,7 @@ export const SettingsScreen: React.FC = () => {
               avatarSource={avatarSource}
               avatarUrl={user?.avatarUrl}
               avatarFrame={user?.avatarFrame}
+              seatFlair={user?.seatFlair}
               uploadingAvatar={false}
               displayName={user?.displayName ?? null}
               onPickAvatar={handlePickAvatar}

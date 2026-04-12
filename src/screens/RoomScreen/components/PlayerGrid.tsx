@@ -136,6 +136,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           playerAvatarUrl={seat.player?.avatarUrl}
           playerAvatarIndex={seat.player?.uid ? avatarMap.get(seat.player.uid) : undefined}
           playerAvatarFrame={seat.player?.avatarFrame}
+          playerSeatFlair={seat.player?.seatFlair}
           playerDisplayName={seat.player?.displayName ?? null}
           isPlayerAnonymous={!!seat.player && !seat.player.avatarUrl}
           roleId={seat.player?.role ?? null}

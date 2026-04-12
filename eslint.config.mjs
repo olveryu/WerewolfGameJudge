@@ -218,6 +218,7 @@ export default tseslint.config(
     ignores: [
       'src/components/RoleRevealEffects/**',
       'src/components/AIChatBubble/**',
+      'src/components/seatFlairs/**',
       'src/components/ErrorBoundary.tsx',
     ],
     rules: {

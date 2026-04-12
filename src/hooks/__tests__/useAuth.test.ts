@@ -189,6 +189,7 @@ describe('useAuth hook', () => {
         avatarUrl: null,
         customAvatarUrl: null,
         avatarFrame: null,
+        seatFlair: null,
         isAnonymous: false,
       });
       expect(result.current.isAuthenticated).toBe(true);
@@ -406,6 +407,7 @@ describe('useAuth hook', () => {
         avatarUrl: 'https://example.com/avatar.png',
         customAvatarUrl: null,
         avatarFrame: null,
+        seatFlair: null,
         isAnonymous: false,
       });
     });
@@ -436,6 +438,7 @@ describe('useAuth hook', () => {
         avatarUrl: null,
         customAvatarUrl: null,
         avatarFrame: null,
+        seatFlair: null,
         isAnonymous: true,
       });
     });
@@ -473,6 +476,7 @@ describe('User interface', () => {
       avatarUrl: 'https://example.com/avatar.jpg',
       customAvatarUrl: 'https://example.com/avatar.jpg',
       avatarFrame: null,
+      seatFlair: null,
       isAnonymous: false,
     };
 
@@ -492,6 +496,7 @@ describe('User interface', () => {
       avatarUrl: null,
       customAvatarUrl: null,
       avatarFrame: null,
+      seatFlair: null,
       isAnonymous: true,
     };
 

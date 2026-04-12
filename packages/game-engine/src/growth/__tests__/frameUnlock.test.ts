@@ -1,6 +1,8 @@
 import {
   getUnlockedAvatars,
+  getUnlockedFlairs,
   getUnlockedFrames,
+  isFlairUnlocked,
   isFrameUnlocked,
   pickRandomReward,
 } from '../frameUnlock';
@@ -8,19 +10,24 @@ import {
   AVATAR_IDS,
   FRAME_IDS,
   FREE_AVATAR_IDS,
+  FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
   REWARD_POOL,
+  SEAT_FLAIR_IDS,
 } from '../rewardCatalog';
 
 describe('rewardCatalog', () => {
-  it('REWARD_POOL has 51 items (43 avatars + 10 frames - 2 free)', () => {
-    expect(REWARD_POOL).toHaveLength(AVATAR_IDS.length + FRAME_IDS.length - 2);
+  it('REWARD_POOL has correct total items (avatars + frames + flairs - free)', () => {
+    expect(REWARD_POOL).toHaveLength(
+      AVATAR_IDS.length + FRAME_IDS.length + SEAT_FLAIR_IDS.length - 1,
+    );
   });
 
   it('REWARD_POOL excludes free items', () => {
     const poolIds = new Set(REWARD_POOL.map((r) => r.id));
     for (const id of FREE_AVATAR_IDS) expect(poolIds.has(id)).toBe(false);
     for (const id of FREE_FRAME_IDS) expect(poolIds.has(id)).toBe(false);
+    for (const id of FREE_FLAIR_IDS) expect(poolIds.has(id)).toBe(false);
   });
 
   it('all REWARD_POOL ids are unique', () => {
@@ -28,11 +35,13 @@ describe('rewardCatalog', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('contains 42 avatars and 9 frames', () => {
+  it('contains 42 avatars, 10 frames, and 10 flairs', () => {
     const avatars = REWARD_POOL.filter((r) => r.type === 'avatar');
     const frames = REWARD_POOL.filter((r) => r.type === 'frame');
+    const flairs = REWARD_POOL.filter((r) => r.type === 'seatFlair');
     expect(avatars).toHaveLength(42);
-    expect(frames).toHaveLength(9);
+    expect(frames).toHaveLength(10);
+    expect(flairs).toHaveLength(10);
   });
 });
 
@@ -44,32 +53,39 @@ describe('pickRandomReward', () => {
     expect(result!.type).toBe('avatar');
   });
 
-  it('returns a frame at 3x level', () => {
+  it('returns a frame at 5x level', () => {
     const unlocked = new Set<string>();
-    const result = pickRandomReward(unlocked, () => 0, 3);
+    const result = pickRandomReward(unlocked, () => 0, 5);
     expect(result).toBeDefined();
     expect(result!.type).toBe('frame');
   });
 
-  it('returns a frame at level 6', () => {
+  it('returns a seatFlair at 3x level', () => {
+    const unlocked = new Set<string>();
+    const result = pickRandomReward(unlocked, () => 0, 3);
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('seatFlair');
+  });
+
+  it('returns a seatFlair at level 6', () => {
     const unlocked = new Set<string>();
     const result = pickRandomReward(unlocked, () => 0, 6);
     expect(result).toBeDefined();
-    expect(result!.type).toBe('frame');
+    expect(result!.type).toBe('seatFlair');
   });
 
   it('falls back to avatar when all frames are unlocked', () => {
     const allFrameIds = new Set(REWARD_POOL.filter((r) => r.type === 'frame').map((r) => r.id));
-    const result = pickRandomReward(allFrameIds, () => 0, 3);
+    const result = pickRandomReward(allFrameIds, () => 0, 5);
     expect(result).toBeDefined();
     expect(result!.type).toBe('avatar');
   });
 
-  it('falls back to frame when all avatars are unlocked', () => {
+  it('falls back when all avatars are unlocked', () => {
     const allAvatarIds = new Set(REWARD_POOL.filter((r) => r.type === 'avatar').map((r) => r.id));
     const result = pickRandomReward(allAvatarIds, () => 0, 1);
     expect(result).toBeDefined();
-    expect(result!.type).toBe('frame');
+    expect(result!.type === 'frame' || result!.type === 'seatFlair').toBe(true);
   });
 
   it('returns undefined when pool is exhausted', () => {
@@ -112,16 +128,20 @@ describe('getUnlockedFrames', () => {
 
   it('includes unlocked frame ids', () => {
     const unlocked = getUnlockedFrames(['moonSilver', 'darkVine']);
-    expect(unlocked.has('ironForge')).toBe(true);
+    expect(unlocked.has('ironForge')).toBe(false);
     expect(unlocked.has('moonSilver')).toBe(true);
     expect(unlocked.has('darkVine')).toBe(true);
-    expect(unlocked.size).toBe(3);
+    expect(unlocked.size).toBe(2);
   });
 });
 
 describe('isFrameUnlocked', () => {
-  it('free frame is always unlocked', () => {
-    expect(isFrameUnlocked('ironForge', [])).toBe(true);
+  it('ironForge is locked without explicit unlock', () => {
+    expect(isFrameUnlocked('ironForge', [])).toBe(false);
+  });
+
+  it('ironForge is unlocked when in list', () => {
+    expect(isFrameUnlocked('ironForge', ['ironForge'])).toBe(true);
   });
 
   it('non-free frame is locked without unlock', () => {
@@ -134,5 +154,43 @@ describe('isFrameUnlocked', () => {
 
   it('unknown frame returns false', () => {
     expect(isFrameUnlocked('nonExistent', ['seer', 'moonSilver'])).toBe(false);
+  });
+});
+
+describe('getUnlockedFlairs', () => {
+  it('returns only free flairs with empty unlocked list', () => {
+    expect(getUnlockedFlairs([])).toEqual(FREE_FLAIR_IDS);
+  });
+
+  it('includes unlocked flair ids', () => {
+    const unlocked = getUnlockedFlairs(['frostAura', 'sakura']);
+    expect(unlocked.has('emberGlow')).toBe(false);
+    expect(unlocked.has('frostAura')).toBe(true);
+    expect(unlocked.has('sakura')).toBe(true);
+    expect(unlocked.size).toBe(2);
+  });
+
+  it('ignores avatar ids in unlock list', () => {
+    const unlocked = getUnlockedFlairs(['seer']);
+    expect(unlocked.has('seer')).toBe(false);
+    expect(unlocked.size).toBe(0);
+  });
+});
+
+describe('isFlairUnlocked', () => {
+  it('emberGlow is locked without explicit unlock', () => {
+    expect(isFlairUnlocked('emberGlow', [])).toBe(false);
+  });
+
+  it('emberGlow is unlocked when in list', () => {
+    expect(isFlairUnlocked('emberGlow', ['emberGlow'])).toBe(true);
+  });
+
+  it('non-free flair is locked without unlock', () => {
+    expect(isFlairUnlocked('frostAura', [])).toBe(false);
+  });
+
+  it('non-free flair is unlocked when in list', () => {
+    expect(isFlairUnlocked('frostAura', ['frostAura'])).toBe(true);
   });
 });

@@ -27,6 +27,7 @@ export interface LocalPlayer {
   displayName?: string;
   avatarUrl?: string;
   avatarFrame?: string;
+  seatFlair?: string;
   level?: number;
   role: RoleId | null;
   hasViewedRole: boolean;

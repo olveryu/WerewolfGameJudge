@@ -27,6 +27,8 @@ export interface User {
   customAvatarUrl: string | null;
   /** Selected avatar frame ID (e.g. 'lunar', 'wolfFang') */
   avatarFrame: string | null;
+  /** Selected seat flair ID (decoration around seat tile) */
+  seatFlair: string | null;
   isAnonymous: boolean;
 }
 
@@ -42,6 +44,7 @@ interface AuthContextValue {
     displayName?: string;
     avatarUrl?: string;
     avatarFrame?: string;
+    seatFlair?: string;
   }) => Promise<void>;
   uploadAvatar: (fileUri: string) => Promise<string>;
   signOut: () => Promise<void>;
@@ -65,6 +68,7 @@ const userEquals = (a: User | null, b: User | null): boolean => {
     a.avatarUrl === b.avatarUrl &&
     a.customAvatarUrl === b.customAvatarUrl &&
     a.avatarFrame === b.avatarFrame &&
+    a.seatFlair === b.seatFlair &&
     a.isAnonymous === b.isAnonymous
   );
 };
@@ -79,6 +83,7 @@ const toUser = (authUser: AuthUser | null): User | null => {
     avatarUrl: (authUser.user_metadata?.avatar_url as string) || null,
     customAvatarUrl: (authUser.user_metadata?.custom_avatar_url as string) || null,
     avatarFrame: (authUser.user_metadata?.avatar_frame as string) || null,
+    seatFlair: (authUser.user_metadata?.seat_flair as string) || null,
     isAnonymous: authUser.is_anonymous || false,
   };
 };

@@ -75,6 +75,7 @@ export interface UpdatePlayerProfileAction {
     displayName?: string;
     avatarUrl?: string;
     avatarFrame?: string;
+    seatFlair?: string;
   };
 }
 

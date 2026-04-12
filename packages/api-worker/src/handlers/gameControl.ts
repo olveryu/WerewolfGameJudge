@@ -38,10 +38,21 @@ export const handleSeat: HandlerFn = async (req, env) => {
     displayName?: string;
     avatarUrl?: string;
     avatarFrame?: string;
+    seatFlair?: string;
     level?: number;
   };
-  const { roomCode, action, uid, seat, targetSeat, displayName, avatarUrl, avatarFrame, level } =
-    body;
+  const {
+    roomCode,
+    action,
+    uid,
+    seat,
+    targetSeat,
+    displayName,
+    avatarUrl,
+    avatarFrame,
+    seatFlair,
+    level,
+  } = body;
 
   if (!roomCode || !uid || !action) return missingParams(env);
   if (action !== 'sit' && action !== 'standup' && action !== 'kick') {
@@ -63,6 +74,7 @@ export const handleSeat: HandlerFn = async (req, env) => {
       displayName,
       avatarUrl,
       avatarFrame,
+      seatFlair,
       targetSeat,
       level,
     );
@@ -145,13 +157,14 @@ export const handleUpdateProfileRoute: HandlerFn = async (req, env) => {
     displayName?: string;
     avatarUrl?: string;
     avatarFrame?: string;
+    seatFlair?: string;
   };
-  const { roomCode, uid, displayName, avatarUrl, avatarFrame } = body;
+  const { roomCode, uid, displayName, avatarUrl, avatarFrame, seatFlair } = body;
   if (!roomCode || !uid) return missingParams(env);
 
   const doResult = await callDO(() => {
     const stub = getGameRoomStub(env, roomCode);
-    return stub.updateProfile(uid, displayName, avatarUrl, avatarFrame);
+    return stub.updateProfile(uid, displayName, avatarUrl, avatarFrame, seatFlair);
   }, env);
   if (doResult instanceof Response) return doResult;
   return jsonResponse(doResult, resultToStatus(doResult), env);

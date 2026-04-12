@@ -120,6 +120,7 @@ describe('GameRoom seat management', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
       1,
     )) as GameActionResult;
 

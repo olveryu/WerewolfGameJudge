@@ -31,6 +31,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
+import { fetchUserStats } from '@/services/feature/StatsService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout, spacing } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
@@ -78,6 +79,31 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [nominationModalVisible, setNominationModalVisible] = useState(false);
   const hasAutoShownQR = useRef(false);
+  const [userLevel, setUserLevel] = useState<number | null>(null);
+
+  // Fetch user level on mount + focus
+  useEffect(() => {
+    if (!user || user.isAnonymous) {
+      setUserLevel(null);
+      return;
+    }
+    let cancelled = false;
+    const load = () => {
+      fetchUserStats()
+        .then((stats) => {
+          if (!cancelled) setUserLevel(stats.level);
+        })
+        .catch((e: unknown) => {
+          roomScreenLog.warn('Failed to fetch user stats', e);
+        });
+    };
+    load();
+    const unsubscribe = navigation.addListener('focus', load);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [user, navigation]);
 
   const handleShareRoom = useCallback(() => {
     setQrModalVisible(true);
@@ -419,6 +445,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <HeaderActions
             visible
             user={user}
+            level={userLevel}
             showUserSettings
             showShareRoom={roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated}
             showAnimationSettings={

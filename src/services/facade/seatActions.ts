@@ -58,9 +58,18 @@ export async function takeSeat(
   displayName?: string,
   avatarUrl?: string,
   avatarFrame?: string,
+  seatFlair?: string,
   level?: number,
 ): Promise<boolean> {
-  const result = await takeSeatWithAck(ctx, seatNumber, displayName, avatarUrl, avatarFrame, level);
+  const result = await takeSeatWithAck(
+    ctx,
+    seatNumber,
+    displayName,
+    avatarUrl,
+    avatarFrame,
+    seatFlair,
+    level,
+  );
   return result.success;
 }
 
@@ -73,6 +82,7 @@ export async function takeSeatWithAck(
   displayName?: string,
   avatarUrl?: string,
   avatarFrame?: string,
+  seatFlair?: string,
   level?: number,
 ): Promise<{ success: boolean; reason?: string }> {
   const roomCode = ctx.getRoomCode();
@@ -91,6 +101,7 @@ export async function takeSeatWithAck(
       displayName,
       avatarUrl,
       avatarFrame,
+      seatFlair,
       level,
     },
     ctx.store,

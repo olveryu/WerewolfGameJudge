@@ -35,6 +35,7 @@ function toLocalPlayer(bp: Player, seatNumber: number, roster?: RosterEntry): Lo
     displayName: roster?.displayName,
     avatarUrl: roster?.avatarUrl,
     avatarFrame: roster?.avatarFrame,
+    seatFlair: roster?.seatFlair,
     level: roster?.level,
     role: bp.role ?? null,
     hasViewedRole: bp.hasViewedRole,

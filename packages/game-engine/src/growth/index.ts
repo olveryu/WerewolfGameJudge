@@ -6,7 +6,9 @@
 
 export {
   getUnlockedAvatars,
+  getUnlockedFlairs,
   getUnlockedFrames,
+  isFlairUnlocked,
   isFrameUnlocked,
   pickRandomReward,
 } from './frameUnlock';
@@ -22,8 +24,10 @@ export {
   AVATAR_IDS,
   FRAME_IDS,
   FREE_AVATAR_IDS,
+  FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
   REWARD_POOL,
   type RewardItem,
   type RewardType,
+  SEAT_FLAIR_IDS,
 } from './rewardCatalog';

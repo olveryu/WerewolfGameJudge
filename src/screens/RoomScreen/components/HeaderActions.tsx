@@ -8,24 +8,27 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, componentSizes, spacing, withAlpha } from '@/theme';
+import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 
 import { type HeaderActionsStyles } from './styles';
 
 const MENU_ICON_SIZE = componentSizes.icon.md;
 const AVATAR_SIZE = componentSizes.avatar.sm;
 const AVATAR_WRAPPER_SIZE = AVATAR_SIZE + spacing.tight * 2;
+const BADGE_SIZE = componentSizes.badge.sm;
 
 interface HeaderActionsProps {
   /** Whether to show the menu (Host only) */
   visible: boolean;
   /** Current user (for avatar in menu item) */
   user: { uid: string; avatarUrl?: string | null } | null;
+  /** User level for badge display */
+  level?: number | null;
   /** Show user settings option */
   showUserSettings: boolean;
   /** Show share room option (only in unseated/seated phase) */
@@ -58,6 +61,7 @@ interface HeaderActionsProps {
 const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
   visible,
   user,
+  level,
   showUserSettings,
   showShareRoom,
   showAnimationSettings,
@@ -153,6 +157,12 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     };
+    const badge =
+      level != null ? (
+        <View style={[badgeStyles.pill, { backgroundColor: colors.primary }]}>
+          <Text style={badgeStyles.text}>{level}</Text>
+        </View>
+      ) : null;
     return (
       <View style={styles.headerRightContainer}>
         <Button variant="icon" onPress={onUserSettings}>
@@ -171,6 +181,7 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
                 color={colors.textSecondary}
               />
             )}
+            {badge}
           </View>
         </Button>
       </View>
@@ -302,3 +313,25 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
 export const HeaderActions = memo(HeaderActionsComponent);
 
 HeaderActions.displayName = 'HeaderActions';
+
+// ── Badge styles (matches HomeScreen UserAvatar badge) ──
+
+const badgeStyles = StyleSheet.create({
+  pill: {
+    position: 'absolute',
+    bottom: -1,
+    right: -2,
+    minWidth: BADGE_SIZE,
+    height: BADGE_SIZE,
+    borderRadius: BADGE_SIZE / 2,
+    paddingHorizontal: spacing.micro,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  text: {
+    color: colors.textInverse,
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.bold,
+  },
+});

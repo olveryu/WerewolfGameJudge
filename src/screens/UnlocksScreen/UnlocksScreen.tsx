@@ -12,6 +12,7 @@ import {
   FRAME_IDS,
   FREE_AVATAR_IDS,
   FREE_FRAME_IDS,
+  SEAT_FLAIR_IDS,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -31,6 +32,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
+import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { RootStackParamList } from '@/navigation/types';
 import { fetchUserStats, type UserStats } from '@/services/feature/StatsService';
 import {
@@ -50,11 +52,12 @@ import { settingsLog } from '@/utils/logger';
 const NUM_COLUMNS = 4;
 const CELL_SIZE = 72;
 
-type TabKey = 'avatar' | 'frame';
+type TabKey = 'avatar' | 'frame' | 'flair';
 
 const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'avatar', label: '头像' },
   { key: 'frame', label: '头像框' },
+  { key: 'flair', label: '特效' },
 ] as const;
 
 interface UnlockItem {
@@ -111,7 +114,22 @@ export const UnlocksScreen: React.FC = () => {
     }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
   }, [unlockedSet]);
 
-  const currentItems = activeTab === 'avatar' ? avatarItems : frameItems;
+  const flairItems = useMemo(
+    (): UnlockItem[] =>
+      SEAT_FLAIR_IDS.map((id) => {
+        const flair = SEAT_FLAIRS.find((f) => f.id === id);
+        return {
+          id,
+          type: 'flair' as const,
+          displayName: flair?.name ?? id,
+          unlocked: unlockedSet.has(id),
+        };
+      }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked)),
+    [unlockedSet],
+  );
+
+  const currentItems =
+    activeTab === 'avatar' ? avatarItems : activeTab === 'frame' ? frameItems : flairItems;
   const unlockedCount = currentItems.filter((i) => i.unlocked).length;
   const totalCount = currentItems.length;
   const progressPercent = Math.round((unlockedCount / totalCount) * 100);
@@ -198,16 +216,19 @@ export const UnlocksScreen: React.FC = () => {
 // ── Cell component ──────────────────────────────────────
 
 const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
-  const isAvatar = item.type === 'avatar';
+  const thumb =
+    item.type === 'avatar' ? (
+      <AvatarThumb id={item.id} unlocked={item.unlocked} />
+    ) : item.type === 'frame' ? (
+      <FrameThumb id={item.id} unlocked={item.unlocked} />
+    ) : (
+      <FlairThumb id={item.id} unlocked={item.unlocked} />
+    );
 
   return (
     <View style={styles.cell}>
       <View style={[styles.imageWrapper, item.unlocked ? styles.unlockedBorder : styles.lockedBg]}>
-        {isAvatar ? (
-          <AvatarThumb id={item.id} unlocked={item.unlocked} />
-        ) : (
-          <FrameThumb id={item.id} unlocked={item.unlocked} />
-        )}
+        {thumb}
         {/* Badge overlay */}
         {item.unlocked ? (
           <View style={styles.checkBadge}>
@@ -257,6 +278,26 @@ const FrameThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked
 ));
 
 FrameThumb.displayName = 'FrameThumb';
+
+const FLAIR_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
+
+const FlairThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
+  const flair = SEAT_FLAIRS.find((f) => f.id === id);
+  if (!flair) return null;
+  const Comp = flair.Component;
+  return (
+    <View
+      style={[
+        { width: FLAIR_PREVIEW_SIZE, height: FLAIR_PREVIEW_SIZE },
+        !unlocked && styles.grayscale,
+      ]}
+    >
+      <Comp size={FLAIR_PREVIEW_SIZE} borderRadius={borderRadius.medium} />
+    </View>
+  );
+});
+
+FlairThumb.displayName = 'FlairThumb';
 
 // ── Styles ──────────────────────────────────────────────
 

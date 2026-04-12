@@ -131,6 +131,7 @@ export class CFAuthService implements IAuthService {
     avatarUrl?: string;
     customAvatarUrl?: string;
     avatarFrame?: string;
+    seatFlair?: string;
   }): Promise<void> {
     await cfPut('/auth/profile', updates);
   }
@@ -312,6 +313,19 @@ export class CFAuthService implements IAuthService {
       }
     } catch (e) {
       authLog.debug('getCurrentAvatarFrame failed', e);
+    }
+    return null;
+  }
+
+  async getCurrentSeatFlair(): Promise<string | null> {
+    try {
+      const resp = await this.getCurrentUser();
+      if (resp) {
+        const user = (await resp).data.user;
+        return (user?.user_metadata?.seat_flair as string) || null;
+      }
+    } catch (e) {
+      authLog.debug('getCurrentSeatFlair failed', e);
     }
     return null;
   }

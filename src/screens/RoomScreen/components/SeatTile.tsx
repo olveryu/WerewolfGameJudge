@@ -25,6 +25,7 @@ import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
+import { getFlairById } from '@/components/seatFlairs';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import {
@@ -67,13 +68,14 @@ export interface SeatTileStyles {
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
   wolfVoteBadge: TextStyle;
+  levelBadge: ViewStyle;
+  levelBadgeText: TextStyle;
   emptyIndicator: TextStyle;
   rippleRing: ViewStyle;
   playerName: TextStyle;
   playerNameHighlight: TextStyle;
   playerNamePlaceholder: ViewStyle;
   botRoleName: TextStyle;
-  levelLabel: TextStyle;
 }
 
 export interface SeatTileProps {
@@ -94,6 +96,8 @@ export interface SeatTileProps {
   /** Pre-computed unique avatar seat (from room-level dedup). Undefined = use hash fallback. */
   playerAvatarIndex?: number;
   playerAvatarFrame?: string;
+  /** Seat flair ID (decoration animation around the tile). */
+  playerSeatFlair?: string;
   playerDisplayName: string | null;
   /** Whether the player is anonymous (no custom avatar set). Dims the nickname. */
   isPlayerAnonymous: boolean;
@@ -130,6 +134,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerAvatarUrl,
   playerAvatarIndex,
   playerAvatarFrame,
+  playerSeatFlair,
   playerDisplayName,
   isPlayerAnonymous,
   roleId,
@@ -310,6 +315,11 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   // Get role display name for bot (debug mode only)
   const botRoleDisplayName = showBotRole && roleId ? getRoleDisplayName(roleId) : null;
 
+  // Resolve seat flair component
+  const flairConfig = useMemo(() => getFlairById(playerSeatFlair), [playerSeatFlair]);
+  const FlairComponent = flairConfig?.Component;
+  const flairSize = tileSize - spacing.tight;
+
   return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(seat)}>
       <Animated.View style={tileAnimatedStyle}>
@@ -355,6 +365,11 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             </Animated.View>
           )}
 
+          {/* Seat flair animation layer — on top of avatar */}
+          {hasPlayer && FlairComponent && (
+            <FlairComponent size={flairSize} borderRadius={borderRadius.large} />
+          )}
+
           {!hasPlayer && <Text style={styles.emptyIndicator}>空</Text>}
 
           {showReadyBadge && hasPlayer && (
@@ -371,6 +386,12 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
           {wolfVoteBadge != null && hasPlayer && (
             <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
+          )}
+
+          {showLevel && playerLevel != null && hasPlayer && !botRoleDisplayName && (
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelBadgeText}>Lv{playerLevel}</Text>
+            </View>
           )}
         </TouchableOpacity>
 
@@ -399,11 +420,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           {botRoleDisplayName && (
             <Text style={styles.botRoleName} numberOfLines={1}>
               {botRoleDisplayName}
-            </Text>
-          )}
-          {showLevel && playerLevel != null && !botRoleDisplayName && (
-            <Text style={styles.levelLabel} numberOfLines={1}>
-              Lv.{playerLevel}
             </Text>
           )}
         </>
@@ -455,8 +471,8 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
     seatNumberBadge: {
       position: 'absolute',
-      top: spacing.tight,
-      left: spacing.tight,
+      top: -spacing.tight,
+      left: spacing.micro,
       width: componentSizes.badge.md,
       height: componentSizes.badge.md,
       borderRadius: borderRadius.full,
@@ -512,6 +528,21 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       borderRadius: borderRadius.small,
       overflow: 'hidden',
     },
+    levelBadge: {
+      position: 'absolute',
+      bottom: -spacing.tight,
+      alignSelf: 'center',
+      backgroundColor: withAlpha(colors.background, 0.85),
+      paddingHorizontal: spacing.tight + spacing.micro,
+      paddingVertical: spacing.micro / 2,
+      borderRadius: borderRadius.full,
+      zIndex: 10,
+    },
+    levelBadgeText: {
+      fontSize: typography.captionSmall,
+      fontWeight: typography.weights.bold,
+      color: colors.textMuted,
+    },
     emptyIndicator: {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
@@ -550,13 +581,6 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       height: typography.subtitle,
     },
     botRoleName: {
-      fontSize: typography.captionSmall,
-      lineHeight: typography.lineHeights.captionSmall,
-      color: colors.textMuted,
-      textAlign: 'center',
-      width: tileSize - spacing.tight,
-    },
-    levelLabel: {
       fontSize: typography.captionSmall,
       lineHeight: typography.lineHeights.captionSmall,
       color: colors.textMuted,

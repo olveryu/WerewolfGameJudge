@@ -18,6 +18,7 @@ import {
 
 import { Avatar } from '@/components/Avatar';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
+import { getFlairById } from '@/components/seatFlairs';
 import { UI_ICONS } from '@/config/iconTokens';
 import { colors, componentSizes, fixed, ThemeColors } from '@/theme';
 import { AVATAR_IMAGES, getAvatarThumbByIndex } from '@/utils/avatar';
@@ -41,6 +42,8 @@ interface AvatarSectionProps {
   avatarUrl?: string | null;
   /** Current avatar frame ID */
   avatarFrame?: string | null;
+  /** Current seat flair ID */
+  seatFlair?: string | null;
   uploadingAvatar: boolean;
   displayName: string | null;
   onPickAvatar: () => void;
@@ -55,6 +58,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
     avatarSource,
     avatarUrl,
     avatarFrame,
+    seatFlair,
     uploadingAvatar,
     displayName,
     onPickAvatar,
@@ -111,10 +115,14 @@ export const AvatarSection = memo<AvatarSectionProps>(
       );
     }
 
+    const flairConfig = seatFlair ? getFlairById(seatFlair) : undefined;
+    const FlairComp = flairConfig?.Component;
+    const avatarSize = componentSizes.avatar.xl;
+
     const avatarContent = avatarSource ? (
       <AvatarWithFrame
         value={uid}
-        size={componentSizes.avatar.xl}
+        size={avatarSize}
         avatarUrl={avatarUrl}
         borderRadius={styles.avatar.borderRadius as number}
         frameId={avatarFrame}
@@ -122,7 +130,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
     ) : (
       <AvatarWithFrame
         value={uid}
-        size={componentSizes.avatar.xl}
+        size={avatarSize}
         borderRadius={styles.avatar.borderRadius as number}
         frameId={avatarFrame}
       />
@@ -132,6 +140,9 @@ export const AvatarSection = memo<AvatarSectionProps>(
       <TouchableOpacity onPress={onPickAvatar} activeOpacity={fixed.activeOpacity}>
         <View>
           {avatarContent}
+          {FlairComp && (
+            <FlairComp size={avatarSize} borderRadius={styles.avatar.borderRadius as number} />
+          )}
           <View style={styles.avatarEditBadge}>
             <Ionicons
               name={UI_ICONS.CAMERA}
