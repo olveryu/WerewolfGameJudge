@@ -2,23 +2,59 @@
  * SonicWaveFlair — 音波震荡
  *
  * 5 道青绿色声波环从中心向外脉冲扩散，带频率调制抖动。
- * Skia Immediate Mode。
+ * react-native-svg + Reanimated useAnimatedProps。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Easing,
-  useDerivedValue,
+  useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
+import { AnimatedPath } from './svgAnimatedPrimitives';
 
 const WAVE_COUNT = 5;
 const SEGS = 48;
+
+const WaveParticle = memo<{ index: number; size: number; progress: { value: number } }>(
+  ({ index, size, progress }) => {
+    const cx = size / 2;
+    const cy = size / 2;
+
+    const pathProps = useAnimatedProps(() => {
+      'worklet';
+      const wt = (progress.value * 1.2 + index / WAVE_COUNT) % 1;
+      const radius = size * 0.12 + wt * size * 0.36;
+      const alpha = (1 - wt) * 0.55;
+      const sw = 1.5 * (1 - wt * 0.5);
+      const t = progress.value;
+      let d = '';
+      for (let s = 0; s <= SEGS; s++) {
+        const a = (s / SEGS) * Math.PI * 2;
+        const w = 1 + 0.06 * Math.sin(a * 8 + t * Math.PI * 12 + index * 2);
+        const x = cx + Math.cos(a) * radius * w;
+        const y = cy + Math.sin(a) * radius * w;
+        d += s === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+      }
+      d += ' Z';
+      return { d, opacity: alpha, strokeWidth: sw } as {
+        d: string;
+        opacity: number;
+        strokeWidth: number;
+      };
+    });
+
+    return <AnimatedPath animatedProps={pathProps} stroke="rgb(80,200,180)" fill="none" />;
+  },
+);
+WaveParticle.displayName = 'WaveParticle';
+
+const INDICES = Array.from({ length: WAVE_COUNT }, (_, i) => i);
 
 export const SonicWaveFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
@@ -27,52 +63,13 @@ export const SonicWaveFlair = memo<FlairProps>(({ size, borderRadius: _br }) => 
     progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
   }, [progress]);
 
-  const recorder = useMemo(() => Skia.PictureRecorder(), []);
-  const paint = useMemo(() => {
-    const p = Skia.Paint();
-    p.setStyle(1); // Stroke
-    return p;
-  }, []);
-
-  const picture = useDerivedValue(() => {
-    'worklet';
-    const c = recorder.beginRecording(Skia.XYWHRect(0, 0, size, size));
-    const cx = size / 2;
-    const cy = size / 2;
-    const t = progress.value;
-
-    for (let i = 0; i < WAVE_COUNT; i++) {
-      const wt = (t * 1.2 + i / WAVE_COUNT) % 1;
-      const radius = size * 0.12 + wt * size * 0.36;
-      const alpha = (1 - wt) * 0.55;
-
-      paint.setStrokeWidth(1.5 * (1 - wt * 0.5));
-      paint.setColor(Skia.Color(`rgba(80,200,180,${alpha.toFixed(2)})`));
-
-      // Draw wobbled ring as line segments
-      for (let s = 0; s < SEGS; s++) {
-        const a0 = (s / SEGS) * Math.PI * 2;
-        const a1 = ((s + 1) / SEGS) * Math.PI * 2;
-        const w0 = 1 + 0.06 * Math.sin(a0 * 8 + t * Math.PI * 12 + i * 2);
-        const w1 = 1 + 0.06 * Math.sin(a1 * 8 + t * Math.PI * 12 + i * 2);
-        c.drawLine(
-          cx + Math.cos(a0) * radius * w0,
-          cy + Math.sin(a0) * radius * w0,
-          cx + Math.cos(a1) * radius * w1,
-          cy + Math.sin(a1) * radius * w1,
-          paint,
-        );
-      }
-    }
-
-    return recorder.finishRecordingAsPicture();
-  });
-
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Canvas style={styles.canvas}>
-        <Picture picture={picture} />
-      </Canvas>
+      <Svg width={size} height={size}>
+        {INDICES.map((i) => (
+          <WaveParticle key={i} index={i} size={size} progress={progress} />
+        ))}
+      </Svg>
     </View>
   );
 });
@@ -80,5 +77,4 @@ SonicWaveFlair.displayName = 'SonicWaveFlair';
 
 const styles = StyleSheet.create({
   wrapper: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 1 },
-  canvas: { flex: 1 },
 });

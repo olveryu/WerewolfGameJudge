@@ -2,22 +2,94 @@
  * MagmaFloatFlair — 熔岩浮石
  *
  * 6 块不规则熔岩球在外围浮动，由重叠圆组成，带底部热辉光。
- * Skia Immediate Mode。
+ * react-native-svg + Reanimated useAnimatedProps。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Easing,
-  useDerivedValue,
+  useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
+import { AnimatedCircle } from './svgAnimatedPrimitives';
 
 const N = 6;
+
+interface MagmaSeed {
+  angle0: number;
+  dist: number;
+  phase: number;
+  rFrac: number;
+}
+
+const MagmaParticle = memo<{ seed: MagmaSeed; size: number; progress: { value: number } }>(
+  ({ seed, size, progress }) => {
+    const bodyProps = useAnimatedProps(() => {
+      'worklet';
+      const cx = size / 2;
+      const cy = size / 2;
+      const t = progress.value;
+      const tt = (t + seed.phase) % 1;
+      const angle = seed.angle0 + Math.sin(tt * Math.PI * 2) * 0.3;
+      const dist = seed.dist * size + Math.sin(tt * Math.PI * 4) * size * 0.03;
+      const x = cx + Math.cos(angle) * dist;
+      const y = cy + Math.sin(angle) * dist;
+      const pulse = 0.4 + 0.6 * Math.abs(Math.sin((t * 3 + seed.phase * 5) * Math.PI));
+      const r = seed.rFrac * size;
+      return { cx: x, cy: y, r, opacity: pulse * 0.6 } as Record<string, number>;
+    });
+
+    const lobeProps = useAnimatedProps(() => {
+      'worklet';
+      const cx = size / 2;
+      const cy = size / 2;
+      const t = progress.value;
+      const tt = (t + seed.phase) % 1;
+      const angle = seed.angle0 + Math.sin(tt * Math.PI * 2) * 0.3;
+      const dist = seed.dist * size + Math.sin(tt * Math.PI * 4) * size * 0.03;
+      const x = cx + Math.cos(angle) * dist;
+      const y = cy + Math.sin(angle) * dist;
+      const pulse = 0.4 + 0.6 * Math.abs(Math.sin((t * 3 + seed.phase * 5) * Math.PI));
+      const r = seed.rFrac * size;
+      return { cx: x + r * 0.4, cy: y - r * 0.3, r: r * 0.7, opacity: pulse * 0.5 } as Record<
+        string,
+        number
+      >;
+    });
+
+    const glowProps = useAnimatedProps(() => {
+      'worklet';
+      const cx = size / 2;
+      const cy = size / 2;
+      const t = progress.value;
+      const tt = (t + seed.phase) % 1;
+      const angle = seed.angle0 + Math.sin(tt * Math.PI * 2) * 0.3;
+      const dist = seed.dist * size + Math.sin(tt * Math.PI * 4) * size * 0.03;
+      const x = cx + Math.cos(angle) * dist;
+      const y = cy + Math.sin(angle) * dist;
+      const pulse = 0.4 + 0.6 * Math.abs(Math.sin((t * 3 + seed.phase * 5) * Math.PI));
+      const r = seed.rFrac * size;
+      return { cx: x, cy: y + r * 0.5, r: r * 1.3, opacity: pulse * 0.12 } as Record<
+        string,
+        number
+      >;
+    });
+
+    return (
+      <>
+        <AnimatedCircle animatedProps={bodyProps} fill="rgb(200,60,20)" />
+        <AnimatedCircle animatedProps={lobeProps} fill="rgb(240,120,20)" />
+        <AnimatedCircle animatedProps={glowProps} fill="rgb(255,80,0)" />
+      </>
+    );
+  },
+);
+MagmaParticle.displayName = 'MagmaParticle';
 
 export const MagmaFloatFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
@@ -37,47 +109,13 @@ export const MagmaFloatFlair = memo<FlairProps>(({ size, borderRadius: _br }) =>
     [],
   );
 
-  const recorder = useMemo(() => Skia.PictureRecorder(), []);
-  const paint = useMemo(() => Skia.Paint(), []);
-
-  const picture = useDerivedValue(() => {
-    'worklet';
-    const c = recorder.beginRecording(Skia.XYWHRect(0, 0, size, size));
-    const cx = size / 2;
-    const cy = size / 2;
-    const t = progress.value;
-
-    for (let i = 0; i < N; i++) {
-      const s = seeds[i];
-      const tt = (t + s.phase) % 1;
-      const angle = s.angle0 + Math.sin(tt * Math.PI * 2) * 0.3;
-      const dist = s.dist * size + Math.sin(tt * Math.PI * 4) * size * 0.03;
-      const x = cx + Math.cos(angle) * dist;
-      const y = cy + Math.sin(angle) * dist;
-      const pulse = 0.4 + 0.6 * Math.abs(Math.sin((t * 3 + s.phase * 5) * Math.PI));
-      const r = s.rFrac * size;
-
-      // Main rock body
-      paint.setColor(Skia.Color(`rgba(200,60,20,${(pulse * 0.6).toFixed(2)})`));
-      c.drawCircle(x, y, r, paint);
-
-      // Secondary lobe
-      paint.setColor(Skia.Color(`rgba(240,120,20,${(pulse * 0.5).toFixed(2)})`));
-      c.drawCircle(x + r * 0.4, y - r * 0.3, r * 0.7, paint);
-
-      // Hot glow underneath
-      paint.setColor(Skia.Color(`rgba(255,80,0,${(pulse * 0.12).toFixed(2)})`));
-      c.drawCircle(x, y + r * 0.5, r * 1.3, paint);
-    }
-
-    return recorder.finishRecordingAsPicture();
-  });
-
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Canvas style={styles.canvas}>
-        <Picture picture={picture} />
-      </Canvas>
+      <Svg width={size} height={size}>
+        {seeds.map((s, i) => (
+          <MagmaParticle key={i} seed={s} size={size} progress={progress} />
+        ))}
+      </Svg>
     </View>
   );
 });
@@ -85,5 +123,4 @@ MagmaFloatFlair.displayName = 'MagmaFloatFlair';
 
 const styles = StyleSheet.create({
   wrapper: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 1 },
-  canvas: { flex: 1 },
 });

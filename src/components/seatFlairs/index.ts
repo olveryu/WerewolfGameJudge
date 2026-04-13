@@ -45,7 +45,7 @@ export type { FlairId };
 interface SeatFlairConfig {
   /** 中文显示名 */
   name: string;
-  /** Skia 粒子/光效动画组件 */
+  /** SVG + Reanimated 粒子/光效动画组件 */
   Component: React.ComponentType<FlairProps>;
 }
 

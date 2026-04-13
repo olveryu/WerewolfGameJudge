@@ -2,20 +2,21 @@
  * EmberGlowFlair — 余烬微光
  *
  * 6 颗橙色/琥珀色小圆点从底部缓慢上升，随高度渐灭后重置。
- * Skia Immediate Mode：PictureRecorder worklet 每帧绘制。
+ * react-native-svg + Reanimated useAnimatedProps。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Easing,
-  useDerivedValue,
+  useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
+import { AnimatedCircle } from './svgAnimatedPrimitives';
 
 const PARTICLE_COUNT = 6;
 const COLORS = [
@@ -26,6 +27,32 @@ const COLORS = [
   [255, 200, 80],
   [255, 120, 10],
 ] as const;
+
+interface EmberSeed {
+  xFrac: number;
+  phase: number;
+  rFrac: number;
+  ci: number;
+}
+
+const EmberParticle = memo<{ seed: EmberSeed; size: number; progress: { value: number } }>(
+  ({ seed, size, progress }) => {
+    const [cr, cg, cb] = COLORS[seed.ci];
+
+    const animatedProps = useAnimatedProps(() => {
+      'worklet';
+      const t = (progress.value + seed.phase) % 1;
+      const y = size * (1 - t);
+      const x = seed.xFrac * size + Math.sin(t * Math.PI * 2) * size * 0.04;
+      const r = seed.rFrac * size;
+      const alpha = t < 0.15 ? t / 0.15 : t > 0.7 ? (1 - t) / 0.3 : 1;
+      return { cx: x, cy: y, r, opacity: alpha * 0.8 } as Record<string, number>;
+    });
+
+    return <AnimatedCircle animatedProps={animatedProps} fill={`rgb(${cr},${cg},${cb})`} />;
+  },
+);
+EmberParticle.displayName = 'EmberParticle';
 
 export const EmberGlowFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
@@ -45,31 +72,13 @@ export const EmberGlowFlair = memo<FlairProps>(({ size, borderRadius: _br }) => 
     [],
   );
 
-  const recorder = useMemo(() => Skia.PictureRecorder(), []);
-  const paint = useMemo(() => Skia.Paint(), []);
-
-  const picture = useDerivedValue(() => {
-    'worklet';
-    const c = recorder.beginRecording(Skia.XYWHRect(0, 0, size, size));
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const s = seeds[i];
-      const t = (progress.value + s.phase) % 1;
-      const y = size * (1 - t);
-      const x = s.xFrac * size + Math.sin(t * Math.PI * 2) * size * 0.04;
-      const r = s.rFrac * size;
-      const alpha = t < 0.15 ? t / 0.15 : t > 0.7 ? (1 - t) / 0.3 : 1;
-      const [cr, cg, cb] = COLORS[s.ci];
-      paint.setColor(Skia.Color(`rgba(${cr},${cg},${cb},${(alpha * 0.8).toFixed(2)})`));
-      c.drawCircle(x, y, r, paint);
-    }
-    return recorder.finishRecordingAsPicture();
-  });
-
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Canvas style={styles.canvas}>
-        <Picture picture={picture} />
-      </Canvas>
+      <Svg width={size} height={size}>
+        {seeds.map((s, i) => (
+          <EmberParticle key={i} seed={s} size={size} progress={progress} />
+        ))}
+      </Svg>
     </View>
   );
 });
@@ -77,5 +86,4 @@ EmberGlowFlair.displayName = 'EmberGlowFlair';
 
 const styles = StyleSheet.create({
   wrapper: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 1 },
-  canvas: { flex: 1 },
 });

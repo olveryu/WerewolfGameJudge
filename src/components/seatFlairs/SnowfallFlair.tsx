@@ -2,22 +2,108 @@
  * SnowfallFlair — 纷飞白雪
  *
  * 10 片雪花从上方飘落，每片用 3 条交叉线绘制六角星形，缓慢旋转。
- * Skia Immediate Mode。
+ * react-native-svg + Reanimated useAnimatedProps。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Easing,
-  useDerivedValue,
+  useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
+import { AnimatedCircle, AnimatedLine } from './svgAnimatedPrimitives';
 
 const N = 10;
+
+interface SnowflakeSeed {
+  xFrac: number;
+  phase: number;
+  rFrac: number;
+  speed: number;
+  sway: number;
+}
+
+const SnowflakeParticle = memo<{ seed: SnowflakeSeed; size: number; progress: { value: number } }>(
+  ({ seed, size, progress }) => {
+    const line0Props = useAnimatedProps(() => {
+      'worklet';
+      const tt = (progress.value * seed.speed + seed.phase) % 1;
+      const y = tt * size;
+      const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
+      const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
+      const r = seed.rFrac * size;
+      const ang = (0 / 3) * Math.PI + tt * Math.PI;
+      return {
+        x1: x - Math.cos(ang) * r,
+        y1: y - Math.sin(ang) * r,
+        x2: x + Math.cos(ang) * r,
+        y2: y + Math.sin(ang) * r,
+        opacity: alpha * 0.8,
+        strokeWidth: 0.8,
+      } as Record<string, number>;
+    });
+
+    const line1Props = useAnimatedProps(() => {
+      'worklet';
+      const tt = (progress.value * seed.speed + seed.phase) % 1;
+      const y = tt * size;
+      const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
+      const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
+      const r = seed.rFrac * size;
+      const ang = (1 / 3) * Math.PI + tt * Math.PI;
+      return {
+        x1: x - Math.cos(ang) * r,
+        y1: y - Math.sin(ang) * r,
+        x2: x + Math.cos(ang) * r,
+        y2: y + Math.sin(ang) * r,
+        opacity: alpha * 0.8,
+        strokeWidth: 0.8,
+      } as Record<string, number>;
+    });
+
+    const line2Props = useAnimatedProps(() => {
+      'worklet';
+      const tt = (progress.value * seed.speed + seed.phase) % 1;
+      const y = tt * size;
+      const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
+      const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
+      const r = seed.rFrac * size;
+      const ang = (2 / 3) * Math.PI + tt * Math.PI;
+      return {
+        x1: x - Math.cos(ang) * r,
+        y1: y - Math.sin(ang) * r,
+        x2: x + Math.cos(ang) * r,
+        y2: y + Math.sin(ang) * r,
+        opacity: alpha * 0.8,
+        strokeWidth: 0.8,
+      } as Record<string, number>;
+    });
+
+    const centerProps = useAnimatedProps(() => {
+      'worklet';
+      const tt = (progress.value * seed.speed + seed.phase) % 1;
+      const y = tt * size;
+      const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
+      const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
+      return { cx: x, cy: y, r: size * 0.005, opacity: alpha * 0.9 } as Record<string, number>;
+    });
+
+    return (
+      <>
+        <AnimatedLine animatedProps={line0Props} stroke="rgb(220,230,255)" />
+        <AnimatedLine animatedProps={line1Props} stroke="rgb(220,230,255)" />
+        <AnimatedLine animatedProps={line2Props} stroke="rgb(220,230,255)" />
+        <AnimatedCircle animatedProps={centerProps} fill="rgb(240,245,255)" />
+      </>
+    );
+  },
+);
+SnowflakeParticle.displayName = 'SnowflakeParticle';
 
 export const SnowfallFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
@@ -38,52 +124,13 @@ export const SnowfallFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
     [],
   );
 
-  const recorder = useMemo(() => Skia.PictureRecorder(), []);
-  const paint = useMemo(() => {
-    const p = Skia.Paint();
-    p.setStrokeWidth(0.8);
-    return p;
-  }, []);
-
-  const picture = useDerivedValue(() => {
-    'worklet';
-    const c = recorder.beginRecording(Skia.XYWHRect(0, 0, size, size));
-
-    for (let i = 0; i < N; i++) {
-      const s = seeds[i];
-      const tt = (progress.value * s.speed + s.phase) % 1;
-      const y = tt * size;
-      const x = s.xFrac * size + Math.sin(tt * Math.PI * 4) * size * s.sway;
-      const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
-      const r = s.rFrac * size;
-
-      // 3-line star (snowflake)
-      paint.setStrokeWidth(0.8);
-      paint.setColor(Skia.Color(`rgba(220,230,255,${(alpha * 0.8).toFixed(2)})`));
-      for (let a = 0; a < 3; a++) {
-        const ang = (a / 3) * Math.PI + tt * Math.PI;
-        c.drawLine(
-          x - Math.cos(ang) * r,
-          y - Math.sin(ang) * r,
-          x + Math.cos(ang) * r,
-          y + Math.sin(ang) * r,
-          paint,
-        );
-      }
-
-      // Center dot
-      paint.setColor(Skia.Color(`rgba(240,245,255,${(alpha * 0.9).toFixed(2)})`));
-      c.drawCircle(x, y, size * 0.005, paint);
-    }
-
-    return recorder.finishRecordingAsPicture();
-  });
-
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
-      <Canvas style={styles.canvas}>
-        <Picture picture={picture} />
-      </Canvas>
+      <Svg width={size} height={size}>
+        {seeds.map((s, i) => (
+          <SnowflakeParticle key={i} seed={s} size={size} progress={progress} />
+        ))}
+      </Svg>
     </View>
   );
 });
@@ -91,5 +138,4 @@ SnowfallFlair.displayName = 'SnowfallFlair';
 
 const styles = StyleSheet.create({
   wrapper: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 1 },
-  canvas: { flex: 1 },
 });
