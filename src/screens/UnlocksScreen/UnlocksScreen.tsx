@@ -250,7 +250,7 @@ const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
 UnlockCell.displayName = 'UnlockCell';
 
 const AvatarThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
-  const avatarIndex = AVATAR_KEYS.indexOf(id);
+  const avatarIndex = (AVATAR_KEYS as readonly string[]).indexOf(id);
   const thumbSource = avatarIndex >= 0 ? getAvatarThumbByIndex(avatarIndex) : undefined;
 
   if (thumbSource == null) return null;

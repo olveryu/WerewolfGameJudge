@@ -6,7 +6,12 @@
  * 嵌入账户 card 内部，不自带 card 容器。
  */
 import { Ionicons } from '@expo/vector-icons';
-import { getLevelProgress, LEVEL_THRESHOLDS } from '@werewolf/game-engine/growth';
+import {
+  FREE_ITEM_COUNT,
+  getLevelProgress,
+  LEVEL_THRESHOLDS,
+  TOTAL_UNLOCKABLE_COUNT,
+} from '@werewolf/game-engine/growth';
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
@@ -28,7 +33,7 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles, onPressU
       ? LEVEL_THRESHOLDS[stats.level + 1]
       : LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
 
-  const unlockCount = stats.unlockedItems.length + 2;
+  const unlockCount = stats.unlockedItems.length + FREE_ITEM_COUNT;
 
   return (
     <>
@@ -52,11 +57,14 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles, onPressU
         <Ionicons name="trophy-outline" size={componentSizes.icon.md} color={colors.primary} />
         <View style={styles.growthEntryContent}>
           <Text style={styles.dresserEntryText}>
-            {stats.gamesPlayed} 局 · 已解锁 {unlockCount}/53
+            {stats.gamesPlayed} 局 · 已解锁 {unlockCount}/{TOTAL_UNLOCKABLE_COUNT}
           </Text>
           <View style={styles.growthMiniProgress}>
             <View
-              style={[styles.growthMiniProgressFill, { width: `${(unlockCount / 53) * 100}%` }]}
+              style={[
+                styles.growthMiniProgressFill,
+                { width: `${(unlockCount / TOTAL_UNLOCKABLE_COUNT) * 100}%` },
+              ]}
             />
           </View>
         </View>

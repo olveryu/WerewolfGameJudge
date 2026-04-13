@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>座位特效预览 — 20 款新设计</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #1a1a2e;
+        color: #eee;
+        font-family: -apple-system, 'PingFang SC', sans-serif;
+        padding: 24px;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 8px;
+        font-size: 24px;
+      }
+      .subtitle {
+        text-align: center;
+        color: #888;
+        margin-bottom: 32px;
+        font-size: 14px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .card canvas {
+        border-radius: 16px;
+        background: #16213e;
+      }
+      .card .label {
+        font-size: 13px;
+        color: #ccc;
+      }
+      .card .id {
+        font-size: 11px;
+        color: #666;
+        font-family: monospace;
+      }
+      .avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #2a2a4a;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🐺 座位特效 — 20 款新设计</h1>
+    <p class="subtitle">Canvas2D 模拟 Skia Immediate Mode 渲染 · 深色头像占位表示座位区域</p>
+    <div class="grid" id="grid"></div>
+
+    <script>
+      const SIZE = 140;
+      const CX = SIZE / 2,
+        CY = SIZE / 2;
+
+      // ── Helper ──────────────────────────────────────────────
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+      function rgba(r, g, b, a) {
+        return `rgba(${r},${g},${b},${a.toFixed(3)})`;
+      }
+
+      // ── 20 flair definitions ────────────────────────────────
+      const flairs = [
+        // 1. lunarHalo — 月华光环
+        {
+          id: 'lunarHalo',
+          name: '月华光环',
+          draw(ctx, t) {
+            const orbit = SIZE * 0.42;
+            // Crescent glow arcs
+            for (let i = 0; i < 3; i++) {
+              const angle = t * Math.PI * 2 + i * ((Math.PI * 2) / 3);
+              const pulse = 0.4 + 0.6 * Math.sin((t * 4 + i) * Math.PI);
+              ctx.beginPath();
+              ctx.arc(CX, CY, orbit - i * 3, angle, angle + Math.PI * 0.6);
+              ctx.strokeStyle = rgba(180, 200, 255, pulse * 0.5);
+              ctx.lineWidth = 3 - i * 0.5;
+              ctx.stroke();
+              // Glow dots at endpoints
+              const ex = CX + Math.cos(angle + Math.PI * 0.6) * (orbit - i * 3);
+              const ey = CY + Math.sin(angle + Math.PI * 0.6) * (orbit - i * 3);
+              ctx.beginPath();
+              ctx.arc(ex, ey, 3, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(200, 220, 255, pulse * 0.7);
+              ctx.fill();
+            }
+            // Soft center moonlight
+            const grad = ctx.createRadialGradient(CX, CY, 0, CX, CY, SIZE * 0.25);
+            grad.addColorStop(0, rgba(180, 200, 255, 0.06 + 0.04 * Math.sin(t * Math.PI * 6)));
+            grad.addColorStop(1, rgba(180, 200, 255, 0));
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, SIZE, SIZE);
+          },
+        },
+
+        // 2. sonicWave — 音波震荡
+        {
+          id: 'sonicWave',
+          name: '音波震荡',
+          draw(ctx, t) {
+            const waves = 5;
+            for (let i = 0; i < waves; i++) {
+              const wt = (t * 1.2 + i / waves) % 1;
+              const radius = SIZE * 0.12 + wt * SIZE * 0.36;
+              const alpha = (1 - wt) * 0.55;
+              // Frequency-modulated ring: wobble the radius
+              const segments = 60;
+              ctx.beginPath();
+              for (let s = 0; s <= segments; s++) {
+                const a = (s / segments) * Math.PI * 2;
+                const wobble = 1 + 0.06 * Math.sin(a * 8 + t * Math.PI * 12 + i * 2);
+                const rx = CX + Math.cos(a) * radius * wobble;
+                const ry = CY + Math.sin(a) * radius * wobble;
+                s === 0 ? ctx.moveTo(rx, ry) : ctx.lineTo(rx, ry);
+              }
+              ctx.closePath();
+              ctx.strokeStyle = rgba(80, 200, 180, alpha);
+              ctx.lineWidth = 1.5 * (1 - wt * 0.5);
+              ctx.stroke();
+            }
+            // Center pulse dot
+            const cp = 0.5 + 0.5 * Math.sin(t * Math.PI * 6);
+            ctx.beginPath();
+            ctx.arc(CX, CY, SIZE * 0.02 + cp * SIZE * 0.01, 0, Math.PI * 2);
+            ctx.fillStyle = rgba(120, 240, 220, cp * 0.7);
+            ctx.fill();
+          },
+        },
+
+        // 3. cometTail — 彗星拖尾
+        {
+          id: 'cometTail',
+          name: '彗星拖尾',
+          seeds: Array.from({ length: 3 }, (_, i) => ({
+            angle0: (i / 3) * Math.PI * 2,
+            phase: i / 3,
+            speed: 0.5 + i * 0.15,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const angle = s.angle0 + t * s.speed * Math.PI * 2;
+              const orbit = SIZE * 0.4;
+              const headX = CX + Math.cos(angle) * orbit;
+              const headY = CY + Math.sin(angle) * orbit;
+              const pulse = 0.5 + 0.5 * Math.sin((t * 4 + s.phase * 6) * Math.PI);
+              // Tail: 8 fading dots behind the head
+              for (let j = 8; j >= 0; j--) {
+                const ta = angle - j * 0.12;
+                const td = orbit + j * 1;
+                const tx = CX + Math.cos(ta) * td;
+                const ty = CY + Math.sin(ta) * td;
+                const r = j === 0 ? 3 : 2.5 - j * 0.25;
+                const a = j === 0 ? pulse * 0.85 : pulse * (0.5 - j * 0.05);
+                ctx.beginPath();
+                ctx.arc(tx, ty, Math.max(0.5, r), 0, Math.PI * 2);
+                ctx.fillStyle = rgba(180, 200, 255, Math.max(0, a));
+                ctx.fill();
+              }
+              // Head glow
+              ctx.beginPath();
+              ctx.arc(headX, headY, 4, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(220, 235, 255, pulse * 0.3);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 4. iceCrystal — 冰晶棱镜
+        {
+          id: 'iceCrystal',
+          name: '冰晶棱镜',
+          draw(ctx, t) {
+            const N = 6;
+            for (let i = 0; i < N; i++) {
+              const angle = (i / N) * Math.PI * 2 + t * Math.PI * 0.5;
+              const dist = SIZE * 0.32;
+              const x = CX + Math.cos(angle) * dist;
+              const y = CY + Math.sin(angle) * dist;
+              const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 3 + i * 0.5) * Math.PI));
+              const hexR = SIZE * 0.04;
+              // Draw hexagon
+              ctx.beginPath();
+              for (let h = 0; h < 6; h++) {
+                const ha = (h / 6) * Math.PI * 2 - Math.PI / 2 + t * Math.PI;
+                const hx = x + Math.cos(ha) * hexR;
+                const hy = y + Math.sin(ha) * hexR;
+                h === 0 ? ctx.moveTo(hx, hy) : ctx.lineTo(hx, hy);
+              }
+              ctx.closePath();
+              ctx.strokeStyle = rgba(150, 220, 255, pulse * 0.7);
+              ctx.lineWidth = 1.2;
+              ctx.stroke();
+              // Center dot
+              ctx.beginPath();
+              ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(200, 240, 255, pulse * 0.8);
+              ctx.fill();
+              // Connecting lines to center
+              ctx.beginPath();
+              ctx.moveTo(CX, CY);
+              ctx.lineTo(x, y);
+              ctx.strokeStyle = rgba(150, 220, 255, pulse * 0.1);
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          },
+        },
+
+        // 5. phoenixFeather — 凤凰羽
+        {
+          id: 'phoenixFeather',
+          name: '凤凰羽',
+          seeds: Array.from({ length: 8 }, (_, i) => ({
+            angle: (i / 8) * Math.PI * 2,
+            phase: i / 8,
+            dist: 0.25 + (i % 3) * 0.08,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const tt = (t + s.phase) % 1;
+              const spiralAngle = s.angle + tt * Math.PI * 4;
+              const dist = (s.dist + tt * 0.2) * SIZE;
+              const y0 = CY - tt * SIZE * 0.3;
+              const x0 = CX + Math.cos(spiralAngle) * dist * 0.3;
+              const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.7 ? (1 - tt) / 0.3 : 0.9;
+              // Feather body (elongated)
+              const featherLen = SIZE * 0.035;
+              const angle = spiralAngle + Math.PI / 2;
+              const dx = Math.cos(angle) * featherLen;
+              const dy = Math.sin(angle) * featherLen;
+              ctx.beginPath();
+              ctx.moveTo(x0 - dx, y0 - dy);
+              ctx.quadraticCurveTo(x0 + SIZE * 0.01, y0 - SIZE * 0.01, x0 + dx, y0 + dy);
+              ctx.strokeStyle = rgba(255, 160, 30, alpha * 0.8);
+              ctx.lineWidth = 2;
+              ctx.stroke();
+              // Glow
+              ctx.beginPath();
+              ctx.arc(x0, y0, 4, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(255, 100, 20, alpha * 0.3);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 6. ghostWisp — 幽灵鬼火
+        {
+          id: 'ghostWisp',
+          name: '幽灵鬼火',
+          seeds: Array.from({ length: 5 }, (_, i) => ({
+            angle: (i / 5) * Math.PI * 2,
+            phase: i / 5,
+            orbitR: 0.3 + (i % 3) * 0.06,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const angle =
+                s.angle + t * Math.PI * 1.5 + Math.sin(t * Math.PI * 4 + s.phase * 10) * 0.3;
+              const dist = s.orbitR * SIZE + Math.sin(t * Math.PI * 3 + s.phase * 8) * SIZE * 0.04;
+              const x = CX + Math.cos(angle) * dist;
+              const y = CY + Math.sin(angle) * dist;
+              const pulse = 0.35 + 0.65 * Math.abs(Math.sin((t * 2.5 + s.phase * 6) * Math.PI));
+              // Outer glow
+              const grad = ctx.createRadialGradient(x, y, 0, x, y, SIZE * 0.06);
+              grad.addColorStop(0, rgba(100, 200, 255, pulse * 0.4));
+              grad.addColorStop(1, rgba(100, 200, 255, 0));
+              ctx.fillStyle = grad;
+              ctx.fillRect(x - SIZE * 0.06, y - SIZE * 0.06, SIZE * 0.12, SIZE * 0.12);
+              // Core
+              ctx.beginPath();
+              ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(180, 230, 255, pulse * 0.9);
+              ctx.fill();
+              // Tail (3 fading dots behind)
+              for (let j = 1; j <= 3; j++) {
+                const ta = angle - j * 0.15;
+                const td = dist - j * 2;
+                const tx = CX + Math.cos(ta) * td;
+                const ty = CY + Math.sin(ta) * td;
+                ctx.beginPath();
+                ctx.arc(tx, ty, 2 - j * 0.4, 0, Math.PI * 2);
+                ctx.fillStyle = rgba(100, 200, 255, pulse * (0.4 - j * 0.1));
+                ctx.fill();
+              }
+            }
+          },
+        },
+
+        // 7. poisonBubble — 剧毒气泡
+        {
+          id: 'poisonBubble',
+          name: '剧毒气泡',
+          seeds: Array.from({ length: 8 }, (_, i) => ({
+            xFrac: 0.15 + Math.random() * 0.7,
+            phase: i / 8,
+            r: 3 + Math.random() * 4,
+            speed: 0.6 + Math.random() * 0.5,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const tt = (t * s.speed + s.phase) % 1;
+              const y = SIZE * (1 - tt * 0.9) - SIZE * 0.05;
+              const x = s.xFrac * SIZE + Math.sin(tt * Math.PI * 2) * SIZE * 0.03;
+              const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.85 ? (1 - tt) / 0.15 : 0.6;
+              const r = s.r * (1 + tt * 0.3);
+              // Bubble outline
+              ctx.beginPath();
+              ctx.arc(x, y, r, 0, Math.PI * 2);
+              ctx.strokeStyle = rgba(80, 220, 80, alpha * 0.7);
+              ctx.lineWidth = 1;
+              ctx.stroke();
+              // Highlight
+              ctx.beginPath();
+              ctx.arc(x - r * 0.3, y - r * 0.3, r * 0.25, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(150, 255, 150, alpha * 0.5);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 8. magmaFloat — 熔岩浮石
+        {
+          id: 'magmaFloat',
+          name: '熔岩浮石',
+          seeds: Array.from({ length: 6 }, (_, i) => ({
+            angle0: (i / 6) * Math.PI * 2 + i * 0.4,
+            dist: 0.35 + (i % 3) * 0.06,
+            phase: i / 6,
+            size: 2.5 + (i % 3) * 1,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const tt = (t + s.phase) % 1;
+              // Bobbing up/down around outer ring at random angles
+              const angle = s.angle0 + Math.sin(tt * Math.PI * 2) * 0.3;
+              const dist = s.dist * SIZE + Math.sin(tt * Math.PI * 4) * SIZE * 0.03;
+              const x = CX + Math.cos(angle) * dist;
+              const y = CY + Math.sin(angle) * dist;
+              const pulse = 0.4 + 0.6 * Math.abs(Math.sin((t * 3 + s.phase * 5) * Math.PI));
+              // Lava rock: irregular blob (3 overlapping circles)
+              const r = s.size;
+              ctx.beginPath();
+              ctx.arc(x, y, r, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(200, 60, 20, pulse * 0.6);
+              ctx.fill();
+              ctx.beginPath();
+              ctx.arc(x + r * 0.4, y - r * 0.3, r * 0.7, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(240, 120, 20, pulse * 0.5);
+              ctx.fill();
+              // Hot glow underneath
+              ctx.beginPath();
+              ctx.arc(x, y + r * 0.5, r * 1.3, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(255, 80, 0, pulse * 0.12);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 9. windGust — 疾风粒子
+        {
+          id: 'windGust',
+          name: '疾风粒子',
+          seeds: Array.from({ length: 8 }, (_, i) => ({
+            yFrac: 0.1 + (i / 8) * 0.8,
+            phase: i / 8,
+            speed: 1.2 + (i % 3) * 0.3,
+            size: 1.2 + (i % 4) * 0.5,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const tt = (t * s.speed + s.phase) % 1;
+              // Blow from left to right across outer areas (avoid center)
+              const x = tt * SIZE;
+              const baseY = s.yFrac * SIZE;
+              const y = baseY + Math.sin(tt * Math.PI * 3) * SIZE * 0.04;
+              // Skip particles crossing center zone
+              const dx = x - CX,
+                dy = y - CY;
+              const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+              if (distFromCenter < SIZE * 0.22) continue;
+              const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.85 ? (1 - tt) / 0.15 : 0.5;
+              // Streak line (horizontal dash)
+              const streakLen = SIZE * 0.04;
+              ctx.beginPath();
+              ctx.moveTo(x, y);
+              ctx.lineTo(x - streakLen, y + 0.5);
+              ctx.strokeStyle = rgba(180, 230, 200, alpha * 0.7);
+              ctx.lineWidth = s.size * 0.8;
+              ctx.stroke();
+              // Head dot
+              ctx.beginPath();
+              ctx.arc(x, y, s.size * 0.5, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(200, 245, 220, alpha * 0.6);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 10. snowfall — 纷飞白雪
+        {
+          id: 'snowfall',
+          name: '纷飞白雪',
+          seeds: Array.from({ length: 12 }, (_, i) => ({
+            xFrac: Math.random(),
+            phase: i / 12,
+            r: 1 + Math.random() * 2,
+            speed: 0.4 + Math.random() * 0.4,
+            sway: 0.02 + Math.random() * 0.03,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const tt = (t * s.speed + s.phase) % 1;
+              const y = tt * SIZE;
+              const x = s.xFrac * SIZE + Math.sin(tt * Math.PI * 4) * SIZE * s.sway;
+              const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
+              // Snowflake as 3-line star
+              const r = s.r;
+              ctx.strokeStyle = rgba(220, 230, 255, alpha * 0.8);
+              ctx.lineWidth = 0.8;
+              for (let a = 0; a < 3; a++) {
+                const ang = (a / 3) * Math.PI + tt * Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(x - Math.cos(ang) * r, y - Math.sin(ang) * r);
+                ctx.lineTo(x + Math.cos(ang) * r, y + Math.sin(ang) * r);
+                ctx.stroke();
+              }
+              // Center dot
+              ctx.beginPath();
+              ctx.arc(x, y, 0.8, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(240, 245, 255, alpha * 0.9);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 11. goldSpark — 金星四溅
+        {
+          id: 'goldSpark',
+          name: '金星四溅',
+          seeds: Array.from({ length: 8 }, (_, i) => ({
+            angle: (i / 8) * Math.PI * 2 + i * 0.7,
+            dist: 0.35 + (i % 4) * 0.04,
+            phase: i / 8,
+            burst: 0.3 + (i % 3) * 0.1,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const tt = (t * 1.5 + s.phase) % 1;
+              // Burst outward from outer ring then fade
+              const burstDist = s.dist * SIZE + tt * SIZE * s.burst;
+              const angle = s.angle + Math.sin(t * Math.PI * 2) * 0.2;
+              const x = CX + Math.cos(angle) * burstDist;
+              const y = CY + Math.sin(angle) * burstDist;
+              // Stay outside center
+              if (burstDist < SIZE * 0.25) continue;
+              const alpha = tt < 0.1 ? tt / 0.1 : (1 - tt) * 0.8;
+              // 4-point sparkle
+              const armLen = SIZE * 0.02 * (1 - tt * 0.5);
+              ctx.strokeStyle = rgba(255, 210, 60, alpha * 0.8);
+              ctx.lineWidth = 1.2;
+              ctx.beginPath();
+              ctx.moveTo(x - armLen, y);
+              ctx.lineTo(x + armLen, y);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(x, y - armLen);
+              ctx.lineTo(x, y + armLen);
+              ctx.stroke();
+              // Center dot
+              ctx.beginPath();
+              ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(255, 240, 150, alpha * 0.9);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 12. purpleMist — 紫雾缭绕
+        {
+          id: 'purpleMist',
+          name: '紫雾缭绕',
+          seeds: Array.from({ length: 7 }, (_, i) => ({
+            angle0: (i / 7) * Math.PI * 2,
+            dist: 0.35 + (i % 3) * 0.05,
+            phase: i / 7,
+            driftSpeed: 0.3 + (i % 4) * 0.15,
+            maxR: 6 + (i % 3) * 3,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const angle = s.angle0 + Math.sin((t * s.driftSpeed + s.phase) * Math.PI * 2) * 0.6;
+              const dist = s.dist * SIZE + Math.sin(t * Math.PI * 2 + s.phase * 5) * SIZE * 0.04;
+              const x = CX + Math.cos(angle) * dist;
+              const y = CY + Math.sin(angle) * dist;
+              const pulse = 0.3 + 0.5 * Math.abs(Math.sin((t * 2 + s.phase * 4) * Math.PI));
+              const r = s.maxR * (0.6 + 0.4 * pulse);
+              // Soft fog blob
+              const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+              grad.addColorStop(0, rgba(140, 80, 200, pulse * 0.35));
+              grad.addColorStop(0.6, rgba(100, 50, 180, pulse * 0.15));
+              grad.addColorStop(1, rgba(80, 30, 160, 0));
+              ctx.fillStyle = grad;
+              ctx.fillRect(x - r, y - r, r * 2, r * 2);
+            }
+          },
+        },
+
+        // 13. butterfly — 蝶影翩翩
+        {
+          id: 'butterfly',
+          name: '蝶影翩翩',
+          seeds: Array.from({ length: 4 }, (_, i) => ({
+            phase: i / 4,
+            orbit: 0.28 + (i % 2) * 0.08,
+            speed: 0.6 + i * 0.1,
+            hue: 270 + i * 25,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const angle = (t * s.speed + s.phase) * Math.PI * 2;
+              const dist = s.orbit * SIZE + Math.sin(t * Math.PI * 4) * SIZE * 0.03;
+              const x = CX + Math.cos(angle) * dist;
+              const y = CY + Math.sin(angle) * dist;
+              const wingFlap = Math.abs(Math.sin(t * Math.PI * 8 + s.phase * 10));
+              const wingW = SIZE * 0.025 * (0.3 + 0.7 * wingFlap);
+              const wingH = SIZE * 0.018;
+              const bodyAngle = angle + Math.PI / 2;
+              const alpha = 0.4 + 0.4 * wingFlap;
+              // Wings (two ellipses)
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate(bodyAngle);
+              // Left wing
+              ctx.beginPath();
+              ctx.ellipse(-wingW * 0.3, 0, wingW, wingH, 0, 0, Math.PI * 2);
+              ctx.fillStyle = `hsla(${s.hue}, 70%, 65%, ${alpha})`;
+              ctx.fill();
+              // Right wing
+              ctx.beginPath();
+              ctx.ellipse(wingW * 0.3, 0, wingW, wingH, 0, 0, Math.PI * 2);
+              ctx.fillStyle = `hsla(${s.hue + 15}, 65%, 60%, ${alpha})`;
+              ctx.fill();
+              // Body
+              ctx.beginPath();
+              ctx.ellipse(0, 0, 1, wingH * 0.8, 0, 0, Math.PI * 2);
+              ctx.fillStyle = `hsla(${s.hue}, 40%, 40%, ${alpha + 0.2})`;
+              ctx.fill();
+              ctx.restore();
+            }
+          },
+        },
+
+        // 14. lightPillar — 四柱天光
+        {
+          id: 'lightPillar',
+          name: '四柱天光',
+          draw(ctx, t) {
+            // 4 light pillars rising from corners, NOT crossing center
+            const corners = [
+              [SIZE * 0.08, SIZE],
+              [SIZE * 0.92, SIZE],
+              [SIZE * 0.05, 0],
+              [SIZE * 0.95, 0],
+            ];
+            for (let i = 0; i < 4; i++) {
+              const [bx, by] = corners[i];
+              const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 2.5 + i * 0.7) * Math.PI));
+              const h = SIZE * 0.35 * pulse;
+              const dir = by === SIZE ? -1 : 1;
+              const w = SIZE * 0.025;
+              // Soft pillar glow
+              const grad = ctx.createLinearGradient(bx, by, bx, by + dir * h);
+              grad.addColorStop(0, rgba(255, 230, 130, pulse * 0.45));
+              grad.addColorStop(1, rgba(255, 230, 130, 0));
+              ctx.fillStyle = grad;
+              ctx.fillRect(bx - w, Math.min(by, by + dir * h), w * 2, Math.abs(h));
+              // Bright core line
+              ctx.beginPath();
+              ctx.moveTo(bx, by);
+              ctx.lineTo(bx, by + dir * h * 0.8);
+              ctx.strokeStyle = rgba(255, 240, 180, pulse * 0.6);
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+              // Base spark
+              ctx.beginPath();
+              ctx.arc(bx, by, 2, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(255, 245, 200, pulse * 0.8);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 15. shadowClaw — 暗影之爪
+        {
+          id: 'shadowClaw',
+          name: '暗影之爪',
+          draw(ctx, t) {
+            // 4 claw scratch marks at corners, animated slash
+            const claws = [
+              { ox: SIZE * 0.05, oy: SIZE * 0.05, dx: 1, dy: 1 },
+              { ox: SIZE * 0.95, oy: SIZE * 0.05, dx: -1, dy: 1 },
+              { ox: SIZE * 0.05, oy: SIZE * 0.95, dx: 1, dy: -1 },
+              { ox: SIZE * 0.95, oy: SIZE * 0.95, dx: -1, dy: -1 },
+            ];
+            for (let c = 0; c < 4; c++) {
+              const claw = claws[c];
+              const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 2 + c * 0.8) * Math.PI));
+              // 3 parallel scratch lines per corner
+              for (let s = 0; s < 3; s++) {
+                const offset = (s - 1) * SIZE * 0.03;
+                const len = SIZE * 0.18 * pulse;
+                const sx = claw.ox + (s === 1 ? 0 : claw.dy * offset);
+                const sy = claw.oy + (s === 1 ? 0 : -claw.dx * offset);
+                const ex = sx + claw.dx * len;
+                const ey = sy + claw.dy * len;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(ex, ey);
+                ctx.strokeStyle = rgba(120, 40, 160, pulse * (0.6 - s * 0.1));
+                ctx.lineWidth = 2 - s * 0.4;
+                ctx.stroke();
+              }
+              // Spark at tip
+              const tipX = claw.ox + claw.dx * SIZE * 0.18 * pulse;
+              const tipY = claw.oy + claw.dy * SIZE * 0.18 * pulse;
+              ctx.beginPath();
+              ctx.arc(tipX, tipY, 2, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(180, 100, 220, pulse * 0.6);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 16. rainDrop — 细雨绵绵
+        {
+          id: 'rainDrop',
+          name: '细雨绵绵',
+          seeds: Array.from({ length: 14 }, (_, i) => ({
+            xFrac: Math.random(),
+            phase: i / 14,
+            len: 4 + Math.random() * 6,
+            speed: 0.7 + Math.random() * 0.5,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const tt = (t * s.speed + s.phase) % 1;
+              const y = tt * SIZE * 1.1 - SIZE * 0.05;
+              const x = s.xFrac * SIZE + tt * SIZE * 0.08; // slight diagonal
+              const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.5;
+              ctx.beginPath();
+              ctx.moveTo(x, y);
+              ctx.lineTo(x - 1, y - s.len);
+              ctx.strokeStyle = rgba(150, 190, 230, alpha * 0.7);
+              ctx.lineWidth = 0.8;
+              ctx.stroke();
+              // Splash dot at base
+              if (tt > 0.85) {
+                const splash = (tt - 0.85) / 0.15;
+                ctx.beginPath();
+                ctx.arc(x, y, splash * 3, 0, Math.PI * 2);
+                ctx.strokeStyle = rgba(150, 190, 230, (1 - splash) * 0.4);
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+              }
+            }
+          },
+        },
+
+        // 17. flowerBloom — 繁花盛开
+        {
+          id: 'flowerBloom',
+          name: '繁花盛开',
+          draw(ctx, t) {
+            const flowers = 5;
+            for (let f = 0; f < flowers; f++) {
+              const baseAngle = (f / flowers) * Math.PI * 2;
+              const dist = SIZE * 0.32;
+              const fx = CX + Math.cos(baseAngle + t * Math.PI * 0.5) * dist;
+              const fy = CY + Math.sin(baseAngle + t * Math.PI * 0.5) * dist;
+              const bloom = 0.3 + 0.7 * Math.abs(Math.sin((t * 2 + f * 0.8) * Math.PI));
+              const petals = 5;
+              const petalR = SIZE * 0.025 * bloom;
+              const hue = 330 + f * 30;
+              for (let p = 0; p < petals; p++) {
+                const pa = (p / petals) * Math.PI * 2 + t * Math.PI;
+                const px = fx + Math.cos(pa) * petalR * 1.2;
+                const py = fy + Math.sin(pa) * petalR * 1.2;
+                ctx.beginPath();
+                ctx.arc(px, py, petalR * 0.7, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${hue}, 70%, 70%, ${bloom * 0.5})`;
+                ctx.fill();
+              }
+              // Center
+              ctx.beginPath();
+              ctx.arc(fx, fy, petalR * 0.4, 0, Math.PI * 2);
+              ctx.fillStyle = `hsla(${hue + 40}, 80%, 80%, ${bloom * 0.8})`;
+              ctx.fill();
+            }
+          },
+        },
+
+        // 18. firefly — 萤火虫之夜
+        {
+          id: 'firefly',
+          name: '萤火虫之夜',
+          seeds: Array.from({ length: 8 }, (_, i) => ({
+            angle0: (i / 8) * Math.PI * 2,
+            dist: 0.32 + (i % 4) * 0.05,
+            phase: i / 8,
+            wander: 0.15 + (i % 3) * 0.08,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              // Erratic wandering path in outer zone
+              const angle =
+                s.angle0 +
+                Math.sin((t * 1.5 + s.phase * 7) * Math.PI) * s.wander +
+                t * Math.PI * 0.3;
+              const dist =
+                s.dist * SIZE + Math.sin((t * 2.5 + s.phase * 5) * Math.PI) * SIZE * 0.04;
+              const x = CX + Math.cos(angle) * dist;
+              const y = CY + Math.sin(angle) * dist;
+              // Blink rhythm: sharp on/off
+              const blink = Math.max(0, Math.sin((t * 4 + s.phase * 8) * Math.PI));
+              const alpha = 0.1 + blink * 0.7;
+              // Warm glow halo
+              const grad = ctx.createRadialGradient(x, y, 0, x, y, SIZE * 0.04);
+              grad.addColorStop(0, rgba(200, 230, 60, alpha * 0.4));
+              grad.addColorStop(1, rgba(200, 230, 60, 0));
+              ctx.fillStyle = grad;
+              ctx.fillRect(x - SIZE * 0.04, y - SIZE * 0.04, SIZE * 0.08, SIZE * 0.08);
+              // Bright core
+              ctx.beginPath();
+              ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(230, 255, 100, alpha * 0.9);
+              ctx.fill();
+            }
+          },
+        },
+
+        // 19. forestLeaf — 落叶知秋
+        {
+          id: 'forestLeaf',
+          name: '落叶知秋',
+          seeds: Array.from({ length: 7 }, (_, i) => ({
+            xFrac: 0.1 + Math.random() * 0.8,
+            phase: i / 7,
+            rotSpeed: 1 + Math.random() * 2,
+            sway: 0.03 + Math.random() * 0.04,
+            hue: 20 + Math.random() * 40, // orange-brown range
+            size: 3 + Math.random() * 2,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              const tt = (t * 0.6 + s.phase) % 1;
+              const y = tt * SIZE;
+              const x = s.xFrac * SIZE + Math.sin(tt * Math.PI * 3) * SIZE * s.sway;
+              const alpha = tt < 0.08 ? tt / 0.08 : tt > 0.85 ? (1 - tt) / 0.15 : 0.65;
+              const rot = tt * Math.PI * s.rotSpeed;
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate(rot);
+              // Leaf shape: pointed ellipse
+              const lw = s.size;
+              const lh = s.size * 0.55;
+              ctx.beginPath();
+              ctx.ellipse(0, 0, lw, lh, 0, 0, Math.PI * 2);
+              ctx.fillStyle = `hsla(${s.hue}, 75%, 45%, ${alpha * 0.7})`;
+              ctx.fill();
+              // Vein line
+              ctx.beginPath();
+              ctx.moveTo(-lw * 0.8, 0);
+              ctx.lineTo(lw * 0.8, 0);
+              ctx.strokeStyle = `hsla(${s.hue - 10}, 60%, 35%, ${alpha * 0.5})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+              ctx.restore();
+            }
+          },
+        },
+
+        // 20. prismShard — 棱镜碎片
+        {
+          id: 'prismShard',
+          name: '棱镜碎片',
+          seeds: Array.from({ length: 6 }, (_, i) => ({
+            angle0: (i / 6) * Math.PI * 2 + i * 0.5,
+            dist: 0.36 + (i % 3) * 0.05,
+            phase: i / 6,
+            hue: i * 60,
+            rotSpeed: 1.5 + (i % 3) * 0.5,
+          })),
+          draw(ctx, t) {
+            for (const s of this.seeds) {
+              // Floating at various distances, slowly drifting
+              const angle = s.angle0 + Math.sin((t + s.phase) * Math.PI * 1.2) * 0.5;
+              const dist = s.dist * SIZE + Math.cos(t * Math.PI * 2 + s.phase * 4) * SIZE * 0.03;
+              const x = CX + Math.cos(angle) * dist;
+              const y = CY + Math.sin(angle) * dist;
+              const pulse = 0.35 + 0.65 * Math.abs(Math.sin((t * 2 + s.phase * 5) * Math.PI));
+              const rot = t * Math.PI * s.rotSpeed;
+              const shardR = SIZE * 0.028;
+              // Triangle shard
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate(rot);
+              ctx.beginPath();
+              ctx.moveTo(0, -shardR);
+              ctx.lineTo(shardR * 0.7, shardR * 0.6);
+              ctx.lineTo(-shardR * 0.7, shardR * 0.6);
+              ctx.closePath();
+              ctx.fillStyle = `hsla(${s.hue + t * 60}, 70%, 65%, ${pulse * 0.4})`;
+              ctx.fill();
+              ctx.strokeStyle = `hsla(${s.hue + t * 60}, 80%, 80%, ${pulse * 0.7})`;
+              ctx.lineWidth = 0.8;
+              ctx.stroke();
+              ctx.restore();
+              // Light refraction dot
+              ctx.beginPath();
+              ctx.arc(x, y - shardR * 0.3, 1.2, 0, Math.PI * 2);
+              ctx.fillStyle = `hsla(${s.hue + t * 60 + 30}, 60%, 90%, ${pulse * 0.6})`;
+              ctx.fill();
+            }
+          },
+        },
+      ];
+
+      // ── Render loop ─────────────────────────────────────────
+      const grid = document.getElementById('grid');
+      const canvases = [];
+
+      for (const flair of flairs) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const cvs = document.createElement('canvas');
+        cvs.width = SIZE;
+        cvs.height = SIZE;
+        card.appendChild(cvs);
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = flair.name;
+        card.appendChild(label);
+        const idLabel = document.createElement('div');
+        idLabel.className = 'id';
+        idLabel.textContent = flair.id;
+        card.appendChild(idLabel);
+        grid.appendChild(card);
+        canvases.push({ ctx: cvs.getContext('2d'), flair });
+      }
+
+      function drawAvatar(ctx) {
+        ctx.beginPath();
+        ctx.arc(CX, CY, SIZE * 0.22, 0, Math.PI * 2);
+        ctx.fillStyle = '#2a2a4a';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      let start = null;
+      function frame(ts) {
+        if (!start) start = ts;
+        const elapsed = (ts - start) / 1000;
+        for (const { ctx, flair } of canvases) {
+          ctx.clearRect(0, 0, SIZE, SIZE);
+          drawAvatar(ctx);
+          const t = (elapsed / 5) % 1; // 5-second cycle normalized to 0-1
+          flair.draw(ctx, t);
+        }
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

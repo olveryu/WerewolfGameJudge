@@ -82,7 +82,7 @@ export const AvatarPickerScreen: React.FC = () => {
   const currentBuiltinIndex = useMemo(() => {
     if (!user?.avatarUrl || !isBuiltinAvatarUrl(user.avatarUrl)) return -1;
     const key = user.avatarUrl.slice(BUILTIN_AVATAR_PREFIX.length);
-    return AVATAR_KEYS.indexOf(key);
+    return (AVATAR_KEYS as readonly string[]).indexOf(key);
   }, [user?.avatarUrl]);
 
   const currentFrameId = user?.avatarFrame ?? null;

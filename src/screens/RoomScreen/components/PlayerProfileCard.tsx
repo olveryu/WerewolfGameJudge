@@ -70,7 +70,7 @@ function getTitleColor(level: number): string {
 // Showcase: avatar thumbnail
 // ---------------------------------------------------------------------------
 const ShowcaseAvatar: React.FC<{ id: string }> = memo(({ id }) => {
-  const index = AVATAR_KEYS.indexOf(id);
+  const index = (AVATAR_KEYS as readonly string[]).indexOf(id);
   if (index === -1) return null;
   const source = getBuiltinAvatarImage(`builtin://${id}`);
   return <Image source={source} style={showcaseStyles.avatarThumb} resizeMode="cover" />;

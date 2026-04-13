@@ -5,7 +5,7 @@
  * 通过 getFrameComponent 按 id 获取对应的 SVG 渲染组件。
  * 不引入 service、theme。
  */
-import { FRAME_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import { FRAME_IDS, type FrameId } from '@werewolf/game-engine/growth/rewardCatalog';
 import type React from 'react';
 
 import { BloodThornFrame } from './BloodThornFrame';
@@ -20,30 +20,36 @@ import { PharaohGoldFrame } from './PharaohGoldFrame';
 import { RunicSealFrame } from './RunicSealFrame';
 import { VoidRiftFrame } from './VoidRiftFrame';
 
-/** 可选的头像框 ID（从 shared catalog 派生） */
-export type FrameId = (typeof FRAME_IDS)[number];
+export type { FrameId };
 
 interface AvatarFrameConfig {
-  id: FrameId;
   /** 中文显示名 */
   name: string;
   /** SVG 渲染组件 */
   Component: React.ComponentType<FrameProps>;
 }
 
-/** 所有可用头像框（顺序 = UI 展示顺序） */
-export const AVATAR_FRAMES: readonly AvatarFrameConfig[] = [
-  { id: 'ironForge', name: '铁锻', Component: IronForgeFrame },
-  { id: 'moonSilver', name: '月银', Component: MoonSilverFrame },
-  { id: 'bloodThorn', name: '血棘', Component: BloodThornFrame },
-  { id: 'runicSeal', name: '符印', Component: RunicSealFrame },
-  { id: 'boneGate', name: '骨门', Component: BoneGateFrame },
-  { id: 'hellFire', name: '狱焰', Component: HellFireFrame },
-  { id: 'darkVine', name: '暗藤', Component: DarkVineFrame },
-  { id: 'frostCrystal', name: '霜晶', Component: FrostCrystalFrame },
-  { id: 'pharaohGold', name: '墓金', Component: PharaohGoldFrame },
-  { id: 'voidRift', name: '虚裂', Component: VoidRiftFrame },
-] as const;
+/**
+ * 头像框注册表（exhaustive Record）—— FRAME_IDS 新增 ID 而此处未添加 → TS 编译报错。
+ * UI 展示顺序跟随 FRAME_IDS。
+ */
+const FRAME_REGISTRY: Record<FrameId, AvatarFrameConfig> = {
+  ironForge: { name: '铁锻', Component: IronForgeFrame },
+  moonSilver: { name: '月银', Component: MoonSilverFrame },
+  bloodThorn: { name: '血棘', Component: BloodThornFrame },
+  runicSeal: { name: '符印', Component: RunicSealFrame },
+  boneGate: { name: '骨门', Component: BoneGateFrame },
+  hellFire: { name: '狱焰', Component: HellFireFrame },
+  darkVine: { name: '暗藤', Component: DarkVineFrame },
+  frostCrystal: { name: '霜晶', Component: FrostCrystalFrame },
+  pharaohGold: { name: '墓金', Component: PharaohGoldFrame },
+  voidRift: { name: '虚裂', Component: VoidRiftFrame },
+};
+
+/** 所有可用头像框（顺序 = FRAME_IDS 展示顺序） */
+export const AVATAR_FRAMES: readonly (AvatarFrameConfig & { id: FrameId })[] = FRAME_IDS.map(
+  (id) => ({ id, ...FRAME_REGISTRY[id] }),
+);
 
 const FRAME_MAP = new Map<string, AvatarFrameConfig>(AVATAR_FRAMES.map((f) => [f.id, f]));
 

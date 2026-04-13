@@ -92,7 +92,36 @@ export const SEAT_FLAIR_IDS = [
   'sakura',
   'runeCircle',
   'fireRing',
+  'lunarHalo',
+  'sonicWave',
+  'cometTail',
+  'iceCrystal',
+  'phoenixFeather',
+  'ghostWisp',
+  'poisonBubble',
+  'magmaFloat',
+  'windGust',
+  'snowfall',
+  'goldSpark',
+  'purpleMist',
+  'butterfly',
+  'lightPillar',
+  'shadowClaw',
+  'rainDrop',
+  'flowerBloom',
+  'firefly',
+  'forestLeaf',
+  'prismShard',
 ] as const;
+
+/** 头像 ID literal union */
+export type AvatarId = (typeof AVATAR_IDS)[number];
+
+/** 头像框 ID literal union */
+export type FrameId = (typeof FRAME_IDS)[number];
+
+/** 座位装饰 ID literal union */
+export type FlairId = (typeof SEAT_FLAIR_IDS)[number];
 
 /** 注册即得的免费头像 ID */
 export const FREE_AVATAR_IDS: ReadonlySet<string> = new Set(['villager']);
@@ -118,3 +147,9 @@ export const REWARD_POOL: readonly RewardItem[] = [
     (id) => ({ type: 'seatFlair', id }) as const,
   ),
 ];
+
+/** 免费物品总数 */
+export const FREE_ITEM_COUNT = FREE_AVATAR_IDS.size + FREE_FRAME_IDS.size + FREE_FLAIR_IDS.size;
+
+/** 全部可获得物品总数（含免费） */
+export const TOTAL_UNLOCKABLE_COUNT = REWARD_POOL.length + FREE_ITEM_COUNT;

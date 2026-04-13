@@ -1,8 +1,8 @@
 /**
  * ThunderBoltFlair — 雷鸣电闪
  *
- * 4 条锯齿电弧沿头像边缘持续游走，每个顶点带辉光点。
- * 亮度正弦脉冲（min 0.3），始终可见。
+ * 6 条短锯齿闪电从头像边缘向外劈出，轮流闪亮（flash→afterglow→fade）。
+ * 始终有 1-2 条可见，模拟静电放电效果。
  * Skia Immediate Mode。
  */
 import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
@@ -18,26 +18,28 @@ import {
 
 import type { FlairProps } from './FlairProps';
 
-const ARC_COUNT = 4;
-const SEGS = 6;
+const BOLT_COUNT = 6;
+/** Each bolt: 4 zigzag segments from inner edge outward */
+const SEGS = 4;
 
 export const ThunderBoltFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 3000, easing: Easing.linear }), -1);
+    progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
   }, [progress]);
 
-  // 4 arcs evenly spaced around the perimeter
-  const arcs = useMemo(
+  // Pre-compute bolt geometry: angle, zigzag offsets, stagger phase
+  const bolts = useMemo(
     () =>
-      Array.from({ length: ARC_COUNT }, (_, a) => ({
-        baseAngle: (a / ARC_COUNT) * Math.PI * 2,
-        zigzag: Array.from(
+      Array.from({ length: BOLT_COUNT }, (_, i) => ({
+        angle: (i / BOLT_COUNT) * Math.PI * 2 - Math.PI / 2,
+        // Alternating lateral offsets for zigzag shape
+        offsets: Array.from(
           { length: SEGS + 1 },
-          (_, s) => (((a * 7 + s * 11) % 13) / 13 - 0.5) * 0.12,
+          (_, s) => (s % 2 === 0 ? 1 : -1) * (0.03 + ((i * 7 + s * 3) % 5) * 0.012),
         ),
-        phase: a * 0.25,
+        phase: i / BOLT_COUNT,
       })),
     [],
   );
@@ -45,7 +47,7 @@ export const ThunderBoltFlair = memo<FlairProps>(({ size, borderRadius: _br }) =
   const recorder = useMemo(() => Skia.PictureRecorder(), []);
   const paint = useMemo(() => {
     const p = Skia.Paint();
-    p.setStrokeWidth(1.8);
+    p.setAntiAlias(true);
     return p;
   }, []);
 
@@ -54,41 +56,68 @@ export const ThunderBoltFlair = memo<FlairProps>(({ size, borderRadius: _br }) =
     const c = recorder.beginRecording(Skia.XYWHRect(0, 0, size, size));
     const cx = size / 2;
     const cy = size / 2;
-    const orbit = size * 0.42;
-    const t = progress.value;
+    const innerR = size * 0.38; // bolt starts near avatar edge
+    const outerR = size * 0.52; // bolt ends outside
 
-    for (let a = 0; a < ARC_COUNT; a++) {
-      const arc = arcs[a];
-      // Sine pulse per arc (min 0.3, max 1.0)
-      const pulse = 0.3 + 0.7 * Math.max(0, Math.sin(((t + arc.phase) % 1) * Math.PI * 2));
-      const arcSpan = ((Math.PI * 2) / ARC_COUNT) * 0.7; // each arc spans 70% of its quadrant
-
-      for (let s = 0; s < SEGS; s++) {
-        const frac0 = s / SEGS;
-        const frac1 = (s + 1) / SEGS;
-        const angle0 = arc.baseAngle + t * Math.PI * 2 + frac0 * arcSpan;
-        const angle1 = arc.baseAngle + t * Math.PI * 2 + frac1 * arcSpan;
-        const r0 = orbit + arc.zigzag[s] * size;
-        const r1 = orbit + arc.zigzag[s + 1] * size;
-        const x0 = cx + Math.cos(angle0) * r0;
-        const y0 = cy + Math.sin(angle0) * r0;
-        const x1 = cx + Math.cos(angle1) * r1;
-        const y1 = cy + Math.sin(angle1) * r1;
-
-        // Glow line (wider, dimmer)
-        paint.setStrokeWidth(4);
-        paint.setColor(Skia.Color(`rgba(100,180,255,${(pulse * 0.15).toFixed(2)})`));
-        c.drawLine(x0, y0, x1, y1, paint);
-
-        // Core line (thin, bright)
-        paint.setStrokeWidth(1.5);
-        paint.setColor(Skia.Color(`rgba(160,210,255,${(pulse * 0.8).toFixed(2)})`));
-        c.drawLine(x0, y0, x1, y1, paint);
-
-        // Vertex glow dot
-        paint.setColor(Skia.Color(`rgba(200,230,255,${(pulse * 0.6).toFixed(2)})`));
-        c.drawCircle(x0, y0, size * 0.012, paint);
+    for (let b = 0; b < BOLT_COUNT; b++) {
+      const bolt = bolts[b];
+      // Flash cycle per bolt: 15% flash, 25% afterglow, 60% dark
+      const cycle = (progress.value + bolt.phase) % 1;
+      let intensity: number;
+      if (cycle < 0.15) {
+        // Flash: rapid ramp up
+        intensity = cycle / 0.15;
+      } else if (cycle < 0.4) {
+        // Afterglow: slow fade
+        intensity = 1 - (cycle - 0.15) / 0.25;
+      } else {
+        intensity = 0;
       }
+      if (intensity < 0.01) continue;
+
+      const cosA = Math.cos(bolt.angle);
+      const sinA = Math.sin(bolt.angle);
+      // Perpendicular direction for zigzag
+      const perpX = -sinA;
+      const perpY = cosA;
+
+      // Build segment points along the bolt
+      const pts: { x: number; y: number }[] = [];
+      for (let s = 0; s <= SEGS; s++) {
+        const frac = s / SEGS;
+        const r = innerR + frac * (outerR - innerR);
+        const lateralOff = bolt.offsets[s] * size;
+        pts.push({
+          x: cx + cosA * r + perpX * lateralOff,
+          y: cy + sinA * r + perpY * lateralOff,
+        });
+      }
+
+      // Layer 1: Wide glow (blue, transparent)
+      paint.setStrokeWidth(size * 0.05);
+      paint.setColor(Skia.Color(`rgba(80,160,255,${(intensity * 0.25).toFixed(2)})`));
+      for (let s = 0; s < SEGS; s++) {
+        c.drawLine(pts[s].x, pts[s].y, pts[s + 1].x, pts[s + 1].y, paint);
+      }
+
+      // Layer 2: Mid glow (lighter blue)
+      paint.setStrokeWidth(size * 0.025);
+      paint.setColor(Skia.Color(`rgba(140,200,255,${(intensity * 0.5).toFixed(2)})`));
+      for (let s = 0; s < SEGS; s++) {
+        c.drawLine(pts[s].x, pts[s].y, pts[s + 1].x, pts[s + 1].y, paint);
+      }
+
+      // Layer 3: Bright core (white-blue)
+      paint.setStrokeWidth(size * 0.012);
+      paint.setColor(Skia.Color(`rgba(220,240,255,${(intensity * 0.9).toFixed(2)})`));
+      for (let s = 0; s < SEGS; s++) {
+        c.drawLine(pts[s].x, pts[s].y, pts[s + 1].x, pts[s + 1].y, paint);
+      }
+
+      // Tip spark dot
+      const tip = pts[SEGS];
+      paint.setColor(Skia.Color(`rgba(255,255,255,${(intensity * 0.7).toFixed(2)})`));
+      c.drawCircle(tip.x, tip.y, size * 0.015 * intensity, paint);
     }
 
     return recorder.finishRecordingAsPicture();
