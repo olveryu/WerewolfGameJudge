@@ -421,7 +421,7 @@ export const SettingsScreen: React.FC = () => {
             onPress={handlePickAvatar}
             activeOpacity={fixed.activeOpacity}
           >
-            <Text style={styles.dresserEntryText}>更换头像与头像框</Text>
+            <Text style={styles.dresserEntryText}>更换头像与装扮</Text>
             <Ionicons
               name="chevron-forward"
               size={componentSizes.icon.md}
