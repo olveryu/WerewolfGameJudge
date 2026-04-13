@@ -6,9 +6,14 @@
  * 仅限已登录非匿名用户。
  */
 
+import { getLevelTitle } from '@werewolf/game-engine/growth/level';
+
 import { extractBearerToken, verifyToken } from '../lib/auth';
 import { jsonResponse } from '../lib/cors';
 import type { HandlerFn } from './shared';
+
+/** 最多展示的精选解锁物品数量 */
+const SHOWCASE_LIMIT = 4;
 
 /** GET /api/user/:userId/profile — 查看其他玩家公开资料 */
 export const handleGetUserProfile: HandlerFn = async (req, env) => {
@@ -26,7 +31,7 @@ export const handleGetUserProfile: HandlerFn = async (req, env) => {
 
   // Fetch user display info from users table
   const userRow = await env.DB.prepare(
-    `SELECT display_name, avatar_url, custom_avatar_url, avatar_frame FROM users WHERE id = ?`,
+    `SELECT display_name, avatar_url, custom_avatar_url, avatar_frame, equipped_flair FROM users WHERE id = ?`,
   )
     .bind(targetUserId)
     .first<{
@@ -34,6 +39,7 @@ export const handleGetUserProfile: HandlerFn = async (req, env) => {
       avatar_url: string | null;
       custom_avatar_url: string | null;
       avatar_frame: string | null;
+      equipped_flair: string | null;
     }>();
 
   if (!userRow) return jsonResponse({ error: 'user not found' }, 404, env);
@@ -54,15 +60,20 @@ export const handleGetUserProfile: HandlerFn = async (req, env) => {
     ? (JSON.parse(statsRow.unlocked_items) as string[])
     : [];
 
+  const level = statsRow?.level ?? 0;
+
   return jsonResponse(
     {
       displayName: userRow.display_name ?? '',
       avatarUrl: userRow.custom_avatar_url ?? userRow.avatar_url ?? undefined,
       avatarFrame: userRow.avatar_frame ?? undefined,
-      level: statsRow?.level ?? 0,
+      seatFlair: userRow.equipped_flair ?? undefined,
+      level,
+      title: getLevelTitle(level),
       xp: statsRow?.xp ?? 0,
       gamesPlayed: statsRow?.games_played ?? 0,
       unlockedItemCount: unlockedItems.length,
+      showcaseItems: unlockedItems.slice(-SHOWCASE_LIMIT),
     },
     200,
     env,

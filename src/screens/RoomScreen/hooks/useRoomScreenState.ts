@@ -605,6 +605,7 @@ export function useRoomScreenState(
     profileCardVisible,
     profileCardTargetUid,
     profileCardTargetSeat,
+    profileCardRosterName,
     closeProfileCard,
     handleProfileKick,
   } = useInteractionDispatcher({
@@ -866,6 +867,7 @@ export function useRoomScreenState(
     profileCardVisible,
     profileCardTargetUid,
     profileCardTargetSeat,
+    profileCardRosterName,
     closeProfileCard,
     handleProfileKick,
 

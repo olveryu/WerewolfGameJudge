@@ -18,10 +18,14 @@ export interface UserPublicProfile {
   displayName: string;
   avatarUrl?: string;
   avatarFrame?: string;
+  seatFlair?: string;
   level: number;
+  title: string;
   xp: number;
   gamesPlayed: number;
   unlockedItemCount: number;
+  /** 最近解锁的物品 ID（最多 4 个），用于资料卡精选展示 */
+  showcaseItems: readonly string[];
 }
 
 /** 获取当前用户的成长数据 */

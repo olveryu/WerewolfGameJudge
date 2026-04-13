@@ -45,6 +45,24 @@ export function getLevelProgress(xp: number): number {
   return (xp - currentThreshold) / (nextThreshold - currentThreshold);
 }
 
+/** 等级称号（按等级段位划分） */
+const LEVEL_TITLES = [
+  { min: 0, max: 5, title: '新手' },
+  { min: 6, max: 10, title: '入门' },
+  { min: 11, max: 20, title: '常客' },
+  { min: 21, max: 30, title: '老手' },
+  { min: 31, max: 40, title: '元老' },
+  { min: 41, max: 51, title: '传奇' },
+] as const;
+
+/** 根据等级返回中文称号 */
+export function getLevelTitle(level: number): string {
+  for (const { min, max, title } of LEVEL_TITLES) {
+    if (level >= min && level <= max) return title;
+  }
+  return '传奇';
+}
+
 /** 掷一次经验值（服务端调用）。50 + random(0~20)。 */
 export function rollXp(): number {
   const array = new Uint32Array(1);

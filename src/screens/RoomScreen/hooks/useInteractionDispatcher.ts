@@ -94,6 +94,8 @@ interface UseInteractionDispatcherResult {
   profileCardVisible: boolean;
   profileCardTargetUid: string;
   profileCardTargetSeat: number;
+  /** Display name from roster (for bots or offline render without API) */
+  profileCardRosterName: string;
   closeProfileCard: () => void;
   handleProfileKick: (seat: number) => void;
 }
@@ -142,6 +144,7 @@ export function useInteractionDispatcher({
   const [profileCardVisible, setProfileCardVisible] = useState(false);
   const [profileCardTargetUid, setProfileCardTargetUid] = useState('');
   const [profileCardTargetSeat, setProfileCardTargetSeat] = useState(0);
+  const [profileCardRosterName, setProfileCardRosterName] = useState('');
 
   const closeProfileCard = useCallback(() => {
     setProfileCardVisible(false);
@@ -428,15 +431,19 @@ export function useInteractionDispatcher({
           return;
         }
 
-        case 'VIEW_PROFILE':
+        case 'VIEW_PROFILE': {
+          const targetPlayer = gameState?.players.get(result.seat);
           roomScreenLog.debug('[dispatchInteraction] VIEW_PROFILE', {
             seat: result.seat,
             targetUid: result.targetUid,
+            rosterName: targetPlayer?.displayName,
           });
           setProfileCardTargetUid(result.targetUid);
           setProfileCardTargetSeat(result.seat);
+          setProfileCardRosterName(targetPlayer?.displayName ?? '');
           setProfileCardVisible(true);
           return;
+        }
 
         default: {
           const _exhaustive: never = result;
@@ -496,6 +503,7 @@ export function useInteractionDispatcher({
     profileCardVisible,
     profileCardTargetUid,
     profileCardTargetSeat,
+    profileCardRosterName,
     closeProfileCard,
     handleProfileKick,
   };

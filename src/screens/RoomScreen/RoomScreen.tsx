@@ -222,6 +222,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     profileCardVisible,
     profileCardTargetUid,
     profileCardTargetSeat,
+    profileCardRosterName,
     closeProfileCard,
     handleProfileKick,
     // Local UI state
@@ -759,6 +760,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onClose={closeProfileCard}
         targetUid={profileCardTargetUid}
         targetSeat={profileCardTargetSeat}
+        rosterName={profileCardRosterName}
         isHost={isHost}
         onKick={handleProfileKick}
       />

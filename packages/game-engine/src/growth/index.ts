@@ -15,6 +15,7 @@ export {
 export {
   getLevel,
   getLevelProgress,
+  getLevelTitle,
   LEVEL_THRESHOLDS,
   rollXp,
   XP_BASE,
