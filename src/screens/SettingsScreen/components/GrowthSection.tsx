@@ -7,7 +7,9 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import {
-  FREE_ITEM_COUNT,
+  FREE_AVATAR_IDS,
+  FREE_FLAIR_IDS,
+  FREE_FRAME_IDS,
   getLevelProgress,
   LEVEL_THRESHOLDS,
   TOTAL_UNLOCKABLE_COUNT,
@@ -33,7 +35,12 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles, onPressU
       ? LEVEL_THRESHOLDS[stats.level + 1]
       : LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
 
-  const unlockCount = stats.unlockedItems.length + FREE_ITEM_COUNT;
+  const unlockCount = new Set([
+    ...stats.unlockedItems,
+    ...FREE_AVATAR_IDS,
+    ...FREE_FRAME_IDS,
+    ...FREE_FLAIR_IDS,
+  ]).size;
 
   return (
     <>

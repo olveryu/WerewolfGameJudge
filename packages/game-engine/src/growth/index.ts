@@ -30,7 +30,6 @@ export {
   FREE_AVATAR_IDS,
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
-  FREE_ITEM_COUNT,
   REWARD_POOL,
   type RewardItem,
   type RewardType,
