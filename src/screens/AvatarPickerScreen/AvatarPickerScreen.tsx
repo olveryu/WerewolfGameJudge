@@ -21,7 +21,6 @@ import {
   ImageSourcePropType,
   ListRenderItemInfo,
   Pressable,
-  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -54,10 +53,8 @@ import { settingsLog } from '@/utils/logger';
 
 import { type AvatarPickerScreenStyles, createAvatarPickerScreenStyles } from './components';
 
-/** Stable style to let ScrollView fill remaining space */
-const scrollViewFlex = { flex: 1 } as const;
-
 const NUM_COLUMNS = 4;
+const FRAME_NUM_COLUMNS = 3;
 const FRAME_GRID_CELL_SIZE = 72;
 const HERO_PREVIEW_SIZE = 80;
 
@@ -67,6 +64,21 @@ type PickerTab = 'avatar' | 'frame' | 'flair';
 interface BuiltinCellItem {
   key: string;
   index: number;
+}
+
+/** Unified item type for frame/flair FlatLists, including the "none" sentinel. */
+interface FrameGridItem {
+  id: FrameId | 'none';
+  name: string;
+  unlocked: boolean;
+  isActive: boolean;
+}
+
+interface FlairGridItem {
+  id: FlairId | 'none';
+  name: string;
+  unlocked: boolean;
+  isActive: boolean;
 }
 
 export const AvatarPickerScreen: React.FC = () => {
@@ -134,10 +146,7 @@ export const AvatarPickerScreen: React.FC = () => {
   const hasSelection = selected !== null || selectedFrame !== null || selectedFlair !== null;
 
   const isNoFrameActive = !currentFrameId;
-  const isNoFrameSelected = selectedFrame === 'none';
-
   const isNoFlairActive = !currentFlairId;
-  const isNoFlairSelected = selectedFlair === 'none';
 
   // ── Grid data ──
 
@@ -161,6 +170,42 @@ export const AvatarPickerScreen: React.FC = () => {
     }
     return items;
   }, [unlockedAvatars]);
+
+  /** Sorted frame grid data — "none" sentinel + unlocked-first order. */
+  const frameGridData: FrameGridItem[] = useMemo(() => {
+    const none: FrameGridItem = {
+      id: 'none',
+      name: '无',
+      unlocked: true,
+      isActive: isNoFrameActive,
+    };
+    const items: FrameGridItem[] = AVATAR_FRAMES.map((f) => ({
+      id: f.id,
+      name: f.name,
+      unlocked: isFrameUnlocked(f.id, unlockedIds),
+      isActive: currentFrameId === f.id,
+    }));
+    items.sort((a, b) => Number(a.unlocked ? 0 : 1) - Number(b.unlocked ? 0 : 1));
+    return [none, ...items];
+  }, [unlockedIds, currentFrameId, isNoFrameActive]);
+
+  /** Sorted flair grid data — "none" sentinel + unlocked-first order. */
+  const flairGridData: FlairGridItem[] = useMemo(() => {
+    const none: FlairGridItem = {
+      id: 'none',
+      name: '无',
+      unlocked: true,
+      isActive: isNoFlairActive,
+    };
+    const items: FlairGridItem[] = SEAT_FLAIRS.map((f) => ({
+      id: f.id,
+      name: f.name,
+      unlocked: isFlairUnlocked(f.id, unlockedIds),
+      isActive: currentFlairId === f.id,
+    }));
+    items.sort((a, b) => Number(a.unlocked ? 0 : 1) - Number(b.unlocked ? 0 : 1));
+    return [none, ...items];
+  }, [unlockedIds, currentFlairId, isNoFlairActive]);
 
   // ── Handlers ──
 
@@ -333,6 +378,37 @@ export const AvatarPickerScreen: React.FC = () => {
   }, [navigation]);
 
   const keyExtractor = useCallback((item: BuiltinCellItem) => item.key, []);
+
+  const frameKeyExtractor = useCallback((item: FrameGridItem) => item.id, []);
+  const flairKeyExtractor = useCallback((item: FlairGridItem) => item.id, []);
+
+  const renderFrameItem = useCallback(
+    ({ item }: ListRenderItemInfo<FrameGridItem>) => (
+      <FrameCell
+        item={item}
+        selectedFrame={selectedFrame}
+        previewAvatarUrl={previewAvatarUrl}
+        uid={user?.uid ?? 'anonymous'}
+        onPress={handlePressFrame}
+        styles={styles}
+      />
+    ),
+    [selectedFrame, previewAvatarUrl, user?.uid, handlePressFrame, styles],
+  );
+
+  const renderFlairItem = useCallback(
+    ({ item }: ListRenderItemInfo<FlairGridItem>) => (
+      <FlairCell
+        item={item}
+        selectedFlair={selectedFlair}
+        previewAvatarUrl={previewAvatarUrl}
+        uid={user?.uid ?? 'anonymous'}
+        onPress={handlePressFlair}
+        styles={styles}
+      />
+    ),
+    [selectedFlair, previewAvatarUrl, user?.uid, handlePressFlair, styles],
+  );
 
   // ── List header for avatar tab ──
 
@@ -523,6 +599,7 @@ export const AvatarPickerScreen: React.FC = () => {
       <View style={styles.content}>
         {activeTab === 'avatar' ? (
           <FlatList
+            key="avatar"
             data={data}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
@@ -535,182 +612,33 @@ export const AvatarPickerScreen: React.FC = () => {
             windowSize={5}
           />
         ) : activeTab === 'frame' ? (
-          <ScrollView
-            style={scrollViewFlex}
-            contentContainerStyle={styles.frameGrid}
+          <FlatList
+            key="frame"
+            data={frameGridData}
+            renderItem={renderFrameItem}
+            keyExtractor={frameKeyExtractor}
+            numColumns={FRAME_NUM_COLUMNS}
+            columnWrapperStyle={styles.frameColumnWrapper}
+            contentContainerStyle={styles.frameGridContent}
             showsVerticalScrollIndicator={false}
-          >
-            {/* "None" option */}
-            <TouchableOpacity
-              style={[
-                styles.frameGridCell,
-                isNoFrameSelected && styles.frameGridCellSelected,
-                !isNoFrameSelected &&
-                  isNoFrameActive &&
-                  selectedFrame === null &&
-                  styles.frameGridCellActive,
-              ]}
-              onPress={() => handlePressFrame('none')}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.frameGridNoFrame,
-                  { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
-                ]}
-              >
-                <Ionicons
-                  name="close-circle-outline"
-                  size={componentSizes.icon.xl}
-                  color={colors.textMuted}
-                />
-              </View>
-              <Text
-                style={[styles.frameGridName, isNoFrameSelected && styles.frameGridNameSelected]}
-              >
-                无
-              </Text>
-            </TouchableOpacity>
-
-            {/* Frame options — unlocked first, then locked */}
-            {[...AVATAR_FRAMES]
-              .sort((a, b) => {
-                const aUnlocked = isFrameUnlocked(a.id, unlockedIds) ? 0 : 1;
-                const bUnlocked = isFrameUnlocked(b.id, unlockedIds) ? 0 : 1;
-                return aUnlocked - bUnlocked;
-              })
-              .map((frame) => {
-                const isActive = currentFrameId === frame.id;
-                const isFrameSelected = selectedFrame === frame.id;
-                const unlocked = isFrameUnlocked(frame.id, unlockedIds);
-                return (
-                  <TouchableOpacity
-                    key={frame.id}
-                    style={[
-                      styles.frameGridCell,
-                      isFrameSelected && styles.frameGridCellSelected,
-                      !isFrameSelected &&
-                        isActive &&
-                        selectedFrame === null &&
-                        styles.frameGridCellActive,
-                      !unlocked && styles.frameGridCellLocked,
-                    ]}
-                    onPress={() => handlePressFrame(frame.id)}
-                    activeOpacity={0.7}
-                  >
-                    <AvatarWithFrame
-                      value={user?.uid ?? 'anonymous'}
-                      size={FRAME_GRID_CELL_SIZE}
-                      avatarUrl={previewAvatarUrl}
-                      frameId={frame.id}
-                    />
-                    <Text
-                      style={[
-                        styles.frameGridName,
-                        isFrameSelected && styles.frameGridNameSelected,
-                      ]}
-                    >
-                      {unlocked ? frame.name : '未解锁'}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-          </ScrollView>
+            initialNumToRender={9}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
         ) : activeTab === 'flair' ? (
-          <ScrollView
-            style={scrollViewFlex}
-            contentContainerStyle={styles.frameGrid}
+          <FlatList
+            key="flair"
+            data={flairGridData}
+            renderItem={renderFlairItem}
+            keyExtractor={flairKeyExtractor}
+            numColumns={FRAME_NUM_COLUMNS}
+            columnWrapperStyle={styles.frameColumnWrapper}
+            contentContainerStyle={styles.frameGridContent}
             showsVerticalScrollIndicator={false}
-          >
-            {/* "None" option */}
-            <TouchableOpacity
-              style={[
-                styles.frameGridCell,
-                isNoFlairSelected && styles.frameGridCellSelected,
-                !isNoFlairSelected &&
-                  isNoFlairActive &&
-                  selectedFlair === null &&
-                  styles.frameGridCellActive,
-              ]}
-              onPress={() => handlePressFlair('none')}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.frameGridNoFrame,
-                  { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
-                ]}
-              >
-                <Ionicons
-                  name="close-circle-outline"
-                  size={componentSizes.icon.xl}
-                  color={colors.textMuted}
-                />
-              </View>
-              <Text
-                style={[styles.frameGridName, isNoFlairSelected && styles.frameGridNameSelected]}
-              >
-                无
-              </Text>
-            </TouchableOpacity>
-
-            {/* Flair options — unlocked first, then locked */}
-            {[...SEAT_FLAIRS]
-              .sort((a, b) => {
-                const aUnlocked = isFlairUnlocked(a.id, unlockedIds) ? 0 : 1;
-                const bUnlocked = isFlairUnlocked(b.id, unlockedIds) ? 0 : 1;
-                return aUnlocked - bUnlocked;
-              })
-              .map((flair) => {
-                const isActive = currentFlairId === flair.id;
-                const isFlairSelected = selectedFlair === flair.id;
-                const unlocked = isFlairUnlocked(flair.id, unlockedIds);
-                const FlairComponent = getFlairById(flair.id)?.Component;
-                return (
-                  <TouchableOpacity
-                    key={flair.id}
-                    style={[
-                      styles.frameGridCell,
-                      isFlairSelected && styles.frameGridCellSelected,
-                      !isFlairSelected &&
-                        isActive &&
-                        selectedFlair === null &&
-                        styles.frameGridCellActive,
-                      !unlocked && styles.frameGridCellLocked,
-                    ]}
-                    onPress={() => handlePressFlair(flair.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.flairPreviewCell,
-                        { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
-                      ]}
-                    >
-                      {FlairComponent && (
-                        <FlairComponent
-                          size={FRAME_GRID_CELL_SIZE}
-                          borderRadius={borderRadiusToken.medium}
-                        />
-                      )}
-                      <AvatarWithFrame
-                        value={user?.uid ?? 'anonymous'}
-                        size={FRAME_GRID_CELL_SIZE - 8}
-                        avatarUrl={previewAvatarUrl}
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        styles.frameGridName,
-                        isFlairSelected && styles.frameGridNameSelected,
-                      ]}
-                    >
-                      {unlocked ? flair.name : '未解锁'}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-          </ScrollView>
+            initialNumToRender={9}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
         ) : null}
       </View>
 
@@ -811,3 +739,129 @@ const AvatarCell = memo<AvatarCellProps>(
 );
 
 AvatarCell.displayName = 'AvatarCell';
+
+// ─── Frame grid cell (memoized for FlatList virtualization) ───────────────────
+
+interface FrameCellProps {
+  item: FrameGridItem;
+  selectedFrame: FrameId | 'none' | null;
+  previewAvatarUrl: string | null | undefined;
+  uid: string;
+  onPress: (id: FrameId | 'none') => void;
+  styles: AvatarPickerScreenStyles;
+}
+
+const FrameCell = memo<FrameCellProps>(
+  ({ item, selectedFrame, previewAvatarUrl, uid, onPress, styles }) => {
+    const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
+    const isSelected = selectedFrame === item.id;
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.frameGridCell,
+          isSelected && styles.frameGridCellSelected,
+          !isSelected && item.isActive && selectedFrame === null && styles.frameGridCellActive,
+          !item.unlocked && styles.frameGridCellLocked,
+        ]}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
+        {item.id === 'none' ? (
+          <View
+            style={[
+              styles.frameGridNoFrame,
+              { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
+            ]}
+          >
+            <Ionicons
+              name="close-circle-outline"
+              size={componentSizes.icon.xl}
+              color={colors.textMuted}
+            />
+          </View>
+        ) : (
+          <AvatarWithFrame
+            value={uid}
+            size={FRAME_GRID_CELL_SIZE}
+            avatarUrl={previewAvatarUrl}
+            frameId={item.id}
+          />
+        )}
+        <Text style={[styles.frameGridName, isSelected && styles.frameGridNameSelected]}>
+          {item.unlocked ? item.name : '未解锁'}
+        </Text>
+      </TouchableOpacity>
+    );
+  },
+);
+
+FrameCell.displayName = 'FrameCell';
+
+// ─── Flair grid cell (memoized for FlatList virtualization) ───────────────────
+
+interface FlairCellProps {
+  item: FlairGridItem;
+  selectedFlair: FlairId | 'none' | null;
+  previewAvatarUrl: string | null | undefined;
+  uid: string;
+  onPress: (id: FlairId | 'none') => void;
+  styles: AvatarPickerScreenStyles;
+}
+
+const FlairCell = memo<FlairCellProps>(
+  ({ item, selectedFlair, previewAvatarUrl, uid, onPress, styles }) => {
+    const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
+    const isSelected = selectedFlair === item.id;
+    const FlairComponent = item.id !== 'none' ? getFlairById(item.id)?.Component : undefined;
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.frameGridCell,
+          isSelected && styles.frameGridCellSelected,
+          !isSelected && item.isActive && selectedFlair === null && styles.frameGridCellActive,
+          !item.unlocked && styles.frameGridCellLocked,
+        ]}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
+        {item.id === 'none' ? (
+          <View
+            style={[
+              styles.frameGridNoFrame,
+              { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
+            ]}
+          >
+            <Ionicons
+              name="close-circle-outline"
+              size={componentSizes.icon.xl}
+              color={colors.textMuted}
+            />
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.flairPreviewCell,
+              { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
+            ]}
+          >
+            {FlairComponent && (
+              <FlairComponent size={FRAME_GRID_CELL_SIZE} borderRadius={borderRadiusToken.medium} />
+            )}
+            <AvatarWithFrame
+              value={uid}
+              size={FRAME_GRID_CELL_SIZE - 8}
+              avatarUrl={previewAvatarUrl}
+            />
+          </View>
+        )}
+        <Text style={[styles.frameGridName, isSelected && styles.frameGridNameSelected]}>
+          {item.unlocked ? item.name : '未解锁'}
+        </Text>
+      </TouchableOpacity>
+    );
+  },
+);
+
+FlairCell.displayName = 'FlairCell';

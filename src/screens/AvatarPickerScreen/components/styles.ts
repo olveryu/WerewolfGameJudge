@@ -54,7 +54,8 @@ export interface AvatarPickerScreenStyles {
   heroFrameLabel: TextStyle;
   heroUploadBtn: ViewStyle;
   // Frame grid
-  frameGrid: ViewStyle;
+  frameGridContent: ViewStyle;
+  frameColumnWrapper: ViewStyle;
   frameGridCell: ViewStyle;
   frameGridCellSelected: ViewStyle;
   frameGridCellActive: ViewStyle;
@@ -254,16 +255,19 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       gap: spacing.tight,
       marginTop: spacing.small,
     },
-    // Frame grid
-    frameGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
+    // Frame grid (FlatList-managed columns)
+    frameGridContent: {
       paddingHorizontal: spacing.medium,
       paddingVertical: spacing.medium,
+    },
+    frameColumnWrapper: {
+      justifyContent: 'flex-start',
       gap: spacing.medium,
+      marginBottom: spacing.medium,
     },
     frameGridCell: {
+      flex: 1,
+      maxWidth: '33.33%',
       alignItems: 'center',
       padding: spacing.small,
       borderRadius: borderRadius.medium,
