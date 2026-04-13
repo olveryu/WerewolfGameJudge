@@ -14,9 +14,9 @@ import { useSharedValue } from 'react-native-reanimated';
 
 import { borderRadius, colors, componentSizes, shadows, spacing, type ThemeColors } from '@/theme';
 
-const SLIDER_HEIGHT = 8;
-const THUMB_OUTER = 24;
-const THUMB_INNER = 12;
+const SLIDER_HEIGHT = 10;
+const THUMB_OUTER = 32;
+const THUMB_INNER = 16;
 
 interface VolumeSliderProps {
   value: number; // 0.0–1.0
