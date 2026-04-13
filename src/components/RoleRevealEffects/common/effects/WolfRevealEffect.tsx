@@ -18,17 +18,14 @@ import {
   Canvas,
   Circle,
   Group,
-  LinearGradient,
   Paint,
   Path as SkiaPath,
   Picture,
   RadialGradient,
-  Rect,
   Skia,
   vec,
 } from '@shopify/react-native-skia';
 import React, { useEffect, useMemo } from 'react';
-import type { SharedValue } from 'react-native-reanimated';
 import {
   Easing,
   useDerivedValue,
@@ -299,135 +296,18 @@ export const WolfCrackBackground: React.FC<WolfCrackBackgroundProps> = ({
 
 // ─── Sub-components (Skia nodes) ──────────────────────────────────────
 
-/** Volumetric fog cloud — RadialGradient for soft edges, vertical + horizontal drift */
-const SkiaFogCloud: React.FC<{
-  fog: (typeof FOG_CLOUDS)[number];
-  index: number;
-  fogDrift: SharedValue<number>;
-  cardWidth: number;
-  cardHeight: number;
-  color: string;
-}> = React.memo(({ fog, index, fogDrift, cardWidth, cardHeight, color }) => {
-  const r = fog.rRatio * cardWidth;
-  const fogCx = useDerivedValue(
-    () => fog.xRatio * cardWidth + Math.sin(fogDrift.value * Math.PI * 2 + index) * fog.driftX,
-  );
-  const fogCy = useDerivedValue(
-    () =>
-      fog.yRatio * cardHeight +
-      Math.cos(fogDrift.value * Math.PI * 2 * 0.7 + index * 1.3) * fog.driftYAmp,
-  );
-  const opacity = useDerivedValue(
-    () => fog.alphaRatio * (0.8 + 0.2 * Math.sin(fogDrift.value * Math.PI * 2 * 0.5 + index * 2)),
-  );
-  return (
-    <Group opacity={opacity}>
-      <Circle cx={fogCx} cy={fogCy} r={r}>
-        <RadialGradient
-          c={vec(fog.xRatio * cardWidth, fog.yRatio * cardHeight)}
-          r={r}
-          colors={[`${color}90`, `${color}40`, `${color}00`]}
-        />
-        <Blur blur={25} />
-      </Circle>
-    </Group>
-  );
-});
-SkiaFogCloud.displayName = 'SkiaFogCloud';
-
 // ── Immediate-mode Skia resources (reused across frames) ──
 const sparkRecorder = Skia.PictureRecorder();
 const sparkPaint = Skia.Paint();
+const fogRecorder = Skia.PictureRecorder();
+const fogPaint = Skia.Paint();
+const bloodRecorder = Skia.PictureRecorder();
+const bloodPaint = Skia.Paint();
 
-/** Blood drop — teardrop Path + blood trail streak + trailing glow, falling with gravity */
-const BloodDrop = React.memo(function BloodDrop({
-  xRatio,
-  size,
-  dropProgress,
-  color,
-  cardWidth,
-  cardHeight,
-}: {
-  xRatio: number;
-  size: number;
-  dropProgress: SharedValue<number>;
-  color: string;
-  cardWidth: number;
-  cardHeight: number;
-}) {
-  const dropPath = useMemo(() => buildTeardropPath(size), [size]);
-  const cx = xRatio * cardWidth;
-  const streakWidth = size * 0.6;
-
-  // Current Y position (top → 95% of card height)
-  const cy = useDerivedValue(() => dropProgress.value * cardHeight * 0.95);
-
-  // Blood streak height — from origin to slightly above the drop
-  const streakHeight = useDerivedValue(() => Math.max(0, cy.value - size * 2));
-
-  // Streak opacity — appears after the drop has traveled a bit, fades with drop
-  const streakOpacity = useDerivedValue(() => {
-    const p = dropProgress.value;
-    if (p < 0.08) return 0;
-    if (p > 0.85) return Math.max(0, (1 - p) / 0.15) * 0.2;
-    return Math.min(0.2, (p - 0.08) * 0.8);
-  });
-
-  // Drop opacity: fade in quickly, solid mid-fall, fade out at bottom
-  const dropOpacity = useDerivedValue(() => {
-    const p = dropProgress.value;
-    if (p < 0.05) return p / 0.05;
-    if (p > 0.85) return Math.max(0, (1 - p) / 0.15);
-    return 0.9;
-  });
-
-  // Transform for teardrop path (translate to current position)
-  const dropTransform = useDerivedValue(() => [{ translateX: cx }, { translateY: cy.value }]);
-
-  return (
-    <Group>
-      {/* Blood trail streak — vertical smear left behind by the drop */}
-      <Group opacity={streakOpacity}>
-        <Rect
-          x={cx - streakWidth / 2}
-          y={0}
-          width={streakWidth}
-          height={streakHeight}
-          color={color}
-        >
-          <LinearGradient
-            start={vec(cx, 0)}
-            end={vec(cx, cardHeight * 0.6)}
-            colors={[`${color}00`, `${color}40`, color]}
-          />
-        </Rect>
-        {/* Softer glow around the streak */}
-        <Rect
-          x={cx - streakWidth}
-          y={0}
-          width={streakWidth * 2}
-          height={streakHeight}
-          color={color}
-          opacity={0.1}
-        >
-          <LinearGradient
-            start={vec(cx, 0)}
-            end={vec(cx, cardHeight * 0.6)}
-            colors={[`${color}00`, `${color}20`, `${color}40`]}
-          />
-          <Blur blur={4} />
-        </Rect>
-      </Group>
-      {/* Teardrop body */}
-      <Group opacity={dropOpacity} transform={dropTransform}>
-        <SkiaPath path={dropPath} color={color} />
-        <SkiaPath path={dropPath} color={color} opacity={0.5}>
-          <Blur blur={4} />
-        </SkiaPath>
-      </Group>
-    </Group>
-  );
-});
+// Pre-built teardrop paths for each blood drop size
+const BLOOD_DROP_PATHS = BLOOD_DROPS.map(
+  (drop) => Skia.Path.MakeFromSVGString(buildTeardropPath(drop.size))!,
+);
 
 // ─── Main component ───────────────────────────────────────────────────
 
@@ -452,19 +332,9 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
   const glowIntensity = useSharedValue(0);
   const fogDrift = useSharedValue(0);
   const eyePulse = useSharedValue(0);
+  const bloodCycle = useSharedValue(0);
   const centerX = cardWidth / 2;
   const centerY = cardHeight * 0.42;
-
-  // Blood drop shared values (one per drop)
-  const dropSV0 = useSharedValue(0);
-  const dropSV1 = useSharedValue(0);
-  const dropSV2 = useSharedValue(0);
-  const dropSV3 = useSharedValue(0);
-  const dropSV4 = useSharedValue(0);
-  const dropSVs = useMemo(
-    () => [dropSV0, dropSV1, dropSV2, dropSV3, dropSV4],
-    [dropSV0, dropSV1, dropSV2, dropSV3, dropSV4],
-  );
 
   useEffect(() => {
     if (!animate) return;
@@ -500,17 +370,12 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
       ),
     );
 
-    // Blood drops — staggered falling loops
-    dropSVs.forEach((sv, i) => {
-      sv.value = withDelay(
-        AE.effectStartDelay + BLOOD_DROPS[i].delay,
-        withRepeat(
-          withTiming(1, { duration: BLOOD_DROPS[i].speed, easing: Easing.in(Easing.quad) }),
-          -1,
-        ),
-      );
-    });
-  }, [animate, progress, glowIntensity, fogDrift, eyePulse, dropSVs]);
+    // Blood drops — single cycle driver (each drop derives its own phase via delay/speed)
+    bloodCycle.value = withDelay(
+      AE.effectStartDelay,
+      withRepeat(withTiming(1, { duration: 1000, easing: Easing.linear }), -1),
+    );
+  }, [animate, progress, glowIntensity, fogDrift, eyePulse, bloodCycle]);
 
   // ── Derived values ──
   const glowR = useDerivedValue(() => cardWidth * 0.6 * (0.5 + glowIntensity.value * 0.5));
@@ -526,6 +391,83 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
 
   // Eye pulse opacity
   const eyeOpacity = useDerivedValue(() => 0.3 + eyePulse.value * 0.5);
+
+  // ── Fog clouds: Immediate Mode via Picture API ──
+  // Replaces 8 SkiaFogCloud components (24 useDerivedValue per frame) with 1.
+  const fogPicture = useDerivedValue(() => {
+    'worklet';
+    const c = fogRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
+    const skColor = Skia.Color(primaryColor);
+    for (let i = 0; i < FOG_CLOUDS.length; i++) {
+      const fog = FOG_CLOUDS[i];
+      const r = fog.rRatio * cardWidth;
+      const cx = fog.xRatio * cardWidth + Math.sin(fogDrift.value * Math.PI * 2 + i) * fog.driftX;
+      const cy =
+        fog.yRatio * cardHeight +
+        Math.cos(fogDrift.value * Math.PI * 2 * 0.7 + i * 1.3) * fog.driftYAmp;
+      const opacity =
+        fog.alphaRatio * (0.8 + 0.2 * Math.sin(fogDrift.value * Math.PI * 2 * 0.5 + i * 2));
+      fogPaint.setColor(skColor);
+      fogPaint.setAlphaf(opacity);
+      c.drawCircle(cx, cy, r, fogPaint);
+    }
+    return fogRecorder.finishRecordingAsPicture();
+  });
+
+  // ── Blood drops: Immediate Mode via Picture API ──
+  // Replaces 5 BloodDrop components (25 useDerivedValue + 5 useSharedValue) with 1.
+  // Each drop derives its own progress from the shared bloodCycle using its speed/delay.
+  const bloodPicture = useDerivedValue(() => {
+    'worklet';
+    const c = bloodRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
+    const skColor = Skia.Color('#cc1111');
+    // bloodCycle runs 0→1 every 1000ms; each drop has its own period
+    // We use modular time to derive independent drop positions
+    const timeMs = bloodCycle.value * 1000;
+
+    for (let i = 0; i < BLOOD_DROPS.length; i++) {
+      const drop = BLOOD_DROPS[i];
+      const cx = drop.xRatio * cardWidth;
+      const streakW = drop.size * 0.6;
+
+      // Each drop loops at its own speed; offset by delay
+      const elapsed = Math.max(0, timeMs - drop.delay);
+      const p = (elapsed % drop.speed) / drop.speed;
+
+      // Current Y position (top → 95% of card height)
+      const cy = p * cardHeight * 0.95;
+
+      // Blood streak — gradient approximation via variable alpha
+      const streakH = Math.max(0, cy - drop.size * 2);
+      let streakOp: number;
+      if (p < 0.08) streakOp = 0;
+      else if (p > 0.85) streakOp = Math.max(0, (1 - p) / 0.15) * 0.2;
+      else streakOp = Math.min(0.2, (p - 0.08) * 0.8);
+
+      if (streakH > 0 && streakOp > 0) {
+        bloodPaint.setColor(skColor);
+        bloodPaint.setAlphaf(streakOp);
+        c.drawRect(Skia.XYWHRect(cx - streakW / 2, 0, streakW, streakH), bloodPaint);
+      }
+
+      // Teardrop body
+      let dropOp: number;
+      if (p < 0.05) dropOp = p / 0.05;
+      else if (p > 0.85) dropOp = Math.max(0, (1 - p) / 0.15);
+      else dropOp = 0.9;
+
+      if (dropOp > 0) {
+        const path = BLOOD_DROP_PATHS[i];
+        c.save();
+        c.translate(cx, cy);
+        bloodPaint.setColor(skColor);
+        bloodPaint.setAlphaf(dropOp);
+        c.drawPath(path, bloodPaint);
+        c.restore();
+      }
+    }
+    return bloodRecorder.finishRecordingAsPicture();
+  });
 
   // ── Spark fragments: Immediate Mode via Picture API ──
   // Replaces 24 WolfSpark components (96 useDerivedValue per frame) with 1.
@@ -579,34 +521,20 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
         </Circle>
       </Group>
 
-      {/* Fog clouds — volumetric RadialGradient layers drifting */}
-      <Group>
-        {FOG_CLOUDS.map((fog, i) => (
-          <SkiaFogCloud
-            key={`fog-${i}`}
-            fog={fog}
-            index={i}
-            fogDrift={fogDrift}
-            cardWidth={cardWidth}
-            cardHeight={cardHeight}
-            color={primaryColor}
-          />
-        ))}
+      {/* Fog clouds — Picture API with group-level blur (replaces 8 SkiaFogCloud) */}
+      <Group
+        layer={
+          <Paint>
+            <Blur blur={25} />
+          </Paint>
+        }
+      >
+        <Picture picture={fogPicture} />
       </Group>
 
-      {/* Blood drops — teardrop shapes with trailing glow */}
+      {/* Blood drops — Picture API (replaces 5 BloodDrop components) */}
       <Group>
-        {BLOOD_DROPS.map((drop, i) => (
-          <BloodDrop
-            key={`blood-${i}`}
-            xRatio={drop.xRatio}
-            size={drop.size}
-            dropProgress={dropSVs[i]}
-            color="#cc1111"
-            cardWidth={cardWidth}
-            cardHeight={cardHeight}
-          />
-        ))}
+        <Picture picture={bloodPicture} />
       </Group>
 
       {/* Wolf eyes — two menacing red glows */}
