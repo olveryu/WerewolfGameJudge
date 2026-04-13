@@ -69,6 +69,13 @@ interface BuiltinCellItem {
   index: number;
 }
 
+interface FlairGridItem {
+  key: string;
+  flairId: FlairId | 'none';
+  /** Placeholder cells to fill out the last row */
+  placeholder?: boolean;
+}
+
 export const AvatarPickerScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createAvatarPickerScreenStyles(colors), []);
@@ -161,6 +168,26 @@ export const AvatarPickerScreen: React.FC = () => {
     }
     return items;
   }, [unlockedAvatars]);
+
+  /** Flair grid data — "none" + sorted flairs + placeholders for last row */
+  const flairData: FlairGridItem[] = useMemo(() => {
+    const items: FlairGridItem[] = [{ key: 'flair-none', flairId: 'none' }];
+    const sorted = [...SEAT_FLAIRS].sort((a, b) => {
+      const aUnlocked = isFlairUnlocked(a.id, unlockedIds) ? 0 : 1;
+      const bUnlocked = isFlairUnlocked(b.id, unlockedIds) ? 0 : 1;
+      return aUnlocked - bUnlocked;
+    });
+    for (const flair of sorted) {
+      items.push({ key: `flair-${flair.id}`, flairId: flair.id });
+    }
+    const remainder = items.length % NUM_COLUMNS;
+    if (remainder !== 0) {
+      for (let i = 0; i < NUM_COLUMNS - remainder; i++) {
+        items.push({ key: `flair-placeholder-${i}`, flairId: 'none', placeholder: true });
+      }
+    }
+    return items;
+  }, [unlockedIds]);
 
   // ── Handlers ──
 
@@ -424,6 +451,98 @@ export const AvatarPickerScreen: React.FC = () => {
     [currentBuiltinIndex, selected, unlockedAvatars, handlePressBuiltin, handleLongPress, styles],
   );
 
+  const flairKeyExtractor = useCallback((item: FlairGridItem) => item.key, []);
+
+  const renderFlairItem = useCallback(
+    ({ item }: ListRenderItemInfo<FlairGridItem>) => {
+      if (item.placeholder) {
+        return <View style={styles.frameGridCell} />;
+      }
+
+      if (item.flairId === 'none') {
+        return (
+          <TouchableOpacity
+            style={[
+              styles.frameGridCell,
+              isNoFlairSelected && styles.frameGridCellSelected,
+              !isNoFlairSelected &&
+                isNoFlairActive &&
+                selectedFlair === null &&
+                styles.frameGridCellActive,
+            ]}
+            onPress={() => handlePressFlair('none')}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.frameGridNoFrame,
+                { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
+              ]}
+            >
+              <Ionicons
+                name="close-circle-outline"
+                size={componentSizes.icon.xl}
+                color={colors.textMuted}
+              />
+            </View>
+            <Text style={[styles.frameGridName, isNoFlairSelected && styles.frameGridNameSelected]}>
+              无
+            </Text>
+          </TouchableOpacity>
+        );
+      }
+
+      const isActive = currentFlairId === item.flairId;
+      const isFlairSelected = selectedFlair === item.flairId;
+      const unlocked = isFlairUnlocked(item.flairId, unlockedIds);
+      const FlairComponent = getFlairById(item.flairId)?.Component;
+      const flairConfig = SEAT_FLAIRS.find((f) => f.id === item.flairId);
+
+      return (
+        <TouchableOpacity
+          style={[
+            styles.frameGridCell,
+            isFlairSelected && styles.frameGridCellSelected,
+            !isFlairSelected && isActive && selectedFlair === null && styles.frameGridCellActive,
+            !unlocked && styles.frameGridCellLocked,
+          ]}
+          onPress={() => handlePressFlair(item.flairId as FlairId)}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.flairPreviewCell,
+              { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
+            ]}
+          >
+            {FlairComponent && (
+              <FlairComponent size={FRAME_GRID_CELL_SIZE} borderRadius={borderRadiusToken.medium} />
+            )}
+            <AvatarWithFrame
+              value={user?.uid ?? 'anonymous'}
+              size={FRAME_GRID_CELL_SIZE - 8}
+              avatarUrl={previewAvatarUrl}
+            />
+          </View>
+          <Text style={[styles.frameGridName, isFlairSelected && styles.frameGridNameSelected]}>
+            {unlocked ? (flairConfig?.name ?? '') : '未解锁'}
+          </Text>
+        </TouchableOpacity>
+      );
+    },
+    [
+      isNoFlairSelected,
+      isNoFlairActive,
+      selectedFlair,
+      currentFlairId,
+      unlockedIds,
+      handlePressFlair,
+      previewAvatarUrl,
+      user?.uid,
+      styles,
+    ],
+  );
+
   // ── Render sections ──
 
   return (
@@ -617,100 +736,18 @@ export const AvatarPickerScreen: React.FC = () => {
               })}
           </ScrollView>
         ) : activeTab === 'flair' ? (
-          <ScrollView
-            style={scrollViewFlex}
-            contentContainerStyle={styles.frameGrid}
+          <FlatList
+            data={flairData}
+            renderItem={renderFlairItem}
+            keyExtractor={flairKeyExtractor}
+            numColumns={NUM_COLUMNS}
+            columnWrapperStyle={styles.flairGridRow}
+            contentContainerStyle={styles.flairGridContent}
             showsVerticalScrollIndicator={false}
-          >
-            {/* "None" option */}
-            <TouchableOpacity
-              style={[
-                styles.frameGridCell,
-                isNoFlairSelected && styles.frameGridCellSelected,
-                !isNoFlairSelected &&
-                  isNoFlairActive &&
-                  selectedFlair === null &&
-                  styles.frameGridCellActive,
-              ]}
-              onPress={() => handlePressFlair('none')}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.frameGridNoFrame,
-                  { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
-                ]}
-              >
-                <Ionicons
-                  name="close-circle-outline"
-                  size={componentSizes.icon.xl}
-                  color={colors.textMuted}
-                />
-              </View>
-              <Text
-                style={[styles.frameGridName, isNoFlairSelected && styles.frameGridNameSelected]}
-              >
-                无
-              </Text>
-            </TouchableOpacity>
-
-            {/* Flair options — unlocked first, then locked */}
-            {[...SEAT_FLAIRS]
-              .sort((a, b) => {
-                const aUnlocked = isFlairUnlocked(a.id, unlockedIds) ? 0 : 1;
-                const bUnlocked = isFlairUnlocked(b.id, unlockedIds) ? 0 : 1;
-                return aUnlocked - bUnlocked;
-              })
-              .map((flair) => {
-                const isActive = currentFlairId === flair.id;
-                const isFlairSelected = selectedFlair === flair.id;
-                const unlocked = isFlairUnlocked(flair.id, unlockedIds);
-                const FlairComponent = getFlairById(flair.id)?.Component;
-                return (
-                  <TouchableOpacity
-                    key={flair.id}
-                    style={[
-                      styles.frameGridCell,
-                      isFlairSelected && styles.frameGridCellSelected,
-                      !isFlairSelected &&
-                        isActive &&
-                        selectedFlair === null &&
-                        styles.frameGridCellActive,
-                      !unlocked && styles.frameGridCellLocked,
-                    ]}
-                    onPress={() => handlePressFlair(flair.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.flairPreviewCell,
-                        { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
-                      ]}
-                    >
-                      {FlairComponent && (
-                        <FlairComponent
-                          size={FRAME_GRID_CELL_SIZE}
-                          borderRadius={borderRadiusToken.medium}
-                        />
-                      )}
-                      <AvatarWithFrame
-                        value={user?.uid ?? 'anonymous'}
-                        size={FRAME_GRID_CELL_SIZE - 8}
-                        avatarUrl={previewAvatarUrl}
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        styles.frameGridName,
-                        isFlairSelected && styles.frameGridNameSelected,
-                      ]}
-                    >
-                      {unlocked ? flair.name : '未解锁'}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-          </ScrollView>
+            windowSize={2}
+            maxToRenderPerBatch={8}
+            initialNumToRender={12}
+          />
         ) : null}
       </View>
 
