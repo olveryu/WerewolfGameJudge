@@ -1,27 +1,18 @@
 /**
- * AtmosphericBackground — Skia 环境粒子氛围层
+ * AtmosphericBackground — 环境粒子氛围层
  *
  * 在各揭示动画交互阶段提供低调的背景粒子/光晕运动感，
- * 增强沉浸感但不喧宾夺主。使用 Skia Canvas + Blur + blendMode="screen"。
+ * 增强沉浸感但不喧宾夺主。使用 Reanimated Animated.View 实现
+ * （替代原 Skia Canvas + Picture API，减少同屏 Canvas 数量）。
  * 接受阵营主色，自动生成环境粒子。
  * 不 import service，不含业务逻辑。
  */
-import {
-  Blur,
-  Canvas,
-  Circle,
-  Group,
-  Paint,
-  Picture,
-  RadialGradient,
-  Skia,
-  vec,
-} from '@shopify/react-native-skia';
 import React, { useEffect } from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
-import {
+import { Dimensions, StyleSheet, View } from 'react-native';
+import type { SharedValue } from 'react-native-reanimated';
+import Animated, {
   Easing,
-  useDerivedValue,
+  useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
@@ -45,9 +36,48 @@ const AMBIENT_PARTICLES = Array.from({ length: AMBIENT_COUNT }, (_, i) => {
   };
 });
 
-// ── Immediate-mode Skia resources (reused across frames) ──
-const particleRecorder = Skia.PictureRecorder();
-const particlePaint = Skia.Paint();
+/** Single ambient particle — Animated.View circle */
+const AmbientParticle = React.memo(function AmbientParticle({
+  xRatio,
+  yRatio,
+  size,
+  driftX,
+  driftY,
+  phase,
+  cycle,
+  color,
+}: {
+  xRatio: number;
+  yRatio: number;
+  size: number;
+  driftX: number;
+  driftY: number;
+  phase: number;
+  cycle: SharedValue<number>;
+  color: string;
+}) {
+  const baseX = xRatio * SCREEN_W;
+  const baseY = yRatio * SCREEN_H;
+
+  const style = useAnimatedStyle(() => {
+    const c = cycle.value;
+    const cx = baseX + driftX * Math.sin(c + phase);
+    const cy = baseY + driftY * Math.sin(c * 0.7 + phase);
+    const opacity = 0.15 + 0.15 * Math.sin(c * 1.3 + phase);
+    return {
+      position: 'absolute',
+      left: cx - size,
+      top: cy - size,
+      width: size * 2,
+      height: size * 2,
+      borderRadius: size,
+      backgroundColor: color,
+      opacity,
+    };
+  });
+
+  return <Animated.View style={style} />;
+});
 
 interface AtmosphericBackgroundProps {
   /** Primary color for particles */
@@ -75,61 +105,55 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
     );
   }, [animate, cycle, glowPulse]);
 
-  const centerGlowOpacity = useDerivedValue(() => 0.06 + glowPulse.value * 0.04);
+  const glowRadius = SCREEN_W * 0.6;
 
-  // ── Particles: Immediate Mode via Picture API ──
-  // Replaces 12 AmbientParticle components (36 useDerivedValue per frame) with 1.
-  const particlePicture = useDerivedValue(() => {
-    'worklet';
-    const c = particleRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
-    const skColor = Skia.Color(color);
-    for (let i = 0; i < AMBIENT_PARTICLES.length; i++) {
-      const p = AMBIENT_PARTICLES[i];
-      const baseX = p.xRatio * SCREEN_W;
-      const baseY = p.yRatio * SCREEN_H;
-      const cx = baseX + p.driftX * Math.sin(cycle.value + p.phase);
-      const cy = baseY + p.driftY * Math.sin(cycle.value * 0.7 + p.phase);
-      const opacity = 0.15 + 0.15 * Math.sin(cycle.value * 1.3 + p.phase);
-      particlePaint.setColor(skColor);
-      particlePaint.setAlphaf(opacity);
-      c.drawCircle(cx, cy, p.size, particlePaint);
-    }
-    return particleRecorder.finishRecordingAsPicture();
-  });
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: 0.06 + glowPulse.value * 0.04,
+  }));
 
   if (!animate) return null;
 
   return (
-    <Canvas style={styles.fullScreen} pointerEvents="none">
-      {/* Subtle center radial glow */}
-      <Group opacity={centerGlowOpacity}>
-        <Circle cx={SCREEN_W / 2} cy={SCREEN_H * 0.45} r={SCREEN_W * 0.6}>
-          <RadialGradient
-            c={vec(SCREEN_W / 2, SCREEN_H * 0.45)}
-            r={SCREEN_W * 0.6}
-            colors={[`${color}30`, `${color}00`]}
-          />
-          <Blur blur={30} />
-        </Circle>
-      </Group>
+    <View style={styles.fullScreen} pointerEvents="none">
+      {/* Subtle center radial glow — approximated with large blurred circle */}
+      <Animated.View
+        style={[
+          styles.glow,
+          {
+            left: SCREEN_W / 2 - glowRadius,
+            top: SCREEN_H * 0.45 - glowRadius,
+            width: glowRadius * 2,
+            height: glowRadius * 2,
+            borderRadius: glowRadius,
+            backgroundColor: color,
+          },
+          glowStyle,
+        ]}
+      />
 
-      {/* Floating ambient particles — Picture API with group-level blur */}
-      <Group
-        blendMode="screen"
-        layer={
-          <Paint>
-            <Blur blur={3} />
-          </Paint>
-        }
-      >
-        <Picture picture={particlePicture} />
-      </Group>
-    </Canvas>
+      {/* Floating ambient particles */}
+      {AMBIENT_PARTICLES.map((p, i) => (
+        <AmbientParticle
+          key={i}
+          xRatio={p.xRatio}
+          yRatio={p.yRatio}
+          size={p.size}
+          driftX={p.driftX}
+          driftY={p.driftY}
+          phase={p.phase}
+          cycle={cycle}
+          color={color}
+        />
+      ))}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   fullScreen: {
     ...StyleSheet.absoluteFillObject,
+  },
+  glow: {
+    position: 'absolute',
   },
 });

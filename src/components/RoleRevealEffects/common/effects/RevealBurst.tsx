@@ -1,18 +1,17 @@
 /**
- * RevealBurst — Skia 揭示瞬间爆裂粒子特效
+ * RevealBurst — 揭示瞬间爆裂粒子特效
  *
  * 在卡牌翻转/揭示的瞬间从中心爆发金色粒子 + 震荡环。
- * 使用 Skia Circle + Blur + blendMode="screen" 实现。
+ * 使用 Reanimated Animated.View 实现（替代原 Skia Canvas，减少同屏 Canvas 数量）。
  * `trigger` 从 false → true 时触发一次性爆发动画。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle, Group } from '@shopify/react-native-skia';
 import React, { useEffect } from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
-import {
+import Animated, {
   Easing,
-  useDerivedValue,
+  useAnimatedStyle,
   useSharedValue,
   withSequence,
   withTiming,
@@ -31,7 +30,7 @@ const BURST_PARTICLES = Array.from({ length: BURST_COUNT }, (_, i) => {
   };
 });
 
-/** Single burst particle */
+/** Single burst particle — Animated.View circle */
 const BurstParticle = React.memo(function BurstParticle({
   angle,
   dist,
@@ -49,19 +48,24 @@ const BurstParticle = React.memo(function BurstParticle({
   centerY: number;
   color: string;
 }) {
-  const cx = useDerivedValue(() => centerX + Math.cos(angle) * dist * progress.value);
-  const cy = useDerivedValue(() => centerY + Math.sin(angle) * dist * progress.value);
-  const opacity = useDerivedValue(() => {
+  const style = useAnimatedStyle(() => {
     const p = progress.value;
-    if (p < 0.2) return p / 0.2;
-    return Math.max(0, 1 - (p - 0.2) / 0.8);
+    const cx = centerX + Math.cos(angle) * dist * p;
+    const cy = centerY + Math.sin(angle) * dist * p;
+    const opacity = p < 0.2 ? p / 0.2 : Math.max(0, 1 - (p - 0.2) / 0.8);
+    return {
+      position: 'absolute',
+      left: cx - size,
+      top: cy - size,
+      width: size * 2,
+      height: size * 2,
+      borderRadius: size,
+      backgroundColor: color,
+      opacity,
+    };
   });
 
-  return (
-    <Circle cx={cx} cy={cy} r={size} color={color} opacity={opacity}>
-      <Blur blur={2} />
-    </Circle>
-  );
+  return <Animated.View style={style} />;
 });
 
 interface RevealBurstProps {
@@ -82,13 +86,13 @@ export const RevealBurst: React.FC<RevealBurstProps> = ({
   color = '#FFD700',
 }) => {
   const progress = useSharedValue(0);
-  const ringRadius = useSharedValue(0);
+  const ringScale = useSharedValue(0);
   const ringOpacity = useSharedValue(0);
 
   useEffect(() => {
     if (!trigger) return;
     progress.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.quad) });
-    ringRadius.value = withTiming(SCREEN_W * 0.4, {
+    ringScale.value = withTiming(1, {
       duration: 500,
       easing: Easing.out(Easing.cubic),
     });
@@ -96,41 +100,43 @@ export const RevealBurst: React.FC<RevealBurstProps> = ({
       withTiming(0.5, { duration: 100, easing: Easing.out(Easing.quad) }),
       withTiming(0, { duration: 400, easing: Easing.out(Easing.quad) }),
     );
-  }, [trigger, progress, ringRadius, ringOpacity]);
+  }, [trigger, progress, ringScale, ringOpacity]);
+
+  const ringDiameter = SCREEN_W * 0.8;
+  const ringStyle = useAnimatedStyle(() => ({
+    position: 'absolute',
+    left: centerX - ringDiameter / 2,
+    top: centerY - ringDiameter / 2,
+    width: ringDiameter,
+    height: ringDiameter,
+    borderRadius: ringDiameter / 2,
+    borderWidth: 2,
+    borderColor: color,
+    opacity: ringOpacity.value,
+    transform: [{ scale: ringScale.value }],
+  }));
 
   if (!trigger) return null;
 
   return (
-    <Canvas style={styles.fullScreen} pointerEvents="none">
+    <View style={styles.fullScreen} pointerEvents="none">
       {/* Shockwave ring */}
-      <Circle
-        cx={centerX}
-        cy={centerY}
-        r={ringRadius}
-        color={color}
-        style="stroke"
-        strokeWidth={2}
-        opacity={ringOpacity}
-      >
-        <Blur blur={4} />
-      </Circle>
+      <Animated.View style={ringStyle} />
 
       {/* Burst particles */}
-      <Group blendMode="screen">
-        {BURST_PARTICLES.map((p, i) => (
-          <BurstParticle
-            key={i}
-            angle={p.angle}
-            dist={p.dist}
-            size={p.size}
-            progress={progress}
-            centerX={centerX}
-            centerY={centerY}
-            color={color}
-          />
-        ))}
-      </Group>
-    </Canvas>
+      {BURST_PARTICLES.map((p, i) => (
+        <BurstParticle
+          key={i}
+          angle={p.angle}
+          dist={p.dist}
+          size={p.size}
+          progress={progress}
+          centerX={centerX}
+          centerY={centerY}
+          color={color}
+        />
+      ))}
+    </View>
   );
 };
 
