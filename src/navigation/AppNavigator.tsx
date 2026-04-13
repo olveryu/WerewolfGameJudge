@@ -85,7 +85,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Encyclopedia: 'encyclopedia/:roomNumber?',
       Notepad: 'notepad/:roomNumber',
       AvatarPicker: 'avatar-picker',
-      Unlocks: 'unlocks',
+      Unlocks: 'unlocks/:userId?',
       AuthLogin: 'auth/login',
       AuthEmail: 'auth/email',
       AuthForgotPassword: 'auth/forgot-password',

@@ -1,18 +1,19 @@
 /**
  * PlayerProfileCard — 玩家资料卡弹窗（游戏卡牌风格）
  *
- * 点击其他玩家座位时弹出，展示公开资料（头像+头像框、等级称号、局数、精选装扮）。
+ * 点击其他玩家座位时弹出，展示公开资料（头像+头像框、等级称号、局数）。
  * Host 额外显示"移出座位"按钮。Bot 显示简化卡（无 API）。
  * 纯展示 + 数据获取，不含游戏逻辑。
  */
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   getLevelProgress,
   getLevelTitle,
   LEVEL_THRESHOLDS,
 } from '@werewolf/game-engine/growth/level';
-import { REWARD_POOL } from '@werewolf/game-engine/growth/rewardCatalog';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -21,14 +22,14 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Avatar } from '@/components/Avatar';
-import { type FrameId, getFrameById } from '@/components/avatarFrames';
+import { type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { PressableScale } from '@/components/PressableScale';
 import { getFlairById } from '@/components/seatFlairs';
+import { RootStackParamList } from '@/navigation/types';
 import { fetchUserProfile, type UserPublicProfile } from '@/services/feature/StatsService';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
-import { AVATAR_KEYS, getBuiltinAvatarImage } from '@/utils/avatar';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -48,13 +49,7 @@ interface PlayerProfileCardProps {
 }
 
 const AVATAR_SIZE = componentSizes.avatar.xl; // 80pt
-const SHOWCASE_THUMB = 36;
 const CARD_WIDTH = 300;
-
-/** 根据 item ID 查找类型 */
-function getItemType(id: string): 'avatar' | 'frame' | 'seatFlair' | undefined {
-  return REWARD_POOL.find((r) => r.id === id)?.type;
-}
 
 /** 等级称号对应的主题色 */
 function getTitleColor(level: number): string {
@@ -65,32 +60,6 @@ function getTitleColor(level: number): string {
   if (level >= 6) return colors.textSecondary; // 入门
   return colors.textMuted; // 新手
 }
-
-// ---------------------------------------------------------------------------
-// Showcase: avatar thumbnail
-// ---------------------------------------------------------------------------
-const ShowcaseAvatar: React.FC<{ id: string }> = memo(({ id }) => {
-  const index = (AVATAR_KEYS as readonly string[]).indexOf(id);
-  if (index === -1) return null;
-  const source = getBuiltinAvatarImage(`builtin://${id}`);
-  return <Image source={source} style={showcaseStyles.avatarThumb} resizeMode="cover" />;
-});
-ShowcaseAvatar.displayName = 'ShowcaseAvatar';
-
-// ---------------------------------------------------------------------------
-// Showcase: frame thumbnail (render frame SVG at small size)
-// ---------------------------------------------------------------------------
-const ShowcaseFrame: React.FC<{ id: string }> = memo(({ id }) => {
-  const config = getFrameById(id);
-  if (!config) return null;
-  const { Component } = config;
-  return (
-    <View style={showcaseStyles.frameThumb}>
-      <Component size={SHOWCASE_THUMB} rx={6} />
-    </View>
-  );
-});
-ShowcaseFrame.displayName = 'ShowcaseFrame';
 
 // ---------------------------------------------------------------------------
 // Animated XP progress bar
@@ -127,6 +96,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
   rosterName,
   onKick,
 }) => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isBot = targetUid.startsWith('bot-');
   const [profile, setProfile] = useState<UserPublicProfile | null>(null);
   const [loading, setLoading] = useState(false);
@@ -172,6 +142,14 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
     onKick?.(targetSeat);
   }, [onClose, onKick, targetSeat]);
 
+  const handleViewUnlocks = useCallback(() => {
+    onClose();
+    navigation.navigate('Unlocks', {
+      userId: targetUid,
+      displayName: profile?.displayName,
+    });
+  }, [onClose, navigation, targetUid, profile?.displayName]);
+
   const xpProgress = useMemo(() => (profile ? getLevelProgress(profile.xp) : 0), [profile]);
 
   const nextThreshold = useMemo(
@@ -184,16 +162,6 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
     () => (profile ? getTitleColor(profile.level) : colors.textMuted),
     [profile],
   );
-
-  const showcaseElements = useMemo(() => {
-    if (!profile?.showcaseItems.length) return null;
-    return profile.showcaseItems.map((id) => {
-      const type = getItemType(id);
-      if (type === 'avatar') return <ShowcaseAvatar key={id} id={id} />;
-      if (type === 'frame') return <ShowcaseFrame key={id} id={id} />;
-      return null; // seatFlair — skip (no small thumbnail)
-    });
-  }, [profile]);
 
   // Resolve seat flair animation component
   const flairConfig = useMemo(
@@ -311,19 +279,11 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
                 <Text style={styles.statLabel}>总局数</Text>
               </View>
               <View style={styles.statDivider} />
-              <View style={styles.statItem}>
+              <PressableScale onPress={handleViewUnlocks} style={styles.statItem}>
                 <Text style={styles.statValue}>{profile.unlockedItemCount}</Text>
-                <Text style={styles.statLabel}>已解锁</Text>
-              </View>
+                <Text style={[styles.statLabel, styles.statLabelTappable]}>已解锁 ›</Text>
+              </PressableScale>
             </View>
-
-            {/* ── Showcase items ── */}
-            {showcaseElements && (
-              <View style={styles.showcaseSection}>
-                <Text style={styles.showcaseLabel}>精选装扮</Text>
-                <View style={styles.showcaseRow}>{showcaseElements}</View>
-              </View>
-            )}
 
             {/* ── Host kick button ── */}
             {isHost && onKick && (
@@ -343,21 +303,6 @@ export const PlayerProfileCard = memo(PlayerProfileCardComponent);
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
-
-const showcaseStyles = StyleSheet.create({
-  avatarThumb: {
-    width: SHOWCASE_THUMB,
-    height: SHOWCASE_THUMB,
-    borderRadius: SHOWCASE_THUMB / 2,
-    backgroundColor: colors.surfaceHover,
-  },
-  frameThumb: {
-    width: SHOWCASE_THUMB,
-    height: SHOWCASE_THUMB,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
 
 const styles = StyleSheet.create({
   modalContent: {
@@ -513,26 +458,13 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: spacing.micro,
   },
+  statLabelTappable: {
+    color: colors.primary,
+  },
   statDivider: {
     width: 1,
     height: 32,
     backgroundColor: colors.borderLight,
-  },
-
-  // Showcase
-  showcaseSection: {
-    width: '100%',
-    paddingHorizontal: spacing.large,
-    marginTop: spacing.medium,
-  },
-  showcaseLabel: {
-    fontSize: typography.caption,
-    color: colors.textMuted,
-    marginBottom: spacing.small,
-  },
-  showcaseRow: {
-    flexDirection: 'row',
-    gap: spacing.small,
   },
 
   // Kick

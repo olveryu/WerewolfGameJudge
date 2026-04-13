@@ -32,7 +32,7 @@ export type RootStackParamList = {
   Encyclopedia: { roomNumber?: string; roleId?: string } | undefined;
   Notepad: { roomNumber: string };
   AvatarPicker: undefined;
-  Unlocks: undefined;
+  Unlocks: { userId?: string; displayName?: string } | undefined;
   // Auth modal screens
   AuthLogin:
     | {

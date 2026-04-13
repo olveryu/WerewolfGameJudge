@@ -16,7 +16,9 @@ const mockNavigation = {
   setOptions: jest.fn(),
 };
 
-jest.mock('@react-navigation/native', () => ({}));
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+}));
 
 // Schema-driven flow: when currentSchema is the step schema (witchPoison), seat tap triggers a confirm
 // and confirmation submits submitAction(target, { poison: true }).

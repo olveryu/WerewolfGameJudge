@@ -86,7 +86,11 @@ import type { HandlerFn } from './handlers/shared';
 // Share image handlers
 import { handleShareImageServe, handleShareImageUpload } from './handlers/shareImage';
 // Stats handlers
-import { handleGetUserProfile, handleGetUserStats } from './handlers/statsHandlers';
+import {
+  handleGetUserProfile,
+  handleGetUserStats,
+  handleGetUserUnlocks,
+} from './handlers/statsHandlers';
 
 // ── Route maps ──────────────────────────────────────────────────────────────
 
@@ -275,6 +279,19 @@ export default {
       ) {
         if (request.method === 'GET') {
           return handleGetUserProfile(request, env, ctx);
+        }
+        return jsonResponse({ error: 'method not allowed' }, 405, env);
+      }
+
+      // /api/user/:userId/unlocks (GET) — 查看玩家已解锁物品
+      if (
+        segments[0] === 'api' &&
+        segments[1] === 'user' &&
+        segments[2] &&
+        segments[3] === 'unlocks'
+      ) {
+        if (request.method === 'GET') {
+          return handleGetUserUnlocks(request, env, ctx);
         }
         return jsonResponse({ error: 'method not allowed' }, 405, env);
       }

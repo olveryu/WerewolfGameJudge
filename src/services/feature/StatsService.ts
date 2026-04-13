@@ -24,8 +24,6 @@ export interface UserPublicProfile {
   xp: number;
   gamesPlayed: number;
   unlockedItemCount: number;
-  /** 最近解锁的物品 ID（最多 4 个），用于资料卡精选展示 */
-  showcaseItems: readonly string[];
 }
 
 /** 获取当前用户的成长数据 */
@@ -36,4 +34,13 @@ export async function fetchUserStats(): Promise<UserStats> {
 /** 获取指定用户的公开资料 */
 export async function fetchUserProfile(userId: string): Promise<UserPublicProfile> {
   return cfGet<UserPublicProfile>(`/api/user/${encodeURIComponent(userId)}/profile`);
+}
+
+/** 获取指定用户的已解锁物品列表 */
+export async function fetchUserUnlocks(
+  userId: string,
+): Promise<{ unlockedItems: readonly string[] }> {
+  return cfGet<{ unlockedItems: readonly string[] }>(
+    `/api/user/${encodeURIComponent(userId)}/unlocks`,
+  );
 }

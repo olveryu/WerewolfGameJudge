@@ -3,6 +3,7 @@
  *
  * GET /api/user/stats：返回当前用户 XP、等级、局数。
  * GET /api/user/:userId/profile：返回指定用户的公开资料。
+ * GET /api/user/:userId/unlocks：返回指定用户的已解锁物品列表。
  * 仅限已登录非匿名用户。
  */
 
@@ -11,9 +12,6 @@ import { getLevelTitle } from '@werewolf/game-engine/growth/level';
 import { extractBearerToken, verifyToken } from '../lib/auth';
 import { jsonResponse } from '../lib/cors';
 import type { HandlerFn } from './shared';
-
-/** 最多展示的精选解锁物品数量 */
-const SHOWCASE_LIMIT = 4;
 
 /** GET /api/user/:userId/profile — 查看其他玩家公开资料 */
 export const handleGetUserProfile: HandlerFn = async (req, env) => {
@@ -73,11 +71,33 @@ export const handleGetUserProfile: HandlerFn = async (req, env) => {
       xp: statsRow?.xp ?? 0,
       gamesPlayed: statsRow?.games_played ?? 0,
       unlockedItemCount: unlockedItems.length,
-      showcaseItems: unlockedItems.slice(-SHOWCASE_LIMIT),
     },
     200,
     env,
   );
+};
+
+/** GET /api/user/:userId/unlocks — 查看其他玩家已解锁物品列表 */
+export const handleGetUserUnlocks: HandlerFn = async (req, env) => {
+  const token = extractBearerToken(req);
+  if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
+  const payload = await verifyToken(token, env);
+  if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
+
+  const url = new URL(req.url);
+  const segments = url.pathname.split('/').filter(Boolean);
+  const targetUserId = segments[2]; // ['api', 'user', ':userId', 'unlocks']
+  if (!targetUserId) return jsonResponse({ error: 'userId required' }, 400, env);
+
+  const statsRow = await env.DB.prepare(`SELECT unlocked_items FROM user_stats WHERE user_id = ?`)
+    .bind(targetUserId)
+    .first<{ unlocked_items: string }>();
+
+  const unlockedItems: string[] = statsRow?.unlocked_items
+    ? (JSON.parse(statsRow.unlocked_items) as string[])
+    : [];
+
+  return jsonResponse({ unlockedItems }, 200, env);
 };
 
 export const handleGetUserStats: HandlerFn = async (req, env) => {

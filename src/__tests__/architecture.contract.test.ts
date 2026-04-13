@@ -101,6 +101,7 @@ describe('Layer boundary: screens → services runtime imports (restricted)', ()
     'BGM_TRACKS',
     'fetchUserStats',
     'fetchUserProfile',
+    'fetchUserUnlocks',
     'uploadShareImage',
   ];
 

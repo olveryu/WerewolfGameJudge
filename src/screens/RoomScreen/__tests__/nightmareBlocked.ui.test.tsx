@@ -22,7 +22,9 @@ jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-jest.mock('@react-navigation/native', () => ({}));
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+}));
 
 const mockShowAlert = showAlert as jest.Mock;
 

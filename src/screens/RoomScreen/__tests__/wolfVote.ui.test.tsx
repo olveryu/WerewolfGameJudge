@@ -21,7 +21,9 @@ const mockNavigation = {
   setOptions: jest.fn(),
 };
 
-jest.mock('@react-navigation/native', () => ({}));
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+}));
 
 // Mock the room hook: provide minimal state to render PlayerGrid and accept taps
 const mockSubmitAction = jest.fn();

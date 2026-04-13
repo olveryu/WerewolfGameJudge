@@ -4,6 +4,9 @@ import * as StatsService from '@/services/feature/StatsService';
 
 import { PlayerProfileCard } from '../PlayerProfileCard';
 
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: jest.fn() }),
+}));
 jest.mock('@/services/feature/StatsService');
 
 const mockFetchUserProfile = StatsService.fetchUserProfile as jest.MockedFunction<
@@ -75,7 +78,6 @@ describe('PlayerProfileCard', () => {
         title: '',
         gamesPlayed: 5,
         unlockedItemCount: 3,
-        showcaseItems: [],
       };
       mockFetchUserProfile.mockResolvedValue(mockProfile);
 

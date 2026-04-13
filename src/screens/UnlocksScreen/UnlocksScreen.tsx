@@ -5,7 +5,7 @@
  * 已解锁 cell 高亮 + 绿色对勾角标，未解锁灰暗 + 锁标。
  */
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   AVATAR_IDS,
@@ -34,7 +34,7 @@ import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { RootStackParamList } from '@/navigation/types';
-import { fetchUserStats, type UserStats } from '@/services/feature/StatsService';
+import { fetchUserStats, fetchUserUnlocks } from '@/services/feature/StatsService';
 import {
   borderRadius,
   colors,
@@ -70,25 +70,34 @@ interface UnlockItem {
 export const UnlocksScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Unlocks'>>();
-  const [stats, setStats] = useState<UserStats | null>(null);
+  const route = useRoute<RouteProp<RootStackParamList, 'Unlocks'>>();
+  const viewingUserId = route.params?.userId;
+  const viewingDisplayName = route.params?.displayName;
+  const isViewer = !!viewingUserId;
+
+  const [unlockedItems, setUnlockedItems] = useState<readonly string[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('avatar');
 
   useEffect(() => {
-    fetchUserStats()
-      .then(setStats)
-      .catch((e: unknown) => settingsLog.warn('Failed to fetch stats for unlocks', e))
+    const fetchData = viewingUserId
+      ? fetchUserUnlocks(viewingUserId).then((r) => r.unlockedItems)
+      : fetchUserStats().then((r) => r.unlockedItems);
+
+    fetchData
+      .then(setUnlockedItems)
+      .catch((e: unknown) => settingsLog.warn('Failed to fetch unlocks', e))
       .finally(() => setLoading(false));
-  }, []);
+  }, [viewingUserId]);
 
   const unlockedSet = useMemo(
     () =>
       new Set([
         ...Array.from(FREE_AVATAR_IDS),
         ...Array.from(FREE_FRAME_IDS),
-        ...(stats?.unlockedItems ?? []),
+        ...(unlockedItems ?? []),
       ]),
-    [stats],
+    [unlockedItems],
   );
 
   const avatarItems = useMemo(
@@ -155,11 +164,15 @@ export const UnlocksScreen: React.FC = () => {
             </View>
           </View>
           <View style={styles.summaryRight}>
-            <Text style={styles.summaryTitle}>收藏进度</Text>
+            <Text style={styles.summaryTitle}>{isViewer ? 'TA的收藏' : '收藏进度'}</Text>
             <View style={styles.summaryBarBg}>
               <View style={[styles.summaryBarFill, { width: `${progressPercent}%` }]} />
             </View>
-            <Text style={styles.summarySubtitle}>已收集 {progressPercent}%，继续游玩解锁更多</Text>
+            <Text style={styles.summarySubtitle}>
+              {isViewer
+                ? `已收集 ${progressPercent}%`
+                : `已收集 ${progressPercent}%，继续游玩解锁更多`}
+            </Text>
           </View>
         </View>
 
@@ -180,7 +193,7 @@ export const UnlocksScreen: React.FC = () => {
         </View>
       </>
     ),
-    [unlockedCount, totalCount, progressPercent, activeTab],
+    [unlockedCount, totalCount, progressPercent, activeTab, isViewer],
   );
 
   return (
@@ -189,7 +202,9 @@ export const UnlocksScreen: React.FC = () => {
         <Button variant="icon" onPress={handleGoBack}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>
-        <Text style={styles.headerTitle}>解锁一览</Text>
+        <Text style={styles.headerTitle}>
+          {isViewer ? `${viewingDisplayName ?? 'TA'}的收藏` : '解锁一览'}
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -199,7 +214,6 @@ export const UnlocksScreen: React.FC = () => {
         </View>
       ) : (
         <FlatList
-          key={activeTab}
           data={currentItems}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
@@ -207,6 +221,9 @@ export const UnlocksScreen: React.FC = () => {
           ListHeaderComponent={listHeader}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={12}
+          maxToRenderPerBatch={8}
+          windowSize={5}
         />
       )}
     </SafeAreaView>
