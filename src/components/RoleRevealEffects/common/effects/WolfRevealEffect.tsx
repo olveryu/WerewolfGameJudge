@@ -394,10 +394,10 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
 
   // ── Fog clouds: Immediate Mode via Picture API ──
   // Replaces 8 SkiaFogCloud components (24 useDerivedValue per frame) with 1.
+  // Uses RadialGradient shader per cloud for soft center→transparent edges (matching original).
   const fogPicture = useDerivedValue(() => {
     'worklet';
     const c = fogRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
-    const skColor = Skia.Color(primaryColor);
     for (let i = 0; i < FOG_CLOUDS.length; i++) {
       const fog = FOG_CLOUDS[i];
       const r = fog.rRatio * cardWidth;
@@ -407,10 +407,23 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
         Math.cos(fogDrift.value * Math.PI * 2 * 0.7 + i * 1.3) * fog.driftYAmp;
       const opacity =
         fog.alphaRatio * (0.8 + 0.2 * Math.sin(fogDrift.value * Math.PI * 2 * 0.5 + i * 2));
-      fogPaint.setColor(skColor);
+      // RadialGradient: center opaque → edge transparent (same as original SkiaFogCloud)
+      const shader = Skia.Shader.MakeRadialGradient(
+        { x: cx, y: cy },
+        r,
+        [
+          Skia.Color(`${primaryColor}90`),
+          Skia.Color(`${primaryColor}40`),
+          Skia.Color(`${primaryColor}00`),
+        ],
+        [0, 0.5, 1],
+        0,
+      );
+      fogPaint.setShader(shader);
       fogPaint.setAlphaf(opacity);
       c.drawCircle(cx, cy, r, fogPaint);
     }
+    fogPaint.setShader(null);
     return fogRecorder.finishRecordingAsPicture();
   });
 
