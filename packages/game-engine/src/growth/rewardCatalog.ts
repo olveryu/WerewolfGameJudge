@@ -77,6 +77,16 @@ export const FRAME_IDS = [
   'frostCrystal',
   'pharaohGold',
   'voidRift',
+  'stormBolt',
+  'sakuraDrift',
+  'dragonScale',
+  'jadeSeal',
+  'starNebula',
+  'shadowWeave',
+  'coralReef',
+  'emberAsh',
+  'celestialRing',
+  'obsidianEdge',
 ] as const;
 
 /** 全部座位装饰 ID（与 `seatFlairs/index.ts` Component 注册表 1:1 对应）。 */

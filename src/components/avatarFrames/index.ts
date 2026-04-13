@@ -10,14 +10,24 @@ import type React from 'react';
 
 import { BloodThornFrame } from './BloodThornFrame';
 import { BoneGateFrame } from './BoneGateFrame';
+import { CelestialRingFrame } from './CelestialRingFrame';
+import { CoralReefFrame } from './CoralReefFrame';
 import { DarkVineFrame } from './DarkVineFrame';
+import { DragonScaleFrame } from './DragonScaleFrame';
+import { EmberAshFrame } from './EmberAshFrame';
 import type { FrameProps } from './FrameProps';
 import { FrostCrystalFrame } from './FrostCrystalFrame';
 import { HellFireFrame } from './HellFireFrame';
 import { IronForgeFrame } from './IronForgeFrame';
+import { JadeSealFrame } from './JadeSealFrame';
 import { MoonSilverFrame } from './MoonSilverFrame';
+import { ObsidianEdgeFrame } from './ObsidianEdgeFrame';
 import { PharaohGoldFrame } from './PharaohGoldFrame';
 import { RunicSealFrame } from './RunicSealFrame';
+import { SakuraDriftFrame } from './SakuraDriftFrame';
+import { ShadowWeaveFrame } from './ShadowWeaveFrame';
+import { StarNebulaFrame } from './StarNebulaFrame';
+import { StormBoltFrame } from './StormBoltFrame';
 import { VoidRiftFrame } from './VoidRiftFrame';
 
 export type { FrameId };
@@ -44,6 +54,16 @@ const FRAME_REGISTRY: Record<FrameId, AvatarFrameConfig> = {
   frostCrystal: { name: '霜晶', Component: FrostCrystalFrame },
   pharaohGold: { name: '墓金', Component: PharaohGoldFrame },
   voidRift: { name: '虚裂', Component: VoidRiftFrame },
+  stormBolt: { name: '雷暴', Component: StormBoltFrame },
+  sakuraDrift: { name: '樱散', Component: SakuraDriftFrame },
+  dragonScale: { name: '龙鳞', Component: DragonScaleFrame },
+  jadeSeal: { name: '玉印', Component: JadeSealFrame },
+  starNebula: { name: '星云', Component: StarNebulaFrame },
+  shadowWeave: { name: '影织', Component: ShadowWeaveFrame },
+  coralReef: { name: '珊瑚', Component: CoralReefFrame },
+  emberAsh: { name: '余烬', Component: EmberAshFrame },
+  celestialRing: { name: '天环', Component: CelestialRingFrame },
+  obsidianEdge: { name: '黑曜', Component: ObsidianEdgeFrame },
 };
 
 /** 所有可用头像框（顺序 = FRAME_IDS 展示顺序） */
