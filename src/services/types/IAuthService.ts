@@ -89,8 +89,8 @@ export interface IAuthService {
   /** 从本地 session 恢复认证，返回 userId 或 null */
   initAuth(): Promise<string | null>;
 
-  /** 根据 uid hash 生成随机中文昵称 */
-  generateDisplayName(uid: string): string;
+  /** 生成随机中文昵称（狼人杀梗前缀 + 角色名），session 内缓存 */
+  generateDisplayName(): string;
 
   /** 获取当前用户昵称 */
   getCurrentDisplayName(): Promise<string>;

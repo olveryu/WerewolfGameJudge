@@ -26,6 +26,7 @@ export class CFAuthService implements IAuthService {
   #cachedToken: string | null = null;
   #isAnonymous = false;
   #hasWechat = false;
+  #generatedName: string | null = null;
   readonly #initPromise: Promise<void>;
 
   constructor() {
@@ -207,83 +208,121 @@ export class CFAuthService implements IAuthService {
     return null;
   }
 
-  generateDisplayName(uid: string): string {
+  generateDisplayName(): string {
+    if (this.#generatedName) return this.#generatedName;
+
+    // 100 个狼人杀梗前缀
     const adjectives = [
-      '快乐',
-      '勇敢',
-      '聪明',
-      '神秘',
-      '可爱',
-      '酷炫',
-      '狡猾',
-      '正义',
-      '机智',
-      '沉稳',
-      '热血',
-      '冷静',
-      '傲娇',
-      '呆萌',
-      '腹黑',
-      '高冷',
-      '温柔',
-      '霸气',
-      '淡定',
-      '暴躁',
-      '憨厚',
-      '精明',
-      '天真',
-      '老练',
-      '迷糊',
-      '清醒',
-      '困倦',
-      '亢奋',
-      '悠闲',
-      '忙碌',
-      '饥饿',
-      '满足',
-      '微醺',
-      '元气',
-      '慵懒',
-      '活泼',
-      '安静',
-      '躁动',
-      '专注',
-      '发呆',
-      '优雅',
-      '野性',
-      '文艺',
-      '朋克',
-      '复古',
-      '未来',
-      '古典',
-      '摇滚',
-      '甜美',
-      '辛辣',
-      '清新',
-      '浓郁',
-      '梦幻',
-      '现实',
-      '浪漫',
-      '理性',
-      '超级',
-      '无敌',
-      '绝世',
-      '传说',
-      '史诗',
-      '究极',
-      '至尊',
-      '王者',
+      '首刀',
+      '自刀',
+      '空刀',
+      '暗刀',
+      '补刀',
+      '乱刀',
+      '挡刀',
+      '背刀',
+      '刀法',
+      '金水',
+      '银水',
+      '查杀',
+      '反查',
+      '发水',
+      '深水',
+      '对跳',
+      '悍跳',
+      '裸跳',
+      '跳坑',
+      '站边',
+      '归票',
+      '跑票',
+      '飞票',
+      '铁票',
+      '秒投',
+      '改票',
+      '混票',
+      '冲票',
+      '拉票',
+      '抗推',
+      '扛推',
+      '放逐',
+      '公投',
+      '上警',
+      '退水',
+      '划水',
+      '警上',
+      '警下',
+      '踩人',
+      '捞人',
+      '倒钩',
+      '互踩',
+      '互保',
+      '自爆',
+      '翻盘',
+      '翻牌',
+      '亮牌',
+      '暗牌',
+      '明牌',
+      '炸牌',
+      '摊牌',
+      '反水',
+      '上岸',
+      '抱团',
+      '对线',
+      '拉扯',
+      '破绽',
+      '毒奶',
+      '甩锅',
+      '背锅',
+      '挖坑',
+      '控场',
+      '打底',
+      '开车',
+      '搭车',
+      '带飞',
+      '带坑',
+      '躺平',
+      '躺赢',
+      '躺输',
+      '苟住',
+      '冲锋',
+      '收割',
+      '逆风',
+      '顺风',
+      '起飞',
+      '血崩',
+      '丝血',
+      '残局',
+      '开局',
+      '白板',
+      '神位',
+      '狼坑',
+      '铁狼',
+      '独狼',
+      '民意',
+      '遗言',
+      '闭眼',
+      '睁眼',
+      '天黑',
+      '天亮',
+      '出局',
+      '焦点',
+      '口嗨',
+      '拍桌',
+      '吃药',
+      '蹭车',
+      '抢水',
+      '存活',
+      '盘逻辑',
     ];
     const nouns = getAllRoleIds().map((id) => getRoleSpec(id).displayName);
 
-    const chars = uid.split('');
-    const hash1 = chars.reduce((acc, char, i) => acc + (char.codePointAt(0) || 0) * (i + 1), 0);
-    const hash3 = chars.reduce((acc, char) => acc ^ (char.codePointAt(0) || 0), 0) * 31;
+    const arr = new Uint32Array(2);
+    crypto.getRandomValues(arr);
+    const idx1 = arr[0] % adjectives.length;
+    const idx2 = arr[1] % nouns.length;
 
-    const idx1 = Math.abs(hash1) % adjectives.length;
-    const idx3 = Math.abs(hash3) % nouns.length;
-
-    return adjectives[idx1] + nouns[idx3];
+    this.#generatedName = adjectives[idx1] + '的' + nouns[idx2];
+    return this.#generatedName;
   }
 
   async getCurrentDisplayName(): Promise<string> {
@@ -297,7 +336,7 @@ export class CFAuthService implements IAuthService {
     } catch (e) {
       authLog.debug('getCurrentDisplayName failed, falling through to generated name', e);
     }
-    return this.generateDisplayName(this.#currentUserId || 'anonymous');
+    return this.generateDisplayName();
   }
 
   async getCurrentAvatarUrl(): Promise<string | null> {
