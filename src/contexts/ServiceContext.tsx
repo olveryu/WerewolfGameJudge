@@ -30,7 +30,7 @@ interface ServiceProviderProps {
 
 export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children, services }) => {
   const value = useMemo(() => services, [services]);
-  return <ServiceContext.Provider value={value}>{children}</ServiceContext.Provider>;
+  return <ServiceContext value={value}>{children}</ServiceContext>;
 };
 
 export const useServices = (): ServiceContextValue => {

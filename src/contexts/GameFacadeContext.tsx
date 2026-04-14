@@ -29,7 +29,7 @@ export const GameFacadeProvider: React.FC<GameFacadeProviderProps> = ({ children
     [facade],
   );
 
-  return <GameFacadeContext.Provider value={value}>{children}</GameFacadeContext.Provider>;
+  return <GameFacadeContext value={value}>{children}</GameFacadeContext>;
 };
 
 export const useGameFacade = (): IGameFacade => {
