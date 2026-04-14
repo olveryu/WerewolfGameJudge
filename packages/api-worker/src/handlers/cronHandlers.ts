@@ -6,6 +6,10 @@
  * - 清理 14 天不活跃的匿名用户（需非任何房间 host）
  */
 
+import { sql } from 'drizzle-orm';
+
+import { createDb } from '../db';
+import { loginAttempts, rooms, users } from '../db/schema';
 import type { Env } from '../env';
 
 const ROOM_MAX_AGE_HOURS = 24;
@@ -13,43 +17,46 @@ const ANON_INACTIVE_DAYS = 14;
 const BATCH_LIMIT = 1000;
 
 async function cleanupStaleRooms(env: Env): Promise<{ deleted: number }> {
-  const result = await env.DB.prepare(
-    `DELETE FROM rooms WHERE created_at < datetime('now', ? || ' hours')`,
-  )
-    .bind(`-${ROOM_MAX_AGE_HOURS}`)
-    .run();
+  const db = createDb(env.DB);
+  const result = await db
+    .delete(rooms)
+    .where(sql`${rooms.createdAt} < datetime('now', ${`-${ROOM_MAX_AGE_HOURS}`} || ' hours')`)
+    .returning({ id: rooms.id });
 
-  const deleted = result.meta.changes ?? 0;
+  const deleted = result.length;
   console.log(`[cron] cleanupStaleRooms: deleted ${deleted} rows`);
   return { deleted };
 }
 
 async function cleanupAnonymousUsers(env: Env): Promise<{ deleted: number }> {
-  const result = await env.DB.prepare(
-    `DELETE FROM users
-     WHERE id IN (
-       SELECT u.id FROM users u
-       LEFT JOIN rooms r ON r.host_id = u.id
-       WHERE u.is_anonymous = 1
-         AND u.updated_at < datetime('now', ? || ' days')
-         AND r.id IS NULL
-       LIMIT ?
-     )`,
-  )
-    .bind(`-${ANON_INACTIVE_DAYS}`, BATCH_LIMIT)
-    .run();
+  const db = createDb(env.DB);
+  const result = await db
+    .delete(users)
+    .where(
+      sql`${users.id} IN (
+        SELECT u.id FROM users u
+        LEFT JOIN rooms r ON r.host_id = u.id
+        WHERE u.is_anonymous = 1
+          AND u.updated_at < datetime('now', ${`-${ANON_INACTIVE_DAYS}`} || ' days')
+          AND r.id IS NULL
+        LIMIT ${BATCH_LIMIT}
+      )`,
+    )
+    .returning({ id: users.id });
 
-  const deleted = result.meta.changes ?? 0;
+  const deleted = result.length;
   console.log(`[cron] cleanupAnonymousUsers: deleted ${deleted} rows`);
   return { deleted };
 }
 
 async function cleanupOldLoginAttempts(env: Env): Promise<{ deleted: number }> {
-  const result = await env.DB.prepare(
-    `DELETE FROM login_attempts WHERE attempted_at < datetime('now', '-1 hour')`,
-  ).run();
+  const db = createDb(env.DB);
+  const result = await db
+    .delete(loginAttempts)
+    .where(sql`${loginAttempts.attemptedAt} < datetime('now', '-1 hour')`)
+    .returning({ id: loginAttempts.id });
 
-  const deleted = result.meta.changes ?? 0;
+  const deleted = result.length;
   console.log(`[cron] cleanupOldLoginAttempts: deleted ${deleted} rows`);
   return { deleted };
 }

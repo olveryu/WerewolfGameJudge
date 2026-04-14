@@ -1,0 +1,75 @@
+/**
+ * Drizzle ORM schema — D1 表定义
+ *
+ * 与 migrations/ 下的 SQL 保持一致。修改字段时需同步新增 migration 文件。
+ * 表名、列名使用 snake_case，与 D1 中的物理列一致。
+ */
+
+import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+
+// ── users ───────────────────────────────────────────────────────────────────
+
+export const users = sqliteTable(
+  'users',
+  {
+    id: text('id').primaryKey(),
+    email: text('email'),
+    passwordHash: text('password_hash'),
+    displayName: text('display_name'),
+    avatarUrl: text('avatar_url'),
+    customAvatarUrl: text('custom_avatar_url'),
+    avatarFrame: text('avatar_frame'),
+    equippedFlair: text('equipped_flair'),
+    wechatOpenid: text('wechat_openid'),
+    isAnonymous: integer('is_anonymous').notNull().default(1),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [uniqueIndex('idx_users_wechat_openid').on(table.wechatOpenid)],
+);
+
+// ── rooms ───────────────────────────────────────────────────────────────────
+
+export const rooms = sqliteTable('rooms', {
+  id: text('id').primaryKey(),
+  code: text('code').notNull().unique(),
+  hostId: text('host_id').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// ── password_reset_tokens ───────────────────────────────────────────────────
+
+export const passwordResetTokens = sqliteTable('password_reset_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  used: integer('used').notNull().default(0),
+  verifyAttempts: integer('verify_attempts').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});
+
+// ── login_attempts ──────────────────────────────────────────────────────────
+
+export const loginAttempts = sqliteTable('login_attempts', {
+  id: text('id').primaryKey(),
+  emailHash: text('email_hash').notNull(),
+  attemptedAt: text('attempted_at').notNull(),
+});
+
+// ── user_stats ──────────────────────────────────────────────────────────────
+
+export const userStats = sqliteTable('user_stats', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id),
+  xp: integer('xp').notNull().default(0),
+  level: integer('level').notNull().default(0),
+  gamesPlayed: integer('games_played').notNull().default(0),
+  lastRoomCode: text('last_room_code'),
+  unlockedItems: text('unlocked_items').notNull().default('[]'),
+  updatedAt: text('updated_at').notNull(),
+});

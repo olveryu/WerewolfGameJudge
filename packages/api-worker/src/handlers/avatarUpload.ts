@@ -7,8 +7,11 @@
  * GET /avatar/:userId/:filename — 从 R2 提供头像文件。
  */
 
+import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
+import { createDb } from '../db';
+import { users } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 
@@ -77,11 +80,11 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
   const avatarUrlStr = publicUrl.toString();
 
   // Persist custom_avatar_url to D1 so the client can display it in AvatarPickerScreen
-  await env.DB.prepare(
-    `UPDATE users SET custom_avatar_url = ?, updated_at = datetime('now') WHERE id = ?`,
-  )
-    .bind(avatarUrlStr, userId)
-    .run();
+  const db = createDb(env.DB);
+  await db
+    .update(users)
+    .set({ customAvatarUrl: avatarUrlStr, updatedAt: sql`datetime('now')` })
+    .where(eq(users.id, userId));
 
   return c.json({ url: avatarUrlStr }, 200);
 });

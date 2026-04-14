@@ -13,6 +13,10 @@ import { getLevel } from '@werewolf/game-engine/growth/level';
 import { rollXp } from '@werewolf/game-engine/growth/level';
 import type { RewardItem } from '@werewolf/game-engine/growth/rewardCatalog';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+
+import { createDb } from '../db';
+import { users, userStats } from '../db/schema';
 
 const MIN_PLAYERS = 9;
 
@@ -49,6 +53,8 @@ export async function settleGameResults(
 ): Promise<PlayerSettleResult[]> {
   // Settle key: roomCode:revision — allows re-settle after same-room restart
   const settleKey = `${state.roomCode}:${revision}`;
+  const db = createDb(env.DB);
+
   // 1. 收集非空、非 bot 玩家 uid
   const uniqueUids = new Set<string>();
   for (const [, player] of Object.entries(state.players)) {
@@ -60,12 +66,10 @@ export async function settleGameResults(
 
   // 2. 查 D1 过滤匿名用户
   const uidList = [...uniqueUids];
-  const placeholders = uidList.map(() => '?').join(',');
-  const { results: registeredRows } = await env.DB.prepare(
-    `SELECT id FROM users WHERE id IN (${placeholders}) AND is_anonymous = 0`,
-  )
-    .bind(...uidList)
-    .all<{ id: string }>();
+  const registeredRows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(inArray(users.id, uidList), eq(users.isAnonymous, 0)));
 
   const registeredUids = new Set(registeredRows.map((r) => r.id));
   if (registeredUids.size === 0) return [];
@@ -77,29 +81,37 @@ export async function settleGameResults(
     const xpEarned = rollXp();
 
     // Idempotent upsert: WHERE clause ensures duplicate settleKey is a no-op (changes === 0)
-    const { meta } = await env.DB.prepare(
-      `INSERT INTO user_stats (user_id, xp, level, games_played, last_room_code, updated_at)
-       VALUES (?, ?, 0, 1, ?, datetime('now'))
-       ON CONFLICT (user_id) DO UPDATE SET
-         xp = user_stats.xp + ?,
-         games_played = user_stats.games_played + 1,
-         last_room_code = ?,
-         updated_at = datetime('now')
-       WHERE user_stats.last_room_code IS NULL
-          OR user_stats.last_room_code != ?`,
-    )
-      .bind(uid, xpEarned, settleKey, xpEarned, settleKey, settleKey)
-      .run();
-
-    // If no rows changed (already settled for this room), skip
-    if (meta.changes === 0) continue;
+    await db
+      .insert(userStats)
+      .values({
+        userId: uid,
+        xp: xpEarned,
+        level: 0,
+        gamesPlayed: 1,
+        lastRoomCode: settleKey,
+        updatedAt: sql`datetime('now')`,
+      })
+      .onConflictDoUpdate({
+        target: userStats.userId,
+        set: {
+          xp: sql`${userStats.xp} + ${xpEarned}`,
+          gamesPlayed: sql`${userStats.gamesPlayed} + 1`,
+          lastRoomCode: settleKey,
+          updatedAt: sql`datetime('now')`,
+        },
+        setWhere: sql`${userStats.lastRoomCode} IS NULL OR ${userStats.lastRoomCode} != ${settleKey}`,
+      });
 
     // Read back actual xp, level, unlocked_items
-    const statsRow = await env.DB.prepare(
-      `SELECT xp, level, unlocked_items FROM user_stats WHERE user_id = ?`,
-    )
-      .bind(uid)
-      .first<{ xp: number; level: number; unlocked_items: string }>();
+    const statsRow = await db
+      .select({
+        xp: userStats.xp,
+        level: userStats.level,
+        unlockedItems: userStats.unlockedItems,
+      })
+      .from(userStats)
+      .where(eq(userStats.userId, uid))
+      .get();
 
     if (statsRow) {
       const previousLevel = statsRow.level;
@@ -109,7 +121,7 @@ export async function settleGameResults(
 
       if (newLevel > previousLevel) {
         // Parse existing unlocked items
-        const unlockedIds: string[] = JSON.parse(statsRow.unlocked_items) as string[];
+        const unlockedIds: string[] = JSON.parse(statsRow.unlockedItems) as string[];
         const unlockedSet = new Set(unlockedIds);
 
         // Pick random reward for each level gained (normally 1)
@@ -123,13 +135,11 @@ export async function settleGameResults(
         }
 
         // Write back level + unlocked_items
-        // 3 bind params: newLevel, JSON array, uid
         const updatedItems = JSON.stringify([...unlockedSet]);
-        await env.DB.prepare(
-          `UPDATE user_stats SET level = ?, unlocked_items = ? WHERE user_id = ?`,
-        )
-          .bind(newLevel, updatedItems, uid)
-          .run();
+        await db
+          .update(userStats)
+          .set({ level: newLevel, unlockedItems: updatedItems })
+          .where(eq(userStats.userId, uid));
       }
 
       results.push({

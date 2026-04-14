@@ -7,8 +7,11 @@
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
+import { createDb } from '../db';
+import { rooms } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createRoomSchema, roomCodeBodySchema } from '../schemas/room';
@@ -19,16 +22,20 @@ export const roomRoutes = new Hono<AppEnv>();
 // ── POST /room/create ───────────────────────────────────────────────────────
 roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) => {
   const env = c.env;
+  const db = createDb(env.DB);
   const userId = c.var.userId;
   const parsed = c.req.valid('json');
 
-  const params: string[] = [crypto.randomUUID(), parsed.roomCode, userId];
-  const sql = 'INSERT INTO rooms (id, code, host_id) VALUES (?, ?, ?)';
+  const now = sql`datetime('now')`;
 
   try {
-    await env.DB.prepare(sql)
-      .bind(...params)
-      .run();
+    await db.insert(rooms).values({
+      id: crypto.randomUUID(),
+      code: parsed.roomCode,
+      hostId: userId,
+      createdAt: now,
+      updatedAt: now,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes('UNIQUE') || message.includes('constraint')) {
@@ -44,7 +51,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
       await stub.init(parsed.initialState as GameState);
     } catch (err) {
       // DO init failed → rollback D1 record
-      await env.DB.prepare('DELETE FROM rooms WHERE code = ?').bind(parsed.roomCode).run();
+      await db.delete(rooms).where(eq(rooms.code, parsed.roomCode));
       throw err;
     }
   }
@@ -63,12 +70,18 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
 
 // ── POST /room/get ──────────────────────────────────────────────────────────
 roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
-  const env = c.env;
+  const db = createDb(c.env.DB);
   const parsed = c.req.valid('json');
 
-  const row = await env.DB.prepare('SELECT id, code, host_id, created_at FROM rooms WHERE code = ?')
-    .bind(parsed.roomCode)
-    .first<{ id: string; code: string; host_id: string; created_at: string }>();
+  const row = await db
+    .select({
+      code: rooms.code,
+      hostId: rooms.hostId,
+      createdAt: rooms.createdAt,
+    })
+    .from(rooms)
+    .where(eq(rooms.code, parsed.roomCode))
+    .get();
 
   if (!row) {
     return c.json({ room: null }, 200);
@@ -78,8 +91,8 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
     {
       room: {
         roomNumber: row.code,
-        hostUid: row.host_id,
-        createdAt: row.created_at,
+        hostUid: row.hostId,
+        createdAt: row.createdAt,
       },
     },
     200,
@@ -89,15 +102,17 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
 // ── POST /room/delete ───────────────────────────────────────────────────────
 roomRoutes.post('/delete', requireAuth, jsonBody(roomCodeBodySchema), async (c) => {
   const env = c.env;
+  const db = createDb(env.DB);
   const userId = c.var.userId;
   const parsed = c.req.valid('json');
 
   // Only the room host can delete the room
-  const result = await env.DB.prepare('DELETE FROM rooms WHERE code = ? AND host_id = ?')
-    .bind(parsed.roomCode, userId)
-    .run();
+  const result = await db
+    .delete(rooms)
+    .where(and(eq(rooms.code, parsed.roomCode), eq(rooms.hostId, userId)))
+    .returning({ id: rooms.id });
 
-  if (!result.meta.changes) {
+  if (result.length === 0) {
     return c.json({ error: 'room not found or not authorized' }, 403);
   }
 
