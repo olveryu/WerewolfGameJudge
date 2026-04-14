@@ -64,9 +64,9 @@ Share a 4-digit room code after creating a room. Everyone joins via browser or a
 
 Game state is persisted in Cloudflare Durable Objects (edge SQLite). Reconnecting after a network drop automatically restores the latest state — zero progress lost.
 
-### 🎭 43 Roles · 27 Preset Boards
+### 🎭 43 Roles · 23 Preset Boards
 
-Full coverage of classic and expansion roles — Seer, Witch, Hunter, Guard and more gods; Wolf Queen, White Wolf King, Blood Moon and more special wolves; plus Cupid, Thief, Piper and more third-party roles. 27 preset templates for 6–18 players, plus custom board creation.
+Full coverage of classic and expansion roles — Seer, Witch, Hunter, Guard and more gods; Wolf Queen, White Wolf King, Blood Moon and more special wolves; plus Cupid, Thief, Piper and more third-party roles. 23 preset templates for 6–18 players, plus custom board creation.
 
 ### 🤖 AI Assistant
 
@@ -82,7 +82,7 @@ Light / Sand / Jade / Sky / Dark / Midnight / Blood / Forest — light and dark 
 
 ### 🌐 Cross-platform
 
-iOS · Android · Web (PWA). The web version works instantly with no install. PWA mode supports offline launch and add-to-home-screen.
+iOS · Android · Web · WeChat Mini Program. The web version works instantly with no install — add it to your home screen for a native-app feel. Search “狼人杀自助电子法官” in WeChat to use the mini program.
 
 ---
 
@@ -112,15 +112,15 @@ iOS · Android · Web (PWA). The web version works instantly with no install. PW
 │       │              │               │           │
 │       └──────────────┴───────────────┘           │
 │                      │                           │
-│                 Cloudflare D1                     │
+│                 Cloudflare D1 · R2                 │
 └─────────────────────┬───────────────────────────┘
                       │
-          ┌───────────┼───────────┐
-          │           │           │
-       iOS App    Android App   Web (PWA)
-       ──────────────────────────────────
-       HTTP submit · WebSocket receive
-       Host: audio playback
+     ┌────────────┬───┼───────────────┐
+     │            │   │               │
+  iOS App   Android  Web App   WeChat Mini Program
+  ───────────────────────────────   (web-view)
+  HTTP submit · WebSocket receive
+  Host: audio playback
 ```
 
 **Core Constraints:**
@@ -166,23 +166,25 @@ pnpm -F @werewolf/api-worker db:seed:local
 packages/
   api-worker/         Cloudflare Worker — REST API + Auth + Durable Objects (WebSocket)
   game-engine/        Pure game logic shared pkg — models / resolvers / engine (client & server)
+miniapp/              WeChat Mini Program web-view shell (AppID: wx7f0c3bea5873908c)
 src/
   screens/            React Native screens
   services/           facade / transport (WebSocket) / infra / feature
-  contexts/           Auth · GameFacade · Network · Service
+  contexts/           Auth · GameFacade · Service
   theme/              Design tokens + 8 themes
 ```
 
 ### Tech Stack
 
-|             |                                                            |
-| ----------- | ---------------------------------------------------------- |
-| **Client**  | React Native 0.83 · Expo SDK 55 · TypeScript ~5.9          |
-| **Server**  | Cloudflare Workers · D1 · Durable Objects                  |
-| **AI**      | Gemini 3.1 Flash Lite (Worker proxy)                       |
-| **Test**    | Jest · Testing Library · Playwright                        |
-| **Deploy**  | Cloudflare Pages (Web) + Workers (API) · GitHub Actions CI |
-| **Monitor** | Sentry                                                     |
+|                  |                                                            |
+| ---------------- | ---------------------------------------------------------- |
+| **Client**       | React Native 0.83 · Expo SDK 55 · TypeScript ~5.9          |
+| **Server**       | Cloudflare Workers · D1 · R2 · Durable Objects             |
+| **AI**           | Gemini 3.1 Flash Lite (Worker proxy)                       |
+| **Test**         | Jest · Testing Library · Playwright                        |
+| **Deploy**       | Cloudflare Pages (Web) + Workers (API) · GitHub Actions CI |
+| **Mini Program** | WeChat Mini Program web-view shell · miniprogram-ci        |
+| **Monitor**      | Sentry                                                     |
 
 ---
 
@@ -210,7 +212,7 @@ No. Just open the website to create or join a room. If you want to save custom t
 <details>
 <summary><b>What platforms are supported?</b></summary>
 
-iOS, Android, and any modern browser (Chrome, Safari, Firefox, Edge). The web version supports PWA — add it to your home screen and use it like a native app.
+iOS, Android, WeChat Mini Program, and any modern browser (Chrome, Safari, Firefox, Edge). The web version can be added to your home screen and used like a native app. Search “狼人杀自助电子法官” in WeChat to use the mini program.
 
 </details>
 
@@ -231,7 +233,7 @@ Yes, the app automates Night-1 — identity reveals, skill actions, and dawn res
 <details>
 <summary><b>Can I create custom boards?</b></summary>
 
-Absolutely. Beyond the 27 preset templates, you can freely combine roles to create custom templates and save them for future use.
+Absolutely. Beyond the 23 preset templates, you can freely combine roles to create custom templates and save them for future use.
 
 </details>
 
