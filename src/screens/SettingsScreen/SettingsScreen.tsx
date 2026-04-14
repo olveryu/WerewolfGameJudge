@@ -76,7 +76,8 @@ export const SettingsScreen: React.FC = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
 
   // Growth system state (shared cache via TanStack Query)
-  const { data: growthStats } = useUserStatsQuery({ enabled: isAuthenticated });
+  const isLoggedIn = isAuthenticated && !user?.isAnonymous;
+  const { data: growthStats } = useUserStatsQuery({ enabled: isLoggedIn });
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
