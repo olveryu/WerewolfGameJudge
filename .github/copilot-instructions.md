@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durable Objects（游戏状态）+ D1（房间/用户元数据）负责 API、持久化、realtime 传输。支持 iOS / Android / Web / 微信小程序（web-view 壳）。内含 XP/等级成长系统（`packages/game-engine/src/growth/`），每局获得 XP，升级解锁头像、头像框、座位装饰（Skia 粒子特效）。
+React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durable Objects（游戏状态）+ D1（房间/用户元数据）负责 API、持久化、realtime 传输。**Web 为主要平台**，同时支持 iOS / Android / 微信小程序（web-view 壳，本质也是 Web）。做技术选型和兼容性决策时，Web 优先。内含 XP/等级成长系统（`packages/game-engine/src/growth/`），每局获得 XP，升级解锁头像、头像框、座位装饰（Skia 粒子特效）。
 
 ## Tech Stack
 
