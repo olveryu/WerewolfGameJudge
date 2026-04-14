@@ -27,6 +27,8 @@ export interface BoardPickerStyles {
   headerBackButton: ViewStyle;
   headerCenter: ViewStyle;
   headerTitle: TextStyle;
+  headerSubtitleRow: ViewStyle;
+  headerSubtitle: TextStyle;
   headerRight: ViewStyle;
   // ── Search ──
   searchBar: ViewStyle;
@@ -119,6 +121,18 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
       lineHeight: layout.headerTitleLineHeight,
       fontWeight: typography.weights.bold,
       color: colors.text,
+    },
+    headerSubtitleRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: spacing.tight,
+      paddingBottom: spacing.small,
+    },
+    headerSubtitle: {
+      fontSize: typography.secondary,
+      lineHeight: typography.lineHeights.secondary,
+      color: colors.textSecondary,
     },
     headerRight: {
       flexDirection: 'row',
@@ -411,6 +425,7 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
+      textAlign: 'center',
     },
 
     // ── Empty state ───────────────────────────────

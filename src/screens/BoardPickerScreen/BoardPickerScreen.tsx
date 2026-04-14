@@ -228,7 +228,7 @@ const BoardCard = React.memo<BoardCardProps>(
               onPress={handleSelect}
               style={{ marginTop: spacing.medium }}
             >
-              选择此模板
+              以此为基础
             </Button>
           </View>
         )}
@@ -500,6 +500,12 @@ export const BoardPickerScreen: React.FC = () => {
             />
           </Button>
         </View>
+      </View>
+
+      {/* Subtitle hint */}
+      <View style={styles.headerSubtitleRow}>
+        <Ionicons name="bulb-outline" size={componentSizes.icon.sm} color={colors.textSecondary} />
+        <Text style={styles.headerSubtitle}>先选一个起点，下一步可自由调整</Text>
       </View>
 
       {/* Search Bar */}
