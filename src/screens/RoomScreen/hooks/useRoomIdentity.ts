@@ -60,16 +60,16 @@ export function useRoomIdentity(input: UseRoomIdentityInput): UseRoomIdentityRes
 
   const { actorSeatForUi, actorRoleForUi, isDelegating } = actorIdentity;
 
-  // FAIL-FAST: Log warning when delegating but identity is invalid
+  // FAIL-FAST: Log warning when delegating but identity is invalid.
+  // Skip when effectiveRole is null — normal before role assignment (Unseated/Seated).
   useEffect(() => {
-    if (isDelegating && !isActorIdentityValid(actorIdentity)) {
+    if (isDelegating && effectiveRole !== null && !isActorIdentityValid(actorIdentity)) {
       roomScreenLog.warn('Invalid delegation state detected', {
         controlledSeat,
         effectiveSeat,
         effectiveRole,
         actorSeatForUi,
         actorRoleForUi,
-        hint: 'effectiveSeat should equal controlledSeat when delegating',
       });
     }
   }, [
