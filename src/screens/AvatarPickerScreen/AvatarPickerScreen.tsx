@@ -112,7 +112,7 @@ export const AvatarPickerScreen: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   // Growth stats for unlock check (shared cache via TanStack Query)
-  const { data: statsData } = useUserStatsQuery({ enabled: !readOnly });
+  const { data: statsData } = useUserStatsQuery();
   const unlockedIds = useMemo(() => statsData?.unlockedItems ?? [], [statsData?.unlockedItems]);
 
   const unlockedAvatars = useMemo(() => getUnlockedAvatars(unlockedIds), [unlockedIds]);

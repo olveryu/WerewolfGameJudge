@@ -27,8 +27,19 @@ export interface UserPublicProfile {
   unlockedItemCount: number;
 }
 
-/** 获取当前用户的成长数据 */
+// ── Anonymous guard (provider injected by CFAuthService) ──
+
+let isAnonymousProvider: (() => boolean) | null = null;
+
+export function setAnonymousProvider(provider: () => boolean): void {
+  isAnonymousProvider = provider;
+}
+
+const ANONYMOUS_STATS: UserStats = { xp: 0, level: 0, gamesPlayed: 0, unlockedItems: [] };
+
+/** 获取当前用户的成长数据。匿名用户直接返回零值，不发请求。 */
 export async function fetchUserStats(): Promise<UserStats> {
+  if (isAnonymousProvider?.()) return ANONYMOUS_STATS;
   statsLog.debug('Fetching user stats');
   return cfGet<UserStats>('/api/user/stats');
 }

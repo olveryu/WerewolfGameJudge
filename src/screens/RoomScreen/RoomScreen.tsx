@@ -74,9 +74,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const hasAutoShownQR = useRef(false);
 
   // User level for top bar display (shared cache via TanStack Query)
-  const isLoggedIn = !!user && !user.isAnonymous;
-  const { data: userStats } = useUserStatsQuery({ enabled: isLoggedIn });
-  const userLevel = isLoggedIn ? (userStats?.level ?? null) : null;
+  const { data: userStats } = useUserStatsQuery();
+  const userLevel = userStats?.level ?? null;
 
   const handleShareRoom = useCallback(() => {
     setQrModalVisible(true);

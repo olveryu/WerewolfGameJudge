@@ -71,9 +71,8 @@ export const HomeScreen: React.FC = () => {
   const pendingActionRef = useRef<(() => void) | null>(null);
 
   // User level for top bar display (shared cache via TanStack Query)
-  const isLoggedIn = !!user && !user.isAnonymous;
-  const { data: userStats } = useUserStatsQuery({ enabled: isLoggedIn });
-  const userLevel = isLoggedIn ? (userStats?.level ?? null) : null;
+  const { data: userStats } = useUserStatsQuery();
+  const userLevel = userStats?.level ?? null;
 
   // Load persisted tip dismissals (synchronous MMKV)
   const readDismissedTips = useCallback(() => {
