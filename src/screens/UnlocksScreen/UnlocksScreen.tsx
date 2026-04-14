@@ -15,7 +15,7 @@ import {
   SEAT_FLAIR_IDS,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -33,8 +33,9 @@ import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
+import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
+import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 import { RootStackParamList } from '@/navigation/types';
-import { fetchUserStats, fetchUserUnlocks } from '@/services/feature/StatsService';
 import {
   borderRadius,
   colors,
@@ -47,7 +48,6 @@ import {
   withAlpha,
 } from '@/theme';
 import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
-import { settingsLog } from '@/utils/logger';
 
 const NUM_COLUMNS = 4;
 const CELL_SIZE = 72;
@@ -75,20 +75,15 @@ export const UnlocksScreen: React.FC = () => {
   const viewingDisplayName = route.params?.displayName;
   const isViewer = !!viewingUserId;
 
-  const [unlockedItems, setUnlockedItems] = useState<readonly string[] | null>(null);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('avatar');
 
-  useEffect(() => {
-    const fetchData = viewingUserId
-      ? fetchUserUnlocks(viewingUserId).then((r) => r.unlockedItems)
-      : fetchUserStats().then((r) => r.unlockedItems);
-
-    fetchData
-      .then(setUnlockedItems)
-      .catch((e: unknown) => settingsLog.warn('Failed to fetch unlocks', e))
-      .finally(() => setLoading(false));
-  }, [viewingUserId]);
+  // Fetch unlocked items: self → useUserStatsQuery, other → useUserUnlocksQuery
+  const selfStats = useUserStatsQuery({ enabled: !isViewer });
+  const otherUnlocks = useUserUnlocksQuery(viewingUserId ?? '');
+  const unlockedItems = isViewer
+    ? (otherUnlocks.data ?? null)
+    : (selfStats.data?.unlockedItems ?? null);
+  const loading = isViewer ? otherUnlocks.isLoading : selfStats.isLoading;
 
   const unlockedSet = useMemo(
     () =>

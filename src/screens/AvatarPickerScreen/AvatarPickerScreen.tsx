@@ -14,7 +14,7 @@ import { getUnlockedAvatars, isFrameUnlocked } from '@werewolf/game-engine/growt
 import { isFlairUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
@@ -36,8 +36,8 @@ import { type FlairId, getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs
 import { UI_ICONS } from '@/config/iconTokens';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { RootStackParamList } from '@/navigation/types';
-import { fetchUserStats } from '@/services/feature/StatsService';
 import { borderRadius as borderRadiusToken, colors, componentSizes, fixed, layout } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -111,19 +111,9 @@ export const AvatarPickerScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
   const [saving, setSaving] = useState(false);
 
-  // Growth stats for unlock check
-  const [unlockedIds, setUnlockedIds] = useState<readonly string[]>([]);
-
-  useEffect(() => {
-    if (readOnly) return;
-    fetchUserStats()
-      .then((stats) => {
-        setUnlockedIds(stats.unlockedItems);
-      })
-      .catch((e: unknown) => {
-        settingsLog.warn('Failed to fetch user stats for unlock check', e);
-      });
-  }, [readOnly]);
+  // Growth stats for unlock check (shared cache via TanStack Query)
+  const { data: statsData } = useUserStatsQuery({ enabled: !readOnly });
+  const unlockedIds = useMemo(() => statsData?.unlockedItems ?? [], [statsData?.unlockedItems]);
 
   const unlockedAvatars = useMemo(() => getUnlockedAvatars(unlockedIds), [unlockedIds]);
 

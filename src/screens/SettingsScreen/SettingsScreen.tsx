@@ -26,9 +26,8 @@ import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { RootStackParamList } from '@/navigation/types';
-import type { UserStats } from '@/services/feature/StatsService';
-import { fetchUserStats } from '@/services/feature/StatsService';
 import { colors, componentSizes, fixed, layout, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
@@ -76,23 +75,8 @@ export const SettingsScreen: React.FC = () => {
 
   const [showChangePassword, setShowChangePassword] = useState(false);
 
-  // Growth system state
-  const [growthStats, setGrowthStats] = useState<UserStats | null>(null);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let cancelled = false;
-    fetchUserStats()
-      .then((stats) => {
-        if (!cancelled) setGrowthStats(stats);
-      })
-      .catch(() => {
-        // non-critical — growth section simply won't render
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
+  // Growth system state (shared cache via TanStack Query)
+  const { data: growthStats } = useUserStatsQuery({ enabled: isAuthenticated });
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);

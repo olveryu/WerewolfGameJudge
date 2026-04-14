@@ -14,10 +14,12 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQueryClient } from '@tanstack/react-query';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
+import { queryKeys } from '@/hooks/queries/queryKeys';
 import { SupersededError } from '@/services/connection/types';
 import { fetchUserStats } from '@/services/feature/StatsService';
 import type { IAuthService } from '@/services/types/IAuthService';
@@ -73,6 +75,7 @@ interface RoomLifecycleDeps {
 
 export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   const { facade, authService, roomService, setRoomRecord } = deps;
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -224,7 +227,8 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const avatarUrl = await authService.getCurrentAvatarUrl();
         const avatarFrame = await authService.getCurrentAvatarFrame();
         const seatFlair = await authService.getCurrentSeatFlair();
-        const level = await fetchUserStats()
+        const level = await queryClient
+          .fetchQuery({ queryKey: queryKeys.userStats(), queryFn: fetchUserStats })
           .then((s) => s.level)
           .catch(() => undefined);
 
@@ -245,7 +249,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return false;
       }
     },
-    [facade, authService],
+    [facade, authService, queryClient],
   );
 
   // Leave seat (unified API)
@@ -269,7 +273,8 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const avatarUrl = await authService.getCurrentAvatarUrl();
         const avatarFrame = await authService.getCurrentAvatarFrame();
         const seatFlair = await authService.getCurrentSeatFlair();
-        const level = await fetchUserStats()
+        const level = await queryClient
+          .fetchQuery({ queryKey: queryKeys.userStats(), queryFn: fetchUserStats })
           .then((s) => s.level)
           .catch(() => undefined);
 
@@ -293,7 +298,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return { success: false, reason: String(err) };
       }
     },
-    [facade, authService],
+    [facade, authService, queryClient],
   );
 
   // Leave seat with ack (unified API)

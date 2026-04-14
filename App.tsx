@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react-native';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -15,6 +16,7 @@ import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { queryClient } from '@/lib/queryClient';
 import { AppNavigator } from '@/navigation';
 import { createAllServices } from '@/services/registry';
 import { colors } from '@/theme';
@@ -141,13 +143,15 @@ export default function App() {
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
-        <ServiceProvider services={services}>
-          <AuthProvider>
-            <GameFacadeProvider facade={facade}>
-              <AppContent />
-            </GameFacadeProvider>
-          </AuthProvider>
-        </ServiceProvider>
+        <QueryClientProvider client={queryClient}>
+          <ServiceProvider services={services}>
+            <AuthProvider>
+              <GameFacadeProvider facade={facade}>
+                <AppContent />
+              </GameFacadeProvider>
+            </AuthProvider>
+          </ServiceProvider>
+        </QueryClientProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
   );

@@ -12,7 +12,7 @@ import {
   getLevelTitle,
   LEVEL_THRESHOLDS,
 } from '@werewolf/game-engine/growth/level';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -27,11 +27,9 @@ import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { PressableScale } from '@/components/PressableScale';
 import { getFlairById } from '@/components/seatFlairs';
+import { useUserProfileQuery } from '@/hooks/queries/useUserProfileQuery';
 import { RootStackParamList } from '@/navigation/types';
-import { fetchUserProfile, type UserPublicProfile } from '@/services/feature/StatsService';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
-import { handleError } from '@/utils/errorPipeline';
-import { roomScreenLog } from '@/utils/logger';
 
 interface PlayerProfileCardProps {
   visible: boolean;
@@ -98,44 +96,15 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
 }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isBot = targetUid.startsWith('bot-');
-  const [profile, setProfile] = useState<UserPublicProfile | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    if (!visible || !targetUid || isBot) {
-      setProfile(null);
-      setError(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(false);
-
-    void fetchUserProfile(targetUid)
-      .then((data) => {
-        if (!cancelled) {
-          setProfile(data);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          handleError(err, {
-            label: '查看资料',
-            logger: roomScreenLog,
-            alertTitle: false,
-          });
-          setError(true);
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [visible, targetUid, isBot]);
+  // Fetch user public profile (shared cache via TanStack Query)
+  const {
+    data: profile,
+    isLoading: loading,
+    isError: error,
+  } = useUserProfileQuery(targetUid, {
+    enabled: visible && !!targetUid && !isBot,
+  });
 
   const handleKick = useCallback(() => {
     onClose();
