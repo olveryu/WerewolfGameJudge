@@ -30,10 +30,6 @@ cd "$(dirname "$0")/.."
 echo "🔧 编译 game-engine (CJS)..."
 (cd packages/game-engine && npx tsc -p tsconfig.build.json)
 
-echo "🔧 编译 game-engine (ESM → Edge Function)..."
-(cd packages/game-engine && npx esbuild src/index.ts --bundle --format=esm \
-  --outfile=../../supabase/functions/_shared/game-engine/index.js)
-
 # ── 2. 构建 Web ─────────────────────────────────
 
 echo "🧹 清理 dist/..."
