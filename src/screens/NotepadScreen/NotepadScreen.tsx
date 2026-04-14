@@ -18,12 +18,9 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { buildNotepadSummary } from '@/components/AIChatBubble/notepadSummary';
 import { NotepadPanel } from '@/components/NotepadPanel';
-import { PageGuideModal } from '@/components/PageGuideModal';
-import { NOTEPAD_GUIDE } from '@/config/guideContent';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useGameFacade } from '@/contexts';
 import { useNotepad } from '@/hooks/useNotepad';
-import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { colors, fixed, spacing, typography } from '@/theme';
@@ -42,7 +39,6 @@ export const NotepadScreen: React.FC = () => {
 
   const facade = useGameFacade();
   const notepad = useNotepad(facade);
-  const notepadGuide = usePageGuide('notepad');
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -239,17 +235,6 @@ export const NotepadScreen: React.FC = () => {
           <Text style={panelStyles.legendText}>第三方</Text>
         </View>
       </View>
-
-      {/* Page Guide */}
-      <PageGuideModal
-        visible={notepadGuide.visible}
-        title={NOTEPAD_GUIDE.title}
-        titleEmoji={NOTEPAD_GUIDE.titleEmoji}
-        items={NOTEPAD_GUIDE.items}
-        dontShowAgain={notepadGuide.dontShowAgain}
-        onToggleDontShowAgain={notepadGuide.toggleDontShowAgain}
-        onDismiss={notepadGuide.dismiss}
-      />
     </SafeAreaView>
   );
 };

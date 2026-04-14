@@ -118,11 +118,4 @@ export const TESTIDS = {
   encyclopediaRoleItem: (id: string) => `encyclopedia-role-${id}`,
   encyclopediaFactionTab: (key: string) => `encyclopedia-faction-tab-${key}`,
   encyclopediaTagFilter: (tag: string) => `encyclopedia-tag-${tag}`,
-
-  // PageGuideModal
-  pageGuideOverlay: 'page-guide-overlay',
-  pageGuideModal: 'page-guide-modal',
-  pageGuideTitle: 'page-guide-title',
-  pageGuideDismissBtn: 'page-guide-dismiss-btn',
-  pageGuideCheckbox: 'page-guide-checkbox',
 } as const;

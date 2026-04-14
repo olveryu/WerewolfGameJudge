@@ -20,16 +20,8 @@ import { toast } from 'sonner-native';
 import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import {
-  getRoomGuideItems,
-  ROOM_ASSIGNED_GUIDE,
-  ROOM_GUIDE_TITLE,
-  ROOM_ONGOING_GUIDE,
-} from '@/config/guideContent';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { fetchUserStats } from '@/services/feature/StatsService';
@@ -271,42 +263,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     bottomCardSubtitle,
   } = useRoomScreenState(route.params, navigation);
 
-  // ─── Page Guide (3-layer: overview + assigned + ongoing) ───────────────
-  const roomGuide = usePageGuide('room');
-  const assignedGuide = usePageGuide('room:assigned');
-  const ongoingGuide = usePageGuide('room:ongoing');
-
-  // Anti-cascade: after closing overview, suppress stage guide until next status change
-  const [guideSuppressed, setGuideSuppressed] = useState(false);
-  const prevStatusRef = useRef<GameStatus | undefined>(undefined);
-
-  useEffect(() => {
-    if (roomStatus !== prevStatusRef.current) {
-      prevStatusRef.current = roomStatus;
-      setGuideSuppressed(false);
-    }
-  }, [roomStatus]);
-
-  const handleRoomGuideDismiss = useCallback(() => {
-    setGuideSuppressed(true);
-    roomGuide.dismiss();
-  }, [roomGuide]);
-
-  const roomGuideItems = useMemo(() => getRoomGuideItems(isHost), [isHost]);
-
-  // Determine which guide to show (at most 1 at a time)
-  const showAssignedGuide =
-    !roomGuide.visible &&
-    !guideSuppressed &&
-    roomStatus === GameStatus.Assigned &&
-    assignedGuide.visible;
-  const showOngoingGuide =
-    !roomGuide.visible &&
-    !guideSuppressed &&
-    !showAssignedGuide &&
-    roomStatus === GameStatus.Ongoing &&
-    ongoingGuide.visible;
-
   // ─── Board nomination callbacks ────────────────────────────────────────
   const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
 
@@ -333,20 +289,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [showNominations]);
 
   // ─── Auto-show QR invite card after room creation ─────────────────────
-  // Wait until page guide is dismissed (or already not showing) to avoid stacking modals.
   useEffect(() => {
-    if (
-      isInitialized &&
-      gameState &&
-      isHost &&
-      template &&
-      !hasAutoShownQR.current &&
-      !roomGuide.visible
-    ) {
+    if (isInitialized && gameState && isHost && template && !hasAutoShownQR.current) {
       hasAutoShownQR.current = true;
       setQrModalVisible(true);
     }
-  }, [isInitialized, gameState, isHost, template, roomGuide.visible]);
+  }, [isInitialized, gameState, isHost, template]);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
   if (!isInitialized || !gameState) {
@@ -840,39 +788,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onClose={closeChooseCardModal}
         />
       )}
-
-      {/* Page Guide — Room overview */}
-      <PageGuideModal
-        visible={roomGuide.visible}
-        title={ROOM_GUIDE_TITLE.title}
-        titleEmoji={ROOM_GUIDE_TITLE.titleEmoji}
-        items={roomGuideItems}
-        dontShowAgain={roomGuide.dontShowAgain}
-        onToggleDontShowAgain={roomGuide.toggleDontShowAgain}
-        onDismiss={handleRoomGuideDismiss}
-      />
-
-      {/* Page Guide — Assigned stage */}
-      <PageGuideModal
-        visible={showAssignedGuide}
-        title={ROOM_ASSIGNED_GUIDE.title}
-        titleEmoji={ROOM_ASSIGNED_GUIDE.titleEmoji}
-        items={ROOM_ASSIGNED_GUIDE.items}
-        dontShowAgain={assignedGuide.dontShowAgain}
-        onToggleDontShowAgain={assignedGuide.toggleDontShowAgain}
-        onDismiss={assignedGuide.dismiss}
-      />
-
-      {/* Page Guide — Ongoing stage */}
-      <PageGuideModal
-        visible={showOngoingGuide}
-        title={ROOM_ONGOING_GUIDE.title}
-        titleEmoji={ROOM_ONGOING_GUIDE.titleEmoji}
-        items={ROOM_ONGOING_GUIDE.items}
-        dontShowAgain={ongoingGuide.dontShowAgain}
-        onToggleDontShowAgain={ongoingGuide.toggleDontShowAgain}
-        onDismiss={ongoingGuide.dismiss}
-      />
     </SafeAreaView>
   );
 };

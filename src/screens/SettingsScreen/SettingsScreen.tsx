@@ -24,17 +24,14 @@ import { toast } from 'sonner-native';
 
 import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
-import { PageGuideModal } from '@/components/PageGuideModal';
-import { SETTINGS_GUIDE } from '@/config/guideContent';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
-import { resetAllGuides, usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import type { UserStats } from '@/services/feature/StatsService';
 import { fetchUserStats } from '@/services/feature/StatsService';
 import { colors, componentSizes, fixed, layout, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
-import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
 import { isExpectedAuthError, mapAuthError, settingsLog } from '@/utils/logger';
@@ -63,8 +60,6 @@ export const SettingsScreen: React.FC = () => {
     changePassword,
     loading: authLoading,
   } = useAuth();
-  const settingsGuide = usePageGuide('settings');
-
   const facade = useGameFacade();
 
   // Room context: subscribe to facade state for reactive canSwitchAccount
@@ -254,24 +249,6 @@ export const SettingsScreen: React.FC = () => {
       doSwitch();
     }
   }, [user?.isAnonymous, facade, navigation, isInRoom, isSeated]);
-
-  const handleResetGuides = useCallback(() => {
-    showConfirmAlert(
-      '重置新手引导',
-      '重置后，每个页面的新手引导将再次显示。',
-      () => {
-        resetAllGuides()
-          .then(() => {
-            toast.success('引导已重置');
-          })
-          .catch((e: unknown) => {
-            settingsLog.error('Reset guides failed:', e);
-            showErrorAlert('重置失败', getErrorMessage(e));
-          });
-      },
-      { confirmText: '确认重置' },
-    );
-  }, []);
 
   // ============================================
   // Render helpers
@@ -568,33 +545,8 @@ export const SettingsScreen: React.FC = () => {
 
         <AboutSection styles={styles} />
 
-        {/* Reset Guides */}
-        <Button
-          variant="ghost"
-          buttonColor={colors.background}
-          textColor={colors.textSecondary}
-          onPress={handleResetGuides}
-          style={styles.logoutBtn}
-          icon={
-            <Ionicons name="refresh-outline" size={typography.body} color={colors.textSecondary} />
-          }
-        >
-          重置新手引导
-        </Button>
-
         <View style={styles.bottomSpacer} />
       </ScrollView>
-
-      {/* Page Guide */}
-      <PageGuideModal
-        visible={settingsGuide.visible}
-        title={SETTINGS_GUIDE.title}
-        titleEmoji={SETTINGS_GUIDE.titleEmoji}
-        items={SETTINGS_GUIDE.items}
-        dontShowAgain={settingsGuide.dontShowAgain}
-        onToggleDontShowAgain={settingsGuide.toggleDontShowAgain}
-        onDismiss={settingsGuide.dismiss}
-      />
     </SafeAreaView>
   );
 };

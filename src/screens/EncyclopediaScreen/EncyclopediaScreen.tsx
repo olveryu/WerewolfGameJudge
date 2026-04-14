@@ -31,9 +31,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
-import { PageGuideModal } from '@/components/PageGuideModal';
-import { ENCYCLOPEDIA_GUIDE } from '@/config/guideContent';
-import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import {
@@ -167,8 +164,6 @@ export const EncyclopediaScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'Encyclopedia'>>();
-  const encyclopediaGuide = usePageGuide('encyclopedia');
-
   const [activeFilter, setActiveFilter] = useState<FactionFilterKey>('all');
   const [activeTag, setActiveTag] = useState<RoleAbilityTag | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -453,17 +448,6 @@ export const EncyclopediaScreen: React.FC = () => {
         visible={selectedRole !== null}
         roleId={selectedRole}
         onClose={handleCloseDetail}
-      />
-
-      {/* Page Guide */}
-      <PageGuideModal
-        visible={encyclopediaGuide.visible}
-        title={ENCYCLOPEDIA_GUIDE.title}
-        titleEmoji={ENCYCLOPEDIA_GUIDE.titleEmoji}
-        items={ENCYCLOPEDIA_GUIDE.items}
-        dontShowAgain={encyclopediaGuide.dontShowAgain}
-        onToggleDontShowAgain={encyclopediaGuide.toggleDontShowAgain}
-        onDismiss={encyclopediaGuide.dismiss}
       />
     </SafeAreaView>
   );

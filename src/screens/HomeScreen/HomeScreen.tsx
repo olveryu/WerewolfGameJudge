@@ -23,16 +23,13 @@ import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from '
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
-import { PageGuideModal } from '@/components/PageGuideModal';
 import { PressableScale } from '@/components/PressableScale';
 import { UserAvatar } from '@/components/UserAvatar';
 import { getDailyQuote } from '@/config/dailyQuotes';
-import { HOME_GUIDE } from '@/config/guideContent';
 import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
 import { LAST_ROOM_NUMBER_KEY, type TipId, tipStorageKey } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { fetchUserStats } from '@/services/feature/StatsService';
 import { TESTIDS } from '@/testids';
@@ -60,7 +57,6 @@ export const HomeScreen: React.FC = () => {
 
   const navigation = useNavigation<NavigationProp>();
   const { user, loading: authLoading } = useAuth();
-  const homeGuide = usePageGuide('home');
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
@@ -605,17 +601,6 @@ export const HomeScreen: React.FC = () => {
         onJoin={handleJoinRoom}
         onCancel={handleCancelJoin}
         styles={styles}
-      />
-
-      {/* Page Guide */}
-      <PageGuideModal
-        visible={homeGuide.visible}
-        title={HOME_GUIDE.title}
-        titleEmoji={HOME_GUIDE.titleEmoji}
-        items={HOME_GUIDE.items}
-        dontShowAgain={homeGuide.dontShowAgain}
-        onToggleDontShowAgain={homeGuide.toggleDontShowAgain}
-        onDismiss={homeGuide.dismiss}
       />
     </SafeAreaView>
   );

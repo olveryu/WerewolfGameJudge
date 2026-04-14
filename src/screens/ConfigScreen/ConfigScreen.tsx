@@ -16,12 +16,9 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { PageGuideModal } from '@/components/PageGuideModal';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { CONFIG_GUIDE } from '@/config/guideContent';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
-import { usePageGuide } from '@/hooks/usePageGuide';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
@@ -98,8 +95,6 @@ export const ConfigScreen: React.FC = () => {
     handleBulkCountChange,
     getFactionAccentColor,
   } = state;
-
-  const configGuide = usePageGuide('config');
 
   return (
     <SafeAreaView
@@ -245,17 +240,6 @@ export const ConfigScreen: React.FC = () => {
         activeVariant={roleInfoActiveVariant}
         onVariantSelect={handleRoleInfoVariantSelect}
         onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, handleCloseRoleInfo) : undefined}
-      />
-
-      {/* Page Guide */}
-      <PageGuideModal
-        visible={configGuide.visible}
-        title={CONFIG_GUIDE.title}
-        titleEmoji={CONFIG_GUIDE.titleEmoji}
-        items={CONFIG_GUIDE.items}
-        dontShowAgain={configGuide.dontShowAgain}
-        onToggleDontShowAgain={configGuide.toggleDontShowAgain}
-        onDismiss={configGuide.dismiss}
       />
     </SafeAreaView>
   );
