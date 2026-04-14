@@ -245,6 +245,7 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
+    facadeLog.info('createRoom', { roomCode });
     this.#aborted = false;
     this.#audioOrchestrator.reset();
     this.#settleResultListeners.clear();
@@ -273,6 +274,7 @@ export class GameFacade implements IGameFacade {
     uid: string,
     isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }> {
+    facadeLog.info('joinRoom', { roomCode, isHost });
     this.#aborted = false;
     this.#audioOrchestrator.reset();
     this.#settleResultListeners.clear();
@@ -305,6 +307,7 @@ export class GameFacade implements IGameFacade {
       this.#audioOrchestrator.setWasAudioInterrupted(false);
       this.#isHost = false;
       this.#myUid = null;
+      facadeLog.warn('Host rejoin failed: no DB state');
       return { success: false, reason: 'no_db_state' };
     }
 
@@ -325,6 +328,7 @@ export class GameFacade implements IGameFacade {
    * 委托给 AudioOrchestrator 处理音频重播和 ack。
    */
   async resumeAfterRejoin(): Promise<void> {
+    facadeLog.debug('resumeAfterRejoin');
     return this.#audioOrchestrator.resumeAfterRejoin();
   }
 
@@ -338,10 +342,12 @@ export class GameFacade implements IGameFacade {
    * 客户端倒计时到期时调用，服务端执行 inline progression。
    */
   async postProgression(): Promise<{ success: boolean; reason?: string }> {
+    facadeLog.debug('postProgression');
     return gameActions.postProgression(this.#getActionsContext());
   }
 
   async leaveRoom(): Promise<void> {
+    facadeLog.info('leaveRoom');
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this.#aborted = true;
     this.#audioOrchestrator.reset();

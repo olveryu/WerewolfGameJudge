@@ -12,6 +12,7 @@ import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
 import type { ThemeColors } from '@/theme';
 import { spacing } from '@/theme';
+import { settingsLog } from '@/utils/logger';
 
 import type { SettingsScreenStyles } from './styles';
 
@@ -62,6 +63,7 @@ export const ChangePasswordForm = memo<ChangePasswordFormProps>(
         await onSubmit(oldPassword, newPassword);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
+        settingsLog.warn('changePassword failed', { error: msg });
         setError(msg);
       } finally {
         setSubmitting(false);

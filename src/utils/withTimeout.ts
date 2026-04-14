@@ -65,7 +65,7 @@ export function withTimeout<T>(
     timeoutHandle = setTimeout(() => {
       const error = errorFactory(ms, context);
       // 技术日志（带 context）
-      timeoutLog.warn(`Timeout: ${context ?? 'unknown'} after ${ms}ms`);
+      timeoutLog.warn('Timeout', { context: context ?? 'unknown', ms });
       reject(error);
     }, ms);
   });

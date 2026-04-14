@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { connectionLog } from '@/utils/logger';
 
 interface ConnectionStatusState {
   connectionStatus: ConnectionStatus;
@@ -40,6 +41,7 @@ export function useConnectionStatus(facade: IGameFacade): ConnectionStatusState 
   // Subscribe to connection status changes from facade (mapped from ConnectionManager FSM)
   useEffect(() => {
     const unsubscribe = facade.addConnectionStatusListener((status) => {
+      connectionLog.debug('Status changed', { status });
       setConnectionStatus(status);
     });
     return unsubscribe;

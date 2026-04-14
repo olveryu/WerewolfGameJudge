@@ -55,7 +55,7 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
     dialogTitle = '催眠信息';
   }
 
-  roomScreenLog.debug('[handleActionIntent] groupConfirmAck', { schemaId, personalMessage });
+  roomScreenLog.debug('groupConfirmAck', { schemaId, personalMessage });
 
   const doAck = () => {
     submitGroupConfirmAck();

@@ -16,6 +16,7 @@ import { GameFacade } from '@/services/facade/GameFacade';
 import { SettingsService } from '@/services/feature/SettingsService';
 import { AudioService } from '@/services/infra/AudioService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import { log } from '@/utils/logger';
 
 /**
  * 顶层入口：创建全部 services + facade。
@@ -61,6 +62,8 @@ export function createAllServices(): {
     audioService,
     roomService,
   });
+
+  log.info('[init] All services created');
 
   return { services, facade };
 }

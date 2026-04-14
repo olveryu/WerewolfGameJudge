@@ -23,19 +23,35 @@ import { mobileDebugTransport } from './mobileDebug';
 
 /**
  * Transport that forwards logs to Sentry Structured Logs (production only).
- * Maps react-native-logs severity names to Sentry.logger methods.
+ *
+ * Uses rawMsg (original arguments array) to extract structured attributes.
+ * Sentry Structured Logs expect: Sentry.logger.info("message", { key: value })
+ * react-native-logs passes rawMsg = [msg, ...rest] from log.info(msg, ...rest).
  */
 const sentryTransport: typeof consoleTransport = (props) => {
-  const msg = `[${props.extension ?? 'app'}] ${props.msg}`;
+  const raw = props.rawMsg as unknown[];
+  const firstMsg = typeof raw?.[0] === 'string' ? raw[0] : props.msg;
+
+  // Build structured attributes from remaining args + extension tag
+  const attrs: Record<string, unknown> = { module: props.extension ?? 'app' };
+  if (Array.isArray(raw)) {
+    for (let i = 1; i < raw.length; i++) {
+      const arg = raw[i];
+      if (arg && typeof arg === 'object' && !Array.isArray(arg) && !(arg instanceof Error)) {
+        Object.assign(attrs, arg);
+      }
+    }
+  }
+
   const level = props.level?.text as string | undefined;
   if (level === 'error') {
-    Sentry.logger.error(msg);
+    Sentry.logger.error(firstMsg, attrs);
   } else if (level === 'warn') {
-    Sentry.logger.warn(msg);
+    Sentry.logger.warn(firstMsg, attrs);
   } else if (level === 'info') {
-    Sentry.logger.info(msg);
+    Sentry.logger.info(firstMsg, attrs);
   } else {
-    Sentry.logger.debug(msg);
+    Sentry.logger.debug(firstMsg, attrs);
   }
 };
 
@@ -95,6 +111,9 @@ export const settingsLog = log.extend('Settings');
 export const settingsServiceLog = log.extend('SettingsService');
 export const bgmLog = log.extend('BGM');
 export const chatLog = log.extend('Chat');
+export const cfFetchLog = log.extend('cfFetch');
+export const statsLog = log.extend('Stats');
+export const shareLog = log.extend('Share');
 
 /**
  * Map auth error messages to user-friendly Chinese messages.

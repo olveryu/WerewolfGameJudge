@@ -101,7 +101,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const hostUid = authService.getCurrentUserId();
         if (!hostUid) {
           // First-time user (no session) — show login modal instead of silent anonymous sign-in
-          gameRoomLog.info('[initializeRoom] No userId, requesting auth');
+          gameRoomLog.info('initializeRoom: No userId, requesting auth');
           setNeedsAuth(true);
           return false;
         }
@@ -116,7 +116,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         // Superseded = old connectAndWait cancelled by a newer call (retry).
         // The new call is already in progress — silently ignore.
         if (err instanceof SupersededError) {
-          gameRoomLog.debug('[initializeRoom] Superseded by retry, ignoring');
+          gameRoomLog.debug('initializeRoom: Superseded by retry, ignoring');
           return false;
         }
         const message = getErrorMessage(err, '房间初始化失败，请重试');
@@ -147,7 +147,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const playerUid = authService.getCurrentUserId();
         if (!playerUid) {
           // First-time user (no session) — show login modal instead of silent anonymous sign-in
-          gameRoomLog.info('[joinRoom] No userId, requesting auth');
+          gameRoomLog.info('joinRoom: No userId, requesting auth');
           setNeedsAuth(true);
           return false;
         }
@@ -183,7 +183,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         // Superseded = old connectAndWait cancelled by a newer call (retry).
         // The new call is already in progress — silently ignore.
         if (err instanceof SupersededError) {
-          gameRoomLog.debug('[joinRoom] Superseded by retry, ignoring');
+          gameRoomLog.debug('joinRoom: Superseded by retry, ignoring');
           return false;
         }
         const message = getErrorMessage(err, '加入房间失败，请重试');

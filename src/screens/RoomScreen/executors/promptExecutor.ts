@@ -19,7 +19,7 @@ export const actionPromptExecutor: IntentExecutor = (_intent, ctx) => {
 
   const hint = gameState?.ui?.currentActorHint;
   const hintApplies = hint && effectiveRole && hint.targetRoleIds.includes(effectiveRole);
-  roomScreenLog.debug('[actionPrompt] UI Hint check', {
+  roomScreenLog.debug('actionPrompt UI Hint check', {
     hint: hint
       ? {
           kind: hint.kind,

@@ -69,7 +69,7 @@ import { Team } from './spec/types';
  */
 export function getRoleDisplayName(roleId: string): string {
   if (!isValidRoleId(roleId)) {
-    roleLog.warn(`Unknown roleId: ${roleId}`);
+    roleLog.warn('Unknown roleId', { roleId });
     return '未知角色';
   }
   const spec = getRoleSpec(roleId);

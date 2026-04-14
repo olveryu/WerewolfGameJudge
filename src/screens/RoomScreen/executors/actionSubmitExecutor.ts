@@ -12,7 +12,7 @@ import { buildWitchStepResults, getSubStepByKey } from '../hooks/actionIntentHel
 import type { IntentExecutor } from './types';
 
 export const magicianFirstExecutor: IntentExecutor = (intent, ctx) => {
-  roomScreenLog.debug('[handleActionIntent] magicianFirst', {
+  roomScreenLog.debug('magicianFirst', {
     targetSeat: intent.targetSeat,
   });
   ctx.setFirstSwapSeat(intent.targetSeat);
@@ -31,7 +31,7 @@ export const actionConfirmExecutor: IntentExecutor = (intent, ctx) => {
     actionDialogs,
   } = ctx;
 
-  roomScreenLog.debug('[actionConfirm] Processing:', {
+  roomScreenLog.debug('actionConfirm Processing', {
     effectiveRole,
     effectiveSeat,
     firstSwapSeat,
@@ -89,7 +89,7 @@ export const actionConfirmExecutor: IntentExecutor = (intent, ctx) => {
       targetToSubmit = intent.targetSeat;
     }
 
-    roomScreenLog.debug('[actionConfirm] Submitting:', {
+    roomScreenLog.debug('actionConfirm Submitting', {
       schemaKind: currentSchema?.kind,
       targetToSubmit,
       'intent.targetSeat': intent.targetSeat,

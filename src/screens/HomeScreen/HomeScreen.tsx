@@ -36,6 +36,7 @@ import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
+import { homeLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 
 import {
@@ -163,6 +164,7 @@ export const HomeScreen: React.FC = () => {
 
     setJoinError(null);
     setIsJoining(true);
+    homeLog.info('Join room', { roomCode });
 
     try {
       storage.set(LAST_ROOM_NUMBER_KEY, roomCode);
@@ -170,6 +172,7 @@ export const HomeScreen: React.FC = () => {
       navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
       setRoomCode('');
     } catch {
+      homeLog.warn('Join failed');
       setJoinError('加入失败，请重试');
     } finally {
       setIsJoining(false);
@@ -181,6 +184,7 @@ export const HomeScreen: React.FC = () => {
       showErrorAlert('无记录', '没有上局游戏记录');
       return;
     }
+    homeLog.info('Return to last game', { roomNumber: lastRoomNumber });
     navigation.navigate('Room', { roomNumber: lastRoomNumber, isHost: false });
   }, [lastRoomNumber, navigation]);
 
@@ -192,6 +196,7 @@ export const HomeScreen: React.FC = () => {
   }, []);
 
   const handleCreateRoom = useCallback(() => {
+    homeLog.info('Create room');
     setIsCreating(true);
     navigation.navigate('BoardPicker');
   }, [navigation]);

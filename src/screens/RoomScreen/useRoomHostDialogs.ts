@@ -80,7 +80,7 @@ export const useRoomHostDialogs = ({
     const totalSeats = gameState.template.numberOfPlayers;
 
     if (seatedCount !== totalSeats) {
-      roomScreenLog.warn('[HostDialogs] Cannot prepare to flip — seats not full', {
+      roomScreenLog.warn('Cannot prepare to flip — seats not full', {
         seatedCount,
         totalSeats,
       });
@@ -91,7 +91,7 @@ export const useRoomHostDialogs = ({
     showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', () => {
       if (submittingRef.current) return;
       markSubmitting(true);
-      roomScreenLog.debug('[HostDialogs] Assigning roles');
+      roomScreenLog.debug('Assigning roles');
       void assignRoles().finally(() => {
         markSubmitting(false);
       });
@@ -101,7 +101,7 @@ export const useRoomHostDialogs = ({
   const handleStartGame = useCallback(async () => {
     if (submittingRef.current) return;
     markSubmitting(true);
-    roomScreenLog.debug('[HostDialogs] Starting game');
+    roomScreenLog.debug('Starting game');
     try {
       setIsStartingGame(true);
       await startGame();
@@ -121,7 +121,7 @@ export const useRoomHostDialogs = ({
     showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', () => {
       if (submittingRef.current) return;
       markSubmitting(true);
-      roomScreenLog.debug('[HostDialogs] Restarting game');
+      roomScreenLog.debug('Restarting game');
       void restartGame().finally(() => {
         markSubmitting(false);
       });

@@ -157,11 +157,11 @@ export function useActionOrchestrator({
   const proceedWithAction = useCallback(
     async (targetSeat: number | null, extra?: unknown): Promise<boolean> => {
       if (actionSubmittingRef.current) {
-        roomScreenLog.debug('[proceedWithAction] Skipped: already submitting');
+        roomScreenLog.debug('proceedWithAction Skipped: already submitting');
         return false;
       }
       markActionSubmitting(true);
-      roomScreenLog.debug('[proceedWithAction] Submitting', { targetSeat });
+      roomScreenLog.debug('proceedWithAction Submitting', { targetSeat });
       try {
         // Only pass extra when defined to preserve call-site arity for consumers
         // that distinguish submitAction(seat) from submitAction(seat, undefined).
@@ -219,7 +219,7 @@ export function useActionOrchestrator({
     if (key === lastRejectedKeyRef.current) return;
     lastRejectedKeyRef.current = key;
 
-    roomScreenLog.warn('[useActionOrchestrator] Action rejected by server', {
+    roomScreenLog.warn('Action rejected by server', {
       action: rejected.action,
       reason: rejected.reason,
       targetUid: rejected.targetUid,
@@ -322,11 +322,11 @@ export function useActionOrchestrator({
 
     // Skip if same key (idempotent - already triggered this exact intent)
     if (key === lastAutoIntentKeyRef.current) {
-      roomScreenLog.debug(` Skipping duplicate: key=${key}`);
+      roomScreenLog.debug('Skipping duplicate auto-intent', { key });
       return;
     }
 
-    roomScreenLog.debug(` Triggering: key=${key}, intent=${autoIntent.type}`);
+    roomScreenLog.debug('Triggering auto-intent', { key, intent: autoIntent.type });
     lastAutoIntentKeyRef.current = key;
     void handleActionIntent(autoIntent).catch((err) => {
       handleError(err, { label: 'auto-trigger', logger: roomScreenLog, alertTitle: false });

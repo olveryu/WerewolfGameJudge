@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
+import { homeLog } from '@/utils/logger';
+
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -110,6 +112,7 @@ export function usePWAInstall(): PWAInstallResult {
 
   const install = useCallback(async () => {
     if (mode !== 'prompt' || !window.__pwaInstallPrompt) return;
+    homeLog.info('PWA install triggered', { mode });
     const prompt = window.__pwaInstallPrompt;
     await prompt.prompt();
     const { outcome } = await prompt.userChoice;

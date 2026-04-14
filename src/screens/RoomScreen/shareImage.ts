@@ -11,6 +11,8 @@ import { File as ExpoFile, Paths } from 'expo-file-system';
 import { shareAsync } from 'expo-sharing';
 import { Platform } from 'react-native';
 
+import { shareLog } from '@/utils/logger';
+
 /**
  * Convert a base64 string to a web File object (web only).
  */
@@ -47,6 +49,7 @@ export async function shareImageBase64(
   filename: string,
   title: string,
 ): Promise<void> {
+  shareLog.debug('shareImageBase64', { filename });
   const base64Data = await getBase64();
 
   if (Platform.OS === 'web') {

@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner-native';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import { gameRoomLog } from '@/utils/logger';
 
 interface UseLastActionToastParams {
   facade: IGameFacade;
@@ -41,6 +42,8 @@ export function useLastActionToast({
 
     const lastAction = facade.consumeLastAction();
     if (!lastAction || isHost) return;
+
+    gameRoomLog.debug('lastAction consumed', { action: lastAction });
 
     switch (lastAction) {
       case 'KICK_PLAYER':

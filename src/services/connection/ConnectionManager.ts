@@ -135,6 +135,7 @@ export class ConnectionManager {
     // If already connected to this room, re-fetch state (store may have been reset)
     // but skip the full WS reconnect cycle.
     if (this.#ctx.state === ConnectionState.Connected && this.#ctx.roomCode === roomCode) {
+      connectionLog.debug('Already connected, re-fetching state', { roomCode });
       await this.#fetchState(roomCode);
       return;
     }
@@ -143,6 +144,8 @@ export class ConnectionManager {
     if (this.#ctx.state === ConnectionState.Disposed) {
       throw new Error('Cannot connect: ConnectionManager is disposed');
     }
+
+    connectionLog.info('connectAndWait', { roomCode, userId });
 
     return new Promise<void>((resolve, reject) => {
       // Settle any pending connectAndWait before creating a new one (P2)
@@ -173,12 +176,14 @@ export class ConnectionManager {
 
   /** Disconnect — clean up connection, return to Idle. Can reconnect later. */
   disconnect(): void {
+    connectionLog.info('disconnect');
     this.#settleConnectWait(new Error('Connection disconnected'));
     this.#dispatch({ type: 'DISCONNECT' });
   }
 
   /** Dispose — clean up all resources, stop all timers, ignore all future events */
   dispose(): void {
+    connectionLog.info('dispose');
     this.#settleConnectWait(new Error('Connection disposed'));
     this.#dispatch({ type: 'DISPOSE' });
     this.#unregisterPlatformListeners();
@@ -208,6 +213,11 @@ export class ConnectionManager {
 
     // Notify listeners on state change
     if (prev !== this.#ctx.state) {
+      connectionLog.info('State transition', {
+        from: prev,
+        to: this.#ctx.state,
+        event: event.type,
+      });
       this.#notifyStateListeners();
 
       // Settle connectAndWait promise on terminal states
@@ -317,6 +327,7 @@ export class ConnectionManager {
   // ─── Retry Timer ──────────────────────────────────────────────────────────
 
   #scheduleRetry(delayMs: number): void {
+    connectionLog.debug('Scheduling retry', { delayMs });
     this.#cancelRetry();
     this.#retryTimer = setTimeout(() => {
       this.#retryTimer = null;
@@ -343,6 +354,7 @@ export class ConnectionManager {
         this.#dispatch({ type: 'FETCH_FAILURE', error: new Error('No state returned') });
       }
     } catch (e) {
+      connectionLog.warn('fetchState failed', { roomCode, error: e });
       this.#dispatch({ type: 'FETCH_FAILURE', error: e });
     }
   }

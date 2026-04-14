@@ -24,7 +24,7 @@ export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) 
   if (!gameState?.wolfRobotReveal) return;
 
   if (pendingHunterStatusViewed) {
-    roomScreenLog.debug('[wolfRobotViewHunterStatus] Skipping - pending submission');
+    roomScreenLog.debug('wolfRobotViewHunterStatus Skipping - pending submission');
     return;
   }
 

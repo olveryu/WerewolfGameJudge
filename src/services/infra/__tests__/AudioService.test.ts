@@ -439,7 +439,8 @@ describe('AudioService - Fallback: createAudioPlayer throws', () => {
 
     // Should have logged a warning
     expect(mockAudioLogWarn).toHaveBeenCalledWith(
-      expect.stringContaining('Audio playback failed, resolving anyway'),
+      'Audio playback failed, resolving anyway',
+      expect.objectContaining({ label: 'night' }),
       expect.any(Error),
     );
   });
@@ -455,7 +456,8 @@ describe('AudioService - Fallback: createAudioPlayer throws', () => {
 
     // Should have logged a warning
     expect(mockAudioLogWarn).toHaveBeenCalledWith(
-      expect.stringContaining('Audio playback failed, resolving anyway'),
+      'Audio playback failed, resolving anyway',
+      expect.objectContaining({ label: 'role_begin_wolf' }),
       expect.any(Error),
     );
   });

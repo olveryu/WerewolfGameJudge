@@ -251,7 +251,7 @@ export function useRoomScreenState(
     // Guard: fire only once to prevent alert-storm from rapid error state toggles
     if (fatalErrorFiredRef.current) return;
     fatalErrorFiredRef.current = true;
-    roomScreenLog.debug('[useRoomScreenState] Fatal room error, redirecting to Home', {
+    roomScreenLog.debug('Fatal room error, redirecting to Home', {
       error: gameRoomError,
     });
     showErrorAlert('房间异常', gameRoomError);
@@ -302,7 +302,7 @@ export function useRoomScreenState(
   // Show alert when seat request is rejected
   useEffect(() => {
     if (lastSeatError) {
-      roomScreenLog.warn('[useRoomScreenState] Seat error received', { lastSeatError });
+      roomScreenLog.warn('Seat error received', { lastSeatError });
       showErrorAlert('入座失败', '该座位已被占用，请选择其他位置。');
       clearLastSeatError();
     }
@@ -312,7 +312,7 @@ export function useRoomScreenState(
   useEffect(() => {
     if (!gameState) return;
     if (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) {
-      roomScreenLog.debug('[useRoomScreenState] Resetting UI state for restart', { roomStatus });
+      roomScreenLog.debug('Resetting UI state for restart', { roomStatus });
       setIsStartingGame(false);
       setFirstSwapSeat(null);
       setMultiSelectedSeats([]);

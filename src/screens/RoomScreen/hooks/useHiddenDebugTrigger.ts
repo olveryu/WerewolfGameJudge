@@ -56,7 +56,7 @@ export function useHiddenDebugTrigger(): UseHiddenDebugTriggerResult {
 
     if (tapCountRef.current >= TAP_THRESHOLD) {
       tapCountRef.current = 0;
-      roomScreenLog.debug('[DebugTrigger] Toggling mobile debug panel');
+      roomScreenLog.debug('Toggling mobile debug panel');
       mobileDebug.toggle();
     } else {
       tapTimeoutRef.current = setTimeout(() => {

@@ -6,9 +6,11 @@
  */
 
 import { cfPost } from '@/services/cloudflare/cfFetch';
+import { shareLog } from '@/utils/logger';
 
 /** 上传 base64 PNG，返回可公开访问的 HTTP URL */
 export async function uploadShareImage(base64: string): Promise<string> {
+  shareLog.debug('Uploading share image', { sizeKB: Math.round(base64.length / 1024) });
   const { url } = await cfPost<{ url: string }>('/share/image', { base64 });
   return url;
 }

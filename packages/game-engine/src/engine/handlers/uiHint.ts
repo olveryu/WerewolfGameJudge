@@ -34,7 +34,7 @@ export function maybeCreateUiHintAction(
 ): SetUiHintAction {
   // 夜晚结束或没有下一步：清空 hint
   if (!nextStep) {
-    nightFlowLog.debug('[UI Hint] nextStep is null, clearing hint');
+    nightFlowLog.debug('nextStep is null, clearing hint');
     return { type: 'SET_UI_HINT', payload: { currentActorHint: null } };
   }
 
@@ -43,7 +43,7 @@ export function maybeCreateUiHintAction(
 
   // DEBUG: Log the hint decision inputs
   const nextActorSeat = findSeatByRole(state.players, roleId);
-  nightFlowLog.debug('[UI Hint] evaluating', {
+  nightFlowLog.debug('evaluating UI hint', {
     stepId,
     roleId,
     nextActorSeat,
@@ -64,7 +64,7 @@ export function maybeCreateUiHintAction(
   if (schema?.kind === 'wolfVote' && state.wolfKillOverride) {
     const wolfRoleIds = getWolfRoleIds();
     const { ui } = state.wolfKillOverride;
-    nightFlowLog.debug('[UI Hint] setting wolf_kill_disabled hint', {
+    nightFlowLog.debug('setting wolf_kill_disabled hint', {
       wolfRoleIds,
       source: state.wolfKillOverride.source,
     });
@@ -88,7 +88,7 @@ export function maybeCreateUiHintAction(
   // Case 1.5: wolfVote 且 cupid 在模板中 → 所有狼人看到一致性提示
   if (schema?.kind === 'wolfVote' && state.templateRoles.includes('cupid')) {
     const wolfRoleIds = getWolfRoleIds();
-    nightFlowLog.debug('[UI Hint] setting wolf_unanimity_required hint (cupid board)');
+    nightFlowLog.debug('setting wolf_unanimity_required hint (cupid board)');
     return {
       type: 'SET_UI_HINT',
       payload: {
@@ -103,7 +103,7 @@ export function maybeCreateUiHintAction(
 
   // Case 2: 下一步行动者被 nightmare 封锁
   if (nextActorSeat !== null && state.nightmareBlockedSeat === nextActorSeat) {
-    nightFlowLog.debug('[UI Hint] setting blocked_by_nightmare hint', { nextActorSeat, roleId });
+    nightFlowLog.debug('setting blocked_by_nightmare hint', { nextActorSeat, roleId });
     return {
       type: 'SET_UI_HINT',
       payload: {
@@ -122,6 +122,6 @@ export function maybeCreateUiHintAction(
   }
 
   // Case 3: 正常步骤，清空 hint
-  nightFlowLog.debug('[UI Hint] no hint needed, clearing');
+  nightFlowLog.debug('no hint needed, clearing');
   return { type: 'SET_UI_HINT', payload: { currentActorHint: null } };
 }

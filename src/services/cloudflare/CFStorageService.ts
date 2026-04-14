@@ -102,7 +102,7 @@ export class CFStorageService implements IStorageService {
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              avatarLog.debug(`Compressed image: ${Math.round(blob.size / 1024)}KB`);
+              avatarLog.debug('Compressed image', { sizeKB: Math.round(blob.size / 1024) });
               resolve(blob);
             } else {
               reject(new Error('图片压缩失败，请换一张图片重试'));

@@ -43,7 +43,7 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
   // ---------------------------------------------------------------------------
 
   async play(asset: AudioAsset, label: string): Promise<void> {
-    audioLog.debug(`[${label}] [WEB] starting playback`);
+    audioLog.debug('WEB starting playback', { label });
 
     return new Promise<void>((resolve) => {
       try {
@@ -64,11 +64,11 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
         }
 
         const audioUrl = audioAssetToUrl(asset);
-        audioLog.debug(`[${label}] [WEB] audioUrl=${audioUrl}`);
+        audioLog.debug('WEB audioUrl resolved', { label, audioUrl });
 
         // Create or reuse Audio element (iOS Safari gesture authorization)
         if (!this.#audioElement) {
-          audioLog.debug(`[${label}] [WEB] creating new Audio element`);
+          audioLog.debug('WEB creating new Audio element', { label });
           this.#audioElement = new Audio();
         }
 
@@ -76,37 +76,37 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
         this.#isPlaying = true;
 
         audio.onended = () => {
-          audioLog.debug(`[${label}] [WEB] onended fired`);
+          audioLog.debug('WEB onended fired', { label });
           this.#settle();
         };
 
         audio.onerror = () => {
-          audioLog.warn(`[WEB] Audio error for ${label}`);
+          audioLog.warn('WEB Audio error', { label });
           this.#settle();
         };
 
         // Timeout fallback
         this.#timeoutId = setTimeout(() => {
-          audioLog.warn(`[WEB] Playback timeout for ${label}`);
+          audioLog.warn('WEB Playback timeout', { label });
           audio.pause();
           this.#settle();
         }, AUDIO_TIMEOUT_MS);
 
         audio.volume = this.#volume;
         audio.src = audioUrl;
-        audioLog.debug(`[${label}] [WEB] calling audio.play()`);
+        audioLog.debug('WEB calling audio.play()', { label });
 
         audio
           .play()
           .then(() => {
-            audioLog.debug(`[${label}] [WEB] play() promise resolved`);
+            audioLog.debug('WEB play() promise resolved', { label });
           })
           .catch((err) => {
-            audioLog.warn(`[WEB] play() failed for ${label}:`, err);
+            audioLog.warn('WEB play() failed', { label }, err);
             this.#settle();
           });
       } catch (error) {
-        audioLog.warn(`[WEB] Audio playback failed for ${label}:`, error);
+        audioLog.warn('WEB Audio playback failed', { label }, error);
         this.#isPlaying = false;
         resolve();
       }
@@ -136,7 +136,7 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
       try {
         this.#audioElement.pause();
       } catch (e) {
-        audioLog.warn('[visibility] error pausing web audio', e);
+        audioLog.warn('error pausing web audio', e);
       }
     }
   }
@@ -144,9 +144,9 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
   resume(): void {
     if (this.#isPlaying && this.#audioElement) {
       this.#audioElement.play().catch((e) => {
-        audioLog.warn('[visibility] error resuming web audio', e);
+        audioLog.warn('error resuming web audio', e);
       });
-      audioLog.debug('[visibility] resumed web audio');
+      audioLog.debug('resumed web audio');
     }
   }
 

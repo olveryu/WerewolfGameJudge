@@ -57,11 +57,11 @@ export class AudioService {
       if (typeof document !== 'undefined') {
         this.#visibilityHandler = () => {
           if (document.hidden) {
-            audioLog.debug('[visibility] page hidden, pausing all audio');
+            audioLog.debug('page hidden, pausing all audio');
             this.#strategy.pause();
             this.#bgm.pause();
           } else {
-            audioLog.debug('[visibility] page visible, resuming audio');
+            audioLog.debug('page visible, resuming audio');
             this.#strategy.resume();
             this.#bgm.resume();
           }
@@ -95,10 +95,10 @@ export class AudioService {
     const audioFile = entry?.begin ?? SEER_LABEL_AUDIO[role] ?? STEP_AUDIO[role]?.begin;
     if (!audioFile) {
       // Normal case: some roles (e.g. villager) intentionally have no narration.
-      audioLog.debug(`playRoleBeginningAudio: no audio file for role "${role}", skipping`);
+      audioLog.debug('playRoleBeginningAudio: no audio file, skipping', { role });
       return;
     }
-    audioLog.debug(`playRoleBeginningAudio: playing audio for role "${role}"`);
+    audioLog.debug('playRoleBeginningAudio: playing audio', { role });
     return this.#strategy.play(audioFile, `role_begin_${role}`);
   }
 
@@ -107,10 +107,10 @@ export class AudioService {
     const audioFile = entry?.end ?? SEER_LABEL_AUDIO_END[role] ?? STEP_AUDIO[role]?.end;
     if (!audioFile) {
       // Normal case: some roles (e.g. villager) intentionally have no narration.
-      audioLog.debug(`playRoleEndingAudio: no audio file for role "${role}", skipping`);
+      audioLog.debug('playRoleEndingAudio: no audio file, skipping', { role });
       return;
     }
-    audioLog.debug(`playRoleEndingAudio: playing audio for role "${role}"`);
+    audioLog.debug('playRoleEndingAudio: playing audio', { role });
     return this.#strategy.play(audioFile, `role_end_${role}`);
   }
 
@@ -187,7 +187,7 @@ export class AudioService {
 
     const promises = filesToPreload.map(({ key, file }) =>
       this.#strategy.preloadFile(key, file).catch((err) => {
-        audioLog.warn(`preloadForRoles: failed to preload ${key}`, err);
+        audioLog.warn('preloadForRoles: failed to preload', { key }, err);
       }),
     );
 

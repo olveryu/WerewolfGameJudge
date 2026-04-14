@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleAuthError = useCallback((e: unknown, label: string, opts?: { rethrow?: boolean }) => {
     const raw = e instanceof Error ? e.message : String(e);
     const friendly = mapAuthError(raw);
-    authLog.error(`${label}:`, raw, e);
+    authLog.error('auth error', { label }, raw, e);
     if (!isExpectedAuthError(raw) && !isAbortError(e) && !isNetworkError(e))
       Sentry.captureException(e);
     setError(friendly);
@@ -128,7 +128,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (result?.data?.user) {
           const u = toUser(result.data.user);
           updateUserIfChanged(u);
-          if (u) Sentry.setUser({ id: u.uid });
+          if (u) {
+            authLog.info('User loaded', { uid: u.uid, isAnonymous: u.isAnonymous });
+            Sentry.setUser({ id: u.uid });
+          }
+        } else {
+          authLog.info('No stored user');
         }
       } catch (e: unknown) {
         handleAuthError(e, 'Failed to load user');
@@ -149,7 +154,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (result?.data?.user) {
         const u = toUser(result.data.user);
         updateUserIfChanged(u);
-        if (u) Sentry.setUser({ id: u.uid });
+        if (u) {
+          authLog.info('signInAnonymously', { uid: u.uid });
+          Sentry.setUser({ id: u.uid });
+        }
       }
     } catch (e: unknown) {
       handleAuthError(e, 'Anonymous sign-in failed', { rethrow: true });
@@ -167,7 +175,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (result.user) {
           const u = toUser(result.user);
           updateUserIfChanged(u);
-          if (u) Sentry.setUser({ id: u.uid });
+          if (u) {
+            authLog.info('signUpWithEmail', { uid: u.uid });
+            Sentry.setUser({ id: u.uid });
+          }
         }
       } catch (e: unknown) {
         handleAuthError(e, 'Email sign-up failed', { rethrow: true });
@@ -188,7 +199,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (result?.data?.user) {
           const u = toUser(result.data.user);
           updateUserIfChanged(u);
-          if (u) Sentry.setUser({ id: u.uid });
+          if (u) {
+            authLog.info('signInWithEmail', { uid: u.uid });
+            Sentry.setUser({ id: u.uid });
+          }
         }
       } catch (e: unknown) {
         handleAuthError(e, 'Email sign-in failed', { rethrow: true });
@@ -240,6 +254,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authService.signOut();
       storage.remove(LAST_ROOM_NUMBER_KEY);
       setUser(null);
+      authLog.info('signOut');
       Sentry.setUser(null);
     } catch (e: unknown) {
       handleAuthError(e, 'Sign-out failed');
@@ -253,6 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       try {
         await authService.changePassword(oldPassword, newPassword);
+        authLog.info('changePassword success');
       } catch (e: unknown) {
         handleAuthError(e, 'Change password failed', { rethrow: true });
       }
@@ -282,7 +298,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (result?.data?.user) {
           const u = toUser(result.data.user);
           updateUserIfChanged(u);
-          if (u) Sentry.setUser({ id: u.uid });
+          if (u) {
+            authLog.info('resetPassword success');
+            Sentry.setUser({ id: u.uid });
+          }
         }
       } catch (e: unknown) {
         handleAuthError(e, 'Reset password failed', { rethrow: true });

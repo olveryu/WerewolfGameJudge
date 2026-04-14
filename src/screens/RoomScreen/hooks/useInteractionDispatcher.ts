@@ -154,7 +154,7 @@ export function useInteractionDispatcher({
     (seat: number) => {
       const player = gameState?.players.get(seat);
       const playerName = player?.displayName ?? `${seat + 1}号座位`;
-      roomScreenLog.debug('[handleProfileKick]', { seat });
+      roomScreenLog.debug('handleProfileKick', { seat });
       showDestructiveAlert('移出座位', `确定要将 ${playerName} 移出座位吗？`, '移出', () => {
         void kickPlayer(seat).catch((err) => {
           handleError(err, {
@@ -184,7 +184,7 @@ export function useInteractionDispatcher({
   const handleActionTap = useCallback(
     (seat: number) => {
       const intent = getActionIntent(seat);
-      roomScreenLog.debug('[handleActionTap]', {
+      roomScreenLog.debug('handleActionTap', {
         seat,
         intentType: intent?.type ?? null,
       });
@@ -258,14 +258,14 @@ export function useInteractionDispatcher({
 
       switch (result.kind) {
         case 'NOOP':
-          roomScreenLog.debug('[dispatchInteraction] NOOP', {
+          roomScreenLog.debug('dispatchInteraction NOOP', {
             reason: result.reason,
             event: event.kind,
           });
           return;
 
         case 'ALERT':
-          roomScreenLog.debug('[dispatchInteraction] ALERT', { title: result.title });
+          roomScreenLog.debug('dispatchInteraction ALERT', { title: result.title });
           showDismissAlert(result.title, result.message);
           return;
 
@@ -315,26 +315,26 @@ export function useInteractionDispatcher({
               }
               return;
             case 'leaveRoom':
-              roomScreenLog.debug('[dispatchInteraction] Show leaveRoom dialog');
+              roomScreenLog.debug('dispatchInteraction Show leaveRoom dialog');
               handleLeaveRoom();
               return;
             default: {
               const _exhaustive: never = result.dialogType;
-              roomScreenLog.warn('[dispatchInteraction] Unhandled dialogType', _exhaustive);
+              roomScreenLog.warn('dispatchInteraction Unhandled dialogType', _exhaustive);
               return;
             }
           }
           return;
 
         case 'SEATING_FLOW':
-          roomScreenLog.debug('[dispatchInteraction] SEATING_FLOW', {
+          roomScreenLog.debug('dispatchInteraction SEATING_FLOW', {
             seat: result.seat,
           });
           handleSeatingTap(result.seat);
           return;
 
         case 'ACTION_FLOW':
-          roomScreenLog.debug('[dispatchInteraction] ACTION_FLOW', {
+          roomScreenLog.debug('dispatchInteraction ACTION_FLOW', {
             seat: result.seat,
             hasIntent: !!result.intent,
             isAudioPlaying: interactionContext.isAudioPlaying,
@@ -350,7 +350,7 @@ export function useInteractionDispatcher({
           return;
 
         case 'HOST_CONTROL':
-          roomScreenLog.debug('[dispatchInteraction] HOST_CONTROL', { action: result.action });
+          roomScreenLog.debug('dispatchInteraction HOST_CONTROL', { action: result.action });
           switch (result.action) {
             case 'settings':
               handleSettingsPress();
@@ -366,14 +366,14 @@ export function useInteractionDispatcher({
               return;
             default: {
               const _exhaustive: never = result.action;
-              roomScreenLog.warn('[dispatchInteraction] Unhandled host action', _exhaustive);
+              roomScreenLog.warn('dispatchInteraction Unhandled host action', _exhaustive);
               return;
             }
           }
           return;
 
         case 'REVEAL_ACK':
-          roomScreenLog.debug('[dispatchInteraction] REVEAL_ACK', {
+          roomScreenLog.debug('dispatchInteraction REVEAL_ACK', {
             revealRole: result.revealRole,
           });
           submitRevealAckSafe();
@@ -383,13 +383,13 @@ export function useInteractionDispatcher({
         case 'HUNTER_STATUS_VIEWED':
           if (pendingHunterStatusViewed) {
             roomScreenLog.debug(
-              '[HUNTER_STATUS_VIEWED] Skipping - pending submission (duplicate prevention)',
+              'HUNTER_STATUS_VIEWED Skipping - pending submission (duplicate prevention)',
             );
             return;
           }
           if (effectiveSeat === null) {
             roomScreenLog.warn(
-              '[HUNTER_STATUS_VIEWED] Cannot submit without seat (effectiveSeat is null)',
+              'HUNTER_STATUS_VIEWED Cannot submit without seat (effectiveSeat is null)',
             );
           } else {
             void sendWolfRobotHunterStatusViewed(effectiveSeat).catch((err) => {
@@ -403,14 +403,14 @@ export function useInteractionDispatcher({
           return;
 
         case 'TAKEOVER_BOT_SEAT':
-          roomScreenLog.debug('[dispatchInteraction] TAKEOVER_BOT_SEAT', {
+          roomScreenLog.debug('dispatchInteraction TAKEOVER_BOT_SEAT', {
             seat: result.seat,
           });
           setControlledSeat(result.seat);
           return;
 
         case 'RELEASE_BOT_SEAT':
-          roomScreenLog.debug('[dispatchInteraction] RELEASE_BOT_SEAT');
+          roomScreenLog.debug('dispatchInteraction RELEASE_BOT_SEAT');
           setControlledSeat(null);
           return;
 
@@ -418,7 +418,7 @@ export function useInteractionDispatcher({
           const kickSeat = result.seat;
           const player = gameState?.players.get(kickSeat);
           const playerName = player?.displayName ?? `${kickSeat + 1}号座位`;
-          roomScreenLog.debug('[dispatchInteraction] KICK_CONFIRM', { seat: kickSeat });
+          roomScreenLog.debug('dispatchInteraction KICK_CONFIRM', { seat: kickSeat });
           showDestructiveAlert('移出座位', `确定要将 ${playerName} 移出座位吗？`, '移出', () => {
             void kickPlayer(kickSeat).catch((err) => {
               handleError(err, {
@@ -433,7 +433,7 @@ export function useInteractionDispatcher({
 
         case 'VIEW_PROFILE': {
           const targetPlayer = gameState?.players.get(result.seat);
-          roomScreenLog.debug('[dispatchInteraction] VIEW_PROFILE', {
+          roomScreenLog.debug('dispatchInteraction VIEW_PROFILE', {
             seat: result.seat,
             targetUid: result.targetUid,
             rosterName: targetPlayer?.displayName,
@@ -447,7 +447,7 @@ export function useInteractionDispatcher({
 
         default: {
           const _exhaustive: never = result;
-          roomScreenLog.warn('[dispatchInteraction] Unhandled result kind', _exhaustive);
+          roomScreenLog.warn('dispatchInteraction Unhandled result kind', _exhaustive);
           return;
         }
       }

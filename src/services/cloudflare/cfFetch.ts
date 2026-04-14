@@ -7,6 +7,7 @@
  */
 
 import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
+import { cfFetchLog } from '@/utils/logger';
 import { withTimeout } from '@/utils/withTimeout';
 
 /** 从 AsyncStorage 读取 JWT token 的回调（由 CFAuthService 注入） */
@@ -33,6 +34,7 @@ export async function cfPost<T = Record<string, unknown>>(
   body?: Record<string, unknown>,
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
+  cfFetchLog.debug('POST', { path });
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -50,7 +52,7 @@ export async function cfPost<T = Record<string, unknown>>(
 
   const res = await withTimeout(fetchPromise, API_TIMEOUT_MS, () => new Error('请求超时'));
 
-  return parseJsonResponse<T>(res);
+  return parseJsonResponse<T>(res, path);
 }
 
 /**
@@ -58,6 +60,7 @@ export async function cfPost<T = Record<string, unknown>>(
  */
 export async function cfGet<T = Record<string, unknown>>(path: string): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
+  cfFetchLog.debug('GET', { path });
   const headers: Record<string, string> = {};
 
   const token = tokenProvider?.();
@@ -68,7 +71,7 @@ export async function cfGet<T = Record<string, unknown>>(path: string): Promise<
   const fetchPromise = fetch(url, { method: 'GET', headers });
   const res = await withTimeout(fetchPromise, API_TIMEOUT_MS, () => new Error('请求超时'));
 
-  return parseJsonResponse<T>(res);
+  return parseJsonResponse<T>(res, path);
 }
 
 /**
@@ -79,6 +82,7 @@ export async function cfPut<T = Record<string, unknown>>(
   body?: Record<string, unknown>,
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
+  cfFetchLog.debug('PUT', { path });
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -96,23 +100,25 @@ export async function cfPut<T = Record<string, unknown>>(
 
   const res = await withTimeout(fetchPromise, API_TIMEOUT_MS, () => new Error('请求超时'));
 
-  return parseJsonResponse<T>(res);
+  return parseJsonResponse<T>(res, path);
 }
 
 /**
  * 安全解析 JSON 响应。非 JSON（502/503 HTML）返回结构化错误。
  */
-async function parseJsonResponse<T>(res: Response): Promise<T> {
+async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
   const contentType = res.headers.get('content-type') ?? '';
 
   if (!contentType.includes('application/json')) {
     if (!res.ok) {
+      cfFetchLog.warn('HTTP error (non-JSON)', { status: res.status, path });
       throw Object.assign(new Error(`服务端错误 (${res.status})`), {
         status: res.status,
         reason: 'SERVER_ERROR',
       });
     }
     // 200 but not JSON — unusual
+    cfFetchLog.warn('Non-JSON 200 response', { path });
     throw Object.assign(new Error('响应格式异常'), { reason: 'SERVER_ERROR' });
   }
 
@@ -120,6 +126,7 @@ async function parseJsonResponse<T>(res: Response): Promise<T> {
 
   if (!res.ok) {
     const errBody = data as Record<string, unknown>;
+    cfFetchLog.warn('HTTP error', { status: res.status, path, reason: errBody.reason });
     throw Object.assign(
       new Error((errBody.error as string) ?? (errBody.reason as string) ?? `HTTP ${res.status}`),
       { status: res.status, reason: errBody.reason ?? 'SERVER_ERROR', body: errBody },

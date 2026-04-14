@@ -50,7 +50,7 @@ export async function dispatchIntent(intent: ActionIntent, ctx: ExecutorContext)
   const executor = executors[intent.type];
   if (!executor) return false;
 
-  roomScreenLog.debug('[dispatchIntent] Delegating to executor', { type: intent.type });
+  roomScreenLog.debug('dispatchIntent Delegating to executor', { type: intent.type });
   await executor(intent, ctx);
   return true;
 }

@@ -63,7 +63,7 @@ export function useRoomIdentity(input: UseRoomIdentityInput): UseRoomIdentityRes
   // FAIL-FAST: Log warning when delegating but identity is invalid
   useEffect(() => {
     if (isDelegating && !isActorIdentityValid(actorIdentity)) {
-      roomScreenLog.warn('[ActorIdentity] Invalid delegation state detected', {
+      roomScreenLog.warn('Invalid delegation state detected', {
         controlledSeat,
         effectiveSeat,
         effectiveRole,

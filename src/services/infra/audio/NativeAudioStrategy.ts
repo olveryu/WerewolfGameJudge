@@ -43,7 +43,7 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
     }
     this.#isPlaying = false;
     if (this.#resolve) {
-      audioLog.debug(`[${this.#label}] settle, statusCount=${this.#statusCount}`);
+      audioLog.debug('settle', { label: this.#label, statusCount: this.#statusCount });
       this.#resolve();
       this.#resolve = null;
     }
@@ -68,7 +68,7 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
         this.#subscription = null;
       }
 
-      audioLog.debug(`[${label}] creating player and starting playback`);
+      audioLog.debug('creating player and starting playback', { label });
       const player = createAudioPlayer(asset);
 
       // Track old player for deferred cleanup (stale but not removed to avoid event issues)
@@ -76,12 +76,12 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
         this.#staleNativePlayers.add(this.#player);
       }
       this.#player = player;
-      audioLog.debug(`[${label}] player created OK`);
+      audioLog.debug('player created OK', { label });
 
       this.#subscription = player.addListener('playbackStatusUpdate', (status: AudioStatus) =>
         this.#handlePlaybackStatus(status),
       );
-      audioLog.debug(`[${label}] listener added`);
+      audioLog.debug('listener added', { label });
 
       this.#isPlaying = true;
 
@@ -92,9 +92,11 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
 
         // Timeout fallback — resolve after max time even if audio didn't finish
         this.#timeoutId = setTimeout(() => {
-          audioLog.debug(
-            `[${label}] TIMEOUT after ${AUDIO_TIMEOUT_MS}ms, statusCount=${this.#statusCount}`,
-          );
+          audioLog.debug('TIMEOUT', {
+            label,
+            timeoutMs: AUDIO_TIMEOUT_MS,
+            statusCount: this.#statusCount,
+          });
           if (isJest) {
             audioLog.debug(' Playback timeout - proceeding without waiting for completion');
           } else {
@@ -104,12 +106,12 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
         }, AUDIO_TIMEOUT_MS);
 
         player.volume = this.#volume;
-        audioLog.debug(`[${label}] calling player.play()`);
+        audioLog.debug('calling player.play()', { label });
         player.play();
-        audioLog.debug(`[${label}] player.play() returned`);
+        audioLog.debug('player.play() returned', { label });
       });
     } catch (error) {
-      audioLog.warn(`[${label}] Audio playback failed, resolving anyway:`, error);
+      audioLog.warn('Audio playback failed, resolving anyway', { label }, error);
       this.#isPlaying = false;
       return;
     }
@@ -118,16 +120,21 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
   #handlePlaybackStatus(status: AudioStatus): void {
     this.#statusCount++;
     const label = this.#label;
-    audioLog.debug(
-      `[${label}] status #${this.#statusCount}: playing=${status.playing} loaded=${status.isLoaded} duration=${status.duration} didJustFinish=${status.didJustFinish}`,
-    );
+    audioLog.debug('playbackStatus', {
+      label,
+      statusCount: this.#statusCount,
+      playing: status.playing,
+      isLoaded: status.isLoaded,
+      duration: status.duration,
+      didJustFinish: status.didJustFinish,
+    });
 
     try {
       if (status.isLoaded && status.duration === 0) {
         audioLog.warn(' Audio duration is 0 - may be invalid, waiting for timeout fallback');
       }
       if (status.didJustFinish) {
-        audioLog.debug(`[${label}] didJustFinish=true, calling settle`);
+        audioLog.debug('didJustFinish=true, calling settle', { label });
         this.#settle();
       }
     } catch {
@@ -138,7 +145,7 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
 
   stop(): void {
     if (this.#resolve) {
-      audioLog.debug('[stopCurrentPlayer] resolving pending playback');
+      audioLog.debug('resolving pending playback');
     }
 
     if (this.#player) {
@@ -164,7 +171,7 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
       try {
         this.#player.pause();
       } catch (e) {
-        audioLog.warn('[visibility] error pausing player', e);
+        audioLog.warn('error pausing player', e);
       }
     }
   }
@@ -173,9 +180,9 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
     if (this.#isPlaying && this.#player) {
       try {
         this.#player.play();
-        audioLog.debug('[visibility] resumed main audio');
+        audioLog.debug('resumed main audio');
       } catch (e) {
-        audioLog.warn('[visibility] error resuming player', e);
+        audioLog.warn('error resuming player', e);
       }
     }
   }
@@ -239,7 +246,7 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
   /** Release old native AudioPlayers kept alive to avoid event-delivery issues. */
   #releaseStaleNativePlayers(): void {
     if (this.#staleNativePlayers.size === 0) return;
-    audioLog.debug(`releasing ${this.#staleNativePlayers.size} stale native players`);
+    audioLog.debug('releasing stale native players', { count: this.#staleNativePlayers.size });
     for (const p of this.#staleNativePlayers) {
       try {
         p.remove();

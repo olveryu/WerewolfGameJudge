@@ -99,7 +99,7 @@ export function useRoomSeatDialogs({
     submittingRef.current = true;
     setIsSeatSubmitting(true);
     const seat = pendingSeat;
-    roomScreenLog.debug('[SeatDialogs] Taking seat', { seat });
+    roomScreenLog.debug('Taking seat', { seat });
 
     void takeSeat(seat)
       .then((success) => {
@@ -108,7 +108,7 @@ export function useRoomSeatDialogs({
           setSeatModalVisible(false);
           setPendingSeat(null);
         } else {
-          roomScreenLog.warn('[SeatDialogs] takeSeat failed (occupied)', { seat });
+          roomScreenLog.warn('takeSeat failed (occupied)', { seat });
           setSeatModalVisible(false);
           setPendingSeat(null);
           showErrorAlert('入座失败', `${formatSeat(seat)}座位已被占用，请选择其他位置。`);
@@ -138,7 +138,7 @@ export function useRoomSeatDialogs({
 
     submittingRef.current = true;
     setIsSeatSubmitting(true);
-    roomScreenLog.debug('[SeatDialogs] Leaving seat', { seat: pendingSeat });
+    roomScreenLog.debug('Leaving seat', { seat: pendingSeat });
 
     void leaveSeat()
       .then(() => {
@@ -157,7 +157,7 @@ export function useRoomSeatDialogs({
   // ─────────────────────────────────────────────────────────────────────────
 
   const doLeaveRoom = useCallback(() => {
-    roomScreenLog.debug('[SeatDialogs] Leaving room');
+    roomScreenLog.debug('Leaving room');
     onLeaveRoom?.(); // Stop audio, cleanup
     navigation.navigate('Home');
   }, [navigation, onLeaveRoom]);

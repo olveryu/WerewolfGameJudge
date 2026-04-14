@@ -17,14 +17,14 @@ export const multiSelectToggleExecutor: IntentExecutor = (intent, ctx) => {
   const { currentSchema, multiSelectedSeats, setMultiSelectedSeats } = ctx;
 
   const seat = intent.targetSeat;
-  roomScreenLog.debug('[handleActionIntent] multiSelectToggle', { seat });
+  roomScreenLog.debug('multiSelectToggle', { seat });
   const current = multiSelectedSeats;
   if (current.includes(seat)) {
     setMultiSelectedSeats(current.filter((s) => s !== seat));
   } else {
     const max = currentSchema?.kind === 'multiChooseSeat' ? currentSchema.maxTargets : undefined;
     if (max != null && current.length >= max) {
-      roomScreenLog.debug('[multiSelectToggle] maxTargets reached, ignoring', { max });
+      roomScreenLog.debug('multiSelectToggle maxTargets reached, ignoring', { max });
       return;
     }
     setMultiSelectedSeats([...current, seat]);
@@ -36,10 +36,10 @@ export const multiSelectConfirmExecutor: IntentExecutor = async (intent, ctx) =>
 
   const targets = intent.targets;
   if (!targets || targets.length === 0) {
-    roomScreenLog.warn('[handleActionIntent] multiSelectConfirm with no targets');
+    roomScreenLog.warn('multiSelectConfirm with no targets');
     return;
   }
-  roomScreenLog.debug('[handleActionIntent] multiSelectConfirm', { targets });
+  roomScreenLog.debug('multiSelectConfirm', { targets });
 
   // Schema-driven confirm dialog
   const confirmCopy = currentSchema!.ui!.confirmText!;

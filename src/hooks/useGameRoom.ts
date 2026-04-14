@@ -220,7 +220,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   useEffect(() => {
     if (!isFocused) return; // 不聚焦的隐藏 screen 不执行副作用
     if (snapshot) {
-      gameRoomLog.debug('[facade] State update from facade', {
+      gameRoomLog.debug('State update from facade', {
         roomCode: snapshot.roomCode,
         status: snapshot.status,
       });

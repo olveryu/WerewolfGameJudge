@@ -330,18 +330,20 @@ export class AudioOrchestrator {
     const state = this.#deps.store.getState();
     const effects = state?.pendingAudioEffects;
     if (effects && effects.length > 0) {
-      facadeLog.info(`Replaying audio effects after ${trigger}`, {
+      facadeLog.info('Replaying audio effects after reconnect', {
+        trigger,
         effectCount: effects.length,
       });
       // #playPendingAudioEffects finally 块会 postAudioAck
       void this.#playPendingAudioEffects(effects);
     } else {
-      facadeLog.info(`Retrying postAudioAck after ${trigger} (no effects to replay)`);
+      facadeLog.info('Retrying postAudioAck (no effects to replay)', { trigger });
       void gameActions
         .postAudioAck(this.#deps.getActionsContext())
         .then((result) => {
           if (!result.success) {
-            facadeLog.warn(`postAudioAck retry failed (${trigger}), will retry`, {
+            facadeLog.warn('postAudioAck retry failed, will retry', {
+              trigger,
               reason: result.reason,
             });
             this.#pendingAudioAckRetry = true;
@@ -349,7 +351,7 @@ export class AudioOrchestrator {
           }
         })
         .catch((err) => {
-          facadeLog.error(`postAudioAck retry threw (${trigger})`, err);
+          facadeLog.error('postAudioAck retry threw', { trigger }, err);
           this.#pendingAudioAckRetry = true;
           onRetryFailed?.();
         });

@@ -131,13 +131,13 @@ export class BgmPlayer {
       try {
         this.#webElement.pause();
       } catch (e) {
-        audioLog.warn('[visibility] error pausing web bgm', e);
+        audioLog.warn('error pausing web bgm', e);
       }
     } else if (this.#nativePlayer) {
       try {
         this.#nativePlayer.pause();
       } catch (e) {
-        audioLog.warn('[visibility] error pausing bgm', e);
+        audioLog.warn('error pausing bgm', e);
       }
     }
   }
@@ -149,15 +149,15 @@ export class BgmPlayer {
         void this.#webAudioCtx.resume();
       }
       this.#webElement.play().catch((e) => {
-        audioLog.warn('[visibility] error resuming web bgm', e);
+        audioLog.warn('error resuming web bgm', e);
       });
-      audioLog.debug('[visibility] resumed web BGM');
+      audioLog.debug('resumed web BGM');
     } else if (this.#nativePlayer) {
       try {
         this.#nativePlayer.play();
-        audioLog.debug('[visibility] resumed BGM');
+        audioLog.debug('resumed BGM');
       } catch (e) {
-        audioLog.warn('[visibility] error resuming bgm', e);
+        audioLog.warn('error resuming bgm', e);
       }
     }
   }

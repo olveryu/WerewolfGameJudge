@@ -30,7 +30,7 @@ export const skipExecutor: IntentExecutor = (intent, ctx) => {
 
   if (intent.stepKey === 'skipAll' || currentSchema?.kind === 'compound') {
     if (effectiveSeat === null) {
-      roomScreenLog.warn('[skip] Cannot submit compound skip without seat (effectiveSeat is null)');
+      roomScreenLog.warn('Cannot submit compound skip without seat (effectiveSeat is null)');
       return;
     }
     skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });

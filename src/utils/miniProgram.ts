@@ -7,6 +7,8 @@
  */
 import { Platform } from 'react-native';
 
+import { log } from '@/utils/logger';
+
 declare global {
   interface Window {
     __wxjs_environment?: string;
@@ -60,6 +62,7 @@ export function consumeWxCode(): string | null {
     window.history.replaceState(null, '', newUrl);
     return code;
   } catch {
+    log.warn('Failed to consume wxcode');
     return null;
   }
 }

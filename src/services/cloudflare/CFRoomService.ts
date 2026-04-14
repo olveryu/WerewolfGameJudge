@@ -36,7 +36,7 @@ export class CFRoomService implements IRoomService {
         });
 
         if (attempt > 1) {
-          roomLog.info(`Room created on attempt ${attempt} with code ${roomNumber}`);
+          roomLog.info('Room created after retry', { attempt, roomNumber });
         }
 
         return {
@@ -49,7 +49,7 @@ export class CFRoomService implements IRoomService {
         const isConflict = errObj.status === 409;
 
         if (isConflict && attempt < maxRetries) {
-          roomLog.debug(`Room code ${roomNumber} already exists (attempt ${attempt}), retrying...`);
+          roomLog.debug('Room code conflict, retrying', { roomNumber, attempt });
           continue;
         }
 
@@ -80,10 +80,12 @@ export class CFRoomService implements IRoomService {
   }
 
   async deleteRoom(roomNumber: string): Promise<void> {
+    roomLog.info('deleteRoom', { roomNumber });
     await cfPost('/room/delete', { roomCode: roomNumber });
   }
 
   async getStateRevision(roomCode: string): Promise<number | null> {
+    roomLog.debug('getStateRevision', { roomCode });
     const data = await cfPost<{ revision: number | null }>('/room/revision', {
       roomCode,
     });
@@ -91,6 +93,7 @@ export class CFRoomService implements IRoomService {
   }
 
   async getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null> {
+    roomLog.debug('getGameState', { roomCode });
     const data = await cfPost<{
       state: GameState | null;
       revision?: number;

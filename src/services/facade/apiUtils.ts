@@ -78,7 +78,8 @@ async function callApiOnce(
 
     // Guard: non-JSON responses (502/503 error pages OR 200+text/html from proxy misconfiguration)
     if (!res.headers.get('content-type')?.includes('application/json')) {
-      facadeLog.error(`${label} non-JSON response`, {
+      facadeLog.error('non-JSON response', {
+        label,
         path,
         status: res.status,
         requestId,
@@ -114,12 +115,12 @@ async function callApiOnce(
         'name' in e &&
         (e as { name?: string }).name === 'AbortError');
     if (abortLikeError) {
-      facadeLog.warn(`${label} timeout`, { path, timeoutMs: API_TIMEOUT_MS, region: API_REGION });
+      facadeLog.warn('timeout', { label, path, timeoutMs: API_TIMEOUT_MS, region: API_REGION });
       if (store) store.rollbackOptimistic();
       return { success: false, reason: 'TIMEOUT' };
     }
     const err = e as { message?: string };
-    facadeLog.warn(`${label} network error`, { path, error: err?.message ?? String(e) });
+    facadeLog.warn('network error', { label, path, error: err?.message ?? String(e) });
     // Network/fetch errors are expected (offline, DNS, timeout) — no Sentry
     // 网络错误 → 回滚乐观更新
     if (store) store.rollbackOptimistic();
@@ -170,7 +171,7 @@ export async function callApiWithRetry(
     const isRetryable = result.reason === 'CONFLICT_RETRY' || result.reason === 'INTERNAL_ERROR';
     if (isRetryable && attempt < MAX_CLIENT_RETRIES) {
       const delay = 100 * (attempt + 1) + secureRng() * 50;
-      facadeLog.warn(`${result.reason}, client retrying`, { path, attempt: attempt + 1 });
+      facadeLog.warn('client retrying', { reason: result.reason, path, attempt: attempt + 1 });
       await new Promise((r) => setTimeout(r, delay));
       continue;
     }

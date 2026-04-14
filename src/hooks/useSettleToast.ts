@@ -14,6 +14,7 @@ import { AVATAR_FRAMES } from '@/components/avatarFrames';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
+import { gameRoomLog } from '@/utils/logger';
 
 interface UseSettleToastParams {
   facade: IGameFacade;
@@ -34,6 +35,7 @@ function getRewardDisplayName(reward: { type: string; id: string }): string {
 
 function showSettleToast(result: SettleResultMessage): void {
   const leveledUp = result.newLevel > result.previousLevel;
+  gameRoomLog.debug('Settle toast', { xpEarned: result.xpEarned, leveledUp });
 
   if (leveledUp && result.reward) {
     toast.success(`升级！Lv.${result.newLevel} 解锁${getRewardDisplayName(result.reward)}`, {

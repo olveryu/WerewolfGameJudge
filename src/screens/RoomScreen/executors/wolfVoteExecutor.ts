@@ -24,7 +24,7 @@ export const wolfVoteExecutor: IntentExecutor = (intent, ctx) => {
   } = ctx;
 
   const seat = intent.wolfSeat ?? effectiveSeat;
-  roomScreenLog.info('[handleActionIntent] wolfVote:', {
+  roomScreenLog.info('wolfVote', {
     'intent.wolfSeat': intent.wolfSeat,
     effectiveSeat,
     effectiveRole,
@@ -33,7 +33,7 @@ export const wolfVoteExecutor: IntentExecutor = (intent, ctx) => {
     targetSeat: intent.targetSeat,
   });
   if (seat === null) {
-    roomScreenLog.warn('[handleActionIntent] wolfVote: effectiveSeat is null, cannot submit.', {
+    roomScreenLog.warn('wolfVote: effectiveSeat is null, cannot submit', {
       effectiveSeat,
       effectiveRole,
       controlledSeat,

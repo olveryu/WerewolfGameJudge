@@ -78,7 +78,7 @@ export function defineGameAction<TArgs extends unknown[]>(
   def: GameActionDef<TArgs>,
 ): (ctx: GameActionsContext, ...args: TArgs) => Promise<ActionResult> {
   return async (ctx: GameActionsContext, ...args: TArgs): Promise<ActionResult> => {
-    facadeLog.debug(`${def.name} called`);
+    facadeLog.debug('gameAction called', { name: def.name });
 
     let roomCode: string;
     let myUid: string | null = null;

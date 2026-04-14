@@ -6,6 +6,7 @@
  */
 
 import { cfGet } from '@/services/cloudflare/cfFetch';
+import { statsLog } from '@/utils/logger';
 
 export interface UserStats {
   xp: number;
@@ -28,11 +29,13 @@ export interface UserPublicProfile {
 
 /** 获取当前用户的成长数据 */
 export async function fetchUserStats(): Promise<UserStats> {
+  statsLog.debug('Fetching user stats');
   return cfGet<UserStats>('/api/user/stats');
 }
 
 /** 获取指定用户的公开资料 */
 export async function fetchUserProfile(userId: string): Promise<UserPublicProfile> {
+  statsLog.debug('Fetching profile', { userId });
   return cfGet<UserPublicProfile>(`/api/user/${encodeURIComponent(userId)}/profile`);
 }
 
@@ -40,6 +43,7 @@ export async function fetchUserProfile(userId: string): Promise<UserPublicProfil
 export async function fetchUserUnlocks(
   userId: string,
 ): Promise<{ unlockedItems: readonly string[] }> {
+  statsLog.debug('Fetching unlocks', { userId });
   return cfGet<{ unlockedItems: readonly string[] }>(
     `/api/user/${encodeURIComponent(userId)}/unlocks`,
   );
