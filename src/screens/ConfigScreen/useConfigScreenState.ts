@@ -189,17 +189,17 @@ export function useConfigScreenState({
   const gameState = useSyncExternalStore(subscribe, getSnapshot);
 
   useEffect(() => {
-    if (!isNominateMode) return;
+    if (!nominateMode) return;
     if (!gameState) return;
     const canNominate =
       gameState.status === GameStatus.Unseated || gameState.status === GameStatus.Seated;
     if (!canNominate) {
       navigation.popTo('Room', {
-        roomNumber: nominateMode!.roomCode,
+        roomNumber: nominateMode.roomCode,
         isHost: false,
       });
     }
-  }, [isNominateMode, gameState, gameState?.status, nominateMode, navigation]);
+  }, [gameState, gameState?.status, nominateMode, navigation]);
 
   // ── Callback handlers ────────────────────────────────────────────────────
 
@@ -254,7 +254,7 @@ export function useConfigScreenState({
     setIsCreating(true);
     try {
       // ── Nominate mode: submit board nomination ──
-      if (isNominateMode) {
+      if (nominateMode) {
         await authService.waitForInit();
         const displayName = (await authService.getCurrentDisplayName()) ?? '匿名玩家';
         const result = await facade.boardNominate(displayName, roles);
@@ -263,7 +263,7 @@ export function useConfigScreenState({
           return;
         }
         navigation.popTo('Room', {
-          roomNumber: nominateMode!.roomCode,
+          roomNumber: nominateMode.roomCode,
           isHost: false,
         });
         return;
@@ -320,7 +320,7 @@ export function useConfigScreenState({
     selection,
     navigation,
     isEditMode,
-    isNominateMode,
+    nominateMode,
     existingRoomNumber,
     facade,
     roleRevealAnimation,
@@ -328,7 +328,6 @@ export function useConfigScreenState({
     bgmEnabled,
     isLoading,
     authService,
-    nominateMode,
     roomService,
     variantOverrides,
   ]);
@@ -506,7 +505,7 @@ export function useConfigScreenState({
           accentColor,
         };
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- FACTION_GROUPS is module-level constant
     [selection, getFactionAccentColor, getFactionSelectedCount],
   );
 
