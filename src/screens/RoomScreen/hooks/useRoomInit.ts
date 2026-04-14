@@ -74,6 +74,12 @@ export function useRoomInit({
   const [retryKey, setRetryKey] = useState(0);
   // Guard: prevent concurrent initialization from useEffect re-triggers
   const initInProgressRef = useRef(false);
+  // Once gameState has been received, never fire the loading timeout again.
+  // hasGameState flips back to false only during leaveRoom (store.reset), not during load failure.
+  const hadGameStateRef = useRef(false);
+  useEffect(() => {
+    if (hasGameState) hadGameStateRef.current = true;
+  }, [hasGameState]);
   // Ref for gameRoomError — read in log only, must NOT be a dep to avoid infinite re-trigger
   const gameRoomErrorRef = useRef(gameRoomError);
   useEffect(() => {
@@ -169,6 +175,9 @@ export function useRoomInit({
       setShowRetryButton(false);
       return;
     }
+
+    // Already had state once → leaving room, not a load failure
+    if (hadGameStateRef.current) return;
 
     const timeout = setTimeout(() => {
       if (!isInitialized || !hasGameState) {
