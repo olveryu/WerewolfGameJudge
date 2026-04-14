@@ -88,7 +88,7 @@ applyTo: 'src/screens/**,src/components/**'
 - `renderItem` 用 `useCallback` 或独立组件，禁止内联匿名函数（每次渲染新函数 → memo 失效）。
 - 禁止循环/列表内创建内联 style 对象，用预计算 style 或 `StyleSheet.compose`。
 - `<Image>` 必须指定 `resizeMode` + 明确 width/height。
-- 动画优先 `react-native-reanimated` 或 `useNativeDriver: true`，禁止动画回调中频繁 `setState`。
+- 动画统一使用 `react-native-reanimated`（项目已全量迁移），禁止 RN 内置 `Animated` API。禁止动画回调中频繁 `setState`。
 - 导航后重计算用 `InteractionManager.runAfterInteractions`。
 - 禁止渲染路径同步 I/O（大对象 JSON.parse 放 useEffect）。
 

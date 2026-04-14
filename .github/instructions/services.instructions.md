@@ -24,7 +24,7 @@ applyTo: src/services/**
 - Resolver / calculator / validator 是纯函数，禁止 IO/UI。
 - 服务端业务逻辑（night flow / death calc / state transition / reducer）由 Cloudflare Worker（Durable Objects）执行。
 - 客户端 facade 负责：HTTP API 提交 + Realtime 接收 + 音频编排。客户端禁止运行 resolvers / reducers / death calculation。
-- Infra service 允许平台 API（AsyncStorage / Platform / expo-audio 等）。
+- Infra service 允许平台 API（MMKV / Platform / expo-audio 等）。
 - 纯类型文件（`src/services/types/**`）可被任意层 `import type`。
 - 禁止跨夜状态（`previousActions` / `lastNightTarget` 等）。
 - SRP ~400 行拆分信号。超阈值先评估是否有独立复用/测试/修改场景，不机械套用。
@@ -76,7 +76,7 @@ expo-audio `AudioPlayer` 等原生资源被替换时必须 track 旧实例，在
 
 ## 持久化数据 Validate + Clamp
 
-从 AsyncStorage / DB 加载的 UI 状态（坐标、枚举、配置值）必须 validate 类型 + clamp 到当前有效范围，不能直接 trust。例如屏幕坐标需 clamp 到当前 viewport。
+从 MMKV / DB 加载的 UI 状态（坐标、枚举、配置值）必须 validate 类型 + clamp 到当前有效范围，不能直接 trust。例如屏幕坐标需 clamp 到当前 viewport。
 
 ## 音频编排
 

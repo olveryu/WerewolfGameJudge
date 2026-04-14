@@ -79,8 +79,8 @@ rollXp() = 50 + crypto.getRandomValues(Uint32Array)[0] % 21
 
 1. `endNight()` handler 广播 `END_NIGHT` 后，`ctx.waitUntil(settleGameResults(state, env))`
 2. 收集非空非 bot 玩家 uid，检查 `≥ MIN_PLAYERS`
-3. 查 D1 过滤匿名用户
-4. 逐注册玩家：`rollXp()` → D1 upsert（`ON CONFLICT DO UPDATE ... WHERE last_room_code != ?`）
+3. 查 D1（via Drizzle ORM）过滤匿名用户
+4. 逐注册玩家：`rollXp()` → Drizzle upsert（`onConflictDoUpdate` + `last_room_code` 幂等 guard）
 5. 读回 xp → `getLevel()` → 更新 level → 返回 `PlayerSettleResult[]`
 
 ### 幂等保证
@@ -133,7 +133,7 @@ GameRoom DO → WebSocket → CFRealtimeService.#parseMessage (SETTLE_RESULT)
 
 ---
 
-## 6. D1 Schema
+## 6. D1 Schema（Drizzle ORM）
 
 ### user_stats（0008 + 0009 migration）
 

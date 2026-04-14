@@ -12,7 +12,7 @@
 ## Development
 
 ```bash
-pnpm run dev           # 启动 Web 开发服务器 + 本地 Edge Functions（推荐）
+pnpm run dev           # 启动 Cloudflare Worker + Expo Web 开发服务器（推荐）
 pnpm run web           # 仅启动 Expo Web
 pnpm run quality      # 一键跑 typecheck + lint + format + test
 pnpm exec tsc --noEmit        # 类型检查
