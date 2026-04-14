@@ -111,48 +111,32 @@ export function useConfigScreenState({
 
   // ── Apply preset when returning from BoardPicker (popTo updates params
   //    but useState won't re-initialize on an already-mounted screen) ───────
+  // ── OR load current room's roles when in edit/nominate mode ──────────────
+  //
+  // Single effect with explicit priority:
+  //   1. presetName (user picked a board in BoardPicker) — always wins
+  //   2. room state (edit/nominate mode without preset) — load from facade
+  //   3. neither — no-op (new room, empty selection already set by useState)
 
   useEffect(() => {
-    if (!presetName) return;
-    const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
-    if (!preset) return;
-    const restored = restoreFromTemplateRoles(preset.roles);
-    setSelection(restored.selection);
-    setVariantOverrides(restored.variantOverrides);
-    setSelectedTemplate(restored.matchedPreset ?? '__custom__');
-  }, [presetName]);
-
-  // ── Load settings (animation + BGM) for new rooms ────────────────────────
-
-  useEffect(() => {
-    if (!existingRoomNumber) {
-      const lastChoice = settingsService.getRoleRevealAnimation();
-      setRoleRevealAnimation(lastChoice);
-      setBgmEnabled(settingsService.isBgmEnabled());
-    }
-  }, [existingRoomNumber, settingsService]);
-
-  // ── Load current room's roles when in edit mode ──────────────────────────
-
-  useEffect(() => {
-    configLog.debug(
-      ' useEffect triggered, isEditMode:',
-      isEditMode,
-      'isNominateMode:',
-      isNominateMode,
-      'existingRoomNumber:',
-      existingRoomNumber,
-    );
-    if ((!isEditMode && !isNominateMode) || (!existingRoomNumber && !isNominateMode)) {
-      configLog.debug(' Skipping load - not in edit/nominate mode');
+    // Priority 1: presetName — user explicitly chose a board
+    if (presetName) {
+      const preset = PRESET_TEMPLATES.find((p) => p.name === presetName);
+      if (preset) {
+        const restored = restoreFromTemplateRoles(preset.roles);
+        setSelection(restored.selection);
+        setVariantOverrides(restored.variantOverrides);
+        setSelectedTemplate(restored.matchedPreset ?? '__custom__');
+      }
+      setIsLoading(false);
       return;
     }
 
-    const loadCurrentRoles = () => {
-      configLog.debug(' Loading room:', existingRoomNumber ?? nominateMode?.roomCode);
+    // Priority 2: edit/nominate mode — load current room roles from facade
+    if ((isEditMode || isNominateMode) && (existingRoomNumber || isNominateMode)) {
+      configLog.debug('Loading room roles:', existingRoomNumber ?? nominateMode?.roomCode);
       try {
         const state = facade.getState();
-        configLog.debug(' State loaded:', state ? 'success' : 'not found');
         if (state?.templateRoles && state.templateRoles.length > 0) {
           const restored = restoreFromTemplateRoles(state.templateRoles);
           setSelection(restored.selection);
@@ -166,13 +150,28 @@ export function useConfigScreenState({
       } catch (error) {
         handleError(error, { label: '加载房间', logger: configLog, alertTitle: false });
       } finally {
-        configLog.debug(' Setting isLoading=false');
         setIsLoading(false);
       }
-    };
+    }
+  }, [
+    presetName,
+    isEditMode,
+    isNominateMode,
+    existingRoomNumber,
+    nominateMode,
+    facade,
+    settingsService,
+  ]);
 
-    loadCurrentRoles();
-  }, [isEditMode, isNominateMode, existingRoomNumber, nominateMode, facade, settingsService]);
+  // ── Load settings (animation + BGM) for new rooms ────────────────────────
+
+  useEffect(() => {
+    if (!existingRoomNumber) {
+      const lastChoice = settingsService.getRoleRevealAnimation();
+      setRoleRevealAnimation(lastChoice);
+      setBgmEnabled(settingsService.isBgmEnabled());
+    }
+  }, [existingRoomNumber, settingsService]);
 
   // ── Reset transient states when screen regains focus ─────────────────────
 
