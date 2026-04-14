@@ -139,8 +139,8 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     cupidSeat: undefined,
     cupidLoversRevealAcks: [],
 
-    // 板子建议（重开时清空）
-    boardNominations: undefined,
+    // boardNominations: 保留，重开不清空
+    boardNominations: state.boardNominations,
 
     // ── 重开时更新 nonce 和 resolved 动画 ─────────────────
     roleRevealRandomNonce: newNonce,
@@ -179,8 +179,7 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
     templateRoles: newTemplateRoles,
     players: newPlayers,
     status: allSeated ? GameStatus.Seated : GameStatus.Unseated,
-    // 更换模板后清空板子建议
-    boardNominations: undefined,
+    // boardNominations: 保留，采纳不清空
   };
 }
 

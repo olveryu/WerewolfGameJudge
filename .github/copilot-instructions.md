@@ -39,6 +39,8 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 > - **禁止臆造事实。** 不确定的 API/库行为/项目结构必须用工具验证。说错不如说"我不确定，需要确认"。
 > - **禁止走捷径。** 不得用 `?.` 绕过 required 字段、`as any` 消除类型错误、防御性兜底掩盖 mock 不完整。追求正确且健壮，而非最省力。
 
+- **禁止 band-aid 修复。** 不得用条件判断、guard clause、标志位等手段绕过结构性问题的症状。发现 bug 的表层修复会掩盖根因时，必须追溯到结构层面修正。
+
 ---
 
 ## 协作规则（MUST follow）
