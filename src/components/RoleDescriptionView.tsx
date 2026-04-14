@@ -5,9 +5,9 @@
  * 双模式布局：Mode A（单字段居中）/ Mode B（多字段带标签+左色条）。
  * 中文分号自动拆分为 bullet list。不含业务逻辑。
  */
+import { Ionicons } from '@expo/vector-icons';
 import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ban, Crosshair, Shield, Star, Trophy, Zap } from 'lucide-react-native';
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -35,17 +35,17 @@ const FIELD_LABELS: Record<keyof RoleDescription, string> = {
   winCondition: '胜利条件',
 };
 
-/** Lucide icon components for quick visual scanning in Mode B */
-const FIELD_ICONS: Record<
+/** Ionicons name mapping for quick visual scanning in Mode B */
+const FIELD_ICON_NAMES: Record<
   keyof RoleDescription,
-  React.ComponentType<{ size: number; color: string }>
+  React.ComponentProps<typeof Ionicons>['name']
 > = {
-  skill: Zap,
-  passive: Shield,
-  trigger: Crosshair,
-  restriction: Ban,
-  special: Star,
-  winCondition: Trophy,
+  skill: 'flash-outline',
+  passive: 'shield-outline',
+  trigger: 'locate-outline',
+  restriction: 'close-circle-outline',
+  special: 'star-outline',
+  winCondition: 'trophy-outline',
 };
 
 /** Icon size for field labels (matches captionSmall) */
@@ -137,24 +137,23 @@ const ModeA: React.FC<{ text: string; colors: ThemeColors }> = ({ text, colors }
 const DescriptionSection: React.FC<{
   fieldKey: keyof RoleDescription;
   label: string;
-  icon: React.ComponentType<{ size: number; color: string }>;
+  iconName: React.ComponentProps<typeof Ionicons>['name'];
   text: string;
   accentColor: string;
   labelColor: string;
   colors: ThemeColors;
   isLast: boolean;
-}> = ({ label, icon, text, accentColor, labelColor, isLast }) => {
+}> = ({ label, iconName, text, accentColor, labelColor, isLast }) => {
   const styles = useMemo(() => createStyles(colors, accentColor), [accentColor]);
   const bullets = splitBullets(text);
   const useBullets = bullets.length > 1;
-  const Icon = icon;
 
   return (
     <View style={[styles.sectionRow, !isLast && styles.sectionGap]}>
       <View style={styles.accentBar} />
       <View style={styles.sectionContent}>
         <View style={styles.labelRow}>
-          <Icon size={FIELD_ICON_SIZE} color={labelColor} />
+          <Ionicons name={iconName} size={FIELD_ICON_SIZE} color={labelColor} />
           <Text style={[styles.sectionLabel, { color: labelColor }]}>{label}</Text>
         </View>
         {useBullets ? (
@@ -208,7 +207,7 @@ export const RoleDescriptionView: React.FC<RoleDescriptionViewProps> = ({
       key={entry.key}
       fieldKey={entry.key}
       label={entry.label}
-      icon={FIELD_ICONS[entry.key]}
+      iconName={FIELD_ICON_NAMES[entry.key]}
       text={entry.text}
       accentColor={getFieldAccentColor(entry.key, factionColor, colors)}
       labelColor={getFieldLabelColor(entry.key, colors)}

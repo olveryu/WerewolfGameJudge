@@ -74,7 +74,6 @@
     "expo-sharing": "^55.0.18",
     "expo-splash-screen": "~55.0.17",
     "expo-status-bar": "~55.0.5",
-    "lucide-react-native": "^0.577.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.4",
