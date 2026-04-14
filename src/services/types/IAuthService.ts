@@ -13,6 +13,7 @@ export interface AuthUser {
   id: string;
   email?: string | null;
   is_anonymous?: boolean;
+  has_wechat?: boolean;
   user_metadata?: Record<string, unknown>;
 }
 

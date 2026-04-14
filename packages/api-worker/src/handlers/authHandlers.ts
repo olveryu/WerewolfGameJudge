@@ -366,6 +366,7 @@ authRoutes.get('/user', async (c) => {
       avatarFrame: users.avatarFrame,
       equippedFlair: users.equippedFlair,
       isAnonymous: users.isAnonymous,
+      wechatOpenid: users.wechatOpenid,
     })
     .from(users)
     .where(eq(users.id, payload.sub))
@@ -382,6 +383,7 @@ authRoutes.get('/user', async (c) => {
           id: user.id,
           email: user.email,
           is_anonymous: user.isAnonymous === 1,
+          has_wechat: !!user.wechatOpenid,
           user_metadata: {
             display_name: user.displayName,
             avatar_url: user.avatarUrl,

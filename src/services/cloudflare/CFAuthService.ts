@@ -24,6 +24,7 @@ export class CFAuthService implements IAuthService {
   #currentUserId: string | null = null;
   #cachedToken: string | null = null;
   #isAnonymous = false;
+  #hasWechat = false;
   readonly #initPromise: Promise<void>;
 
   constructor() {
@@ -39,13 +40,17 @@ export class CFAuthService implements IAuthService {
 
       if (wxCode) {
         if (existingUserId && !this.#isAnonymous) {
-          // 已有注册用户 session → 静默绑定微信 openid，不覆盖 session
-          authLog.info('Existing registered session, binding WeChat silently');
-          try {
-            await this.bindWechat(wxCode);
-            authLog.info('WeChat bind succeeded');
-          } catch (e) {
-            authLog.warn('WeChat bind failed (non-fatal)', e);
+          if (this.#hasWechat) {
+            authLog.debug('WeChat already bound, skipping bind');
+          } else {
+            authLog.info('Binding WeChat to existing session');
+            try {
+              await this.bindWechat(wxCode);
+              this.#hasWechat = true;
+              authLog.info('WeChat bind succeeded');
+            } catch (e) {
+              authLog.warn('WeChat bind failed (non-fatal)', e);
+            }
           }
         } else {
           // 没有 session 或匿名 → 走微信登录
@@ -188,6 +193,7 @@ export class CFAuthService implements IAuthService {
       if (resp.data.user) {
         this.#currentUserId = resp.data.user.id;
         this.#isAnonymous = resp.data.user.is_anonymous ?? false;
+        this.#hasWechat = resp.data.user.has_wechat ?? false;
         return this.#currentUserId;
       }
     } catch {
