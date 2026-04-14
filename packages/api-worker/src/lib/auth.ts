@@ -12,7 +12,7 @@ import { jwtVerify, SignJWT } from 'jose';
 import type { Env } from '../env';
 
 /** JWT payload 中包含的用户信息 */
-export interface JwtPayload {
+interface JwtPayload {
   /** User ID */
   sub: string;
   /** Is anonymous user */
@@ -71,7 +71,7 @@ export function extractBearerToken(request: Request): string | null {
 // ── Hono 中间件 ─────────────────────────────────────────────────────────────
 
 /** requireAuth 中间件设置的 Variables 类型 */
-export type AuthVariables = {
+type AuthVariables = {
   userId: string;
   jwtPayload: JwtPayload;
 };
