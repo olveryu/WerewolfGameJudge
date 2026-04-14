@@ -11,6 +11,16 @@ import { extractBearerToken, signToken, verifyToken } from '../lib/auth';
 import { jsonResponse } from '../lib/cors';
 import { sendPasswordResetEmail } from '../lib/email';
 import { hashPassword, verifyPassword } from '../lib/password';
+import {
+  changePasswordSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  signInSchema,
+  signUpSchema,
+  updateProfileSchema,
+  wechatCodeSchema,
+} from '../schemas/auth';
+import { parseBody } from './shared';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/anonymous — 匿名登录
@@ -36,18 +46,11 @@ export async function handleAnonymousSignIn(_request: Request, env: Env): Promis
 // POST /auth/signup — 邮箱注册（或匿名升级）
 // ─────────────────────────────────────────────────────────────────────────────
 export async function handleSignUp(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as {
-    email?: string;
-    password?: string;
-    displayName?: string;
-  };
+  const parsed = await parseBody(request, signUpSchema, env);
+  if (parsed instanceof Response) return parsed;
 
-  if (!body.email || !body.password) {
-    return jsonResponse({ error: 'email and password required' }, 400, env);
-  }
-
-  const email = body.email.toLowerCase().trim();
-  const displayName = body.displayName || email.split('@')[0];
+  const email = parsed.email.toLowerCase().trim();
+  const displayName = parsed.displayName || email.split('@')[0];
 
   // Check if request is from authenticated user eligible for in-place upgrade:
   // - anonymous user (payload.anon)
@@ -71,7 +74,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
     }
   }
 
-  const passwordHash = await hashPassword(body.password);
+  const passwordHash = await hashPassword(parsed.password);
 
   if (existingUserId) {
     // In-place upgrade (anonymous or WeChat-only → email): preserve UID + existing profile
@@ -93,7 +96,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
       }
 
       // Password is required for merge verification
-      const mergeResult = await verifyPassword(body.password, existing.password_hash);
+      const mergeResult = await verifyPassword(parsed.password, existing.password_hash);
       if (!mergeResult.valid) {
         return jsonResponse({ error: 'invalid credentials' }, 401, env);
       }
@@ -151,7 +154,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
     }
 
     // Only overwrite display_name if caller explicitly provided one
-    const updateName = body.displayName ? displayName : null;
+    const updateName = parsed.displayName ? displayName : null;
 
     await env.DB.prepare(
       `UPDATE users
@@ -230,16 +233,10 @@ const SIGN_IN_MAX_ATTEMPTS = 10;
 const SIGN_IN_WINDOW_MINUTES = 15;
 
 export async function handleSignIn(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as {
-    email?: string;
-    password?: string;
-  };
+  const parsed = await parseBody(request, signInSchema, env);
+  if (parsed instanceof Response) return parsed;
 
-  if (!body.email || !body.password) {
-    return jsonResponse({ error: 'email and password required' }, 400, env);
-  }
-
-  const email = body.email.toLowerCase().trim();
+  const email = parsed.email.toLowerCase().trim();
   const emailHash = await sha256(email);
 
   // Rate limit check BEFORE password verification to limit brute-force
@@ -273,7 +270,7 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
     return jsonResponse({ error: 'invalid credentials' }, 401, env);
   }
 
-  const result = await verifyPassword(body.password, user.password_hash);
+  const result = await verifyPassword(parsed.password, user.password_hash);
   if (!result.valid) {
     await recordFailedLogin(env, emailHash);
     return jsonResponse({ error: 'invalid credentials' }, 401, env);
@@ -384,37 +381,32 @@ export async function handleUpdateProfile(request: Request, env: Env): Promise<R
     return jsonResponse({ error: 'unauthorized' }, 401, env);
   }
 
-  const body = (await request.json()) as {
-    displayName?: string;
-    avatarUrl?: string;
-    customAvatarUrl?: string;
-    avatarFrame?: string;
-    seatFlair?: string;
-  };
+  const parsed = await parseBody(request, updateProfileSchema, env);
+  if (parsed instanceof Response) return parsed;
 
   // Build dynamic SET clause for only provided fields
   const sets: string[] = [];
   const values: unknown[] = [];
 
-  if (body.displayName !== undefined) {
+  if (parsed.displayName !== undefined) {
     sets.push('display_name = ?');
-    values.push(body.displayName);
+    values.push(parsed.displayName);
   }
-  if (body.avatarUrl !== undefined) {
+  if (parsed.avatarUrl !== undefined) {
     sets.push('avatar_url = ?');
-    values.push(body.avatarUrl);
+    values.push(parsed.avatarUrl);
   }
-  if (body.customAvatarUrl !== undefined) {
+  if (parsed.customAvatarUrl !== undefined) {
     sets.push('custom_avatar_url = ?');
-    values.push(body.customAvatarUrl);
+    values.push(parsed.customAvatarUrl);
   }
-  if (body.avatarFrame !== undefined) {
+  if (parsed.avatarFrame !== undefined) {
     sets.push('avatar_frame = ?');
-    values.push(body.avatarFrame);
+    values.push(parsed.avatarFrame);
   }
-  if (body.seatFlair !== undefined) {
+  if (parsed.seatFlair !== undefined) {
     sets.push('equipped_flair = ?');
-    values.push(body.seatFlair);
+    values.push(parsed.seatFlair);
   }
 
   if (sets.length === 0) {
@@ -444,18 +436,8 @@ export async function handleChangePassword(request: Request, env: Env): Promise<
     return jsonResponse({ error: 'unauthorized' }, 401, env);
   }
 
-  const body = (await request.json()) as {
-    oldPassword?: string;
-    newPassword?: string;
-  };
-
-  if (!body.oldPassword || !body.newPassword) {
-    return jsonResponse({ error: 'oldPassword and newPassword required' }, 400, env);
-  }
-
-  if (body.newPassword.length < 6) {
-    return jsonResponse({ error: 'password must be at least 6 characters' }, 400, env);
-  }
+  const parsed = await parseBody(request, changePasswordSchema, env);
+  if (parsed instanceof Response) return parsed;
 
   const user = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
     .bind(payload.sub)
@@ -465,12 +447,12 @@ export async function handleChangePassword(request: Request, env: Env): Promise<
     return jsonResponse({ error: 'account has no password (anonymous user)' }, 400, env);
   }
 
-  const result = await verifyPassword(body.oldPassword, user.password_hash);
+  const result = await verifyPassword(parsed.oldPassword, user.password_hash);
   if (!result.valid) {
     return jsonResponse({ error: 'invalid old password' }, 401, env);
   }
 
-  const newHash = await hashPassword(body.newPassword);
+  const newHash = await hashPassword(parsed.newPassword);
   await env.DB.prepare(
     `UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`,
   )
@@ -521,13 +503,10 @@ async function getTokenHash(tokenId: string, env: Env): Promise<string | null> {
 }
 
 export async function handleForgotPassword(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as { email?: string };
+  const parsed = await parseBody(request, forgotPasswordSchema, env);
+  if (parsed instanceof Response) return parsed;
 
-  if (!body.email) {
-    return jsonResponse({ error: 'email required' }, 400, env);
-  }
-
-  const email = body.email.toLowerCase().trim();
+  const email = parsed.email.toLowerCase().trim();
 
   // Rate limit BEFORE user lookup to avoid email enumeration via 429 vs 200.
   const recentCount = await env.DB.prepare(
@@ -588,22 +567,11 @@ export async function handleForgotPassword(request: Request, env: Env): Promise<
 // POST /auth/reset-password — 验证码重置密码 + 自动登录
 // ─────────────────────────────────────────────────────────────────────────────
 export async function handleResetPassword(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as {
-    email?: string;
-    code?: string;
-    newPassword?: string;
-  };
+  const parsed = await parseBody(request, resetPasswordSchema, env);
+  if (parsed instanceof Response) return parsed;
 
-  if (!body.email || !body.code || !body.newPassword) {
-    return jsonResponse({ error: 'email, code and newPassword required' }, 400, env);
-  }
-
-  if (body.newPassword.length < 6) {
-    return jsonResponse({ error: 'password must be at least 6 characters' }, 400, env);
-  }
-
-  const email = body.email.toLowerCase().trim();
-  const tokenHash = await sha256(body.code + email);
+  const email = parsed.email.toLowerCase().trim();
+  const tokenHash = await sha256(parsed.code + email);
 
   // Find valid token (also check verify_attempts limit)
   const token = await env.DB.prepare(
@@ -645,7 +613,7 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
     .run();
 
   // Update password
-  const newHash = await hashPassword(body.newPassword);
+  const newHash = await hashPassword(parsed.newPassword);
   await env.DB.prepare(
     `UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`,
   )
@@ -702,11 +670,8 @@ interface WechatCode2SessionResponse {
 }
 
 export async function handleWechatSignIn(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as { code?: string };
-
-  if (!body.code) {
-    return jsonResponse({ error: 'code required' }, 400, env);
-  }
+  const parsed = await parseBody(request, wechatCodeSchema, env);
+  if (parsed instanceof Response) return parsed;
 
   if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
     return jsonResponse({ error: 'WeChat login not configured' }, 500, env);
@@ -716,7 +681,7 @@ export async function handleWechatSignIn(request: Request, env: Env): Promise<Re
   const wxUrl = new URL('https://api.weixin.qq.com/sns/jscode2session');
   wxUrl.searchParams.set('appid', env.WECHAT_APP_ID);
   wxUrl.searchParams.set('secret', env.WECHAT_APP_SECRET);
-  wxUrl.searchParams.set('js_code', body.code);
+  wxUrl.searchParams.set('js_code', parsed.code);
   wxUrl.searchParams.set('grant_type', 'authorization_code');
 
   const wxResp = await fetch(wxUrl.toString());
@@ -809,10 +774,8 @@ export async function handleBindWechat(request: Request, env: Env): Promise<Resp
     return jsonResponse({ error: 'unauthorized' }, 401, env);
   }
 
-  const body = (await request.json()) as { code?: string };
-  if (!body.code) {
-    return jsonResponse({ error: 'code required' }, 400, env);
-  }
+  const parsed = await parseBody(request, wechatCodeSchema, env);
+  if (parsed instanceof Response) return parsed;
 
   if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
     return jsonResponse({ error: 'WeChat login not configured' }, 500, env);
@@ -822,7 +785,7 @@ export async function handleBindWechat(request: Request, env: Env): Promise<Resp
   const wxUrl = new URL('https://api.weixin.qq.com/sns/jscode2session');
   wxUrl.searchParams.set('appid', env.WECHAT_APP_ID);
   wxUrl.searchParams.set('secret', env.WECHAT_APP_SECRET);
-  wxUrl.searchParams.set('js_code', body.code);
+  wxUrl.searchParams.set('js_code', parsed.code);
   wxUrl.searchParams.set('grant_type', 'authorization_code');
 
   const wxResp = await fetch(wxUrl.toString());

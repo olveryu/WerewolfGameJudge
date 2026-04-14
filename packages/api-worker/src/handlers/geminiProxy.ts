@@ -9,6 +9,8 @@
 import type { Env } from '../env';
 import { extractBearerToken, verifyToken } from '../lib/auth';
 import { corsHeaders, jsonResponse } from '../lib/cors';
+import { geminiProxySchema } from '../schemas/gemini';
+import { parseBody } from './shared';
 
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
 const MAX_TOKENS_CAP = 4096;
@@ -24,21 +26,16 @@ export async function handleGeminiProxy(request: Request, env: Env): Promise<Res
   }
 
   try {
-    const body = (await request.json()) as {
-      messages?: unknown;
-      model?: string;
-      stream?: boolean;
-      temperature?: number;
-      max_tokens?: number;
-    };
+    const parsed = await parseBody(request, geminiProxySchema, env);
+    if (parsed instanceof Response) return parsed;
 
     const sanitizedBody = {
-      messages: body.messages,
-      model: body.model,
-      stream: body.stream,
-      ...(body.temperature != null && { temperature: body.temperature }),
-      ...(body.max_tokens != null && {
-        max_tokens: Math.min(Number(body.max_tokens) || MAX_TOKENS_CAP, MAX_TOKENS_CAP),
+      messages: parsed.messages,
+      model: parsed.model,
+      stream: parsed.stream,
+      ...(parsed.temperature != null && { temperature: parsed.temperature }),
+      ...(parsed.max_tokens != null && {
+        max_tokens: Math.min(parsed.max_tokens, MAX_TOKENS_CAP),
       }),
     };
 

@@ -7,7 +7,7 @@ applyTo: 'src/**/*.ts,src/**/*.tsx'
 
 ## 类型安全
 
-- 用 type guard / `satisfies` / 泛型推导替代 `as` 断言（`as const` 和测试 mock 除外）。
+- 用 type guard / `satisfies` / 泛型推导替代 `as` 断言（`as const` 和测试 mock 除外）。api-worker handler body 解析用 `parseBody(req, schema, env)`（zod schema），禁止 `as` cast。
 - `unknown` + 类型收窄替代 `any`（第三方库类型缺失需附注释 suppress）。
 - Discriminated Union（`type` / `kind` 标签字段），禁止 optional 字段堆叠区分变体。
 - Exhaustive `switch`：`default` 用 `assertNever` 或 `const _: never`。

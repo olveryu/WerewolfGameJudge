@@ -11,7 +11,8 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { Env } from '../env';
 import { extractBearerToken, verifyToken } from '../lib/auth';
 import { jsonResponse } from '../lib/cors';
-import { getGameRoomStub } from './shared';
+import { createRoomSchema, roomCodeBodySchema } from '../schemas/room';
+import { getGameRoomStub, parseBody } from './shared';
 
 // ── POST /room/create ───────────────────────────────────────────────────────
 export async function handleCreateRoom(request: Request, env: Env): Promise<Response> {
@@ -20,16 +21,10 @@ export async function handleCreateRoom(request: Request, env: Env): Promise<Resp
   const payload = await verifyToken(token, env);
   if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
 
-  const body = (await request.json()) as {
-    roomCode?: string;
-    initialState?: unknown;
-  };
+  const parsed = await parseBody(request, createRoomSchema, env);
+  if (parsed instanceof Response) return parsed;
 
-  if (!body.roomCode) {
-    return jsonResponse({ error: 'roomCode required' }, 400, env);
-  }
-
-  const params: string[] = [crypto.randomUUID(), body.roomCode, payload.sub];
+  const params: string[] = [crypto.randomUUID(), parsed.roomCode, payload.sub];
   const sql = 'INSERT INTO rooms (id, code, host_id) VALUES (?, ?, ?)';
 
   try {
@@ -45,13 +40,13 @@ export async function handleCreateRoom(request: Request, env: Env): Promise<Resp
   }
 
   // Initialize DO state (if initialState provided)
-  if (body.initialState) {
+  if (parsed.initialState) {
     try {
-      const stub = getGameRoomStub(env, body.roomCode);
-      await stub.init(body.initialState as GameState);
+      const stub = getGameRoomStub(env, parsed.roomCode);
+      await stub.init(parsed.initialState as GameState);
     } catch (err) {
       // DO init failed → rollback D1 record
-      await env.DB.prepare('DELETE FROM rooms WHERE code = ?').bind(body.roomCode).run();
+      await env.DB.prepare('DELETE FROM rooms WHERE code = ?').bind(parsed.roomCode).run();
       throw err;
     }
   }
@@ -59,7 +54,7 @@ export async function handleCreateRoom(request: Request, env: Env): Promise<Resp
   return jsonResponse(
     {
       room: {
-        roomNumber: body.roomCode,
+        roomNumber: parsed.roomCode,
         hostUid: payload.sub,
         createdAt: new Date().toISOString(),
       },
@@ -71,13 +66,11 @@ export async function handleCreateRoom(request: Request, env: Env): Promise<Resp
 
 // ── POST /room/get ──────────────────────────────────────────────────────────
 export async function handleGetRoom(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as { roomCode?: string };
-  if (!body.roomCode) {
-    return jsonResponse({ error: 'roomCode required' }, 400, env);
-  }
+  const parsed = await parseBody(request, roomCodeBodySchema, env);
+  if (parsed instanceof Response) return parsed;
 
   const row = await env.DB.prepare('SELECT id, code, host_id, created_at FROM rooms WHERE code = ?')
-    .bind(body.roomCode)
+    .bind(parsed.roomCode)
     .first<{ id: string; code: string; host_id: string; created_at: string }>();
 
   if (!row) {
@@ -104,14 +97,12 @@ export async function handleDeleteRoom(request: Request, env: Env): Promise<Resp
   const payload = await verifyToken(token, env);
   if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
 
-  const body = (await request.json()) as { roomCode?: string };
-  if (!body.roomCode) {
-    return jsonResponse({ error: 'roomCode required' }, 400, env);
-  }
+  const parsed = await parseBody(request, roomCodeBodySchema, env);
+  if (parsed instanceof Response) return parsed;
 
   // Only the room host can delete the room
   const result = await env.DB.prepare('DELETE FROM rooms WHERE code = ? AND host_id = ?')
-    .bind(body.roomCode, payload.sub)
+    .bind(parsed.roomCode, payload.sub)
     .run();
 
   if (!result.meta.changes) {
@@ -120,7 +111,7 @@ export async function handleDeleteRoom(request: Request, env: Env): Promise<Resp
 
   // Clean up DO storage (non-critical path, failure does not block)
   try {
-    const stub = getGameRoomStub(env, body.roomCode);
+    const stub = getGameRoomStub(env, parsed.roomCode);
     await stub.cleanup();
   } catch {
     // DO cleanup failure does not affect delete result.
@@ -133,12 +124,10 @@ export async function handleDeleteRoom(request: Request, env: Env): Promise<Resp
 // ── POST /room/state ────────────────────────────────────────────────────────
 // 从 DO 读取完整 state + revision
 export async function handleGetGameState(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as { roomCode?: string };
-  if (!body.roomCode) {
-    return jsonResponse({ error: 'roomCode required' }, 400, env);
-  }
+  const parsed = await parseBody(request, roomCodeBodySchema, env);
+  if (parsed instanceof Response) return parsed;
 
-  const stub = getGameRoomStub(env, body.roomCode);
+  const stub = getGameRoomStub(env, parsed.roomCode);
   const result = await stub.getState();
 
   if (!result) {
@@ -158,12 +147,10 @@ export async function handleGetGameState(request: Request, env: Env): Promise<Re
 // ── POST /room/revision ─────────────────────────────────────────────────────
 // 轻量级：只读 revision 数字（从 DO 读取）
 export async function handleGetRevision(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as { roomCode?: string };
-  if (!body.roomCode) {
-    return jsonResponse({ error: 'roomCode required' }, 400, env);
-  }
+  const parsed = await parseBody(request, roomCodeBodySchema, env);
+  if (parsed instanceof Response) return parsed;
 
-  const stub = getGameRoomStub(env, body.roomCode);
+  const stub = getGameRoomStub(env, parsed.roomCode);
   const revision = await stub.getRevision();
 
   return jsonResponse({ revision }, 200, env);

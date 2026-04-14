@@ -10,9 +10,8 @@
 import type { Env } from '../env';
 import { extractBearerToken, verifyToken } from '../lib/auth';
 import { jsonResponse } from '../lib/cors';
-
-/** 最大 base64 负载 ~3MB（解码后 ~2.25MB） */
-const MAX_BASE64_LENGTH = 4 * 1024 * 1024;
+import { shareImageUploadSchema } from '../schemas/shareImage';
+import { parseBody } from './shared';
 
 function randomHex(bytes: number): string {
   const buf = new Uint8Array(bytes);
@@ -29,21 +28,9 @@ export async function handleShareImageUpload(request: Request, env: Env): Promis
   const payload = await verifyToken(token, env);
   if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
 
-  // Parse JSON body
-  let base64: string;
-  try {
-    const body = (await request.json()) as { base64?: string };
-    if (!body.base64 || typeof body.base64 !== 'string') {
-      return jsonResponse({ error: 'base64 field required' }, 400, env);
-    }
-    base64 = body.base64;
-  } catch {
-    return jsonResponse({ error: 'invalid JSON body' }, 400, env);
-  }
-
-  if (base64.length > MAX_BASE64_LENGTH) {
-    return jsonResponse({ error: 'image too large (max ~3MB)' }, 400, env);
-  }
+  const parsed = await parseBody(request, shareImageUploadSchema, env);
+  if (parsed instanceof Response) return parsed;
+  const { base64 } = parsed;
 
   // Decode base64 to binary
   let bytes: Uint8Array;

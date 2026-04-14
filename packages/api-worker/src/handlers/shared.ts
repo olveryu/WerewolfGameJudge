@@ -5,6 +5,8 @@
  * game-engine 相关的 buildHandlerContext/extractAudioActions 已迁移到 gameProcessor.ts。
  */
 
+import type { z } from 'zod';
+
 import type { GameActionResult } from '../durableObjects/gameProcessor';
 import type { GameRoom } from '../durableObjects/GameRoom';
 import type { Env } from '../env';
@@ -13,9 +15,35 @@ import { jsonResponse } from '../lib/cors';
 /** A route handler that receives the original Request + Env + ExecutionContext and returns a Response. */
 export type HandlerFn = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
 
-/** Respond with 400 MISSING_PARAMS */
-export function missingParams(env: Env): Response {
-  return jsonResponse({ success: false, reason: 'MISSING_PARAMS' }, 400, env);
+/**
+ * Parse and validate request body against a zod schema.
+ * Returns typed data on success, or a 400 Response on failure.
+ */
+export async function parseBody<T>(
+  req: Request,
+  schema: z.ZodType<T>,
+  env: Env,
+): Promise<T | Response> {
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return jsonResponse({ success: false, reason: 'INVALID_JSON' }, 400, env);
+  }
+  const result = (schema as z.ZodType<T>).safeParse(raw);
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    return jsonResponse(
+      {
+        success: false,
+        reason: 'VALIDATION_ERROR',
+        detail: `${issue.path.join('.')}: ${issue.message}`,
+      },
+      400,
+      env,
+    );
+  }
+  return result.data;
 }
 
 /** Validate that a value is a valid seat number (finite non-negative integer). */
@@ -55,6 +83,8 @@ export async function callDO<T>(fn: () => Promise<T>, env: Env): Promise<T | Res
   }
 }
 
+import { roomCodeSchema } from '../schemas/game';
+
 /**
  * Factory for simple handlers that only need roomCode (no-arg RPC).
  *
@@ -65,9 +95,9 @@ export function createSimpleHandler(
   rpcMethod: (stub: DurableObjectStub<GameRoom>) => Promise<unknown>,
 ): HandlerFn {
   return async (req: Request, env: Env) => {
-    const body = (await req.json()) as { roomCode?: string };
+    const body = await parseBody(req, roomCodeSchema, env);
+    if (body instanceof Response) return body;
     const { roomCode } = body;
-    if (!roomCode) return missingParams(env);
 
     const doResult = await callDO(() => {
       const stub = getGameRoomStub(env, roomCode);

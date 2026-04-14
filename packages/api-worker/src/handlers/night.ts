@@ -9,27 +9,26 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 import { jsonResponse } from '../lib/cors';
 import {
+  audioGateSchema,
+  groupConfirmAckSchema,
+  nightActionSchema,
+  wolfRobotViewedSchema,
+} from '../schemas/night';
+import {
   callDO,
   createSimpleHandler,
   getGameRoomStub,
   type HandlerFn,
-  isValidSeat,
-  missingParams,
+  parseBody,
   resultToStatus,
 } from './shared';
 
 // ── Night handlers ──────────────────────────────────────────────────────────
 
 export const handleAction: HandlerFn = async (req, env) => {
-  const body = (await req.json()) as {
-    roomCode?: string;
-    seat?: number;
-    role?: string;
-    target?: number | null;
-    extra?: unknown;
-  };
-  const { roomCode, seat, role, target, extra } = body;
-  if (!roomCode || !isValidSeat(seat) || !role) return missingParams(env);
+  const parsed = await parseBody(req, nightActionSchema, env);
+  if (parsed instanceof Response) return parsed;
+  const { roomCode, seat, role, target, extra } = parsed;
 
   const doResult = await callDO(() => {
     const stub = getGameRoomStub(env, roomCode);
@@ -42,9 +41,9 @@ export const handleAction: HandlerFn = async (req, env) => {
 export const handleAudioAck = createSimpleHandler((stub) => stub.audioAck());
 
 export const handleAudioGate: HandlerFn = async (req, env) => {
-  const body = (await req.json()) as { roomCode?: string; isPlaying?: boolean };
-  const { roomCode, isPlaying } = body;
-  if (!roomCode || typeof isPlaying !== 'boolean') return missingParams(env);
+  const parsed = await parseBody(req, audioGateSchema, env);
+  if (parsed instanceof Response) return parsed;
+  const { roomCode, isPlaying } = parsed;
 
   const doResult = await callDO(() => {
     const stub = getGameRoomStub(env, roomCode);
@@ -59,9 +58,9 @@ export const handleProgression = createSimpleHandler((stub) => stub.progression(
 export const handleRevealAck = createSimpleHandler((stub) => stub.revealAck());
 
 export const handleWolfRobotViewed: HandlerFn = async (req, env) => {
-  const body = (await req.json()) as { roomCode?: string; seat?: number };
-  const { roomCode, seat } = body;
-  if (!roomCode || !isValidSeat(seat)) return missingParams(env);
+  const parsed = await parseBody(req, wolfRobotViewedSchema, env);
+  if (parsed instanceof Response) return parsed;
+  const { roomCode, seat } = parsed;
 
   const doResult = await callDO(() => {
     const stub = getGameRoomStub(env, roomCode);
@@ -72,9 +71,9 @@ export const handleWolfRobotViewed: HandlerFn = async (req, env) => {
 };
 
 export const handleGroupConfirmAck: HandlerFn = async (req, env) => {
-  const body = (await req.json()) as { roomCode?: string; seat?: number; uid?: string };
-  const { roomCode, seat, uid } = body;
-  if (!roomCode || !isValidSeat(seat) || !uid) return missingParams(env);
+  const parsed = await parseBody(req, groupConfirmAckSchema, env);
+  if (parsed instanceof Response) return parsed;
+  const { roomCode, seat, uid } = parsed;
 
   const doResult = await callDO(() => {
     const stub = getGameRoomStub(env, roomCode);

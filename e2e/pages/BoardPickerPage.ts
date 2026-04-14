@@ -36,7 +36,7 @@ export class BoardPickerPage {
    *
    * Clicks the template card header (which navigates to Config with that preset).
    * The card title is a TouchableOpacity that expands/collapses. Since we want
-   * to navigate, we need to expand first, then click "选择此模板".
+   * to navigate, we need to expand first, then click "以此为基础".
    */
   async selectTemplate(name: string) {
     const root = this.page.locator(`[data-testid="${TESTIDS.boardPickerScreenRoot}"]`);
@@ -46,8 +46,8 @@ export class BoardPickerPage {
     await expect(cardTitle).toBeVisible({ timeout: 5000 });
     await cardTitle.click();
 
-    // Click the "选择此模板" button in the expanded card
-    const selectButton = root.getByText('选择此模板').first();
+    // Click the "以此为基础" button in the expanded card
+    const selectButton = root.getByText('以此为基础').first();
     await expect(selectButton).toBeVisible({ timeout: 3000 });
     await selectButton.click();
   }
