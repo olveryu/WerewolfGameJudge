@@ -6,7 +6,7 @@
  * 使用 theme tokens 构建样式，不含业务逻辑。
  */
 import { Ionicons } from '@expo/vector-icons';
-import { type ComponentProps, forwardRef, useMemo } from 'react';
+import { type ComponentProps, type Ref, useMemo } from 'react';
 import {
   type StyleProp,
   StyleSheet,
@@ -41,6 +41,8 @@ interface FormTextFieldProps extends Omit<TextInputProps, 'style'> {
   style?: StyleProp<TextStyle>;
   /** 容器额外样式 */
   containerStyle?: StyleProp<ViewStyle>;
+  /** Ref forwarded to the underlying TextInput */
+  ref?: Ref<TextInput>;
 }
 
 // ── Styles ───────────────────────────────────────────────
@@ -91,42 +93,44 @@ function createStyles(colors: ThemeColors) {
 
 // ── Component ────────────────────────────────────────────
 
-export const FormTextField = forwardRef<TextInput, FormTextFieldProps>(
-  (
-    { variant = 'default', icon, error, style, containerStyle, placeholderTextColor, ...rest },
-    ref,
-  ) => {
-    const styles = useMemo(() => createStyles(colors), []);
+export function FormTextField({
+  variant = 'default',
+  icon,
+  error,
+  style,
+  containerStyle,
+  placeholderTextColor,
+  ref,
+  ...rest
+}: FormTextFieldProps) {
+  const styles = useMemo(() => createStyles(colors), []);
 
-    if (variant === 'search') {
-      return (
-        <View style={[styles.searchBar, containerStyle]}>
-          {icon != null && (
-            <Ionicons name={icon} size={componentSizes.icon.sm} color={colors.textMuted} />
-          )}
-          <TextInput
-            ref={ref}
-            style={[styles.searchInput, style]}
-            placeholderTextColor={placeholderTextColor ?? colors.textMuted}
-            {...rest}
-          />
-        </View>
-      );
-    }
-
-    // default variant
+  if (variant === 'search') {
     return (
-      <View style={containerStyle}>
+      <View style={[styles.searchBar, containerStyle]}>
+        {icon != null && (
+          <Ionicons name={icon} size={componentSizes.icon.sm} color={colors.textMuted} />
+        )}
         <TextInput
           ref={ref}
-          style={[styles.defaultInput, style]}
-          placeholderTextColor={placeholderTextColor ?? colors.textSecondary}
+          style={[styles.searchInput, style]}
+          placeholderTextColor={placeholderTextColor ?? colors.textMuted}
           {...rest}
         />
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
     );
-  },
-);
+  }
 
-FormTextField.displayName = 'FormTextField';
+  // default variant
+  return (
+    <View style={containerStyle}>
+      <TextInput
+        ref={ref}
+        style={[styles.defaultInput, style]}
+        placeholderTextColor={placeholderTextColor ?? colors.textSecondary}
+        {...rest}
+      />
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </View>
+  );
+}

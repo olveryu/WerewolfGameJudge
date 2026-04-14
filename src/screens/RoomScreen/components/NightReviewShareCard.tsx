@@ -4,7 +4,7 @@
  * Renders the same content sections as NightReviewModal without actions/overlay.
  */
 import { Ionicons } from '@expo/vector-icons';
-import { forwardRef, useMemo } from 'react';
+import { type Ref, useMemo } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View as RNView, type View } from 'react-native';
 
 import { STATUS_ICONS } from '@/config/iconTokens';
@@ -23,47 +23,40 @@ import type { NightReviewData } from '../NightReview.helpers';
 interface NightReviewShareCardProps {
   data: NightReviewData;
   roomNumber: string;
+  ref?: Ref<View>;
 }
 
-export const NightReviewShareCard = forwardRef<View, NightReviewShareCardProps>(
-  ({ data, roomNumber }, ref) => {
-    const { width: screenWidth } = useWindowDimensions();
-    const styles = useMemo(() => createStyles(colors, screenWidth), [screenWidth]);
+export function NightReviewShareCard({ data, roomNumber, ref }: NightReviewShareCardProps) {
+  const { width: screenWidth } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(colors, screenWidth), [screenWidth]);
 
-    return (
-      <RNView ref={ref} collapsable={false} style={styles.card}>
-        <Text style={styles.title}>房间 {roomNumber} 战报</Text>
+  return (
+    <RNView ref={ref} collapsable={false} style={styles.card}>
+      <Text style={styles.title}>房间 {roomNumber} 战报</Text>
 
-        <Text style={styles.disclaimer}>
-          <Ionicons
-            name={STATUS_ICONS.WARNING}
-            size={typography.secondary}
-            color={colors.warning}
-          />
-          {' 仅供裁判及观战者参考'}
+      <Text style={styles.disclaimer}>
+        <Ionicons name={STATUS_ICONS.WARNING} size={typography.secondary} color={colors.warning} />
+        {' 仅供裁判及观战者参考'}
+      </Text>
+
+      <Text style={styles.sectionTitle}>行动摘要</Text>
+      {data.actionLines.map((line, i) => (
+        <Text key={`share-action-${i}`} style={styles.line}>
+          {line}
         </Text>
+      ))}
 
-        <Text style={styles.sectionTitle}>行动摘要</Text>
-        {data.actionLines.map((line, i) => (
-          <Text key={`share-action-${i}`} style={styles.line}>
-            {line}
-          </Text>
-        ))}
+      <RNView style={styles.divider} />
 
-        <RNView style={styles.divider} />
-
-        <Text style={styles.sectionTitle}>全员身份</Text>
-        {data.identityLines.map((line, i) => (
-          <Text key={`share-identity-${i}`} style={styles.line}>
-            {line}
-          </Text>
-        ))}
-      </RNView>
-    );
-  },
-);
-
-NightReviewShareCard.displayName = 'NightReviewShareCard';
+      <Text style={styles.sectionTitle}>全员身份</Text>
+      {data.identityLines.map((line, i) => (
+        <Text key={`share-identity-${i}`} style={styles.line}>
+          {line}
+        </Text>
+      ))}
+    </RNView>
+  );
+}
 
 function createStyles(colors: ThemeColors, screenWidth: number) {
   return StyleSheet.create({
