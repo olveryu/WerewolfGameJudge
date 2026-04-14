@@ -3,8 +3,8 @@
   "ignoreBinaries": ["miniprogram-ci"],
   "workspaces": {
     ".": {
-      "entry": ["App.tsx", "scripts/*.{ts,mjs,sh}", "functions/**/*.ts", "e2e/**/*.ts"],
-      "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts", "__mocks__/**/*.{ts,tsx}"],
+      "entry": ["App.tsx!", "scripts/*.{ts,mjs,sh}", "functions/**/*.ts!", "e2e/**/*.ts"],
+      "project": ["src/**/*.{ts,tsx}!", "e2e/**/*.ts", "__mocks__/**/*.{ts,tsx}"],
       "ignoreDependencies": [
         "@expo/vector-icons",
         "expo-updates",
@@ -17,10 +17,10 @@
       ]
     },
     "packages/game-engine": {
-      "project": ["src/**/*.ts"]
+      "project": ["src/**/*.ts!"]
     },
     "packages/api-worker": {
-      "project": ["src/**/*.ts"],
+      "project": ["src/**/*.ts!"],
       "ignoreDependencies": ["cloudflare"]
     }
   }

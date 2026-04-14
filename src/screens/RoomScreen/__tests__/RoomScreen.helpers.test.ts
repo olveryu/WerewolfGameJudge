@@ -10,7 +10,6 @@ import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import {
   buildSeatViewModels,
   determineActionerState,
-  formatRoleList,
   getRoleStats,
   getWolfVoteSummary,
   toGameRoomLike,
@@ -211,27 +210,6 @@ describe('determineActionerState', () => {
     expect(stats.wolfRoles).toContain('狼人');
     expect(stats.wolfRoles).toContain('狼王');
     expect(stats.godRoles).toContain('守卫');
-  });
-});
-
-// =============================================================================
-// formatRoleList
-// =============================================================================
-
-describe('formatRoleList', () => {
-  it('should format single roles without count', () => {
-    const result = formatRoleList(['预言家', '女巫'], { 预言家: 1, 女巫: 1 });
-    expect(result).toBe('预言家、女巫');
-  });
-
-  it('should format roles with count when > 1', () => {
-    const result = formatRoleList(['狼人', '村民'], { 狼人: 4, 村民: 1 });
-    expect(result).toBe('狼人×4、村民');
-  });
-
-  it('should return "无" for empty list', () => {
-    const result = formatRoleList([], {});
-    expect(result).toBe('无');
   });
 });
 

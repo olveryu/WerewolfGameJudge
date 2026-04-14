@@ -369,19 +369,6 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
 }
 
 /**
- * Format role list for display
- */
-export function formatRoleList(roles: string[], counts: Record<string, number>): string {
-  if (roles.length === 0) return '无';
-  return roles
-    .map((r) => {
-      const count = counts[r];
-      return count > 1 ? `${r}×${count}` : r;
-    })
-    .join('、');
-}
-
-/**
  * Build SeatViewModel array from game state
  *
  * @param actorSeatNumber - Actor's seat (actorSeatForUi). Used for isMySpot + notSelf constraint.
