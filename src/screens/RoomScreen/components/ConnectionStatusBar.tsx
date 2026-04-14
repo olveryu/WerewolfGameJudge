@@ -5,8 +5,16 @@
  * Dead channel detector 会无限 5s 重试，无需手动重试按钮。
  * 社区标准做法：indeterminate progress bar（类似 Slack/Discord）表示持续重连中。
  */
-import React, { memo, useEffect, useMemo, useState } from 'react';
-import { Animated, Platform, Text, View } from 'react-native';
+import React, { memo, useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
@@ -20,8 +28,6 @@ interface ConnectionStatusBarProps {
   styles: ConnectionStatusBarStyles;
 }
 
-/** Web does not support native driver for Animated — falls back to JS driver */
-const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 /** Width of the sliding bar relative to container width */
 const BAR_WIDTH_RATIO = 0.3;
 /** Full cycle duration for the sliding animation */
@@ -30,15 +36,14 @@ const ANIMATION_DURATION_MS = 1_500;
 /**
  * Disconnection banner with indeterminate progress bar.
  *
- * Uses `onLayout` to measure container width, then loops an `Animated.timing`
+ * Uses `onLayout` to measure container width, then loops a Reanimated timing
  * translateX from off-screen left to off-screen right. The container's
  * `overflow: 'hidden'` clips the bar at rounded corners.
  * Returns null when connection is Live.
  */
 const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ status, styles }) => {
   const [containerWidth, setContainerWidth] = useState(0);
-  // Stable Animated.Value via lazy useState (avoids useRef.current in render — React 19 lint)
-  const [progress] = useState(() => new Animated.Value(0));
+  const progressValue = useSharedValue(0);
 
   // Coalesce Disconnected/Connecting/Syncing into a single boolean so the
   // animation effect only re-runs on the Live ↔ non-Live edge, not on every
@@ -48,29 +53,25 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ stat
   // Start / stop the sliding animation based on connection status
   useEffect(() => {
     if (containerWidth === 0 || !isDisconnected) {
-      progress.setValue(0);
+      cancelAnimation(progressValue);
+      progressValue.value = 0;
       return;
     }
-    const animation = Animated.loop(
-      Animated.timing(progress, {
-        toValue: 1,
-        duration: ANIMATION_DURATION_MS,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [progress, containerWidth, isDisconnected]);
+    progressValue.value = 0;
+    progressValue.value = withRepeat(withTiming(1, { duration: ANIMATION_DURATION_MS }), -1);
+    return () => cancelAnimation(progressValue);
+  }, [progressValue, containerWidth, isDisconnected]);
 
   const barPixelWidth = containerWidth * BAR_WIDTH_RATIO;
-  const translateX = useMemo(
-    () =>
-      progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [-barPixelWidth, containerWidth],
-      }),
-    [progress, barPixelWidth, containerWidth],
-  );
+
+  const progressBarStyle = useAnimatedStyle(() => ({
+    width: barPixelWidth,
+    transform: [
+      {
+        translateX: interpolate(progressValue.value, [0, 1], [-barPixelWidth, containerWidth]),
+      },
+    ],
+  }));
 
   if (!isDisconnected) return null;
 
@@ -82,9 +83,7 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ stat
     >
       <Text style={styles.text}>连接断开，正在重连</Text>
       <View style={styles.progressBarTrack}>
-        <Animated.View
-          style={[styles.progressBar, { width: barPixelWidth, transform: [{ translateX }] }]}
-        />
+        <Animated.View style={[styles.progressBar, progressBarStyle]} />
       </View>
     </View>
   );
