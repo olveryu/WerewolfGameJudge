@@ -53,8 +53,10 @@ export class RoomPage {
   /** Click a seat and confirm the "入座" dialog. Waits for green seat badge to confirm seat taken. */
   async seatAt(seat: number) {
     await this.getSeatTile(seat).click();
-    await expect(this.page.getByText('入座', { exact: true })).toBeVisible({ timeout: 5000 });
-    await this.page.getByText('确定', { exact: true }).click();
+    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('入座', {
+      timeout: 5000,
+    });
+    await this.page.getByTestId('seat-confirm-ok').click();
     // Wait for seat broadcast to arrive — green seat badge confirms the seat is taken
     await expect(this.page.locator('[data-testid="my-seat-badge"]')).toBeVisible({
       timeout: 10_000,
@@ -64,8 +66,10 @@ export class RoomPage {
   /** Click own seat and confirm "离座" dialog. */
   async standUp(seat: number) {
     await this.getSeatTile(seat).click();
-    await expect(this.page.getByText('离座', { exact: true })).toBeVisible({ timeout: 5000 });
-    await this.page.getByText('确定', { exact: true }).click();
+    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('离座', {
+      timeout: 5000,
+    });
+    await this.page.getByTestId('seat-confirm-ok').click();
     // Wait for green seat badge to disappear, confirming stand-up broadcast arrived
     await expect(this.page.locator('[data-testid="my-seat-badge"]')).not.toBeVisible({
       timeout: 5000,

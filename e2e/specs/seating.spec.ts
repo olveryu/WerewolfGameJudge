@@ -114,7 +114,7 @@ test.describe('Seating', () => {
 
       // Click own seat → should show "离座" modal (not "入座")
       await room.getSeatTile(0).click();
-      await expect(page.getByText('离座', { exact: true })).toBeVisible({ timeout: 5000 });
+      await expect(page.getByTestId('seat-confirm-title')).toHaveText('离座', { timeout: 5000 });
 
       // Dismiss
       await page
@@ -160,7 +160,7 @@ test.describe('Seating', () => {
       await roomB.getSeatTile(0).click();
       await expect(pageB.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
       // No seat dialog should appear (profile card, not "入座")
-      await expect(pageB.getByText('入座', { exact: true })).not.toBeVisible({ timeout: 1000 });
+      await expect(pageB.getByTestId('seat-confirm-modal')).not.toBeVisible({ timeout: 1000 });
 
       // Dismiss profile card by clicking the overlay backdrop (outside the card)
       await pageB.mouse.click(5, 5);
