@@ -114,7 +114,6 @@
     "knip": "^6.4.1",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
-    "react-test-renderer": "19.2.0",
     "ts-jest": "^29.4.9",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.58.0",
