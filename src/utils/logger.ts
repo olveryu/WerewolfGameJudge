@@ -30,10 +30,12 @@ import { mobileDebugTransport } from './mobileDebug';
  */
 const sentryTransport: typeof consoleTransport = (props) => {
   const raw = props.rawMsg as unknown[];
-  const firstMsg = typeof raw?.[0] === 'string' ? raw[0] : props.msg;
+  const rawFirstMsg = typeof raw?.[0] === 'string' ? raw[0] : props.msg;
+  const module = props.extension ?? 'app';
+  const firstMsg = `[${module}] ${rawFirstMsg}`;
 
   // Build structured attributes from remaining args + extension tag
-  const attrs: Record<string, unknown> = { module: props.extension ?? 'app' };
+  const attrs: Record<string, unknown> = { module };
   if (Array.isArray(raw)) {
     for (let i = 1; i < raw.length; i++) {
       const arg = raw[i];
