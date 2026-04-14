@@ -1,7 +1,13 @@
 import path from 'node:path';
-import { defineWorkersConfig } from '@cloudflare/vitest-pool-workers/config';
+import { cloudflareTest } from '@cloudflare/vitest-pool-workers';
+import { defineConfig } from 'vitest/config';
 
-export default defineWorkersConfig({
+export default defineConfig({
+  plugins: [
+    cloudflareTest({
+      wrangler: { configPath: './wrangler.toml' },
+    }),
+  ],
   resolve: {
     alias: {
       '@werewolf/game-engine': path.resolve(__dirname, '../game-engine/src'),
@@ -9,10 +15,5 @@ export default defineWorkersConfig({
   },
   test: {
     include: ['src/__tests__/**/*.test.ts'],
-    poolOptions: {
-      workers: {
-        wrangler: { configPath: './wrangler.toml' },
-      },
-    },
   },
 });
