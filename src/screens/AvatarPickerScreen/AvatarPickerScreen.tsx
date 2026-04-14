@@ -19,6 +19,7 @@ import {
   FlatList,
   Image,
   ImageSourcePropType,
+  Linking,
   ListRenderItemInfo,
   Pressable,
   Text,
@@ -26,6 +27,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
@@ -38,7 +40,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { fetchUserStats } from '@/services/feature/StatsService';
 import { borderRadius as borderRadiusToken, colors, componentSizes, fixed, layout } from '@/theme';
 import { showAlert } from '@/utils/alert';
-import { showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import {
   AVATAR_IMAGES,
   AVATAR_KEYS,
@@ -268,7 +270,12 @@ export const AvatarPickerScreen: React.FC = () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        showAlert('需要相册权限才能选择头像');
+        showConfirmAlert(
+          '需要相册权限',
+          '请在系统设置中开启相册访问权限',
+          () => void Linking.openSettings(),
+          { confirmText: '去设置' },
+        );
         return;
       }
 
@@ -283,7 +290,7 @@ export const AvatarPickerScreen: React.FC = () => {
         setSaving(true);
         try {
           const url = await uploadAvatar(result.assets[0].uri);
-          showAlert('头像已更新');
+          toast.success('头像已更新');
 
           facade
             .updatePlayerProfile(undefined, url)
@@ -354,7 +361,7 @@ export const AvatarPickerScreen: React.FC = () => {
         }
       }
 
-      showAlert('形象已更新');
+      toast.success('形象已更新');
       navigation.goBack();
     } catch (e: unknown) {
       const message = getErrorMessage(e);

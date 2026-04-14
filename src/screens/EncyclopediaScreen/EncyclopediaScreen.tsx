@@ -340,7 +340,7 @@ export const EncyclopediaScreen: React.FC = () => {
           variant="search"
           icon="search"
           containerStyle={styles.searchBar}
-          placeholder="搜索角色名/技能..."
+          placeholder="搜索角色名/技能"
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoFocus

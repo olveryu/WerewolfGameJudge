@@ -11,9 +11,9 @@
  * 不硬编码样式值，不使用 console.*，不 import service 层。
  */
 import { useCallback, useState } from 'react';
+import { toast } from 'sonner-native';
 
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { getErrorMessage } from '@/utils/errorUtils';
 
@@ -70,7 +70,7 @@ export function useAuthForm({
 
   const handleEmailAuth = useCallback(async () => {
     if (!email || !password) {
-      showAlert('请输入邮箱和密码');
+      toast.warning('请输入邮箱和密码');
       return;
     }
 
@@ -80,14 +80,14 @@ export function useAuthForm({
         await signUpWithEmail(email, password, displayName || undefined);
         if (wasAnonymous) {
           // Anonymous → email upgrade: uid preserved, already in Settings
-          showAlert('绑定成功');
+          toast.success('绑定成功');
         } else {
-          showAlert('注册成功');
+          toast.success('注册成功');
         }
       } else {
         await signInWithEmail(email, password);
         if (showSuccessOnLogin) {
-          showAlert('登录成功');
+          toast.success('登录成功');
         }
       }
       onSuccess();
@@ -115,7 +115,7 @@ export function useAuthForm({
     try {
       await signInAnonymously();
       if (showSuccessOnLogin) {
-        showAlert('登录成功');
+        toast.success('登录成功');
       }
       onSuccess();
     } catch (e: unknown) {

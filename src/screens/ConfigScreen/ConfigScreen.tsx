@@ -150,7 +150,7 @@ export const ConfigScreen: React.FC = () => {
       </View>
 
       {isLoading ? (
-        <LoadingScreen message="加载中…" fullScreen={false} />
+        <LoadingScreen message="加载中" fullScreen={false} />
       ) : (
         <>
           {/* Active tab content */}

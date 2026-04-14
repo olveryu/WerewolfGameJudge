@@ -110,7 +110,7 @@ export const ChangePasswordForm = memo<ChangePasswordFormProps>(
           buttonColor={colors.primary}
           textColor={colors.textInverse}
         >
-          {submitting ? '修改中…' : '确认修改'}
+          {submitting ? '修改中' : '确认修改'}
         </Button>
         <Button
           variant="ghost"

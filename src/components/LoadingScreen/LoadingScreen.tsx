@@ -30,7 +30,7 @@ const BAR_WIDTH_RATIO = 0.3;
 /** Full cycle duration for the sliding animation */
 const PROGRESS_DURATION_MS = 1_500;
 
-export function LoadingScreen({ message = '加载中…', fullScreen = true }: LoadingScreenProps) {
+export function LoadingScreen({ message = '加载中', fullScreen = true }: LoadingScreenProps) {
   const pulseAnimRef = useRef(new Animated.Value(1));
   // eslint-disable-next-line react-hooks/refs -- RN Animated standard pattern: read Animated.Value from ref during render to bind into styles.
   const pulseAnim = pulseAnimRef.current;

@@ -115,7 +115,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
         >
           <Text style={styles.outlineButtonText}>
             {authLoading ? (
-              '处理中…'
+              '处理中'
             ) : (
               <>
                 <Ionicons name={UI_ICONS.USER} size={typography.body} />

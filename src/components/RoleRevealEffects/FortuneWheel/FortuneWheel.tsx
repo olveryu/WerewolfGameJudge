@@ -646,11 +646,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       <HintWithWarning
         hintText={
           phase === 'appear'
-            ? '🎰 转盘就绪…'
+            ? '🎰 转盘就绪'
             : phase === 'idle'
               ? '🎰 拨动转盘，揭晓身份'
               : phase === 'spinning'
-                ? '🎰 命运转动中…'
+                ? '🎰 命运转动中'
                 : phase === 'stopped'
                   ? '✨ 命运已定！'
                   : null

@@ -15,6 +15,7 @@ import { BlurView } from 'expo-blur';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
 import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
@@ -35,7 +36,6 @@ import { fetchUserStats } from '@/services/feature/StatsService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout, spacing } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
-import { showAlert } from '@/utils/alert';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -114,7 +114,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     void shareOrCopyRoomLink(route.params.roomNumber)
       .then((result) => {
         if (result === 'copied') {
-          showAlert('已复制', '房间链接已复制到剪贴板');
+          toast.success('房间链接已复制');
         } else if (result === 'failed') {
           showErrorAlert('链接分享失败', '无法复制链接，请手动分享房间号');
         }
@@ -629,11 +629,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               onPress={(meta: { disabled: boolean }) => {
                 // Policy decision: disabled button shows alert
                 if (meta.disabled) {
-                  showAlert('等待房主分配角色…');
+                  toast.info('等待房主开始分配角色');
                 }
               }}
             >
-              等待分配角色…
+              等待房主开始
             </Button>
           )}
 

@@ -8,12 +8,12 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
+import { toast } from 'sonner-native';
 
 import { ResetPasswordForm } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
-import { showAlert } from '@/utils/alert';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 
@@ -41,18 +41,18 @@ export const AuthResetPasswordScreen: React.FC = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!code || !newPassword) {
-      showAlert('请输入验证码和新密码');
+      toast.warning('请输入验证码和新密码');
       return;
     }
     if (newPassword.length < 6) {
-      showAlert('密码至少6位');
+      toast.warning('密码至少6位');
       return;
     }
     setLoading(true);
     setError(null);
     try {
       await resetPassword(email, code, newPassword);
-      showAlert('密码重置成功');
+      toast.success('密码重置成功');
       // Pop all auth modal screens back to the original caller
       navigation.popToTop();
     } catch (e: unknown) {
@@ -69,7 +69,7 @@ export const AuthResetPasswordScreen: React.FC = () => {
     setError(null);
     try {
       await forgotPassword(email);
-      showAlert('验证码已重新发送');
+      toast.success('验证码已重新发送');
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       setError(message);

@@ -558,7 +558,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
           phase === 'ready'
             ? '🎯 点击旋钮开始'
             : phase === 'spinning' || phase === 'dropping'
-              ? '🎰 扭蛋掉落中…'
+              ? '🎰 扭蛋掉落中'
               : phase === 'waiting'
                 ? '✨ 点击扭蛋打开'
                 : null

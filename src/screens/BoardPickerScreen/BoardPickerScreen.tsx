@@ -228,7 +228,7 @@ const BoardCard = React.memo<BoardCardProps>(
               onPress={handleSelect}
               style={{ marginTop: spacing.medium }}
             >
-              选好，去调整角色
+              以此为基础
             </Button>
           </View>
         )}
@@ -514,7 +514,7 @@ export const BoardPickerScreen: React.FC = () => {
           variant="search"
           icon="search"
           containerStyle={styles.searchBar}
-          placeholder="搜索模板或角色…"
+          placeholder="搜索模板或角色"
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoFocus

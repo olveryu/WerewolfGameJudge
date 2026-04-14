@@ -44,7 +44,7 @@ export const EmailForm = memo<EmailFormProps>(
     }, []);
 
     const buttonText = useMemo(() => {
-      if (authLoading) return '处理中…';
+      if (authLoading) return '处理中';
       return isSignUp ? '注册' : '登录';
     }, [authLoading, isSignUp]);
 

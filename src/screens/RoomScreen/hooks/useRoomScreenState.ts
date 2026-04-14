@@ -687,7 +687,7 @@ export function useRoomScreenState(
             if (p && p.hasViewedRole) viewedCount++;
           }
           if (viewedCount < totalSeats) {
-            return `${viewedCount}/${totalSeats} 位玩家已查看角色，等待剩余玩家…`;
+            return `${viewedCount}/${totalSeats} 位玩家已查看角色，等待剩余玩家`;
           }
           return null;
         }

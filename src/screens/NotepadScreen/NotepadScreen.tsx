@@ -203,7 +203,7 @@ export const NotepadScreen: React.FC = () => {
             style={styles.publicInput}
             value={notepad.state.publicNoteLeft}
             onChangeText={notepad.setPublicNoteLeft}
-            placeholder="自由记录…"
+            placeholder="自由记录"
             placeholderTextColor={styles.placeholderColor}
             multiline
             textAlignVertical="top"
@@ -212,7 +212,7 @@ export const NotepadScreen: React.FC = () => {
             style={styles.publicInput}
             value={notepad.state.publicNoteRight}
             onChangeText={notepad.setPublicNoteRight}
-            placeholder="投票记录…"
+            placeholder="投票记录"
             placeholderTextColor={styles.placeholderColor}
             multiline
             textAlignVertical="top"

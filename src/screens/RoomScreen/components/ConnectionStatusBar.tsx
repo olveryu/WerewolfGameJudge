@@ -80,7 +80,7 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({ stat
       testID={TESTIDS.connectionStatusContainer}
       onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
     >
-      <Text style={styles.text}>连接断开，正在重连…</Text>
+      <Text style={styles.text}>连接断开，正在重连</Text>
       <View style={styles.progressBarTrack}>
         <Animated.View
           style={[styles.progressBar, { width: barPixelWidth, transform: [{ translateX }] }]}

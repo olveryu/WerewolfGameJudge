@@ -8,12 +8,12 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
+import { toast } from 'sonner-native';
 
 import { ForgotPasswordForm } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
-import { showAlert } from '@/utils/alert';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 
@@ -40,14 +40,14 @@ export const AuthForgotPasswordScreen: React.FC = () => {
   const handleSubmit = useCallback(async () => {
     if (loading) return;
     if (!email) {
-      showAlert('请输入邮箱');
+      toast.warning('请输入邮箱');
       return;
     }
     setLoading(true);
     setError(null);
     try {
       await forgotPassword(email);
-      showAlert('验证码已发送，请查看邮箱');
+      toast.success('验证码已发送，请查看邮箱');
       navigation.navigate('AuthResetPassword', { email });
     } catch (e: unknown) {
       const message = getErrorMessage(e);

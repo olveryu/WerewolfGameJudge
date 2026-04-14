@@ -508,7 +508,7 @@ export const HomeScreen: React.FC = () => {
           haptic
         >
           <View style={styles.heroCardContent}>
-            <Text style={styles.heroCardTitle}>{isCreating ? '创建中…' : '创建房间'}</Text>
+            <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
             <Text style={styles.heroCardSubtitle}>开始一局新游戏</Text>
           </View>
           {isCreating ? (
@@ -535,7 +535,7 @@ export const HomeScreen: React.FC = () => {
             <View style={styles.actionCardIcon}>
               <Ionicons name="log-in-outline" size={componentSizes.icon.lg} color={colors.text} />
             </View>
-            <Text style={styles.actionCardTitle}>{isJoining ? '进入中…' : '进入房间'}</Text>
+            <Text style={styles.actionCardTitle}>{isJoining ? '进入中' : '进入房间'}</Text>
             <Text style={styles.actionCardSubtitle}>输入房间号</Text>
           </PressableScale>
           <PressableScale

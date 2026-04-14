@@ -182,7 +182,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>加载中…</Text>
+            <Text style={styles.loadingText}>加载中</Text>
           </View>
         )}
 

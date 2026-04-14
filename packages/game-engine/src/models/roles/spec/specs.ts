@@ -82,7 +82,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认查验',
           prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要查验该玩家吗？',
+          confirmText: '查验此玩家？',
           revealTitlePrefix: '查验结果',
           revealResultFormat: 'factionCheck',
           bottomActionText: '不用技能',
@@ -134,7 +134,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认查验',
           prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要查验该玩家吗？',
+          confirmText: '查验此玩家？',
           revealTitlePrefix: '查验结果',
           revealResultFormat: 'factionCheck',
           bottomActionText: '不用技能',
@@ -184,7 +184,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认查验',
           prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要查验该玩家吗？',
+          confirmText: '查验此玩家？',
           revealTitlePrefix: '查验结果',
           revealResultFormat: 'factionCheck',
           bottomActionText: '不用技能',
@@ -245,8 +245,8 @@ export const ROLE_SPECS = {
               confirmTitle: '确认行动',
               prompt: '是否使用解药？',
               promptTemplate: '{seat}被狼人袭击，是否使用解药？',
-              cannotSavePrompt: '你被狼人袭击，无法自救，可使用毒药或不用技能。',
-              confirmText: '确定使用解药吗？',
+              cannotSavePrompt: '你被狼人袭击，无法自救，可使用毒药或不用技能',
+              confirmText: '使用解药？',
               bottomActionText: '不用技能',
             },
           },
@@ -258,8 +258,8 @@ export const ROLE_SPECS = {
             canSkip: true,
             ui: {
               confirmTitle: '确认行动',
-              prompt: '如要使用毒药，请点击座位。',
-              confirmText: '确定使用毒药吗？',
+              prompt: '如要使用毒药，请点击座位',
+              confirmText: '使用毒药？',
               bottomActionText: '不用技能',
             },
           },
@@ -308,7 +308,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认毒杀',
           prompt: '请选择要毒杀的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要毒杀该玩家吗？',
+          confirmText: '毒杀此玩家？',
           bottomActionText: '不用技能',
         },
       },
@@ -353,7 +353,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请点击下方按钮查看技能发动状态',
-          confirmText: '确定查看猎人发动状态吗？',
+          confirmText: '查看猎人发动状态？',
           bottomActionText: '发动状态',
           confirmStatusUi: {
             kind: 'shoot',
@@ -404,7 +404,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请选择要守护的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要守护该玩家吗？',
+          confirmText: '守护此玩家？',
           bottomActionText: '不用技能',
         },
       },
@@ -496,7 +496,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认交换',
           prompt: '请选择要交换的两名玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要交换这两名玩家吗？',
+          confirmText: '交换这两名玩家？',
           bottomActionText: '不用技能',
           firstTargetTitle: '已选择第一位玩家',
           firstTargetPromptTemplate: '{seat}，请选择第二位玩家',
@@ -564,7 +564,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认通灵',
           prompt: '请选择要通灵的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要通灵该玩家吗？',
+          confirmText: '通灵此玩家？',
           revealTitlePrefix: '通灵结果',
           revealResultFormat: 'roleName',
           bottomActionText: '不用技能',
@@ -617,7 +617,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请选择要摄梦的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要摄梦该玩家吗？',
+          confirmText: '摄梦此玩家？',
           bottomActionText: '不用技能',
         },
       },
@@ -676,7 +676,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认查验',
           prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要查验该玩家吗？',
+          confirmText: '查验此玩家？',
           revealTitlePrefix: '纯白查验',
           revealResultFormat: 'roleName',
           bottomActionText: '不用技能',
@@ -746,7 +746,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认禁言',
           prompt: '请选择要禁言的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要禁言该玩家吗？',
+          confirmText: '禁言此玩家？',
           bottomActionText: '不用技能',
         },
       },
@@ -790,7 +790,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认禁票',
           prompt: '请选择要禁票的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要禁票该玩家吗？',
+          confirmText: '禁票此玩家？',
           bottomActionText: '不用技能',
         },
       },
@@ -832,7 +832,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认诅咒',
           prompt: '请选择要诅咒的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要诅咒该玩家吗？',
+          confirmText: '诅咒此玩家？',
           bottomActionText: '不用技能',
         },
       },
@@ -899,7 +899,7 @@ export const ROLE_SPECS = {
         ui: {
           prompt: '请选择袭击目标',
           confirmTitle: '狼人投票',
-          confirmText: '确定袭击该玩家？',
+          confirmText: '袭击此玩家？',
           emptyVoteText: '放弃袭击',
           voteConfirmTemplate: '{wolf} 确定袭击{seat}？',
           emptyVoteConfirmTemplate: '{wolf} 确定放弃袭击？',
@@ -959,7 +959,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请选择要魅惑的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要魅惑该玩家吗？',
+          confirmText: '魅惑此玩家？',
           bottomActionText: '不用技能',
         },
       },
@@ -1028,7 +1028,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请点击下方按钮查看技能发动状态',
-          confirmText: '确定查看狼王发动状态吗？',
+          confirmText: '查看狼王发动状态？',
           bottomActionText: '发动状态',
           confirmStatusUi: {
             kind: 'shoot',
@@ -1080,7 +1080,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请选择要恐惧的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要恐惧该玩家吗？',
+          confirmText: '恐惧此玩家？',
           bottomActionText: '不用技能',
         },
       },
@@ -1126,7 +1126,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认查验',
           prompt: '请选择要查验的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要查验该玩家吗？',
+          confirmText: '查验此玩家？',
           revealTitlePrefix: '石像鬼探查',
           revealResultFormat: 'roleName',
           bottomActionText: '不用技能',
@@ -1179,7 +1179,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认转化',
           prompt: '请选择狼人阵营相邻的一名神民角色进行转化',
-          confirmText: '确定要转化该玩家吗？',
+          confirmText: '转化此玩家？',
         },
       },
       {
@@ -1257,7 +1257,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认学习',
           prompt: '请选择要学习的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要学习该玩家吗？',
+          confirmText: '学习此玩家？',
           revealTitlePrefix: '学习结果',
           revealResultFormat: 'roleName',
           bottomActionText: '不用技能',
@@ -1309,7 +1309,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认查验',
           prompt: '请选择要查验的非狼人阵营玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要查验该玩家吗？',
+          confirmText: '查验此玩家？',
           revealTitlePrefix: '狼巫查验',
           revealResultFormat: 'roleName',
           bottomActionText: '不用技能',
@@ -1437,7 +1437,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请选择你的榜样',
-          confirmText: '确定选择该玩家为榜样吗？',
+          confirmText: '选择此玩家为榜样？',
           bottomActionText: '不用技能',
         },
       },
@@ -1482,7 +1482,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请选择你的榜样',
-          confirmText: '确定选择该玩家为榜样吗？',
+          confirmText: '选择此玩家为榜样？',
           bottomActionText: '不用技能',
         },
       },
@@ -1535,7 +1535,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认催眠',
           prompt: '请选择1-2名要催眠的玩家，如不使用请点击「不用技能」',
-          confirmText: '确定要催眠选中的玩家吗？',
+          confirmText: '催眠选中的玩家？',
           bottomActionText: '不用技能',
           confirmButtonText: '确认催眠({count}人)',
         },
@@ -1598,7 +1598,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认模仿',
           prompt: '请选择你要模仿的玩家',
-          confirmText: '确定模仿该玩家吗？',
+          confirmText: '模仿此玩家？',
         },
       },
     ],
@@ -1648,7 +1648,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请点击下方按钮查看你的阵营信息',
-          confirmText: '确定查看阵营信息吗？',
+          confirmText: '查看阵营信息？',
           bottomActionText: '查看阵营',
           confirmStatusUi: {
             kind: 'faction',
@@ -1743,7 +1743,7 @@ export const ROLE_SPECS = {
         ui: {
           confirmTitle: '确认行动',
           prompt: '请选择两名玩家成为情侣，可以选择自己',
-          confirmText: '确定让这两名玩家成为情侣吗？',
+          confirmText: '让这两名玩家成为情侣？',
           bottomActionText: '不用技能',
           confirmButtonText: '确认连接({count}人)',
         },

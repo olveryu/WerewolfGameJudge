@@ -45,7 +45,13 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   const seatLabel = formatSeat(seatNumber);
   const message =
     modalType === 'enter' ? `确定在${seatLabel}位入座？` : `确定从${seatLabel}位离座？`;
-  const confirmText = isSubmitting ? (modalType === 'enter' ? '入座中...' : '离座中...') : '确定';
+  const confirmText = isSubmitting
+    ? modalType === 'enter'
+      ? '入座中'
+      : '离座中'
+    : modalType === 'enter'
+      ? '入座'
+      : '离座';
 
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>

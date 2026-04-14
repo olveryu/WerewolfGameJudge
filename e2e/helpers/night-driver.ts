@@ -441,7 +441,7 @@ export async function driveMagicianSwap(
   await tile2.waitFor({ state: 'visible', timeout: 5000 });
   await tile2.click({ force: true });
 
-  // Confirm swap alert ("确定要交换这两名玩家吗？")
+  // Confirm swap alert ("交换这两名玩家？")
   const alertModal = page.locator('[data-testid="alert-modal"]');
   const appeared = await alertModal
     .waitFor({ state: 'visible', timeout: 3000 })

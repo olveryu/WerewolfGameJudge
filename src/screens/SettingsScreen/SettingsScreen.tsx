@@ -20,6 +20,7 @@ import React, {
 } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { toast } from 'sonner-native';
 
 import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
@@ -32,7 +33,7 @@ import { RootStackParamList } from '@/navigation/types';
 import type { UserStats } from '@/services/feature/StatsService';
 import { fetchUserStats } from '@/services/feature/StatsService';
 import { colors, componentSizes, fixed, layout, typography } from '@/theme';
-import { showAlert, showPrompt } from '@/utils/alert';
+import { showPrompt } from '@/utils/alert';
 import { showConfirmAlert, showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
@@ -167,12 +168,12 @@ export const SettingsScreen: React.FC = () => {
       onConfirm: async (value: string) => {
         const trimmed = value.trim();
         if (!trimmed) {
-          showAlert('请输入名字');
+          toast.warning('请输入名字');
           return;
         }
         try {
           await updateProfile({ displayName: trimmed });
-          showAlert('昵称已更新');
+          toast.success('昵称已更新');
           facade
             .updatePlayerProfile(trimmed, undefined)
             .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed:', err));
@@ -248,7 +249,7 @@ export const SettingsScreen: React.FC = () => {
     };
 
     if (user?.isAnonymous) {
-      showDestructiveAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', '确定', doSwitch);
+      showDestructiveAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', '切换', doSwitch);
     } else {
       doSwitch();
     }
@@ -261,7 +262,7 @@ export const SettingsScreen: React.FC = () => {
       () => {
         resetAllGuides()
           .then(() => {
-            showAlert('已重置', '引导将重新显示');
+            toast.success('引导已重置');
           })
           .catch((e: unknown) => {
             settingsLog.error('Reset guides failed:', e);
@@ -287,7 +288,7 @@ export const SettingsScreen: React.FC = () => {
   const handleAnonymousLogin = useCallback(async () => {
     try {
       await signInAnonymously();
-      showAlert('登录成功');
+      toast.success('登录成功');
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.warn('Anonymous login failed:', message);
@@ -483,7 +484,7 @@ export const SettingsScreen: React.FC = () => {
               onSubmit={async (oldPw, newPw) => {
                 await changePassword(oldPw, newPw);
                 setShowChangePassword(false);
-                showAlert('密码已修改');
+                toast.success('密码已修改');
               }}
               onCancel={() => setShowChangePassword(false)}
               styles={styles}

@@ -62,7 +62,7 @@ async function drivePiperHypnotize(
   await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
   await confirmBtn.click({ force: true });
 
-  // Wait for confirm alert ("确认催眠 / 确定要催眠选中的玩家吗？")
+  // Wait for confirm alert ("催眠选中的玩家？")
   const alertModal = page.locator('[data-testid="alert-modal"]');
   const appeared = await alertModal
     .waitFor({ state: 'visible', timeout: 3000 })

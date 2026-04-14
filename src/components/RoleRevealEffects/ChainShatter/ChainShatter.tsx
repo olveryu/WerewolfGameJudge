@@ -1223,7 +1223,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       <HintWithWarning
         hintText={
           phase === 'appear'
-            ? '⛓️ 锁链封印中…'
+            ? '⛓️ 锁链封印中'
             : phase === 'idle' || phase === 'hitting'
               ? `⛓️ 连续点击击碎锁链${hitsRemaining > 0 ? `（剩 ${hitsRemaining} 次）` : ''}`
               : phase === 'shatter'

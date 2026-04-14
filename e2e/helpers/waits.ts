@@ -3,7 +3,7 @@ import { expect, Page } from '@playwright/test';
 import { TESTIDS } from '../../src/testids';
 
 /** Text shown in the disconnected banner */
-export const DISCONNECTED_BANNER_TEXT = '连接断开，正在重连…';
+export const DISCONNECTED_BANNER_TEXT = '连接断开，正在重连';
 
 // ---------------------------------------------------------------------------
 // Disconnect recovery (used inside poll loops)

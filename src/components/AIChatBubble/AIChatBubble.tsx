@@ -295,7 +295,7 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="输入消息…"
+                placeholder="输入消息"
                 placeholderTextColor={colors.textMuted}
                 value={chat.inputText}
                 onChangeText={chat.setInputText}
