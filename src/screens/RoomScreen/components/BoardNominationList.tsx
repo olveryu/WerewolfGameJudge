@@ -56,6 +56,8 @@ function NominationCard({
   nomination,
   myUid,
   isHost,
+  expanded,
+  onToggle,
   onUpvote,
   onWithdraw,
   onAdopt,
@@ -63,6 +65,8 @@ function NominationCard({
   nomination: BoardNomination;
   myUid: string | null;
   isHost: boolean;
+  expanded: boolean;
+  onToggle: () => void;
   onUpvote: (targetUid: string) => void;
   onWithdraw: () => void;
   onAdopt: (roles: readonly RoleId[]) => Promise<void>;
@@ -71,7 +75,6 @@ function NominationCard({
   const hasUpvoted = myUid ? nomination.upvoters.includes(myUid) : false;
   const roles = nomination.roles as RoleId[];
   const nominationPlayerCount = getPlayerCount(roles);
-  const [expanded, setExpanded] = useState(false);
   const stats = useMemo(() => computeFactionStats(roles), [roles]);
   const handleUpvote = useCallback(() => {
     onUpvote(nomination.uid);
@@ -81,12 +84,10 @@ function NominationCard({
     onAdopt(nomination.roles);
   }, [nomination.roles, onAdopt]);
 
-  const toggleExpand = useCallback(() => setExpanded((v) => !v), []);
-
   return (
     <View style={[styles.card, { backgroundColor: colors.card }]}>
       {/* Tappable header: author + compact stats + chevron */}
-      <Pressable onPress={toggleExpand} style={styles.cardHeader}>
+      <Pressable onPress={onToggle} style={styles.cardHeader}>
         <Text style={[styles.cardAuthor, { color: colors.text }]} numberOfLines={1}>
           {nomination.displayName}
           {isMine && <Text style={{ color: colors.textSecondary }}> (我)</Text>}
@@ -217,6 +218,15 @@ export const BoardNominationModal = memo(function BoardNominationModal({
     return Object.values(nominations).sort((a, b) => b.upvoters.length - a.upvoters.length);
   }, [nominations]);
 
+  // Accordion: only one card expanded at a time; default to first entry
+  const [expandedUid, setExpandedUid] = useState<string | null>(null);
+  const activeUid = expandedUid ?? entries[0]?.uid ?? null;
+  const toggleCard = useCallback(
+    (uid: string) =>
+      setExpandedUid((prev) => (prev === uid || (!prev && uid === entries[0]?.uid) ? null : uid)),
+    [entries],
+  );
+
   return (
     <BaseCenterModal
       visible={visible}
@@ -245,6 +255,8 @@ export const BoardNominationModal = memo(function BoardNominationModal({
               nomination={nomination}
               myUid={myUid}
               isHost={isHost}
+              expanded={activeUid === nomination.uid}
+              onToggle={() => toggleCard(nomination.uid)}
               onUpvote={onUpvote}
               onWithdraw={onWithdraw}
               onAdopt={handleAdopt}
