@@ -1,18 +1,17 @@
 /**
  * useBubbleDrag - 浮动气泡拖动手势 + 位置持久化
  *
- * 管理气泡的 touch/drag 交互、边界约束、位置 AsyncStorage 持久化。
+ * 管理气泡的 touch/drag 交互、边界约束、位置 MMKV 持久化。
  * 短按视为点击（打开聊天），拖动距离超过阈值视为拖拽。
- * 提供手势处理、Animated 动画和 AsyncStorage 位置持久化。不含游戏业务逻辑。
+ * 提供手势处理、Animated 动画和 MMKV 位置持久化。不含游戏业务逻辑。
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, type GestureResponderEvent, Platform, useWindowDimensions } from 'react-native';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import { chatLog } from '@/utils/logger';
+import { storage } from '@/lib/storage';
 
 import {
   BUBBLE_HEIGHT,
@@ -66,25 +65,20 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
 
   // ── Load saved position ────────────────────────────
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY_POSITION)
-      .then((saved) => {
-        if (saved) {
-          const parsed = JSON.parse(saved) as { x: number; y: number };
-          // Clamp to current screen bounds (screen may have rotated since save)
-          const clampedX = Math.max(
-            BUBBLE_MARGIN,
-            Math.min(screenWidth - BUBBLE_WIDTH - BUBBLE_MARGIN, parsed.x),
-          );
-          const clampedY = Math.max(
-            BUBBLE_MARGIN + 50,
-            Math.min(stableHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, parsed.y),
-          );
-          setPosition({ x: clampedX, y: clampedY });
-        }
-      })
-      .catch((e) => {
-        chatLog.warn('Failed to load bubble position:', e);
-      });
+    const saved = storage.getString(STORAGE_KEY_POSITION);
+    if (saved) {
+      const parsed = JSON.parse(saved) as { x: number; y: number };
+      // Clamp to current screen bounds (screen may have rotated since save)
+      const clampedX = Math.max(
+        BUBBLE_MARGIN,
+        Math.min(screenWidth - BUBBLE_WIDTH - BUBBLE_MARGIN, parsed.x),
+      );
+      const clampedY = Math.max(
+        BUBBLE_MARGIN + 50,
+        Math.min(stableHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, parsed.y),
+      );
+      setPosition({ x: clampedX, y: clampedY });
+    }
     // Re-clamp when screen dimensions change (rotation)
   }, [screenWidth, stableHeight]);
 
@@ -144,9 +138,7 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
 
   const handleTouchEnd = useCallback(() => {
     if (isDraggingRef.current) {
-      AsyncStorage.setItem(STORAGE_KEY_POSITION, JSON.stringify(positionRef.current)).catch((e) =>
-        chatLog.warn('Failed to save bubble position:', e),
-      );
+      storage.set(STORAGE_KEY_POSITION, JSON.stringify(positionRef.current));
       justHandledTouchRef.current = true;
     } else {
       justHandledTouchRef.current = true;

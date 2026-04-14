@@ -30,11 +30,13 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
-// Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(() => Promise.resolve(null)),
-  setItem: jest.fn(() => Promise.resolve()),
-  removeItem: jest.fn(() => Promise.resolve()),
+// Mock MMKV storage
+jest.mock('@/lib/storage', () => ({
+  storage: {
+    getString: jest.fn(() => undefined),
+    set: jest.fn(),
+    remove: jest.fn(),
+  },
 }));
 
 jest.mock('../../../utils/alert', () => ({
@@ -162,8 +164,8 @@ describe('Room creation → navigation roomNumber contract', () => {
     });
   });
 
-  it('should save confirmed roomNumber to AsyncStorage (not a pre-generated code)', async () => {
-    const AsyncStorage = require('@react-native-async-storage/async-storage');
+  it('should save confirmed roomNumber to MMKV storage (not a pre-generated code)', async () => {
+    const { storage } = require('@/lib/storage');
     const mockFacade = createMockFacade();
     const { getByText } = render(
       <GameFacadeProvider facade={mockFacade}>
@@ -179,6 +181,6 @@ describe('Room creation → navigation roomNumber contract', () => {
     });
 
     // lastRoomNumber stored must match the confirmed DB code
-    expect(AsyncStorage.setItem).toHaveBeenCalledWith(LAST_ROOM_NUMBER_KEY, '7777');
+    expect(storage.set).toHaveBeenCalledWith(LAST_ROOM_NUMBER_KEY, '7777');
   });
 });

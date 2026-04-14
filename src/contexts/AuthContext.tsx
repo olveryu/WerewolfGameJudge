@@ -8,12 +8,12 @@
  * 管理 auth 状态、订阅 onAuthStateChange、提供 login/logout/updateProfile。
  * 不包含游戏业务逻辑，不直接操作游戏状态。
  */
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
+import { storage } from '@/lib/storage';
 import type { AuthUser } from '@/services/types/IAuthService';
 import { isAbortError, isNetworkError } from '@/utils/errorUtils';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
@@ -238,7 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       await authService.signOut();
-      await AsyncStorage.removeItem(LAST_ROOM_NUMBER_KEY);
+      storage.remove(LAST_ROOM_NUMBER_KEY);
       setUser(null);
       Sentry.setUser(null);
     } catch (e: unknown) {

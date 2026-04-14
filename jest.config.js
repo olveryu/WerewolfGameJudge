@@ -26,8 +26,6 @@ module.exports = {
     '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.ts',
     '^expo-image$': '<rootDir>/__mocks__/expo-image.tsx',
     '^expo-splash-screen$': '<rootDir>/__mocks__/expo-splash-screen.ts',
-    '^@react-native-async-storage/async-storage$':
-      '<rootDir>/__mocks__/@react-native-async-storage/async-storage.ts',
     '^@expo/vector-icons$': '<rootDir>/__mocks__/@expo/vector-icons.tsx',
     '^@sentry/react-native$': '<rootDir>/__mocks__/@sentry/react-native.ts',
     '^@tanstack/react-query$': '<rootDir>/__mocks__/@tanstack/react-query.ts',
@@ -38,6 +36,7 @@ module.exports = {
     '^react-native-view-shot$': '<rootDir>/__mocks__/react-native-view-shot.ts',
     '^@shopify/react-native-skia$': '<rootDir>/__mocks__/@shopify/react-native-skia.tsx',
     '^react-native-safe-area-context$': '<rootDir>/__mocks__/react-native-safe-area-context.tsx',
+    '^react-native-mmkv$': '<rootDir>/__mocks__/react-native-mmkv.ts',
     '\\.m4a$': '<rootDir>/__mocks__/audioFileMock.js',
   },
 };

@@ -2,14 +2,14 @@
  * CFAuthService — Cloudflare Workers JWT 认证服务
  *
  * 实现 IAuthService 接口，通过 HTTP 调用 Workers /auth/* 端点。
- * JWT token 持久化在 AsyncStorage，刷新/恢复 session 靠 GET /auth/user。
+ * JWT token 持久化在 MMKV，刷新/恢复 session 靠 GET /auth/user。
  * 与 Supabase AuthService 行为语义兼容（匿名 + 邮箱升级 + 资料管理）。
  * 不涉及游戏逻辑或游戏状态存储。
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
 
+import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
@@ -178,7 +178,7 @@ export class CFAuthService implements IAuthService {
   }
 
   async initAuth(): Promise<string | null> {
-    const token = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
+    const token = storage.getString(TOKEN_STORAGE_KEY) ?? null;
     if (!token) return null;
 
     this.#cachedToken = token;
@@ -332,11 +332,11 @@ export class CFAuthService implements IAuthService {
 
   async #saveToken(token: string): Promise<void> {
     this.#cachedToken = token;
-    await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
+    storage.set(TOKEN_STORAGE_KEY, token);
   }
 
   async #clearToken(): Promise<void> {
     this.#cachedToken = null;
-    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+    storage.remove(TOKEN_STORAGE_KEY);
   }
 }

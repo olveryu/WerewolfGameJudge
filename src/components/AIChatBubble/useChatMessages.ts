@@ -2,11 +2,10 @@
  * useChatMessages - 聊天消息状态与 API 交互
  *
  * 管理消息列表、streaming 流式接收、冷却计时、
- * AbortController 生命周期、AsyncStorage 持久化、触觉反馈。
+ * AbortController 生命周期、MMKV 持久化、触觉反馈。
  * 负责消息 CRUD、调用 AIChatService 和触觉反馈。不涉及 UI 渲染或手势处理。
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 import { newRequestId } from '@werewolf/game-engine/utils/id';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -14,6 +13,7 @@ import { Keyboard } from 'react-native';
 
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { NETWORK_ERROR } from '@/config/errorMessages';
+import { storage } from '@/lib/storage';
 import {
   type ChatMessage,
   isAIChatReady,
@@ -79,13 +79,8 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
 
   // ── Load saved messages ────────────────────────────
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY_MESSAGES)
-      .then((saved) => {
-        if (saved) setMessages(JSON.parse(saved));
-      })
-      .catch((e) => {
-        chatLog.warn('Failed to load saved messages:', e);
-      });
+    const saved = storage.getString(STORAGE_KEY_MESSAGES);
+    if (saved) setMessages(JSON.parse(saved));
   }, []);
 
   // ── Persist messages (debounced 500ms) ─────────────────────
@@ -93,12 +88,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
     if (messages.length > 0) {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        AsyncStorage.setItem(
-          STORAGE_KEY_MESSAGES,
-          JSON.stringify(messages.slice(-MAX_PERSISTED_MESSAGES)),
-        ).catch((e) => {
-          chatLog.warn('Failed to persist messages:', e);
-        });
+        storage.set(STORAGE_KEY_MESSAGES, JSON.stringify(messages.slice(-MAX_PERSISTED_MESSAGES)));
         saveTimerRef.current = null;
       }, 500);
     }
@@ -350,9 +340,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
       '清除',
       () => {
         setMessages([]);
-        AsyncStorage.removeItem(STORAGE_KEY_MESSAGES).catch((e) => {
-          chatLog.warn('Failed to clear message storage:', e);
-        });
+        storage.remove(STORAGE_KEY_MESSAGES);
       },
     );
   }, []);

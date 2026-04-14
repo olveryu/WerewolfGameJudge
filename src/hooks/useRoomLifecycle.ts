@@ -13,13 +13,13 @@
  * 不绕过 facade 修改游戏状态。
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { queryKeys } from '@/hooks/queries/queryKeys';
+import { storage } from '@/lib/storage';
 import { SupersededError } from '@/services/connection/types';
 import { fetchUserStats } from '@/services/feature/StatsService';
 import type { IAuthService } from '@/services/types/IAuthService';
@@ -157,7 +157,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         if (!record) {
           setError('房间不存在');
           // 防御性清理：房间已不存在，清除过时的 lastRoomNumber
-          void AsyncStorage.removeItem(LAST_ROOM_NUMBER_KEY);
+          storage.remove(LAST_ROOM_NUMBER_KEY);
           return false;
         }
         setRoomRecord(record);

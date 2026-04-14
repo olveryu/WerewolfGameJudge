@@ -6,7 +6,6 @@
  * Does not render JSX, own styles, or contain business logic.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -21,6 +20,7 @@ import type { View } from 'react-native';
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { getNotepadStorageKey } from '@/hooks/useNotepad';
+import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import { uploadShareImage } from '@/services/feature/ShareImageService';
 import { colors } from '@/theme';
@@ -741,9 +741,7 @@ export function useRoomScreenState(
     ) {
       const key = getNotepadStorageKey(gameState?.roomCode ?? null);
       if (key) {
-        AsyncStorage.removeItem(key).catch((e) => {
-          roomScreenLog.warn('Failed to clear notepad on restart:', e);
-        });
+        storage.remove(key);
       }
     }
     notepadPrevStatusRef.current = roomStatus;

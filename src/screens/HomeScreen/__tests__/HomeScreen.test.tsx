@@ -37,12 +37,13 @@ jest.mock('../../../contexts/AuthContext', () => ({
   }),
 }));
 
-// Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(() => Promise.resolve(null)),
-  setItem: jest.fn(() => Promise.resolve()),
-  removeItem: jest.fn(() => Promise.resolve()),
-  multiGet: jest.fn(() => Promise.resolve([])),
+// Mock MMKV storage
+jest.mock('@/lib/storage', () => ({
+  storage: {
+    getString: jest.fn(() => undefined),
+    set: jest.fn(),
+    remove: jest.fn(),
+  },
 }));
 
 // Mock utils

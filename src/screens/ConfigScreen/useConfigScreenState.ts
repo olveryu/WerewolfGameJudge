@@ -8,7 +8,6 @@
  * Does not render JSX, does not import RN components, does not own styles.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -22,6 +21,7 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
+import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import type { SettingsService } from '@/services/feature/SettingsService';
 import type { IAuthService } from '@/services/types/IAuthService';
@@ -299,7 +299,7 @@ export function useConfigScreenState({
           buildInitialGameState(roomCode, hostUid, template),
         );
         const roomNumber = record.roomNumber;
-        await AsyncStorage.setItem(LAST_ROOM_NUMBER_KEY, roomNumber);
+        storage.set(LAST_ROOM_NUMBER_KEY, roomNumber);
         navigation.navigate('Room', {
           roomNumber,
           isHost: true,

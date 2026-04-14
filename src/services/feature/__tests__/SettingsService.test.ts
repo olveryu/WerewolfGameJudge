@@ -1,15 +1,23 @@
 /**
  * SettingsService.test.ts - Tests for the settings service
  */
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { storage } from '@/lib/storage';
 import { SettingsService } from '@/services/feature/SettingsService';
 
-// Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-}));
+jest.mock('@/lib/storage', () => {
+  const store: Record<string, string> = {};
+  return {
+    storage: {
+      getString: jest.fn((key: string) => store[key] as string | undefined),
+      set: jest.fn((key: string, value: string) => {
+        store[key] = value;
+      }),
+      remove: jest.fn((key: string) => {
+        delete store[key];
+      }),
+    },
+  };
+});
 
 describe('SettingsService', () => {
   let service: SettingsService;
@@ -20,16 +28,16 @@ describe('SettingsService', () => {
   });
 
   describe('load', () => {
-    it('loads settings from AsyncStorage', async () => {
+    it('loads settings from MMKV storage', async () => {
       const storedSettings = {
         bgmEnabled: false,
         roleRevealAnimation: 'roleHunt',
       };
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(storedSettings));
+      (storage.getString as jest.Mock).mockReturnValue(JSON.stringify(storedSettings));
 
       await service.load();
 
-      expect(AsyncStorage.getItem).toHaveBeenCalledWith('@werewolf_settings');
+      expect(storage.getString).toHaveBeenCalledWith('@werewolf_settings');
     });
   });
 
@@ -42,7 +50,7 @@ describe('SettingsService', () => {
     it('sets and persists animation', async () => {
       await service.setRoleRevealAnimation('roleHunt');
 
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+      expect(storage.set).toHaveBeenCalledWith(
         '@werewolf_settings',
         expect.stringContaining('"roleRevealAnimation":"roleHunt"'),
       );

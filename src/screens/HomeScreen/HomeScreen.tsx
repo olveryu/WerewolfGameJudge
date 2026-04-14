@@ -8,7 +8,6 @@
  * 不使用硬编码样式值，不使用 console.*。
  */
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -31,12 +30,12 @@ import { LAST_ROOM_NUMBER_KEY, type TipId, tipStorageKey } from '@/config/storag
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
+import { storage } from '@/lib/storage';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
-import { homeLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 
 import {
@@ -75,52 +74,28 @@ export const HomeScreen: React.FC = () => {
   const { data: userStats } = useUserStatsQuery({ enabled: isLoggedIn });
   const userLevel = isLoggedIn ? (userStats?.level ?? null) : null;
 
-  // Load persisted tip dismissals from AsyncStorage
-  useEffect(() => {
+  // Load persisted tip dismissals (synchronous MMKV)
+  const readDismissedTips = useCallback(() => {
     const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'theme', 'bind-email'];
-    const keys = tipIds.map(tipStorageKey);
-    AsyncStorage.multiGet(keys)
-      .then((results) => {
-        const dismissed = new Set<string>();
-        results.forEach(([key, value]) => {
-          if (value === '1') {
-            // Extract tipId from storage key
-            const tipId = tipIds.find((id) => tipStorageKey(id) === key);
-            if (tipId) dismissed.add(tipId);
-          }
-        });
-        setDismissedTips(dismissed);
-      })
-      .catch((e: unknown) => {
-        homeLog.warn('Failed to read tip dismissed state', e);
-      })
-      .finally(() => {
-        setTipsLoaded(true);
-      });
+    const dismissed = new Set<string>();
+    for (const id of tipIds) {
+      if (storage.getString(tipStorageKey(id)) === '1') dismissed.add(id);
+    }
+    return dismissed;
   }, []);
+
+  useEffect(() => {
+    setDismissedTips(readDismissedTips());
+    setTipsLoaded(true);
+  }, [readDismissedTips]);
 
   // Reload dismissed tips when screen regains focus (after Settings reset)
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'theme', 'bind-email'];
-      const keys = tipIds.map(tipStorageKey);
-      AsyncStorage.multiGet(keys)
-        .then((results) => {
-          const dismissed = new Set<string>();
-          results.forEach(([key, value]) => {
-            if (value === '1') {
-              const tipId = tipIds.find((id) => tipStorageKey(id) === key);
-              if (tipId) dismissed.add(tipId);
-            }
-          });
-          setDismissedTips(dismissed);
-        })
-        .catch((e: unknown) => {
-          homeLog.warn('Failed to reload tip dismissed state', e);
-        });
+      setDismissedTips(readDismissedTips());
     });
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, readDismissedTips]);
 
   // Prevent transient UI states from getting stuck if we navigate away.
   // Also clear stale pending auth action if user didn't complete login before leaving.
@@ -147,16 +122,10 @@ export const HomeScreen: React.FC = () => {
   }, [user]);
 
   // Load last room number on mount and when returning to screen
-  // (room-not-found clears AsyncStorage, need to re-read on focus)
+  // (room-not-found clears MMKV, need to re-read on focus)
   useEffect(() => {
     const readLastRoom = () => {
-      AsyncStorage.getItem(LAST_ROOM_NUMBER_KEY)
-        .then((value) => {
-          setLastRoomNumber(value);
-        })
-        .catch((e: unknown) => {
-          homeLog.warn('Failed to read lastRoomNumber from AsyncStorage', e);
-        });
+      setLastRoomNumber(storage.getString(LAST_ROOM_NUMBER_KEY) ?? null);
     };
     readLastRoom();
     const unsubscribeFocus = navigation.addListener('focus', readLastRoom);
@@ -196,7 +165,7 @@ export const HomeScreen: React.FC = () => {
     setIsJoining(true);
 
     try {
-      await AsyncStorage.setItem(LAST_ROOM_NUMBER_KEY, roomCode);
+      storage.set(LAST_ROOM_NUMBER_KEY, roomCode);
       setShowJoinModal(false);
       navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
       setRoomCode('');
@@ -419,10 +388,7 @@ export const HomeScreen: React.FC = () => {
 
   const handleDismissTip = useCallback((tipId: string) => {
     setDismissedTips((prev) => new Set(prev).add(tipId));
-    // Persist to AsyncStorage
-    AsyncStorage.setItem(tipStorageKey(tipId as TipId), '1').catch((e: unknown) => {
-      homeLog.warn('Failed to persist tip dismissal', e);
-    });
+    storage.set(tipStorageKey(tipId as TipId), '1');
   }, []);
 
   return (

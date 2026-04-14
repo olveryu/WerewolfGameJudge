@@ -1,13 +1,13 @@
 /**
  * SettingsService - 用户设置持久化服务
  *
- * 使用 AsyncStorage 持久化用户偏好设置（音频/动画等），
- * 所有设置存储在单个 key 下的 JSON 对象中。涵盖 AsyncStorage 读写和默认值合并。
+ * 使用 MMKV 持久化用户偏好设置（音频/动画等），
+ * 所有设置存储在单个 key 下的 JSON 对象中。涵盖 MMKV 读写和默认值合并。
  * 不涉及游戏逻辑或游戏状态存储。
  */
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 
+import { storage } from '@/lib/storage';
 import { settingsServiceLog } from '@/utils/logger';
 
 const SETTINGS_KEY = '@werewolf_settings';
@@ -69,7 +69,7 @@ export class SettingsService {
     if (this.#loaded) return;
 
     try {
-      const raw = await AsyncStorage.getItem(SETTINGS_KEY);
+      const raw = storage.getString(SETTINGS_KEY);
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         if (typeof parsed === 'object' && parsed !== null) {
@@ -144,7 +144,7 @@ export class SettingsService {
    */
   async #save(): Promise<void> {
     try {
-      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(this.#settings));
+      storage.set(SETTINGS_KEY, JSON.stringify(this.#settings));
       this.#notifyListeners();
     } catch (e) {
       const isExpectedStorage =

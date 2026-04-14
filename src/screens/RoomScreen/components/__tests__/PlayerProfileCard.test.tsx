@@ -1,17 +1,17 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 
-import * as StatsService from '@/services/feature/StatsService';
+import type { UserPublicProfile } from '@/services/feature/StatsService';
 
 import { PlayerProfileCard } from '../PlayerProfileCard';
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: jest.fn() }),
 }));
-jest.mock('@/services/feature/StatsService');
 
-const mockFetchUserProfile = StatsService.fetchUserProfile as jest.MockedFunction<
-  typeof StatsService.fetchUserProfile
->;
+const mockUseUserProfileQuery = jest.fn();
+jest.mock('@/hooks/queries/useUserProfileQuery', () => ({
+  useUserProfileQuery: (...args: unknown[]) => mockUseUserProfileQuery(...args),
+}));
 
 const baseProps = {
   visible: true,
@@ -23,6 +23,12 @@ const baseProps = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Default: query disabled / no data
+  mockUseUserProfileQuery.mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+  });
 });
 
 describe('PlayerProfileCard', () => {
@@ -34,7 +40,11 @@ describe('PlayerProfileCard', () => {
 
       expect(getByText('机器人3号')).toBeTruthy();
       expect(getByText('机器人')).toBeTruthy();
-      expect(mockFetchUserProfile).not.toHaveBeenCalled();
+      // Query should be disabled for bots
+      expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
+        'bot-2',
+        expect.objectContaining({ enabled: false }),
+      );
       // No loading spinner
       expect(queryByTestId('loading-indicator')).toBeNull();
     });
@@ -70,8 +80,8 @@ describe('PlayerProfileCard', () => {
   });
 
   describe('real player', () => {
-    it('fetches profile via API for non-bot uid', async () => {
-      const mockProfile: StatsService.UserPublicProfile = {
+    it('renders profile data returned by useUserProfileQuery', () => {
+      const mockProfile: UserPublicProfile = {
         displayName: 'Alice',
         xp: 100,
         level: 2,
@@ -79,20 +89,28 @@ describe('PlayerProfileCard', () => {
         gamesPlayed: 5,
         unlockedItemCount: 3,
       };
-      mockFetchUserProfile.mockResolvedValue(mockProfile);
+      mockUseUserProfileQuery.mockReturnValue({
+        data: mockProfile,
+        isLoading: false,
+        isError: false,
+      });
 
       const { getByText } = render(<PlayerProfileCard {...baseProps} targetUid="user-abc" />);
 
-      await waitFor(() => {
-        expect(getByText('Alice')).toBeTruthy();
-      });
-      expect(mockFetchUserProfile).toHaveBeenCalledWith('user-abc');
+      expect(getByText('Alice')).toBeTruthy();
+      expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
+        'user-abc',
+        expect.objectContaining({ enabled: true }),
+      );
     });
 
-    it('does not fetch when not visible', () => {
+    it('does not enable query when not visible', () => {
       render(<PlayerProfileCard {...baseProps} visible={false} targetUid="user-abc" />);
 
-      expect(mockFetchUserProfile).not.toHaveBeenCalled();
+      expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
+        'user-abc',
+        expect.objectContaining({ enabled: false }),
+      );
     });
   });
 });

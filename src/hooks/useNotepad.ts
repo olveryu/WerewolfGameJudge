@@ -6,13 +6,13 @@
  * 纯客户端状态，不涉及服务端 API 或 game-engine 逻辑。
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GameStatus } from '@werewolf/game-engine/models';
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import type { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { Team } from '@werewolf/game-engine/models/roles/spec/types';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
+import { storage } from '@/lib/storage';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { chatLog } from '@/utils/logger';
 
@@ -116,31 +116,26 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     return [...good, ...wolf, ...third];
   }, [templateRoles]);
 
-  // ── Load from AsyncStorage on mount / room change ────
+  // ── Load from MMKV on mount / room change ────
   useEffect(() => {
     if (!storageKey) return;
-    AsyncStorage.getItem(storageKey)
-      .then((raw) => {
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw) as NotepadState;
-            // Backward compat: migrate old single publicNote → left/right
-            const legacy = (parsed as unknown as Record<string, unknown>).publicNote;
-            if (legacy !== undefined) {
-              parsed.publicNoteLeft = legacy as string;
-              delete (parsed as unknown as Record<string, unknown>).publicNote;
-            }
-            if (parsed.publicNoteLeft === undefined) parsed.publicNoteLeft = '';
-            if (parsed.publicNoteRight === undefined) parsed.publicNoteRight = '';
-            setState(parsed);
-          } catch {
-            chatLog.warn('Failed to parse notepad state');
-          }
+    const raw = storage.getString(storageKey);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as NotepadState;
+        // Backward compat: migrate old single publicNote → left/right
+        const legacy = (parsed as unknown as Record<string, unknown>).publicNote;
+        if (legacy !== undefined) {
+          parsed.publicNoteLeft = legacy as string;
+          delete (parsed as unknown as Record<string, unknown>).publicNote;
         }
-      })
-      .catch((e) => {
-        chatLog.warn('Failed to load notepad state:', e);
-      });
+        if (parsed.publicNoteLeft === undefined) parsed.publicNoteLeft = '';
+        if (parsed.publicNoteRight === undefined) parsed.publicNoteRight = '';
+        setState(parsed);
+      } catch {
+        chatLog.warn('Failed to parse notepad state');
+      }
+    }
   }, [storageKey]);
 
   // ── Persist helper (debounced to avoid thrashing) ────
@@ -158,9 +153,7 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
       if (!storageKey) return;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        AsyncStorage.setItem(storageKey, JSON.stringify(newState)).catch((e) => {
-          chatLog.warn('Failed to save notepad state:', e);
-        });
+        storage.set(storageKey, JSON.stringify(newState));
       }, 500);
     },
     [storageKey],
@@ -179,9 +172,7 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
       chatLog.info('Game restarted, clearing notepad');
       setState(emptyState());
       if (storageKey) {
-        AsyncStorage.removeItem(storageKey).catch((e) => {
-          chatLog.warn('Failed to clear notepad on restart:', e);
-        });
+        storage.remove(storageKey);
       }
     }
     prevStatusRef.current = status;
@@ -264,9 +255,7 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     const cleared = emptyState();
     setState(cleared);
     if (storageKey) {
-      AsyncStorage.removeItem(storageKey).catch((e) => {
-        chatLog.warn('Failed to clear notepad state:', e);
-      });
+      storage.remove(storageKey);
     }
   }, [storageKey]);
 
