@@ -228,7 +228,7 @@ const BoardCard = React.memo<BoardCardProps>(
               onPress={handleSelect}
               style={{ marginTop: spacing.medium }}
             >
-              以此为基础
+              选好，去调整角色
             </Button>
           </View>
         )}
@@ -505,7 +505,7 @@ export const BoardPickerScreen: React.FC = () => {
       {/* Subtitle hint */}
       <View style={styles.headerSubtitleRow}>
         <Ionicons name="bulb-outline" size={componentSizes.icon.sm} color={colors.textSecondary} />
-        <Text style={styles.headerSubtitle}>先选一个起点，下一步可自由调整</Text>
+        <Text style={styles.headerSubtitle}>选完后还能自由增减角色</Text>
       </View>
 
       {/* Search Bar */}

@@ -223,7 +223,7 @@ export const ConfigScreen: React.FC = () => {
       {/* Bottom Create Button */}
       <View style={[styles.bottomCreateBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
         <Text style={styles.cardBFooterHint}>
-          长按角色查看技能说明{'\n'}粗边框角色可长按切换变体
+          点击顶部板子名可重新选板{'\n'}点击增减角色 · 长按查看技能 · 粗边框可切换变体
         </Text>
         <Button
           variant="primary"

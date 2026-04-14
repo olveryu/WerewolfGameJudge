@@ -30,14 +30,14 @@ export const HOME_GUIDE = {
 
 export const CONFIG_GUIDE = {
   titleEmoji: '🎲',
-  title: '配置你的游戏',
+  title: '调整角色配置',
   items: [
+    { emoji: '✏️', text: '点击角色可自由增减 —— 板子只是起点' },
     {
       emoji: '📋',
-      text: `顶部模板 —— 点击可跳转选择 ${PRESET_TEMPLATES.length} 个预设板子`,
+      text: `顶部板子名可点击 —— 随时回去重新选 ${PRESET_TEMPLATES.length} 个预设`,
     },
-    { emoji: '🎛️', text: '自定义角色 —— 下方可自由增减任意角色' },
-    { emoji: '👆', text: '长按角色 —— 可查看技能详情和变体' },
+    { emoji: '👆', text: '长按角色 —— 查看技能详情和切换变体' },
     { emoji: '🚀', text: '底部"创建房间" —— 配好角色后一键开局' },
   ] satisfies GuideItem[],
 };
