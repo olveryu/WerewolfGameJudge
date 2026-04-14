@@ -1,3 +1,5 @@
 {
-  "miniprogram.miniprogramPath": "miniprogram"
+  "miniprogram.miniprogramPath": "miniprogram",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
