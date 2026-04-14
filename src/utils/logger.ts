@@ -14,11 +14,30 @@
  * 不引入 React、service 或游戏状态。
  */
 
+import * as Sentry from '@sentry/react-native';
 import { consoleTransport, logger } from 'react-native-logs';
 
 import { NETWORK_ERROR } from '@/config/errorMessages';
 
 import { mobileDebugTransport } from './mobileDebug';
+
+/**
+ * Transport that forwards logs to Sentry Structured Logs (production only).
+ * Maps react-native-logs severity names to Sentry.logger methods.
+ */
+const sentryTransport: typeof consoleTransport = (props) => {
+  const msg = `[${props.extension ?? 'app'}] ${props.msg}`;
+  const level = props.level?.text as string | undefined;
+  if (level === 'error') {
+    Sentry.logger.error(msg);
+  } else if (level === 'warn') {
+    Sentry.logger.warn(msg);
+  } else if (level === 'info') {
+    Sentry.logger.info(msg);
+  } else {
+    Sentry.logger.debug(msg);
+  }
+};
 
 /**
  * Wraps a transport so it only receives messages at or above `minSeverity`.
@@ -44,6 +63,8 @@ const config = {
     __DEV__ ? consoleTransport : withMinSeverity(WARN_SEVERITY, consoleTransport),
     // Debug panel always receives all levels
     mobileDebugTransport,
+    // Production: forward all levels to Sentry Structured Logs
+    ...(__DEV__ ? [] : [sentryTransport]),
   ],
   // Global minimum = debug so mobileDebugTransport can receive everything
   severity: 'debug' as const,
