@@ -1,8 +1,8 @@
 /**
- * Werewolf API Worker — Main entry point
+ * Werewolf API Worker — Hono app entry point
  *
- * 统一 HTTP 路由分派，与 Edge Functions 的 game/index.ts 路由一致。
- * 新增 /auth/* 路由和 /gemini-proxy。
+ * 声明式路由，CORS / 错误处理中间件统一管理。
+ * Handler 文件各自导出 Hono route group，此文件负责组合。
  *
  * 路由结构：
  *   POST /auth/anonymous          — 匿名登录
@@ -19,290 +19,90 @@
  *   GET  /health                  — 健康检查
  */
 
-import type { Env } from './env';
-import { corsPreflightResponse, jsonResponse } from './lib/cors';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { HTTPException } from 'hono/http-exception';
+
+import type { AppEnv, Env } from './env';
 
 // Re-export Durable Object class for wrangler
 export { GameRoom } from './durableObjects/GameRoom';
 
-// Auth handlers
-import {
-  handleAnonymousSignIn,
-  handleBindWechat,
-  handleChangePassword,
-  handleForgotPassword,
-  handleGetUser,
-  handleResetPassword,
-  handleSignIn,
-  handleSignOut,
-  handleSignUp,
-  handleUpdateProfile as handleAuthUpdateProfile,
-  handleWechatSignIn,
-} from './handlers/authHandlers';
-// Avatar handlers
-import { handleAvatarServe, handleAvatarUpload } from './handlers/avatarUpload';
-// Cron handlers
+// Route groups
+import { authRoutes } from './handlers/authHandlers';
+import { avatarRoutes } from './handlers/avatarUpload';
 import { runScheduledCleanup } from './handlers/cronHandlers';
-// Game control handlers
-import {
-  handleAssign,
-  handleBoardNominate,
-  handleBoardUpvote,
-  handleBoardWithdraw,
-  handleClearSeats,
-  handleFillBots,
-  handleMarkBotsViewed,
-  handleRestart,
-  handleSeat,
-  handleSetAnimation,
-  handleShareReview,
-  handleStart,
-  handleUpdateProfileRoute,
-  handleUpdateTemplateRoute,
-  handleViewRole,
-} from './handlers/gameControl';
-// Gemini proxy
-import { handleGeminiProxy } from './handlers/geminiProxy';
-// Night handlers
-import {
-  handleAction,
-  handleAudioAck,
-  handleAudioGate,
-  handleGroupConfirmAck,
-  handleMarkBotsGroupConfirmed,
-  handleProgression,
-  handleRevealAck,
-  handleWolfRobotViewed,
-} from './handlers/night';
-// Room handlers
-import {
-  handleCreateRoom,
-  handleDeleteRoom,
-  handleGetGameState,
-  handleGetRevision,
-  handleGetRoom,
-} from './handlers/roomHandlers';
-import type { HandlerFn } from './handlers/shared';
-// Share image handlers
-import { handleShareImageServe, handleShareImageUpload } from './handlers/shareImage';
-// Stats handlers
-import {
-  handleGetUserProfile,
-  handleGetUserStats,
-  handleGetUserUnlocks,
-} from './handlers/statsHandlers';
+import { gameRoutes } from './handlers/gameControl';
+import { geminiRoutes } from './handlers/geminiProxy';
+import { nightRoutes } from './handlers/night';
+import { roomRoutes } from './handlers/roomHandlers';
+import { shareRoutes } from './handlers/shareImage';
+import { statsRoutes } from './handlers/statsHandlers';
 
-// ── Route maps ──────────────────────────────────────────────────────────────
+// ── App ─────────────────────────────────────────────────────────────────────
 
-const GAME_ROUTES: Record<string, HandlerFn> = {
-  assign: handleAssign,
-  'board-nominate': handleBoardNominate,
-  'board-upvote': handleBoardUpvote,
-  'board-withdraw': handleBoardWithdraw,
-  'clear-seats': handleClearSeats,
-  'fill-bots': handleFillBots,
-  'mark-bots-viewed': handleMarkBotsViewed,
-  restart: handleRestart,
-  seat: handleSeat,
-  'set-animation': handleSetAnimation,
-  'share-review': handleShareReview,
-  start: handleStart,
-  'update-profile': handleUpdateProfileRoute,
-  'update-template': handleUpdateTemplateRoute,
-  'view-role': handleViewRole,
-};
+const app = new Hono<AppEnv>();
 
-const NIGHT_ROUTES: Record<string, HandlerFn> = {
-  action: handleAction,
-  'audio-ack': handleAudioAck,
-  'audio-gate': handleAudioGate,
-  'group-confirm-ack': handleGroupConfirmAck,
-  'mark-bots-group-confirmed': handleMarkBotsGroupConfirmed,
-  progression: handleProgression,
-  'reveal-ack': handleRevealAck,
-  'wolf-robot-viewed': handleWolfRobotViewed,
-};
+// ── CORS middleware ─────────────────────────────────────────────────────────
+
+app.use(
+  '*',
+  cors({
+    origin: (_, c) => c.env.CORS_ORIGIN ?? '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'x-region', 'x-request-id'],
+    maxAge: 3600,
+  }),
+);
+
+// ── Error handler ───────────────────────────────────────────────────────────
+
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    return c.json({ success: false, reason: err.message }, err.status);
+  }
+  if (err instanceof SyntaxError) {
+    return c.json({ success: false, reason: 'INVALID_JSON' }, 400);
+  }
+  console.error('[worker] Unhandled error:', err);
+  return c.json({ success: false, reason: 'INTERNAL_ERROR' }, 500);
+});
+
+app.notFound((c) => c.json({ error: 'not found' }, 404));
+
+// ── Health ──────────────────────────────────────────────────────────────────
+
+app.get('/health', (c) => c.json({ status: 'ok' }));
+
+// ── WebSocket upgrade → Durable Object ──────────────────────────────────────
+
+app.get('/ws', async (c) => {
+  const roomCode = c.req.query('roomCode');
+  if (!roomCode) {
+    return c.json({ error: 'roomCode required' }, 400);
+  }
+  const id = c.env.GAME_ROOM.idFromName(roomCode);
+  const stub = c.env.GAME_ROOM.get(id);
+  const doUrl = new URL(c.req.url);
+  doUrl.pathname = '/websocket';
+  return stub.fetch(new Request(doUrl.toString(), c.req.raw));
+});
+
+// ── Route groups ────────────────────────────────────────────────────────────
+
+app.route('/auth', authRoutes);
+app.route('/room', roomRoutes);
+app.route('/game/night', nightRoutes);
+app.route('/game', gameRoutes);
+app.route('/gemini-proxy', geminiRoutes);
+app.route('/avatar', avatarRoutes);
+app.route('/share', shareRoutes);
+app.route('/api', statsRoutes);
 
 // ── Worker entry ────────────────────────────────────────────────────────────
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // CORS preflight
-    if (request.method === 'OPTIONS') {
-      return corsPreflightResponse(env);
-    }
-
-    const url = new URL(request.url);
-    const segments = url.pathname.split('/').filter(Boolean);
-
-    try {
-      // /health
-      if (segments[0] === 'health') {
-        return jsonResponse({ status: 'ok' }, 200, env);
-      }
-
-      // /ws?roomCode=XXXX&userId=YYY — WebSocket upgrade → Durable Object
-      if (segments[0] === 'ws') {
-        const roomCode = url.searchParams.get('roomCode');
-        if (!roomCode) {
-          return jsonResponse({ error: 'roomCode required' }, 400, env);
-        }
-        const id = env.GAME_ROOM.idFromName(roomCode);
-        const stub = env.GAME_ROOM.get(id);
-        // Forward the upgrade request to the DO
-        const doUrl = new URL(request.url);
-        doUrl.pathname = '/websocket';
-        return stub.fetch(new Request(doUrl.toString(), request));
-      }
-
-      // /auth/*
-      if (segments[0] === 'auth') {
-        const route = segments[1];
-        if (request.method === 'POST') {
-          switch (route) {
-            case 'anonymous':
-              return handleAnonymousSignIn(request, env);
-            case 'signup':
-              return handleSignUp(request, env);
-            case 'signin':
-              return handleSignIn(request, env);
-            case 'signout':
-              return handleSignOut(request, env);
-            case 'forgot-password':
-              return handleForgotPassword(request, env);
-            case 'reset-password':
-              return handleResetPassword(request, env);
-            case 'wechat':
-              return handleWechatSignIn(request, env);
-            case 'bind-wechat':
-              return handleBindWechat(request, env);
-          }
-        }
-        if (request.method === 'GET' && route === 'user') {
-          return handleGetUser(request, env);
-        }
-        if (request.method === 'PUT') {
-          switch (route) {
-            case 'profile':
-              return handleAuthUpdateProfile(request, env);
-            case 'password':
-              return handleChangePassword(request, env);
-          }
-        }
-        return jsonResponse({ error: 'not found' }, 404, env);
-      }
-
-      // /room/*
-      if (segments[0] === 'room' && request.method === 'POST') {
-        switch (segments[1]) {
-          case 'create':
-            return handleCreateRoom(request, env);
-          case 'get':
-            return handleGetRoom(request, env);
-          case 'delete':
-            return handleDeleteRoom(request, env);
-          case 'state':
-            return handleGetGameState(request, env);
-          case 'revision':
-            return handleGetRevision(request, env);
-        }
-        return jsonResponse({ error: 'not found' }, 404, env);
-      }
-
-      // /game/* and /game/night/*
-      if (segments[0] === 'game') {
-        if (request.method !== 'POST') {
-          return jsonResponse({ error: 'method not allowed' }, 405, env);
-        }
-
-        // /game/night/{handler}
-        if (segments[1] === 'night' && segments[2]) {
-          const handler = NIGHT_ROUTES[segments[2]];
-          if (handler) return handler(request, env, ctx);
-          return jsonResponse({ error: 'not found' }, 404, env);
-        }
-
-        // /game/{handler}
-        if (segments[1]) {
-          const handler = GAME_ROUTES[segments[1]];
-          if (handler) return handler(request, env, ctx);
-          return jsonResponse({ error: 'not found' }, 404, env);
-        }
-
-        return jsonResponse({ error: 'not found' }, 404, env);
-      }
-
-      // /gemini-proxy
-      if (segments[0] === 'gemini-proxy') {
-        if (request.method !== 'POST') {
-          return jsonResponse({ error: 'method not allowed' }, 405, env);
-        }
-        return handleGeminiProxy(request, env);
-      }
-
-      // /avatar/upload (POST) — R2 头像上传
-      if (segments[0] === 'avatar' && segments[1] === 'upload' && request.method === 'POST') {
-        return handleAvatarUpload(request, env);
-      }
-
-      // /avatar/:userId/:filename (GET) — R2 头像提供
-      if (segments[0] === 'avatar' && segments.length >= 3 && request.method === 'GET') {
-        const key = segments.slice(1).join('/');
-        return handleAvatarServe(request, env, key);
-      }
-
-      // /share/image (POST) — 临时分享图片上传到 R2
-      if (segments[0] === 'share' && segments[1] === 'image' && request.method === 'POST') {
-        return handleShareImageUpload(request, env);
-      }
-
-      // /share/:filename (GET) — R2 分享图片提供
-      if (segments[0] === 'share' && segments.length >= 2 && request.method === 'GET') {
-        const key = segments.join('/');
-        return handleShareImageServe(request, env, key);
-      }
-
-      // /api/user/stats (GET) — 用户成长数据
-      if (segments[0] === 'api' && segments[1] === 'user' && segments[2] === 'stats') {
-        if (request.method === 'GET') {
-          return handleGetUserStats(request, env, ctx);
-        }
-        return jsonResponse({ error: 'method not allowed' }, 405, env);
-      }
-
-      // /api/user/:userId/profile (GET) — 查看玩家公开资料
-      if (
-        segments[0] === 'api' &&
-        segments[1] === 'user' &&
-        segments[2] &&
-        segments[3] === 'profile'
-      ) {
-        if (request.method === 'GET') {
-          return handleGetUserProfile(request, env, ctx);
-        }
-        return jsonResponse({ error: 'method not allowed' }, 405, env);
-      }
-
-      // /api/user/:userId/unlocks (GET) — 查看玩家已解锁物品
-      if (
-        segments[0] === 'api' &&
-        segments[1] === 'user' &&
-        segments[2] &&
-        segments[3] === 'unlocks'
-      ) {
-        if (request.method === 'GET') {
-          return handleGetUserUnlocks(request, env, ctx);
-        }
-        return jsonResponse({ error: 'method not allowed' }, 405, env);
-      }
-
-      return jsonResponse({ error: 'not found' }, 404, env);
-    } catch (err) {
-      console.error('[worker] Unhandled error:', err);
-      return jsonResponse({ success: false, reason: 'INTERNAL_ERROR' }, 500, env);
-    }
-  },
-
+  fetch: app.fetch,
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runScheduledCleanup(env));
   },

@@ -1,88 +1,75 @@
 /**
- * handlers/night — 夜晚阶段 handlers (Workers 版)
+ * handlers/night — 夜晚阶段 Hono routes (Workers 版)
  *
- * Thin router 层：参数校验 → DO RPC → 错误处理 → 返回响应。
+ * Thin router 层：zod 校验 → DO RPC → 错误处理 → 返回响应。
  * 夜晚逻辑在 DO (GameRoom) 内部执行。
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { Hono } from 'hono';
 
-import { jsonResponse } from '../lib/cors';
+import type { GameActionResult } from '../durableObjects/gameProcessor';
+import type { AppEnv } from '../env';
+import { roomCodeSchema } from '../schemas/game';
 import {
   audioGateSchema,
   groupConfirmAckSchema,
   nightActionSchema,
   wolfRobotViewedSchema,
 } from '../schemas/night';
-import {
-  callDO,
-  createSimpleHandler,
-  getGameRoomStub,
-  type HandlerFn,
-  parseBody,
-  resultToStatus,
-} from './shared';
+import { callDO, getGameRoomStub, jsonBody, resultToStatus } from './shared';
+
+export const nightRoutes = new Hono<AppEnv>();
 
 // ── Night handlers ──────────────────────────────────────────────────────────
 
-export const handleAction: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, nightActionSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, seat, role, target, extra } = parsed;
-
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
+nightRoutes.post('/action', jsonBody(nightActionSchema), async (c) => {
+  const { roomCode, seat, role, target, extra } = c.req.valid('json');
+  const result = await callDO(() => {
+    const stub = getGameRoomStub(c.env, roomCode);
     return stub.submitAction(seat, role as RoleId, target ?? null, extra);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
+  });
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-export const handleAudioAck = createSimpleHandler((stub) => stub.audioAck());
+nightRoutes.post('/audio-ack', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).audioAck());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-export const handleAudioGate: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, audioGateSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, isPlaying } = parsed;
+nightRoutes.post('/audio-gate', jsonBody(audioGateSchema), async (c) => {
+  const { roomCode, isPlaying } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).audioGate(isPlaying));
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.audioGate(isPlaying);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
+nightRoutes.post('/progression', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).progression());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-export const handleProgression = createSimpleHandler((stub) => stub.progression());
+nightRoutes.post('/reveal-ack', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).revealAck());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-export const handleRevealAck = createSimpleHandler((stub) => stub.revealAck());
+nightRoutes.post('/wolf-robot-viewed', jsonBody(wolfRobotViewedSchema), async (c) => {
+  const { roomCode, seat } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).wolfRobotViewed(seat));
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-export const handleWolfRobotViewed: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, wolfRobotViewedSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, seat } = parsed;
+nightRoutes.post('/group-confirm-ack', jsonBody(groupConfirmAckSchema), async (c) => {
+  const { roomCode, seat, uid } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).groupConfirmAck(seat, uid));
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.wolfRobotViewed(seat);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
-
-export const handleGroupConfirmAck: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, groupConfirmAckSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, seat, uid } = parsed;
-
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.groupConfirmAck(seat, uid);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
-
-export const handleMarkBotsGroupConfirmed = createSimpleHandler((stub) =>
-  stub.markBotsGroupConfirmed(),
-);
+nightRoutes.post('/mark-bots-group-confirmed', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).markBotsGroupConfirmed());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});

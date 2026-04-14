@@ -1,5 +1,5 @@
 /**
- * handlers/shareImage — 临时分享图片上传 (R2)
+ * handlers/shareImage — 临时分享图片 Hono routes (R2)
  *
  * POST /share/image — 接收 JSON { base64 }，
  * 存入 R2 `share/` prefix，返回公开 URL。
@@ -7,11 +7,12 @@
  * GET /share/:key — 从 R2 提供图片文件。
  */
 
-import type { Env } from '../env';
-import { extractBearerToken, verifyToken } from '../lib/auth';
-import { jsonResponse } from '../lib/cors';
+import { Hono } from 'hono';
+
+import type { AppEnv } from '../env';
+import { requireAuth } from '../lib/auth';
 import { shareImageUploadSchema } from '../schemas/shareImage';
-import { parseBody } from './shared';
+import { jsonBody } from './shared';
 
 function randomHex(bytes: number): string {
   const buf = new Uint8Array(bytes);
@@ -19,18 +20,14 @@ function randomHex(bytes: number): string {
   return [...buf].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function handleShareImageUpload(request: Request, env: Env): Promise<Response> {
-  if (!env.AVATARS) return jsonResponse({ error: 'storage not configured' }, 503, env);
+export const shareRoutes = new Hono<AppEnv>();
 
-  // Auth check
-  const token = extractBearerToken(request);
-  if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
-  const payload = await verifyToken(token, env);
-  if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
+// POST /share/image — 上传分享图片
+shareRoutes.post('/image', requireAuth, jsonBody(shareImageUploadSchema), async (c) => {
+  const env = c.env;
+  if (!env.AVATARS) return c.json({ error: 'storage not configured' }, 503);
 
-  const parsed = await parseBody(request, shareImageUploadSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { base64 } = parsed;
+  const { base64 } = c.req.valid('json');
 
   // Decode base64 to binary
   let bytes: Uint8Array;
@@ -41,7 +38,7 @@ export async function handleShareImageUpload(request: Request, env: Env): Promis
       bytes[i] = binaryStr.charCodeAt(i);
     }
   } catch {
-    return jsonResponse({ error: 'invalid base64 data' }, 400, env);
+    return c.json({ error: 'invalid base64 data' }, 400);
   }
 
   // Upload to R2 with share/ prefix
@@ -51,22 +48,21 @@ export async function handleShareImageUpload(request: Request, env: Env): Promis
   });
 
   // Build public URL served by this Worker
-  const publicUrl = new URL(request.url);
+  const publicUrl = new URL(c.req.url);
   publicUrl.pathname = `/${key}`;
   publicUrl.search = '';
 
-  return jsonResponse({ url: publicUrl.toString() }, 200, env);
-}
+  return c.json({ url: publicUrl.toString() }, 200);
+});
 
-export async function handleShareImageServe(
-  request: Request,
-  env: Env,
-  key: string,
-): Promise<Response> {
-  if (!env.AVATARS) return jsonResponse({ error: 'storage not configured' }, 503, env);
+// GET /share/:key+ — 从 R2 提供图片
+shareRoutes.get('/:key{.+}', async (c) => {
+  const env = c.env;
+  if (!env.AVATARS) return c.json({ error: 'storage not configured' }, 503);
 
+  const key = `share/${c.req.param('key')}`;
   const object = await env.AVATARS.get(key);
-  if (!object) return jsonResponse({ error: 'not found' }, 404, env);
+  if (!object) return c.json({ error: 'not found' }, 404);
 
   return new Response(object.body, {
     headers: {
@@ -75,4 +71,4 @@ export async function handleShareImageServe(
       ETag: object.httpEtag,
     },
   });
-}
+});

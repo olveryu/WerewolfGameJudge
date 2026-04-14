@@ -1,31 +1,24 @@
 /**
- * handlers/statsHandlers — 用户成长数据 API
+ * handlers/statsHandlers — 用户成长数据 Hono routes
  *
  * GET /api/user/stats：返回当前用户 XP、等级、局数。
  * GET /api/user/:userId/profile：返回指定用户的公开资料。
  * GET /api/user/:userId/unlocks：返回指定用户的已解锁物品列表。
- * 仅限已登录非匿名用户。
+ * 仅限已登录用户。
  */
 
 import { getLevelTitle } from '@werewolf/game-engine/growth/level';
+import { Hono } from 'hono';
 
-import { extractBearerToken, verifyToken } from '../lib/auth';
-import { jsonResponse } from '../lib/cors';
-import type { HandlerFn } from './shared';
+import type { AppEnv } from '../env';
+import { requireAuth } from '../lib/auth';
+
+export const statsRoutes = new Hono<AppEnv>();
 
 /** GET /api/user/:userId/profile — 查看其他玩家公开资料 */
-export const handleGetUserProfile: HandlerFn = async (req, env) => {
-  // Auth: require logged-in user (anonymous allowed — read-only profile view)
-  const token = extractBearerToken(req);
-  if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
-  const payload = await verifyToken(token, env);
-  if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
-
-  // Extract target userId from URL: /api/user/:userId/profile
-  const url = new URL(req.url);
-  const segments = url.pathname.split('/').filter(Boolean);
-  const targetUserId = segments[2]; // ['api', 'user', ':userId', 'profile']
-  if (!targetUserId) return jsonResponse({ error: 'userId required' }, 400, env);
+statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
+  const env = c.env;
+  const targetUserId = c.req.param('userId');
 
   // Fetch user display info from users table
   const userRow = await env.DB.prepare(
@@ -40,7 +33,7 @@ export const handleGetUserProfile: HandlerFn = async (req, env) => {
       equipped_flair: string | null;
     }>();
 
-  if (!userRow) return jsonResponse({ error: 'user not found' }, 404, env);
+  if (!userRow) return c.json({ error: 'user not found' }, 404);
 
   // Fetch stats from user_stats table
   const statsRow = await env.DB.prepare(
@@ -60,7 +53,7 @@ export const handleGetUserProfile: HandlerFn = async (req, env) => {
 
   const level = statsRow?.level ?? 0;
 
-  return jsonResponse(
+  return c.json(
     {
       displayName: userRow.display_name ?? '',
       avatarUrl: userRow.custom_avatar_url ?? userRow.avatar_url ?? undefined,
@@ -73,21 +66,13 @@ export const handleGetUserProfile: HandlerFn = async (req, env) => {
       unlockedItemCount: unlockedItems.length,
     },
     200,
-    env,
   );
-};
+});
 
 /** GET /api/user/:userId/unlocks — 查看其他玩家已解锁物品列表 */
-export const handleGetUserUnlocks: HandlerFn = async (req, env) => {
-  const token = extractBearerToken(req);
-  if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
-  const payload = await verifyToken(token, env);
-  if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
-
-  const url = new URL(req.url);
-  const segments = url.pathname.split('/').filter(Boolean);
-  const targetUserId = segments[2]; // ['api', 'user', ':userId', 'unlocks']
-  if (!targetUserId) return jsonResponse({ error: 'userId required' }, 400, env);
+statsRoutes.get('/user/:userId/unlocks', requireAuth, async (c) => {
+  const env = c.env;
+  const targetUserId = c.req.param('userId');
 
   const statsRow = await env.DB.prepare(`SELECT unlocked_items FROM user_stats WHERE user_id = ?`)
     .bind(targetUserId)
@@ -97,18 +82,16 @@ export const handleGetUserUnlocks: HandlerFn = async (req, env) => {
     ? (JSON.parse(statsRow.unlocked_items) as string[])
     : [];
 
-  return jsonResponse({ unlockedItems }, 200, env);
-};
+  return c.json({ unlockedItems }, 200);
+});
 
-export const handleGetUserStats: HandlerFn = async (req, env) => {
-  // Auth
-  const token = extractBearerToken(req);
-  if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
-  const payload = await verifyToken(token, env);
-  if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
-  if (payload.anon) return jsonResponse({ error: 'anonymous users not supported' }, 403, env);
+/** GET /api/user/stats — 当前用户成长数据 */
+statsRoutes.get('/user/stats', requireAuth, async (c) => {
+  const env = c.env;
+  const payload = c.var.jwtPayload;
+  if (payload.anon) return c.json({ error: 'anonymous users not supported' }, 403);
 
-  const userId = payload.sub;
+  const userId = c.var.userId;
 
   const statsRow = await env.DB.prepare(
     `SELECT xp, level, games_played, unlocked_items FROM user_stats WHERE user_id = ?`,
@@ -125,7 +108,7 @@ export const handleGetUserStats: HandlerFn = async (req, env) => {
     ? (JSON.parse(statsRow.unlocked_items) as string[])
     : [];
 
-  return jsonResponse(
+  return c.json(
     {
       xp: statsRow?.xp ?? 0,
       level: statsRow?.level ?? 0,
@@ -133,6 +116,5 @@ export const handleGetUserStats: HandlerFn = async (req, env) => {
       unlockedItems,
     },
     200,
-    env,
   );
-};
+});

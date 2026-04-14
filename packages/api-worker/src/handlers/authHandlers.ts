@@ -1,14 +1,15 @@
 /**
- * Auth Route Handlers — 自实现认证 API
+ * Auth Route Handlers — 自实现认证 API (Hono routes)
  *
  * 覆盖匿名登录、邮箱注册/登录、用户资料更新、session 恢复。
  * JWT 签发/验证，密码用 PBKDF2 哈希存储到 D1。
  * 与 Supabase Auth 语义兼容（匿名 + 邮箱）。
  */
 
-import type { Env } from '../env';
-import { extractBearerToken, signToken, verifyToken } from '../lib/auth';
-import { jsonResponse } from '../lib/cors';
+import { Hono } from 'hono';
+
+import type { AppEnv, Env } from '../env';
+import { extractBearerToken, requireAuth, signToken, verifyToken } from '../lib/auth';
 import { sendPasswordResetEmail } from '../lib/email';
 import { hashPassword, verifyPassword } from '../lib/password';
 import {
@@ -20,34 +21,37 @@ import {
   updateProfileSchema,
   wechatCodeSchema,
 } from '../schemas/auth';
-import { parseBody } from './shared';
+import { jsonBody } from './shared';
+
+export const authRoutes = new Hono<AppEnv>();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/anonymous — 匿名登录
 // ─────────────────────────────────────────────────────────────────────────────
-export async function handleAnonymousSignIn(_request: Request, env: Env): Promise<Response> {
+authRoutes.post('/anonymous', async (c) => {
+  const env = c.env;
   const userId = crypto.randomUUID();
 
   await env.DB.prepare(`INSERT INTO users (id, is_anonymous) VALUES (?, 1)`).bind(userId).run();
 
   const token = await signToken(userId, env, { anon: true });
 
-  return jsonResponse(
+  return c.json(
     {
       access_token: token,
       user: { id: userId, is_anonymous: true, email: null, user_metadata: {} },
     },
     200,
-    env,
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/signup — 邮箱注册（或匿名升级）
 // ─────────────────────────────────────────────────────────────────────────────
-export async function handleSignUp(request: Request, env: Env): Promise<Response> {
-  const parsed = await parseBody(request, signUpSchema, env);
-  if (parsed instanceof Response) return parsed;
+authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
+  const env = c.env;
+  const request = c.req.raw;
+  const parsed = c.req.valid('json');
 
   const email = parsed.email.toLowerCase().trim();
   const displayName = parsed.displayName || email.split('@')[0];
@@ -92,13 +96,13 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
 
       if (!callerRow?.wechat_openid || !existing.password_hash) {
         // Anonymous user or target has no password — cannot merge, plain conflict
-        return jsonResponse({ error: 'email already registered' }, 409, env);
+        return c.json({ error: 'email already registered' }, 409);
       }
 
       // Password is required for merge verification
       const mergeResult = await verifyPassword(parsed.password, existing.password_hash);
       if (!mergeResult.valid) {
-        return jsonResponse({ error: 'invalid credentials' }, 401, env);
+        return c.json({ error: 'invalid credentials' }, 401);
       }
 
       // Migrate openid to the email account and delete the WeChat shell account.
@@ -114,7 +118,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
       } catch (dbErr: unknown) {
         const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
         console.error('Account merge DB error:', msg);
-        return jsonResponse({ error: 'account merge failed' }, 500, env);
+        return c.json({ error: 'account merge failed' }, 500);
       }
 
       // Read back merged account profile
@@ -132,7 +136,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
 
       const token = await signToken(existing.id, env, { email });
 
-      return jsonResponse(
+      return c.json(
         {
           access_token: token,
           user: {
@@ -149,7 +153,6 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
           },
         },
         200,
-        env,
       );
     }
 
@@ -173,7 +176,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
 
     const token = await signToken(existingUserId, env, { email });
 
-    return jsonResponse(
+    return c.json(
       {
         access_token: token,
         user: {
@@ -184,7 +187,6 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
         },
       },
       200,
-      env,
     );
   }
 
@@ -194,7 +196,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
     .first<{ id: string }>();
 
   if (existing) {
-    return jsonResponse({ error: 'email already registered' }, 409, env);
+    return c.json({ error: 'email already registered' }, 409);
   }
 
   const userId = crypto.randomUUID();
@@ -208,7 +210,7 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
 
   const token = await signToken(userId, env, { email });
 
-  return jsonResponse(
+  return c.json(
     {
       access_token: token,
       user: {
@@ -219,9 +221,8 @@ export async function handleSignUp(request: Request, env: Env): Promise<Response
       },
     },
     200,
-    env,
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/signin — 邮箱密码登录
@@ -232,9 +233,9 @@ const SIGN_IN_MAX_ATTEMPTS = 10;
 /** Rate limit window in minutes */
 const SIGN_IN_WINDOW_MINUTES = 15;
 
-export async function handleSignIn(request: Request, env: Env): Promise<Response> {
-  const parsed = await parseBody(request, signInSchema, env);
-  if (parsed instanceof Response) return parsed;
+authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
+  const env = c.env;
+  const parsed = c.req.valid('json');
 
   const email = parsed.email.toLowerCase().trim();
   const emailHash = await sha256(email);
@@ -248,7 +249,7 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
     .first<{ count: number }>();
 
   if (recentAttempts && recentAttempts.count >= SIGN_IN_MAX_ATTEMPTS) {
-    return jsonResponse({ error: 'too many login attempts, try again later' }, 429, env);
+    return c.json({ error: 'too many login attempts, try again later' }, 429);
   }
 
   const user = await env.DB.prepare(
@@ -267,13 +268,13 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
 
   if (!user || !user.password_hash) {
     await recordFailedLogin(env, emailHash);
-    return jsonResponse({ error: 'invalid credentials' }, 401, env);
+    return c.json({ error: 'invalid credentials' }, 401);
   }
 
   const result = await verifyPassword(parsed.password, user.password_hash);
   if (!result.valid) {
     await recordFailedLogin(env, emailHash);
-    return jsonResponse({ error: 'invalid credentials' }, 401, env);
+    return c.json({ error: 'invalid credentials' }, 401);
   }
 
   // Successful login — clear failed attempts for this email
@@ -291,7 +292,7 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
 
   const token = await signToken(user.id, env, { email });
 
-  return jsonResponse(
+  return c.json(
     {
       access_token: token,
       user: {
@@ -308,22 +309,22 @@ export async function handleSignIn(request: Request, env: Env): Promise<Response
       },
     },
     200,
-    env,
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /auth/user — 获取当前用户信息（通过 JWT）
 // ─────────────────────────────────────────────────────────────────────────────
-export async function handleGetUser(request: Request, env: Env): Promise<Response> {
-  const token = extractBearerToken(request);
+authRoutes.get('/user', async (c) => {
+  const env = c.env;
+  const token = extractBearerToken(c.req.raw);
   if (!token) {
-    return jsonResponse({ data: { user: null } }, 200, env);
+    return c.json({ data: { user: null } }, 200);
   }
 
   const payload = await verifyToken(token, env);
   if (!payload) {
-    return jsonResponse({ data: { user: null } }, 200, env);
+    return c.json({ data: { user: null } }, 200);
   }
 
   const user = await env.DB.prepare(
@@ -343,10 +344,10 @@ export async function handleGetUser(request: Request, env: Env): Promise<Respons
     }>();
 
   if (!user) {
-    return jsonResponse({ data: { user: null } }, 200, env);
+    return c.json({ data: { user: null } }, 200);
   }
 
-  return jsonResponse(
+  return c.json(
     {
       data: {
         user: {
@@ -364,25 +365,16 @@ export async function handleGetUser(request: Request, env: Env): Promise<Respons
       },
     },
     200,
-    env,
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PUT /auth/profile — 更新用户资料
 // ─────────────────────────────────────────────────────────────────────────────
-export async function handleUpdateProfile(request: Request, env: Env): Promise<Response> {
-  const token = extractBearerToken(request);
-  if (!token) {
-    return jsonResponse({ error: 'unauthorized' }, 401, env);
-  }
-  const payload = await verifyToken(token, env);
-  if (!payload) {
-    return jsonResponse({ error: 'unauthorized' }, 401, env);
-  }
-
-  const parsed = await parseBody(request, updateProfileSchema, env);
-  if (parsed instanceof Response) return parsed;
+authRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), async (c) => {
+  const env = c.env;
+  const userId = c.var.userId;
+  const parsed = c.req.valid('json');
 
   // Build dynamic SET clause for only provided fields
   const sets: string[] = [];
@@ -410,66 +402,58 @@ export async function handleUpdateProfile(request: Request, env: Env): Promise<R
   }
 
   if (sets.length === 0) {
-    return jsonResponse({ success: true }, 200, env);
+    return c.json({ success: true }, 200);
   }
 
   sets.push("updated_at = datetime('now')");
-  values.push(payload.sub);
+  values.push(userId);
 
   await env.DB.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`)
     .bind(...values)
     .run();
 
-  return jsonResponse({ success: true }, 200, env);
-}
+  return c.json({ success: true }, 200);
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PUT /auth/password — 修改密码（已登录用户）
 // ─────────────────────────────────────────────────────────────────────────────
-export async function handleChangePassword(request: Request, env: Env): Promise<Response> {
-  const token = extractBearerToken(request);
-  if (!token) {
-    return jsonResponse({ error: 'unauthorized' }, 401, env);
-  }
-  const payload = await verifyToken(token, env);
-  if (!payload) {
-    return jsonResponse({ error: 'unauthorized' }, 401, env);
-  }
-
-  const parsed = await parseBody(request, changePasswordSchema, env);
-  if (parsed instanceof Response) return parsed;
+authRoutes.put('/password', requireAuth, jsonBody(changePasswordSchema), async (c) => {
+  const env = c.env;
+  const userId = c.var.userId;
+  const parsed = c.req.valid('json');
 
   const user = await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
-    .bind(payload.sub)
+    .bind(userId)
     .first<{ password_hash: string | null }>();
 
   if (!user || !user.password_hash) {
-    return jsonResponse({ error: 'account has no password (anonymous user)' }, 400, env);
+    return c.json({ error: 'account has no password (anonymous user)' }, 400);
   }
 
   const result = await verifyPassword(parsed.oldPassword, user.password_hash);
   if (!result.valid) {
-    return jsonResponse({ error: 'invalid old password' }, 401, env);
+    return c.json({ error: 'invalid old password' }, 401);
   }
 
   const newHash = await hashPassword(parsed.newPassword);
   await env.DB.prepare(
     `UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?`,
   )
-    .bind(newHash, payload.sub)
+    .bind(newHash, userId)
     .run();
 
-  return jsonResponse({ success: true }, 200, env);
-}
+  return c.json({ success: true }, 200);
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/signout — 登出（JWT 是无状态的，客户端清除 token 即可）
 // ─────────────────────────────────────────────────────────────────────────────
-export async function handleSignOut(_request: Request, env: Env): Promise<Response> {
+authRoutes.post('/signout', async (c) => {
   // JWT is stateless — signout is client-side token removal.
   // Server acknowledges; any future request with old token still validates until expiry.
-  return jsonResponse({ success: true }, 200, env);
-}
+  return c.json({ success: true }, 200);
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/forgot-password — 发送密码重置验证码邮件
@@ -502,9 +486,9 @@ async function getTokenHash(tokenId: string, env: Env): Promise<string | null> {
   return row?.token_hash ?? null;
 }
 
-export async function handleForgotPassword(request: Request, env: Env): Promise<Response> {
-  const parsed = await parseBody(request, forgotPasswordSchema, env);
-  if (parsed instanceof Response) return parsed;
+authRoutes.post('/forgot-password', jsonBody(forgotPasswordSchema), async (c) => {
+  const env = c.env;
+  const parsed = c.req.valid('json');
 
   const email = parsed.email.toLowerCase().trim();
 
@@ -519,7 +503,7 @@ export async function handleForgotPassword(request: Request, env: Env): Promise<
 
   if (recentCount && recentCount.count >= RESET_RATE_LIMIT) {
     // Return 200 (not 429) so attackers cannot distinguish registered vs unregistered
-    return jsonResponse({ success: true }, 200, env);
+    return c.json({ success: true }, 200);
   }
 
   // Check user exists (non-anonymous with password)
@@ -531,7 +515,7 @@ export async function handleForgotPassword(request: Request, env: Env): Promise<
 
   if (!user) {
     // Don't reveal whether email exists — return success either way
-    return jsonResponse({ success: true }, 200, env);
+    return c.json({ success: true }, 200);
   }
 
   // Invalidate any previous unused tokens for this user
@@ -557,18 +541,18 @@ export async function handleForgotPassword(request: Request, env: Env): Promise<
     await sendPasswordResetEmail(env, email, code);
   } catch (error) {
     console.error('Failed to send reset email:', error);
-    return jsonResponse({ error: 'failed to send email, try again later' }, 500, env);
+    return c.json({ error: 'failed to send email, try again later' }, 500);
   }
 
-  return jsonResponse({ success: true }, 200, env);
-}
+  return c.json({ success: true }, 200);
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/reset-password — 验证码重置密码 + 自动登录
 // ─────────────────────────────────────────────────────────────────────────────
-export async function handleResetPassword(request: Request, env: Env): Promise<Response> {
-  const parsed = await parseBody(request, resetPasswordSchema, env);
-  if (parsed instanceof Response) return parsed;
+authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
+  const env = c.env;
+  const parsed = c.req.valid('json');
 
   const email = parsed.email.toLowerCase().trim();
   const tokenHash = await sha256(parsed.code + email);
@@ -585,7 +569,7 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
     .first<{ id: string; user_id: string; verify_attempts: number }>();
 
   if (!token || token.verify_attempts >= RESET_VERIFY_ATTEMPT_LIMIT) {
-    return jsonResponse({ error: 'invalid or expired code' }, 400, env);
+    return c.json({ error: 'invalid or expired code' }, 400);
   }
 
   // Increment verify attempts before checking hash to prevent brute force
@@ -604,7 +588,7 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
 
   // Verify hash
   if (tokenHash !== (await getTokenHash(token.id, env))) {
-    return jsonResponse({ error: 'invalid or expired code' }, 400, env);
+    return c.json({ error: 'invalid or expired code' }, 400);
   }
 
   // Mark token as used
@@ -636,7 +620,7 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
       equipped_flair: string | null;
     }>();
 
-  return jsonResponse(
+  return c.json(
     {
       success: true,
       access_token: jwt,
@@ -654,9 +638,8 @@ export async function handleResetPassword(request: Request, env: Env): Promise<R
       },
     },
     200,
-    env,
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/wechat — 微信小程序登录（wx.login code → openid → JWT）
@@ -669,12 +652,12 @@ interface WechatCode2SessionResponse {
   errmsg?: string;
 }
 
-export async function handleWechatSignIn(request: Request, env: Env): Promise<Response> {
-  const parsed = await parseBody(request, wechatCodeSchema, env);
-  if (parsed instanceof Response) return parsed;
+authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
+  const env = c.env;
+  const parsed = c.req.valid('json');
 
   if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
-    return jsonResponse({ error: 'WeChat login not configured' }, 500, env);
+    return c.json({ error: 'WeChat login not configured' }, 500);
   }
 
   // Exchange code for openid via WeChat code2Session API
@@ -689,7 +672,7 @@ export async function handleWechatSignIn(request: Request, env: Env): Promise<Re
 
   if (!wxData.openid) {
     const errMsg = wxData.errmsg || 'code2Session failed';
-    return jsonResponse({ error: errMsg, errcode: wxData.errcode }, 401, env);
+    return c.json({ error: errMsg, errcode: wxData.errcode }, 401);
   }
 
   const openid = wxData.openid;
@@ -716,7 +699,7 @@ export async function handleWechatSignIn(request: Request, env: Env): Promise<Re
       email: existing.email ?? undefined,
     });
 
-    return jsonResponse(
+    return c.json(
       {
         access_token: token,
         user: {
@@ -733,7 +716,6 @@ export async function handleWechatSignIn(request: Request, env: Env): Promise<Re
         },
       },
       200,
-      env,
     );
   }
 
@@ -746,7 +728,7 @@ export async function handleWechatSignIn(request: Request, env: Env): Promise<Re
 
   const token = await signToken(userId, env);
 
-  return jsonResponse(
+  return c.json(
     {
       access_token: token,
       user: {
@@ -757,28 +739,19 @@ export async function handleWechatSignIn(request: Request, env: Env): Promise<Re
       },
     },
     200,
-    env,
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/bind-wechat — 已登录用户绑定微信（邮箱账号 + wxcode → 绑定 openid）
 // ─────────────────────────────────────────────────────────────────────────────
-export async function handleBindWechat(request: Request, env: Env): Promise<Response> {
-  const bearerToken = extractBearerToken(request);
-  if (!bearerToken) {
-    return jsonResponse({ error: 'unauthorized' }, 401, env);
-  }
-  const payload = await verifyToken(bearerToken, env);
-  if (!payload) {
-    return jsonResponse({ error: 'unauthorized' }, 401, env);
-  }
-
-  const parsed = await parseBody(request, wechatCodeSchema, env);
-  if (parsed instanceof Response) return parsed;
+authRoutes.post('/bind-wechat', requireAuth, jsonBody(wechatCodeSchema), async (c) => {
+  const env = c.env;
+  const userId = c.var.userId;
+  const parsed = c.req.valid('json');
 
   if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
-    return jsonResponse({ error: 'WeChat login not configured' }, 500, env);
+    return c.json({ error: 'WeChat login not configured' }, 500);
   }
 
   // Exchange code for openid
@@ -793,7 +766,7 @@ export async function handleBindWechat(request: Request, env: Env): Promise<Resp
 
   if (!wxData.openid) {
     const errMsg = wxData.errmsg || 'code2Session failed';
-    return jsonResponse({ error: errMsg, errcode: wxData.errcode }, 401, env);
+    return c.json({ error: errMsg, errcode: wxData.errcode }, 401);
   }
 
   const openid = wxData.openid;
@@ -804,9 +777,9 @@ export async function handleBindWechat(request: Request, env: Env): Promise<Resp
     .first<{ id: string }>();
 
   if (existingWxUser) {
-    if (existingWxUser.id === payload.sub) {
+    if (existingWxUser.id === userId) {
       // Already bound to same user — no-op
-      return jsonResponse({ success: true }, 200, env);
+      return c.json({ success: true }, 200);
     }
     // Bound to a different user — check if it's a temporary WeChat-only account
     const wxUser = await env.DB.prepare('SELECT id, email, password_hash FROM users WHERE id = ?')
@@ -817,7 +790,7 @@ export async function handleBindWechat(request: Request, env: Env): Promise<Resp
       // Temporary WeChat account (no email, no password) — safe to delete and rebind
       await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(wxUser.id).run();
     } else {
-      return jsonResponse({ error: 'wechat_already_bound' }, 409, env);
+      return c.json({ error: 'wechat_already_bound' }, 409);
     }
   }
 
@@ -825,8 +798,8 @@ export async function handleBindWechat(request: Request, env: Env): Promise<Resp
   await env.DB.prepare(
     `UPDATE users SET wechat_openid = ?, updated_at = datetime('now') WHERE id = ?`,
   )
-    .bind(openid, payload.sub)
+    .bind(openid, userId)
     .run();
 
-  return jsonResponse({ success: true }, 200, env);
-}
+  return c.json({ success: true }, 200);
+});

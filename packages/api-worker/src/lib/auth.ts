@@ -6,12 +6,13 @@
  * 不依赖第三方 auth 服务。
  */
 
+import { createMiddleware } from 'hono/factory';
 import { jwtVerify, SignJWT } from 'jose';
 
 import type { Env } from '../env';
 
 /** JWT payload 中包含的用户信息 */
-interface JwtPayload {
+export interface JwtPayload {
   /** User ID */
   sub: string;
   /** Is anonymous user */
@@ -66,3 +67,29 @@ export function extractBearerToken(request: Request): string | null {
   if (!auth?.startsWith('Bearer ')) return null;
   return auth.slice(7);
 }
+
+// ── Hono 中间件 ─────────────────────────────────────────────────────────────
+
+/** requireAuth 中间件设置的 Variables 类型 */
+export type AuthVariables = {
+  userId: string;
+  jwtPayload: JwtPayload;
+};
+
+/**
+ * Hono 中间件：要求 Bearer token 认证。
+ * 通过后 c.var.userId / c.var.jwtPayload 可用。
+ */
+export const requireAuth = createMiddleware<{
+  Bindings: Env;
+  Variables: AuthVariables;
+}>(async (c, next) => {
+  const auth = c.req.header('Authorization');
+  if (!auth?.startsWith('Bearer ')) return c.json({ error: 'unauthorized' }, 401);
+  const token = auth.slice(7);
+  const payload = await verifyToken(token, c.env);
+  if (!payload) return c.json({ error: 'unauthorized' }, 401);
+  c.set('userId', payload.sub);
+  c.set('jwtPayload', payload);
+  await next();
+});

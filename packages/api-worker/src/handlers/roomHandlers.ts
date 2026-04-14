@@ -1,5 +1,5 @@
 /**
- * handlers/roomHandlers — 房间 CRUD API（Workers 版）
+ * handlers/roomHandlers — 房间 CRUD Hono routes（Workers 版）
  *
  * /room/create、/room/get、/room/delete — D1 元数据操作。
  * /room/state、/room/revision — 从 DO 读取游戏状态。
@@ -7,24 +7,22 @@
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { Hono } from 'hono';
 
-import type { Env } from '../env';
-import { extractBearerToken, verifyToken } from '../lib/auth';
-import { jsonResponse } from '../lib/cors';
+import type { AppEnv } from '../env';
+import { requireAuth } from '../lib/auth';
 import { createRoomSchema, roomCodeBodySchema } from '../schemas/room';
-import { getGameRoomStub, parseBody } from './shared';
+import { getGameRoomStub, jsonBody } from './shared';
+
+export const roomRoutes = new Hono<AppEnv>();
 
 // ── POST /room/create ───────────────────────────────────────────────────────
-export async function handleCreateRoom(request: Request, env: Env): Promise<Response> {
-  const token = extractBearerToken(request);
-  if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
-  const payload = await verifyToken(token, env);
-  if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
+roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) => {
+  const env = c.env;
+  const userId = c.var.userId;
+  const parsed = c.req.valid('json');
 
-  const parsed = await parseBody(request, createRoomSchema, env);
-  if (parsed instanceof Response) return parsed;
-
-  const params: string[] = [crypto.randomUUID(), parsed.roomCode, payload.sub];
+  const params: string[] = [crypto.randomUUID(), parsed.roomCode, userId];
   const sql = 'INSERT INTO rooms (id, code, host_id) VALUES (?, ?, ?)';
 
   try {
@@ -34,7 +32,7 @@ export async function handleCreateRoom(request: Request, env: Env): Promise<Resp
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes('UNIQUE') || message.includes('constraint')) {
-      return jsonResponse({ error: 'room_code_conflict' }, 409, env);
+      return c.json({ error: 'room_code_conflict' }, 409);
     }
     throw err;
   }
@@ -51,33 +49,32 @@ export async function handleCreateRoom(request: Request, env: Env): Promise<Resp
     }
   }
 
-  return jsonResponse(
+  return c.json(
     {
       room: {
         roomNumber: parsed.roomCode,
-        hostUid: payload.sub,
+        hostUid: userId,
         createdAt: new Date().toISOString(),
       },
     },
     200,
-    env,
   );
-}
+});
 
 // ── POST /room/get ──────────────────────────────────────────────────────────
-export async function handleGetRoom(request: Request, env: Env): Promise<Response> {
-  const parsed = await parseBody(request, roomCodeBodySchema, env);
-  if (parsed instanceof Response) return parsed;
+roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
+  const env = c.env;
+  const parsed = c.req.valid('json');
 
   const row = await env.DB.prepare('SELECT id, code, host_id, created_at FROM rooms WHERE code = ?')
     .bind(parsed.roomCode)
     .first<{ id: string; code: string; host_id: string; created_at: string }>();
 
   if (!row) {
-    return jsonResponse({ room: null }, 200, env);
+    return c.json({ room: null }, 200);
   }
 
-  return jsonResponse(
+  return c.json(
     {
       room: {
         roomNumber: row.code,
@@ -86,27 +83,22 @@ export async function handleGetRoom(request: Request, env: Env): Promise<Respons
       },
     },
     200,
-    env,
   );
-}
+});
 
 // ── POST /room/delete ───────────────────────────────────────────────────────
-export async function handleDeleteRoom(request: Request, env: Env): Promise<Response> {
-  const token = extractBearerToken(request);
-  if (!token) return jsonResponse({ error: 'unauthorized' }, 401, env);
-  const payload = await verifyToken(token, env);
-  if (!payload) return jsonResponse({ error: 'unauthorized' }, 401, env);
-
-  const parsed = await parseBody(request, roomCodeBodySchema, env);
-  if (parsed instanceof Response) return parsed;
+roomRoutes.post('/delete', requireAuth, jsonBody(roomCodeBodySchema), async (c) => {
+  const env = c.env;
+  const userId = c.var.userId;
+  const parsed = c.req.valid('json');
 
   // Only the room host can delete the room
   const result = await env.DB.prepare('DELETE FROM rooms WHERE code = ? AND host_id = ?')
-    .bind(parsed.roomCode, payload.sub)
+    .bind(parsed.roomCode, userId)
     .run();
 
   if (!result.meta.changes) {
-    return jsonResponse({ error: 'room not found or not authorized' }, 403, env);
+    return c.json({ error: 'room not found or not authorized' }, 403);
   }
 
   // Clean up DO storage (non-critical path, failure does not block)
@@ -118,40 +110,37 @@ export async function handleDeleteRoom(request: Request, env: Env): Promise<Resp
     // Stale DO storage will be cleaned up by cron.
   }
 
-  return jsonResponse({ success: true }, 200, env);
-}
+  return c.json({ success: true }, 200);
+});
 
 // ── POST /room/state ────────────────────────────────────────────────────────
 // 从 DO 读取完整 state + revision
-export async function handleGetGameState(request: Request, env: Env): Promise<Response> {
-  const parsed = await parseBody(request, roomCodeBodySchema, env);
-  if (parsed instanceof Response) return parsed;
+roomRoutes.post('/state', jsonBody(roomCodeBodySchema), async (c) => {
+  const parsed = c.req.valid('json');
 
-  const stub = getGameRoomStub(env, parsed.roomCode);
+  const stub = getGameRoomStub(c.env, parsed.roomCode);
   const result = await stub.getState();
 
   if (!result) {
-    return jsonResponse({ state: null }, 200, env);
+    return c.json({ state: null }, 200);
   }
 
-  return jsonResponse(
+  return c.json(
     {
       state: result.state,
       revision: result.revision,
     },
     200,
-    env,
   );
-}
+});
 
 // ── POST /room/revision ─────────────────────────────────────────────────────
 // 轻量级：只读 revision 数字（从 DO 读取）
-export async function handleGetRevision(request: Request, env: Env): Promise<Response> {
-  const parsed = await parseBody(request, roomCodeBodySchema, env);
-  if (parsed instanceof Response) return parsed;
+roomRoutes.post('/revision', jsonBody(roomCodeBodySchema), async (c) => {
+  const parsed = c.req.valid('json');
 
-  const stub = getGameRoomStub(env, parsed.roomCode);
+  const stub = getGameRoomStub(c.env, parsed.roomCode);
   const revision = await stub.getRevision();
 
-  return jsonResponse({ revision }, 200, env);
-}
+  return c.json({ revision }, 200);
+});

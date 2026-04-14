@@ -6,41 +6,64 @@ applyTo: packages/api-worker/**
 # @werewolf/api-worker 规范
 
 Cloudflare Worker（Durable Objects + D1 + R2）。Game API + Auth API。
+使用 **Hono** 框架（`hono/cors`、`hono/validator`、`hono/http-exception`、`hono/factory`）。
 
-## Handler 请求体校验
+## 路由组织
 
-- 所有 handler 使用 `parseBody(req, schema, env)` 解析 + 校验请求体。禁止 `(await req.json()) as { ... }` 类型断言。
-- `parseBody` 返回 `T | Response`：校验失败返回 400（`VALIDATION_ERROR` + 首个 issue detail），成功返回强类型数据。
-- roomCode-only 的 handler 用 `createSimpleHandler` factory（内部已用 `parseBody` + `roomCodeSchema`）。
+- 每个 handler 文件导出一个 Hono 子路由：`export const xxxRoutes = new Hono<AppEnv>()`。
+- `index.ts` 用 `app.route('/prefix', xxxRoutes)` 挂载。
+- CORS 由 `hono/cors` 中间件统一处理（`app.use('*', cors(...))`）。
+
+## 请求体校验
+
+- 使用 `jsonBody<T>(schema)` 中间件（`handlers/shared.ts`，基于 `hono/validator`）校验 JSON body。
+- 校验失败返回 400（`{ success: false, reason: 'VALIDATION_ERROR', detail }`）。
+- handler 中用 `c.req.valid('json')` 获取强类型数据。禁止 `(await req.json()) as { ... }`。
 
 ## Zod Schema 文件
 
 - Schema 定义在 `src/schemas/`，按路由分模块（`auth.ts`、`game.ts`、`night.ts`、`room.ts`、`gemini.ts`、`shareImage.ts`）。
 - 项目使用 **zod 4**。用顶级格式校验器（`z.email()`、`z.url()` 等），不用已废弃的方法链（`z.string().email()`）。
 - seat 数字用 `z.coerce.number().int().min(0)`。discriminated union 按 `action` / `type` 字段区分。
-- Schema 新增/修改时，必须同步更新对应 handler 的 `parseBody` 调用和解构。
+- Schema 新增/修改时，必须同步更新对应 handler 的 `jsonBody` 调用和解构。
 
 ## Handler 模式
 
 ```typescript
-export const handleXxx: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, xxxSchema, env);
-  if (parsed instanceof Response) return parsed;
-  // ... 业务逻辑，用 parsed.field（强类型，无需手动校验）
-};
-````
+// 带 body 校验的路由
+xxxRoutes.post('/action', jsonBody(xxxSchema), async (c) => {
+  const { field } = c.req.valid('json');
+  const env = c.env;
+  // ... 业务逻辑
+  return c.json(result, resultToStatus(result));
+});
+
+// 需要认证的路由
+xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
+  const userId = c.var.userId;
+  // ...
+});
+```
+
+## 认证中间件
+
+- `requireAuth`（`lib/auth.ts`，`createMiddleware` from `hono/factory`）：验证 Bearer token，设置 `c.var.userId` 和 `c.var.jwtPayload`。
+- 可选认证（如 signup）在 handler 内 inline 处理 `extractBearerToken` + `verifyToken`。
+
+## 错误处理
+
+- `callDO(fn)` 在 DO 错误时抛 `HTTPException`（503 retryable、429 overloaded）。
+- `app.onError` 统一捕获 `HTTPException`、`SyntaxError`（malformed JSON）、泛型错误。
+- Handler 内不需要 `try/catch` DO 调用错误。
 
 ## 共享工具（`handlers/shared.ts`）
 
-| 导出                             | 用途                                      |
-| -------------------------------- | ----------------------------------------- |
-| `parseBody<T>(req, schema, env)` | JSON 解析 + zod 校验                      |
-| `createSimpleHandler(rpcMethod)` | roomCode-only handler factory             |
-| `callDO(fn, env)`                | DO RPC 错误处理（retryable / overloaded） |
-| `getGameRoomStub(env, roomCode)` | 获取 DO stub                              |
-| `resultToStatus(result)`         | `{ success, reason }` → HTTP 状态码       |
-| `isValidSeat(value)`             | seat number type guard（供测试使用）      |
+| 导出                      | 用途                                          |
+| ------------------------- | --------------------------------------------- |
+| `jsonBody<T>(schema)`     | `hono/validator` 中间件，JSON 解析 + zod 校验 |
+| `callDO<T>(fn)`           | DO RPC 调用 + HTTPException 错误处理          |
+| `getGameRoomStub(env, c)` | 获取 DO stub                                  |
+| `resultToStatus(result)`  | `{ success, reason }` → `200 \| 400 \| 500`  |
+| `isValidSeat(value)`      | seat number type guard                        |
 
-```
-
-```
+````

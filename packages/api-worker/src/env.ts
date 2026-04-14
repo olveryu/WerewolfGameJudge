@@ -34,3 +34,6 @@ export interface Env {
   /** WeChat Mini Program AppSecret — set via `wrangler secret put WECHAT_APP_SECRET` */
   WECHAT_APP_SECRET?: string;
 }
+
+/** Hono app environment type (Bindings = Worker Env) */
+export type AppEnv = { Bindings: Env };

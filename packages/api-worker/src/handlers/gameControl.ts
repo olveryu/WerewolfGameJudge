@@ -1,13 +1,15 @@
 /**
- * handlers/gameControl — 游戏生命周期 handlers (Workers 版)
+ * handlers/gameControl — 游戏生命周期 Hono routes (Workers 版)
  *
- * Thin router 层：参数校验 → DO RPC → 错误处理 → 返回响应。
+ * Thin router 层：zod 校验 → DO RPC → 错误处理 → 返回响应。
  * 游戏逻辑在 DO (GameRoom) 内部执行。
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { Hono } from 'hono';
 
-import { jsonResponse } from '../lib/cors';
+import type { GameActionResult } from '../durableObjects/gameProcessor';
+import type { AppEnv } from '../env';
 import {
   boardNominateSchema,
   boardUpvoteSchema,
@@ -20,28 +22,45 @@ import {
   updateTemplateSchema,
   viewRoleSchema,
 } from '../schemas/game';
-import {
-  callDO,
-  createSimpleHandler,
-  getGameRoomStub,
-  type HandlerFn,
-  parseBody,
-  resultToStatus,
-} from './shared';
+import { callDO, getGameRoomStub, jsonBody, resultToStatus } from './shared';
+
+export const gameRoutes = new Hono<AppEnv>();
 
 // ── Simple no-arg handlers (roomCode only) ──────────────────────────────────
 
-export const handleAssign = createSimpleHandler((stub) => stub.assignRoles());
-export const handleFillBots = createSimpleHandler((stub) => stub.fillWithBots());
-export const handleMarkBotsViewed = createSimpleHandler((stub) => stub.markAllBotsViewed());
-export const handleClearSeats = createSimpleHandler((stub) => stub.clearAllSeats());
-export const handleRestart = createSimpleHandler((stub) => stub.restartGame());
+gameRoutes.post('/assign', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).assignRoles());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
+
+gameRoutes.post('/fill-bots', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).fillWithBots());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
+
+gameRoutes.post('/mark-bots-viewed', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).markAllBotsViewed());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
+
+gameRoutes.post('/clear-seats', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).clearAllSeats());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
+
+gameRoutes.post('/restart', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).restartGame());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
 // ── Parameterized handlers ──────────────────────────────────────────────────
 
-export const handleSeat: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, seatActionSchema, env);
-  if (parsed instanceof Response) return parsed;
+gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
   const {
     roomCode,
     action,
@@ -53,10 +72,10 @@ export const handleSeat: HandlerFn = async (req, env) => {
     avatarFrame,
     seatFlair,
     level,
-  } = parsed;
+  } = c.req.valid('json');
 
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
+  const result = await callDO(() => {
+    const stub = getGameRoomStub(c.env, roomCode);
     return stub.seat(
       action,
       uid,
@@ -68,126 +87,74 @@ export const handleSeat: HandlerFn = async (req, env) => {
       targetSeat,
       level,
     );
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
+  });
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-export const handleSetAnimation: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, setAnimationSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, animation } = parsed;
+gameRoutes.post('/set-animation', jsonBody(setAnimationSchema), async (c) => {
+  const { roomCode, animation } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).setAnimation(animation));
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.setAnimation(animation);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
+gameRoutes.post('/start', jsonBody(roomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).startNight());
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-export const handleStart: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, roomCodeSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode } = parsed;
+gameRoutes.post('/update-template', jsonBody(updateTemplateSchema), async (c) => {
+  const { roomCode, templateRoles } = c.req.valid('json');
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode).updateTemplate(templateRoles as RoleId[]),
+  );
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.startNight();
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
+gameRoutes.post('/view-role', jsonBody(viewRoleSchema), async (c) => {
+  const { roomCode, uid, seat } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).viewRole(uid, seat));
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-export const handleUpdateTemplateRoute: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, updateTemplateSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, templateRoles } = parsed;
+gameRoutes.post('/share-review', jsonBody(shareReviewSchema), async (c) => {
+  const { roomCode, allowedSeats } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).shareReview(allowedSeats));
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.updateTemplate(templateRoles as RoleId[]);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
-
-export const handleViewRole: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, viewRoleSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, uid, seat } = parsed;
-
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.viewRole(uid, seat);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
-
-export const handleShareReview: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, shareReviewSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, allowedSeats } = parsed;
-
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.shareReview(allowedSeats);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
-
-export const handleUpdateProfileRoute: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, updateProfileRouteSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, uid, displayName, avatarUrl, avatarFrame, seatFlair } = parsed;
-
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.updateProfile(uid, displayName, avatarUrl, avatarFrame, seatFlair);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
+gameRoutes.post('/update-profile', jsonBody(updateProfileRouteSchema), async (c) => {
+  const { roomCode, uid, displayName, avatarUrl, avatarFrame, seatFlair } = c.req.valid('json');
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode).updateProfile(
+      uid,
+      displayName,
+      avatarUrl,
+      avatarFrame,
+      seatFlair,
+    ),
+  );
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
 // ── Board Nomination handlers ───────────────────────────────────────────────
 
-export const handleBoardNominate: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, boardNominateSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, uid, displayName, roles } = parsed;
+gameRoutes.post('/board-nominate', jsonBody(boardNominateSchema), async (c) => {
+  const { roomCode, uid, displayName, roles } = c.req.valid('json');
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode).boardNominate(uid, displayName, roles as RoleId[]),
+  );
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.boardNominate(uid, displayName, roles as RoleId[]);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
+gameRoutes.post('/board-upvote', jsonBody(boardUpvoteSchema), async (c) => {
+  const { roomCode, uid, targetUid } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).boardUpvote(uid, targetUid));
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
 
-export const handleBoardUpvote: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, boardUpvoteSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, uid, targetUid } = parsed;
-
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.boardUpvote(uid, targetUid);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
-
-export const handleBoardWithdraw: HandlerFn = async (req, env) => {
-  const parsed = await parseBody(req, boardWithdrawSchema, env);
-  if (parsed instanceof Response) return parsed;
-  const { roomCode, uid } = parsed;
-
-  const doResult = await callDO(() => {
-    const stub = getGameRoomStub(env, roomCode);
-    return stub.boardWithdraw(uid);
-  }, env);
-  if (doResult instanceof Response) return doResult;
-  return jsonResponse(doResult, resultToStatus(doResult), env);
-};
+gameRoutes.post('/board-withdraw', jsonBody(boardWithdrawSchema), async (c) => {
+  const { roomCode, uid } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).boardWithdraw(uid));
+  return c.json(result, resultToStatus(result as GameActionResult));
+});
