@@ -50,7 +50,7 @@ fi
 echo "🌐 Deploy env: $EXPO_PUBLIC_DEPLOY_ENV"
 
 echo "📦 构建 Web..."
-npx expo export --platform web --clear
+npx expo export --platform web --clear --source-maps
 
 # ── 3. 后处理（PWA / 字体 / index.html）─────────
 
@@ -78,6 +78,7 @@ fi
 if [ -d dist/_expo/static/js/web ]; then
   mkdir -p dist/assets/js
   cp dist/_expo/static/js/web/*.js dist/assets/js/
+  cp dist/_expo/static/js/web/*.js.map dist/assets/js/ 2>/dev/null || true
   rm -rf dist/_expo
   echo "✅ JS bundle 移至 assets/js/"
 fi
@@ -124,5 +125,22 @@ cp web/_headers dist/
 cp web/_redirects dist/
 cp web/_routes.json dist/
 echo "✅ 已复制 _headers + _redirects + _routes.json"
+
+# ── 4. Sentry Source Maps ───────────────────────
+
+if [ -n "$SENTRY_AUTH_TOKEN" ]; then
+  VERSION="werewolfjudge@v$(node -p "require('./package.json').version")"
+  echo "📡 上传 source maps → Sentry release: $VERSION"
+  npx sentry-cli sourcemaps inject dist/assets/js/
+  npx sentry-cli sourcemaps upload dist/assets/js/ \
+    --release="$VERSION" \
+    --org=edwin-47 \
+    --project=werewolfjudge
+  # 不对外暴露 source maps
+  rm -f dist/assets/js/*.map
+  echo "✅ Source maps 已上传并清理"
+else
+  echo "⏭️  跳过 Sentry source maps（SENTRY_AUTH_TOKEN 未设置）"
+fi
 
 echo "✅ 构建完成"
