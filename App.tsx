@@ -35,6 +35,8 @@ Sentry.init({
   tracesSampleRate: 0.5,
   // Enable session tracking for Release Health (unique users / sessions)
   enableAutoSessionTracking: true,
+  // Enable structured logging (Sentry Logs beta)
+  enableLogs: true,
 });
 
 // Keep splash screen visible while app initializes
