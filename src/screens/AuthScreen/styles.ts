@@ -8,7 +8,7 @@ import { type ViewStyle } from 'react-native';
 
 import { createAuthBaseStyles } from '@/components/auth/authStyles';
 import { type AuthStyles } from '@/components/auth/types';
-import { borderRadius, spacing, textStyles, type ThemeColors, typography } from '@/theme';
+import { borderRadius, shadows, spacing, textStyles, type ThemeColors, typography } from '@/theme';
 
 interface AuthScreenStyles extends AuthStyles {
   modalOverlay: ViewStyle;
@@ -32,6 +32,7 @@ export function createAuthScreenStyles(colors: ThemeColors, screenWidth: number)
       padding: spacing.large,
       width: '100%',
       maxWidth: Math.min(400, screenWidth * 0.85),
+      ...shadows.lg,
     },
     // Override formTitle to be larger for modal context
     formTitle: {

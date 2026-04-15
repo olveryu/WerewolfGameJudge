@@ -10,6 +10,7 @@ import {
   borderRadius,
   componentSizes,
   fixed,
+  shadows,
   spacing,
   textStyles,
   type ThemeColors,
@@ -124,6 +125,7 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: spacing.medium,
+      ...shadows.sm,
     },
     primaryButtonText: {
       ...textStyles.bodySemibold,
@@ -197,6 +199,7 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.medium,
       marginBottom: spacing.medium,
+      ...shadows.sm,
     },
     avatarStripRow: {
       flexDirection: 'row',
