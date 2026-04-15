@@ -6,6 +6,7 @@
 import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import {
+  borderRadius,
   componentSizes,
   createSharedStyles,
   fixed,
@@ -103,6 +104,8 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
       paddingVertical: spacing.small,
       paddingHorizontal: spacing.small,
       marginBottom: spacing.tight,
+      backgroundColor: withAlpha(colors.background, 0.8),
+      borderRadius: borderRadius.medium,
     },
     randomLabel: {
       ...textStyles.body,
@@ -121,9 +124,11 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
       borderColor: colors.border,
       justifyContent: 'center',
       alignItems: 'center',
+      backgroundColor: colors.background,
     },
     radioOuterSelected: {
       borderColor: colors.primary,
+      backgroundColor: withAlpha(colors.primary, 0.06),
     },
     radioInner: {
       width: spacing.small,
