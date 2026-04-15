@@ -7,7 +7,11 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { createCustomTemplate, getPlayerCount } from '@werewolf/game-engine/models/Template';
+import {
+  createCustomTemplate,
+  findMatchingPresetName,
+  getPlayerCount,
+} from '@werewolf/game-engine/models/Template';
 import type { BoardNomination } from '@werewolf/game-engine/protocol/types';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -75,6 +79,7 @@ function NominationCard({
   const hasUpvoted = myUid ? nomination.upvoters.includes(myUid) : false;
   const roles = nomination.roles as RoleId[];
   const nominationPlayerCount = getPlayerCount(roles);
+  const boardName = useMemo(() => findMatchingPresetName(roles) ?? '自定义板子', [roles]);
   const stats = useMemo(() => computeFactionStats(roles), [roles]);
   const handleUpvote = useCallback(() => {
     onUpvote(nomination.uid);
@@ -88,10 +93,15 @@ function NominationCard({
     <View style={[styles.card, { backgroundColor: colors.card }]}>
       {/* Tappable header: author + compact stats + chevron */}
       <Pressable onPress={onToggle} style={styles.cardHeader}>
-        <Text style={[styles.cardAuthor, { color: colors.text }]} numberOfLines={1}>
-          {nomination.displayName}
-          {isMine && <Text style={{ color: colors.textSecondary }}> (我)</Text>}
-        </Text>
+        <View style={styles.cardTitleGroup}>
+          <Text style={[styles.cardAuthor, { color: colors.text }]} numberOfLines={1}>
+            {boardName}
+          </Text>
+          <Text style={[styles.cardSubmitter, { color: colors.textSecondary }]} numberOfLines={1}>
+            {nomination.displayName}
+            {isMine && ' (我)'}
+          </Text>
+        </View>
         <View style={styles.compactStats}>
           <View style={[styles.playerBadge, { backgroundColor: withAlpha(colors.primary, 0.12) }]}>
             <Text style={[styles.playerBadgeText, { color: colors.primary }]}>
@@ -312,9 +322,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.small,
   },
+  cardTitleGroup: {
+    flex: 1,
+  },
   cardAuthor: {
     ...textStyles.bodySemibold,
-    flex: 1,
+  },
+  cardSubmitter: {
+    ...textStyles.caption,
   },
   compactStats: {
     flexDirection: 'row',
