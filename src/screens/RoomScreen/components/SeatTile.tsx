@@ -71,6 +71,7 @@ export interface SeatTileStyles {
   levelBadge: ViewStyle;
   levelBadgeText: TextStyle;
   emptyIndicator: TextStyle;
+  emptyTile: ViewStyle;
   rippleRing: ViewStyle;
   playerName: TextStyle;
   playerNameHighlight: TextStyle;
@@ -332,6 +333,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           }
           style={[
             styles.playerTile,
+            !hasPlayer && styles.emptyTile,
             isMySpot && styles.mySpotTile,
             isWolf && styles.wolfTile,
             isSelected && styles.selectedTile,
@@ -454,6 +456,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       borderWidth: fixed.borderWidthThick,
       borderColor: colors.borderLight,
       overflow: 'visible' as const,
+      ...shadows.sm,
     },
     mySpotTile: {},
     wolfTile: {
@@ -547,6 +550,14 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
       color: withAlpha(colors.primary, 0.35),
+    },
+    emptyTile: {
+      borderStyle: 'dashed' as const,
+      borderColor: withAlpha(colors.primary, 0.2),
+      backgroundColor: withAlpha(colors.background, 0.5),
+      // Remove shadow from empty tiles
+      shadowOpacity: 0,
+      elevation: 0,
     },
     rippleRing: {
       position: 'absolute',
