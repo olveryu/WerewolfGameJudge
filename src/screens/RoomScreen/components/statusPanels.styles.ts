@@ -164,6 +164,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         marginHorizontal: spacing.medium,
         marginTop: spacing.small,
         borderRadius: borderRadius.large,
+        ...shadows.sm,
       },
       icon: {
         color: colors.info,

@@ -6,6 +6,7 @@ import { StyleSheet } from 'react-native';
 import {
   borderRadius,
   createSharedStyles,
+  fixed,
   shadows,
   spacing,
   textStyles,
@@ -25,6 +26,8 @@ export function createBoardInfoStyles(colors: ThemeColors): {
       boardInfoContainer: {
         ...createSharedStyles(colors).cardBase,
         marginBottom: spacing.medium,
+        borderTopWidth: fixed.borderWidthHighlight,
+        borderTopColor: withAlpha(colors.primary, 0.15),
       },
       headerRow: {
         flexDirection: 'row',
@@ -136,7 +139,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
         color: colors.textSecondary,
       },
       progressBarContainer: {
-        height: spacing.tight, // 4
+        height: spacing.small, // 6 — taller for gradient visibility
         backgroundColor: colors.border,
         borderRadius: borderRadius.full,
         overflow: 'hidden',

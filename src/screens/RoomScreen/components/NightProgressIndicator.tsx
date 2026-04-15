@@ -7,10 +7,12 @@
  * Performance: Memoized, receives pre-created styles from parent.
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { memo } from 'react';
 import { Text, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
+import { colors } from '@/theme';
 
 import { type NightProgressIndicatorStyles } from './styles';
 
@@ -43,7 +45,12 @@ const NightProgressIndicatorComponent: React.FC<NightProgressIndicatorProps> = (
         {currentRoleName && <Text style={styles.roleText}>{currentRoleName}</Text>}
       </View>
       <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+        <LinearGradient
+          colors={[colors.primaryLight, colors.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.progressBarFill, { width: `${progressPercent}%` }]}
+        />
       </View>
     </View>
   );
