@@ -107,6 +107,81 @@ describe('handleBoardNominate', () => {
       expect(action.payload.nomination.upvoters).toEqual([]);
     }
   });
+
+  // ── Dedup tests ─────────────────────────────────────────────────────────
+
+  it('auto-upvotes when another user has identical roles', () => {
+    const state = createMinimalState({
+      boardNominations: {
+        'player-2': {
+          uid: 'player-2',
+          displayName: 'Player 2',
+          roles: ['villager', 'wolf', 'seer'],
+          upvoters: [],
+        },
+      },
+    });
+    const ctx = createContext(state);
+    const result = expectSuccess(handleBoardNominate(intent, ctx));
+    expect(result.reason).toBe('DEDUPLICATED');
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0].type).toBe('UPVOTE_BOARD_NOMINATION');
+    if (result.actions[0].type === 'UPVOTE_BOARD_NOMINATION') {
+      expect(result.actions[0].payload.targetUid).toBe('player-2');
+      expect(result.actions[0].payload.voterUid).toBe('player-1');
+    }
+  });
+
+  it('deduplicates regardless of role order', () => {
+    const state = createMinimalState({
+      boardNominations: {
+        'player-2': {
+          uid: 'player-2',
+          displayName: 'Player 2',
+          roles: ['seer', 'villager', 'wolf'],
+          upvoters: [],
+        },
+      },
+    });
+    const ctx = createContext(state);
+    const result = expectSuccess(handleBoardNominate(intent, ctx));
+    expect(result.reason).toBe('DEDUPLICATED');
+    expect(result.actions[0].type).toBe('UPVOTE_BOARD_NOMINATION');
+  });
+
+  it('allows same user to overwrite their own identical nomination', () => {
+    const state = createMinimalState({
+      boardNominations: {
+        'player-1': {
+          uid: 'player-1',
+          displayName: 'Player 1',
+          roles: ['villager', 'wolf', 'seer'],
+          upvoters: ['player-3'],
+        },
+      },
+    });
+    const ctx = createContext(state);
+    const result = expectSuccess(handleBoardNominate(intent, ctx));
+    expect(result.reason).toBeUndefined();
+    expect(result.actions[0].type).toBe('SET_BOARD_NOMINATION');
+  });
+
+  it('does not deduplicate when roles differ', () => {
+    const state = createMinimalState({
+      boardNominations: {
+        'player-2': {
+          uid: 'player-2',
+          displayName: 'Player 2',
+          roles: ['villager', 'wolf', 'witch'],
+          upvoters: [],
+        },
+      },
+    });
+    const ctx = createContext(state);
+    const result = expectSuccess(handleBoardNominate(intent, ctx));
+    expect(result.reason).toBeUndefined();
+    expect(result.actions[0].type).toBe('SET_BOARD_NOMINATION');
+  });
 });
 
 // =============================================================================

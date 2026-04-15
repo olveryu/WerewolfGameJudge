@@ -261,6 +261,10 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const boardNominate = useCallback(
     async (displayName: string, roles: RoleId[]): Promise<void> => {
       const result = await facade.boardNominate(displayName, roles);
+      if (result.success && result.reason === 'DEDUPLICATED') {
+        toast.info('已有相同板子建议，已自动为你投票');
+        return;
+      }
       handleMutationResult(result, '提交建议', toastError);
     },
     [facade],

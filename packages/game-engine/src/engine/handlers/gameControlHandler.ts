@@ -572,6 +572,28 @@ export function handleBoardNominate(
     return handlerError('角色列表不能为空');
   }
 
+  // ── 去重：排序后比较已有 nomination 的 roles ──
+  const sortedRoles = [...intent.payload.roles].sort();
+  const nominations = state.boardNominations;
+  if (nominations) {
+    for (const [existingUid, nom] of Object.entries(nominations)) {
+      // 同用户 → 走覆盖逻辑（现有行为）
+      if (existingUid === intent.payload.uid) continue;
+      const existingSorted = [...nom.roles].sort();
+      if (
+        existingSorted.length === sortedRoles.length &&
+        existingSorted.every((r, i) => r === sortedRoles[i])
+      ) {
+        // 角色完全相同 → 自动投票已有建议
+        const action: UpvoteBoardNominationAction = {
+          type: 'UPVOTE_BOARD_NOMINATION',
+          payload: { targetUid: existingUid, voterUid: intent.payload.uid },
+        };
+        return handlerSuccess([action], STANDARD_SIDE_EFFECTS, 'DEDUPLICATED');
+      }
+    }
+  }
+
   const action: SetBoardNominationAction = {
     type: 'SET_BOARD_NOMINATION',
     payload: {

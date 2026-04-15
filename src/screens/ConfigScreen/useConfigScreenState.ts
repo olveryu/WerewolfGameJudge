@@ -19,6 +19,7 @@ import {
 } from '@werewolf/game-engine/models/Template';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { toast } from 'sonner-native';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { storage } from '@/lib/storage';
@@ -261,6 +262,9 @@ export function useConfigScreenState({
         if (!result.success) {
           showErrorAlert('提交失败', result.reason ?? '提交建议失败，请重试');
           return;
+        }
+        if (result.reason === 'DEDUPLICATED') {
+          toast.info('已有相同板子建议，已自动为你投票');
         }
         navigation.popTo('Room', {
           roomNumber: nominateMode.roomCode,

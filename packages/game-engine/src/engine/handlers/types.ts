@@ -41,6 +41,8 @@ export interface HandlerSuccess {
   readonly kind: 'success';
   readonly actions: StateAction[];
   readonly sideEffects?: readonly SideEffect[];
+  /** 可选元信息（如 'DEDUPLICATED'），不影响 success 语义，供客户端 toast 使用 */
+  readonly reason?: string;
 }
 
 export interface HandlerRejection {
@@ -60,8 +62,9 @@ export interface HandlerError {
 export function handlerSuccess(
   actions: StateAction[],
   sideEffects?: readonly SideEffect[],
+  reason?: string,
 ): HandlerSuccess {
-  return { kind: 'success', actions, sideEffects };
+  return { kind: 'success', actions, sideEffects, reason };
 }
 
 export function handlerRejection(

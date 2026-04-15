@@ -119,7 +119,7 @@ export function processAction(
   if (totalActionsApplied === 0) {
     return {
       success: isSuccess,
-      reason: isSuccess ? undefined : result.reason,
+      reason: result.reason,
       state,
       revision,
     };
@@ -137,7 +137,7 @@ export function processAction(
 
   return {
     success: isSuccess,
-    reason: isSuccess ? undefined : result.reason,
+    reason: result.reason,
     state: newState,
     revision: newRevision,
     sideEffects: result.sideEffects,
