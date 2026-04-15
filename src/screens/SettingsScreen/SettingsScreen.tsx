@@ -479,7 +479,7 @@ export const SettingsScreen: React.FC = () => {
             <Button
               variant="ghost"
               buttonColor={colors.background}
-              textColor={colors.text}
+              textColor={colors.error}
               onPress={handleSignOut}
               style={styles.logoutBtn}
             >

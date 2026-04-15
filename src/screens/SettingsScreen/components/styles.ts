@@ -409,7 +409,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       justifyContent: 'space-between',
       paddingVertical: spacing.medium,
       paddingHorizontal: spacing.medium,
-      backgroundColor: colors.background,
+      backgroundColor: withAlpha(colors.primary, 0.06),
       borderRadius: borderRadius.medium,
       marginBottom: spacing.medium,
     },
@@ -471,7 +471,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     growthProgressBarBg: {
       flex: 1,
-      height: 6,
+      height: 8,
       backgroundColor: colors.border,
       borderRadius: borderRadius.full,
       overflow: 'hidden',
