@@ -77,7 +77,7 @@ export const HomeScreen: React.FC = () => {
 
   // Load persisted tip dismissals (synchronous MMKV)
   const readDismissedTips = useCallback(() => {
-    const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'theme', 'bind-email'];
+    const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'bind-email'];
     const dismissed = new Set<string>();
     for (const id of tipIds) {
       if (storage.getString(tipStorageKey(id)) === '1') dismissed.add(id);
@@ -371,14 +371,6 @@ export const HomeScreen: React.FC = () => {
         onPress: () => navigation.navigate('Settings'),
       });
     }
-    all.push({
-      id: 'theme',
-      icon: UI_ICONS.THEME,
-      title: '试试切换主题',
-      subtitle: '8 种主题风格可选',
-      onPress: () => navigation.navigate('Settings'),
-    });
-
     // Daily quote (always visible, not dismissable)
     all.push({
       id: 'daily-quote',

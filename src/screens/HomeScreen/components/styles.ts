@@ -135,12 +135,12 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
       overflow: 'hidden',
     },
     scrollView: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     scrollContent: {
       flexGrow: 1,

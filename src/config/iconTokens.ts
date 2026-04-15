@@ -32,7 +32,6 @@ export const UI_ICONS = {
   CAMERA: 'camera-outline',
   EMAIL: 'mail-outline',
   SHARE: 'share-outline',
-  THEME: 'color-palette-outline',
   USER: 'person-outline',
   BOT: 'chatbubble-ellipses-outline',
   GAMEPAD: 'game-controller-outline',

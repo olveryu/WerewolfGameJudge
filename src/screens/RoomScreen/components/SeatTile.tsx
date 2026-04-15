@@ -373,7 +373,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             <FlairComponent size={flairSize} borderRadius={borderRadius.large} />
           )}
 
-          {!hasPlayer && <Text style={styles.emptyIndicator}>空</Text>}
+          {!hasPlayer && <Text style={styles.emptyIndicator}>+</Text>}
 
           {showReadyBadge && hasPlayer && (
             <Animated.View
@@ -455,11 +455,15 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: fixed.borderWidthThick,
-      borderColor: colors.borderLight,
+      borderColor: colors.border,
       overflow: 'visible' as const,
-      ...shadows.sm,
+      ...shadows.md,
     },
-    mySpotTile: {},
+    mySpotTile: {
+      borderColor: withAlpha(colors.primary, 0.5),
+      backgroundColor: withAlpha(colors.primary, 0.04),
+      boxShadow: `0px 0px 12px ${withAlpha(colors.primary, 0.2)}`,
+    },
     wolfTile: {
       backgroundColor: withAlpha(colors.wolf, 0.08),
       boxShadow: `0px 0px 8px ${withAlpha(colors.wolf, 0.4)}`,
@@ -468,6 +472,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     selectedTile: {
       backgroundColor: colors.primaryDark,
       borderColor: colors.primaryDark,
+      boxShadow: `0px 0px 16px ${withAlpha(colors.primaryDark, 0.5)}`,
     },
     controlledTile: {
       borderColor: colors.warning,
@@ -504,11 +509,12 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     wolfOverlay: {},
     selectedOverlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: withAlpha(colors.primaryDark, 0.4),
+      backgroundColor: withAlpha(colors.primaryDark, 0.35),
       borderRadius: borderRadius.large,
     },
     mySeatNumberBadge: {
       backgroundColor: colors.success,
+      boxShadow: `0px 0px 6px ${withAlpha(colors.success, 0.4)}`,
     },
     readyBadgeContainer: {
       position: 'absolute',
@@ -548,16 +554,14 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       color: colors.textMuted,
     },
     emptyIndicator: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: withAlpha(colors.primary, 0.35),
+      fontSize: typography.subtitle,
+      lineHeight: typography.lineHeights.subtitle,
+      color: withAlpha(colors.primary, 0.4),
     },
     emptyTile: {
       borderStyle: 'dashed' as const,
-      borderColor: withAlpha(colors.primary, 0.2),
-      // Remove shadow from empty tiles
-      shadowOpacity: 0,
-      elevation: 0,
+      borderColor: withAlpha(colors.primary, 0.25),
+      backgroundColor: withAlpha(colors.primary, 0.03),
     },
     rippleRing: {
       position: 'absolute',
@@ -572,7 +576,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     playerName: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
-      color: colors.text,
+      color: colors.textSecondary,
       textAlign: 'center',
       marginTop: spacing.tight,
       width: tileSize - spacing.tight,

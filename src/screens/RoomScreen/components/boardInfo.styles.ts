@@ -25,9 +25,11 @@ export function createBoardInfoStyles(colors: ThemeColors): {
     boardInfoCard: StyleSheet.create<BoardInfoCardStyles>({
       boardInfoContainer: {
         ...createSharedStyles(colors).cardBase,
+        backgroundColor: withAlpha(colors.surface, 0.8),
         marginBottom: spacing.medium,
         borderTopWidth: fixed.borderWidthHighlight,
-        borderTopColor: withAlpha(colors.primary, 0.15),
+        borderTopColor: withAlpha(colors.primary, 0.25),
+        ...shadows.sm,
       },
       headerRow: {
         flexDirection: 'row',
@@ -140,7 +142,7 @@ export function createBoardInfoStyles(colors: ThemeColors): {
       },
       progressBarContainer: {
         height: spacing.small, // 6 — taller for gradient visibility
-        backgroundColor: colors.border,
+        backgroundColor: withAlpha(colors.primary, 0.1),
         borderRadius: borderRadius.full,
         overflow: 'hidden',
       },

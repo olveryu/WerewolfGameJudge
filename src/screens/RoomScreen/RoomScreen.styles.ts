@@ -26,14 +26,14 @@ export function createRoomScreenStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
       overflow: 'hidden',
     },
     loadingContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     loadingText: {
       marginTop: spacing.medium,
@@ -79,9 +79,9 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       paddingHorizontal: spacing.screenH,
       paddingVertical: layout.headerPaddingV,
-      backgroundColor: withAlpha(colors.surface, 0.8),
+      backgroundColor: withAlpha(colors.surface, 0.85),
       borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
+      borderBottomColor: withAlpha(colors.primary, 0.15),
       overflow: 'hidden',
     },
     backButton: {
@@ -120,7 +120,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
     },
     scrollView: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     scrollContent: {
       padding: spacing.medium,

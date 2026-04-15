@@ -33,14 +33,14 @@ export function createStatusPanelStyles(colors: ThemeColors): {
   return {
     bottomActionPanel: StyleSheet.create<BottomActionPanelStyles>({
       container: {
-        backgroundColor: withAlpha(colors.surface, 0.8),
+        backgroundColor: withAlpha(colors.surface, 0.92),
         borderTopLeftRadius: borderRadius.large,
         borderTopRightRadius: borderRadius.large,
-        paddingTop: spacing.medium,
+        paddingTop: spacing.medium + spacing.tight,
         paddingHorizontal: spacing.medium,
         paddingBottom: spacing.medium,
         borderTopWidth: fixed.borderWidthThick,
-        borderTopColor: withAlpha(colors.primary, 0.2),
+        borderTopColor: withAlpha(colors.primary, 0.3),
         overflow: 'hidden',
         ...shadows.lgUpward,
       },
@@ -63,7 +63,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',
-        gap: spacing.small,
+        gap: spacing.small + spacing.tight,
       },
     }),
 
@@ -158,7 +158,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       container: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: withAlpha(colors.info, 0.1),
+        backgroundColor: withAlpha(colors.info, 0.08),
         paddingVertical: spacing.small,
         paddingHorizontal: spacing.medium,
         marginHorizontal: spacing.medium,

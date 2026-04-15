@@ -320,7 +320,7 @@ const LOCK_BADGE_SIZE = 16;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.transparent,
   },
   header: {
     flexDirection: 'row',

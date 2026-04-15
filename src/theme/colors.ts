@@ -42,6 +42,9 @@ export interface ThemeColors {
   // Overlay
   overlay: string;
   overlayLight: string;
+
+  // Utility
+  transparent: 'transparent';
 }
 
 /** 月白 — 克制、通透、雅致，带有游戏氛围的淡紫灰调 */
@@ -73,6 +76,8 @@ export const colors: ThemeColors = {
   god: '#7B3FBF',
   third: '#B87D08',
 
-  overlay: 'rgba(0, 0, 0, 0.5)',
-  overlayLight: 'rgba(0, 0, 0, 0.2)',
+  overlay: 'rgba(26, 26, 46, 0.6)',
+  overlayLight: 'rgba(26, 26, 46, 0.25)',
+
+  transparent: 'transparent',
 };

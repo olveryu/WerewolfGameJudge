@@ -335,7 +335,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}
         testID={TESTIDS.roomHeader}
       >
-        <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={60} tint="default" style={StyleSheet.absoluteFill} />
         <View style={styles.headerLeft}>
           <TouchableOpacity
             onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}

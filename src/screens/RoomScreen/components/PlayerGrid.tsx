@@ -68,8 +68,9 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
 
   // Floor to nearest device pixel to prevent sub-pixel rounding overflow
   // (roundToNearestPixel can round UP, causing the last column to wrap)
+  const gridGap = spacing.small + spacing.tight;
   const tileSize =
-    Math.floor(((effectiveWidth - spacing.small * (gridColumns - 1)) / gridColumns) * pixelRatio) /
+    Math.floor(((effectiveWidth - gridGap * (gridColumns - 1)) / gridColumns) * pixelRatio) /
     pixelRatio;
   const styles = useMemo(() => createStyles(colors), []);
 
@@ -163,7 +164,7 @@ function createStyles(_colors: ThemeColors) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'flex-start',
-      gap: spacing.small,
+      gap: spacing.small + spacing.tight,
     },
   });
 }
