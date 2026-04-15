@@ -555,7 +555,6 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     emptyTile: {
       borderStyle: 'dashed' as const,
       borderColor: withAlpha(colors.primary, 0.2),
-      backgroundColor: withAlpha(colors.background, 0.5),
       // Remove shadow from empty tiles
       shadowOpacity: 0,
       elevation: 0,
