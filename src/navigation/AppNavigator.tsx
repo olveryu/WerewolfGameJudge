@@ -182,7 +182,7 @@ export const AppNavigator: React.FC = () => {
         )}
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
+          contentStyle: { backgroundColor: colors.transparent },
           animation: 'default',
         }}
       >
