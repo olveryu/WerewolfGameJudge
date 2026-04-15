@@ -452,7 +452,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: fixed.borderWidthThick,
-      borderColor: colors.border,
+      borderColor: colors.borderLight,
       overflow: 'visible' as const,
     },
     mySpotTile: {},
@@ -546,7 +546,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     emptyIndicator: {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
-      color: colors.textMuted,
+      color: withAlpha(colors.primary, 0.35),
     },
     rippleRing: {
       position: 'absolute',
