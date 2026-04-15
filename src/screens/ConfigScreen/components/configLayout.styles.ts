@@ -185,14 +185,9 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   cardBFooterHint: {
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
-    color: colors.textSecondary,
+    color: colors.textMuted,
     textAlign: 'center',
     marginBottom: spacing.small,
-    backgroundColor: withAlpha(colors.info, 0.08),
-    borderRadius: borderRadius.medium,
-    paddingVertical: spacing.small,
-    paddingHorizontal: spacing.medium,
-    overflow: 'hidden',
   } satisfies TextStyle,
 
   // ── Scroll area ─────────────────────────────
