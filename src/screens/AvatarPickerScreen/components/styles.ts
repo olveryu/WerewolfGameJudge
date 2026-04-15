@@ -115,6 +115,7 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       overflow: 'hidden',
       borderWidth: fixed.borderWidthThick,
       borderColor: colors.background,
+      ...shadows.sm,
     },
     pickerItemImage: {
       width: '100%',
@@ -125,7 +126,10 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       borderColor: colors.primary,
     },
     pickerItemLocked: {
-      opacity: 0.35,
+      opacity: 0.4,
+      // Remove shadow from locked items
+      shadowOpacity: 0,
+      elevation: 0,
     },
     pickerItemLockOverlay: {
       ...StyleSheet.absoluteFillObject,
@@ -226,9 +230,10 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       bottom: 0,
       left: spacing.medium,
       right: spacing.medium,
-      height: fixed.borderWidthThick,
+      height: fixed.borderWidthHighlight,
       backgroundColor: colors.primary,
-      borderRadius: fixed.borderWidth,
+      borderTopLeftRadius: borderRadius.small,
+      borderTopRightRadius: borderRadius.small,
     },
     // Hero preview area
     heroPreview: {
@@ -280,6 +285,7 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       borderWidth: fixed.borderWidthThick,
       borderColor: colors.background,
       overflow: 'visible' as const,
+      ...shadows.sm,
     },
     frameGridCellSelected: {
       borderColor: colors.primary,
