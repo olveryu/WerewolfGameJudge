@@ -8,11 +8,14 @@ import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 import {
   borderRadius,
   componentSizes,
+  fixed,
   layout,
+  shadows,
   spacing,
   textStyles,
   type ThemeColors,
   typography,
+  withAlpha,
 } from '@/theme';
 
 interface AnimationSettingsStyles {
@@ -38,7 +41,7 @@ export const createAnimationSettingsStyles = (colors: ThemeColors): AnimationSet
       paddingHorizontal: spacing.screenH,
       paddingVertical: layout.headerPaddingV,
       backgroundColor: colors.surface,
-      borderBottomWidth: 1,
+      borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
     headerTitle: {
@@ -63,14 +66,16 @@ export const createAnimationSettingsStyles = (colors: ThemeColors): AnimationSet
     previewContainer: {
       paddingHorizontal: spacing.screenH,
       paddingVertical: spacing.medium,
-      borderTopWidth: 1,
+      borderTopWidth: fixed.borderWidth,
       borderTopColor: colors.border,
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
+      ...shadows.lgUpward,
     },
     previewButton: {
       padding: spacing.medium,
       borderRadius: borderRadius.medium,
       alignItems: 'center',
+      backgroundColor: withAlpha(colors.primary, 0.08),
       ...textStyles.bodySemibold,
     },
   });

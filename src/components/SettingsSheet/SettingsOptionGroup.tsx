@@ -13,6 +13,7 @@ import {
   colors,
   componentSizes,
   fixed,
+  shadows,
   spacing,
   textStyles,
   type ThemeColors,
@@ -134,11 +135,12 @@ function createOptionGroupStyles(colors: ThemeColors): OptionGroupStyles {
       borderColor: colors.border,
       backgroundColor: colors.surface,
       minHeight: componentSizes.button.lg,
+      ...shadows.sm,
     },
     cardSelected: {
       backgroundColor: withAlpha(colors.primary, 0.12),
       borderColor: colors.primary,
-      borderWidth: 1.5,
+      borderWidth: fixed.borderWidthThick,
     },
     cardNone: {
       // "关闭"项不额外改背景，仅文字 muted
