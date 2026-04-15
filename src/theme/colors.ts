@@ -44,15 +44,15 @@ export interface ThemeColors {
   overlayLight: string;
 }
 
-/** 月白 — 克制、通透、专业、清晨雾气、雅致 */
+/** 月白 — 克制、通透、雅致，带有游戏氛围的淡紫灰调 */
 export const colors: ThemeColors = {
-  primary: '#5B5BD6',
-  primaryLight: '#7878E8',
-  primaryDark: '#4747B3',
+  primary: '#6C5CE7',
+  primaryLight: '#A29BFE',
+  primaryDark: '#5241C4',
 
-  background: '#F5F5F7',
+  background: '#F0F0F5',
   surface: '#FFFFFF',
-  surfaceHover: '#EDEDF0',
+  surfaceHover: '#EAEAF2',
   card: '#FFFFFF',
 
   text: '#1A1A2E',
@@ -60,8 +60,8 @@ export const colors: ThemeColors = {
   textMuted: '#8E8EA0',
   textInverse: '#FFFFFF',
 
-  border: '#DDDDE3',
-  borderLight: '#EEEEF2',
+  border: '#E2E0EC',
+  borderLight: '#EEECF5',
 
   success: '#1A9A4A',
   warning: '#B87D08',
