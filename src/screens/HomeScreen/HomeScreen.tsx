@@ -485,7 +485,11 @@ export const HomeScreen: React.FC = () => {
             testID={TESTIDS.homeEnterRoomButton}
           >
             <View style={styles.actionCardIcon}>
-              <Ionicons name="log-in-outline" size={componentSizes.icon.lg} color={colors.text} />
+              <Ionicons
+                name="log-in-outline"
+                size={componentSizes.icon.lg}
+                color={colors.primary}
+              />
             </View>
             <Text style={styles.actionCardTitle}>{isJoining ? '进入中' : '进入房间'}</Text>
             <Text style={styles.actionCardSubtitle}>输入房间号</Text>
@@ -500,7 +504,7 @@ export const HomeScreen: React.FC = () => {
               <Ionicons
                 name="arrow-undo-outline"
                 size={componentSizes.icon.lg}
-                color={colors.text}
+                color={colors.primary}
               />
             </View>
             <Text style={styles.actionCardTitle}>返回上局</Text>
