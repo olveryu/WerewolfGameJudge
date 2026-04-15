@@ -9,7 +9,7 @@
  * 或：  pnpm -F @werewolf/api-worker db:seed:local
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -75,7 +75,7 @@ const tmpSql = join(workerDir, '.seed-local-tmp.sql');
 try {
   // Write SQL to temp file to avoid shell $ expansion mangling the password hash
   writeFileSync(tmpSql, sql, 'utf-8');
-  execSync(`npx wrangler d1 execute werewolf-db --local --file=${tmpSql}`, {
+  execFileSync('npx', ['wrangler', 'd1', 'execute', 'werewolf-db', '--local', `--file=${tmpSql}`], {
     cwd: workerDir,
     encoding: 'utf-8',
     stdio: 'inherit',
