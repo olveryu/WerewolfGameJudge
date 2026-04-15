@@ -87,7 +87,7 @@ export class RoomPage {
     // Wait for kicked seat to show as empty via broadcast
     const tile = this.getSeatTile(seat);
     await expect
-      .poll(() => tile.textContent().then((t) => t?.includes('空') ?? false), {
+      .poll(() => tile.textContent().then((t) => t?.includes('+') ?? false), {
         timeout: 10_000,
         intervals: [250],
         message: `Seat ${seat} did not become empty after kick within 10s`,
@@ -108,8 +108,8 @@ export class RoomPage {
     const fullText = await tile.textContent().catch(() => null);
     return {
       seatContent: fullText?.trim() ?? null,
-      hasPlayerName: fullText !== null && !fullText.includes('空'),
-      isEmpty: fullText?.includes('空') ?? true,
+      hasPlayerName: fullText !== null && !fullText.includes('+'),
+      isEmpty: fullText?.includes('+') ?? true,
     };
   }
 
