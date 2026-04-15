@@ -412,6 +412,8 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       backgroundColor: withAlpha(colors.primary, 0.06),
       borderRadius: borderRadius.medium,
       marginBottom: spacing.medium,
+      borderWidth: fixed.borderWidth,
+      borderColor: withAlpha(colors.primary, 0.1),
     },
     dresserEntryContent: {
       flex: 1,
@@ -447,8 +449,8 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       marginHorizontal: spacing.small,
     },
     growthMiniProgress: {
-      height: 4,
-      backgroundColor: colors.border,
+      height: 5,
+      backgroundColor: withAlpha(colors.primary, 0.1),
       borderRadius: borderRadius.full,
       overflow: 'hidden',
       marginTop: spacing.tight,
@@ -471,14 +473,14 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     growthProgressBarBg: {
       flex: 1,
-      height: 8,
-      backgroundColor: colors.border,
+      height: 10,
+      backgroundColor: withAlpha(colors.primary, 0.08),
       borderRadius: borderRadius.full,
       overflow: 'hidden',
     },
     growthProgressBarFill: {
       height: '100%',
-      backgroundColor: colors.primary,
+      backgroundColor: colors.primaryLight,
       borderRadius: borderRadius.full,
     },
     growthXpValue: {
