@@ -50,7 +50,7 @@ import {
 import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
 
 const NUM_COLUMNS = 4;
-const CELL_SIZE = 72;
+const CELL_SIZE = 80;
 
 type TabKey = 'avatar' | 'frame' | 'flair';
 

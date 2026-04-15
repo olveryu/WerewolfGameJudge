@@ -630,9 +630,9 @@ function createStyles(colors: ThemeColors) {
       paddingHorizontal: spacing.screenH,
     },
     sectionAccent: {
-      width: 3,
+      width: spacing.tight,
       height: typography.secondary,
-      borderRadius: fixed.borderWidthThick,
+      borderRadius: borderRadius.full,
       marginRight: spacing.small,
     },
     sectionTitle: {

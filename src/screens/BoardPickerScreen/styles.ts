@@ -336,6 +336,7 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
     cardSelected: {
       borderLeftWidth: fixed.borderWidthHighlight,
       borderLeftColor: colors.primary,
+      backgroundColor: withAlpha(colors.primary, 0.04),
     },
     cardHeader: {
       padding: spacing.medium,
