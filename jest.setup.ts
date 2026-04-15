@@ -501,3 +501,10 @@ jest.mock('./src/utils/logger', () => {
     isExpectedAuthError: jest.fn(() => false),
   };
 });
+
+// ---------------------------------------------------------------------------
+// expo-linear-gradient — global mock (used by Button, RoleDescriptionView, etc.)
+// ---------------------------------------------------------------------------
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: 'LinearGradient',
+}));

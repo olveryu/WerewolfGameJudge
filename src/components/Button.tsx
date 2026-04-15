@@ -7,10 +7,12 @@
  *
  * Does not contain business logic. Renders UI and forwards press intent.
  */
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { memo, useMemo } from 'react';
 import {
   ActivityIndicator,
   type StyleProp,
+  StyleSheet,
   Text,
   type TextStyle,
   View,
@@ -103,7 +105,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
 
   // ── Computed styles ───────────────────────────────────────────────────────
 
-  const { containerStyle, resolvedTextColor } = useMemo(() => {
+  const { containerStyle, resolvedTextColor, useGradient } = useMemo(() => {
     const base: ViewStyle = {
       justifyContent: 'center',
       alignItems: 'center',
@@ -114,14 +116,27 @@ const ButtonComponent: React.FC<ButtonProps> = ({
 
     switch (variant) {
       case 'primary':
-        bg = buttonColor ?? colors.primary;
         txtColor = textColorProp ?? colors.textInverse;
-        Object.assign(base, {
-          backgroundColor: bg,
-          borderRadius: borderRadius.full,
-          minHeight: BUTTON_HEIGHTS[size],
-          paddingHorizontal: spacing.large,
-        });
+        if (buttonColor) {
+          // Custom buttonColor: solid fill, no gradient
+          bg = buttonColor;
+          Object.assign(base, {
+            backgroundColor: bg,
+            borderRadius: borderRadius.full,
+            minHeight: BUTTON_HEIGHTS[size],
+            paddingHorizontal: spacing.large,
+          });
+        } else {
+          // Default: transparent + gradient overlay
+          bg = 'transparent';
+          Object.assign(base, {
+            backgroundColor: bg,
+            borderRadius: borderRadius.full,
+            minHeight: BUTTON_HEIGHTS[size],
+            paddingHorizontal: spacing.large,
+            overflow: 'hidden' as const,
+          });
+        }
         break;
 
       case 'secondary':
@@ -178,7 +193,9 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       base.opacity = fixed.disabledOpacity;
     }
 
-    return { containerStyle: base, resolvedTextColor: txtColor };
+    const useGradient = variant === 'primary' && !buttonColor;
+
+    return { containerStyle: base, resolvedTextColor: txtColor, useGradient };
   }, [variant, size, buttonColor, textColorProp, isDisabled]);
 
   // ── Text style ────────────────────────────────────────────────────────────
@@ -240,6 +257,14 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled }}
     >
+      {useGradient && (
+        <LinearGradient
+          colors={[colors.primaryLight, colors.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       {content}
     </PressableScale>
   );
