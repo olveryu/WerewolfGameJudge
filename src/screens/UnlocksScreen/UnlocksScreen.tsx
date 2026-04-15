@@ -400,15 +400,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.tight,
   },
   summaryBarBg: {
-    height: 8,
-    backgroundColor: colors.border,
+    height: 10,
+    backgroundColor: withAlpha(colors.primary, 0.08),
     borderRadius: borderRadius.full,
     overflow: 'hidden',
     marginBottom: spacing.tight,
   },
   summaryBarFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     borderRadius: borderRadius.full,
   },
   summarySubtitle: {
@@ -425,6 +425,7 @@ const styles = StyleSheet.create({
     padding: spacing.tight,
     marginBottom: spacing.medium,
     gap: spacing.tight,
+    ...shadows.sm,
   },
   tab: {
     flex: 1,
@@ -465,9 +466,10 @@ const styles = StyleSheet.create({
   unlockedBorder: {
     borderColor: colors.primary,
     backgroundColor: colors.surface,
+    ...shadows.sm,
   },
   lockedBg: {
-    backgroundColor: withAlpha(colors.border, 0.5),
+    backgroundColor: withAlpha(colors.border, 0.3),
     opacity: 0.5,
   },
   avatarImage: {
