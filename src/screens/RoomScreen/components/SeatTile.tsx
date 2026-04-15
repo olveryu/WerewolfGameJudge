@@ -32,6 +32,7 @@ import {
   borderRadius,
   componentSizes,
   fixed,
+  shadows,
   spacing,
   type ThemeColors,
   typography,
