@@ -195,7 +195,7 @@ export const AppNavigator: React.FC = () => {
         <Stack.Screen
           name="Config"
           component={ConfigScreen}
-          options={{ title: '创建房间', presentation: 'modal', animation: 'slide_from_bottom' }}
+          options={{ title: '创建房间', animation: 'slide_from_bottom' }}
           getId={({ params }) => {
             if (params?.nominateMode) return 'nominate';
             if (params?.existingRoomNumber) return `edit-${params.existingRoomNumber}`;
@@ -206,7 +206,7 @@ export const AppNavigator: React.FC = () => {
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
-          options={{ title: '设置', presentation: 'modal', animation: 'slide_from_bottom' }}
+          options={{ title: '设置', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
           name="AnimationSettings"
@@ -221,12 +221,12 @@ export const AppNavigator: React.FC = () => {
         <Stack.Screen
           name="Encyclopedia"
           component={EncyclopediaScreen}
-          options={{ title: '角色图鉴', presentation: 'modal', animation: 'slide_from_bottom' }}
+          options={{ title: '角色图鉴', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
           name="Notepad"
           component={NotepadScreen}
-          options={{ title: '笔记', presentation: 'modal', animation: 'slide_from_bottom' }}
+          options={{ title: '笔记', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
           name="AvatarPicker"
