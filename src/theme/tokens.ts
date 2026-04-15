@@ -231,14 +231,14 @@ export const typography = {
 export const borderRadius = {
   /** 0px */
   none: primitiveRadius[0],
-  /** 8px */
-  small: scale(primitiveRadius[8]),
-  /** 12px */
-  medium: scale(primitiveRadius[12]),
-  /** 16px */
-  large: scale(primitiveRadius[16]),
-  /** 24px */
-  xlarge: scale(primitiveRadius[24]),
+  /** 10px — 按钮、输入框 */
+  small: scale(10),
+  /** 14px — 标签、小卡片 */
+  medium: scale(14),
+  /** 20px — 内容卡片、弹窗 */
+  large: scale(20),
+  /** 28px — Hero 卡片、底部面板 */
+  xlarge: scale(28),
   /** 9999px */
   full: primitiveRadius[9999],
 } as const;
@@ -467,13 +467,13 @@ export function crossPlatformTextShadow(
  */
 export const shadows = {
   none: {} as ViewStyle,
-  sm: { boxShadow: '0px 1px 3px rgba(0,0,0,0.08)' } as ViewStyle,
-  md: { boxShadow: '0px 2px 8px rgba(0,0,0,0.12)' } as ViewStyle,
-  lg: { boxShadow: '0px 8px 24px rgba(0,0,0,0.16)' } as ViewStyle,
+  sm: { boxShadow: '0px 2px 8px rgba(108,92,231,0.08)' } as ViewStyle,
+  md: { boxShadow: '0px 4px 16px rgba(108,92,231,0.10)' } as ViewStyle,
+  lg: { boxShadow: '0px 8px 32px rgba(108,92,231,0.14)' } as ViewStyle,
   /** Upward shadow for bottom panels */
-  upward: { boxShadow: '0px -4px 16px rgba(0,0,0,0.10)' } as ViewStyle,
+  upward: { boxShadow: '0px -4px 16px rgba(108,92,231,0.10)' } as ViewStyle,
   /** Strong upward shadow for primary bottom action panels */
-  lgUpward: { boxShadow: '0px -8px 24px rgba(0,0,0,0.16)' } as ViewStyle,
+  lgUpward: { boxShadow: '0px -8px 24px rgba(108,92,231,0.14)' } as ViewStyle,
 } as const;
 
 // ============================================================================
