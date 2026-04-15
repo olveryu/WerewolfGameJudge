@@ -52,23 +52,23 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     justifyContent: 'center',
   } satisfies ViewStyle,
   chipSelected: {
-    backgroundColor: withAlpha(colors.primary, 0.125),
+    backgroundColor: withAlpha(colors.primary, 0.15),
     borderColor: colors.primary,
   } satisfies ViewStyle,
   chipSelectedWolf: {
-    backgroundColor: withAlpha(colors.wolf, 0.125),
+    backgroundColor: withAlpha(colors.wolf, 0.15),
     borderColor: colors.wolf,
   } satisfies ViewStyle,
   chipSelectedGod: {
-    backgroundColor: withAlpha(colors.god, 0.125),
+    backgroundColor: withAlpha(colors.god, 0.15),
     borderColor: colors.god,
   } satisfies ViewStyle,
   chipSelectedVillager: {
-    backgroundColor: withAlpha(colors.villager, 0.125),
+    backgroundColor: withAlpha(colors.villager, 0.15),
     borderColor: colors.villager,
   } satisfies ViewStyle,
   chipSelectedThird: {
-    backgroundColor: withAlpha(colors.third, 0.125),
+    backgroundColor: withAlpha(colors.third, 0.15),
     borderColor: colors.third,
   } satisfies ViewStyle,
   chipText: {

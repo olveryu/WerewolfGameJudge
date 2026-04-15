@@ -16,6 +16,7 @@ import {
   spacing,
   type ThemeColors,
   typography,
+  withAlpha,
 } from '@/theme';
 
 export const createConfigLayoutStyles = (colors: ThemeColors) => ({
@@ -161,6 +162,8 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     paddingHorizontal: layout.screenPaddingH,
     paddingVertical: spacing.medium,
     backgroundColor: colors.background,
+    borderTopWidth: fixed.borderWidthThick,
+    borderTopColor: withAlpha(colors.primary, 0.15),
     ...shadows.lgUpward,
   } satisfies ViewStyle,
 
@@ -181,9 +184,14 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   cardBFooterHint: {
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
-    color: colors.textMuted,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.small,
+    backgroundColor: withAlpha(colors.info, 0.08),
+    borderRadius: borderRadius.medium,
+    paddingVertical: spacing.small,
+    paddingHorizontal: spacing.medium,
+    overflow: 'hidden',
   } satisfies TextStyle,
 
   // ── Scroll area ─────────────────────────────
