@@ -2,7 +2,8 @@
  * BoardNominationModal — 板子建议居中弹窗
  *
  * 显示所有板子建议，卡片风格与 BoardPickerScreen 展开卡一致（复用 FactionRoleList）。
- * 每张卡片显示提交人 + 阵营统计 badge + 分阵营 FactionChip + 点赞/撤回/采纳按钮。
+ * 每张卡片显示板子名 + 提交人 + 阵营统计 badge + 分阵营 FactionChip + 点赞/撤回/采纳按钮。
+ * 点击角色名可查看技能说明（复用 RoleCardSimple）。
  * 由 BoardInfoCard 的"查看建议"按钮打开。
  */
 import { Ionicons } from '@expo/vector-icons';
@@ -18,13 +19,14 @@ import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { FactionRoleList } from '@/components/FactionRoleList';
+import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { computeFactionStats } from '@/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,
   colors,
   componentSizes,
-  shadows,
+  createSharedStyles,
   spacing,
   textStyles,
   typography,
@@ -63,6 +65,7 @@ function NominationCard({
   isHost,
   expanded,
   onToggle,
+  onRolePress,
   onUpvote,
   onWithdraw,
   onAdopt,
@@ -72,6 +75,7 @@ function NominationCard({
   isHost: boolean;
   expanded: boolean;
   onToggle: () => void;
+  onRolePress: (roleId: string) => void;
   onUpvote: (targetUid: string) => void;
   onWithdraw: () => void;
   onAdopt: (roles: readonly RoleId[]) => Promise<void>;
@@ -124,7 +128,10 @@ function NominationCard({
       {/* Expanded: full faction chip rows */}
       {expanded && (
         <View style={styles.roleListSpacing}>
-          <FactionRoleList roles={roles} showStats={false} />
+          <FactionRoleList roles={roles} showStats={false} onRolePress={onRolePress} />
+          <Text style={[styles.roleHint, { color: colors.textSecondary }]}>
+            点击角色名查看能力说明
+          </Text>
         </View>
       )}
 
@@ -238,44 +245,61 @@ export const BoardNominationModal = memo(function BoardNominationModal({
     [entries],
   );
 
-  return (
-    <BaseCenterModal
-      visible={visible}
-      onClose={onClose}
-      dismissOnOverlayPress
-      contentStyle={styles.modalContent}
-    >
-      <View style={styles.modalHeader}>
-        <Text style={[styles.modalTitle, { color: colors.text }]}>板子建议 ({entries.length})</Text>
-        <TouchableOpacity onPress={onClose}>
-          <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />
-        </TouchableOpacity>
-      </View>
+  // Role preview (click chip → skill card)
+  const [previewRoleId, setPreviewRoleId] = useState<RoleId | null>(null);
+  const handleRolePress = useCallback((roleId: string) => setPreviewRoleId(roleId as RoleId), []);
+  const handlePreviewClose = useCallback(() => setPreviewRoleId(null), []);
 
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+  return (
+    <>
+      <BaseCenterModal
+        visible={visible}
+        onClose={onClose}
+        dismissOnOverlayPress
+        contentStyle={styles.modalContent}
       >
-        {entries.length === 0 ? (
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>还没有人提建议</Text>
-        ) : (
-          entries.map((nomination) => (
-            <NominationCard
-              key={nomination.uid}
-              nomination={nomination}
-              myUid={myUid}
-              isHost={isHost}
-              expanded={activeUid === nomination.uid}
-              onToggle={() => toggleCard(nomination.uid)}
-              onUpvote={onUpvote}
-              onWithdraw={onWithdraw}
-              onAdopt={handleAdopt}
-            />
-          ))
-        )}
-      </ScrollView>
-    </BaseCenterModal>
+        <View style={styles.modalHeader}>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>
+            板子建议 ({entries.length})
+          </Text>
+          <TouchableOpacity onPress={onClose}>
+            <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {entries.length === 0 ? (
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>还没有人提建议</Text>
+          ) : (
+            entries.map((nomination) => (
+              <NominationCard
+                key={nomination.uid}
+                nomination={nomination}
+                myUid={myUid}
+                isHost={isHost}
+                expanded={activeUid === nomination.uid}
+                onToggle={() => toggleCard(nomination.uid)}
+                onRolePress={handleRolePress}
+                onUpvote={onUpvote}
+                onWithdraw={onWithdraw}
+                onAdopt={handleAdopt}
+              />
+            ))
+          )}
+        </ScrollView>
+      </BaseCenterModal>
+
+      <RoleCardSimple
+        visible={previewRoleId !== null}
+        roleId={previewRoleId}
+        onClose={handlePreviewClose}
+        showRealIdentity
+      />
+    </>
   );
 });
 
@@ -314,11 +338,8 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.large,
-    padding: spacing.medium,
+    ...createSharedStyles(colors).cardBase,
     marginBottom: spacing.small,
-    ...shadows.md,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -355,6 +376,11 @@ const styles = StyleSheet.create({
   },
   roleListSpacing: {
     marginBottom: spacing.small,
+  },
+  roleHint: {
+    ...textStyles.caption,
+    textAlign: 'center',
+    marginTop: spacing.micro,
   },
 
   // Action buttons
