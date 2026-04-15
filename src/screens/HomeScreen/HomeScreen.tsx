@@ -17,6 +17,7 @@ import {
   isWolfRole,
 } from '@werewolf/game-engine/models/roles';
 import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -451,21 +452,28 @@ export const HomeScreen: React.FC = () => {
           testID={TESTIDS.homeCreateRoomButton}
           haptic
         >
-          <View style={styles.heroCardContent}>
-            <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
-            <Text style={styles.heroCardSubtitle}>开始一局新游戏</Text>
-          </View>
-          {isCreating ? (
-            <ActivityIndicator color={colors.primary} size="small" />
-          ) : (
-            <View style={styles.heroCardArrow}>
-              <Ionicons
-                name="chevron-forward"
-                size={componentSizes.icon.lg}
-                color={colors.textInverse}
-              />
+          <LinearGradient
+            colors={[colors.primaryLight, colors.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroCardGradient}
+          >
+            <View style={styles.heroCardContent}>
+              <Text style={styles.heroCardTitle}>{isCreating ? '创建中' : '创建房间'}</Text>
+              <Text style={styles.heroCardSubtitle}>开始一局新游戏</Text>
             </View>
-          )}
+            {isCreating ? (
+              <ActivityIndicator color={colors.textInverse} size="small" />
+            ) : (
+              <View style={styles.heroCardArrow}>
+                <Ionicons
+                  name="chevron-forward"
+                  size={componentSizes.icon.lg}
+                  color={colors.textInverse}
+                />
+              </View>
+            )}
+          </LinearGradient>
         </PressableScale>
 
         {/* ── Action Row — Enter Room + Return to Last Game ── */}

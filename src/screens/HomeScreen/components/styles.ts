@@ -34,8 +34,9 @@ export interface HomeScreenStyles {
   // User identity (login state, keep testIDs for E2E)
 
   userNameHidden: TextStyle;
-  // Hero Card (create room — primary accent)
+  // Hero Card (create room — primary gradient accent)
   heroCard: ViewStyle;
+  heroCardGradient: ViewStyle;
   heroCardContent: ViewStyle;
   heroCardTitle: TextStyle;
   heroCardSubtitle: TextStyle;
@@ -180,14 +181,19 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       height: 1,
       overflow: 'hidden',
     },
-    // ── Hero Card (surface bg + elevated shadow, unified with action cards) ──
+    // ── Hero Card (gradient bg via LinearGradient child) ──
     heroCard: {
-      ...shared.cardElevated,
-      flexDirection: 'row',
-      alignItems: 'center',
+      overflow: 'hidden',
+      borderRadius: borderRadius.large,
       marginHorizontal: spacing.screenH,
       marginTop: spacing.medium,
       marginBottom: spacing.large,
+      ...shadows.lg,
+    },
+    heroCardGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.medium,
     },
     heroCardContent: {
       flex: 1,
@@ -195,18 +201,18 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     heroCardTitle: {
       ...textStyles.titleBold,
-      color: colors.text,
+      color: colors.textInverse,
     },
     heroCardSubtitle: {
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
+      color: withAlpha(colors.textInverse, 0.8),
     },
     heroCardArrow: {
       width: componentSizes.button.md,
       height: componentSizes.button.md,
       borderRadius: borderRadius.large,
-      backgroundColor: colors.primary,
+      backgroundColor: withAlpha(colors.textInverse, 0.2),
       justifyContent: 'center',
       alignItems: 'center',
     },
