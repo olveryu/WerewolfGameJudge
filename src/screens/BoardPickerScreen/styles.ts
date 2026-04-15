@@ -304,6 +304,7 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
       backgroundColor: colors.transparent,
     },
     listContent: {
+      flexGrow: 1,
       paddingBottom: spacing.xxlarge + spacing.xlarge,
     },
     sectionHeader: {

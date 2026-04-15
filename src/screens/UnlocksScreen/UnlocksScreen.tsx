@@ -353,6 +353,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
+    flexGrow: 1,
     padding: spacing.screenH,
     paddingBottom: spacing.xxlarge,
   },

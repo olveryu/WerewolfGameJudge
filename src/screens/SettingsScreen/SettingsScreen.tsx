@@ -521,7 +521,10 @@ export const SettingsScreen: React.FC = () => {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={insets.bottom > 0 && { paddingBottom: insets.bottom }}
+        contentContainerStyle={[
+          styles.scrollContent,
+          insets.bottom > 0 && { paddingBottom: insets.bottom },
+        ]}
       >
         <View style={styles.card}>
           <Text style={styles.cardTitle}>

@@ -6,7 +6,7 @@
 
     <!-- PWA Meta Tags - 使用 light 主题颜色 -->
     <meta name="theme-color" content="#FFFFFF" />
-    <meta name="background-color" content="#F5F5F7" />
+    <meta name="background-color" content="#F0F0F5" />
     <meta name="description" content="本地/离线狼人杀游戏辅助工具，支持多人联机" />
 
     <!-- Open Graph / Social Sharing -->
@@ -62,6 +62,7 @@
       /* These styles disable body scrolling if you are using <ScrollView> */
       body {
         overflow: hidden;
+        background-color: #f0f0f5;
       }
       /* These styles make the root element full-height */
       #root {
@@ -81,7 +82,7 @@
         width: 100%;
         margin: 0;
         padding: 0;
-        background-color: #f5f5f7;
+        background-color: #f0f0f5;
         /* 防止双击缩放延迟，替代 user-scalable=no（保留无障碍缩放能力） */
         touch-action: manipulation;
       }
@@ -101,7 +102,7 @@
         height: 100%;
         height: 100dvh;
         height: calc(var(--vh, 1vh) * 100);
-        background-color: #f5f5f7;
+        background-color: #f0f0f5;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -327,7 +328,7 @@
 
       // 主题颜色映射（与 src/theme/themes.ts 保持同步）
       var THEMES = {
-        light: { background: '#F5F5F7', text: '#5C5C70', primary: '#5B5BD6', isDark: false },
+        light: { background: '#F0F0F5', text: '#5C5C70', primary: '#5B5BD6', isDark: false },
         dark: { background: '#121214', text: '#9898A8', primary: '#7C7CFF', isDark: true },
         jade: { background: '#F3F7F6', text: '#4A6060', primary: '#2A8A7A', isDark: false },
         sand: { background: '#F3EDE4', text: '#6D5D48', primary: '#886830', isDark: false },

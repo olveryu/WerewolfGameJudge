@@ -118,6 +118,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       backgroundColor: colors.transparent,
     },
     scrollContent: {
+      flexGrow: 1,
       padding: spacing.medium,
       // Extra bottom padding so content isn't hidden behind BottomActionPanel
       paddingBottom: spacing.xxlarge + spacing.xlarge,

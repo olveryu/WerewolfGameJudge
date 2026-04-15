@@ -196,6 +196,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     backgroundColor: colors.transparent,
   } satisfies ViewStyle,
   scrollContent: {
+    flexGrow: 1,
     paddingBottom: spacing.large,
   } satisfies ViewStyle,
 

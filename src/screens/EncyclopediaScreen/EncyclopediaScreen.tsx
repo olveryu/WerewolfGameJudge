@@ -613,6 +613,7 @@ function createStyles(colors: ThemeColors) {
       backgroundColor: colors.transparent,
     },
     listContent: {
+      flexGrow: 1,
       paddingBottom: spacing.xlarge,
     },
     gridRow: {

@@ -25,6 +25,7 @@ export interface SettingsScreenStyles {
   headerTitle: TextStyle;
   headerSpacer: ViewStyle;
   scrollView: ViewStyle;
+  scrollContent: ViewStyle;
   card: ViewStyle;
   cardTitle: TextStyle;
   accountRow: ViewStyle;
@@ -153,6 +154,9 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       flex: 1,
       padding: spacing.screenH,
       backgroundColor: colors.transparent,
+    },
+    scrollContent: {
+      flexGrow: 1,
     },
     card: {
       ...createSharedStyles(colors).cardBase,
