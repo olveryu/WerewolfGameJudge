@@ -59,6 +59,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       borderRadius: borderRadius.medium,
       borderWidth: fixed.borderWidth,
       borderColor: colors.primary,
+      backgroundColor: withAlpha(colors.primary, 0.06),
     },
     aiAnalysisBtnText: {
       fontSize: typography.secondary,
@@ -86,8 +87,8 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
     },
     publicInput: {
       flex: 1,
-      backgroundColor: colors.background,
-      borderWidth: fixed.borderWidth,
+      backgroundColor: colors.surface,
+      borderWidth: fixed.borderWidthThick,
       borderColor: colors.border,
       borderRadius: borderRadius.medium,
       paddingHorizontal: spacing.small,
@@ -96,6 +97,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       color: colors.text,
       minHeight: 80,
       maxHeight: 160,
+      ...shadows.sm,
     },
 
     // ── NotepadPanel styles (passed as NotepadStyles prop) ──
@@ -297,7 +299,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
     },
     noteInput: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: withAlpha(colors.background, 0.6),
       borderRadius: borderRadius.small,
       paddingHorizontal: spacing.small,
       paddingVertical: 0,
@@ -311,6 +313,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       paddingVertical: spacing.small,
       borderTopWidth: fixed.borderWidth,
       borderTopColor: colors.border,
+      backgroundColor: withAlpha(colors.surface, 0.5),
     },
     legendItem: {
       flexDirection: 'row',
