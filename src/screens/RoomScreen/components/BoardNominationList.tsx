@@ -24,6 +24,7 @@ import {
   borderRadius,
   colors,
   componentSizes,
+  shadows,
   spacing,
   textStyles,
   typography,
@@ -90,7 +91,7 @@ function NominationCard({
   }, [nomination.roles, onAdopt]);
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card }]}>
+    <View style={styles.card}>
       {/* Tappable header: author + compact stats + chevron */}
       <Pressable onPress={onToggle} style={styles.cardHeader}>
         <View style={styles.cardTitleGroup}>
@@ -313,9 +314,11 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    borderRadius: borderRadius.medium,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
     padding: spacing.medium,
     marginBottom: spacing.small,
+    ...shadows.md,
   },
   cardHeader: {
     flexDirection: 'row',
