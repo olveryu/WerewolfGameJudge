@@ -34,6 +34,7 @@ export const createAnimationSettingsStyles = (colors: ThemeColors): AnimationSet
     container: {
       flex: 1,
       backgroundColor: colors.transparent,
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
@@ -58,7 +59,7 @@ export const createAnimationSettingsStyles = (colors: ThemeColors): AnimationSet
     },
     scrollView: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     scrollContent: {
       padding: spacing.screenH,

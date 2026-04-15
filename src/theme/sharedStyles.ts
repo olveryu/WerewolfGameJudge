@@ -76,6 +76,7 @@ export function createSharedStyles(colors: ThemeColors): SharedStyles {
     screenContainer: {
       flex: 1,
       backgroundColor: colors.transparent,
+      overflow: 'hidden',
     },
 
     // ── Card ──────────────────────────────────────────────────────────────

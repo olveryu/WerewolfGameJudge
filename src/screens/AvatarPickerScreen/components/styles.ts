@@ -77,6 +77,7 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
     container: {
       flex: 1,
       backgroundColor: colors.transparent,
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
@@ -96,11 +97,12 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       textAlign: 'center',
     },
     headerSpacer: {
-      width: componentSizes.icon.lg,
+      width: componentSizes.avatar.md,
+      height: componentSizes.avatar.md,
     },
     content: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     // Picker grid
     pickerGrid: {

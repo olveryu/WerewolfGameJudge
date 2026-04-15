@@ -86,7 +86,6 @@ export interface SettingsScreenStyles {
   aboutRow: ViewStyle;
   aboutLabel: TextStyle;
   aboutValue: TextStyle;
-  bottomSpacer: ViewStyle;
 
   // Avatar preview strip (anonymous user teaser)
   avatarPreviewSection: ViewStyle;
@@ -153,7 +152,7 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     scrollView: {
       flex: 1,
       padding: spacing.screenH,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     card: {
       ...createSharedStyles(colors).cardBase,
@@ -318,9 +317,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
       color: colors.text,
-    },
-    bottomSpacer: {
-      height: spacing.xlarge,
     },
 
     // Avatar preview (anonymous user teaser in AvatarSection)

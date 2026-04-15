@@ -463,13 +463,14 @@ function createStyles(colors: ThemeColors) {
     container: {
       flex: 1,
       backgroundColor: colors.transparent,
+      overflow: 'hidden',
     },
     // Header
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: spacing.screenH,
-      paddingVertical: spacing.medium,
+      paddingVertical: layout.headerPaddingV,
       backgroundColor: colors.surface,
       borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
@@ -609,7 +610,7 @@ function createStyles(colors: ThemeColors) {
     // Section List
     listStyle: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     listContent: {
       paddingBottom: spacing.xlarge,

@@ -10,6 +10,7 @@ import {
   borderRadius,
   componentSizes,
   fixed,
+  layout,
   shadows,
   spacing,
   type ThemeColors,
@@ -23,32 +24,28 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
     screen: {
       flex: 1,
       backgroundColor: colors.transparent,
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
+      paddingHorizontal: spacing.screenH,
+      paddingVertical: layout.headerPaddingV,
       backgroundColor: colors.surface,
       borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
     },
     headerTitle: {
-      fontSize: typography.subtitle,
-      fontWeight: typography.weights.semibold,
+      flex: 1,
+      fontSize: layout.headerTitleSize,
+      lineHeight: layout.headerTitleLineHeight,
+      fontWeight: typography.weights.bold,
       color: colors.text,
+      textAlign: 'center',
     },
     headerButtons: {
       flexDirection: 'row',
       gap: spacing.small,
-    },
-    headerBtn: {
-      padding: spacing.tight,
-    },
-    headerBtnText: {
-      fontSize: typography.body,
-      color: colors.textSecondary,
     },
     aiAnalysisBtn: {
       flexDirection: 'row',
@@ -106,7 +103,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
     },
     list: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     listContent: {
       padding: spacing.tight,

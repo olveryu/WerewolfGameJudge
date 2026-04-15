@@ -103,7 +103,7 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: spacing.screenH,
-      paddingVertical: spacing.medium,
+      paddingVertical: layout.headerPaddingV,
       backgroundColor: colors.surface,
       borderBottomWidth: fixed.borderWidth,
       borderBottomColor: colors.border,
@@ -301,7 +301,7 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
     // ── SectionList ───────────────────────────────
     listStyle: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     listContent: {
       paddingBottom: spacing.xxlarge + spacing.xlarge,

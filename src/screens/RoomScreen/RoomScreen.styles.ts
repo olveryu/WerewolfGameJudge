@@ -90,11 +90,6 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       overflow: 'hidden',
       zIndex: 1,
     },
-    backButtonText: {
-      color: colors.text,
-      fontSize: typography.title,
-      lineHeight: typography.lineHeights.title,
-    },
     headerCenter: {
       ...StyleSheet.absoluteFillObject,
       justifyContent: 'center',

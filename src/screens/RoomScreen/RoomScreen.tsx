@@ -337,21 +337,20 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       >
         <BlurView intensity={60} tint="default" style={StyleSheet.absoluteFill} />
         <View style={styles.headerLeft}>
-          <TouchableOpacity
+          <Button
+            variant="icon"
             onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}
             style={styles.backButton}
             testID={TESTIDS.roomBackButton}
           >
-            <Text style={styles.backButtonText}>
-              <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-            </Text>
-          </TouchableOpacity>
+            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
+          </Button>
           {/* BGM Toggle — all players, ended phase only, right of back button */}
           {roomStatus === GameStatus.Ended && !isAudioPlaying && (
-            <TouchableOpacity
+            <Button
+              variant="icon"
               onPress={isBgmPlaying ? stopBgm : playBgm}
               style={styles.backButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               testID={TESTIDS.bgmToggleButton}
             >
               <Ionicons
@@ -359,7 +358,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 size={componentSizes.icon.md}
                 color={isBgmPlaying ? colors.primary : colors.text}
               />
-            </TouchableOpacity>
+            </Button>
           )}
         </View>
         <View style={styles.headerCenter}>
@@ -369,14 +368,14 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
         {/* Header right: encyclopedia + host menu */}
         <View style={styles.headerRight}>
-          <TouchableOpacity
+          <Button
+            variant="icon"
             onPress={handleEncyclopedia}
             style={styles.backButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             testID={TESTIDS.roomEncyclopediaButton}
           >
             <Ionicons name="book-outline" size={componentSizes.icon.md} color={colors.text} />
-          </TouchableOpacity>
+          </Button>
           <HeaderActions
             visible
             user={user}

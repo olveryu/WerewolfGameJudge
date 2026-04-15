@@ -214,7 +214,10 @@ export const UnlocksScreen: React.FC = () => {
           keyExtractor={keyExtractor}
           numColumns={NUM_COLUMNS}
           ListHeaderComponent={listHeader}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            insets.bottom > 0 && { paddingBottom: spacing.xxlarge + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
           initialNumToRender={12}
           maxToRenderPerBatch={8}
@@ -321,6 +324,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.transparent,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',

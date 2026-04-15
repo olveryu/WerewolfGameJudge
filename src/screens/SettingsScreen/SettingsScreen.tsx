@@ -518,7 +518,11 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={insets.bottom > 0 && { paddingBottom: insets.bottom }}
+      >
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
             <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户
@@ -528,8 +532,6 @@ export const SettingsScreen: React.FC = () => {
         </View>
 
         <AboutSection styles={styles} />
-
-        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );

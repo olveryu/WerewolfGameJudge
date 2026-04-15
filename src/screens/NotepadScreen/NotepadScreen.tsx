@@ -17,13 +17,14 @@ import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { buildNotepadSummary } from '@/components/AIChatBubble/notepadSummary';
+import { Button } from '@/components/Button';
 import { NotepadPanel } from '@/components/NotepadPanel';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useGameFacade } from '@/contexts';
 import { useNotepad } from '@/hooks/useNotepad';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
-import { colors, fixed, spacing, typography } from '@/theme';
+import { colors, componentSizes, fixed, layout, typography } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -142,11 +143,11 @@ export const NotepadScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right']}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + spacing.small }]}>
-        <Text style={styles.headerTitle}>
-          <Ionicons name={UI_ICONS.NOTE} size={typography.subtitle} />
-          {' 笔记'}
-        </Text>
+      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
+        <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
+          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
+        </Button>
+        <Text style={styles.headerTitle}>笔记</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             onPress={handleAIAnalysis}
@@ -160,20 +161,9 @@ export const NotepadScreen: React.FC = () => {
             />
             <Text style={styles.aiAnalysisBtnText}>AI分析</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={notepad.clearAll}
-            style={styles.headerBtn}
-            activeOpacity={fixed.activeOpacity}
-          >
-            <Ionicons name={UI_ICONS.DELETE} size={typography.body} style={styles.headerBtnText} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleGoBack}
-            style={styles.headerBtn}
-            activeOpacity={fixed.activeOpacity}
-          >
-            <Ionicons name="close" size={typography.body} style={styles.headerBtnText} />
-          </TouchableOpacity>
+          <Button variant="icon" onPress={notepad.clearAll} accessibilityLabel="清除笔记">
+            <Ionicons name={UI_ICONS.DELETE} size={componentSizes.icon.md} color={colors.text} />
+          </Button>
         </View>
       </View>
 

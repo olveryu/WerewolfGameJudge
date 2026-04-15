@@ -49,6 +49,7 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
     container: {
       flex: 1,
       backgroundColor: colors.transparent,
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
@@ -73,7 +74,7 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
     },
     scrollView: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.transparent,
     },
     scrollContent: {
       padding: spacing.screenH,
