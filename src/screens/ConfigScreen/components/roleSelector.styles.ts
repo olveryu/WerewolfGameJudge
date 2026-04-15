@@ -27,6 +27,9 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     color: colors.text,
     marginBottom: spacing.small,
     paddingHorizontal: layout.cardPadding,
+    paddingLeft: layout.cardPadding + spacing.small,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
   } satisfies TextStyle,
   sectionCard: {
     paddingHorizontal: layout.cardPadding,
@@ -131,8 +134,11 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     fontSize: typography.body,
     lineHeight: typography.lineHeights.body,
     fontWeight: typography.weights.bold,
-    color: colors.text,
+    color: colors.primary,
     minWidth: spacing.large,
     textAlign: 'center',
+    backgroundColor: withAlpha(colors.primary, 0.08),
+    borderRadius: borderRadius.small,
+    paddingHorizontal: spacing.tight,
   } satisfies TextStyle,
 });

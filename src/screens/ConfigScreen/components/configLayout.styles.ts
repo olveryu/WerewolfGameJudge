@@ -128,6 +128,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     borderColor: colors.border,
     paddingHorizontal: componentSizes.chip.paddingH,
     paddingVertical: componentSizes.chip.paddingV,
+    ...shadows.sm,
   } satisfies ViewStyle,
   templatePillText: {
     fontSize: typography.subtitle,
