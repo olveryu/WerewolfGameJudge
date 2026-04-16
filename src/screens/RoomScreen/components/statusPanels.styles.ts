@@ -33,14 +33,14 @@ export function createStatusPanelStyles(colors: ThemeColors): {
   return {
     bottomActionPanel: StyleSheet.create<BottomActionPanelStyles>({
       container: {
-        backgroundColor: withAlpha(colors.surface, 0.92),
+        backgroundColor: colors.surface,
         borderTopLeftRadius: borderRadius.large,
         borderTopRightRadius: borderRadius.large,
         paddingTop: spacing.medium + spacing.tight,
         paddingHorizontal: spacing.medium,
         paddingBottom: spacing.medium,
         borderTopWidth: fixed.borderWidthThick,
-        borderTopColor: withAlpha(colors.primary, 0.3),
+        borderTopColor: colors.border,
         overflow: 'hidden',
         ...shadows.lgUpward,
       },

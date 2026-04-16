@@ -311,7 +311,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       paddingVertical: spacing.small,
       borderTopWidth: fixed.borderWidth,
       borderTopColor: colors.border,
-      backgroundColor: withAlpha(colors.surface, 0.5),
+      backgroundColor: colors.surface,
     },
     legendItem: {
       flexDirection: 'row',

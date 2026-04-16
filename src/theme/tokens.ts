@@ -467,13 +467,13 @@ export function crossPlatformTextShadow(
  */
 export const shadows = {
   none: {} as ViewStyle,
-  sm: { boxShadow: '0px 2px 8px rgba(108,92,231,0.10)' } as ViewStyle,
-  md: { boxShadow: '0px 4px 16px rgba(108,92,231,0.13)' } as ViewStyle,
-  lg: { boxShadow: '0px 8px 32px rgba(108,92,231,0.18)' } as ViewStyle,
+  sm: { boxShadow: '0px 1px 3px rgba(0,0,0,0.06)' } as ViewStyle,
+  md: { boxShadow: '0px 2px 8px rgba(0,0,0,0.08)' } as ViewStyle,
+  lg: { boxShadow: '0px 4px 16px rgba(0,0,0,0.10)' } as ViewStyle,
   /** Upward shadow for bottom panels */
-  upward: { boxShadow: '0px -4px 16px rgba(108,92,231,0.13)' } as ViewStyle,
+  upward: { boxShadow: '0px -1px 8px rgba(0,0,0,0.06)' } as ViewStyle,
   /** Strong upward shadow for primary bottom action panels */
-  lgUpward: { boxShadow: '0px -8px 24px rgba(108,92,231,0.18)' } as ViewStyle,
+  lgUpward: { boxShadow: '0px -2px 12px rgba(0,0,0,0.08)' } as ViewStyle,
 } as const;
 
 // ============================================================================

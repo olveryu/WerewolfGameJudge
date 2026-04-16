@@ -25,10 +25,10 @@ export function createBoardInfoStyles(colors: ThemeColors): {
     boardInfoCard: StyleSheet.create<BoardInfoCardStyles>({
       boardInfoContainer: {
         ...createSharedStyles(colors).cardBase,
-        backgroundColor: withAlpha(colors.surface, 0.8),
+        backgroundColor: colors.surface,
         marginBottom: spacing.medium,
         borderTopWidth: fixed.borderWidthHighlight,
-        borderTopColor: withAlpha(colors.primary, 0.25),
+        borderTopColor: colors.border,
         ...shadows.sm,
       },
       headerRow: {

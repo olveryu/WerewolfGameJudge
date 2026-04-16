@@ -18,7 +18,6 @@ import {
   textStyles,
   type ThemeColors,
   typography,
-  withAlpha,
 } from '@/theme';
 
 export function createRoomScreenStyles(colors: ThemeColors) {
@@ -79,9 +78,9 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       justifyContent: 'space-between',
       paddingHorizontal: spacing.screenH,
       paddingVertical: layout.headerPaddingV,
-      backgroundColor: withAlpha(colors.surface, 0.85),
+      backgroundColor: colors.surface,
       borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: withAlpha(colors.primary, 0.15),
+      borderBottomColor: colors.border,
       overflow: 'hidden',
     },
     backButton: {

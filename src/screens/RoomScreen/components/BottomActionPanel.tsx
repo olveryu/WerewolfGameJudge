@@ -5,9 +5,9 @@
  * 接收 BottomLayout（声明式配置驱动），渲染 message + 三层按钮。
  * 纯展示组件，不 import service，不包含业务逻辑判断。
  */
-import { BlurView } from 'expo-blur';
+
 import React, { memo, useEffect, useMemo, useRef } from 'react';
-import { Animated, Platform, StyleSheet, View } from 'react-native';
+import { Animated, Platform, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
@@ -34,13 +34,6 @@ interface BottomActionPanelProps {
   /** Safe area bottom inset — applied as paddingBottom when > styles.container.paddingBottom */
   bottomInset?: number;
 }
-
-const localStyles = StyleSheet.create({
-  blur: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-});
 
 const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
   message,
@@ -88,17 +81,6 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
 
   return (
     <View style={containerStyle} testID={TESTIDS.bottomActionPanel}>
-      <BlurView
-        intensity={60}
-        tint="light"
-        style={[
-          localStyles.blur,
-          {
-            borderTopLeftRadius: styles.container.borderTopLeftRadius,
-            borderTopRightRadius: styles.container.borderTopRightRadius,
-          },
-        ]}
-      />
       {/* Action Message — fades in + slides up on change */}
       {showMessage && message ? (
         <Animated.Text

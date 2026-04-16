@@ -13,9 +13,7 @@ import {
   NavigationContainer,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
 
 import { SITE_URL } from '@/config/api';
 import { AnimationSettingsScreen } from '@/screens/AnimationSettingsScreen/AnimationSettingsScreen';
@@ -36,15 +34,10 @@ import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 import { UnlocksScreen } from '@/screens/UnlocksScreen/UnlocksScreen';
 import { colors } from '@/theme';
-import { withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { navigationRef } from './navigationRef';
 import { RootStackParamList } from './types';
-
-const GRADIENT_COLORS = [colors.background, withAlpha(colors.primary, 0.06)] as const;
-const GRADIENT_START = { x: 0.5, y: 0 } as const;
-const GRADIENT_END = { x: 0.5, y: 1 } as const;
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -169,20 +162,9 @@ export const AppNavigator: React.FC = () => {
     <NavigationContainer linking={linking} ref={navigationRef}>
       <Stack.Navigator
         initialRouteName="Home"
-        screenLayout={({ children }) => (
-          <View style={StyleSheet.absoluteFill}>
-            <LinearGradient
-              colors={GRADIENT_COLORS}
-              start={GRADIENT_START}
-              end={GRADIENT_END}
-              style={StyleSheet.absoluteFill}
-            />
-            {children}
-          </View>
-        )}
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.transparent },
+          contentStyle: { backgroundColor: colors.background },
           animation: 'default',
         }}
       >

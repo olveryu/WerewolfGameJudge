@@ -53,9 +53,9 @@ export const colors: ThemeColors = {
   primaryLight: '#A29BFE',
   primaryDark: '#5241C4',
 
-  background: '#F0F0F5',
+  background: '#F2F2F7',
   surface: '#FFFFFF',
-  surfaceHover: '#EAEAF2',
+  surfaceHover: '#E5E5EA',
   card: '#FFFFFF',
 
   text: '#1A1A2E',
@@ -63,8 +63,8 @@ export const colors: ThemeColors = {
   textMuted: '#8E8EA0',
   textInverse: '#FFFFFF',
 
-  border: '#E2E0EC',
-  borderLight: '#EEECF5',
+  border: '#D1D1D6',
+  borderLight: '#E5E5EA',
 
   success: '#1A9A4A',
   warning: '#B87D08',

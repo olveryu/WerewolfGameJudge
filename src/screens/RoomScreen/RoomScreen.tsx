@@ -11,9 +11,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { BlurView } from 'expo-blur';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
@@ -402,7 +401,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}
         testID={TESTIDS.roomHeader}
       >
-        <BlurView intensity={60} tint="default" style={StyleSheet.absoluteFill} />
         <View style={styles.headerLeft}>
           <Button
             variant="icon"

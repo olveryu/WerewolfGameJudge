@@ -57,9 +57,9 @@ describe('createSharedStyles', () => {
     expect(styles.sheetOverlay.backgroundColor).toBe(colors.overlayLight);
   });
 
-  // ── Background is transparent (gradient provided by navigator screenLayout) ──
-  it('uses transparent background for screenContainer', () => {
-    expect(styles.screenContainer.backgroundColor).toBe(colors.transparent);
+  // ── Background uses colors.background (plain white, no gradient) ──
+  it('uses background color for screenContainer', () => {
+    expect(styles.screenContainer.backgroundColor).toBe(colors.background);
   });
 
   // ── iconButton backward compat ────────────────────────────────────────
