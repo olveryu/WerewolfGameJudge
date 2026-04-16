@@ -22,6 +22,21 @@ import { type ThemeColors } from './colors';
 import { borderRadius } from './tokens';
 import { componentSizes, fixed, shadows, spacing, textStyles } from './tokens';
 
+/**
+ * SafeAreaView edges — horizontal only, top/bottom explicitly off.
+ *
+ * Array form `['left','right']` has a bug in react-native-safe-area-context web:
+ * missing keys (top/bottom) fall through to the `default` branch in `getEdgeValue`,
+ * which is `'additive'` — so safe-area-inset-bottom still gets applied.
+ * Record form with `'off'` avoids this.
+ */
+export const HORIZONTAL_EDGES = {
+  top: 'off',
+  bottom: 'off',
+  left: 'additive',
+  right: 'additive',
+} as const;
+
 export interface SharedStyles {
   // ── Layout ──────────────────────────────────────────────────────────────
   /** Full-screen root container */

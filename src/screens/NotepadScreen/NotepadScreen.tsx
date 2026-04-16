@@ -24,7 +24,7 @@ import { useGameFacade } from '@/contexts';
 import { useNotepad } from '@/hooks/useNotepad';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
-import { colors, componentSizes, fixed, layout, typography } from '@/theme';
+import { colors, componentSizes, fixed, HORIZONTAL_EDGES, layout, typography } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -141,7 +141,7 @@ export const NotepadScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right']}>
+    <SafeAreaView style={styles.screen} edges={HORIZONTAL_EDGES}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">

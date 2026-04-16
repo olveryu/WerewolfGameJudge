@@ -49,7 +49,16 @@ import {
 } from '@/screens/ConfigScreen/configHelpers';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, fixed, layout, spacing, typography, withAlpha } from '@/theme';
+import {
+  colors,
+  componentSizes,
+  fixed,
+  HORIZONTAL_EDGES,
+  layout,
+  spacing,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 
 import { type BoardPickerStyles, createBoardPickerStyles } from './styles';
@@ -456,7 +465,7 @@ export const BoardPickerScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['left', 'right']}
+      edges={HORIZONTAL_EDGES}
       testID={TESTIDS.boardPickerScreenRoot}
     >
       {/* Header */}

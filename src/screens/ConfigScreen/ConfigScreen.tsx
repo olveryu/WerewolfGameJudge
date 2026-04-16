@@ -22,7 +22,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, layout } from '@/theme';
+import { colors, componentSizes, HORIZONTAL_EDGES, layout } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 
 import {
@@ -99,7 +99,7 @@ export const ConfigScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['left', 'right']}
+      edges={HORIZONTAL_EDGES}
       testID={TESTIDS.configScreenRoot}
     >
       {/* Header row — ← | 预女猎白 12人 | ⋯ */}

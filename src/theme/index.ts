@@ -40,4 +40,4 @@ export {
 export { withAlpha } from './colorUtils';
 
 // Shared style bases
-export { createSharedStyles } from './sharedStyles';
+export { createSharedStyles, HORIZONTAL_EDGES } from './sharedStyles';

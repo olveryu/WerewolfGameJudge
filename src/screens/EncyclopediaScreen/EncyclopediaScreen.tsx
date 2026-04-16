@@ -39,6 +39,7 @@ import {
   componentSizes,
   createSharedStyles,
   fixed,
+  HORIZONTAL_EDGES,
   layout,
   shadows,
   spacing,
@@ -297,7 +298,7 @@ export const EncyclopediaScreen: React.FC = () => {
   return (
     <SafeAreaView
       style={styles.container}
-      edges={['left', 'right']}
+      edges={HORIZONTAL_EDGES}
       testID={TESTIDS.encyclopediaScreenRoot}
     >
       {/* Header */}
