@@ -26,7 +26,7 @@ import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, HORIZONTAL_EDGES, layout, spacing } from '@/theme';
+import { colors, componentSizes, layout, spacing } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -325,7 +325,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={HORIZONTAL_EDGES} testID={TESTIDS.roomScreenRoot}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['left', 'right']}
+      testID={TESTIDS.roomScreenRoot}
+    >
       {/* Header */}
       <View
         style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}

@@ -38,14 +38,7 @@ import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { RootStackParamList } from '@/navigation/types';
-import {
-  borderRadius as borderRadiusToken,
-  colors,
-  componentSizes,
-  fixed,
-  HORIZONTAL_EDGES,
-  layout,
-} from '@/theme';
+import { borderRadius as borderRadiusToken, colors, componentSizes, fixed, layout } from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import {
@@ -507,7 +500,7 @@ export const AvatarPickerScreen: React.FC = () => {
   // ── Render sections ──
 
   return (
-    <SafeAreaView style={styles.container} edges={HORIZONTAL_EDGES}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack}>

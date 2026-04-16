@@ -20,15 +20,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
 import { BGM_TRACKS } from '@/services/infra/audio/audioRegistry';
-import {
-  colors,
-  componentSizes,
-  fixed,
-  HORIZONTAL_EDGES,
-  layout,
-  spacing,
-  withAlpha,
-} from '@/theme';
+import { colors, componentSizes, fixed, layout, spacing, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { NowPlayingBar, TrackRow, VolumeSlider } from './components';
@@ -213,7 +205,7 @@ export const MusicSettingsScreen: React.FC = () => {
   }, [previewingTrack]);
 
   return (
-    <SafeAreaView style={styles.container} edges={HORIZONTAL_EDGES}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack} testID="music-settings-back">
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />

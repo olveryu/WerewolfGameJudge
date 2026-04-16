@@ -34,7 +34,7 @@ import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { storage } from '@/lib/storage';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, HORIZONTAL_EDGES, layout } from '@/theme';
+import { colors, componentSizes, layout } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 import { homeLog } from '@/utils/logger';
@@ -389,7 +389,11 @@ export const HomeScreen: React.FC = () => {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={HORIZONTAL_EDGES} testID={TESTIDS.homeScreenRoot}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['left', 'right']}
+      testID={TESTIDS.homeScreenRoot}
+    >
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[

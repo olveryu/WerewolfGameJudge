@@ -41,7 +41,6 @@ import {
   colors,
   componentSizes,
   fixed,
-  HORIZONTAL_EDGES,
   layout,
   shadows,
   spacing,
@@ -193,7 +192,7 @@ export const UnlocksScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={HORIZONTAL_EDGES}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
