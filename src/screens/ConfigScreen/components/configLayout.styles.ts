@@ -16,7 +16,6 @@ import {
   spacing,
   type ThemeColors,
   typography,
-  withAlpha,
 } from '@/theme';
 
 export const createConfigLayoutStyles = (colors: ThemeColors) => ({
@@ -162,9 +161,9 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   bottomCreateBar: {
     paddingHorizontal: layout.screenPaddingH,
     paddingVertical: spacing.medium,
-    backgroundColor: colors.background,
-    borderTopWidth: fixed.borderWidthThick,
-    borderTopColor: withAlpha(colors.primary, 0.15),
+    backgroundColor: colors.surface,
+    borderTopWidth: fixed.borderWidth,
+    borderTopColor: colors.border,
     ...shadows.lgUpward,
   } satisfies ViewStyle,
 

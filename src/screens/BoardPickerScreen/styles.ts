@@ -446,7 +446,8 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
       paddingHorizontal: layout.screenPaddingH,
       paddingVertical: spacing.medium,
       backgroundColor: colors.surface,
-      ...shadows.upward,
+      borderTopWidth: fixed.borderWidth,
+      borderTopColor: colors.border,
     },
     customButtonRow: {
       flexDirection: 'row',

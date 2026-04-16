@@ -34,12 +34,12 @@ export function createStatusPanelStyles(colors: ThemeColors): {
     bottomActionPanel: StyleSheet.create<BottomActionPanelStyles>({
       container: {
         backgroundColor: colors.surface,
-        borderTopLeftRadius: borderRadius.large,
-        borderTopRightRadius: borderRadius.large,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
         paddingTop: spacing.medium + spacing.tight,
         paddingHorizontal: spacing.medium,
         paddingBottom: spacing.medium,
-        borderTopWidth: fixed.borderWidthThick,
+        borderTopWidth: fixed.borderWidth,
         borderTopColor: colors.border,
         overflow: 'hidden',
         ...shadows.lgUpward,
