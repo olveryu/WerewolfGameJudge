@@ -53,17 +53,16 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         paddingHorizontal: spacing.small,
       },
       buttonRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
+        flexDirection: 'column',
+        alignItems: 'stretch',
         gap: spacing.small,
       },
-      secondaryRow: {
-        width: '100%',
+      ghostRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         justifyContent: 'center',
-        gap: spacing.small + spacing.tight,
+        alignItems: 'center',
+        gap: spacing.medium,
+        paddingTop: spacing.tight,
       },
     }),
 

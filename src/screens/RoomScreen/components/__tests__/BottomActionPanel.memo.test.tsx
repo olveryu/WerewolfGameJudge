@@ -6,23 +6,25 @@
  * 1. Same message + showMessage ⇒ no re-render
  * 2. message text changes ⇒ re-render
  * 3. showMessage toggles ⇒ re-render
- * 4. children reference changes ⇒ re-render (expected: children always new)
+ * 4. layout reference changes ⇒ re-render
  */
 import { render } from '@testing-library/react-native';
 import React from 'react';
-import { Text } from 'react-native';
 
 import { BottomActionPanel } from '@/screens/RoomScreen/components/BottomActionPanel';
 import {
   type BottomActionPanelStyles,
   createRoomScreenComponentStyles,
 } from '@/screens/RoomScreen/components/styles';
+import type { BottomLayout } from '@/screens/RoomScreen/hooks/bottomLayoutConfig';
 import { colors } from '@/theme';
 
 // ─── Setup ──────────────────────────────────────────────────────────────────────────
 
 const componentStyles = createRoomScreenComponentStyles(colors);
 const panelStyles: BottomActionPanelStyles = componentStyles.bottomActionPanel;
+
+const NOOP = () => {};
 
 let renderCount = 0;
 
@@ -34,15 +36,23 @@ let renderCount = 0;
 const TrackedPanel: React.FC<{
   message?: string;
   showMessage?: boolean;
-  children: React.ReactNode;
+  layout: BottomLayout;
   styles: BottomActionPanelStyles;
 }> = (props) => {
   renderCount++;
-  return <BottomActionPanel {...props} />;
+  return <BottomActionPanel {...props} onSchemaButtonPress={NOOP} onStaticButtonPress={NOOP} />;
 };
 
-// Static child element (same reference across rerenders)
-const StaticChild = <Text key="btn">Action</Text>;
+// Static layout with one primary button
+const STATIC_LAYOUT: BottomLayout = {
+  primary: [
+    { key: 'viewRole', label: '查看身份', variant: 'primary', size: 'lg', action: 'viewRole' },
+  ],
+  secondary: [],
+  ghost: [],
+};
+
+const EMPTY_LAYOUT: BottomLayout = { primary: [], secondary: [], ghost: [] };
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
@@ -53,9 +63,12 @@ beforeEach(() => {
 describe('BottomActionPanel memo optimization', () => {
   it('should render once on initial mount', () => {
     render(
-      <TrackedPanel message="请选择目标" showMessage={true} styles={panelStyles}>
-        {StaticChild}
-      </TrackedPanel>,
+      <TrackedPanel
+        message="请选择目标"
+        showMessage={true}
+        layout={STATIC_LAYOUT}
+        styles={panelStyles}
+      />,
     );
 
     expect(renderCount).toBe(1);
@@ -63,65 +76,97 @@ describe('BottomActionPanel memo optimization', () => {
 
   it('should re-render when message text changes', () => {
     const { rerender } = render(
-      <TrackedPanel message="请选择目标" showMessage={true} styles={panelStyles}>
-        {StaticChild}
-      </TrackedPanel>,
+      <TrackedPanel
+        message="请选择目标"
+        showMessage={true}
+        layout={STATIC_LAYOUT}
+        styles={panelStyles}
+      />,
     );
     expect(renderCount).toBe(1);
 
     rerender(
-      <TrackedPanel message="请确认行动" showMessage={true} styles={panelStyles}>
-        {StaticChild}
-      </TrackedPanel>,
+      <TrackedPanel
+        message="请确认行动"
+        showMessage={true}
+        layout={STATIC_LAYOUT}
+        styles={panelStyles}
+      />,
     );
     expect(renderCount).toBe(2);
   });
 
   it('should re-render when showMessage toggles', () => {
     const { rerender } = render(
-      <TrackedPanel message="请选择目标" showMessage={false} styles={panelStyles}>
-        {StaticChild}
-      </TrackedPanel>,
+      <TrackedPanel
+        message="请选择目标"
+        showMessage={false}
+        layout={STATIC_LAYOUT}
+        styles={panelStyles}
+      />,
     );
     expect(renderCount).toBe(1);
 
     rerender(
-      <TrackedPanel message="请选择目标" showMessage={true} styles={panelStyles}>
-        {StaticChild}
-      </TrackedPanel>,
+      <TrackedPanel
+        message="请选择目标"
+        showMessage={true}
+        layout={STATIC_LAYOUT}
+        styles={panelStyles}
+      />,
     );
     expect(renderCount).toBe(2);
   });
 
-  it('should re-render when children reference changes', () => {
+  it('should re-render when layout reference changes', () => {
     const { rerender } = render(
-      <TrackedPanel message="请选择目标" showMessage={true} styles={panelStyles}>
-        {StaticChild}
-      </TrackedPanel>,
+      <TrackedPanel
+        message="请选择目标"
+        showMessage={true}
+        layout={STATIC_LAYOUT}
+        styles={panelStyles}
+      />,
     );
     expect(renderCount).toBe(1);
 
-    // New children reference (typical in real usage — parent rebuilds JSX)
-    const newChild = <Text key="btn">New Action</Text>;
+    // New layout reference
+    const newLayout: BottomLayout = {
+      primary: [
+        {
+          key: 'startGame',
+          label: '开始游戏',
+          variant: 'primary',
+          size: 'lg',
+          action: 'startGame',
+        },
+      ],
+      secondary: [],
+      ghost: [],
+    };
     rerender(
-      <TrackedPanel message="请选择目标" showMessage={true} styles={panelStyles}>
-        {newChild}
-      </TrackedPanel>,
+      <TrackedPanel
+        message="请选择目标"
+        showMessage={true}
+        layout={newLayout}
+        styles={panelStyles}
+      />,
     );
-    // TrackedPanel wrapper always re-renders, so count increments.
-    // The key insight: BottomActionPanel's memo cannot prevent re-render
-    // when children is a new JSX element (always a new reference).
     expect(renderCount).toBe(2);
   });
 
-  it('should not render when there are no children and showMessage is false', () => {
+  it('should not render when layout is empty and showMessage is false', () => {
     const { queryByTestId } = render(
-      <BottomActionPanel message="" showMessage={false} styles={panelStyles}>
-        {null}
-      </BottomActionPanel>,
+      <BottomActionPanel
+        message=""
+        showMessage={false}
+        layout={EMPTY_LAYOUT}
+        styles={panelStyles}
+        onSchemaButtonPress={NOOP}
+        onStaticButtonPress={NOOP}
+      />,
     );
 
-    // BottomActionPanel returns null when hasButtons=false && !showMessage
+    // BottomActionPanel returns null when all tiers empty && !showMessage
     expect(queryByTestId('bottomActionPanel')).toBeNull();
   });
 

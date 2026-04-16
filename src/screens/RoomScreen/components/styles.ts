@@ -37,7 +37,7 @@ export interface BottomActionPanelStyles {
   container: ViewStyle;
   message: TextStyle;
   buttonRow: ViewStyle;
-  secondaryRow: ViewStyle;
+  ghostRow: ViewStyle;
 }
 
 export interface ConnectionStatusBarStyles {

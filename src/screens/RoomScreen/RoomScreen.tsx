@@ -39,7 +39,6 @@ import { BottomActionPanel } from './components/BottomActionPanel';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HeaderActions } from './components/HeaderActions';
-import { HostControlButtons } from './components/HostControlButtons';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { PlayerGrid } from './components/PlayerGrid';
@@ -50,7 +49,10 @@ import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import { StatusRibbon } from './components/StatusRibbon';
 import { createRoomScreenComponentStyles } from './components/styles';
+import type { LayoutContext, StaticButtonId } from './hooks/bottomLayoutConfig';
+import { useBottomLayout } from './hooks/useBottomLayout';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
+import type { ActionIntent } from './policy/types';
 import { createRoomScreenStyles } from './RoomScreen.styles';
 import { shareQRCodeImage } from './shareQRCode';
 import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
@@ -266,6 +268,71 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       setNominationModalVisible(false);
     }
   }, [showNominations]);
+
+  // ─── Bottom panel layout ───────────────────────────────────────────────
+  const layoutCtx: LayoutContext = useMemo(
+    () => ({
+      roomStatus,
+      isHost,
+      effectiveSeat,
+      imActioner,
+      isAudioPlaying,
+      isStartingGame,
+      isHostActionSubmitting,
+      nightReviewAllowedSeats: gameState?.nightReviewAllowedSeats ?? [],
+    }),
+    [
+      roomStatus,
+      isHost,
+      effectiveSeat,
+      imActioner,
+      isAudioPlaying,
+      isStartingGame,
+      isHostActionSubmitting,
+      gameState?.nightReviewAllowedSeats,
+    ],
+  );
+  const schemaVM = getBottomAction();
+  const bottomLayout = useBottomLayout({ ctx: layoutCtx, schemaVM });
+
+  const handleSchemaButtonPress = useCallback(
+    (intent: ActionIntent) => {
+      dispatchInteraction({ kind: 'BOTTOM_ACTION', intent });
+    },
+    [dispatchInteraction],
+  );
+
+  const handleStaticButtonPress = useCallback(
+    (action: StaticButtonId) => {
+      switch (action) {
+        case 'viewRole':
+          dispatchInteraction({ kind: 'VIEW_ROLE' });
+          break;
+        case 'waitForHost':
+          toast.info('等待房主开始分配角色');
+          break;
+        case 'settings':
+          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' });
+          break;
+        case 'prepareToFlip':
+          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' });
+          break;
+        case 'startGame':
+          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' });
+          break;
+        case 'restart':
+          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' });
+          break;
+        case 'lastNightInfo':
+          showLastNightInfo();
+          break;
+        case 'nightReview':
+          openNightReview();
+          break;
+      }
+    },
+    [dispatchInteraction, showLastNightInfo, openNightReview],
+  );
 
   // ─── Auto-show QR invite card after room creation ─────────────────────
   useEffect(() => {
@@ -510,121 +577,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       </ScrollView>
 
-      {/* Bottom Action Panel - floating card with message + buttons */}
+      {/* Bottom Action Panel - floating card with three-tier layout */}
       <BottomActionPanel
         message={actionMessage}
         showMessage={!isAudioPlaying && (imActioner || roomStatus === GameStatus.Ended)}
+        layout={bottomLayout}
+        onSchemaButtonPress={handleSchemaButtonPress}
+        onStaticButtonPress={handleStaticButtonPress}
         styles={componentStyles.bottomActionPanel}
         bottomInset={insets.bottom}
-      >
-        {/* Actioner: schema-driven bottom action buttons */}
-        {(() => {
-          const bottom = getBottomAction();
-          if (!bottom.buttons.length) return null;
-          return bottom.buttons.map((b) => (
-            <Button
-              key={b.key}
-              variant="primary"
-              onPress={() => {
-                dispatchInteraction({ kind: 'BOTTOM_ACTION', intent: b.intent });
-              }}
-            >
-              {b.label}
-            </Button>
-          ));
-        })()}
-
-        {/* View Role Card */}
-        {/* P0-FIX: 使用 effectiveSeat 支持接管模式（Host 无 seat 但接管 bot 时也能查看身份） */}
-        {(roomStatus === GameStatus.Assigned ||
-          roomStatus === GameStatus.Ready ||
-          roomStatus === GameStatus.Ongoing ||
-          roomStatus === GameStatus.Ended) &&
-          effectiveSeat !== null && (
-            <Button variant="primary" onPress={() => dispatchInteraction({ kind: 'VIEW_ROLE' })}>
-              查看身份
-            </Button>
-          )}
-        {/* Greyed View Role (waiting for host) */}
-        {(roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
-          effectiveSeat !== null && (
-            <Button
-              variant="primary"
-              disabled
-              fireWhenDisabled
-              onPress={(meta: { disabled: boolean }) => {
-                // Policy decision: disabled button shows alert
-                if (meta.disabled) {
-                  toast.info('等待房主开始分配角色');
-                }
-              }}
-            >
-              等待房主开始
-            </Button>
-          )}
-
-        {/* Secondary row: Host controls + review buttons */}
-        {(isHost || roomStatus === GameStatus.Ended) && (
-          <View style={componentStyles.bottomActionPanel.secondaryRow}>
-            {/* Host Control Buttons - dispatch events to policy */}
-            <HostControlButtons
-              isHost={isHost}
-              showSettings={
-                !isStartingGame &&
-                !isAudioPlaying &&
-                (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated)
-              }
-              showPrepareToFlip={roomStatus === GameStatus.Seated}
-              showStartGame={roomStatus === GameStatus.Ready && !isStartingGame}
-              showRestart={
-                !isAudioPlaying &&
-                (roomStatus === GameStatus.Assigned ||
-                  roomStatus === GameStatus.Ready ||
-                  roomStatus === GameStatus.Ongoing ||
-                  roomStatus === GameStatus.Ended)
-              }
-              disabled={isHostActionSubmitting}
-              onSettingsPress={() =>
-                dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' })
-              }
-              onPrepareToFlipPress={() =>
-                dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' })
-              }
-              onStartGamePress={() =>
-                dispatchInteraction({ kind: 'HOST_CONTROL', action: 'startGame' })
-              }
-              onRestartPress={() =>
-                dispatchInteraction({ kind: 'HOST_CONTROL', action: 'restart' })
-              }
-            />
-            {/* Last Night Info — host only, ended phase only */}
-            {isHost && roomStatus === GameStatus.Ended && !isAudioPlaying && (
-              <Button
-                variant="danger"
-                testID={TESTIDS.lastNightInfoButton}
-                onPress={() => showLastNightInfo()}
-              >
-                昨夜信息
-              </Button>
-            )}
-            {/* Night Review Button — host + spectators (no seat) + allowed players, ended phase only */}
-            {(isHost ||
-              effectiveSeat === null ||
-              (effectiveSeat !== null &&
-                gameState?.nightReviewAllowedSeats?.includes(effectiveSeat))) &&
-              roomStatus === GameStatus.Ended &&
-              !isAudioPlaying && (
-                <Button
-                  variant="danger"
-                  testID={TESTIDS.nightReviewButton}
-                  onPress={() => openNightReview()}
-                >
-                  详细信息
-                </Button>
-              )}
-          </View>
-        )}
-      </BottomActionPanel>
+      />
 
       {/* Continue Game Overlay — shown after Host rejoin to unlock audio */}
       <AlertModal

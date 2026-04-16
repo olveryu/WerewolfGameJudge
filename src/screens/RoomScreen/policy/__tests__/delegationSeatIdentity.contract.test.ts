@@ -288,25 +288,29 @@ describe('Delegation Seat Identity Contract', () => {
      *
      * Bug prevented: When Host has no seat (mySeatNumber=null) but takes over a bot,
      * the View Role button was hidden because it checked mySeatNumber !== null.
+     *
+     * After the declarative layout refactor, view role visibility is driven by
+     * LayoutContext.effectiveSeat in bottomLayoutConfig.ts + resolveBottomLayout.ts.
+     * RoomScreen.tsx constructs LayoutContext from effectiveSeat.
      */
     it('View Role button should check effectiveSeat, not mySeatNumber', () => {
-      const content = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      // 1. LayoutContext must declare effectiveSeat, not mySeatNumber
+      const configContent = readFileContent('src/screens/RoomScreen/hooks/bottomLayoutConfig.ts');
+      expect(configContent).toMatch(/effectiveSeat:\s*number\s*\|\s*null/);
+      expect(configContent).not.toMatch(/mySeatNumber/);
 
-      // Find the View Role Card button section
-      const viewRoleRegex = /\{\/\*\s*View Role Card\s*\*\/\}/g;
-      const match = viewRoleRegex.exec(content);
+      // 2. resolveBottomLayout derives userRole from effectiveSeat
+      const resolverContent = readFileContent(
+        'src/screens/RoomScreen/hooks/resolveBottomLayout.ts',
+      );
+      expect(resolverContent).toMatch(/ctx\.effectiveSeat\s*!==\s*null/);
+      expect(resolverContent).not.toMatch(/mySeatNumber/);
 
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        // Get next 500 chars to capture the button condition
-        const block = content.substring(startIndex, startIndex + 500);
-
-        // Should check effectiveSeat !== null, NOT mySeatNumber !== null
-        expect(block).toMatch(/effectiveSeat\s*!==\s*null/);
-        expect(block).not.toMatch(/mySeatNumber\s*!==\s*null/);
-      }
+      // 3. RoomScreen constructs LayoutContext with effectiveSeat
+      const screenContent = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
+      expect(screenContent).toMatch(/effectiveSeat/);
+      // RoomScreen should not pass mySeatNumber into the layout context
+      expect(screenContent).not.toMatch(/mySeatNumber.*layoutCtx|layoutCtx.*mySeatNumber/);
     });
 
     /**

@@ -1,15 +1,19 @@
 /**
  * BottomActionPanel - 底部浮动操作面板（Memoized）
  *
- * 卡片风格 + BlurView 背景，组合 action message + action buttons。
- * 纯展示组件，渲染 message 与按钮子组件，不 import service，不包含业务逻辑判断。
+ * 三层布局：primary → secondary → ghost。
+ * 接收 BottomLayout（声明式配置驱动），渲染 message + 三层按钮。
+ * 纯展示组件，不 import service，不包含业务逻辑判断。
  */
 import { BlurView } from 'expo-blur';
 import React, { memo, useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/Button';
+import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import { TESTIDS } from '@/testids';
 
+import type { BottomLayout, ButtonConfig, StaticButtonId } from '../hooks/bottomLayoutConfig';
 import { type BottomActionPanelStyles } from './styles';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
@@ -19,8 +23,12 @@ interface BottomActionPanelProps {
   message?: string;
   /** Whether to show the message section */
   showMessage?: boolean;
-  /** Button elements (ActionButton, HostControlButtons, etc.) */
-  children: React.ReactNode;
+  /** Three-tier button layout from useBottomLayout. */
+  layout: BottomLayout;
+  /** Callback for schema-driven button press (BOTTOM_ACTION intent). */
+  onSchemaButtonPress: (intent: ActionIntent) => void;
+  /** Callback for static button press (HOST_CONTROL / VIEW_ROLE / etc.). */
+  onStaticButtonPress: (action: StaticButtonId) => void;
   /** Pre-created styles from parent */
   styles: BottomActionPanelStyles;
   /** Safe area bottom inset — applied as paddingBottom when > styles.container.paddingBottom */
@@ -37,7 +45,9 @@ const localStyles = StyleSheet.create({
 const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
   message,
   showMessage = false,
-  children,
+  layout,
+  onSchemaButtonPress,
+  onStaticButtonPress,
   styles,
   bottomInset = 0,
 }) => {
@@ -67,9 +77,11 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
     }
     prevMessageRef.current = message;
   }, [message, msgFadeAnim, msgSlideAnim]);
+
   // Don't render if there's nothing to show
-  const hasButtons = React.Children.count(children) > 0;
-  if (!hasButtons && !showMessage) return null;
+  const hasContent =
+    layout.primary.length > 0 || layout.secondary.length > 0 || layout.ghost.length > 0;
+  if (!hasContent && !showMessage) return null;
 
   const containerStyle =
     bottomInset > 0 ? [styles.container, { paddingBottom: bottomInset }] : styles.container;
@@ -100,9 +112,83 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
         </Animated.Text>
       ) : null}
 
-      {/* Button Row */}
-      {hasButtons && <View style={styles.buttonRow}>{children}</View>}
+      {/* Primary + Secondary buttons — vertical full-width stack */}
+      {(layout.primary.length > 0 || layout.secondary.length > 0) && (
+        <View style={styles.buttonRow}>
+          {layout.primary.map((btn) => (
+            <LayoutButton
+              key={btn.key}
+              config={btn}
+              onSchemaPress={onSchemaButtonPress}
+              onStaticPress={onStaticButtonPress}
+            />
+          ))}
+          {layout.secondary.map((btn) => (
+            <LayoutButton
+              key={btn.key}
+              config={btn}
+              onSchemaPress={onSchemaButtonPress}
+              onStaticPress={onStaticButtonPress}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* Ghost row — horizontal centered text buttons */}
+      {layout.ghost.length > 0 && (
+        <View style={styles.ghostRow}>
+          {layout.ghost.map((btn) => (
+            <LayoutButton
+              key={btn.key}
+              config={btn}
+              onSchemaPress={onSchemaButtonPress}
+              onStaticPress={onStaticButtonPress}
+            />
+          ))}
+        </View>
+      )}
     </View>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LayoutButton — renders a single ButtonConfig
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface LayoutButtonProps {
+  config: ButtonConfig;
+  onSchemaPress: (intent: ActionIntent) => void;
+  onStaticPress: (action: StaticButtonId) => void;
+}
+
+const LayoutButton: React.FC<LayoutButtonProps> = ({ config, onSchemaPress, onStaticPress }) => {
+  const handlePress = config.intent
+    ? (meta: { disabled: boolean }) => {
+        if (config.fireWhenDisabled || !meta.disabled) {
+          onSchemaPress(config.intent!);
+        }
+      }
+    : config.action
+      ? (meta: { disabled: boolean }) => {
+          if (config.fireWhenDisabled || !meta.disabled) {
+            onStaticPress(config.action!);
+          }
+        }
+      : undefined;
+
+  return (
+    <Button
+      variant={config.variant}
+      size={config.size}
+      disabled={config.disabled}
+      fireWhenDisabled={config.fireWhenDisabled}
+      buttonColor={config.buttonColor}
+      textColor={config.textColor}
+      testID={config.testID}
+      onPress={handlePress}
+    >
+      {config.label}
+    </Button>
   );
 };
 
