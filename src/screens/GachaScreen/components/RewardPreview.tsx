@@ -19,10 +19,10 @@ import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { getFlairById } from '@/components/seatFlairs';
 import { borderRadius, colors } from '@/theme';
 import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
+import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 
-/** 预览用默认头像：wolf（最具辨识度的狼人头像） */
-const DEFAULT_PREVIEW_INDEX = (AVATAR_KEYS as readonly string[]).indexOf('wolf');
-const DEFAULT_PREVIEW_AVATAR = `builtin://wolf`;
+/** wolf-paw icon（预览底图，与 AvatarPickerScreen 默认头像一致） */
+const WOLF_PAW = getAvatarIcon('preview');
 
 // ─── Display name resolver ──────────────────────────────────────────────
 
@@ -83,31 +83,23 @@ function AvatarPreview({ id, size }: { id: string; size: number }) {
 }
 
 function FramePreview({ id, size }: { id: string; size: number }) {
-  return (
-    <AvatarWithFrame
-      value="preview"
-      avatarUrl={DEFAULT_PREVIEW_AVATAR}
-      frameId={id as FrameId}
-      size={size}
-    />
-  );
+  return <AvatarWithFrame value="preview" frameId={id as FrameId} size={size} />;
 }
 
 function FlairPreview({ id, size }: { id: string; size: number }) {
   const flair = getFlairById(id);
   if (!flair) return null;
   const Comp = flair.Component;
-  const thumbSource =
-    DEFAULT_PREVIEW_INDEX >= 0 ? getAvatarThumbByIndex(DEFAULT_PREVIEW_INDEX) : undefined;
   return (
     <View style={[styles.flairContainer, { width: size, height: size }]}>
-      {thumbSource != null && (
+      <View style={styles.flairAvatarWrap}>
         <Image
-          source={thumbSource as ImageSourcePropType}
-          style={[StyleSheet.absoluteFill, { borderRadius: borderRadius.medium }]}
-          resizeMode="cover"
+          source={WOLF_PAW.image}
+          style={styles.flairPawIcon}
+          tintColor={WOLF_PAW.color}
+          resizeMode="contain"
         />
-      )}
+      </View>
       <Comp size={size} borderRadius={borderRadius.medium} />
     </View>
   );
@@ -129,6 +121,16 @@ const styles = StyleSheet.create({
   flairContainer: {
     overflow: 'hidden',
     borderRadius: borderRadius.medium,
+    backgroundColor: colors.surface,
+  },
+  flairAvatarWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  flairPawIcon: {
+    width: '60%',
+    height: '60%',
   },
   nameStyleContainer: {
     justifyContent: 'center',

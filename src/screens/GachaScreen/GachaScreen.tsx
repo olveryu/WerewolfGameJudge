@@ -19,7 +19,7 @@ import {
   View,
 } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import { Button } from '@/components/Button';
@@ -29,7 +29,9 @@ import {
   borderRadius,
   colors,
   componentSizes,
+  fixed,
   layout,
+  shadows,
   spacing,
   textStyles,
   typography,
@@ -40,7 +42,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import { CapsuleMachine, type CapsuleMachineRef } from './components/CapsuleMachine';
 import { getRewardDisplayName, RewardPreview } from './components/RewardPreview';
 import { TenResultOverlay } from './components/TenResultOverlay';
-import { DARK, PHASE } from './gachaConstants';
+import { PHASE } from './gachaConstants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Gacha'>;
 
@@ -148,10 +150,10 @@ export function GachaScreen({ navigation }: Props) {
   // ── Loading ───────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
         <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
           <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
-            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color="#FFFFFF" />
+            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
           </Button>
           <Text style={styles.headerTitle}>扭蛋抽奖</Text>
           <View style={styles.headerSpacer} />
@@ -159,16 +161,16 @@ export function GachaScreen({ navigation }: Props) {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>
         <Text style={styles.headerTitle}>扭蛋抽奖</Text>
         <View style={styles.headerSpacer} />
@@ -198,14 +200,17 @@ export function GachaScreen({ navigation }: Props) {
       >
         {/* Status row */}
         <View style={styles.statusRow}>
-          <TicketBadge emoji="🎫" count={normalDraws} label="普通" pity={normalPity} />
-          <TicketBadge emoji="🌟" count={goldenDraws} label="黄金" pity={goldenPity} golden />
+          <TicketBadge icon="ticket-outline" count={normalDraws} label="普通" pity={normalPity} />
+          <TicketBadge icon="star" count={goldenDraws} label="黄金" pity={goldenPity} golden />
           <View style={styles.progressMini}>
             <Text style={styles.progressMiniText}>
               {unlockedCount}/{totalItems}
             </Text>
           </View>
         </View>
+
+        {/* Hint */}
+        <Text style={styles.hintText}>注册送5普通+1黄金 · 每局+1普通 · 升级+1黄金</Text>
 
         {/* Button grid — 2×2 */}
         <View style={styles.buttonGrid}>
@@ -246,20 +251,20 @@ export function GachaScreen({ navigation }: Props) {
           onClose={handleCloseTenOverlay}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────
 
 function TicketBadge({
-  emoji,
+  icon,
   count,
   label,
   pity,
   golden,
 }: {
-  emoji: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
   count: number;
   label: string;
   pity: number;
@@ -267,7 +272,7 @@ function TicketBadge({
 }) {
   return (
     <View style={[styles.ticketBadge, golden && styles.ticketBadgeGolden]}>
-      <Text style={styles.ticketBadgeEmoji}>{emoji}</Text>
+      <Ionicons name={icon} size={18} color={golden ? GOLDEN_BORDER : colors.textSecondary} />
       <Text style={styles.ticketBadgeCount}>{count}</Text>
       <Text style={styles.ticketBadgeLabel}>{label}</Text>
       <Text style={styles.ticketBadgePity}>
@@ -350,23 +355,32 @@ function SingleResultCard({ item }: { item: DrawResultItem }) {
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 
+// Golden button accent
+const GOLDEN_BG = '#9A7500';
+const GOLDEN_BORDER = '#FFD700';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: DARK.bg,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.medium,
+    paddingHorizontal: spacing.screenH,
     paddingVertical: layout.headerPaddingV,
+    backgroundColor: colors.surface,
+    borderBottomWidth: fixed.borderWidth,
+    borderBottomColor: colors.border,
     zIndex: 10,
   },
   headerTitle: {
-    ...textStyles.titleBold,
     flex: 1,
+    fontSize: layout.headerTitleSize,
+    lineHeight: layout.headerTitleLineHeight,
+    fontWeight: typography.weights.bold,
+    color: colors.text,
     textAlign: 'center',
-    color: DARK.text,
   },
   headerSpacer: {
     width: componentSizes.icon.lg,
@@ -383,19 +397,20 @@ const styles = StyleSheet.create({
   // ── Single result overlay ──
   singleResultOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: DARK.overlay,
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.medium,
   },
   singleCard: {
-    backgroundColor: DARK.card,
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.medium,
     borderWidth: 2,
     padding: spacing.large,
     alignItems: 'center',
     gap: spacing.small,
     minWidth: 200,
+    ...shadows.md,
   },
   singleCardRarityBadge: {
     borderRadius: borderRadius.small,
@@ -405,11 +420,11 @@ const styles = StyleSheet.create({
   singleCardRarityText: {
     fontSize: typography.caption,
     fontWeight: '700',
-    color: DARK.text,
+    color: colors.surface,
   },
   singleCardPity: {
     fontSize: typography.captionSmall,
-    color: DARK.accent,
+    color: GOLDEN_BORDER,
     fontWeight: '600',
   },
   singleCardPreview: {
@@ -417,30 +432,30 @@ const styles = StyleSheet.create({
   },
   singleCardName: {
     ...textStyles.headingBold,
-    color: DARK.text,
+    color: colors.text,
   },
   singleCardType: {
     ...textStyles.caption,
-    color: DARK.textMuted,
+    color: colors.textSecondary,
   },
   singleCardNew: {
     fontSize: typography.captionSmall,
-    color: DARK.success,
+    color: colors.success,
     fontWeight: '700',
   },
   tapHint: {
     ...textStyles.caption,
-    color: DARK.textDim,
+    color: colors.textMuted,
   },
 
   // ── Bottom panel ──
   bottomPanel: {
-    paddingHorizontal: spacing.medium,
+    paddingHorizontal: spacing.screenH,
     paddingTop: spacing.medium,
     gap: spacing.small,
-    backgroundColor: DARK.panelBg,
-    borderTopWidth: 1,
-    borderTopColor: DARK.panelBorder,
+    backgroundColor: colors.surface,
+    borderTopWidth: fixed.borderWidth,
+    borderTopColor: colors.border,
   },
   statusRow: {
     flexDirection: 'row',
@@ -452,44 +467,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.tight,
-    backgroundColor: DARK.subtleBg,
+    backgroundColor: colors.background,
     borderRadius: borderRadius.small,
-    borderWidth: 1,
-    borderColor: DARK.subtleBorder,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
     padding: spacing.small,
   },
   ticketBadgeGolden: {
-    borderColor: withAlpha('#FFD700', 0.2),
-    backgroundColor: withAlpha('#FFD700', 0.04),
-  },
-  ticketBadgeEmoji: {
-    fontSize: 18,
+    borderColor: withAlpha(GOLDEN_BORDER, 0.3),
+    backgroundColor: withAlpha(GOLDEN_BORDER, 0.06),
   },
   ticketBadgeCount: {
     ...textStyles.bodySemibold,
-    color: DARK.text,
+    color: colors.text,
     fontSize: 16,
   },
   ticketBadgeLabel: {
     ...textStyles.captionSmall,
-    color: DARK.textDim,
+    color: colors.textSecondary,
   },
   ticketBadgePity: {
     ...textStyles.captionSmall,
-    color: DARK.textDimmer,
+    color: colors.textMuted,
     marginLeft: 'auto',
   },
   progressMini: {
-    backgroundColor: DARK.subtleBg,
+    backgroundColor: colors.background,
     borderRadius: borderRadius.small,
-    borderWidth: 1,
-    borderColor: DARK.subtleBorder,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
     padding: spacing.small,
     paddingHorizontal: spacing.small,
   },
   progressMiniText: {
     ...textStyles.captionSmall,
-    color: DARK.textDim,
+    color: colors.textSecondary,
+  },
+  hintText: {
+    ...textStyles.caption,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
 
   // ── Draw buttons ──
@@ -508,9 +525,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   drawBtnGolden: {
-    backgroundColor: DARK.golden,
+    backgroundColor: GOLDEN_BG,
     borderWidth: 1,
-    borderColor: withAlpha('#FFD700', 0.3),
+    borderColor: withAlpha(GOLDEN_BORDER, 0.3),
   },
   drawBtnDisabled: {
     opacity: 0.35,
@@ -518,9 +535,9 @@ const styles = StyleSheet.create({
   drawBtnLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: DARK.text,
+    color: colors.surface,
   },
   drawBtnLabelDisabled: {
-    color: DARK.textDim,
+    color: withAlpha(colors.surface, 0.5),
   },
 });

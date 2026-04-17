@@ -29,6 +29,10 @@ bindings = [
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
 
+# ── Workers AI Binding ───────────────────────────────────────────────────────
+[ai]
+binding = "AI"
+
 # ── Custom Domain (workers.dev 在中国大陆不可达) ────────────────────────────────
 [[routes]]
 pattern = "api.werewolfjudge.eu.org"

@@ -26,6 +26,7 @@ import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, layout, typography } from '@/theme';
@@ -77,6 +78,10 @@ export const SettingsScreen: React.FC = () => {
 
   // Growth system state (shared cache via TanStack Query)
   const { data: growthStats } = useUserStatsQuery();
+
+  // Gacha ticket count for badge
+  const { data: gachaStatus } = useGachaStatusQuery();
+  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : 0;
 
   // Track anonymous→email upgrade: sync new displayName to GameState
   const wasAnonymousRef = useRef(user?.isAnonymous);
@@ -138,6 +143,10 @@ export const SettingsScreen: React.FC = () => {
 
   const handleNavigateUnlocks = useCallback(() => {
     navigation.navigate('Unlocks');
+  }, [navigation]);
+
+  const handleNavigateGacha = useCallback(() => {
+    navigation.navigate('Gacha');
   }, [navigation]);
 
   const handleStartEditName = useCallback(() => {
@@ -390,6 +399,32 @@ export const SettingsScreen: React.FC = () => {
               size={componentSizes.icon.md}
               color={colors.textMuted}
             />
+          </TouchableOpacity>
+
+          {/* Zone 2b: Gacha entry */}
+          <TouchableOpacity
+            style={styles.dresserEntry}
+            onPress={handleNavigateGacha}
+            activeOpacity={fixed.activeOpacity}
+          >
+            <View style={styles.dresserEntryRight}>
+              <Ionicons name="gift-outline" size={componentSizes.icon.sm} color={colors.text} />
+              <Text style={styles.dresserEntryText}>扭蛋抽奖</Text>
+            </View>
+            <View style={styles.dresserEntryRight}>
+              {ticketCount > 0 && (
+                <View style={styles.dresserEntryBadge}>
+                  <Text style={styles.dresserEntryBadgeText}>
+                    {ticketCount > 99 ? '99+' : ticketCount}
+                  </Text>
+                </View>
+              )}
+              <Ionicons
+                name="chevron-forward"
+                size={componentSizes.icon.md}
+                color={colors.textMuted}
+              />
+            </View>
           </TouchableOpacity>
 
           {/* Zone 3: Account operations */}

@@ -1,5 +1,5 @@
 /**
- * UserAvatar — 用户头像按钮（含等级 badge）
+ * UserAvatar — 用户头像按钮（含抽奖券 badge）
  *
  * 已登录：显示用户头像（Avatar 组件），点击进 Settings。
  * 未登录：显示默认人物 icon，点击进 Settings。
@@ -16,7 +16,7 @@ import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } 
 
 interface UserAvatarProps {
   user: { uid: string; avatarUrl?: string | null } | null;
-  level?: number | null;
+  ticketCount?: number | null;
   onPress: () => void;
   testID?: string;
 }
@@ -25,13 +25,14 @@ const AVATAR_SIZE = componentSizes.avatar.sm;
 const WRAPPER_SIZE = AVATAR_SIZE + spacing.tight * 2;
 const BADGE_SIZE = componentSizes.badge.sm;
 
-export const UserAvatar = memo<UserAvatarProps>(({ user, level, onPress, testID }) => {
-  const badge =
-    level != null ? (
-      <View style={[badgeStyles.pill, { backgroundColor: colors.primary }]}>
-        <Text style={badgeStyles.text}>{level}</Text>
-      </View>
-    ) : null;
+export const UserAvatar = memo<UserAvatarProps>(({ user, ticketCount, onPress, testID }) => {
+  const showBadge = ticketCount != null && ticketCount > 0;
+  const badgeLabel = ticketCount != null && ticketCount > 99 ? '99+' : String(ticketCount ?? 0);
+  const badge = showBadge ? (
+    <View style={badgeStyles.pill}>
+      <Text style={badgeStyles.text}>{badgeLabel}</Text>
+    </View>
+  ) : null;
 
   if (user) {
     return (
@@ -75,14 +76,17 @@ const wrapperStyle = {
 const badgeStyles = StyleSheet.create({
   pill: {
     position: 'absolute',
-    bottom: -1,
-    right: -2,
+    top: -2,
+    right: -4,
     minWidth: BADGE_SIZE,
     height: BADGE_SIZE,
     borderRadius: BADGE_SIZE / 2,
     paddingHorizontal: spacing.micro,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.error,
+    borderWidth: 1.5,
+    borderColor: colors.surface,
   },
   text: {
     fontSize: typography.captionSmall,

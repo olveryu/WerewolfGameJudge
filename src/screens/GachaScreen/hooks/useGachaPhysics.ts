@@ -5,10 +5,11 @@
  * 全部在 UI 线程运行（useFrameCallback），零桥接延迟。
  * 从 gacha-capsule-v5.html 原型 1:1 移植物理参数。
  */
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useFrameCallback, useSharedValue } from 'react-native-reanimated';
 
 import {
+  BALL_COLORS,
   BALL_R,
   BALL_R_MULTI,
   BALL_R_SINGLE,
@@ -263,6 +264,11 @@ export function useGachaPhysics(scale: number) {
   // Opened ball positions for rarity glow (x, y, rarityIndex per opened ball)
   const openedBalls = useSharedValue<number[]>([]);
 
+  // Shell fragment particles: [x, y, vx, vy, size, rotation, vrot, alpha, colorIdx] × 9 stride
+  const shellPieces = useSharedValue<number[]>([]);
+  // Sparkle particles: [x, y, vx, vy, life, size, rarityIdx] × 7 stride
+  const sparkles = useSharedValue<number[]>([]);
+
   // Track ball assignment to results
   const droppedBallIndices = useSharedValue<number[]>([]);
 
@@ -300,22 +306,71 @@ export function useGachaPhysics(scale: number) {
     return data;
   }, [initBalls, s]);
 
+  // Pre-fill balls on mount so they're visible immediately
+  useEffect(() => {
+    ballData.value = preSettle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preSettle]);
+
   // ── Helper: trigger ball open ─────────────────────────────────────────
 
   function triggerOpen(data: number[], bi: number): void {
     'worklet';
     if (bi < 0) return;
+    const bx = data[bi * STRIDE];
+    const by = data[bi * STRIDE + 1];
+    const br = data[bi * STRIDE + 4];
     data[bi * STRIDE + 5] |= F_OPENED;
-    // Flash
+
+    // Flash + shake
     flashAlpha.value = multiMode.value === 1 ? 0.25 : 0.6;
     shakeX.value += (Math.random() - 0.5) * (multiMode.value === 1 ? 4 : 12);
     shakeY.value += (Math.random() - 0.5) * (multiMode.value === 1 ? 4 : 12);
-    // Track opened position
+
+    // Track opened position + rarity
     const ob = openedBalls.value;
     const rarIdx = ob.length / 3;
     const rar = rarIdx < resultRarities.value.length ? resultRarities.value[rarIdx] : 0;
-    ob.push(data[bi * STRIDE], data[bi * STRIDE + 1], rar);
+    ob.push(bx, by, rar);
     openedBalls.value = ob;
+
+    // Spawn shell fragments (10 pieces)
+    const sp = shellPieces.value;
+    const colorIdx = bi % BALL_COLORS.length;
+    for (let i = 0; i < 10; i++) {
+      const a = (Math.PI * 2 * i) / 10 + (Math.random() - 0.5) * 0.4;
+      const speed = 100 + Math.random() * 140;
+      sp.push(
+        bx, // x
+        by, // y
+        Math.cos(a) * speed, // vx
+        Math.sin(a) * speed - 60, // vy (bias upward)
+        br * (0.2 + Math.random() * 0.3), // size
+        0, // rotation
+        (Math.random() - 0.5) * 10, // vrot
+        1, // alpha
+        i < 5 ? -1 : colorIdx, // colorIdx (-1 = white shell)
+      );
+    }
+    shellPieces.value = sp;
+
+    // Spawn sparkles (rarity-colored cross particles)
+    const sk = sparkles.value;
+    const nSparkles = multiMode.value === 1 ? 10 : 28;
+    for (let i = 0; i < nSparkles; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const speed = 40 + Math.random() * 120;
+      sk.push(
+        bx, // x
+        by, // y
+        Math.cos(a) * speed, // vx
+        Math.sin(a) * speed, // vy
+        1, // life
+        2 + Math.random() * 4, // size
+        rar, // rarityIdx
+      );
+    }
+    sparkles.value = sk;
   }
 
   // ── Helper: transition to gate phase ──────────────────────────────────
@@ -624,13 +679,50 @@ export function useGachaPhysics(scale: number) {
     shakeY.value *= 0.88;
     flashAlpha.value *= 0.9;
 
+    // ── Update shell pieces ──
+    const sp = shellPieces.value;
+    if (sp.length > 0) {
+      const SHELL_STRIDE = 9;
+      let changed = false;
+      for (let i = sp.length - SHELL_STRIDE; i >= 0; i -= SHELL_STRIDE) {
+        sp[i] += sp[i + 2] * dt; // x += vx * dt
+        sp[i + 1] += sp[i + 3] * dt; // y += vy * dt
+        sp[i + 3] += 300 * dt; // gravity
+        sp[i + 5] += sp[i + 6] * dt * 10; // rotation
+        sp[i + 7] -= 0.8 * dt; // alpha decay
+        if (sp[i + 7] <= 0) {
+          sp.splice(i, SHELL_STRIDE);
+          changed = true;
+        }
+      }
+      if (changed || sp.length > 0) shellPieces.value = sp;
+    }
+
+    // ── Update sparkles ──
+    const sk = sparkles.value;
+    if (sk.length > 0) {
+      const SPARK_STRIDE = 7;
+      let changed = false;
+      for (let i = sk.length - SPARK_STRIDE; i >= 0; i -= SPARK_STRIDE) {
+        sk[i] += sk[i + 2] * dt; // x += vx * dt
+        sk[i + 1] += sk[i + 3] * dt; // y += vy * dt
+        sk[i + 2] *= 0.96; // drag
+        sk[i + 3] *= 0.96;
+        sk[i + 4] -= 1.2 * dt; // life decay
+        if (sk[i + 4] <= 0) {
+          sk.splice(i, SPARK_STRIDE);
+          changed = true;
+        }
+      }
+      if (changed || sk.length > 0) sparkles.value = sk;
+    }
+
     ballData.value = data;
     renderTick.value += 1;
   });
 
   // ── JS-callable controls ──────────────────────────────────────────────
 
-  /* eslint-disable react-hooks/immutability -- Reanimated useSharedValue.value IS mutable by design */
   const startAnimation = useCallback(
     (drawType: 'normal' | 'golden', count: number) => {
       const data = preSettle();
@@ -648,6 +740,8 @@ export function useGachaPhysics(scale: number) {
       resultsReady.value = 0;
       resultRarities.value = [];
       openedBalls.value = [];
+      shellPieces.value = [];
+      sparkles.value = [];
       flashAlpha.value = 0;
       shakeX.value = 0;
       shakeY.value = 0;
@@ -671,6 +765,8 @@ export function useGachaPhysics(scale: number) {
       resultsReady,
       resultRarities,
       openedBalls,
+      shellPieces,
+      sparkles,
       flashAlpha,
       shakeX,
       shakeY,
@@ -694,7 +790,6 @@ export function useGachaPhysics(scale: number) {
     cancelled.value = 1;
     phase.value = PHASE.IDLE;
   }, [cancelled, phase]);
-  /* eslint-enable react-hooks/immutability */
 
   return {
     // Shared values for rendering
@@ -711,6 +806,8 @@ export function useGachaPhysics(scale: number) {
     multiOpenIndex,
     openedBalls,
     droppedBallIndices,
+    shellPieces,
+    sparkles,
     // Controls
     startAnimation,
     setResults,

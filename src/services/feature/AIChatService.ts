@@ -1,11 +1,8 @@
 /**
- * AI Chat Service - Gemini (3.1 Flash Lite) via Cloudflare Workers
+ * AI Chat Service — Workers AI (primary) + Gemini (fallback) via Cloudflare Workers
  *
- * 通过 Cloudflare Workers 代理 Gemini API（OpenAI 兼容层），API key 仅存在服务端。
- * 免费额度：250K TPM, 500 RPD, 15 RPM
- * 文档: https://ai.google.dev/gemini-api/docs/rate-limits
- *
- * 负责调用 Workers 代理、管理对话历史、流式解析 SSE 响应。
+ * 服务端使用 Workers AI (@cf/google/gemma-3-12b-it) 为主力，Neurons 超限时 fallback Gemini。
+ * 客户端只负责消息组织、流式解析 SSE 响应。模型选择在服务端。
  * 不直接访问第三方 API，不存储 API key，不操作游戏状态。
  */
 
@@ -14,16 +11,15 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { API_BASE_URL } from '@/config/api';
-import { NETWORK_ERROR, RATE_LIMIT_ERROR } from '@/config/errorMessages';
+import { NETWORK_ERROR } from '@/config/errorMessages';
 import { getCurrentToken } from '@/services/cloudflare/cfFetch';
 import { log } from '@/utils/logger';
 
 const chatLog = log.extend('AIChatService');
 
 const API_CONFIG = {
-  /** Workers endpoint（代理到 Gemini） */
+  /** Workers AI chat endpoint */
   baseURL: `${API_BASE_URL}/gemini-proxy`,
-  model: 'gemini-3.1-flash-lite-preview',
   maxTokens: 512,
 };
 
@@ -191,7 +187,6 @@ export async function* streamChatMessage(
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: API_CONFIG.model,
         messages: [{ role: 'system', content: systemPrompt }, ...trimmedMessages],
         max_tokens: maxTokens ?? API_CONFIG.maxTokens,
         temperature: 0.7,
@@ -208,12 +203,22 @@ export async function* streamChatMessage(
 
   if (!response.ok) {
     const errorText = await response.text();
+
+    // Parse structured error code from server
+    let errorCode: string | undefined;
+    try {
+      const parsed = JSON.parse(errorText);
+      errorCode = parsed.error;
+    } catch {
+      // Not JSON — use raw text for logging
+    }
+
     if (response.status === 401) {
       chatLog.warn('AI service auth failed', { status: response.status, error: errorText });
       yield { type: 'error', content: 'AI 服务认证失败，请联系管理员' };
-    } else if (response.status === 429) {
-      chatLog.warn('Rate limited by AI service', { status: response.status, error: errorText });
-      yield { type: 'error', content: RATE_LIMIT_ERROR };
+    } else if (response.status === 429 || errorCode === 'quota_exhausted') {
+      chatLog.warn('AI quota exhausted', { status: response.status, errorCode });
+      yield { type: 'error', content: '今日 AI 使用次数已达上限，明天再试吧' };
     } else if (response.status === 502 || response.status === 503) {
       chatLog.warn('Upstream unavailable', { status: response.status, error: errorText });
       yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };

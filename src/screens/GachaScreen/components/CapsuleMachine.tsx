@@ -51,7 +51,7 @@ strokePaint.setStyle(1); // Stroke
 
 // Pre-convert ball colors to Skia format
 const SKIA_BALL_COLORS = BALL_COLORS.map((c) => Skia.Color(c));
-const SKIA_WHITE = Skia.Color('#e0e0e0');
+const SKIA_WHITE = Skia.Color('#FFFFFF');
 const SKIA_WHITE_FAINT = Skia.Color('rgba(255,255,255,0.2)');
 const SKIA_WHITE_HIGHLIGHT = Skia.Color('rgba(255,255,255,0.3)');
 const SKIA_BG = Skia.Color(MACHINE.bg);
@@ -80,12 +80,12 @@ const RARITY_GLOW_COLORS = [
 
 // Pre-allocated colors used inside scenePicture worklet
 const SKIA_BALL_CENTER_LINE = Skia.Color('rgba(0,0,0,0.15)');
+const SKIA_BALL_OUTLINE = Skia.Color('rgba(0,0,0,0.12)');
 const SKIA_DOME_HIGHLIGHT_L = Skia.Color('rgba(255,255,255,0.13)');
 const SKIA_DOME_HIGHLIGHT_R = Skia.Color('rgba(255,255,255,0.07)');
 const SKIA_CROSSHAIR = Skia.Color('rgba(255,255,255,0.12)');
 const SKIA_BODY_EDGE = Skia.Color(MACHINE.bodyEdge);
 const SKIA_CHUTE_STROKE = Skia.Color(MACHINE.chuteStroke);
-const SKIA_GLOW_CENTER = Skia.Color('rgba(255,255,255,0.8)');
 const SKIA_FLASH = Skia.Color('#FFFFFF');
 const SKIA_DOME_BOTTOM_ARC = Skia.Color('rgba(255,255,255,0.06)');
 
@@ -218,6 +218,10 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
         strokePaint.setColor(SKIA_WHITE_FAINT);
         strokePaint.setStrokeWidth(1.5);
         c.drawCircle(bx, by - r * 0.08, r * 0.28, strokePaint);
+        // Outer outline for contrast on light bg
+        strokePaint.setColor(SKIA_BALL_OUTLINE);
+        strokePaint.setStrokeWidth(1);
+        c.drawCircle(bx, by, r, strokePaint);
       }
       c.restore();
 
@@ -322,21 +326,56 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
         strokePaint.setColor(SKIA_WHITE_FAINT);
         strokePaint.setStrokeWidth(1.5);
         c.drawCircle(bx, by - r * 0.08, r * 0.28, strokePaint);
+        // Outer outline for contrast on light bg
+        strokePaint.setColor(SKIA_BALL_OUTLINE);
+        strokePaint.setStrokeWidth(1);
+        c.drawCircle(bx, by, r, strokePaint);
       }
 
-      // Opened ball positions — rarity glow circles
-      const ob = physics.openedBalls.value;
-      for (let i = 0; i < ob.length; i += 3) {
-        const ox = ob[i];
-        const oy = ob[i + 1];
-        const rar = ob[i + 2];
-        const glowColor = RARITY_GLOW_COLORS[rar] ?? RARITY_GLOW_COLORS[0];
-        paint.setColor(glowColor);
-        c.drawCircle(ox, oy, 20 * s, paint);
-        // White center dot
-        paint.setColor(SKIA_GLOW_CENTER);
-        c.drawCircle(ox, oy, 4 * s, paint);
+      // Shell fragment pieces
+      const sp = physics.shellPieces.value;
+      const SHELL_STRIDE = 9;
+      for (let i = 0; i < sp.length; i += SHELL_STRIDE) {
+        const sx = sp[i];
+        const sy = sp[i + 1];
+        const sz = sp[i + 4];
+        const sAlpha = sp[i + 7];
+        const ci = sp[i + 8];
+        if (sAlpha <= 0) continue;
+        paint.setAlphaf(sAlpha);
+        if (ci < 0) {
+          paint.setColor(SKIA_WHITE);
+        } else {
+          paint.setColor(SKIA_BALL_COLORS[ci % SKIA_BALL_COLORS.length]);
+        }
+        c.drawCircle(sx, sy, sz, paint);
       }
+      paint.setAlphaf(1);
+
+      // Sparkles — cross-shaped rarity-colored particles
+      const sk = physics.sparkles.value;
+      const SPARK_STRIDE = 7;
+      for (let i = 0; i < sk.length; i += SPARK_STRIDE) {
+        const sx = sk[i];
+        const sy = sk[i + 1];
+        const life = sk[i + 4];
+        const sz = sk[i + 5] * life;
+        const ri = sk[i + 6];
+        if (life <= 0) continue;
+        const sparkColor = RARITY_GLOW_COLORS[ri] ?? RARITY_GLOW_COLORS[0];
+        paint.setColor(sparkColor);
+        paint.setAlphaf(life);
+        c.drawCircle(sx, sy, sz * 0.5, paint);
+        // Cross lines
+        strokePaint.setColor(sparkColor);
+        strokePaint.setStrokeWidth(1);
+        strokePaint.setAlphaf(life);
+        const arm = sz * 1.8;
+        c.drawLine(sx - arm, sy, sx + arm, sy, strokePaint);
+        c.drawLine(sx, sy - arm, sx, sy + arm, strokePaint);
+      }
+      paint.setAlphaf(1);
+      strokePaint.setAlphaf(1);
 
       // Flash overlay
       const fa = physics.flashAlpha.value;

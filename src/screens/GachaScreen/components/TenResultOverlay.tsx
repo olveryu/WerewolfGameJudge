@@ -4,6 +4,7 @@
  * 5×2 网格，按稀有度排序，卡片 100ms 间隔逐张飞入。
  * 与 gacha-capsule-v5.html 的 tenResultOverlay 对齐。
  */
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -15,9 +16,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { DrawResultItem } from '@/services/feature/GachaService';
-import { borderRadius, spacing, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, fixed, shadows, spacing, typography, withAlpha } from '@/theme';
 
-import { DARK, RARITY_VISUAL } from '../gachaConstants';
+import { RARITY_VISUAL } from '../gachaConstants';
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
 
 interface TenResultOverlayProps {
@@ -92,9 +93,14 @@ export function TenResultOverlay({ results, drawType, onClose }: TenResultOverla
 
   return (
     <View style={styles.overlay}>
-      <Text style={styles.title}>
-        {drawType === 'golden' ? '🌟 黄金10连抽结果' : '🎉 10连抽结果'}
-      </Text>
+      <View style={styles.titleRow}>
+        <Ionicons
+          name={drawType === 'golden' ? 'star' : 'sparkles'}
+          size={20}
+          color={drawType === 'golden' ? '#FFD700' : colors.primary}
+        />
+        <Text style={styles.title}>{drawType === 'golden' ? '黄金10连抽结果' : '10连抽结果'}</Text>
+      </View>
       <View style={styles.grid}>
         {sorted.map((item, i) => (
           <ResultCell key={`${item.rewardId}-${i}`} item={item} index={i} />
@@ -110,16 +116,21 @@ export function TenResultOverlay({ results, drawType, onClose }: TenResultOverla
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: DARK.tenOverlayBg,
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.medium,
     zIndex: 100,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+  },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: DARK.titleWarm,
+    color: colors.surface,
   },
   grid: {
     flexDirection: 'row',
@@ -132,14 +143,15 @@ const styles = StyleSheet.create({
   cell: {
     width: '18%',
     minWidth: 64,
-    backgroundColor: DARK.cellBg,
-    borderWidth: 1,
-    borderColor: DARK.cellBorder,
+    backgroundColor: colors.surface,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
     borderRadius: borderRadius.medium,
     paddingVertical: spacing.small,
     paddingHorizontal: spacing.tight,
     alignItems: 'center',
     gap: 2,
+    ...shadows.sm,
   },
   cellPreview: {
     marginBottom: 2,
@@ -147,7 +159,7 @@ const styles = StyleSheet.create({
   cellName: {
     fontSize: typography.captionSmall,
     fontWeight: '600',
-    color: DARK.text,
+    color: colors.text,
     textAlign: 'center',
   },
   cellRarity: {
@@ -157,7 +169,7 @@ const styles = StyleSheet.create({
   cellNew: {
     fontSize: 8,
     fontWeight: '700',
-    color: DARK.success,
+    color: colors.success,
   },
   pityTag: {
     fontSize: 8,
@@ -168,11 +180,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.medium,
     paddingHorizontal: spacing.xlarge,
     borderRadius: borderRadius.medium,
-    backgroundColor: DARK.buttonBg,
+    backgroundColor: colors.primary,
   },
   closeButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: DARK.text,
+    color: colors.surface,
   },
 });

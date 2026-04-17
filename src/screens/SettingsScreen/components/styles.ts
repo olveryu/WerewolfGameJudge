@@ -108,6 +108,9 @@ export interface SettingsScreenStyles {
   dresserEntryText: TextStyle;
   dresserEntryDesc: TextStyle;
   dresserEntryChevron: TextStyle;
+  dresserEntryRight: ViewStyle;
+  dresserEntryBadge: ViewStyle;
+  dresserEntryBadgeText: TextStyle;
   // Level pill (inline next to name)
   levelPill: ViewStyle;
   levelPillText: TextStyle;
@@ -429,6 +432,25 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
     },
     dresserEntryChevron: {
       color: colors.textMuted,
+    },
+    dresserEntryRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
+    },
+    dresserEntryBadge: {
+      minWidth: componentSizes.badge.sm,
+      height: componentSizes.badge.sm,
+      borderRadius: componentSizes.badge.sm / 2,
+      paddingHorizontal: spacing.micro,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.error,
+    },
+    dresserEntryBadgeText: {
+      fontSize: typography.captionSmall,
+      fontWeight: typography.weights.bold,
+      color: colors.textInverse,
     },
     // Level pill (inline next to name)
     levelPill: {

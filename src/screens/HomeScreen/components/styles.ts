@@ -264,10 +264,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       height: componentSizes.avatar.xl + spacing.xlarge + spacing.medium,
     },
     randomRoleCard: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.medium,
-      ...shadows.sm,
+      ...shared.cardBase,
     },
     randomRoleCardAbsolute: {
       position: 'absolute',
@@ -344,15 +341,12 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     // ── Gacha Entry Card ─────────────────────────────────────
     gachaCard: {
+      ...shared.cardBase,
       flexDirection: 'row',
       alignItems: 'center',
       marginHorizontal: spacing.screenH,
       marginBottom: spacing.small,
-      padding: spacing.medium,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
       gap: spacing.small,
-      ...shadows.sm,
     },
     gachaCardEmoji: {
       fontSize: 28,
@@ -370,17 +364,14 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     // ── Tip Card ─────────────────────────────────────────────
     tipCard: {
+      ...shared.cardBase,
       flexDirection: 'row',
       alignItems: 'center',
       marginHorizontal: spacing.screenH,
       marginBottom: spacing.small,
-      padding: spacing.medium,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
       borderLeftWidth: fixed.borderWidthHighlight,
       borderLeftColor: colors.primary,
       gap: spacing.small,
-      ...shadows.sm,
     },
     tipCardIcon: {
       width: componentSizes.avatar.md,

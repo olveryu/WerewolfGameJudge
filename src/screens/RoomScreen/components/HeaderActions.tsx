@@ -25,8 +25,8 @@ interface HeaderActionsProps {
   visible: boolean;
   /** Current user (for avatar in menu item) */
   user: { uid: string; avatarUrl?: string | null } | null;
-  /** User level for badge display */
-  level?: number | null;
+  /** Ticket count for badge display */
+  ticketCount?: number | null;
   /** Show user settings option */
   showUserSettings: boolean;
   /** Show share room option (only in unseated/seated phase) */
@@ -59,7 +59,7 @@ interface HeaderActionsProps {
 const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
   visible,
   user,
-  level,
+  ticketCount,
   showUserSettings,
   showShareRoom,
   showAnimationSettings,
@@ -149,7 +149,7 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
   if (showUserSettings && !hasOtherItems) {
     return (
       <View style={styles.headerRightContainer}>
-        <UserAvatar user={user} level={level} onPress={onUserSettings} />
+        <UserAvatar user={user} ticketCount={ticketCount} onPress={onUserSettings} />
       </View>
     );
   }
