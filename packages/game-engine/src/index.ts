@@ -164,6 +164,7 @@ export {
   FREE_AVATAR_IDS,
   FREE_FRAME_IDS,
   FREE_NAME_STYLE_IDS,
+  getItemRarity,
   getLevel,
   getLevelProgress,
   getUnlockedAvatars,

@@ -191,7 +191,7 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   'src/screens/GachaScreen/components/TenResultOverlay.tsx': 12,
 
   // gachaConstants: ball color palette + decorative rendering constants
-  'src/screens/GachaScreen/gachaConstants.ts': 53,
+  'src/screens/GachaScreen/gachaConstants.ts': 49,
 };
 
 // ─── Test ───────────────────────────────────────────────────────────────────

@@ -118,11 +118,6 @@ export const MACHINE = {
   capsuleHighlight: 'rgba(255,255,255,0.3)',
 } as const;
 
-// ─── Rarity visual mapping ─────────────────────────────────────────────
+// ─── Rarity visual mapping (re-exported from shared config) ─────────────────
 
-export const RARITY_VISUAL: Record<string, { color: string; glow: string; label: string }> = {
-  common: { color: '#9E9E9E', glow: 'rgba(158,158,158,0.3)', label: '普通' },
-  rare: { color: '#4A90D9', glow: 'rgba(74,144,217,0.4)', label: '稀有' },
-  epic: { color: '#9B59B6', glow: 'rgba(155,89,182,0.5)', label: '史诗' },
-  legendary: { color: '#F5A623', glow: 'rgba(245,166,35,0.5)', label: '传说' },
-};
+export { RARITY_VISUAL } from '@/config/rarityVisual';

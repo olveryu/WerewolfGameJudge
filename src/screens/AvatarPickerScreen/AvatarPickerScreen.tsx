@@ -12,7 +12,11 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getUnlockedAvatars, isFrameUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
 import { isFlairUnlocked, isNameStyleUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
-import { type NameStyleId } from '@werewolf/game-engine/growth/rewardCatalog';
+import {
+  getItemRarity,
+  type NameStyleId,
+  type Rarity,
+} from '@werewolf/game-engine/growth/rewardCatalog';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import React, { memo, useCallback, useMemo, useState } from 'react';
@@ -36,6 +40,7 @@ import { Button } from '@/components/Button';
 import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
 import { type FlairId, getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
 import { UI_ICONS } from '@/config/iconTokens';
+import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
@@ -66,6 +71,8 @@ const HERO_PREVIEW_SIZE = 80;
 type Selection = number | 'custom' | 'default' | null;
 type PickerTab = 'avatar' | 'frame' | 'flair' | 'nameStyle';
 
+type RarityFilter = 'all' | Rarity;
+
 interface BuiltinCellItem {
   key: string;
   index: number;
@@ -77,6 +84,7 @@ interface FrameGridItem {
   name: string;
   unlocked: boolean;
   isActive: boolean;
+  rarity: Rarity | null;
 }
 
 interface FlairGridItem {
@@ -84,6 +92,7 @@ interface FlairGridItem {
   name: string;
   unlocked: boolean;
   isActive: boolean;
+  rarity: Rarity | null;
 }
 
 interface NameStyleGridItem {
@@ -91,6 +100,7 @@ interface NameStyleGridItem {
   name: string;
   unlocked: boolean;
   isActive: boolean;
+  rarity: Rarity | null;
 }
 
 export const AvatarPickerScreen: React.FC = () => {
@@ -121,6 +131,7 @@ export const AvatarPickerScreen: React.FC = () => {
   const [selectedFlair, setSelectedFlair] = useState<FlairId | 'none' | null>(null);
   const [selectedNameStyle, setSelectedNameStyle] = useState<NameStyleId | 'none' | null>(null);
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
+  const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
   const [saving, setSaving] = useState(false);
 
   // Growth stats for unlock check (shared cache via TanStack Query)
@@ -131,8 +142,8 @@ export const AvatarPickerScreen: React.FC = () => {
 
   // ── Derived state ──
 
-  const isDefaultActive = !user?.avatarUrl && !user?.customAvatarUrl;
-  const isCustomActive = currentBuiltinIndex === -1 && !!user?.customAvatarUrl;
+  const isDefaultActive = !user?.avatarUrl;
+  const isCustomActive = !!user?.customAvatarUrl && user?.avatarUrl === user?.customAvatarUrl;
 
   const previewAvatarUrl =
     selected === 'default'
@@ -190,12 +201,14 @@ export const AvatarPickerScreen: React.FC = () => {
       name: '无',
       unlocked: true,
       isActive: isNoFrameActive,
+      rarity: null,
     };
     const items: FrameGridItem[] = AVATAR_FRAMES.map((f) => ({
       id: f.id,
       name: f.name,
       unlocked: isFrameUnlocked(f.id, unlockedIds),
       isActive: currentFrameId === f.id,
+      rarity: getItemRarity(f.id),
     }));
     items.sort((a, b) => Number(a.unlocked ? 0 : 1) - Number(b.unlocked ? 0 : 1));
     return [none, ...items];
@@ -208,12 +221,14 @@ export const AvatarPickerScreen: React.FC = () => {
       name: '无',
       unlocked: true,
       isActive: isNoFlairActive,
+      rarity: null,
     };
     const items: FlairGridItem[] = SEAT_FLAIRS.map((f) => ({
       id: f.id,
       name: f.name,
       unlocked: isFlairUnlocked(f.id, unlockedIds),
       isActive: currentFlairId === f.id,
+      rarity: getItemRarity(f.id),
     }));
     items.sort((a, b) => Number(a.unlocked ? 0 : 1) - Number(b.unlocked ? 0 : 1));
     return [none, ...items];
@@ -226,16 +241,42 @@ export const AvatarPickerScreen: React.FC = () => {
       name: '无',
       unlocked: true,
       isActive: isNoNameStyleActive,
+      rarity: null,
     };
     const items: NameStyleGridItem[] = NAME_STYLES.map((s) => ({
       id: s.id,
       name: s.name,
       unlocked: isNameStyleUnlocked(s.id, unlockedIds),
       isActive: currentNameStyleId === s.id,
+      rarity: getItemRarity(s.id),
     }));
     items.sort((a, b) => Number(a.unlocked ? 0 : 1) - Number(b.unlocked ? 0 : 1));
     return [none, ...items];
   }, [unlockedIds, currentNameStyleId, isNoNameStyleActive]);
+
+  // ── Rarity-filtered data ──
+
+  const filteredAvatarData = useMemo(() => {
+    if (rarityFilter === 'all') return data;
+    return data.filter(
+      (item) => item.index === -1 || getItemRarity(AVATAR_KEYS[item.index]) === rarityFilter,
+    );
+  }, [data, rarityFilter]);
+
+  const filteredFrameData = useMemo(() => {
+    if (rarityFilter === 'all') return frameGridData;
+    return frameGridData.filter((item) => item.rarity === null || item.rarity === rarityFilter);
+  }, [frameGridData, rarityFilter]);
+
+  const filteredFlairData = useMemo(() => {
+    if (rarityFilter === 'all') return flairGridData;
+    return flairGridData.filter((item) => item.rarity === null || item.rarity === rarityFilter);
+  }, [flairGridData, rarityFilter]);
+
+  const filteredNameStyleData = useMemo(() => {
+    if (rarityFilter === 'all') return nameStyleGridData;
+    return nameStyleGridData.filter((item) => item.rarity === null || item.rarity === rarityFilter);
+  }, [nameStyleGridData, rarityFilter]);
 
   // ── Handlers ──
 
@@ -676,7 +717,10 @@ export const AvatarPickerScreen: React.FC = () => {
       <View style={styles.pickerTabBar}>
         <TouchableOpacity
           style={[styles.pickerTab, activeTab === 'avatar' && styles.pickerTabActive]}
-          onPress={() => setActiveTab('avatar')}
+          onPress={() => {
+            setActiveTab('avatar');
+            setRarityFilter('all');
+          }}
           activeOpacity={fixed.activeOpacity}
         >
           <Text
@@ -688,7 +732,10 @@ export const AvatarPickerScreen: React.FC = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.pickerTab, activeTab === 'frame' && styles.pickerTabActive]}
-          onPress={() => setActiveTab('frame')}
+          onPress={() => {
+            setActiveTab('frame');
+            setRarityFilter('all');
+          }}
           activeOpacity={fixed.activeOpacity}
         >
           <Text style={[styles.pickerTabText, activeTab === 'frame' && styles.pickerTabTextActive]}>
@@ -698,7 +745,10 @@ export const AvatarPickerScreen: React.FC = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.pickerTab, activeTab === 'flair' && styles.pickerTabActive]}
-          onPress={() => setActiveTab('flair')}
+          onPress={() => {
+            setActiveTab('flair');
+            setRarityFilter('all');
+          }}
           activeOpacity={fixed.activeOpacity}
         >
           <Text style={[styles.pickerTabText, activeTab === 'flair' && styles.pickerTabTextActive]}>
@@ -708,7 +758,10 @@ export const AvatarPickerScreen: React.FC = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.pickerTab, activeTab === 'nameStyle' && styles.pickerTabActive]}
-          onPress={() => setActiveTab('nameStyle')}
+          onPress={() => {
+            setActiveTab('nameStyle');
+            setRarityFilter('all');
+          }}
           activeOpacity={fixed.activeOpacity}
         >
           <Text
@@ -720,12 +773,41 @@ export const AvatarPickerScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
+      {/* Rarity sub-tab bar */}
+      <View style={styles.rarityTabBar}>
+        {[
+          { key: 'all' as RarityFilter, label: '全部' },
+          ...RARITY_ORDER.map((r) => ({ key: r as RarityFilter, label: RARITY_VISUAL[r].label })),
+        ].map((rt) => {
+          const isActive = rt.key === rarityFilter;
+          const visual = rt.key !== 'all' ? RARITY_VISUAL[rt.key] : null;
+          return (
+            <Pressable
+              key={rt.key}
+              style={[styles.rarityTab, isActive && styles.rarityTabActive]}
+              onPress={() => setRarityFilter(rt.key)}
+            >
+              {visual && <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />}
+              <Text
+                style={[
+                  styles.rarityTabText,
+                  isActive && styles.rarityTabTextActive,
+                  visual && isActive && { color: visual.color },
+                ]}
+              >
+                {rt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       {/* Tab content */}
       <View style={styles.content}>
         {activeTab === 'avatar' ? (
           <FlatList
             key="avatar"
-            data={data}
+            data={filteredAvatarData}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
             numColumns={NUM_COLUMNS}
@@ -739,7 +821,7 @@ export const AvatarPickerScreen: React.FC = () => {
         ) : activeTab === 'frame' ? (
           <FlatList
             key="frame"
-            data={frameGridData}
+            data={filteredFrameData}
             renderItem={renderFrameItem}
             keyExtractor={frameKeyExtractor}
             numColumns={FRAME_NUM_COLUMNS}
@@ -753,7 +835,7 @@ export const AvatarPickerScreen: React.FC = () => {
         ) : activeTab === 'flair' ? (
           <FlatList
             key="flair"
-            data={flairGridData}
+            data={filteredFlairData}
             renderItem={renderFlairItem}
             keyExtractor={flairKeyExtractor}
             numColumns={FRAME_NUM_COLUMNS}
@@ -767,7 +849,7 @@ export const AvatarPickerScreen: React.FC = () => {
         ) : activeTab === 'nameStyle' ? (
           <FlatList
             key="nameStyle"
-            data={nameStyleGridData}
+            data={filteredNameStyleData}
             renderItem={renderNameStyleItem}
             keyExtractor={nameStyleKeyExtractor}
             numColumns={FRAME_NUM_COLUMNS}

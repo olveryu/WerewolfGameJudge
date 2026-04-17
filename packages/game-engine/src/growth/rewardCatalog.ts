@@ -335,6 +335,13 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
   // Common (50) — simple single-color text styling
 };
 
+/** 按 ID 查稀有度（avatar/frame/flair/nameStyle 统一查询） */
+export function getItemRarity(id: string): Rarity {
+  return (
+    AVATAR_RARITY[id] ?? FRAME_RARITY[id] ?? FLAIR_RARITY[id] ?? NAME_STYLE_RARITY[id] ?? 'common'
+  );
+}
+
 /**
  * 可抽奖励池（全部可解锁物品 - 免费物品）。
  * 服务端升级时从此池中排除已解锁 → 随机抽取。

@@ -12,7 +12,9 @@ import {
   FRAME_IDS,
   FREE_AVATAR_IDS,
   FREE_FRAME_IDS,
+  getItemRarity,
   NAME_STYLE_IDS,
+  type Rarity,
   SEAT_FLAIR_IDS,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
@@ -35,6 +37,7 @@ import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
 import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
+import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 import { RootStackParamList } from '@/navigation/types';
@@ -63,11 +66,19 @@ const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'nameStyle', label: '名字' },
 ] as const;
 
+type RarityFilter = 'all' | Rarity;
+
+const RARITY_TABS: readonly { key: RarityFilter; label: string }[] = [
+  { key: 'all', label: '全部' },
+  ...RARITY_ORDER.map((r) => ({ key: r as RarityFilter, label: RARITY_VISUAL[r].label })),
+] as const;
+
 interface UnlockItem {
   id: string;
   type: TabKey;
   displayName: string;
   unlocked: boolean;
+  rarity: Rarity;
 }
 
 export const UnlocksScreen: React.FC = () => {
@@ -79,6 +90,7 @@ export const UnlocksScreen: React.FC = () => {
   const isViewer = !!viewingUserId;
 
   const [activeTab, setActiveTab] = useState<TabKey>('avatar');
+  const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
 
   // Fetch unlocked items: self → useUserStatsQuery, other → useUserUnlocksQuery
   const selfStats = useUserStatsQuery({ enabled: !isViewer });
@@ -105,6 +117,7 @@ export const UnlocksScreen: React.FC = () => {
         type: 'avatar' as const,
         displayName: getRoleDisplayName(id),
         unlocked: unlockedSet.has(id),
+        rarity: getItemRarity(id),
       })).sort((a, b) => Number(b.unlocked) - Number(a.unlocked)),
     [unlockedSet],
   );
@@ -117,6 +130,7 @@ export const UnlocksScreen: React.FC = () => {
         type: 'frame' as const,
         displayName: frame?.name ?? id,
         unlocked: unlockedSet.has(id),
+        rarity: getItemRarity(id),
       };
     }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
   }, [unlockedSet]);
@@ -130,6 +144,7 @@ export const UnlocksScreen: React.FC = () => {
           type: 'flair' as const,
           displayName: flair?.name ?? id,
           unlocked: unlockedSet.has(id),
+          rarity: getItemRarity(id),
         };
       }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked)),
     [unlockedSet],
@@ -144,12 +159,13 @@ export const UnlocksScreen: React.FC = () => {
           type: 'nameStyle' as const,
           displayName: ns?.name ?? id,
           unlocked: unlockedSet.has(id),
+          rarity: getItemRarity(id),
         };
       }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked)),
     [unlockedSet],
   );
 
-  const currentItems =
+  const allTabItems =
     activeTab === 'avatar'
       ? avatarItems
       : activeTab === 'frame'
@@ -157,6 +173,13 @@ export const UnlocksScreen: React.FC = () => {
         : activeTab === 'flair'
           ? flairItems
           : nameStyleItems;
+
+  // Apply rarity sub-tab filter
+  const currentItems = useMemo(
+    () =>
+      rarityFilter === 'all' ? allTabItems : allTabItems.filter((i) => i.rarity === rarityFilter),
+    [allTabItems, rarityFilter],
+  );
 
   // Pad last row with invisible spacers so flex:1 cells don't stretch
   const paddedItems = useMemo(() => {
@@ -167,12 +190,13 @@ export const UnlocksScreen: React.FC = () => {
       type: activeTab,
       displayName: '',
       unlocked: false,
+      rarity: 'common',
     }));
     return [...currentItems, ...spacers];
   }, [currentItems, activeTab]);
 
-  const unlockedCount = currentItems.filter((i) => i.unlocked).length;
-  const totalCount = currentItems.length;
+  const unlockedCount = allTabItems.filter((i) => i.unlocked).length;
+  const totalCount = allTabItems.length;
   const progressPercent = Math.round((unlockedCount / totalCount) * 100);
 
   const handleGoBack = useCallback(() => navigation.goBack(), [navigation]);
@@ -184,6 +208,11 @@ export const UnlocksScreen: React.FC = () => {
   );
 
   const keyExtractor = useCallback((item: UnlockItem) => `${item.type}-${item.id}`, []);
+
+  const handleTabChange = useCallback((tab: TabKey) => {
+    setActiveTab(tab);
+    setRarityFilter('all');
+  }, []);
 
   const listHeader = useMemo(
     () => (
@@ -209,7 +238,7 @@ export const UnlocksScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Tab bar */}
+        {/* Type tab bar */}
         <View style={styles.tabBar}>
           {TABS.map((tab) => {
             const isActive = tab.key === activeTab;
@@ -217,16 +246,50 @@ export const UnlocksScreen: React.FC = () => {
               <Pressable
                 key={tab.key}
                 style={[styles.tab, isActive && styles.tabActive]}
-                onPress={() => setActiveTab(tab.key)}
+                onPress={() => handleTabChange(tab.key)}
               >
                 <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{tab.label}</Text>
               </Pressable>
             );
           })}
         </View>
+
+        {/* Rarity sub-tab bar */}
+        <View style={styles.rarityTabBar}>
+          {RARITY_TABS.map((rt) => {
+            const isActive = rt.key === rarityFilter;
+            const visual = rt.key !== 'all' ? RARITY_VISUAL[rt.key] : null;
+            return (
+              <Pressable
+                key={rt.key}
+                style={[styles.rarityTab, isActive && styles.rarityTabActive]}
+                onPress={() => setRarityFilter(rt.key)}
+              >
+                {visual && <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />}
+                <Text
+                  style={[
+                    styles.rarityTabText,
+                    isActive && styles.rarityTabTextActive,
+                    visual && isActive && { color: visual.color },
+                  ]}
+                >
+                  {rt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </>
     ),
-    [unlockedCount, totalCount, progressPercent, activeTab, isViewer],
+    [
+      unlockedCount,
+      totalCount,
+      progressPercent,
+      activeTab,
+      rarityFilter,
+      isViewer,
+      handleTabChange,
+    ],
   );
 
   return (
@@ -521,6 +584,41 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: colors.textInverse,
+  },
+
+  // Rarity sub-tab bar
+  rarityTabBar: {
+    flexDirection: 'row',
+    marginBottom: spacing.medium,
+    gap: spacing.tight,
+  },
+  rarityTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.tight,
+    paddingHorizontal: spacing.small,
+    borderRadius: borderRadius.full,
+    backgroundColor: withAlpha(colors.border, 0.15),
+    gap: spacing.tight,
+  },
+  rarityTabActive: {
+    backgroundColor: colors.surface,
+    ...shadows.sm,
+  },
+  rarityDot: {
+    width: spacing.small,
+    height: spacing.small,
+    borderRadius: borderRadius.full,
+  },
+  rarityTabText: {
+    fontSize: typography.captionSmall,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.medium,
+    color: colors.textMuted,
+  },
+  rarityTabTextActive: {
+    color: colors.text,
+    fontWeight: typography.weights.semibold,
   },
 
   // Grid

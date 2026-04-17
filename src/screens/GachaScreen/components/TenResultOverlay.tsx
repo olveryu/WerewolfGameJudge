@@ -15,10 +15,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import { borderRadius, colors, fixed, shadows, spacing, typography, withAlpha } from '@/theme';
 
-import { RARITY_VISUAL } from '../gachaConstants';
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
 
 interface TenResultOverlayProps {
@@ -27,9 +27,9 @@ interface TenResultOverlayProps {
   onClose: () => void;
 }
 
-const RARITY_ORDER: Record<string, number> = { legendary: 0, epic: 1, rare: 2, common: 3 };
-
 const PREVIEW_SIZE_TEN = 48;
+
+const GROUP_DOT_SIZE = 8;
 
 // ─── Single result cell with staggered entrance ─────────────────────────
 
@@ -84,12 +84,23 @@ function ResultCell({ item, index }: { item: DrawResultItem; index: number }) {
 
 // ─── Overlay ────────────────────────────────────────────────────────────
 
+interface RarityGroup {
+  rarity: (typeof RARITY_ORDER)[number];
+  items: DrawResultItem[];
+  startIndex: number;
+}
+
 export function TenResultOverlay({ results, drawType, onClose }: TenResultOverlayProps) {
-  const sorted = useMemo(
-    () =>
-      [...results].sort((a, b) => (RARITY_ORDER[a.rarity] ?? 4) - (RARITY_ORDER[b.rarity] ?? 4)),
-    [results],
-  );
+  const groups = useMemo((): RarityGroup[] => {
+    const withItems = RARITY_ORDER.map((rarity) => ({
+      rarity,
+      items: results.filter((r) => r.rarity === rarity),
+    })).filter((g) => g.items.length > 0);
+    return withItems.map((g, i) => ({
+      ...g,
+      startIndex: withItems.slice(0, i).reduce((sum, prev) => sum + prev.items.length, 0),
+    }));
+  }, [results]);
 
   return (
     <View style={styles.overlay}>
@@ -101,10 +112,28 @@ export function TenResultOverlay({ results, drawType, onClose }: TenResultOverla
         />
         <Text style={styles.title}>{drawType === 'golden' ? '黄金10连抽结果' : '10连抽结果'}</Text>
       </View>
-      <View style={styles.grid}>
-        {sorted.map((item, i) => (
-          <ResultCell key={`${item.rewardId}-${i}`} item={item} index={i} />
-        ))}
+      <View style={styles.gridContainer}>
+        {groups.map((group) => {
+          const visual = RARITY_VISUAL[group.rarity];
+          return (
+            <View key={group.rarity}>
+              <View style={styles.groupHeader}>
+                <View style={[styles.groupDot, { backgroundColor: visual.color }]} />
+                <Text style={[styles.groupLabel, { color: visual.color }]}>{visual.label}</Text>
+                <Text style={styles.groupCount}>×{group.items.length}</Text>
+              </View>
+              <View style={styles.grid}>
+                {group.items.map((item, i) => (
+                  <ResultCell
+                    key={`${item.rewardId}-${group.startIndex + i}`}
+                    item={item}
+                    index={group.startIndex + i}
+                  />
+                ))}
+              </View>
+            </View>
+          );
+        })}
       </View>
       <Pressable style={styles.closeButton} onPress={onClose}>
         <Text style={styles.closeButtonText}>确认</Text>
@@ -135,10 +164,33 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     gap: spacing.small,
+  },
+  gridContainer: {
     maxWidth: 380,
     width: '90%',
+    gap: spacing.small,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight,
+    paddingVertical: spacing.tight,
+  },
+  groupDot: {
+    width: GROUP_DOT_SIZE,
+    height: GROUP_DOT_SIZE,
+    borderRadius: GROUP_DOT_SIZE / 2,
+  },
+  groupLabel: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    fontWeight: typography.weights.semibold,
+  },
+  groupCount: {
+    fontSize: typography.captionSmall,
+    color: withAlpha(colors.surface, 0.6),
   },
   cell: {
     width: '18%',
