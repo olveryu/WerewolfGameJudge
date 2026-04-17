@@ -1,6 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Sentry from '@sentry/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
@@ -64,6 +66,15 @@ function AppContent() {
     });
     return unsubscribe;
   }, [facade]);
+
+  // Preload icon font on web — catch timeout to prevent unhandled rejection
+  // in WeChat WebView where font loading may be blocked (WEREWOLFJUDGE-15)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    Font.loadAsync(Ionicons.font).catch((err: Error) => {
+      appLog.warn('Icon font load failed (graceful degradation)', err.message);
+    });
+  }, []);
 
   // Pre-compile Skia GPU shaders via offscreen texture (eliminates first-frame jank)
   useSkiaShaderWarmup();
