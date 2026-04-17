@@ -21,6 +21,7 @@ export interface JoinSeatIntent {
     avatarUrl?: string;
     avatarFrame?: string;
     seatFlair?: string;
+    nameStyle?: string;
     level?: number;
   };
 }
@@ -128,6 +129,7 @@ export interface UpdatePlayerProfileIntent {
     avatarUrl?: string;
     avatarFrame?: string;
     seatFlair?: string;
+    nameStyle?: string;
   };
 }
 

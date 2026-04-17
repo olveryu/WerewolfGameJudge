@@ -13,9 +13,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { AVATAR_IDS, FRAME_IDS, SEAT_FLAIR_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import {
+  AVATAR_IDS,
+  FRAME_IDS,
+  NAME_STYLE_IDS,
+  SEAT_FLAIR_IDS,
+} from '@werewolf/game-engine/growth/rewardCatalog';
 
 import { AVATAR_FRAMES, getFrameById } from '@/components/avatarFrames';
+import { getNameStyleById, NAME_STYLES } from '@/components/nameStyles';
 import { getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 
@@ -68,5 +74,20 @@ describe('flair registry completeness', () => {
     const config = getFlairById(id);
     expect(config).toBeDefined();
     expect(config!.Component).toBeDefined();
+  });
+});
+
+// ─── Name Styles ────────────────────────────────────────────────────────────
+
+describe('nameStyle registry completeness', () => {
+  it('NAME_STYLES has exactly one entry per NAME_STYLE_IDS', () => {
+    expect(NAME_STYLES).toHaveLength(NAME_STYLE_IDS.length);
+  });
+
+  it.each(NAME_STYLE_IDS)('getNameStyleById returns a config for "%s"', (id) => {
+    const config = getNameStyleById(id);
+    expect(config).toBeDefined();
+    expect(config!.name).toBeTruthy();
+    expect(config!.tier).toBeTruthy();
   });
 });

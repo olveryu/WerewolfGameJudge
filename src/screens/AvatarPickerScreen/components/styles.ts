@@ -65,6 +65,8 @@ export interface AvatarPickerScreenStyles {
   frameGridNameSelected: TextStyle;
   frameGridNoFrame: ViewStyle;
   flairPreviewCell: ViewStyle;
+  nameStylePreviewCell: ViewStyle;
+  nameStylePreviewText: TextStyle;
   // ReadOnly upgrade card
   pickerUpgradeCard: ViewStyle;
   pickerUpgradeTitle: TextStyle;
@@ -317,6 +319,16 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       justifyContent: 'center',
       alignItems: 'center',
       overflow: 'visible' as const,
+    },
+    nameStylePreviewCell: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.medium,
+    },
+    nameStylePreviewText: {
+      fontSize: typography.caption,
+      fontWeight: typography.weights.medium,
     },
     // ReadOnly upgrade card
     pickerUpgradeCard: {

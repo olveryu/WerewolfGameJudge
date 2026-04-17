@@ -399,6 +399,7 @@ jest.mock('./src/contexts/ServiceContext', () => {
       getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
       getCurrentAvatarFrame: jest.fn().mockResolvedValue(null),
       getCurrentSeatFlair: jest.fn().mockResolvedValue(null),
+      getCurrentNameStyle: jest.fn().mockResolvedValue(null),
       autoSignIn: jest.fn().mockResolvedValue(undefined),
       signInAnonymously: jest.fn().mockResolvedValue({ data: null, error: null }),
       signInWithWechat: jest.fn().mockResolvedValue('test-uid'),

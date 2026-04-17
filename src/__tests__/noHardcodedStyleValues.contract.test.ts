@@ -174,6 +174,9 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
 
   // statusDot borderRadius: 3 — exempt per instructions (statusDot 6×6)
   'src/screens/SettingsScreen/components/styles.ts': 1,
+
+  // nameStyleConfigs: declarative effect color definitions (hex + rgba), not UI layout tokens
+  'src/components/nameStyles/nameStyleConfigs.ts': 51,
 };
 
 // ─── Test ───────────────────────────────────────────────────────────────────

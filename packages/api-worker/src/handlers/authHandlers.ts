@@ -147,6 +147,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
           customAvatarUrl: users.customAvatarUrl,
           avatarFrame: users.avatarFrame,
           equippedFlair: users.equippedFlair,
+          equippedNameStyle: users.equippedNameStyle,
         })
         .from(users)
         .where(eq(users.id, existing.id))
@@ -167,6 +168,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
               custom_avatar_url: merged?.customAvatarUrl,
               avatar_frame: merged?.avatarFrame,
               seat_flair: merged?.equippedFlair,
+              name_style: merged?.equippedNameStyle,
             },
           },
         },
@@ -290,6 +292,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
       customAvatarUrl: users.customAvatarUrl,
       avatarFrame: users.avatarFrame,
       equippedFlair: users.equippedFlair,
+      equippedNameStyle: users.equippedNameStyle,
     })
     .from(users)
     .where(eq(users.email, email))
@@ -333,6 +336,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
           custom_avatar_url: user.customAvatarUrl,
           avatar_frame: user.avatarFrame,
           seat_flair: user.equippedFlair,
+          name_style: user.equippedNameStyle,
         },
       },
     },
@@ -365,6 +369,7 @@ authRoutes.get('/user', async (c) => {
       customAvatarUrl: users.customAvatarUrl,
       avatarFrame: users.avatarFrame,
       equippedFlair: users.equippedFlair,
+      equippedNameStyle: users.equippedNameStyle,
       isAnonymous: users.isAnonymous,
       wechatOpenid: users.wechatOpenid,
     })
@@ -390,6 +395,7 @@ authRoutes.get('/user', async (c) => {
             custom_avatar_url: user.customAvatarUrl,
             avatar_frame: user.avatarFrame,
             seat_flair: user.equippedFlair,
+            name_style: user.equippedNameStyle,
           },
         },
       },
@@ -415,6 +421,7 @@ authRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), async (c)
   if (parsed.customAvatarUrl !== undefined) set.customAvatarUrl = parsed.customAvatarUrl;
   if (parsed.avatarFrame !== undefined) set.avatarFrame = parsed.avatarFrame;
   if (parsed.seatFlair !== undefined) set.equippedFlair = parsed.seatFlair;
+  if (parsed.nameStyle !== undefined) set.equippedNameStyle = parsed.nameStyle;
 
   if (Object.keys(set).length === 0) {
     return c.json({ success: true }, 200);
@@ -647,6 +654,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
       customAvatarUrl: users.customAvatarUrl,
       avatarFrame: users.avatarFrame,
       equippedFlair: users.equippedFlair,
+      equippedNameStyle: users.equippedNameStyle,
     })
     .from(users)
     .where(eq(users.id, token.userId))
@@ -666,6 +674,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
           custom_avatar_url: user?.customAvatarUrl,
           avatar_frame: user?.avatarFrame,
           seat_flair: user?.equippedFlair,
+          name_style: user?.equippedNameStyle,
         },
       },
     },
@@ -720,6 +729,7 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
       customAvatarUrl: users.customAvatarUrl,
       avatarFrame: users.avatarFrame,
       equippedFlair: users.equippedFlair,
+      equippedNameStyle: users.equippedNameStyle,
     })
     .from(users)
     .where(eq(users.wechatOpenid, openid))
@@ -744,6 +754,7 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
             custom_avatar_url: existing.customAvatarUrl,
             avatar_frame: existing.avatarFrame,
             seat_flair: existing.equippedFlair,
+            name_style: existing.equippedNameStyle,
           },
         },
       },

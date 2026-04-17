@@ -351,6 +351,7 @@ export const SettingsScreen: React.FC = () => {
                 <NameSection
                   isAnonymous={false}
                   displayName={user?.displayName ?? null}
+                  nameStyle={user?.nameStyle}
                   onStartEdit={handleStartEditName}
                   styles={styles}
                 />

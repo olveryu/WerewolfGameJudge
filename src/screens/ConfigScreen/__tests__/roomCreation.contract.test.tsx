@@ -96,6 +96,7 @@ describe('Room creation → navigation roomNumber contract', () => {
         getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
         getCurrentAvatarFrame: jest.fn().mockResolvedValue(null),
         getCurrentSeatFlair: jest.fn().mockResolvedValue(null),
+        getCurrentNameStyle: jest.fn().mockResolvedValue(null),
       },
       roomService: mockRoomService,
       settingsService: {

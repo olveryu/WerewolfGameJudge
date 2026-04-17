@@ -227,6 +227,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const avatarUrl = await authService.getCurrentAvatarUrl();
         const avatarFrame = await authService.getCurrentAvatarFrame();
         const seatFlair = await authService.getCurrentSeatFlair();
+        const nameStyle = await authService.getCurrentNameStyle();
         const level = await queryClient
           .fetchQuery({ queryKey: queryKeys.userStats(), queryFn: fetchUserStats })
           .then((s) => s.level)
@@ -238,6 +239,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           avatarUrl ?? undefined,
           avatarFrame ?? undefined,
           seatFlair ?? undefined,
+          nameStyle ?? undefined,
           level,
         );
       } catch (err) {
@@ -273,6 +275,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const avatarUrl = await authService.getCurrentAvatarUrl();
         const avatarFrame = await authService.getCurrentAvatarFrame();
         const seatFlair = await authService.getCurrentSeatFlair();
+        const nameStyle = await authService.getCurrentNameStyle();
         const level = await queryClient
           .fetchQuery({ queryKey: queryKeys.userStats(), queryFn: fetchUserStats })
           .then((s) => s.level)
@@ -284,6 +287,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           avatarUrl ?? undefined,
           avatarFrame ?? undefined,
           seatFlair ?? undefined,
+          nameStyle ?? undefined,
           level,
         );
 

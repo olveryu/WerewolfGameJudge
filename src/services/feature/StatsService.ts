@@ -20,6 +20,7 @@ export interface UserPublicProfile {
   avatarUrl?: string;
   avatarFrame?: string;
   seatFlair?: string;
+  nameStyle?: string;
   level: number;
   title: string;
   xp: number;

@@ -10,6 +10,7 @@ import {
   FREE_AVATAR_IDS,
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
+  FREE_NAME_STYLE_IDS,
   REWARD_POOL,
   type RewardItem,
   type RewardType,
@@ -18,7 +19,7 @@ import {
 /**
  * 从未解锁池中随机抽取一个奖励。
  *
- * 规则：每 5 级优先头像框，每 3 级优先座位装饰，其余级别优先头像。
+ * 规则：每 5 级优先头像框，每 3 级优先座位装饰，每 7 级优先名字特效，其余级别优先头像。
  * 如果目标类型池已空，fallback 到任意未解锁物品。
  *
  * @param unlockedIds - 玩家已解锁的 id 集合（含免费物品）
@@ -32,7 +33,13 @@ export function pickRandomReward(
   level: number,
 ): RewardItem | undefined {
   const preferredType: RewardType =
-    level % 5 === 0 ? 'frame' : level % 3 === 0 ? 'seatFlair' : 'avatar';
+    level % 5 === 0
+      ? 'frame'
+      : level % 7 === 0
+        ? 'nameStyle'
+        : level % 3 === 0
+          ? 'seatFlair'
+          : 'avatar';
   const preferred = REWARD_POOL.filter(
     (item) => item.type === preferredType && !unlockedIds.has(item.id),
   );
@@ -82,4 +89,19 @@ export function getUnlockedFlairs(unlockedIds: readonly string[]): ReadonlySet<s
 /** 座位装饰是否已解锁 */
 export function isFlairUnlocked(flairId: string, unlockedIds: readonly string[]): boolean {
   return getUnlockedFlairs(unlockedIds).has(flairId);
+}
+
+/** 已解锁名字特效 id 集合（免费 + 玩家解锁的 nameStyle 类型） */
+export function getUnlockedNameStyles(unlockedIds: readonly string[]): ReadonlySet<string> {
+  const set = new Set<string>(FREE_NAME_STYLE_IDS);
+  for (const id of unlockedIds) {
+    const item = REWARD_POOL.find((r) => r.id === id);
+    if (item?.type === 'nameStyle') set.add(id);
+  }
+  return set;
+}
+
+/** 名字特效是否已解锁 */
+export function isNameStyleUnlocked(nameStyleId: string, unlockedIds: readonly string[]): boolean {
+  return getUnlockedNameStyles(unlockedIds).has(nameStyleId);
 }

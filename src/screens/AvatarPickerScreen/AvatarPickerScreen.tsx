@@ -11,7 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getUnlockedAvatars, isFrameUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
-import { isFlairUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
+import { isFlairUnlocked, isNameStyleUnlocked } from '@werewolf/game-engine/growth/frameUnlock';
+import { type NameStyleId } from '@werewolf/game-engine/growth/rewardCatalog';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import React, { memo, useCallback, useMemo, useState } from 'react';
@@ -32,6 +33,7 @@ import { toast } from 'sonner-native';
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
+import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
 import { type FlairId, getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
@@ -61,7 +63,7 @@ const FRAME_GRID_CELL_SIZE = 72;
 const HERO_PREVIEW_SIZE = 80;
 
 type Selection = number | 'custom' | null;
-type PickerTab = 'avatar' | 'frame' | 'flair';
+type PickerTab = 'avatar' | 'frame' | 'flair' | 'nameStyle';
 
 interface BuiltinCellItem {
   key: string;
@@ -78,6 +80,13 @@ interface FrameGridItem {
 
 interface FlairGridItem {
   id: FlairId | 'none';
+  name: string;
+  unlocked: boolean;
+  isActive: boolean;
+}
+
+interface NameStyleGridItem {
+  id: NameStyleId | 'none';
   name: string;
   unlocked: boolean;
   isActive: boolean;
@@ -101,6 +110,7 @@ export const AvatarPickerScreen: React.FC = () => {
 
   const currentFrameId = user?.avatarFrame ?? null;
   const currentFlairId = user?.seatFlair ?? null;
+  const currentNameStyleId = user?.nameStyle ?? null;
 
   // ── Local selection state ──
 
@@ -108,6 +118,7 @@ export const AvatarPickerScreen: React.FC = () => {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [selectedFrame, setSelectedFrame] = useState<FrameId | 'none' | null>(null);
   const [selectedFlair, setSelectedFlair] = useState<FlairId | 'none' | null>(null);
+  const [selectedNameStyle, setSelectedNameStyle] = useState<NameStyleId | 'none' | null>(null);
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
   const [saving, setSaving] = useState(false);
 
@@ -135,10 +146,15 @@ export const AvatarPickerScreen: React.FC = () => {
     ? (AVATAR_FRAMES.find((f) => f.id === effectiveFrame)?.name ?? '')
     : '无框';
 
-  const hasSelection = selected !== null || selectedFrame !== null || selectedFlair !== null;
+  const hasSelection =
+    selected !== null ||
+    selectedFrame !== null ||
+    selectedFlair !== null ||
+    selectedNameStyle !== null;
 
   const isNoFrameActive = !currentFrameId;
   const isNoFlairActive = !currentFlairId;
+  const isNoNameStyleActive = !currentNameStyleId;
 
   // ── Grid data ──
 
@@ -199,6 +215,24 @@ export const AvatarPickerScreen: React.FC = () => {
     return [none, ...items];
   }, [unlockedIds, currentFlairId, isNoFlairActive]);
 
+  /** Sorted nameStyle grid data — "none" sentinel + unlocked-first order. */
+  const nameStyleGridData: NameStyleGridItem[] = useMemo(() => {
+    const none: NameStyleGridItem = {
+      id: 'none',
+      name: '无',
+      unlocked: true,
+      isActive: isNoNameStyleActive,
+    };
+    const items: NameStyleGridItem[] = NAME_STYLES.map((s) => ({
+      id: s.id,
+      name: s.name,
+      unlocked: isNameStyleUnlocked(s.id, unlockedIds),
+      isActive: currentNameStyleId === s.id,
+    }));
+    items.sort((a, b) => Number(a.unlocked ? 0 : 1) - Number(b.unlocked ? 0 : 1));
+    return [none, ...items];
+  }, [unlockedIds, currentNameStyleId, isNoNameStyleActive]);
+
   // ── Handlers ──
 
   const handleGoBack = useCallback(() => {
@@ -244,6 +278,18 @@ export const AvatarPickerScreen: React.FC = () => {
         return;
       }
       setSelectedFlair(flairId);
+    },
+    [readOnly, unlockedIds],
+  );
+
+  const handlePressNameStyle = useCallback(
+    (nameStyleId: NameStyleId | 'none') => {
+      if (readOnly) return;
+      if (nameStyleId !== 'none' && !isNameStyleUnlocked(nameStyleId, unlockedIds)) {
+        showAlert('未解锁', '提升等级后随机解锁');
+        return;
+      }
+      setSelectedNameStyle(nameStyleId);
     },
     [readOnly, unlockedIds],
   );
@@ -329,22 +375,37 @@ export const AvatarPickerScreen: React.FC = () => {
         newFlair = selectedFlair;
       }
 
+      // Resolve new nameStyle (if changed)
+      let newNameStyle: string | undefined;
+      if (selectedNameStyle === 'none') {
+        newNameStyle = '';
+      } else if (selectedNameStyle !== null) {
+        newNameStyle = selectedNameStyle;
+      }
+
       // Persist to auth profile
       const profilePatch: Record<string, string> = {};
       if (newAvatarUrl !== undefined) profilePatch.avatarUrl = newAvatarUrl;
       if (newFrame !== undefined) profilePatch.avatarFrame = newFrame;
       if (newFlair !== undefined) profilePatch.seatFlair = newFlair;
+      if (newNameStyle !== undefined) profilePatch.nameStyle = newNameStyle;
       if (Object.keys(profilePatch).length > 0) {
         await updateProfile(profilePatch);
       }
 
       // Single awaited call to sync both fields to GameState
-      if (newAvatarUrl !== undefined || newFrame !== undefined || newFlair !== undefined) {
+      if (
+        newAvatarUrl !== undefined ||
+        newFrame !== undefined ||
+        newFlair !== undefined ||
+        newNameStyle !== undefined
+      ) {
         const result = await facade.updatePlayerProfile(
           undefined,
           newAvatarUrl,
           newFrame,
           newFlair,
+          newNameStyle,
         );
         if (!result.success) {
           settingsLog.warn('Avatar/frame/flair sync to GameState failed:', result.reason);
@@ -364,6 +425,7 @@ export const AvatarPickerScreen: React.FC = () => {
     selected,
     selectedFrame,
     selectedFlair,
+    selectedNameStyle,
     user?.customAvatarUrl,
     updateProfile,
     facade,
@@ -378,6 +440,7 @@ export const AvatarPickerScreen: React.FC = () => {
 
   const frameKeyExtractor = useCallback((item: FrameGridItem) => item.id, []);
   const flairKeyExtractor = useCallback((item: FlairGridItem) => item.id, []);
+  const nameStyleKeyExtractor = useCallback((item: NameStyleGridItem) => item.id, []);
 
   const renderFrameItem = useCallback(
     ({ item }: ListRenderItemInfo<FrameGridItem>) => (
@@ -405,6 +468,18 @@ export const AvatarPickerScreen: React.FC = () => {
       />
     ),
     [selectedFlair, previewAvatarUrl, user?.uid, handlePressFlair, styles],
+  );
+
+  const renderNameStyleItem = useCallback(
+    ({ item }: ListRenderItemInfo<NameStyleGridItem>) => (
+      <NameStyleCell
+        item={item}
+        selectedNameStyle={selectedNameStyle}
+        onPress={handlePressNameStyle}
+        styles={styles}
+      />
+    ),
+    [selectedNameStyle, handlePressNameStyle, styles],
   );
 
   // ── List header for avatar tab ──
@@ -590,6 +665,18 @@ export const AvatarPickerScreen: React.FC = () => {
           </Text>
           {activeTab === 'flair' && <View style={styles.pickerTabIndicator} />}
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.pickerTab, activeTab === 'nameStyle' && styles.pickerTabActive]}
+          onPress={() => setActiveTab('nameStyle')}
+          activeOpacity={fixed.activeOpacity}
+        >
+          <Text
+            style={[styles.pickerTabText, activeTab === 'nameStyle' && styles.pickerTabTextActive]}
+          >
+            名字特效
+          </Text>
+          {activeTab === 'nameStyle' && <View style={styles.pickerTabIndicator} />}
+        </TouchableOpacity>
       </View>
 
       {/* Tab content */}
@@ -628,6 +715,20 @@ export const AvatarPickerScreen: React.FC = () => {
             data={flairGridData}
             renderItem={renderFlairItem}
             keyExtractor={flairKeyExtractor}
+            numColumns={FRAME_NUM_COLUMNS}
+            columnWrapperStyle={styles.frameColumnWrapper}
+            contentContainerStyle={styles.frameGridContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={9}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
+        ) : activeTab === 'nameStyle' ? (
+          <FlatList
+            key="nameStyle"
+            data={nameStyleGridData}
+            renderItem={renderNameStyleItem}
+            keyExtractor={nameStyleKeyExtractor}
             numColumns={FRAME_NUM_COLUMNS}
             columnWrapperStyle={styles.frameColumnWrapper}
             contentContainerStyle={styles.frameGridContent}
@@ -862,3 +963,61 @@ const FlairCell = memo<FlairCellProps>(
 );
 
 FlairCell.displayName = 'FlairCell';
+
+// ─── NameStyle grid cell (memoized for FlatList virtualization) ───────────────
+
+interface NameStyleCellProps {
+  item: NameStyleGridItem;
+  selectedNameStyle: NameStyleId | 'none' | null;
+  onPress: (id: NameStyleId | 'none') => void;
+  styles: AvatarPickerScreenStyles;
+}
+
+const NameStyleCell = memo<NameStyleCellProps>(({ item, selectedNameStyle, onPress, styles }) => {
+  const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
+  const isSelected = selectedNameStyle === item.id;
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.frameGridCell,
+        isSelected && styles.frameGridCellSelected,
+        !isSelected && item.isActive && selectedNameStyle === null && styles.frameGridCellActive,
+        !item.unlocked && styles.frameGridCellLocked,
+      ]}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
+      {item.id === 'none' ? (
+        <View
+          style={[
+            styles.frameGridNoFrame,
+            { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
+          ]}
+        >
+          <Ionicons
+            name="close-circle-outline"
+            size={componentSizes.icon.xl}
+            color={colors.textMuted}
+          />
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.nameStylePreviewCell,
+            { width: FRAME_GRID_CELL_SIZE, height: FRAME_GRID_CELL_SIZE },
+          ]}
+        >
+          <NameStyleText styleId={item.id} style={styles.nameStylePreviewText}>
+            {item.name}
+          </NameStyleText>
+        </View>
+      )}
+      <Text style={[styles.frameGridName, isSelected && styles.frameGridNameSelected]}>
+        {item.unlocked ? item.name : '未解锁'}
+      </Text>
+    </TouchableOpacity>
+  );
+});
+
+NameStyleCell.displayName = 'NameStyleCell';

@@ -92,6 +92,7 @@ export interface SeatViewModel {
     avatarUrl?: string;
     avatarFrame?: string;
     seatFlair?: string;
+    nameStyle?: string;
     level?: number;
     isBot?: boolean;
     role?: RoleId | null; // For bot role display (debug mode)
@@ -463,6 +464,7 @@ export function buildSeatViewModels(
             avatarUrl: player.avatarUrl,
             avatarFrame: player.avatarFrame,
             seatFlair: player.seatFlair,
+            nameStyle: player.nameStyle,
             level: player.level,
             isBot: player.isBot,
             role: player.role, // For bot role display (debug mode)

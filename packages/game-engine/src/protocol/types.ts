@@ -95,6 +95,7 @@ export interface RosterEntry {
   avatarUrl?: string;
   avatarFrame?: string;
   seatFlair?: string;
+  nameStyle?: string;
   level?: number;
 }
 

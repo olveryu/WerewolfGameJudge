@@ -20,6 +20,7 @@ export const users = sqliteTable(
     customAvatarUrl: text('custom_avatar_url'),
     avatarFrame: text('avatar_frame'),
     equippedFlair: text('equipped_flair'),
+    equippedNameStyle: text('equipped_name_style'),
     wechatOpenid: text('wechat_openid'),
     isAnonymous: integer('is_anonymous').notNull().default(1),
     createdAt: text('created_at').notNull(),

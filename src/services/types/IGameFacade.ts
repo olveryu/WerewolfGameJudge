@@ -116,6 +116,7 @@ export interface IGameFacade {
     avatarUrl?: string,
     avatarFrame?: string,
     seatFlair?: string,
+    nameStyle?: string,
     level?: number,
   ): Promise<boolean>;
 
@@ -130,9 +131,9 @@ export interface IGameFacade {
     avatarUrl?: string,
     avatarFrame?: string,
     seatFlair?: string,
+    nameStyle?: string,
     level?: number,
   ): Promise<{ success: boolean; reason?: string }>;
-
   /**
    * 离座
    * 统一 HTTP API，服务端处理
@@ -213,6 +214,7 @@ export interface IGameFacade {
     avatarUrl?: string,
     avatarFrame?: string,
     seatFlair?: string,
+    nameStyle?: string,
   ): Promise<{ success: boolean; reason?: string }>;
 
   /**

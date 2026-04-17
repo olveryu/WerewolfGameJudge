@@ -376,6 +376,7 @@ export class GameFacade implements IGameFacade {
     avatarUrl?: string,
     avatarFrame?: string,
     seatFlair?: string,
+    nameStyle?: string,
     level?: number,
   ): Promise<boolean> {
     return seatActions.takeSeat(
@@ -385,6 +386,7 @@ export class GameFacade implements IGameFacade {
       avatarUrl,
       avatarFrame,
       seatFlair,
+      nameStyle,
       level,
     );
   }
@@ -395,6 +397,7 @@ export class GameFacade implements IGameFacade {
     avatarUrl?: string,
     avatarFrame?: string,
     seatFlair?: string,
+    nameStyle?: string,
     level?: number,
   ): Promise<{ success: boolean; reason?: string }> {
     return seatActions.takeSeatWithAck(
@@ -404,6 +407,7 @@ export class GameFacade implements IGameFacade {
       avatarUrl,
       avatarFrame,
       seatFlair,
+      nameStyle,
       level,
     );
   }
@@ -514,6 +518,7 @@ export class GameFacade implements IGameFacade {
     avatarUrl?: string,
     avatarFrame?: string,
     seatFlair?: string,
+    nameStyle?: string,
   ): Promise<{ success: boolean; reason?: string }> {
     return gameActions.updatePlayerProfile(
       this.#getActionsContext(),
@@ -521,6 +526,7 @@ export class GameFacade implements IGameFacade {
       avatarUrl,
       avatarFrame,
       seatFlair,
+      nameStyle,
     );
   }
 

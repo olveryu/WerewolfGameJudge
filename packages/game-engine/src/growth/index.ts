@@ -8,8 +8,10 @@ export {
   getUnlockedAvatars,
   getUnlockedFlairs,
   getUnlockedFrames,
+  getUnlockedNameStyles,
   isFlairUnlocked,
   isFrameUnlocked,
+  isNameStyleUnlocked,
   pickRandomReward,
 } from './frameUnlock';
 export {
@@ -30,6 +32,9 @@ export {
   FREE_AVATAR_IDS,
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
+  FREE_NAME_STYLE_IDS,
+  NAME_STYLE_IDS,
+  type NameStyleId,
   REWARD_POOL,
   type RewardItem,
   type RewardType,

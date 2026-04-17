@@ -6,7 +6,7 @@
  * 新增头像/头像框时只需在此追加 + 客户端追加对应图片/组件。
  */
 
-export type RewardType = 'avatar' | 'frame' | 'seatFlair';
+export type RewardType = 'avatar' | 'frame' | 'seatFlair' | 'nameStyle';
 
 export interface RewardItem {
   readonly type: RewardType;
@@ -124,6 +124,31 @@ export const SEAT_FLAIR_IDS = [
   'prismShard',
 ] as const;
 
+/** 全部名字特效 ID（与 `nameStyles/index.ts` 配置注册表 1:1 对应）。 */
+// prettier-ignore
+export const NAME_STYLE_IDS = [
+  'silverGleam',
+  'copperEmber',
+  'bloodMoonGlow',
+  'jadeShimmer',
+  'amethystGlow',
+  'indigoRadiance',
+  'twilightGradient',
+  'roseGold',
+  'frostVeil',
+  'amberFlare',
+  'moltenGoldPulse',
+  'frostBreath',
+  'venomShift',
+  'shadowPulse',
+  'crimsonTide',
+  'stormElectric',
+  'phoenixRebirth',
+  'voidStar',
+  'dragonBreath',
+  'celestialDawn',
+] as const;
+
 /** 头像 ID literal union */
 export type AvatarId = (typeof AVATAR_IDS)[number];
 
@@ -133,6 +158,9 @@ export type FrameId = (typeof FRAME_IDS)[number];
 /** 座位装饰 ID literal union */
 export type FlairId = (typeof SEAT_FLAIR_IDS)[number];
 
+/** 名字特效 ID literal union */
+export type NameStyleId = (typeof NAME_STYLE_IDS)[number];
+
 /** 注册即得的免费头像 ID */
 export const FREE_AVATAR_IDS: ReadonlySet<string> = new Set(['villager']);
 
@@ -141,6 +169,9 @@ export const FREE_FRAME_IDS: ReadonlySet<string> = new Set<string>();
 
 /** 注册即得的免费座位装饰 ID（无） */
 export const FREE_FLAIR_IDS: ReadonlySet<string> = new Set<string>();
+
+/** 注册即得的免费名字特效 ID（无） */
+export const FREE_NAME_STYLE_IDS: ReadonlySet<string> = new Set<string>();
 
 /**
  * 可抽奖励池（全部可解锁物品 - 免费物品）。
@@ -156,10 +187,14 @@ export const REWARD_POOL: readonly RewardItem[] = [
   ...SEAT_FLAIR_IDS.filter((id) => !FREE_FLAIR_IDS.has(id)).map(
     (id) => ({ type: 'seatFlair', id }) as const,
   ),
+  ...NAME_STYLE_IDS.filter((id) => !FREE_NAME_STYLE_IDS.has(id)).map(
+    (id) => ({ type: 'nameStyle', id }) as const,
+  ),
 ];
 
 /** 免费物品总数 */
-export const FREE_ITEM_COUNT = FREE_AVATAR_IDS.size + FREE_FRAME_IDS.size + FREE_FLAIR_IDS.size;
+export const FREE_ITEM_COUNT =
+  FREE_AVATAR_IDS.size + FREE_FRAME_IDS.size + FREE_FLAIR_IDS.size + FREE_NAME_STYLE_IDS.size;
 
 /** 全部可获得物品总数（含免费） */
 export const TOTAL_UNLOCKABLE_COUNT = REWARD_POOL.length + FREE_ITEM_COUNT;

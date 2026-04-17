@@ -41,10 +41,11 @@ function extractIds(source, varName) {
 const avatarIds = extractIds(catalogSrc, 'AVATAR_IDS');
 const frameIds = extractIds(catalogSrc, 'FRAME_IDS');
 const flairIds = extractIds(catalogSrc, 'SEAT_FLAIR_IDS');
-const allIds = [...avatarIds, ...frameIds, ...flairIds];
+const nameStyleIds = extractIds(catalogSrc, 'NAME_STYLE_IDS');
+const allIds = [...avatarIds, ...frameIds, ...flairIds, ...nameStyleIds];
 
 console.log(
-  `Parsed ${avatarIds.length} avatars, ${frameIds.length} frames, ${flairIds.length} flairs (${allIds.length} total)`,
+  `Parsed ${avatarIds.length} avatars, ${frameIds.length} frames, ${flairIds.length} flairs, ${nameStyleIds.length} nameStyles (${allIds.length} total)`,
 );
 
 // ── 生成 SQL ────────────────────────────────────────────────────────────────

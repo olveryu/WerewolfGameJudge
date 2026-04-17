@@ -278,6 +278,7 @@ export class GameRoom extends DurableObject<Env> {
     avatarUrl?: string,
     avatarFrame?: string,
     seatFlair?: string,
+    nameStyle?: string,
     targetSeat?: number,
     level?: number,
   ): Promise<GameActionResult> {
@@ -295,6 +296,7 @@ export class GameRoom extends DurableObject<Env> {
                 avatarUrl,
                 avatarFrame,
                 seatFlair,
+                nameStyle,
                 level,
               },
             },
@@ -362,13 +364,14 @@ export class GameRoom extends DurableObject<Env> {
     avatarUrl?: string,
     avatarFrame?: string,
     seatFlair?: string,
+    nameStyle?: string,
   ): Promise<GameActionResult> {
     return this.#processAction((state) => {
       const ctx = buildHandlerContext(state, uid);
       return handleUpdatePlayerProfile(
         {
           type: 'UPDATE_PLAYER_PROFILE',
-          payload: { uid, displayName, avatarUrl, avatarFrame, seatFlair },
+          payload: { uid, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle },
         },
         ctx,
       );

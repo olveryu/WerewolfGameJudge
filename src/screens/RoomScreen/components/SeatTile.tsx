@@ -25,6 +25,7 @@ import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
+import { NameStyleText } from '@/components/nameStyles';
 import { getFlairById } from '@/components/seatFlairs';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
@@ -100,6 +101,8 @@ export interface SeatTileProps {
   playerAvatarFrame?: string;
   /** Seat flair ID (decoration animation around the tile). */
   playerSeatFlair?: string;
+  /** Name style ID (text effect on player name). */
+  playerNameStyle?: string;
   playerDisplayName: string | null;
   /** Whether the player is anonymous (no custom avatar set). Dims the nickname. */
   isPlayerAnonymous: boolean;
@@ -137,6 +140,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerAvatarIndex,
   playerAvatarFrame,
   playerSeatFlair,
+  playerNameStyle,
   playerDisplayName,
   isPlayerAnonymous,
   roleId,
@@ -411,7 +415,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       </View>
       {hasPlayer ? (
         <>
-          <Text
+          <NameStyleText
+            styleId={playerNameStyle}
             style={isPlayerAnonymous ? styles.playerName : styles.playerNameHighlight}
             numberOfLines={1}
             ellipsizeMode="tail"
@@ -419,7 +424,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             {isBot && <Ionicons name={UI_ICONS.BOT} size={typography.caption} />}
             {isBot && ' '}
             {playerDisplayName}
-          </Text>
+          </NameStyleText>
           {botRoleDisplayName && (
             <Text style={styles.botRoleName} numberOfLines={1}>
               {botRoleDisplayName}

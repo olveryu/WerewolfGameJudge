@@ -12,6 +12,7 @@ import {
   FRAME_IDS,
   FREE_AVATAR_IDS,
   FREE_FRAME_IDS,
+  NAME_STYLE_IDS,
   SEAT_FLAIR_IDS,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
@@ -32,6 +33,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
+import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
@@ -52,12 +54,13 @@ import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
 const NUM_COLUMNS = 4;
 const CELL_SIZE = 80;
 
-type TabKey = 'avatar' | 'frame' | 'flair';
+type TabKey = 'avatar' | 'frame' | 'flair' | 'nameStyle';
 
 const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'avatar', label: '头像' },
   { key: 'frame', label: '头像框' },
   { key: 'flair', label: '特效' },
+  { key: 'nameStyle', label: '名字' },
 ] as const;
 
 interface UnlockItem {
@@ -132,8 +135,28 @@ export const UnlocksScreen: React.FC = () => {
     [unlockedSet],
   );
 
+  const nameStyleItems = useMemo(
+    (): UnlockItem[] =>
+      NAME_STYLE_IDS.map((id) => {
+        const ns = NAME_STYLES.find((s) => s.id === id);
+        return {
+          id,
+          type: 'nameStyle' as const,
+          displayName: ns?.name ?? id,
+          unlocked: unlockedSet.has(id),
+        };
+      }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked)),
+    [unlockedSet],
+  );
+
   const currentItems =
-    activeTab === 'avatar' ? avatarItems : activeTab === 'frame' ? frameItems : flairItems;
+    activeTab === 'avatar'
+      ? avatarItems
+      : activeTab === 'frame'
+        ? frameItems
+        : activeTab === 'flair'
+          ? flairItems
+          : nameStyleItems;
   const unlockedCount = currentItems.filter((i) => i.unlocked).length;
   const totalCount = currentItems.length;
   const progressPercent = Math.round((unlockedCount / totalCount) * 100);
@@ -236,8 +259,22 @@ const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
       <AvatarThumb id={item.id} unlocked={item.unlocked} />
     ) : item.type === 'frame' ? (
       <FrameThumb id={item.id} unlocked={item.unlocked} />
+    ) : item.type === 'nameStyle' ? (
+      <NameStyleThumb id={item.id} unlocked={item.unlocked} displayName={item.displayName} />
     ) : (
       <FlairThumb id={item.id} unlocked={item.unlocked} />
+    );
+
+  // nameStyle cells: show the name with the effect applied as the label
+  const label =
+    item.type === 'nameStyle' && item.unlocked ? (
+      <NameStyleText styleId={item.id} style={styles.cellName} numberOfLines={1}>
+        {item.displayName}
+      </NameStyleText>
+    ) : (
+      <Text style={[styles.cellName, !item.unlocked && styles.lockedText]} numberOfLines={1}>
+        {item.unlocked ? item.displayName : '???'}
+      </Text>
     );
 
   return (
@@ -255,9 +292,7 @@ const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
           </View>
         )}
       </View>
-      <Text style={[styles.cellName, !item.unlocked && styles.lockedText]} numberOfLines={1}>
-        {item.unlocked ? item.displayName : '???'}
-      </Text>
+      {label}
     </View>
   );
 });
@@ -313,6 +348,28 @@ const FlairThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked
 });
 
 FlairThumb.displayName = 'FlairThumb';
+
+const NAME_STYLE_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
+
+const NameStyleThumb = React.memo<{ id: string; unlocked: boolean; displayName: string }>(
+  ({ id, unlocked, displayName }) => {
+    return (
+      <View
+        style={[
+          styles.nameStylePreview,
+          { width: NAME_STYLE_PREVIEW_SIZE, height: NAME_STYLE_PREVIEW_SIZE },
+          !unlocked && styles.grayscale,
+        ]}
+      >
+        <NameStyleText styleId={unlocked ? id : undefined} style={styles.nameStylePreviewText}>
+          {unlocked ? displayName : '???'}
+        </NameStyleText>
+      </View>
+    );
+  },
+);
+
+NameStyleThumb.displayName = 'NameStyleThumb';
 
 // ── Styles ──────────────────────────────────────────────
 
@@ -483,6 +540,16 @@ const styles = StyleSheet.create({
   },
   grayscale: {
     opacity: 0.4,
+  },
+  nameStylePreview: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.medium,
+  },
+  nameStylePreviewText: {
+    fontSize: typography.caption,
+    fontWeight: typography.weights.medium,
   },
 
   // Badges

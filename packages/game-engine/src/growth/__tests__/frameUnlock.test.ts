@@ -2,8 +2,10 @@ import {
   getUnlockedAvatars,
   getUnlockedFlairs,
   getUnlockedFrames,
+  getUnlockedNameStyles,
   isFlairUnlocked,
   isFrameUnlocked,
+  isNameStyleUnlocked,
   pickRandomReward,
 } from '../frameUnlock';
 import {
@@ -12,14 +14,16 @@ import {
   FREE_AVATAR_IDS,
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
+  FREE_NAME_STYLE_IDS,
+  NAME_STYLE_IDS,
   REWARD_POOL,
   SEAT_FLAIR_IDS,
 } from '../rewardCatalog';
 
 describe('rewardCatalog', () => {
-  it('REWARD_POOL has correct total items (avatars + frames + flairs - free)', () => {
+  it('REWARD_POOL has correct total items (avatars + frames + flairs + nameStyles - free)', () => {
     expect(REWARD_POOL).toHaveLength(
-      AVATAR_IDS.length + FRAME_IDS.length + SEAT_FLAIR_IDS.length - 1,
+      AVATAR_IDS.length + FRAME_IDS.length + SEAT_FLAIR_IDS.length + NAME_STYLE_IDS.length - 1,
     );
   });
 
@@ -28,6 +32,7 @@ describe('rewardCatalog', () => {
     for (const id of FREE_AVATAR_IDS) expect(poolIds.has(id)).toBe(false);
     for (const id of FREE_FRAME_IDS) expect(poolIds.has(id)).toBe(false);
     for (const id of FREE_FLAIR_IDS) expect(poolIds.has(id)).toBe(false);
+    for (const id of FREE_NAME_STYLE_IDS) expect(poolIds.has(id)).toBe(false);
   });
 
   it('all REWARD_POOL ids are unique', () => {
@@ -35,13 +40,15 @@ describe('rewardCatalog', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('contains 42 avatars, 20 frames, and 30 flairs', () => {
+  it('contains 42 avatars, 20 frames, 30 flairs, and 20 nameStyles', () => {
     const avatars = REWARD_POOL.filter((r) => r.type === 'avatar');
     const frames = REWARD_POOL.filter((r) => r.type === 'frame');
     const flairs = REWARD_POOL.filter((r) => r.type === 'seatFlair');
+    const nameStyles = REWARD_POOL.filter((r) => r.type === 'nameStyle');
     expect(avatars).toHaveLength(42);
     expect(frames).toHaveLength(20);
     expect(flairs).toHaveLength(30);
+    expect(nameStyles).toHaveLength(20);
   });
 });
 
@@ -65,6 +72,13 @@ describe('pickRandomReward', () => {
     const result = pickRandomReward(unlocked, () => 0, 3);
     expect(result).toBeDefined();
     expect(result!.type).toBe('seatFlair');
+  });
+
+  it('returns a nameStyle at 7x level', () => {
+    const unlocked = new Set<string>();
+    const result = pickRandomReward(unlocked, () => 0, 7);
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('nameStyle');
   });
 
   it('returns a seatFlair at level 6', () => {
@@ -192,5 +206,38 @@ describe('isFlairUnlocked', () => {
 
   it('non-free flair is unlocked when in list', () => {
     expect(isFlairUnlocked('frostAura', ['frostAura'])).toBe(true);
+  });
+});
+
+describe('getUnlockedNameStyles', () => {
+  it('returns empty set with empty unlocked list (no free nameStyles)', () => {
+    expect(getUnlockedNameStyles([])).toEqual(FREE_NAME_STYLE_IDS);
+  });
+
+  it('includes unlocked nameStyle ids', () => {
+    const unlocked = getUnlockedNameStyles(['silverGleam', 'phoenixRebirth']);
+    expect(unlocked.has('silverGleam')).toBe(true);
+    expect(unlocked.has('phoenixRebirth')).toBe(true);
+    expect(unlocked.size).toBe(2);
+  });
+
+  it('ignores avatar ids in unlock list', () => {
+    const unlocked = getUnlockedNameStyles(['seer']);
+    expect(unlocked.has('seer')).toBe(false);
+    expect(unlocked.size).toBe(0);
+  });
+});
+
+describe('isNameStyleUnlocked', () => {
+  it('silverGleam is locked without explicit unlock', () => {
+    expect(isNameStyleUnlocked('silverGleam', [])).toBe(false);
+  });
+
+  it('silverGleam is unlocked when in list', () => {
+    expect(isNameStyleUnlocked('silverGleam', ['silverGleam'])).toBe(true);
+  });
+
+  it('unknown nameStyle returns false', () => {
+    expect(isNameStyleUnlocked('nonExistent', ['silverGleam'])).toBe(false);
   });
 });

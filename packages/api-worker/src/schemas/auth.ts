@@ -19,6 +19,7 @@ export const updateProfileSchema = z.object({
   customAvatarUrl: z.string().max(500).optional(),
   avatarFrame: z.string().max(100).optional(),
   seatFlair: z.string().max(100).optional(),
+  nameStyle: z.string().max(100).optional(),
 });
 
 export const changePasswordSchema = z.object({

@@ -93,6 +93,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
         getCurrentAvatarFrame: jest.fn().mockResolvedValue(null),
         getCurrentSeatFlair: jest.fn().mockResolvedValue(null),
+        getCurrentNameStyle: jest.fn().mockResolvedValue(null),
       },
       roomService: {
         createRoom: jest.fn(),
@@ -138,6 +139,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       expect(mockFacade.takeSeatWithAck).toHaveBeenCalledWith(
         1,
         'Test Player',
+        undefined,
         undefined,
         undefined,
         undefined,
@@ -388,6 +390,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
         getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
         getCurrentAvatarFrame: jest.fn().mockResolvedValue(null),
         getCurrentSeatFlair: jest.fn().mockResolvedValue(null),
+        getCurrentNameStyle: jest.fn().mockResolvedValue(null),
       },
       roomService: {
         createRoom: jest.fn(),
@@ -662,6 +665,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
         getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
         getCurrentAvatarFrame: jest.fn().mockResolvedValue(null),
         getCurrentSeatFlair: jest.fn().mockResolvedValue(null),
+        getCurrentNameStyle: jest.fn().mockResolvedValue(null),
       },
       roomService: {
         createRoom: jest.fn(),
