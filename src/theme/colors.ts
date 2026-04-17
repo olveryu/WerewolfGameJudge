@@ -47,11 +47,11 @@ export interface ThemeColors {
   transparent: 'transparent';
 }
 
-/** 月白 — 克制、通透、雅致，带有游戏氛围的淡紫灰调 */
+/** 月白 — 克制、通透、雅致，带有游戏氛围的靛蓝调 */
 export const colors: ThemeColors = {
-  primary: '#6C5CE7',
-  primaryLight: '#A29BFE',
-  primaryDark: '#5241C4',
+  primary: '#4F46E5',
+  primaryLight: '#818CF8',
+  primaryDark: '#3730A3',
 
   background: '#F2F2F7',
   surface: '#FFFFFF',
