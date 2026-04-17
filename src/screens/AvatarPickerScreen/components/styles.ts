@@ -35,11 +35,6 @@ export interface AvatarPickerScreenStyles {
   pickerItemLocked: ViewStyle;
   pickerItemLockOverlay: ViewStyle;
   pickerCheckBadge: ViewStyle;
-  pickerSectionTitle: TextStyle;
-  pickerCustomSection: ViewStyle;
-  pickerCustomRow: ViewStyle;
-  pickerCustomItem: ViewStyle;
-  pickerCustomUploadItem: ViewStyle;
   pickerPreviewOverlay: ViewStyle;
   pickerPreviewImage: ImageStyle;
   pickerFooter: ViewStyle;
@@ -53,7 +48,6 @@ export interface AvatarPickerScreenStyles {
   // Rarity sub-tab bar
   rarityTabBar: ViewStyle;
   rarityTab: ViewStyle;
-  rarityDot: ViewStyle;
   rarityTabText: TextStyle;
   rarityTabTextActive: TextStyle;
   // Hero preview area
@@ -172,42 +166,6 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       justifyContent: 'center',
       alignItems: 'center',
     },
-    pickerSectionTitle: {
-      ...textStyles.secondarySemibold,
-      color: colors.textSecondary,
-      paddingHorizontal: spacing.tight,
-      paddingTop: spacing.medium,
-      paddingBottom: spacing.tight,
-    },
-    pickerCustomSection: {
-      paddingHorizontal: spacing.tight,
-      paddingBottom: spacing.small,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
-    },
-    pickerCustomRow: {
-      flexDirection: 'row',
-      gap: spacing.small,
-    },
-    pickerCustomItem: {
-      width: componentSizes.avatar.xl,
-      height: componentSizes.avatar.xl,
-      borderRadius: borderRadius.medium,
-      overflow: 'hidden',
-      borderWidth: fixed.borderWidthThick,
-      borderColor: colors.background,
-    },
-    pickerCustomUploadItem: {
-      width: componentSizes.avatar.xl,
-      height: componentSizes.avatar.xl,
-      borderRadius: borderRadius.medium,
-      borderWidth: fixed.borderWidthThick,
-      borderColor: colors.border,
-      borderStyle: 'dashed',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: colors.surface,
-    },
     pickerPreviewOverlay: {
       ...StyleSheet.absoluteFillObject,
       backgroundColor: colors.overlay,
@@ -263,28 +221,17 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       flexDirection: 'row',
       paddingHorizontal: spacing.screenH,
       paddingVertical: spacing.small,
-      gap: spacing.small,
-    },
-    rarityTab: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: spacing.tight,
-      paddingHorizontal: spacing.medium,
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.borderLight,
-      backgroundColor: colors.surface,
       gap: spacing.tight,
     },
-    rarityDot: {
-      width: spacing.small,
-      height: spacing.small,
+    rarityTab: {
+      paddingVertical: spacing.tight,
+      paddingHorizontal: spacing.small,
       borderRadius: borderRadius.full,
     },
     rarityTabText: {
       ...textStyles.caption,
       fontWeight: typography.weights.medium,
-      color: colors.textSecondary,
+      color: colors.textMuted,
     },
     rarityTabTextActive: {
       color: colors.textInverse,
@@ -328,14 +275,13 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
     },
     frameColumnWrapper: {
       justifyContent: 'flex-start',
-      gap: spacing.medium,
-      marginBottom: spacing.medium,
     },
     frameGridCell: {
-      flex: 1,
-      maxWidth: '33.33%',
+      width: `${100 / 3}%`,
       alignItems: 'center',
       padding: spacing.small,
+      paddingHorizontal: spacing.small + spacing.tight,
+      marginBottom: spacing.medium,
       borderRadius: borderRadius.medium,
       borderWidth: fixed.borderWidthThick,
       borderColor: colors.background,

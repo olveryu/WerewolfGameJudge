@@ -80,10 +80,12 @@ type PickerTab = 'avatar' | 'frame' | 'flair' | 'nameStyle';
 
 type RarityFilter = 'all' | Rarity;
 
-interface BuiltinCellItem {
-  key: string;
-  index: number;
-}
+/** Discriminated union for all avatar grid cells: special (default/custom) + builtin + placeholder */
+type AvatarCellItem =
+  | { key: string; type: 'default' }
+  | { key: string; type: 'custom' }
+  | { key: string; type: 'builtin'; index: number }
+  | { key: string; type: 'placeholder' };
 
 /** Unified item type for frame/flair FlatLists, including the "none" sentinel. */
 interface FrameGridItem {
@@ -180,26 +182,38 @@ export const AvatarPickerScreen: React.FC = () => {
 
   // ── Grid data ──
 
-  const data: BuiltinCellItem[] = useMemo(() => {
-    const items: BuiltinCellItem[] = AVATAR_IMAGES.map((_, i) => ({
+  const data: AvatarCellItem[] = useMemo(() => {
+    // Special cells: default wolf paw + custom avatar (bypass rarity filter)
+    const specials: AvatarCellItem[] = readOnly
+      ? []
+      : [{ key: 'special-default', type: 'default' }];
+    if (!readOnly && user?.customAvatarUrl) {
+      specials.push({ key: 'special-custom', type: 'custom' });
+    }
+
+    const builtins: AvatarCellItem[] = AVATAR_IMAGES.map((_, i) => ({
       key: String(i),
+      type: 'builtin' as const,
       index: i,
     }));
     // Sort: unlocked first, locked last
-    items.sort((a, b) => {
+    builtins.sort((a, b) => {
+      if (a.type !== 'builtin' || b.type !== 'builtin') return 0;
       const aUnlocked = unlockedAvatars.has(AVATAR_KEYS[a.index]);
       const bUnlocked = unlockedAvatars.has(AVATAR_KEYS[b.index]);
       if (aUnlocked === bUnlocked) return 0;
       return aUnlocked ? -1 : 1;
     });
+
+    const items = [...specials, ...builtins];
     const remainder = items.length % NUM_COLUMNS;
     if (remainder !== 0) {
       for (let i = 0; i < NUM_COLUMNS - remainder; i++) {
-        items.push({ key: `placeholder-${i}`, index: -1 });
+        items.push({ key: `placeholder-${i}`, type: 'placeholder' });
       }
     }
     return items;
-  }, [unlockedAvatars]);
+  }, [unlockedAvatars, readOnly, user?.customAvatarUrl]);
 
   /** Sorted frame grid data — "none" sentinel + unlocked-first order. */
   const frameGridData: FrameGridItem[] = useMemo(() => {
@@ -266,7 +280,7 @@ export const AvatarPickerScreen: React.FC = () => {
   const filteredAvatarData = useMemo(() => {
     if (rarityFilter === 'all') return data;
     return data.filter(
-      (item) => item.index === -1 || getItemRarity(AVATAR_KEYS[item.index]) === rarityFilter,
+      (item) => item.type !== 'builtin' || getItemRarity(AVATAR_KEYS[item.index]) === rarityFilter,
     );
   }, [data, rarityFilter]);
 
@@ -494,7 +508,7 @@ export const AvatarPickerScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
-  const keyExtractor = useCallback((item: BuiltinCellItem) => item.key, []);
+  const keyExtractor = useCallback((item: AvatarCellItem) => item.key, []);
 
   const frameKeyExtractor = useCallback((item: FrameGridItem) => item.id, []);
   const flairKeyExtractor = useCallback((item: FlairGridItem) => item.id, []);
@@ -540,104 +554,71 @@ export const AvatarPickerScreen: React.FC = () => {
     [selectedNameStyle, handlePressNameStyle, styles],
   );
 
-  // ── List header for avatar tab ──
+  // ── Avatar cell rendering ──
 
   const wolfPawIcon = useMemo(() => getAvatarIcon(user?.uid ?? 'anonymous'), [user?.uid]);
 
-  const listHeader = useMemo(
-    () => (
-      <>
-        {!readOnly && (
-          <>
-            <Text style={styles.pickerSectionTitle}>我的头像</Text>
-            <View style={styles.pickerCustomSection}>
-              <View style={styles.pickerCustomRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.pickerCustomItem,
-                    selected === 'default' && styles.pickerItemSelected,
-                  ]}
-                  onPress={handlePressDefault}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.pickerItemWolfPawContainer}>
-                    <Image
-                      source={wolfPawIcon.image}
-                      style={styles.pickerItemWolfPawIcon}
-                      tintColor={wolfPawIcon.color}
-                      resizeMode="contain"
-                    />
-                  </View>
-                  {isDefaultActive && selected !== 'default' && (
-                    <View style={styles.pickerCheckBadge}>
-                      <Ionicons
-                        name="checkmark"
-                        size={componentSizes.icon.xs}
-                        color={colors.textInverse}
-                      />
-                    </View>
-                  )}
-                </TouchableOpacity>
-                {user?.customAvatarUrl && (
-                  <TouchableOpacity
-                    style={[
-                      styles.pickerCustomItem,
-                      selected === 'custom' && styles.pickerItemSelected,
-                    ]}
-                    onPress={handlePressCustom}
-                    activeOpacity={0.7}
-                  >
-                    <ExpoImage
-                      source={{ uri: user.customAvatarUrl }}
-                      style={styles.pickerItemImage}
-                      contentFit="cover"
-                      cachePolicy="disk"
-                    />
-                    {isCustomActive && selected !== 'custom' && (
-                      <View style={styles.pickerCheckBadge}>
-                        <Ionicons
-                          name="checkmark"
-                          size={componentSizes.icon.xs}
-                          color={colors.textInverse}
-                        />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity style={styles.pickerCustomUploadItem} onPress={handleUpload}>
-                  <Ionicons
-                    name={UI_ICONS.CAMERA}
-                    size={componentSizes.icon.xl}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </>
-        )}
-        <Text style={styles.pickerSectionTitle}>内置头像</Text>
-      </>
-    ),
-    [
-      user?.customAvatarUrl,
-      selected,
-      isDefaultActive,
-      isCustomActive,
-      readOnly,
-      wolfPawIcon,
-      handlePressDefault,
-      handlePressCustom,
-      handleUpload,
-      styles,
-    ],
-  );
-
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<BuiltinCellItem>) => {
-      if (item.index === -1) {
+    ({ item }: ListRenderItemInfo<AvatarCellItem>) => {
+      if (item.type === 'placeholder') {
         return <View style={styles.pickerItem} />;
       }
 
+      if (item.type === 'default') {
+        return (
+          <TouchableOpacity
+            style={[styles.pickerItem, selected === 'default' && styles.pickerItemSelected]}
+            onPress={handlePressDefault}
+            activeOpacity={0.7}
+          >
+            <View style={styles.pickerItemWolfPawContainer}>
+              <Image
+                source={wolfPawIcon.image}
+                style={styles.pickerItemWolfPawIcon}
+                tintColor={wolfPawIcon.color}
+                resizeMode="contain"
+              />
+            </View>
+            {isDefaultActive && selected !== 'default' && (
+              <View style={styles.pickerCheckBadge}>
+                <Ionicons
+                  name="checkmark"
+                  size={componentSizes.icon.xs}
+                  color={colors.textInverse}
+                />
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+      }
+
+      if (item.type === 'custom') {
+        return (
+          <TouchableOpacity
+            style={[styles.pickerItem, selected === 'custom' && styles.pickerItemSelected]}
+            onPress={handlePressCustom}
+            activeOpacity={0.7}
+          >
+            <ExpoImage
+              source={{ uri: user!.customAvatarUrl! }}
+              style={styles.pickerItemImage}
+              contentFit="cover"
+              cachePolicy="disk"
+            />
+            {isCustomActive && selected !== 'custom' && (
+              <View style={styles.pickerCheckBadge}>
+                <Ionicons
+                  name="checkmark"
+                  size={componentSizes.icon.xs}
+                  color={colors.textInverse}
+                />
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+      }
+
+      // type === 'builtin'
       const isCurrentlyUsed = item.index === currentBuiltinIndex;
       const isSelected = item.index === selected;
       const imageSource = getAvatarThumbByIndex(item.index);
@@ -658,7 +639,20 @@ export const AvatarPickerScreen: React.FC = () => {
         />
       );
     },
-    [currentBuiltinIndex, selected, unlockedAvatars, handlePressBuiltin, handleLongPress, styles],
+    [
+      currentBuiltinIndex,
+      selected,
+      unlockedAvatars,
+      isDefaultActive,
+      isCustomActive,
+      wolfPawIcon,
+      user,
+      handlePressDefault,
+      handlePressCustom,
+      handlePressBuiltin,
+      handleLongPress,
+      styles,
+    ],
   );
 
   // ── Render sections ──
@@ -798,15 +792,11 @@ export const AvatarPickerScreen: React.FC = () => {
                 styles.rarityTab,
                 isActive && {
                   backgroundColor: activeColor,
-                  borderColor: activeColor,
                   boxShadow: activeShadow,
                 },
               ]}
               onPress={() => setRarityFilter(rt.key)}
             >
-              {visual && !isActive && (
-                <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />
-              )}
               <Text style={[styles.rarityTabText, isActive && styles.rarityTabTextActive]}>
                 {rt.label}
               </Text>
@@ -824,7 +814,6 @@ export const AvatarPickerScreen: React.FC = () => {
             renderItem={renderItem}
             keyExtractor={keyExtractor}
             numColumns={NUM_COLUMNS}
-            ListHeaderComponent={listHeader}
             contentContainerStyle={styles.pickerGrid}
             showsVerticalScrollIndicator={false}
             initialNumToRender={20}

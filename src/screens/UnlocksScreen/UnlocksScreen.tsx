@@ -270,15 +270,11 @@ export const UnlocksScreen: React.FC = () => {
                   styles.rarityTab,
                   isActive && {
                     backgroundColor: activeColor,
-                    borderColor: activeColor,
                     boxShadow: activeShadow,
                   },
                 ]}
                 onPress={() => setRarityFilter(rt.key)}
               >
-                {visual && !isActive && (
-                  <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />
-                )}
                 <Text style={[styles.rarityTabText, isActive && styles.rarityTabTextActive]}>
                   {rt.label}
                 </Text>
@@ -594,28 +590,17 @@ const styles = StyleSheet.create({
   rarityTabBar: {
     flexDirection: 'row',
     marginBottom: spacing.medium,
-    gap: spacing.small,
-  },
-  rarityTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.tight,
-    paddingHorizontal: spacing.medium,
-    borderRadius: borderRadius.full,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.borderLight,
-    backgroundColor: colors.surface,
     gap: spacing.tight,
   },
-  rarityDot: {
-    width: spacing.small,
-    height: spacing.small,
+  rarityTab: {
+    paddingVertical: spacing.tight,
+    paddingHorizontal: spacing.small,
     borderRadius: borderRadius.full,
   },
   rarityTabText: {
     ...textStyles.caption,
     fontWeight: typography.weights.medium,
-    color: colors.textSecondary,
+    color: colors.textMuted,
   },
   rarityTabTextActive: {
     color: colors.textInverse,

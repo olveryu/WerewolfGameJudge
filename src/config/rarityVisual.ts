@@ -7,7 +7,7 @@ import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 
 import { withAlpha } from '@/theme';
 
-export interface RarityVisual {
+interface RarityVisual {
   /** 主题色 */
   color: string;
   /** Skia 粒子辉光 */
