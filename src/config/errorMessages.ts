@@ -9,4 +9,3 @@
 // ── 网络 & 服务器错误 ──────────────────────────────────────
 export const NETWORK_ERROR = '网络异常，请检查网络后重试';
 export const SERVER_ERROR = '服务暂时不可用，请稍后重试';
-export const RATE_LIMIT_ERROR = '请求太频繁，请稍后重试';

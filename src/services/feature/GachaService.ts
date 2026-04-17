@@ -9,7 +9,7 @@ import type { Rarity } from '@werewolf/game-engine';
 
 import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
 
-export interface GachaStatus {
+interface GachaStatus {
   normalDraws: number;
   goldenDraws: number;
   normalPity: number;

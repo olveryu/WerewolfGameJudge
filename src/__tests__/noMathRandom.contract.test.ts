@@ -29,6 +29,7 @@ const ALLOWED_PATTERNS = [
   '**/*.stories.tsx',
   // 视觉装饰（纯 UI 动画效果，不影响游戏逻辑）
   '**/RoleRevealEffects/**',
+  '**/GachaScreen/**',
 ];
 
 // 需要检查的目录

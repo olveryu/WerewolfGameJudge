@@ -15,7 +15,7 @@ import { crossPlatformTextShadow } from '@/theme/tokens';
 
 import { NAME_STYLE_CONFIGS, type NameStyleConfig, type TextShadowLayer } from './nameStyleConfigs';
 
-export interface NameStyleTextProps extends TextProps {
+interface NameStyleTextProps extends TextProps {
   /** Name style ID from rewardCatalog. Undefined/null/invalid = plain text. */
   styleId?: string | null;
 }

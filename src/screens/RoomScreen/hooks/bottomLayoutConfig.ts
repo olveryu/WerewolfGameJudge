@@ -130,7 +130,7 @@ export type ButtonSlot =
 type UserRole = 'host' | 'player' | 'spectator';
 
 /** A single layout rule: condition → three-tier button placement. */
-export interface LayoutRule {
+interface LayoutRule {
   readonly match: {
     readonly status: GameStatus | readonly GameStatus[];
     readonly role: UserRole;

@@ -51,10 +51,10 @@ export const HOLE_HALF_W = 16;
 
 export const BODY_L = 60;
 export const BODY_R = 340;
-export const BODY_T = HOLE_Y;
+export const BODY_T = DOME_CY + DOME_R; // same Y as HOLE_Y
 export const BODY_B = 400;
 
-export const CHUTE_TOP = BODY_B;
+export const CHUTE_TOP = 400; // same Y as BODY_B
 export const CHUTE_BOT = 445;
 export const FLOOR_Y = 540;
 export const DIAL_Y = 345;

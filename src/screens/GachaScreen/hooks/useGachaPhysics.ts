@@ -222,12 +222,6 @@ function physicsTick(
 
 // ─── Hook ───────────────────────────────────────────────────────────────
 
-export interface GachaPhysicsControls {
-  startAnimation: (drawType: 'normal' | 'golden', count: number) => void;
-  setResults: (rarities: string[]) => void;
-  cancelAnimation: () => void;
-}
-
 export function useGachaPhysics(scale: number) {
   const s = scale;
 

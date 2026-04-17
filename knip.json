@@ -11,9 +11,7 @@
         "expo-system-ui",
         "expo-asset",
         "html2canvas",
-        "jest-environment-jsdom",
-        "@cloudflare/vitest-pool-workers",
-        "vitest"
+        "jest-environment-jsdom"
       ]
     },
     "packages/game-engine": {

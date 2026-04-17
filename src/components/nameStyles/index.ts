@@ -5,11 +5,11 @@
  * 通过 getNameStyleById 按 id 获取配置。pattern 同 `seatFlairs/index.ts`。
  */
 
-import { NAME_STYLE_IDS, type NameStyleId } from '@werewolf/game-engine/growth/rewardCatalog';
+import { NAME_STYLE_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 
-import { NAME_STYLE_CONFIGS, type NameStyleConfig, type NameStyleTier } from './nameStyleConfigs';
+import { NAME_STYLE_CONFIGS, type NameStyleConfig } from './nameStyleConfigs';
 
-export type { NameStyleConfig, NameStyleId, NameStyleTier };
+// NameStyleConfig intentionally not re-exported; consumers import from './nameStyleConfigs'
 export { NameStyleText } from './NameStyleText';
 
 /** 所有可用名字特效（顺序 = NAME_STYLE_IDS 展示顺序） */

@@ -301,9 +301,10 @@
       // localhost 排除，方便开发调试
       var ua = navigator.userAgent;
       var isWechat = /MicroMessenger/i.test(ua);
-      var isMiniProgram = /miniProgram/i.test(ua)
-        || window.__wxjs_environment === 'miniprogram'
-        || /[?&]wxcode=/.test(location.search);
+      var isMiniProgram =
+        /miniProgram/i.test(ua) ||
+        window.__wxjs_environment === 'miniprogram' ||
+        /[?&]wxcode=/.test(location.search);
       if (isWechat && !isMiniProgram && location.hostname !== 'localhost') {
         var guide = document.getElementById('wechat-guide');
         if (guide) guide.style.display = 'flex';

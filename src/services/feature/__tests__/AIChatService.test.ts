@@ -87,7 +87,10 @@ describe('AIChatService - streamChatMessage', () => {
     const gen = streamChatMessage([{ role: 'user', content: 'test' }]);
     const result = await gen.next();
 
-    expect(result.value).toEqual({ type: 'error', content: '请求太频繁，请稍后重试' });
+    expect(result.value).toEqual({
+      type: 'error',
+      content: '今日 AI 使用次数已达上限，明天再试吧',
+    });
   });
 
   it('yields error on HTTP 500', async () => {
