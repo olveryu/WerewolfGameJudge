@@ -45,7 +45,15 @@ import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { RootStackParamList } from '@/navigation/types';
-import { borderRadius as borderRadiusToken, colors, componentSizes, fixed, layout } from '@/theme';
+import {
+  borderRadius as borderRadiusToken,
+  colors,
+  componentSizes,
+  fixed,
+  layout,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import {
@@ -781,18 +789,26 @@ export const AvatarPickerScreen: React.FC = () => {
         ].map((rt) => {
           const isActive = rt.key === rarityFilter;
           const visual = rt.key !== 'all' ? RARITY_VISUAL[rt.key] : null;
+          const activeColor = visual?.color ?? colors.primary;
           return (
             <Pressable
               key={rt.key}
-              style={[styles.rarityTab, isActive && styles.rarityTabActive]}
+              style={[
+                styles.rarityTab,
+                isActive && {
+                  backgroundColor: visual?.bgTint ?? withAlpha(colors.primary, 0.1),
+                  borderColor: visual?.borderTint ?? withAlpha(colors.primary, 0.25),
+                },
+              ]}
               onPress={() => setRarityFilter(rt.key)}
             >
-              {visual && <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />}
+              {visual && !isActive && (
+                <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />
+              )}
               <Text
                 style={[
                   styles.rarityTabText,
-                  isActive && styles.rarityTabTextActive,
-                  visual && isActive && { color: visual.color },
+                  isActive && { color: activeColor, fontWeight: typography.weights.semibold },
                 ]}
               >
                 {rt.label}

@@ -49,6 +49,7 @@ import {
   layout,
   shadows,
   spacing,
+  textStyles,
   typography,
   withAlpha,
 } from '@/theme';
@@ -259,18 +260,26 @@ export const UnlocksScreen: React.FC = () => {
           {RARITY_TABS.map((rt) => {
             const isActive = rt.key === rarityFilter;
             const visual = rt.key !== 'all' ? RARITY_VISUAL[rt.key] : null;
+            const activeColor = visual?.color ?? colors.primary;
             return (
               <Pressable
                 key={rt.key}
-                style={[styles.rarityTab, isActive && styles.rarityTabActive]}
+                style={[
+                  styles.rarityTab,
+                  isActive && {
+                    backgroundColor: visual?.bgTint ?? withAlpha(colors.primary, 0.1),
+                    borderColor: visual?.borderTint ?? withAlpha(colors.primary, 0.25),
+                  },
+                ]}
                 onPress={() => setRarityFilter(rt.key)}
               >
-                {visual && <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />}
+                {visual && !isActive && (
+                  <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />
+                )}
                 <Text
                   style={[
                     styles.rarityTabText,
-                    isActive && styles.rarityTabTextActive,
-                    visual && isActive && { color: visual.color },
+                    isActive && { color: activeColor, fontWeight: typography.weights.semibold },
                   ]}
                 >
                   {rt.label}
@@ -590,20 +599,17 @@ const styles = StyleSheet.create({
   rarityTabBar: {
     flexDirection: 'row',
     marginBottom: spacing.medium,
-    gap: spacing.tight,
+    gap: spacing.small,
   },
   rarityTab: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.tight,
-    paddingHorizontal: spacing.small,
+    paddingHorizontal: spacing.medium,
     borderRadius: borderRadius.full,
-    backgroundColor: withAlpha(colors.border, 0.15),
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.transparent,
     gap: spacing.tight,
-  },
-  rarityTabActive: {
-    backgroundColor: colors.surface,
-    ...shadows.sm,
   },
   rarityDot: {
     width: spacing.small,
@@ -611,14 +617,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   rarityTabText: {
-    fontSize: typography.captionSmall,
-    lineHeight: typography.lineHeights.caption,
+    ...textStyles.caption,
     fontWeight: typography.weights.medium,
     color: colors.textMuted,
-  },
-  rarityTabTextActive: {
-    color: colors.text,
-    fontWeight: typography.weights.semibold,
   },
 
   // Grid
