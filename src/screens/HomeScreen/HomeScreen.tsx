@@ -517,6 +517,7 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.gachaCardTitle}>扭蛋抽奖</Text>
             <Text style={styles.gachaCardSubtitle}>用抽奖券解锁头像、头像框、装饰</Text>
           </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </PressableScale>
 
         {/* ── Random Role Card (F8) ───────────────── */}

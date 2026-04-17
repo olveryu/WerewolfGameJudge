@@ -260,7 +260,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     // ── Random Role Card ─────────────────────────────────────
     randomRoleWrapper: {
       marginHorizontal: spacing.screenH,
-      marginBottom: spacing.medium,
+      marginBottom: spacing.small,
       height: componentSizes.avatar.xl + spacing.xlarge + spacing.medium,
     },
     randomRoleCard: {
