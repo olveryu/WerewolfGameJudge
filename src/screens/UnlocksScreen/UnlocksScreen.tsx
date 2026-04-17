@@ -261,14 +261,17 @@ export const UnlocksScreen: React.FC = () => {
             const isActive = rt.key === rarityFilter;
             const visual = rt.key !== 'all' ? RARITY_VISUAL[rt.key] : null;
             const activeColor = visual?.color ?? colors.primary;
+            const activeShadow =
+              visual?.chipShadow ?? `0px 2px 8px ${withAlpha(colors.primary, 0.3)}`;
             return (
               <Pressable
                 key={rt.key}
                 style={[
                   styles.rarityTab,
                   isActive && {
-                    backgroundColor: visual?.bgTint ?? withAlpha(colors.primary, 0.1),
-                    borderColor: visual?.borderTint ?? withAlpha(colors.primary, 0.25),
+                    backgroundColor: activeColor,
+                    borderColor: activeColor,
+                    boxShadow: activeShadow,
                   },
                 ]}
                 onPress={() => setRarityFilter(rt.key)}
@@ -276,12 +279,7 @@ export const UnlocksScreen: React.FC = () => {
                 {visual && !isActive && (
                   <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />
                 )}
-                <Text
-                  style={[
-                    styles.rarityTabText,
-                    isActive && { color: activeColor, fontWeight: typography.weights.semibold },
-                  ]}
-                >
+                <Text style={[styles.rarityTabText, isActive && styles.rarityTabTextActive]}>
                   {rt.label}
                 </Text>
               </Pressable>
@@ -347,12 +345,12 @@ const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
     ) : item.type === 'frame' ? (
       <FrameThumb id={item.id} unlocked={item.unlocked} />
     ) : item.type === 'nameStyle' ? (
-      <NameStyleThumb id={item.id} unlocked={item.unlocked} displayName={item.displayName} />
+      <NameStyleThumb id={item.id} displayName={item.displayName} />
     ) : (
       <FlairThumb id={item.id} unlocked={item.unlocked} />
     );
 
-  // nameStyle cells: show the name with the effect applied as the label
+  // nameStyle cells: show styled effect name when unlocked, '???' when locked
   const label =
     item.type === 'nameStyle' && item.unlocked ? (
       <NameStyleText styleId={item.id} style={styles.cellName} numberOfLines={1}>
@@ -438,23 +436,20 @@ FlairThumb.displayName = 'FlairThumb';
 
 const NAME_STYLE_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
 
-const NameStyleThumb = React.memo<{ id: string; unlocked: boolean; displayName: string }>(
-  ({ id, unlocked, displayName }) => {
-    return (
-      <View
-        style={[
-          styles.nameStylePreview,
-          { width: NAME_STYLE_PREVIEW_SIZE, height: NAME_STYLE_PREVIEW_SIZE },
-          !unlocked && styles.grayscale,
-        ]}
-      >
-        <NameStyleText styleId={unlocked ? id : undefined} style={styles.nameStylePreviewText}>
-          {unlocked ? displayName : '???'}
-        </NameStyleText>
-      </View>
-    );
-  },
-);
+const NameStyleThumb = React.memo<{ id: string; displayName: string }>(({ id, displayName }) => {
+  return (
+    <View
+      style={[
+        styles.nameStylePreview,
+        { width: NAME_STYLE_PREVIEW_SIZE, height: NAME_STYLE_PREVIEW_SIZE },
+      ]}
+    >
+      <NameStyleText styleId={id} style={styles.nameStylePreviewText}>
+        {displayName}
+      </NameStyleText>
+    </View>
+  );
+});
 
 NameStyleThumb.displayName = 'NameStyleThumb';
 
@@ -608,7 +603,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.medium,
     borderRadius: borderRadius.full,
     borderWidth: fixed.borderWidth,
-    borderColor: colors.transparent,
+    borderColor: colors.borderLight,
+    backgroundColor: colors.surface,
     gap: spacing.tight,
   },
   rarityDot: {
@@ -619,7 +615,11 @@ const styles = StyleSheet.create({
   rarityTabText: {
     ...textStyles.caption,
     fontWeight: typography.weights.medium,
-    color: colors.textMuted,
+    color: colors.textSecondary,
+  },
+  rarityTabTextActive: {
+    color: colors.textInverse,
+    fontWeight: typography.weights.semibold,
   },
 
   // Grid

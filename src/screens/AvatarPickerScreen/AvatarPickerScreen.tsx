@@ -51,7 +51,6 @@ import {
   componentSizes,
   fixed,
   layout,
-  typography,
   withAlpha,
 } from '@/theme';
 import { showAlert } from '@/utils/alert';
@@ -790,14 +789,17 @@ export const AvatarPickerScreen: React.FC = () => {
           const isActive = rt.key === rarityFilter;
           const visual = rt.key !== 'all' ? RARITY_VISUAL[rt.key] : null;
           const activeColor = visual?.color ?? colors.primary;
+          const activeShadow =
+            visual?.chipShadow ?? `0px 2px 8px ${withAlpha(colors.primary, 0.3)}`;
           return (
             <Pressable
               key={rt.key}
               style={[
                 styles.rarityTab,
                 isActive && {
-                  backgroundColor: visual?.bgTint ?? withAlpha(colors.primary, 0.1),
-                  borderColor: visual?.borderTint ?? withAlpha(colors.primary, 0.25),
+                  backgroundColor: activeColor,
+                  borderColor: activeColor,
+                  boxShadow: activeShadow,
                 },
               ]}
               onPress={() => setRarityFilter(rt.key)}
@@ -805,12 +807,7 @@ export const AvatarPickerScreen: React.FC = () => {
               {visual && !isActive && (
                 <View style={[styles.rarityDot, { backgroundColor: visual.color }]} />
               )}
-              <Text
-                style={[
-                  styles.rarityTabText,
-                  isActive && { color: activeColor, fontWeight: typography.weights.semibold },
-                ]}
-              >
+              <Text style={[styles.rarityTabText, isActive && styles.rarityTabTextActive]}>
                 {rt.label}
               </Text>
             </Pressable>
@@ -1026,7 +1023,7 @@ const FrameCell = memo<FrameCellProps>(
           />
         )}
         <Text style={[styles.frameGridName, isSelected && styles.frameGridNameSelected]}>
-          {item.unlocked ? item.name : '未解锁'}
+          {item.unlocked ? item.name : '???'}
         </Text>
       </TouchableOpacity>
     );
@@ -1094,7 +1091,7 @@ const FlairCell = memo<FlairCellProps>(
           </View>
         )}
         <Text style={[styles.frameGridName, isSelected && styles.frameGridNameSelected]}>
-          {item.unlocked ? item.name : '未解锁'}
+          {item.unlocked ? item.name : '???'}
         </Text>
       </TouchableOpacity>
     );
@@ -1153,7 +1150,7 @@ const NameStyleCell = memo<NameStyleCellProps>(({ item, selectedNameStyle, onPre
         </View>
       )}
       <Text style={[styles.frameGridName, isSelected && styles.frameGridNameSelected]}>
-        {item.unlocked ? item.name : '未解锁'}
+        {item.unlocked ? item.name : '???'}
       </Text>
     </TouchableOpacity>
   );

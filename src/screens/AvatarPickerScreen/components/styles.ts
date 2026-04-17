@@ -55,6 +55,7 @@ export interface AvatarPickerScreenStyles {
   rarityTab: ViewStyle;
   rarityDot: ViewStyle;
   rarityTabText: TextStyle;
+  rarityTabTextActive: TextStyle;
   // Hero preview area
   heroPreview: ViewStyle;
   heroPreviewLeft: ViewStyle;
@@ -271,7 +272,8 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       paddingHorizontal: spacing.medium,
       borderRadius: borderRadius.full,
       borderWidth: fixed.borderWidth,
-      borderColor: colors.transparent,
+      borderColor: colors.borderLight,
+      backgroundColor: colors.surface,
       gap: spacing.tight,
     },
     rarityDot: {
@@ -282,7 +284,11 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
     rarityTabText: {
       ...textStyles.caption,
       fontWeight: typography.weights.medium,
-      color: colors.textMuted,
+      color: colors.textSecondary,
+    },
+    rarityTabTextActive: {
+      color: colors.textInverse,
+      fontWeight: typography.weights.semibold,
     },
     // Hero preview area
     heroPreview: {

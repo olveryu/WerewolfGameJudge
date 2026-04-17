@@ -1,5 +1,5 @@
 /**
- * rarityVisual — 稀有度显示元数据（颜色、标签、辉光、chip 色调）。
+ * rarityVisual — 稀有度显示元数据（颜色、标签、辉光、chip 阴影）。
  *
  * GachaScreen / UnlocksScreen / AvatarPickerScreen 共用。
  */
@@ -14,10 +14,8 @@ export interface RarityVisual {
   glow: string;
   /** 中文标签 */
   label: string;
-  /** Active chip 背景色（10% 主题色） */
-  bgTint: string;
-  /** Active chip 边框色（25% 主题色） */
-  borderTint: string;
+  /** Active chip 的带色 boxShadow（30% 主题色） */
+  chipShadow: string;
 }
 
 /** 从高到低的稀有度显示顺序 */
@@ -27,8 +25,7 @@ const mkVisual = (color: string, glow: string, label: string): RarityVisual => (
   color,
   glow,
   label,
-  bgTint: withAlpha(color, 0.1),
-  borderTint: withAlpha(color, 0.25),
+  chipShadow: `0px 2px 8px ${withAlpha(color, 0.35)}`,
 });
 
 export const RARITY_VISUAL: Record<Rarity, RarityVisual> = {
