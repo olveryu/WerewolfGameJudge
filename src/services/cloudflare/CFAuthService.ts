@@ -16,7 +16,6 @@ import { authLog } from '@/utils/logger';
 import { consumeWxCode } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
-import { setAnonymousProvider } from '../feature/StatsService';
 import { cfGet, cfPost, cfPut, setTokenProvider } from './cfFetch';
 
 const TOKEN_STORAGE_KEY = 'cf_auth_token';
@@ -32,8 +31,6 @@ export class CFAuthService implements IAuthService {
   constructor() {
     // Register token provider so cfFetch auto-injects Bearer header
     setTokenProvider(() => this.#cachedToken);
-    // Register anonymous provider so StatsService skips requests for anonymous users
-    setAnonymousProvider(() => this.#isAnonymous);
     this.#initPromise = this.#autoSignIn();
   }
 

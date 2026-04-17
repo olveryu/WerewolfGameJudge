@@ -21,7 +21,7 @@ import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
 import { queryKeys } from '@/hooks/queries/queryKeys';
 import { storage } from '@/lib/storage';
 import { SupersededError } from '@/services/connection/types';
-import { fetchUserStats } from '@/services/feature/StatsService';
+import type { UserStats } from '@/services/feature/StatsService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { IRoomService } from '@/services/types/IRoomService';
@@ -228,10 +228,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const avatarFrame = await authService.getCurrentAvatarFrame();
         const seatFlair = await authService.getCurrentSeatFlair();
         const nameStyle = await authService.getCurrentNameStyle();
-        const level = await queryClient
-          .fetchQuery({ queryKey: queryKeys.userStats(), queryFn: fetchUserStats })
-          .then((s) => s.level)
-          .catch(() => undefined);
+        const level = queryClient.getQueryData<UserStats>(queryKeys.userStats())?.level;
 
         return await facade.takeSeat(
           seatNumber,
@@ -276,10 +273,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const avatarFrame = await authService.getCurrentAvatarFrame();
         const seatFlair = await authService.getCurrentSeatFlair();
         const nameStyle = await authService.getCurrentNameStyle();
-        const level = await queryClient
-          .fetchQuery({ queryKey: queryKeys.userStats(), queryFn: fetchUserStats })
-          .then((s) => s.level)
-          .catch(() => undefined);
+        const level = queryClient.getQueryData<UserStats>(queryKeys.userStats())?.level;
 
         const result = await facade.takeSeatWithAck(
           seatNumber,
