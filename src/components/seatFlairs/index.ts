@@ -11,6 +11,7 @@ import type React from 'react';
 import { BloodMarkFlair } from './BloodMarkFlair';
 import { ButterflyFlair } from './ButterflyFlair';
 import { CometTailFlair } from './CometTailFlair';
+import { COMMON_FLAIR_ENTRIES } from './common';
 import { EmberGlowFlair } from './EmberGlowFlair';
 import { FireflyFlair } from './FireflyFlair';
 import { FireRingFlair } from './FireRingFlair';
@@ -52,39 +53,44 @@ interface SeatFlairConfig {
 /**
  * 座位装饰注册表（exhaustive Record）—— SEAT_FLAIR_IDS 新增 ID 而此处未添加 → TS 编译报错。
  * UI 展示顺序跟随 SEAT_FLAIR_IDS。
+ * 静态条目手动列举；Common 50 条从 factory 展开（runtime 由 gachaProbability 测试覆盖）。
  */
-const FLAIR_REGISTRY: Record<FlairId, SeatFlairConfig> = {
-  emberGlow: { name: '余烬微光', Component: EmberGlowFlair },
-  frostAura: { name: '寒霜气场', Component: FrostAuraFlair },
-  shadowMist: { name: '暗影迷雾', Component: ShadowMistFlair },
-  goldenShine: { name: '金色闪耀', Component: GoldenShineFlair },
-  bloodMark: { name: '血月印记', Component: BloodMarkFlair },
-  starlight: { name: '星光点缀', Component: StarlightFlair },
-  thunderBolt: { name: '雷鸣电闪', Component: ThunderBoltFlair },
-  sakura: { name: '樱花飘落', Component: SakuraFlair },
-  runeCircle: { name: '符文之环', Component: RuneCircleFlair },
-  fireRing: { name: '烈焰之环', Component: FireRingFlair },
-  lunarHalo: { name: '月华光环', Component: LunarHaloFlair },
-  sonicWave: { name: '音波震荡', Component: SonicWaveFlair },
-  cometTail: { name: '彗星拖尾', Component: CometTailFlair },
-  iceCrystal: { name: '冰晶棱镜', Component: IceCrystalFlair },
-  phoenixFeather: { name: '凤凰羽', Component: PhoenixFeatherFlair },
-  ghostWisp: { name: '幽灵鬼火', Component: GhostWispFlair },
-  poisonBubble: { name: '剧毒气泡', Component: PoisonBubbleFlair },
-  magmaFloat: { name: '熔岩浮石', Component: MagmaFloatFlair },
-  windGust: { name: '疾风粒子', Component: WindGustFlair },
-  snowfall: { name: '纷飞白雪', Component: SnowfallFlair },
-  goldSpark: { name: '金星四溅', Component: GoldSparkFlair },
-  purpleMist: { name: '紫雾缭绕', Component: PurpleMistFlair },
-  butterfly: { name: '蝶影翩翩', Component: ButterflyFlair },
-  lightPillar: { name: '四柱天光', Component: LightPillarFlair },
-  shadowClaw: { name: '暗影之爪', Component: ShadowClawFlair },
-  rainDrop: { name: '细雨绵绵', Component: RainDropFlair },
-  flowerBloom: { name: '繁花盛开', Component: FlowerBloomFlair },
-  firefly: { name: '萤火虫之夜', Component: FireflyFlair },
-  forestLeaf: { name: '落叶知秋', Component: ForestLeafFlair },
-  prismShard: { name: '棱镜碎片', Component: PrismShardFlair },
-};
+function buildFlairRegistry(): Record<FlairId, SeatFlairConfig> {
+  const staticEntries: Record<string, SeatFlairConfig> = {
+    emberGlow: { name: '余烬微光', Component: EmberGlowFlair },
+    frostAura: { name: '寒霜气场', Component: FrostAuraFlair },
+    shadowMist: { name: '暗影迷雾', Component: ShadowMistFlair },
+    goldenShine: { name: '金色闪耀', Component: GoldenShineFlair },
+    bloodMark: { name: '血月印记', Component: BloodMarkFlair },
+    starlight: { name: '星光点缀', Component: StarlightFlair },
+    thunderBolt: { name: '雷鸣电闪', Component: ThunderBoltFlair },
+    sakura: { name: '樱花飘落', Component: SakuraFlair },
+    runeCircle: { name: '符文之环', Component: RuneCircleFlair },
+    fireRing: { name: '烈焰之环', Component: FireRingFlair },
+    lunarHalo: { name: '月华光环', Component: LunarHaloFlair },
+    sonicWave: { name: '音波震荡', Component: SonicWaveFlair },
+    cometTail: { name: '彗星拖尾', Component: CometTailFlair },
+    iceCrystal: { name: '冰晶棱镜', Component: IceCrystalFlair },
+    phoenixFeather: { name: '凤凰羽', Component: PhoenixFeatherFlair },
+    ghostWisp: { name: '幽灵鬼火', Component: GhostWispFlair },
+    poisonBubble: { name: '剧毒气泡', Component: PoisonBubbleFlair },
+    magmaFloat: { name: '熔岩浮石', Component: MagmaFloatFlair },
+    windGust: { name: '疾风粒子', Component: WindGustFlair },
+    snowfall: { name: '纷飞白雪', Component: SnowfallFlair },
+    goldSpark: { name: '金星四溅', Component: GoldSparkFlair },
+    purpleMist: { name: '紫雾缭绕', Component: PurpleMistFlair },
+    butterfly: { name: '蝶影翩翩', Component: ButterflyFlair },
+    lightPillar: { name: '四柱天光', Component: LightPillarFlair },
+    shadowClaw: { name: '暗影之爪', Component: ShadowClawFlair },
+    rainDrop: { name: '细雨绵绵', Component: RainDropFlair },
+    flowerBloom: { name: '繁花盛开', Component: FlowerBloomFlair },
+    firefly: { name: '萤火虫之夜', Component: FireflyFlair },
+    forestLeaf: { name: '落叶知秋', Component: ForestLeafFlair },
+    prismShard: { name: '棱镜碎片', Component: PrismShardFlair },
+  };
+  return { ...staticEntries, ...COMMON_FLAIR_ENTRIES } as Record<FlairId, SeatFlairConfig>;
+}
+const FLAIR_REGISTRY = buildFlairRegistry();
 
 /** 所有可用座位装饰（顺序 = SEAT_FLAIR_IDS 展示顺序） */
 export const SEAT_FLAIRS: readonly (SeatFlairConfig & { id: FlairId })[] = SEAT_FLAIR_IDS.map(

@@ -151,7 +151,7 @@ describe('gachaProbability', () => {
 
   describe('REWARD_POOL rarity counts', () => {
     it('should have correct total count', () => {
-      expect(REWARD_POOL.length).toBe(113);
+      expect(REWARD_POOL.length).toBe(263);
     });
 
     it('should have correct rarity distribution', () => {
@@ -160,9 +160,9 @@ describe('gachaProbability', () => {
         counts[item.rarity]++;
       }
       expect(counts.legendary).toBe(11);
-      expect(counts.epic).toBe(23);
-      expect(counts.rare).toBe(39);
-      expect(counts.common).toBe(40);
+      expect(counts.epic).toBe(27);
+      expect(counts.rare).toBe(56);
+      expect(counts.common).toBe(169);
     });
 
     it('should have correct per-type rarity distribution', () => {
@@ -176,21 +176,21 @@ describe('gachaProbability', () => {
       expect(byType['avatar'].epic).toBe(7);
       expect(byType['avatar'].rare).toBe(14);
       expect(byType['avatar'].common).toBe(19);
-      // Frames: L3/E5/R6/C6 = 20
+      // Frames: L3/E5/R12/C50 = 70
       expect(byType['frame'].legendary).toBe(3);
       expect(byType['frame'].epic).toBe(5);
-      expect(byType['frame'].rare).toBe(6);
-      expect(byType['frame'].common).toBe(6);
-      // SeatFlairs: L3/E7/R12/C8 = 30
+      expect(byType['frame'].rare).toBe(12);
+      expect(byType['frame'].common).toBe(50);
+      // SeatFlairs: L3/E7/R20/C50 = 80
       expect(byType['seatFlair'].legendary).toBe(3);
       expect(byType['seatFlair'].epic).toBe(7);
-      expect(byType['seatFlair'].rare).toBe(12);
-      expect(byType['seatFlair'].common).toBe(8);
-      // NameStyles: L2/E4/R7/C7 = 20
+      expect(byType['seatFlair'].rare).toBe(20);
+      expect(byType['seatFlair'].common).toBe(50);
+      // NameStyles: L2/E8/R10/C50 = 70
       expect(byType['nameStyle'].legendary).toBe(2);
-      expect(byType['nameStyle'].epic).toBe(4);
-      expect(byType['nameStyle'].rare).toBe(7);
-      expect(byType['nameStyle'].common).toBe(7);
+      expect(byType['nameStyle'].epic).toBe(8);
+      expect(byType['nameStyle'].rare).toBe(10);
+      expect(byType['nameStyle'].common).toBe(50);
     });
   });
 });

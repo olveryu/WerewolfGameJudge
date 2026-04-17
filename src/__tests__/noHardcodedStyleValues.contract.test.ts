@@ -176,7 +176,7 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   'src/screens/SettingsScreen/components/styles.ts': 1,
 
   // nameStyleConfigs: declarative effect color definitions (hex + rgba), not UI layout tokens
-  'src/components/nameStyles/nameStyleConfigs.ts': 51,
+  'src/components/nameStyles/nameStyleConfigs.ts': 151,
 
   // GachaScreen: rarity color constants (domain-specific decorative), golden card bg, emoji fontSize
   'src/screens/GachaScreen/GachaScreen.tsx': 13,

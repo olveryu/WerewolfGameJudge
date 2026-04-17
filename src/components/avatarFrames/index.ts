@@ -11,6 +11,7 @@ import type React from 'react';
 import { BloodThornFrame } from './BloodThornFrame';
 import { BoneGateFrame } from './BoneGateFrame';
 import { CelestialRingFrame } from './CelestialRingFrame';
+import { COMMON_FRAME_ENTRIES } from './common';
 import { CoralReefFrame } from './CoralReefFrame';
 import { DarkVineFrame } from './DarkVineFrame';
 import { DragonScaleFrame } from './DragonScaleFrame';
@@ -42,29 +43,37 @@ interface AvatarFrameConfig {
 /**
  * 头像框注册表（exhaustive Record）—— FRAME_IDS 新增 ID 而此处未添加 → TS 编译报错。
  * UI 展示顺序跟随 FRAME_IDS。
+ * 静态条目手动列举；Common 50 条从 factory 展开（runtime 由 gachaProbability 测试覆盖）。
  */
-const FRAME_REGISTRY: Record<FrameId, AvatarFrameConfig> = {
-  ironForge: { name: '铁锻', Component: IronForgeFrame },
-  moonSilver: { name: '月银', Component: MoonSilverFrame },
-  bloodThorn: { name: '血棘', Component: BloodThornFrame },
-  runicSeal: { name: '符印', Component: RunicSealFrame },
-  boneGate: { name: '骨门', Component: BoneGateFrame },
-  hellFire: { name: '狱焰', Component: HellFireFrame },
-  darkVine: { name: '暗藤', Component: DarkVineFrame },
-  frostCrystal: { name: '霜晶', Component: FrostCrystalFrame },
-  pharaohGold: { name: '墓金', Component: PharaohGoldFrame },
-  voidRift: { name: '虚裂', Component: VoidRiftFrame },
-  stormBolt: { name: '雷暴', Component: StormBoltFrame },
-  sakuraDrift: { name: '樱散', Component: SakuraDriftFrame },
-  dragonScale: { name: '龙鳞', Component: DragonScaleFrame },
-  jadeSeal: { name: '玉印', Component: JadeSealFrame },
-  starNebula: { name: '星云', Component: StarNebulaFrame },
-  shadowWeave: { name: '影织', Component: ShadowWeaveFrame },
-  coralReef: { name: '珊瑚', Component: CoralReefFrame },
-  emberAsh: { name: '余烬', Component: EmberAshFrame },
-  celestialRing: { name: '天环', Component: CelestialRingFrame },
-  obsidianEdge: { name: '黑曜', Component: ObsidianEdgeFrame },
-};
+function buildFrameRegistry(): Record<FrameId, AvatarFrameConfig> {
+  // Static entries — manually listed for unique hand-crafted frames
+  const staticEntries: Record<string, AvatarFrameConfig> = {
+    ironForge: { name: '铁锻', Component: IronForgeFrame },
+    moonSilver: { name: '月银', Component: MoonSilverFrame },
+    bloodThorn: { name: '血棘', Component: BloodThornFrame },
+    runicSeal: { name: '符印', Component: RunicSealFrame },
+    boneGate: { name: '骨门', Component: BoneGateFrame },
+    hellFire: { name: '狱焰', Component: HellFireFrame },
+    darkVine: { name: '暗藤', Component: DarkVineFrame },
+    frostCrystal: { name: '霜晶', Component: FrostCrystalFrame },
+    pharaohGold: { name: '墓金', Component: PharaohGoldFrame },
+    voidRift: { name: '虚裂', Component: VoidRiftFrame },
+    stormBolt: { name: '雷暴', Component: StormBoltFrame },
+    sakuraDrift: { name: '樱散', Component: SakuraDriftFrame },
+    dragonScale: { name: '龙鳞', Component: DragonScaleFrame },
+    jadeSeal: { name: '玉印', Component: JadeSealFrame },
+    starNebula: { name: '星云', Component: StarNebulaFrame },
+    shadowWeave: { name: '影织', Component: ShadowWeaveFrame },
+    coralReef: { name: '珊瑚', Component: CoralReefFrame },
+    emberAsh: { name: '余烬', Component: EmberAshFrame },
+    celestialRing: { name: '天环', Component: CelestialRingFrame },
+    obsidianEdge: { name: '黑曜', Component: ObsidianEdgeFrame },
+  };
+  // Merge static + common factory entries.
+  // Exhaustiveness validated by gachaProbability test (REWARD_POOL counts).
+  return { ...staticEntries, ...COMMON_FRAME_ENTRIES } as Record<FrameId, AvatarFrameConfig>;
+}
+const FRAME_REGISTRY = buildFrameRegistry();
 
 /** 所有可用头像框（顺序 = FRAME_IDS 展示顺序） */
 export const AVATAR_FRAMES: readonly (AvatarFrameConfig & { id: FrameId })[] = FRAME_IDS.map(

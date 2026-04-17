@@ -90,6 +90,17 @@ export const FRAME_IDS = [
   'emberAsh',
   'celestialRing',
   'obsidianEdge',
+  // Common — simple colored frames (5 shapes × 10 colors = 50)
+  'roundRed', 'roundOrange', 'roundAmber', 'roundGreen', 'roundTeal',
+  'roundBlue', 'roundIndigo', 'roundPurple', 'roundPink', 'roundGray',
+  'squareRed', 'squareOrange', 'squareAmber', 'squareGreen', 'squareTeal',
+  'squareBlue', 'squareIndigo', 'squarePurple', 'squarePink', 'squareGray',
+  'octagonRed', 'octagonOrange', 'octagonAmber', 'octagonGreen', 'octagonTeal',
+  'octagonBlue', 'octagonIndigo', 'octagonPurple', 'octagonPink', 'octagonGray',
+  'dashRed', 'dashOrange', 'dashAmber', 'dashGreen', 'dashTeal',
+  'dashBlue', 'dashIndigo', 'dashPurple', 'dashPink', 'dashGray',
+  'doubleRed', 'doubleOrange', 'doubleAmber', 'doubleGreen', 'doubleTeal',
+  'doubleBlue', 'doubleIndigo', 'doublePurple', 'doublePink', 'doubleGray',
 ] as const;
 
 /** 全部座位装饰 ID（与 `seatFlairs/index.ts` Component 注册表 1:1 对应）。 */
@@ -125,6 +136,17 @@ export const SEAT_FLAIR_IDS = [
   'firefly',
   'forestLeaf',
   'prismShard',
+  // Common — simple colored effects (5 patterns × 10 colors = 50)
+  'pulseRed', 'pulseOrange', 'pulseAmber', 'pulseGreen', 'pulseTeal',
+  'pulseBlue', 'pulseIndigo', 'pulsePurple', 'pulsePink', 'pulseGray',
+  'glowRed', 'glowOrange', 'glowAmber', 'glowGreen', 'glowTeal',
+  'glowBlue', 'glowIndigo', 'glowPurple', 'glowPink', 'glowGray',
+  'sparkleRed', 'sparkleOrange', 'sparkleAmber', 'sparkleGreen', 'sparkleTeal',
+  'sparkleBlue', 'sparkleIndigo', 'sparklePurple', 'sparklePink', 'sparkleGray',
+  'breatheRed', 'breatheOrange', 'breatheAmber', 'breatheGreen', 'breatheTeal',
+  'breatheBlue', 'breatheIndigo', 'breathePurple', 'breathePink', 'breatheGray',
+  'floatRed', 'floatOrange', 'floatAmber', 'floatGreen', 'floatTeal',
+  'floatBlue', 'floatIndigo', 'floatPurple', 'floatPink', 'floatGray',
 ] as const;
 
 /** 全部名字特效 ID（与 `nameStyles/index.ts` 配置注册表 1:1 对应）。 */
@@ -150,6 +172,17 @@ export const NAME_STYLE_IDS = [
   'voidStar',
   'dragonBreath',
   'celestialDawn',
+  // Common — simple single-color text styling (50)
+  'plainCrimson', 'plainCoral', 'plainSalmon', 'plainRose', 'plainBlush',
+  'plainTangerine', 'plainApricot', 'plainPeach', 'plainAmber', 'plainHoney',
+  'plainSunbeam', 'plainMarigold', 'plainLemon', 'plainCanary', 'plainButtercup',
+  'plainMint', 'plainSage', 'plainOlive', 'plainFern', 'plainMoss',
+  'plainSky', 'plainAzure', 'plainCobalt', 'plainNavy', 'plainSteel',
+  'plainLavender', 'plainOrchid', 'plainPlum', 'plainViolet', 'plainIris',
+  'plainMagenta', 'plainFuchsia', 'plainBerry', 'plainWine', 'plainRuby',
+  'plainIvory', 'plainPearl', 'plainCream', 'plainSnow', 'plainCloud',
+  'plainSlate', 'plainGraphite', 'plainAsh', 'plainSmoke', 'plainCharcoal',
+  'plainCopper', 'plainBronze', 'plainRust', 'plainCinnamon', 'plainChestnut',
 ] as const;
 
 /** 头像 ID literal union */
@@ -220,14 +253,20 @@ const FRAME_RARITY: Record<string, Rarity> = {
   jadeSeal: 'epic',
   shadowWeave: 'epic',
   hellFire: 'epic',
-  // Rare (6)
+  // Rare (12)
   ironForge: 'rare',
   moonSilver: 'rare',
   bloodThorn: 'rare',
   runicSeal: 'rare',
   pharaohGold: 'rare',
   sakuraDrift: 'rare',
-  // Common (6) — everything else
+  boneGate: 'rare',
+  darkVine: 'rare',
+  frostCrystal: 'rare',
+  coralReef: 'rare',
+  emberAsh: 'rare',
+  obsidianEdge: 'rare',
+  // Common (50) — simple colored frames
 };
 
 /** 座位装饰稀有度映射 */
@@ -244,7 +283,7 @@ const FLAIR_RARITY: Record<string, Rarity> = {
   magmaFloat: 'epic',
   sonicWave: 'epic',
   purpleMist: 'epic',
-  // Rare (12)
+  // Rare (20)
   emberGlow: 'rare',
   frostAura: 'rare',
   shadowMist: 'rare',
@@ -257,7 +296,15 @@ const FLAIR_RARITY: Record<string, Rarity> = {
   ghostWisp: 'rare',
   poisonBubble: 'rare',
   windGust: 'rare',
-  // Common (8) — everything else
+  snowfall: 'rare',
+  goldSpark: 'rare',
+  butterfly: 'rare',
+  shadowClaw: 'rare',
+  rainDrop: 'rare',
+  flowerBloom: 'rare',
+  firefly: 'rare',
+  forestLeaf: 'rare',
+  // Common (50) — simple colored effects
 };
 
 /** 名字样式稀有度映射 */
@@ -265,12 +312,16 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
   // Legendary (2)
   celestialDawn: 'legendary',
   voidStar: 'legendary',
-  // Epic (4)
+  // Epic (8)
   phoenixRebirth: 'epic',
   dragonBreath: 'epic',
   stormElectric: 'epic',
   moltenGoldPulse: 'epic',
-  // Rare (7)
+  frostBreath: 'epic',
+  venomShift: 'epic',
+  shadowPulse: 'epic',
+  crimsonTide: 'epic',
+  // Rare (10)
   silverGleam: 'rare',
   copperEmber: 'rare',
   bloodMoonGlow: 'rare',
@@ -278,7 +329,10 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
   amethystGlow: 'rare',
   indigoRadiance: 'rare',
   twilightGradient: 'rare',
-  // Common (7) — everything else
+  roseGold: 'rare',
+  frostVeil: 'rare',
+  amberFlare: 'rare',
+  // Common (50) — simple single-color text styling
 };
 
 /**
