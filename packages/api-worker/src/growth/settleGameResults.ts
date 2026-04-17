@@ -5,13 +5,11 @@
  * 有效局条件：status === Ended && ≥9 个不同真人玩家（含匿名）。
  * XP 仅写入注册用户。匿名玩家仅计入有效局人数。
  * 幂等：user_stats.last_room_code 保证不重复写入。
- * 升级时从 REWARD_POOL 随机抽取一个未解锁奖励。
+ * 每局获得 1 张普通抽奖券；升级额外获得 1 张黄金抽奖券。
  */
 
-import { pickRandomReward } from '@werewolf/game-engine/growth/frameUnlock';
 import { getLevel } from '@werewolf/game-engine/growth/level';
 import { rollXp } from '@werewolf/game-engine/growth/level';
-import type { RewardItem } from '@werewolf/game-engine/growth/rewardCatalog';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
@@ -19,6 +17,11 @@ import { createDb } from '../db';
 import { users, userStats } from '../db/schema';
 
 const MIN_PLAYERS = 9;
+
+/** 每局获得的普通抽奖券 */
+const NORMAL_DRAWS_PER_GAME = 1;
+/** 升级额外获得的黄金抽奖券 */
+const GOLDEN_DRAWS_ON_LEVEL_UP = 1;
 
 interface SettlementEnv {
   DB: D1Database;
@@ -31,14 +34,8 @@ export interface PlayerSettleResult {
   newXp: number;
   newLevel: number;
   previousLevel: number;
-  reward?: RewardItem;
-}
-
-/** crypto-safe random int in [0, max) */
-function cryptoRandomInt(max: number): number {
-  const arr = new Uint32Array(1);
-  crypto.getRandomValues(arr);
-  return arr[0] % max;
+  normalDrawsEarned: number;
+  goldenDrawsEarned: number;
 }
 
 /**
@@ -117,28 +114,18 @@ export async function settleGameResults(
       const previousLevel = statsRow.level;
       const newLevel = getLevel(statsRow.xp);
 
-      let reward: RewardItem | undefined;
+      const normalDrawsEarned = NORMAL_DRAWS_PER_GAME;
+      const goldenDrawsEarned = newLevel > previousLevel ? GOLDEN_DRAWS_ON_LEVEL_UP : 0;
 
-      if (newLevel > previousLevel) {
-        // Parse existing unlocked items
-        const unlockedIds: string[] = JSON.parse(statsRow.unlockedItems) as string[];
-        const unlockedSet = new Set(unlockedIds);
-
-        // Pick random reward for each level gained (normally 1)
-        for (let lv = previousLevel + 1; lv <= newLevel; lv++) {
-          const picked = pickRandomReward(unlockedSet, cryptoRandomInt, lv);
-          if (picked) {
-            unlockedSet.add(picked.id);
-            // Only report the last reward in the settle message (typically 1 level per game)
-            reward = picked;
-          }
-        }
-
-        // Write back level + unlocked_items
-        const updatedItems = JSON.stringify([...unlockedSet]);
+      // Write back level + increment draw tickets
+      if (newLevel > previousLevel || normalDrawsEarned > 0 || goldenDrawsEarned > 0) {
         await db
           .update(userStats)
-          .set({ level: newLevel, unlockedItems: updatedItems })
+          .set({
+            level: newLevel,
+            normalDraws: sql`${userStats.normalDraws} + ${normalDrawsEarned}`,
+            goldenDraws: sql`${userStats.goldenDraws} + ${goldenDrawsEarned}`,
+          })
           .where(eq(userStats.userId, uid));
       }
 
@@ -148,7 +135,8 @@ export async function settleGameResults(
         newXp: statsRow.xp,
         newLevel,
         previousLevel,
-        reward,
+        normalDrawsEarned,
+        goldenDrawsEarned,
       });
     }
   }

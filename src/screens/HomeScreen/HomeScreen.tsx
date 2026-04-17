@@ -213,6 +213,10 @@ export const HomeScreen: React.FC = () => {
     navigation.navigate('Encyclopedia');
   }, [navigation]);
 
+  const handleNavigateGacha = useCallback(() => {
+    navigation.navigate('Gacha');
+  }, [navigation]);
+
   // ============================================
   // Random Role Card state (F8)
   // ============================================
@@ -505,6 +509,15 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </PressableScale>
         </View>
+
+        {/* ── Gacha Entry ─────────────────────────── */}
+        <PressableScale onPress={handleNavigateGacha} style={styles.gachaCard} haptic>
+          <Text style={styles.gachaCardEmoji}>🎰</Text>
+          <View style={styles.gachaCardText}>
+            <Text style={styles.gachaCardTitle}>扭蛋抽奖</Text>
+            <Text style={styles.gachaCardSubtitle}>用抽奖券解锁头像、头像框、装饰</Text>
+          </View>
+        </PressableScale>
 
         {/* ── Random Role Card (F8) ───────────────── */}
         <RandomRoleCard

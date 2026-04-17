@@ -33,6 +33,7 @@ export type RootStackParamList = {
   Notepad: { roomNumber: string };
   AvatarPicker: undefined;
   Unlocks: { userId?: string; displayName?: string } | undefined;
+  Gacha: undefined;
   // Auth modal screens
   AuthLogin:
     | {

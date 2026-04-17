@@ -8,14 +8,17 @@
 
 export type RewardType = 'avatar' | 'frame' | 'seatFlair' | 'nameStyle';
 
+export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+
 export interface RewardItem {
   readonly type: RewardType;
   readonly id: string;
+  readonly rarity: Rarity;
 }
 
 /**
  * 全部头像 ID（排序稳定，与资源文件名 1:1 对应）。
- * 包含免费头像 `villager`。
+ * 无头像时显示 wolf-paw 默认图标（不在此列表中）。
  */
 // prettier-ignore
 export const AVATAR_IDS = [
@@ -162,7 +165,7 @@ export type FlairId = (typeof SEAT_FLAIR_IDS)[number];
 export type NameStyleId = (typeof NAME_STYLE_IDS)[number];
 
 /** 注册即得的免费头像 ID */
-export const FREE_AVATAR_IDS: ReadonlySet<string> = new Set(['villager']);
+export const FREE_AVATAR_IDS: ReadonlySet<string> = new Set<string>();
 
 /** 注册即得的免费头像框 ID（无） */
 export const FREE_FRAME_IDS: ReadonlySet<string> = new Set<string>();
@@ -173,22 +176,127 @@ export const FREE_FLAIR_IDS: ReadonlySet<string> = new Set<string>();
 /** 注册即得的免费名字特效 ID（无） */
 export const FREE_NAME_STYLE_IDS: ReadonlySet<string> = new Set<string>();
 
+/** 头像稀有度映射 */
+const AVATAR_RARITY: Record<string, Rarity> = {
+  // Legendary (3)
+  darkWolfKing: 'legendary',
+  nightmare: 'legendary',
+  masquerade: 'legendary',
+  // Epic (7)
+  wolfKing: 'epic',
+  wolfQueen: 'epic',
+  bloodMoon: 'epic',
+  spiritKnight: 'epic',
+  awakenedGargoyle: 'epic',
+  witch: 'epic',
+  seer: 'epic',
+  // Rare (14)
+  hunter: 'rare',
+  guard: 'rare',
+  knight: 'rare',
+  magician: 'rare',
+  piper: 'rare',
+  poisoner: 'rare',
+  gargoyle: 'rare',
+  dreamcatcher: 'rare',
+  avenger: 'rare',
+  mirrorSeer: 'rare',
+  psychic: 'rare',
+  cursedFox: 'rare',
+  witcher: 'rare',
+  wolfWitch: 'rare',
+  // Common (18) — everything else
+};
+
+/** 头像框稀有度映射 */
+const FRAME_RARITY: Record<string, Rarity> = {
+  // Legendary (3)
+  starNebula: 'legendary',
+  celestialRing: 'legendary',
+  dragonScale: 'legendary',
+  // Epic (5)
+  voidRift: 'epic',
+  stormBolt: 'epic',
+  jadeSeal: 'epic',
+  shadowWeave: 'epic',
+  hellFire: 'epic',
+  // Rare (6)
+  ironForge: 'rare',
+  moonSilver: 'rare',
+  bloodThorn: 'rare',
+  runicSeal: 'rare',
+  pharaohGold: 'rare',
+  sakuraDrift: 'rare',
+  // Common (6) — everything else
+};
+
+/** 座位装饰稀有度映射 */
+const FLAIR_RARITY: Record<string, Rarity> = {
+  // Legendary (3)
+  runeCircle: 'legendary',
+  lightPillar: 'legendary',
+  prismShard: 'legendary',
+  // Epic (7)
+  phoenixFeather: 'epic',
+  thunderBolt: 'epic',
+  cometTail: 'epic',
+  lunarHalo: 'epic',
+  magmaFloat: 'epic',
+  sonicWave: 'epic',
+  purpleMist: 'epic',
+  // Rare (12)
+  emberGlow: 'rare',
+  frostAura: 'rare',
+  shadowMist: 'rare',
+  goldenShine: 'rare',
+  bloodMark: 'rare',
+  starlight: 'rare',
+  sakura: 'rare',
+  fireRing: 'rare',
+  iceCrystal: 'rare',
+  ghostWisp: 'rare',
+  poisonBubble: 'rare',
+  windGust: 'rare',
+  // Common (8) — everything else
+};
+
+/** 名字样式稀有度映射 */
+const NAME_STYLE_RARITY: Record<string, Rarity> = {
+  // Legendary (2)
+  celestialDawn: 'legendary',
+  voidStar: 'legendary',
+  // Epic (4)
+  phoenixRebirth: 'epic',
+  dragonBreath: 'epic',
+  stormElectric: 'epic',
+  moltenGoldPulse: 'epic',
+  // Rare (7)
+  silverGleam: 'rare',
+  copperEmber: 'rare',
+  bloodMoonGlow: 'rare',
+  jadeShimmer: 'rare',
+  amethystGlow: 'rare',
+  indigoRadiance: 'rare',
+  twilightGradient: 'rare',
+  // Common (7) — everything else
+};
+
 /**
  * 可抽奖励池（全部可解锁物品 - 免费物品）。
  * 服务端升级时从此池中排除已解锁 → 随机抽取。
  */
 export const REWARD_POOL: readonly RewardItem[] = [
   ...AVATAR_IDS.filter((id) => !FREE_AVATAR_IDS.has(id)).map(
-    (id) => ({ type: 'avatar', id }) as const,
+    (id) => ({ type: 'avatar', id, rarity: AVATAR_RARITY[id] ?? 'common' }) as const,
   ),
   ...FRAME_IDS.filter((id) => !FREE_FRAME_IDS.has(id)).map(
-    (id) => ({ type: 'frame', id }) as const,
+    (id) => ({ type: 'frame', id, rarity: FRAME_RARITY[id] ?? 'common' }) as const,
   ),
   ...SEAT_FLAIR_IDS.filter((id) => !FREE_FLAIR_IDS.has(id)).map(
-    (id) => ({ type: 'seatFlair', id }) as const,
+    (id) => ({ type: 'seatFlair', id, rarity: FLAIR_RARITY[id] ?? 'common' }) as const,
   ),
   ...NAME_STYLE_IDS.filter((id) => !FREE_NAME_STYLE_IDS.has(id)).map(
-    (id) => ({ type: 'nameStyle', id }) as const,
+    (id) => ({ type: 'nameStyle', id, rarity: NAME_STYLE_RARITY[id] ?? 'common' }) as const,
   ),
 ];
 

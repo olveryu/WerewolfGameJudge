@@ -20,7 +20,8 @@ export interface SettleResultMessage {
   newXp: number;
   newLevel: number;
   previousLevel: number;
-  reward?: { type: string; id: string };
+  normalDrawsEarned: number;
+  goldenDrawsEarned: number;
 }
 
 export interface TransportEventHandlers {

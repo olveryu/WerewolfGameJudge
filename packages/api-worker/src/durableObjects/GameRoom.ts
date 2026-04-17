@@ -209,7 +209,8 @@ export class GameRoom extends DurableObject<Env> {
               newXp: settle.newXp,
               newLevel: settle.newLevel,
               previousLevel: settle.previousLevel,
-              ...(settle.reward && { reward: { type: settle.reward.type, id: settle.reward.id } }),
+              normalDrawsEarned: settle.normalDrawsEarned,
+              goldenDrawsEarned: settle.goldenDrawsEarned,
             }),
           );
         }

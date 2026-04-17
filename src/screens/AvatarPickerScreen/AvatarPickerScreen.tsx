@@ -52,6 +52,7 @@ import {
   isBuiltinAvatarUrl,
   makeBuiltinAvatarUrl,
 } from '@/utils/avatar';
+import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { settingsLog } from '@/utils/logger';
 
@@ -62,7 +63,7 @@ const FRAME_NUM_COLUMNS = 3;
 const FRAME_GRID_CELL_SIZE = 72;
 const HERO_PREVIEW_SIZE = 80;
 
-type Selection = number | 'custom' | null;
+type Selection = number | 'custom' | 'default' | null;
 type PickerTab = 'avatar' | 'frame' | 'flair' | 'nameStyle';
 
 interface BuiltinCellItem {
@@ -130,14 +131,17 @@ export const AvatarPickerScreen: React.FC = () => {
 
   // ── Derived state ──
 
+  const isDefaultActive = !user?.avatarUrl && !user?.customAvatarUrl;
   const isCustomActive = currentBuiltinIndex === -1 && !!user?.customAvatarUrl;
 
   const previewAvatarUrl =
-    selected === 'custom'
-      ? user?.customAvatarUrl
-      : typeof selected === 'number'
-        ? makeBuiltinAvatarUrl(selected)
-        : user?.avatarUrl;
+    selected === 'default'
+      ? null
+      : selected === 'custom'
+        ? user?.customAvatarUrl
+        : typeof selected === 'number'
+          ? makeBuiltinAvatarUrl(selected)
+          : user?.avatarUrl;
 
   const effectiveFrame =
     selectedFrame === 'none' ? null : (selectedFrame ?? currentFrameId ?? null);
@@ -240,6 +244,10 @@ export const AvatarPickerScreen: React.FC = () => {
       navigation.goBack();
     }
   }, [navigation]);
+
+  const handlePressDefault = useCallback(() => {
+    setSelected('default');
+  }, []);
 
   const handlePressBuiltin = useCallback(
     (index: number) => {
@@ -353,9 +361,11 @@ export const AvatarPickerScreen: React.FC = () => {
     try {
       // Resolve new avatar URL (if changed)
       let newAvatarUrl: string | undefined;
-      if (selected === 'custom') {
+      if (selected === 'default') {
+        newAvatarUrl = '';
+      } else if (selected === 'custom') {
         newAvatarUrl = user?.customAvatarUrl ?? undefined;
-      } else if (selected !== null) {
+      } else if (typeof selected === 'number') {
         newAvatarUrl = makeBuiltinAvatarUrl(selected);
       }
 
@@ -484,6 +494,8 @@ export const AvatarPickerScreen: React.FC = () => {
 
   // ── List header for avatar tab ──
 
+  const wolfPawIcon = useMemo(() => getAvatarIcon(user?.uid ?? 'anonymous'), [user?.uid]);
+
   const listHeader = useMemo(
     () => (
       <>
@@ -492,6 +504,32 @@ export const AvatarPickerScreen: React.FC = () => {
             <Text style={styles.pickerSectionTitle}>我的头像</Text>
             <View style={styles.pickerCustomSection}>
               <View style={styles.pickerCustomRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.pickerCustomItem,
+                    selected === 'default' && styles.pickerItemSelected,
+                  ]}
+                  onPress={handlePressDefault}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.pickerItemWolfPawContainer}>
+                    <Image
+                      source={wolfPawIcon.image}
+                      style={styles.pickerItemWolfPawIcon}
+                      tintColor={wolfPawIcon.color}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  {isDefaultActive && selected !== 'default' && (
+                    <View style={styles.pickerCheckBadge}>
+                      <Ionicons
+                        name="checkmark"
+                        size={componentSizes.icon.xs}
+                        color={colors.textInverse}
+                      />
+                    </View>
+                  )}
+                </TouchableOpacity>
                 {user?.customAvatarUrl && (
                   <TouchableOpacity
                     style={[
@@ -535,8 +573,11 @@ export const AvatarPickerScreen: React.FC = () => {
     [
       user?.customAvatarUrl,
       selected,
+      isDefaultActive,
       isCustomActive,
       readOnly,
+      wolfPawIcon,
+      handlePressDefault,
       handlePressCustom,
       handleUpload,
       styles,

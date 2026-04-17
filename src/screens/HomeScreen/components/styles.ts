@@ -113,6 +113,12 @@ export interface HomeScreenStyles {
   randomRoleActionText: TextStyle;
   // Tip Card (contextual tips between action row and footer)
   tipCard: ViewStyle;
+  // Gacha entry card
+  gachaCard: ViewStyle;
+  gachaCardEmoji: TextStyle;
+  gachaCardText: ViewStyle;
+  gachaCardTitle: TextStyle;
+  gachaCardSubtitle: TextStyle;
   tipCardIcon: ViewStyle;
   tipCardBody: ViewStyle;
   tipCardTitle: TextStyle;
@@ -335,6 +341,32 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       fontWeight: typography.weights.medium,
+    },
+    // ── Gacha Entry Card ─────────────────────────────────────
+    gachaCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: spacing.screenH,
+      marginBottom: spacing.small,
+      padding: spacing.medium,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.large,
+      gap: spacing.small,
+      ...shadows.sm,
+    },
+    gachaCardEmoji: {
+      fontSize: 28,
+    },
+    gachaCardText: {
+      flex: 1,
+    },
+    gachaCardTitle: {
+      ...textStyles.body,
+      fontWeight: typography.weights.semibold,
+    },
+    gachaCardSubtitle: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
     },
     // ── Tip Card ─────────────────────────────────────────────
     tipCard: {

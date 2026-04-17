@@ -27,6 +27,7 @@ import { AvatarPickerScreen } from '@/screens/AvatarPickerScreen/AvatarPickerScr
 import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
+import { GachaScreen } from '@/screens/GachaScreen/GachaScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
 import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
@@ -86,6 +87,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Notepad: 'notepad/:roomNumber',
       AvatarPicker: 'avatar-picker',
       Unlocks: 'unlocks/:userId?',
+      Gacha: 'gacha',
       AuthLogin: 'auth/login',
       AuthEmail: 'auth/email',
       AuthForgotPassword: 'auth/forgot-password',
@@ -216,6 +218,7 @@ export const AppNavigator: React.FC = () => {
           options={{ title: '选择形象' }}
         />
         <Stack.Screen name="Unlocks" component={UnlocksScreen} options={{ title: '解锁一览' }} />
+        <Stack.Screen name="Gacha" component={GachaScreen} options={{ title: '扭蛋抽奖' }} />
         {/* Auth modal screens — transparent overlay with centered card */}
         <Stack.Group
           screenOptions={{
