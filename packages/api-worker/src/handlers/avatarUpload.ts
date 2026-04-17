@@ -79,11 +79,15 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
 
   const avatarUrlStr = publicUrl.toString();
 
-  // Persist custom_avatar_url to D1 so the client can display it in AvatarPickerScreen
+  // Persist custom_avatar_url AND activate it as the current avatar
   const db = createDb(env.DB);
   await db
     .update(users)
-    .set({ customAvatarUrl: avatarUrlStr, updatedAt: sql`datetime('now')` })
+    .set({
+      customAvatarUrl: avatarUrlStr,
+      avatarUrl: avatarUrlStr,
+      updatedAt: sql`datetime('now')`,
+    })
     .where(eq(users.id, userId));
 
   return c.json({ url: avatarUrlStr }, 200);

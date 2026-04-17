@@ -117,7 +117,3 @@ export const MACHINE = {
   capsuleRing: 'rgba(255,255,255,0.2)',
   capsuleHighlight: 'rgba(255,255,255,0.3)',
 } as const;
-
-// ─── Rarity visual mapping (re-exported from shared config) ─────────────────
-
-export { RARITY_VISUAL } from '@/config/rarityVisual';
