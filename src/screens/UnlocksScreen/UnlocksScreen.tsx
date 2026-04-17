@@ -157,6 +157,20 @@ export const UnlocksScreen: React.FC = () => {
         : activeTab === 'flair'
           ? flairItems
           : nameStyleItems;
+
+  // Pad last row with invisible spacers so flex:1 cells don't stretch
+  const paddedItems = useMemo(() => {
+    const remainder = currentItems.length % NUM_COLUMNS;
+    if (remainder === 0) return currentItems;
+    const spacers: UnlockItem[] = Array.from({ length: NUM_COLUMNS - remainder }, (_, i) => ({
+      id: `__spacer_${i}`,
+      type: activeTab,
+      displayName: '',
+      unlocked: false,
+    }));
+    return [...currentItems, ...spacers];
+  }, [currentItems, activeTab]);
+
   const unlockedCount = currentItems.filter((i) => i.unlocked).length;
   const totalCount = currentItems.length;
   const progressPercent = Math.round((unlockedCount / totalCount) * 100);
@@ -164,7 +178,8 @@ export const UnlocksScreen: React.FC = () => {
   const handleGoBack = useCallback(() => navigation.goBack(), [navigation]);
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<UnlockItem>) => <UnlockCell item={item} />,
+    ({ item }: ListRenderItemInfo<UnlockItem>) =>
+      item.id.startsWith('__spacer_') ? <View style={styles.cell} /> : <UnlockCell item={item} />,
     [],
   );
 
@@ -232,7 +247,7 @@ export const UnlocksScreen: React.FC = () => {
         </View>
       ) : (
         <FlatList
-          data={currentItems}
+          data={paddedItems}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           numColumns={NUM_COLUMNS}
