@@ -10,7 +10,7 @@ import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { loginAttempts, passwordResetTokens, users } from '../db/schema';
+import { loginAttempts, passwordResetTokens, users, userStats } from '../db/schema';
 import type { AppEnv, Env } from '../env';
 import { extractBearerToken, requireAuth, signToken, verifyToken } from '../lib/auth';
 import { sendPasswordResetEmail } from '../lib/email';
@@ -27,6 +27,30 @@ import {
 import { jsonBody } from './shared';
 
 export const authRoutes = new Hono<AppEnv>();
+
+/** 注册欢迎奖励：普通券 5 + 黄金券 1 */
+const WELCOME_NORMAL_DRAWS = 5;
+const WELCOME_GOLDEN_DRAWS = 1;
+
+/** 给新注册用户发放欢迎抽奖券（upsert，已有行则累加） */
+async function grantWelcomeBonus(db: ReturnType<typeof createDb>, userId: string): Promise<void> {
+  await db
+    .insert(userStats)
+    .values({
+      userId,
+      normalDraws: WELCOME_NORMAL_DRAWS,
+      goldenDraws: WELCOME_GOLDEN_DRAWS,
+      updatedAt: sql`datetime('now')`,
+    })
+    .onConflictDoUpdate({
+      target: userStats.userId,
+      set: {
+        normalDraws: sql`${userStats.normalDraws} + ${WELCOME_NORMAL_DRAWS}`,
+        goldenDraws: sql`${userStats.goldenDraws} + ${WELCOME_GOLDEN_DRAWS}`,
+        updatedAt: sql`datetime('now')`,
+      },
+    });
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /auth/anonymous — 匿名登录
@@ -190,6 +214,9 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
       })
       .where(eq(users.id, existingUserId));
 
+    // Welcome bonus for anonymous/WeChat → email upgrade
+    await grantWelcomeBonus(db, existingUserId);
+
     // Read back the actual display_name (may be the pre-existing one)
     const upgraded = await db
       .select({ displayName: users.displayName })
@@ -236,6 +263,9 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
     createdAt: now,
     updatedAt: now,
   });
+
+  // Welcome bonus for new registered user
+  await grantWelcomeBonus(db, userId);
 
   const token = await signToken(userId, env, { email });
 
@@ -773,6 +803,9 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
     createdAt: now,
     updatedAt: now,
   });
+
+  // Welcome bonus for new WeChat user
+  await grantWelcomeBonus(db, userId);
 
   const token = await signToken(userId, env);
 

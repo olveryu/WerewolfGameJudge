@@ -29,6 +29,8 @@ export interface AvatarPickerScreenStyles {
   pickerGrid: ViewStyle;
   pickerItem: ViewStyle;
   pickerItemImage: ImageStyle;
+  pickerItemWolfPawContainer: ViewStyle;
+  pickerItemWolfPawIcon: ImageStyle;
   pickerItemSelected: ViewStyle;
   pickerItemLocked: ViewStyle;
   pickerItemLockOverlay: ViewStyle;
@@ -125,6 +127,17 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       width: '100%',
       height: '100%',
       borderRadius: borderRadius.medium - fixed.borderWidthThick,
+    },
+    pickerItemWolfPawContainer: {
+      width: '100%',
+      height: '100%',
+      borderRadius: borderRadius.medium - fixed.borderWidthThick,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    pickerItemWolfPawIcon: {
+      width: '70%',
+      height: '70%',
     },
     pickerItemSelected: {
       borderColor: colors.primary,

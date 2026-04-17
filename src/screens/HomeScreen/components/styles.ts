@@ -113,6 +113,12 @@ export interface HomeScreenStyles {
   randomRoleActionText: TextStyle;
   // Tip Card (contextual tips between action row and footer)
   tipCard: ViewStyle;
+  // Gacha entry card
+  gachaCard: ViewStyle;
+  gachaCardEmoji: TextStyle;
+  gachaCardText: ViewStyle;
+  gachaCardTitle: TextStyle;
+  gachaCardSubtitle: TextStyle;
   tipCardIcon: ViewStyle;
   tipCardBody: ViewStyle;
   tipCardTitle: TextStyle;
@@ -258,10 +264,7 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       height: componentSizes.avatar.xl + spacing.xlarge + spacing.medium,
     },
     randomRoleCard: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.medium,
-      ...shadows.sm,
+      ...shared.cardBase,
     },
     randomRoleCardAbsolute: {
       position: 'absolute',
@@ -336,19 +339,39 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       lineHeight: typography.lineHeights.caption,
       fontWeight: typography.weights.medium,
     },
-    // ── Tip Card ─────────────────────────────────────────────
-    tipCard: {
+    // ── Gacha Entry Card ─────────────────────────────────────
+    gachaCard: {
+      ...shared.cardBase,
       flexDirection: 'row',
       alignItems: 'center',
       marginHorizontal: spacing.screenH,
       marginBottom: spacing.small,
-      padding: spacing.medium,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
+      gap: spacing.small,
+    },
+    gachaCardEmoji: {
+      fontSize: 28,
+    },
+    gachaCardText: {
+      flex: 1,
+    },
+    gachaCardTitle: {
+      ...textStyles.body,
+      fontWeight: typography.weights.semibold,
+    },
+    gachaCardSubtitle: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
+    },
+    // ── Tip Card ─────────────────────────────────────────────
+    tipCard: {
+      ...shared.cardBase,
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: spacing.screenH,
+      marginBottom: spacing.small,
       borderLeftWidth: fixed.borderWidthHighlight,
       borderLeftColor: colors.primary,
       gap: spacing.small,
-      ...shadows.sm,
     },
     tipCardIcon: {
       width: componentSizes.avatar.md,

@@ -23,7 +23,14 @@ import {
 describe('rewardCatalog', () => {
   it('REWARD_POOL has correct total items (avatars + frames + flairs + nameStyles - free)', () => {
     expect(REWARD_POOL).toHaveLength(
-      AVATAR_IDS.length + FRAME_IDS.length + SEAT_FLAIR_IDS.length + NAME_STYLE_IDS.length - 1,
+      AVATAR_IDS.length +
+        FRAME_IDS.length +
+        SEAT_FLAIR_IDS.length +
+        NAME_STYLE_IDS.length -
+        FREE_AVATAR_IDS.size -
+        FREE_FRAME_IDS.size -
+        FREE_FLAIR_IDS.size -
+        FREE_NAME_STYLE_IDS.size,
     );
   });
 
@@ -45,7 +52,7 @@ describe('rewardCatalog', () => {
     const frames = REWARD_POOL.filter((r) => r.type === 'frame');
     const flairs = REWARD_POOL.filter((r) => r.type === 'seatFlair');
     const nameStyles = REWARD_POOL.filter((r) => r.type === 'nameStyle');
-    expect(avatars).toHaveLength(42);
+    expect(avatars).toHaveLength(AVATAR_IDS.length - FREE_AVATAR_IDS.size);
     expect(frames).toHaveLength(20);
     expect(flairs).toHaveLength(30);
     expect(nameStyles).toHaveLength(20);
@@ -122,16 +129,15 @@ describe('getUnlockedAvatars', () => {
 
   it('includes unlocked avatar ids', () => {
     const unlocked = getUnlockedAvatars(['seer', 'wolf']);
-    expect(unlocked.has('villager')).toBe(true);
     expect(unlocked.has('seer')).toBe(true);
     expect(unlocked.has('wolf')).toBe(true);
-    expect(unlocked.size).toBe(3);
+    expect(unlocked.size).toBe(2);
   });
 
   it('ignores frame ids in unlock list', () => {
     const unlocked = getUnlockedAvatars(['moonSilver']);
     expect(unlocked.has('moonSilver')).toBe(false);
-    expect(unlocked.size).toBe(1); // only villager
+    expect(unlocked.size).toBe(FREE_AVATAR_IDS.size);
   });
 });
 

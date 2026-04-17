@@ -14,7 +14,8 @@ export interface Env {
 
   // ── Durable Objects ─────────────────────────────────────────────
   GAME_ROOM: DurableObjectNamespace<import('./durableObjects/GameRoom').GameRoom>;
-
+  // ── Workers AI ─────────────────────────────────────────────────────
+  AI: Ai;
   // ── Environment Variables ──────────────────────────────────────
   ENVIRONMENT: string;
   CORS_ORIGIN: string;

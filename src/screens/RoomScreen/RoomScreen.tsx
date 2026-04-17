@@ -21,7 +21,7 @@ import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
+import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
@@ -74,9 +74,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [nominationModalVisible, setNominationModalVisible] = useState(false);
   const hasAutoShownQR = useRef(false);
 
-  // User level for top bar display (shared cache via TanStack Query)
-  const { data: userStats } = useUserStatsQuery();
-  const userLevel = userStats?.level ?? null;
+  // Ticket count for top bar badge (shared cache via TanStack Query)
+  const { data: gachaStatus } = useGachaStatusQuery();
+  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
 
   const handleShareRoom = useCallback(() => {
     setQrModalVisible(true);
@@ -444,7 +444,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <HeaderActions
             visible
             user={user}
-            level={userLevel}
+            ticketCount={ticketCount}
             showUserSettings
             showShareRoom={roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated}
             showAnimationSettings={

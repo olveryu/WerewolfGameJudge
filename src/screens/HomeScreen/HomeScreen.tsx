@@ -30,7 +30,7 @@ import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
 import { LAST_ROOM_NUMBER_KEY, type TipId, tipStorageKey } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
+import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { storage } from '@/lib/storage';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
@@ -71,9 +71,9 @@ export const HomeScreen: React.FC = () => {
 
   const pendingActionRef = useRef<(() => void) | null>(null);
 
-  // User level for top bar display (shared cache via TanStack Query)
-  const { data: userStats } = useUserStatsQuery();
-  const userLevel = userStats?.level ?? null;
+  // Ticket count for top bar badge (shared cache via TanStack Query)
+  const { data: gachaStatus } = useGachaStatusQuery();
+  const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
 
   // Load persisted tip dismissals (synchronous MMKV)
   const readDismissedTips = useCallback(() => {
@@ -211,6 +211,10 @@ export const HomeScreen: React.FC = () => {
 
   const handleNavigateEncyclopedia = useCallback(() => {
     navigation.navigate('Encyclopedia');
+  }, [navigation]);
+
+  const handleNavigateGacha = useCallback(() => {
+    navigation.navigate('Gacha');
   }, [navigation]);
 
   // ============================================
@@ -423,7 +427,7 @@ export const HomeScreen: React.FC = () => {
 
             <UserAvatar
               user={user}
-              level={userLevel}
+              ticketCount={ticketCount}
               onPress={handleNavigateSettings}
               testID={TESTIDS.homeSettingsButton}
             />
@@ -505,6 +509,15 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </PressableScale>
         </View>
+
+        {/* ── Gacha Entry ─────────────────────────── */}
+        <PressableScale onPress={handleNavigateGacha} style={styles.gachaCard} haptic>
+          <Text style={styles.gachaCardEmoji}>🎰</Text>
+          <View style={styles.gachaCardText}>
+            <Text style={styles.gachaCardTitle}>扭蛋抽奖</Text>
+            <Text style={styles.gachaCardSubtitle}>用抽奖券解锁头像、头像框、装饰</Text>
+          </View>
+        </PressableScale>
 
         {/* ── Random Role Card (F8) ───────────────── */}
         <RandomRoleCard

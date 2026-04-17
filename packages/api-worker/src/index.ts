@@ -32,6 +32,7 @@ export { GameRoom } from './durableObjects/GameRoom';
 import { authRoutes } from './handlers/authHandlers';
 import { avatarRoutes } from './handlers/avatarUpload';
 import { runScheduledCleanup } from './handlers/cronHandlers';
+import { gachaRoutes } from './handlers/gachaHandlers';
 import { gameRoutes } from './handlers/gameControl';
 import { geminiRoutes } from './handlers/geminiProxy';
 import { nightRoutes } from './handlers/night';
@@ -98,6 +99,7 @@ app.route('/gemini-proxy', geminiRoutes);
 app.route('/avatar', avatarRoutes);
 app.route('/share', shareRoutes);
 app.route('/api', statsRoutes);
+app.route('/api', gachaRoutes);
 
 // ── Worker entry ────────────────────────────────────────────────────────────
 

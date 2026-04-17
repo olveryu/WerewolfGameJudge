@@ -72,5 +72,25 @@ export const userStats = sqliteTable('user_stats', {
   gamesPlayed: integer('games_played').notNull().default(0),
   lastRoomCode: text('last_room_code'),
   unlockedItems: text('unlocked_items').notNull().default('[]'),
+  normalDraws: integer('normal_draws').notNull().default(0),
+  goldenDraws: integer('golden_draws').notNull().default(0),
+  normalPity: integer('normal_pity').notNull().default(0),
+  goldenPity: integer('golden_pity').notNull().default(0),
   updatedAt: text('updated_at').notNull(),
+});
+
+// ── draw_history ────────────────────────────────────────────────────────────
+
+export const drawHistory = sqliteTable('draw_history', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  drawType: text('draw_type').notNull(),
+  rarity: text('rarity').notNull(),
+  rewardType: text('reward_type').notNull(),
+  rewardId: text('reward_id').notNull(),
+  pityCount: integer('pity_count').notNull(),
+  pityTriggered: integer('pity_triggered').notNull().default(0),
+  createdAt: text('created_at').notNull(),
 });

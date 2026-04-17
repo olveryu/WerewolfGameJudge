@@ -134,19 +134,13 @@ export class CFRealtimeService implements IRealtimeTransport {
         typeof data.newLevel === 'number' &&
         typeof data.previousLevel === 'number'
       ) {
-        const reward =
-          data.reward &&
-          typeof data.reward === 'object' &&
-          typeof data.reward.type === 'string' &&
-          typeof data.reward.id === 'string'
-            ? { type: data.reward.type as string, id: data.reward.id as string }
-            : undefined;
         this.#handlers?.onSettleResult({
           xpEarned: data.xpEarned,
           newXp: data.newXp,
           newLevel: data.newLevel,
           previousLevel: data.previousLevel,
-          reward,
+          normalDrawsEarned: (data.normalDrawsEarned as number) ?? 0,
+          goldenDrawsEarned: (data.goldenDrawsEarned as number) ?? 0,
         });
       } else if (data.type === 'pong') {
         this.#handlers?.onPong();
