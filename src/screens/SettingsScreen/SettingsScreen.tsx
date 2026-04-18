@@ -35,7 +35,7 @@ import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
 import { isExpectedAuthError, mapAuthError, settingsLog } from '@/utils/logger';
-import { hadWxCode, isMiniProgram } from '@/utils/miniProgram';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 import {
   AboutSection,
@@ -428,7 +428,7 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
 
           {/* Zone 3: Account operations */}
-          {canSwitchAccount && !user?.email && (isMiniProgram() || hadWxCode()) && (
+          {canSwitchAccount && !user?.email && isMiniProgram() && (
             <>
               <TouchableOpacity
                 style={styles.dresserEntry}
@@ -464,7 +464,7 @@ export const SettingsScreen: React.FC = () => {
               </TouchableOpacity>
             </>
           )}
-          {canSwitchAccount && !user?.email && !isMiniProgram() && !hadWxCode() && (
+          {canSwitchAccount && !user?.email && !isMiniProgram() && (
             <Button
               variant="ghost"
               buttonColor={colors.background}
@@ -499,7 +499,7 @@ export const SettingsScreen: React.FC = () => {
             </Button>
           ) : null}
 
-          {canSwitchAccount && !showChangePassword && !isMiniProgram() && !hadWxCode() && (
+          {canSwitchAccount && !showChangePassword && !isMiniProgram() && (
             <Button
               variant="ghost"
               buttonColor={colors.background}
@@ -511,7 +511,7 @@ export const SettingsScreen: React.FC = () => {
             </Button>
           )}
 
-          {!isInRoom && !showChangePassword && !isMiniProgram() && !hadWxCode() && (
+          {!isInRoom && !showChangePassword && !isMiniProgram() && (
             <Button
               variant="ghost"
               buttonColor={colors.background}
@@ -538,7 +538,7 @@ export const SettingsScreen: React.FC = () => {
         onEmailSignUp={handleEmailSignUp}
         onEmailSignIn={handleEmailSignIn}
         onAnonymousLogin={handleAnonymousLogin}
-        hideAnonymous={isMiniProgram() || hadWxCode()}
+        hideAnonymous={isMiniProgram()}
         onBrowseAvatars={handleBrowseAvatars}
         styles={styles}
       />

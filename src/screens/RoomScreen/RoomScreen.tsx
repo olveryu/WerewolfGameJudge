@@ -30,7 +30,7 @@ import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
-import { hadWxCode, isMiniProgram } from '@/utils/miniProgram';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
@@ -347,7 +347,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   if (!isInitialized || !gameState) {
     // Auth gate: first-time user via direct URL — show login options (must check before error)
     if (needsAuth) {
-      if (isMiniProgram() || hadWxCode()) {
+      if (isMiniProgram()) {
         return (
           <WxAuthFailedOverlay
             onCancel={() => {

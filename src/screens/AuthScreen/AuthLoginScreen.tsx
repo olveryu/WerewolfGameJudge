@@ -18,7 +18,7 @@ import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
-import { hadWxCode, isMiniProgram } from '@/utils/miniProgram';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 import { createAuthScreenStyles } from './styles';
 
@@ -77,7 +77,7 @@ export const AuthLoginScreen: React.FC = () => {
           onEmailSignUp={handleEmailSignUp}
           onEmailSignIn={handleEmailSignIn}
           onAnonymousLogin={handleAnonymousLogin}
-          hideAnonymous={isMiniProgram() || hadWxCode()}
+          hideAnonymous={isMiniProgram()}
           onBrowseAvatars={handleBrowseAvatars}
           onCancel={handleCancel}
           styles={styles}
