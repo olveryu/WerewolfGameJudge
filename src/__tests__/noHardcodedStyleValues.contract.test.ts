@@ -178,8 +178,8 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // nameStyleConfigs: declarative effect color definitions (hex + rgba), not UI layout tokens
   'src/components/nameStyles/nameStyleConfigs.ts': 151,
 
-  // GachaScreen: rarity color constants (domain-specific decorative), golden card bg, emoji fontSize
-  'src/screens/GachaScreen/GachaScreen.tsx': 13,
+  // GachaScreen: domain-specific decorative constants extracted to sub-components
+  'src/screens/GachaScreen/GachaScreen.tsx': 0,
 
   // CapsuleMachine: Skia color constants (domain-specific rendering), badge font
   'src/screens/GachaScreen/components/CapsuleMachine.tsx': 17,
@@ -187,8 +187,20 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // RewardPreview: inline font styles for reward display
   'src/screens/GachaScreen/components/RewardPreview.tsx': 2,
 
-  // TenResultOverlay: compact grid layout with inline sizes/weights/colors
-  'src/screens/GachaScreen/components/TenResultOverlay.tsx': 12,
+  // TenResultOverlay: compact grid tiny labels (fontSize 9/8), golden icon color
+  'src/screens/GachaScreen/components/TenResultOverlay.tsx': 4,
+
+  // DrawButton: gradient color stops (domain-specific decorative)
+  'src/screens/GachaScreen/components/DrawButton.tsx': 3,
+
+  // PityProgressBar: golden pity colors, progress track borderRadius: 4
+  'src/screens/GachaScreen/components/PityProgressBar.tsx': 3,
+
+  // SingleResultReveal: legendary light pillar glow color
+  'src/screens/GachaScreen/components/SingleResultReveal.tsx': 1,
+
+  // TicketDisplay: golden ticket display colors
+  'src/screens/GachaScreen/components/TicketDisplay.tsx': 2,
 
   // gachaConstants: ball color palette + decorative rendering constants
   'src/screens/GachaScreen/gachaConstants.ts': 49,

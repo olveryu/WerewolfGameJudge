@@ -1,17 +1,20 @@
 /**
  * TenResultOverlay — 10 连抽结果全屏面板
  *
- * 5×2 网格，按稀有度排序，卡片 100ms 间隔逐张飞入。
- * 与 gacha-capsule-v5.html 的 tenResultOverlay 对齐。
+ * 5×2 网格，按稀有度排序（高→低），卡片 stagger 入场。
+ * 高稀有度（epic/legendary）卡片有发光边框、放大、呼吸辉光。
+ * Common/rare 先入场，epic/legendary 延迟亮起（建设期待）。
  */
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -28,22 +31,59 @@ interface TenResultOverlayProps {
 }
 
 const PREVIEW_SIZE_TEN = 48;
-
 const GROUP_DOT_SIZE = 8;
+
+// Base delay for low-rarity items; high-rarity items appear later
+const LOW_RARITY_BASE_DELAY = 80;
+const HIGH_RARITY_DELAY = 700;
 
 // ─── Single result cell with staggered entrance ─────────────────────────
 
-function ResultCell({ item, index }: { item: DrawResultItem; index: number }) {
-  const scale = useSharedValue(0.7);
+function ResultCell({
+  item,
+  index,
+  isHighRarity,
+}: {
+  item: DrawResultItem;
+  index: number;
+  isHighRarity: boolean;
+}) {
+  const scale = useSharedValue(isHighRarity ? 0.5 : 0.7);
   const opacity = useSharedValue(0);
+  const glowPulse = useSharedValue(1);
+
+  const baseDelay = isHighRarity ? HIGH_RARITY_DELAY : LOW_RARITY_BASE_DELAY + index * 100;
 
   useEffect(() => {
-    scale.value = withDelay(
-      80 + index * 100,
-      withTiming(1, { duration: 300, easing: Easing.out(Easing.back(1.4)) }),
-    );
-    opacity.value = withDelay(80 + index * 100, withTiming(1, { duration: 250 }));
-  }, [index, scale, opacity]);
+    if (isHighRarity) {
+      // High rarity: bigger entrance + overshoot
+      scale.value = withDelay(
+        baseDelay,
+        withSequence(
+          withTiming(item.rarity === 'legendary' ? 1.1 : 1.05, {
+            duration: 350,
+            easing: Easing.out(Easing.back(1.6)),
+          }),
+          withTiming(item.rarity === 'legendary' ? 1.06 : 1.03, { duration: 150 }),
+        ),
+      );
+      opacity.value = withDelay(baseDelay, withTiming(1, { duration: 300 }));
+
+      // Breathing glow for legendary
+      if (item.rarity === 'legendary') {
+        glowPulse.value = withDelay(
+          baseDelay + 400,
+          withRepeat(withTiming(0.6, { duration: 1200 }), -1, true),
+        );
+      }
+    } else {
+      scale.value = withDelay(
+        baseDelay,
+        withTiming(1, { duration: 300, easing: Easing.out(Easing.back(1.4)) }),
+      );
+      opacity.value = withDelay(baseDelay, withTiming(1, { duration: 250 }));
+    }
+  }, [index, scale, opacity, glowPulse, isHighRarity, baseDelay, item.rarity]);
 
   const animStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -52,15 +92,15 @@ function ResultCell({ item, index }: { item: DrawResultItem; index: number }) {
 
   const visual = RARITY_VISUAL[item.rarity] ?? RARITY_VISUAL.common;
   const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
-  const isHighRarity = item.rarity === 'legendary' || item.rarity === 'epic';
 
   return (
     <Animated.View
       style={[
         styles.cell,
         isHighRarity && {
-          borderColor: withAlpha(visual.color, 0.4),
+          borderColor: withAlpha(visual.color, 0.5),
           backgroundColor: withAlpha(visual.color, 0.08),
+          boxShadow: `0px 0px ${item.rarity === 'legendary' ? 16 : 10}px ${withAlpha(visual.color, 0.25)}`,
         },
         animStyle,
       ]}
@@ -112,15 +152,29 @@ export function TenResultOverlay({ results, drawType, onClose }: TenResultOverla
         />
         <Text style={styles.title}>{drawType === 'golden' ? '黄金10连抽结果' : '10连抽结果'}</Text>
       </View>
-      <View style={styles.gridContainer}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.gridContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {groups.map((group) => {
           const visual = RARITY_VISUAL[group.rarity];
+          const isHighGroup = group.rarity === 'legendary' || group.rarity === 'epic';
           return (
             <View key={group.rarity}>
               <View style={styles.groupHeader}>
                 <View style={[styles.groupDot, { backgroundColor: visual.color }]} />
                 <Text style={[styles.groupLabel, { color: visual.color }]}>{visual.label}</Text>
-                <Text style={styles.groupCount}>×{group.items.length}</Text>
+                <View
+                  style={[
+                    styles.groupCountBadge,
+                    { backgroundColor: withAlpha(visual.color, 0.15) },
+                  ]}
+                >
+                  <Text style={[styles.groupCountText, { color: visual.color }]}>
+                    ×{group.items.length}
+                  </Text>
+                </View>
               </View>
               <View style={styles.grid}>
                 {group.items.map((item, i) => (
@@ -128,15 +182,16 @@ export function TenResultOverlay({ results, drawType, onClose }: TenResultOverla
                     key={`${item.rewardId}-${group.startIndex + i}`}
                     item={item}
                     index={group.startIndex + i}
+                    isHighRarity={isHighGroup}
                   />
                 ))}
               </View>
             </View>
           );
         })}
-      </View>
+      </ScrollView>
       <Pressable style={styles.closeButton} onPress={onClose}>
-        <Text style={styles.closeButtonText}>确认</Text>
+        <Text style={styles.closeButtonText}>好的</Text>
       </Pressable>
     </View>
   );
@@ -155,11 +210,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.small,
+    paddingTop: spacing.large,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: typography.title,
+    fontWeight: typography.weights.bold,
     color: colors.surface,
+  },
+  scrollView: {
+    maxHeight: '70%',
+    width: '90%',
+    maxWidth: 380,
   },
   grid: {
     flexDirection: 'row',
@@ -168,9 +229,8 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
   gridContainer: {
-    maxWidth: 380,
-    width: '90%',
     gap: spacing.small,
+    paddingBottom: spacing.medium,
   },
   groupHeader: {
     flexDirection: 'row',
@@ -188,9 +248,14 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.caption,
     fontWeight: typography.weights.semibold,
   },
-  groupCount: {
+  groupCountBadge: {
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.tight + spacing.micro,
+    paddingVertical: 1,
+  },
+  groupCountText: {
     fontSize: typography.captionSmall,
-    color: withAlpha(colors.surface, 0.6),
+    fontWeight: typography.weights.semibold,
   },
   cell: {
     width: '18%',
@@ -206,11 +271,11 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   cellPreview: {
-    marginBottom: 2,
+    marginBottom: spacing.micro,
   },
   cellName: {
     fontSize: typography.captionSmall,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
     color: colors.text,
     textAlign: 'center',
   },
@@ -220,12 +285,12 @@ const styles = StyleSheet.create({
   },
   cellNew: {
     fontSize: 8,
-    fontWeight: '700',
+    fontWeight: typography.weights.bold,
     color: colors.success,
   },
   pityTag: {
     fontSize: 8,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
   },
   closeButton: {
     marginTop: spacing.small,
@@ -233,10 +298,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xlarge,
     borderRadius: borderRadius.medium,
     backgroundColor: colors.primary,
+    marginBottom: spacing.large,
   },
   closeButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: typography.body,
+    fontWeight: typography.weights.semibold,
     color: colors.surface,
   },
 });

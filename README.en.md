@@ -74,7 +74,7 @@ Unsure about a rule? Tap the AI bubble on any role card for instant skill detail
 
 ### 📊 Progression & Unlocks
 
-Earn XP every valid game, with 52 levels to reach. Each level-up unlocks an avatar, frame, or seat flair (Skia particle effect). Pure participation-based progression — no leaderboard pressure.
+Earn XP every valid game, with 52 levels to reach. Each level-up unlocks an avatar, frame, or seat flair (animated SVG effects). Pure participation-based progression — no leaderboard pressure.
 
 ### 🌐 Cross-platform
 

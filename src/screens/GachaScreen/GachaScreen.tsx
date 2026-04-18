@@ -2,16 +2,19 @@
  * GachaScreen — 扭蛋抽奖主界面
  *
  * 上半区：Skia CapsuleMachine 动画（28 球物理 + 搅拌 + 掉落 + 碎裂）。
- * 下半区：券数状态 + 抽奖按钮。
- * 10 连抽完后弹出 TenResultOverlay。
+ * 下半区：渐变过渡 + 券数展示（TicketDisplay） + 抽奖按钮（DrawButton）。
+ * 单抽结果：SingleResultReveal（4 级稀有度分层演出）。
+ * 10 连抽结果：TenResultOverlay（高稀有度延迟亮起 + 发光边框）。
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PITY_THRESHOLD, TOTAL_UNLOCKABLE_COUNT } from '@werewolf/game-engine';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  type LayoutChangeEvent,
   Pressable,
   StyleSheet,
   Text,
@@ -26,12 +29,9 @@ import { Button } from '@/components/Button';
 import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import {
-  borderRadius,
   colors,
   componentSizes,
-  fixed,
   layout,
-  shadows,
   spacing,
   textStyles,
   typography,
@@ -40,15 +40,17 @@ import {
 
 import type { RootStackParamList } from '../../navigation/types';
 import { CapsuleMachine, type CapsuleMachineRef } from './components/CapsuleMachine';
-import { getRewardDisplayName, RewardPreview } from './components/RewardPreview';
+import { DrawButton } from './components/DrawButton';
+import { SingleResultReveal } from './components/SingleResultReveal';
 import { TenResultOverlay } from './components/TenResultOverlay';
+import { TicketDisplay } from './components/TicketDisplay';
 import { PHASE } from './gachaConstants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Gacha'>;
 
 export function GachaScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { width: screenWidth } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const { data: status, isLoading } = useGachaStatusQuery();
   const drawMutation = useDrawMutation();
@@ -134,10 +136,14 @@ export function GachaScreen({ navigation }: Props) {
   }, []);
 
   // ── Layout ────────────────────────────────────────────────────────────
-  const headerHeight = insets.top + layout.headerPaddingV + 44;
-  const bottomPanelHeight = 200;
-  const machineWidth = screenWidth;
-  const machineHeight = screenHeight - headerHeight - bottomPanelHeight - insets.bottom;
+  const [machineLayout, setMachineLayout] = useState({ w: screenWidth, h: 0 });
+  const handleMachineLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width: w, height: h } = e.nativeEvent.layout;
+    if (w > 0 && h > 0) setMachineLayout({ w, h });
+  }, []);
+
+  const machineWidth = machineLayout.w;
+  const machineHeight = machineLayout.h;
 
   const normalDraws = status?.normalDraws ?? 0;
   const goldenDraws = status?.goldenDraws ?? 0;
@@ -156,7 +162,13 @@ export function GachaScreen({ navigation }: Props) {
             <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
           </Button>
           <Text style={styles.headerTitle}>扭蛋抽奖</Text>
-          <View style={styles.headerSpacer} />
+          <Button
+            variant="icon"
+            onPress={() => navigation.navigate('Unlocks', undefined)}
+            accessibilityLabel="收藏"
+          >
+            <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
+          </Button>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -173,57 +185,95 @@ export function GachaScreen({ navigation }: Props) {
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>
         <Text style={styles.headerTitle}>扭蛋抽奖</Text>
-        <View style={styles.headerSpacer} />
+        <Button
+          variant="icon"
+          onPress={() => navigation.navigate('Unlocks', undefined)}
+          accessibilityLabel="收藏"
+        >
+          <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
+        </Button>
       </View>
 
       {/* Machine area */}
-      <View style={styles.machineArea}>
-        <CapsuleMachine
-          ref={machineRef}
-          width={machineWidth}
-          height={machineHeight}
-          drawType={currentDrawType}
-          onPhaseChange={handlePhaseChange}
-        />
-        {/* Single result overlay */}
+      <View style={styles.machineArea} onLayout={handleMachineLayout}>
+        {machineHeight > 0 && (
+          <CapsuleMachine
+            ref={machineRef}
+            width={machineWidth}
+            height={machineHeight}
+            drawType={currentDrawType}
+            onPhaseChange={handlePhaseChange}
+          />
+        )}
+        {/* Single result overlay — 4-tier rarity presentation */}
         {showSingleResult && lastResults.length > 0 && (
-          <Pressable style={styles.singleResultOverlay} onPress={handleDismissSingleResult}>
-            <SingleResultCard item={lastResults[0]} />
-            <Text style={styles.tapHint}>点击关闭</Text>
-          </Pressable>
+          <SingleResultReveal
+            item={lastResults[0]}
+            onDismiss={handleDismissSingleResult}
+            reducedMotion={reducedMotion}
+          />
         )}
       </View>
 
-      {/* Bottom panel: status + buttons */}
+      {/* Gradient transition (replaces hard border) */}
+      <LinearGradient
+        colors={[withAlpha(colors.background, 0), colors.surface]}
+        style={styles.gradientTransition}
+        pointerEvents="none"
+      />
+
+      {/* Bottom panel: ticket displays + draw buttons */}
       <View
         style={[styles.bottomPanel, { paddingBottom: Math.max(insets.bottom, spacing.medium) }]}
       >
-        {/* Status row */}
-        <View style={styles.statusRow}>
-          <TicketBadge icon="ticket-outline" count={normalDraws} label="普通" pity={normalPity} />
-          <TicketBadge icon="star" count={goldenDraws} label="黄金" pity={goldenPity} golden />
-          <View style={styles.progressMini}>
-            <Text style={styles.progressMiniText}>
-              {unlockedCount}/{totalItems}
-            </Text>
-          </View>
+        {/* Ticket displays */}
+        <View style={styles.ticketRow}>
+          <TicketDisplay
+            count={normalDraws}
+            label="普通"
+            pity={normalPity}
+            pityThreshold={PITY_THRESHOLD}
+            reducedMotion={reducedMotion}
+          />
+          <TicketDisplay
+            count={goldenDraws}
+            label="黄金"
+            pity={goldenPity}
+            pityThreshold={PITY_THRESHOLD}
+            golden
+            reducedMotion={reducedMotion}
+          />
         </View>
 
-        {/* Hint */}
-        <Text style={styles.hintText}>注册送5普通+1黄金 · 每局+1普通 · 升级+1黄金</Text>
+        {/* Hint + Collection link */}
+        <View style={styles.hintRow}>
+          <Text style={styles.hintText}>注册送5普通+1黄金 · 每局+1普通 · 升级+1黄金</Text>
+          <Pressable
+            style={styles.collectionLink}
+            onPress={() => navigation.navigate('Unlocks', undefined)}
+          >
+            <Text style={styles.collectionText}>
+              {unlockedCount}/{totalItems}
+            </Text>
+            <Ionicons name="chevron-forward" size={12} color={colors.textMuted} />
+          </Pressable>
+        </View>
 
-        {/* Button grid — 2×2 */}
+        {/* Draw buttons — 2×2 grid with material design */}
         <View style={styles.buttonGrid}>
           <View style={styles.buttonRow}>
             <DrawButton
               label="普通 ×1"
               disabled={normalDraws < 1 || busy}
               onPress={() => handleDraw('normal', 1)}
+              reducedMotion={reducedMotion}
             />
             <DrawButton
               label="普通 ×10"
               disabled={normalDraws < 10 || busy}
               onPress={() => handleDraw('normal', 10)}
+              isTenPull
+              reducedMotion={reducedMotion}
             />
           </View>
           <View style={styles.buttonRow}>
@@ -232,12 +282,15 @@ export function GachaScreen({ navigation }: Props) {
               disabled={goldenDraws < 1 || busy}
               onPress={() => handleDraw('golden', 1)}
               golden
+              reducedMotion={reducedMotion}
             />
             <DrawButton
               label="黄金 ×10"
               disabled={goldenDraws < 10 || busy}
               onPress={() => handleDraw('golden', 10)}
               golden
+              isTenPull
+              reducedMotion={reducedMotion}
             />
           </View>
         </View>
@@ -255,109 +308,7 @@ export function GachaScreen({ navigation }: Props) {
   );
 }
 
-// ─── Sub-components ─────────────────────────────────────────────────────
-
-function TicketBadge({
-  icon,
-  count,
-  label,
-  pity,
-  golden,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  count: number;
-  label: string;
-  pity: number;
-  golden?: boolean;
-}) {
-  return (
-    <View style={[styles.ticketBadge, golden && styles.ticketBadgeGolden]}>
-      <Ionicons name={icon} size={18} color={golden ? GOLDEN_BORDER : colors.textSecondary} />
-      <Text style={styles.ticketBadgeCount}>{count}</Text>
-      <Text style={styles.ticketBadgeLabel}>{label}</Text>
-      <Text style={styles.ticketBadgePity}>
-        保底 {pity}/{PITY_THRESHOLD}
-      </Text>
-    </View>
-  );
-}
-
-function DrawButton({
-  label,
-  disabled,
-  onPress,
-  golden,
-}: {
-  label: string;
-  disabled: boolean;
-  onPress: () => void;
-  golden?: boolean;
-}) {
-  return (
-    <Pressable
-      style={[styles.drawBtn, golden && styles.drawBtnGolden, disabled && styles.drawBtnDisabled]}
-      onPress={onPress}
-      disabled={disabled}
-    >
-      <Text style={[styles.drawBtnLabel, disabled && styles.drawBtnLabelDisabled]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-const RARITY_COLORS: Record<string, string> = {
-  legendary: '#FFD700',
-  epic: '#A855F7',
-  rare: '#3B82F6',
-  common: '#9CA3AF',
-};
-
-const RARITY_LABELS: Record<string, string> = {
-  legendary: '传说',
-  epic: '史诗',
-  rare: '稀有',
-  common: '普通',
-};
-
-const REWARD_TYPE_LABELS: Record<string, string> = {
-  avatar: '头像',
-  frame: '头像框',
-  seatFlair: '座位装饰',
-  nameStyle: '名称样式',
-};
-
-const PREVIEW_SIZE_SINGLE = 120;
-
-function SingleResultCard({ item }: { item: DrawResultItem }) {
-  const rarityColor = RARITY_COLORS[item.rarity] ?? '#9CA3AF';
-  const rarityLabel = RARITY_LABELS[item.rarity] ?? item.rarity;
-  const typeLabel = REWARD_TYPE_LABELS[item.rewardType] ?? item.rewardType;
-  const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
-
-  return (
-    <View style={[styles.singleCard, { borderColor: rarityColor }]}>
-      <View style={[styles.singleCardRarityBadge, { backgroundColor: rarityColor }]}>
-        <Text style={styles.singleCardRarityText}>{rarityLabel}</Text>
-      </View>
-      {item.pityTriggered && <Text style={styles.singleCardPity}>保底</Text>}
-      <View style={styles.singleCardPreview}>
-        <RewardPreview
-          rewardType={item.rewardType}
-          rewardId={item.rewardId}
-          size={PREVIEW_SIZE_SINGLE}
-        />
-      </View>
-      <Text style={styles.singleCardName}>{displayName}</Text>
-      <Text style={styles.singleCardType}>{typeLabel}</Text>
-      {item.isNew && <Text style={styles.singleCardNew}>NEW</Text>}
-    </View>
-  );
-}
-
 // ─── Styles ─────────────────────────────────────────────────────────────
-
-// Golden button accent
-const GOLDEN_BG = '#9A7500';
-const GOLDEN_BORDER = '#FFD700';
 
 const styles = StyleSheet.create({
   container: {
@@ -370,8 +321,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenH,
     paddingVertical: layout.headerPaddingV,
     backgroundColor: colors.surface,
-    borderBottomWidth: fixed.borderWidth,
-    borderBottomColor: colors.border,
     zIndex: 10,
   },
   headerTitle: {
@@ -382,9 +331,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
   },
-  headerSpacer: {
-    width: componentSizes.icon.lg,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -393,122 +339,47 @@ const styles = StyleSheet.create({
   machineArea: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    overflow: 'hidden',
   },
 
-  // ── Single result overlay ──
-  singleResultOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing.medium,
-  },
-  singleCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.medium,
-    borderWidth: 2,
-    padding: spacing.large,
-    alignItems: 'center',
-    gap: spacing.small,
-    minWidth: 200,
-    ...shadows.md,
-  },
-  singleCardRarityBadge: {
-    borderRadius: borderRadius.small,
-    paddingHorizontal: spacing.medium,
-    paddingVertical: spacing.tight,
-  },
-  singleCardRarityText: {
-    fontSize: typography.caption,
-    fontWeight: '700',
-    color: colors.surface,
-  },
-  singleCardPity: {
-    fontSize: typography.captionSmall,
-    color: GOLDEN_BORDER,
-    fontWeight: '600',
-  },
-  singleCardPreview: {
-    marginVertical: spacing.small,
-  },
-  singleCardName: {
-    ...textStyles.headingBold,
-    color: colors.text,
-  },
-  singleCardType: {
-    ...textStyles.caption,
-    color: colors.textSecondary,
-  },
-  singleCardNew: {
-    fontSize: typography.captionSmall,
-    color: colors.success,
-    fontWeight: '700',
-  },
-  tapHint: {
-    ...textStyles.caption,
-    color: colors.textMuted,
+  // ── Gradient transition ──
+  gradientTransition: {
+    height: 32,
   },
 
   // ── Bottom panel ──
   bottomPanel: {
     paddingHorizontal: spacing.screenH,
-    paddingTop: spacing.medium,
     gap: spacing.small,
     backgroundColor: colors.surface,
-    borderTopWidth: fixed.borderWidth,
-    borderTopColor: colors.border,
   },
-  statusRow: {
+  ticketRow: {
     flexDirection: 'row',
     gap: spacing.small,
-    alignItems: 'center',
   },
-  ticketBadge: {
-    flex: 1,
+  hintRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.tight,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.small,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    padding: spacing.small,
-  },
-  ticketBadgeGolden: {
-    borderColor: withAlpha(GOLDEN_BORDER, 0.3),
-    backgroundColor: withAlpha(GOLDEN_BORDER, 0.06),
-  },
-  ticketBadgeCount: {
-    ...textStyles.bodySemibold,
-    color: colors.text,
-    fontSize: 16,
-  },
-  ticketBadgeLabel: {
-    ...textStyles.captionSmall,
-    color: colors.textSecondary,
-  },
-  ticketBadgePity: {
-    ...textStyles.captionSmall,
-    color: colors.textMuted,
-    marginLeft: 'auto',
-  },
-  progressMini: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.small,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    padding: spacing.small,
-    paddingHorizontal: spacing.small,
-  },
-  progressMiniText: {
-    ...textStyles.captionSmall,
-    color: colors.textSecondary,
+    justifyContent: 'space-between',
   },
   hintText: {
     ...textStyles.caption,
     color: colors.textMuted,
-    textAlign: 'center',
+    flex: 1,
+  },
+  collectionLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.micro,
+    paddingVertical: spacing.tight,
+    paddingLeft: spacing.small,
+  },
+  collectionText: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.semibold,
+    color: colors.textMuted,
+    fontVariant: ['tabular-nums'],
   },
 
   // ── Draw buttons ──
@@ -518,28 +389,5 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: spacing.small,
-  },
-  drawBtn: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.medium,
-    paddingVertical: spacing.medium,
-    alignItems: 'center',
-  },
-  drawBtnGolden: {
-    backgroundColor: GOLDEN_BG,
-    borderWidth: 1,
-    borderColor: withAlpha(GOLDEN_BORDER, 0.3),
-  },
-  drawBtnDisabled: {
-    opacity: 0.35,
-  },
-  drawBtnLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.surface,
-  },
-  drawBtnLabelDisabled: {
-    color: withAlpha(colors.surface, 0.5),
   },
 });
