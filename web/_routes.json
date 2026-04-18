@@ -1,6 +1,6 @@
 {
   "version": 1,
   "description": "Only /room/* and WeChat verification file invoke Pages Functions. All other routes are free static assets.",
-  "include": ["/room/*", "/HVChYlYloJ.txt"],
+  "include": ["/room/*", "/HVChYlYloJ.txt", "/aeddc100221ea9e07aac353fac3ea3ca.txt"],
   "exclude": []
 }
