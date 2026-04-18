@@ -538,6 +538,7 @@ export const SettingsScreen: React.FC = () => {
         onEmailSignUp={handleEmailSignUp}
         onEmailSignIn={handleEmailSignIn}
         onAnonymousLogin={handleAnonymousLogin}
+        hideAnonymous={isMiniProgram()}
         onBrowseAvatars={handleBrowseAvatars}
         styles={styles}
       />

@@ -71,6 +71,7 @@ export class CFAuthService implements IAuthService {
           }
 
           if (!succeeded) {
+            clearWxCode();
             if (isMiniProgram()) {
               // 微信环境不降级匿名，UI 层将展示"登录失败，请重新进入"
               authLog.error(

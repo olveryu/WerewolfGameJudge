@@ -86,6 +86,8 @@ export interface LoginOptionsProps {
   /** 点击「邮箱登录」→ 进入登录表单 */
   onEmailSignIn: () => void;
   onAnonymousLogin: () => void;
+  /** 微信小程序环境下隐藏匿名登录按钮 */
+  hideAnonymous?: boolean;
   /** 点击「浏览全部头像」→ 进入 AvatarPicker */
   onBrowseAvatars?: () => void;
   /** 不传则不显示取消按钮（Settings 不需要） */

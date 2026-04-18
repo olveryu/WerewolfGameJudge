@@ -35,6 +35,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
     onEmailSignUp,
     onEmailSignIn,
     onAnonymousLogin,
+    hideAnonymous,
     onBrowseAvatars,
     onCancel,
     styles,
@@ -105,26 +106,28 @@ export const LoginOptions = memo<LoginOptionsProps>(
           <Text style={styles.buttonCaption}>已有账号，回到你的专属形象</Text>
         </TouchableOpacity>
 
-        {/* 匿名登录 */}
-        <TouchableOpacity
-          style={[styles.outlineButton, authLoading && styles.buttonDisabled]}
-          onPress={onAnonymousLogin}
-          disabled={authLoading}
-          activeOpacity={fixed.activeOpacity}
-          testID={TESTIDS.homeAnonLoginButton}
-        >
-          <Text style={styles.outlineButtonText}>
-            {authLoading ? (
-              '处理中'
-            ) : (
-              <>
-                <Ionicons name={UI_ICONS.USER} size={typography.body} />
-                {' 匿名登录'}
-              </>
-            )}
-          </Text>
-          {!authLoading && <Text style={styles.buttonCaption}>仅分配线条头像和随机昵称</Text>}
-        </TouchableOpacity>
+        {/* 匿名登录 — 微信小程序环境下隐藏 */}
+        {!hideAnonymous && (
+          <TouchableOpacity
+            style={[styles.outlineButton, authLoading && styles.buttonDisabled]}
+            onPress={onAnonymousLogin}
+            disabled={authLoading}
+            activeOpacity={fixed.activeOpacity}
+            testID={TESTIDS.homeAnonLoginButton}
+          >
+            <Text style={styles.outlineButtonText}>
+              {authLoading ? (
+                '处理中'
+              ) : (
+                <>
+                  <Ionicons name={UI_ICONS.USER} size={typography.body} />
+                  {' 匿名登录'}
+                </>
+              )}
+            </Text>
+            {!authLoading && <Text style={styles.buttonCaption}>仅分配线条头像和随机昵称</Text>}
+          </TouchableOpacity>
+        )}
 
         {onCancel != null && (
           <TouchableOpacity

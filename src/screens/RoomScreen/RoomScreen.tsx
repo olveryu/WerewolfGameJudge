@@ -30,6 +30,7 @@ import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
@@ -48,6 +49,7 @@ import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import { StatusRibbon } from './components/StatusRibbon';
 import { createRoomScreenComponentStyles } from './components/styles';
+import { WxAuthFailedOverlay } from './components/WxAuthFailedOverlay';
 import type { LayoutContext, StaticButtonId } from './hooks/bottomLayoutConfig';
 import { useBottomLayout } from './hooks/useBottomLayout';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
@@ -345,6 +347,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   if (!isInitialized || !gameState) {
     // Auth gate: first-time user via direct URL — show login options (must check before error)
     if (needsAuth) {
+      if (isMiniProgram()) {
+        return (
+          <WxAuthFailedOverlay
+            onCancel={() => {
+              clearNeedsAuth();
+              navigation.navigate('Home');
+            }}
+          />
+        );
+      }
       return (
         <AuthGateOverlay
           onSuccess={() => {
