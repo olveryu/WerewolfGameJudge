@@ -11,7 +11,7 @@ import type React from 'react';
 import { BloodMarkFlair } from './BloodMarkFlair';
 import { ButterflyFlair } from './ButterflyFlair';
 import { CometTailFlair } from './CometTailFlair';
-import { COMMON_FLAIR_ENTRIES } from './common';
+import { COMMON_FLAIR_ENTRIES, RARE_FLAIR_ENTRIES } from './common';
 import { EmberGlowFlair } from './EmberGlowFlair';
 import { FireflyFlair } from './FireflyFlair';
 import { FireRingFlair } from './FireRingFlair';
@@ -88,7 +88,10 @@ function buildFlairRegistry(): Record<FlairId, SeatFlairConfig> {
     forestLeaf: { name: '落叶知秋', Component: ForestLeafFlair },
     prismShard: { name: '棱镜碎片', Component: PrismShardFlair },
   };
-  return { ...staticEntries, ...COMMON_FLAIR_ENTRIES } as Record<FlairId, SeatFlairConfig>;
+  return { ...staticEntries, ...COMMON_FLAIR_ENTRIES, ...RARE_FLAIR_ENTRIES } as Record<
+    FlairId,
+    SeatFlairConfig
+  >;
 }
 const FLAIR_REGISTRY = buildFlairRegistry();
 

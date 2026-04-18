@@ -11,7 +11,7 @@ import type React from 'react';
 import { BloodThornFrame } from './BloodThornFrame';
 import { BoneGateFrame } from './BoneGateFrame';
 import { CelestialRingFrame } from './CelestialRingFrame';
-import { COMMON_FRAME_ENTRIES } from './common';
+import { COMMON_FRAME_ENTRIES, RARE_FRAME_ENTRIES } from './common';
 import { CoralReefFrame } from './CoralReefFrame';
 import { DarkVineFrame } from './DarkVineFrame';
 import { DragonScaleFrame } from './DragonScaleFrame';
@@ -71,7 +71,10 @@ function buildFrameRegistry(): Record<FrameId, AvatarFrameConfig> {
   };
   // Merge static + common factory entries.
   // Exhaustiveness validated by gachaProbability test (REWARD_POOL counts).
-  return { ...staticEntries, ...COMMON_FRAME_ENTRIES } as Record<FrameId, AvatarFrameConfig>;
+  return { ...staticEntries, ...COMMON_FRAME_ENTRIES, ...RARE_FRAME_ENTRIES } as Record<
+    FrameId,
+    AvatarFrameConfig
+  >;
 }
 const FRAME_REGISTRY = buildFrameRegistry();
 
