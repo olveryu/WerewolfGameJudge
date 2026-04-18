@@ -5,14 +5,20 @@
  * useDrawMutation: 执行抽奖并自动刷新 gachaStatus + userStats cache
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { type DrawResponse, fetchGachaStatus, performDraw } from '@/services/feature/GachaService';
 
 import { queryKeys } from './queryKeys';
+import { useAuthenticatedQuery } from './useAuthenticatedQuery';
 
+/**
+ * useGachaStatusQuery — 扭蛋状态（抽奖券/pity/已解锁数）。
+ *
+ * 匿名用户 / auth 未完成时 enabled=false，不发请求。
+ */
 export function useGachaStatusQuery(options?: { enabled?: boolean }) {
-  return useQuery({
+  return useAuthenticatedQuery({
     queryKey: queryKeys.gachaStatus(),
     queryFn: fetchGachaStatus,
     ...options,

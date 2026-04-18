@@ -243,15 +243,15 @@ const AVATAR_RARITY: Record<string, Rarity> = {
 
 /** 头像框稀有度映射 */
 const FRAME_RARITY: Record<string, Rarity> = {
-  // Legendary (3)
+  // Legendary (5)
   starNebula: 'legendary',
   celestialRing: 'legendary',
   dragonScale: 'legendary',
-  // Epic (5)
+  stormBolt: 'legendary',
+  shadowWeave: 'legendary',
+  // Epic (3)
   voidRift: 'epic',
-  stormBolt: 'epic',
   jadeSeal: 'epic',
-  shadowWeave: 'epic',
   hellFire: 'epic',
   // Rare (12)
   ironForge: 'rare',
@@ -271,27 +271,24 @@ const FRAME_RARITY: Record<string, Rarity> = {
 
 /** 座位装饰稀有度映射 */
 const FLAIR_RARITY: Record<string, Rarity> = {
-  // Legendary (3)
+  // Legendary (2)
   runeCircle: 'legendary',
-  lightPillar: 'legendary',
   prismShard: 'legendary',
   // Epic (7)
-  phoenixFeather: 'epic',
+  lightPillar: 'epic',
   thunderBolt: 'epic',
   cometTail: 'epic',
-  lunarHalo: 'epic',
+  starlight: 'epic',
+  fireRing: 'epic',
   magmaFloat: 'epic',
   sonicWave: 'epic',
-  purpleMist: 'epic',
-  // Rare (20)
+  // Rare (21)
   emberGlow: 'rare',
   frostAura: 'rare',
   shadowMist: 'rare',
   goldenShine: 'rare',
   bloodMark: 'rare',
-  starlight: 'rare',
   sakura: 'rare',
-  fireRing: 'rare',
   iceCrystal: 'rare',
   ghostWisp: 'rare',
   poisonBubble: 'rare',
@@ -304,17 +301,20 @@ const FLAIR_RARITY: Record<string, Rarity> = {
   flowerBloom: 'rare',
   firefly: 'rare',
   forestLeaf: 'rare',
+  phoenixFeather: 'rare',
+  lunarHalo: 'rare',
+  purpleMist: 'rare',
   // Common (50) — simple colored effects
 };
 
 /** 名字样式稀有度映射 */
 const NAME_STYLE_RARITY: Record<string, Rarity> = {
-  // Legendary (2)
+  // Legendary (4)
   celestialDawn: 'legendary',
   voidStar: 'legendary',
-  // Epic (8)
-  phoenixRebirth: 'epic',
-  dragonBreath: 'epic',
+  phoenixRebirth: 'legendary',
+  dragonBreath: 'legendary',
+  // Epic (6)
   stormElectric: 'epic',
   moltenGoldPulse: 'epic',
   frostBreath: 'epic',

@@ -44,7 +44,9 @@ import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
+import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { RootStackParamList } from '@/navigation/types';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import {
   borderRadius as borderRadiusToken,
   colors,
@@ -118,6 +120,8 @@ export const AvatarPickerScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AvatarPicker'>>();
   const { user, updateProfile, uploadAvatar } = useAuth();
   const facade = useGameFacade();
+  const { connectionStatus } = useConnectionStatus(facade);
+  const isInRoom = connectionStatus === ConnectionStatus.Live;
 
   const readOnly = !user || (user.isAnonymous ?? false);
 
@@ -398,9 +402,11 @@ export const AvatarPickerScreen: React.FC = () => {
           const url = await uploadAvatar(result.assets[0].uri);
           toast.success('头像已更新');
 
-          facade
-            .updatePlayerProfile(undefined, url)
-            .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
+          if (isInRoom) {
+            facade
+              .updatePlayerProfile(undefined, url)
+              .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
+          }
 
           navigation.goBack();
         } catch (e: unknown) {
@@ -416,7 +422,7 @@ export const AvatarPickerScreen: React.FC = () => {
       settingsLog.warn('Image picker failed:', message, e);
       showErrorAlert('选择图片失败', message);
     }
-  }, [uploadAvatar, facade, navigation]);
+  }, [uploadAvatar, facade, isInRoom, navigation]);
 
   const handleConfirm = useCallback(async () => {
     setSaving(true);
@@ -465,12 +471,13 @@ export const AvatarPickerScreen: React.FC = () => {
         await updateProfile(profilePatch);
       }
 
-      // Single awaited call to sync both fields to GameState
+      // Sync to GameState only when in a room (otherwise no GameState exists)
       if (
-        newAvatarUrl !== undefined ||
-        newFrame !== undefined ||
-        newFlair !== undefined ||
-        newNameStyle !== undefined
+        isInRoom &&
+        (newAvatarUrl !== undefined ||
+          newFrame !== undefined ||
+          newFlair !== undefined ||
+          newNameStyle !== undefined)
       ) {
         const result = await facade.updatePlayerProfile(
           undefined,
@@ -501,6 +508,7 @@ export const AvatarPickerScreen: React.FC = () => {
     user?.customAvatarUrl,
     updateProfile,
     facade,
+    isInRoom,
     navigation,
   ]);
 
