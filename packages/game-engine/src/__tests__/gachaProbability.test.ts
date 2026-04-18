@@ -151,7 +151,7 @@ describe('gachaProbability', () => {
 
   describe('REWARD_POOL rarity counts', () => {
     it('should have correct total count', () => {
-      expect(REWARD_POOL.length).toBe(263);
+      expect(REWARD_POOL.length).toBe(363);
     });
 
     it('should have correct rarity distribution', () => {
@@ -160,9 +160,9 @@ describe('gachaProbability', () => {
         counts[item.rarity]++;
       }
       expect(counts.legendary).toBe(14);
-      expect(counts.epic).toBe(23);
-      expect(counts.rare).toBe(57);
-      expect(counts.common).toBe(169);
+      expect(counts.epic).toBe(33);
+      expect(counts.rare).toBe(97);
+      expect(counts.common).toBe(219);
     });
 
     it('should have correct per-type rarity distribution', () => {
@@ -186,11 +186,11 @@ describe('gachaProbability', () => {
       expect(byType['seatFlair'].epic).toBe(7);
       expect(byType['seatFlair'].rare).toBe(21);
       expect(byType['seatFlair'].common).toBe(50);
-      // NameStyles: L4/E6/R10/C50 = 70
+      // NameStyles: L4/E16/R50/C100 = 170
       expect(byType['nameStyle'].legendary).toBe(4);
-      expect(byType['nameStyle'].epic).toBe(6);
-      expect(byType['nameStyle'].rare).toBe(10);
-      expect(byType['nameStyle'].common).toBe(50);
+      expect(byType['nameStyle'].epic).toBe(16);
+      expect(byType['nameStyle'].rare).toBe(50);
+      expect(byType['nameStyle'].common).toBe(100);
     });
   });
 });

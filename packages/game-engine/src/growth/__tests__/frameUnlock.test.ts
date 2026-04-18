@@ -47,7 +47,7 @@ describe('rewardCatalog', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('contains 43 avatars, 70 frames, 80 flairs, and 70 nameStyles', () => {
+  it('contains 43 avatars, 70 frames, 80 flairs, and 170 nameStyles', () => {
     const avatars = REWARD_POOL.filter((r) => r.type === 'avatar');
     const frames = REWARD_POOL.filter((r) => r.type === 'frame');
     const flairs = REWARD_POOL.filter((r) => r.type === 'seatFlair');
@@ -55,7 +55,7 @@ describe('rewardCatalog', () => {
     expect(avatars).toHaveLength(AVATAR_IDS.length - FREE_AVATAR_IDS.size);
     expect(frames).toHaveLength(70);
     expect(flairs).toHaveLength(80);
-    expect(nameStyles).toHaveLength(70);
+    expect(nameStyles).toHaveLength(170);
   });
 });
 
