@@ -28,6 +28,7 @@
     "deploy": "bash scripts/deploy.sh",
     "release": "bash scripts/release.sh",
     "badges:generate": "node scripts/generate-badges.mjs",
+    "postinstall": "cp node_modules/canvaskit-wasm/bin/full/canvaskit.js node_modules/canvaskit-wasm/bin/full/canvaskit.wasm public/canvaskit/",
     "badges:validate": "node scripts/generate-badges.mjs --validate-only",
     "prepare": "husky"
   },
