@@ -283,9 +283,16 @@ export const AvatarPickerScreen: React.FC = () => {
 
   const filteredAvatarData = useMemo(() => {
     if (rarityFilter === 'all') return data;
-    return data.filter(
-      (item) => item.type !== 'builtin' || getItemRarity(AVATAR_KEYS[item.index]) === rarityFilter,
+    const filtered = data.filter(
+      (item) => item.type === 'builtin' && getItemRarity(AVATAR_KEYS[item.index]) === rarityFilter,
     );
+    const remainder = filtered.length % NUM_COLUMNS;
+    if (remainder !== 0) {
+      for (let i = 0; i < NUM_COLUMNS - remainder; i++) {
+        filtered.push({ key: `filter-placeholder-${i}`, type: 'placeholder' });
+      }
+    }
+    return filtered;
   }, [data, rarityFilter]);
 
   const filteredFrameData = useMemo(() => {
