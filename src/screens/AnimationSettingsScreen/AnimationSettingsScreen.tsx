@@ -15,17 +15,18 @@ import type {
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { randomPick } from '@werewolf/game-engine/utils/random';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
 import type { RoleData } from '@/components/RoleRevealEffects';
 import { createRoleData, RoleRevealAnimator } from '@/components/RoleRevealEffects';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { ANIMATION_OPTIONS } from '@/components/SettingsSheet/animationOptions';
 import { SettingsOptionGroup } from '@/components/SettingsSheet/SettingsOptionGroup';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
-import { colors, componentSizes, layout, spacing, typography } from '@/theme';
+import { colors, spacing, typography } from '@/theme';
 
 import { createAnimationSettingsStyles } from './styles';
 
@@ -110,13 +111,12 @@ export const AnimationSettingsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button variant="icon" onPress={handleGoBack} testID="anim-settings-back">
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <Text style={styles.headerTitle}>翻牌动画</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <ScreenHeader
+        title="翻牌动画"
+        onBack={handleGoBack}
+        topInset={insets.top}
+        backTestID="anim-settings-back"
+      />
 
       <ScrollView
         style={styles.scrollView}

@@ -34,25 +34,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
-import { Button } from '@/components/Button';
 import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 import { RootStackParamList } from '@/navigation/types';
-import {
-  borderRadius,
-  colors,
-  componentSizes,
-  fixed,
-  layout,
-  shadows,
-  spacing,
-  textStyles,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlpha } from '@/theme';
 import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
 
 const NUM_COLUMNS = 4;
@@ -297,15 +286,11 @@ export const UnlocksScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button variant="icon" onPress={handleGoBack}>
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <Text style={styles.headerTitle}>
-          {isViewer ? `${viewingDisplayName ?? 'TA'}的收藏` : '解锁一览'}
-        </Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <ScreenHeader
+        title={isViewer ? `${viewingDisplayName ?? 'TA'}的收藏` : '解锁一览'}
+        onBack={handleGoBack}
+        topInset={insets.top}
+      />
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -460,27 +445,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.transparent,
     overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.screenH,
-    paddingVertical: layout.headerPaddingV,
-    backgroundColor: colors.surface,
-    borderBottomWidth: fixed.borderWidth,
-    borderBottomColor: colors.border,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: layout.headerTitleSize,
-    lineHeight: layout.headerTitleLineHeight,
-    fontWeight: typography.weights.bold,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  headerSpacer: {
-    width: componentSizes.avatar.md,
-    height: componentSizes.avatar.md,
   },
   loadingContainer: {
     flex: 1,

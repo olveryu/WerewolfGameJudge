@@ -11,7 +11,6 @@ import {
   componentSizes,
   createSharedStyles,
   fixed,
-  layout,
   spacing,
   textStyles,
   ThemeColors,
@@ -21,9 +20,6 @@ import {
 
 export interface SettingsScreenStyles {
   container: ViewStyle;
-  header: ViewStyle;
-  headerTitle: TextStyle;
-  headerSpacer: ViewStyle;
   scrollView: ViewStyle;
   scrollContent: ViewStyle;
   card: ViewStyle;
@@ -131,27 +127,6 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       flex: 1,
       backgroundColor: colors.transparent,
       overflow: 'hidden',
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.screenH,
-      paddingVertical: layout.headerPaddingV,
-      backgroundColor: colors.surface,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: layout.headerTitleSize,
-      lineHeight: layout.headerTitleLineHeight,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-      textAlign: 'center',
-    },
-    headerSpacer: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
     },
     scrollView: {
       flex: 1,

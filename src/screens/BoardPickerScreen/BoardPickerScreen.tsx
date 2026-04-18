@@ -37,6 +37,7 @@ import { Button } from '@/components/Button';
 import { FactionRoleList } from '@/components/FactionRoleList';
 import { FormTextField } from '@/components/FormTextField';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { RootStackParamList } from '@/navigation/types';
 import {
   computeFactionStats,
@@ -460,42 +461,36 @@ export const BoardPickerScreen: React.FC = () => {
       testID={TESTIDS.boardPickerScreenRoot}
     >
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button
-          variant="icon"
-          onPress={handleGoBack}
-          accessibilityLabel="返回"
-          style={styles.headerBackButton}
-        >
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>选择板子</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <View>
-            <Button variant="icon" onPress={toggleFilter} accessibilityLabel="筛选角色">
+      <ScreenHeader
+        title="选择板子"
+        onBack={handleGoBack}
+        topInset={insets.top}
+        headerRight={
+          <View style={styles.headerRight}>
+            <View>
+              <Button variant="icon" onPress={toggleFilter} accessibilityLabel="筛选角色">
+                <Ionicons
+                  name={filterVisible ? 'funnel' : 'funnel-outline'}
+                  size={componentSizes.icon.md}
+                  color={selectedRoleIds.size > 0 ? colors.primary : colors.text}
+                />
+              </Button>
+              {selectedRoleIds.size > 0 && (
+                <View style={styles.filterBadge} pointerEvents="none">
+                  <Text style={styles.filterBadgeText}>{selectedRoleIds.size}</Text>
+                </View>
+              )}
+            </View>
+            <Button variant="icon" onPress={toggleSearch} accessibilityLabel="搜索">
               <Ionicons
-                name={filterVisible ? 'funnel' : 'funnel-outline'}
+                name={searchVisible ? 'close' : 'search'}
                 size={componentSizes.icon.md}
-                color={selectedRoleIds.size > 0 ? colors.primary : colors.text}
+                color={colors.text}
               />
             </Button>
-            {selectedRoleIds.size > 0 && (
-              <View style={styles.filterBadge} pointerEvents="none">
-                <Text style={styles.filterBadgeText}>{selectedRoleIds.size}</Text>
-              </View>
-            )}
           </View>
-          <Button variant="icon" onPress={toggleSearch} accessibilityLabel="搜索">
-            <Ionicons
-              name={searchVisible ? 'close' : 'search'}
-              size={componentSizes.icon.md}
-              color={colors.text}
-            />
-          </Button>
-        </View>
-      </View>
+        }
+      />
 
       {/* Subtitle hint */}
       <View style={styles.headerSubtitleRow}>

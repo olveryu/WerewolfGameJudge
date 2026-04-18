@@ -15,12 +15,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/Button';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
 import { BGM_TRACKS } from '@/services/infra/audio/audioRegistry';
-import { colors, componentSizes, fixed, layout, spacing, withAlpha } from '@/theme';
+import { colors, componentSizes, fixed, spacing, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { NowPlayingBar, TrackRow, VolumeSlider } from './components';
@@ -206,13 +206,12 @@ export const MusicSettingsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button variant="icon" onPress={handleGoBack} testID="music-settings-back">
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <Text style={styles.headerTitle}>音乐设置</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <ScreenHeader
+        title="音乐设置"
+        onBack={handleGoBack}
+        topInset={insets.top}
+        backTestID="music-settings-back"
+      />
 
       <ScrollView
         style={styles.scrollView}

@@ -3,26 +3,20 @@
  *
  * Factory function accepting theme colors. Created once via useMemo in parent.
  */
-import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
+import { StyleSheet, type ViewStyle } from 'react-native';
 
 import {
   borderRadius,
-  componentSizes,
   fixed,
-  layout,
   shadows,
   spacing,
   textStyles,
   type ThemeColors,
-  typography,
   withAlpha,
 } from '@/theme';
 
 interface AnimationSettingsStyles {
   container: ViewStyle;
-  header: ViewStyle;
-  headerTitle: TextStyle;
-  headerSpacer: ViewStyle;
   scrollView: ViewStyle;
   scrollContent: ViewStyle;
   previewContainer: ViewStyle;
@@ -35,27 +29,6 @@ export const createAnimationSettingsStyles = (colors: ThemeColors): AnimationSet
       flex: 1,
       backgroundColor: colors.transparent,
       overflow: 'hidden',
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.screenH,
-      paddingVertical: layout.headerPaddingV,
-      backgroundColor: colors.surface,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: layout.headerTitleSize,
-      lineHeight: layout.headerTitleLineHeight,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-      textAlign: 'center',
-    },
-    headerSpacer: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
     },
     scrollView: {
       flex: 1,

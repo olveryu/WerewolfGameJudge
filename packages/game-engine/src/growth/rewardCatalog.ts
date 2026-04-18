@@ -70,28 +70,28 @@ export const AVATAR_IDS = [
 /** 全部头像框 ID（与 `avatarFrames/index.ts` Component 注册表 1:1 对应）。 */
 // prettier-ignore
 export const FRAME_IDS = [
-  // Epic (15) — hand-crafted themed SVG frames (merged former rare + epic)
+  // Epic (9) — hand-crafted themed SVG frames
   'ironForge',
   'moonSilver',
   'bloodThorn',
   'runicSeal',
   'boneGate',
   'hellFire',
-  'darkVine',
   'frostCrystal',
-  'pharaohGold',
-  'voidRift',
-  'sakuraDrift',
   'jadeSeal',
-  'coralReef',
   'emberAsh',
-  'obsidianEdge',
-  // Legendary (5) — most elaborate hand-crafted frames
+  // Legendary (11) — most elaborate hand-crafted frames
   'stormBolt',
   'dragonScale',
   'starNebula',
   'shadowWeave',
   'celestialRing',
+  'obsidianEdge',
+  'pharaohGold',
+  'voidRift',
+  'coralReef',
+  'darkVine',
+  'sakuraDrift',
   // Common (100) — 10 shapes × 10 colors, simple single-border geometry
   'roundRed', 'roundOrange', 'roundAmber', 'roundGreen', 'roundTeal',
   'roundBlue', 'roundIndigo', 'roundPurple', 'roundPink', 'roundGray',
@@ -129,7 +129,7 @@ export const FRAME_IDS = [
 /** 全部座位装饰 ID（与 `seatFlairs/index.ts` Component 注册表 1:1 对应）。 */
 // prettier-ignore
 export const SEAT_FLAIR_IDS = [
-  // Epic (28) — hand-crafted themed SVG flair (merged former rare + epic)
+  // Epic (23) — hand-crafted themed SVG flair
   'emberGlow',
   'frostAura',
   'shadowMist',
@@ -138,29 +138,29 @@ export const SEAT_FLAIR_IDS = [
   'starlight',
   'thunderBolt',
   'sakura',
-  'fireRing',
   'lunarHalo',
   'sonicWave',
-  'cometTail',
   'iceCrystal',
   'phoenixFeather',
   'ghostWisp',
   'poisonBubble',
-  'magmaFloat',
   'windGust',
   'snowfall',
   'goldSpark',
   'purpleMist',
-  'butterfly',
   'lightPillar',
-  'shadowClaw',
   'rainDrop',
   'flowerBloom',
   'firefly',
   'forestLeaf',
-  // Legendary (2) — most elaborate hand-crafted flair
+  // Legendary (7) — most elaborate hand-crafted flair
   'runeCircle',
   'prismShard',
+  'fireRing',
+  'cometTail',
+  'magmaFloat',
+  'butterfly',
+  'shadowClaw',
   // Common (100) — 10 patterns × 10 colors, simple single-animation
   'pulseRed', 'pulseOrange', 'pulseAmber', 'pulseGreen', 'pulseTeal',
   'pulseBlue', 'pulseIndigo', 'pulsePurple', 'pulsePink', 'pulseGray',
@@ -312,26 +312,26 @@ const AVATAR_RARITY: Record<string, Rarity> = {
 
 /** 头像框稀有度映射 */
 const FRAME_RARITY: Record<string, Rarity> = {
-  // Legendary (5)
+  // Legendary (11)
   starNebula: 'legendary',
   celestialRing: 'legendary',
   dragonScale: 'legendary',
   stormBolt: 'legendary',
   shadowWeave: 'legendary',
-  // Epic (15) — merged former rare + epic, all hand-crafted themed SVG
+  obsidianEdge: 'legendary',
+  pharaohGold: 'legendary',
+  voidRift: 'legendary',
+  coralReef: 'legendary',
+  darkVine: 'legendary',
+  sakuraDrift: 'legendary',
+  // Epic (9) — hand-crafted themed SVG
   ironForge: 'epic',
   moonSilver: 'epic',
   bloodThorn: 'epic',
   runicSeal: 'epic',
-  pharaohGold: 'epic',
-  sakuraDrift: 'epic',
   boneGate: 'epic',
-  darkVine: 'epic',
   frostCrystal: 'epic',
-  coralReef: 'epic',
   emberAsh: 'epic',
-  obsidianEdge: 'epic',
-  voidRift: 'epic',
   jadeSeal: 'epic',
   hellFire: 'epic',
   // Rare (50) — 5 shapes × 10 colors, multi-layer decorative borders
@@ -390,10 +390,15 @@ const FRAME_RARITY: Record<string, Rarity> = {
 
 /** 座位装饰稀有度映射 */
 const FLAIR_RARITY: Record<string, Rarity> = {
-  // Legendary (2)
+  // Legendary (7)
   runeCircle: 'legendary',
   prismShard: 'legendary',
-  // Epic (28) — merged former rare + epic, all hand-crafted themed SVG flair
+  fireRing: 'legendary',
+  cometTail: 'legendary',
+  magmaFloat: 'legendary',
+  butterfly: 'legendary',
+  shadowClaw: 'legendary',
+  // Epic (23) — hand-crafted themed SVG flair
   emberGlow: 'epic',
   frostAura: 'epic',
   shadowMist: 'epic',
@@ -402,22 +407,17 @@ const FLAIR_RARITY: Record<string, Rarity> = {
   starlight: 'epic',
   thunderBolt: 'epic',
   sakura: 'epic',
-  fireRing: 'epic',
   lunarHalo: 'epic',
   sonicWave: 'epic',
-  cometTail: 'epic',
   iceCrystal: 'epic',
   phoenixFeather: 'epic',
   ghostWisp: 'epic',
   poisonBubble: 'epic',
-  magmaFloat: 'epic',
   windGust: 'epic',
   snowfall: 'epic',
   goldSpark: 'epic',
   purpleMist: 'epic',
-  butterfly: 'epic',
   lightPillar: 'epic',
-  shadowClaw: 'epic',
   rainDrop: 'epic',
   flowerBloom: 'epic',
   firefly: 'epic',

@@ -19,12 +19,13 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { buildNotepadSummary } from '@/components/AIChatBubble/notepadSummary';
 import { Button } from '@/components/Button';
 import { NotepadPanel } from '@/components/NotepadPanel';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useGameFacade } from '@/contexts';
 import { useNotepad } from '@/hooks/useNotepad';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
-import { colors, componentSizes, fixed, layout, typography } from '@/theme';
+import { colors, componentSizes, fixed, typography } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 
@@ -143,29 +144,30 @@ export const NotepadScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right']}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <Text style={styles.headerTitle}>笔记</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            onPress={handleAIAnalysis}
-            style={styles.aiAnalysisBtn}
-            activeOpacity={fixed.activeOpacity}
-          >
-            <Ionicons
-              name={UI_ICONS.AI_ASSISTANT}
-              size={typography.secondary}
-              color={colors.primary}
-            />
-            <Text style={styles.aiAnalysisBtnText}>AI分析</Text>
-          </TouchableOpacity>
-          <Button variant="icon" onPress={notepad.clearAll} accessibilityLabel="清除笔记">
-            <Ionicons name={UI_ICONS.DELETE} size={componentSizes.icon.md} color={colors.text} />
-          </Button>
-        </View>
-      </View>
+      <ScreenHeader
+        title="笔记"
+        onBack={handleGoBack}
+        topInset={insets.top}
+        headerRight={
+          <View style={styles.headerButtons}>
+            <TouchableOpacity
+              onPress={handleAIAnalysis}
+              style={styles.aiAnalysisBtn}
+              activeOpacity={fixed.activeOpacity}
+            >
+              <Ionicons
+                name={UI_ICONS.AI_ASSISTANT}
+                size={typography.secondary}
+                color={colors.primary}
+              />
+              <Text style={styles.aiAnalysisBtnText}>AI分析</Text>
+            </TouchableOpacity>
+            <Button variant="icon" onPress={notepad.clearAll} accessibilityLabel="清除笔记">
+              <Ionicons name={UI_ICONS.DELETE} size={componentSizes.icon.md} color={colors.text} />
+            </Button>
+          </View>
+        }
+      />
 
       {/* Notepad grid */}
       <NotepadPanel

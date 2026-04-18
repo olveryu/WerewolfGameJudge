@@ -26,17 +26,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native';
 
 import { Button } from '@/components/Button';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import type { DrawResultItem } from '@/services/feature/GachaService';
-import {
-  colors,
-  componentSizes,
-  layout,
-  spacing,
-  textStyles,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { colors, componentSizes, spacing, textStyles, typography, withAlpha } from '@/theme';
 
 import type { RootStackParamList } from '../../navigation/types';
 import { CapsuleMachine, type CapsuleMachineRef } from './components/CapsuleMachine';
@@ -157,19 +150,20 @@ export function GachaScreen({ navigation }: Props) {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
-        <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-          <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
-            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-          </Button>
-          <Text style={styles.headerTitle}>扭蛋抽奖</Text>
-          <Button
-            variant="icon"
-            onPress={() => navigation.navigate('Unlocks', undefined)}
-            accessibilityLabel="收藏"
-          >
-            <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
-          </Button>
-        </View>
+        <ScreenHeader
+          title="扭蛋抽奖"
+          onBack={handleGoBack}
+          topInset={insets.top}
+          headerRight={
+            <Button
+              variant="icon"
+              onPress={() => navigation.navigate('Unlocks', undefined)}
+              accessibilityLabel="收藏"
+            >
+              <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
+            </Button>
+          }
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -180,19 +174,20 @@ export function GachaScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <Text style={styles.headerTitle}>扭蛋抽奖</Text>
-        <Button
-          variant="icon"
-          onPress={() => navigation.navigate('Unlocks', undefined)}
-          accessibilityLabel="收藏"
-        >
-          <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-      </View>
+      <ScreenHeader
+        title="扭蛋抽奖"
+        onBack={handleGoBack}
+        topInset={insets.top}
+        headerRight={
+          <Button
+            variant="icon"
+            onPress={() => navigation.navigate('Unlocks', undefined)}
+            accessibilityLabel="收藏"
+          >
+            <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
+          </Button>
+        }
+      />
 
       {/* Machine area */}
       <View style={styles.machineArea} onLayout={handleMachineLayout}>
@@ -316,22 +311,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.screenH,
-    paddingVertical: layout.headerPaddingV,
-    backgroundColor: colors.surface,
-    zIndex: 10,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: layout.headerTitleSize,
-    lineHeight: layout.headerTitleLineHeight,
-    fontWeight: typography.weights.bold,
-    color: colors.text,
-    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,

@@ -159,8 +159,8 @@ describe('gachaProbability', () => {
       for (const item of REWARD_POOL) {
         counts[item.rarity]++;
       }
-      expect(counts.legendary).toBe(14);
-      expect(counts.epic).toBe(66);
+      expect(counts.legendary).toBe(25);
+      expect(counts.epic).toBe(55);
       expect(counts.rare).toBe(164);
       expect(counts.common).toBe(319);
     });
@@ -176,14 +176,14 @@ describe('gachaProbability', () => {
       expect(byType['avatar'].epic).toBe(7);
       expect(byType['avatar'].rare).toBe(14);
       expect(byType['avatar'].common).toBe(19);
-      // Frames: L5/E15/R50/C100 = 170
-      expect(byType['frame'].legendary).toBe(5);
-      expect(byType['frame'].epic).toBe(15);
+      // Frames: L11/E9/R50/C100 = 170
+      expect(byType['frame'].legendary).toBe(11);
+      expect(byType['frame'].epic).toBe(9);
       expect(byType['frame'].rare).toBe(50);
       expect(byType['frame'].common).toBe(100);
-      // SeatFlairs: L2/E28/R50/C100 = 180
-      expect(byType['seatFlair'].legendary).toBe(2);
-      expect(byType['seatFlair'].epic).toBe(28);
+      // SeatFlairs: L7/E23/R50/C100 = 180
+      expect(byType['seatFlair'].legendary).toBe(7);
+      expect(byType['seatFlair'].epic).toBe(23);
       expect(byType['seatFlair'].rare).toBe(50);
       expect(byType['seatFlair'].common).toBe(100);
       // NameStyles: L4/E16/R50/C100 = 170

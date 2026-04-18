@@ -23,10 +23,6 @@ import {
 export interface BoardPickerStyles {
   // ── Layout ──
   container: ViewStyle;
-  header: ViewStyle;
-  headerBackButton: ViewStyle;
-  headerCenter: ViewStyle;
-  headerTitle: TextStyle;
   headerSubtitleRow: ViewStyle;
   headerSubtitle: TextStyle;
   headerRight: ViewStyle;
@@ -98,30 +94,6 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
   return StyleSheet.create<BoardPickerStyles>({
     // ── Layout ────────────────────────────────────
     container: shared.screenContainer,
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.screenH,
-      paddingVertical: layout.headerPaddingV,
-      backgroundColor: colors.surface,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
-    },
-    headerBackButton: {
-      zIndex: 1,
-    },
-    headerCenter: {
-      ...StyleSheet.absoluteFillObject,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    headerTitle: {
-      fontSize: layout.headerTitleSize,
-      lineHeight: layout.headerTitleLineHeight,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-    },
     headerSubtitleRow: {
       flexDirection: 'row',
       justifyContent: 'center',

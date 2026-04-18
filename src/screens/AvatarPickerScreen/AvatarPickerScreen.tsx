@@ -38,6 +38,7 @@ import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
 import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { type FlairId, getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
 import { UI_ICONS } from '@/config/iconTokens';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
@@ -52,7 +53,6 @@ import {
   colors,
   componentSizes,
   fixed,
-  layout,
   withAlpha,
 } from '@/theme';
 import { showAlert } from '@/utils/alert';
@@ -675,13 +675,7 @@ export const AvatarPickerScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button variant="icon" onPress={handleGoBack}>
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <Text style={styles.headerTitle}>选择形象</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <ScreenHeader title="选择形象" onBack={handleGoBack} topInset={insets.top} />
 
       {/* Hero preview */}
       <View style={styles.heroPreview}>

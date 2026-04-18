@@ -10,7 +10,6 @@ import {
   borderRadius,
   componentSizes,
   fixed,
-  layout,
   shadows,
   spacing,
   textStyles,
@@ -21,9 +20,6 @@ import {
 
 export interface AvatarPickerScreenStyles {
   container: ViewStyle;
-  header: ViewStyle;
-  headerTitle: TextStyle;
-  headerSpacer: ViewStyle;
   content: ViewStyle;
   // Picker grid
   pickerGrid: ViewStyle;
@@ -82,27 +78,6 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       flex: 1,
       backgroundColor: colors.transparent,
       overflow: 'hidden',
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.screenH,
-      paddingVertical: layout.headerPaddingV,
-      backgroundColor: colors.surface,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: layout.headerTitleSize,
-      lineHeight: layout.headerTitleLineHeight,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-      textAlign: 'center',
-    },
-    headerSpacer: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
     },
     content: {
       flex: 1,

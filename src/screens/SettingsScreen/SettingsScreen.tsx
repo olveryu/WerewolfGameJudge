@@ -24,12 +24,13 @@ import { toast } from 'sonner-native';
 
 import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { RootStackParamList } from '@/navigation/types';
-import { colors, componentSizes, fixed, layout, typography } from '@/theme';
+import { colors, componentSizes, fixed, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
@@ -547,13 +548,7 @@ export const SettingsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button variant="icon" onPress={handleGoBack}>
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <Text style={styles.headerTitle}>设置</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <ScreenHeader title="设置" onBack={handleGoBack} topInset={insets.top} />
 
       <ScrollView
         style={styles.scrollView}

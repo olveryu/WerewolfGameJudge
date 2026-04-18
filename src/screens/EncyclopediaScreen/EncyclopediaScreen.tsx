@@ -31,15 +31,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
   colors,
   componentSizes,
-  createSharedStyles,
   fixed,
-  layout,
   shadows,
   spacing,
   type ThemeColors,
@@ -301,33 +300,34 @@ export const EncyclopediaScreen: React.FC = () => {
       testID={TESTIDS.encyclopediaScreenRoot}
     >
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
-        <Button variant="icon" onPress={handleGoBack} accessibilityLabel="返回">
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </Button>
-        <Text style={styles.headerTitle}>角色图鉴</Text>
-        <View style={styles.headerRight}>
-          <Button
-            variant="icon"
-            onPress={() => setTagDropdownVisible(true)}
-            style={activeTag ? styles.headerIconButtonActive : undefined}
-            accessibilityLabel="能力筛选"
-          >
-            <Ionicons
-              name="filter"
-              size={componentSizes.icon.md}
-              color={activeTag ? colors.primary : colors.text}
-            />
-          </Button>
-          <Button variant="icon" onPress={toggleSearch} accessibilityLabel="搜索">
-            <Ionicons
-              name={searchVisible ? 'close' : 'search'}
-              size={componentSizes.icon.md}
-              color={colors.text}
-            />
-          </Button>
-        </View>
-      </View>
+      <ScreenHeader
+        title="角色图鉴"
+        onBack={handleGoBack}
+        topInset={insets.top}
+        headerRight={
+          <View style={styles.headerRight}>
+            <Button
+              variant="icon"
+              onPress={() => setTagDropdownVisible(true)}
+              style={activeTag ? styles.headerIconButtonActive : undefined}
+              accessibilityLabel="能力筛选"
+            >
+              <Ionicons
+                name="filter"
+                size={componentSizes.icon.md}
+                color={activeTag ? colors.primary : colors.text}
+              />
+            </Button>
+            <Button variant="icon" onPress={toggleSearch} accessibilityLabel="搜索">
+              <Ionicons
+                name={searchVisible ? 'close' : 'search'}
+                size={componentSizes.icon.md}
+                color={colors.text}
+              />
+            </Button>
+          </View>
+        }
+      />
 
       {/* Search Bar */}
       {searchVisible && (
@@ -458,35 +458,11 @@ export const EncyclopediaScreen: React.FC = () => {
 // ============================================
 
 function createStyles(colors: ThemeColors) {
-  const shared = createSharedStyles(colors);
   return StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.transparent,
       overflow: 'hidden',
-    },
-    // Header
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.screenH,
-      paddingVertical: layout.headerPaddingV,
-      backgroundColor: colors.surface,
-      borderBottomWidth: fixed.borderWidth,
-      borderBottomColor: colors.border,
-    },
-    backButton: {
-      ...shared.iconButton,
-      borderRadius: borderRadius.full,
-      overflow: 'hidden',
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: layout.headerTitleSize,
-      lineHeight: layout.headerTitleLineHeight,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-      textAlign: 'center',
     },
     headerRight: {
       flexDirection: 'row',
