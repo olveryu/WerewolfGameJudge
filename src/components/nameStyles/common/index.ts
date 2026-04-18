@@ -62,7 +62,16 @@ function shiftRgb(c: NameStyleColor, prefixIdx: number): [number, number, number
 
 // ── Rare (50) ───────────────────────────────────────────────────────────────
 
-/** Rare prefix definitions — 5 prefixes for 50 variants */
+/**
+ * Rare prefix definitions — 5 prefixes × 10 colors = 50 variants.
+ *
+ * Each prefix produces a visually distinct glow treatment:
+ * - shimmer:  standard 3-layer glow (focused, close-range halo)
+ * - radiant:  lightened color + wider blur (diffuse bright aura)
+ * - bright:   saturated core + inner bright kernel shadow
+ * - vivid:    hue-shifted ±30° secondary glow (chromatic fringe)
+ * - lustrous: complementary-hued outer glow (dual-tone depth)
+ */
 const RARE_PREFIXES: readonly { prefix: string; cn: string }[] = [
   { prefix: 'shimmer', cn: '辉·' },
   { prefix: 'radiant', cn: '耀·' },
@@ -71,7 +80,13 @@ const RARE_PREFIXES: readonly { prefix: string; cn: string }[] = [
   { prefix: 'lustrous', cn: '润·' },
 ];
 
-function makeRareShadows(c: NameStyleColor): TextShadowLayer[] {
+// ── Per-prefix shadow factories ─────────────────────────────────────────────
+
+/** Clamp a channel value to [0, 255]. */
+const ch = (v: number) => Math.min(255, Math.max(0, Math.round(v)));
+
+/** shimmer: focused 3-layer glow at close range. */
+function makeShimmerShadows(c: NameStyleColor): TextShadowLayer[] {
   const [r, g, b] = c.rgb;
   return [
     { offsetX: 0, offsetY: 0, blur: 5, color: `rgba(${r},${g},${b},0.6)` },
@@ -80,10 +95,105 @@ function makeRareShadows(c: NameStyleColor): TextShadowLayer[] {
       offsetX: 0,
       offsetY: 0,
       blur: 2,
-      color: `rgba(${Math.min(r + 60, 255)},${Math.min(g + 60, 255)},${Math.min(b + 60, 255)},0.4)`,
+      color: `rgba(${ch(r + 60)},${ch(g + 60)},${ch(b + 60)},0.4)`,
     },
   ];
 }
+
+/** radiant: lightened color (+40 per channel) with wider, more diffuse blur. */
+function makeRadiantShadows(c: NameStyleColor): { color: string; shadows: TextShadowLayer[] } {
+  const [r, g, b] = c.rgb;
+  const lr = ch(r + 40);
+  const lg = ch(g + 40);
+  const lb = ch(b + 40);
+  return {
+    color: `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`,
+    shadows: [
+      { offsetX: 0, offsetY: 0, blur: 8, color: `rgba(${lr},${lg},${lb},0.55)` },
+      { offsetX: 0, offsetY: 0, blur: 16, color: `rgba(${lr},${lg},${lb},0.3)` },
+      {
+        offsetX: 0,
+        offsetY: 0,
+        blur: 3,
+        color: `rgba(${ch(lr + 30)},${ch(lg + 30)},${ch(lb + 30)},0.35)`,
+      },
+    ],
+  };
+}
+
+/** bright: saturated base + tight bright-white inner kernel. */
+function makeBrightShadows(c: NameStyleColor): TextShadowLayer[] {
+  const [r, g, b] = c.rgb;
+  // Boost saturation by pulling away from gray midpoint
+  const avg = (r + g + b) / 3;
+  const sr = ch(r + (r - avg) * 0.3);
+  const sg = ch(g + (g - avg) * 0.3);
+  const sb = ch(b + (b - avg) * 0.3);
+  return [
+    { offsetX: 0, offsetY: 0, blur: 6, color: `rgba(${sr},${sg},${sb},0.65)` },
+    { offsetX: 0, offsetY: 0, blur: 12, color: `rgba(${sr},${sg},${sb},0.3)` },
+    // Bright inner kernel — near-white core glow
+    {
+      offsetX: 0,
+      offsetY: 0,
+      blur: 1,
+      color: `rgba(${ch(r + 100)},${ch(g + 100)},${ch(b + 100)},0.5)`,
+    },
+  ];
+}
+
+/**
+ * vivid: hue-shifted secondary glow (warm +30°, cool -30° in simplified RGB space).
+ * Creates a chromatic fringe around the text.
+ */
+function makeVividShadows(c: NameStyleColor): TextShadowLayer[] {
+  const [r, g, b] = c.rgb;
+  // Approximate hue shift by rotating RGB channels
+  // Warm shift: boost R, reduce B → orange/warm fringe
+  const wr = ch(r * 1.1 + 20);
+  const wg = ch(g * 0.95);
+  const wb = ch(b * 0.7);
+  return [
+    { offsetX: 0, offsetY: 0, blur: 5, color: `rgba(${r},${g},${b},0.55)` },
+    // Hue-shifted outer layer — chromatic fringe
+    { offsetX: 0, offsetY: 0, blur: 12, color: `rgba(${wr},${wg},${wb},0.4)` },
+    {
+      offsetX: 0,
+      offsetY: 0,
+      blur: 3,
+      color: `rgba(${ch(r + 40)},${ch(g + 40)},${ch(b + 40)},0.35)`,
+    },
+  ];
+}
+
+/**
+ * lustrous: complementary-hued outer glow for dual-tone depth.
+ * Outer layer uses approximate complement (invert RGB, blend 60%).
+ */
+function makeLustrousShadows(c: NameStyleColor): TextShadowLayer[] {
+  const [r, g, b] = c.rgb;
+  // Complementary: invert and blend 60% toward complement
+  const cr = ch(r + (255 - r * 2) * 0.6);
+  const cg = ch(g + (255 - g * 2) * 0.6);
+  const cb = ch(b + (255 - b * 2) * 0.6);
+  return [
+    { offsetX: 0, offsetY: 0, blur: 5, color: `rgba(${r},${g},${b},0.5)` },
+    // Complement-hued outer glow — creates color depth
+    { offsetX: 0, offsetY: 0, blur: 14, color: `rgba(${cr},${cg},${cb},0.3)` },
+    { offsetX: 0, offsetY: 0, blur: 3, color: `rgba(${r},${g},${b},0.45)` },
+  ];
+}
+
+/** Dispatch table: prefix index → shadow factory. */
+const RARE_SHADOW_FACTORIES: readonly ((
+  c: NameStyleColor,
+) => TextShadowLayer[] | { color: string; shadows: TextShadowLayer[] })[] = [
+  makeShimmerShadows,
+  makeRadiantShadows,
+  makeBrightShadows,
+  makeVividShadows,
+  makeLustrousShadows,
+];
 
 // ── Build registries ────────────────────────────────────────────────────────
 
@@ -115,16 +225,23 @@ for (let pi = 0; pi < COMMON_PREFIXES.length; pi++) {
 /** 50 rare name style configs keyed by NameStyleId string. */
 export const RARE_NAME_STYLE_CONFIGS: Record<string, NameStyleConfig> = {};
 
-for (const { prefix, cn } of RARE_PREFIXES) {
+for (let pi = 0; pi < RARE_PREFIXES.length; pi++) {
+  const { prefix, cn } = RARE_PREFIXES[pi];
+  const factory = RARE_SHADOW_FACTORIES[pi];
   for (const colorKey of COLOR_KEYS) {
     const c = BASE_PALETTE[colorKey as ColorKey];
     const id = `${prefix}${capitalize(colorKey)}`;
+    const result = factory(c);
+    // radiant factory returns { color, shadows } to also lighten the text color
+    const isCompound = 'shadows' in result;
     RARE_NAME_STYLE_CONFIGS[id] = {
       id: id as NameStyleConfig['id'],
       name: `${cn}${c.cn}`,
       tier: 'rare',
-      color: c.hex,
-      textShadows: makeRareShadows(c),
+      color: isCompound ? (result as { color: string }).color : c.hex,
+      textShadows: isCompound
+        ? (result as { shadows: TextShadowLayer[] }).shadows
+        : (result as TextShadowLayer[]),
     };
   }
 }
