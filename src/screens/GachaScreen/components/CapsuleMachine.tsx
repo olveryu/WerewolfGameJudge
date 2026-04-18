@@ -108,9 +108,10 @@ interface CapsuleMachineProps {
 
 export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>(
   function CapsuleMachine({ width, height, drawType, onPhaseChange }, ref) {
-    const scale = width / REF_W;
+    const scale = Math.min(width / REF_W, height / REF_H);
     const s = scale;
-    const canvasH = Math.min(height, REF_H * s);
+    const canvasW = REF_W * s;
+    const canvasH = REF_H * s;
 
     const physics = useGachaPhysics(scale);
 
@@ -141,7 +142,7 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
       // Subscribe to render tick
       void physics.renderTick.value;
 
-      const W = width;
+      const W = canvasW;
       const H = canvasH;
       const c = recorder.beginRecording(Skia.XYWHRect(0, 0, W, H));
 
@@ -411,9 +412,9 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
     );
 
     return (
-      <View style={[styles.container, { width, height: canvasH }]}>
+      <View style={[styles.container, { width: canvasW, height: canvasH }]}>
         <Animated.View style={[StyleSheet.absoluteFill, shakeStyle]}>
-          <Canvas style={{ width, height: canvasH }}>
+          <Canvas style={{ width: canvasW, height: canvasH }}>
             <Picture picture={scenePicture} />
           </Canvas>
           <Text style={labelStyle}>{drawType === 'golden' ? '★ GOLDEN GACHA ★' : '✦ GACHA ✦'}</Text>

@@ -392,6 +392,8 @@ const styles = StyleSheet.create({
   },
   machineArea: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // ── Single result overlay ──
