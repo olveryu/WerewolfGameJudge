@@ -298,13 +298,13 @@
       // 微信 WebView 检测：引导用户用外部浏览器打开
       // 微信内阻止 SPA 加载，避免路由改变 URL（用户点"在浏览器中打开"时需要保留原始链接）
       // 小程序 web-view 放行（UA 含 miniProgram 或 __wxjs_environment === 'miniprogram'）
+      // 注意：不能用 URL 中的 wxcode 参数判断，分享链接会残留该参数导致误判
       // localhost 排除，方便开发调试
       var ua = navigator.userAgent;
       var isWechat = /MicroMessenger/i.test(ua);
       var isMiniProgram =
         /miniProgram/i.test(ua) ||
-        window.__wxjs_environment === 'miniprogram' ||
-        /[?&]wxcode=/.test(location.search);
+        window.__wxjs_environment === 'miniprogram';
       if (isWechat && !isMiniProgram && location.hostname !== 'localhost') {
         var guide = document.getElementById('wechat-guide');
         if (guide) guide.style.display = 'flex';
