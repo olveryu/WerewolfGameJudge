@@ -32,6 +32,9 @@ declare global {
 
 let cached: boolean | null = null;
 
+/** 本次 session 是否曾在 URL 中检测到 wxcode 参数（即来自小程序入口） */
+let _hadWxCode = false;
+
 /** 当前页面是否在微信小程序 web-view 内运行 */
 export function isMiniProgram(): boolean {
   if (Platform.OS !== 'web') return false;
@@ -55,11 +58,22 @@ export function readWxCode(): string | null {
   if (Platform.OS !== 'web') return null;
   try {
     const params = new URLSearchParams(window.location.search);
-    return params.get('wxcode');
+    const code = params.get('wxcode');
+    if (code) _hadWxCode = true;
+    return code;
   } catch {
     log.warn('Failed to read wxcode');
     return null;
   }
+}
+
+/**
+ * 本次 session 是否曾从 URL 中读到过 wxcode 参数。
+ * 即使 clearWxCode() 已删除 URL 参数，此标记仍为 true。
+ * 用于 UA 检测不可靠时作为"来自小程序"的确定性信号。
+ */
+export function hadWxCode(): boolean {
+  return _hadWxCode;
 }
 
 /** 从 URL 中移除 wxcode 参数，防止刷新时重复使用过期 code。 */

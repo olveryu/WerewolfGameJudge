@@ -13,7 +13,7 @@ import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
-import { clearWxCode, isMiniProgram, readWxCode } from '@/utils/miniProgram';
+import { clearWxCode, readWxCode } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
 import { cfGet, cfPost, cfPut, setTokenProvider } from './cfFetch';
@@ -72,15 +72,8 @@ export class CFAuthService implements IAuthService {
 
           if (!succeeded) {
             clearWxCode();
-            if (isMiniProgram()) {
-              // 微信环境不降级匿名，UI 层将展示"登录失败，请重新进入"
-              authLog.error(
-                'WeChat sign-in exhausted in miniProgram, not falling back to anonymous',
-              );
-            } else {
-              authLog.info('Non-WeChat env, falling back to anonymous sign-in');
-              await this.signInAnonymously();
-            }
+            // 有 wxCode 就一定来自小程序（UA 检测不可靠），不降级匿名
+            authLog.error('WeChat sign-in exhausted, not falling back to anonymous');
           }
         }
       } else if (existingUserId) {
