@@ -28,6 +28,15 @@ import { jsonBody } from './shared';
 
 export const authRoutes = new Hono<AppEnv>();
 
+/** Extract Cloudflare edge geo from incoming request. */
+function requestGeo(c: { req: { raw: Request } }) {
+  const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
+  return {
+    lastCountry: (cf?.country as string) ?? null,
+    lastColo: (cf?.colo as string) ?? null,
+  };
+}
+
 /** 注册欢迎奖励：普通券 5 + 黄金券 1 */
 const WELCOME_NORMAL_DRAWS = 5;
 const WELCOME_GOLDEN_DRAWS = 1;
@@ -59,11 +68,13 @@ authRoutes.post('/anonymous', async (c) => {
   const env = c.env;
   const db = createDb(env.DB);
   const userId = crypto.randomUUID();
+  const geo = requestGeo(c);
 
   const now = sql`datetime('now')`;
   await db.insert(users).values({
     id: userId,
     isAnonymous: 1,
+    ...geo,
     createdAt: now,
     updatedAt: now,
   });
@@ -342,13 +353,19 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
   // Successful login — clear failed attempts for this email
   await db.delete(loginAttempts).where(eq(loginAttempts.emailHash, emailHash));
 
-  // Lazy migration: bcrypt → PBKDF2 rehash on first successful login
+  // Update geo + lazy migration: bcrypt → PBKDF2 rehash on first successful login
+  const geo = requestGeo(c);
   if (result.needsRehash && result.newHash) {
     await db
       .update(users)
-      .set({ passwordHash: result.newHash, updatedAt: sql`datetime('now')` })
+      .set({ passwordHash: result.newHash, ...geo, updatedAt: sql`datetime('now')` })
       .where(eq(users.id, user.id));
     console.log(`Rehashed password for user ${user.id} (bcrypt → PBKDF2)`);
+  } else {
+    await db
+      .update(users)
+      .set({ ...geo, updatedAt: sql`datetime('now')` })
+      .where(eq(users.id, user.id));
   }
 
   const token = await signToken(user.id, env, { email });
@@ -765,8 +782,15 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
     .where(eq(users.wechatOpenid, openid))
     .get();
 
+  const geo = requestGeo(c);
+
   if (existing) {
-    // Return existing user
+    // Update geo on login
+    await db
+      .update(users)
+      .set({ ...geo, updatedAt: sql`datetime('now')` })
+      .where(eq(users.id, existing.id));
+
     const token = await signToken(existing.id, env, {
       email: existing.email ?? undefined,
     });
@@ -800,6 +824,7 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
     id: userId,
     wechatOpenid: openid,
     isAnonymous: 0,
+    ...geo,
     createdAt: now,
     updatedAt: now,
   });

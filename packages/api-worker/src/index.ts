@@ -56,6 +56,24 @@ app.use(
   }),
 );
 
+// ── Request logging middleware ──────────────────────────────────────────────
+
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  await next();
+  const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
+  console.log(
+    JSON.stringify({
+      method: c.req.method,
+      path: c.req.path,
+      status: c.res.status,
+      country: cf?.country,
+      colo: cf?.colo,
+      ms: Date.now() - start,
+    }),
+  );
+});
+
 // ── Error handler ───────────────────────────────────────────────────────────
 
 app.onError((err, c) => {

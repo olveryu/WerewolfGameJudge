@@ -23,6 +23,8 @@ export const users = sqliteTable(
     equippedNameStyle: text('equipped_name_style'),
     wechatOpenid: text('wechat_openid'),
     isAnonymous: integer('is_anonymous').notNull().default(1),
+    lastCountry: text('last_country'),
+    lastColo: text('last_colo'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
   },
