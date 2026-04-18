@@ -17,6 +17,7 @@ declare global {
         postMessage(data: { data: Record<string, unknown> }): void;
         navigateTo(opts: { url: string }): void;
         navigateBack(opts?: { delta?: number }): void;
+        reLaunch(opts: { url: string }): void;
         getEnv(cb: (res: { miniprogram: boolean }) => void): void;
       };
       previewImage?(opts: {
@@ -46,24 +47,33 @@ export function isMiniProgram(): boolean {
 }
 
 /**
- * 从 URL query 中提取小程序传入的 wxcode 参数并移除，避免刷新时重复使用过期 code。
+ * 从 URL query 中读取小程序传入的 wxcode 参数（不删除）。
+ * 登录成功后应调用 clearWxCode() 清除。
  * 仅 web 平台有效；无 wxcode 时返回 null。
  */
-export function consumeWxCode(): string | null {
+export function readWxCode(): string | null {
   if (Platform.OS !== 'web') return null;
   try {
     const params = new URLSearchParams(window.location.search);
-    const code = params.get('wxcode');
-    if (!code) return null;
-    // Remove wxcode from URL to prevent reuse on refresh
+    return params.get('wxcode');
+  } catch {
+    log.warn('Failed to read wxcode');
+    return null;
+  }
+}
+
+/** 从 URL 中移除 wxcode 参数，防止刷新时重复使用过期 code。 */
+export function clearWxCode(): void {
+  if (Platform.OS !== 'web') return;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('wxcode')) return;
     params.delete('wxcode');
     const qs = params.toString();
     const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
     window.history.replaceState(null, '', newUrl);
-    return code;
   } catch {
-    log.warn('Failed to consume wxcode');
-    return null;
+    log.warn('Failed to clear wxcode');
   }
 }
 

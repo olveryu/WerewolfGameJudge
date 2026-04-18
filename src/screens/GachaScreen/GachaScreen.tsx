@@ -269,10 +269,11 @@ export function GachaScreen({ navigation }: Props) {
               reducedMotion={reducedMotion}
             />
             <DrawButton
-              label="普通 ×10"
-              disabled={normalDraws < 10 || busy}
-              onPress={() => handleDraw('normal', 10)}
-              isTenPull
+              label={`普通 ×${Math.min(10, normalDraws)}`}
+              disabled={normalDraws < 2 || busy}
+              onPress={() => handleDraw('normal', Math.min(10, normalDraws))}
+              multiPull
+              multiPullCount={normalDraws}
               reducedMotion={reducedMotion}
             />
           </View>
@@ -285,11 +286,12 @@ export function GachaScreen({ navigation }: Props) {
               reducedMotion={reducedMotion}
             />
             <DrawButton
-              label="黄金 ×10"
-              disabled={goldenDraws < 10 || busy}
-              onPress={() => handleDraw('golden', 10)}
+              label={`黄金 ×${Math.min(10, goldenDraws)}`}
+              disabled={goldenDraws < 2 || busy}
+              onPress={() => handleDraw('golden', Math.min(10, goldenDraws))}
               golden
-              isTenPull
+              multiPull
+              multiPullCount={goldenDraws}
               reducedMotion={reducedMotion}
             />
           </View>

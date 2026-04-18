@@ -35,7 +35,10 @@ interface DrawButtonProps {
   disabled: boolean;
   onPress: () => void;
   golden?: boolean;
-  isTenPull?: boolean;
+  /** Multi-pull button. When set, shows sparkle icon and wider layout. */
+  multiPull?: boolean;
+  /** Actual draw count for multi-pull button (e.g. 6 when only 6 tickets remain). */
+  multiPullCount?: number;
   reducedMotion?: boolean | null;
 }
 
@@ -46,7 +49,8 @@ export function DrawButton({
   disabled,
   onPress,
   golden,
-  isTenPull,
+  multiPull,
+  multiPullCount,
   reducedMotion,
 }: DrawButtonProps) {
   const pressScale = useSharedValue(1);
@@ -82,7 +86,7 @@ export function DrawButton({
     <Animated.View
       style={[
         styles.wrapper,
-        isTenPull && styles.wrapperTen,
+        multiPull && styles.wrapperTen,
         disabled && styles.wrapperDisabled,
         pressStyle,
       ]}
@@ -113,7 +117,7 @@ export function DrawButton({
 
           {/* Content */}
           <View style={styles.content}>
-            {isTenPull && (
+            {multiPull && (
               <Ionicons
                 name={golden ? 'star' : 'sparkles'}
                 size={14}
@@ -121,12 +125,15 @@ export function DrawButton({
               />
             )}
             <Text
-              style={[styles.label, isTenPull && styles.labelTen, disabled && styles.labelDisabled]}
+              style={[styles.label, multiPull && styles.labelTen, disabled && styles.labelDisabled]}
             >
               {label}
             </Text>
           </View>
-          {isTenPull && disabled && <Text style={styles.subLabel}>券不足</Text>}
+          {multiPull && disabled && <Text style={styles.subLabel}>券不足</Text>}
+          {multiPull && !disabled && multiPullCount != null && multiPullCount < 10 && (
+            <Text style={styles.subLabelPartial}>仅剩 {multiPullCount} 抽</Text>
+          )}
         </LinearGradient>
       </Pressable>
     </Animated.View>
@@ -197,6 +204,11 @@ const styles = StyleSheet.create({
   subLabel: {
     fontSize: typography.captionSmall,
     color: withAlpha(colors.textInverse, 0.5),
+    marginTop: spacing.micro,
+  },
+  subLabelPartial: {
+    fontSize: typography.captionSmall,
+    color: withAlpha(colors.textInverse, 0.7),
     marginTop: spacing.micro,
   },
 });

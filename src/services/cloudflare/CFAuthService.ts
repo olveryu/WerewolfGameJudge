@@ -13,7 +13,7 @@ import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
-import { consumeWxCode } from '@/utils/miniProgram';
+import { clearWxCode, isMiniProgram, readWxCode } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
 import { cfGet, cfPost, cfPut, setTokenProvider } from './cfFetch';
@@ -36,7 +36,7 @@ export class CFAuthService implements IAuthService {
 
   async #autoSignIn(): Promise<void> {
     try {
-      const wxCode = consumeWxCode();
+      const wxCode = readWxCode();
       const existingUserId = await this.initAuth();
 
       if (wxCode) {
@@ -48,18 +48,38 @@ export class CFAuthService implements IAuthService {
             try {
               await this.bindWechat(wxCode);
               this.#hasWechat = true;
+              clearWxCode();
               authLog.info('WeChat bind succeeded');
             } catch (e) {
               authLog.warn('WeChat bind failed (non-fatal)', e);
             }
           }
         } else {
-          // 没有 session 或匿名 → 走微信登录
-          try {
-            await this.signInWithWechat(wxCode);
-            authLog.info('WeChat sign-in succeeded:', this.#currentUserId);
-          } catch (e) {
-            authLog.warn('WeChat sign-in failed, falling through', e);
+          // 没有 session 或匿名 → 走微信登录（最多重试 2 次）
+          let succeeded = false;
+          const MAX_RETRIES = 2;
+          for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+              await this.signInWithWechat(wxCode);
+              succeeded = true;
+              clearWxCode();
+              authLog.info('WeChat sign-in succeeded:', this.#currentUserId);
+              break;
+            } catch (e) {
+              authLog.warn(`WeChat sign-in attempt ${attempt}/${MAX_RETRIES} failed`, e);
+            }
+          }
+
+          if (!succeeded) {
+            if (isMiniProgram()) {
+              // 微信环境不降级匿名，UI 层将展示"登录失败，请重新进入"
+              authLog.error(
+                'WeChat sign-in exhausted in miniProgram, not falling back to anonymous',
+              );
+            } else {
+              authLog.info('Non-WeChat env, falling back to anonymous sign-in');
+              await this.signInAnonymously();
+            }
           }
         }
       } else if (existingUserId) {
