@@ -1,4 +1,4 @@
-var BASE_URL = 'https://werewolfjudge.eu.org/'
+var BASE_URL = 'https://werewolfgamejudge.pages.dev/'
 
 Page({
   data: {
