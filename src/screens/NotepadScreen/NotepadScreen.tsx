@@ -76,7 +76,7 @@ export const NotepadScreen: React.FC = () => {
       requestAIChatMessage({
         fullText: summary,
         displayText: '分析我的笔记',
-        maxTokens: 1024,
+        maxTokens: 10000,
       });
     });
   }, [facade, notepad.state, notepad.playerCount]);

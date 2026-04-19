@@ -16,7 +16,7 @@ import { jsonBody } from './shared';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const GEMINI_OPENAI_BASE = `${GEMINI_API_BASE}/openai`;
-const MAX_TOKENS_CAP = 4096;
+const MAX_TOKENS_CAP = 10240;
 const WORKERS_AI_MODEL = '@cf/google/gemma-3-12b-it';
 const MODEL_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const EXCLUDE_PATTERN = /tts|image|audio|customtools|embed|vision|video|veo|gemma|live|latest/i;

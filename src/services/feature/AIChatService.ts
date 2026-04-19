@@ -121,7 +121,7 @@ function buildGameContextPrompt(context: GameContext): string {
 const SYSTEM_PROMPT = `你是狼人杀游戏助手。职责：规则解答、策略建议、争议裁决。
 
 回答原则：
-- 简洁中文，控制在150字内
+- 简洁中文，默认简短回答；当用户提交笔记分析等长任务时按其要求的篇幅输出
 - 适当使用 **加粗** 突出关键词、- 列表分条说明、emoji 🐺 增加可读性
 - 本App只处理第一夜，白天在线下进行`;
 
@@ -181,6 +181,10 @@ export async function* streamChatMessage(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  // Combine caller abort signal with a 30s TTFB timeout so long inputs don't hang forever
+  const timeoutSignal = AbortSignal.timeout(30_000);
+  const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+
   let response: Response;
   try {
     response = await fetch(API_CONFIG.baseURL, {
@@ -192,10 +196,15 @@ export async function* streamChatMessage(
         temperature: 0.7,
         stream: true,
       }),
-      signal,
+      signal: combinedSignal,
     });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw error;
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      chatLog.warn('Streaming fetch timed out (30s TTFB)');
+      yield { type: 'error', content: 'AI 响应超时，请稍后重试' };
+      return;
+    }
     chatLog.warn('Streaming fetch failed (network)', error);
     yield { type: 'error', content: NETWORK_ERROR };
     return;
