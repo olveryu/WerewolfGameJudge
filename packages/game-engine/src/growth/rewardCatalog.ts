@@ -67,6 +67,13 @@ export const AVATAR_IDS = [
   'wolfWitch',
 ] as const;
 
+/** 传说头像框 ID 集合 — 用于客户端渲染传说动效判定 */
+// prettier-ignore
+export const LEGENDARY_FRAME_IDS: ReadonlySet<string> = new Set([
+  'stormBolt', 'dragonScale', 'starNebula', 'shadowWeave', 'celestialRing',
+  'obsidianEdge', 'pharaohGold', 'voidRift', 'coralReef', 'darkVine', 'sakuraDrift',
+]);
+
 /** 全部头像框 ID（与 `avatarFrames/index.ts` Component 注册表 1:1 对应）。 */
 // prettier-ignore
 export const FRAME_IDS = [

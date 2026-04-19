@@ -173,6 +173,7 @@ export {
   GOLDEN_RATES,
   isFrameUnlocked,
   isNameStyleUnlocked,
+  LEGENDARY_FRAME_IDS,
   LEVEL_THRESHOLDS,
   NAME_STYLE_IDS,
   type NameStyleId,

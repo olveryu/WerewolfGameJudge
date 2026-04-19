@@ -1,9 +1,10 @@
 /**
- * rarityVisual — 稀有度显示元数据（颜色、标签、辉光、chip 阴影）。
+ * rarityVisual — 稀有度显示元数据（颜色、标签、辉光、chip 阴影、格子样式）。
  *
  * GachaScreen / UnlocksScreen / AvatarPickerScreen 共用。
  */
 import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { ViewStyle } from 'react-native';
 
 import { withAlpha } from '@/theme';
 
@@ -34,3 +35,54 @@ export const RARITY_VISUAL: Record<Rarity, RarityVisual> = {
   epic: mkVisual('#9B59B6', 'rgba(155,89,182,0.5)', '史诗'),
   legendary: mkVisual('#F5A623', 'rgba(245,166,35,0.5)', '传说'),
 };
+
+// ─── Collection grid cell rarity styling ────────────────────────────────
+
+/** Rarity-based visual config for collection/picker grid cells */
+interface RarityCellConfig {
+  /** Top → bottom gradient colors for cell background tint */
+  gradientColors: readonly [string, string];
+  /** Border color override */
+  borderColor: string;
+  /** boxShadow glow (legendary only, empty for others) */
+  glow: ViewStyle;
+}
+
+/**
+ * Cell configs for rare+ items. Common items get no special treatment.
+ * Colors derived from RARITY_VISUAL to stay in sync with rarity theme.
+ */
+const RARITY_CELL: Record<Exclude<Rarity, 'common'>, RarityCellConfig> = {
+  rare: {
+    gradientColors: [
+      withAlpha(RARITY_VISUAL.rare.color, 0),
+      withAlpha(RARITY_VISUAL.rare.color, 0.06),
+    ],
+    borderColor: withAlpha(RARITY_VISUAL.rare.color, 0.2),
+    glow: {} as ViewStyle,
+  },
+  epic: {
+    gradientColors: [
+      withAlpha(RARITY_VISUAL.epic.color, 0.02),
+      withAlpha(RARITY_VISUAL.epic.color, 0.12),
+    ],
+    borderColor: withAlpha(RARITY_VISUAL.epic.color, 0.35),
+    glow: {} as ViewStyle,
+  },
+  legendary: {
+    gradientColors: [
+      withAlpha(RARITY_VISUAL.legendary.color, 0.03),
+      withAlpha(RARITY_VISUAL.legendary.color, 0.15),
+    ],
+    borderColor: withAlpha(RARITY_VISUAL.legendary.color, 0.5),
+    glow: {
+      boxShadow: `0px 0px 10px ${withAlpha(RARITY_VISUAL.legendary.color, 0.2)}`,
+    } as ViewStyle,
+  },
+};
+
+/** Returns cell visual config for a rarity, or null for common/missing. */
+export function getRarityCellConfig(rarity: Rarity | null): RarityCellConfig | null {
+  if (!rarity || rarity === 'common') return null;
+  return RARITY_CELL[rarity];
+}

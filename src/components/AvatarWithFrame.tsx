@@ -6,13 +6,16 @@
  * SVG 实际尺寸略大于 avatar，通过负偏移精确对齐：viewBox 坐标
  * 0-100 的主边框恰好覆盖 avatar 边缘，-8~0 / 100~108 的装饰
  * 向外溢出。不依赖 overflow:visible 的 SVG 行为。
+ * 传说框额外叠加 LegendaryShimmer 动效层（流光 + 辉光脉冲 + 星尘）。
  * Memoized 以避免不必要重渲染。不 import service，不含业务逻辑。
  */
+import { LEGENDARY_FRAME_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 import React, { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { getFrameById } from '@/components/avatarFrames';
+import { LegendaryShimmer } from '@/components/avatarFrames/LegendaryShimmer';
 import { borderRadius as themeBorderRadius } from '@/theme';
 
 /**
@@ -64,6 +67,7 @@ const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({
   const svgSize = (size * VB_TOTAL) / 100;
   const svgOffset = (-size * VB_PAD) / 100;
   const rxVB = (innerRadius * 100) / size;
+  const isLegendary = LEGENDARY_FRAME_IDS.has(frameId as string);
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
@@ -78,6 +82,14 @@ const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({
       <View style={[styles.frameOverlay, { left: svgOffset, top: svgOffset }]} pointerEvents="none">
         <FrameComponent size={svgSize} rx={rxVB} />
       </View>
+      {isLegendary && (
+        <View
+          style={[styles.frameOverlay, { left: svgOffset, top: svgOffset }]}
+          pointerEvents="none"
+        >
+          <LegendaryShimmer size={svgSize} rx={rxVB} />
+        </View>
+      )}
     </View>
   );
 };

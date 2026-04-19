@@ -35,9 +35,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
+import { RarityCellBg } from '@/components/RarityCellBg';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
-import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
+import { getRarityCellConfig, RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 import { RootStackParamList } from '@/navigation/types';
@@ -343,9 +344,20 @@ const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
       </Text>
     );
 
+  const rarityCfg = getRarityCellConfig(item.rarity);
+
   return (
     <View style={styles.cell}>
-      <View style={[styles.imageWrapper, item.unlocked ? styles.unlockedBorder : styles.lockedBg]}>
+      <View
+        style={[
+          styles.imageWrapper,
+          item.unlocked ? styles.unlockedBorder : styles.lockedBg,
+          item.unlocked && rarityCfg && { borderColor: rarityCfg.borderColor, ...rarityCfg.glow },
+        ]}
+      >
+        {item.unlocked && rarityCfg && (
+          <RarityCellBg rarity={item.rarity} borderRadius={borderRadius.medium - 2} />
+        )}
         {thumb}
         {/* Badge overlay */}
         {item.unlocked ? (

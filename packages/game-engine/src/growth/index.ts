@@ -42,6 +42,7 @@ export {
   FREE_FRAME_IDS,
   FREE_NAME_STYLE_IDS,
   getItemRarity,
+  LEGENDARY_FRAME_IDS,
   NAME_STYLE_IDS,
   type NameStyleId,
   type Rarity,

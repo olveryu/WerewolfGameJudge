@@ -38,10 +38,11 @@ import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
 import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
+import { RarityCellBg } from '@/components/RarityCellBg';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { type FlairId, getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
 import { UI_ICONS } from '@/config/iconTokens';
-import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
+import { getRarityCellConfig, RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
@@ -991,11 +992,13 @@ const FrameCell = memo<FrameCellProps>(
   ({ item, selectedFrame, previewAvatarUrl, uid, onPress, styles }) => {
     const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
     const isSelected = selectedFrame === item.id;
+    const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
 
     return (
       <TouchableOpacity
         style={[
           styles.frameGridCell,
+          rarityCfg && { borderColor: rarityCfg.borderColor, ...rarityCfg.glow },
           isSelected && styles.frameGridCellSelected,
           !isSelected && item.isActive && selectedFrame === null && styles.frameGridCellActive,
           !item.unlocked && styles.frameGridCellLocked,
@@ -1003,6 +1006,12 @@ const FrameCell = memo<FrameCellProps>(
         onPress={handlePress}
         activeOpacity={0.7}
       >
+        {rarityCfg && (
+          <RarityCellBg
+            rarity={item.rarity}
+            borderRadius={borderRadiusToken.medium - fixed.borderWidthThick}
+          />
+        )}
         {item.id === 'none' ? (
           <View
             style={[
@@ -1050,11 +1059,13 @@ const FlairCell = memo<FlairCellProps>(
     const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
     const isSelected = selectedFlair === item.id;
     const FlairComponent = item.id !== 'none' ? getFlairById(item.id)?.Component : undefined;
+    const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
 
     return (
       <TouchableOpacity
         style={[
           styles.frameGridCell,
+          rarityCfg && { borderColor: rarityCfg.borderColor, ...rarityCfg.glow },
           isSelected && styles.frameGridCellSelected,
           !isSelected && item.isActive && selectedFlair === null && styles.frameGridCellActive,
           !item.unlocked && styles.frameGridCellLocked,
@@ -1062,6 +1073,12 @@ const FlairCell = memo<FlairCellProps>(
         onPress={handlePress}
         activeOpacity={0.7}
       >
+        {rarityCfg && (
+          <RarityCellBg
+            rarity={item.rarity}
+            borderRadius={borderRadiusToken.medium - fixed.borderWidthThick}
+          />
+        )}
         {item.id === 'none' ? (
           <View
             style={[
@@ -1114,11 +1131,13 @@ interface NameStyleCellProps {
 const NameStyleCell = memo<NameStyleCellProps>(({ item, selectedNameStyle, onPress, styles }) => {
   const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
   const isSelected = selectedNameStyle === item.id;
+  const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
 
   return (
     <TouchableOpacity
       style={[
         styles.frameGridCell,
+        rarityCfg && { borderColor: rarityCfg.borderColor, ...rarityCfg.glow },
         isSelected && styles.frameGridCellSelected,
         !isSelected && item.isActive && selectedNameStyle === null && styles.frameGridCellActive,
         !item.unlocked && styles.frameGridCellLocked,
@@ -1126,6 +1145,12 @@ const NameStyleCell = memo<NameStyleCellProps>(({ item, selectedNameStyle, onPre
       onPress={handlePress}
       activeOpacity={0.7}
     >
+      {rarityCfg && (
+        <RarityCellBg
+          rarity={item.rarity}
+          borderRadius={borderRadiusToken.medium - fixed.borderWidthThick}
+        />
+      )}
       {item.id === 'none' ? (
         <View
           style={[
