@@ -1,7 +1,7 @@
 /**
  * FloatFlair — 浮点
  *
- * 一个小光点沿座位边缘缓慢漂浮。Common 级座位装饰模板。
+ * 一个小光点沿 Lissajous 曲线在座位内部漫游（不贴边）。Common 级座位装饰模板。
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -31,29 +31,22 @@ export const FloatFlair = memo<ColoredFlairProps>(({ size, colors }) => {
 
   const dotProps = useAnimatedProps(() => {
     'worklet';
-    const t = progress.value;
-    const angle = t * Math.PI * 2;
-    // Orbit along the edge with padding
-    const pad = size * 0.08;
-    const rx = size / 2 - pad;
-    const ry = size / 2 - pad;
-    const cx = size / 2 + Math.cos(angle) * rx;
-    const cy = size / 2 + Math.sin(angle) * ry;
-    // Gentle alpha pulsing
-    const alpha = 0.4 + Math.sin(t * Math.PI * 4) * 0.25;
+    const t = progress.value * Math.PI * 2;
+    // Lissajous curve (3:2 frequency ratio), amplitude stays inside tile
+    const amp = size * 0.28;
+    const cx = size / 2 + Math.sin(t * 3) * amp * 0.8;
+    const cy = size / 2 + Math.cos(t * 2) * amp * 0.7;
+    const alpha = 0.4 + Math.sin(t * 4) * 0.25;
     return { cx, cy, r: size * 0.02, opacity: alpha } as Record<string, number>;
   });
 
   const trailProps = useAnimatedProps(() => {
     'worklet';
-    const t = (progress.value - 0.05 + 1) % 1;
-    const angle = t * Math.PI * 2;
-    const pad = size * 0.08;
-    const rx = size / 2 - pad;
-    const ry = size / 2 - pad;
-    const cx = size / 2 + Math.cos(angle) * rx;
-    const cy = size / 2 + Math.sin(angle) * ry;
-    return { cx, cy, r: size * 0.015, opacity: 0.2 } as Record<string, number>;
+    const t = ((progress.value - 0.04 + 1) % 1) * Math.PI * 2;
+    const amp = size * 0.28;
+    const cx = size / 2 + Math.sin(t * 3) * amp * 0.8;
+    const cy = size / 2 + Math.cos(t * 2) * amp * 0.7;
+    return { cx, cy, r: size * 0.015, opacity: 0.18 } as Record<string, number>;
   });
 
   return (

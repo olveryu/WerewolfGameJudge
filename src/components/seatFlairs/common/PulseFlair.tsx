@@ -1,9 +1,9 @@
 /**
  * PulseFlair — 脉冲
  *
- * 一个从中心扩散的圆环，反复脉冲。Common 级座位装饰模板。
+ * 2-3 个散布光斑，脉冲式明灭+微缩放。Common 级座位装饰模板。
  */
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Easing,
@@ -22,6 +22,33 @@ interface ColoredFlairProps extends FlairProps {
   colors: FlairColorSet;
 }
 
+const SPOTS = [
+  { xFrac: 0.3, yFrac: 0.3, rFrac: 0.04, phase: 0 },
+  { xFrac: 0.7, yFrac: 0.55, rFrac: 0.035, phase: 0.4 },
+  { xFrac: 0.45, yFrac: 0.75, rFrac: 0.03, phase: 0.75 },
+] as const;
+
+const PulseSpot = memo<{
+  spot: (typeof SPOTS)[number];
+  size: number;
+  progress: { value: number };
+  color: string;
+}>(({ spot, size, progress, color }) => {
+  const props = useAnimatedProps(() => {
+    'worklet';
+    const t = (progress.value + spot.phase) % 1;
+    const pulse = Math.sin(t * Math.PI * 2);
+    const alpha = 0.15 + (pulse + 1) * 0.25;
+    const r = size * spot.rFrac * (0.7 + (pulse + 1) * 0.3);
+    return { cx: spot.xFrac * size, cy: spot.yFrac * size, r, opacity: alpha } as Record<
+      string,
+      number
+    >;
+  });
+  return <AnimatedCircle animatedProps={props} fill={color} />;
+});
+PulseSpot.displayName = 'PulseSpot';
+
 export const PulseFlair = memo<ColoredFlairProps>(({ size, colors }) => {
   const progress = useSharedValue(0);
 
@@ -29,33 +56,14 @@ export const PulseFlair = memo<ColoredFlairProps>(({ size, colors }) => {
     progress.value = withRepeat(withTiming(1, { duration: 2500, easing: Easing.linear }), -1);
   }, [progress]);
 
-  const ring1Props = useAnimatedProps(() => {
-    'worklet';
-    const t = progress.value;
-    const r = size * 0.2 + t * size * 0.3;
-    const alpha = (1 - t) * 0.5;
-    return { cx: size / 2, cy: size / 2, r, opacity: alpha, strokeWidth: 1.5 } as Record<
-      string,
-      number
-    >;
-  });
-
-  const ring2Props = useAnimatedProps(() => {
-    'worklet';
-    const t = (progress.value + 0.5) % 1;
-    const r = size * 0.2 + t * size * 0.3;
-    const alpha = (1 - t) * 0.4;
-    return { cx: size / 2, cy: size / 2, r, opacity: alpha, strokeWidth: 1.2 } as Record<
-      string,
-      number
-    >;
-  });
+  const spots = useMemo(() => SPOTS, []);
 
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
       <Svg width={size} height={size}>
-        <AnimatedCircle animatedProps={ring1Props} fill="none" stroke={colors.rgb} />
-        <AnimatedCircle animatedProps={ring2Props} fill="none" stroke={colors.rgbLight} />
+        {spots.map((s, i) => (
+          <PulseSpot key={i} spot={s} size={size} progress={progress} color={colors.rgb} />
+        ))}
       </Svg>
     </View>
   );
