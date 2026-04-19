@@ -17,7 +17,7 @@ import { colors } from '@/theme';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 
-import { createAuthScreenStyles } from './styles';
+import { createAuthScreenStyles } from './AuthScreen.styles';
 
 type RouteProp = import('@react-navigation/native').RouteProp<
   RootStackParamList,

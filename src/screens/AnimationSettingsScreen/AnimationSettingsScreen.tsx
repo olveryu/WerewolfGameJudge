@@ -28,7 +28,7 @@ import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
 import { colors, spacing, typography } from '@/theme';
 
-import { createAnimationSettingsStyles } from './styles';
+import { createAnimationSettingsStyles } from './AnimationSettingsScreen.styles';
 
 /** Mock role for preview — 预言家 */
 const PREVIEW_ROLE: RoleData = createRoleData(

@@ -53,7 +53,7 @@ import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed, layout, spacing, typography, withAlpha } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 
-import { type BoardPickerStyles, createBoardPickerStyles } from './styles';
+import { type BoardPickerStyles, createBoardPickerStyles } from './BoardPickerScreen.styles';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {

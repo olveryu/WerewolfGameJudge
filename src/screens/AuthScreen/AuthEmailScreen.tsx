@@ -20,7 +20,7 @@ import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
 
-import { createAuthScreenStyles } from './styles';
+import { createAuthScreenStyles } from './AuthScreen.styles';
 
 type RouteProp = import('@react-navigation/native').RouteProp<RootStackParamList, 'AuthEmail'>;
 

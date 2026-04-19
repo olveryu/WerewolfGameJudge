@@ -24,7 +24,7 @@ import { colors, componentSizes, fixed, spacing, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { NowPlayingBar, TrackRow, VolumeSlider } from './components';
-import { createMusicSettingsStyles } from './styles';
+import { createMusicSettingsStyles } from './MusicSettingsScreen.styles';
 
 const musicSettingsLog = log.extend('MusicSettingsScreen');
 

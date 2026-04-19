@@ -20,7 +20,7 @@ import { getErrorMessage } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 
-import { createAuthScreenStyles } from './styles';
+import { createAuthScreenStyles } from './AuthScreen.styles';
 
 type RouteProp = import('@react-navigation/native').RouteProp<RootStackParamList, 'AuthLogin'>;
 
