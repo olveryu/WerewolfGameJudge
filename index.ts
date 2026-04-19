@@ -19,16 +19,14 @@ import { Platform } from 'react-native';
  *
  * @see https://shopify.github.io/react-native-skia/docs/getting-started/web
  */
-// Self-hosted on same origin (public/canvaskit/) to avoid cdn.jsdelivr.net being
-// unreachable inside WeChat mini-program web-view in mainland China.
-// Metro dev server serves public/ automatically; prod export copies it to dist/.
-const CANVASKIT_PATH = '/canvaskit';
+const CANVASKIT_VERSION = '0.40.0';
+const CANVASKIT_CDN = `https://cdn.jsdelivr.net/npm/canvaskit-wasm@${CANVASKIT_VERSION}/bin/full`;
 
 async function main() {
   if (Platform.OS === 'web') {
     const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
     await LoadSkiaWeb({
-      locateFile: (file: string) => `${CANVASKIT_PATH}/${file}`,
+      locateFile: (file: string) => `${CANVASKIT_CDN}/${file}`,
     });
   }
 

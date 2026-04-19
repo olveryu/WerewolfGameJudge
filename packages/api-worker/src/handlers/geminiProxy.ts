@@ -72,6 +72,63 @@ function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
 
 export const geminiRoutes = new Hono<AppEnv>();
 
+type Message = { role: string; content: string };
+
+/**
+ * Transform OpenAI-style messages for Workers AI (Gemma) compatibility:
+ * 1. Merge "system" messages into the next "user" message (Gemma has no system role)
+ * 2. Enforce strict user→assistant→user alternation by merging consecutive same-role messages
+ * 3. Ensure conversation starts with "user" and ends with "user"
+ */
+function toWorkersAIMessages(messages: Message[]): Message[] {
+  // Step 1: Merge system into next user message
+  const merged: Message[] = [];
+  let pendingSystem = '';
+  for (const msg of messages) {
+    if (msg.role === 'system') {
+      pendingSystem += (pendingSystem ? '\n' : '') + msg.content;
+    } else {
+      if (pendingSystem && msg.role === 'user') {
+        merged.push({ role: 'user', content: `${pendingSystem}\n\n${msg.content}` });
+        pendingSystem = '';
+      } else {
+        if (pendingSystem) {
+          // system before assistant — push as user message
+          merged.push({ role: 'user', content: pendingSystem });
+          pendingSystem = '';
+        }
+        merged.push({ role: msg.role, content: msg.content });
+      }
+    }
+  }
+  if (pendingSystem) {
+    merged.push({ role: 'user', content: pendingSystem });
+  }
+
+  // Step 2: Enforce alternation — merge consecutive same-role messages
+  const alternated: Message[] = [];
+  for (const msg of merged) {
+    const last = alternated[alternated.length - 1];
+    if (last && last.role === msg.role) {
+      last.content += '\n' + msg.content;
+    } else {
+      alternated.push({ ...msg });
+    }
+  }
+
+  // Step 3: Ensure starts with user
+  if (alternated.length > 0 && alternated[0].role !== 'user') {
+    alternated.unshift({ role: 'user', content: '(continue)' });
+  }
+
+  // Step 4: Ensure ends with user (last message should be the question)
+  if (alternated.length > 0 && alternated[alternated.length - 1].role !== 'user') {
+    alternated.push({ role: 'user', content: '(continue)' });
+  }
+
+  return alternated;
+}
+
 geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
   const env = c.env;
   const parsed = c.req.valid('json');
@@ -103,18 +160,13 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
         body: JSON.stringify(geminiBody),
       });
 
-      // Geo-restriction, rate limit, or server error → fall through to Workers AI
-      if (geminiResponse.status === 429) {
-        console.info('[ai-chat] Gemini rate limited, falling back to Workers AI');
-      } else if (geminiResponse.status >= 500) {
-        console.info(`[ai-chat] Gemini ${geminiResponse.status}, falling back to Workers AI`);
-      } else if (geminiResponse.status === 400) {
+      // Any non-2xx → fall through to Workers AI (log reason for diagnostics)
+      if (!geminiResponse.ok) {
         const errorText = await geminiResponse.text();
-        if (errorText.includes('User location is not supported')) {
-          console.info('[ai-chat] Gemini geo-restricted, falling back to Workers AI');
-        } else {
-          return c.json({ error: 'ai_unavailable' }, 400);
-        }
+        console.info(
+          `[ai-chat] Gemini ${geminiResponse.status}, falling back to Workers AI:`,
+          errorText.slice(0, 200),
+        );
       } else if (stream) {
         return new Response(geminiResponse.body, {
           headers: {
@@ -133,9 +185,13 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
   }
 
   // ── Fallback: Workers AI ───────────────────────────────────────────────
+  // Gemma models don't support "system" role and require strict user/assistant alternation.
+  // Merge system prompts into the first user message, then enforce alternation.
+  const workersMessages = toWorkersAIMessages(messages);
+
   try {
     const aiResponse = await env.AI.run(WORKERS_AI_MODEL, {
-      messages,
+      messages: workersMessages,
       stream,
       temperature,
       max_tokens: maxTokens,

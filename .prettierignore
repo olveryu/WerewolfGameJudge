@@ -9,7 +9,6 @@ coverage
 miniapp
 playwright-report
 pnpm-lock.yaml
-public/canvaskit
 .venv
 tsconfig.json
 expo-env.d.ts
