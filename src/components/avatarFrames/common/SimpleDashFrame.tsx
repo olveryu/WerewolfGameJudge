@@ -25,21 +25,9 @@ export const SimpleDashFrame = memo<ColoredFrameProps>(({ size, rx, colors }) =>
         rx={rx}
         fill="none"
         stroke={colors.primary}
-        strokeWidth={2}
+        strokeWidth={1.5}
         strokeDasharray="8 4"
-        opacity={0.85}
-      />
-      {/* Subtle inner glow */}
-      <Rect
-        x={3}
-        y={3}
-        width={94}
-        height={94}
-        rx={Math.max(rx - 3, 0)}
-        fill="none"
-        stroke={colors.light}
-        strokeWidth={0.8}
-        opacity={0.3}
+        opacity={0.7}
       />
     </Svg>
   );

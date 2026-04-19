@@ -21,22 +21,10 @@ export const SimpleRoundFrame = memo<ColoredFrameProps>(({ size, rx, colors }) =
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={colors.light} stopOpacity={0.6} />
-          <Stop offset="1" stopColor={colors.primary} stopOpacity={0.9} />
+          <Stop offset="0" stopColor={colors.light} stopOpacity={0.45} />
+          <Stop offset="1" stopColor={colors.primary} stopOpacity={0.75} />
         </LinearGradient>
       </Defs>
-      {/* Outer glow */}
-      <Rect
-        x={-2}
-        y={-2}
-        width={104}
-        height={104}
-        rx={rx + 2}
-        fill="none"
-        stroke={colors.primary}
-        strokeWidth={1}
-        opacity={0.25}
-      />
       {/* Main border */}
       <Rect
         x={0}
@@ -46,7 +34,7 @@ export const SimpleRoundFrame = memo<ColoredFrameProps>(({ size, rx, colors }) =
         rx={rx}
         fill="none"
         stroke={`url(#${gradId})`}
-        strokeWidth={2.5}
+        strokeWidth={2}
       />
     </Svg>
   );

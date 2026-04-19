@@ -34,7 +34,7 @@ export const SimpleDoubleFrame = memo<ColoredFrameProps>(({ size, rx, colors }) 
         rx={rx}
         fill="none"
         stroke={`url(#${gradId})`}
-        strokeWidth={2}
+        strokeWidth={1.5}
       />
       {/* Inner border */}
       <Rect
@@ -45,8 +45,8 @@ export const SimpleDoubleFrame = memo<ColoredFrameProps>(({ size, rx, colors }) 
         rx={innerRx}
         fill="none"
         stroke={colors.primary}
-        strokeWidth={1.5}
-        opacity={0.6}
+        strokeWidth={1}
+        opacity={0.45}
       />
     </Svg>
   );

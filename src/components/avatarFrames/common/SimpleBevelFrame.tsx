@@ -16,22 +16,16 @@ interface ColoredFrameProps extends FrameProps {
 export const SimpleBevelFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
   const uid = useId();
   const outerGradId = `bevelOuter${uid}`;
-  const innerGradId = `bevelInner${uid}`;
-  const innerRx = Math.max(rx - 4, 2);
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={outerGradId} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={colors.light} stopOpacity={0.75} />
-          <Stop offset="0.5" stopColor={colors.primary} stopOpacity={0.9} />
-          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.85} />
-        </LinearGradient>
-        <LinearGradient id={innerGradId} x1="1" y1="1" x2="0" y2="0">
-          <Stop offset="0" stopColor={colors.light} stopOpacity={0.4} />
-          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.5} />
+          <Stop offset="0" stopColor={colors.light} stopOpacity={0.6} />
+          <Stop offset="0.5" stopColor={colors.primary} stopOpacity={0.75} />
+          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.7} />
         </LinearGradient>
       </Defs>
-      {/* Outer bevel */}
+      {/* Main bevel border */}
       <Rect
         x={0}
         y={0}
@@ -40,18 +34,7 @@ export const SimpleBevelFrame = memo<ColoredFrameProps>(({ size, rx, colors }) =
         rx={rx}
         fill="none"
         stroke={`url(#${outerGradId})`}
-        strokeWidth={3}
-      />
-      {/* Inner bevel inset */}
-      <Rect
-        x={4}
-        y={4}
-        width={92}
-        height={92}
-        rx={innerRx}
-        fill="none"
-        stroke={`url(#${innerGradId})`}
-        strokeWidth={1}
+        strokeWidth={2}
       />
     </Svg>
   );

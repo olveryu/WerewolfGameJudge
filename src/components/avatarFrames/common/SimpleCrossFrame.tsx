@@ -44,16 +44,16 @@ export const SimpleCrossFrame = memo<ColoredFrameProps>(({ size, rx, colors }) =
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor={colors.dark} stopOpacity={0.8} />
-          <Stop offset="0.5" stopColor={colors.primary} stopOpacity={0.9} />
-          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.8} />
+          <Stop offset="0" stopColor={colors.dark} stopOpacity={0.65} />
+          <Stop offset="0.5" stopColor={colors.primary} stopOpacity={0.75} />
+          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.65} />
         </LinearGradient>
       </Defs>
       <Path
         d={crossPath(inset)}
         fill="none"
         stroke={`url(#${gradId})`}
-        strokeWidth={2.5}
+        strokeWidth={2}
         strokeLinejoin="round"
       />
     </Svg>

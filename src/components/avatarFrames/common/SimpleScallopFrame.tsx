@@ -72,11 +72,11 @@ export const SimpleScallopFrame = memo<ColoredFrameProps>(({ size, colors }) => 
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.primary} stopOpacity={0.8} />
-          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.85} />
+          <Stop offset="0" stopColor={colors.primary} stopOpacity={0.65} />
+          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.7} />
         </LinearGradient>
       </Defs>
-      <Path d={scallopPath()} fill="none" stroke={`url(#${gradId})`} strokeWidth={2} />
+      <Path d={scallopPath()} fill="none" stroke={`url(#${gradId})`} strokeWidth={1.5} />
     </Svg>
   );
 });

@@ -16,7 +16,6 @@ interface ColoredFrameProps extends FrameProps {
 export const SimpleSquareFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
   const uid = useId();
   const gradId = `squareGrad${uid}`;
-  const innerRx = Math.max(rx - 5, 2);
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
@@ -25,7 +24,7 @@ export const SimpleSquareFrame = memo<ColoredFrameProps>(({ size, rx, colors }) 
           <Stop offset="1" stopColor={colors.dark} stopOpacity={0.9} />
         </LinearGradient>
       </Defs>
-      {/* Outer border */}
+      {/* Main border */}
       <Rect
         x={0}
         y={0}
@@ -34,19 +33,7 @@ export const SimpleSquareFrame = memo<ColoredFrameProps>(({ size, rx, colors }) 
         rx={rx}
         fill="none"
         stroke={`url(#${gradId})`}
-        strokeWidth={2.5}
-      />
-      {/* Inner border accent */}
-      <Rect
-        x={5}
-        y={5}
-        width={90}
-        height={90}
-        rx={innerRx}
-        fill="none"
-        stroke={colors.light}
-        strokeWidth={1}
-        opacity={0.4}
+        strokeWidth={2}
       />
     </Svg>
   );

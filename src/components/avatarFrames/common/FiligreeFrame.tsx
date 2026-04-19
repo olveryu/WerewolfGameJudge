@@ -37,11 +37,23 @@ export const FiligreeFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={gBorder} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={colors.light} stopOpacity={0.6} />
-          <Stop offset="0.5" stopColor={colors.primary} stopOpacity={0.9} />
-          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.8} />
+          <Stop offset="0" stopColor={colors.light} stopOpacity={0.7} />
+          <Stop offset="0.4" stopColor={colors.primary} stopOpacity={0.95} />
+          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.85} />
         </LinearGradient>
       </Defs>
+      {/* Outer glow */}
+      <Rect
+        x={-2}
+        y={-2}
+        width={104}
+        height={104}
+        rx={rx + 2}
+        fill="none"
+        stroke={colors.primary}
+        strokeWidth={1}
+        opacity={0.2}
+      />
       {/* Main border */}
       <Rect
         x={0}
@@ -51,7 +63,7 @@ export const FiligreeFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
         rx={rx}
         fill="none"
         stroke={`url(#${gBorder})`}
-        strokeWidth={2}
+        strokeWidth={3}
       />
       {/* Corner scrollwork */}
       {scrollPaths.map((d, i) => (
@@ -60,8 +72,8 @@ export const FiligreeFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
           d={d}
           fill="none"
           stroke={colors.light}
-          strokeWidth={1.2}
-          opacity={0.65}
+          strokeWidth={1.5}
+          opacity={0.8}
           strokeLinecap="round"
         />
       ))}

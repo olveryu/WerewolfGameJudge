@@ -36,9 +36,9 @@ export const SimpleOctagonFrame = memo<ColoredFrameProps>(({ size, rx, colors })
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={colors.light} stopOpacity={0.5} />
-          <Stop offset="0.5" stopColor={colors.primary} stopOpacity={0.9} />
-          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.85} />
+          <Stop offset="0" stopColor={colors.light} stopOpacity={0.4} />
+          <Stop offset="0.5" stopColor={colors.primary} stopOpacity={0.75} />
+          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.7} />
         </LinearGradient>
       </Defs>
       {/* Octagon border */}
@@ -46,7 +46,7 @@ export const SimpleOctagonFrame = memo<ColoredFrameProps>(({ size, rx, colors })
         d={octagonPath(cut)}
         fill="none"
         stroke={`url(#${gradId})`}
-        strokeWidth={2.5}
+        strokeWidth={2}
         strokeLinejoin="round"
       />
     </Svg>

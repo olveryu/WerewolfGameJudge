@@ -1,56 +1,60 @@
 /**
  * WaveFlair — 波纹
  *
- * A horizontal sine wave that ripples along the bottom edge. Common 级座位装饰模板。
+ * 两条短斜线在座位内部缓慢平移+淡入淡出，模拟玻璃高光扫过。
+ * Common 级座位装饰模板。
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
+import {
   Easing,
   useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import Svg from 'react-native-svg';
 
 import type { FlairProps } from '../FlairProps';
+import { AnimatedLine } from '../svgAnimatedPrimitives';
 import type { FlairColorSet } from './palette';
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface ColoredFlairProps extends FlairProps {
   colors: FlairColorSet;
 }
 
+/** Diagonal streak length as fraction of tile size */
+const STREAK_LEN = 0.25;
+
 export const WaveFlair = memo<ColoredFlairProps>(({ size, colors }) => {
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 3400, easing: Easing.linear }), -1);
+    progress.value = withRepeat(withTiming(1, { duration: 4200, easing: Easing.linear }), -1);
   }, [progress]);
 
-  const pathProps = useAnimatedProps(() => {
+  // Single subtle streak: sweeps left→right across center
+  const streakProps = useAnimatedProps(() => {
     'worklet';
     const t = progress.value;
-    const y0 = size * 0.88;
-    const amp = size * 0.04;
-    const segments = 24;
-    const dx = size / segments;
-    let d = `M 0 ${y0}`;
-    for (let i = 1; i <= segments; i++) {
-      const x = i * dx;
-      const phase = t * Math.PI * 2 + (i / segments) * Math.PI * 4;
-      const y = y0 + Math.sin(phase) * amp;
-      d += ` L ${x} ${y}`;
-    }
-    return { d, opacity: 0.4 } as Record<string, string | number>;
+    const cx = size * (0.15 + t * 0.7);
+    const cy = size * 0.45;
+    const half = (size * STREAK_LEN) / 2;
+    const fade = Math.sin(t * Math.PI);
+    return {
+      x1: cx - half * 0.5,
+      y1: cy - half,
+      x2: cx + half * 0.5,
+      y2: cy + half,
+      opacity: fade * 0.3,
+      strokeWidth: 1.5,
+    } as Record<string, number>;
   });
 
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
       <Svg width={size} height={size}>
-        <AnimatedPath animatedProps={pathProps} fill="none" stroke={colors.rgb} strokeWidth={1.2} />
+        <AnimatedLine animatedProps={streakProps} stroke={colors.rgb} strokeLinecap="round" />
       </Svg>
     </View>
   );

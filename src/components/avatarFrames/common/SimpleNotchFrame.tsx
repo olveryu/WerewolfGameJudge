@@ -36,15 +36,15 @@ export const SimpleNotchFrame = memo<ColoredFrameProps>(({ size, rx, colors }) =
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={gradId} x1="0.5" y1="0" x2="0.5" y2="1">
-          <Stop offset="0" stopColor={colors.light} stopOpacity={0.6} />
-          <Stop offset="1" stopColor={colors.primary} stopOpacity={0.85} />
+          <Stop offset="0" stopColor={colors.light} stopOpacity={0.45} />
+          <Stop offset="1" stopColor={colors.primary} stopOpacity={0.7} />
         </LinearGradient>
       </Defs>
       <Path
         d={notchPath(notch)}
         fill="none"
         stroke={`url(#${gradId})`}
-        strokeWidth={2.5}
+        strokeWidth={2}
         strokeLinejoin="round"
       />
     </Svg>

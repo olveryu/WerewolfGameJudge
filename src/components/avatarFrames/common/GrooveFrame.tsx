@@ -25,15 +25,28 @@ export const GrooveFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
       <Defs>
         {/* Outer: highlight gradient (light → mid) simulates raised edge */}
         <LinearGradient id={gOuter} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.light} stopOpacity={0.85} />
-          <Stop offset="1" stopColor={colors.primary} stopOpacity={0.6} />
+          <Stop offset="0" stopColor={colors.light} stopOpacity={0.95} />
+          <Stop offset="0.5" stopColor={colors.primary} stopOpacity={0.7} />
+          <Stop offset="1" stopColor={colors.primary} stopOpacity={0.8} />
         </LinearGradient>
         {/* Inner: shadow gradient (dark → mid) simulates recessed edge */}
         <LinearGradient id={gInner} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.dark} stopOpacity={0.7} />
-          <Stop offset="1" stopColor={colors.primary} stopOpacity={0.5} />
+          <Stop offset="0" stopColor={colors.dark} stopOpacity={0.85} />
+          <Stop offset="1" stopColor={colors.primary} stopOpacity={0.65} />
         </LinearGradient>
       </Defs>
+      {/* Outer glow */}
+      <Rect
+        x={-2}
+        y={-2}
+        width={104}
+        height={104}
+        rx={rx + 2}
+        fill="none"
+        stroke={colors.primary}
+        strokeWidth={1}
+        opacity={0.2}
+      />
       {/* Highlight edge (raised) */}
       <Rect
         x={0}
@@ -43,7 +56,7 @@ export const GrooveFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
         rx={rx}
         fill="none"
         stroke={`url(#${gOuter})`}
-        strokeWidth={2}
+        strokeWidth={3}
       />
       {/* Groove channel */}
       <Rect
@@ -54,8 +67,8 @@ export const GrooveFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
         rx={midRx}
         fill="none"
         stroke={colors.primary}
-        strokeWidth={2.5}
-        opacity={0.45}
+        strokeWidth={3}
+        opacity={0.55}
       />
       {/* Shadow edge (recessed) */}
       <Rect
@@ -66,7 +79,7 @@ export const GrooveFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
         rx={innerRx}
         fill="none"
         stroke={`url(#${gInner})`}
-        strokeWidth={1.5}
+        strokeWidth={2}
       />
     </Svg>
   );
