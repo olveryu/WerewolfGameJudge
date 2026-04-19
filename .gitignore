@@ -69,3 +69,6 @@ assets/badges/report.json
 
 # asdf version manager (pnpm version managed by package.json "packageManager")
 .tool-versions
+
+# Temporary SQL files (ad-hoc D1 queries)
+*.tmp.sql
