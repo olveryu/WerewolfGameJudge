@@ -13,32 +13,120 @@ import {
   NavigationContainer,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React from 'react';
+import React, { Suspense } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { SITE_URL } from '@/config/api';
-import { AnimationSettingsScreen } from '@/screens/AnimationSettingsScreen/AnimationSettingsScreen';
 import {
   AuthEmailScreen,
   AuthForgotPasswordScreen,
   AuthLoginScreen,
   AuthResetPasswordScreen,
 } from '@/screens/AuthScreen';
-import { AvatarPickerScreen } from '@/screens/AvatarPickerScreen/AvatarPickerScreen';
-import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
-import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
-import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
-import { GachaScreen } from '@/screens/GachaScreen/GachaScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
-import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
-import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
-import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
-import { UnlocksScreen } from '@/screens/UnlocksScreen/UnlocksScreen';
 import { colors } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { navigationRef } from './navigationRef';
 import { RootStackParamList } from './types';
+
+// ---------------------------------------------------------------------------
+// Lazy-loaded screens — loaded on first navigation, reduces initial JS bundle
+// ---------------------------------------------------------------------------
+const lazyStyles = StyleSheet.create({
+  fallback: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+});
+
+const LazyFallback = () => (
+  <View style={lazyStyles.fallback}>
+    <ActivityIndicator color={colors.text} size="large" />
+  </View>
+);
+
+/** Wrap a React.lazy component with a Suspense boundary for React Navigation. */
+function withSuspense<P extends Record<string, unknown>>(
+  lazyComponent: React.LazyExoticComponent<React.ComponentType<P>>,
+): React.FC<P> {
+  const Component = lazyComponent;
+  const Wrapped: React.FC<P> = (props) => (
+    <Suspense fallback={<LazyFallback />}>
+      <Component {...props} />
+    </Suspense>
+  );
+  return Wrapped;
+}
+
+const BoardPickerScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/BoardPickerScreen/BoardPickerScreen').then((m) => ({
+      default: m.BoardPickerScreen,
+    })),
+  ),
+);
+const ConfigScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/ConfigScreen/ConfigScreen').then((m) => ({ default: m.ConfigScreen })),
+  ),
+);
+const RoomScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/RoomScreen/RoomScreen').then((m) => ({ default: m.RoomScreen })),
+  ),
+);
+const SettingsScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/SettingsScreen/SettingsScreen').then((m) => ({ default: m.SettingsScreen })),
+  ),
+);
+const AnimationSettingsScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/AnimationSettingsScreen/AnimationSettingsScreen').then((m) => ({
+      default: m.AnimationSettingsScreen,
+    })),
+  ),
+);
+const MusicSettingsScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/MusicSettingsScreen/MusicSettingsScreen').then((m) => ({
+      default: m.MusicSettingsScreen,
+    })),
+  ),
+);
+const EncyclopediaScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/EncyclopediaScreen/EncyclopediaScreen').then((m) => ({
+      default: m.EncyclopediaScreen,
+    })),
+  ),
+);
+const NotepadScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/NotepadScreen/NotepadScreen').then((m) => ({ default: m.NotepadScreen })),
+  ),
+);
+const AvatarPickerScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/AvatarPickerScreen/AvatarPickerScreen').then((m) => ({
+      default: m.AvatarPickerScreen,
+    })),
+  ),
+);
+const UnlocksScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/UnlocksScreen/UnlocksScreen').then((m) => ({ default: m.UnlocksScreen })),
+  ),
+);
+const GachaScreen = withSuspense(
+  React.lazy(() =>
+    import('@/screens/GachaScreen/GachaScreen').then((m) => ({ default: m.GachaScreen })),
+  ),
+);
+// ---------------------------------------------------------------------------
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
