@@ -138,6 +138,9 @@ importers:
       '@welldone-software/why-did-you-render':
         specifier: ^10.0.1
         version: 10.0.1(react@19.2.0)
+      babel-plugin-transform-define:
+        specifier: ^2.1.4
+        version: 2.1.4
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
@@ -2804,6 +2807,10 @@ packages:
 
   babel-plugin-syntax-hermes-parser@0.33.3:
     resolution: {integrity: sha512-/Z9xYdaJ1lC0pT9do6TqCqhOSLfZ5Ot8D5za1p+feEfWYupCOfGbhhEXN9r2ZgJtDNUNRw/Z+T2CvAGKBqtqWA==}
+
+  babel-plugin-transform-define@2.1.4:
+    resolution: {integrity: sha512-NN9xFmyNvr4swPZkRWy+RZZoV0yHhPk/WoxpuIvcVkTyYf0xy/JTQeZVbVGX8hyJ0/NKKuxnt4BZz9No7BziVA==}
+    engines: {node: '>= 8.x.x'}
 
   babel-plugin-transform-flow-enums@0.0.2:
     resolution: {integrity: sha512-g4aaCrDDOsWjbm0PUUeVnkcVd6AKJsVc/MbnPhEotEpkeJQP6b8nzewohQi7+QS8UyPehOhGWn0nOwjvWpmMvQ==}
@@ -6055,6 +6062,9 @@ packages:
   tr46@3.0.0:
     resolution: {integrity: sha512-l7FvfAHlcmulp8kr+flpQZmVwtu7nfRV7NZujtN0OqES8EL4O4e0qqzL0DC5gAvx/ZC/9lk6rhcUwYvkBnBnYA==}
     engines: {node: '>=12'}
+
+  traverse@0.6.6:
+    resolution: {integrity: sha512-kdf4JKs8lbARxWdp7RKdNzoJBhGUcIalSYibuGyHJbmk40pOysQ0+QPvlkCOICOivDWU2IJo2rkrxyTK2AH4fw==}
 
   tree-kill@1.2.2:
     resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
@@ -9396,6 +9406,11 @@ snapshots:
     dependencies:
       hermes-parser: 0.33.3
     optional: true
+
+  babel-plugin-transform-define@2.1.4:
+    dependencies:
+      lodash: 4.18.1
+      traverse: 0.6.6
 
   babel-plugin-transform-flow-enums@0.0.2(@babel/core@7.29.0):
     dependencies:
@@ -13504,6 +13519,8 @@ snapshots:
   tr46@3.0.0:
     dependencies:
       punycode: 2.3.1
+
+  traverse@0.6.6: {}
 
   tree-kill@1.2.2: {}
 

@@ -103,6 +103,7 @@
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.14",
     "@welldone-software/why-did-you-render": "^10.0.1",
+    "babel-plugin-transform-define": "^2.1.4",
     "concurrently": "^9.2.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
