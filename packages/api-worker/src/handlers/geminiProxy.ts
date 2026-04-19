@@ -19,7 +19,7 @@ const GEMINI_OPENAI_BASE = `${GEMINI_API_BASE}/openai`;
 const MAX_TOKENS_CAP = 4096;
 const WORKERS_AI_MODEL = '@cf/google/gemma-3-12b-it';
 const MODEL_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-const EXCLUDE_PATTERN = /tts|image|audio|customtools|embed|vision|video|veo|gemma|live/i;
+const EXCLUDE_PATTERN = /tts|image|audio|customtools|embed|vision|video|veo|gemma|live|latest/i;
 
 // ── Model discovery cache (isolate-scoped, stale-while-revalidate) ───────
 let cachedModels: string[] = [];
@@ -67,10 +67,10 @@ async function fetchSortedModels(apiKey: string): Promise<string[]> {
 
 /** Extract version number and lite flag from model ID like "gemini-3.1-flash-lite-preview" */
 function parseVersion(modelId: string): { major: number; minor: number; lite: boolean } {
-  const match = modelId.match(/gemini-(\d+)\.(\d+)/);
+  const match = modelId.match(/gemini-(\d+)(?:\.(\d+))?/);
   return {
     major: match ? Number(match[1]) : 0,
-    minor: match ? Number(match[2]) : 0,
+    minor: match?.[2] ? Number(match[2]) : 0,
     lite: modelId.includes('lite'),
   };
 }
