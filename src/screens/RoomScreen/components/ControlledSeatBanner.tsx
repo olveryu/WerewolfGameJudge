@@ -8,7 +8,7 @@
  * Performance: Memoized, receives pre-created styles from parent.
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import React, { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

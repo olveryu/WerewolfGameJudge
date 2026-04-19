@@ -8,7 +8,7 @@
  * 不直接调用 service / AsyncStorage / game-engine。
  */
 
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import React, { useCallback, useState } from 'react';

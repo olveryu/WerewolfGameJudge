@@ -6,7 +6,7 @@
  *
  * 角色 emoji 仍由 specs.ts 定义；夜间行动前缀 / 庆典粒子仍在 emojiTokens.ts。
  */
-import type { Ionicons } from '@expo/vector-icons';
+import type Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps } from 'react';
 
 export type IoniconsName = ComponentProps<typeof Ionicons>['name'];

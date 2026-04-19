@@ -6,7 +6,7 @@
  * 点击角色名可查看技能说明（复用 RoleCardSimple）。
  * 由 BoardInfoCard 的"查看建议"按钮打开。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import {
   createCustomTemplate,

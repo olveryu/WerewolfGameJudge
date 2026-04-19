@@ -5,7 +5,7 @@
  * 入场/离场动画（slide up + bounce / fade out + shrink）。
  * 渲染 UI 并通过回调上报 onPress，不 import service / showAlert，不包含业务逻辑判断。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,

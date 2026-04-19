@@ -6,7 +6,7 @@
  * 自定义 thumb（白底+阴影+主色内圆）+ 左右音量图标。
  * 纯 Presentational 组件：接收 value + onValueChange 回调，不 import service。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback, useEffect, useMemo } from 'react';
 import { StyleSheet, type TextStyle, View, type ViewStyle } from 'react-native';
 import { Slider } from 'react-native-awesome-slider';

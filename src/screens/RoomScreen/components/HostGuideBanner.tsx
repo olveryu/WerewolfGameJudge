@@ -5,7 +5,7 @@
  * what to do next. Renders between NightProgressIndicator and ControlledSeatBanner.
  * Returns null when message is empty (e.g. during Ongoing phase).
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { memo } from 'react';
 import { Text, View } from 'react-native';
 

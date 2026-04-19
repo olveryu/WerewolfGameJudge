@@ -3,7 +3,7 @@
  *
  * Renders the same content sections as NightReviewModal without actions/overlay.
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Ref, useMemo } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View as RNView, type View } from 'react-native';
 

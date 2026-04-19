@@ -6,7 +6,7 @@
  * 小程序 web-view 内改为显示微信转发引导。
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';

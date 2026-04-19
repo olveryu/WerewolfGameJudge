@@ -5,7 +5,7 @@
  * 与 EmailForm 平级的 auth 表单组件。接收 AuthStyles 统一样式接口。
  * 渲染表单 UI 并上报用户 intent。不 import service，不含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback, useRef, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 

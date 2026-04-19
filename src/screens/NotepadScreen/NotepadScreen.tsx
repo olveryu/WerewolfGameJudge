@@ -7,7 +7,7 @@
  * 不直接调用 service（笔记持久化由 useNotepad 内部 AsyncStorage 完成）。
  */
 
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';

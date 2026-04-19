@@ -6,7 +6,7 @@
  * 支持 selected / unselected 状态，"关闭"项视觉低调（textMuted），"随机"项展示解析结果。
  * 纯 UI 组件：接收样式 props 和 onPress 回调，不 import service，不包含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback } from 'react';
 import { Text, type TextStyle, View, type ViewStyle } from 'react-native';
 

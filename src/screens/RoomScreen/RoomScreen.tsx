@@ -8,7 +8,7 @@
  * (that's useRoomScreenState), does not own local state, and does not import
  * services / policy / helpers.
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';

@@ -5,7 +5,7 @@
  * 支持 ref 转发、两种变体（default 表单 / search 搜索栏）、错误展示、左侧图标。
  * 使用 theme tokens 构建样式，不含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { type ComponentProps, type Ref, useMemo } from 'react';
 import {
   type StyleProp,

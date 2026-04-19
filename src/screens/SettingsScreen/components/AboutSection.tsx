@@ -4,7 +4,7 @@
  * 显示应用版本与联系方式。
  * 渲染 UI，不 import service，不包含业务逻辑判断。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
 import { Text, View } from 'react-native';
 

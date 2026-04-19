@@ -5,7 +5,7 @@
  * 底部嵌入 PityProgressBar。
  * golden 模式有金色调背景和边框。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { borderRadius, colors, fixed, spacing, textStyles, typography, withAlpha } from '@/theme';

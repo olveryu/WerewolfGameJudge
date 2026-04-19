@@ -5,7 +5,7 @@
  * structuredDescription（复用 RoleDescriptionView）+ 能力 tag chips。
  * 纯展示组件，不 import service，不含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   getRoleSpec,
   getRoleStructuredDescription,

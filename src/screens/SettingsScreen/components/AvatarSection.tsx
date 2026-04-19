@@ -5,7 +5,7 @@
  * 匿名用户额外显示升级引导 teaser 卡片。
  * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
 import {
   ActivityIndicator,

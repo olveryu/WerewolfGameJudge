@@ -6,7 +6,7 @@
  * 有变体的角色在卡片下方显示变体切换 pill bar，点击 pill 切换卡片内容并同步回调。
  * 渲染 Modal 与按钮。不 import service，不含业务逻辑，不重复卡片 UI。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { isValidRoleId, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useCallback, useMemo } from 'react';
 import {

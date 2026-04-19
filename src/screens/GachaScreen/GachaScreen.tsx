@@ -7,7 +7,7 @@
  * 10 连抽结果：TenResultOverlay（高稀有度延迟亮起 + 发光边框）。
  */
 
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PITY_THRESHOLD, TOTAL_UNLOCKABLE_COUNT } from '@werewolf/game-engine';
 import { LinearGradient } from 'expo-linear-gradient';

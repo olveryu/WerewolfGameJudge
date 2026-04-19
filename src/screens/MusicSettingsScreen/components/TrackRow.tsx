@@ -5,7 +5,7 @@
  * 点击行体选择曲目，点击播放按钮试听。两个操作独立。
  * 纯 Presentational 组件：props 回调上报 intent，不 import service。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
 import {
   StyleSheet,

@@ -7,7 +7,7 @@
  * Orchestrator 层：调用 auth service 保存 + facade 同步 GameState。
  * 不承载其他设置功能。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getUnlockedAvatars, isFrameUnlocked } from '@werewolf/game-engine/growth/frameUnlock';

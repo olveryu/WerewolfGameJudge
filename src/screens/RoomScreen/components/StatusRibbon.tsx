@@ -9,7 +9,7 @@
  *
  * Does not import services. Receives all data via props. Pure presentation.
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { memo } from 'react';
 import { Text, View } from 'react-native';
 

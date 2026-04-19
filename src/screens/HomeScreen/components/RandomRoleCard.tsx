@@ -6,7 +6,7 @@
  * 使用 react-native-reanimated withTiming + backfaceVisibility 标准双面翻转。
  * 纯展示组件，不 import service，不包含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RoleId } from '@werewolf/game-engine/models/roles';
 import { memo, useCallback, useEffect, useRef } from 'react';
 import { Image, Text, View } from 'react-native';

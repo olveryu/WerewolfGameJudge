@@ -5,7 +5,7 @@
  * 双模式布局：Mode A（单字段居中）/ Mode B（多字段带标签+左色条）。
  * 中文分号自动拆分为 bullet list。不含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo } from 'react';

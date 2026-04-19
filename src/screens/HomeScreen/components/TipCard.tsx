@@ -6,7 +6,7 @@
  * Dismissible per session (state-driven, no persistence).
  * Pure UI component: does not import services or contain business logic.
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 

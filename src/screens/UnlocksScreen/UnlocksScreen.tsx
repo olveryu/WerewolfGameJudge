@@ -4,7 +4,7 @@
  * 顶部 tab 切换"头像"/"头像框"，summary card 显示当前 tab 进度。
  * 已解锁 cell 高亮 + 绿色对勾角标，未解锁灰暗 + 锁标。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {

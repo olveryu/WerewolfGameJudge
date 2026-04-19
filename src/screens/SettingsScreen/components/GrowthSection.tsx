@@ -5,7 +5,7 @@
  * 点击跳转 UnlocksScreen。
  * 嵌入账户 card 内部，不自带 card 容器。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   FREE_AVATAR_IDS,
   FREE_FLAIR_IDS,

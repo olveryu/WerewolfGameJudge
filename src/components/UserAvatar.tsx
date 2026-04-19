@@ -6,7 +6,7 @@
  * 纯展示组件，不 import service，不包含业务逻辑。
  * HomeScreen TopBar 和 RoomScreen HeaderActions 共用。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 

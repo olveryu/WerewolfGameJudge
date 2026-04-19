@@ -4,7 +4,7 @@
  * 采用 absoluteFill 居中方案（同 RoomScreen），标题始终绝对居中，
  * 不受左右按钮宽度差异影响。左侧默认渲染返回按钮。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { memo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 

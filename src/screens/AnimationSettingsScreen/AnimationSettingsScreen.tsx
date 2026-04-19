@@ -6,7 +6,7 @@
  * 设置持久化通过 SettingsService（AsyncStorage）。
  * 不含游戏逻辑，不 import GameFacade。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type {
   NativeStackNavigationProp,

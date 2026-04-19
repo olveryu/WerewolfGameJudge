@@ -7,7 +7,7 @@
  * Disabled 态：去饱和 + 降低 opacity。
  * reducedMotion 时跳过流光动画。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';

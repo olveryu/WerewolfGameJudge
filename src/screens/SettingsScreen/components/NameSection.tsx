@@ -4,7 +4,7 @@
  * 点击触发 onStartEdit 回调，由父组件弹出 prompt modal 编辑昵称。
  * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 

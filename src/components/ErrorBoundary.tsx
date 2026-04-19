@@ -8,7 +8,7 @@
  * 样式例外：使用硬编码颜色/间距，因为 ErrorBoundary 是 class component，
  * 处于组件树最顶层，必须自包含 fallback 样式。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Sentry from '@sentry/react-native';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';

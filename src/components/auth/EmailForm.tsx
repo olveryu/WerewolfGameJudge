@@ -5,7 +5,7 @@
  * 包含 autocomplete / keyboard 增强 / 邮箱域名下拉。
  * 渲染表单 UI 并上报用户 intent。不 import service，不含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 

@@ -5,7 +5,7 @@
  * 仅当有曲目正在试听时渲染。
  * 纯 Presentational 组件，不 import service。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
 import {
   StyleSheet,

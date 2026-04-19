@@ -5,7 +5,7 @@
  * 高稀有度（epic/legendary）卡片有发光边框、放大、呼吸辉光。
  * Common/rare 先入场，epic/legendary 延迟亮起（建设期待）。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {

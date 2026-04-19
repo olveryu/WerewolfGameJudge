@@ -11,7 +11,7 @@
  * 渲染聊天 UI，通过 useAIChat hook 交互。不直接 import service，不直接调用 API。
  */
 
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,

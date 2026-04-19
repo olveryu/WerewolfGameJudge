@@ -4,7 +4,7 @@
  * Home 和 Settings 共用。显示邮箱登录 / 匿名登录按钮。
  * 渲染登录方式 UI 并上报用户选择。不 import service，不含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
 import { Image, ImageSourcePropType, Text, TouchableOpacity, View } from 'react-native';
 

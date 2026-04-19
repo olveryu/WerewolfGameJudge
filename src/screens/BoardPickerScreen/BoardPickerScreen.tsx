@@ -6,7 +6,7 @@
  * 顶部搜索栏支持按名字 + 角色名过滤。底部"自定义"入口跳过预设直接进 ConfigScreen。
  * 纯展示层，不 import service，不包含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Faction, type RoleId } from '@werewolf/game-engine/models/roles';

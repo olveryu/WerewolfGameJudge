@@ -5,7 +5,7 @@
  * 负责编排子组件、调用 service/navigation/showAlert。
  * 不使用硬编码样式值，不使用 console.*。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';

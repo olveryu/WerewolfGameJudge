@@ -4,7 +4,7 @@
  * 显示角色配置概览（狼/神/民数量）。点击角色名可查看该角色技能。
  * 渲染 UI、处理折叠交互并通过回调上报 onRolePress intent，不 import service，不包含业务逻辑判断。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { memo, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 

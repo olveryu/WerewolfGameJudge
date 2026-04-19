@@ -4,7 +4,7 @@
  * 显示第一天晚上所有行动摘要及全员真实身份。
  * 渲染 Modal UI 并接收预构建的数据，不 import service，不含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useMemo } from 'react';
 import {
   ScrollView,

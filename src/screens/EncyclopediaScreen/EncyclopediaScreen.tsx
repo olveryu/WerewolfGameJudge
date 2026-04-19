@@ -5,7 +5,7 @@
  * 支持按阵营筛选（4 阵营 toggle）+ 能力标签 dropdown 筛选 + 搜索。
  * 纯展示屏，不依赖 service，不含业务逻辑。
  */
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import {
   Faction,
