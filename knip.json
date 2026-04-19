@@ -11,7 +11,8 @@
         "expo-system-ui",
         "expo-asset",
         "html2canvas",
-        "jest-environment-jsdom"
+        "jest-environment-jsdom",
+        "babel-plugin-transform-define"
       ]
     },
     "packages/game-engine": {
