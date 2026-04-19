@@ -14,15 +14,21 @@ import { Platform } from 'react-native';
  *    synchronously, leaving CanvasKit `undefined`.
  *
  * 2. `global.SkiaViewApi` — set by `specs/NativeSkiaModule.web.js`.
- *    Reanimated's babel plugin transforms `"worklet"` functions (e.g. in
- *    `sksg/Container.web.js`) into IIFEs that capture closure variables at
- *    **module-evaluation time**:
- *      `_f.__closure = { SkiaViewApi: SkiaViewApi };`
- *    If the module evaluates before NativeSkiaModule.web has set the global,
- *    this is a `ReferenceError`. Metro's `inlineRequires.blockList` cannot
- *    prevent this — it only controls `require()` reordering, not worklet
- *    closure captures. We must explicitly import NativeSkiaModule before the
- *    App tree loads.
+ *    `sksg/Container.web.js` and `sksg/StaticContainer.js` use bare-name
+ *    `SkiaViewApi` (a global, not an import). They do `import "../views/api"`
+ *    as a side-effect-only import to initialise the global first. However,
+ *    Metro's `inlineRequires` defers side-effect-only imports to first-use,
+ *    so the global is not yet set when the bare-name reference evaluates →
+ *    `ReferenceError`. We pre-import NativeSkiaModule here to guarantee the
+ *    global exists before the App module tree loads.
+ *
+ *    This was "fixed" upstream in v1.11.6 (PR #2954) but regressed in v2.x
+ *    with new bare-name references. As of v2.4.18 the issue persists.
+ *
+ * REMOVAL: safe to remove once `@shopify/react-native-skia` no longer has
+ * bare-name `SkiaViewApi` references in worklet/module scope. Check with:
+ *   grep -rn "SkiaViewApi" node_modules/@shopify/react-native-skia/lib/module/sksg/
+ * If all hits are proper imports (not bare globals), this workaround is dead.
  *
  * Static imports of `expo`, `react-native`, and `@shopify/.../web` are safe —
  * they don't trigger `Skia.web.js`. Only `./App` must be dynamically imported
@@ -33,6 +39,7 @@ import { Platform } from 'react-native';
  *
  * @see https://shopify.github.io/react-native-skia/docs/getting-started/web
  * @see https://github.com/Shopify/react-native-skia/issues/2914
+ * @see https://github.com/Shopify/react-native-skia/pull/2954
  */
 const CANVASKIT_VERSION = '0.40.0';
 const CANVASKIT_CDN = `https://cdn.jsdelivr.net/npm/canvaskit-wasm@${CANVASKIT_VERSION}/bin/full`;
@@ -44,6 +51,7 @@ async function main() {
       locateFile: (file: string) => `${CANVASKIT_CDN}/${file}`,
     });
     // Sets global.SkiaViewApi — must happen before App tree evaluation.
+    // See REMOVAL note above.
     await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
   }
 
