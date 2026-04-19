@@ -22,6 +22,13 @@ applyTo: 'src/**/*.ts,src/**/*.tsx'
 - 未使用的导入：**直接从 import 语句中移除**。
 - `_` 前缀仅限**语法上必须声明但逻辑上不使用**的场景（解构占位 `const [_, b] = ...`、回调参数 `(_, index) => ...`）。
 
+## Async / Promise 安全
+
+- ESLint `recommendedTypeChecked` 启用 `no-floating-promises` 和 `no-misused-promises`。
+- 故意 fire-and-forget 的 Promise 用 `void` 前缀标记：`void someAsyncFn()`。
+- JSX `onPress` / `onChange` 等事件回调期望 `() => void`，async handler 需包 void wrapper：`onPress={() => void handlePress()}`。
+- 禁止 `require-await`（已 off；DO 接口等大量 false positive）。
+
 ## React Hooks 卫生
 
 - 自定义 hook 以 `use` 前缀命名，文件名与 hook 名一致（`useNightProgress.ts` → `useNightProgress()`）。

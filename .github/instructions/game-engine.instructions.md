@@ -18,9 +18,14 @@ applyTo: 'packages/game-engine/**'
 
 ## Import 规则
 
-- 消费者通过 `@werewolf/game-engine` 导入：`import { ROLE_SPECS } from '@werewolf/game-engine'`。
+- 消费者通过**深层路径**导入（tree-shaking 友好）：
+  - `import { ROLE_SPECS } from '@werewolf/game-engine/models/roles'`
+  - `import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas'`
+  - `import type { GameState } from '@werewolf/game-engine/protocol/types'`
+  - `import { getLevel } from '@werewolf/game-engine/growth/level'`
+- `index.ts` barrel export 存在但**不使用**。禁止 `import { ... } from '@werewolf/game-engine'` 根级导入。
 - 修改游戏逻辑 → 编辑 `packages/game-engine/src/` 源文件。
-- 新增文件：在 game-engine 创建源文件 + 更新 `index.ts` barrel export。平台相关文件不属于 game-engine，直接放 `src/`。
+- 新增文件：在 game-engine 创建源文件，按模块路径导出。平台相关文件不属于 game-engine，直接放 `src/`。
 
 ## Reducer 规则
 

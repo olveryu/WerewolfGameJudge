@@ -33,5 +33,6 @@ description: 'Use when editing RoomScreen files: policy, hooks, executors, seatT
 | `AnimationSettingsScreen` | `screens/AnimationSettingsScreen/` | 角色翻牌动画选择                        |
 | `MusicSettingsScreen`     | `screens/MusicSettingsScreen/`     | 背景音乐设置                            |
 | `NotepadScreen`           | `screens/NotepadScreen/`           | 游戏笔记本（记录发言/投票）             |
+| `GachaScreen`             | `screens/GachaScreen/`             | 扭蛋机 — 消耗券抽取装饰物品             |
 
 RoomScreen UI 状态机速查参见 `docs/roomscreen-state-machine.md`。
