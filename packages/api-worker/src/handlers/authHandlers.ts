@@ -6,11 +6,13 @@
  * 与 Supabase Auth 语义兼容（匿名 + 邮箱）。
  */
 
+import { getLevel } from '@werewolf/game-engine/growth/level';
+import { getItemRarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { loginAttempts, passwordResetTokens, users, userStats } from '../db/schema';
+import { drawHistory, loginAttempts, passwordResetTokens, users, userStats } from '../db/schema';
 import type { AppEnv, Env } from '../env';
 import { extractBearerToken, requireAuth, signToken, verifyToken } from '../lib/auth';
 import { sendPasswordResetEmail } from '../lib/email';
@@ -59,6 +61,108 @@ async function grantWelcomeBonus(db: ReturnType<typeof createDb>, userId: string
         updatedAt: sql`datetime('now')`,
       },
     });
+}
+
+/**
+ * Merge user_stats from sourceId into targetId before account deletion.
+ * - xp / games_played / draws: sum
+ * - pity: max (preserve progress toward guaranteed)
+ * - unlocked_items: union; duplicates compensated as draw tickets
+ *   (legendary → 1 golden, others → 1 normal)
+ * - version: max + 1
+ * - draw_history: re-assign to target user
+ */
+async function mergeUserStats(
+  db: ReturnType<typeof createDb>,
+  sourceId: string,
+  targetId: string,
+): Promise<void> {
+  const [sourceStats, targetStats] = await Promise.all([
+    db.select().from(userStats).where(eq(userStats.userId, sourceId)).get(),
+    db.select().from(userStats).where(eq(userStats.userId, targetId)).get(),
+  ]);
+
+  // No source stats → nothing to merge
+  if (!sourceStats) return;
+
+  const sourceItems: string[] = JSON.parse(sourceStats.unlockedItems) as string[];
+
+  if (!targetStats) {
+    // Target has no stats row — transfer source row entirely by upsert
+    await db
+      .insert(userStats)
+      .values({
+        userId: targetId,
+        xp: sourceStats.xp,
+        level: getLevel(sourceStats.xp),
+        gamesPlayed: sourceStats.gamesPlayed,
+        lastRoomCode: sourceStats.lastRoomCode,
+        unlockedItems: sourceStats.unlockedItems,
+        normalDraws: sourceStats.normalDraws,
+        goldenDraws: sourceStats.goldenDraws,
+        normalPity: sourceStats.normalPity,
+        goldenPity: sourceStats.goldenPity,
+        version: sourceStats.version + 1,
+        updatedAt: sql`datetime('now')`,
+      })
+      .onConflictDoNothing();
+
+    // Migrate draw history
+    await db.update(drawHistory).set({ userId: targetId }).where(eq(drawHistory.userId, sourceId));
+
+    // Delete source stats (before user row CASCADE)
+    await db.delete(userStats).where(eq(userStats.userId, sourceId));
+    return;
+  }
+
+  // Both have stats — merge
+  const targetItems: string[] = JSON.parse(targetStats.unlockedItems) as string[];
+  const targetSet = new Set(targetItems);
+
+  // Compute duplicate compensation
+  let normalCompensation = 0;
+  let goldenCompensation = 0;
+  for (const id of sourceItems) {
+    if (targetSet.has(id)) {
+      // Duplicate — compensate with draw ticket
+      if (getItemRarity(id) === 'legendary') {
+        goldenCompensation++;
+      } else {
+        normalCompensation++;
+      }
+    }
+  }
+
+  // Union of unlocked items
+  const mergedSet = new Set([...targetItems, ...sourceItems]);
+  const mergedItems = JSON.stringify([...mergedSet]);
+  const mergedXp = sourceStats.xp + targetStats.xp;
+
+  await db
+    .update(userStats)
+    .set({
+      xp: mergedXp,
+      level: getLevel(mergedXp),
+      gamesPlayed: sourceStats.gamesPlayed + targetStats.gamesPlayed,
+      normalDraws: targetStats.normalDraws + sourceStats.normalDraws + normalCompensation,
+      goldenDraws: targetStats.goldenDraws + sourceStats.goldenDraws + goldenCompensation,
+      normalPity: Math.max(sourceStats.normalPity, targetStats.normalPity),
+      goldenPity: Math.max(sourceStats.goldenPity, targetStats.goldenPity),
+      unlockedItems: mergedItems,
+      version: Math.max(sourceStats.version, targetStats.version) + 1,
+      lastRoomCode:
+        (sourceStats.updatedAt ?? '') > (targetStats.updatedAt ?? '')
+          ? sourceStats.lastRoomCode
+          : targetStats.lastRoomCode,
+      updatedAt: sql`datetime('now')`,
+    })
+    .where(eq(userStats.userId, targetId));
+
+  // Migrate draw history
+  await db.update(drawHistory).set({ userId: targetId }).where(eq(drawHistory.userId, sourceId));
+
+  // Delete source stats (before user row CASCADE)
+  await db.delete(userStats).where(eq(userStats.userId, sourceId));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -158,8 +262,11 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
       }
 
       // Migrate openid to the email account and delete the WeChat shell account.
-      // Use batch() for atomicity: clear openid → transfer → delete, all-or-nothing.
+      // Merge growth data first (before CASCADE deletes source user_stats).
       try {
+        await mergeUserStats(db, existingUserId, existing.id);
+
+        // Use batch() for atomicity: clear openid → transfer → delete, all-or-nothing.
         await db.batch([
           db.update(users).set({ wechatOpenid: null }).where(eq(users.id, existingUserId)),
           db
