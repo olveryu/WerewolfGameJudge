@@ -358,6 +358,16 @@ function handleConnected(ctx: FSMContext, event: ConnectionEvent): TransitionRes
 function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
   switch (event.type) {
     case 'RETRY_TIMER_FIRED': {
+      if (!ctx.visible) {
+        // Background: suppress reconnection, wait for VISIBILITY_VISIBLE
+        return {
+          ctx,
+          effects: [
+            log('info', 'Disconnected: suppressing retry (background)'),
+            { type: 'CANCEL_RETRY' },
+          ],
+        };
+      }
       if (ctx.attempt >= ctx.maxAttempts) {
         // Should not happen (timer should not be scheduled after max), but guard anyway
         const next: FSMContext = { ...ctx, state: ConnectionState.Failed };
@@ -460,6 +470,16 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
         ],
       };
     }
+    case 'VISIBILITY_HIDDEN': {
+      const next: FSMContext = { ...ctx, visible: false };
+      return {
+        ctx: next,
+        effects: [
+          log('info', 'Background (Disconnected), cancelling retry timer'),
+          { type: 'CANCEL_RETRY' },
+        ],
+      };
+    }
     case 'CONNECT':
       return toConnecting(ctx, event);
     case 'DISCONNECT':
@@ -548,6 +568,21 @@ function handleFailed(ctx: FSMContext, event: ConnectionEvent): TransitionResult
         ctx: next,
         effects: [
           log('info', `Failed → Reconnecting (NETWORK_ONLINE)`),
+          { type: 'OPEN_WS', roomCode: ctx.roomCode!, userId: ctx.userId! },
+        ],
+      };
+    }
+    case 'VISIBILITY_VISIBLE': {
+      const next: FSMContext = {
+        ...ctx,
+        state: ConnectionState.Reconnecting,
+        attempt: 1,
+        visible: true,
+      };
+      return {
+        ctx: next,
+        effects: [
+          log('info', `Failed → Reconnecting (foreground)`),
           { type: 'OPEN_WS', roomCode: ctx.roomCode!, userId: ctx.userId! },
         ],
       };

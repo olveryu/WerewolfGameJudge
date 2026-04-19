@@ -334,6 +334,15 @@ describe('Disconnected state', () => {
     expect(effectTypes(result)).toContain('OPEN_WS');
   });
 
+  it('RETRY_TIMER_FIRED while background → suppressed + CANCEL_RETRY', () => {
+    const d = ctx(ConnectionState.Disconnected, { attempt: 2, visible: false });
+    const result = transition(d, { type: 'RETRY_TIMER_FIRED' });
+    expect(result.ctx.state).toBe(ConnectionState.Disconnected);
+    expect(result.ctx.attempt).toBe(2);
+    expect(effectTypes(result)).toContain('CANCEL_RETRY');
+    expect(effectTypes(result)).not.toContain('OPEN_WS');
+  });
+
   it('RETRY_TIMER_FIRED at maxAttempts → Failed', () => {
     const d = ctx(ConnectionState.Disconnected, { attempt: DEFAULT_MAX_ATTEMPTS });
     const result = transition(d, { type: 'RETRY_TIMER_FIRED' });
@@ -387,6 +396,13 @@ describe('Disconnected state', () => {
     const result = transition(disconnected, { type: 'NETWORK_OFFLINE' });
     expect(result.ctx.state).toBe(ConnectionState.Disconnected);
     expect(result.ctx.networkOnline).toBe(false);
+    expect(effectTypes(result)).toContain('CANCEL_RETRY');
+  });
+
+  it('VISIBILITY_HIDDEN → cancel retry + visible=false, stay Disconnected', () => {
+    const result = transition(disconnected, { type: 'VISIBILITY_HIDDEN' });
+    expect(result.ctx.state).toBe(ConnectionState.Disconnected);
+    expect(result.ctx.visible).toBe(false);
     expect(effectTypes(result)).toContain('CANCEL_RETRY');
   });
 
@@ -457,6 +473,15 @@ describe('Failed state', () => {
     expect(result.ctx.state).toBe(ConnectionState.Reconnecting);
     expect(result.ctx.attempt).toBe(1);
     expect(result.ctx.networkOnline).toBe(true);
+    expect(effectTypes(result)).toContain('OPEN_WS');
+  });
+
+  it('VISIBILITY_VISIBLE → Reconnecting with attempt=1', () => {
+    const f = ctx(ConnectionState.Failed, { attempt: DEFAULT_MAX_ATTEMPTS, visible: false });
+    const result = transition(f, { type: 'VISIBILITY_VISIBLE' });
+    expect(result.ctx.state).toBe(ConnectionState.Reconnecting);
+    expect(result.ctx.attempt).toBe(1);
+    expect(result.ctx.visible).toBe(true);
     expect(effectTypes(result)).toContain('OPEN_WS');
   });
 
