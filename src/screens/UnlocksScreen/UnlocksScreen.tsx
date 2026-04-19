@@ -38,7 +38,13 @@ import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
 import { RarityCellBg } from '@/components/RarityCellBg';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
-import { getRarityCellConfig, RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
+import {
+  compareByRarity,
+  getRarityCellConfig,
+  getRarityCellStyle,
+  RARITY_ORDER,
+  RARITY_VISUAL,
+} from '@/config/rarityVisual';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 import { RootStackParamList } from '@/navigation/types';
@@ -109,7 +115,9 @@ export const UnlocksScreen: React.FC = () => {
         displayName: getRoleDisplayName(id),
         unlocked: unlockedSet.has(id),
         rarity: getItemRarity(id),
-      })).sort((a, b) => Number(b.unlocked) - Number(a.unlocked)),
+      })).sort(
+        (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
+      ),
     [unlockedSet],
   );
 
@@ -123,7 +131,9 @@ export const UnlocksScreen: React.FC = () => {
         unlocked: unlockedSet.has(id),
         rarity: getItemRarity(id),
       };
-    }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
+    }).sort(
+      (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
+    );
   }, [unlockedSet]);
 
   const flairItems = useMemo(
@@ -137,7 +147,9 @@ export const UnlocksScreen: React.FC = () => {
           unlocked: unlockedSet.has(id),
           rarity: getItemRarity(id),
         };
-      }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked)),
+      }).sort(
+        (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
+      ),
     [unlockedSet],
   );
 
@@ -152,7 +164,9 @@ export const UnlocksScreen: React.FC = () => {
           unlocked: unlockedSet.has(id),
           rarity: getItemRarity(id),
         };
-      }).sort((a, b) => Number(b.unlocked) - Number(a.unlocked)),
+      }).sort(
+        (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
+      ),
     [unlockedSet],
   );
 
@@ -345,6 +359,7 @@ const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
     );
 
   const rarityCfg = getRarityCellConfig(item.rarity);
+  const rarityCellStyle = getRarityCellStyle(item.rarity);
 
   return (
     <View style={styles.cell}>
@@ -352,7 +367,7 @@ const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
         style={[
           styles.imageWrapper,
           item.unlocked ? styles.unlockedBorder : styles.lockedBg,
-          item.unlocked && rarityCfg && { borderColor: rarityCfg.borderColor, ...rarityCfg.glow },
+          item.unlocked && rarityCellStyle,
         ]}
       >
         {item.unlocked && rarityCfg && (

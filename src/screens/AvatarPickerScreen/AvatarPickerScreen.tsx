@@ -42,7 +42,13 @@ import { RarityCellBg } from '@/components/RarityCellBg';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { type FlairId, getFlairById, SEAT_FLAIRS } from '@/components/seatFlairs';
 import { UI_ICONS } from '@/config/iconTokens';
-import { getRarityCellConfig, RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
+import {
+  compareByRarity,
+  getRarityCellConfig,
+  getRarityCellStyle,
+  RARITY_ORDER,
+  RARITY_VISUAL,
+} from '@/config/rarityVisual';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
@@ -201,13 +207,15 @@ export const AvatarPickerScreen: React.FC = () => {
       type: 'builtin' as const,
       index: i,
     }));
-    // Sort: unlocked first, locked last
+    // Sort: unlocked first, then by rarity (legendary first)
     builtins.sort((a, b) => {
       if (a.type !== 'builtin' || b.type !== 'builtin') return 0;
       const aUnlocked = unlockedAvatars.has(AVATAR_KEYS[a.index]);
       const bUnlocked = unlockedAvatars.has(AVATAR_KEYS[b.index]);
-      if (aUnlocked === bUnlocked) return 0;
-      return aUnlocked ? -1 : 1;
+      return (
+        Number(!aUnlocked) - Number(!bUnlocked) ||
+        compareByRarity(getItemRarity(AVATAR_KEYS[a.index]), getItemRarity(AVATAR_KEYS[b.index]))
+      );
     });
 
     const items = [...specials, ...builtins];
@@ -236,7 +244,9 @@ export const AvatarPickerScreen: React.FC = () => {
       isActive: currentFrameId === f.id,
       rarity: getItemRarity(f.id),
     }));
-    items.sort((a, b) => Number(a.unlocked ? 0 : 1) - Number(b.unlocked ? 0 : 1));
+    items.sort(
+      (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
+    );
     return [none, ...items];
   }, [unlockedIds, currentFrameId, isNoFrameActive]);
 
@@ -256,7 +266,9 @@ export const AvatarPickerScreen: React.FC = () => {
       isActive: currentFlairId === f.id,
       rarity: getItemRarity(f.id),
     }));
-    items.sort((a, b) => Number(a.unlocked ? 0 : 1) - Number(b.unlocked ? 0 : 1));
+    items.sort(
+      (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
+    );
     return [none, ...items];
   }, [unlockedIds, currentFlairId, isNoFlairActive]);
 
@@ -276,7 +288,9 @@ export const AvatarPickerScreen: React.FC = () => {
       isActive: currentNameStyleId === s.id,
       rarity: getItemRarity(s.id),
     }));
-    items.sort((a, b) => Number(a.unlocked ? 0 : 1) - Number(b.unlocked ? 0 : 1));
+    items.sort(
+      (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
+    );
     return [none, ...items];
   }, [unlockedIds, currentNameStyleId, isNoNameStyleActive]);
 
@@ -648,6 +662,7 @@ export const AvatarPickerScreen: React.FC = () => {
           isSelected={isSelected}
           isCurrentlyUsed={isCurrentlyUsed}
           locked={locked}
+          rarity={getItemRarity(roleId)}
           onPress={handlePressBuiltin}
           onLongPress={handleLongPress}
           styles={styles}
@@ -928,6 +943,7 @@ interface AvatarCellProps {
   isSelected: boolean;
   isCurrentlyUsed: boolean;
   locked: boolean;
+  rarity: Rarity | null;
   onPress: (index: number) => void;
   onLongPress: (index: number) => void;
   styles: AvatarPickerScreenStyles;
@@ -935,7 +951,17 @@ interface AvatarCellProps {
 }
 
 const AvatarCell = memo<AvatarCellProps>(
-  ({ index, imageSource, isSelected, isCurrentlyUsed, locked, onPress, onLongPress, styles }) => {
+  ({
+    index,
+    imageSource,
+    isSelected,
+    isCurrentlyUsed,
+    locked,
+    rarity,
+    onPress,
+    onLongPress,
+    styles,
+  }) => {
     const handlePress = useCallback(() => {
       onPress(index);
     }, [onPress, index]);
@@ -944,10 +970,13 @@ const AvatarCell = memo<AvatarCellProps>(
       onLongPress(index);
     }, [onLongPress, index]);
 
+    const rarityCellStyle = getRarityCellStyle(rarity);
+
     return (
       <TouchableOpacity
         style={[
           styles.pickerItem,
+          rarityCellStyle,
           isSelected && styles.pickerItemSelected,
           locked && styles.pickerItemLocked,
         ]}
@@ -955,6 +984,10 @@ const AvatarCell = memo<AvatarCellProps>(
         onLongPress={handleLongPress}
         activeOpacity={0.7}
       >
+        <RarityCellBg
+          rarity={rarity}
+          borderRadius={borderRadiusToken.medium - fixed.borderWidthThick}
+        />
         <Image
           source={imageSource as ImageSourcePropType}
           style={styles.pickerItemImage}
@@ -993,12 +1026,13 @@ const FrameCell = memo<FrameCellProps>(
     const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
     const isSelected = selectedFrame === item.id;
     const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
+    const rarityCellStyle = item.id !== 'none' ? getRarityCellStyle(item.rarity) : null;
 
     return (
       <TouchableOpacity
         style={[
           styles.frameGridCell,
-          rarityCfg && { borderColor: rarityCfg.borderColor, ...rarityCfg.glow },
+          rarityCellStyle,
           isSelected && styles.frameGridCellSelected,
           !isSelected && item.isActive && selectedFrame === null && styles.frameGridCellActive,
           !item.unlocked && styles.frameGridCellLocked,
@@ -1060,12 +1094,13 @@ const FlairCell = memo<FlairCellProps>(
     const isSelected = selectedFlair === item.id;
     const FlairComponent = item.id !== 'none' ? getFlairById(item.id)?.Component : undefined;
     const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
+    const rarityCellStyle = item.id !== 'none' ? getRarityCellStyle(item.rarity) : null;
 
     return (
       <TouchableOpacity
         style={[
           styles.frameGridCell,
-          rarityCfg && { borderColor: rarityCfg.borderColor, ...rarityCfg.glow },
+          rarityCellStyle,
           isSelected && styles.frameGridCellSelected,
           !isSelected && item.isActive && selectedFlair === null && styles.frameGridCellActive,
           !item.unlocked && styles.frameGridCellLocked,
@@ -1132,12 +1167,13 @@ const NameStyleCell = memo<NameStyleCellProps>(({ item, selectedNameStyle, onPre
   const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
   const isSelected = selectedNameStyle === item.id;
   const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
+  const rarityCellStyle = item.id !== 'none' ? getRarityCellStyle(item.rarity) : null;
 
   return (
     <TouchableOpacity
       style={[
         styles.frameGridCell,
-        rarityCfg && { borderColor: rarityCfg.borderColor, ...rarityCfg.glow },
+        rarityCellStyle,
         isSelected && styles.frameGridCellSelected,
         !isSelected && item.isActive && selectedNameStyle === null && styles.frameGridCellActive,
         !item.unlocked && styles.frameGridCellLocked,

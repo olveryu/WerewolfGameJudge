@@ -16,6 +16,7 @@ import {
 import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
+import { LegendaryAura } from './legendaryEffects';
 import { AnimatedCircle, AnimatedLine } from './svgAnimatedPrimitives';
 
 interface Claw {
@@ -112,10 +113,12 @@ ClawParticle.displayName = 'ClawParticle';
 
 export const ShadowClawFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
+  const slowProgress = useSharedValue(0);
 
   useEffect(() => {
     progress.value = withRepeat(withTiming(1, { duration: 3500, easing: Easing.linear }), -1);
-  }, [progress]);
+    slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
+  }, [progress, slowProgress]);
 
   const claws = useMemo(
     () => [
@@ -130,6 +133,7 @@ export const ShadowClawFlair = memo<FlairProps>(({ size, borderRadius: _br }) =>
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
       <Svg width={size} height={size}>
+        <LegendaryAura size={size} progress={slowProgress} r={100} g={30} b={140} orbit={0.35} />
         {claws.map((claw, i) => (
           <ClawParticle key={i} claw={claw} ci={i} size={size} progress={progress} />
         ))}

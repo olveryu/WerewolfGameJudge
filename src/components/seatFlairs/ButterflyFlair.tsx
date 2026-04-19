@@ -16,14 +16,17 @@ import {
 import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
+import { LegendaryAura } from './legendaryEffects';
 import { AnimatedCircle } from './svgAnimatedPrimitives';
 
-const N = 4;
+const N = 6;
 const COLORS = [
   [180, 100, 220],
   [200, 120, 240],
   [160, 80, 200],
   [220, 140, 255],
+  [190, 90, 230],
+  [210, 130, 250],
 ] as const;
 
 interface ButterflySeed {
@@ -102,10 +105,12 @@ ButterflyParticle.displayName = 'ButterflyParticle';
 
 export const ButterflyFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
+  const slowProgress = useSharedValue(0);
 
   useEffect(() => {
     progress.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1);
-  }, [progress]);
+    slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
+  }, [progress, slowProgress]);
 
   const seeds = useMemo(
     () =>
@@ -120,6 +125,7 @@ export const ButterflyFlair = memo<FlairProps>(({ size, borderRadius: _br }) => 
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
       <Svg width={size} height={size}>
+        <LegendaryAura size={size} progress={slowProgress} r={180} g={100} b={220} orbit={0.32} />
         {seeds.map((s, i) => (
           <ButterflyParticle key={i} seed={s} colorIndex={i} size={size} progress={progress} />
         ))}

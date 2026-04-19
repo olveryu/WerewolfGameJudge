@@ -16,6 +16,7 @@ import {
 import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
+import { LegendaryAura } from './legendaryEffects';
 import { AnimatedCircle } from './svgAnimatedPrimitives';
 
 const N = 6;
@@ -93,10 +94,12 @@ MagmaParticle.displayName = 'MagmaParticle';
 
 export const MagmaFloatFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
+  const slowProgress = useSharedValue(0);
 
   useEffect(() => {
     progress.value = withRepeat(withTiming(1, { duration: 5000, easing: Easing.linear }), -1);
-  }, [progress]);
+    slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
+  }, [progress, slowProgress]);
 
   const seeds = useMemo(
     () =>
@@ -112,6 +115,7 @@ export const MagmaFloatFlair = memo<FlairProps>(({ size, borderRadius: _br }) =>
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
       <Svg width={size} height={size}>
+        <LegendaryAura size={size} progress={slowProgress} r={240} g={60} b={0} />
         {seeds.map((s, i) => (
           <MagmaParticle key={i} seed={s} size={size} progress={progress} />
         ))}

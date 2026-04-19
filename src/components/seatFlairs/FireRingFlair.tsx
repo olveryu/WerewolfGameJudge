@@ -16,6 +16,7 @@ import {
 import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
+import { LegendaryAura } from './legendaryEffects';
 import { AnimatedCircle } from './svgAnimatedPrimitives';
 
 const N = 8;
@@ -62,10 +63,12 @@ FireTrailDot.displayName = 'FireTrailDot';
 
 export const FireRingFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
+  const slowProgress = useSharedValue(0);
 
   useEffect(() => {
     progress.value = withRepeat(withTiming(1, { duration: 3000, easing: Easing.linear }), -1);
-  }, [progress]);
+    slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
+  }, [progress, slowProgress]);
 
   const elements: React.JSX.Element[] = [];
   for (let i = 0; i < N; i++) {
@@ -79,6 +82,7 @@ export const FireRingFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
       <Svg width={size} height={size}>
+        <LegendaryAura size={size} progress={slowProgress} r={240} g={80} b={0} orbit={0.42} />
         {elements}
       </Svg>
     </View>

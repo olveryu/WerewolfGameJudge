@@ -86,3 +86,17 @@ export function getRarityCellConfig(rarity: Rarity | null): RarityCellConfig | n
   if (!rarity || rarity === 'common') return null;
   return RARITY_CELL[rarity];
 }
+
+/** Flat style (borderColor + glow) for a rarity cell, or null for common/missing. */
+export function getRarityCellStyle(rarity: Rarity | null): ViewStyle | null {
+  const cfg = getRarityCellConfig(rarity);
+  if (!cfg) return null;
+  return { borderColor: cfg.borderColor, ...cfg.glow };
+}
+
+const RARITY_INDEX: Record<Rarity, number> = { legendary: 0, epic: 1, rare: 2, common: 3 };
+
+/** Compare two rarities in descending order (legendary first). Stable for equal. */
+export function compareByRarity(a: Rarity | null, b: Rarity | null): number {
+  return (RARITY_INDEX[a ?? 'common'] ?? 3) - (RARITY_INDEX[b ?? 'common'] ?? 3);
+}
