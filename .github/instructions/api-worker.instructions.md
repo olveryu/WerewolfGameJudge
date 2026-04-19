@@ -66,4 +66,30 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 | `resultToStatus(result)`  | `{ success, reason }` → `200 \| 400 \| 500`  |
 | `isValidSeat(value)`      | seat number type guard                        |
 
+## 扭蛋系统（Gacha）
+
+### 路由（`gachaHandlers.ts` → `/api/gacha/*`）
+
+| 方法   | 路径                    | Auth | Body Schema         | 说明                                              |
+| ------ | ----------------------- | ---- | ------------------- | ------------------------------------------------- |
+| `GET`  | `/api/gacha/status`     | ✅   | —                   | 券数 / pity / 已解锁数 / lastLoginRewardAt        |
+| `POST` | `/api/gacha/draw`       | ✅   | `gachaDrawSchema`   | 抽奖（drawType: normal\|golden, count: 1-10）     |
+| `POST` | `/api/gacha/daily-reward` | ✅ | `dailyRewardSchema` | 每日登录奖励（localDate: YYYY-MM-DD）             |
+
+### 并发安全
+
+- OCC（乐观并发控制）：`user_stats.version` 列，draw/daily-reward 读 version → 写入 `WHERE version = readVersion`，冲突时重试（MAX_DRAW_RETRIES=3）
+- `crypto.getRandomValues()` 生成随机数，概率函数（`rollRarity` / `selectReward`）从 `@werewolf/game-engine` 导入
+
+### 每日登录奖励
+
+- 客户端传 `localDate`（玩家本地时区日期），服务端校验：同日已领取 → `already_claimed`；距上次 < 20h → `cooldown`
+- 通过后 normalDraws + 1，更新 `lastLoginRewardAt`
+
+### 结算（`settleGameResults.ts`）
+
+- 每局有效游戏：+1 普通券 + XP
+- 每次升级：+1 黄金券
+- 幂等 key：`${roomCode}:${revision}`
+
 ````

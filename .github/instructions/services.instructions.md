@@ -16,6 +16,7 @@ applyTo: src/services/**
 | 服务 | 文件 | 职责 |
 |---|---|---|
 | **StatsService** | `src/services/feature/StatsService.ts` | 用户成长数据查询（XP/等级/解锁物品） |
+| **GachaService** | `src/services/feature/GachaService.ts` | 扭蛋状态查询、抽奖执行、每日登录奖励领取 |
 | **ShareImageService** | `src/services/feature/ShareImageService.ts` | 分享图片上传到 R2，返回公开 URL |
 | **CFStorageService** | `src/services/infra/CFStorageService.ts` | 自定义头像上传到 Cloudflare R2 |
 

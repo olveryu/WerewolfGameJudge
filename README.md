@@ -72,9 +72,9 @@
 
 遇到不确定的规则？点击角色卡上的 AI 气泡，随时询问技能细节和策略建议。基于 Gemini 3.1 Flash Lite，通过 Worker 代理安全访问。
 
-### 📊 等级成长 · 头像解锁
+### 🎰 扭蛋收集 · 等级成长
 
-每局有效游戏获得 XP，52 级满级。每升级解锁 1 个头像、头像框或座位装饰（SVG 动画特效）。成就感完全来自游戏参与，无排行榜压力。
+每局有效游戏获得 XP + 1 张普通抽奖券，升级额外获得 1 张黄金券。每日登录也送 1 张普通券。在扭蛋机页面消耗券抽取头像、头像框、座位装饰和名字样式——支持单抽和 10 连，4 级稀有度（Common / Rare / Epic / Legendary）+ 10 次保底机制。563 件可收集物品，52 级满级。Skia 物理动画扭蛋机 + 稀有度揭示特效。
 
 ### 🌐 跨平台
 
@@ -233,6 +233,8 @@ iOS、Android、微信小程序和任何现代浏览器（Chrome、Safari、Fire
 
 ## 文档
 
+- [扭蛋系统设计](docs/gacha-system-design.md)
+- [等级成长系统](docs/growth-system-design.md)
 - [线下玩法 SOP](docs/offline-sop.md)
 - [部署指南](docs/DEPLOYMENT.md)
 - [角色技能对照表](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)

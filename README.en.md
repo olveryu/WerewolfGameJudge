@@ -72,9 +72,9 @@ Full coverage of classic and expansion roles — Seer, Witch, Hunter, Guard and 
 
 Unsure about a rule? Tap the AI bubble on any role card for instant skill details and strategy tips. Powered by Gemini 3.1 Flash Lite via a Worker proxy.
 
-### 📊 Progression & Unlocks
+### 🎰 Gacha Collection & Progression
 
-Earn XP every valid game, with 52 levels to reach. Each level-up unlocks an avatar, frame, or seat flair (animated SVG effects). Pure participation-based progression — no leaderboard pressure.
+Earn XP + 1 normal draw ticket every valid game, plus 1 golden ticket on level-up. Daily login also grants 1 free normal ticket. Spend tickets at the capsule machine to collect avatars, avatar frames, seat flairs, and name styles — single or 10-pull, 4 rarity tiers (Common / Rare / Epic / Legendary) with a 10-draw pity guarantee. 563 collectible items across 52 levels. Skia physics capsule machine animation + rarity-tiered reveal effects.
 
 ### 🌐 Cross-platform
 
@@ -237,6 +237,8 @@ Absolutely. Beyond the 23 preset templates, you can freely combine roles to crea
 
 ## Docs
 
+- [Gacha System Design](docs/gacha-system-design.md)
+- [Growth System Design](docs/growth-system-design.md)
 - [Offline Game Guide](docs/offline-sop.md)
 - [Deployment Guide](docs/DEPLOYMENT.md)
 - [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)

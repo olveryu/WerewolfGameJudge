@@ -1,8 +1,8 @@
 # 扭蛋系统详细设计文档
 
-> 状态：**待实施**  
+> 状态：**已实施** (2026-04-19 完成)  
 > 作者：Copilot + eyan  
-> 日期：2026-04-17
+> 日期：2026-04-17（设计） · 2026-04-19（实施完成）
 
 ---
 
@@ -13,7 +13,7 @@
 3. [数据模型变更](#3-数据模型变更)
 4. [概率引擎](#4-概率引擎)
 5. [稀有度分配](#5-稀有度分配)
-6. [服务端实现](#6-服务端实现)
+6. [服务端实现](#6-服务端实现)（含 §6.7 每日登录奖励）
 7. [客户端实现](#7-客户端实现)
 8. [动画方案](#8-动画方案)
 9. [实施步骤](#9-实施步骤)
@@ -39,6 +39,7 @@
 - 玩家在扭蛋页面主动消耗券抽取，支持单抽和 10 连
 - 通过概率表 + 保底 + 去重构建可控的收集体验
 - 扭蛋机动画提供仪式感
+- 每日登录奖励 1 张普通券，增加日活黏性
 
 ### 1.3 架构约束
 
@@ -57,9 +58,9 @@
 
 **文件**：`packages/game-engine/src/growth/rewardCatalog.ts`
 
-- 4 类物品：`avatar`(42) / `frame`(20) / `seatFlair`(30) / `nameStyle`(20)
-- `REWARD_POOL`：112 个可抽物品（减去 1 个免费 `villager`），`RewardItem { type, id }`
-- 目前 **没有稀有度字段**
+- 4 类物品：`avatar`(43) / `frame`(170) / `seatFlair`(180) / `nameStyle`(170)
+- `REWARD_POOL`：563 个可抽物品，`RewardItem { type, id, rarity }`
+- 4 稀有度：Common(319) / Rare(164) / Epic(55) / Legendary(25)
 
 ### 2.2 随机抽取
 
@@ -101,7 +102,7 @@ user_stats:
   updatedAt (TEXT)
 ```
 
-需要新增：`normal_draws`、`golden_draws`、`normal_pity`、`golden_pity` 列 + `draw_history` 表。
+已新增：`normal_draws`、`golden_draws`、`normal_pity`、`golden_pity`、`version`（OCC）、`last_login_reward_at` 列 + `draw_history` 表。
 
 ### 2.5 API 路由结构
 
@@ -117,7 +118,7 @@ user_stats:
 
 ### 2.6 Migration 编号
 
-现有最大编号：`0012_add_equipped_name_style.sql`。下一个：**`0013`**。
+扭蛋相关 migration：`0013_gacha_system.sql`（基础列 + draw_history）、`0015_gacha_version.sql`（OCC version 列）、`0016_daily_login_reward.sql`（last_login_reward_at 列）。
 
 ---
 
@@ -272,7 +273,7 @@ export interface SettleResultMessage {
 
 - `selectReward(rarity, unlockedIds)` 从 `REWARD_POOL` 过滤 `rarity === target && !unlockedIds.has(id)`
 - 如果目标稀有度池已清空（该稀有度全部集齐），向上升级：Common 空 → Rare → Epic → Legendary
-- 如果全部 112 件都已收集 → 不允许抽奖，API 返回 `{ success: false, reason: 'ALL_COLLECTED' }`
+- 如果全部 563 件都已收集 → 不允许抽奖，API 返回 `{ success: false, reason: 'ALL_COLLECTED' }`
 - 客户端券数 badge 显示 "已集齐"，抽奖按钮 disabled，**券保留不浪费**
 
 ### 4.4 纯函数实现位置
@@ -359,13 +360,15 @@ export function selectReward(
 
 ### 5.1 总览
 
-| 类型                | 总数    | Legendary | Epic   | Rare   | Common |
-| ------------------- | ------- | --------- | ------ | ------ | ------ |
-| Avatars 头像        | 42      | 3         | 7      | 14     | 18     |
-| Frames 头像框       | 20      | 3         | 5      | 6      | 6      |
-| SeatFlairs 座位特效 | 30      | 3         | 7      | 12     | 8      |
-| NameStyles 名字样式 | 20      | 2         | 4      | 7      | 7      |
-| **合计**            | **112** | **11**    | **23** | **39** | **39** |
+| 类型                | 总数    | Legendary | Epic   | Rare    | Common  |
+| ------------------- | ------- | --------- | ------ | ------- | ------- |
+| Avatars 头像        | 43      | 3         | 7      | 14      | 19      |
+| Frames 头像框       | 170     | 11        | 9      | 50      | 100     |
+| SeatFlairs 座位特效 | 180     | 7         | 23     | 50      | 100     |
+| NameStyles 名字样式 | 170     | 4         | 16     | 50      | 100     |
+| **合计**            | **563** | **25**    | **55** | **164** | **319** |
+
+> 注：具体数字以 `packages/game-engine/src/growth/rewardCatalog.ts` 中 `REWARD_POOL` 为准。
 
 ### 5.2 具体分配
 
@@ -377,52 +380,40 @@ export function selectReward(
 
 **Rare (14)**：`hunter` / `guard` / `knight` / `magician` / `piper` / `poisoner` / `gargoyle` / `dreamcatcher` / `avenger` / `mirrorSeer` / `psychic` / `cursedFox` / `witcher` / `wolfWitch`
 
-**Common (18)**：`wolf` / `wolfRobot` / `villager`\* / `crow` / `cupid` / `dancer` / `drunkSeer` / `graveyardKeeper` / `idiot` / `maskedMan` / `pureWhite` / `shadow` / `silenceElder` / `slacker` / `thief` / `treasureMaster` / `votebanElder` / `warden` / `wildChild`
+**Common (19)**：`wolf` / `wolfRobot` / `crow` / `cupid` / `dancer` / `drunkSeer` / `graveyardKeeper` / `idiot` / `maskedMan` / `pureWhite` / `shadow` / `silenceElder` / `slacker` / `thief` / `treasureMaster` / `votebanElder` / `warden` / `wildChild` / `halfblood`
 
-> \*注：`villager` 是免费头像，不在 REWARD_POOL 中，但列在此处供完整性参考。实际 Common 头像 = 18（不含 villager）。
+> `villager` 是免费默认头像，不在 REWARD_POOL 中。
 
-#### Frames (20)
+#### Frames (170)
 
-**Legendary (3)**：`starNebula` / `celestialRing` / `dragonScale`
+按 `{shape}_{color}` 命名规则生成。10 种形状（circle / diamond / hexagon / octagon / pentagon / shield / square / star / triangle / rounded）× 10 种颜色（gold / silver / bronze / ruby / sapphire / emerald / amethyst / obsidian / pearl / rose），合计 100 Common。另有 50 Rare（手绘主题框）、9 Epic（发光特效框）、11 Legendary（全屏动画框）。
 
-**Epic (5)**：`voidRift` / `stormBolt` / `jadeSeal` / `shadowWeave` / `hellFire`
+详见 `packages/game-engine/src/growth/rewardCatalog.ts` — `FRAME_IDS` / frame rarity 分配。
 
-**Rare (6)**：`ironForge` / `moonSilver` / `bloodThorn` / `runicSeal` / `pharaohGold` / `sakuraDrift`
+#### SeatFlairs (180)
 
-**Common (6)**：`boneGate` / `darkVine` / `frostCrystal` / `coralReef` / `emberAsh` / `obsidianEdge`
+100 Common（基础 SVG 动画）+ 50 Rare + 23 Epic + 7 Legendary。
 
-#### SeatFlairs (30)
+详见 `packages/game-engine/src/growth/rewardCatalog.ts` — `SEAT_FLAIR_IDS` / flair rarity 分配。
 
-**Legendary (3)**：`runeCircle` / `lightPillar` / `prismShard`
+#### NameStyles (170)
 
-**Epic (7)**：`phoenixFeather` / `thunderBolt` / `cometTail` / `lunarHalo` / `magmaFloat` / `sonicWave` / `purpleMist`
+100 Common（基础渐变文字）+ 50 Rare + 16 Epic + 4 Legendary。
 
-**Rare (12)**：`emberGlow` / `frostAura` / `shadowMist` / `goldenShine` / `bloodMark` / `starlight` / `sakura` / `fireRing` / `iceCrystal` / `ghostWisp` / `poisonBubble` / `windGust`
-
-**Common (8)**：`snowfall` / `goldSpark` / `butterfly` / `shadowClaw` / `rainDrop` / `flowerBloom` / `firefly` / `forestLeaf`
-
-#### NameStyles (20)
-
-**Legendary (2)**：`celestialDawn` / `voidStar`
-
-**Epic (4)**：`phoenixRebirth` / `dragonBreath` / `stormElectric` / `moltenGoldPulse`
-
-**Rare (7)**：`silverGleam` / `copperEmber` / `bloodMoonGlow` / `jadeShimmer` / `amethystGlow` / `indigoRadiance` / `twilightGradient`
-
-**Common (7)**：`roseGold` / `frostVeil` / `amberFlare` / `frostBreath` / `venomShift` / `shadowPulse` / `crimsonTide`
+详见 `packages/game-engine/src/growth/rewardCatalog.ts` — `NAME_STYLE_IDS` / nameStyle rarity 分配。
 
 ### 5.3 收集期望分析
 
 假设只用普通抽（每局 1 张）：
 
-| 稀有度         | 池大小 | 单次概率    | 期望抽完所需次数（含保底）     |
-| -------------- | ------ | ----------- | ------------------------------ |
-| Common (39)    | 39     | 84.5%       | ~39 / 0.845 ≈ 46 次            |
-| Rare (39)      | 39     | 10% (+保底) | 有效率 ~15%（含保底）→ ~260 次 |
-| Epic (23)      | 23     | 4%          | ~575 次                        |
-| Legendary (11) | 11     | 1.5%        | ~733 次                        |
+| 稀有度         | 池大小 | 单次概率    | 期望抽完所需次数（含保底）      |
+| -------------- | ------ | ----------- | ------------------------------- |
+| Common (319)   | 319    | 84.5%       | ~319 / 0.845 ≈ 378 次           |
+| Rare (164)     | 164    | 10% (+保底) | 有效率 ~15%（含保底）→ ~1093 次 |
+| Epic (55)      | 55     | 4%          | ~1375 次                        |
+| Legendary (25) | 25     | 1.5%        | ~1667 次                        |
 
-完整收集 112 件：~800+ 局（纯普通抽，不含黄金抽加速）。黄金抽有 3× legendary 概率 + 升级 ~52 张，可显著缩短中后期收集。
+完整收集 563 件：~2000+ 局（纯普通抽，不含黄金抽加速）。黄金抽有 3× legendary 概率 + 升级 ~52 张，可显著缩短中后期收集。每日登录奖励提供稳定的非游戏券来源（1 张/天）。
 
 ---
 
@@ -617,8 +608,8 @@ export const drawSchema = z.object({
 ### 6.5 幂等性与并发安全
 
 - **结算幂等**：已有 `lastRoomCode` 机制保证同一局不重复结算
-- **抽奖并发**：单个用户的抽奖请求通过 D1 的 `WHERE normalDraws >= count` 条件保证不超支。如果两个请求同时到达，第二个会因余额不足被拒绝
-- **D1 事务**：D1 不支持跨语句事务。抽奖的 "读→计算→写" 链通过 batch write（先更新券数 WHERE 余额足够，再写入 unlockedItems）保证一致性。如果 UPDATE 影响 0 行（余额不足），回退不写入
+- **抽奖并发 — OCC（乐观并发控制）**：`user_stats.version` 列（Migration `0015`）。每次 draw 读取 version → 写入时 `WHERE version = readVersion`，影响 0 行即重试（MAX_DRAW_RETRIES=3）。比 D1 余额条件更严格，防止两个并发 draw 读到相同快照后双重扣减
+- **随机数安全**：`crypto.getRandomValues()` 生成 `percent [0, 100)` 和 `int [0, max)`，无 modulo bias（Uint32 范围 4.29B）
 
 ### 6.6 seed-local.mjs 更新
 
@@ -632,6 +623,37 @@ UPDATE user_stats SET
   golden_pity = 0
 WHERE user_id = '00000000-0000-4000-a000-000000000001';
 ```
+
+### 6.7 每日登录奖励（Daily Login Reward）
+
+**Migration**：`0016_daily_login_reward.sql` — `ALTER TABLE user_stats ADD COLUMN last_login_reward_at TEXT;`
+
+**Schema**：`packages/api-worker/src/schemas/gacha.ts`
+
+```typescript
+export const dailyRewardSchema = z.object({
+  localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+```
+
+**端点**：`POST /api/gacha/daily-reward`（requireAuth）
+
+**机制**：
+
+- 客户端传 `localDate`（玩家本地日期 YYYY-MM-DD，`new Date().toLocaleDateString('en-CA')`）
+- 服务端判断：
+  1. 无 user_stats 行 → 自动创建（`INSERT ... ON CONFLICT DO UPDATE`）
+  2. `lastLoginRewardAt === localDate` → `{ claimed: false, reason: 'already_claimed' }`
+  3. 距上次领取 < 20h → `{ claimed: false, reason: 'cooldown' }`
+  4. 通过 → `normalDraws + 1`，更新 `lastLoginRewardAt`，返回 `{ claimed: true, normalDrawsAdded: 1 }`
+- 20h cooldown guard 防止时区滥用（面对面 party game 信任模型，轻量级防护即可）
+- OCC 重试（MAX_DRAW_RETRIES=3），复用抽奖的并发安全模式
+
+**客户端自动领取**：`useAutoClaimDailyReward()` hook：
+
+- 挂载在 HomeScreen，App 启动时检查 `status.lastLoginRewardAt !== today`
+- 自动调 `claimDailyReward(getLocalDate())`，成功后 toast "每日登录奖励 / 获得 1 次普通抽！"
+- `attemptedRef` 保证每 session 只尝试一次
 
 ---
 
@@ -961,7 +983,7 @@ GachaScreen
 | ------------------ | --------------------------------------------------------------------------------------------- |
 | 10 连时券只有 3 张 | API 返回 `INSUFFICIENT_DRAWS`，客户端按钮 disabled（count > available 时）                    |
 | 10 连途中池清空    | 循环中 `selectReward` 返回 undefined → 结束循环，只返回已抽到的结果。更新券扣减为实际抽取次数 |
-| 全部 112 件集齐    | GET status → `allCollected: true`，客户端抽奖按钮 disabled，badge 显示 "已集齐"               |
+| 全部 563 件集齐    | GET status → `allCollected: true`，客户端抽奖按钮 disabled，badge 显示 "已集齐"               |
 | 匿名用户           | 不结算、无券、不显示入口                                                                      |
 | 离线 / 断网        | 抽奖是 HTTP POST，标准 cfPost 超时+错误处理。失败时 `showAlert('抽奖失败', '请稍后重试')`     |
 | 多设备同时抽       | D1 UPDATE WHERE 余额足够，第二个请求因余额不足被拒                                            |
