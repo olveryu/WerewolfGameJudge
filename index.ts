@@ -41,14 +41,14 @@ import { Platform } from 'react-native';
  * @see https://github.com/Shopify/react-native-skia/issues/2914
  * @see https://github.com/Shopify/react-native-skia/pull/2954
  */
-const CANVASKIT_VERSION = '0.40.0';
-const CANVASKIT_CDN = `https://cdn.jsdelivr.net/npm/canvaskit-wasm@${CANVASKIT_VERSION}/bin/full`;
-
 async function main() {
   if (Platform.OS === 'web') {
     const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
+    // WASM is self-hosted in public/canvaskit.wasm (copied by postinstall).
+    // Same-origin eliminates CDN DNS+TLS overhead; paired with <link rel="preload">
+    // in web/index.html for early fetch before JS execution.
     await LoadSkiaWeb({
-      locateFile: (file: string) => `${CANVASKIT_CDN}/${file}`,
+      locateFile: (file: string) => `/${file}`,
     });
     // Sets global.SkiaViewApi — must happen before App tree evaluation.
     // See REMOVAL note above.

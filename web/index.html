@@ -40,13 +40,10 @@
     <!-- Manifest -->
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Preload CanvasKit WASM (Skia animations) — starts download before JS execution -->
-    <link
-      rel="preload"
-      href="https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.40.0/bin/full/canvaskit.wasm"
-      as="fetch"
-      crossorigin="anonymous"
-    />
+    <!-- Preload CanvasKit WASM (Skia animations) — starts download before JS execution.
+         Self-hosted from public/canvaskit.wasm (same-origin, no CDN roundtrip).
+         Must match the path returned by locateFile() in index.ts. -->
+    <link rel="preload" href="/canvaskit.wasm" as="fetch" crossorigin="anonymous" />
 
     <title>狼人kill电子裁判</title>
 

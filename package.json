@@ -29,6 +29,7 @@
     "release": "bash scripts/release.sh",
     "badges:generate": "node scripts/generate-badges.mjs",
     "badges:validate": "node scripts/generate-badges.mjs --validate-only",
+    "postinstall": "cp node_modules/canvaskit-wasm/bin/full/canvaskit.wasm public/canvaskit.wasm",
     "prepare": "husky"
   },
   "packageManager": "pnpm@10.32.1",
