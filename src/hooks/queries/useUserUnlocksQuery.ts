@@ -1,8 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchUserUnlocks } from '@/services/feature/StatsService';
-
-import { queryKeys } from './queryKeys';
+import { userUnlocksOptions } from './queryOptions';
 
 /**
  * useUserUnlocksQuery — 查看指定用户的已解锁物品列表。
@@ -10,8 +8,7 @@ import { queryKeys } from './queryKeys';
  */
 export function useUserUnlocksQuery(userId: string) {
   return useQuery({
-    queryKey: queryKeys.userUnlocks(userId),
-    queryFn: () => fetchUserUnlocks(userId).then((r) => r.unlockedItems),
+    ...userUnlocksOptions(userId),
     enabled: !!userId,
   });
 }

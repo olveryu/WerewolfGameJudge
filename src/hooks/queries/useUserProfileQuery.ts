@@ -1,8 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchUserProfile } from '@/services/feature/StatsService';
-
-import { queryKeys } from './queryKeys';
+import { userProfileOptions } from './queryOptions';
 
 /**
  * useUserProfileQuery — 指定用户的公开资料。
@@ -10,8 +8,7 @@ import { queryKeys } from './queryKeys';
  */
 export function useUserProfileQuery(userId: string, options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: queryKeys.userProfile(userId),
-    queryFn: () => fetchUserProfile(userId),
+    ...userProfileOptions(userId),
     enabled: !!userId && (options?.enabled ?? true),
   });
 }

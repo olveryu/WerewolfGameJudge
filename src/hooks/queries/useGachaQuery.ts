@@ -15,11 +15,10 @@ import {
   claimDailyReward,
   type DailyRewardResponse,
   type DrawResponse,
-  fetchGachaStatus,
   performDraw,
 } from '@/services/feature/GachaService';
 
-import { queryKeys } from './queryKeys';
+import { gachaStatusOptions, userStatsOptions } from './queryOptions';
 import { useAuthenticatedQuery } from './useAuthenticatedQuery';
 
 /** Player's local date as YYYY-MM-DD */
@@ -34,8 +33,7 @@ function getLocalDate(): string {
  */
 export function useGachaStatusQuery(options?: { enabled?: boolean }) {
   return useAuthenticatedQuery({
-    queryKey: queryKeys.gachaStatus(),
-    queryFn: fetchGachaStatus,
+    ...gachaStatusOptions(),
     ...options,
   });
 }
@@ -48,8 +46,8 @@ export function useDrawMutation() {
       performDraw(drawType, count),
     onSuccess: (_data: DrawResponse) => {
       // Invalidate both gacha status and user stats (unlocked items changed)
-      void queryClient.invalidateQueries({ queryKey: queryKeys.gachaStatus() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.userStats() });
+      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
+      void queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey });
     },
   });
 }
@@ -61,7 +59,7 @@ function useClaimDailyRewardMutation() {
     mutationFn: () => claimDailyReward(getLocalDate()),
     onSuccess: (data: DailyRewardResponse) => {
       if (data.claimed) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.gachaStatus() });
+        void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
       }
     },
   });

@@ -49,10 +49,7 @@ config.transformer = {
   getTransformOptions: async () => ({
     transform: {
       experimentalImportSupport: true,
-      inlineRequires:
-        Object.keys(skiaBlockList).length > 0
-          ? { blockList: skiaBlockList }
-          : true,
+      inlineRequires: Object.keys(skiaBlockList).length > 0 ? { blockList: skiaBlockList } : true,
     },
   }),
 };

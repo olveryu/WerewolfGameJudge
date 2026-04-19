@@ -16,7 +16,7 @@ import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import { gameRoomLog } from '@/utils/logger';
 
-import { queryKeys } from './queries/queryKeys';
+import { gachaStatusOptions, userStatsOptions } from './queries/queryOptions';
 
 interface UseSettleToastParams {
   facade: IGameFacade;
@@ -56,8 +56,8 @@ export function useSettleToast({ facade, isFocused }: UseSettleToastParams): voi
       showSettleToast(result);
 
       // Refresh cached ticket counts so header badge updates immediately
-      void queryClient.invalidateQueries({ queryKey: queryKeys.gachaStatus() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.userStats() });
+      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
+      void queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey });
     });
 
     return unsub;

@@ -18,7 +18,7 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
 import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
-import { queryKeys } from '@/hooks/queries/queryKeys';
+import { userStatsOptions } from '@/hooks/queries/queryOptions';
 import { storage } from '@/lib/storage';
 import { SupersededError } from '@/services/connection/types';
 import type { UserStats } from '@/services/feature/StatsService';
@@ -228,7 +228,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const avatarFrame = await authService.getCurrentAvatarFrame();
         const seatFlair = await authService.getCurrentSeatFlair();
         const nameStyle = await authService.getCurrentNameStyle();
-        const level = queryClient.getQueryData<UserStats>(queryKeys.userStats())?.level;
+        const level = queryClient.getQueryData<UserStats>(userStatsOptions().queryKey)?.level;
 
         return await facade.takeSeat(
           seatNumber,
@@ -273,7 +273,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const avatarFrame = await authService.getCurrentAvatarFrame();
         const seatFlair = await authService.getCurrentSeatFlair();
         const nameStyle = await authService.getCurrentNameStyle();
-        const level = queryClient.getQueryData<UserStats>(queryKeys.userStats())?.level;
+        const level = queryClient.getQueryData<UserStats>(userStatsOptions().queryKey)?.level;
 
         const result = await facade.takeSeatWithAck(
           seatNumber,

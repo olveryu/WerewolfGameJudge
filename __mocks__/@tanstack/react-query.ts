@@ -40,4 +40,5 @@ module.exports = {
     getDefaultOptions: jest.fn().mockReturnValue({}),
   })),
   QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
+  queryOptions: (opts: Record<string, unknown>) => opts,
 };

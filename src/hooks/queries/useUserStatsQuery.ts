@@ -1,6 +1,4 @@
-import { fetchUserStats } from '@/services/feature/StatsService';
-
-import { queryKeys } from './queryKeys';
+import { userStatsOptions } from './queryOptions';
 import { useAuthenticatedQuery } from './useAuthenticatedQuery';
 
 /**
@@ -11,8 +9,7 @@ import { useAuthenticatedQuery } from './useAuthenticatedQuery';
  */
 export function useUserStatsQuery(options?: { enabled?: boolean }) {
   return useAuthenticatedQuery({
-    queryKey: queryKeys.userStats(),
-    queryFn: fetchUserStats,
+    ...userStatsOptions(),
     ...options,
   });
 }
