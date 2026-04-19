@@ -27,11 +27,7 @@ config.transformer = {
   getTransformOptions: async () => ({
     transform: {
       experimentalImportSupport: true,
-<<<<<<< Updated upstream
       inlineRequires: true,
-=======
-      inlineRequires: Object.keys(skiaBlockList).length > 0 ? { blockList: skiaBlockList } : true,
->>>>>>> Stashed changes
     },
   }),
 };
