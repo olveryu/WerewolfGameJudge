@@ -58,7 +58,7 @@ const sql = [
   // Dev user (INSERT OR REPLACE to be idempotent)
   `INSERT OR REPLACE INTO users (id, email, password_hash, display_name, is_anonymous, created_at, updated_at) VALUES ('${DEV_USER_ID}', '${DEV_EMAIL}', '${DEV_PASSWORD_HASH}', '${DEV_DISPLAY_NAME}', 0, datetime('now'), datetime('now'));`,
   // Full-unlock user_stats with gacha tickets for testing
-  `INSERT OR REPLACE INTO user_stats (user_id, xp, level, games_played, unlocked_items, normal_draws, golden_draws, normal_pity, golden_pity, updated_at) VALUES ('${DEV_USER_ID}', ${maxXp}, ${maxLevel}, 100, '${unlockedJson}', 50, 10, 0, 0, datetime('now'));`,
+  `INSERT OR REPLACE INTO user_stats (user_id, xp, level, games_played, unlocked_items, normal_draws, golden_draws, normal_pity, golden_pity, version, last_login_reward_at, updated_at) VALUES ('${DEV_USER_ID}', ${maxXp}, ${maxLevel}, 100, '${unlockedJson}', 50, 10, 0, 0, 0, NULL, datetime('now'));`,
 ].join(' ');
 
 console.log('\n=== Dev user seed ===');

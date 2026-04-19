@@ -103,6 +103,7 @@ async function mergeUserStats(
         normalPity: sourceStats.normalPity,
         goldenPity: sourceStats.goldenPity,
         version: sourceStats.version + 1,
+        lastLoginRewardAt: sourceStats.lastLoginRewardAt,
         updatedAt: sql`datetime('now')`,
       })
       .onConflictDoNothing();
@@ -154,6 +155,10 @@ async function mergeUserStats(
         (sourceStats.updatedAt ?? '') > (targetStats.updatedAt ?? '')
           ? sourceStats.lastRoomCode
           : targetStats.lastRoomCode,
+      lastLoginRewardAt:
+        (sourceStats.lastLoginRewardAt ?? '') > (targetStats.lastLoginRewardAt ?? '')
+          ? sourceStats.lastLoginRewardAt
+          : targetStats.lastLoginRewardAt,
       updatedAt: sql`datetime('now')`,
     })
     .where(eq(userStats.userId, targetId));

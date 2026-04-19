@@ -16,9 +16,12 @@ import { createDb } from '../db';
 import { drawHistory, userStats } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
-import { gachaDrawSchema } from '../schemas/gacha';
+import { dailyRewardSchema, gachaDrawSchema } from '../schemas/gacha';
 
 export const gachaRoutes = new Hono<AppEnv>();
+
+/** Minimum hours between daily reward claims (server-side cooldown guard) */
+const DAILY_REWARD_COOLDOWN_HOURS = 20;
 
 /** GET /api/gacha/status */
 gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
@@ -32,6 +35,7 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
       normalPity: userStats.normalPity,
       goldenPity: userStats.goldenPity,
       unlockedItems: userStats.unlockedItems,
+      lastLoginRewardAt: userStats.lastLoginRewardAt,
     })
     .from(userStats)
     .where(eq(userStats.userId, userId))
@@ -44,6 +48,7 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
       normalPity: 0,
       goldenPity: 0,
       unlockedCount: 0,
+      lastLoginRewardAt: null,
     });
   }
 
@@ -55,6 +60,7 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
     normalPity: stats.normalPity,
     goldenPity: stats.goldenPity,
     unlockedCount: unlockedItems.length,
+    lastLoginRewardAt: stats.lastLoginRewardAt,
   });
 });
 
@@ -224,5 +230,90 @@ gachaRoutes.post('/gacha/draw', requireAuth, async (c) => {
   }
 
   // All retries exhausted — concurrent conflict persisted
+  return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
+});
+
+/** POST /api/gacha/daily-reward — 每日登录奖励：领取 1 次普通抽 */
+gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
+  const db = createDb(c.env.DB);
+  const userId = c.var.userId;
+
+  const body = await c.req.json();
+  const parsed = dailyRewardSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: 'invalid_request', details: parsed.error.issues }, 400);
+  }
+
+  const { localDate } = parsed.data;
+
+  for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
+    const stats = await db
+      .select({
+        lastLoginRewardAt: userStats.lastLoginRewardAt,
+        version: userStats.version,
+        updatedAt: userStats.updatedAt,
+      })
+      .from(userStats)
+      .where(eq(userStats.userId, userId))
+      .get();
+
+    // ── No stats row yet → create one with the daily reward ──
+    if (!stats) {
+      await db
+        .insert(userStats)
+        .values({
+          userId,
+          normalDraws: 1,
+          lastLoginRewardAt: localDate,
+          updatedAt: new Date().toISOString(),
+        })
+        .onConflictDoUpdate({
+          target: userStats.userId,
+          set: {
+            normalDraws: sql`${userStats.normalDraws} + 1`,
+            lastLoginRewardAt: localDate,
+            version: sql`${userStats.version} + 1`,
+            updatedAt: sql`datetime('now')`,
+          },
+        });
+
+      return c.json({ claimed: true, normalDrawsAdded: 1 });
+    }
+
+    // ── Already claimed today (same local date) ──
+    if (stats.lastLoginRewardAt === localDate) {
+      return c.json({ claimed: false, reason: 'already_claimed' });
+    }
+
+    // ── Server-side cooldown guard: reject if < 20h since last claim ──
+    if (stats.lastLoginRewardAt) {
+      // lastLoginRewardAt is a YYYY-MM-DD string; parse as start of that day UTC
+      const lastClaimTime = new Date(stats.lastLoginRewardAt + 'T00:00:00Z').getTime();
+      const now = Date.now();
+      const hoursSinceLastClaim = (now - lastClaimTime) / (1000 * 60 * 60);
+      if (hoursSinceLastClaim < DAILY_REWARD_COOLDOWN_HOURS) {
+        return c.json({ claimed: false, reason: 'cooldown' });
+      }
+    }
+
+    // ── OCC update: +1 normalDraws, set lastLoginRewardAt, bump version ──
+    const updated = await db
+      .update(userStats)
+      .set({
+        normalDraws: sql`${userStats.normalDraws} + 1`,
+        lastLoginRewardAt: localDate,
+        version: sql`${userStats.version} + 1`,
+        updatedAt: sql`datetime('now')`,
+      })
+      .where(and(eq(userStats.userId, userId), eq(userStats.version, stats.version)))
+      .returning({ version: userStats.version });
+
+    if (updated.length === 0) {
+      continue;
+    }
+
+    return c.json({ claimed: true, normalDrawsAdded: 1 });
+  }
+
   return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
 });

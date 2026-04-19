@@ -1,16 +1,31 @@
 /**
- * useGachaQuery — 扭蛋状态查询 + 抽奖 mutation
+ * useGachaQuery — 扭蛋状态查询 + 抽奖 mutation + 每日登录奖励
  *
- * useGachaStatusQuery: 查询抽奖券数量/pity/已解锁数
+ * useGachaStatusQuery: 查询抽奖券数量/pity/已解锁数/每日奖励状态
  * useDrawMutation: 执行抽奖并自动刷新 gachaStatus + userStats cache
+ * useClaimDailyRewardMutation: 领取每日登录奖励
+ * useAutoClaimDailyReward: 自动检测并领取每日奖励 + toast 提示
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
+import { toast } from 'sonner-native';
 
-import { type DrawResponse, fetchGachaStatus, performDraw } from '@/services/feature/GachaService';
+import {
+  claimDailyReward,
+  type DailyRewardResponse,
+  type DrawResponse,
+  fetchGachaStatus,
+  performDraw,
+} from '@/services/feature/GachaService';
 
 import { queryKeys } from './queryKeys';
 import { useAuthenticatedQuery } from './useAuthenticatedQuery';
+
+/** Player's local date as YYYY-MM-DD */
+function getLocalDate(): string {
+  return new Date().toLocaleDateString('en-CA');
+}
 
 /**
  * useGachaStatusQuery — 扭蛋状态（抽奖券/pity/已解锁数）。
@@ -37,4 +52,45 @@ export function useDrawMutation() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.userStats() });
     },
   });
+}
+
+function useClaimDailyRewardMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => claimDailyReward(getLocalDate()),
+    onSuccess: (data: DailyRewardResponse) => {
+      if (data.claimed) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.gachaStatus() });
+      }
+    },
+  });
+}
+
+/**
+ * useAutoClaimDailyReward — gacha status 加载后自动领取每日奖励。
+ *
+ * 检查 lastLoginRewardAt !== 今天本地日期 → 自动 claim → toast。
+ * 一个 session 内只尝试一次（useRef guard）。
+ */
+export function useAutoClaimDailyReward() {
+  const { data: status } = useGachaStatusQuery();
+  const claimMutation = useClaimDailyRewardMutation();
+  const attemptedRef = useRef(false);
+
+  useEffect(() => {
+    if (attemptedRef.current || !status || claimMutation.isPending) return;
+
+    const today = getLocalDate();
+    if (status.lastLoginRewardAt === today) return;
+
+    attemptedRef.current = true;
+    claimMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        if (data.claimed) {
+          toast.success('每日登录奖励', { description: '获得 1 次普通抽！' });
+        }
+      },
+    });
+  }, [status, claimMutation]);
 }

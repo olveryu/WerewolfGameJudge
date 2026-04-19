@@ -79,6 +79,7 @@ export const userStats = sqliteTable('user_stats', {
   normalPity: integer('normal_pity').notNull().default(0),
   goldenPity: integer('golden_pity').notNull().default(0),
   version: integer('version').notNull().default(0),
+  lastLoginRewardAt: text('last_login_reward_at'),
   updatedAt: text('updated_at').notNull(),
 });
 

@@ -30,7 +30,7 @@ import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
 import { LAST_ROOM_NUMBER_KEY, type TipId, tipStorageKey } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
+import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { storage } from '@/lib/storage';
 import { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
@@ -74,6 +74,9 @@ export const HomeScreen: React.FC = () => {
   // Ticket count for top bar badge (shared cache via TanStack Query)
   const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
+
+  // Auto-claim daily login reward (fires once per session when status loads)
+  useAutoClaimDailyReward();
 
   // Load persisted tip dismissals (synchronous MMKV)
   const readDismissedTips = useCallback(() => {
