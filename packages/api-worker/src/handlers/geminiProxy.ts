@@ -18,6 +18,58 @@ const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai
 const MAX_TOKENS_CAP = 4096;
 const WORKERS_AI_MODEL = '@cf/google/gemma-3-12b-it';
 
+/**
+ * 将 Workers AI SSE 流（`{"response":"..."}` 格式）转换为 OpenAI 兼容格式
+ * （`{"choices":[{"delta":{"content":"..."}}]}`），客户端解析器只认后者。
+ */
+function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = '';
+
+  return workersAIStream.pipeThrough(
+    new TransformStream({
+      transform(chunk, controller) {
+        buffer += decoder.decode(chunk, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+          const data = trimmed.slice(6);
+
+          if (data === '[DONE]') {
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            continue;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+            // Workers AI: {"response":"..."} → OpenAI: {"choices":[{"delta":{"content":"..."}}]}
+            if ('response' in parsed) {
+              const openAIChunk = {
+                choices: [{ delta: { content: parsed.response } }],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(openAIChunk)}\n\n`));
+            } else {
+              // Already OpenAI format or unknown — pass through
+              controller.enqueue(encoder.encode(`${trimmed}\n\n`));
+            }
+          } catch {
+            controller.enqueue(encoder.encode(`${trimmed}\n\n`));
+          }
+        }
+      },
+      flush(controller) {
+        if (buffer.trim()) {
+          controller.enqueue(encoder.encode(`${buffer}\n\n`));
+        }
+      },
+    }),
+  );
+}
+
 export const geminiRoutes = new Hono<AppEnv>();
 
 geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
@@ -51,9 +103,11 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
         body: JSON.stringify(geminiBody),
       });
 
-      // Geo-restriction or rate limit → fall through to Workers AI
+      // Geo-restriction, rate limit, or server error → fall through to Workers AI
       if (geminiResponse.status === 429) {
         console.info('[ai-chat] Gemini rate limited, falling back to Workers AI');
+      } else if (geminiResponse.status >= 500) {
+        console.info(`[ai-chat] Gemini ${geminiResponse.status}, falling back to Workers AI`);
       } else if (geminiResponse.status === 400) {
         const errorText = await geminiResponse.text();
         if (errorText.includes('User location is not supported')) {
@@ -88,7 +142,7 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
     });
 
     if (stream) {
-      return new Response(aiResponse as unknown as ReadableStream, {
+      return new Response(toOpenAIStream(aiResponse as unknown as ReadableStream), {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
