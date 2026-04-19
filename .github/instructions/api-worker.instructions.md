@@ -1,6 +1,7 @@
-````instructions
 ---
-applyTo: packages/api-worker/**
+name: 'API Worker'
+description: 'Cloudflare Worker 规范：Hono 路由、Zod 校验、DO 调用、扭蛋系统、认证中间件'
+applyTo: 'packages/api-worker/**'
 ---
 
 # @werewolf/api-worker 规范
@@ -63,18 +64,18 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 | `jsonBody<T>(schema)`     | `hono/validator` 中间件，JSON 解析 + zod 校验 |
 | `callDO<T>(fn)`           | DO RPC 调用 + HTTPException 错误处理          |
 | `getGameRoomStub(env, c)` | 获取 DO stub                                  |
-| `resultToStatus(result)`  | `{ success, reason }` → `200 \| 400 \| 500`  |
+| `resultToStatus(result)`  | `{ success, reason }` → `200 \| 400 \| 500`   |
 | `isValidSeat(value)`      | seat number type guard                        |
 
 ## 扭蛋系统（Gacha）
 
 ### 路由（`gachaHandlers.ts` → `/api/gacha/*`）
 
-| 方法   | 路径                    | Auth | Body Schema         | 说明                                              |
-| ------ | ----------------------- | ---- | ------------------- | ------------------------------------------------- |
-| `GET`  | `/api/gacha/status`     | ✅   | —                   | 券数 / pity / 已解锁数 / lastLoginRewardAt        |
-| `POST` | `/api/gacha/draw`       | ✅   | `gachaDrawSchema`   | 抽奖（drawType: normal\|golden, count: 1-10）     |
-| `POST` | `/api/gacha/daily-reward` | ✅ | `dailyRewardSchema` | 每日登录奖励（localDate: YYYY-MM-DD）             |
+| 方法   | 路径                      | Auth | Body Schema         | 说明                                          |
+| ------ | ------------------------- | ---- | ------------------- | --------------------------------------------- |
+| `GET`  | `/api/gacha/status`       | ✅   | —                   | 券数 / pity / 已解锁数 / lastLoginRewardAt    |
+| `POST` | `/api/gacha/draw`         | ✅   | `gachaDrawSchema`   | 抽奖（drawType: normal\|golden, count: 1-10） |
+| `POST` | `/api/gacha/daily-reward` | ✅   | `dailyRewardSchema` | 每日登录奖励（localDate: YYYY-MM-DD）         |
 
 ### 并发安全
 
@@ -91,5 +92,3 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 - 每局有效游戏：+1 普通券 + XP
 - 每次升级：+1 黄金券
 - 幂等 key：`${roomCode}:${revision}`
-
-````

@@ -1,6 +1,7 @@
-```instructions
 ---
-applyTo: src/services/**
+name: 'Services'
+description: 'Service 层规范：facade/transport/infra/feature 服务、resolver、状态管理、音频编排'
+applyTo: 'src/services/**'
 ---
 
 # Service 层规范
@@ -13,12 +14,12 @@ applyTo: src/services/**
 
 高层 facade，组合 infra/transport 服务对外提供业务能力。
 
-| 服务 | 文件 | 职责 |
-|---|---|---|
-| **StatsService** | `src/services/feature/StatsService.ts` | 用户成长数据查询（XP/等级/解锁物品） |
-| **GachaService** | `src/services/feature/GachaService.ts` | 扭蛋状态查询、抽奖执行、每日登录奖励领取 |
-| **ShareImageService** | `src/services/feature/ShareImageService.ts` | 分享图片上传到 R2，返回公开 URL |
-| **CFStorageService** | `src/services/infra/CFStorageService.ts` | 自定义头像上传到 Cloudflare R2 |
+| 服务                  | 文件                                        | 职责                                     |
+| --------------------- | ------------------------------------------- | ---------------------------------------- |
+| **StatsService**      | `src/services/feature/StatsService.ts`      | 用户成长数据查询（XP/等级/解锁物品）     |
+| **GachaService**      | `src/services/feature/GachaService.ts`      | 扭蛋状态查询、抽奖执行、每日登录奖励领取 |
+| **ShareImageService** | `src/services/feature/ShareImageService.ts` | 分享图片上传到 R2，返回公开 URL          |
+| **CFStorageService**  | `src/services/infra/CFStorageService.ts`    | 自定义头像上传到 Cloudflare R2           |
 
 ## 核心规则
 
@@ -92,5 +93,3 @@ expo-audio `AudioPlayer` 等原生资源被替换时必须 track 旧实例，在
   - **L1: Status listener** — WebSocket 真正断开后 SDK 重连 → `ConnectionStatus.Live` → 重试 `postAudioAck`。覆盖真实网络断开。
   - **L2: Browser `online` event** — `window.addEventListener('online', ...)` 零延迟感知网络恢复 → 重试 `postAudioAck`。覆盖 WebSocket 未断但 HTTP 断了的场景（如 Playwright `setOffline`、短暂 DNS 故障）。仅 Web 平台（`typeof globalThis.window?.addEventListener === 'function'` 能力检查），原生端由 L1 覆盖。
   - 两层谁先触发清除对方，`leaveRoom` / `createRoom` / `joinRoom` 统一清理。
-
-```

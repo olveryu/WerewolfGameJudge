@@ -1,5 +1,6 @@
-```instructions
 ---
+name: 'Tests'
+description: '测试规范：Jest 单元/集成、Board UI 合约测试、Playwright E2E'
 applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 ---
 
@@ -43,5 +44,3 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 - 禁止 `page.waitForTimeout(N)`（唯一例外：轮询循环内 ≤300ms cadence），用 `expect(locator).toBeVisible()` / `locator.waitFor()` 等事件驱动等待替代。
 - 禁止 `.isVisible({ timeout: N })`（Playwright 静默忽略 timeout 参数，瞬间返回）。需等待用 `locator.waitFor({ state: 'visible', timeout })`。
 - 每个 E2E spec 创建独立房间（test isolation），因此支持 `workers > 1` 并行。房间就绪用 `waitForRoomScreenReady()`。
-
-```

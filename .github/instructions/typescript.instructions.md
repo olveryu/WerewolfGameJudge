@@ -1,5 +1,6 @@
-```instructions
 ---
+name: 'TypeScript & Hooks'
+description: '类型安全、React Hooks 卫生、未使用变量处理规范'
 applyTo: 'src/**/*.ts,src/**/*.tsx'
 ---
 
@@ -31,5 +32,3 @@ applyTo: 'src/**/*.ts,src/**/*.tsx'
 - `useMemo` 仅用于昂贵计算（filter/sort/reduce、对象深构建），禁止对 primitive / 简单对象字面量包 useMemo。
 - `useCallback` 用于传给 memo 化子组件的回调。不传给子组件的内部 handler 不需要。
 - 返回值 >2 个用具名对象（`function useXxx(): XxxResult`）。单一职责，~80 行考虑拆分。
-
-```

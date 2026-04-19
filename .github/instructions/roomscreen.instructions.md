@@ -1,4 +1,5 @@
 ---
+name: 'RoomScreen'
 applyTo: src/screens/RoomScreen/**
 description: 'Use when editing RoomScreen files: policy, hooks, executors, seatTap, components, share modules. Covers RoomScreen sub-directory structure and screen-specific conventions.'
 ---

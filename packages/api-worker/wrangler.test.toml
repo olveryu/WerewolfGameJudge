@@ -7,6 +7,10 @@ main = "src/index.ts"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 
+# ── Env vars (test-only) ─────────────────────────────────────────────────────
+[vars]
+JWT_SECRET = "e2e-test-jwt-secret-do-not-use-in-production"
+
 # ── D1 Database (local miniflare) ───────────────────────────────────────────
 [[d1_databases]]
 binding = "DB"

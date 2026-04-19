@@ -1,5 +1,6 @@
-```instructions
 ---
+name: 'Screens & Components'
+description: 'Screen/Component 层规范：Policy-Orchestrator-Presentational、Theme Token、RN 性能'
 applyTo: 'src/screens/**,src/components/**'
 ---
 
@@ -7,11 +8,11 @@ applyTo: 'src/screens/**,src/components/**'
 
 ## 三层分工（RoomScreen）
 
-| 层 | 职责 | 位置 |
-|---|---|---|
-| **Policy** | 纯逻辑：输入 → Instruction（NOOP/ALERT/SUBMIT 等） | `policy/**` |
-| **Orchestrator** | 调用 policy → 执行副作用 | Screen / hooks |
-| **Presentational** | 渲染 + 上报 intent（onPress/onChange 回调） | `components/**` |
+| 层                 | 职责                                               | 位置            |
+| ------------------ | -------------------------------------------------- | --------------- |
+| **Policy**         | 纯逻辑：输入 → Instruction（NOOP/ALERT/SUBMIT 等） | `policy/**`     |
+| **Orchestrator**   | 调用 policy → 执行副作用                           | Screen / hooks  |
+| **Presentational** | 渲染 + 上报 intent（onPress/onChange 回调）        | `components/**` |
 
 - Policy 必须可单元测试，禁止 showAlert / navigation / service / hooks / 副作用。
 - Orchestrator 禁止写与 policy 并行的业务判断。
@@ -36,12 +37,12 @@ applyTo: 'src/screens/**,src/components/**'
 
 阵营颜色统一使用 theme token，禁止硬编码色值：
 
-| 阵营 | Token | 用途 |
-|---|---|---|
-| 狼人 | `colors.wolf` | chip 边框/文字、badge、notepad 角色标签 |
-| 神职 | `colors.god` | 同上 |
-| 村民 | `colors.villager` | 同上 |
-| 第三方 | `colors.third` | 同上 |
+| 阵营   | Token             | 用途                                    |
+| ------ | ----------------- | --------------------------------------- |
+| 狼人   | `colors.wolf`     | chip 边框/文字、badge、notepad 角色标签 |
+| 神职   | `colors.god`      | 同上                                    |
+| 村民   | `colors.villager` | 同上                                    |
+| 第三方 | `colors.third`    | 同上                                    |
 
 - 所有 UI 展示阵营色的地方（ConfigScreen chip、BoardInfoCard chip、RoleCard、NotepadPanel badge、AIChatBubble 等）必须从 `colors.*` 读取，确保跟随主题切换。
 - `RoleRevealEffects` 动画组件通过 `createAlignmentThemes(colors)` 工厂函数派生 glow/particle/gradient 色值（`src/components/RoleRevealEffects/types.ts`）。
@@ -51,11 +52,11 @@ applyTo: 'src/screens/**,src/components/**'
 
 ### Avatar 组件系
 
-| 组件 | 文件 | 何时使用 |
-|---|---|---|
-| `Avatar` | `src/components/Avatar.tsx` | 基础头像渲染（内部组件） |
-| `UserAvatar` | `src/components/UserAvatar.tsx` | 用户头像按钮 + 等级 badge（HomeScreen TopBar / RoomScreen HeaderActions 共用） |
-| `AvatarWithFrame` | `src/components/AvatarWithFrame.tsx` | 头像 + 装饰框渲染（SeatTile / AvatarPickerScreen） |
+| 组件              | 文件                                 | 何时使用                                                                       |
+| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
+| `Avatar`          | `src/components/Avatar.tsx`          | 基础头像渲染（内部组件）                                                       |
+| `UserAvatar`      | `src/components/UserAvatar.tsx`      | 用户头像按钮 + 等级 badge（HomeScreen TopBar / RoomScreen HeaderActions 共用） |
+| `AvatarWithFrame` | `src/components/AvatarWithFrame.tsx` | 头像 + 装饰框渲染（SeatTile / AvatarPickerScreen）                             |
 
 ### 座位装饰 (seatFlairs)
 
@@ -104,8 +105,4 @@ applyTo: 'src/screens/**,src/components/**'
 
 `isAudioPlaying` gate 必须最高优先级：audio 播放时交互统一 NOOP，不得被 `disabledReason` / `notSelf` 等提示抢先。必须有 policy 单测锁死此优先级。新增/修改交互 policy 必须补单测覆盖关键 gate。
 
-
-
 RoomScreen UI 状态机速查（GameStatus→按钮映射、Schema Kind→交互模式、Overlay/Modal 触发条件、SeatTile 视觉状态）参见 [docs/roomscreen-state-machine.md](../../docs/roomscreen-state-machine.md)。
-
-```
