@@ -9,7 +9,8 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { PITY_THRESHOLD, TOTAL_UNLOCKABLE_COUNT } from '@werewolf/game-engine';
+import { PITY_THRESHOLD } from '@werewolf/game-engine/growth/gachaProbability';
+import { TOTAL_UNLOCKABLE_COUNT } from '@werewolf/game-engine/growth/rewardCatalog';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
 import {

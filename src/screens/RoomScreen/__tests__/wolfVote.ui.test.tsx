@@ -1,5 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';

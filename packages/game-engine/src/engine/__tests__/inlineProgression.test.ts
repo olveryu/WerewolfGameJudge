@@ -8,9 +8,10 @@
  * - 调用 runInlineProgression 验证：推进步数、audioEffects、finalState
  */
 
-import type { GameState } from '@werewolf/game-engine';
-import { GameStatus, runInlineProgression } from '@werewolf/game-engine';
-import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
+import { GameStatus } from '../../models/GameStatus';
+import { buildNightPlan } from '../../models/roles/spec/plan';
+import type { GameState } from '../../protocol/types';
+import { runInlineProgression } from '../inlineProgression';
 
 // =============================================================================
 // Test Helpers

@@ -8,10 +8,10 @@
  * - Player 收到 STATE_UPDATE → applySnapshot
  */
 
-import { GameStatus } from '@werewolf/game-engine';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStore } from '@werewolf/game-engine/engine/store';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
 
 import { ConnectionState } from '@/services/connection/types';

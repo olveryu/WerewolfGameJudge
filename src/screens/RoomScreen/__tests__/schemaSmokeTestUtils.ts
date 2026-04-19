@@ -1,4 +1,4 @@
-import { GameStatus } from '@werewolf/game-engine';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 import { ConnectionStatus } from '@/services/types/IGameFacade';

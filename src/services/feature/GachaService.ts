@@ -5,7 +5,7 @@
  * 使用 cfGet/cfPost 统一封装。
  */
 
-import type { Rarity } from '@werewolf/game-engine';
+import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 
 import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
 

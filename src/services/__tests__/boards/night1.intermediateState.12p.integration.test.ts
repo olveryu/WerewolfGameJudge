@@ -9,7 +9,7 @@
  * 步骤顺序 (预女猎白): wolfKill → witchAction → hunterConfirm → seerCheck
  */
 
-import { GameStatus } from '@werewolf/game-engine';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
 

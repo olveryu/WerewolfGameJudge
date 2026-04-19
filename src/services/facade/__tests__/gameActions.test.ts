@@ -13,9 +13,9 @@
  * thin wrapper（assignRoles 等）只测 NOT_CONNECTED 路径 + 正常调用转发。
  */
 
-import { GameStatus } from '@werewolf/game-engine';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 // Mock dependencies before importing
 jest.mock('@sentry/react-native', () => ({
