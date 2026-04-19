@@ -15,4 +15,21 @@ config.resolver.blockList = [...(config.resolver.blockList || []), /\.env\.e2e\.
 // Listen on all interfaces so mobile devices on LAN / Tailscale can access
 config.server = { ...config.server, host: '0.0.0.0' };
 
+// ---------------------------------------------------------------------------
+// Bundle optimizations
+// ---------------------------------------------------------------------------
+// experimentalImportSupport: required for EXPO_UNSTABLE_TREE_SHAKING (default
+// since SDK 54, set explicitly for clarity).
+// inlineRequires: defer module execution until first use → faster startup.
+// Only safe when tree shaking is also enabled (preserves side-effect order).
+config.transformer = {
+  ...config.transformer,
+  getTransformOptions: async () => ({
+    transform: {
+      experimentalImportSupport: true,
+      inlineRequires: true,
+    },
+  }),
+};
+
 module.exports = config;
