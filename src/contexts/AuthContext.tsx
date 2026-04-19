@@ -147,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    loadUser();
+    void loadUser();
   }, [authService, handleAuthError, updateUserIfChanged]);
 
   const signInAnonymously = useCallback(async () => {

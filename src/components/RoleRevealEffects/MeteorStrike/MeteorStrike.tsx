@@ -280,7 +280,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
     m.caught = true;
     m.active = false;
 
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
     setPhase('impact');
 
     // Animate meteor to impact point
@@ -461,7 +461,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < MS.catchRadius) {
-        if (enableHaptics) triggerHaptic('medium', true);
+        if (enableHaptics) void triggerHaptic('medium', true);
         triggerImpact();
       }
     },

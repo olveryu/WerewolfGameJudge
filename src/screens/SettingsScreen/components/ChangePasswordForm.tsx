@@ -101,13 +101,17 @@ export const ChangePasswordForm = memo<ChangePasswordFormProps>(
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           returnKeyType="done"
-          onSubmitEditing={handleSubmit}
+          onSubmitEditing={() => {
+            void handleSubmit();
+          }}
           editable={!submitting}
         />
         {error && <Text style={styles.errorText}>{error}</Text>}
         <Button
           variant="primary"
-          onPress={handleSubmit}
+          onPress={() => {
+            void handleSubmit();
+          }}
           disabled={submitting}
           buttonColor={colors.primary}
           textColor={colors.textInverse}

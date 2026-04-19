@@ -320,7 +320,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   const openCapsule = useCallback(() => {
     if (phase !== 'waiting') return;
     setPhase('opening');
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
 
     // Crack lines appear before shell bursts
     crackOpacity.value = withSequence(
@@ -360,7 +360,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   const spinDial = useCallback(() => {
     if (phase !== 'ready') return;
     setPhase('spinning');
-    if (enableHaptics) triggerHaptic('medium', true);
+    if (enableHaptics) void triggerHaptic('medium', true);
 
     // Coin insert animation
     coinOpacity.value = withSequence(

@@ -74,7 +74,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
   const handlePress = useCallback(() => {
     if (disabled && !fireWhenDisabled) return;
     if (haptic) {
-      triggerHaptic('light');
+      void triggerHaptic('light');
     }
     // 兼容 meta 回调模式：始终传 { disabled }，let callers decide
     (onPress as (meta: { disabled: boolean }) => void)({ disabled });

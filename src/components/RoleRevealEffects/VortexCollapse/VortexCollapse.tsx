@@ -326,7 +326,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
     collapsedRef.current = true;
     setPhase('collapse');
 
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
 
     // Flash
     flashOpacity.value = withSequence(
@@ -539,7 +539,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
         spinRef.current += Math.abs(delta) / (Math.PI * 2);
 
         if (enableHaptics && spinRef.current % 0.1 < 0.02) {
-          triggerHaptic('light', true);
+          void triggerHaptic('light', true);
         }
 
         if (spinRef.current >= VC.collapseThreshold && !collapsedRef.current) {

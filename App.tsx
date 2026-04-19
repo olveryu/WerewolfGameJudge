@@ -42,7 +42,7 @@ Sentry.init({
 });
 
 // Keep splash screen visible while app initializes
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
 const appLog = log.extend('App');
 
@@ -94,7 +94,7 @@ function AppContent() {
   useEffect(() => {
     if (authLoading) return;
 
-    SplashScreen.hideAsync(); // native only; web is no-op
+    void SplashScreen.hideAsync(); // native only; web is no-op
     // Web: remove the HTML splash overlay defined in web/index.html
     if (Platform.OS === 'web') {
       const splash = document.getElementById('splash-screen');

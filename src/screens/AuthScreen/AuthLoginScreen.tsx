@@ -76,7 +76,9 @@ export const AuthLoginScreen: React.FC = () => {
           subtitle={loginSubtitle}
           onEmailSignUp={handleEmailSignUp}
           onEmailSignIn={handleEmailSignIn}
-          onAnonymousLogin={handleAnonymousLogin}
+          onAnonymousLogin={() => {
+            void handleAnonymousLogin();
+          }}
           hideAnonymous={isMiniProgram()}
           onBrowseAvatars={handleBrowseAvatars}
           onCancel={handleCancel}

@@ -327,7 +327,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => {
     setPhase('revealed');
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
     // Fortune quote fades in
     fortuneOpacity.value = withDelay(400, withTiming(1, { duration: 800 }));
     // Magic circle fades out
@@ -336,7 +336,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
   const startFlipping = useCallback(() => {
     setPhase('flipping');
-    if (enableHaptics) triggerHaptic('medium', true);
+    if (enableHaptics) void triggerHaptic('medium', true);
 
     // Magic circle appears and spins
     magicCircleOpacity.value = withTiming(0.5, { duration: 300 });
@@ -377,7 +377,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
   const startDrawing = useCallback(() => {
     setPhase('drawing');
-    if (enableHaptics) triggerHaptic('medium', true);
+    if (enableHaptics) void triggerHaptic('medium', true);
 
     drawnCardOpacity.value = 1;
     // Trail light shows during flight
@@ -421,7 +421,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       if (phase !== 'waiting') return;
       setSelectedCardIndex(cardIndex);
       cancelAnimation(wheelRotation);
-      if (enableHaptics) triggerHaptic('medium', true);
+      if (enableHaptics) void triggerHaptic('medium', true);
 
       // Calculate selected card position in wheel
       const currentRotation = wheelRotation.value;

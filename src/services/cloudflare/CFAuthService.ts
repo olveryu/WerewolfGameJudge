@@ -347,7 +347,7 @@ export class CFAuthService implements IAuthService {
     try {
       const resp = await this.getCurrentUser();
       if (resp) {
-        const user = (await resp).data.user;
+        const user = resp.data.user;
         const registeredName = user?.user_metadata?.display_name as string | undefined;
         if (registeredName) return registeredName;
       }
@@ -361,7 +361,7 @@ export class CFAuthService implements IAuthService {
     try {
       const resp = await this.getCurrentUser();
       if (resp) {
-        const user = (await resp).data.user;
+        const user = resp.data.user;
         return (user?.user_metadata?.avatar_url as string) || null;
       }
     } catch (e) {
@@ -374,7 +374,7 @@ export class CFAuthService implements IAuthService {
     try {
       const resp = await this.getCurrentUser();
       if (resp) {
-        const user = (await resp).data.user;
+        const user = resp.data.user;
         return (user?.user_metadata?.avatar_frame as string) || null;
       }
     } catch (e) {
@@ -387,7 +387,7 @@ export class CFAuthService implements IAuthService {
     try {
       const resp = await this.getCurrentUser();
       if (resp) {
-        const user = (await resp).data.user;
+        const user = resp.data.user;
         return (user?.user_metadata?.seat_flair as string) || null;
       }
     } catch (e) {
@@ -400,7 +400,7 @@ export class CFAuthService implements IAuthService {
     try {
       const resp = await this.getCurrentUser();
       if (resp) {
-        const user = (await resp).data.user;
+        const user = resp.data.user;
         return (user?.user_metadata?.name_style as string) || null;
       }
     } catch (e) {

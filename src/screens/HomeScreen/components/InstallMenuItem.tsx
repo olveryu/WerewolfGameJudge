@@ -47,7 +47,9 @@ const InstallMenuItemComponent: React.FC<InstallMenuItemProps> = ({ styles, colo
     <>
       <TouchableOpacity
         style={styles.footerLink}
-        onPress={handlePress}
+        onPress={() => {
+          void handlePress();
+        }}
         activeOpacity={fixed.activeOpacity}
       >
         <Ionicons name="download-outline" size={componentSizes.icon.sm} color={colors.primary} />

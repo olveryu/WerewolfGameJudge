@@ -93,8 +93,12 @@ export const AuthResetPasswordScreen: React.FC = () => {
           authLoading={loading}
           onCodeChange={setCode}
           onNewPasswordChange={setNewPassword}
-          onSubmit={handleSubmit}
-          onResend={handleResend}
+          onSubmit={() => {
+            void handleSubmit();
+          }}
+          onResend={() => {
+            void handleResend();
+          }}
           onBack={handleBack}
           styles={styles}
           colors={colors}

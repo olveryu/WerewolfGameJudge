@@ -322,10 +322,10 @@ describe('AudioService - Stop current player', () => {
     const { createAudioPlayer } = require('expo-audio');
 
     // Start playing (won't complete due to mock setup)
-    audioService.playRoleBeginningAudio('wolf');
+    void audioService.playRoleBeginningAudio('wolf');
 
     // Start another - should stop the first
-    audioService.playRoleBeginningAudio('seer');
+    void audioService.playRoleBeginningAudio('seer');
 
     // Second call should have paused the first player (player kept for reuse on iOS Safari)
     expect(mockPause).toHaveBeenCalled();

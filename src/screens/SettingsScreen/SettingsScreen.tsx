@@ -154,23 +154,25 @@ export const SettingsScreen: React.FC = () => {
     showPrompt('修改昵称', {
       placeholder: '输入名字',
       defaultValue: user?.displayName || '',
-      onConfirm: async (value: string) => {
-        const trimmed = value.trim();
-        if (!trimmed) {
-          toast.warning('请输入名字');
-          return;
-        }
-        try {
-          await updateProfile({ displayName: trimmed });
-          toast.success('昵称已更新');
-          facade
-            .updatePlayerProfile(trimmed, undefined)
-            .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed:', err));
-        } catch (e: unknown) {
-          const message = getErrorMessage(e);
-          settingsLog.error('Update name failed:', message, e);
-          showErrorAlert('更新失败', message);
-        }
+      onConfirm: (value: string) => {
+        void (async () => {
+          const trimmed = value.trim();
+          if (!trimmed) {
+            toast.warning('请输入名字');
+            return;
+          }
+          try {
+            await updateProfile({ displayName: trimmed });
+            toast.success('昵称已更新');
+            facade
+              .updatePlayerProfile(trimmed, undefined)
+              .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed:', err));
+          } catch (e: unknown) {
+            const message = getErrorMessage(e);
+            settingsLog.error('Update name failed:', message, e);
+            showErrorAlert('更新失败', message);
+          }
+        })();
       },
     });
   }, [user?.displayName, updateProfile, facade]);
@@ -238,9 +240,11 @@ export const SettingsScreen: React.FC = () => {
     };
 
     if (user?.isAnonymous) {
-      showDestructiveAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', '切换', doSwitch);
+      showDestructiveAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', '切换', () => {
+        void doSwitch();
+      });
     } else {
-      doSwitch();
+      void doSwitch();
     }
   }, [user?.isAnonymous, facade, navigation, isInRoom, isSeated]);
 
@@ -328,7 +332,9 @@ export const SettingsScreen: React.FC = () => {
                 variant="ghost"
                 buttonColor={colors.background}
                 textColor={colors.text}
-                onPress={handleSignOut}
+                onPress={() => {
+                  void handleSignOut();
+                }}
                 style={styles.logoutBtn}
               >
                 登出
@@ -517,7 +523,9 @@ export const SettingsScreen: React.FC = () => {
               variant="ghost"
               buttonColor={colors.background}
               textColor={colors.error}
-              onPress={handleSignOut}
+              onPress={() => {
+                void handleSignOut();
+              }}
               style={styles.logoutBtn}
             >
               登出
@@ -538,7 +546,9 @@ export const SettingsScreen: React.FC = () => {
         authLoading={authLoading}
         onEmailSignUp={handleEmailSignUp}
         onEmailSignIn={handleEmailSignIn}
-        onAnonymousLogin={handleAnonymousLogin}
+        onAnonymousLogin={() => {
+          void handleAnonymousLogin();
+        }}
         hideAnonymous={isMiniProgram()}
         onBrowseAvatars={handleBrowseAvatars}
         styles={styles}

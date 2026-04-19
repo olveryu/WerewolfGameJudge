@@ -38,7 +38,6 @@ import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engi
 import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
@@ -67,7 +66,7 @@ export class GameRoom extends DurableObject<Env> {
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    ctx.blockConcurrencyWhile(async () => {
+    void ctx.blockConcurrencyWhile(async () => {
       this.ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS room_state (
           id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -142,8 +141,8 @@ export class GameRoom extends DurableObject<Env> {
       console.error('[GameRoom] settle retries exhausted', { revision, attempt });
       return;
     }
-    this.ctx.storage.put('settle_pending', { revision, attempt });
-    this.ctx.storage.setAlarm(Date.now() + GameRoom.SETTLE_RETRY_DELAY_MS);
+    void this.ctx.storage.put('settle_pending', { revision, attempt });
+    void this.ctx.storage.setAlarm(Date.now() + GameRoom.SETTLE_RETRY_DELAY_MS);
   }
 
   /** DO Alarm 回调 — 重试未完成的结算 */
@@ -513,7 +512,7 @@ export class GameRoom extends DurableObject<Env> {
         }
         const stepId = state.currentStepId;
         if (!stepId) return handlerError('no_current_step');
-        const schema = SCHEMAS[stepId as SchemaId];
+        const schema = SCHEMAS[stepId];
         if (!schema || schema.kind !== 'groupConfirm') {
           return handlerError('not_group_confirm_step');
         }
@@ -555,7 +554,7 @@ export class GameRoom extends DurableObject<Env> {
         }
         const stepId = state.currentStepId;
         if (!stepId) return handlerError('no_current_step');
-        const schema = SCHEMAS[stepId as SchemaId];
+        const schema = SCHEMAS[stepId];
         if (!schema || schema.kind !== 'groupConfirm') {
           return handlerError('not_group_confirm_step');
         }

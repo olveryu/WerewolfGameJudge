@@ -70,7 +70,9 @@ export const AuthForgotPasswordScreen: React.FC = () => {
           authError={error}
           authLoading={loading}
           onEmailChange={setEmail}
-          onSubmit={handleSubmit}
+          onSubmit={() => {
+            void handleSubmit();
+          }}
           onBack={handleBack}
           styles={styles}
         />

@@ -710,7 +710,9 @@ export const AvatarPickerScreen: React.FC = () => {
                   color={colors.primary}
                 />
               }
-              onPress={handleUpload}
+              onPress={() => {
+                void handleUpload();
+              }}
               textColor={colors.primary}
               style={styles.heroUploadBtn}
             >
@@ -892,7 +894,9 @@ export const AvatarPickerScreen: React.FC = () => {
         ) : (
           <Button
             variant="primary"
-            onPress={handleConfirm}
+            onPress={() => {
+              void handleConfirm();
+            }}
             disabled={!hasSelection}
             loading={saving}
           >

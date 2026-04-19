@@ -91,7 +91,7 @@ function NominationCard({
   }, [nomination.uid, onUpvote]);
 
   const handleAdopt = useCallback(() => {
-    onAdopt(nomination.roles);
+    void onAdopt(nomination.roles);
   }, [nomination.roles, onAdopt]);
 
   return (

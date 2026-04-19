@@ -222,7 +222,9 @@ export const ConfigScreen: React.FC = () => {
         </Text>
         <Button
           variant="primary"
-          onPress={handleCreateRoom}
+          onPress={() => {
+            void handleCreateRoom();
+          }}
           disabled={isDisabled}
           loading={isCreating}
         >

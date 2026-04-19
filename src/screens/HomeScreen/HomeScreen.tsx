@@ -567,7 +567,9 @@ export const HomeScreen: React.FC = () => {
         isLoading={isJoining}
         errorMessage={joinError}
         onRoomCodeChange={setRoomCode}
-        onJoin={handleJoinRoom}
+        onJoin={() => {
+          void handleJoinRoom();
+        }}
         onCancel={handleCancelJoin}
         styles={styles}
       />

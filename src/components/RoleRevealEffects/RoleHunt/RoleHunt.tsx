@@ -913,7 +913,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   const startReveal = useCallback(() => {
     setPhase('revealing');
     createCelebrations();
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
     if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
     if (targetSpawnTimerRef.current) clearInterval(targetSpawnTimerRef.current);
 
@@ -937,7 +937,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
     (sx: number, sy: number) => {
       if (phaseRef.current !== 'hunting') return;
 
-      if (enableHaptics) triggerHaptic('medium', true);
+      if (enableHaptics) void triggerHaptic('medium', true);
 
       // Subtle flash
       hitFlashOpacity.value = withSequence(
@@ -977,7 +977,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
             }
             return next;
           });
-          if (enableHaptics) triggerHaptic('success', true);
+          if (enableHaptics) void triggerHaptic('success', true);
 
           setHitBurstPos({ x: sx, y: sy });
           burstProgress.value = 0;
@@ -995,7 +995,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
           hitRevealTimerRef.current = timer;
         } else {
           setAnimalStates((prev) => ({ ...prev, [animal.id]: 'hit-miss' }));
-          if (enableHaptics) triggerHaptic('light', true);
+          if (enableHaptics) void triggerHaptic('light', true);
           hitFlashOpacity.value = withSequence(
             withTiming(0.15, { duration: 50 }),
             withTiming(0, { duration: 200 }),

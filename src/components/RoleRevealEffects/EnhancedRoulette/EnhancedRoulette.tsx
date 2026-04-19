@@ -301,7 +301,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
   // ── After bounce completes ──
   const afterBounce = useCallback(() => {
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
     createParticles();
 
     // Short delay then transition to revealed
@@ -320,7 +320,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
     setPhase('spinning');
     setCredit(0);
-    if (enableHaptics) triggerHaptic('medium', true);
+    if (enableHaptics) void triggerHaptic('medium', true);
 
     const targetPosition = config.spinRotations * shuffledRoles.length + targetIndex;
 

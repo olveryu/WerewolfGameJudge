@@ -5,7 +5,7 @@
  */
 let resolve: () => void;
 // Promise exists solely to capture the resolver; not consumed externally.
-new Promise<void>((r) => {
+void new Promise<void>((r) => {
   resolve = r;
 });
 export function signalAppReady(): void {

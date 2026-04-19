@@ -270,7 +270,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
   const doReveal = useCallback(() => {
     setPhase('countdown'); // keep phase for hint text momentarily
 
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
 
     // Flash
     flashOpacity.value = withSequence(
@@ -306,7 +306,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
     if (countdownStartedRef.current) return;
     countdownStartedRef.current = true;
 
-    if (enableHaptics) triggerHaptic('medium', true);
+    if (enableHaptics) void triggerHaptic('medium', true);
     setPhase('countdown');
     setCountdownNum(FR.countdownFrom);
 
@@ -314,7 +314,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
     countdownIntervalRef.current = setInterval(() => {
       remaining--;
       setCountdownNum(remaining);
-      if (enableHaptics && remaining > 0) triggerHaptic('light', true);
+      if (enableHaptics && remaining > 0) void triggerHaptic('light', true);
       if (remaining <= 0) {
         if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
         doReveal();

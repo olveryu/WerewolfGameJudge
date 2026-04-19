@@ -200,12 +200,12 @@ export const CardPick: React.FC<CardPickProps> = ({
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => {
     setPhase('revealed');
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
   }, [enableHaptics]);
 
   const startFlipping = useCallback(() => {
     setPhase('flipping');
-    if (enableHaptics) triggerHaptic('medium', true);
+    if (enableHaptics) void triggerHaptic('medium', true);
 
     // Light bars sweep during flip
     lightBarOpacity.value = withSequence(
@@ -264,7 +264,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       if (phase !== 'waiting') return;
       setSelectedIndex(index);
       setPhase('picking');
-      if (enableHaptics) triggerHaptic('medium', true);
+      if (enableHaptics) void triggerHaptic('medium', true);
 
       const pos = gridPositions[index];
       // Set initial position to the card's grid position
@@ -333,7 +333,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       return next;
     });
 
-    if (enableHaptics) triggerHaptic('light', true);
+    if (enableHaptics) void triggerHaptic('light', true);
   }, [remainingCards, phase, initialCardCount, enableHaptics]);
 
   // ── Kick-off: spread cards onto table ──

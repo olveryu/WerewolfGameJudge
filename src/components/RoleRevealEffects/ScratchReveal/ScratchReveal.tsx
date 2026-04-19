@@ -272,7 +272,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     if (isRevealed) return;
     setIsRevealed(true);
 
-    if (enableHaptics) triggerHaptic('success', true);
+    if (enableHaptics) void triggerHaptic('success', true);
 
     // Light burst
     burstOpacity.value = withSequence(
@@ -343,7 +343,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       if (enableHaptics) {
         const now = Date.now();
         if (now - lastHapticTime.current > 50) {
-          triggerHaptic('light', true);
+          void triggerHaptic('light', true);
           lastHapticTime.current = now;
         }
       }
@@ -359,14 +359,14 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
           withTiming(0.5, { duration: 80 }),
           withTiming(0, { duration: 300 }),
         );
-        if (enableHaptics) triggerHaptic('medium', true);
+        if (enableHaptics) void triggerHaptic('medium', true);
       } else if (progress >= 0.75 && !milestone75Triggered.current) {
         milestone75Triggered.current = true;
         milestoneFlash.value = withSequence(
           withTiming(0.7, { duration: 80 }),
           withTiming(0, { duration: 300 }),
         );
-        if (enableHaptics) triggerHaptic('medium', true);
+        if (enableHaptics) void triggerHaptic('medium', true);
       }
     },
     [
@@ -433,7 +433,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   }));
 
   const progressBarStyle = useAnimatedStyle(() => ({
-    width: `${progressWidth.value * 100}%` as `${number}%`,
+    width: `${progressWidth.value * 100}%`,
   }));
 
   const milestoneStyle = useAnimatedStyle(() => ({

@@ -12,7 +12,7 @@ import React, { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
-import { type FrameId, getFrameById } from '@/components/avatarFrames';
+import { getFrameById } from '@/components/avatarFrames';
 import { borderRadius as themeBorderRadius } from '@/theme';
 
 /**
@@ -32,7 +32,7 @@ interface AvatarWithFrameProps {
   avatarIndex?: number;
   borderRadius?: number;
   /** 头像框 ID。null / undefined = 无框。 */
-  frameId?: FrameId | string | null;
+  frameId?: string | null;
 }
 
 const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({

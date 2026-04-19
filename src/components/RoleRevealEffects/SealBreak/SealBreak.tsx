@@ -498,7 +498,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     shatterTriggeredRef.current = true;
 
     setPhase('shatter');
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
 
     // Flash
     flashOpacity.value = withSequence(
@@ -556,7 +556,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
         // Haptic ticks while charging
         if (enableHaptics && timestamp - lastHapticRef.current > SB.hapticTickInterval) {
           lastHapticRef.current = timestamp;
-          triggerHaptic('light', true);
+          void triggerHaptic('light', true);
         }
       } else {
         newCharge = Math.max(0, newCharge - decayRate * dt);
@@ -708,7 +708,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
       chargeRef.current = boosted;
       charge.value = boosted;
       crackProgress.value = boosted;
-      if (enableHaptics) triggerHaptic('medium', true);
+      if (enableHaptics) void triggerHaptic('medium', true);
       if (boosted >= 1) triggerShatter();
     }
   }, [charge, crackProgress, enableHaptics, triggerShatter]);

@@ -164,7 +164,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
       setIsStreaming(true);
 
       Keyboard.dismiss();
-      triggerHaptic('light');
+      void triggerHaptic('light');
 
       // Create placeholder assistant message for streaming
       const assistantId = newRequestId();
@@ -272,7 +272,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
             drainTimerRef.current = drainTimer;
           });
 
-          triggerHaptic('success');
+          void triggerHaptic('success');
         }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') {

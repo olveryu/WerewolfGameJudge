@@ -303,7 +303,9 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
                 maxLength={500}
                 editable={!chat.isLoading}
                 returnKeyType="send"
-                onSubmitEditing={handleSendAndScroll}
+                onSubmitEditing={() => {
+                  void handleSendAndScroll();
+                }}
               />
               <TouchableOpacity
                 style={[
@@ -311,7 +313,9 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
                   (!chat.inputText.trim() || chat.isLoading || chat.cooldownRemaining > 0) &&
                     styles.sendButtonDisabled,
                 ]}
-                onPress={handleSendAndScroll}
+                onPress={() => {
+                  void handleSendAndScroll();
+                }}
                 activeOpacity={
                   !chat.inputText.trim() || chat.isLoading || chat.cooldownRemaining > 0 ? 1 : 0.7
                 }

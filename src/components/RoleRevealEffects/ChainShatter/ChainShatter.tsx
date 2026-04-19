@@ -705,7 +705,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     shatterTriggeredRef.current = true;
 
     setPhase('shatter');
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
 
     // Hide lock instantly
     lockOpacity.value = withTiming(0, { duration: 150 });
@@ -793,7 +793,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     setHitCountDisplay(current);
 
     if (phase === 'idle') setPhase('hitting');
-    if (enableHaptics) triggerHaptic('medium', true);
+    if (enableHaptics) void triggerHaptic('medium', true);
 
     // Add persistent crack near lock center
     const crackIdx = Math.min(current - 1, crackOpacities.length - 1);

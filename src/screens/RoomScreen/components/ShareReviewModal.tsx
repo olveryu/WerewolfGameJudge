@@ -148,7 +148,9 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.confirmButton, submitting && styles.confirmButtonDisabled]}
-          onPress={handleConfirm}
+          onPress={() => {
+            void handleConfirm();
+          }}
           disabled={submitting}
         >
           <Text style={styles.confirmButtonText}>

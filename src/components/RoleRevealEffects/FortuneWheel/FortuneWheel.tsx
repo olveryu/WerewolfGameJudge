@@ -273,7 +273,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
 
   const triggerCardReveal = useCallback(() => {
-    if (enableHaptics) triggerHaptic('heavy', true);
+    if (enableHaptics) void triggerHaptic('heavy', true);
 
     flashOpacity.value = withSequence(
       withTiming(0.6, { duration: 100 }),
@@ -383,7 +383,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         setTimeout(
           () => {
             if (t < tickCount * 0.7 || t % 2 === 0) {
-              triggerHaptic('light', true);
+              void triggerHaptic('light', true);
             }
           },
           (t / tickCount) * duration,

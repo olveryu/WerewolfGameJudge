@@ -127,7 +127,9 @@ export const AuthEmailScreen: React.FC = () => {
           onEmailChange={setEmail}
           onPasswordChange={setPassword}
           onDisplayNameChange={setDisplayName}
-          onSubmit={handleSubmit}
+          onSubmit={() => {
+            void handleSubmit();
+          }}
           onToggleMode={showToggleMode ? toggleSignUp : undefined}
           onForgotPassword={showForgotLink ? handleShowForgotPassword : undefined}
           onBack={handleBack}

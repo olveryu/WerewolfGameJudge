@@ -718,8 +718,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           myUid={user?.uid ?? null}
           isHost={isHost}
           currentPlayerCount={gameState?.template.numberOfPlayers ?? 0}
-          onUpvote={boardUpvote}
-          onWithdraw={boardWithdraw}
+          onUpvote={(uid: string) => {
+            void boardUpvote(uid);
+          }}
+          onWithdraw={() => {
+            void boardWithdraw();
+          }}
           clearAllSeats={clearAllSeats}
           onClose={() => setNominationModalVisible(false)}
         />
@@ -734,7 +738,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           disabledIndices={bottomCardDisabledIndices}
           disabledHint={bottomCardDisabledHint}
           subtitle={bottomCardSubtitle}
-          onChoose={handleChooseCard}
+          onChoose={(idx) => {
+            void handleChooseCard(idx);
+          }}
           onClose={closeChooseCardModal}
         />
       )}
