@@ -4,14 +4,19 @@
  * 订阅 facade.addSettleResultListener，收到 SETTLE_RESULT 时显示：
  * - 升级 + 黄金券："升级 Lv.{n}！获得黄金抽奖券"
  * - 普通获取 XP + 抽奖券："+{xp} XP · 获得抽奖券"
+ *
+ * 同时 invalidate gachaStatus + userStats query，触发 header badge 刷新。
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner-native';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import { gameRoomLog } from '@/utils/logger';
+
+import { queryKeys } from './queries/queryKeys';
 
 interface UseSettleToastParams {
   facade: IGameFacade;
@@ -42,13 +47,19 @@ function showSettleToast(result: SettleResultMessage): void {
 }
 
 export function useSettleToast({ facade, isFocused }: UseSettleToastParams): void {
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (!isFocused) return;
 
     const unsub = facade.addSettleResultListener((result) => {
       showSettleToast(result);
+
+      // Refresh cached ticket counts so header badge updates immediately
+      void queryClient.invalidateQueries({ queryKey: queryKeys.gachaStatus() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userStats() });
     });
 
     return unsub;
-  }, [facade, isFocused]);
+  }, [facade, isFocused, queryClient]);
 }

@@ -9,7 +9,7 @@
 
 import type { DrawType, Rarity } from '@werewolf/game-engine/growth/gachaProbability';
 import { rollRarity, selectReward } from '@werewolf/game-engine/growth/gachaProbability';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
@@ -80,6 +80,9 @@ interface DrawResult {
   pityTriggered: boolean;
 }
 
+/** Max OCC retries for concurrent draw conflict */
+const MAX_DRAW_RETRIES = 3;
+
 /** POST /api/gacha/draw */
 gachaRoutes.post('/gacha/draw', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
@@ -93,121 +96,133 @@ gachaRoutes.post('/gacha/draw', requireAuth, async (c) => {
 
   const { drawType, count } = parsed.data;
 
-  // 1. Read current stats
-  const stats = await db
-    .select({
-      normalDraws: userStats.normalDraws,
-      goldenDraws: userStats.goldenDraws,
-      normalPity: userStats.normalPity,
-      goldenPity: userStats.goldenPity,
-      unlockedItems: userStats.unlockedItems,
-    })
-    .from(userStats)
-    .where(eq(userStats.userId, userId))
-    .get();
+  for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
+    // 1. Read current stats (including version for OCC)
+    const stats = await db
+      .select({
+        normalDraws: userStats.normalDraws,
+        goldenDraws: userStats.goldenDraws,
+        normalPity: userStats.normalPity,
+        goldenPity: userStats.goldenPity,
+        unlockedItems: userStats.unlockedItems,
+        version: userStats.version,
+      })
+      .from(userStats)
+      .where(eq(userStats.userId, userId))
+      .get();
 
-  if (!stats) {
-    return c.json({ error: 'no_stats', message: '请先完成一局游戏' }, 400);
-  }
-
-  // 2. Check sufficient tickets
-  const availableTickets = drawType === 'golden' ? stats.goldenDraws : stats.normalDraws;
-  if (availableTickets < count) {
-    return c.json({ error: 'insufficient_draws', message: '抽奖券不足' }, 400);
-  }
-
-  // 3. Parse existing unlocked items
-  const unlockedIds: string[] = JSON.parse(stats.unlockedItems) as string[];
-  const unlockedSet = new Set(unlockedIds);
-
-  let currentPity = drawType === 'golden' ? stats.goldenPity : stats.normalPity;
-  const results: DrawResult[] = [];
-  const historyEntries: Array<{
-    id: string;
-    userId: string;
-    drawType: DrawType;
-    rarity: Rarity;
-    rewardType: string;
-    rewardId: string;
-    pityCount: number;
-    pityTriggered: number;
-    createdAt: string;
-  }> = [];
-
-  const now = new Date().toISOString();
-
-  // 4. Execute draws
-  for (let i = 0; i < count; i++) {
-    const randomValue = cryptoRandomPercent();
-    const { rarity, pityReset } = rollRarity(drawType, currentPity, randomValue);
-
-    const reward = selectReward(rarity, unlockedSet, cryptoRandomInt);
-
-    if (reward) {
-      const isNew = !unlockedSet.has(reward.id);
-      if (isNew) unlockedSet.add(reward.id);
-
-      results.push({
-        rarity,
-        rewardType: reward.type,
-        rewardId: reward.id,
-        isNew,
-        pityTriggered: pityReset,
-      });
-
-      historyEntries.push({
-        id: crypto.randomUUID(),
-        userId,
-        drawType,
-        rarity,
-        rewardType: reward.type,
-        rewardId: reward.id,
-        pityCount: currentPity,
-        pityTriggered: pityReset ? 1 : 0,
-        createdAt: now,
-      });
-    } else {
-      // All items collected — should not normally happen since we checked upfront,
-      // but break gracefully
-      break;
+    if (!stats) {
+      return c.json({ error: 'no_stats', message: '请先完成一局游戏' }, 400);
     }
 
-    currentPity = pityReset ? 0 : currentPity + 1;
+    // 2. Check sufficient tickets
+    const availableTickets = drawType === 'golden' ? stats.goldenDraws : stats.normalDraws;
+    if (availableTickets < count) {
+      return c.json({ error: 'insufficient_draws', message: '抽奖券不足' }, 400);
+    }
+
+    // 3. Parse existing unlocked items
+    const unlockedIds: string[] = JSON.parse(stats.unlockedItems) as string[];
+    const unlockedSet = new Set(unlockedIds);
+
+    let currentPity = drawType === 'golden' ? stats.goldenPity : stats.normalPity;
+    const results: DrawResult[] = [];
+    const historyEntries: Array<{
+      id: string;
+      userId: string;
+      drawType: DrawType;
+      rarity: Rarity;
+      rewardType: string;
+      rewardId: string;
+      pityCount: number;
+      pityTriggered: number;
+      createdAt: string;
+    }> = [];
+
+    const now = new Date().toISOString();
+
+    // 4. Execute draws
+    for (let i = 0; i < count; i++) {
+      const randomValue = cryptoRandomPercent();
+      const { rarity, pityReset } = rollRarity(drawType, currentPity, randomValue);
+
+      const reward = selectReward(rarity, unlockedSet, cryptoRandomInt);
+
+      if (reward) {
+        const isNew = !unlockedSet.has(reward.id);
+        if (isNew) unlockedSet.add(reward.id);
+
+        results.push({
+          rarity,
+          rewardType: reward.type,
+          rewardId: reward.id,
+          isNew,
+          pityTriggered: pityReset,
+        });
+
+        historyEntries.push({
+          id: crypto.randomUUID(),
+          userId,
+          drawType,
+          rarity,
+          rewardType: reward.type,
+          rewardId: reward.id,
+          pityCount: currentPity,
+          pityTriggered: pityReset ? 1 : 0,
+          createdAt: now,
+        });
+      } else {
+        // All items collected
+        break;
+      }
+
+      currentPity = pityReset ? 0 : currentPity + 1;
+    }
+
+    if (results.length === 0) {
+      return c.json({ error: 'all_collected', message: '已收集全部物品' }, 400);
+    }
+
+    // 5. OCC write: deduct tickets, update pity, update unlocked items, bump version
+    const actualCount = results.length;
+    const updatedItems = JSON.stringify([...unlockedSet]);
+
+    const pityUpdate =
+      drawType === 'golden'
+        ? { goldenPity: currentPity, goldenDraws: sql`${userStats.goldenDraws} - ${actualCount}` }
+        : { normalPity: currentPity, normalDraws: sql`${userStats.normalDraws} - ${actualCount}` };
+
+    const updated = await db
+      .update(userStats)
+      .set({
+        ...pityUpdate,
+        unlockedItems: updatedItems,
+        version: sql`${userStats.version} + 1`,
+        updatedAt: sql`datetime('now')`,
+      })
+      .where(and(eq(userStats.userId, userId), eq(userStats.version, stats.version)))
+      .returning({ version: userStats.version });
+
+    if (updated.length === 0) {
+      // Version conflict — another request modified stats concurrently, retry
+      continue;
+    }
+
+    // 6. Insert draw history records (no conflict risk — unique IDs)
+    if (historyEntries.length > 0) {
+      await db.insert(drawHistory).values(historyEntries);
+    }
+
+    // 7. Return results
+    return c.json({
+      results,
+      remaining: {
+        normalDraws: drawType === 'normal' ? availableTickets - actualCount : stats.normalDraws,
+        goldenDraws: drawType === 'golden' ? availableTickets - actualCount : stats.goldenDraws,
+      },
+    });
   }
 
-  if (results.length === 0) {
-    return c.json({ error: 'all_collected', message: '已收集全部物品' }, 400);
-  }
-
-  // 5. Write back: deduct tickets, update pity, update unlocked items, insert history
-  const actualCount = results.length;
-  const updatedItems = JSON.stringify([...unlockedSet]);
-
-  const pityUpdate =
-    drawType === 'golden'
-      ? { goldenPity: currentPity, goldenDraws: sql`${userStats.goldenDraws} - ${actualCount}` }
-      : { normalPity: currentPity, normalDraws: sql`${userStats.normalDraws} - ${actualCount}` };
-
-  await db
-    .update(userStats)
-    .set({
-      ...pityUpdate,
-      unlockedItems: updatedItems,
-      updatedAt: sql`datetime('now')`,
-    })
-    .where(eq(userStats.userId, userId));
-
-  // Insert draw history records
-  if (historyEntries.length > 0) {
-    await db.insert(drawHistory).values(historyEntries);
-  }
-
-  // 6. Return results
-  return c.json({
-    results,
-    remaining: {
-      normalDraws: drawType === 'normal' ? availableTickets - actualCount : stats.normalDraws,
-      goldenDraws: drawType === 'golden' ? availableTickets - actualCount : stats.goldenDraws,
-    },
-  });
+  // All retries exhausted — concurrent conflict persisted
+  return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
 });

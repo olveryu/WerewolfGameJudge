@@ -78,6 +78,7 @@ export const userStats = sqliteTable('user_stats', {
   goldenDraws: integer('golden_draws').notNull().default(0),
   normalPity: integer('normal_pity').notNull().default(0),
   goldenPity: integer('golden_pity').notNull().default(0),
+  version: integer('version').notNull().default(0),
   updatedAt: text('updated_at').notNull(),
 });
 
