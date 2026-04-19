@@ -145,7 +145,7 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
     try {
       const geminiBody = {
         messages,
-        model: 'gemini-2.0-flash-lite',
+        model: 'gemini-3.1-flash-lite-preview',
         stream,
         temperature,
         max_tokens: maxTokens,
