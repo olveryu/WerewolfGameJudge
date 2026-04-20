@@ -111,19 +111,12 @@ export interface HomeScreenStyles {
   randomRoleActions: ViewStyle;
   randomRoleActionBtn: ViewStyle;
   randomRoleActionText: TextStyle;
-  // Tip Card (contextual tips between action row and footer)
-  tipCard: ViewStyle;
   // Gacha entry card
   gachaCard: ViewStyle;
   gachaCardEmoji: TextStyle;
   gachaCardText: ViewStyle;
   gachaCardTitle: TextStyle;
   gachaCardSubtitle: TextStyle;
-  tipCardIcon: ViewStyle;
-  tipCardBody: ViewStyle;
-  tipCardTitle: TextStyle;
-  tipCardSub: TextStyle;
-  tipCardClose: ViewStyle;
   // Footer
   footer: ViewStyle;
   footerText: TextStyle;
@@ -361,42 +354,6 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     gachaCardSubtitle: {
       ...textStyles.caption,
       color: colors.textSecondary,
-    },
-    // ── Tip Card ─────────────────────────────────────────────
-    tipCard: {
-      ...shared.cardBase,
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginHorizontal: spacing.screenH,
-      marginBottom: spacing.small,
-      borderLeftWidth: fixed.borderWidthHighlight,
-      borderLeftColor: colors.primary,
-      gap: spacing.small,
-    },
-    tipCardIcon: {
-      width: componentSizes.avatar.md,
-      height: componentSizes.avatar.md,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: withAlpha(colors.primary, 0.08),
-      borderRadius: borderRadius.medium,
-      overflow: 'hidden',
-    },
-    tipCardBody: {
-      flex: 1,
-    },
-    tipCardTitle: {
-      ...textStyles.secondarySemibold,
-      color: colors.text,
-    },
-    tipCardSub: {
-      fontSize: typography.caption,
-      lineHeight: typography.lineHeights.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.micro,
-    },
-    tipCardClose: {
-      padding: spacing.tight,
     },
     // ── Modal ────────────────────────────────────────────────
     modalOverlay: {

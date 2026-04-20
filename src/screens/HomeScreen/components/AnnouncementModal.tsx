@@ -1,55 +1,30 @@
 /**
  * AnnouncementModal — What's New 版本更新弹窗
  *
+ * 受控组件：由父级传入 visible / onClose。
  * 展示当前版本的更新内容 + 开发者微信号。
- * 用 MMKV `lastSeenVersion` 控制只弹一次：
- * - `lastSeenVersion !== APP_VERSION` 且有对应公告条目 → 弹出
- * - 关闭时写入 APP_VERSION → 下次不弹
- * - 当前版本无公告条目 → 静默写入，不弹
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
 import { ANNOUNCEMENTS, DEVELOPER_WECHAT_ID } from '@/config/announcements';
-import { LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
-import { storage } from '@/lib/storage';
 import { borderRadius, colors, componentSizes, spacing, typography } from '@/theme';
 
-export const AnnouncementModal: React.FC = () => {
-  const [visible, setVisible] = useState(false);
+interface AnnouncementModalProps {
+  visible: boolean;
+  onClose: () => void;
+}
 
-  useEffect(() => {
-    const lastSeen = storage.getString(LAST_SEEN_VERSION_KEY);
-    if (lastSeen === APP_VERSION) return;
-
-    const announcement = ANNOUNCEMENTS[APP_VERSION];
-    if (announcement) {
-      setVisible(true);
-    } else {
-      // 无公告条目，静默更新版本号
-      storage.set(LAST_SEEN_VERSION_KEY, APP_VERSION);
-    }
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setVisible(false);
-    storage.set(LAST_SEEN_VERSION_KEY, APP_VERSION);
-  }, []);
-
+export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, onClose }) => {
   const announcement = ANNOUNCEMENTS[APP_VERSION];
   if (!announcement) return null;
 
   return (
-    <BaseCenterModal
-      visible={visible}
-      onClose={handleClose}
-      dismissOnOverlayPress
-      animationType="fade"
-    >
+    <BaseCenterModal visible={visible} onClose={onClose} dismissOnOverlayPress animationType="fade">
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -78,7 +53,7 @@ export const AnnouncementModal: React.FC = () => {
         </View>
 
         {/* Close button */}
-        <Button variant="primary" onPress={handleClose} style={styles.button}>
+        <Button variant="primary" onPress={onClose} style={styles.button}>
           我知道了
         </Button>
       </View>

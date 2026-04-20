@@ -2,7 +2,7 @@
  * HomeScreen - 主页入口（登录、加入房间、创建房间）
  *
  * Apple HIG 风格布局：TopBar 品牌+头像 → Hero Card → Action Row →
- * RandomRoleCard → TipCards → Footer。
+ * RandomRoleCard → Changelog Card → Footer。
  * 性能优化：styles factory 集中创建一次，通过 props 传入子组件；handlers 用 useCallback 稳定化。
  * 负责编排子组件、调用 service/navigation/showAlert。
  * 不使用硬编码样式值，不使用 console.*。
@@ -25,9 +25,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/Button';
 import { PressableScale } from '@/components/PressableScale';
 import { UserAvatar } from '@/components/UserAvatar';
-import { getDailyQuote } from '@/config/dailyQuotes';
-import { type IoniconsName, UI_ICONS } from '@/config/iconTokens';
-import { LAST_ROOM_NUMBER_KEY, type TipId, tipStorageKey } from '@/config/storageKeys';
+import { ANNOUNCEMENTS } from '@/config/announcements';
+import { LAST_ROOM_NUMBER_KEY, LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
@@ -38,7 +37,6 @@ import { colors, componentSizes, layout } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 import { homeLog } from '@/utils/logger';
-import { isMiniProgram } from '@/utils/miniProgram';
 
 import {
   AnnouncementModal,
@@ -46,7 +44,6 @@ import {
   InstallMenuItem,
   JoinRoomModal,
   RandomRoleCard,
-  TipCard,
 } from './components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -62,8 +59,16 @@ export const HomeScreen: React.FC = () => {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
-  const [dismissedTips, setDismissedTips] = useState<Set<string>>(new Set());
-  const [_tipsLoaded, setTipsLoaded] = useState(false);
+
+  // Announcement modal state (auto-show once per version + manual open from card)
+  const [showAnnouncement, setShowAnnouncement] = useState(() => {
+    const lastSeen = storage.getString(LAST_SEEN_VERSION_KEY);
+    if (lastSeen === APP_VERSION) return false;
+    if (ANNOUNCEMENTS[APP_VERSION]) return true;
+    // No announcement for this version — silently mark as seen
+    storage.set(LAST_SEEN_VERSION_KEY, APP_VERSION);
+    return false;
+  });
 
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
@@ -78,29 +83,6 @@ export const HomeScreen: React.FC = () => {
 
   // Auto-claim daily login reward (fires once per session when status loads)
   useAutoClaimDailyReward();
-
-  // Load persisted tip dismissals (synchronous MMKV)
-  const readDismissedTips = useCallback(() => {
-    const tipIds: TipId[] = ['share', 'login', 'upgrade', 'nickname', 'bind-email'];
-    const dismissed = new Set<string>();
-    for (const id of tipIds) {
-      if (storage.getString(tipStorageKey(id)) === '1') dismissed.add(id);
-    }
-    return dismissed;
-  }, []);
-
-  useEffect(() => {
-    setDismissedTips(readDismissedTips());
-    setTipsLoaded(true);
-  }, [readDismissedTips]);
-
-  // Reload dismissed tips when screen regains focus (after Settings reset)
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      setDismissedTips(readDismissedTips());
-    });
-    return unsubscribe;
-  }, [navigation, readDismissedTips]);
 
   // Prevent transient UI states from getting stuck if we navigate away.
   // Also clear stale pending auth action if user didn't complete login before leaving.
@@ -315,85 +297,13 @@ export const HomeScreen: React.FC = () => {
     handleReturnLastGamePressRef.current();
   }, []);
 
-  // ============================================
-  // Contextual tip card (session-only dismiss)
-  // ============================================
+  const handleCloseAnnouncement = useCallback(() => {
+    setShowAnnouncement(false);
+    storage.set(LAST_SEEN_VERSION_KEY, APP_VERSION);
+  }, []);
 
-  /** Build list of applicable tips based on user state, filtering out dismissed ones. */
-  const activeTips = useMemo(() => {
-    const all: {
-      id: string;
-      icon: IoniconsName;
-      title: string;
-      subtitle: string;
-      onPress?: () => void;
-      dismissable?: boolean;
-    }[] = [];
-
-    // Priority tips for unauthenticated / anonymous users first
-    if (!user) {
-      all.push({
-        id: 'login',
-        icon: UI_ICONS.USER,
-        title: '登录后解锁全部功能',
-        subtitle: '创建房间、设置昵称头像需要登录',
-        onPress: () => navigation.navigate('AuthLogin'),
-      });
-    }
-    if (user?.isAnonymous) {
-      all.push({
-        id: 'upgrade',
-        icon: UI_ICONS.EMAIL,
-        title: '升级为邮箱账户',
-        subtitle: '绑定邮箱后可设置昵称和头像',
-        onPress: () => navigation.navigate('Settings'),
-      });
-    }
-
-    // WeChat user without email — prompt to bind
-    if (isMiniProgram() && user && !user.isAnonymous && !user.email) {
-      all.push({
-        id: 'bind-email',
-        icon: UI_ICONS.EMAIL,
-        title: '绑定邮箱',
-        subtitle: '绑定后可在网页端登录，数据不丢失',
-        onPress: () => navigation.navigate('Settings'),
-      });
-    }
-
-    // Share tip
-    all.push({
-      id: 'share',
-      icon: UI_ICONS.SHARE,
-      title: '邀请朋友？试试分享二维码',
-      subtitle: '在房间内点击「分享房间」生成二维码',
-    });
-
-    // Feature discovery tips for authenticated users
-    if (user && !user.isAnonymous) {
-      all.push({
-        id: 'nickname',
-        icon: UI_ICONS.EDIT,
-        title: '个性化你的昵称和头像',
-        subtitle: '让队友在房间里认出你',
-        onPress: () => navigation.navigate('Settings'),
-      });
-    }
-    // Daily quote (always visible, not dismissable)
-    all.push({
-      id: 'daily-quote',
-      icon: UI_ICONS.BOT,
-      title: '每日一句',
-      subtitle: getDailyQuote(),
-      dismissable: false,
-    });
-
-    return all.filter((tip) => tip.dismissable === false || !dismissedTips.has(tip.id)).slice(0, 3);
-  }, [dismissedTips, user, navigation]);
-
-  const handleDismissTip = useCallback((tipId: string) => {
-    setDismissedTips((prev) => new Set(prev).add(tipId));
-    storage.set(tipStorageKey(tipId as TipId), '1');
+  const handleOpenAnnouncement = useCallback(() => {
+    setShowAnnouncement(true);
   }, []);
 
   return (
@@ -538,21 +448,21 @@ export const HomeScreen: React.FC = () => {
           colors={colors}
         />
 
-        {/* ── Contextual Tips ────────────────────────── */}
-        {activeTips.map((tip) => (
-          <TipCard
-            key={tip.id}
-            tipId={tip.id}
-            icon={tip.icon}
-            title={tip.title}
-            subtitle={tip.subtitle}
-            onPress={tip.onPress}
-            onDismiss={tip.dismissable !== false ? handleDismissTip : undefined}
-            styles={styles}
-            colors={colors}
-            testID={TESTIDS.homeTipCard}
-          />
-        ))}
+        {/* ── Changelog Card ────────────────────────── */}
+        {ANNOUNCEMENTS[APP_VERSION] && (
+          <PressableScale onPress={handleOpenAnnouncement} style={styles.gachaCard} haptic>
+            <Ionicons name="sparkles" size={componentSizes.icon.md} color={colors.primary} />
+            <View style={styles.gachaCardText}>
+              <Text style={styles.gachaCardTitle}>{APP_VERSION} 更新日志</Text>
+              <Text style={styles.gachaCardSubtitle}>查看本次更新内容</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={componentSizes.icon.sm}
+              color={colors.textMuted}
+            />
+          </PressableScale>
+        )}
 
         {/* Footer with author and version */}
         <View style={styles.footer}>
@@ -575,8 +485,8 @@ export const HomeScreen: React.FC = () => {
         styles={styles}
       />
 
-      {/* What's New announcement (once per version) */}
-      <AnnouncementModal />
+      {/* What's New announcement modal */}
+      <AnnouncementModal visible={showAnnouncement} onClose={handleCloseAnnouncement} />
     </SafeAreaView>
   );
 };
