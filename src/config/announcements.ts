@@ -15,7 +15,14 @@ interface Announcement {
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
   'v2.0.1': {
     title: 'v2.0.1 更新内容',
-    items: ['修复安卓微信音频无法自动播放', '修复微信登录偶尔失败'],
+    items: [
+      '新增丘比特板子',
+      '新增咒狐板子',
+      '新增盗宝大师板子',
+      '新增扭蛋抽奖功能',
+      '修复安卓微信音频无法自动播放',
+      '修复微信登录偶尔失败',
+    ],
   },
 };
 
