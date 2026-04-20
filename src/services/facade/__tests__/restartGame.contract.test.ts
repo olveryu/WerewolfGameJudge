@@ -28,6 +28,7 @@ jest.mock('../../infra/AudioService', () => ({
     clearPreloaded: jest.fn(),
     cleanup: jest.fn(),
     stop: jest.fn(),
+    stopBgm: jest.fn(),
   })),
 }));
 
@@ -78,6 +79,7 @@ describe('restartGame Contract (HTTP API)', () => {
         clearPreloaded: jest.fn(),
         cleanup: jest.fn(),
         stop: jest.fn(),
+        stopBgm: jest.fn(),
       } as any,
       roomService: {
         getGameState: jest.fn().mockResolvedValue(null),

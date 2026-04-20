@@ -15,6 +15,7 @@ jest.mock('../../infra/AudioService', () => ({
     playAudio: jest.fn().mockResolvedValue(undefined),
     stopAudio: jest.fn(),
     stop: jest.fn(),
+    stopBgm: jest.fn(),
     cleanup: jest.fn(),
     clearPreloaded: jest.fn(),
   })),
@@ -25,6 +26,7 @@ const mockAudio = () =>
     playAudio: jest.fn().mockResolvedValue(undefined),
     stopAudio: jest.fn(),
     stop: jest.fn(),
+    stopBgm: jest.fn(),
     cleanup: jest.fn(),
     clearPreloaded: jest.fn(),
   }) as any;

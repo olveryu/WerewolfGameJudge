@@ -27,6 +27,7 @@ const mockAudioServiceInstance = {
   clearPreloaded: jest.fn(),
   cleanup: jest.fn(),
   stop: jest.fn(),
+  stopBgm: jest.fn(),
 };
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
