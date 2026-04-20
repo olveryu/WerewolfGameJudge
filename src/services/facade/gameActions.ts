@@ -92,11 +92,9 @@ export const startNight = defineGameAction({
     if (!result.success) return;
     const stateAfterStart = ctx.store.getState();
     if (stateAfterStart?.templateRoles) {
-      ctx.audioService
-        .preloadForRoles(stateAfterStart.templateRoles as RoleId[])
-        .catch((err: unknown) => {
-          facadeLog.warn('preloadForRoles failed (non-critical):', err);
-        });
+      ctx.audioService.preloadForRoles(stateAfterStart.templateRoles).catch((err: unknown) => {
+        facadeLog.warn('preloadForRoles failed (non-critical):', err);
+      });
     }
   },
 });

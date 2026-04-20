@@ -92,7 +92,7 @@ describe('GameRoom seat management', () => {
     expect(result.success).toBe(true);
     expect(result.state?.players[0]).toBeTruthy();
     expect(result.state!.players[0]!.uid).toBe('p1');
-    expect(result.state!.roster!['p1']!.displayName).toBe('Player1');
+    expect(result.state!.roster['p1'].displayName).toBe('Player1');
     expect(result.revision).toBe(2);
   });
 

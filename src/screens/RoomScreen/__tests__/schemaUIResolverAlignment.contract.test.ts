@@ -11,9 +11,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import {
-  type ChooseSeatSchema,
   type CompoundSchema,
-  type SwapSchema,
   TargetConstraint,
 } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import { type SchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
@@ -44,7 +42,7 @@ function getSchemaConstraints(schemaId: SchemaId): readonly string[] {
   const schema = SCHEMAS[schemaId];
   if (!schema) return [];
   if (schema.kind === 'chooseSeat' || schema.kind === 'swap') {
-    return (schema as ChooseSeatSchema | SwapSchema).constraints;
+    return schema.constraints;
   }
   if (schema.kind === 'wolfVote') {
     return schema.constraints ?? [];

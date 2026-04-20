@@ -16,13 +16,7 @@ import { FiligreeFrame } from './FiligreeFrame';
 import { GemFrame } from './GemFrame';
 import { GrooveFrame } from './GrooveFrame';
 import { InlayFrame } from './InlayFrame';
-import {
-  CN_COLOR_NAMES,
-  FRAME_PALETTE,
-  type FrameColorSet,
-  PALETTE_KEYS,
-  type PaletteKey,
-} from './palette';
+import { CN_COLOR_NAMES, FRAME_PALETTE, type FrameColorSet, PALETTE_KEYS } from './palette';
 import { SimpleBevelFrame } from './SimpleBevelFrame';
 import { SimpleCrossFrame } from './SimpleCrossFrame';
 import { SimpleDashFrame } from './SimpleDashFrame';
@@ -96,7 +90,7 @@ for (const shape of COMMON_SHAPES) {
   for (const colorKey of PALETTE_KEYS) {
     const id = `${shape.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}`;
     const name = `${CN_COLOR_NAMES[colorKey]}${shape.label}`;
-    const colors = FRAME_PALETTE[colorKey as PaletteKey];
+    const colors = FRAME_PALETTE[colorKey];
     COMMON_FRAME_ENTRIES[id] = {
       name,
       Component: createVariant(shape.template, colors, `${shape.prefix}Frame(${colorKey})`),
@@ -114,7 +108,7 @@ for (const shape of RARE_SHAPES) {
   for (const colorKey of PALETTE_KEYS) {
     const id = `${shape.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}`;
     const name = `${CN_COLOR_NAMES[colorKey]}${shape.label}`;
-    const colors = FRAME_PALETTE[colorKey as PaletteKey];
+    const colors = FRAME_PALETTE[colorKey];
     RARE_FRAME_ENTRIES[id] = {
       name,
       Component: createVariant(shape.template, colors, `${shape.prefix}Frame(${colorKey})`),

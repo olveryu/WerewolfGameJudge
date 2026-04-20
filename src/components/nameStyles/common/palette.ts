@@ -27,7 +27,7 @@ export const BASE_PALETTE: Record<string, NameStyleColor> = {
   slate:    { hex: '#64748B', rgb: [100, 116, 139],  cn: '石灰' },
 };
 
-export type ColorKey = keyof typeof BASE_PALETTE;
+type ColorKey = keyof typeof BASE_PALETTE;
 
 export const COLOR_KEYS: readonly ColorKey[] = [
   'crimson',

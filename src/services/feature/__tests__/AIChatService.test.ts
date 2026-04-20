@@ -27,7 +27,7 @@ jest.mock('@/services/cloudflare/cfFetch', () => ({
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
-import type { GameContext } from '@/services/feature/AIChatService';
+import type { ChatMessage, GameContext } from '@/services/feature/AIChatService';
 import { isAIChatReady, streamChatMessage } from '@/services/feature/AIChatService';
 
 describe('AIChatService - isAIChatReady', () => {
@@ -258,8 +258,8 @@ describe('AIChatService - streamChatMessage', () => {
     });
 
     // Create 10 messages (5 rounds) — should be trimmed to last 6 (3 rounds)
-    const messages = Array.from({ length: 10 }, (_, i) => ({
-      role: (i % 2 === 0 ? 'user' : 'assistant') as 'user' | 'assistant',
+    const messages: ChatMessage[] = Array.from({ length: 10 }, (_, i) => ({
+      role: (i % 2 === 0 ? 'user' : 'assistant') as ChatMessage['role'],
       content: `message ${i}`,
     }));
 

@@ -8,7 +8,6 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ImageSourcePropType } from 'react-native';
 
-/* eslint-disable @typescript-eslint/no-require-imports */
 const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   // ── Villager ──
   villager: require('../../assets/badges/png/512/role_villager.png'),
@@ -61,7 +60,6 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   treasureMaster: require('../../assets/badges/png/512/role_treasureMaster.png'),
   cursedFox: require('../../assets/badges/png/512/role_cursedFox.png'),
 };
-/* eslint-enable @typescript-eslint/no-require-imports */
 
 /** 获取角色徽章 PNG 资源（512px），用于 `<Image source={...} />` */
 export function getRoleBadge(roleId: RoleId): ImageSourcePropType {

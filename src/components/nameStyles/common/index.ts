@@ -7,7 +7,7 @@
  * Pattern mirrors `avatarFrames/common/index.tsx` and `seatFlairs/common/index.tsx`.
  */
 import type { NameStyleConfig, TextShadowLayer } from '../nameStyleConfigs';
-import { BASE_PALETTE, COLOR_KEYS, type ColorKey, type NameStyleColor } from './palette';
+import { BASE_PALETTE, COLOR_KEYS, type NameStyleColor } from './palette';
 
 // ── Common (100) ────────────────────────────────────────────────────────────
 
@@ -207,7 +207,7 @@ export const COMMON_NAME_STYLE_CONFIGS: Record<string, NameStyleConfig> = {};
 for (let pi = 0; pi < COMMON_PREFIXES.length; pi++) {
   const { prefix, cn } = COMMON_PREFIXES[pi];
   for (const colorKey of COLOR_KEYS) {
-    const c = BASE_PALETTE[colorKey as ColorKey];
+    const c = BASE_PALETTE[colorKey];
     const id = `${prefix}${capitalize(colorKey)}`;
     const color = shiftHex(c.hex, pi);
     const shiftedRgb = shiftRgb(c, pi);
@@ -229,7 +229,7 @@ for (let pi = 0; pi < RARE_PREFIXES.length; pi++) {
   const { prefix, cn } = RARE_PREFIXES[pi];
   const factory = RARE_SHADOW_FACTORIES[pi];
   for (const colorKey of COLOR_KEYS) {
-    const c = BASE_PALETTE[colorKey as ColorKey];
+    const c = BASE_PALETTE[colorKey];
     const id = `${prefix}${capitalize(colorKey)}`;
     const result = factory(c);
     // radiant factory returns { color, shadows } to also lighten the text color
@@ -239,9 +239,7 @@ for (let pi = 0; pi < RARE_PREFIXES.length; pi++) {
       name: `${cn}${c.cn}`,
       tier: 'rare',
       color: isCompound ? (result as { color: string }).color : c.hex,
-      textShadows: isCompound
-        ? (result as { shadows: TextShadowLayer[] }).shadows
-        : (result as TextShadowLayer[]),
+      textShadows: isCompound ? (result as { shadows: TextShadowLayer[] }).shadows : result,
     };
   }
 }

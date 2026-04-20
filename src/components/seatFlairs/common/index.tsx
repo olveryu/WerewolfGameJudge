@@ -21,13 +21,7 @@ import { FlickerFlair } from './FlickerFlair';
 import { FloatFlair } from './FloatFlair';
 import { GlowFlair } from './GlowFlair';
 import { OrbitFlair } from './OrbitFlair';
-import {
-  CN_FLAIR_COLORS,
-  FLAIR_PALETTE,
-  FLAIR_PALETTE_KEYS,
-  type FlairColorSet,
-  type FlairPaletteKey,
-} from './palette';
+import { CN_FLAIR_COLORS, FLAIR_PALETTE, FLAIR_PALETTE_KEYS, type FlairColorSet } from './palette';
 import { PulseFlair } from './PulseFlair';
 import { RippleFlair } from './RippleFlair';
 import { SparkleFlair } from './SparkleFlair';
@@ -96,7 +90,7 @@ for (const pattern of COMMON_PATTERNS) {
   for (const colorKey of FLAIR_PALETTE_KEYS) {
     const id = `${pattern.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}`;
     const name = `${CN_FLAIR_COLORS[colorKey]}${pattern.label}`;
-    const colors = FLAIR_PALETTE[colorKey as FlairPaletteKey];
+    const colors = FLAIR_PALETTE[colorKey];
     COMMON_FLAIR_ENTRIES[id] = {
       name,
       Component: createVariant(pattern.template, colors, `${pattern.prefix}Flair(${colorKey})`),
@@ -114,7 +108,7 @@ for (const pattern of RARE_PATTERNS) {
   for (const colorKey of FLAIR_PALETTE_KEYS) {
     const id = `${pattern.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}`;
     const name = `${CN_FLAIR_COLORS[colorKey]}${pattern.label}`;
-    const colors = FLAIR_PALETTE[colorKey as FlairPaletteKey];
+    const colors = FLAIR_PALETTE[colorKey];
     RARE_FLAIR_ENTRIES[id] = {
       name,
       Component: createVariant(pattern.template, colors, `${pattern.prefix}Flair(${colorKey})`),

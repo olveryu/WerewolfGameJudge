@@ -201,7 +201,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     const poisonCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
     expect(poisonCall).toBeDefined();
 
-    const buttons = (poisonCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
+    const buttons = poisonCall[2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
 
     await act(async () => {
@@ -237,7 +237,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
     expect(confirmCall).toBeDefined();
 
-    const buttons = (confirmCall as any)[2];
+    const buttons = confirmCall[2];
     const confirmBtn = (buttons as any[]).find((b: any) => b.text === '确定');
     await act(async () => {
       confirmBtn?.onPress?.();

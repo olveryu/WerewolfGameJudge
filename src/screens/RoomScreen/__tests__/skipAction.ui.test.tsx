@@ -226,7 +226,7 @@ describe('RoomScreen skip action UI', () => {
     const skipCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '跳过本次行动？');
     expect(skipCall).toBeDefined();
 
-    const buttons = (skipCall as any)[2] as Array<{ text: string; onPress?: () => void }>;
+    const buttons = skipCall[2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
     expect(confirmBtn).toBeDefined();
 

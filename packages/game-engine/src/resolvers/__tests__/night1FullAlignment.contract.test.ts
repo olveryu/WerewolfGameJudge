@@ -19,7 +19,6 @@ import {
   SCHEMAS,
 } from '@werewolf/game-engine/models/roles/spec';
 import type {
-  ActionSchema,
   CompoundSchema,
   RevealKind,
 } from '@werewolf/game-engine/models/roles/spec/schema.types';
@@ -69,7 +68,7 @@ function getSchemaCanSkip(schemaId: SchemaId): boolean {
   if (!schema) return false;
 
   if (schema.kind === 'compound') {
-    const compoundSchema = schema as CompoundSchema;
+    const compoundSchema = schema;
     return compoundSchema.steps?.every((s) => s.canSkip === true) ?? false;
   }
 
@@ -81,7 +80,7 @@ function getSchemaCanSkip(schemaId: SchemaId): boolean {
 }
 
 function getSchemaRevealKind(schemaId: SchemaId): RevealKind | undefined {
-  const schema = SCHEMAS[schemaId] as ActionSchema;
+  const schema = SCHEMAS[schemaId];
   if (!schema) return undefined;
   return schema.ui?.revealKind;
 }

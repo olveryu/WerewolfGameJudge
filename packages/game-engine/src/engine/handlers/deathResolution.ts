@@ -75,7 +75,7 @@ export function buildRoleSeatMap(
   let poisonSourceSeat = -1;
 
   for (const [roleId, seat] of effectiveRoleSeatMap) {
-    const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec;
+    const spec = ROLE_SPECS[roleId] as RoleSpec;
 
     // Flag-driven seat arrays (unchanged from V2)
     if (spec.immunities?.some((i) => i.kind === 'poison')) {
@@ -152,7 +152,7 @@ export function buildCheckedSeats(
   const { nightmareBlock } = nightActions;
 
   for (const [roleId, seat] of effectiveRoleSeatMap) {
-    const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec;
+    const spec = ROLE_SPECS[roleId] as RoleSpec;
     if (spec.deathCalcRole !== 'checkSource') continue;
 
     // Skip nightmare-blocked check sources
@@ -188,7 +188,7 @@ export function buildReflectionSources(
   const { nightmareBlock } = nightActions;
 
   for (const [roleId, seat] of effectiveRoleSeatMap) {
-    const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec;
+    const spec = ROLE_SPECS[roleId] as RoleSpec;
     if (!spec.deathCalcRole) continue;
 
     // Skip nightmare-blocked sources

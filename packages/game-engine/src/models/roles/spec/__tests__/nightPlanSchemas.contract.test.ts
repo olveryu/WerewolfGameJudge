@@ -84,7 +84,7 @@ describe('buildSchemas ↔ SCHEMAS equivalence', () => {
   describe.each(schemaKeys)('schema "%s"', (schemaId) => {
     const cached = SCHEMAS[schemaId as keyof typeof SCHEMAS];
 
-    const built = builtSchemas[schemaId]!;
+    const built = builtSchemas[schemaId];
 
     it('should have same actionKind', () => {
       expect(built.kind).toBe(cached.kind);

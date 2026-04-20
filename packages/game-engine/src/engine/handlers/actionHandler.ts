@@ -177,7 +177,7 @@ export function handleSubmitAction(
   // Wolf vote timer: wolfVote 步骤提交后，管理 stepDeadline
   if (schema.kind === 'wolfVote' && handlerResult.kind === 'success') {
     // 临时 reduce 所有 actions 以获取投票最新状态
-    let tempState = state as import('../../protocol/types').GameState;
+    let tempState = state;
     for (const action of handlerResult.actions) {
       tempState = gameReducer(tempState, action);
     }

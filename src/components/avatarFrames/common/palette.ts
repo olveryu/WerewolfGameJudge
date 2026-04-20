@@ -26,7 +26,7 @@ export const FRAME_PALETTE = {
   gray:   { primary: '#718096', light: '#CBD5E0', dark: '#4A5568' },
 } as const;
 
-export type PaletteKey = keyof typeof FRAME_PALETTE;
+type PaletteKey = keyof typeof FRAME_PALETTE;
 
 export const PALETTE_KEYS: readonly PaletteKey[] = [
   'red',

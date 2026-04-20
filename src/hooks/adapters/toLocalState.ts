@@ -49,7 +49,7 @@ function toLocalPlayer(bp: Player, seatNumber: number, roster?: RosterEntry): Lo
  */
 function toGameStatusEnum(status: GameState['status']): GameStatus {
   // GameState.status 是 string literal union，与 GameStatus enum 值相同
-  return status as GameStatus;
+  return status;
 }
 
 /**

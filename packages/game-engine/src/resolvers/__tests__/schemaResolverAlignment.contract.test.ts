@@ -54,7 +54,7 @@ function getSchemaCanSkip(schemaId: SchemaId): boolean {
 
   // compound schema 的 canSkip 需要看 steps
   if (schema.kind === 'compound') {
-    const compoundSchema = schema as CompoundSchema;
+    const compoundSchema = schema;
     // 如果所有 steps 都有 canSkip: true，则整体可以 skip
     return compoundSchema.steps?.every((s) => s.canSkip === true) ?? false;
   }

@@ -24,7 +24,7 @@ export const FLAIR_PALETTE = {
   gray:   { rgb: 'rgb(113,128,150)', rgbLight: 'rgb(203,213,224)' },
 } as const;
 
-export type FlairPaletteKey = keyof typeof FLAIR_PALETTE;
+type FlairPaletteKey = keyof typeof FLAIR_PALETTE;
 
 export const FLAIR_PALETTE_KEYS: readonly FlairPaletteKey[] = [
   'red',

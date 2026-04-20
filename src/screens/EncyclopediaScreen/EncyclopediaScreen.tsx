@@ -174,7 +174,7 @@ export const EncyclopediaScreen: React.FC = () => {
   useEffect(() => {
     const roleId = route.params?.roleId;
     if (roleId && isValidRoleId(roleId)) {
-      setSelectedRole(roleId as RoleId);
+      setSelectedRole(roleId);
     }
   }, [route.params?.roleId]);
 

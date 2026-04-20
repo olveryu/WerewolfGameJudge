@@ -152,11 +152,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(`${getRoleEmoji('treasureMaster' as RoleId)} 底牌组成：${cardNames}`);
   }
   if (gameState.treasureMasterChosenCard) {
-    const chosenName = getRoleDisplayName(gameState.treasureMasterChosenCard as RoleId);
+    const chosenName = getRoleDisplayName(gameState.treasureMasterChosenCard);
     lines.push(`${getRoleEmoji('treasureMaster' as RoleId)} 盗宝大师选择了 ${chosenName}`);
   }
   if (gameState.thiefChosenCard) {
-    const chosenName = getRoleDisplayName(gameState.thiefChosenCard as RoleId);
+    const chosenName = getRoleDisplayName(gameState.thiefChosenCard);
     lines.push(`${getRoleEmoji('thief' as RoleId)} 盗贼选择了 ${chosenName}`);
   }
   if (gameState.loverSeats && gameState.loverSeats.length === 2) {
@@ -323,9 +323,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
 
   // 6e. Piper hypnotize
   if (nr.hypnotizedSeats && nr.hypnotizedSeats.length > 0) {
-    const hypnotizedList = (nr.hypnotizedSeats as readonly number[])
-      .map((seat) => formatSeat(seat))
-      .join('、');
+    const hypnotizedList = nr.hypnotizedSeats.map((seat) => formatSeat(seat)).join('、');
     lines.push(`${getRoleEmoji('piper' as RoleId)} 吹笛者催眠了 ${hypnotizedList}`);
   }
 

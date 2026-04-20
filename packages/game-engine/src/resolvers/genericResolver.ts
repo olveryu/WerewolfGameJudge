@@ -145,7 +145,7 @@ function processFactionCheck(
     return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
   }
 
-  const targetSpec = ROLE_SPECS[effectiveRoleId as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
+  const targetSpec = ROLE_SPECS[effectiveRoleId] as RoleSpec | undefined;
   if (!targetSpec) {
     throw new Error(`[FAIL-FAST] Unknown role after resolve: ${effectiveRoleId}`);
   }

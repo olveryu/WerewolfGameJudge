@@ -7,7 +7,6 @@
  */
 
 import { type RevealKind, type SchemaId, SCHEMAS } from '../../models';
-import type { ActiveAbility, LearnEffect } from '../../models/roles/spec/ability.types';
 import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { ResolverResult } from '../../resolvers/types';
@@ -25,10 +24,10 @@ function deriveGateTriggerRoles(): readonly string[] {
   const spec = ROLE_SPECS.wolfRobot as RoleSpec;
   for (const ability of spec.abilities) {
     if (ability.type !== 'active') continue;
-    const active = ability as ActiveAbility;
+    const active = ability;
     for (const effect of active.effects) {
       if (effect.kind === 'learn') {
-        return (effect as LearnEffect).gateTriggersOnRoles ?? [];
+        return effect.gateTriggersOnRoles ?? [];
       }
     }
   }

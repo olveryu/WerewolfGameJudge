@@ -25,11 +25,6 @@ const EXCLUDE_PATTERN = /tts|image|audio|customtools|embed|vision|video|veo|gemm
 let cachedModels: string[] = [];
 let cacheTimestamp = 0;
 
-interface GeminiModelEntry {
-  name: string; // e.g. "models/gemini-3.1-flash-lite-preview"
-  supportedGenerationMethods?: string[];
-}
-
 /**
  * 从 ListModels API 获取适合文本聊天的 Gemini Flash 模型，按版本降序排列。
  * 版本号高的优先，同版本内 non-lite 优先（质量高），lite 其次（额度多）。
@@ -38,7 +33,7 @@ async function fetchSortedModels(apiKey: string): Promise<string[]> {
   const res = await fetch(`${GEMINI_API_BASE}/models?key=${apiKey}`);
   if (!res.ok) return [];
 
-  const data = (await res.json()) as { models?: GeminiModelEntry[] };
+  const data = await res.json();
   if (!data.models) return [];
 
   const candidates = data.models

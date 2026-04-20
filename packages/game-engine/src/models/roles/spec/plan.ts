@@ -144,7 +144,7 @@ export function buildNightPlan(
       const spec: RoleSpec = ROLE_SPECS[roleId as RoleId];
       return {
         roleId: roleId as RoleId,
-        stepId: stepId as NightStepId,
+        stepId: stepId,
         order: idx,
         displayName: spec.displayName,
         audioKey: stepDef.audioKey ?? roleId,
@@ -162,7 +162,7 @@ export function buildNightPlan(
         seerSteps.push(steps[i]);
       }
     }
-    seerSteps.sort((a, b) => seerLabelMap[a.roleId]! - seerLabelMap[b.roleId]!);
+    seerSteps.sort((a, b) => seerLabelMap[a.roleId] - seerLabelMap[b.roleId]);
     for (let i = 0; i < seerIndices.length; i++) {
       steps[seerIndices[i]] = seerSteps[i];
     }

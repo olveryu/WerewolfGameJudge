@@ -772,7 +772,7 @@ export function useRoomScreenState(
         bottomCardSubtitle: '',
       };
 
-    const factions = bottomCards.map((r) => ROLE_SPECS[r as keyof typeof ROLE_SPECS]?.faction);
+    const factions = bottomCards.map((r) => ROLE_SPECS[r]?.faction);
     const hasWolf = factions.some((f) => f === Faction.Wolf);
 
     if (isThiefChoose) {

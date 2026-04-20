@@ -99,12 +99,12 @@ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
     const wolf: RoleTagInfo[] = [];
     const third: RoleTagInfo[] = [];
     for (const roleId of templateRoles) {
-      if (seen.has(roleId as RoleId)) continue;
-      seen.add(roleId as RoleId);
-      const spec = ROLE_SPECS[roleId as RoleId];
+      if (seen.has(roleId)) continue;
+      seen.add(roleId);
+      const spec = ROLE_SPECS[roleId];
       if (!spec) continue;
       const info: RoleTagInfo = {
-        roleId: roleId as RoleId,
+        roleId: roleId,
         shortName: spec.shortName,
         team: spec.team,
         faction: spec.faction,

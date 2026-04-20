@@ -161,11 +161,11 @@ describe('AudioOrchestrator reconnect', () => {
         value: {
           addEventListener: jest.fn((event: string, fn: () => void) => {
             listeners[event] = listeners[event] ?? [];
-            listeners[event]!.push(fn);
+            listeners[event].push(fn);
           }),
           removeEventListener: jest.fn((event: string, fn: () => void) => {
             if (listeners[event]) {
-              listeners[event] = listeners[event]!.filter((l) => l !== fn);
+              listeners[event] = listeners[event].filter((l) => l !== fn);
             }
           }),
         },
@@ -199,9 +199,7 @@ describe('AudioOrchestrator reconnect', () => {
         await jest.advanceTimersByTimeAsync(20_000);
       }
 
-      const { facadeLog } = jest.requireMock('../../../utils/logger') as {
-        facadeLog: { warn: jest.Mock; info: jest.Mock };
-      };
+      const { facadeLog } = jest.requireMock('../../../utils/logger');
 
       // Should see exhaustion warning
       const exhaustionLog = facadeLog.warn.mock.calls.find(

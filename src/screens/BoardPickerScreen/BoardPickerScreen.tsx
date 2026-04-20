@@ -184,7 +184,7 @@ const BoardCard = React.memo<BoardCardProps>(
             <View style={styles.keyRoleRow}>
               {keyRoles.map((item) => {
                 const colorKey = FACTION_COLOR_MAP[item.faction] ?? 'villager';
-                const chipColor = colors[colorKey as keyof typeof colors] as string;
+                const chipColor = colors[colorKey as keyof typeof colors];
                 return (
                   <View
                     key={item.roleId}
@@ -277,7 +277,7 @@ export const BoardPickerScreen: React.FC = () => {
       if (items.length > 0) {
         groups.push({
           label: f.label,
-          color: colors[f.colorKey as keyof typeof colors] as string,
+          color: colors[f.colorKey as keyof typeof colors],
           items,
         });
       }

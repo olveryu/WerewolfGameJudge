@@ -315,7 +315,7 @@ describe('handleUpvoteBoardNomination (reducer)', () => {
         upvoters: [],
       },
     },
-  }) as GameState;
+  });
 
   it('adds vote', () => {
     const result = handleUpvoteBoardNomination(baseState, {

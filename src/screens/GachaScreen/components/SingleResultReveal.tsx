@@ -70,7 +70,7 @@ interface SingleResultRevealProps {
 // ─── Component ──────────────────────────────────────────────────────────
 
 export function SingleResultReveal({ item, onDismiss, reducedMotion }: SingleResultRevealProps) {
-  const rarity = item.rarity as Rarity;
+  const rarity = item.rarity;
   const visual = RARITY_VISUAL[rarity] ?? RARITY_VISUAL.common;
   const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
   const typeLabel = REWARD_TYPE_LABELS[item.rewardType] ?? item.rewardType;
