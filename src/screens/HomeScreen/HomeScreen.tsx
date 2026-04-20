@@ -41,6 +41,7 @@ import { homeLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 
 import {
+  AnnouncementModal,
   createHomeScreenStyles,
   InstallMenuItem,
   JoinRoomModal,
@@ -573,6 +574,9 @@ export const HomeScreen: React.FC = () => {
         onCancel={handleCancelJoin}
         styles={styles}
       />
+
+      {/* What's New announcement (once per version) */}
+      <AnnouncementModal />
     </SafeAreaView>
   );
 };
