@@ -141,7 +141,11 @@ jobs:
       - name: Check miniapp changes
         id: changes
         run: |
-          if git diff --name-only HEAD~1 HEAD -- miniapp/ | grep -q .; then
+          # Upload on release commits OR miniapp/ file changes
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          if echo "$COMMIT_MSG" | grep -q '^release:'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only HEAD~1 HEAD -- miniapp/ | grep -q .; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
