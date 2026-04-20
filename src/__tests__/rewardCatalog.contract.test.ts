@@ -47,6 +47,16 @@ describe('avatar registry completeness', () => {
     const file = path.join(ASSETS_ROOT, 'badges/png/512', `role_${id}.png`);
     expect(fs.existsSync(file)).toBe(true);
   });
+
+  it.each(AVATAR_IDS)('WebP avatar exists for "%s"', (id) => {
+    const file = path.join(ASSETS_ROOT, 'avatars/web', `${id}.webp`);
+    expect(fs.existsSync(file)).toBe(true);
+  });
+
+  it.each(AVATAR_IDS)('WebP badge exists for "%s"', (id) => {
+    const file = path.join(ASSETS_ROOT, 'badges/web', `role_${id}.webp`);
+    expect(fs.existsSync(file)).toBe(true);
+  });
 });
 
 // ─── Frames ─────────────────────────────────────────────────────────────────

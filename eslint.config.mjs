@@ -190,6 +190,8 @@ export default tseslint.config(
       'src/utils/avatar.ts',
       'src/utils/avatarImages.ts',
       'src/utils/avatarImages.web.ts',
+      'src/utils/roleBadges.ts',
+      'src/utils/roleBadges.web.ts',
     ],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
