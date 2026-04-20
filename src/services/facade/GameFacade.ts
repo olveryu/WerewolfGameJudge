@@ -356,6 +356,7 @@ export class GameFacade implements IGameFacade {
 
     // Stop currently playing audio and release preloaded audio to free memory
     this.#audioService.stop();
+    this.#audioService.stopBgm();
     this.#audioService.clearPreloaded();
 
     this.#connectionManager.disconnect();
