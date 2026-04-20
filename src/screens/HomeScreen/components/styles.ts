@@ -129,6 +129,13 @@ export interface HomeScreenStyles {
   guideStepRow: ViewStyle;
   guideStepNumber: TextStyle;
   guideStepText: TextStyle;
+  // Auth error banner
+  authErrorBanner: ViewStyle;
+  authErrorTextGroup: ViewStyle;
+  authErrorTitle: TextStyle;
+  authErrorSubtitle: TextStyle;
+  authErrorRetryBtn: ViewStyle;
+  authErrorRetryText: TextStyle;
 }
 
 export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number): HomeScreenStyles {
@@ -501,6 +508,43 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       lineHeight: typography.lineHeights.secondary,
       color: colors.text,
       flex: 1,
+    },
+    // ── Auth Error Banner ──
+    authErrorBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.small,
+      marginHorizontal: spacing.screenH,
+      marginTop: spacing.medium,
+      padding: spacing.medium,
+      backgroundColor: withAlpha(colors.error, 0.08),
+      borderRadius: borderRadius.medium,
+      borderWidth: fixed.borderWidth,
+      borderColor: withAlpha(colors.error, 0.2),
+    },
+    authErrorTextGroup: {
+      flex: 1,
+    },
+    authErrorTitle: {
+      fontSize: typography.body,
+      fontWeight: typography.weights.semibold,
+      color: colors.error,
+    },
+    authErrorSubtitle: {
+      fontSize: typography.caption,
+      color: colors.textSecondary,
+      marginTop: spacing.micro,
+    },
+    authErrorRetryBtn: {
+      paddingHorizontal: spacing.medium,
+      paddingVertical: spacing.small,
+      backgroundColor: colors.error,
+      borderRadius: borderRadius.medium,
+    },
+    authErrorRetryText: {
+      fontSize: typography.secondary,
+      fontWeight: typography.weights.semibold,
+      color: colors.textInverse,
     },
   });
 }

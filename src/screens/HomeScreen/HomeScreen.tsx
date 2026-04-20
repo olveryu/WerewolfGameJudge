@@ -37,6 +37,7 @@ import { colors, componentSizes, layout } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 import { homeLog } from '@/utils/logger';
+import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
 
 import {
   AnnouncementModal,
@@ -55,7 +56,7 @@ export const HomeScreen: React.FC = () => {
   const styles = useMemo(() => createHomeScreenStyles(colors, screenWidth), [screenWidth]);
 
   const navigation = useNavigation<NavigationProp>();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, error: authError } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
@@ -312,6 +313,15 @@ export const HomeScreen: React.FC = () => {
     setShowAnnouncement(true);
   }, []);
 
+  const handleRetryAuth = useCallback(() => {
+    if (isMiniProgram()) {
+      wxReLaunch();
+    } else {
+      // 非小程序环境，刷新页面重新走 auth 流程
+      window.location.reload();
+    }
+  }, []);
+
   return (
     <SafeAreaView
       style={styles.container}
@@ -358,6 +368,24 @@ export const HomeScreen: React.FC = () => {
           <Text style={styles.userNameHidden} testID={TESTIDS.homeUserName}>
             {userName}
           </Text>
+        )}
+
+        {/* ── Auth Error Banner ─────────────────── */}
+        {!authLoading && !user && authError && (
+          <View style={styles.authErrorBanner}>
+            <Ionicons
+              name="cloud-offline-outline"
+              size={componentSizes.icon.md}
+              color={colors.error}
+            />
+            <View style={styles.authErrorTextGroup}>
+              <Text style={styles.authErrorTitle}>网络异常</Text>
+              <Text style={styles.authErrorSubtitle}>登录失败，请检查网络后重试</Text>
+            </View>
+            <PressableScale onPress={handleRetryAuth} style={styles.authErrorRetryBtn} haptic>
+              <Text style={styles.authErrorRetryText}>重试</Text>
+            </PressableScale>
+          </View>
         )}
 
         {/* ── Hero Card — Create Room ─────────────────── */}

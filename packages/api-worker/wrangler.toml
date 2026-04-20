@@ -5,6 +5,10 @@ compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = false
 
+# ── Smart Placement (自动将 Worker 调度到离后端服务更近的节点) ────────────
+[placement]
+mode = "smart"
+
 # ── D1 Database ──────────────────────────────────────────────────────────────
 [[d1_databases]]
 binding = "DB"

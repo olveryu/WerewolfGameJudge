@@ -867,7 +867,12 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
   wxUrl.searchParams.set('js_code', parsed.code);
   wxUrl.searchParams.set('grant_type', 'authorization_code');
 
-  const wxResp = await fetch(wxUrl.toString());
+  let wxResp: Response;
+  try {
+    wxResp = await fetch(wxUrl.toString(), { signal: AbortSignal.timeout(8000) });
+  } catch {
+    return c.json({ error: 'WeChat API timeout', errcode: -2 }, 504);
+  }
   const wxData: WechatCode2SessionResponse = await wxResp.json();
 
   if (!wxData.openid) {
@@ -979,7 +984,12 @@ authRoutes.post('/bind-wechat', requireAuth, jsonBody(wechatCodeSchema), async (
   wxUrl.searchParams.set('js_code', parsed.code);
   wxUrl.searchParams.set('grant_type', 'authorization_code');
 
-  const wxResp = await fetch(wxUrl.toString());
+  let wxResp: Response;
+  try {
+    wxResp = await fetch(wxUrl.toString(), { signal: AbortSignal.timeout(8000) });
+  } catch {
+    return c.json({ error: 'WeChat API timeout', errcode: -2 }, 504);
+  }
   const wxData: WechatCode2SessionResponse = await wxResp.json();
 
   if (!wxData.openid) {

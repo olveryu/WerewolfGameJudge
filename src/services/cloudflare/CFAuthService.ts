@@ -13,7 +13,7 @@ import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
-import { clearWxCode, isMiniProgram, readWxCode, wxReLaunch } from '@/utils/miniProgram';
+import { clearWxCode, readWxCode } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
 import { cfGet, cfPost, cfPut, setTokenProvider } from './cfFetch';
@@ -63,15 +63,7 @@ export class CFAuthService implements IAuthService {
           } catch (e) {
             clearWxCode();
             authLog.warn('WeChat sign-in failed', e);
-            if (isMiniProgram()) {
-              // code 已失效，reLaunch 让小程序 onLoad 重新 wx.login 获取新 code
-              authLog.info('Triggering miniprogram reLaunch for fresh wx.login code');
-              wxReLaunch();
-            } else {
-              // 非小程序（残留 wxcode 链接等）→ fallback 匿名
-              authLog.warn('WeChat sign-in failed outside miniprogram, falling back to anonymous');
-              await this.signInAnonymously();
-            }
+            // 不自动 reLaunch/重试，让错误抛到 UI 层由用户手动重试
           }
         }
       } else if (existingUserId) {
