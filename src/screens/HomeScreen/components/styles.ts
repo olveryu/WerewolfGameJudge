@@ -113,6 +113,8 @@ export interface HomeScreenStyles {
   randomRoleActionText: TextStyle;
   // Gacha entry card
   gachaCard: ViewStyle;
+  gachaCardAccentGold: ViewStyle;
+  gachaCardAccentBlue: ViewStyle;
   gachaCardEmoji: TextStyle;
   gachaCardText: ViewStyle;
   gachaCardTitle: TextStyle;
@@ -258,6 +260,8 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     },
     randomRoleCard: {
       ...shared.cardBase,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.god,
     },
     randomRoleCardAbsolute: {
       position: 'absolute',
@@ -340,6 +344,14 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
       marginHorizontal: spacing.screenH,
       marginBottom: spacing.small,
       gap: spacing.small,
+    },
+    gachaCardAccentGold: {
+      borderLeftWidth: 3,
+      borderLeftColor: colors.warning,
+    },
+    gachaCardAccentBlue: {
+      borderLeftWidth: 3,
+      borderLeftColor: colors.info,
     },
     gachaCardEmoji: {
       fontSize: 28,

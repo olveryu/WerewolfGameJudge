@@ -37,6 +37,7 @@ const BLOCKING_MODAL_PATTERNS = [
   '加载超时',
   '提示',
   '加入房间',
+  '更新内容',
 ];
 
 /** Error states that need recovery action */
@@ -250,6 +251,7 @@ async function dismissBlockingModals(page: Page): Promise<boolean> {
 
   // Try common dismiss buttons
   const dismissed =
+    (await clickIfVisible(page, '我知道了', { exact: true, timeout: 300 })) ||
     (await clickIfVisible(page, '取消', { exact: true, timeout: 300 })) ||
     (await clickIfVisible(page, '确定', { exact: true, timeout: 300 })) ||
     (await clickIfVisible(page, '关闭', { exact: true, timeout: 300 }));

@@ -425,7 +425,11 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         {/* ── Gacha Entry ─────────────────────────── */}
-        <PressableScale onPress={handleNavigateGacha} style={styles.gachaCard} haptic>
+        <PressableScale
+          onPress={handleNavigateGacha}
+          style={[styles.gachaCard, styles.gachaCardAccentGold]}
+          haptic
+        >
           <Text style={styles.gachaCardEmoji}>🎰</Text>
           <View style={styles.gachaCardText}>
             <Text style={styles.gachaCardTitle}>扭蛋抽奖</Text>
@@ -450,7 +454,11 @@ export const HomeScreen: React.FC = () => {
 
         {/* ── Changelog Card ────────────────────────── */}
         {ANNOUNCEMENTS[APP_VERSION] && (
-          <PressableScale onPress={handleOpenAnnouncement} style={styles.gachaCard} haptic>
+          <PressableScale
+            onPress={handleOpenAnnouncement}
+            style={[styles.gachaCard, styles.gachaCardAccentBlue]}
+            haptic
+          >
             <Ionicons name="sparkles" size={componentSizes.icon.md} color={colors.primary} />
             <View style={styles.gachaCardText}>
               <Text style={styles.gachaCardTitle}>{APP_VERSION} 更新日志</Text>
