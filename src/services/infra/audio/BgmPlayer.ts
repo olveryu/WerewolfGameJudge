@@ -114,16 +114,10 @@ export class BgmPlayer {
     }
     this.#destroyWebPlayer();
     this.#cleanupNativePlayer();
-    // Close the shared AudioContext only on full stop (not between tracks)
-    if (this.#webAudioCtx) {
-      try {
-        void this.#webAudioCtx.close();
-      } catch {
-        /* ignore */
-      }
-      this.#webAudioCtx = null;
-      this.#webGainNode = null;
-    }
+    // Don't close the AudioContext — it's shared via webAudioUnlock and
+    // closing it permanently poisons the singleton. Just null refs.
+    this.#webAudioCtx = null;
+    this.#webGainNode = null;
     audioLog.debug('BGM stopped');
   }
 
@@ -193,7 +187,8 @@ export class BgmPlayer {
     // is silently blocked in WeChat web-view.
     // Prefer the gesture-authorized AudioContext from webAudioUnlock.
     if (!this.#webAudioCtx || this.#webAudioCtx.state === 'closed') {
-      this.#webAudioCtx = getUnlockedAudioContext() ?? new AudioContext();
+      const ctx = getUnlockedAudioContext();
+      this.#webAudioCtx = ctx && ctx.state !== 'closed' ? ctx : new AudioContext();
       this.#webGainNode = this.#webAudioCtx.createGain();
       this.#webGainNode.connect(this.#webAudioCtx.destination);
     }
