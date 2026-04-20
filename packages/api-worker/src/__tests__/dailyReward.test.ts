@@ -82,18 +82,15 @@ describe('POST /api/gacha/daily-reward', () => {
     const token = await mintToken();
     const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { claimed: boolean; normalDrawsAdded?: number };
+    const body = await res.json();
     expect(body.claimed).toBe(true);
     expect(body.normalDrawsAdded).toBe(1);
 
     // Verify via GET /api/gacha/status
     const statusRes = await getJson('/api/gacha/status', token);
-    const status = (await statusRes.json()) as {
-      normalDraws: number;
-      lastLoginRewardAt: string | null;
-    };
+    const status = await statusRes.json();
     expect(status.normalDraws).toBe(1);
-    expect(status.lastLoginRewardAt).toBe(todayLocal());
+    expect(status.lastLoginRewardAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
   it('rejects duplicate claim on same local date', async () => {
@@ -101,7 +98,7 @@ describe('POST /api/gacha/daily-reward', () => {
     await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
     const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { claimed: boolean; reason?: string };
+    const body = await res.json();
     expect(body.claimed).toBe(false);
     expect(body.reason).toBe('already_claimed');
   });
@@ -117,33 +114,34 @@ describe('POST /api/gacha/daily-reward', () => {
 
     const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { claimed: boolean; normalDrawsAdded?: number };
+    const body = await res.json();
     expect(body.claimed).toBe(true);
     expect(body.normalDrawsAdded).toBe(1);
 
     const statusRes = await getJson('/api/gacha/status', token);
-    const status = (await statusRes.json()) as { normalDraws: number };
+    const status = await statusRes.json();
     expect(status.normalDraws).toBe(4);
   });
 
   it('rejects claim within 20h cooldown', async () => {
     const token = await mintToken();
-    const today = todayLocal();
+    // Simulate a claim that happened 1 hour ago (ISO datetime)
+    const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
     await env.DB.prepare(
       `INSERT INTO user_stats (user_id, normal_draws, version, last_login_reward_at, updated_at)
        VALUES (?, 0, 1, ?, datetime('now'))`,
     )
-      .bind(TEST_USER_ID, today)
+      .bind(TEST_USER_ID, oneHourAgo)
       .run();
 
-    // Try claiming with "tomorrow" as localDate — different string, but < 20h
+    // Try claiming with "tomorrow" as localDate — different date string, but < 20h
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toLocaleDateString('en-CA');
 
     const res = await postJson('/api/gacha/daily-reward', { localDate: tomorrowStr }, token);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { claimed: boolean; reason?: string };
+    const body = await res.json();
     expect(body.claimed).toBe(false);
     expect(body.reason).toBe('cooldown');
   });
@@ -158,7 +156,7 @@ describe('GET /api/gacha/status — lastLoginRewardAt', () => {
   it('returns null lastLoginRewardAt for new users', async () => {
     const token = await mintToken();
     const res = await getJson('/api/gacha/status', token);
-    const body = (await res.json()) as { lastLoginRewardAt: string | null };
+    const body = await res.json();
     expect(body.lastLoginRewardAt).toBeNull();
   });
 
@@ -167,7 +165,7 @@ describe('GET /api/gacha/status — lastLoginRewardAt', () => {
     await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
 
     const res = await getJson('/api/gacha/status', token);
-    const body = (await res.json()) as { lastLoginRewardAt: string | null };
-    expect(body.lastLoginRewardAt).toBe(todayLocal());
+    const body = await res.json();
+    expect(body.lastLoginRewardAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 });

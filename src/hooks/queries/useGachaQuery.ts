@@ -80,7 +80,7 @@ export function useAutoClaimDailyReward() {
     if (attemptedRef.current || !status || claimMutation.isPending) return;
 
     const today = getLocalDate();
-    if (status.lastLoginRewardAt === today) return;
+    if (status.lastLoginRewardAt?.startsWith(today)) return;
 
     attemptedRef.current = true;
     claimMutation.mutate(undefined, {

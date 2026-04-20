@@ -259,19 +259,20 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
 
     // ── No stats row yet → create one with the daily reward ──
     if (!stats) {
+      const claimedAt = new Date().toISOString();
       await db
         .insert(userStats)
         .values({
           userId,
           normalDraws: 1,
-          lastLoginRewardAt: localDate,
-          updatedAt: new Date().toISOString(),
+          lastLoginRewardAt: claimedAt,
+          updatedAt: claimedAt,
         })
         .onConflictDoUpdate({
           target: userStats.userId,
           set: {
             normalDraws: sql`${userStats.normalDraws} + 1`,
-            lastLoginRewardAt: localDate,
+            lastLoginRewardAt: claimedAt,
             version: sql`${userStats.version} + 1`,
             updatedAt: sql`datetime('now')`,
           },
@@ -281,16 +282,16 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
     }
 
     // ── Already claimed today (same local date) ──
-    if (stats.lastLoginRewardAt === localDate) {
+    // .slice(0, 10) handles both old YYYY-MM-DD and new ISO datetime formats.
+    if (stats.lastLoginRewardAt?.slice(0, 10) === localDate) {
       return c.json({ claimed: false, reason: 'already_claimed' });
     }
 
     // ── Server-side cooldown guard: reject if < 20h since last claim ──
     if (stats.lastLoginRewardAt) {
-      // lastLoginRewardAt is a YYYY-MM-DD string; parse as start of that day UTC
-      const lastClaimTime = new Date(stats.lastLoginRewardAt + 'T00:00:00Z').getTime();
-      const now = Date.now();
-      const hoursSinceLastClaim = (now - lastClaimTime) / (1000 * 60 * 60);
+      // lastLoginRewardAt is ISO datetime (or legacy YYYY-MM-DD → parsed as midnight UTC)
+      const lastClaimTime = new Date(stats.lastLoginRewardAt).getTime();
+      const hoursSinceLastClaim = (Date.now() - lastClaimTime) / (1000 * 60 * 60);
       if (hoursSinceLastClaim < DAILY_REWARD_COOLDOWN_HOURS) {
         return c.json({ claimed: false, reason: 'cooldown' });
       }
@@ -301,7 +302,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
       .update(userStats)
       .set({
         normalDraws: sql`${userStats.normalDraws} + 1`,
-        lastLoginRewardAt: localDate,
+        lastLoginRewardAt: new Date().toISOString(),
         version: sql`${userStats.version} + 1`,
         updatedAt: sql`datetime('now')`,
       })
