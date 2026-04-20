@@ -17,7 +17,6 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
-import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import { storage } from '@/lib/storage';
@@ -93,8 +92,6 @@ export function useRoomScreenState(
     template,
     roleRevealAnimation: initialRoleRevealAnimation,
   } = params;
-
-  const { audioService } = useServices();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Core game room hook
@@ -395,10 +392,9 @@ export function useRoomScreenState(
   const actionDialogs = useRoomActionDialogs();
 
   const handleLeaveRoomCleanup = useCallback(() => {
-    roomScreenLog.debug('handleLeaveRoomCleanup: calling leaveRoom + cleanup');
+    roomScreenLog.debug('handleLeaveRoomCleanup: calling leaveRoom');
     void leaveRoom();
-    audioService.cleanup();
-  }, [leaveRoom, audioService]);
+  }, [leaveRoom]);
 
   const seatDialogs = useRoomSeatDialogs({
     pendingSeat,
