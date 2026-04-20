@@ -53,6 +53,15 @@ fs.writeFileSync('./app.json', JSON.stringify(appJson, null, 2) + '\n');
 "
 echo "✅ Version: v$VERSION"
 
+# ── 检查 announcements 是否有当前版本条目 ──
+if ! grep -q "'v$VERSION'" src/config/announcements.ts; then
+  echo ""
+  echo "⚠️  src/config/announcements.ts 缺少 v$VERSION 条目"
+  echo "   请先添加 What's New 内容，再重新运行 release。"
+  echo ""
+  exit 1
+fi
+
 # ── 自动更新 CHANGELOG.md ──
 PREV_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
 TODAY=$(date +%Y-%m-%d)
