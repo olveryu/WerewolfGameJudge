@@ -5,6 +5,307 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.0.1] - 2026-04-20
+
+- fix(lint): remove all unnecessary type assertions and unused imports
+- refactor(home): replace tip cards with changelog card + controlled announcement modal
+- feat(home): add What's New announcement modal on version update
+- fix(audio): add silent audio unlock for Android WebView autoplay policy
+- feat(auth): simplify WeChat sign-in process and add wxReLaunch for code refresh
+- fix(gacha): store ISO datetime in lastLoginRewardAt for accurate cooldown
+- feat(assets): add WebP role badges + contract tests for web variants
+- fix(main): stop removing #root in WeChat guide to prevent Invariant Violation
+- style(frames): rebalance common/rare visual hierarchy
+- fix(main): force evaluation of expo module to prevent "Requiring unknown module" crash
+- fix(flairs): redesign 4 common flairs that looked like borders
+- fix: revert accidental conflict markers in metro.config.js
+- fix(frames): redesign diamond frame with rounded-rect + accent gems
+- fix(frames): redesign scallop frame with shallow bezier waves
+- perf(web): self-host CanvasKit WASM + same-origin preload
+- perf(nav): remove React.lazy screen splitting to eliminate navigation spinner
+- feat(gacha): add animated shimmer to legendary avatar frames
+- docs(index): clarify Skia SkiaViewApi workaround with upstream context
+- docs(instructions): sync with 2026 codebase state
+- revert(metro): remove ineffective Skia inlineRequires blockList
+- feat(eslint): upgrade to recommendedTypeChecked for async/promise safety
+- fix(skia-web): pre-import NativeSkiaModule to set global.SkiaViewApi
+- fix(queries): add queryOptions to react-query mock and fix enabled type
+- refactor: rename screen-level styles.ts to ScreenName.styles.ts
+- refactor: replace 9 barrel imports with deep imports from game-engine
+- chore(docs): archive historical design docs to docs/archive/
+- refactor(metro): simplify Skia inlineRequires blockList with recursive readdirSync
+- fix(metro): exclude @shopify/react-native-skia from inlineRequires
+- chore: gitignore \*.tmp.sql to prevent temp query files from being committed
+- chore: remove accidentally committed temp SQL file
+- fix(ai-chat): raise token limits + remove conflicting length caps + add fetch timeout
+- chore: fix knip false positive for babel-plugin-transform-define
+- perf(nav): lazy-load 11 non-essential screens
+- perf(assets): compress avatars + badges to WebP for web
+- perf(icons): use direct Ionicons import to exclude 17 unused font families
+- perf(sentry): tree-shake debug + replay + tracing code
+- perf(metro): enable tree shaking + inline requires
+- chore: migrate instruction files to 2026 YAML frontmatter format
+- docs: update gacha system documentation to reflect implementation
+- feat(gacha): daily login reward — 1 free normal draw per day
+- fix(ai-chat): handle versionless model IDs + exclude latest aliases
+- feat(ai-chat): dynamic Gemini model discovery with cascade fallback
+- fix(ai-chat): use correct Gemini 3.1 Flash Lite model ID
+- fix(connection): suppress background reconnect loop + auto-recover from Failed on foreground
+- ci: cancel in-progress runs on new push to same ref
+- revert(web): restore jsdelivr CDN for canvaskit WASM
+- fix(ai-chat): transform Workers AI SSE to OpenAI format for client compatibility
+- fix(auth): merge user_stats + draw_history on WeChat→email account bind
+- fix(gacha): optimistic concurrency control + invalidate cache on settle
+- feat(growth): promote 6 frames + 5 flairs from epic to legendary
+- refactor(wechat): follow official docs for miniprogram detection
+- fix(web): remove wxcode URL check from miniProgram detection
+- fix(auth): use wxcode presence as definitive miniprogram signal
+- fix(miniapp): switch web-view URL to pages.dev for China access
+- Revert "fix(web): remove wxcode URL param from miniProgram detection"
+- fix(web): add WeChat domain unblock verification file
+- fix(avatar): improve avatar filtering logic and add placeholder for grid alignment
+- fix(web): self-host canvaskit WASM to fix WeChat web-view in China
+- feat(api): record user geo (country/colo) on auth, add request logging
+- fix(web): remove wxcode URL param from miniProgram detection
+- fix(auth): defer wxcode deletion, retry sign-in, block anonymous in WeChat
+- feat(gacha): allow partial multi-draw when tickets < 10
+- chore: remove obsolete gacha UI preview HTML
+- feat(growth): add rare tier + expand common tier for frames and flairs
+- fix(growth): differentiate rare nameStyle prefixes visually
+- feat(growth): rework nameStyle rarity tiers with factory pattern
+- feat(gacha): visual redesign with extracted components + layout fix
+- test(gacha): update rarity count assertions for rebalance
+- fix(query): extract useAuthenticatedQuery base hook, guard gacha + avatar sync
+- fix(gacha): scale capsule machine by both width and height
+- fix(stats): replace racy anonymous provider with React Query enabled guard
+- fix(e2e): use wrangler.test.toml for e2e dev server
+- feat(avatar-picker): inline special cells + bare-text rarity chips
+- style(growth): filled capsule rarity chips — full color bg + white text
+- style(growth): redesign rarity sub-tab chips with color-tinted active state
+- fix(avatar): uploaded avatar checkmark persists after selecting another
+- feat(growth): add rarity sub-tabs and group TenResultOverlay by rarity
+- fix(api-worker): use separate wrangler config for vitest
+- fix(unlocks): pad last grid row with spacers to fix alignment
+- feat(growth): add 150 common items + reclassify existing tiers
+- fix(pnpm): remove unused expo-blur dependency
+- fix(web): catch icon font load timeout in WeChat WebView
+- fix: resolve quality check failures (knip, contract tests, formatting)
+- fix(home): unify card spacing and add gacha chevron
+- Merge branch 'feature/gocha_system'
+- feat(gacha): ui polish, ticket badge, settings entry, welcome bonus
+- fix(web): detect mini-program web-view via wxcode URL param
+- feat(gacha): add gacha capsule machine system
+- chore: remove obsolete preview HTML files
+- feat(nameStyle): add name text effects end-to-end
+- refactor(theme): update primary color values and description for consistency
+- style(theme): apple-style bottom panels with hairline separators
+- refactor(theme): update color values and remove alpha adjustments for consistency
+- refactor(room): integrate three-tier BottomActionPanel with declarative layout
+- feat(room): add useBottomLayout hook
+- feat(room): add resolveBottomLayout pure function + 39 tests
+- feat(room): add BottomLayout types, static button registry, and LAYOUT_RULES
+- fix(safe-area): upgrade react-native-safe-area-context to 5.7.0
+- fix(safe-area): use record edges to prevent phantom bottom inset on web
+- fix(web): correct viewport height for PWA and WeChat web-view
+- fix(styles): add flexGrow to listContent for improved layout consistency
+- fix(room): update seat status checks to reflect kicked player state
+- refactor(screens): unify header, container, and padding patterns
+- fix(nav): remove presentation:'modal' from full-screen pages
+- fix(nav): make contentStyle transparent so screenLayout gradient shows through
+- style(room): elevate visual atmosphere across RoomScreen and app
+- fix(styles): remove background color from emptyTile style in SeatTile
+- fix(styles): update cardBFooterHint color and remove unnecessary styles
+- fix(styles): remove background color from cardSelected style
+- fix(test): update known violation line number after import shift
+- fix(room): add missing shadows import to SeatTile
+- style(auth): modal card elevation + avatar strip shadow + button shadow
+- style(music): track row tint + radio modernization
+- style(animation-settings): option card elevation + preview section polish
+- style(notepad): input elevation + legend bg tint + AI button fill
+- style(unlocks): progress bar hero treatment + cell elevation + tab shadow
+- style(avatar): thicker tab indicator + grid cell elevation
+- style(settings): growth section hero treatment + thicker XP bar
+- style(config): section header accent + stepper count tint + template pill shadow
+- style(room): seat tile elevation + empty seat dashed border
+- style(room): night progress gradient + board info header accent
+- style(screens): polish encyclopedia, board picker, avatar, unlocks
+- style(settings): tinted growth card, thicker XP bar, red sign-out
+- style(config): stronger chip fill, styled hint banner
+- style(room): polish seat tiles and bottom action panel
+- style(home): polish action cards and tip cards
+- style(button): gradient fill for primary variant
+- style(home): gradient hero card for create-room CTA
+- style(theme): enlarge border-radius and tinted purple shadows
+- style(theme): refresh color palette — warmer purple tones with game atmosphere
+- fix(seed): use execFileSync to avoid shell injection from path
+- feat(nomination): deduplicate identical board nominations
+- docs: fix corrupted emoji in README cross-platform section
+- refactor(nomination): use cardBase + add role preview on chip press
+- style(nomination): use cardBase pattern for nomination cards
+- feat(nomination): show board name as card title instead of author
+- feat(auth): replace display name with werewolf-themed random nicknames
+- feat(nomination): accordion expand for nomination cards
+- refactor(config): improve type narrowing and add missing lint comment
+- fix(nomination): preserve boardNominations on adopt and restart
+- fix(config): merge competing effects into single priority-based init
+- docs: update READMEs — fix outdated board count, add R2/WeChat, remove PWA offline claim
+- fix(stats): skip stats fetch for anonymous users at service layer
+- fix(logger): forward info+ severity to Sentry Structured Logs to save quota
+- fix(log): prefix Sentry log messages with [module] for readability
+- perf(auth): skip redundant bindWechat on startup if already bound
+- docs: update stale references after code audit migrations
+- fix(room): suppress ghost loading-timeout warn on leave-room
+- fix(logging): downgrade share-card pre-capture to debug, skip delegation warn before role assignment
+- build(deps): upgrade vitest 3→4, pool-workers 0.8→0.13 + minor dep bumps
+- refactor(api-worker): remove unused DrizzleDb type
+- refactor(logging): structured Sentry logs transport + codebase-wide log cleanup
+- feat(logger): add Sentry transport for structured logging in production
+- refactor(build): remove ESM compilation step for game-engine
+- refactor(api-worker): migrate raw D1 SQL to Drizzle ORM
+- feat(sentry): enable structured logging (Logs beta)
+- refactor(storage): migrate AsyncStorage to react-native-mmkv
+- fix(settings): skip user stats query for anonymous users
+- refactor(data): migrate to TanStack Query v5
+- chore(deps): remove unused react-test-renderer
+- refactor(icons): unify on Ionicons, remove lucide-react-native
+- ci: upload source maps to Sentry on deploy
+- refactor: migrate LoadingScreen and ConnectionStatusBar from Animated to Reanimated
+- refactor: use Context as provider instead of Context.Provider (React 19)
+- refactor: replace forwardRef with ref-as-prop (React 19)
+- chore: remove dead code detected by knip --production
+- chore: enable format-on-save with Prettier in VS Code
+- refactor: remove PageGuideModal onboarding system
+- docs: clarify Web as primary platform in copilot instructions
+- fix(e2e): use testids for seat confirm modal selectors
+- chore(api-worker): remove unused @hono/zod-validator dep and un-export internal types
+- style(ui): unify Chinese copy to 2026 conventions
+- refactor(api-worker): migrate to hono framework
+- feat(api-worker): add zod runtime validation for all handler endpoints
+- fix(ux): improve board-to-config flow copy for discoverability
+- docs(instructions): enforce doc lookup before using training data
+- feat(BoardPicker): add subtitle hint and soften select button text
+- refactor(modal): replace deprecated TouchableWithoutFeedback with Pressable
+- perf(avatar-picker): virtualize frame/flair tabs with FlatList
+- feat(unlocks): view other players' collections from profile card
+- feat(dx): add db:seed:local script with dev user and full item unlock
+- fix(music-settings): increase VolumeSlider thumb and track size for easier dragging
+- feat(growth): add 10 new avatar frames and update reward catalog
+- fix(wolf-reveal): restore RadialGradient in fog Picture to prevent text occlusion
+- perf(wolf-reveal): merge fog/blood into Picture API, reduce useDerivedValue by 76%
+- perf(reveal-effects): replace Skia with Reanimated in RevealBurst/AtmosphericBackground
+- refactor(seatFlairs): rewrite all 30 flairs from Skia Canvas to react-native-svg
+- fix(growth): use Set union for unlock count to avoid double-counting free items
+- Revert "perf(web): virtualize flair grid to fix WebGL 16-context limit"
+- perf(web): virtualize flair grid to fix WebGL 16-context limit
+- feat(growth): add 20 new seat flair particle effects (Skia)
+- feat(profile): redesign player profile card with game-card style
+- fix(e2e): update seating tests for player profile card on seat tap
+- ci(knip): add knip to quality pipeline as strict dead-code gate
+- chore: remove dead code detected by knip
+- docs: add growth system, seat flairs, missing screens to README and instructions
+- feat(roomscreen): allow VIEW_PROFILE in all non-ongoing phases
+- feat(room): add player profile card on seat tap
+- chore(scripts): add backfill-xp one-time script for user_stats
+- refactor(ui): extract shared UserAvatar component, fix room badge truncation
+- feat(flair): seat flair system, reward tuning, unlocks tab, room level badge
+- feat(growth): add UnlocksScreen with tab-based avatar/frame gallery
+- style(settings): inline level pill next to name, compact growth section
+- style(board): merge hint text and nomination buttons into single row
+- feat(avatar): sort frame picker — unlocked frames first
+- fix(growth): roomCode:revision idempotency key + fix {seat}号 duplicate suffix
+- refactor(growth): roster update via processAction + alarm-based settle retry
+- refactor(night): remove dead endNight HTTP/facade chain
+- fix(growth): settle trigger via audioAck + roster level broadcast + toast 10s
+- feat(growth): level-based reward unlock — frame every 3 levels, avatar otherwise
+- refactor(theme): remove multi-theme system, use static light colors
+- refactor(branding): rename 大柠檬助手 to 狼人kill电子裁判
+- fix(share): remove toast hint hidden behind wx.previewImage overlay
+- fix(ui): move toast position to bottom-center to avoid blocking speech order
+- refactor(roster): extract display fields from Player into GameState.roster
+- chore(deps): update expo to ~55.0.14
+- fix(share): add toast hint after wx.previewImage in mini program
+- feat(user-avatar): add level badge to UserAvatar component
+- docs(worker): update wrangler.toml comments for R2 lifecycle + cron tasks
+- feat(share): mini program battle report via R2 upload + wx.previewImage
+- chore(deps): update expo packages to SDK 55 expected versions
+- fix(share): use Canvas 2D for mini program, revert html2canvas workarounds
+- ci(miniapp): fix secret name to MINIAPP_UPLOAD_KEY
+- ci(miniapp): add deploy-miniapp job to auto-upload on miniapp/ changes
+- fix(share): clone card to document.body for html2canvas capture
+- fix(share): reposition cloned container in onclone for html2canvas capture
+- fix(auth): move wxcode auth into CFAuthService to fix race with room init
+- fix(share): use html2canvas onclone to fix truncation from ancestor overflow:hidden
+- fix(share): fix html2canvas truncation caused by RN Web overflow:hidden
+- feat(growth): random unlock rewards per level-up
+- fix(share): fix truncated battle report capture and improve overlay hint text
+- fix(bgm): reuse HTMLAudioElement across playlist tracks
+- feat(share): add long-press image overlay for mini program battle report sharing
+- feat(growth): simplify to level-only system with settle toast
+- fix(growth): count anonymous in threshold & merge card
+- fix(brand): rename 大柠檬狼助手 to 大柠檬助手, remove wolf emoji from header
+- refactor(settings): replace inline name edit with prompt modal
+- fix(api): persist custom_avatar_url to D1 on avatar upload
+- fix(audio): add timeupdate fallback for BGM in WeChat web-view
+- feat(growth): merge growth system (P0+P1)
+- feat(avatar): sort unlocked avatars to front of grid
+- feat(growth): add P1 collection screen, growth card, avatar unlock
+- fix(chat): prevent bubble from jumping when keyboard opens
+- fix(bgm): reuse AudioContext across playlist tracks
+- fix(nav): set Home screen title to 大柠檬狼助手
+- fix(ui): rename app title 狼人杀法官 → 大柠檬狼助手
+- fix(miniapp): rename title to 大柠檬狼助手
+- feat(growth): add P0 growth system
+- feat(web): show loading percentage in splash screen
+- fix(web): remove Service Worker to prevent stale cache white screen
+- fix(web): real loading progress via PerformanceObserver, earlier refresh button
+- fix(settings): hide switch-account and logout in miniprogram for all users
+- fix(auth): account merge UNIQUE constraint conflict on wechat_openid
+- fix(auth): handle account merge errors and update logging for merge failure
+- style(settings): add desc text to dresserEntry bind buttons
+- feat(settings): dresserEntry style bind buttons + hideDisplayName for existing account bind
+- style(settings): use outlineButton for miniprogram bind options
+- style(settings): replace bind buttons with card-style UI for miniprogram
+- fix(auth): preserve existing email session over wxcode in loadUser
+- fix(settings): hide logout/switch for wechat-only users in miniprogram
+- feat(auth): wechat account merge with existing email account
+- ci: auto-apply D1 migrations before worker deploy
+- fix(api-worker): allow WeChat users to upgrade to email in-place
+- feat(client): add bind-email UI for WeChat users
+- feat(auth): add WeChat login flow (miniapp wx.login → web auto-login)
+- feat(api-worker): add WeChat login + bind-wechat auth endpoints
+- feat(client): update QRCodeModal mini program guide for direct room entry
+- feat(miniapp,client): share with room URL + restore last page + JSSDK
+- docs(meta): add WeChat mini-program to platform docs and fix descriptions
+- feat(client): show WeChat forward guide in QRCodeModal for mini program
+- fix(web): allow mini program web-view to bypass WeChat overlay
+- feat(miniapp): add WeChat mini program web-view shell + domain verification
+- fix(client): bottom bars extend into safe area with own paddingBottom
+- fix(client): re-fetch state on same-room reconnect + skip store reset
+- fix(client,web): fix bottom safe-area color + dynamic theme-color sync
+- fix(client): iOS native safe-area pattern — header owns top inset, container uses background
+- fix(client): add colors.background to scroll/content areas (iOS grouped pattern)
+- fix(client): unify safe-area background to colors.surface across all screens
+- fix(client): use edges+useSafeAreaInsets for bottom safe-area across all screens
+- docs(copilot): add husky/lint-staged detail and --no-verify prohibition to verification pipeline
+- feat(api-worker,game-engine,client): add lastAction envelope for passive toast
+- refactor(client): compact nomination cards with expand/collapse toggle
+- fix(web): remove duplicate safe-area padding on body
+- feat(game-engine,api-worker,client): add board nomination feature + fix leaveSeat status check
+- refactor(client): remove defensive ?? false on required boolean hasViewedRole
+- chore: regenerate pnpm-lock.yaml for api-worker test deps
+- docs: update instructions and READMEs for DO SQLite architecture
+- feat(api-worker): add vitest DO tests + D1 column cleanup migration
+- refactor(api-worker): remove D1 gameStateManager and broadcast relay (Phase 2)
+- feat(api-worker): migrate game state from D1 to Durable Objects (Phase 1)
+- fix(client,e2e): correct kick wording from 踢出房间 to 移出座位
+- feat(game-engine,api-worker,client): add host kick player feature
+- test(e2e): update seating tests for host kick feature
+- feat(audio): add 2s gap between playlist BGM tracks
+- feat(client): redesign HomeScreen with UserAvatar, RandomRoleCard, dynamic tips
+- docs: update matrix, add preset boards ref, fix specs header
+- docs: enrich README with motivation, expanded features, FAQ, star history & contributors
+- docs: split README into zh-CN/en with language switcher
+
 ## [2.0.0] - 2026-04-08
 
 - refactor(game-engine,api-worker,client): replace HandlerResult boolean with discriminated union
