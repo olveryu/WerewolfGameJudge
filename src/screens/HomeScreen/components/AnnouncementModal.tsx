@@ -5,8 +5,9 @@
  * 展示当前版本的更新内容 + 开发者微信号。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { toast } from 'sonner-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
@@ -21,6 +22,14 @@ interface AnnouncementModalProps {
 
 export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, onClose }) => {
   const announcement = ANNOUNCEMENTS[APP_VERSION];
+
+  const handleCopyWechat = useCallback(() => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard.writeText(DEVELOPER_WECHAT_ID);
+      toast.success('已复制微信号');
+    }
+  }, []);
+
   if (!announcement) return null;
 
   return (
@@ -50,6 +59,9 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
             color={colors.textMuted}
           />
           <Text style={styles.contactText}>反馈或建议？添加微信：{DEVELOPER_WECHAT_ID}</Text>
+          <Pressable onPress={handleCopyWechat} hitSlop={8}>
+            <Ionicons name="copy-outline" size={componentSizes.icon.sm} color={colors.primary} />
+          </Pressable>
         </View>
 
         {/* Close button */}

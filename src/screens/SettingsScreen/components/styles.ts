@@ -83,6 +83,7 @@ export interface SettingsScreenStyles {
   aboutRow: ViewStyle;
   aboutLabel: TextStyle;
   aboutValue: TextStyle;
+  aboutValueRow: ViewStyle;
 
   // Avatar preview strip (anonymous user teaser)
   avatarPreviewSection: ViewStyle;
@@ -299,6 +300,11 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       fontSize: typography.secondary,
       lineHeight: typography.lineHeights.secondary,
       color: colors.text,
+    },
+    aboutValueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.tight,
     },
 
     // Avatar preview (anonymous user teaser in AvatarSection)
