@@ -310,11 +310,11 @@
       function showWechatGuide() {
         var guide = document.getElementById('wechat-guide');
         if (guide) guide.style.display = 'flex';
-        // 移除 SPA 挂载点和启动画面，阻止 Expo bundle 执行
-        var root = document.getElementById('root');
-        if (root) root.remove();
-        var splash = document.getElementById('splash-screen');
-        if (splash) splash.remove();
+        // 标记跳过 React 挂载 + Skia WASM 下载（节省带宽）。
+        // 不移除 #root — 移除 DOM 节点不阻止 JS 执行，反而导致
+        // registerRootComponent 找不到 rootTag 而 Invariant Violation。
+        // 引导蒙层 z-index: 99999 已完全遮挡底层内容。
+        window.__SKIP_APP = true;
       }
 
       function loadJSSDK() {

@@ -53,6 +53,10 @@ async function main() {
   const register = registerRootComponent;
 
   if (Platform.OS === 'web') {
+    // WeChat browser (non-mini-program) sets this flag in showWechatGuide()
+    // before JS finishes — skip Skia WASM download and React mount entirely.
+    if ((globalThis as Record<string, unknown>).__SKIP_APP) return;
+
     const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
     // WASM is self-hosted in public/canvaskit.wasm (copied by postinstall).
     // Same-origin eliminates CDN DNS+TLS overhead; paired with <link rel="preload">
@@ -63,6 +67,9 @@ async function main() {
     // Sets global.SkiaViewApi — must happen before App tree evaluation.
     // See REMOVAL note above.
     await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
+
+    // Re-check after async Skia init — flag may have been set during WASM download.
+    if ((globalThis as Record<string, unknown>).__SKIP_APP) return;
   }
 
   const App = (await import('./App')).default;
