@@ -17,6 +17,7 @@ import { BgmPlayer } from './audio/BgmPlayer';
 import { NativeAudioStrategy } from './audio/NativeAudioStrategy';
 import type { AudioAsset, AudioPlaybackStrategy } from './audio/types';
 import { WebAudioStrategy } from './audio/WebAudioStrategy';
+import { setupWebAudioUnlock } from './audio/webAudioUnlock';
 
 // Re-export for backward compatibility (consumers import from AudioService)
 export { _AUDIO_END_ROLE_IDS, _AUDIO_ROLE_IDS } from './audio/audioRegistry';
@@ -52,6 +53,12 @@ export class AudioService {
         shouldPlayInBackground: false, // Stop when app goes to background
         interruptionMode: 'duckOthers',
       });
+
+      // Web: Register gesture listeners to unlock AudioContext + HTMLAudioElement
+      // before the first real play() call. See webAudioUnlock.ts for details.
+      if (isWeb) {
+        setupWebAudioUnlock();
+      }
 
       // Web: Listen for visibility change to pause/resume audio
       if (typeof document !== 'undefined') {

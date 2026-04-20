@@ -33,6 +33,7 @@ import { audioLog } from '@/utils/logger';
 import { BGM_VOLUME } from './audioRegistry';
 import type { AudioAsset } from './types';
 import { audioAssetToUrl } from './types';
+import { getUnlockedAudioContext } from './webAudioUnlock';
 
 const isWeb = Platform.OS === 'web';
 
@@ -190,8 +191,9 @@ export class BgmPlayer {
     // Reuse AudioContext + GainNode + HTMLAudioElement across tracks.
     // Creating new Audio() or AudioContext outside a user-gesture callback
     // is silently blocked in WeChat web-view.
+    // Prefer the gesture-authorized AudioContext from webAudioUnlock.
     if (!this.#webAudioCtx || this.#webAudioCtx.state === 'closed') {
-      this.#webAudioCtx = new AudioContext();
+      this.#webAudioCtx = getUnlockedAudioContext() ?? new AudioContext();
       this.#webGainNode = this.#webAudioCtx.createGain();
       this.#webGainNode.connect(this.#webAudioCtx.destination);
     }

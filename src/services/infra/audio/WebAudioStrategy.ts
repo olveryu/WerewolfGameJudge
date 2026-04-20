@@ -11,6 +11,7 @@ import { audioLog } from '@/utils/logger';
 
 import type { AudioAsset, AudioPlaybackStrategy } from './types';
 import { AUDIO_TIMEOUT_MS, audioAssetToUrl } from './types';
+import { getUnlockedAudioElement } from './webAudioUnlock';
 
 export class WebAudioStrategy implements AudioPlaybackStrategy {
   #audioElement: HTMLAudioElement | null = null;
@@ -66,10 +67,15 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
         const audioUrl = audioAssetToUrl(asset);
         audioLog.debug('WEB audioUrl resolved', { label, audioUrl });
 
-        // Create or reuse Audio element (iOS Safari gesture authorization)
+        // Reuse gesture-authorized Audio element from webAudioUnlock, or create new.
+        // The unlocked element has already called play() inside a user gesture,
+        // so subsequent src swaps + play() don't require a fresh gesture.
         if (!this.#audioElement) {
-          audioLog.debug('WEB creating new Audio element', { label });
-          this.#audioElement = new Audio();
+          this.#audioElement = getUnlockedAudioElement() ?? new Audio();
+          audioLog.debug('WEB audio element acquired', {
+            label,
+            fromUnlock: this.#audioElement === getUnlockedAudioElement(),
+          });
         }
 
         const audio = this.#audioElement;
