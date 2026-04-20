@@ -4,6 +4,19 @@ import { TESTIDS } from '../../src/testids';
 import { clickIfVisible, screenshotOnFail } from './ui';
 
 /**
+ * Register auto-dismiss handlers for overlays that may appear at any time.
+ *
+ * Uses Playwright's `addLocatorHandler` so the handler fires automatically
+ * before every actionability check — no manual dismiss timing needed.
+ */
+export async function registerAutoDismissers(page: Page): Promise<void> {
+  // Announcement / What's New modal — match the exact modal title pattern
+  await page.addLocatorHandler(page.getByText(/^v\d+\.\d+\.\d+ 更新内容$/), async () => {
+    await page.getByText('我知道了', { exact: true }).click();
+  });
+}
+
+/**
  * Home Screen Helpers (首页/登录稳定化层)
  *
  * These helpers ensure stable entry to the app by handling:
@@ -37,7 +50,6 @@ const BLOCKING_MODAL_PATTERNS = [
   '加载超时',
   '提示',
   '加入房间',
-  '更新内容',
 ];
 
 /** Error states that need recovery action */

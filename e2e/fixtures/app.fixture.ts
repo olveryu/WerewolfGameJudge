@@ -1,7 +1,7 @@
 import { Browser, BrowserContext, Page, test as base } from '@playwright/test';
 
 import { DiagnosticData, setupDiagnostics } from '../helpers/diagnostics';
-import { ensureAnonLogin, waitForAppReady } from '../helpers/home';
+import { ensureAnonLogin, registerAutoDismissers, waitForAppReady } from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';
 
 /**
@@ -33,6 +33,7 @@ export const test = base.extend<{
   app: AppFixture;
 }>({
   app: async ({ page }, use) => {
+    await registerAutoDismissers(page);
     await gotoWithRetry(page, '/');
     await waitForAppReady(page);
     await ensureAnonLogin(page);
@@ -61,6 +62,7 @@ export async function createPlayerContexts(
     const page = await ctx.newPage();
     const label = i === 0 ? 'HOST' : `JOINER-${i + 1}`;
 
+    await registerAutoDismissers(page);
     await gotoWithRetry(page, '/');
     await waitForAppReady(page);
     await ensureAnonLogin(page);

@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test';
 
 import { closeAll, createPlayerContexts, MultiPlayerFixture } from '../fixtures/app.fixture';
-import { ensureAnonLogin, enterRoomCodeViaNumPad, waitForAppReady } from '../helpers/home';
+import {
+  ensureAnonLogin,
+  enterRoomCodeViaNumPad,
+  registerAutoDismissers,
+  waitForAppReady,
+} from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
@@ -29,6 +34,7 @@ test.describe('First-time open (no session)', () => {
   test('shows login button, no user name', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
+    await registerAutoDismissers(page);
 
     try {
       await gotoWithRetry(page, '/');
@@ -51,6 +57,7 @@ test.describe('First-time open (no session)', () => {
   test('can complete anonymous login', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
+    await registerAutoDismissers(page);
 
     try {
       await gotoWithRetry(page, '/');
@@ -76,6 +83,7 @@ test.describe('Return with existing session', () => {
   test('reload preserves session, home ready without re-login', async ({ browser }) => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
+    await registerAutoDismissers(page);
 
     try {
       // First visit: login
@@ -183,6 +191,7 @@ test.describe('Direct room URL', () => {
     // Step 2: New context with session — login first, then go to direct URL
     const directCtx = await browser.newContext();
     const directPage = await directCtx.newPage();
+    await registerAutoDismissers(directPage);
     fixture.contexts.push(directCtx);
     fixture.pages.push(directPage);
 
@@ -222,6 +231,7 @@ test.describe('Direct room URL', () => {
     // Step 2: Fresh context with NO session — direct URL to room
     const freshCtx = await browser.newContext();
     const freshPage = await freshCtx.newPage();
+    await registerAutoDismissers(freshPage);
     fixture.contexts.push(freshCtx);
     fixture.pages.push(freshPage);
 
