@@ -61,14 +61,20 @@ export const HomeScreen: React.FC = () => {
   const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
 
   // Announcement modal state (auto-show once per version + manual open from card)
-  const [showAnnouncement, setShowAnnouncement] = useState(() => {
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
+
+  // Show announcement after auth loading settles (avoid flashing modal over loading state)
+  useEffect(() => {
+    if (authLoading) return;
     const lastSeen = storage.getString(LAST_SEEN_VERSION_KEY);
-    if (lastSeen === APP_VERSION) return false;
-    if (ANNOUNCEMENTS[APP_VERSION]) return true;
+    if (lastSeen === APP_VERSION) return;
+    if (ANNOUNCEMENTS[APP_VERSION]) {
+      setShowAnnouncement(true);
+      return;
+    }
     // No announcement for this version — silently mark as seen
     storage.set(LAST_SEEN_VERSION_KEY, APP_VERSION);
-    return false;
-  });
+  }, [authLoading]);
 
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
