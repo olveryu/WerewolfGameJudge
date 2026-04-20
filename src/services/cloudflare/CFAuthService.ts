@@ -13,7 +13,7 @@ import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
-import { clearWxCode, isMiniProgram, readWxCode } from '@/utils/miniProgram';
+import { clearWxCode, isMiniProgram, readWxCode, wxReLaunch } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
 import { cfGet, cfPost, cfPut, setTokenProvider } from './cfFetch';
@@ -55,26 +55,18 @@ export class CFAuthService implements IAuthService {
             }
           }
         } else {
-          // 没有 session 或匿名 → 走微信登录（最多重试 2 次）
-          let succeeded = false;
-          const MAX_RETRIES = 2;
-          for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            try {
-              await this.signInWithWechat(wxCode);
-              succeeded = true;
-              clearWxCode();
-              authLog.info('WeChat sign-in succeeded:', this.#currentUserId);
-              break;
-            } catch (e) {
-              authLog.warn(`WeChat sign-in attempt ${attempt}/${MAX_RETRIES} failed`, e);
-            }
-          }
-
-          if (!succeeded) {
+          // 没有 session 或匿名 → 走微信登录（单次尝试，code 一次性不可重试）
+          try {
+            await this.signInWithWechat(wxCode);
             clearWxCode();
+            authLog.info('WeChat sign-in succeeded:', this.#currentUserId);
+          } catch (e) {
+            clearWxCode();
+            authLog.warn('WeChat sign-in failed', e);
             if (isMiniProgram()) {
-              // 小程序环境 + auth 失败 → 不降级匿名，等待用户重新进入小程序
-              authLog.error('WeChat sign-in exhausted in miniprogram, not falling back');
+              // code 已失效，reLaunch 让小程序 onLoad 重新 wx.login 获取新 code
+              authLog.info('Triggering miniprogram reLaunch for fresh wx.login code');
+              wxReLaunch();
             } else {
               // 非小程序（残留 wxcode 链接等）→ fallback 匿名
               authLog.warn('WeChat sign-in failed outside miniprogram, falling back to anonymous');
@@ -190,10 +182,12 @@ export class CFAuthService implements IAuthService {
   }
 
   async signInWithWechat(code: string): Promise<string> {
+    // 微信登录涉及跨境调 api.weixin.qq.com，给 Worker 更多时间
+    const WECHAT_AUTH_TIMEOUT_MS = 15000;
     const data = await cfPost<{
       access_token: string;
       user: { id: string };
-    }>('/auth/wechat', { code });
+    }>('/auth/wechat', { code }, WECHAT_AUTH_TIMEOUT_MS);
 
     await this.#saveToken(data.access_token);
     this.#currentUserId = data.user.id;

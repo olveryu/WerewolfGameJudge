@@ -32,6 +32,7 @@ export function getCurrentToken(): string | null {
 export async function cfPost<T = Record<string, unknown>>(
   path: string,
   body?: Record<string, unknown>,
+  timeoutMs?: number,
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   cfFetchLog.debug('POST', { path });
@@ -50,7 +51,11 @@ export async function cfPost<T = Record<string, unknown>>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const res = await withTimeout(fetchPromise, API_TIMEOUT_MS, () => new Error('请求超时'));
+  const res = await withTimeout(
+    fetchPromise,
+    timeoutMs ?? API_TIMEOUT_MS,
+    () => new Error('请求超时'),
+  );
 
   return parseJsonResponse<T>(res, path);
 }

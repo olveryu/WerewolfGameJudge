@@ -78,6 +78,19 @@ export function clearWxCode(): void {
 }
 
 /**
+ * 调用 wx.miniProgram.reLaunch 让小程序重新加载首页。
+ * 用于 wx.login code 失效后获取新 code（onLoad 重新走 wx.login）。
+ */
+export function wxReLaunch(): void {
+  if (Platform.OS !== 'web') return;
+  try {
+    window.wx?.miniProgram?.reLaunch({ url: '/pages/index/index' });
+  } catch {
+    log.warn('Failed to call wx.miniProgram.reLaunch');
+  }
+}
+
+/**
  * 调用微信 JSSDK wx.previewImage 展示原生图片预览器。
  * web-view 中可用；用户可长按保存/转发。需要 HTTP(S) URL（不支持 base64）。
  */
