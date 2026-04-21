@@ -120,7 +120,10 @@ export default tseslint.config(
         { selector: "Identifier[name='seatNumber']", message: "Renamed → 'seat'" },
         { selector: "Identifier[name='hostId']", message: "Renamed → 'hostUserId'" },
         { selector: "Identifier[name='pityTriggered']", message: "Renamed → 'isPityTriggered'" },
-        { selector: "Identifier[name='uid']", message: "Renamed → 'userId' (or 'id' for User entity)" },
+        {
+          selector: "Identifier[name='uid']",
+          message: "Renamed → 'userId' (or 'id' for User entity)",
+        },
       ],
 
       // Import sorting

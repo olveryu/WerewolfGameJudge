@@ -8,10 +8,13 @@
  *
  * This module registers capture-phase listeners on the first user interaction
  * (touch / click / keydown). On trigger it:
- *   1. Creates an AudioContext, plays a 1-sample silent buffer, calls resume().
- *   2. Creates an HTMLAudioElement and plays a silent WAV data URI.
- * Both objects are then "gesture-authorized" — subsequent `src` swaps + `play()`
- * calls no longer require a user gesture.
+ *   1. Creates an HTMLAudioElement pool (gesture-authorized by creation context).
+ *   2. Creates an AudioContext, plays a 1-sample silent buffer, calls resume().
+ *
+ * HTMLAudioElement is created **before** AudioContext because Safari/WKWebView's
+ * user-activation token is consumed by `AudioContext.resume()` / `source.start()`,
+ * causing a subsequent `audio.play()` to be rejected. By creating the Audio
+ * element first (matching howler.js `_unlockAudio()` order), both paths succeed.
  *
  * Consumers (`WebAudioStrategy`, `BgmPlayer`) call `getUnlockedAudioElement()`
  * / `getUnlockedAudioContext()` to reuse these pre-authorized instances instead
@@ -54,7 +57,23 @@ function unlock(): void {
 
   audioLog.debug('webAudioUnlock: user gesture detected, unlocking audio');
 
-  // ── 1. Unlock AudioContext (Web Audio API) ──
+  // ── 1. Create HTMLAudioElement (HTML5 Audio) ──
+  // MUST come before AudioContext: Safari/WKWebView's user-activation token
+  // is consumed by AudioContext operations, so a later audio.play() would
+  // be rejected.  Following howler.js, we only need to new Audio() inside
+  // the gesture handler — the element is then "gesture-authorized" for
+  // subsequent src swaps + play() calls.
+  try {
+    const audio = new Audio();
+    audio.src = SILENT_WAV;
+    audio.load();
+    unlockedAudioElement = audio;
+    audioLog.debug('webAudioUnlock: HTMLAudioElement created');
+  } catch (e) {
+    audioLog.warn('webAudioUnlock: HTMLAudioElement creation failed', e);
+  }
+
+  // ── 2. Unlock AudioContext (Web Audio API) ──
   try {
     const ctx = new AudioContext();
     // Play a 1-sample silent buffer to transition state to "running"
@@ -77,24 +96,6 @@ function unlock(): void {
     unlockedAudioCtx = ctx;
   } catch (e) {
     audioLog.warn('webAudioUnlock: AudioContext unlock failed', e);
-  }
-
-  // ── 2. Unlock HTMLAudioElement (HTML5 Audio) ──
-  try {
-    const audio = new Audio();
-    audio.src = SILENT_WAV;
-    // play() must be called synchronously within the gesture handler
-    audio.play().then(
-      () => {
-        audioLog.debug('webAudioUnlock: HTMLAudioElement unlocked');
-      },
-      () => {
-        audioLog.warn('webAudioUnlock: HTMLAudioElement unlock play() rejected');
-      },
-    );
-    unlockedAudioElement = audio;
-  } catch (e) {
-    audioLog.warn('webAudioUnlock: HTMLAudioElement unlock failed', e);
   }
 
   unlocked = true;

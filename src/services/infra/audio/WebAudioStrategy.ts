@@ -68,7 +68,7 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
         audioLog.debug('WEB audioUrl resolved', { label, audioUrl });
 
         // Reuse gesture-authorized Audio element from webAudioUnlock, or create new.
-        // The unlocked element has already called play() inside a user gesture,
+        // The unlocked element was created inside a user gesture handler,
         // so subsequent src swaps + play() don't require a fresh gesture.
         if (!this.#audioElement) {
           this.#audioElement = getUnlockedAudioElement() ?? new Audio();
