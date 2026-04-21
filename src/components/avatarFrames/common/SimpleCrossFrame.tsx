@@ -4,7 +4,7 @@
  * 十字形裁切边框（4 个凹角）。Common 级头像框模板。
  */
 import { memo, useId } from 'react';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from '../FrameProps';
 import type { FrameColorSet } from './palette';
@@ -49,6 +49,19 @@ export const SimpleCrossFrame = memo<ColoredFrameProps>(({ size, rx, colors }) =
           <Stop offset="1" stopColor={colors.dark} stopOpacity={0.65} />
         </LinearGradient>
       </Defs>
+      {/* Base border aligned with avatar edge — covers rounded corners */}
+      <Rect
+        x={0}
+        y={0}
+        width={100}
+        height={100}
+        rx={rx}
+        fill="none"
+        stroke={colors.primary}
+        strokeWidth={2}
+        opacity={0.35}
+      />
+      {/* Decorative cross-cut overlay */}
       <Path
         d={crossPath(inset)}
         fill="none"

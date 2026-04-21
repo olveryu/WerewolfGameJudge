@@ -5,7 +5,7 @@
  * Common 级头像框模板。
  */
 import { memo, useId } from 'react';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from '../FrameProps';
 import type { FrameColorSet } from './palette';
@@ -65,7 +65,7 @@ function scallopPath(): string {
   return parts.join(' ');
 }
 
-export const SimpleScallopFrame = memo<ColoredFrameProps>(({ size, colors }) => {
+export const SimpleScallopFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
   const userId = useId();
   const gradId = `scallGrad${userId}`;
   return (
@@ -76,6 +76,19 @@ export const SimpleScallopFrame = memo<ColoredFrameProps>(({ size, colors }) => 
           <Stop offset="1" stopColor={colors.dark} stopOpacity={0.7} />
         </LinearGradient>
       </Defs>
+      {/* Base border aligned with avatar edge — covers wave troughs */}
+      <Rect
+        x={0}
+        y={0}
+        width={100}
+        height={100}
+        rx={rx}
+        fill="none"
+        stroke={colors.primary}
+        strokeWidth={1.5}
+        opacity={0.35}
+      />
+      {/* Decorative wave overlay */}
       <Path d={scallopPath()} fill="none" stroke={`url(#${gradId})`} strokeWidth={1.5} />
     </Svg>
   );
