@@ -79,7 +79,7 @@ export function useAuthForm({
         const wasAnonymous = user?.isAnonymous;
         await signUpWithEmail(email, password, displayName || undefined);
         if (wasAnonymous) {
-          // Anonymous → email upgrade: uid preserved, already in Settings
+          // Anonymous → email upgrade: userId preserved, already in Settings
           toast.success('绑定成功');
         } else {
           toast.success('注册成功');

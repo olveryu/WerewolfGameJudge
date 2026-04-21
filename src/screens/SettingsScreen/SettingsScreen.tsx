@@ -283,7 +283,7 @@ export const SettingsScreen: React.FC = () => {
           <>
             <AvatarSection
               isAnonymous
-              uid={user?.uid ?? 'anonymous'}
+              userId={user?.id ?? 'anonymous'}
               avatarSource={avatarSource}
               avatarUrl={user?.avatarUrl}
               avatarFrame={user?.avatarFrame}
@@ -351,7 +351,7 @@ export const SettingsScreen: React.FC = () => {
           <View style={styles.profileRow}>
             <AvatarSection
               isAnonymous={false}
-              uid={user?.uid ?? 'anonymous'}
+              userId={user?.id ?? 'anonymous'}
               avatarSource={avatarSource}
               avatarUrl={user?.avatarUrl}
               avatarFrame={user?.avatarFrame}

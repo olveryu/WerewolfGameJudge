@@ -30,7 +30,7 @@ function createMockFacade(): IGameFacade & {
     subscribe: jest.fn().mockReturnValue(() => {}),
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(false),
-    getMyUid: jest.fn().mockReturnValue('uid'),
+    getMyUserId: jest.fn().mockReturnValue('userId'),
     getMySeatNumber: jest.fn().mockReturnValue(null),
     getStateRevision: jest.fn().mockReturnValue(0),
     createRoom: jest.fn(),
@@ -61,7 +61,7 @@ function createMockFacade(): IGameFacade & {
     resumeAfterRejoin: jest.fn(),
     shareNightReview: jest.fn(),
     manualReconnect: jest.fn(),
-    updateMyUid: jest.fn(),
+    updateMyUserId: jest.fn(),
     updatePlayerProfile: jest.fn(),
   } as unknown as IGameFacade & {
     listeners: Set<StatusListener>;

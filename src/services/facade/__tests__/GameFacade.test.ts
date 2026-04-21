@@ -117,9 +117,9 @@ describe('GameFacade', () => {
     let state = testStore.getState()!;
 
     for (let i = 0; i < template.numberOfPlayers; i++) {
-      const uid = i === 0 ? 'host-uid' : `player-${i}`;
+      const userId = i === 0 ? 'host-uid' : `player-${i}`;
       const player: Player = {
-        uid,
+        userId,
         seatNumber: i,
         role: null, // 必须包含 role: null
         hasViewedRole: false,
@@ -148,7 +148,7 @@ describe('GameFacade', () => {
       await facade.createRoom('ABCD', 'host-uid', mockTemplate);
 
       expect(facade.isHostPlayer()).toBe(true);
-      expect(facade.getMyUid()).toBe('host-uid');
+      expect(facade.getMyUserId()).toBe('host-uid');
       expect(facade.getStateRevision()).toBe(1);
     });
 
@@ -243,7 +243,7 @@ describe('GameFacade', () => {
       await facade.joinRoom('ABCD', 'player-uid', false);
 
       expect(facade.isHostPlayer()).toBe(false);
-      expect(facade.getMyUid()).toBe('player-uid');
+      expect(facade.getMyUserId()).toBe('player-uid');
 
       expect(mockConnectionManager.connectAndWait).toHaveBeenCalledWith('ABCD', 'player-uid');
     });
@@ -259,7 +259,7 @@ describe('GameFacade', () => {
       testStore.applySnapshot(
         {
           roomCode: 'ABCD',
-          hostUid: 'host-uid',
+          hostUserId: 'host-uid',
           status: GameStatus.Unseated,
           templateRoles: ['wolf', 'seer'] as any[],
           players: { 0: null, 1: null },
@@ -314,13 +314,13 @@ describe('GameFacade', () => {
             success: true,
             state: {
               roomCode: 'ABCD',
-              hostUid: 'host-uid',
+              hostUserId: 'host-uid',
               status: GameStatus.Unseated,
               templateRoles: [],
               players: {
                 0: null,
                 1: {
-                  uid: 'player-uid',
+                  userId: 'player-uid',
                   seatNumber: 1,
                   displayName: 'Player One',
                   hasViewedRole: false,
@@ -352,13 +352,13 @@ describe('GameFacade', () => {
     it('should apply snapshot when receiving state via postgres_changes', () => {
       const state = {
         roomCode: 'ABCD',
-        hostUid: 'host-uid',
+        hostUserId: 'host-uid',
         status: GameStatus.Unseated,
         templateRoles: ['wolf', 'seer'] as any[],
         players: {
           0: null,
           1: {
-            uid: 'player-uid',
+            userId: 'player-uid',
             seatNumber: 1,
             displayName: 'Player One',
             hasViewedRole: false,
@@ -388,7 +388,7 @@ describe('GameFacade', () => {
       testStore.applySnapshot(
         {
           roomCode: 'ABCD',
-          hostUid: 'host-uid',
+          hostUserId: 'host-uid',
           status: GameStatus.Unseated,
           templateRoles: ['wolf', 'seer'] as any[],
           players: { 0: null, 1: null },
@@ -458,7 +458,7 @@ describe('GameFacade', () => {
       testStore.applySnapshot(
         {
           roomCode: 'ABCD',
-          hostUid: 'host-uid',
+          hostUserId: 'host-uid',
           status: GameStatus.Unseated,
           templateRoles: ['wolf', 'seer'] as any[],
           players: { 0: null, 1: null },
@@ -504,7 +504,7 @@ describe('GameFacade', () => {
       await facade.leaveRoom();
 
       expect(mockConnectionManager.disconnect).toHaveBeenCalled();
-      expect(facade.getMyUid()).toBeNull();
+      expect(facade.getMyUserId()).toBeNull();
       expect(facade.isHostPlayer()).toBe(false);
     });
   });
@@ -677,7 +677,7 @@ describe('GameFacade', () => {
       global.fetch = originalFetch;
     });
 
-    it('should call view-role API with uid and seat', async () => {
+    it('should call view-role API with userId and seat', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
@@ -696,7 +696,7 @@ describe('GameFacade', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: expect.stringContaining('"uid":"host-uid"'),
+          body: expect.stringContaining('"userId":"host-uid"'),
         }),
       );
     });
@@ -709,7 +709,7 @@ describe('GameFacade', () => {
         getGameState: jest.fn().mockResolvedValue({
           state: {
             roomCode: 'ABCD',
-            hostUid: 'host-uid',
+            hostUserId: 'host-uid',
             status: GameStatus.Assigned,
             templateRoles: [],
             numberOfPlayers: 6,
@@ -1008,12 +1008,12 @@ describe('GameFacade', () => {
     const buildOngoingDbState = (overrides: Record<string, unknown> = {}) => ({
       state: {
         roomCode: 'REJN',
-        hostUid: 'host-uid',
+        hostUserId: 'host-uid',
         status: GameStatus.Ongoing as const,
         templateRoles: ['wolf', 'villager'],
         players: {
           0: {
-            uid: 'host-uid',
+            userId: 'host-uid',
             seatNumber: 0,
             displayName: 'Host',
             avatarUrl: undefined,
@@ -1021,7 +1021,7 @@ describe('GameFacade', () => {
             hasViewedRole: true,
           },
           1: {
-            uid: 'player-2',
+            userId: 'player-2',
             seatNumber: 1,
             displayName: 'P2',
             avatarUrl: undefined,
@@ -1098,12 +1098,12 @@ describe('GameFacade', () => {
       const dbState = {
         state: {
           roomCode: 'REJN',
-          hostUid: 'host-uid',
+          hostUserId: 'host-uid',
           status: GameStatus.Ongoing as const,
           templateRoles: ['wolf', 'villager'],
           players: {
             0: {
-              uid: 'host-uid',
+              userId: 'host-uid',
               seatNumber: 0,
               displayName: 'Host',
               avatarUrl: undefined,
@@ -1111,7 +1111,7 @@ describe('GameFacade', () => {
               hasViewedRole: true,
             },
             1: {
-              uid: 'player-2',
+              userId: 'player-2',
               seatNumber: 1,
               displayName: 'P2',
               avatarUrl: undefined,
@@ -1276,7 +1276,7 @@ describe('GameFacade', () => {
           getGameState: jest.fn().mockResolvedValue({
             state: {
               roomCode: 'RTRY',
-              hostUid: 'host-uid',
+              hostUserId: 'host-uid',
               status: GameStatus.Ongoing,
               templateRoles: [],
               numberOfPlayers: 6,
@@ -1307,7 +1307,7 @@ describe('GameFacade', () => {
       store.applySnapshot(
         {
           roomCode: 'RTRY',
-          hostUid: 'host-uid',
+          hostUserId: 'host-uid',
           status: GameStatus.Ongoing,
           templateRoles: [],
           numberOfPlayers: 6,
@@ -1361,7 +1361,7 @@ describe('GameFacade', () => {
       store.applySnapshot(
         {
           roomCode: 'RTRY',
-          hostUid: 'host-uid',
+          hostUserId: 'host-uid',
           status: GameStatus.Ongoing,
           templateRoles: [],
           numberOfPlayers: 6,
@@ -1395,7 +1395,7 @@ describe('GameFacade', () => {
       store.applySnapshot(
         {
           roomCode: 'RTRY',
-          hostUid: 'host-uid',
+          hostUserId: 'host-uid',
           status: GameStatus.Ongoing,
           templateRoles: [],
           numberOfPlayers: 6,
@@ -1492,7 +1492,7 @@ describe('GameFacade', () => {
         retryStore.applySnapshot(
           {
             roomCode: 'RTRY',
-            hostUid: 'host-uid',
+            hostUserId: 'host-uid',
             status: GameStatus.Ongoing,
             templateRoles: [],
             numberOfPlayers: 6,
@@ -1655,7 +1655,7 @@ describe('GameFacade', () => {
         retryStore.applySnapshot(
           {
             roomCode: 'RTRY',
-            hostUid: 'host-uid',
+            hostUserId: 'host-uid',
             status: GameStatus.Ongoing,
             templateRoles: [],
             numberOfPlayers: 6,
@@ -1709,7 +1709,7 @@ describe('GameFacade', () => {
         retryStore.applySnapshot(
           {
             roomCode: 'RTRY',
-            hostUid: 'host-uid',
+            hostUserId: 'host-uid',
             status: GameStatus.Ongoing,
             templateRoles: [],
             numberOfPlayers: 6,

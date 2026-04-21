@@ -6,13 +6,13 @@ import { toLocalState } from '@/hooks/adapters/toLocalState';
 function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
   return {
     roomCode: 'ROOM',
-    hostUid: 'HOST',
+    hostUserId: 'HOST',
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'witch', 'seer'] as any,
     players: {
-      0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' as any },
-      1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'witch' as any },
-      2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' as any },
+      0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' as any },
+      1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'witch' as any },
+      2: { userId: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' as any },
     },
     currentStepIndex: 0,
     isAudioPlaying: false,
@@ -37,7 +37,7 @@ describe('toLocalState', () => {
       actionRejected: {
         action: 'seerCheck',
         reason: 'invalid_step',
-        targetUid: 'p2',
+        targetUserId: 'p2',
         rejectionId: 'test-1',
       },
     });
@@ -45,12 +45,12 @@ describe('toLocalState', () => {
     const local = toLocalState(state);
 
     expect(local.roomCode).toBe('ROOM');
-    expect(local.hostUid).toBe('HOST');
+    expect(local.hostUserId).toBe('HOST');
     expect(local.status).toBe(GameStatus.Ongoing);
     expect(local.currentStepId).toBe('seerCheck');
 
-    expect(local.players.get(0)?.uid).toBe('p0');
-    expect(local.players.get(1)?.uid).toBe('p1');
+    expect(local.players.get(0)?.userId).toBe('p0');
+    expect(local.players.get(1)?.userId).toBe('p1');
 
     expect(local.wolfVotes.get(0)).toBe(2);
 
@@ -59,7 +59,7 @@ describe('toLocalState', () => {
     expect(local.actionRejected).toEqual({
       action: 'seerCheck',
       reason: 'invalid_step',
-      targetUid: 'p2',
+      targetUserId: 'p2',
       rejectionId: 'test-1',
     });
   });

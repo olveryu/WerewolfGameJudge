@@ -29,8 +29,8 @@ function notchPath(n: number): string {
 }
 
 export const SimpleNotchFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gradId = `notchGrad${uid}`;
+  const userId = useId();
+  const gradId = `notchGrad${userId}`;
   const notch = Math.min(rx * 0.6, 15);
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">

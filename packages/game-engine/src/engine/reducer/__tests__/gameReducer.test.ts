@@ -24,7 +24,7 @@ import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealA
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
@@ -46,7 +46,7 @@ describe('gameReducer', () => {
         payload: {
           seat: 0,
           player: {
-            uid: 'player-1',
+            userId: 'player-1',
             seatNumber: 0,
             role: null,
             hasViewedRole: false,
@@ -63,8 +63,8 @@ describe('gameReducer', () => {
     it('should update status to seated when all seats filled', () => {
       const state = createMinimalState({
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-          1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
           2: null,
         },
       });
@@ -72,7 +72,7 @@ describe('gameReducer', () => {
         type: 'PLAYER_JOIN',
         payload: {
           seat: 2,
-          player: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+          player: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
           rosterEntry: { displayName: 'P3' },
         },
       };
@@ -87,7 +87,7 @@ describe('gameReducer', () => {
     it('should set seat to null', () => {
       const state = createMinimalState({
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
           1: null,
           2: null,
         },
@@ -106,9 +106,9 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Seated,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-          1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-          2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+          2: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
         },
       });
       const action: PlayerLeaveAction = {
@@ -127,9 +127,9 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Seated,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-          1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-          2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+          2: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
         },
       });
       const action: AssignRolesAction = {
@@ -151,7 +151,7 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Seated,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: true },
+          0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: true },
           1: null,
           2: null,
         },
@@ -170,9 +170,9 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Seated,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: true },
-          1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: true },
-          2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: true },
+          0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: true },
+          1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: true },
+          2: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: true },
         },
       });
       const action: AssignRolesAction = {
@@ -192,9 +192,9 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Seated,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-          1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-          2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+          2: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
         },
         // These should remain unchanged
         currentStepIndex: -1,
@@ -468,9 +468,9 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Assigned,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
-          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
-          2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
+          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
         },
       });
       const action: PlayerViewedRoleAction = {
@@ -489,9 +489,9 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Assigned,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false }, // 最后一个
+          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false }, // 最后一个
         },
       });
       const action: PlayerViewedRoleAction = {
@@ -511,8 +511,8 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Assigned,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
           2: null, // 空座位应被忽略
         },
       });
@@ -545,8 +545,8 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing, // 不是 assigned
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
           2: null,
         },
       });
@@ -566,8 +566,8 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Assigned,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
           2: null,
         },
         // 确保这些字段在 assigned 状态下是初始值
@@ -600,9 +600,9 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Ended,
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
         },
         actions: [{ schemaId: 'seerCheck', actorSeat: 2, targetSeat: 1, timestamp: 1000 }],
         lastNightDeaths: [0],
@@ -613,11 +613,11 @@ describe('gameReducer', () => {
       // v1 对齐：状态重置到 GameStatus.Seated
       expect(newState.status).toBe(GameStatus.Seated);
       expect(newState.roomCode).toBe('TEST');
-      expect(newState.hostUid).toBe('host-1');
+      expect(newState.hostUserId).toBe('host-1');
 
       // v1 对齐：保留玩家但清除角色
       expect(newState.players[0]).not.toBeNull();
-      expect(newState.players[0]?.uid).toBe('p1');
+      expect(newState.players[0]?.userId).toBe('p1');
       expect(newState.players[0]?.role).toBeNull();
       expect(newState.players[0]?.hasViewedRole).toBe(false);
 
@@ -660,7 +660,7 @@ describe('gameReducer', () => {
         payload: {
           action: 'seerCheck',
           reason: '不能选择自己',
-          targetUid: 'p1',
+          targetUserId: 'p1',
           rejectionId: 'r1',
         },
       };
@@ -670,7 +670,7 @@ describe('gameReducer', () => {
       expect(newState.actionRejected).toEqual({
         action: 'seerCheck',
         reason: '不能选择自己',
-        targetUid: 'p1',
+        targetUserId: 'p1',
         rejectionId: 'r1',
       });
     });
@@ -682,7 +682,7 @@ describe('gameReducer', () => {
         payload: {
           action: 'seerCheck',
           reason: 'test_reason',
-          targetUid: 'p1',
+          targetUserId: 'p1',
           rejectionId: 'r2',
         },
       };
@@ -701,7 +701,7 @@ describe('gameReducer', () => {
         actionRejected: {
           action: 'oldAction',
           reason: 'old_reason',
-          targetUid: 'old-uid',
+          targetUserId: 'old-uid',
           rejectionId: 'old',
         },
       });
@@ -710,7 +710,7 @@ describe('gameReducer', () => {
         payload: {
           action: 'newAction',
           reason: 'new_reason',
-          targetUid: 'new-uid',
+          targetUserId: 'new-uid',
           rejectionId: 'r3',
         },
       };
@@ -720,7 +720,7 @@ describe('gameReducer', () => {
       expect(newState.actionRejected).toEqual({
         action: 'newAction',
         reason: 'new_reason',
-        targetUid: 'new-uid',
+        targetUserId: 'new-uid',
         rejectionId: 'r3',
       });
     });
@@ -733,7 +733,7 @@ describe('gameReducer', () => {
         actionRejected: {
           action: 'seerCheck',
           reason: 'test',
-          targetUid: 'p1',
+          targetUserId: 'p1',
           rejectionId: 'r4',
         },
       });
@@ -809,9 +809,9 @@ describe('gameReducer', () => {
         currentStepIndex: 0,
         currentStepId: 'wolfKill',
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
-          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
-          2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
+          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+          2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
         },
         actions: [],
         currentNightResults: {},
@@ -1325,8 +1325,8 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         templateRoles: ['wolf', 'seer', 'villager'],
         players: {
-          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
-          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'seer' },
+          0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+          1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'seer' },
           2: null,
         },
       });
@@ -1339,8 +1339,8 @@ describe('gameReducer', () => {
 
       expect(newState.templateRoles).toEqual(['wolf', 'wolf', 'seer', 'villager']);
       // Existing players preserved but role reset
-      expect(newState.players[0]).toMatchObject({ uid: 'p0', role: null, hasViewedRole: false });
-      expect(newState.players[1]).toMatchObject({ uid: 'p1', role: null, hasViewedRole: false });
+      expect(newState.players[0]).toMatchObject({ userId: 'p0', role: null, hasViewedRole: false });
+      expect(newState.players[1]).toMatchObject({ userId: 'p1', role: null, hasViewedRole: false });
       // New seat = null
       expect(newState.players[3]).toBeNull();
       // Status → unseated (seat 2 and 3 are null)
@@ -1351,8 +1351,8 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         templateRoles: ['wolf', 'seer'],
         players: {
-          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
-          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'seer' },
+          0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+          1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'seer' },
         },
       });
       const action = {
@@ -1370,21 +1370,21 @@ describe('gameReducer', () => {
     it('should merge bots into players and set debugMode', () => {
       const state = createMinimalState({
         players: {
-          0: { uid: 'p0', seatNumber: 0, hasViewedRole: false, role: null },
+          0: { userId: 'p0', seatNumber: 0, hasViewedRole: false, role: null },
           1: null,
           2: null,
         },
       });
       const bots = {
         1: {
-          uid: 'bot-1',
+          userId: 'bot-1',
           seatNumber: 1,
           hasViewedRole: false,
           role: null,
           isBot: true,
         } as any,
         2: {
-          uid: 'bot-2',
+          userId: 'bot-2',
           seatNumber: 2,
           hasViewedRole: false,
           role: null,
@@ -1404,10 +1404,10 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      expect(newState.players[1]).toMatchObject({ uid: 'bot-1', isBot: true });
-      expect(newState.players[2]).toMatchObject({ uid: 'bot-2', isBot: true });
+      expect(newState.players[1]).toMatchObject({ userId: 'bot-1', isBot: true });
+      expect(newState.players[2]).toMatchObject({ userId: 'bot-2', isBot: true });
       // Original player untouched
-      expect(newState.players[0]).toMatchObject({ uid: 'p0' });
+      expect(newState.players[0]).toMatchObject({ userId: 'p0' });
       expect(newState.status).toBe(GameStatus.Seated);
       expect(newState.debugMode).toEqual({ botsEnabled: true });
     });
@@ -1418,16 +1418,16 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Assigned,
         players: {
-          0: { uid: 'p0', seatNumber: 0, hasViewedRole: false, role: 'wolf' } as any,
+          0: { userId: 'p0', seatNumber: 0, hasViewedRole: false, role: 'wolf' } as any,
           1: {
-            uid: 'bot-1',
+            userId: 'bot-1',
             seatNumber: 1,
             hasViewedRole: false,
             role: 'seer',
             isBot: true,
           } as any,
           2: {
-            uid: 'bot-2',
+            userId: 'bot-2',
             seatNumber: 2,
             hasViewedRole: false,
             role: 'villager',
@@ -1452,9 +1452,9 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Assigned,
         players: {
-          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' } as any,
+          0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' } as any,
           1: {
-            uid: 'bot-1',
+            userId: 'bot-1',
             seatNumber: 1,
             hasViewedRole: false,
             role: 'seer',
@@ -1521,9 +1521,9 @@ describe('gameReducer', () => {
         status: GameStatus.Ended,
         nightReviewAllowedSeats: [0, 2],
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
         },
       });
       const action = {
@@ -1542,7 +1542,7 @@ describe('gameReducer', () => {
     it('should update displayName in roster', () => {
       const state = createMinimalState({
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
           1: null,
           2: null,
         },
@@ -1550,7 +1550,7 @@ describe('gameReducer', () => {
       });
       const action: UpdatePlayerProfileAction = {
         type: 'UPDATE_PLAYER_PROFILE',
-        payload: { uid: 'p1', displayName: 'NewName' },
+        payload: { userId: 'p1', displayName: 'NewName' },
       };
 
       const newState = gameReducer(state, action);
@@ -1561,7 +1561,7 @@ describe('gameReducer', () => {
     it('should update avatarUrl in roster', () => {
       const state = createMinimalState({
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+          0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
           1: null,
           2: null,
         },
@@ -1569,7 +1569,7 @@ describe('gameReducer', () => {
       });
       const action: UpdatePlayerProfileAction = {
         type: 'UPDATE_PLAYER_PROFILE',
-        payload: { uid: 'p1', avatarUrl: 'https://img/new.png' },
+        payload: { userId: 'p1', avatarUrl: 'https://img/new.png' },
       };
 
       const newState = gameReducer(state, action);
@@ -1580,7 +1580,7 @@ describe('gameReducer', () => {
     it('should not modify other roster fields', () => {
       const state = createMinimalState({
         players: {
-          0: { uid: 'p1', seatNumber: 0, role: 'villager' as const, hasViewedRole: true },
+          0: { userId: 'p1', seatNumber: 0, role: 'villager' as const, hasViewedRole: true },
           1: null,
           2: null,
         },
@@ -1588,7 +1588,7 @@ describe('gameReducer', () => {
       });
       const action: UpdatePlayerProfileAction = {
         type: 'UPDATE_PLAYER_PROFILE',
-        payload: { uid: 'p1', displayName: 'Bob' },
+        payload: { userId: 'p1', displayName: 'Bob' },
       };
 
       const newState = gameReducer(state, action);
@@ -1599,11 +1599,11 @@ describe('gameReducer', () => {
       });
     });
 
-    it('should no-op when uid not in roster', () => {
+    it('should no-op when userId not in roster', () => {
       const state = createMinimalState();
       const action: UpdatePlayerProfileAction = {
         type: 'UPDATE_PLAYER_PROFILE',
-        payload: { uid: 'ghost', displayName: 'Ghost' },
+        payload: { userId: 'ghost', displayName: 'Ghost' },
       };
 
       const newState = gameReducer(state, action);

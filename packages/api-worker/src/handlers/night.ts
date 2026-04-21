@@ -63,8 +63,8 @@ nightRoutes.post('/wolf-robot-viewed', jsonBody(wolfRobotViewedSchema), async (c
 });
 
 nightRoutes.post('/group-confirm-ack', jsonBody(groupConfirmAckSchema), async (c) => {
-  const { roomCode, seat, uid } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).groupConfirmAck(seat, uid));
+  const { roomCode, seat, userId } = c.req.valid('json');
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode).groupConfirmAck(seat, userId));
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 

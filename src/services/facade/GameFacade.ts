@@ -90,7 +90,7 @@ export class GameFacade implements IGameFacade {
   readonly #roomService: IRoomService;
   readonly #audioOrchestrator: AudioOrchestrator;
   #isHost = false;
-  #myUid: string | null = null;
+  #myUserId: string | null = null;
   /** Cached roomCode: survives store.reset(), used by fetchStateFromDB fallback */
   #roomCode: string | null = null;
   /** Settle result listeners (push-based, no buffer needed) */
@@ -150,32 +150,32 @@ export class GameFacade implements IGameFacade {
     return this.#isHost;
   }
 
-  getMyUid(): string | null {
-    return this.#myUid;
+  getMyUserId(): string | null {
+    return this.#myUserId;
   }
 
   /**
-   * Safety net: update cached uid when auth identity changes.
+   * Safety net: update cached userId when auth identity changes.
    *
-   * Phase A prevents uid changes during anonymous→register (identity linking).
+   * Phase A prevents userId changes during anonymous→register (identity linking).
    * This covers edge cases like signOut → signIn with a different account
    * while the room screen remains mounted (modal Settings).
    */
-  updateMyUid(newUid: string): void {
-    if (this.#myUid && this.#myUid !== newUid) {
-      facadeLog.info('updateMyUid: uid changed', {
-        old: this.#myUid,
+  updateMyUserId(newUid: string): void {
+    if (this.#myUserId && this.#myUserId !== newUid) {
+      facadeLog.info('updateMyUserId: userId changed', {
+        old: this.#myUserId,
         new: newUid,
       });
     }
-    this.#myUid = newUid;
+    this.#myUserId = newUid;
   }
 
   getMySeatNumber(): number | null {
     const state = this.#store.getState();
-    if (!state || !this.#myUid) return null;
+    if (!state || !this.#myUserId) return null;
     for (const [seatStr, player] of Object.entries(state.players)) {
-      if (player?.uid === this.#myUid) {
+      if (player?.userId === this.#myUserId) {
         return Number.parseInt(seatStr, 10);
       }
     }
@@ -244,21 +244,21 @@ export class GameFacade implements IGameFacade {
   // Room Lifecycle
   // =========================================================================
 
-  async createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void> {
+  async createRoom(roomCode: string, hostUserId: string, template: GameTemplate): Promise<void> {
     facadeLog.info('createRoom', { roomCode });
     this.#aborted = false;
     this.#audioOrchestrator.reset();
     this.#settleResultListeners.clear();
     this.#isHost = true;
-    this.#myUid = hostUid;
+    this.#myUserId = hostUserId;
     this.#roomCode = roomCode;
 
     // 初始化 store（使用共享的 buildInitialGameState）
-    const initialState = buildInitialGameState(roomCode, hostUid, template);
+    const initialState = buildInitialGameState(roomCode, hostUserId, template);
     this.#store.initialize(initialState);
 
     // 连接 WS + 等待 Connected（FSM: Idle → Connecting → Syncing → Connected）
-    await this.#connectionManager.connectAndWait(roomCode, hostUid);
+    await this.#connectionManager.connectAndWait(roomCode, hostUserId);
   }
 
   /**
@@ -271,7 +271,7 @@ export class GameFacade implements IGameFacade {
    */
   async joinRoom(
     roomCode: string,
-    uid: string,
+    userId: string,
     isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }> {
     facadeLog.info('joinRoom', { roomCode, isHost });
@@ -279,7 +279,7 @@ export class GameFacade implements IGameFacade {
     this.#audioOrchestrator.reset();
     this.#settleResultListeners.clear();
     this.#isHost = isHost;
-    this.#myUid = uid;
+    this.#myUserId = userId;
 
     // Only reset store when switching rooms; same-room rejoin keeps cached state
     // (connectAndWait will fetch latest from DB regardless)
@@ -293,7 +293,7 @@ export class GameFacade implements IGameFacade {
 
     // connectAndWait: WS 连接 + fetchDB + 等待 Connected
     // FSM 的 Syncing 阶段会自动 fetchDB → onFetchedState → store.applySnapshot
-    await this.#connectionManager.connectAndWait(roomCode, uid);
+    await this.#connectionManager.connectAndWait(roomCode, userId);
 
     // After connectAndWait, store should have state from DB (if any)
     const dbState = this.#store.getState();
@@ -306,7 +306,7 @@ export class GameFacade implements IGameFacade {
       // Host rejoin 无 DB 状态：无法恢复
       this.#audioOrchestrator.setWasAudioInterrupted(false);
       this.#isHost = false;
-      this.#myUid = null;
+      this.#myUserId = null;
       facadeLog.warn('Host rejoin failed: no DB state');
       return { success: false, reason: 'no_db_state' };
     }
@@ -361,7 +361,7 @@ export class GameFacade implements IGameFacade {
 
     this.#connectionManager.disconnect();
     this.#store.reset();
-    this.#myUid = null;
+    this.#myUserId = null;
     this.#isHost = false;
     this.#roomCode = null;
     this.#settleResultListeners.clear();
@@ -461,7 +461,7 @@ export class GameFacade implements IGameFacade {
     // Stop current audio then release preloaded resources (stop before clearPreloaded)
     this.#audioService.stop();
     this.#audioService.clearPreloaded();
-    // 服务端校验 hostUid，客户端不再做冗余门控
+    // 服务端校验 hostUserId，客户端不再做冗余门控
     return gameActions.restartGame(this.#getActionsContext());
   }
 
@@ -551,8 +551,8 @@ export class GameFacade implements IGameFacade {
     return gameActions.boardNominate(this.#getActionsContext(), displayName, roles);
   }
 
-  async boardUpvote(targetUid: string): Promise<{ success: boolean; reason?: string }> {
-    return gameActions.boardUpvote(this.#getActionsContext(), targetUid);
+  async boardUpvote(targetUserId: string): Promise<{ success: boolean; reason?: string }> {
+    return gameActions.boardUpvote(this.#getActionsContext(), targetUserId);
   }
 
   async boardWithdraw(): Promise<{ success: boolean; reason?: string }> {
@@ -658,7 +658,7 @@ export class GameFacade implements IGameFacade {
   #getActionsContext(): GameActionsContext {
     return {
       store: this.#store,
-      myUid: this.#myUid,
+      myUserId: this.#myUserId,
       getMySeatNumber: () => this.getMySeatNumber(),
       audioService: this.#audioService,
     };
@@ -666,7 +666,7 @@ export class GameFacade implements IGameFacade {
 
   #getSeatActionsContext(): SeatActionsContext {
     return {
-      myUid: this.#myUid,
+      myUserId: this.#myUserId,
       getRoomCode: () => this.#store.getState()?.roomCode ?? null,
       store: this.#store,
     };

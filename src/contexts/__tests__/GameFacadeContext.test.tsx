@@ -11,7 +11,7 @@ function createFakeFacade(): IGameFacade {
     subscribe: () => () => {},
     getState: () => null,
     isHostPlayer: () => false,
-    getMyUid: () => 'u1',
+    getMyUserId: () => 'u1',
     getMySeatNumber: () => null,
     getStateRevision: () => 0,
     consumeLastAction: () => null,
@@ -45,7 +45,7 @@ function createFakeFacade(): IGameFacade {
     resumeAfterRejoin: async () => {},
     shareNightReview: async () => ({ success: true }),
     manualReconnect: () => {},
-    updateMyUid: () => {},
+    updateMyUserId: () => {},
     updatePlayerProfile: async () => ({ success: true }),
     kickPlayer: async () => ({ success: true }),
     boardNominate: async () => ({ success: true }),
@@ -56,7 +56,7 @@ function createFakeFacade(): IGameFacade {
 
 const Consumer: React.FC = () => {
   const facade = useGameFacade();
-  return <Text testID="uid">{facade.getMyUid() ?? 'null'}</Text>;
+  return <Text testID="userId">{facade.getMyUserId() ?? 'null'}</Text>;
 };
 
 describe('GameFacadeProvider / useGameFacade', () => {
@@ -74,6 +74,6 @@ describe('GameFacadeProvider / useGameFacade', () => {
       </GameFacadeProvider>,
     );
 
-    expect(ui.getByTestId('uid').props.children).toBe('u1');
+    expect(ui.getByTestId('userId').props.children).toBe('u1');
   });
 });

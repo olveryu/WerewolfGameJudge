@@ -30,7 +30,7 @@ import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
  */
 function toLocalPlayer(bp: Player, seatNumber: number, roster?: RosterEntry): LocalPlayer {
   return {
-    uid: bp.uid,
+    userId: bp.userId,
     seatNumber,
     displayName: roster?.displayName,
     avatarUrl: roster?.avatarUrl,
@@ -78,7 +78,7 @@ export function toLocalState(state: GameState): LocalGameState {
   const playersMap = new Map<number, LocalPlayer | null>();
   for (const [seatStr, bp] of Object.entries(protocolPlayers)) {
     const seat = Number.parseInt(seatStr, 10);
-    playersMap.set(seat, bp ? toLocalPlayer(bp, seat, roster?.[bp.uid]) : null);
+    playersMap.set(seat, bp ? toLocalPlayer(bp, seat, roster?.[bp.userId]) : null);
   }
 
   // 2. templateRoles → template (使用 createTemplateFromRoles)

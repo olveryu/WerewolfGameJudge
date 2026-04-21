@@ -9,9 +9,9 @@ import type { FrameProps } from './FrameProps';
  * 温润古玉 · 如意云纹角饰 · 厚实翠框 + 篆刻印章 + 玉光泽。
  */
 export const JadeSealFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const jadeGrad = `jadeG${uid}`;
-  const sheenGrad = `jadeSh${uid}`;
+  const userId = useId();
+  const jadeGrad = `jadeG${userId}`;
+  const sheenGrad = `jadeSh${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

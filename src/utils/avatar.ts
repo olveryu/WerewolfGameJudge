@@ -2,7 +2,7 @@
  * avatar - Local avatar image registry and selection utilities
  *
  * 43 dark fantasy role portraits from assets/avatars/raw/.
- * 提供头像图片映射、基于 uid/roomId 的稳定 hash 分配和去重。
+ * 提供头像图片映射、基于 userId/roomId 的稳定 hash 分配和去重。
  * 不引入 React、service，也不发起网络请求。
  *
  * ID 注册表来自 `@werewolf/game-engine/growth/rewardCatalog`（唯一权威来源）。
@@ -63,47 +63,47 @@ function fnv1aHash(str: string): number {
  * Get a stable default avatar for a user in a specific room.
  *
  * Properties:
- * - Deterministic: same (roomId, uid) always returns the same avatar index
+ * - Deterministic: same (roomId, userId) always returns the same avatar index
  * - Seat-independent: changing seats does NOT change avatar
- * - Room-specific: same uid in different rooms may get different avatars
- * - Minimizes collisions: uses uid hash as primary index with room offset
+ * - Room-specific: same userId in different rooms may get different avatars
+ * - Minimizes collisions: uses userId hash as primary index with room offset
  *
  * @param roomId - The room identifier
- * @param uid - The user's unique identifier
+ * @param userId - The user's unique identifier
  * @returns The avatar index (0-based) - use getAvatarImageByIndex to get the actual image
  */
-function getDefaultAvatarIndex(roomId: string, uid: string): number {
-  // Combine roomId and uid into a single string before hashing.
+function getDefaultAvatarIndex(roomId: string, userId: string): number {
+  // Combine roomId and userId into a single string before hashing.
   // FNV-1a has much better avalanche than djb2 for short sequential strings
   // like "bot-0" .. "bot-11", greatly reducing collisions within a room.
-  const combined = `${roomId}:${uid}`;
+  const combined = `${roomId}:${userId}`;
   return fnv1aHash(combined) % AVATAR_IMAGES.length;
 }
 
 /**
  * Assign guaranteed-unique avatar indices to a list of UIDs within one room.
  *
- * Uses each uid's preferred index (from getDefaultAvatarIndex) as the starting
+ * Uses each userId's preferred index (from getDefaultAvatarIndex) as the starting
  * point, then probes forward to find the next free slot if taken.
  * With 61 avatars and ≤12 players this always succeeds and never collides.
  *
  * @param roomId - The room identifier
  * @param uids   - Ordered list of player UIDs in the room
- * @returns Map from uid → unique avatar index (0-based)
+ * @returns Map from userId → unique avatar index (0-based)
  */
 export function getUniqueAvatarMap(roomId: string, uids: string[]): Map<string, number> {
   const N = AVATAR_IMAGES.length;
   const taken = new Set<number>();
   const result = new Map<string, number>();
 
-  for (const uid of uids) {
-    let idx = getDefaultAvatarIndex(roomId, uid);
+  for (const userId of uids) {
+    let idx = getDefaultAvatarIndex(roomId, userId);
     // Linear probe until we find a free slot
     while (taken.has(idx)) {
       idx = (idx + 1) % N;
     }
     taken.add(idx);
-    result.set(uid, idx);
+    result.set(userId, idx);
   }
 
   return result;

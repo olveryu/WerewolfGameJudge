@@ -4,8 +4,8 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop } from 'react
 import type { FrameProps } from './FrameProps';
 
 export const HellFireFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const hfireGrad = `hfireGrad${uid}`;
+  const userId = useId();
+  const hfireGrad = `hfireGrad${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

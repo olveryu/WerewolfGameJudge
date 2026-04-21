@@ -10,10 +10,10 @@ import type { FrameProps } from './FrameProps';
  * 阴影层 → 主渐变框 → 内环虚线 → 闪电/电弧 → 火花粒子 → 角落辉光弧。
  */
 export const StormBoltFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const stormGrad = `stormG${uid}`;
-  const boltGrad = `boltG${uid}`;
-  const innerGrad = `stormIn${uid}`;
+  const userId = useId();
+  const stormGrad = `stormG${userId}`;
+  const boltGrad = `boltG${userId}`;
+  const innerGrad = `stormIn${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

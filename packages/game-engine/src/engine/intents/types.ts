@@ -16,7 +16,7 @@ export interface JoinSeatIntent {
   type: 'JOIN_SEAT';
   payload: {
     seat: number;
-    uid: string;
+    userId: string;
     displayName: string;
     avatarUrl?: string;
     avatarFrame?: string;
@@ -33,7 +33,7 @@ export interface JoinSeatIntent {
 export interface LeaveMySeatIntent {
   type: 'LEAVE_MY_SEAT';
   payload: {
-    uid: string;
+    userId: string;
   };
 }
 
@@ -124,7 +124,7 @@ export interface ShareNightReviewIntent {
 export interface UpdatePlayerProfileIntent {
   type: 'UPDATE_PLAYER_PROFILE';
   payload: {
-    uid: string;
+    userId: string;
     displayName?: string;
     avatarUrl?: string;
     avatarFrame?: string;
@@ -239,7 +239,7 @@ export interface MarkAllBotsViewedIntent {
 export interface BoardNominateIntent {
   type: 'BOARD_NOMINATE';
   payload: {
-    uid: string;
+    userId: string;
     displayName: string;
     roles: RoleId[];
   };
@@ -252,9 +252,9 @@ export interface BoardNominateIntent {
 export interface BoardUpvoteIntent {
   type: 'BOARD_UPVOTE';
   payload: {
-    /** 被点赞建议的提交者 uid */
-    targetUid: string;
-    /** 点赞者 uid */
+    /** 被点赞建议的提交者 userId */
+    targetUserId: string;
+    /** 点赞者 userId */
     voterUid: string;
   };
 }
@@ -266,6 +266,6 @@ export interface BoardUpvoteIntent {
 export interface BoardWithdrawIntent {
   type: 'BOARD_WITHDRAW';
   payload: {
-    uid: string;
+    userId: string;
   };
 }

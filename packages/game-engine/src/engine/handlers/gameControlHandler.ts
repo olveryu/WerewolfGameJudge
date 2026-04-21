@@ -463,14 +463,14 @@ export function handleFillWithBots(
 
   for (let seat = 0; seat < seatCount; seat++) {
     if (!occupiedSeats.has(seat)) {
-      const uid = `bot-${seat}`;
+      const userId = `bot-${seat}`;
       bots[seat] = {
-        uid,
+        userId,
         seatNumber: seat,
         hasViewedRole: false,
         isBot: true,
       };
-      botRoster[uid] = {
+      botRoster[userId] = {
         displayName: `机器人${formatSeat(seat)}`,
       };
     }
@@ -577,7 +577,7 @@ export function handleBoardNominate(
   if (nominations) {
     for (const [existingUid, nom] of Object.entries(nominations)) {
       // 同用户 → 走覆盖逻辑（现有行为）
-      if (existingUid === intent.payload.uid) continue;
+      if (existingUid === intent.payload.userId) continue;
       const existingSorted = [...nom.roles].sort();
       if (
         existingSorted.length === sortedRoles.length &&
@@ -586,7 +586,7 @@ export function handleBoardNominate(
         // 角色完全相同 → 自动投票已有建议
         const action: UpvoteBoardNominationAction = {
           type: 'UPVOTE_BOARD_NOMINATION',
-          payload: { targetUid: existingUid, voterUid: intent.payload.uid },
+          payload: { targetUserId: existingUid, voterUid: intent.payload.userId },
         };
         return handlerSuccess([action], STANDARD_SIDE_EFFECTS, 'DEDUPLICATED');
       }
@@ -597,7 +597,7 @@ export function handleBoardNominate(
     type: 'SET_BOARD_NOMINATION',
     payload: {
       nomination: {
-        uid: intent.payload.uid,
+        userId: intent.payload.userId,
         displayName: intent.payload.displayName,
         roles: intent.payload.roles,
         upvoters: [],
@@ -629,15 +629,15 @@ export function handleBoardUpvote(
     return handlerError('invalid_status');
   }
 
-  const { targetUid, voterUid } = intent.payload;
+  const { targetUserId, voterUid } = intent.payload;
 
-  if (!state.boardNominations?.[targetUid]) {
+  if (!state.boardNominations?.[targetUserId]) {
     return handlerError('目标建议不存在');
   }
 
   const action: UpvoteBoardNominationAction = {
     type: 'UPVOTE_BOARD_NOMINATION',
-    payload: { targetUid, voterUid },
+    payload: { targetUserId, voterUid },
   };
 
   return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
@@ -662,13 +662,13 @@ export function handleBoardWithdraw(
     return handlerError('invalid_status');
   }
 
-  if (!state.boardNominations?.[intent.payload.uid]) {
+  if (!state.boardNominations?.[intent.payload.userId]) {
     return handlerError('建议不存在或已被撤回');
   }
 
   const action: WithdrawBoardNominationAction = {
     type: 'WITHDRAW_BOARD_NOMINATION',
-    payload: { uid: intent.payload.uid },
+    payload: { userId: intent.payload.userId },
   };
 
   return handlerSuccess([action], STANDARD_SIDE_EFFECTS);

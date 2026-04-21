@@ -47,13 +47,13 @@ export interface IGameFacade {
   isHostPlayer(): boolean;
 
   /** 当前用户 UID */
-  getMyUid(): string | null;
+  getMyUserId(): string | null;
 
   /**
-   * Safety net: update cached uid when auth identity changes.
+   * Safety net: update cached userId when auth identity changes.
    * Ensures facade identity stays in sync with auth state.
    */
-  updateMyUid(newUid: string): void;
+  updateMyUserId(newUid: string): void;
 
   /**
    * 当前用户座位号
@@ -84,7 +84,7 @@ export interface IGameFacade {
    * Host: 创建新房间
    * 初始化 store + 加入 broadcast 频道
    */
-  createRoom(roomCode: string, hostUid: string, template: GameTemplate): Promise<void>;
+  createRoom(roomCode: string, hostUserId: string, template: GameTemplate): Promise<void>;
 
   /**
    * 加入已有房间（Host rejoin + Player join 统一入口）
@@ -96,7 +96,7 @@ export interface IGameFacade {
    */
   joinRoom(
     roomCode: string,
-    uid: string,
+    userId: string,
     isHost: boolean,
   ): Promise<{ success: boolean; reason?: string }>;
 
@@ -234,7 +234,7 @@ export interface IGameFacade {
   /**
    * 点赞板子建议
    */
-  boardUpvote(targetUid: string): Promise<{ success: boolean; reason?: string }>;
+  boardUpvote(targetUserId: string): Promise<{ success: boolean; reason?: string }>;
 
   /**
    * 撤回板子建议（仅提交者本人）

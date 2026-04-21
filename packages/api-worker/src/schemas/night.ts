@@ -27,5 +27,5 @@ export const wolfRobotViewedSchema = z.object({
 export const groupConfirmAckSchema = z.object({
   roomCode: z.string().min(1),
   seat: z.coerce.number().int().min(0),
-  uid: z.string().min(1),
+  userId: z.string().min(1),
 });

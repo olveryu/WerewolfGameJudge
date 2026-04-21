@@ -26,7 +26,7 @@ describe('translateReasonCode', () => {
     expect(translateReasonCode('TIMEOUT')).toBe('请求超时，请稍后重试');
     expect(translateReasonCode('NOT_CONNECTED')).toBe('未连接到房间');
     expect(translateReasonCode('not_ongoing')).toBe('游戏未在进行中');
-    expect(translateReasonCode('uid_mismatch')).toBe('身份不匹配');
+    expect(translateReasonCode('userId_mismatch')).toBe('身份不匹配');
     expect(translateReasonCode('host_only')).toBe('仅房主可执行此操作');
     expect(translateReasonCode('MISSING_PARAMS')).toBe('请求参数缺失');
   });

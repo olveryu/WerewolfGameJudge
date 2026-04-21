@@ -71,11 +71,11 @@ describe('Avatar', () => {
   });
 
   describe('Deterministic icon selection', () => {
-    it('same uid always gets same icon', () => {
+    it('same userId always gets same icon', () => {
       const { getAvatarIcon } = require('@/utils/defaultAvatarIcons');
       render(<Avatar value="player-123" size={50} />);
       render(<Avatar value="player-123" size={50} />);
-      // Both calls use same uid
+      // Both calls use same userId
       expect(getAvatarIcon).toHaveBeenCalledWith('player-123');
       expect(getAvatarIcon).toHaveBeenCalledTimes(2);
     });

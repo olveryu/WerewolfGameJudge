@@ -14,8 +14,8 @@ interface ColoredFrameProps extends FrameProps {
 }
 
 export const SimpleDiamondFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gradId = `diamGrad${uid}`;
+  const userId = useId();
+  const gradId = `diamGrad${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

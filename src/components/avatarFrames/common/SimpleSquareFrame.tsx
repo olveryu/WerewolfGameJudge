@@ -14,8 +14,8 @@ interface ColoredFrameProps extends FrameProps {
 }
 
 export const SimpleSquareFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gradId = `squareGrad${uid}`;
+  const userId = useId();
+  const gradId = `squareGrad${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

@@ -15,9 +15,9 @@ interface ColoredFrameProps extends FrameProps {
 }
 
 export const InlayFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gOuter = `inlayO${uid}`;
-  const gInlay = `inlayI${uid}`;
+  const userId = useId();
+  const gOuter = `inlayO${userId}`;
+  const gInlay = `inlayI${userId}`;
   const midRx = Math.max(rx - 3, 2);
   const innerRx = Math.max(rx - 6, 2);
   return (

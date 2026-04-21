@@ -2,7 +2,7 @@
  * Avatar - 用户头像组件
  *
  * 自定义头像优先（远程 URL / builtin://）。无自定义时使用狼爪图标作为默认头像，
- * 基于 uid hash 确定性分配颜色 tint。
+ * 基于 userId hash 确定性分配颜色 tint。
  * Memoized 以避免不必要的重渲染。不 import service，不含业务逻辑。
  */
 import { Image as ExpoImage } from 'expo-image';
@@ -18,7 +18,7 @@ interface AvatarProps {
   size: number;
   /** Custom avatar URL. If provided, will be used instead of generated avatar */
   avatarUrl?: string | null;
-  /** Room ID for room-specific default avatar (stable per uid+roomId) */
+  /** Room ID for room-specific default avatar (stable per userId+roomId) */
   roomId?: string;
   /** Pre-computed unique avatar index from getUniqueAvatarMap. Takes priority over roomId hash. */
   avatarIndex?: number;
@@ -28,12 +28,12 @@ interface AvatarProps {
 
 /**
  * Avatar component that displays either a custom uploaded avatar
- * or a deterministic lucide icon based on uid.
+ * or a deterministic lucide icon based on userId.
  *
  * Default avatar selection priority:
  * 1. avatarUrl (custom uploaded / remote)
  * 2. avatarUrl (builtin:// → local asset)
- * 3. Wolf paw icon with tint color based on uid hash (fallback)
+ * 3. Wolf paw icon with tint color based on userId hash (fallback)
  *
  * Memoized to prevent unnecessary re-renders when parent components update
  */
@@ -72,7 +72,7 @@ const AvatarComponent: React.FC<AvatarProps> = ({
     [avatarUrl],
   );
 
-  // Deterministic icon + color based on uid
+  // Deterministic icon + color based on userId
   const iconInfo = useMemo(() => getAvatarIcon(value), [value]);
 
   // Memoize icon container style

@@ -19,9 +19,9 @@ import type { FrameProps } from './FrameProps';
  * 四角五瓣樱花 + 漂落花瓣 + 粉色三层渐变 + 枝条 + 花蕾。
  */
 export const SakuraDriftFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const sakGrad = `sakG${uid}`;
-  const sakGlow = `sakGlow${uid}`;
+  const userId = useId();
+  const sakGrad = `sakG${userId}`;
+  const sakGlow = `sakGlow${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

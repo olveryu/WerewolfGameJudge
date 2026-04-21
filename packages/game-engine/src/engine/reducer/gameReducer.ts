@@ -179,9 +179,9 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       const { levels } = action.payload;
       const newRoster = { ...state.roster };
       let changed = false;
-      for (const [uid, level] of Object.entries(levels)) {
-        if (newRoster[uid] && newRoster[uid].level !== level) {
-          newRoster[uid] = { ...newRoster[uid], level };
+      for (const [userId, level] of Object.entries(levels)) {
+        if (newRoster[userId] && newRoster[userId].level !== level) {
+          newRoster[userId] = { ...newRoster[userId], level };
           changed = true;
         }
       }

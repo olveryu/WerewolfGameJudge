@@ -35,7 +35,7 @@ describe('PlayerProfileCard', () => {
   describe('bot player', () => {
     it('shows roster name and "机器人" label without API call', () => {
       const { getByText, queryByTestId } = render(
-        <PlayerProfileCard {...baseProps} targetUid="bot-2" rosterName="机器人3号" />,
+        <PlayerProfileCard {...baseProps} targetUserId="bot-2" rosterName="机器人3号" />,
       );
 
       expect(getByText('机器人3号')).toBeTruthy();
@@ -51,7 +51,7 @@ describe('PlayerProfileCard', () => {
 
     it('falls back to seat number if rosterName is empty', () => {
       const { getByText } = render(
-        <PlayerProfileCard {...baseProps} targetUid="bot-2" rosterName="" />,
+        <PlayerProfileCard {...baseProps} targetUserId="bot-2" rosterName="" />,
       );
 
       expect(getByText('机器人3')).toBeTruthy();
@@ -59,7 +59,7 @@ describe('PlayerProfileCard', () => {
 
     it('shows kick button for host', () => {
       const { getByText } = render(
-        <PlayerProfileCard {...baseProps} targetUid="bot-2" rosterName="机器人3号" isHost />,
+        <PlayerProfileCard {...baseProps} targetUserId="bot-2" rosterName="机器人3号" isHost />,
       );
 
       expect(getByText('移出座位')).toBeTruthy();
@@ -69,7 +69,7 @@ describe('PlayerProfileCard', () => {
       const { queryByText } = render(
         <PlayerProfileCard
           {...baseProps}
-          targetUid="bot-2"
+          targetUserId="bot-2"
           rosterName="机器人3号"
           isHost={false}
         />,
@@ -95,7 +95,7 @@ describe('PlayerProfileCard', () => {
         isError: false,
       });
 
-      const { getByText } = render(<PlayerProfileCard {...baseProps} targetUid="user-abc" />);
+      const { getByText } = render(<PlayerProfileCard {...baseProps} targetUserId="user-abc" />);
 
       expect(getByText('Alice')).toBeTruthy();
       expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
@@ -105,7 +105,7 @@ describe('PlayerProfileCard', () => {
     });
 
     it('does not enable query when not visible', () => {
-      render(<PlayerProfileCard {...baseProps} visible={false} targetUid="user-abc" />);
+      render(<PlayerProfileCard {...baseProps} visible={false} targetUserId="user-abc" />);
 
       expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
         'user-abc',

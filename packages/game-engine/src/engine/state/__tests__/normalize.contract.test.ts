@@ -20,7 +20,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // 核心必填字段
   'roomCode',
-  'hostUid',
+  'hostUserId',
   'status',
   'templateRoles',
   'players',
@@ -118,11 +118,11 @@ describe('normalizeState contract', () => {
     return {
       // 核心必填字段
       roomCode: 'TEST',
-      hostUid: 'host-uid',
+      hostUserId: 'host-uid',
       status: GameStatus.Ongoing,
       templateRoles: ['villager', 'wolf'],
       players: {
-        1: { uid: 'p1', seatNumber: 1, hasViewedRole: true },
+        1: { userId: 'p1', seatNumber: 1, hasViewedRole: true },
       },
       roster: { p1: { displayName: 'P1' } },
       currentStepIndex: 0,
@@ -173,7 +173,7 @@ describe('normalizeState contract', () => {
       actionRejected: {
         action: 'witchAction',
         reason: 'already_used',
-        targetUid: 'p1',
+        targetUserId: 'p1',
         rejectionId: 'rej-1',
       },
 
@@ -201,7 +201,7 @@ describe('normalizeState contract', () => {
       // 板子建议
       boardNominations: {
         'user-1': {
-          uid: 'user-1',
+          userId: 'user-1',
           displayName: 'Alice',
           roles: ['villager', 'wolf'],
           upvoters: ['user-2'],
@@ -256,7 +256,7 @@ describe('normalizeState contract', () => {
   it('should preserve undefined optional fields as undefined', () => {
     const minimalState: GameState = {
       roomCode: 'TEST',
-      hostUid: 'host-uid',
+      hostUserId: 'host-uid',
       status: GameStatus.Unseated,
       templateRoles: ['villager'],
       players: {},

@@ -181,7 +181,7 @@ export class GameRoom extends DurableObject<Env> {
 
     const levels: Record<string, number> = {};
     for (const r of results) {
-      levels[r.uid] = r.newLevel;
+      levels[r.userId] = r.newLevel;
     }
 
     this.#processAction((_state) => {
@@ -192,7 +192,7 @@ export class GameRoom extends DurableObject<Env> {
   /** 单播结算结果给每个已连接的注册玩家 */
   #sendSettleResults(results: PlayerSettleResult[]): void {
     if (results.length === 0) return;
-    const resultByUid = new Map(results.map((r) => [r.uid, r]));
+    const resultByUid = new Map(results.map((r) => [r.userId, r]));
     const sockets = this.ctx.getWebSockets();
     for (const ws of sockets) {
       try {
@@ -224,7 +224,7 @@ export class GameRoom extends DurableObject<Env> {
   async assignRoles(): Promise<GameActionResult> {
     return this.#processAction(
       (state) => {
-        const ctx = buildHandlerContext(state, state.hostUid);
+        const ctx = buildHandlerContext(state, state.hostUserId);
         return handleAssignRoles({ type: 'ASSIGN_ROLES' }, ctx);
       },
       undefined,
@@ -235,7 +235,7 @@ export class GameRoom extends DurableObject<Env> {
   async restartGame(): Promise<GameActionResult> {
     return this.#processAction(
       (state) => {
-        const ctx = buildHandlerContext(state, state.hostUid);
+        const ctx = buildHandlerContext(state, state.hostUserId);
         return handleRestartGame({ type: 'RESTART_GAME' }, ctx);
       },
       undefined,
@@ -246,7 +246,7 @@ export class GameRoom extends DurableObject<Env> {
   async clearAllSeats(): Promise<GameActionResult> {
     return this.#processAction(
       (state) => {
-        const ctx = buildHandlerContext(state, state.hostUid);
+        const ctx = buildHandlerContext(state, state.hostUserId);
         return handleClearAllSeats({ type: 'CLEAR_ALL_SEATS' }, ctx);
       },
       undefined,
@@ -256,14 +256,14 @@ export class GameRoom extends DurableObject<Env> {
 
   async fillWithBots(): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
+      const ctx = buildHandlerContext(state, state.hostUserId);
       return handleFillWithBots({ type: 'FILL_WITH_BOTS' }, ctx);
     });
   }
 
   async markAllBotsViewed(): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
+      const ctx = buildHandlerContext(state, state.hostUserId);
       return handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, ctx);
     });
   }
@@ -272,7 +272,7 @@ export class GameRoom extends DurableObject<Env> {
 
   async seat(
     action: 'sit' | 'standup' | 'kick',
-    uid: string,
+    userId: string,
     seatNum: number | null,
     displayName?: string,
     avatarUrl?: string,
@@ -284,14 +284,14 @@ export class GameRoom extends DurableObject<Env> {
   ): Promise<GameActionResult> {
     return this.#processAction(
       (state) => {
-        const ctx = buildHandlerContext(state, uid);
+        const ctx = buildHandlerContext(state, userId);
         if (action === 'sit') {
           return handleJoinSeat(
             {
               type: 'JOIN_SEAT',
               payload: {
                 seat: seatNum!,
-                uid,
+                userId,
                 displayName: displayName ?? '',
                 avatarUrl,
                 avatarFrame,
@@ -309,7 +309,7 @@ export class GameRoom extends DurableObject<Env> {
             ctx,
           );
         }
-        return handleLeaveMySeat({ type: 'LEAVE_MY_SEAT', payload: { uid } }, ctx);
+        return handleLeaveMySeat({ type: 'LEAVE_MY_SEAT', payload: { userId } }, ctx);
       },
       undefined,
       action === 'kick' ? 'KICK_PLAYER' : undefined,
@@ -324,7 +324,7 @@ export class GameRoom extends DurableObject<Env> {
   ): Promise<GameActionResult> {
     return this.#processAction(
       (state) => {
-        const ctx = buildHandlerContext(state, state.hostUid);
+        const ctx = buildHandlerContext(state, state.hostUserId);
         return handleSubmitAction(
           { type: 'SUBMIT_ACTION', payload: { seat: seatNum, role, target, extra } },
           ctx,
@@ -336,7 +336,7 @@ export class GameRoom extends DurableObject<Env> {
 
   async setAnimation(animation: string): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
+      const ctx = buildHandlerContext(state, state.hostUserId);
       return handleSetRoleRevealAnimation(
         { type: 'SET_ROLE_REVEAL_ANIMATION', animation: animation as RoleRevealAnimation },
         ctx,
@@ -344,22 +344,22 @@ export class GameRoom extends DurableObject<Env> {
     });
   }
 
-  async viewRole(uid: string, seatNum: number): Promise<GameActionResult> {
+  async viewRole(userId: string, seatNum: number): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, uid);
+      const ctx = buildHandlerContext(state, userId);
       return handleViewedRole({ type: 'VIEWED_ROLE', payload: { seat: seatNum } }, ctx);
     });
   }
 
   async updateTemplate(templateRoles: RoleId[]): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
+      const ctx = buildHandlerContext(state, state.hostUserId);
       return handleUpdateTemplate({ type: 'UPDATE_TEMPLATE', payload: { templateRoles } }, ctx);
     });
   }
 
   async updateProfile(
-    uid: string,
+    userId: string,
     displayName?: string,
     avatarUrl?: string,
     avatarFrame?: string,
@@ -367,11 +367,11 @@ export class GameRoom extends DurableObject<Env> {
     nameStyle?: string,
   ): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, uid);
+      const ctx = buildHandlerContext(state, userId);
       return handleUpdatePlayerProfile(
         {
           type: 'UPDATE_PLAYER_PROFILE',
-          payload: { uid, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle },
+          payload: { userId, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle },
         },
         ctx,
       );
@@ -380,7 +380,7 @@ export class GameRoom extends DurableObject<Env> {
 
   async shareReview(allowedSeats: number[]): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
+      const ctx = buildHandlerContext(state, state.hostUserId);
       return handleShareNightReview({ type: 'SHARE_NIGHT_REVIEW', allowedSeats }, ctx);
     });
   }
@@ -388,30 +388,30 @@ export class GameRoom extends DurableObject<Env> {
   // ── (D) Board Nomination RPC methods ────────────────────────────────────
 
   async boardNominate(
-    uid: string,
+    userId: string,
     displayName: string,
     roles: RoleId[],
   ): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, uid);
+      const ctx = buildHandlerContext(state, userId);
       return handleBoardNominate(
-        { type: 'BOARD_NOMINATE', payload: { uid, displayName, roles } },
+        { type: 'BOARD_NOMINATE', payload: { userId, displayName, roles } },
         ctx,
       );
     });
   }
 
-  async boardUpvote(voterUid: string, targetUid: string): Promise<GameActionResult> {
+  async boardUpvote(voterUid: string, targetUserId: string): Promise<GameActionResult> {
     return this.#processAction((state) => {
       const ctx = buildHandlerContext(state, voterUid);
-      return handleBoardUpvote({ type: 'BOARD_UPVOTE', payload: { targetUid, voterUid } }, ctx);
+      return handleBoardUpvote({ type: 'BOARD_UPVOTE', payload: { targetUserId, voterUid } }, ctx);
     });
   }
 
-  async boardWithdraw(uid: string): Promise<GameActionResult> {
+  async boardWithdraw(userId: string): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, uid);
-      return handleBoardWithdraw({ type: 'BOARD_WITHDRAW', payload: { uid } }, ctx);
+      const ctx = buildHandlerContext(state, userId);
+      return handleBoardWithdraw({ type: 'BOARD_WITHDRAW', payload: { userId } }, ctx);
     });
   }
 
@@ -420,7 +420,7 @@ export class GameRoom extends DurableObject<Env> {
   async startNight(): Promise<GameActionResult> {
     return this.#processAction(
       (state) => {
-        const ctx = buildHandlerContext(state, state.hostUid);
+        const ctx = buildHandlerContext(state, state.hostUserId);
         const result = handleStartNight({ type: 'START_NIGHT' }, ctx);
         if (result.kind === 'error') return result;
 
@@ -457,7 +457,7 @@ export class GameRoom extends DurableObject<Env> {
 
   async audioGate(isPlaying: boolean): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUid);
+      const ctx = buildHandlerContext(state, state.hostUserId);
       return handleSetAudioPlaying({ type: 'SET_AUDIO_PLAYING', payload: { isPlaying } }, ctx);
     });
   }
@@ -494,7 +494,7 @@ export class GameRoom extends DurableObject<Env> {
   async wolfRobotViewed(seatNum: number): Promise<GameActionResult> {
     return this.#processAction(
       (state) => {
-        const ctx = buildHandlerContext(state, state.hostUid);
+        const ctx = buildHandlerContext(state, state.hostUserId);
         return handleSetWolfRobotHunterStatusViewed(ctx, {
           type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
           seat: seatNum,
@@ -504,7 +504,7 @@ export class GameRoom extends DurableObject<Env> {
     );
   }
 
-  async groupConfirmAck(seatNum: number, uid: string): Promise<GameActionResult> {
+  async groupConfirmAck(seatNum: number, userId: string): Promise<GameActionResult> {
     return this.#processAction(
       (state) => {
         if (state.status !== GameStatus.Ongoing) {
@@ -518,8 +518,8 @@ export class GameRoom extends DurableObject<Env> {
         }
         const player = state.players[seatNum];
         if (!player) return handlerError('no_player_at_seat');
-        if (player.uid !== uid && uid !== state.hostUid) {
-          return handlerError('uid_mismatch');
+        if (player.userId !== userId && userId !== state.hostUserId) {
+          return handlerError('userId_mismatch');
         }
 
         const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';

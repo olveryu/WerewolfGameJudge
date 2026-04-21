@@ -20,7 +20,7 @@ import { expectError } from './handlerTestUtils';
 function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {},
@@ -33,7 +33,7 @@ function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
 }
 
 function createContext(state: NonNullState | null): HandlerContext {
-  return { state, myUid: 'host-1', mySeat: 0 };
+  return { state, myUserId: 'host-1', mySeat: 0 };
 }
 
 // =============================================================================

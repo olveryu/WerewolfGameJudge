@@ -49,7 +49,7 @@ describe('GameRoom lifecycle', () => {
     const result = await stub.getState();
     expect(result).not.toBeNull();
     expect(result!.state.roomCode).toBe('ROOM1');
-    expect(result!.state.hostUid).toBe('host-uid');
+    expect(result!.state.hostUserId).toBe('host-uid');
     expect(result!.state.status).toBe(GameStatus.Unseated);
     expect(result!.revision).toBe(1);
   });
@@ -91,7 +91,7 @@ describe('GameRoom seat management', () => {
 
     expect(result.success).toBe(true);
     expect(result.state?.players[0]).toBeTruthy();
-    expect(result.state!.players[0]!.uid).toBe('p1');
+    expect(result.state!.players[0]!.userId).toBe('p1');
     expect(result.state!.roster['p1'].displayName).toBe('Player1');
     expect(result.revision).toBe(2);
   });

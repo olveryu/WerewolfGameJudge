@@ -92,7 +92,7 @@ interface UseInteractionDispatcherResult {
   interactionContext: InteractionContext;
   /** Player profile card state */
   profileCardVisible: boolean;
-  profileCardTargetUid: string;
+  profileCardTargetUserId: string;
   profileCardTargetSeat: number;
   /** Display name from roster (for bots or offline render without API) */
   profileCardRosterName: string;
@@ -142,7 +142,7 @@ export function useInteractionDispatcher({
   // ─── Profile card state ──────────────────────────────────────────────────
 
   const [profileCardVisible, setProfileCardVisible] = useState(false);
-  const [profileCardTargetUid, setProfileCardTargetUid] = useState('');
+  const [profileCardTargetUserId, setProfileCardTargetUserId] = useState('');
   const [profileCardTargetSeat, setProfileCardTargetSeat] = useState(0);
   const [profileCardRosterName, setProfileCardRosterName] = useState('');
 
@@ -229,7 +229,7 @@ export function useInteractionDispatcher({
         return gameState.players.get(seat) != null;
       },
       getPlayerUid: (seat: number) => {
-        return gameState?.players.get(seat)?.uid;
+        return gameState?.players.get(seat)?.userId;
       },
     }),
     [
@@ -435,10 +435,10 @@ export function useInteractionDispatcher({
           const targetPlayer = gameState?.players.get(result.seat);
           roomScreenLog.debug('dispatchInteraction VIEW_PROFILE', {
             seat: result.seat,
-            targetUid: result.targetUid,
+            targetUserId: result.targetUserId,
             rosterName: targetPlayer?.displayName,
           });
-          setProfileCardTargetUid(result.targetUid);
+          setProfileCardTargetUserId(result.targetUserId);
           setProfileCardTargetSeat(result.seat);
           setProfileCardRosterName(targetPlayer?.displayName ?? '');
           setProfileCardVisible(true);
@@ -501,7 +501,7 @@ export function useInteractionDispatcher({
     onSeatLongPressed,
     interactionContext,
     profileCardVisible,
-    profileCardTargetUid,
+    profileCardTargetUserId,
     profileCardTargetSeat,
     profileCardRosterName,
     closeProfileCard,

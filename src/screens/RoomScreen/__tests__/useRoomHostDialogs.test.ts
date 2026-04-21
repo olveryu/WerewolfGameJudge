@@ -29,7 +29,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
   const players = new Map<number, LocalPlayer | null>();
   for (let i = 1; i <= playerCount; i++) {
     players.set(i, {
-      uid: `test-uid-${i}`,
+      userId: `test-uid-${i}`,
       seatNumber: i,
       displayName: `Player ${i}`,
       role: null,
@@ -39,7 +39,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
 
   return {
     roomCode: '1234',
-    hostUid: 'host-uid',
+    hostUserId: 'host-uid',
     status: GameStatus.Ongoing,
     template: {
       roles: new Array(playerCount).fill('villager' as RoleId),

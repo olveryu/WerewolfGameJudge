@@ -363,7 +363,7 @@ jest.mock('./src/contexts/AuthContext', () => ({
   __esModule: true,
   useAuthContext: () => ({
     user: {
-      uid: 'test-uid',
+      id: 'test-uid',
       email: null,
       displayName: 'TestPlayer',
       avatarUrl: null,
@@ -413,12 +413,12 @@ jest.mock('./src/contexts/ServiceContext', () => {
     roomService: {
       createRoom: jest.fn().mockResolvedValue({
         roomNumber: '1234',
-        hostUid: 'test-uid',
+        hostUserId: 'test-uid',
         createdAt: new Date(),
       }),
       getRoom: jest.fn().mockResolvedValue({
         roomNumber: '1234',
-        hostUid: 'test-uid',
+        hostUserId: 'test-uid',
         createdAt: new Date(),
       }),
       deleteRoom: jest.fn().mockResolvedValue(undefined),

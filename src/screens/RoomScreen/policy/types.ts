@@ -221,7 +221,7 @@ export interface InteractionResultKickConfirm {
 export interface InteractionResultViewProfile {
   kind: 'VIEW_PROFILE';
   seat: number;
-  targetUid: string;
+  targetUserId: string;
 }
 
 /** Union of all possible interaction results */

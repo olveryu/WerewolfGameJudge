@@ -87,7 +87,7 @@ export function useRoomScreenState(
   const {
     roomNumber,
     // Default to false: URL navigation (refresh) may omit isHost;
-    // joinRoom auto-detects host status from DB record.hostUid
+    // joinRoom auto-detects host status from DB record.hostUserId
     isHost: isHostParam = false,
     template,
     roleRevealAnimation: initialRoleRevealAnimation,
@@ -102,7 +102,7 @@ export function useRoomScreenState(
     isHost,
     mySeatNumber,
     myRole,
-    myUid,
+    myUserId,
     roomStatus,
     currentActionRole,
     currentSchema,
@@ -448,7 +448,7 @@ export function useRoomScreenState(
     actorSeatForUi,
     imActioner,
     isAudioPlaying,
-    myUid,
+    myUserId,
     needsContinueOverlay,
     firstSwapSeat,
     setFirstSwapSeat,
@@ -599,7 +599,7 @@ export function useRoomScreenState(
     onSeatTapped,
     onSeatLongPressed,
     profileCardVisible,
-    profileCardTargetUid,
+    profileCardTargetUserId,
     profileCardTargetSeat,
     profileCardRosterName,
     closeProfileCard,
@@ -859,7 +859,7 @@ export function useRoomScreenState(
 
     // ── Player profile card ──
     profileCardVisible,
-    profileCardTargetUid,
+    profileCardTargetUserId,
     profileCardTargetSeat,
     profileCardRosterName,
     closeProfileCard,

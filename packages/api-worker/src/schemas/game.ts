@@ -12,7 +12,7 @@ export const roomCodeSchema = z.object({
 const seatSitSchema = z.object({
   roomCode: z.string().min(1),
   action: z.literal('sit'),
-  uid: z.string().min(1),
+  userId: z.string().min(1),
   seat: z.coerce.number().int().min(0),
   targetSeat: z.coerce.number().int().min(0).optional(),
   displayName: z.string().optional(),
@@ -26,7 +26,7 @@ const seatSitSchema = z.object({
 const seatStandupSchema = z.object({
   roomCode: z.string().min(1),
   action: z.literal('standup'),
-  uid: z.string().min(1),
+  userId: z.string().min(1),
   seat: z.coerce.number().int().min(0).optional(),
   targetSeat: z.coerce.number().int().min(0).optional(),
   displayName: z.string().optional(),
@@ -40,7 +40,7 @@ const seatStandupSchema = z.object({
 const seatKickSchema = z.object({
   roomCode: z.string().min(1),
   action: z.literal('kick'),
-  uid: z.string().min(1),
+  userId: z.string().min(1),
   seat: z.coerce.number().int().min(0).optional(),
   targetSeat: z.coerce.number().int().min(0),
   displayName: z.string().optional(),
@@ -72,7 +72,7 @@ export const updateTemplateSchema = z.object({
 /** POST /game/view-role */
 export const viewRoleSchema = z.object({
   roomCode: z.string().min(1),
-  uid: z.string().min(1),
+  userId: z.string().min(1),
   seat: z.coerce.number().int().min(0),
 });
 
@@ -85,7 +85,7 @@ export const shareReviewSchema = z.object({
 /** POST /game/update-profile (in-room) */
 export const updateProfileRouteSchema = z.object({
   roomCode: z.string().min(1),
-  uid: z.string().min(1),
+  userId: z.string().min(1),
   displayName: z.string().optional(),
   avatarUrl: z.string().optional(),
   avatarFrame: z.string().optional(),
@@ -96,7 +96,7 @@ export const updateProfileRouteSchema = z.object({
 /** POST /game/board-nominate */
 export const boardNominateSchema = z.object({
   roomCode: z.string().min(1),
-  uid: z.string().min(1),
+  userId: z.string().min(1),
   displayName: z.string().min(1),
   roles: z.array(z.string().min(1)),
 });
@@ -104,12 +104,12 @@ export const boardNominateSchema = z.object({
 /** POST /game/board-upvote */
 export const boardUpvoteSchema = z.object({
   roomCode: z.string().min(1),
-  uid: z.string().min(1),
-  targetUid: z.string().min(1),
+  userId: z.string().min(1),
+  targetUserId: z.string().min(1),
 });
 
 /** POST /game/board-withdraw */
 export const boardWithdrawSchema = z.object({
   roomCode: z.string().min(1),
-  uid: z.string().min(1),
+  userId: z.string().min(1),
 });

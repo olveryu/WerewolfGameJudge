@@ -9,9 +9,9 @@ import type { FrameProps } from './FrameProps';
  * 苍绿龙鳞甲 · 金色鳞弧四边 · 双叉龙角 + 宝石眼 + 利爪。
  */
 export const DragonScaleFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const drgGrad = `drgG${uid}`;
-  const goldGrad = `drgGold${uid}`;
+  const userId = useId();
+  const drgGrad = `drgG${userId}`;
+  const goldGrad = `drgGold${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

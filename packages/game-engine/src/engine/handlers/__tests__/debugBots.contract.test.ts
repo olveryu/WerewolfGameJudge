@@ -24,7 +24,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 
 function createMinimalPlayer(seat: number, overrides?: Partial<Player>): Player {
   return {
-    uid: `player-${seat}`,
+    userId: `player-${seat}`,
     seatNumber: seat,
     hasViewedRole: false,
     role: null,
@@ -41,7 +41,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
 
   return {
     roomCode: 'TEST',
-    hostUid: 'host-uid',
+    hostUserId: 'host-uid',
     status: GameStatus.Unseated,
     templateRoles: new Array<string>(totalSeats).fill('villager') as any,
     players: defaultPlayers,
@@ -58,7 +58,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
 function createTestContext(overrides?: { state?: GameState | null }): HandlerContext {
   return {
     state: overrides?.state === undefined ? createTestState() : overrides.state,
-    myUid: 'host-uid',
+    myUserId: 'host-uid',
     mySeat: null,
   };
 }
@@ -98,7 +98,7 @@ describe('handleFillWithBots', () => {
       for (const [seat, bot] of Object.entries(bots)) {
         expect(bot.isBot).toBe(true);
         expect(bot.seatNumber).toBe(Number(seat));
-        expect(bot.uid).toMatch(/^bot-\d+$/);
+        expect(bot.userId).toMatch(/^bot-\d+$/);
       }
     });
 
@@ -108,9 +108,9 @@ describe('handleFillWithBots', () => {
         players[i] = null;
       }
       // Seat 0 has a human player
-      players[0] = createMinimalPlayer(0, { uid: 'human-uid' });
+      players[0] = createMinimalPlayer(0, { userId: 'human-uid' });
       // Seat 5 has a human player
-      players[5] = createMinimalPlayer(5, { uid: 'another-human' });
+      players[5] = createMinimalPlayer(5, { userId: 'another-human' });
 
       const context = createTestContext({
         state: createTestState({ players }),

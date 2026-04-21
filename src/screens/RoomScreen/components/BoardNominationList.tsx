@@ -37,16 +37,16 @@ import { showErrorAlert } from '@/utils/alertPresets';
 interface BoardNominationModalProps {
   /** Whether the modal is visible */
   visible: boolean;
-  /** uid → BoardNomination record */
+  /** userId → BoardNomination record */
   nominations: Readonly<Record<string, BoardNomination>> | undefined;
-  /** Current user's uid */
-  myUid: string | null;
+  /** Current user's userId */
+  myUserId: string | null;
   /** Whether current user is host */
   isHost: boolean;
   /** Current template player count (for mismatch detection) */
   currentPlayerCount: number;
   /** Upvote a nomination */
-  onUpvote: (targetUid: string) => void;
+  onUpvote: (targetUserId: string) => void;
   /** Withdraw own nomination */
   onWithdraw: () => void;
   /** Clear all seats (called before adopt when player count changes) */
@@ -61,7 +61,7 @@ interface BoardNominationModalProps {
 
 function NominationCard({
   nomination,
-  myUid,
+  myUserId,
   isHost,
   expanded,
   onToggle,
@@ -71,24 +71,24 @@ function NominationCard({
   onAdopt,
 }: {
   nomination: BoardNomination;
-  myUid: string | null;
+  myUserId: string | null;
   isHost: boolean;
   expanded: boolean;
   onToggle: () => void;
   onRolePress: (roleId: string) => void;
-  onUpvote: (targetUid: string) => void;
+  onUpvote: (targetUserId: string) => void;
   onWithdraw: () => void;
   onAdopt: (roles: readonly RoleId[]) => Promise<void>;
 }) {
-  const isMine = nomination.uid === myUid;
-  const hasUpvoted = myUid ? nomination.upvoters.includes(myUid) : false;
+  const isMine = nomination.userId === myUserId;
+  const hasUpvoted = myUserId ? nomination.upvoters.includes(myUserId) : false;
   const roles = nomination.roles as RoleId[];
   const nominationPlayerCount = getPlayerCount(roles);
   const boardName = useMemo(() => findMatchingPresetName(roles) ?? '自定义板子', [roles]);
   const stats = useMemo(() => computeFactionStats(roles), [roles]);
   const handleUpvote = useCallback(() => {
-    onUpvote(nomination.uid);
-  }, [nomination.uid, onUpvote]);
+    onUpvote(nomination.userId);
+  }, [nomination.userId, onUpvote]);
 
   const handleAdopt = useCallback(() => {
     void onAdopt(nomination.roles);
@@ -205,7 +205,7 @@ function NominationCard({
 export const BoardNominationModal = memo(function BoardNominationModal({
   visible,
   nominations,
-  myUid,
+  myUserId,
   isHost,
   currentPlayerCount,
   onUpvote,
@@ -238,10 +238,12 @@ export const BoardNominationModal = memo(function BoardNominationModal({
 
   // Accordion: only one card expanded at a time; default to first entry
   const [expandedUid, setExpandedUid] = useState<string | null>(null);
-  const activeUid = expandedUid ?? entries[0]?.uid ?? null;
+  const activeUid = expandedUid ?? entries[0]?.userId ?? null;
   const toggleCard = useCallback(
-    (uid: string) =>
-      setExpandedUid((prev) => (prev === uid || (!prev && uid === entries[0]?.uid) ? null : uid)),
+    (userId: string) =>
+      setExpandedUid((prev) =>
+        prev === userId || (!prev && userId === entries[0]?.userId) ? null : userId,
+      ),
     [entries],
   );
 
@@ -277,12 +279,12 @@ export const BoardNominationModal = memo(function BoardNominationModal({
           ) : (
             entries.map((nomination) => (
               <NominationCard
-                key={nomination.uid}
+                key={nomination.userId}
                 nomination={nomination}
-                myUid={myUid}
+                myUserId={myUserId}
                 isHost={isHost}
-                expanded={activeUid === nomination.uid}
-                onToggle={() => toggleCard(nomination.uid)}
+                expanded={activeUid === nomination.userId}
+                onToggle={() => toggleCard(nomination.userId)}
                 onRolePress={handleRolePress}
                 onUpvote={onUpvote}
                 onWithdraw={onWithdraw}

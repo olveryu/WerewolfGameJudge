@@ -3,7 +3,7 @@
  *
  * 职责：
  * - 处理 JOIN_SEAT / LEAVE_MY_SEAT intent
- * - 所有校验（state/uid/座位有效性/重复占座）集中在此，Facade 不做任何校验
+ * - 所有校验（state/userId/座位有效性/重复占座）集中在此，Facade 不做任何校验
  *
  * 提供座位校验并返回 StateAction 列表，不包含 IO（网络 / 音频 / Alert），
  * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
@@ -41,7 +41,7 @@ import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
  * 支持换座：如果玩家已有座位，会先清空旧座位
  */
 export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext): HandlerResult {
-  const { seat, uid, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle, level } =
+  const { seat, userId, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle, level } =
     intent.payload;
   const { state } = context;
 
@@ -50,8 +50,8 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     return handlerError(REASON_NO_STATE);
   }
 
-  // 校验：uid 是否有效
-  if (!uid) {
+  // 校验：userId 是否有效
+  if (!userId) {
     return handlerError(REASON_NOT_AUTHENTICATED);
   }
 
@@ -62,7 +62,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
 
   // 验证：座位是否已被占用（被其他玩家）
   const existingPlayer = state.players[seat];
-  if (existingPlayer !== null && existingPlayer.uid !== uid) {
+  if (existingPlayer !== null && existingPlayer.userId !== userId) {
     return handlerError(REASON_SEAT_TAKEN);
   }
 
@@ -76,7 +76,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   // 检查玩家是否已在其他座位（换座场景）
   for (const [seatKey, player] of Object.entries(state.players)) {
     const seatNum = Number(seatKey);
-    if (player?.uid === uid && seatNum !== seat) {
+    if (player?.userId === userId && seatNum !== seat) {
       // 先离开旧座位
       const leaveAction: PlayerLeaveAction = {
         type: 'PLAYER_LEAVE',
@@ -93,7 +93,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     payload: {
       seat,
       player: {
-        uid,
+        userId,
         seatNumber: seat,
         role: null,
         hasViewedRole: false,
@@ -123,7 +123,7 @@ export function handleLeaveMySeat(
   intent: LeaveMySeatIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { uid } = intent.payload;
+  const { userId } = intent.payload;
   const { state, mySeat } = context;
 
   // 校验：state 是否存在
@@ -131,8 +131,8 @@ export function handleLeaveMySeat(
     return handlerError(REASON_NO_STATE);
   }
 
-  // 校验：uid 是否有效
-  if (!uid) {
+  // 校验：userId 是否有效
+  if (!userId) {
     return handlerError(REASON_NOT_AUTHENTICATED);
   }
 
@@ -186,20 +186,20 @@ export function handleClearAllSeats(
  * 更新在座玩家的显示资料（displayName / avatarUrl）
  *
  * 任何在座玩家均可调用（更新自己的资料）。
- * mySeat 由 context 提供（通过 uid 查找），不需要客户端传 seat。
+ * mySeat 由 context 提供（通过 userId 查找），不需要客户端传 seat。
  */
 export function handleUpdatePlayerProfile(
   intent: UpdatePlayerProfileIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { uid, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle } = intent.payload;
+  const { userId, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle } = intent.payload;
   const { state, mySeat } = context;
 
   if (!state) {
     return handlerError(REASON_NO_STATE);
   }
 
-  if (!uid) {
+  if (!userId) {
     return handlerError(REASON_NOT_AUTHENTICATED);
   }
 
@@ -210,7 +210,7 @@ export function handleUpdatePlayerProfile(
   const action: UpdatePlayerProfileAction = {
     type: 'UPDATE_PLAYER_PROFILE',
     payload: {
-      uid,
+      userId,
       displayName,
       avatarUrl,
       avatarFrame,
@@ -237,7 +237,7 @@ export function handleKickPlayer(intent: KickPlayerIntent, context: HandlerConte
   }
 
   // 校验：只有 Host 可以踢人
-  if (state.hostUid !== context.myUid) {
+  if (state.hostUserId !== context.myUserId) {
     return handlerError(REASON_NOT_HOST);
   }
 

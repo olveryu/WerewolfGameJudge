@@ -25,12 +25,12 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
   const firstStep = plan.steps[0];
   return {
     roomCode: 'TEST',
-    hostUid: 'host',
+    hostUserId: 'host',
     status: GameStatus.Ongoing,
     templateRoles: TEMPLATE_2P,
     players: {
-      0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
-      1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'villager' },
+      0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+      1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'villager' },
     },
     currentStepIndex: 0,
     currentStepId: firstStep?.stepId,
@@ -47,15 +47,15 @@ function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
   const firstStep = plan.steps[0];
   return {
     roomCode: 'TEST',
-    hostUid: 'host',
+    hostUserId: 'host',
     status: GameStatus.Ongoing,
     templateRoles: TEMPLATE_5P,
     players: {
-      0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
-      1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
-      2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
-      3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'witch' },
-      4: { uid: 'p4', seatNumber: 4, hasViewedRole: true, role: 'villager' },
+      0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+      1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+      2: { userId: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
+      3: { userId: 'p3', seatNumber: 3, hasViewedRole: true, role: 'witch' },
+      4: { userId: 'p4', seatNumber: 4, hasViewedRole: true, role: 'villager' },
     },
     currentStepIndex: 0,
     currentStepId: firstStep?.stepId,
@@ -226,15 +226,15 @@ describe('runInlineProgression', () => {
       const nowMs = Date.now();
       const state: GameState = {
         roomCode: 'TEST',
-        hostUid: 'host',
+        hostUserId: 'host',
         status: GameStatus.Ongoing,
         templateRoles: [...templateRoles],
         players: {
           // No player has 'poisoner' role — it's in bottom cards
-          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'treasureMaster' },
-          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
-          2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
-          3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+          0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'treasureMaster' },
+          1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+          2: { userId: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
+          3: { userId: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
         },
         currentStepIndex: poisonerIdx,
         currentStepId: 'poisonerPoison',
@@ -266,14 +266,14 @@ describe('runInlineProgression', () => {
       const nowMs = Date.now();
       const state: GameState = {
         roomCode: 'TEST',
-        hostUid: 'host',
+        hostUserId: 'host',
         status: GameStatus.Ongoing,
         templateRoles: [...templateRoles],
         players: {
-          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'treasureMaster' },
-          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
-          2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
-          3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+          0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'treasureMaster' },
+          1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+          2: { userId: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
+          3: { userId: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
         },
         currentStepIndex: poisonerIdx,
         currentStepId: 'poisonerPoison',
@@ -308,14 +308,14 @@ describe('runInlineProgression', () => {
       const nowMs = Date.now();
       const state: GameState = {
         roomCode: 'TEST',
-        hostUid: 'host',
+        hostUserId: 'host',
         status: GameStatus.Ongoing,
         templateRoles: [...templateRoles],
         players: {
-          0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'treasureMaster' },
-          1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
-          2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
-          3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+          0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'treasureMaster' },
+          1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+          2: { userId: 'p2', seatNumber: 2, hasViewedRole: true, role: 'seer' },
+          3: { userId: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
         },
         currentStepIndex: wolfKillIdx,
         currentStepId: 'wolfKill',

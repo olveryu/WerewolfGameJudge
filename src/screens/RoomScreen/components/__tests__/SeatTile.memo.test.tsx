@@ -52,7 +52,7 @@ describe('SeatTile memo optimization', () => {
     roleId: null,
     showBotRole: false,
     showReadyBadge: false,
-    playerUid: 'user-1',
+    playerUserId: 'user-1',
     playerAvatarUrl: undefined,
     playerDisplayName: 'Player 1',
     isPlayerAnonymous: true,
@@ -91,11 +91,11 @@ describe('SeatTile memo optimization', () => {
     expect(renderCount).toBe(2);
   });
 
-  it('should re-render when playerUid changes (player swap)', () => {
+  it('should re-render when playerUserId changes (player swap)', () => {
     const { rerender } = render(<TrackedSeatTile {...baseProps} />);
     expect(renderCount).toBe(1);
 
-    rerender(<TrackedSeatTile {...baseProps} playerUid="user-2" playerDisplayName="Player 2" />);
+    rerender(<TrackedSeatTile {...baseProps} playerUserId="user-2" playerDisplayName="Player 2" />);
     expect(renderCount).toBe(2);
   });
 
@@ -103,7 +103,7 @@ describe('SeatTile memo optimization', () => {
     const { rerender } = render(<TrackedSeatTile {...baseProps} />);
     expect(renderCount).toBe(1);
 
-    rerender(<TrackedSeatTile {...baseProps} playerUid={null} playerDisplayName={null} />);
+    rerender(<TrackedSeatTile {...baseProps} playerUserId={null} playerDisplayName={null} />);
     expect(renderCount).toBe(2);
   });
 
@@ -147,7 +147,7 @@ describe('SeatTile memo logic', () => {
       showBotRole: false,
       showReadyBadge: false,
       isSelected: false,
-      playerUid: 'user-1',
+      playerUserId: 'user-1',
       playerAvatarUrl: 'https://example.com/avatar.png',
       playerDisplayName: 'Player 1',
       isPlayerAnonymous: false,
@@ -182,7 +182,7 @@ describe('SeatTile memo logic', () => {
       showBotRole: false,
       showReadyBadge: false,
       isSelected: false,
-      playerUid: null,
+      playerUserId: null,
       playerDisplayName: null,
       isPlayerAnonymous: false,
       showLevel: false,
@@ -255,7 +255,7 @@ describe('createSeatTileStyles optimization', () => {
     showBotRole: false,
     showReadyBadge: false,
     isSelected: false,
-    playerUid: 'user-1',
+    playerUserId: 'user-1',
     playerAvatarUrl: undefined,
     playerDisplayName: 'Player 1',
     isPlayerAnonymous: true,

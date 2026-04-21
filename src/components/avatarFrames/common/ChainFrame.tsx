@@ -34,8 +34,8 @@ function edgeLinks(
 }
 
 export const ChainFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gBorder = `chainB${uid}`;
+  const userId = useId();
+  const gBorder = `chainB${userId}`;
   const links = [
     ...edgeLinks(0, 0, 100, 0, 6), // top
     ...edgeLinks(100, 0, 100, 100, 6), // right

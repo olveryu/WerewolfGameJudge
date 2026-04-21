@@ -70,8 +70,8 @@ describe('getUniqueAvatarMap', () => {
     const map1 = getUniqueAvatarMap(roomId, uids);
     const map2 = getUniqueAvatarMap(roomId, uids);
 
-    for (const uid of uids) {
-      expect(map1.get(uid)).toBe(map2.get(uid));
+    for (const userId of uids) {
+      expect(map1.get(userId)).toBe(map2.get(userId));
     }
   });
 });

@@ -18,9 +18,9 @@ import type { FrameProps } from './FrameProps';
  * 海底珊瑚丛 · 分枝造型 · 橙→青渐变 + 气泡高光 + 海星。
  */
 export const CoralReefFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const corGrad = `corG${uid}`;
-  const corGlow = `corGl${uid}`;
+  const userId = useId();
+  const corGrad = `corG${userId}`;
+  const corGlow = `corGl${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

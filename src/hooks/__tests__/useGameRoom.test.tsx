@@ -37,7 +37,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     subscribe: jest.fn().mockReturnValue(() => {}),
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(false),
-    getMyUid: jest.fn().mockReturnValue('player-uid'),
+    getMyUserId: jest.fn().mockReturnValue('player-uid'),
     getMySeatNumber: jest.fn().mockReturnValue(null),
     getStateRevision: jest.fn().mockReturnValue(0),
     createRoom: jest.fn().mockResolvedValue(undefined),
@@ -70,7 +70,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
     shareNightReview: jest.fn().mockResolvedValue({ success: true }),
     manualReconnect: jest.fn(),
-    updateMyUid: jest.fn(),
+    updateMyUserId: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
     kickPlayer: jest.fn().mockResolvedValue({ success: true }),
     consumeLastAction: jest.fn().mockReturnValue(null),
@@ -99,7 +99,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         createRoom: jest.fn(),
         getRoom: jest
           .fn()
-          .mockResolvedValue({ roomNumber: '1234', hostUid: 'test-uid', createdAt: new Date() }),
+          .mockResolvedValue({ roomNumber: '1234', hostUserId: 'test-uid', createdAt: new Date() }),
         deleteRoom: jest.fn(),
       },
       settingsService: {
@@ -287,7 +287,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       const mockState = {
         roomCode: 'TEST',
-        hostUid: 'host-1',
+        hostUserId: 'host-1',
         status: GameStatus.Unseated,
         templateRoles: ['villager', 'wolf', 'seer'],
         players: {},
@@ -334,7 +334,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     subscribe: jest.fn().mockReturnValue(() => {}),
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(true),
-    getMyUid: jest.fn().mockReturnValue('host-uid'),
+    getMyUserId: jest.fn().mockReturnValue('host-uid'),
     getMySeatNumber: jest.fn().mockReturnValue(0),
     getStateRevision: jest.fn().mockReturnValue(1),
     consumeLastAction: jest.fn().mockReturnValue(null),
@@ -369,7 +369,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
     shareNightReview: jest.fn().mockResolvedValue({ success: true }),
     manualReconnect: jest.fn(),
-    updateMyUid: jest.fn(),
+    updateMyUserId: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
     kickPlayer: jest.fn().mockResolvedValue({ success: true }),
     boardNominate: jest.fn().mockResolvedValue({ success: true }),
@@ -396,7 +396,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
         createRoom: jest.fn(),
         getRoom: jest
           .fn()
-          .mockResolvedValue({ roomNumber: '1234', hostUid: 'host-uid', createdAt: new Date() }),
+          .mockResolvedValue({ roomNumber: '1234', hostUserId: 'host-uid', createdAt: new Date() }),
         deleteRoom: jest.fn(),
       },
       settingsService: {
@@ -423,19 +423,19 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
       roomCode: 'TEST',
-      hostUid: 'host-uid',
+      hostUserId: 'host-uid',
       status: GameStatus.Assigned as const,
       templateRoles: ['villager', 'wolf'],
       players: {
         0: {
-          uid: 'host-uid',
+          userId: 'host-uid',
           seatNumber: 0,
           displayName: 'Host',
           role: 'villager',
           hasViewedRole: true,
         },
         1: {
-          uid: 'bot-1',
+          userId: 'bot-1',
           seatNumber: 1,
           displayName: 'Bot 1',
           role: 'wolf',
@@ -492,19 +492,19 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
     const mockState = {
       roomCode: 'TEST',
-      hostUid: 'host-uid',
+      hostUserId: 'host-uid',
       status: GameStatus.Assigned as const,
       templateRoles: ['villager', 'wolfRobot'],
       players: {
         0: {
-          uid: 'host-uid',
+          userId: 'host-uid',
           seatNumber: 0,
           displayName: 'Host',
           role: 'villager',
           hasViewedRole: true,
         },
         1: {
-          uid: 'bot-1',
+          userId: 'bot-1',
           seatNumber: 1,
           displayName: 'Bot 1',
           role: 'wolfRobot',
@@ -556,12 +556,12 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
       roomCode: 'TEST',
-      hostUid: 'host-uid',
+      hostUserId: 'host-uid',
       status: GameStatus.Assigned as const,
       templateRoles: ['villager', 'wolf', 'seer'],
       players: {
         0: {
-          uid: 'host-uid',
+          userId: 'host-uid',
           seatNumber: 0,
           displayName: 'Host',
           role: 'villager',
@@ -609,7 +609,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     subscribe: jest.fn().mockReturnValue(() => {}),
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(false),
-    getMyUid: jest.fn().mockReturnValue('player-uid'),
+    getMyUserId: jest.fn().mockReturnValue('player-uid'),
     getMySeatNumber: jest.fn().mockReturnValue(null),
     getStateRevision: jest.fn().mockReturnValue(0),
     consumeLastAction: jest.fn().mockReturnValue(null),
@@ -644,7 +644,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     resumeAfterRejoin: jest.fn().mockResolvedValue(undefined),
     shareNightReview: jest.fn().mockResolvedValue({ success: true }),
     manualReconnect: jest.fn(),
-    updateMyUid: jest.fn(),
+    updateMyUserId: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
     kickPlayer: jest.fn().mockResolvedValue({ success: true }),
     boardNominate: jest.fn().mockResolvedValue({ success: true }),
@@ -671,7 +671,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
         createRoom: jest.fn(),
         getRoom: jest
           .fn()
-          .mockResolvedValue({ roomNumber: '1234', hostUid: 'host-uid', createdAt: new Date() }),
+          .mockResolvedValue({ roomNumber: '1234', hostUserId: 'host-uid', createdAt: new Date() }),
         deleteRoom: jest.fn(),
       },
       settingsService: {
@@ -693,12 +693,12 @@ describe('useGameRoom - rejoin continue overlay', () => {
   /** Ongoing broadcast state for rejoin scenarios */
   const ongoingGameState = {
     roomCode: 'REJN',
-    hostUid: 'host-uid',
+    hostUserId: 'host-uid',
     status: GameStatus.Ongoing as const,
     templateRoles: ['wolf', 'villager'],
     players: {
       0: {
-        uid: 'host-uid',
+        userId: 'host-uid',
         seatNumber: 0,
         displayName: 'Host',
         avatarUrl: undefined,
@@ -718,7 +718,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
-      getMyUid: jest.fn().mockReturnValue('host-uid'),
+      getMyUserId: jest.fn().mockReturnValue('host-uid'),
       getMySeatNumber: jest.fn().mockReturnValue(0),
     });
 
@@ -738,7 +738,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: false,
       getState: jest.fn().mockReturnValue(ongoingGameState),
-      getMyUid: jest.fn().mockReturnValue('host-uid'),
+      getMyUserId: jest.fn().mockReturnValue('host-uid'),
       getMySeatNumber: jest.fn().mockReturnValue(0),
     });
 
@@ -756,7 +756,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       isHostPlayer: jest.fn().mockReturnValue(false),
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
-      getMyUid: jest.fn().mockReturnValue('player-2'),
+      getMyUserId: jest.fn().mockReturnValue('player-2'),
       getMySeatNumber: jest.fn().mockReturnValue(1),
     });
 
@@ -774,7 +774,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
-      getMyUid: jest.fn().mockReturnValue('host-uid'),
+      getMyUserId: jest.fn().mockReturnValue('host-uid'),
       getMySeatNumber: jest.fn().mockReturnValue(0),
     });
 
@@ -801,7 +801,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       isHostPlayer: jest.fn().mockReturnValue(true),
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
-      getMyUid: jest.fn().mockReturnValue('host-uid'),
+      getMyUserId: jest.fn().mockReturnValue('host-uid'),
       getMySeatNumber: jest.fn().mockReturnValue(0),
     });
 

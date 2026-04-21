@@ -126,13 +126,13 @@ function createMinimalState(
 ): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Ongoing,
     templateRoles: ['villager', role, 'wolf'],
     players: {
-      0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-      1: { uid: 'p2', seatNumber: 1, role, hasViewedRole: true },
-      2: { uid: 'p3', seatNumber: 2, role: 'wolf', hasViewedRole: true },
+      0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+      1: { userId: 'p2', seatNumber: 1, role, hasViewedRole: true },
+      2: { userId: 'p3', seatNumber: 2, role: 'wolf', hasViewedRole: true },
     },
     currentStepIndex: 1,
     isAudioPlaying: false,
@@ -148,7 +148,7 @@ function createMinimalState(
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
-    myUid: 'host-1',
+    myUserId: 'host-1',
     mySeat: 1,
     ...overrides,
   };

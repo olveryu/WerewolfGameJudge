@@ -60,7 +60,7 @@ function applyActions(current: GameState, actions: StateAction[]): GameState {
 function createContext(state: GameState): HandlerContext {
   return {
     state,
-    myUid: 'host-uid',
+    myUserId: 'host-uid',
     mySeat: null,
   };
 }
@@ -92,7 +92,7 @@ export function createGame(
   const roster: Record<string, { displayName: string }> = {};
   for (let i = 0; i < template.numberOfPlayers; i++) {
     initialPlayers[i] = {
-      uid: `player_${i}`,
+      userId: `player_${i}`,
       seatNumber: i,
       role: null,
       hasViewedRole: false,
@@ -102,7 +102,7 @@ export function createGame(
 
   let state: GameState = {
     roomCode: 'TEST01',
-    hostUid: 'host-uid',
+    hostUserId: 'host-uid',
     status: GameStatus.Seated,
     templateRoles: template.roles,
     players: initialPlayers,

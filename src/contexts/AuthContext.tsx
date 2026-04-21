@@ -19,7 +19,7 @@ import { isAbortError, isNetworkError } from '@/utils/errorUtils';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
 
 export interface User {
-  uid: string;
+  id: string;
   email: string | null;
   displayName: string | null;
   avatarUrl: string | null;
@@ -65,7 +65,7 @@ const userEquals = (a: User | null, b: User | null): boolean => {
   if (a === b) return true;
   if (!a || !b) return false;
   return (
-    a.uid === b.uid &&
+    a.id === b.id &&
     a.email === b.email &&
     a.displayName === b.displayName &&
     a.avatarUrl === b.avatarUrl &&
@@ -81,7 +81,7 @@ const userEquals = (a: User | null, b: User | null): boolean => {
 const toUser = (authUser: AuthUser | null): User | null => {
   if (!authUser) return null;
   return {
-    uid: authUser.id,
+    id: authUser.id,
     email: authUser.email || null,
     displayName: (authUser.user_metadata?.display_name as string) || null,
     avatarUrl: (authUser.user_metadata?.avatar_url as string) || null,
@@ -134,8 +134,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const u = toUser(result.data.user);
           updateUserIfChanged(u);
           if (u) {
-            authLog.info('User loaded', { uid: u.uid, isAnonymous: u.isAnonymous });
-            Sentry.setUser({ id: u.uid });
+            authLog.info('User loaded', { id: u.id, isAnonymous: u.isAnonymous });
+            Sentry.setUser({ id: u.id });
           }
         } else {
           authLog.info('No stored user');
@@ -160,8 +160,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const u = toUser(result.data.user);
         updateUserIfChanged(u);
         if (u) {
-          authLog.info('signInAnonymously', { uid: u.uid });
-          Sentry.setUser({ id: u.uid });
+          authLog.info('signInAnonymously', { id: u.id });
+          Sentry.setUser({ id: u.id });
         }
       }
     } catch (e: unknown) {
@@ -181,8 +181,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const u = toUser(result.user);
           updateUserIfChanged(u);
           if (u) {
-            authLog.info('signUpWithEmail', { uid: u.uid });
-            Sentry.setUser({ id: u.uid });
+            authLog.info('signUpWithEmail', { id: u.id });
+            Sentry.setUser({ id: u.id });
           }
         }
       } catch (e: unknown) {
@@ -205,8 +205,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const u = toUser(result.data.user);
           updateUserIfChanged(u);
           if (u) {
-            authLog.info('signInWithEmail', { uid: u.uid });
-            Sentry.setUser({ id: u.uid });
+            authLog.info('signInWithEmail', { id: u.id });
+            Sentry.setUser({ id: u.id });
           }
         }
       } catch (e: unknown) {
@@ -305,7 +305,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updateUserIfChanged(u);
           if (u) {
             authLog.info('resetPassword success');
-            Sentry.setUser({ id: u.uid });
+            Sentry.setUser({ id: u.id });
           }
         }
       } catch (e: unknown) {
@@ -327,7 +327,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (result?.data?.user) {
           const u = toUser(result.data.user);
           updateUserIfChanged(u);
-          if (u) Sentry.setUser({ id: u.uid });
+          if (u) Sentry.setUser({ id: u.id });
         }
       } catch (e: unknown) {
         handleAuthError(e, 'WeChat sign-in failed', { rethrow: true });

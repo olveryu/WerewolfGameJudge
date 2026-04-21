@@ -9,8 +9,8 @@ import type { FrameProps } from './FrameProps';
  * 暗影编织 · 双层交错波纹 · 凯尔特角结 + 十字缝合。
  */
 export const ShadowWeaveFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const shwGrad = `shwG${uid}`;
+  const userId = useId();
+  const shwGrad = `shwG${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

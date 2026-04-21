@@ -38,7 +38,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
  */
 function createPlayer(seat: number, role: string, overrides?: Partial<Player>): Player {
   return {
-    uid: `player-${seat}`,
+    userId: `player-${seat}`,
     seatNumber: seat,
     role: role as Player['role'],
     hasViewedRole: true,
@@ -52,7 +52,7 @@ function createPlayer(seat: number, role: string, overrides?: Partial<Player>): 
 function createOngoingState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-uid',
+    hostUserId: 'host-uid',
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'],
     players: {
@@ -85,7 +85,7 @@ describe('nightFlowHandler', () => {
       it('should reject when state is null', () => {
         const context: HandlerContext = {
           state: null,
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -106,7 +106,7 @@ describe('nightFlowHandler', () => {
       ] as const)('should reject when status is %s', (status) => {
         const context: HandlerContext = {
           state: createOngoingState({ status }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -121,7 +121,7 @@ describe('nightFlowHandler', () => {
       it('should reject when audio is playing', () => {
         const context: HandlerContext = {
           state: createOngoingState({ isAudioPlaying: true }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -146,7 +146,7 @@ describe('nightFlowHandler', () => {
             currentStepId: 'wolfKill',
             templateRoles,
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -188,7 +188,7 @@ describe('nightFlowHandler', () => {
             currentStepIndex: lastIndex,
             currentStepId: nightPlan.steps[lastIndex]?.stepId,
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -217,9 +217,15 @@ describe('nightFlowHandler', () => {
           isAudioPlaying: false,
           templateRoles: ['wolf', 'villager'],
           players: {
-            0: { uid: 'u0', seatNumber: 0, displayName: 'P0', role: 'wolf', hasViewedRole: true },
+            0: {
+              userId: 'u0',
+              seatNumber: 0,
+              displayName: 'P0',
+              role: 'wolf',
+              hasViewedRole: true,
+            },
             1: {
-              uid: 'u1',
+              userId: 'u1',
               seatNumber: 1,
               displayName: 'P1',
               role: 'villager',
@@ -250,7 +256,7 @@ describe('nightFlowHandler', () => {
       it('should reject when state is null', () => {
         const context: HandlerContext = {
           state: null,
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -271,7 +277,7 @@ describe('nightFlowHandler', () => {
       ] as const)('should reject when status is %s', (status) => {
         const context: HandlerContext = {
           state: createOngoingState({ status }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -286,7 +292,7 @@ describe('nightFlowHandler', () => {
       it('should reject when audio is playing', () => {
         const context: HandlerContext = {
           state: createOngoingState({ isAudioPlaying: true }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -305,7 +311,7 @@ describe('nightFlowHandler', () => {
             currentStepId: 'wolfKill', // 还在 wolfKill 步骤
             currentNightResults: { wolfVotesBySeat: {} },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -325,7 +331,7 @@ describe('nightFlowHandler', () => {
             currentStepId: undefined,
             currentNightResults: { wolfVotesBySeat: {} },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -351,7 +357,7 @@ describe('nightFlowHandler', () => {
             currentStepId: undefined,
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 4 } },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -373,7 +379,7 @@ describe('nightFlowHandler', () => {
             currentStepId: undefined,
             currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -400,7 +406,7 @@ describe('nightFlowHandler', () => {
               ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
             },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -433,7 +439,7 @@ describe('nightFlowHandler', () => {
               { schemaId: 'guardProtect', actorSeat: 3, targetSeat: 4, timestamp: Date.now() },
             ],
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -473,7 +479,7 @@ describe('nightFlowHandler', () => {
               swappedSeats: [2, 4] as readonly [number, number],
             },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -512,7 +518,7 @@ describe('nightFlowHandler', () => {
               { schemaId: 'seerCheck', actorSeat: 3, targetSeat: 2, timestamp: Date.now() },
             ],
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -549,7 +555,7 @@ describe('nightFlowHandler', () => {
               { schemaId: 'seerCheck', actorSeat: 3, targetSeat: 4, timestamp: Date.now() },
             ],
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -581,7 +587,7 @@ describe('nightFlowHandler', () => {
               // no swappedSeats
             },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -609,7 +615,7 @@ describe('nightFlowHandler', () => {
         };
         const context: HandlerContext = {
           state: null,
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -628,7 +634,7 @@ describe('nightFlowHandler', () => {
         };
         const context: HandlerContext = {
           state: createOngoingState({ status: GameStatus.Ready }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -647,7 +653,7 @@ describe('nightFlowHandler', () => {
         };
         const context: HandlerContext = {
           state: createOngoingState({ isAudioPlaying: false }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -670,7 +676,7 @@ describe('nightFlowHandler', () => {
         };
         const context: HandlerContext = {
           state: createOngoingState({ isAudioPlaying: true }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -690,7 +696,7 @@ describe('nightFlowHandler', () => {
         const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
         const context: HandlerContext = {
           state: createOngoingState({ isAudioPlaying: true }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -704,7 +710,7 @@ describe('nightFlowHandler', () => {
         const intent: EndNightIntent = { type: 'END_NIGHT' };
         const context: HandlerContext = {
           state: createOngoingState({ isAudioPlaying: true }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -745,7 +751,7 @@ describe('nightFlowHandler', () => {
             // 狼杀了女巫（座位 1）
             currentNightResults: { wolfVotesBySeat: { '0': 1 } },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -786,7 +792,7 @@ describe('nightFlowHandler', () => {
             // 狼杀了村民（座位 2）
             currentNightResults: { wolfVotesBySeat: { '0': 2 } },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -833,7 +839,7 @@ describe('nightFlowHandler', () => {
             templateRoles,
             currentNightResults: {},
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 
@@ -872,7 +878,7 @@ describe('nightFlowHandler', () => {
             // witchContext 已经设置（进入 witchAction 时设置的）
             witchContext: { killedSeat: -1, canSave: false, canPoison: true },
           }),
-          myUid: 'host-uid',
+          myUserId: 'host-uid',
           mySeat: null,
         };
 

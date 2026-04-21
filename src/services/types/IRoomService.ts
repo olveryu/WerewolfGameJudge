@@ -10,20 +10,20 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 /** 房间记录（面向消费者的抽象） */
 export interface RoomRecord {
   roomNumber: string;
-  hostUid: string;
+  hostUserId: string;
   createdAt: Date;
 }
 
 export interface IRoomService {
   /**
    * 创建房间（乐观插入 + 冲突重试）。
-   * @param hostUid - Host 用户 ID
+   * @param hostUserId - Host 用户 ID
    * @param initialRoomNumber - 尝试的初始房间号
    * @param maxRetries - 冲突重试上限（默认 5）
    * @param buildInitialState - 可选的初始 state 构建器
    */
   createRoom(
-    hostUid: string,
+    hostUserId: string,
     initialRoomNumber?: string,
     maxRetries?: number,
     buildInitialState?: (roomCode: string) => GameState,

@@ -15,9 +15,9 @@ interface ColoredFrameProps extends FrameProps {
 }
 
 export const GrooveFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gOuter = `grooveO${uid}`;
-  const gInner = `grooveI${uid}`;
+  const userId = useId();
+  const gOuter = `grooveO${userId}`;
+  const gInner = `grooveI${userId}`;
   const midRx = Math.max(rx - 3, 2);
   const innerRx = Math.max(rx - 6, 2);
   return (

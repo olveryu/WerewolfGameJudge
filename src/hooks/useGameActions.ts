@@ -90,7 +90,7 @@ interface GameActionsState {
 
   // Board nomination (任意已连接玩家)
   boardNominate: (displayName: string, roles: RoleId[]) => Promise<void>;
-  boardUpvote: (targetUid: string) => Promise<void>;
+  boardUpvote: (targetUserId: string) => Promise<void>;
   boardWithdraw: () => Promise<void>;
 
   // Game state queries
@@ -271,8 +271,8 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   );
 
   const boardUpvote = useCallback(
-    async (targetUid: string): Promise<void> => {
-      const result = await facade.boardUpvote(targetUid);
+    async (targetUserId: string): Promise<void> => {
+      const result = await facade.boardUpvote(targetUserId);
       handleMutationResult(result, '点赞', toastError);
     },
     [facade],

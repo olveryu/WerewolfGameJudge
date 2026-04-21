@@ -21,7 +21,7 @@ export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerConte
   }
 
   // 验证：座位所有权（Host 可标记任意座位用于 bot 控制；非 Host 只能标记自己的座位）
-  if (state.hostUid !== context.myUid && mySeat !== seat) {
+  if (state.hostUserId !== context.myUserId && mySeat !== seat) {
     return handlerError('not_my_seat');
   }
 

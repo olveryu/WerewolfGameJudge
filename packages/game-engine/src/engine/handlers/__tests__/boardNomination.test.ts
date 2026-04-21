@@ -22,7 +22,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
@@ -38,7 +38,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
-    myUid: 'player-1',
+    myUserId: 'player-1',
     mySeat: null,
     ...overrides,
   };
@@ -52,7 +52,7 @@ describe('handleBoardNominate', () => {
   const intent: BoardNominateIntent = {
     type: 'BOARD_NOMINATE',
     payload: {
-      uid: 'player-1',
+      userId: 'player-1',
       displayName: 'Player 1',
       roles: ['villager', 'wolf', 'seer'],
     },
@@ -102,7 +102,7 @@ describe('handleBoardNominate', () => {
     const action = result.actions[0];
     expect(action.type).toBe('SET_BOARD_NOMINATION');
     if (action.type === 'SET_BOARD_NOMINATION') {
-      expect(action.payload.nomination.uid).toBe('player-1');
+      expect(action.payload.nomination.userId).toBe('player-1');
       expect(action.payload.nomination.displayName).toBe('Player 1');
       expect(action.payload.nomination.upvoters).toEqual([]);
     }
@@ -114,7 +114,7 @@ describe('handleBoardNominate', () => {
     const state = createMinimalState({
       boardNominations: {
         'player-2': {
-          uid: 'player-2',
+          userId: 'player-2',
           displayName: 'Player 2',
           roles: ['villager', 'wolf', 'seer'],
           upvoters: [],
@@ -127,7 +127,7 @@ describe('handleBoardNominate', () => {
     expect(result.actions).toHaveLength(1);
     expect(result.actions[0].type).toBe('UPVOTE_BOARD_NOMINATION');
     if (result.actions[0].type === 'UPVOTE_BOARD_NOMINATION') {
-      expect(result.actions[0].payload.targetUid).toBe('player-2');
+      expect(result.actions[0].payload.targetUserId).toBe('player-2');
       expect(result.actions[0].payload.voterUid).toBe('player-1');
     }
   });
@@ -136,7 +136,7 @@ describe('handleBoardNominate', () => {
     const state = createMinimalState({
       boardNominations: {
         'player-2': {
-          uid: 'player-2',
+          userId: 'player-2',
           displayName: 'Player 2',
           roles: ['seer', 'villager', 'wolf'],
           upvoters: [],
@@ -153,7 +153,7 @@ describe('handleBoardNominate', () => {
     const state = createMinimalState({
       boardNominations: {
         'player-1': {
-          uid: 'player-1',
+          userId: 'player-1',
           displayName: 'Player 1',
           roles: ['villager', 'wolf', 'seer'],
           upvoters: ['player-3'],
@@ -170,7 +170,7 @@ describe('handleBoardNominate', () => {
     const state = createMinimalState({
       boardNominations: {
         'player-2': {
-          uid: 'player-2',
+          userId: 'player-2',
           displayName: 'Player 2',
           roles: ['villager', 'wolf', 'witch'],
           upvoters: [],
@@ -192,7 +192,7 @@ describe('handleBoardUpvote', () => {
   const stateWithNomination = createMinimalState({
     boardNominations: {
       'player-1': {
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Player 1',
         roles: ['villager', 'wolf', 'seer'],
         upvoters: [],
@@ -203,9 +203,9 @@ describe('handleBoardUpvote', () => {
   it('succeeds for valid upvote', () => {
     const intent: BoardUpvoteIntent = {
       type: 'BOARD_UPVOTE',
-      payload: { targetUid: 'player-1', voterUid: 'player-2' },
+      payload: { targetUserId: 'player-1', voterUid: 'player-2' },
     };
-    const ctx = createContext(stateWithNomination, { myUid: 'player-2' });
+    const ctx = createContext(stateWithNomination, { myUserId: 'player-2' });
     const result = expectSuccess(handleBoardUpvote(intent, ctx));
     expect(result.actions).toHaveLength(1);
     expect(result.actions[0].type).toBe('UPVOTE_BOARD_NOMINATION');
@@ -214,7 +214,7 @@ describe('handleBoardUpvote', () => {
   it('allows self-upvote', () => {
     const intent: BoardUpvoteIntent = {
       type: 'BOARD_UPVOTE',
-      payload: { targetUid: 'player-1', voterUid: 'player-1' },
+      payload: { targetUserId: 'player-1', voterUid: 'player-1' },
     };
     const ctx = createContext(stateWithNomination);
     const result = expectSuccess(handleBoardUpvote(intent, ctx));
@@ -225,9 +225,9 @@ describe('handleBoardUpvote', () => {
   it('rejects when target nomination does not exist', () => {
     const intent: BoardUpvoteIntent = {
       type: 'BOARD_UPVOTE',
-      payload: { targetUid: 'nonexistent', voterUid: 'player-2' },
+      payload: { targetUserId: 'nonexistent', voterUid: 'player-2' },
     };
-    const ctx = createContext(stateWithNomination, { myUid: 'player-2' });
+    const ctx = createContext(stateWithNomination, { myUserId: 'player-2' });
     expectError(handleBoardUpvote(intent, ctx));
   });
 
@@ -238,9 +238,9 @@ describe('handleBoardUpvote', () => {
     });
     const intent: BoardUpvoteIntent = {
       type: 'BOARD_UPVOTE',
-      payload: { targetUid: 'player-1', voterUid: 'player-2' },
+      payload: { targetUserId: 'player-1', voterUid: 'player-2' },
     };
-    const ctx = createContext(state, { myUid: 'player-2' });
+    const ctx = createContext(state, { myUserId: 'player-2' });
     expectError(handleBoardUpvote(intent, ctx));
   });
 });
@@ -253,7 +253,7 @@ describe('handleBoardWithdraw', () => {
   const stateWithNomination = createMinimalState({
     boardNominations: {
       'player-1': {
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Player 1',
         roles: ['villager', 'wolf', 'seer'],
         upvoters: [],
@@ -264,7 +264,7 @@ describe('handleBoardWithdraw', () => {
   it('succeeds for own nomination', () => {
     const intent: BoardWithdrawIntent = {
       type: 'BOARD_WITHDRAW',
-      payload: { uid: 'player-1' },
+      payload: { userId: 'player-1' },
     };
     const ctx = createContext(stateWithNomination);
     const result = expectSuccess(handleBoardWithdraw(intent, ctx));
@@ -275,7 +275,7 @@ describe('handleBoardWithdraw', () => {
   it('rejects when nomination does not exist', () => {
     const intent: BoardWithdrawIntent = {
       type: 'BOARD_WITHDRAW',
-      payload: { uid: 'nonexistent' },
+      payload: { userId: 'nonexistent' },
     };
     const ctx = createContext(stateWithNomination);
     expectError(handleBoardWithdraw(intent, ctx));
@@ -288,7 +288,7 @@ describe('handleBoardWithdraw', () => {
     });
     const intent: BoardWithdrawIntent = {
       type: 'BOARD_WITHDRAW',
-      payload: { uid: 'player-1' },
+      payload: { userId: 'player-1' },
     };
     const ctx = createContext(state);
     expectError(handleBoardWithdraw(intent, ctx));
@@ -303,13 +303,13 @@ describe('handleUpvoteBoardNomination (reducer)', () => {
   const baseState = createMinimalState({
     boardNominations: {
       'player-1': {
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Player 1',
         roles: ['villager', 'wolf', 'seer'],
         upvoters: [],
       },
       'player-2': {
-        uid: 'player-2',
+        userId: 'player-2',
         displayName: 'Player 2',
         roles: ['wolf', 'seer', 'villager'],
         upvoters: [],
@@ -320,7 +320,7 @@ describe('handleUpvoteBoardNomination (reducer)', () => {
   it('adds vote', () => {
     const result = handleUpvoteBoardNomination(baseState, {
       type: 'UPVOTE_BOARD_NOMINATION',
-      payload: { targetUid: 'player-1', voterUid: 'player-3' },
+      payload: { targetUserId: 'player-1', voterUid: 'player-3' },
     });
     expect(result.boardNominations!['player-1'].upvoters).toEqual(['player-3']);
     expect(result.boardNominations!['player-2'].upvoters).toEqual([]);
@@ -329,11 +329,11 @@ describe('handleUpvoteBoardNomination (reducer)', () => {
   it('toggles off on second click', () => {
     const voted = handleUpvoteBoardNomination(baseState, {
       type: 'UPVOTE_BOARD_NOMINATION',
-      payload: { targetUid: 'player-1', voterUid: 'player-3' },
+      payload: { targetUserId: 'player-1', voterUid: 'player-3' },
     });
     const toggled = handleUpvoteBoardNomination(voted, {
       type: 'UPVOTE_BOARD_NOMINATION',
-      payload: { targetUid: 'player-1', voterUid: 'player-3' },
+      payload: { targetUserId: 'player-1', voterUid: 'player-3' },
     });
     expect(toggled.boardNominations!['player-1'].upvoters).toEqual([]);
   });
@@ -341,13 +341,13 @@ describe('handleUpvoteBoardNomination (reducer)', () => {
   it('auto-switches vote to new nomination', () => {
     const votedA = handleUpvoteBoardNomination(baseState, {
       type: 'UPVOTE_BOARD_NOMINATION',
-      payload: { targetUid: 'player-1', voterUid: 'player-3' },
+      payload: { targetUserId: 'player-1', voterUid: 'player-3' },
     });
     expect(votedA.boardNominations!['player-1'].upvoters).toEqual(['player-3']);
 
     const votedB = handleUpvoteBoardNomination(votedA, {
       type: 'UPVOTE_BOARD_NOMINATION',
-      payload: { targetUid: 'player-2', voterUid: 'player-3' },
+      payload: { targetUserId: 'player-2', voterUid: 'player-3' },
     });
     expect(votedB.boardNominations!['player-1'].upvoters).toEqual([]);
     expect(votedB.boardNominations!['player-2'].upvoters).toEqual(['player-3']);

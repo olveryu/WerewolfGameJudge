@@ -21,7 +21,7 @@ function makeSeat(overrides: Partial<SeatViewModel> & { seat: number }): SeatVie
   return {
     role: 'villager' as const,
     player: {
-      uid: `uid-${overrides.seat}`,
+      userId: `uid-${overrides.seat}`,
       displayName: `Player ${overrides.seat + 1}`,
     },
     isMySpot: false,

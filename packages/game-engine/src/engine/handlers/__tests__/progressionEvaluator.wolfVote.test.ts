@@ -21,15 +21,15 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host',
+    hostUserId: 'host',
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'wolf', 'villager', 'villager', 'seer'],
     players: {
-      0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
-      1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
-      2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'villager' },
-      3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
-      4: { uid: 'p4', seatNumber: 4, hasViewedRole: true, role: 'seer' },
+      0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+      1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+      2: { userId: 'p2', seatNumber: 2, hasViewedRole: true, role: 'villager' },
+      3: { userId: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+      4: { userId: 'p4', seatNumber: 4, hasViewedRole: true, role: 'seer' },
     },
     currentStepIndex: 0,
     currentStepId: 'wolfKill',
@@ -69,9 +69,9 @@ describe('isWolfVoteAllComplete', () => {
   it('player.role 缺失 → false（fail-closed，旧逻辑 continue 会误判完成）', () => {
     const state = createWolfKillState({
       players: {
-        0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
-        1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: null }, // role 缺失
-        2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'villager' },
+        0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+        1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: null }, // role 缺失
+        2: { userId: 'p2', seatNumber: 2, hasViewedRole: true, role: 'villager' },
       },
       currentNightResults: {
         wolfVotesBySeat: { '0': 2 },
@@ -83,8 +83,8 @@ describe('isWolfVoteAllComplete', () => {
   it('无参与狼人(0 wolves) → false', () => {
     const state = createWolfKillState({
       players: {
-        0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'villager' },
-        1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'seer' },
+        0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'villager' },
+        1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'seer' },
       },
       currentNightResults: {},
     });
@@ -117,11 +117,11 @@ describe('isWolfVoteAllComplete', () => {
     const state = createWolfKillState({
       // All 5 players have roles — the only valid ongoing state
       players: {
-        0: { uid: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
-        1: { uid: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
-        2: { uid: 'p2', seatNumber: 2, hasViewedRole: true, role: 'villager' },
-        3: { uid: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
-        4: { uid: 'p4', seatNumber: 4, hasViewedRole: true, role: 'seer' },
+        0: { userId: 'p0', seatNumber: 0, hasViewedRole: true, role: 'wolf' },
+        1: { userId: 'p1', seatNumber: 1, hasViewedRole: true, role: 'wolf' },
+        2: { userId: 'p2', seatNumber: 2, hasViewedRole: true, role: 'villager' },
+        3: { userId: 'p3', seatNumber: 3, hasViewedRole: true, role: 'villager' },
+        4: { userId: 'p4', seatNumber: 4, hasViewedRole: true, role: 'seer' },
       },
       currentNightResults: {
         wolfVotesBySeat: { '0': 2, '1': 3 },

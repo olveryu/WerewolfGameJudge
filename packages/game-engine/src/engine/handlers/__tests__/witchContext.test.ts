@@ -15,7 +15,7 @@ import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 
 function createPlayer(seat: number, role: string): Player {
   return {
-    uid: `uid-${seat}`,
+    userId: `uid-${seat}`,
     seatNumber: seat,
     role: role as Player['role'],
     hasViewedRole: true,
@@ -25,7 +25,7 @@ function createPlayer(seat: number, role: string): Player {
 function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<GameState> {
   return {
     roomCode: '1234',
-    hostUid: 'host-uid',
+    hostUserId: 'host-uid',
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'witch', 'villager'],
     players: {

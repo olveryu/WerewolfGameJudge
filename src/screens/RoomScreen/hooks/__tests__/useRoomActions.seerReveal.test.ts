@@ -11,7 +11,7 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 const makeGameState = (): LocalGameState =>
   ({
     roomCode: 'TEST',
-    hostUid: 'host-uid',
+    hostUserId: 'host-uid',
     status: GameStatus.Ongoing,
     template: {
       name: 'Test Template',
@@ -19,9 +19,9 @@ const makeGameState = (): LocalGameState =>
       roles: ['seer', 'witch', 'wolf', 'wolf', 'villager', 'villager'],
     },
     players: new Map([
-      [0, { uid: 'u1', seatNumber: 0, role: 'seer', hasViewedRole: true, displayName: 'P1' }],
-      [1, { uid: 'u2', seatNumber: 1, role: 'witch', hasViewedRole: true, displayName: 'P2' }],
-      [2, { uid: 'u3', seatNumber: 2, role: 'wolf', hasViewedRole: true, displayName: 'P3' }],
+      [0, { userId: 'u1', seatNumber: 0, role: 'seer', hasViewedRole: true, displayName: 'P1' }],
+      [1, { userId: 'u2', seatNumber: 1, role: 'witch', hasViewedRole: true, displayName: 'P2' }],
+      [2, { userId: 'u3', seatNumber: 2, role: 'wolf', hasViewedRole: true, displayName: 'P3' }],
     ]),
     actions: new Map(),
     wolfVotes: new Map(),

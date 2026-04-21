@@ -2,7 +2,7 @@
  * defaultAvatarIcons — Wolf paw icon with deterministic color tint
  *
  * Single wolf paw PNG × 20 tint colors. Each player gets a unique color
- * via FNV-1a hash on uid. The PNG is rendered with React Native `tintColor`.
+ * via FNV-1a hash on userId. The PNG is rendered with React Native `tintColor`.
  * 不引入 React、service，也不发起网络请求。
  */
 import { ImageSourcePropType } from 'react-native';
@@ -53,10 +53,10 @@ interface AvatarIconInfo {
 
 /**
  * Get the wolf paw icon with a deterministic tint color for a user.
- * Color selected via FNV-1a hash on uid.
+ * Color selected via FNV-1a hash on userId.
  */
-export function getAvatarIcon(uid: string): AvatarIconInfo {
-  const colorIndex = fnv1aHash(uid) % AVATAR_COLORS.length;
+export function getAvatarIcon(userId: string): AvatarIconInfo {
+  const colorIndex = fnv1aHash(userId) % AVATAR_COLORS.length;
   return {
     image: WOLF_PAW_IMAGE,
     color: AVATAR_COLORS[colorIndex],

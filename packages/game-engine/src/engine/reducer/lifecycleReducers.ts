@@ -26,7 +26,7 @@ import type {
 } from './types';
 
 export function handleInitializeGame(state: GameState, action: InitializeGameAction): GameState {
-  const { roomCode, hostUid, templateRoles, totalSeats } = action.payload;
+  const { roomCode, hostUserId, templateRoles, totalSeats } = action.payload;
   const players: Record<number, null> = {};
   for (let i = 0; i < totalSeats; i++) {
     players[i] = null;
@@ -34,7 +34,7 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
   return {
     ...state,
     roomCode,
-    hostUid,
+    hostUserId,
     templateRoles,
     players,
     status: GameStatus.Unseated,
@@ -81,7 +81,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
   return {
     // ── 保留字段（跨局不变） ──────────────────────────────
     roomCode: state.roomCode,
-    hostUid: state.hostUid,
+    hostUserId: state.hostUserId,
     templateRoles: state.templateRoles,
     roleRevealAnimation: state.roleRevealAnimation,
     debugMode: state.debugMode,
@@ -223,7 +223,7 @@ export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): Ga
   return {
     ...state,
     players: newPlayers,
-    roster: { ...state.roster, [player.uid]: rosterEntry },
+    roster: { ...state.roster, [player.userId]: rosterEntry },
     status: newStatus,
   };
 }
@@ -233,7 +233,7 @@ export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): 
   const leavingPlayer = state.players[seat];
   const newRoster = { ...state.roster };
   if (leavingPlayer) {
-    delete newRoster[leavingPlayer.uid];
+    delete newRoster[leavingPlayer.userId];
   }
   return {
     ...state,
@@ -247,15 +247,15 @@ export function handleUpdatePlayerProfile(
   state: GameState,
   action: UpdatePlayerProfileAction,
 ): GameState {
-  const { uid, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle } = action.payload;
-  const existing = state.roster[uid];
-  if (!existing) return state; // no-op if uid not in roster
+  const { userId, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle } = action.payload;
+  const existing = state.roster[userId];
+  if (!existing) return state; // no-op if userId not in roster
 
   return {
     ...state,
     roster: {
       ...state.roster,
-      [uid]: {
+      [userId]: {
         ...existing,
         ...(displayName !== undefined && { displayName }),
         ...(avatarUrl !== undefined && { avatarUrl }),
@@ -382,7 +382,7 @@ export function handleSetBoardNomination(
     ...state,
     boardNominations: {
       ...state.boardNominations,
-      [nomination.uid]: nomination,
+      [nomination.userId]: nomination,
     },
   };
 }
@@ -391,28 +391,28 @@ export function handleUpvoteBoardNomination(
   state: GameState,
   action: UpvoteBoardNominationAction,
 ): GameState {
-  const { targetUid, voterUid } = action.payload;
+  const { targetUserId, voterUid } = action.payload;
   const nominations = state.boardNominations;
-  const target = nominations?.[targetUid];
+  const target = nominations?.[targetUserId];
   if (!target) return state;
 
   // Toggle：已点赞则取消，未点赞则添加（每人全局只能投一条）
   const alreadyVoted = target.upvoters.includes(voterUid);
   const updatedUpvoters = alreadyVoted
-    ? target.upvoters.filter((uid) => uid !== voterUid)
+    ? target.upvoters.filter((userId) => userId !== voterUid)
     : [...target.upvoters, voterUid];
 
   // 投新票时，从其他建议中撤回旧票（单选）
   let updatedNominations = {
     ...nominations,
-    [targetUid]: { ...target, upvoters: updatedUpvoters },
+    [targetUserId]: { ...target, upvoters: updatedUpvoters },
   };
   if (!alreadyVoted) {
-    for (const [uid, nom] of Object.entries(updatedNominations)) {
-      if (uid !== targetUid && nom.upvoters.includes(voterUid)) {
+    for (const [userId, nom] of Object.entries(updatedNominations)) {
+      if (userId !== targetUserId && nom.upvoters.includes(voterUid)) {
         updatedNominations = {
           ...updatedNominations,
-          [uid]: { ...nom, upvoters: nom.upvoters.filter((u) => u !== voterUid) },
+          [userId]: { ...nom, upvoters: nom.upvoters.filter((u) => u !== voterUid) },
         };
       }
     }
@@ -428,11 +428,11 @@ export function handleWithdrawBoardNomination(
   state: GameState,
   action: WithdrawBoardNominationAction,
 ): GameState {
-  const { uid } = action.payload;
+  const { userId } = action.payload;
   const nominations = state.boardNominations;
-  if (!nominations?.[uid]) return state;
+  if (!nominations?.[userId]) return state;
 
-  const { [uid]: _, ...rest } = nominations;
+  const { [userId]: _, ...rest } = nominations;
   return {
     ...state,
     boardNominations: Object.keys(rest).length > 0 ? rest : undefined,

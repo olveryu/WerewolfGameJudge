@@ -173,7 +173,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
-          targetUid: 'user-abc',
+          targetUserId: 'user-abc',
         };
 
         const result = getSeatTapResult(input);
@@ -181,7 +181,7 @@ describe('SeatTapPolicy', () => {
         expect(result.kind).toBe('VIEW_PROFILE');
         if (result.kind === 'VIEW_PROFILE') {
           expect(result.seat).toBe(2);
-          expect(result.targetUid).toBe('user-abc');
+          expect(result.targetUserId).toBe('user-abc');
         }
       });
 
@@ -194,7 +194,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
-          targetUid: 'user-def',
+          targetUserId: 'user-def',
         };
 
         const result = getSeatTapResult(input);
@@ -202,7 +202,7 @@ describe('SeatTapPolicy', () => {
         expect(result.kind).toBe('VIEW_PROFILE');
         if (result.kind === 'VIEW_PROFILE') {
           expect(result.seat).toBe(3);
-          expect(result.targetUid).toBe('user-def');
+          expect(result.targetUserId).toBe('user-def');
         }
       });
 
@@ -215,7 +215,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
-          targetUid: 'user-ghi',
+          targetUserId: 'user-ghi',
         };
 
         const result = getSeatTapResult(input);
@@ -223,11 +223,11 @@ describe('SeatTapPolicy', () => {
         expect(result.kind).toBe('VIEW_PROFILE');
         if (result.kind === 'VIEW_PROFILE') {
           expect(result.seat).toBe(1);
-          expect(result.targetUid).toBe('user-ghi');
+          expect(result.targetUserId).toBe('user-ghi');
         }
       });
 
-      it('returns NOOP when tapping occupied seat without targetUid', () => {
+      it('returns NOOP when tapping occupied seat without targetUserId', () => {
         const input: SeatTapPolicyInput = {
           roomStatus: GameStatus.Seated,
           isAudioPlaying: false,
@@ -313,14 +313,14 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
-          targetUid: 'user-assigned',
+          targetUserId: 'user-assigned',
         };
 
         const result = getSeatTapResult(input);
 
         expect(result.kind).toBe('VIEW_PROFILE');
         if (result.kind === 'VIEW_PROFILE') {
-          expect(result.targetUid).toBe('user-assigned');
+          expect(result.targetUserId).toBe('user-assigned');
         }
       });
 
@@ -352,14 +352,14 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
-          targetUid: 'user-ready',
+          targetUserId: 'user-ready',
         };
 
         const result = getSeatTapResult(input);
 
         expect(result.kind).toBe('VIEW_PROFILE');
         if (result.kind === 'VIEW_PROFILE') {
-          expect(result.targetUid).toBe('user-ready');
+          expect(result.targetUserId).toBe('user-ready');
         }
       });
 
@@ -391,14 +391,14 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
-          targetUid: 'user-ended',
+          targetUserId: 'user-ended',
         };
 
         const result = getSeatTapResult(input);
 
         expect(result.kind).toBe('VIEW_PROFILE');
         if (result.kind === 'VIEW_PROFILE') {
-          expect(result.targetUid).toBe('user-ended');
+          expect(result.targetUserId).toBe('user-ended');
         }
       });
     });

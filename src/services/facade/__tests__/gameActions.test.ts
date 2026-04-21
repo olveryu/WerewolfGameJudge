@@ -56,18 +56,24 @@ import {
 
 const DEFAULT_STATE: Partial<GameState> = {
   roomCode: 'ABCD',
-  hostUid: 'host-1',
+  hostUserId: 'host-1',
   players: {
     0: {
-      uid: 'host-1',
+      userId: 'host-1',
       seatNumber: 0,
       role: 'wolf',
       hasViewedRole: false,
       displayName: 'P0',
     } as any,
-    1: { uid: 'p2', seatNumber: 1, role: 'seer', hasViewedRole: false, displayName: 'P1' } as any,
+    1: {
+      userId: 'p2',
+      seatNumber: 1,
+      role: 'seer',
+      hasViewedRole: false,
+      displayName: 'P1',
+    } as any,
     2: {
-      uid: 'p3',
+      userId: 'p3',
       seatNumber: 2,
       role: 'villager',
       hasViewedRole: false,
@@ -93,7 +99,7 @@ function createMockStore(state: Partial<GameState> | null = DEFAULT_STATE): Game
 function createMockCtx(storeState?: Partial<GameState> | null) {
   return {
     store: createMockStore(storeState),
-    myUid: 'host-1',
+    myUserId: 'host-1',
     getMySeatNumber: () => 0,
     audioService: { preloadForRoles: jest.fn().mockResolvedValue(undefined) } as any,
   };
@@ -384,7 +390,7 @@ describe('startNight — preloads audio on success', () => {
       revision: 1,
     });
 
-    const ctx = createMockCtx({ roomCode: 'ABCD', hostUid: 'host-1' } as any);
+    const ctx = createMockCtx({ roomCode: 'ABCD', hostUserId: 'host-1' } as any);
     const result = await startNight(ctx);
 
     expect(result.success).toBe(true);

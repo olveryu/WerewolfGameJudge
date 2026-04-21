@@ -33,7 +33,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
@@ -52,7 +52,7 @@ function createContext(
 ): HandlerContext {
   return {
     state,
-    myUid: 'player-1',
+    myUserId: 'player-1',
     mySeat: null,
     ...overrides,
   };
@@ -66,7 +66,7 @@ describe('handleJoinSeat', () => {
       type: 'JOIN_SEAT',
       payload: {
         seat: 0,
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Alice',
       },
     };
@@ -81,7 +81,7 @@ describe('handleJoinSeat', () => {
   it('should fail when seat is taken', () => {
     const state = createMinimalState({
       players: {
-        0: { uid: 'other', seatNumber: 0, role: null, hasViewedRole: false },
+        0: { userId: 'other', seatNumber: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
       },
@@ -91,7 +91,7 @@ describe('handleJoinSeat', () => {
       type: 'JOIN_SEAT',
       payload: {
         seat: 0,
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Alice',
       },
     };
@@ -109,7 +109,7 @@ describe('handleJoinSeat', () => {
       type: 'JOIN_SEAT',
       payload: {
         seat: 99,
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Alice',
       },
     };
@@ -127,7 +127,7 @@ describe('handleJoinSeat', () => {
       type: 'JOIN_SEAT',
       payload: {
         seat: 0,
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Alice',
       },
     };
@@ -144,7 +144,7 @@ describe('handleJoinSeat', () => {
       type: 'JOIN_SEAT',
       payload: {
         seat: 0,
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Alice',
       },
     };
@@ -155,14 +155,14 @@ describe('handleJoinSeat', () => {
     expect(err.reason).toBe(REASON_NO_STATE);
   });
 
-  it('should fail when uid is empty (not_authenticated)', () => {
+  it('should fail when userId is empty (not_authenticated)', () => {
     const state = createMinimalState();
     const context = createContext(state);
     const intent: JoinSeatIntent = {
       type: 'JOIN_SEAT',
       payload: {
         seat: 0,
-        uid: '', // empty uid
+        userId: '', // empty userId
         displayName: 'Alice',
       },
     };
@@ -180,7 +180,7 @@ describe('handleJoinSeat', () => {
       type: 'JOIN_SEAT',
       payload: {
         seat: 0,
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Alice',
       },
     };
@@ -196,7 +196,7 @@ describe('handleJoinSeat', () => {
     const state = createMinimalState({
       players: {
         0: {
-          uid: 'player-1',
+          userId: 'player-1',
           seatNumber: 0,
           role: null,
           hasViewedRole: false,
@@ -210,7 +210,7 @@ describe('handleJoinSeat', () => {
       type: 'JOIN_SEAT',
       payload: {
         seat: 2,
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Alice',
       },
     };
@@ -229,7 +229,7 @@ describe('handleJoinSeat', () => {
     const state = createMinimalState({
       players: {
         0: {
-          uid: 'player-1',
+          userId: 'player-1',
           seatNumber: 0,
           role: null,
           hasViewedRole: false,
@@ -243,7 +243,7 @@ describe('handleJoinSeat', () => {
       type: 'JOIN_SEAT',
       payload: {
         seat: 0,
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Alice',
       },
     };
@@ -260,7 +260,7 @@ describe('handleLeaveMySeat', () => {
   it('should succeed when leaving own seat (mySeat from context)', () => {
     const state = createMinimalState({
       players: {
-        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
+        0: { userId: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
       },
@@ -268,7 +268,7 @@ describe('handleLeaveMySeat', () => {
     const context = createContext(state, { mySeat: 0 });
     const intent: LeaveMySeatIntent = {
       type: 'LEAVE_MY_SEAT',
-      payload: { uid: 'player-1' },
+      payload: { userId: 'player-1' },
     };
 
     const result = handleLeaveMySeat(intent, context);
@@ -284,7 +284,7 @@ describe('handleLeaveMySeat', () => {
     const context = createContext(state, { mySeat: null });
     const intent: LeaveMySeatIntent = {
       type: 'LEAVE_MY_SEAT',
-      payload: { uid: 'player-1' },
+      payload: { userId: 'player-1' },
     };
 
     const result = handleLeaveMySeat(intent, context);
@@ -297,7 +297,7 @@ describe('handleLeaveMySeat', () => {
     const context = createContext(null);
     const intent: LeaveMySeatIntent = {
       type: 'LEAVE_MY_SEAT',
-      payload: { uid: 'player-1' },
+      payload: { userId: 'player-1' },
     };
 
     const result = handleLeaveMySeat(intent, context);
@@ -306,10 +306,10 @@ describe('handleLeaveMySeat', () => {
     expect(err.reason).toBe(REASON_NO_STATE);
   });
 
-  it('should fail with not_authenticated when uid is empty', () => {
+  it('should fail with not_authenticated when userId is empty', () => {
     const state = createMinimalState({
       players: {
-        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
+        0: { userId: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
       },
@@ -317,7 +317,7 @@ describe('handleLeaveMySeat', () => {
     const context = createContext(state, { mySeat: 0 });
     const intent: LeaveMySeatIntent = {
       type: 'LEAVE_MY_SEAT',
-      payload: { uid: '' },
+      payload: { userId: '' },
     };
 
     const result = handleLeaveMySeat(intent, context);
@@ -330,7 +330,7 @@ describe('handleLeaveMySeat', () => {
     const state = createMinimalState({
       status: GameStatus.Ongoing,
       players: {
-        0: { uid: 'player-1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        0: { userId: 'player-1', seatNumber: 0, role: 'villager', hasViewedRole: true },
         1: null,
         2: null,
       },
@@ -338,7 +338,7 @@ describe('handleLeaveMySeat', () => {
     const context = createContext(state, { mySeat: 0 });
     const intent: LeaveMySeatIntent = {
       type: 'LEAVE_MY_SEAT',
-      payload: { uid: 'player-1' },
+      payload: { userId: 'player-1' },
     };
 
     const result = handleLeaveMySeat(intent, context);
@@ -353,7 +353,7 @@ describe('handleLeaveMySeat', () => {
       const state = createMinimalState({
         status,
         players: {
-          0: { uid: 'player-1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+          0: { userId: 'player-1', seatNumber: 0, role: 'villager', hasViewedRole: true },
           1: null,
           2: null,
         },
@@ -361,7 +361,7 @@ describe('handleLeaveMySeat', () => {
       const context = createContext(state, { mySeat: 0 });
       const intent: LeaveMySeatIntent = {
         type: 'LEAVE_MY_SEAT',
-        payload: { uid: 'player-1' },
+        payload: { userId: 'player-1' },
       };
 
       const result = handleLeaveMySeat(intent, context);
@@ -374,7 +374,7 @@ describe('handleLeaveMySeat', () => {
   it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
     const state = createMinimalState({
       players: {
-        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
+        0: { userId: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
       },
@@ -382,7 +382,7 @@ describe('handleLeaveMySeat', () => {
     const context = createContext(state, { mySeat: 0 });
     const intent: LeaveMySeatIntent = {
       type: 'LEAVE_MY_SEAT',
-      payload: { uid: 'player-1' },
+      payload: { userId: 'player-1' },
     };
 
     const result = handleLeaveMySeat(intent, context);
@@ -399,7 +399,7 @@ describe('handleUpdatePlayerProfile', () => {
   ): UpdatePlayerProfileIntent => ({
     type: 'UPDATE_PLAYER_PROFILE',
     payload: {
-      uid: 'player-1',
+      userId: 'player-1',
       displayName: 'NewName',
       ...overrides,
     },
@@ -413,10 +413,10 @@ describe('handleUpdatePlayerProfile', () => {
     expect(err.reason).toBe(REASON_NO_STATE);
   });
 
-  it('should fail when uid is missing', () => {
+  it('should fail when userId is missing', () => {
     const state = createMinimalState();
     const context = createContext(state);
-    const result = handleUpdatePlayerProfile(makeIntent({ uid: '' }), context);
+    const result = handleUpdatePlayerProfile(makeIntent({ userId: '' }), context);
 
     const err = expectError(result);
     expect(err.reason).toBe(REASON_NOT_AUTHENTICATED);
@@ -434,7 +434,7 @@ describe('handleUpdatePlayerProfile', () => {
   it('should succeed and produce UPDATE_PLAYER_PROFILE action when seated', () => {
     const state = createMinimalState({
       players: {
-        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
+        0: { userId: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
       },
@@ -449,7 +449,7 @@ describe('handleUpdatePlayerProfile', () => {
     expect(success.actions[0]).toEqual({
       type: 'UPDATE_PLAYER_PROFILE',
       payload: {
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Alice',
         avatarUrl: 'https://img/a.png',
         avatarFrame: undefined,
@@ -462,7 +462,7 @@ describe('handleUpdatePlayerProfile', () => {
   it('should pass only displayName when avatarUrl is undefined', () => {
     const state = createMinimalState({
       players: {
-        0: { uid: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
+        0: { userId: 'player-1', seatNumber: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
       },
@@ -478,7 +478,7 @@ describe('handleUpdatePlayerProfile', () => {
     expect(action).toEqual({
       type: 'UPDATE_PLAYER_PROFILE',
       payload: {
-        uid: 'player-1',
+        userId: 'player-1',
         displayName: 'Bob',
         avatarUrl: undefined,
         avatarFrame: undefined,
@@ -494,7 +494,7 @@ describe('handleKickPlayer', () => {
   });
 
   it('should fail when state is null', () => {
-    const context = createContext(null, { myUid: 'host-1' });
+    const context = createContext(null, { myUserId: 'host-1' });
     const result = handleKickPlayer(makeKickIntent(), context);
     const err = expectError(result);
     expect(err.reason).toBe(REASON_NO_STATE);
@@ -502,14 +502,14 @@ describe('handleKickPlayer', () => {
 
   it('should fail when caller is not host', () => {
     const state = createMinimalState({
-      hostUid: 'host-1',
+      hostUserId: 'host-1',
       players: {
         0: null,
-        1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+        1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
         2: null,
       },
     });
-    const context = createContext(state, { myUid: 'not-host' });
+    const context = createContext(state, { myUserId: 'not-host' });
     const result = handleKickPlayer(makeKickIntent(1), context);
     const err = expectError(result);
     expect(err.reason).toBe(REASON_NOT_HOST);
@@ -517,7 +517,7 @@ describe('handleKickPlayer', () => {
 
   it('should fail when game is in progress', () => {
     const state = createMinimalState({ status: GameStatus.Ongoing });
-    const context = createContext(state, { myUid: 'host-1' });
+    const context = createContext(state, { myUserId: 'host-1' });
     const result = handleKickPlayer(makeKickIntent(), context);
     const err = expectError(result);
     expect(err.reason).toBe(REASON_GAME_IN_PROGRESS);
@@ -525,7 +525,7 @@ describe('handleKickPlayer', () => {
 
   it('should fail when seat is empty', () => {
     const state = createMinimalState();
-    const context = createContext(state, { myUid: 'host-1' });
+    const context = createContext(state, { myUserId: 'host-1' });
     const result = handleKickPlayer(makeKickIntent(1), context);
     const err = expectError(result);
     expect(err.reason).toBe(REASON_SEAT_EMPTY);
@@ -533,7 +533,7 @@ describe('handleKickPlayer', () => {
 
   it('should fail when seat is invalid', () => {
     const state = createMinimalState();
-    const context = createContext(state, { myUid: 'host-1' });
+    const context = createContext(state, { myUserId: 'host-1' });
     const result = handleKickPlayer(makeKickIntent(99), context);
     const err = expectError(result);
     expect(err.reason).toBe(REASON_INVALID_SEAT);
@@ -543,12 +543,12 @@ describe('handleKickPlayer', () => {
     const state = createMinimalState({
       status: GameStatus.Seated,
       players: {
-        0: { uid: 'host-1', seatNumber: 0, role: null, hasViewedRole: false },
-        1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-        2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+        0: { userId: 'host-1', seatNumber: 0, role: null, hasViewedRole: false },
+        1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+        2: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
       },
     });
-    const context = createContext(state, { myUid: 'host-1' });
+    const context = createContext(state, { myUserId: 'host-1' });
     const result = handleKickPlayer(makeKickIntent(1), context);
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);

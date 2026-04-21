@@ -4,8 +4,8 @@ import Svg, { Circle, Defs, Line, LinearGradient, Path, Rect, Stop } from 'react
 import type { FrameProps } from './FrameProps';
 
 export const BoneGateFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const boneGrad = `boneGrad${uid}`;
+  const userId = useId();
+  const boneGrad = `boneGrad${userId}`;
   const c = rx * 0.29;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">

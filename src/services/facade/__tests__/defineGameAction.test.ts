@@ -4,7 +4,7 @@
  * Verifies:
  * 1. Simple action (no extra args) → debug-log + callApiWithRetry
  * 2. Action with body builder → extra fields merged into request
- * 3. needsUid guard → uid included / NOT_CONNECTED when missing
+ * 3. needsUserId guard → userId included / NOT_CONNECTED when missing
  * 4. Optimistic function forwarded to callApiWithRetry
  * 5. after hook fires on success / failure
  * 6. NOT_CONNECTED when roomCode is null
@@ -45,11 +45,11 @@ function createMockStore(roomCode: string | null = 'ABCD'): GameStore {
 }
 
 function createMockCtx(
-  overrides: Partial<{ roomCode: string | null; myUid: string | null }> = {},
+  overrides: Partial<{ roomCode: string | null; myUserId: string | null }> = {},
 ): GameActionsContext {
   return {
     store: createMockStore('roomCode' in overrides ? overrides.roomCode! : 'ABCD'),
-    myUid: 'myUid' in overrides ? overrides.myUid! : 'user-1',
+    myUserId: 'myUserId' in overrides ? overrides.myUserId! : 'user-1',
     getMySeatNumber: () => 0,
     audioService: {} as GameActionsContext['audioService'],
   };
@@ -107,32 +107,32 @@ describe('defineGameAction', () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // needsUid
+  // needsUserId
   // ─────────────────────────────────────────────────────────────────────────
 
-  it('includes uid when needsUid is true', async () => {
+  it('includes userId when needsUserId is true', async () => {
     global.fetch = mockFetchSuccess();
     const action = defineGameAction<[number]>({
       name: 'viewRole',
       path: '/game/view-role',
-      needsUid: true,
+      needsUserId: true,
       body: (seat) => ({ seat }),
     });
 
-    await action(createMockCtx({ myUid: 'player-42' }), 5);
+    await action(createMockCtx({ myUserId: 'player-42' }), 5);
 
     const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
-    expect(body).toEqual({ roomCode: 'ABCD', uid: 'player-42', seat: 5 });
+    expect(body).toEqual({ roomCode: 'ABCD', userId: 'player-42', seat: 5 });
   });
 
-  it('returns NOT_CONNECTED when needsUid and myUid is null', async () => {
+  it('returns NOT_CONNECTED when needsUserId and myUserId is null', async () => {
     const action = defineGameAction({
       name: 'viewRole',
       path: '/game/view-role',
-      needsUid: true,
+      needsUserId: true,
     });
 
-    const result = await action(createMockCtx({ myUid: null }));
+    const result = await action(createMockCtx({ myUserId: null }));
 
     expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
   });

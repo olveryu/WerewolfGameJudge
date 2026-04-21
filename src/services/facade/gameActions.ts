@@ -24,7 +24,7 @@ import { defineGameAction } from './defineGameAction';
  */
 export interface GameActionsContext {
   readonly store: GameStore;
-  myUid: string | null;
+  myUserId: string | null;
   getMySeatNumber: () => number | null;
   /** AudioService 实例（用于 preload 等直接调用） */
   audioService: AudioService;
@@ -76,7 +76,7 @@ export const clearAllSeats = defineGameAction({
 export const markViewedRole = defineGameAction<[number]>({
   name: 'markViewedRole',
   path: '/game/view-role',
-  needsUid: true,
+  needsUserId: true,
   body: (seat) => ({ seat }),
 });
 
@@ -144,7 +144,7 @@ export const clearRevealAcks = defineGameAction({
 export const submitGroupConfirmAck = defineGameAction<[number]>({
   name: 'submitGroupConfirmAck',
   path: '/game/night/group-confirm-ack',
-  needsUid: true,
+  needsUserId: true,
   body: (seat) => ({ seat }),
   after: (_ctx, result, seat) => {
     if (!result.success) {
@@ -211,7 +211,7 @@ export const markAllBotsGroupConfirmed = defineGameAction({
 export const updatePlayerProfile = defineGameAction<[string?, string?, string?, string?, string?]>({
   name: 'updatePlayerProfile',
   path: '/game/update-profile',
-  needsUid: true,
+  needsUserId: true,
   body: (displayName, avatarUrl, avatarFrame, seatFlair, nameStyle) => ({
     displayName,
     avatarUrl,
@@ -229,7 +229,7 @@ export const updatePlayerProfile = defineGameAction<[string?, string?, string?, 
 export const boardNominate = defineGameAction<[string, RoleId[]]>({
   name: 'boardNominate',
   path: '/game/board-nominate',
-  needsUid: true,
+  needsUserId: true,
   body: (displayName, roles) => ({ displayName, roles }),
 });
 
@@ -237,13 +237,13 @@ export const boardNominate = defineGameAction<[string, RoleId[]]>({
 export const boardUpvote = defineGameAction<[string]>({
   name: 'boardUpvote',
   path: '/game/board-upvote',
-  needsUid: true,
-  body: (targetUid) => ({ targetUid }),
+  needsUserId: true,
+  body: (targetUserId) => ({ targetUserId }),
 });
 
 /** 撤回板子建议（仅提交者本人） */
 export const boardWithdraw = defineGameAction({
   name: 'boardWithdraw',
   path: '/game/board-withdraw',
-  needsUid: true,
+  needsUserId: true,
 });

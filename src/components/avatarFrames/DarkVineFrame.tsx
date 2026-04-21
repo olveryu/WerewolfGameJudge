@@ -4,8 +4,8 @@ import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-na
 import type { FrameProps } from './FrameProps';
 
 export const DarkVineFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const vineGrad = `vineGrad${uid}`;
+  const userId = useId();
+  const vineGrad = `vineGrad${userId}`;
   const c = rx * 0.29;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">

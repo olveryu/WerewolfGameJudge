@@ -16,10 +16,10 @@ import { type ApiResponse, callApiWithRetry } from './apiUtils';
 /**
  * Seat Actions 依赖的上下文接口
  *
- * 迁移后只需 roomCode + uid 信息，不再需要 store / realtimeService 等
+ * 迁移后只需 roomCode + userId 信息，不再需要 store / realtimeService 等
  */
 export interface SeatActionsContext {
-  myUid: string | null;
+  myUserId: string | null;
   getRoomCode: () => string | null;
   /** GameStore 实例（用于 HTTP 响应即时 applySnapshot） */
   readonly store?: GameStore;
@@ -89,17 +89,17 @@ export async function takeSeatWithAck(
   level?: number,
 ): Promise<{ success: boolean; reason?: string }> {
   const roomCode = ctx.getRoomCode();
-  if (!roomCode || !ctx.myUid) {
+  if (!roomCode || !ctx.myUserId) {
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  facadeLog.debug('takeSeatWithAck', { seat: seatNumber, uid: ctx.myUid });
+  facadeLog.debug('takeSeatWithAck', { seat: seatNumber, userId: ctx.myUserId });
 
   return callSeatApi(
     roomCode,
     {
       action: 'sit',
-      uid: ctx.myUid,
+      userId: ctx.myUserId,
       seat: seatNumber,
       displayName,
       avatarUrl,
@@ -127,19 +127,19 @@ export async function leaveSeatWithAck(
   ctx: SeatActionsContext,
 ): Promise<{ success: boolean; reason?: string }> {
   const roomCode = ctx.getRoomCode();
-  if (!roomCode || !ctx.myUid) {
+  if (!roomCode || !ctx.myUserId) {
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  facadeLog.debug('leaveSeatWithAck', { uid: ctx.myUid });
+  facadeLog.debug('leaveSeatWithAck', { userId: ctx.myUserId });
 
-  const uid = ctx.myUid;
+  const userId = ctx.myUserId;
 
   return callSeatApi(
     roomCode,
     {
       action: 'standup',
-      uid,
+      userId,
     },
     ctx.store,
   );
@@ -153,17 +153,17 @@ export async function kickPlayer(
   targetSeat: number,
 ): Promise<{ success: boolean; reason?: string }> {
   const roomCode = ctx.getRoomCode();
-  if (!roomCode || !ctx.myUid) {
+  if (!roomCode || !ctx.myUserId) {
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  facadeLog.debug('kickPlayer', { targetSeat, uid: ctx.myUid });
+  facadeLog.debug('kickPlayer', { targetSeat, userId: ctx.myUserId });
 
   return callSeatApi(
     roomCode,
     {
       action: 'kick',
-      uid: ctx.myUid,
+      userId: ctx.myUserId,
       targetSeat,
     },
     ctx.store,

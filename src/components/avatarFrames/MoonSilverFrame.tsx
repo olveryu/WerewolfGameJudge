@@ -4,8 +4,8 @@ import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 're
 import type { FrameProps } from './FrameProps';
 
 export const MoonSilverFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const moonGrad = `moonGrad${uid}`;
+  const userId = useId();
+  const moonGrad = `moonGrad${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

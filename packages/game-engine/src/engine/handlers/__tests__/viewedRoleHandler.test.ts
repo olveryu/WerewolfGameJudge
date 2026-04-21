@@ -18,12 +18,12 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Assigned,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { uid: 'p0', seatNumber: 0, role: 'seer', hasViewedRole: false },
-      1: { uid: 'p1', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+      0: { userId: 'p0', seatNumber: 0, role: 'seer', hasViewedRole: false },
+      1: { userId: 'p1', seatNumber: 1, role: 'wolf', hasViewedRole: false },
     },
     currentStepIndex: -1,
     isAudioPlaying: false,
@@ -38,7 +38,7 @@ function createContext(
   state: GameState | null,
   overrides?: Partial<HandlerContext>,
 ): HandlerContext {
-  return { state, myUid: 'p0', mySeat: 0, ...overrides };
+  return { state, myUserId: 'p0', mySeat: 0, ...overrides };
 }
 
 function intent(seat: number): ViewedRoleIntent {
@@ -58,7 +58,7 @@ describe('handleViewedRole', () => {
 
   it('should reject when non-host tries to mark another seat', () => {
     const state = createMinimalState();
-    const ctx = createContext(state, { myUid: 'p1', mySeat: 1 });
+    const ctx = createContext(state, { myUserId: 'p1', mySeat: 1 });
     const result = handleViewedRole(intent(0), ctx);
     const err = expectError(result);
     expect(err.reason).toBe('not_my_seat');
@@ -66,7 +66,7 @@ describe('handleViewedRole', () => {
 
   it('should allow host to mark any seat (bot control)', () => {
     const state = createMinimalState();
-    const ctx = createContext(state, { myUid: 'host-1', mySeat: 0 });
+    const ctx = createContext(state, { myUserId: 'host-1', mySeat: 0 });
     const result = handleViewedRole(intent(1), ctx);
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
@@ -75,7 +75,7 @@ describe('handleViewedRole', () => {
 
   it('should allow player to mark their own seat', () => {
     const state = createMinimalState();
-    const ctx = createContext(state, { myUid: 'p0', mySeat: 0 });
+    const ctx = createContext(state, { myUserId: 'p0', mySeat: 0 });
     const result = handleViewedRole(intent(0), ctx);
     const success = expectSuccess(result);
     expect(success.actions[0]).toEqual({
@@ -95,7 +95,7 @@ describe('handleViewedRole', () => {
     const state = createMinimalState({
       players: { 0: null, 1: null },
     });
-    const ctx = createContext(state, { myUid: 'host-1', mySeat: 0 });
+    const ctx = createContext(state, { myUserId: 'host-1', mySeat: 0 });
     const result = handleViewedRole(intent(0), ctx);
     const err = expectError(result);
     expect(err.reason).toBe('not_seated');
@@ -103,7 +103,7 @@ describe('handleViewedRole', () => {
 
   it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
     const state = createMinimalState();
-    const ctx = createContext(state, { myUid: 'p0', mySeat: 0 });
+    const ctx = createContext(state, { myUserId: 'p0', mySeat: 0 });
     const result = handleViewedRole(intent(0), ctx);
     const success = expectSuccess(result);
     expect(success.sideEffects).toBeDefined();

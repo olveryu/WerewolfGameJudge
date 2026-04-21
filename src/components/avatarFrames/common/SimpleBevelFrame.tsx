@@ -14,8 +14,8 @@ interface ColoredFrameProps extends FrameProps {
 }
 
 export const SimpleBevelFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const outerGradId = `bevelOuter${uid}`;
+  const userId = useId();
+  const outerGradId = `bevelOuter${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

@@ -194,7 +194,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     handleDebugTitleTap,
     // Player profile card
     profileCardVisible,
-    profileCardTargetUid,
+    profileCardTargetUserId,
     profileCardTargetSeat,
     profileCardRosterName,
     closeProfileCard,
@@ -251,7 +251,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const nominationCount = gameState?.boardNominations
     ? Object.keys(gameState.boardNominations).length
     : 0;
-  const hasMyNomination = user?.uid ? !!gameState?.boardNominations?.[user.uid] : false;
+  const hasMyNomination = user?.id ? !!gameState?.boardNominations?.[user.id] : false;
 
   const handleNominate = useCallback(() => {
     navigation.navigate('BoardPicker', {
@@ -656,7 +656,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       <PlayerProfileCard
         visible={profileCardVisible}
         onClose={closeProfileCard}
-        targetUid={profileCardTargetUid}
+        targetUserId={profileCardTargetUserId}
         targetSeat={profileCardTargetSeat}
         rosterName={profileCardRosterName}
         isHost={isHost}
@@ -715,11 +715,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <BoardNominationModal
           visible={nominationModalVisible}
           nominations={gameState?.boardNominations}
-          myUid={user?.uid ?? null}
+          myUserId={user?.id ?? null}
           isHost={isHost}
           currentPlayerCount={gameState?.template.numberOfPlayers ?? 0}
-          onUpvote={(uid: string) => {
-            void boardUpvote(uid);
+          onUpvote={(userId: string) => {
+            void boardUpvote(userId);
           }}
           onWithdraw={() => {
             void boardWithdraw();

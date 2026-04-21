@@ -55,7 +55,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
           Array.from({ length: 12 }).map((_, i) => [
             i,
             {
-              uid: `p${i}`,
+              userId: `p${i}`,
               seatNumber: i,
               displayName: `P${i + 1}`,
               avatarUrl: undefined,
@@ -72,7 +72,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
         nightmareBlockedSeat: null,
         currentNightResults: {},
         templateRoles: [],
-        hostUid: 'host',
+        hostUserId: 'host',
         roomCode: '1234',
       };
       return {
@@ -91,7 +91,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
 
         mySeatNumber: 0,
         myRole: 'seer',
-        myUid: 'p0',
+        myUserId: 'p0',
 
         // Debug mode fields
         isDebugMode: false,

@@ -162,7 +162,7 @@ describe('restartGame Contract (HTTP API)', () => {
 
   describe('Permission Check', () => {
     it('non-host calls are now rejected server-side (no client gate)', async () => {
-      // Phase 7: 客户端不再做 isHost 门控，服务端通过 state.hostUid 校验拒绝
+      // Phase 7: 客户端不再做 isHost 门控，服务端通过 state.hostUserId 校验拒绝
       (facade as unknown as { isHost: boolean }).isHost = false;
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,

@@ -94,7 +94,7 @@ export interface SeatTileProps {
   isBot: boolean;
   isControlled: boolean; // Host is controlling this bot seat
   // Player info (null if empty seat)
-  playerUid: string | null;
+  playerUserId: string | null;
   playerAvatarUrl?: string;
   /** Pre-computed unique avatar seat (from room-level dedup). Undefined = use hash fallback. */
   playerAvatarIndex?: number;
@@ -135,7 +135,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   isSelected,
   isBot,
   isControlled,
-  playerUid,
+  playerUserId,
   playerAvatarUrl,
   playerAvatarIndex,
   playerAvatarFrame,
@@ -163,7 +163,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     onLongPress?.(seat);
   }, [onLongPress, seat]);
 
-  const hasPlayer = playerUid !== null;
+  const hasPlayer = playerUserId !== null;
 
   // Track previous hasPlayer state for enter/leave animations
   const prevHasPlayerRef = useRef<boolean | null>(null);
@@ -352,7 +352,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           {hasPlayer && (
             <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
               <AvatarWithFrame
-                value={playerUid}
+                value={playerUserId}
                 size={tileSize - spacing.tight - fixed.borderWidthThick * 2}
                 avatarUrl={playerAvatarUrl}
                 avatarIndex={playerAvatarIndex}

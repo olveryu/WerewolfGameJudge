@@ -24,7 +24,7 @@ interface HeaderActionsProps {
   /** Whether to show the menu (Host only) */
   visible: boolean;
   /** Current user (for avatar in menu item) */
-  user: { uid: string; avatarUrl?: string | null } | null;
+  user: { id: string; avatarUrl?: string | null } | null;
   /** Ticket count for badge display */
   ticketCount?: number | null;
   /** Show user settings option */
@@ -212,7 +212,7 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
                     <TouchableOpacity style={styles.menuItem} onPress={handleUserSettings}>
                       {user ? (
                         <Avatar
-                          value={user.uid}
+                          value={user.id}
                           size={MENU_ICON_SIZE}
                           avatarUrl={user.avatarUrl}
                           borderRadius={MENU_ICON_SIZE / 2}

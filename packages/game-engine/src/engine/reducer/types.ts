@@ -20,7 +20,7 @@ export interface InitializeGameAction {
   type: 'INITIALIZE_GAME';
   payload: {
     roomCode: string;
-    hostUid: string;
+    hostUserId: string;
     templateRoles: RoleId[];
     totalSeats: number;
   };
@@ -71,7 +71,7 @@ export interface PlayerLeaveAction {
 export interface UpdatePlayerProfileAction {
   type: 'UPDATE_PLAYER_PROFILE';
   payload: {
-    uid: string;
+    userId: string;
     displayName?: string;
     avatarUrl?: string;
     avatarFrame?: string;
@@ -250,7 +250,7 @@ export interface ActionRejectedAction {
   payload: {
     action: string;
     reason: string;
-    targetUid: string;
+    targetUserId: string;
     /**
      * Unique id for this rejection event.
      * Used by UI to avoid accidentally deduping distinct rejections that share the same reason.
@@ -302,7 +302,7 @@ export interface FillWithBotsAction {
   payload: {
     /** bot players to add (keyed by seat number) */
     bots: Record<number, Player>;
-    /** bot roster entries to add (keyed by uid) */
+    /** bot roster entries to add (keyed by userId) */
     botRoster: Record<string, RosterEntry>;
   };
 }
@@ -420,7 +420,7 @@ export interface AddCupidLoversRevealAckAction {
 // 板子建议动作
 // =============================================================================
 
-/** 提交/更新板子建议（每 uid 仅一条，后覆盖前） */
+/** 提交/更新板子建议（每 userId 仅一条，后覆盖前） */
 export interface SetBoardNominationAction {
   type: 'SET_BOARD_NOMINATION';
   payload: {
@@ -432,9 +432,9 @@ export interface SetBoardNominationAction {
 export interface UpvoteBoardNominationAction {
   type: 'UPVOTE_BOARD_NOMINATION';
   payload: {
-    /** 被点赞的建议提交者 uid */
-    targetUid: string;
-    /** 点赞者 uid */
+    /** 被点赞的建议提交者 userId */
+    targetUserId: string;
+    /** 点赞者 userId */
     voterUid: string;
   };
 }
@@ -443,7 +443,7 @@ export interface UpvoteBoardNominationAction {
 export interface WithdrawBoardNominationAction {
   type: 'WITHDRAW_BOARD_NOMINATION';
   payload: {
-    uid: string;
+    userId: string;
   };
 }
 

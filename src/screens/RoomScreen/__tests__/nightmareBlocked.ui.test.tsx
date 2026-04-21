@@ -88,13 +88,13 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   it('actionRejected with blocked reason shows rejection alert on initial render', async () => {
     mockUseGameRoomReturn = {
       ...makeBlockedPlayerMock(),
-      myUid: 'p0',
+      myUserId: 'p0',
       gameState: {
         ...makeBlockedPlayerMock().gameState,
         actionRejected: {
           action: 'seerCheck',
           reason: BLOCKED_UI_DEFAULTS.message,
-          targetUid: 'p0',
+          targetUserId: 'p0',
           rejectionId: 'test-rejection-1',
         },
       },

@@ -77,7 +77,7 @@ interface GameStateMockOptions {
   actionRejected?: {
     action: string;
     reason: string;
-    targetUid: string;
+    targetUserId: string;
     rejectionId?: string;
   } | null;
   /** Reveal data */
@@ -124,7 +124,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
       return [
         i,
         {
-          uid: `p${i}`,
+          userId: `p${i}`,
           seatNumber: i,
           displayName: `P${i + 1}`,
           avatarUrl: undefined,
@@ -157,7 +157,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     wolfKillDisabled,
     currentNightResults,
     templateRoles: [],
-    hostUid: isHost ? 'p0' : 'host',
+    hostUserId: isHost ? 'p0' : 'host',
     roomCode: '1234',
     witchContext,
     actionRejected,
@@ -189,7 +189,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     loading: false,
     mySeatNumber,
     myRole,
-    myUid: `p${mySeatNumber}`,
+    myUserId: `p${mySeatNumber}`,
     error: null,
 
     // Connection
@@ -295,7 +295,7 @@ export function tapSeat(getByTestId: (id: string) => any, seatNumber: number) {
 interface ActionRejection {
   action: string;
   reason: string;
-  targetUid: string;
+  targetUserId: string;
   rejectionId?: string;
 }
 
@@ -319,7 +319,7 @@ interface ActionRejection {
  * await reactiveMock.simulateHostReject({
  *   action: 'seerCheck',
  *   reason: BLOCKED_UI_DEFAULTS.message,
- *   targetUid: 'p8',
+ *   targetUserId: 'p8',
  * });
  * ```
  *
@@ -1016,7 +1016,7 @@ export async function coverageChainNightmareBlocked(
   reactiveMock.simulateHostReject({
     action: blockedSchemaId,
     reason: blockedMessage,
-    targetUid: `p${blockedSeat}`,
+    targetUserId: `p${blockedSeat}`,
     rejectionId: `nightmare-block-coverage`,
   });
 

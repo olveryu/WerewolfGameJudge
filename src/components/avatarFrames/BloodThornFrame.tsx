@@ -4,8 +4,8 @@ import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { FrameProps } from './FrameProps';
 
 export const BloodThornFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const thornGrad = `thornGrad${uid}`;
+  const userId = useId();
+  const thornGrad = `thornGrad${userId}`;
   const c = rx * 0.29;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">

@@ -12,9 +12,9 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 export const VoidRiftFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const voidGrad = `voidGrad${uid}`;
-  const riftGlow = `riftGlow${uid}`;
+  const userId = useId();
+  const voidGrad = `voidGrad${userId}`;
+  const riftGlow = `riftGlow${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

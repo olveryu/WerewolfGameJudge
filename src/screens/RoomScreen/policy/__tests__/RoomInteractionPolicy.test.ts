@@ -393,7 +393,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
 
       expect(result.kind).toBe('VIEW_PROFILE');
       expect(result).toHaveProperty('seat', 3);
-      expect(result).toHaveProperty('targetUid', 'user-xyz');
+      expect(result).toHaveProperty('targetUserId', 'user-xyz');
     });
 
     test('host tapping occupied seat also routes to VIEW_PROFILE', () => {
@@ -409,7 +409,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('VIEW_PROFILE');
-      expect(result).toHaveProperty('targetUid', 'user-host-target');
+      expect(result).toHaveProperty('targetUserId', 'user-host-target');
     });
 
     test('routes to VIEW_PROFILE in assigned phase', () => {
@@ -424,7 +424,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('VIEW_PROFILE');
-      expect(result).toHaveProperty('targetUid', 'user-assigned');
+      expect(result).toHaveProperty('targetUserId', 'user-assigned');
     });
 
     test('routes to VIEW_PROFILE in ready phase', () => {
@@ -439,7 +439,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('VIEW_PROFILE');
-      expect(result).toHaveProperty('targetUid', 'user-ready');
+      expect(result).toHaveProperty('targetUserId', 'user-ready');
     });
 
     test('routes to VIEW_PROFILE in ended phase', () => {
@@ -454,7 +454,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('VIEW_PROFILE');
-      expect(result).toHaveProperty('targetUid', 'user-ended');
+      expect(result).toHaveProperty('targetUserId', 'user-ended');
     });
   });
 

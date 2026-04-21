@@ -36,7 +36,7 @@ const PREVIEW_STRIP_INDICES: number[] = (() => {
 
 interface AvatarSectionProps {
   isAnonymous: boolean;
-  uid: string;
+  userId: string;
   avatarSource: ImageSourcePropType | null;
   /** Current avatarUrl string for AvatarWithFrame rendering */
   avatarUrl?: string | null;
@@ -54,7 +54,7 @@ interface AvatarSectionProps {
 export const AvatarSection = memo<AvatarSectionProps>(
   ({
     isAnonymous,
-    uid,
+    userId,
     avatarSource,
     avatarUrl,
     avatarFrame,
@@ -69,7 +69,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
       return (
         <View style={styles.avatarPreviewSection}>
           <Avatar
-            value={uid}
+            value={userId}
             size={componentSizes.avatar.xl}
             borderRadius={styles.avatar.borderRadius as number}
           />
@@ -121,7 +121,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
 
     const avatarContent = avatarSource ? (
       <AvatarWithFrame
-        value={uid}
+        value={userId}
         size={avatarSize}
         avatarUrl={avatarUrl}
         borderRadius={styles.avatar.borderRadius as number}
@@ -129,7 +129,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
       />
     ) : (
       <AvatarWithFrame
-        value={uid}
+        value={userId}
         size={avatarSize}
         borderRadius={styles.avatar.borderRadius as number}
         frameId={avatarFrame}

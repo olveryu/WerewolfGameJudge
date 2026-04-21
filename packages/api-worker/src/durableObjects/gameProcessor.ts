@@ -31,19 +31,19 @@ interface InlineProgressionOptions {
 }
 
 /** Find seat number by UID */
-function findSeatByUid(state: GameState, uid: string): number | null {
+function findSeatByUserId(state: GameState, userId: string): number | null {
   for (const [seatKey, player] of Object.entries(state.players)) {
-    if (player?.uid === uid) return Number(seatKey);
+    if (player?.userId === userId) return Number(seatKey);
   }
   return null;
 }
 
 /** Build HandlerContext for game-engine pure handler functions */
-export function buildHandlerContext(state: GameState, uid: string): HandlerContext {
+export function buildHandlerContext(state: GameState, userId: string): HandlerContext {
   return {
     state,
-    myUid: uid,
-    mySeat: findSeatByUid(state, uid),
+    myUserId: userId,
+    mySeat: findSeatByUserId(state, userId),
   };
 }
 
@@ -108,7 +108,7 @@ export function processAction(
 
   // 3.5. inline progression（可选，仅 success 时）
   if (isSuccess && inlineProgression?.enabled) {
-    const prog = runInlineProgression(newState, newState.hostUid, inlineProgression.nowMs);
+    const prog = runInlineProgression(newState, newState.hostUserId, inlineProgression.nowMs);
     for (const action of prog.actions) {
       newState = gameReducer(newState, action);
       totalActionsApplied++;

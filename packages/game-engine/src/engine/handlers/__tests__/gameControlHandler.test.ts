@@ -25,7 +25,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
@@ -41,7 +41,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
-    myUid: 'host-1',
+    myUserId: 'host-1',
     mySeat: 0,
     ...overrides,
   };
@@ -55,9 +55,9 @@ describe('handleAssignRoles', () => {
   const seatedState = createMinimalState({
     status: GameStatus.Seated,
     players: {
-      0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-      1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-      2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+      0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+      1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+      2: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
     },
   });
 
@@ -104,9 +104,9 @@ describe('handleAssignRoles', () => {
     const state = createMinimalState({
       status: GameStatus.Assigned,
       players: {
-        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
-        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
-        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
+        0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
+        1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+        2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
       },
     });
     const context = createContext(state);
@@ -123,9 +123,9 @@ describe('handleAssignRoles', () => {
       status: GameStatus.Seated,
       templateRoles: ['villager', 'wolf'], // 2 roles but 3 seats
       players: {
-        0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-        1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-        2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+        0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+        1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+        2: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
       },
     });
     const context = createContext(state);
@@ -157,9 +157,9 @@ describe('handleStartNight', () => {
   const readyState = createMinimalState({
     status: GameStatus.Ready,
     players: {
-      0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-      1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-      2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+      1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+      2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
     },
   });
 
@@ -210,9 +210,9 @@ describe('handleStartNight', () => {
       status: GameStatus.Ready,
       templateRoles: ['villager', 'villager', 'witch'],
       players: {
-        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-        1: { uid: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
-        2: { uid: 'p3', seatNumber: 2, role: 'witch', hasViewedRole: true },
+        0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { userId: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+        2: { userId: 'p3', seatNumber: 2, role: 'witch', hasViewedRole: true },
       },
     });
     const context = createContext(noWolfState);
@@ -247,7 +247,7 @@ describe('handleStartNight', () => {
   it('should fail when state is null (gate: no_state)', () => {
     const context: HandlerContext = {
       state: null,
-      myUid: 'host-1',
+      myUserId: 'host-1',
       mySeat: 0,
     };
     const intent: StartNightIntent = { type: 'START_NIGHT' };
@@ -262,9 +262,9 @@ describe('handleStartNight', () => {
     const state = createMinimalState({
       status: GameStatus.Assigned,
       players: {
-        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
-        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
-        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
+        0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
+        1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+        2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
       },
     });
     const context = createContext(state);
@@ -280,9 +280,9 @@ describe('handleStartNight', () => {
     const state = createMinimalState({
       status: GameStatus.Ongoing,
       players: {
-        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-        1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-        2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+        0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+        2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
       },
     });
     const context = createContext(state);
@@ -321,9 +321,9 @@ describe('handleStartNight', () => {
       status: GameStatus.Ready,
       templateRoles: ['villager', 'villager', 'villager'],
       players: {
-        0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-        1: { uid: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
-        2: { uid: 'p3', seatNumber: 2, role: 'villager', hasViewedRole: true },
+        0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        1: { userId: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+        2: { userId: 'p3', seatNumber: 2, role: 'villager', hasViewedRole: true },
       },
     });
     const context = createContext(allVillagerState);
@@ -395,9 +395,9 @@ describe('handleUpdateTemplate', () => {
     const state = createMinimalState({
       status: GameStatus.Seated,
       players: {
-        0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-        1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-        2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+        0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+        1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+        2: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
       },
     });
     const context = createContext(state);
@@ -412,7 +412,7 @@ describe('handleUpdateTemplate', () => {
   it('should fail when state is null (gate: no_state)', () => {
     const context: HandlerContext = {
       state: null,
-      myUid: 'host-1',
+      myUserId: 'host-1',
       mySeat: 0,
     };
 
@@ -444,9 +444,9 @@ describe('handleShareNightReview', () => {
   const endedState = createMinimalState({
     status: GameStatus.Ended,
     players: {
-      0: { uid: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-      1: { uid: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-      2: { uid: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+      1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+      2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
     },
   });
 

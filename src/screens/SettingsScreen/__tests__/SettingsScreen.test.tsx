@@ -57,7 +57,7 @@ jest.mock('../../../contexts/GameFacadeContext', () => ({
     getState: jest.fn().mockReturnValue(null),
     getMySeatNumber: jest.fn().mockReturnValue(null),
     subscribe: jest.fn().mockReturnValue(() => {}),
-    updateMyUid: jest.fn(),
+    updateMyUserId: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
   }),
 }));

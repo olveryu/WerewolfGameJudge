@@ -293,13 +293,13 @@ export function useConfigScreenState({
         await settingsService.setRoleRevealAnimation(roleRevealAnimation);
         // Create room record in DB first — get confirmed/final roomNumber
         await authService.waitForInit();
-        const hostUid = authService.getCurrentUserId();
-        if (!hostUid) {
+        const hostUserId = authService.getCurrentUserId();
+        if (!hostUserId) {
           navigation.navigate('Home');
           return;
         }
-        const record = await roomService.createRoom(hostUid, undefined, undefined, (roomCode) =>
-          buildInitialGameState(roomCode, hostUid, template),
+        const record = await roomService.createRoom(hostUserId, undefined, undefined, (roomCode) =>
+          buildInitialGameState(roomCode, hostUserId, template),
         );
         const roomNumber = record.roomNumber;
         storage.set(LAST_ROOM_NUMBER_KEY, roomNumber);

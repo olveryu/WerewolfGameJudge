@@ -14,7 +14,7 @@ import { buildHandlerContext, extractAudioActions } from '../durableObjects/game
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
@@ -27,11 +27,11 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
 }
 
 describe('buildHandlerContext', () => {
-  it('returns context with mySeat when uid matches a seated player', () => {
+  it('returns context with mySeat when userId matches a seated player', () => {
     const state = createMinimalState({
       players: {
         0: {
-          uid: 'p1',
+          userId: 'p1',
           seatNumber: 0,
           displayName: 'P1',
           role: null,
@@ -45,16 +45,16 @@ describe('buildHandlerContext', () => {
     const ctx = buildHandlerContext(state, 'p1');
 
     expect(ctx.state).toBe(state);
-    expect(ctx.myUid).toBe('p1');
+    expect(ctx.myUserId).toBe('p1');
     expect(ctx.mySeat).toBe(0);
   });
 
-  it('returns mySeat null when uid is not seated', () => {
+  it('returns mySeat null when userId is not seated', () => {
     const state = createMinimalState();
 
     const ctx = buildHandlerContext(state, 'unknown-uid');
 
-    expect(ctx.myUid).toBe('unknown-uid');
+    expect(ctx.myUserId).toBe('unknown-uid');
     expect(ctx.mySeat).toBeNull();
   });
 
@@ -62,14 +62,14 @@ describe('buildHandlerContext', () => {
     const state = createMinimalState({
       players: {
         0: {
-          uid: 'p1',
+          userId: 'p1',
           seatNumber: 0,
           displayName: 'P1',
           role: null,
           hasViewedRole: false,
         },
         1: {
-          uid: 'p2',
+          userId: 'p2',
           seatNumber: 1,
           displayName: 'P2',
           role: null,

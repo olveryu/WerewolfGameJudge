@@ -28,13 +28,13 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 function createTestState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'HOST',
+    hostUserId: 'HOST',
     status: GameStatus.Ongoing,
     templateRoles: ['wolfRobot', 'hunter', 'villager'],
     players: {
-      0: { uid: 'U1', seatNumber: 0, role: 'wolfRobot', hasViewedRole: true },
-      1: { uid: 'U2', seatNumber: 1, role: 'hunter', hasViewedRole: true },
-      2: { uid: 'U3', seatNumber: 2, role: 'villager', hasViewedRole: true },
+      0: { userId: 'U1', seatNumber: 0, role: 'wolfRobot', hasViewedRole: true },
+      1: { userId: 'U2', seatNumber: 1, role: 'hunter', hasViewedRole: true },
+      2: { userId: 'U3', seatNumber: 2, role: 'villager', hasViewedRole: true },
     },
     currentStepIndex: 0,
     currentStepId: 'wolfRobotLearn',
@@ -62,7 +62,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const context: HandlerContext = {
         state,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -79,7 +79,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const context: HandlerContext = {
         state,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -100,7 +100,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const context: HandlerContext = {
         state,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -117,7 +117,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const context: HandlerContext = {
         state,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -142,7 +142,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const context: HandlerContext = {
         state,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -158,7 +158,7 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
     it('rejects when state is null', () => {
       const context: HandlerContext = {
         state: null, // no state
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -177,7 +177,7 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
       });
       const context: HandlerContext = {
         state,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -200,7 +200,7 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
       });
       const context: HandlerContext = {
         state,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -217,7 +217,7 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
       const state = createTestState();
       const context: HandlerContext = {
         state,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 1,
       };
 
@@ -236,7 +236,7 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
       const state = createTestState();
       const context: HandlerContext = {
         state,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -263,7 +263,7 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
 
       const ctx1: HandlerContext = {
         state: initialState,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 
@@ -285,7 +285,7 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
 
       const ctx2: HandlerContext = {
         state: updatedState,
-        myUid: 'HOST',
+        myUserId: 'HOST',
         mySeat: 0,
       };
 

@@ -83,7 +83,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     expect(normalized.currentStepId).toBe(state.currentStepId);
     expect(normalized.isAudioPlaying).toBe(state.isAudioPlaying);
     expect(normalized.roomCode).toBe(state.roomCode);
-    expect(normalized.hostUid).toBe(state.hostUid);
+    expect(normalized.hostUserId).toBe(state.hostUserId);
   });
 
   it('wolfKill 后 → normalizeState 保留 wolfVotesBySeat', () => {

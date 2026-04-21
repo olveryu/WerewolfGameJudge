@@ -50,7 +50,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
       Array.from({ length: 12 }).map((_, i) => [
         i,
         {
-          uid: `p${i}`,
+          userId: `p${i}`,
           seatNumber: i,
           displayName: `P${i + 1}`,
           avatarUrl: undefined,
@@ -67,7 +67,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     lastNightDeaths: [],
     nightmareBlockedSeat: null,
     templateRoles: [],
-    hostUid: 'host',
+    hostUserId: 'host',
     roomCode: '1234',
   };
 
@@ -299,7 +299,7 @@ describe('RoomScreen wolf vote UI', () => {
       const target = players.get(2);
       players.set(2, {
         ...(target ?? {
-          uid: 'p2',
+          userId: 'p2',
           seatNumber: 2,
           displayName: 'P3',
           avatarUrl: undefined,

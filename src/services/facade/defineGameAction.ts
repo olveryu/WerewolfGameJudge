@@ -29,10 +29,12 @@ async function callGameControlApi(
   return callApiWithRetry(path, body, 'callGameControlApi', store, optimisticFn);
 }
 
-function getConnectionOrFail(ctx: GameActionsContext): { roomCode: string; myUid: string } | null {
+function getConnectionOrFail(
+  ctx: GameActionsContext,
+): { roomCode: string; myUserId: string } | null {
   const roomCode = ctx.store.getState()?.roomCode;
-  if (!roomCode || !ctx.myUid) return null;
-  return { roomCode, myUid: ctx.myUid };
+  if (!roomCode || !ctx.myUserId) return null;
+  return { roomCode, myUserId: ctx.myUserId };
 }
 
 function getRoomCodeOrFail(ctx: GameActionsContext): { roomCode: string } | null {
@@ -58,9 +60,9 @@ interface GameActionDef<TArgs extends unknown[]> {
   name: string;
   /** API endpoint path (e.g. '/game/assign') */
   path: string;
-  /** True when the action requires myUid (player actions, not host-only) */
-  needsUid?: boolean;
-  /** Build extra body fields beyond roomCode (and uid when needsUid is true) */
+  /** True when the action requires myUserId (player actions, not host-only) */
+  needsUserId?: boolean;
+  /** Build extra body fields beyond roomCode (and userId when needsUserId is true) */
   body?: (...args: TArgs) => Record<string, unknown>;
   /** Optimistic state update applied before the fetch */
   optimistic?: (...args: TArgs) => (state: GameState) => GameState;
@@ -81,13 +83,13 @@ export function defineGameAction<TArgs extends unknown[]>(
     facadeLog.debug('gameAction called', { name: def.name });
 
     let roomCode: string;
-    let myUid: string | null = null;
+    let myUserId: string | null = null;
 
-    if (def.needsUid) {
+    if (def.needsUserId) {
       const conn = getConnectionOrFail(ctx);
       if (!conn) return NOT_CONNECTED;
       roomCode = conn.roomCode;
-      myUid = conn.myUid;
+      myUserId = conn.myUserId;
     } else {
       const conn = getRoomCodeOrFail(ctx);
       if (!conn) return NOT_CONNECTED;
@@ -96,8 +98,8 @@ export function defineGameAction<TArgs extends unknown[]>(
 
     const extraBody = def.body?.(...args) ?? {};
     const requestBody: Record<string, unknown> = { roomCode, ...extraBody };
-    if (def.needsUid && myUid) {
-      requestBody.uid = myUid;
+    if (def.needsUserId && myUserId) {
+      requestBody.userId = myUserId;
     }
 
     const result = await callGameControlApi(

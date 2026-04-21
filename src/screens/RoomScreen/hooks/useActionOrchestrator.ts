@@ -43,7 +43,7 @@ interface UseActionOrchestratorParams {
   actorSeatForUi: number | null;
   imActioner: boolean;
   isAudioPlaying: boolean;
-  myUid: string | null;
+  myUserId: string | null;
 
   // ── Rejoin overlay ──
   /** When true, ContinueGameOverlay is visible — suppress auto-trigger to avoid z-order conflict. */
@@ -102,7 +102,7 @@ export function useActionOrchestrator({
   actorSeatForUi,
   imActioner,
   isAudioPlaying,
-  myUid,
+  myUserId,
   needsContinueOverlay,
   firstSwapSeat,
   setFirstSwapSeat,
@@ -209,25 +209,27 @@ export function useActionOrchestrator({
       return;
     }
 
-    // In debug mode, Host controls bot seats, so also check effectiveSeat's uid
-    const effectiveUid = effectiveSeat === null ? null : gameState?.players.get(effectiveSeat)?.uid;
-    const isTargetMatch = rejected.targetUid === myUid || rejected.targetUid === effectiveUid;
-    if (!myUid || !isTargetMatch) return;
+    // In debug mode, Host controls bot seats, so also check effectiveSeat's userId
+    const effectiveUid =
+      effectiveSeat === null ? null : gameState?.players.get(effectiveSeat)?.userId;
+    const isTargetMatch =
+      rejected.targetUserId === myUserId || rejected.targetUserId === effectiveUid;
+    if (!myUserId || !isTargetMatch) return;
 
     // Deduplicate repeated broadcasts of the same rejection
     const key =
       (rejected as { rejectionId?: string }).rejectionId ??
-      `${rejected.action}:${rejected.reason}:${rejected.targetUid}`;
+      `${rejected.action}:${rejected.reason}:${rejected.targetUserId}`;
     if (key === lastRejectedKeyRef.current) return;
     lastRejectedKeyRef.current = key;
 
     roomScreenLog.warn('Action rejected by server', {
       action: rejected.action,
       reason: rejected.reason,
-      targetUid: rejected.targetUid,
+      targetUserId: rejected.targetUserId,
     });
     actionDialogs.showActionRejectedAlert(rejected.reason);
-  }, [gameState?.actionRejected, gameState?.players, myUid, effectiveSeat, actionDialogs]);
+  }, [gameState?.actionRejected, gameState?.players, myUserId, effectiveSeat, actionDialogs]);
 
   // ─── Intent handler (executor dispatch) ──────────────────────────────────
 

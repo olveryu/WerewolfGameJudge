@@ -60,7 +60,7 @@ interface UseGameRoomResult {
 
   // Player info
   isHost: boolean;
-  myUid: string | null;
+  myUserId: string | null;
   mySeatNumber: number | null;
   myRole: RoleId | null;
 
@@ -129,7 +129,7 @@ interface UseGameRoomResult {
 
   // Board nomination (任意已连接玩家)
   boardNominate: (displayName: string, roles: RoleId[]) => Promise<void>;
-  boardUpvote: (targetUid: string) => Promise<void>;
+  boardUpvote: (targetUserId: string) => Promise<void>;
   boardWithdraw: () => Promise<void>;
 
   // BGM manual control (for ended-phase UI)
@@ -160,16 +160,16 @@ export const useGameRoom = (): UseGameRoomResult => {
   const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
 
   // =========================================================================
-  // Phase C safety net: keep facade uid in sync with auth state.
-  // Phase A prevents uid change during anonymous→register, but if uid
+  // Phase C safety net: keep facade userId in sync with auth state.
+  // Phase A prevents userId change during anonymous→register, but if userId
   // changes for any other reason (e.g. sign-out → sign-in while room
   // screen is mounted via Settings modal), we patch facade immediately.
   // =========================================================================
   useEffect(() => {
-    if (user?.uid) {
-      facade.updateMyUid(user.uid);
+    if (user?.id) {
+      facade.updateMyUserId(user.id);
     }
-  }, [user?.uid, facade]);
+  }, [user?.id, facade]);
 
   // =========================================================================
   // Sub-hooks
@@ -205,7 +205,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Derive local state (pure computation, zero useState for identity)
   const gameState = useMemo(() => (snapshot ? toLocalState(snapshot) : null), [snapshot]);
   const isHost = snapshot !== null && facade.isHostPlayer();
-  const myUid = snapshot !== null ? facade.getMyUid() : null;
+  const myUserId = snapshot !== null ? facade.getMyUserId() : null;
   const mySeatNumber = snapshot !== null ? facade.getMySeatNumber() : null;
 
   // Toast notifications for passive actions (kick, clearAllSeats, assignRoles, etc.)
@@ -304,7 +304,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     roomRecord,
     gameState,
     isHost,
-    myUid,
+    myUserId,
     mySeatNumber,
     myRole,
     // Debug mode

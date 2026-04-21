@@ -5,7 +5,7 @@
  * - 统一 HTTP API 调用（Host / Player 不再有区别）
  * - takeSeat / takeSeatWithAck → fetch POST /game/seat
  * - leaveSeat / leaveSeatWithAck → fetch POST /game/seat
- * - NOT_CONNECTED guard（无 roomCode / uid 时）
+ * - NOT_CONNECTED guard（无 roomCode / userId 时）
  * - NETWORK_ERROR 处理
  *
  * 通过 mock fetch（HTTP 调用）只验证编排逻辑，不 mock handler（服务端逻辑不在此处）。
@@ -34,7 +34,7 @@ jest.mock('../../../utils/logger', () => ({
 
 function createMockCtx(overrides?: Partial<SeatActionsContext>): SeatActionsContext {
   return {
-    myUid: 'test-uid',
+    myUserId: 'test-uid',
     getRoomCode: () => 'ABCD',
     ...overrides,
   };
@@ -100,7 +100,7 @@ describe('seatActions (HTTP API)', () => {
           body: JSON.stringify({
             roomCode: 'ABCD',
             action: 'sit',
-            uid: 'test-uid',
+            userId: 'test-uid',
             seat: 2,
             displayName: 'Alice',
             avatarUrl: 'https://avatar.url',
@@ -128,9 +128,9 @@ describe('seatActions (HTTP API)', () => {
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it('should return NOT_CONNECTED when myUid is null', async () => {
+    it('should return NOT_CONNECTED when myUserId is null', async () => {
       global.fetch = mockFetchSuccess();
-      const ctx = createMockCtx({ myUid: null });
+      const ctx = createMockCtx({ myUserId: null });
 
       const result = await takeSeatWithAck(ctx, 0, 'Alice');
 
@@ -228,7 +228,7 @@ describe('seatActions (HTTP API)', () => {
           body: JSON.stringify({
             roomCode: 'ABCD',
             action: 'standup',
-            uid: 'test-uid',
+            userId: 'test-uid',
           }),
         }),
       );
@@ -337,7 +337,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 3 });
       const mockStore = createMockStore({
         roomCode: 'ABCD',
-        players: { 1: { uid: 'test-uid', seatNumber: 1 } },
+        players: { 1: { userId: 'test-uid', seatNumber: 1 } },
       });
       const ctx = createMockCtx({ store: mockStore as any });
 

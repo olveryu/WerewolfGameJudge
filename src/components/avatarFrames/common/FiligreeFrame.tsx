@@ -15,8 +15,8 @@ interface ColoredFrameProps extends FrameProps {
 }
 
 export const FiligreeFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gBorder = `filBord${uid}`;
+  const userId = useId();
+  const gBorder = `filBord${userId}`;
   // Small scroll arcs at each corner
   const a = 18; // arc size
   const scrollPaths = [

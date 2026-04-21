@@ -14,14 +14,14 @@ import type { GameState } from '../store/types';
  * Handler 上下文
  * 提供 handler 执行所需的依赖
  *
- * 注意：state 和 myUid 可能为 null（Facade 不做校验，由 handler 负责）
+ * 注意：state 和 myUserId 可能为 null（Facade 不做校验，由 handler 负责）
  */
 export interface HandlerContext {
   /** 当前状态（只读，可能为 null） */
   readonly state: GameState | null;
 
   /** 当前用户 UID（可能为 null） */
-  readonly myUid: string | null;
+  readonly myUserId: string | null;
 
   /** 当前用户座位号 */
   readonly mySeat: number | null;

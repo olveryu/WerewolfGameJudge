@@ -20,13 +20,13 @@ function step(roleId: string, stepId: string, order = 0): NightPlanStep {
 function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { uid: 'p0', seatNumber: 0, displayName: 'P0', role: 'seer', hasViewedRole: true },
-      1: { uid: 'p1', seatNumber: 1, displayName: 'P1', role: 'wolf', hasViewedRole: true },
-      2: { uid: 'p2', seatNumber: 2, displayName: 'P2', role: 'villager', hasViewedRole: true },
+      0: { userId: 'p0', seatNumber: 0, displayName: 'P0', role: 'seer', hasViewedRole: true },
+      1: { userId: 'p1', seatNumber: 1, displayName: 'P1', role: 'wolf', hasViewedRole: true },
+      2: { userId: 'p2', seatNumber: 2, displayName: 'P2', role: 'villager', hasViewedRole: true },
     },
     currentStepIndex: 0,
     isAudioPlaying: false,

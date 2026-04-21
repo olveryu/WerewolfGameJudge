@@ -29,7 +29,7 @@ interface SettlementEnv {
 
 /** 单个玩家的结算结果 */
 export interface PlayerSettleResult {
-  uid: string;
+  userId: string;
   xpEarned: number;
   newXp: number;
   newLevel: number;
@@ -52,36 +52,36 @@ export async function settleGameResults(
   const settleKey = `${state.roomCode}:${revision}`;
   const db = createDb(env.DB);
 
-  // 1. 收集非空、非 bot 玩家 uid
-  const uniqueUids = new Set<string>();
+  // 1. 收集非空、非 bot 玩家 userId
+  const uniqueUserIds = new Set<string>();
   for (const [, player] of Object.entries(state.players)) {
     if (!player || player.isBot || !player.role) continue;
-    uniqueUids.add(player.uid);
+    uniqueUserIds.add(player.userId);
   }
 
-  if (uniqueUids.size < MIN_PLAYERS) return [];
+  if (uniqueUserIds.size < MIN_PLAYERS) return [];
 
   // 2. 查 D1 过滤匿名用户
-  const uidList = [...uniqueUids];
+  const userIdList = [...uniqueUserIds];
   const registeredRows = await db
     .select({ id: users.id })
     .from(users)
-    .where(and(inArray(users.id, uidList), eq(users.isAnonymous, 0)));
+    .where(and(inArray(users.id, userIdList), eq(users.isAnonymous, 0)));
 
-  const registeredUids = new Set(registeredRows.map((r) => r.id));
-  if (registeredUids.size === 0) return [];
+  const registeredUserIds = new Set(registeredRows.map((r) => r.id));
+  if (registeredUserIds.size === 0) return [];
 
   // 3. 遍历注册玩家，结算 XP + 随机解锁
   const results: PlayerSettleResult[] = [];
 
-  for (const uid of registeredUids) {
+  for (const userId of registeredUserIds) {
     const xpEarned = rollXp();
 
     // Idempotent upsert: WHERE clause ensures duplicate settleKey is a no-op (changes === 0)
     await db
       .insert(userStats)
       .values({
-        userId: uid,
+        userId: userId,
         xp: xpEarned,
         level: 0,
         gamesPlayed: 1,
@@ -107,7 +107,7 @@ export async function settleGameResults(
         unlockedItems: userStats.unlockedItems,
       })
       .from(userStats)
-      .where(eq(userStats.userId, uid))
+      .where(eq(userStats.userId, userId))
       .get();
 
     if (statsRow) {
@@ -126,11 +126,11 @@ export async function settleGameResults(
             normalDraws: sql`${userStats.normalDraws} + ${normalDrawsEarned}`,
             goldenDraws: sql`${userStats.goldenDraws} + ${goldenDrawsEarned}`,
           })
-          .where(eq(userStats.userId, uid));
+          .where(eq(userStats.userId, userId));
       }
 
       results.push({
-        uid,
+        userId,
         xpEarned,
         newXp: statsRow.xp,
         newLevel,

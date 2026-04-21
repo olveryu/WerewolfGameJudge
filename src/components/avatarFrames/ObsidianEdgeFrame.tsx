@@ -9,10 +9,10 @@ import type { FrameProps } from './FrameProps';
  * 火山黑曜石 · 双层彩虹光泽 · 棱切面 + 斜切角 + 棱柱色点。
  */
 export const ObsidianEdgeFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const obsGrad = `obsG${uid}`;
-  const sheenGrad = `obsSh${uid}`;
-  const sheenGrad2 = `obsSh2${uid}`;
+  const userId = useId();
+  const obsGrad = `obsG${userId}`;
+  const sheenGrad = `obsSh${userId}`;
+  const sheenGrad2 = `obsSh2${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

@@ -4,8 +4,8 @@ import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 're
 import type { FrameProps } from './FrameProps';
 
 export const FrostCrystalFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const frostGrad = `frostGrad${uid}`;
+  const userId = useId();
+  const frostGrad = `frostGrad${userId}`;
   const c = rx * 0.29;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">

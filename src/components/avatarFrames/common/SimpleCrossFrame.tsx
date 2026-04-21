@@ -37,8 +37,8 @@ function crossPath(inset: number): string {
 }
 
 export const SimpleCrossFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gradId = `crossGrad${uid}`;
+  const userId = useId();
+  const gradId = `crossGrad${userId}`;
   const inset = Math.min(rx * 0.5, 18);
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">

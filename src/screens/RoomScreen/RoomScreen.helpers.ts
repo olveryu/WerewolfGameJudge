@@ -42,7 +42,7 @@ interface GameRoomLike {
   players: Map<
     number,
     {
-      uid: string;
+      userId: string;
       seatNumber: number;
       role: RoleId | null;
       hasViewedRole: boolean;
@@ -87,7 +87,7 @@ export interface SeatViewModel {
   seat: number;
   role: RoleId;
   player: {
-    uid: string;
+    userId: string;
     displayName: string;
     avatarUrl?: string;
     avatarFrame?: string;
@@ -459,7 +459,7 @@ export function buildSeatViewModels(
       role,
       player: player
         ? {
-            uid: player.uid,
+            userId: player.userId,
             displayName: player.displayName || '玩家',
             avatarUrl: player.avatarUrl,
             avatarFrame: player.avatarFrame,

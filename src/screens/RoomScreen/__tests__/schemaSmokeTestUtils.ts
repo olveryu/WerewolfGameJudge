@@ -41,7 +41,7 @@ export function makeBaseUseGameRoomReturn({
     Array.from({ length: numberOfPlayers }).map((_, i) => [
       i,
       {
-        uid: `p${i}`,
+        userId: `p${i}`,
         seatNumber: i,
         displayName: `P${i + 1}`,
         avatarUrl: undefined,
@@ -66,7 +66,7 @@ export function makeBaseUseGameRoomReturn({
     lastNightDeaths: [],
     nightmareBlockedSeat: null,
     templateRoles: [],
-    hostUid: 'host',
+    hostUserId: 'host',
     roomCode: '1234',
     ...(gameStateOverrides ?? {}),
   };
@@ -86,7 +86,7 @@ export function makeBaseUseGameRoomReturn({
 
     mySeatNumber,
     myRole,
-    myUid: `p${mySeatNumber}`,
+    myUserId: `p${mySeatNumber}`,
 
     // Debug mode fields
     isDebugMode: false,

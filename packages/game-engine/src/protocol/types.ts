@@ -69,7 +69,7 @@ export interface AudioEffect {
 // =============================================================================
 
 export interface Player {
-  uid: string;
+  userId: string;
   seatNumber: number;
   role?: RoleId | null;
   hasViewedRole: boolean;
@@ -85,10 +85,10 @@ export interface Player {
  * RosterEntry — 房间内玩家的展示信息（昵称 / 头像 / 等级）。
  *
  * 与 Player（游戏逻辑字段）分离：
- * - Player: uid / seatNumber / role / hasViewedRole / isBot
+ * - Player: userId / seatNumber / role / hasViewedRole / isBot
  * - RosterEntry: displayName / avatarUrl / avatarFrame / level
  *
- * keyed by uid in GameState.roster。
+ * keyed by userId in GameState.roster。
  */
 export interface RosterEntry {
   displayName: string;
@@ -105,16 +105,16 @@ export interface RosterEntry {
 
 /**
  * 板子建议（BoardNomination）— 任何已连接玩家可提交。
- * 每人最多一个（以 uid 为 key，后提交覆盖前）。
+ * 每人最多一个（以 userId 为 key，后提交覆盖前）。
  */
 export interface BoardNomination {
-  /** 提交者 uid（冗余存储，方便 UI 渲染） */
-  readonly uid: string;
+  /** 提交者 userId（冗余存储，方便 UI 渲染） */
+  readonly userId: string;
   /** 提交者显示名 */
   readonly displayName: string;
   /** 建议的角色配置 */
   readonly roles: readonly RoleId[];
-  /** 点赞的 uid 列表 */
+  /** 点赞的 userId 列表 */
   readonly upvoters: readonly string[];
 }
 
@@ -125,7 +125,7 @@ export interface BoardNomination {
 export interface GameState {
   // --- 核心字段（现有） ---
   roomCode: string;
-  hostUid: string;
+  hostUserId: string;
   status: GameStatus;
   templateRoles: RoleId[];
 
@@ -133,7 +133,7 @@ export interface GameState {
   players: Record<number, Player | null>;
 
   /**
-   * 玩家画像（RosterEntry），keyed by uid。
+   * 玩家画像（RosterEntry），keyed by userId。
    * 展示字段（displayName / avatarUrl / avatarFrame / level）与 Player 分离。
    * join 时写入，leave 时移除，updateProfile 时更新。
    */
@@ -308,7 +308,7 @@ export interface GameState {
   actionRejected?: {
     action: string;
     reason: string;
-    targetUid: string;
+    targetUserId: string;
     /** Unique id for this rejection event (UI uses it for dedupe). */
     rejectionId: string;
   };
@@ -496,7 +496,7 @@ export interface GameState {
 
   // --- 板子建议（Board Nomination）---
   /**
-   * 板子建议列表（uid → BoardNomination）。
+   * 板子建议列表（userId → BoardNomination）。
    * 任何已连接玩家可提交建议，每人最多一条（后提交覆盖前）。
    * Host 可采纳某条建议（触发 UPDATE_TEMPLATE）。
    * UPDATE_TEMPLATE / RESTART_GAME 时清空。
@@ -515,13 +515,13 @@ export interface GameState {
  * 保留供 board integration tests（hostGameContext / hostGameFactory）使用。
  */
 export type PlayerMessage =
-  | { type: 'REQUEST_STATE'; uid: string }
-  | { type: 'JOIN'; seat: number; uid: string; displayName: string; avatarUrl?: string }
-  | { type: 'LEAVE'; seat: number; uid: string }
+  | { type: 'REQUEST_STATE'; userId: string }
+  | { type: 'JOIN'; seat: number; userId: string; displayName: string; avatarUrl?: string }
+  | { type: 'LEAVE'; seat: number; userId: string }
   | { type: 'ACTION'; seat: number; role: RoleId; target: number | null; extra?: unknown }
   | { type: 'WOLF_VOTE'; seat: number; target: number }
   | { type: 'VIEWED_ROLE'; seat: number }
   | { type: 'REVEAL_ACK'; seat: number; role: RoleId; revision: number }
-  | { type: 'SNAPSHOT_REQUEST'; requestId: string; uid: string; lastRevision?: number }
+  | { type: 'SNAPSHOT_REQUEST'; requestId: string; userId: string; lastRevision?: number }
   /** WolfRobot learned hunter: player viewed status, Host clears gate */
   | { type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED'; seat: number };

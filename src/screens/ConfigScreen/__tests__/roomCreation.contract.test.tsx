@@ -50,7 +50,7 @@ const createMockFacade = (): IGameFacade =>
     subscribe: jest.fn(() => jest.fn()),
     getState: jest.fn(() => null),
     isHostPlayer: jest.fn(() => false),
-    getMyUid: jest.fn(() => null),
+    getMyUserId: jest.fn(() => null),
     getMySeatNumber: jest.fn(() => null),
     getStateRevision: jest.fn(() => 0),
     createRoom: jest.fn(),
@@ -82,7 +82,7 @@ describe('Room creation → navigation roomNumber contract', () => {
     mockRoomService = {
       createRoom: jest.fn().mockResolvedValue({
         roomNumber: '7777', // The confirmed DB roomNumber
-        hostUid: 'host-uid',
+        hostUserId: 'host-uid',
         createdAt: new Date(),
       }),
     };

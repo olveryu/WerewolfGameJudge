@@ -35,7 +35,7 @@ interface PlayerProfileCardProps {
   visible: boolean;
   onClose: () => void;
   /** Target player UID */
-  targetUid: string;
+  targetUserId: string;
   /** Target seat number (0-based) */
   targetSeat: number;
   /** Whether current user is host (shows kick button) */
@@ -88,22 +88,22 @@ XpProgressBar.displayName = 'XpProgressBar';
 const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
   visible,
   onClose,
-  targetUid,
+  targetUserId,
   targetSeat,
   isHost,
   rosterName,
   onKick,
 }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const isBot = targetUid.startsWith('bot-');
+  const isBot = targetUserId.startsWith('bot-');
 
   // Fetch user public profile (shared cache via TanStack Query)
   const {
     data: profile,
     isLoading: loading,
     isError: error,
-  } = useUserProfileQuery(targetUid, {
-    enabled: visible && !!targetUid && !isBot,
+  } = useUserProfileQuery(targetUserId, {
+    enabled: visible && !!targetUserId && !isBot,
   });
 
   const handleKick = useCallback(() => {
@@ -114,10 +114,10 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
   const handleViewUnlocks = useCallback(() => {
     onClose();
     navigation.navigate('Unlocks', {
-      userId: targetUid,
+      userId: targetUserId,
       displayName: profile?.displayName,
     });
-  }, [onClose, navigation, targetUid, profile?.displayName]);
+  }, [onClose, navigation, targetUserId, profile?.displayName]);
 
   const xpProgress = useMemo(() => (profile ? getLevelProgress(profile.xp) : 0), [profile]);
 
@@ -172,7 +172,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
             </View>
             <View style={styles.avatarSection}>
               <View style={styles.avatarContainer}>
-                <Avatar value={targetUid} size={AVATAR_SIZE} borderRadius={AVATAR_SIZE / 2} />
+                <Avatar value={targetUserId} size={AVATAR_SIZE} borderRadius={AVATAR_SIZE / 2} />
               </View>
             </View>
             <Text style={styles.displayName} numberOfLines={1}>
@@ -202,7 +202,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
             <View style={styles.avatarSection}>
               <View style={styles.avatarContainer}>
                 <AvatarWithFrame
-                  value={targetUid}
+                  value={targetUserId}
                   size={AVATAR_SIZE}
                   avatarUrl={profile.avatarUrl}
                   frameId={profile.avatarFrame as FrameId}

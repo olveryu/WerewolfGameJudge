@@ -8,16 +8,16 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { expectSuccess } from './handlerTestUtils';
 
 const baseContext: any = {
-  myUid: 'HOST',
+  myUserId: 'HOST',
   mySeat: 0,
   state: {
     roomCode: 'ROOM',
-    hostUid: 'HOST',
+    hostUserId: 'HOST',
     status: GameStatus.Ongoing,
     templateRoles: ['seer', 'villager'],
     players: {
-      0: { uid: 'p0', seatNumber: 0, role: 'seer', hasViewedRole: true },
-      1: { uid: 'p1', seatNumber: 1, role: 'villager', hasViewedRole: true },
+      0: { userId: 'p0', seatNumber: 0, role: 'seer', hasViewedRole: true },
+      1: { userId: 'p1', seatNumber: 1, role: 'villager', hasViewedRole: true },
     },
     currentStepIndex: 0,
     isAudioPlaying: false,

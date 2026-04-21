@@ -9,9 +9,9 @@ import type { FrameProps } from './FrameProps';
  * 燃尽灰烬 · 橙色裂纹发光 · 底部热浪 + 余烬粒子 + 焦痕。
  */
 export const EmberAshFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const ashGrad = `ashG${uid}`;
-  const embGlow = `embGl${uid}`;
+  const userId = useId();
+  const ashGrad = `ashG${userId}`;
+  const embGlow = `embGl${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

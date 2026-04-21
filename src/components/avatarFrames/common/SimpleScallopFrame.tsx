@@ -66,8 +66,8 @@ function scallopPath(): string {
 }
 
 export const SimpleScallopFrame = memo<ColoredFrameProps>(({ size, colors }) => {
-  const uid = useId();
-  const gradId = `scallGrad${uid}`;
+  const userId = useId();
+  const gradId = `scallGrad${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

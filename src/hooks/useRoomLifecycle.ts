@@ -98,8 +98,8 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
       try {
         await authService.waitForInit();
-        const hostUid = authService.getCurrentUserId();
-        if (!hostUid) {
+        const hostUserId = authService.getCurrentUserId();
+        if (!hostUserId) {
           // First-time user (no session) — show login modal instead of silent anonymous sign-in
           gameRoomLog.info('initializeRoom: No userId, requesting auth');
           setNeedsAuth(true);
@@ -107,9 +107,9 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         }
 
         // Set roomRecord for connection sync & leaveRoom cleanup
-        setRoomRecord({ roomNumber, hostUid, createdAt: new Date() });
+        setRoomRecord({ roomNumber, hostUserId, createdAt: new Date() });
 
-        await facade.createRoom(roomNumber, hostUid, template);
+        await facade.createRoom(roomNumber, hostUserId, template);
 
         return true;
       } catch (err) {
@@ -144,8 +144,8 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
       try {
         await authService.waitForInit();
-        const playerUid = authService.getCurrentUserId();
-        if (!playerUid) {
+        const playerUserId = authService.getCurrentUserId();
+        if (!playerUserId) {
           // First-time user (no session) — show login modal instead of silent anonymous sign-in
           gameRoomLog.info('joinRoom: No userId, requesting auth');
           setNeedsAuth(true);
@@ -163,9 +163,9 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         setRoomRecord(record);
 
         // Host rejoin: isHost=true
-        if (record.hostUid === playerUid) {
+        if (record.hostUserId === playerUserId) {
           gameRoomLog.debug('Host rejoin detected, attempting recovery');
-          const result = await facade.joinRoom(roomNumber, playerUid, true);
+          const result = await facade.joinRoom(roomNumber, playerUserId, true);
           if (!result.success) {
             gameRoomLog.error('Host rejoin failed', { reason: result.reason });
             setError('房间状态已过期，请重新创建房间');
@@ -176,7 +176,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         }
 
         // Player: isHost=false
-        await facade.joinRoom(roomNumber, playerUid, false);
+        await facade.joinRoom(roomNumber, playerUserId, false);
 
         return true;
       } catch (err) {

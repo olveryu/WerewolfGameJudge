@@ -164,13 +164,13 @@ function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): Au
  * action complete → evaluate → advance → evaluate → ... → none/end_night
  *
  * @param state - action 处理后的 state
- * @param hostUid - Host UID（用于构建 HandlerContext）
+ * @param hostUserId - Host UID（用于构建 HandlerContext）
  * @param nowMs - 当前时间戳（用于 stepDeadline 检查，默认 Date.now()）
  * @returns 推进结果（actions + audioEffects + finalState）
  */
 export function runInlineProgression(
   state: GameState,
-  hostUid: string,
+  hostUserId: string,
   nowMs: number = Date.now(),
 ): InlineProgressionResult {
   const allActions: StateAction[] = [];
@@ -185,7 +185,7 @@ export function runInlineProgression(
 
     const ctx: HandlerContext = {
       state: currentState,
-      myUid: hostUid,
+      myUserId: hostUserId,
       mySeat: null, // 服务端不需要 mySeat
     };
 

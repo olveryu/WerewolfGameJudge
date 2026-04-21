@@ -183,7 +183,7 @@ describe('useAuth hook', () => {
       });
 
       expect(result.current.user).toEqual({
-        uid: 'user-123',
+        id: 'user-123',
         email: 'test@example.com',
         displayName: 'Test User',
         avatarUrl: null,
@@ -402,7 +402,7 @@ describe('useAuth hook', () => {
       });
 
       expect(result.current.user).toEqual({
-        uid: 'user-456',
+        id: 'user-456',
         email: 'full@example.com',
         displayName: 'Full User',
         avatarUrl: 'https://example.com/avatar.png',
@@ -434,7 +434,7 @@ describe('useAuth hook', () => {
       });
 
       expect(result.current.user).toEqual({
-        uid: 'anon-123',
+        id: 'anon-123',
         email: null,
         displayName: null,
         avatarUrl: null,
@@ -473,7 +473,7 @@ describe('useAuth hook', () => {
 describe('User interface', () => {
   it('should define User interface with correct properties', () => {
     const user: User = {
-      uid: 'test-uid',
+      id: 'test-uid',
       email: 'test@example.com',
       displayName: 'Test User',
       avatarUrl: 'https://example.com/avatar.jpg',
@@ -484,7 +484,7 @@ describe('User interface', () => {
       isAnonymous: false,
     };
 
-    expect(user.uid).toBe('test-uid');
+    expect(user.id).toBe('test-uid');
     expect(user.email).toBe('test@example.com');
     expect(user.displayName).toBe('Test User');
     expect(user.avatarUrl).toBe('https://example.com/avatar.jpg');
@@ -494,7 +494,7 @@ describe('User interface', () => {
 
   it('should allow null values for optional fields', () => {
     const user: User = {
-      uid: 'anon-uid',
+      id: 'anon-uid',
       email: null,
       displayName: null,
       avatarUrl: null,
@@ -505,7 +505,7 @@ describe('User interface', () => {
       isAnonymous: true,
     };
 
-    expect(user.uid).toBe('anon-uid');
+    expect(user.id).toBe('anon-uid');
     expect(user.email).toBeNull();
     expect(user.displayName).toBeNull();
     expect(user.avatarUrl).toBeNull();

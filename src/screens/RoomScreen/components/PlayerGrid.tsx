@@ -82,8 +82,8 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   // Only includes players without a custom avatarUrl.
   const avatarMap = useMemo(() => {
     const uids = seats
-      .filter((s) => s.player?.uid && !s.player.avatarUrl)
-      .map((s) => s.player!.uid);
+      .filter((s) => s.player?.userId && !s.player.avatarUrl)
+      .map((s) => s.player!.userId);
     return getUniqueAvatarMap(roomNumber, uids);
   }, [seats, roomNumber]);
 
@@ -133,9 +133,9 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           isSelected={seat.isSelected}
           isBot={seat.player?.isBot === true}
           isControlled={controlledSeat === seat.seat}
-          playerUid={seat.player?.uid ?? null}
+          playerUserId={seat.player?.userId ?? null}
           playerAvatarUrl={seat.player?.avatarUrl}
-          playerAvatarIndex={seat.player?.uid ? avatarMap.get(seat.player.uid) : undefined}
+          playerAvatarIndex={seat.player?.userId ? avatarMap.get(seat.player.userId) : undefined}
           playerAvatarFrame={seat.player?.avatarFrame}
           playerSeatFlair={seat.player?.seatFlair}
           playerNameStyle={seat.player?.nameStyle}

@@ -18,10 +18,10 @@ import type { FrameProps } from './FrameProps';
  * 深空星云 · 双色气体漫射 · 四角星芒 + 星簇 + 粉蓝雾。
  */
 export const StarNebulaFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const nebGrad = `nebG${uid}`;
-  const nebGlow1 = `nebGl1${uid}`;
-  const nebGlow2 = `nebGl2${uid}`;
+  const userId = useId();
+  const nebGrad = `nebG${userId}`;
+  const nebGlow1 = `nebGl1${userId}`;
+  const nebGlow2 = `nebGl2${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

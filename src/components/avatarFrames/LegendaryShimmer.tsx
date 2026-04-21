@@ -92,8 +92,8 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
   }, [orbit, glow, sparkle]);
 
   // ── Gradient ID (stable per instance) ─────────────────────────────────
-  const uid = useId();
-  const glowId = `lgw${uid}`;
+  const userId = useId();
+  const glowId = `lgw${userId}`;
 
   // ── 1. Orbiting light arc — two pairs of circles chasing along border
   // Lead circle (bright, warm white)

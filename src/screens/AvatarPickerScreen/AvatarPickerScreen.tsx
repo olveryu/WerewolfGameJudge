@@ -550,12 +550,12 @@ export const AvatarPickerScreen: React.FC = () => {
         item={item}
         selectedFrame={selectedFrame}
         previewAvatarUrl={previewAvatarUrl}
-        uid={user?.uid ?? 'anonymous'}
+        userId={user?.id ?? 'anonymous'}
         onPress={handlePressFrame}
         styles={styles}
       />
     ),
-    [selectedFrame, previewAvatarUrl, user?.uid, handlePressFrame, styles],
+    [selectedFrame, previewAvatarUrl, user?.id, handlePressFrame, styles],
   );
 
   const renderFlairItem = useCallback(
@@ -564,12 +564,12 @@ export const AvatarPickerScreen: React.FC = () => {
         item={item}
         selectedFlair={selectedFlair}
         previewAvatarUrl={previewAvatarUrl}
-        uid={user?.uid ?? 'anonymous'}
+        userId={user?.id ?? 'anonymous'}
         onPress={handlePressFlair}
         styles={styles}
       />
     ),
-    [selectedFlair, previewAvatarUrl, user?.uid, handlePressFlair, styles],
+    [selectedFlair, previewAvatarUrl, user?.id, handlePressFlair, styles],
   );
 
   const renderNameStyleItem = useCallback(
@@ -586,7 +586,7 @@ export const AvatarPickerScreen: React.FC = () => {
 
   // ── Avatar cell rendering ──
 
-  const wolfPawIcon = useMemo(() => getAvatarIcon(user?.uid ?? 'anonymous'), [user?.uid]);
+  const wolfPawIcon = useMemo(() => getAvatarIcon(user?.id ?? 'anonymous'), [user?.id]);
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<AvatarCellItem>) => {
@@ -698,7 +698,7 @@ export const AvatarPickerScreen: React.FC = () => {
         <View style={styles.heroPreviewLeft}>
           <View>
             <AvatarWithFrame
-              value={user?.uid ?? 'anonymous'}
+              value={user?.id ?? 'anonymous'}
               size={HERO_PREVIEW_SIZE}
               avatarUrl={previewAvatarUrl}
               frameId={effectiveFrame}
@@ -1016,13 +1016,13 @@ interface FrameCellProps {
   item: FrameGridItem;
   selectedFrame: FrameId | 'none' | null;
   previewAvatarUrl: string | null | undefined;
-  uid: string;
+  userId: string;
   onPress: (id: FrameId | 'none') => void;
   styles: AvatarPickerScreenStyles;
 }
 
 const FrameCell = memo<FrameCellProps>(
-  ({ item, selectedFrame, previewAvatarUrl, uid, onPress, styles }) => {
+  ({ item, selectedFrame, previewAvatarUrl, userId, onPress, styles }) => {
     const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
     const isSelected = selectedFrame === item.id;
     const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
@@ -1061,7 +1061,7 @@ const FrameCell = memo<FrameCellProps>(
           </View>
         ) : (
           <AvatarWithFrame
-            value={uid}
+            value={userId}
             size={FRAME_GRID_CELL_SIZE}
             avatarUrl={previewAvatarUrl}
             frameId={item.id}
@@ -1083,13 +1083,13 @@ interface FlairCellProps {
   item: FlairGridItem;
   selectedFlair: FlairId | 'none' | null;
   previewAvatarUrl: string | null | undefined;
-  uid: string;
+  userId: string;
   onPress: (id: FlairId | 'none') => void;
   styles: AvatarPickerScreenStyles;
 }
 
 const FlairCell = memo<FlairCellProps>(
-  ({ item, selectedFlair, previewAvatarUrl, uid, onPress, styles }) => {
+  ({ item, selectedFlair, previewAvatarUrl, userId, onPress, styles }) => {
     const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
     const isSelected = selectedFlair === item.id;
     const FlairComponent = item.id !== 'none' ? getFlairById(item.id)?.Component : undefined;
@@ -1138,7 +1138,7 @@ const FlairCell = memo<FlairCellProps>(
               <FlairComponent size={FRAME_GRID_CELL_SIZE} borderRadius={borderRadiusToken.medium} />
             )}
             <AvatarWithFrame
-              value={uid}
+              value={userId}
               size={FRAME_GRID_CELL_SIZE - 8}
               avatarUrl={previewAvatarUrl}
             />

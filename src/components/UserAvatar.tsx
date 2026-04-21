@@ -15,7 +15,7 @@ import { PressableScale } from '@/components/PressableScale';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 
 interface UserAvatarProps {
-  user: { uid: string; avatarUrl?: string | null } | null;
+  user: { id: string; avatarUrl?: string | null } | null;
   ticketCount?: number | null;
   onPress: () => void;
   testID?: string;
@@ -39,7 +39,7 @@ export const UserAvatar = memo<UserAvatarProps>(({ user, ticketCount, onPress, t
       <PressableScale onPress={onPress} accessibilityLabel="设置" testID={testID}>
         <View style={wrapperStyle}>
           <Avatar
-            value={user.uid}
+            value={user.id}
             size={AVATAR_SIZE}
             avatarUrl={user.avatarUrl}
             borderRadius={AVATAR_SIZE / 2}

@@ -221,7 +221,7 @@ describe('toGameRoomLike', () => {
   it('should extract required fields from LocalGameState', () => {
     const mockState: LocalGameState = {
       roomCode: 'TEST',
-      hostUid: 'host1',
+      hostUserId: 'host1',
       template: {
         name: 'Test',
         numberOfPlayers: 6,
@@ -256,7 +256,7 @@ describe('buildSeatViewModels', () => {
   it('should build view models from game state', () => {
     const mockState: LocalGameState = {
       roomCode: 'TEST',
-      hostUid: 'host1',
+      hostUserId: 'host1',
       template: {
         name: 'Test',
         numberOfPlayers: 3,
@@ -266,7 +266,7 @@ describe('buildSeatViewModels', () => {
         [
           0,
           {
-            uid: 'p1',
+            userId: 'p1',
             seatNumber: 0,
             displayName: 'Player1',
             role: 'villager' as RoleId,
@@ -276,7 +276,7 @@ describe('buildSeatViewModels', () => {
         [
           1,
           {
-            uid: 'p2',
+            userId: 'p2',
             seatNumber: 1,
             displayName: 'Player2',
             role: 'wolf' as RoleId,
@@ -316,7 +316,7 @@ describe('buildSeatViewModels', () => {
   it('should highlight only visible wolves when showWolves=true (gargoyle/wolfRobot hidden)', () => {
     const mockState: LocalGameState = {
       roomCode: 'TEST',
-      hostUid: 'host1',
+      hostUserId: 'host1',
       template: {
         name: 'Test',
         numberOfPlayers: 4,
@@ -326,7 +326,7 @@ describe('buildSeatViewModels', () => {
         [
           0,
           {
-            uid: 'p1',
+            userId: 'p1',
             seatNumber: 0,
             displayName: 'Wolf',
             role: 'wolf' as RoleId,
@@ -336,7 +336,7 @@ describe('buildSeatViewModels', () => {
         [
           1,
           {
-            uid: 'p2',
+            userId: 'p2',
             seatNumber: 1,
             displayName: 'Gargoyle',
             role: 'gargoyle' as RoleId,
@@ -346,7 +346,7 @@ describe('buildSeatViewModels', () => {
         [
           2,
           {
-            uid: 'p3',
+            userId: 'p3',
             seatNumber: 2,
             displayName: 'Robot',
             role: 'wolfRobot' as RoleId,
@@ -356,7 +356,7 @@ describe('buildSeatViewModels', () => {
         [
           3,
           {
-            uid: 'p4',
+            userId: 'p4',
             seatNumber: 3,
             displayName: 'Seer',
             role: 'seer' as RoleId,
@@ -388,7 +388,7 @@ describe('buildSeatViewModels', () => {
     // This reproduces the "2号是狼人但1号标红" style bug caused by seat/template mismatch.
     const mockState: LocalGameState = {
       roomCode: 'TEST',
-      hostUid: 'host1',
+      hostUserId: 'host1',
       template: {
         name: 'Test',
         numberOfPlayers: 2,
@@ -399,7 +399,7 @@ describe('buildSeatViewModels', () => {
         [
           0,
           {
-            uid: 'p1',
+            userId: 'p1',
             seatNumber: 0,
             displayName: 'P1',
             role: 'villager' as RoleId,
@@ -409,7 +409,7 @@ describe('buildSeatViewModels', () => {
         [
           1,
           {
-            uid: 'p2',
+            userId: 'p2',
             seatNumber: 1,
             displayName: 'P2',
             role: 'wolf' as RoleId,
@@ -436,7 +436,7 @@ describe('buildSeatViewModels', () => {
     it('notSelf constraint disables own seat with reason', () => {
       const mockState: LocalGameState = {
         roomCode: 'TEST',
-        hostUid: 'host1',
+        hostUserId: 'host1',
         template: {
           name: 'Test',
           numberOfPlayers: 3,
@@ -446,7 +446,7 @@ describe('buildSeatViewModels', () => {
           [
             0,
             {
-              uid: 'p1',
+              userId: 'p1',
               seatNumber: 0,
               displayName: 'Seer',
               role: 'seer' as RoleId,
@@ -456,7 +456,7 @@ describe('buildSeatViewModels', () => {
           [
             1,
             {
-              uid: 'p2',
+              userId: 'p2',
               seatNumber: 1,
               displayName: 'P2',
               role: 'villager' as RoleId,
@@ -466,7 +466,7 @@ describe('buildSeatViewModels', () => {
           [
             2,
             {
-              uid: 'p3',
+              userId: 'p3',
               seatNumber: 2,
               displayName: 'P3',
               role: 'wolf' as RoleId,
@@ -499,7 +499,7 @@ describe('buildSeatViewModels', () => {
     it('no constraint means own seat is selectable', () => {
       const mockState: LocalGameState = {
         roomCode: 'TEST',
-        hostUid: 'host1',
+        hostUserId: 'host1',
         template: {
           name: 'Test',
           numberOfPlayers: 3,
@@ -509,7 +509,7 @@ describe('buildSeatViewModels', () => {
           [
             0,
             {
-              uid: 'p1',
+              userId: 'p1',
               seatNumber: 0,
               displayName: 'Seer',
               role: 'seer' as RoleId,
@@ -519,7 +519,7 @@ describe('buildSeatViewModels', () => {
           [
             1,
             {
-              uid: 'p2',
+              userId: 'p2',
               seatNumber: 1,
               displayName: 'P2',
               role: 'villager' as RoleId,
@@ -529,7 +529,7 @@ describe('buildSeatViewModels', () => {
           [
             2,
             {
-              uid: 'p3',
+              userId: 'p3',
               seatNumber: 2,
               displayName: 'P3',
               role: 'wolf' as RoleId,
@@ -564,7 +564,7 @@ describe('buildSeatViewModels', () => {
       wolfVotesBySeat: Record<string, number> | undefined,
     ): LocalGameState => ({
       roomCode: 'TEST',
-      hostUid: 'host1',
+      hostUserId: 'host1',
       template: {
         name: 'Test',
         numberOfPlayers: 3,
@@ -574,7 +574,7 @@ describe('buildSeatViewModels', () => {
         [
           0,
           {
-            uid: 'p1',
+            userId: 'p1',
             seatNumber: 0,
             displayName: 'Wolf',
             role: 'wolf' as RoleId,
@@ -584,7 +584,7 @@ describe('buildSeatViewModels', () => {
         [
           1,
           {
-            uid: 'p2',
+            userId: 'p2',
             seatNumber: 1,
             displayName: 'Villager',
             role: 'villager' as RoleId,
@@ -594,7 +594,7 @@ describe('buildSeatViewModels', () => {
         [
           2,
           {
-            uid: 'p3',
+            userId: 'p3',
             seatNumber: 2,
             displayName: 'Seer',
             role: 'seer' as RoleId,
@@ -652,7 +652,7 @@ describe('buildSeatViewModels', () => {
     it('should show ready badge for players who have viewed their role', () => {
       const mockState: LocalGameState = {
         roomCode: 'TEST',
-        hostUid: 'host1',
+        hostUserId: 'host1',
         template: {
           name: 'Test',
           numberOfPlayers: 3,
@@ -662,7 +662,7 @@ describe('buildSeatViewModels', () => {
           [
             0,
             {
-              uid: 'p1',
+              userId: 'p1',
               seatNumber: 0,
               displayName: 'P1',
               role: 'wolf' as RoleId,
@@ -672,7 +672,7 @@ describe('buildSeatViewModels', () => {
           [
             1,
             {
-              uid: 'p2',
+              userId: 'p2',
               seatNumber: 1,
               displayName: 'P2',
               role: 'villager' as RoleId,
@@ -682,7 +682,7 @@ describe('buildSeatViewModels', () => {
           [
             2,
             {
-              uid: 'p3',
+              userId: 'p3',
               seatNumber: 2,
               displayName: 'P3',
               role: 'seer' as RoleId,
@@ -712,7 +712,7 @@ describe('buildSeatViewModels', () => {
     it('should not show ready badge when player slot is null', () => {
       const mockState: LocalGameState = {
         roomCode: 'TEST',
-        hostUid: 'host1',
+        hostUserId: 'host1',
         template: {
           name: 'Test',
           numberOfPlayers: 2,
@@ -739,7 +739,7 @@ describe('buildSeatViewModels', () => {
     it('should not show ready badge when showReadyBadges is not set', () => {
       const mockState: LocalGameState = {
         roomCode: 'TEST',
-        hostUid: 'host1',
+        hostUserId: 'host1',
         template: {
           name: 'Test',
           numberOfPlayers: 1,
@@ -749,7 +749,7 @@ describe('buildSeatViewModels', () => {
           [
             0,
             {
-              uid: 'p1',
+              userId: 'p1',
               seatNumber: 0,
               displayName: 'P1',
               role: 'wolf' as RoleId,
@@ -776,7 +776,7 @@ describe('buildSeatViewModels', () => {
     it('should mark secondSelectedSeat as isSelected', () => {
       const mockState: LocalGameState = {
         roomCode: 'TEST',
-        hostUid: 'host1',
+        hostUserId: 'host1',
         template: {
           name: 'Test',
           numberOfPlayers: 3,
@@ -819,7 +819,7 @@ describe('getWolfVoteSummary', () => {
       players: new Map(
         players.map(([seat, role]) => [
           seat,
-          { uid: `p${seat}`, seatNumber: seat, role, hasViewedRole: true },
+          { userId: `p${seat}`, seatNumber: seat, role, hasViewedRole: true },
         ]),
       ),
       actions: new Map(),
@@ -887,7 +887,7 @@ describe('getWolfVoteSummary', () => {
       template: { name: 'Test', numberOfPlayers: 2, roles: ['wolf', 'wolf'] as RoleId[] },
       players: new Map<number, any>([
         [0, null],
-        [1, { uid: 'p1', seatNumber: 1, role: 'wolf', hasViewedRole: true }],
+        [1, { userId: 'p1', seatNumber: 1, role: 'wolf', hasViewedRole: true }],
       ]),
       actions: new Map(),
       wolfVotes: new Map([[1, 0]]),
@@ -905,7 +905,7 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
   it('should use currentNightResults.wolfVotesBySeat when present', () => {
     const state: LocalGameState = {
       roomCode: 'TEST',
-      hostUid: 'host1',
+      hostUserId: 'host1',
       template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
       players: new Map(),
       actions: new Map(),
@@ -926,7 +926,7 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
     // Simulate legacy data where wolfVotes is a plain object instead of Map
     const legacyState = {
       roomCode: 'TEST',
-      hostUid: 'host1',
+      hostUserId: 'host1',
       template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
       players: new Map(),
       actions: new Map(),
@@ -949,7 +949,7 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
   it('should return empty Map when no wolfVotes sources exist', () => {
     const state: LocalGameState = {
       roomCode: 'TEST',
-      hostUid: 'host1',
+      hostUserId: 'host1',
       template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
       players: new Map(),
       actions: new Map(),

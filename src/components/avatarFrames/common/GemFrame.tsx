@@ -20,8 +20,8 @@ function diamondAt(cx: number, cy: number, s: number): string {
 }
 
 export const GemFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gBorder = `gemB${uid}`;
+  const userId = useId();
+  const gBorder = `gemB${userId}`;
   const gemSize = 5;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">

@@ -16,7 +16,7 @@ import { cfPost } from './cfFetch';
 
 export class CFRoomService implements IRoomService {
   async createRoom(
-    hostUid: string,
+    hostUserId: string,
     initialRoomNumber?: string,
     maxRetries: number = 5,
     buildInitialState?: (roomCode: string) => GameState,
@@ -29,7 +29,7 @@ export class CFRoomService implements IRoomService {
 
       try {
         const data = await cfPost<{
-          room: { roomNumber: string; hostUid: string; createdAt: string };
+          room: { roomNumber: string; hostUserId: string; createdAt: string };
         }>('/room/create', {
           roomCode: roomNumber,
           initialState: buildInitialState ? buildInitialState(roomNumber) : undefined,
@@ -41,7 +41,7 @@ export class CFRoomService implements IRoomService {
 
         return {
           roomNumber: data.room.roomNumber,
-          hostUid: data.room.hostUid,
+          hostUserId: data.room.hostUserId,
           createdAt: new Date(data.room.createdAt),
         };
       } catch (err) {
@@ -62,14 +62,14 @@ export class CFRoomService implements IRoomService {
 
   async getRoom(roomNumber: string): Promise<RoomRecord | null> {
     const data = await cfPost<{
-      room: { roomNumber: string; hostUid: string; createdAt: string } | null;
+      room: { roomNumber: string; hostUserId: string; createdAt: string } | null;
     }>('/room/get', { roomCode: roomNumber });
 
     if (!data.room) return null;
 
     return {
       roomNumber: data.room.roomNumber,
-      hostUid: data.room.hostUid,
+      hostUserId: data.room.hostUserId,
       createdAt: new Date(data.room.createdAt),
     };
   }

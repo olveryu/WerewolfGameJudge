@@ -13,7 +13,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
-    hostUid: 'host-1',
+    hostUserId: 'host-1',
     status: GameStatus.Unseated,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: { 0: null, 1: null, 2: null },
@@ -29,7 +29,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
 function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
-    myUid: 'host-1',
+    myUserId: 'host-1',
     mySeat: null,
     ...overrides,
   };
@@ -41,9 +41,9 @@ describe('handleClearAllSeats', () => {
   const seatedState = createMinimalState({
     status: GameStatus.Seated,
     players: {
-      0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
-      1: { uid: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
-      2: { uid: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
+      0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+      1: { userId: 'p2', seatNumber: 1, role: null, hasViewedRole: false },
+      2: { userId: 'p3', seatNumber: 2, role: null, hasViewedRole: false },
     },
   });
 
@@ -65,7 +65,7 @@ describe('handleClearAllSeats', () => {
     const state = createMinimalState({
       status: GameStatus.Unseated,
       players: {
-        0: { uid: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
+        0: { userId: 'p1', seatNumber: 0, role: null, hasViewedRole: false },
         1: null,
         2: null,
       },
@@ -86,7 +86,7 @@ describe('handleClearAllSeats', () => {
   });
 
   it('should reject when state is null', () => {
-    const context: HandlerContext = { state: null, myUid: 'host-1', mySeat: null };
+    const context: HandlerContext = { state: null, myUserId: 'host-1', mySeat: null };
     const result = handleClearAllSeats(intent, context);
     const err = expectError(result);
     expect(err.reason).toBe('no_state');

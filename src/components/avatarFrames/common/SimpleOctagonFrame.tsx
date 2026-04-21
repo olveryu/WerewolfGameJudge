@@ -29,8 +29,8 @@ function octagonPath(cut: number): string {
 }
 
 export const SimpleOctagonFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const uid = useId();
-  const gradId = `octGrad${uid}`;
+  const userId = useId();
+  const gradId = `octGrad${userId}`;
   const cut = Math.min(rx * 0.7, 25);
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">

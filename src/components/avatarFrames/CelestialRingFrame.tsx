@@ -19,9 +19,9 @@ import type { FrameProps } from './FrameProps';
  * 神圣天界之环 · 径向光晕 · 8方向光线 + 菱形宝石 + 圆宝石。
  */
 export const CelestialRingFrame = memo<FrameProps>(({ size, rx }) => {
-  const uid = useId();
-  const celGrad = `celG${uid}`;
-  const celHalo = `celH${uid}`;
+  const userId = useId();
+  const celGrad = `celG${userId}`;
+  const celHalo = `celH${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>

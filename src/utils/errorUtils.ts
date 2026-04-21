@@ -143,7 +143,7 @@ const REASON_CODE_MAP: Record<string, string> = {
   no_current_step: '当前步骤异常',
   not_group_confirm_step: '当前非确认步骤',
   no_player_at_seat: '该座位没有玩家',
-  uid_mismatch: '身份不匹配',
+  userId_mismatch: '身份不匹配',
   // Game engine
   invalid_step: '步骤无效',
   step_mismatch: '步骤不匹配',

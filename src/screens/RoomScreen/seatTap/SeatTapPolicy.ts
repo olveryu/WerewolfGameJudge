@@ -49,7 +49,7 @@ interface SeatTapResultActionFlow {
 interface SeatTapResultViewProfile {
   kind: 'VIEW_PROFILE';
   seat: number;
-  targetUid: string;
+  targetUserId: string;
 }
 
 /** Union of all possible seat tap results */
@@ -77,7 +77,7 @@ export interface SeatTapPolicyInput {
   /** Whether the tapped seat is occupied by another player (not self) */
   isSeatOccupiedByOther: boolean;
   /** UID of the player occupying the tapped seat (if occupied by other) */
-  targetUid?: string;
+  targetUserId?: string;
 }
 
 // =============================================================================
@@ -102,7 +102,7 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
     imActioner,
     hasGameState,
     isSeatOccupiedByOther,
-    targetUid,
+    targetUserId,
   } = input;
 
   // Guard: no game state
@@ -134,8 +134,8 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
   // ─────────────────────────────────────────────────────────────────────────
   // Priority 3: View Profile (any non-ongoing phase, tapping other player)
   // ─────────────────────────────────────────────────────────────────────────
-  if (roomStatus !== GameStatus.Ongoing && isSeatOccupiedByOther && targetUid) {
-    return { kind: 'VIEW_PROFILE', seat, targetUid };
+  if (roomStatus !== GameStatus.Ongoing && isSeatOccupiedByOther && targetUserId) {
+    return { kind: 'VIEW_PROFILE', seat, targetUserId };
   }
 
   // ─────────────────────────────────────────────────────────────────────────

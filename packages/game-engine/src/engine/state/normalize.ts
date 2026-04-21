@@ -48,7 +48,7 @@ function requireField<T>(value: T | undefined, fieldName: string): T {
  *
  * ⚠️ 设计意图（Phase 1）
  * - normalize 的核心职责是：形态规范化（canonicalize keys）
- * - 对"旧的核心必填字段"（roomCode/hostUid/status 等）在真实运行中更推荐 fail-fast，避免用默认值掩盖状态损坏
+ * - 对"旧的核心必填字段"（roomCode/hostUserId/status 等）在真实运行中更推荐 fail-fast，避免用默认值掩盖状态损坏
  * - 如果需要为测试工厂提供便捷默认值，建议拆分：
  *   - normalizeStateForBroadcast(state: GameState): GameState
  *   - normalizeStateForTests(partial: Partial<GameState>): GameState
@@ -72,12 +72,12 @@ export function normalizeState(raw: GameState): GameState {
   return {
     // 必填字段（fail-fast，避免掩盖状态损坏）
     roomCode: requireField(raw.roomCode, 'roomCode'),
-    hostUid: requireField(raw.hostUid, 'hostUid'),
+    hostUserId: requireField(raw.hostUserId, 'hostUserId'),
     status: requireField(raw.status, 'status'),
     templateRoles: requireField(raw.templateRoles, 'templateRoles'),
     // ⚠️ Phase 1: players 保持原样，不做 key 规范化
     players: requireField(raw.players, 'players'),
-    // 玩家画像（roster），keyed by uid
+    // 玩家画像（roster），keyed by userId
     roster: raw.roster ?? {},
     currentStepIndex: requireField(raw.currentStepIndex, 'currentStepIndex'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),

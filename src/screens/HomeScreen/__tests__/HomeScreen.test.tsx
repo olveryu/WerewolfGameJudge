@@ -82,7 +82,7 @@ describe('HomeScreen', () => {
     it('should navigate to Config screen when "创建房间" is pressed', async () => {
       // Set up authenticated user
       jest.spyOn(require('@/contexts/AuthContext'), 'useAuthContext').mockReturnValue({
-        user: { uid: 'test-user', displayName: 'Test' },
+        user: { id: 'test-user', displayName: 'Test' },
         loading: false,
         error: null,
         signInAnonymously: mockSignInAnonymously,
@@ -115,7 +115,7 @@ describe('HomeScreen', () => {
     it('should show join room modal when "进入房间" is pressed', async () => {
       // Mock authenticated user
       jest.spyOn(require('@/contexts/AuthContext'), 'useAuthContext').mockReturnValue({
-        user: { uid: 'test-user', displayName: 'Test' },
+        user: { id: 'test-user', displayName: 'Test' },
         loading: false,
         error: null,
         signInAnonymously: mockSignInAnonymously,
