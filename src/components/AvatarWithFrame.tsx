@@ -78,6 +78,7 @@ const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({
         roomId={roomId}
         avatarIndex={avatarIndex}
         borderRadius={innerRadius}
+        hideBackground
       />
       <View style={[styles.frameOverlay, { left: svgOffset, top: svgOffset }]} pointerEvents="none">
         <FrameComponent size={svgSize} rx={rxVB} />

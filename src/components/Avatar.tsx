@@ -24,6 +24,8 @@ interface AvatarProps {
   avatarIndex?: number;
   /** Override border radius. Defaults to size / 4. */
   borderRadius?: number;
+  /** Hide placeholder background (used when avatar frame covers the edge). */
+  hideBackground?: boolean;
 }
 
 /**
@@ -42,6 +44,7 @@ const AvatarComponent: React.FC<AvatarProps> = ({
   size,
   avatarUrl,
   borderRadius: borderRadiusProp,
+  hideBackground,
 }) => {
   const radius = borderRadiusProp ?? size / 4;
 
@@ -53,11 +56,11 @@ const AvatarComponent: React.FC<AvatarProps> = ({
         width: size,
         height: size,
         borderRadius: radius,
-        backgroundColor: colors.border,
+        backgroundColor: hideBackground ? colors.transparent : colors.border,
         overflow: 'hidden' as const,
       },
     ],
-    [size, radius],
+    [size, radius, hideBackground],
   );
 
   // Memoize URI source object to prevent new object creation
