@@ -12,13 +12,13 @@ import {
   WOLF_VOTE_COUNTDOWN_MS,
 } from '@werewolf/game-engine/engine/handlers/progressionEvaluator';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Helpers
 // =============================================================================
 
-function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
+function createWolfKillState(overrides: Partial<GameStatePayload> = {}): GameStatePayload {
   return {
     roomCode: 'TEST',
     hostUserId: 'host',

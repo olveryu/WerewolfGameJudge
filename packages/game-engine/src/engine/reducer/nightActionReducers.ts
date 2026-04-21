@@ -6,7 +6,7 @@
  */
 
 import { GameStatus } from '../../models';
-import type { GameState } from '../store/types';
+import type { GameStatePayload } from '../store/types';
 import type {
   ActionRejectedAction,
   AddRevealAckAction,
@@ -22,7 +22,10 @@ import type {
   StartNightAction,
 } from './types';
 
-export function handleStartNight(state: GameState, action: StartNightAction): GameState {
+export function handleStartNight(
+  state: GameStatePayload,
+  action: StartNightAction,
+): GameStatePayload {
   const { currentStepIndex, currentStepId } = action.payload;
   return {
     ...state,
@@ -37,9 +40,9 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
 }
 
 export function handleAdvanceToNextAction(
-  state: GameState,
+  state: GameStatePayload,
   action: AdvanceToNextActionAction,
-): GameState {
+): GameStatePayload {
   const { nextStepIndex, nextStepId } = action.payload;
   return {
     ...state,
@@ -58,7 +61,7 @@ export function handleAdvanceToNextAction(
   };
 }
 
-export function handleEndNight(state: GameState, action: EndNightAction): GameState {
+export function handleEndNight(state: GameStatePayload, action: EndNightAction): GameStatePayload {
   const { deaths, deathReasons } = action.payload;
   return {
     ...state,
@@ -74,7 +77,10 @@ export function handleEndNight(state: GameState, action: EndNightAction): GameSt
   };
 }
 
-export function handleRecordAction(state: GameState, action: RecordActionAction): GameState {
+export function handleRecordAction(
+  state: GameStatePayload,
+  action: RecordActionAction,
+): GameStatePayload {
   const { action: newAction } = action.payload;
   const existingActions = state.actions;
   return {
@@ -84,9 +90,9 @@ export function handleRecordAction(state: GameState, action: RecordActionAction)
 }
 
 export function handleApplyResolverResult(
-  state: GameState,
+  state: GameStatePayload,
   action: ApplyResolverResultAction,
-): GameState {
+): GameStatePayload {
   const {
     updates,
     seerReveal,
@@ -170,7 +176,10 @@ export function handleApplyResolverResult(
   };
 }
 
-export function handleSetWitchContext(state: GameState, action: SetWitchContextAction): GameState {
+export function handleSetWitchContext(
+  state: GameStatePayload,
+  action: SetWitchContextAction,
+): GameStatePayload {
   return {
     ...state,
     witchContext: action.payload,
@@ -178,9 +187,9 @@ export function handleSetWitchContext(state: GameState, action: SetWitchContextA
 }
 
 export function handleSetConfirmStatus(
-  state: GameState,
+  state: GameStatePayload,
   action: SetConfirmStatusAction,
-): GameState {
+): GameStatePayload {
   return {
     ...state,
     confirmStatus: action.payload,
@@ -188,9 +197,9 @@ export function handleSetConfirmStatus(
 }
 
 export function handleSetWolfKillOverride(
-  state: GameState,
+  state: GameStatePayload,
   action: SetWolfKillOverrideAction,
-): GameState {
+): GameStatePayload {
   const { override, blockedSeat } = action.payload;
   return {
     ...state,
@@ -205,30 +214,39 @@ export function handleSetWolfKillOverride(
 }
 
 export function handleSetWolfRobotHunterStatusViewed(
-  state: GameState,
+  state: GameStatePayload,
   action: SetWolfRobotHunterStatusViewedAction,
-): GameState {
+): GameStatePayload {
   return {
     ...state,
     wolfRobotHunterStatusViewed: action.payload.viewed,
   };
 }
 
-export function handleSetAudioPlaying(state: GameState, action: SetAudioPlayingAction): GameState {
+export function handleSetAudioPlaying(
+  state: GameStatePayload,
+  action: SetAudioPlayingAction,
+): GameStatePayload {
   return {
     ...state,
     isAudioPlaying: action.payload.isPlaying,
   };
 }
 
-export function handleActionRejected(state: GameState, action: ActionRejectedAction): GameState {
+export function handleActionRejected(
+  state: GameStatePayload,
+  action: ActionRejectedAction,
+): GameStatePayload {
   return {
     ...state,
     actionRejected: action.payload,
   };
 }
 
-export function handleAddRevealAck(state: GameState, action: AddRevealAckAction): GameState {
+export function handleAddRevealAck(
+  state: GameStatePayload,
+  action: AddRevealAckAction,
+): GameStatePayload {
   const { ackKey } = action.payload;
   const existing = state.pendingRevealAcks;
   // Idempotent: ignore duplicate ack

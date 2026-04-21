@@ -10,7 +10,7 @@
  * 本文件仅保留 switch 路由和极简 inline cases。
  */
 
-import type { GameState } from '../store/types';
+import type { GameStatePayload } from '../store/types';
 import {
   handleAssignRoles,
   handleFillWithBots,
@@ -46,7 +46,7 @@ import type { StateAction } from './types';
 /**
  * 游戏状态归约器
  */
-export function gameReducer(state: GameState, action: StateAction): GameState {
+export function gameReducer(state: GameStatePayload, action: StateAction): GameStatePayload {
   switch (action.type) {
     // ── Lifecycle ────────────────────────────────────────
     case 'INITIALIZE_GAME':

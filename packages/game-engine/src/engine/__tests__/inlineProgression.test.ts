@@ -4,23 +4,29 @@
  * Tests for runInlineProgression — 服务端内联推进纯函数
  *
  * 测试策略：
- * - 构建已完成 action 的 GameState
+ * - 构建已完成 action 的 GameStatePayload
  * - 调用 runInlineProgression 验证：推进步数、audioEffects、finalState
  */
 
 import { GameStatus } from '../../models/GameStatus';
 import { buildNightPlan } from '../../models/roles/spec/plan';
-import type { GameState } from '../../protocol/types';
+import type { GameStatePayload } from '../../protocol/types';
 import { runInlineProgression } from '../inlineProgression';
 
 // =============================================================================
 // Test Helpers
 // =============================================================================
 
-const TEMPLATE_2P: GameState['templateRoles'] = ['wolf', 'villager'];
-const TEMPLATE_5P: GameState['templateRoles'] = ['wolf', 'wolf', 'seer', 'witch', 'villager'];
+const TEMPLATE_2P: GameStatePayload['templateRoles'] = ['wolf', 'villager'];
+const TEMPLATE_5P: GameStatePayload['templateRoles'] = [
+  'wolf',
+  'wolf',
+  'seer',
+  'witch',
+  'villager',
+];
 
-function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
+function make2PlayerState(overrides: Partial<GameStatePayload> = {}): GameStatePayload {
   const plan = buildNightPlan(TEMPLATE_2P);
   const firstStep = plan.steps[0];
   return {
@@ -42,7 +48,7 @@ function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
   };
 }
 
-function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
+function make5PlayerState(overrides: Partial<GameStatePayload> = {}): GameStatePayload {
   const plan = buildNightPlan(TEMPLATE_5P);
   const firstStep = plan.steps[0];
   return {
@@ -224,7 +230,7 @@ describe('runInlineProgression', () => {
       expect(poisonerIdx).toBeGreaterThanOrEqual(0);
 
       const nowMs = Date.now();
-      const state: GameState = {
+      const state: GameStatePayload = {
         roomCode: 'TEST',
         hostUserId: 'host',
         status: GameStatus.Ongoing,
@@ -264,7 +270,7 @@ describe('runInlineProgression', () => {
       expect(poisonerIdx).toBeGreaterThanOrEqual(0);
 
       const nowMs = Date.now();
-      const state: GameState = {
+      const state: GameStatePayload = {
         roomCode: 'TEST',
         hostUserId: 'host',
         status: GameStatus.Ongoing,
@@ -306,7 +312,7 @@ describe('runInlineProgression', () => {
       expect(wolfKillIdx).toBeGreaterThanOrEqual(0);
 
       const nowMs = Date.now();
-      const state: GameState = {
+      const state: GameStatePayload = {
         roomCode: 'TEST',
         hostUserId: 'host',
         status: GameStatus.Ongoing,

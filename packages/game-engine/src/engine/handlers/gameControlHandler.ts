@@ -51,7 +51,7 @@ import type {
   UpvoteBoardNominationAction,
   WithdrawBoardNominationAction,
 } from '../reducer/types';
-import type { GameState } from '../store/types';
+import type { GameStatePayload } from '../store/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
 import type { HandlerContext, HandlerResult, SideEffect } from './types';
 import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
@@ -60,7 +60,7 @@ import { maybeCreateWitchContextAction } from './witchContext';
 // ---------------------------------------------------------------------------
 // Shared guard: state must exist
 // ---------------------------------------------------------------------------
-type StateGuardOk = { ok: true; state: GameState };
+type StateGuardOk = { ok: true; state: GameStatePayload };
 type StateGuardFail = { ok: false; result: HandlerResult };
 
 function requireState(context: HandlerContext): StateGuardOk | StateGuardFail {

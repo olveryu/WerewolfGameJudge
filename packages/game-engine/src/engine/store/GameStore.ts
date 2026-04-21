@@ -2,19 +2,20 @@
  * GameStore - 游戏状态持有者
  *
  * 职责：
- * - 持有 GameState（= GameState）
+ * - 持有 normalized GameState
  * - 管理 revision 版本号
  * - 订阅/通知机制
  * - 玩家端：applySnapshot（版本号检查）
  * - 主机端：setState / updateState
  *
- * 提供 state CRUD、revision 管理及 listener 通知，不包含业务逻辑（校验/结算/流程推进），
- * 不包含 IO（网络/音频/Alert）。
+ * Store 是 parse boundary：input 接收 GameStatePayload，
+ * 内部 normalizeState() 后存储为 GameState（tight）。
+ * 不包含业务逻辑（校验/结算/流程推进），不包含 IO（网络/音频/Alert）。
  */
 
 import { getEngineLogger } from '../../utils/logger';
 import { normalizeState } from '../state/normalize';
-import type { GameState, IWritableGameStore, StoreStateListener } from './types';
+import type { GameState, GameStatePayload, IWritableGameStore, StoreStateListener } from './types';
 
 const gameStoreLog = getEngineLogger().extend('GameStore');
 
@@ -61,7 +62,7 @@ export class GameStore implements IWritableGameStore {
    * 仅当 incoming revision > local revision 时应用
    * 应用 normalizeState 确保 Host/Player shape 一致（anti-drift）
    */
-  applySnapshot(state: GameState, revision: number, lastAction?: string): void {
+  applySnapshot(state: GameStatePayload, revision: number, lastAction?: string): void {
     if (revision <= this.#revision) {
       // 丢弃旧版本
       return;
@@ -84,7 +85,7 @@ export class GameStore implements IWritableGameStore {
    *
    * 社区标准做法：optimistic update + server reconciliation。
    */
-  applyOptimistic(state: GameState): void {
+  applyOptimistic(state: GameStatePayload): void {
     this.#confirmedState = this.#state;
     this.#confirmedRevision = this.#revision;
     this.#state = normalizeState(state);
@@ -109,7 +110,7 @@ export class GameStore implements IWritableGameStore {
    * 设置状态（仅主机）
    * 自动递增 revision 并归一化
    */
-  setState(state: GameState): void {
+  setState(state: GameStatePayload): void {
     this.#state = normalizeState(state);
     this.#revision += 1;
     this.#notifyListeners();
@@ -119,7 +120,7 @@ export class GameStore implements IWritableGameStore {
    * 增量更新状态（仅主机）
    * @param updater 状态更新函数
    */
-  updateState(updater: (state: GameState) => GameState): void {
+  updateState(updater: (state: GameState) => GameStatePayload): void {
     if (!this.#state) {
       throw new Error('Cannot update state: no state initialized');
     }
@@ -131,7 +132,7 @@ export class GameStore implements IWritableGameStore {
   /**
    * 初始化状态（主机创建房间时）
    */
-  initialize(state: GameState): void {
+  initialize(state: GameStatePayload): void {
     this.#state = normalizeState(state);
     this.#revision = 1;
     this.#notifyListeners();

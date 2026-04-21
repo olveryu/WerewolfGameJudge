@@ -1,12 +1,15 @@
 /**
- * State Normalization - 状态归一化
+ * State Normalization - 状态归一化（parse boundary）
  *
- * 广播前规范化状态，确保：
- * - 新增字段的 seat-map keys 是 string
+ * normalizeState 是 GameStatePayload → GameState 的唯一转换点。
+ * 广播前 / store 写入前调用，确保：
+ * - NormalizedFields（hypnotizedSeats / piperRevealAcks / conversionRevealAcks / cupidLoversRevealAcks）
+ *   从 optional → 保证为 non-undefined（默认 `[]`）
+ * - seat-map keys 规范化为 string
  * - 可选字段正确透传
  */
 
-import type { GameState } from '../../protocol/types';
+import type { GameState, GameStatePayload } from '../../protocol/types';
 
 /**
  * Compile-time exhaustiveness guard for normalizeState.
@@ -42,22 +45,25 @@ function requireField<T>(value: T | undefined, fieldName: string): T {
 }
 
 /**
- * 广播前归一化状态（normalizeState）。
- * - 填充可选字段的默认值
- * - 规范化 seat-map 键为 string（仅新增字段）
+ * 广播前归一化状态（normalizeState）— parse boundary。
  *
- * ⚠️ 设计意图（Phase 1）
- * - normalize 的核心职责是：形态规范化（canonicalize keys）
+ * GameStatePayload（wire / pre-normalize） → GameState（runtime / tight）。
+ *
+ * - NormalizedFields: undefined → []
+ * - 核心必填字段: fail-fast（requireField）
+ * - seat-map keys: canonicalize to string
+ *
+ * ⚠️ 设计意图
  * - 对"旧的核心必填字段"（roomCode/hostUserId/status 等）在真实运行中更推荐 fail-fast，避免用默认值掩盖状态损坏
  * - 如果需要为测试工厂提供便捷默认值，建议拆分：
- *   - normalizeStateForBroadcast(state: GameState): GameState
- *   - normalizeStateForTests(partial: Partial<GameState>): GameState
+ *   - normalizeStateForBroadcast(state: GameStatePayload): GameState
+ *   - normalizeStateForTests(partial: Partial<GameStatePayload>): GameState
  *
  * 🛡️ Compile-time guard:
- * 返回对象使用 `satisfies Complete<GameState>` 确保每个字段都被显式列出。
- * 新增 GameState 字段但忘记在此透传 → 编译报错（不再静默丢弃）。
+ * 返回对象使用 `satisfies Complete<GameStatePayload>` 确保每个字段都被显式列出。
+ * 新增 GameStatePayload 字段但忘记在此透传 → 编译报错（不再静默丢弃）。
  */
-export function normalizeState(raw: GameState): GameState {
+export function normalizeState(raw: GameStatePayload): GameState {
   // single source of truth: currentNightResults.wolfVotesBySeat
   // Protocol no longer includes top-level wolfVotes/wolfVoteStatus.
   const wolfVotesBySeat = canonicalizeSeatKeyRecord(raw.currentNightResults?.wolfVotesBySeat);
@@ -158,5 +164,5 @@ export function normalizeState(raw: GameState): GameState {
 
     // 板子建议（透传）
     boardNominations: raw.boardNominations,
-  } satisfies Complete<GameState>;
+  } satisfies Complete<GameStatePayload>;
 }

@@ -29,7 +29,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
-import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
+import type { GameStatePayload, Player } from '@werewolf/game-engine/protocol/types';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 
@@ -49,7 +49,7 @@ function createPlayer(seat: number, role: string, overrides?: Partial<Player>): 
 /**
  * 创建基础的 ongoing 状态
  */
-function createOngoingState(overrides?: Partial<GameState>): GameState {
+function createOngoingState(overrides?: Partial<GameStatePayload>): GameStatePayload {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-uid',

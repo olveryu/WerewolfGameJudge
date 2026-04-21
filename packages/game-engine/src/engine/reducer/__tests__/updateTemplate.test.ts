@@ -5,7 +5,7 @@
  */
 
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import type { GameStatePayload } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { RosterEntry } from '@werewolf/game-engine/protocol/types';
@@ -19,10 +19,10 @@ interface PlayerInput {
 
 function createStateWithPlayers(
   players: (PlayerInput | null)[],
-  overrides?: Partial<GameState>,
-): GameState {
+  overrides?: Partial<GameStatePayload>,
+): GameStatePayload {
   const templateRoles: RoleId[] = players.map(() => 'villager'); // placeholder
-  const playersMap: GameState['players'] = {};
+  const playersMap: GameStatePayload['players'] = {};
   const roster: Record<string, RosterEntry> = {};
 
   for (let i = 0; i < players.length; i++) {

@@ -14,12 +14,12 @@ import type {
   BoardWithdrawIntent,
 } from '@werewolf/game-engine/engine/intents/types';
 import { handleUpvoteBoardNomination } from '@werewolf/game-engine/engine/reducer/lifecycleReducers';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import type { GameStatePayload } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 
-function createMinimalState(overrides?: Partial<GameState>): GameState {
+function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePayload {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -35,7 +35,10 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
+function createContext(
+  state: GameStatePayload,
+  overrides?: Partial<HandlerContext>,
+): HandlerContext {
   return {
     state,
     myUserId: 'player-1',

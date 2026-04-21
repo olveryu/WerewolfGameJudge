@@ -14,7 +14,7 @@ import {
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
 import type { ApplyResolverResultAction } from '@werewolf/game-engine/engine/reducer/types';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import type { GameStatePayload } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
@@ -25,7 +25,7 @@ import { expectSuccess } from './handlerTestUtils';
 // Test Helpers
 // =============================================================================
 
-function createMinimalState(overrides?: Partial<GameState>): GameState {
+function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePayload {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -49,7 +49,10 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
+function createContext(
+  state: GameStatePayload,
+  overrides?: Partial<HandlerContext>,
+): HandlerContext {
   return {
     state,
     myUserId: 'host-1',

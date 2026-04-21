@@ -11,13 +11,13 @@ import type {
   SubmitActionIntent,
   ViewedRoleIntent,
 } from '@werewolf/game-engine/engine/intents/types';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import type { GameStatePayload } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 
 import { expectError, expectRejection, expectSuccess } from './handlerTestUtils';
 
-function createMinimalState(overrides?: Partial<GameState>): GameState {
+function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePayload {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -38,7 +38,10 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
+function createContext(
+  state: GameStatePayload,
+  overrides?: Partial<HandlerContext>,
+): HandlerContext {
   return {
     state,
     myUserId: 'host-1',
@@ -49,7 +52,7 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
 
 describe('handleViewedRole', () => {
   // Helper: 创建 assigned 状态用于 ViewedRole 测试
-  const createAssignedState = (overrides?: Partial<GameState>): GameState => {
+  const createAssignedState = (overrides?: Partial<GameStatePayload>): GameStatePayload => {
     return createMinimalState({
       status: GameStatus.Assigned,
       players: {
@@ -107,7 +110,7 @@ describe('handleViewedRole', () => {
 
   it('should fail when state is null (no_state)', () => {
     const context: HandlerContext = {
-      state: null as unknown as GameState,
+      state: null as unknown as GameStatePayload,
       myUserId: 'host-1',
       mySeat: 0,
     };
@@ -178,8 +181,8 @@ describe('handleSubmitAction', () => {
    * currentStepId 设为 'seerCheck'（预言家步骤）
    */
   const createOngoingState = (
-    overrides?: Partial<GameState> & { currentStepId?: SchemaId },
-  ): GameState => {
+    overrides?: Partial<GameStatePayload> & { currentStepId?: SchemaId },
+  ): GameStatePayload => {
     return createMinimalState({
       status: GameStatus.Ongoing,
       currentStepId: 'seerCheck',
@@ -248,7 +251,7 @@ describe('handleSubmitAction', () => {
 
   it('should fail when state is null (gate: no_state)', () => {
     const context: HandlerContext = {
-      state: null as unknown as GameState,
+      state: null as unknown as GameStatePayload,
       myUserId: 'host-1',
       mySeat: 0,
     };

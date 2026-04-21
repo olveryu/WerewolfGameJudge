@@ -1,23 +1,23 @@
 /**
  * normalize.contract.test.ts - normalizeState 契约测试
  *
- * 确保 normalizeState 正确透传 GameState 的所有字段。
+ * 确保 normalizeState 正确透传 GameStatePayload 的所有字段。
  * 当新增字段时，如果忘记在 normalizeState 中透传，此测试会失败。
  */
 
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
 
 /**
- * GameState 的所有顶层字段列表（单一真相）
+ * GameStatePayload 的所有顶层字段列表（单一真相）
  *
- * 当向 GameState 新增字段时：
+ * 当向 GameStatePayload 新增字段时：
  * 1. 在此列表添加字段名
  * 2. 在 normalizeState 中添加透传
  * 3. 运行此测试验证
  */
-const GAME_STATE_FIELDS: (keyof GameState)[] = [
+const GAME_STATE_FIELDS: (keyof GameStatePayload)[] = [
   // 核心必填字段
   'roomCode',
   'hostUserId',
@@ -112,9 +112,9 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
 
 describe('normalizeState contract', () => {
   /**
-   * 创建一个包含所有字段的完整 GameState
+   * 创建一个包含所有字段的完整 GameStatePayload
    */
-  const createFullState = (): GameState => {
+  const createFullState = (): GameStatePayload => {
     return {
       // 核心必填字段
       roomCode: 'TEST',
@@ -210,7 +210,7 @@ describe('normalizeState contract', () => {
     };
   };
 
-  it('should preserve all GameState fields after normalization', () => {
+  it('should preserve all GameStatePayload fields after normalization', () => {
     const fullState = createFullState();
     const normalized = normalizeState(fullState);
 
@@ -230,7 +230,7 @@ describe('normalizeState contract', () => {
     const normalized = normalizeState(fullState);
 
     // 获取归一化后的所有字段
-    const normalizedFields = Object.keys(normalized) as (keyof GameState)[];
+    const normalizedFields = Object.keys(normalized) as (keyof GameStatePayload)[];
 
     // 确保 GAME_STATE_FIELDS 覆盖了所有字段
     // 如果归一化后有新字段不在列表中，测试会失败
@@ -254,7 +254,7 @@ describe('normalizeState contract', () => {
   });
 
   it('should preserve undefined optional fields as undefined', () => {
-    const minimalState: GameState = {
+    const minimalState: GameStatePayload = {
       roomCode: 'TEST',
       hostUserId: 'host-uid',
       status: GameStatus.Unseated,

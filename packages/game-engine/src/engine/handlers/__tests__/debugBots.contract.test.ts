@@ -12,7 +12,7 @@ import {
   handleMarkAllBotsViewed,
 } from '@werewolf/game-engine/engine/handlers/gameControlHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import type { GameStatePayload } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { Player } from '@werewolf/game-engine/protocol/types';
 
@@ -32,7 +32,7 @@ function createMinimalPlayer(seat: number, overrides?: Partial<Player>): Player 
   };
 }
 
-function createTestState(overrides?: Partial<GameState>): GameState {
+function createTestState(overrides?: Partial<GameStatePayload>): GameStatePayload {
   const totalSeats = 12;
   const defaultPlayers: Record<number, Player | null> = {};
   for (let i = 0; i < totalSeats; i++) {
@@ -55,7 +55,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-function createTestContext(overrides?: { state?: GameState | null }): HandlerContext {
+function createTestContext(overrides?: { state?: GameStatePayload | null }): HandlerContext {
   return {
     state: overrides?.state === undefined ? createTestState() : overrides.state,
     myUserId: 'host-uid',

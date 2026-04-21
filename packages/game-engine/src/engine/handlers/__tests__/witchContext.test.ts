@@ -7,7 +7,7 @@
 
 import { maybeCreateWitchContextAction } from '@werewolf/game-engine/engine/handlers/witchContext';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
+import type { GameStatePayload, Player } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Helpers
@@ -22,7 +22,9 @@ function createPlayer(seat: number, role: string): Player {
   };
 }
 
-function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<GameState> {
+function createOngoingState(
+  overrides: Partial<GameStatePayload> = {},
+): NonNullable<GameStatePayload> {
   return {
     roomCode: '1234',
     hostUserId: 'host-uid',
@@ -43,7 +45,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
     wolfKillOverride: undefined,
     isAudioPlaying: false,
     ...overrides,
-  } as NonNullable<GameState>;
+  } as NonNullable<GameStatePayload>;
 }
 
 // =============================================================================

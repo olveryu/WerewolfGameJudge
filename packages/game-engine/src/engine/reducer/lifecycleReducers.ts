@@ -8,7 +8,7 @@
 import { GameStatus, getPlayerCount } from '../../models';
 import { type ResolvedRoleRevealAnimation, resolveRandomAnimation } from '../../types';
 import type { Complete } from '../state/normalize';
-import type { GameState } from '../store/types';
+import type { GameStatePayload } from '../store/types';
 import type {
   AssignRolesAction,
   FillWithBotsAction,
@@ -25,7 +25,10 @@ import type {
   WithdrawBoardNominationAction,
 } from './types';
 
-export function handleInitializeGame(state: GameState, action: InitializeGameAction): GameState {
+export function handleInitializeGame(
+  state: GameStatePayload,
+  action: InitializeGameAction,
+): GameStatePayload {
   const { roomCode, hostUserId, templateRoles, totalSeats } = action.payload;
   const players: Record<number, null> = {};
   for (let i = 0; i < totalSeats; i++) {
@@ -43,7 +46,10 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
   };
 }
 
-export function handleRestartGame(state: GameState, action: RestartGameAction): GameState {
+export function handleRestartGame(
+  state: GameStatePayload,
+  action: RestartGameAction,
+): GameStatePayload {
   // PR9: 对齐 v1 行为 - 保留玩家但清除角色
   // v1: 保持 players 不变，仅清除 role/hasViewedRole
   // v1: 状态重置到 GameStatus.Seated（不是 GameStatus.Unseated）
@@ -145,15 +151,18 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     // ── 重开时更新 nonce 和 resolved 动画 ─────────────────
     roleRevealRandomNonce: newNonce,
     resolvedRoleRevealAnimation: resolvedAnimation,
-  } satisfies Complete<GameState>;
+  } satisfies Complete<GameStatePayload>;
 }
 
-export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAction): GameState {
+export function handleUpdateTemplate(
+  state: GameStatePayload,
+  action: UpdateTemplateAction,
+): GameStatePayload {
   const newTemplateRoles = action.payload.templateRoles;
   const newCount = getPlayerCount(newTemplateRoles);
   const oldPlayers = state.players;
 
-  const newPlayers: GameState['players'] = {};
+  const newPlayers: GameStatePayload['players'] = {};
 
   for (let i = 0; i < newCount; i++) {
     const existingPlayer = oldPlayers[i];
@@ -184,9 +193,9 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
 }
 
 export function handleSetRoleRevealAnimation(
-  state: GameState,
+  state: GameStatePayload,
   action: SetRoleRevealAnimationAction,
-): GameState {
+): GameStatePayload {
   const animation = action.animation;
   let resolved: ResolvedRoleRevealAnimation;
   const nonce = action.nonce ?? state.roleRevealRandomNonce;
@@ -214,7 +223,10 @@ export function handleSetRoleRevealAnimation(
   };
 }
 
-export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): GameState {
+export function handlePlayerJoin(
+  state: GameStatePayload,
+  action: PlayerJoinAction,
+): GameStatePayload {
   const { seat, player, rosterEntry } = action.payload;
   const newPlayers = { ...state.players, [seat]: player };
   const allSeated = Object.values(newPlayers).every((p) => p !== null);
@@ -228,7 +240,10 @@ export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): Ga
   };
 }
 
-export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): GameState {
+export function handlePlayerLeave(
+  state: GameStatePayload,
+  action: PlayerLeaveAction,
+): GameStatePayload {
   const { seat } = action.payload;
   const leavingPlayer = state.players[seat];
   const newRoster = { ...state.roster };
@@ -244,9 +259,9 @@ export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): 
 }
 
 export function handleUpdatePlayerProfile(
-  state: GameState,
+  state: GameStatePayload,
   action: UpdatePlayerProfileAction,
-): GameState {
+): GameStatePayload {
   const { userId, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle } = action.payload;
   const existing = state.roster[userId];
   if (!existing) return state; // no-op if userId not in roster
@@ -267,7 +282,10 @@ export function handleUpdatePlayerProfile(
   };
 }
 
-export function handleAssignRoles(state: GameState, action: AssignRolesAction): GameState {
+export function handleAssignRoles(
+  state: GameStatePayload,
+  action: AssignRolesAction,
+): GameStatePayload {
   const { assignments, seerLabelMap, bottomCards, treasureMasterSeat, thiefSeat, cupidSeat } =
     action.payload;
   const newPlayers = { ...state.players };
@@ -293,9 +311,9 @@ export function handleAssignRoles(state: GameState, action: AssignRolesAction): 
 }
 
 export function handlePlayerViewedRole(
-  state: GameState,
+  state: GameStatePayload,
   action: PlayerViewedRoleAction,
-): GameState {
+): GameStatePayload {
   const { seat } = action.payload;
   const player = state.players[seat];
   if (!player) {
@@ -322,7 +340,10 @@ export function handlePlayerViewedRole(
   };
 }
 
-export function handleFillWithBots(state: GameState, action: FillWithBotsAction): GameState {
+export function handleFillWithBots(
+  state: GameStatePayload,
+  action: FillWithBotsAction,
+): GameStatePayload {
   const { bots, botRoster } = action.payload;
 
   // 合并现有玩家和 bot
@@ -344,7 +365,7 @@ export function handleFillWithBots(state: GameState, action: FillWithBotsAction)
   };
 }
 
-export function handleMarkAllBotsViewed(state: GameState): GameState {
+export function handleMarkAllBotsViewed(state: GameStatePayload): GameStatePayload {
   const newPlayers = { ...state.players };
 
   for (const [seatStr, player] of Object.entries(state.players)) {
@@ -374,9 +395,9 @@ export function handleMarkAllBotsViewed(state: GameState): GameState {
 // =============================================================================
 
 export function handleSetBoardNomination(
-  state: GameState,
+  state: GameStatePayload,
   action: SetBoardNominationAction,
-): GameState {
+): GameStatePayload {
   const { nomination } = action.payload;
   return {
     ...state,
@@ -388,9 +409,9 @@ export function handleSetBoardNomination(
 }
 
 export function handleUpvoteBoardNomination(
-  state: GameState,
+  state: GameStatePayload,
   action: UpvoteBoardNominationAction,
-): GameState {
+): GameStatePayload {
   const { targetUserId, voterUid } = action.payload;
   const nominations = state.boardNominations;
   const target = nominations?.[targetUserId];
@@ -425,9 +446,9 @@ export function handleUpvoteBoardNomination(
 }
 
 export function handleWithdrawBoardNomination(
-  state: GameState,
+  state: GameStatePayload,
   action: WithdrawBoardNominationAction,
-): GameState {
+): GameStatePayload {
   const { userId } = action.payload;
   const nominations = state.boardNominations;
   if (!nominations?.[userId]) return state;
