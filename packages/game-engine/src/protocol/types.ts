@@ -53,7 +53,7 @@ export interface ProtocolAction {
 /**
  * 音频效果描述符
  *
- * 服务端内联推进时产生，写入 `GameState.pendingAudioEffects`。
+ * 服务端内联推进时产生，写入 `GameStatePayload.pendingAudioEffects`。
  * Host 设备消费队列播放音频，播放完成后 POST `/game/night/audio-ack` 清除。
  * Non-Host 设备忽略。
  */
@@ -88,7 +88,7 @@ export interface Player {
  * - Player: userId / seat / role / hasViewedRole / isBot
  * - RosterEntry: displayName / avatarUrl / avatarFrame / level
  *
- * keyed by userId in GameState.roster。
+ * keyed by userId in GameStatePayload.roster。
  */
 export interface RosterEntry {
   displayName: string;
@@ -119,10 +119,10 @@ export interface BoardNomination {
 }
 
 // =============================================================================
-// 游戏状态（GameState）— 线协议
+// 游戏状态（GameStatePayload）— 线協議 / pre-normalize 型
 // =============================================================================
 
-export interface GameState {
+export interface GameStatePayload {
   // --- 核心字段（现有） ---
   roomCode: string;
   hostUserId: string;
@@ -202,8 +202,8 @@ export interface GameState {
    * 解释为 `disguisedRole`，从而影响预言家/通灵师/石像鬼等的查验结果。
    *
    * 注意：
-   * - 这是 GameState 的一部分（公开广播），但 UI 一般不直接依赖它；
-   *   UI 只从 schema + GameState 渲染，并按 myRole 过滤展示。
+   * - 这是 GameStatePayload 的一部分（公开广播），但 UI 一般不直接依赖它；
+   *   UI 只从 schema + GameStatePayload 渲染，并按 myRole 过滤展示。
    * - 禁止在 engine 之外维护平行的“伪装身份”状态，避免 server/client drift。
    */
   wolfRobotContext?: {
@@ -290,7 +290,7 @@ export interface GameState {
    * - 服务端写入：当 `wolfRobotReveal.learnedRoleId === 'hunter'` 时设置为 false（需要查看）。
    * - 服务端清除：收到玩家确认消息 `WOLF_ROBOT_HUNTER_STATUS_VIEWED` 后设置为 true。
    * - NightFlow：若 gate 未清除，服务端必须拒绝推进（防止 authority split）。
-   * - UI：仅根据 schema + GameState 展示底部按钮，不允许 UI 本地状态机自推导。
+   * - UI：仅根据 schema + GameStatePayload 展示底部按钮，不允许 UI 本地状态机自推导。
    */
   wolfRobotHunterStatusViewed?: boolean;
 
@@ -503,6 +503,32 @@ export interface GameState {
    */
   boardNominations?: Readonly<Record<string, BoardNomination>>;
 }
+
+// =============================================================================
+// GameState — normalizeState() 输出的运行时类型（post-normalize / tight）
+// =============================================================================
+
+/**
+ * normalizeState() 保证填充的字段。
+ *
+ * 这些字段在 GameStatePayload 中为可选（wire / pre-normalize 阶段可能缺失），
+ * 但经 normalizeState() 处理后保证存在为 non-undefined（默认 `[]`）。
+ *
+ * 客户端 store.getState() 返回此类型，全链路消费方无需 `?? []`。
+ */
+type NormalizedFields =
+  | 'hypnotizedSeats'
+  | 'piperRevealAcks'
+  | 'conversionRevealAcks'
+  | 'cupidLoversRevealAcks';
+
+/**
+ * 运行时 GameState — normalizeState() 的输出类型。
+ *
+ * GameStatePayload 的子类型（NormalizedFields 从 optional 变 required）。
+ * 客户端 store.getState() / LocalGameState 全链路使用此类型。
+ */
+export type GameState = GameStatePayload & Required<Pick<GameStatePayload, NormalizedFields>>;
 
 // =============================================================================
 // 玩家消息（PlayerMessage）— 仅 integration test 使用
