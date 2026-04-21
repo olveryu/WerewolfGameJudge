@@ -113,6 +113,16 @@ export default tseslint.config(
       // Console — use project logger (src/utils/logger.ts) instead
       'no-console': 'error',
 
+      // Deprecated identifiers — prevent regression after bulk renames
+      'no-restricted-syntax': [
+        'error',
+        { selector: "Identifier[name='roomNumber']", message: "Renamed → 'roomCode'" },
+        { selector: "Identifier[name='seatNumber']", message: "Renamed → 'seat'" },
+        { selector: "Identifier[name='hostId']", message: "Renamed → 'hostUserId'" },
+        { selector: "Identifier[name='pityTriggered']", message: "Renamed → 'isPityTriggered'" },
+        { selector: "Identifier[name='uid']", message: "Renamed → 'userId' (or 'id' for User entity)" },
+      ],
+
       // Import sorting
       'simple-import-sort/imports': 'warn',
       'simple-import-sort/exports': 'warn',
