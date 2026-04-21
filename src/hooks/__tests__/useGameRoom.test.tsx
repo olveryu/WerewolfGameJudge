@@ -99,7 +99,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         createRoom: jest.fn(),
         getRoom: jest
           .fn()
-          .mockResolvedValue({ roomNumber: '1234', hostUserId: 'test-uid', createdAt: new Date() }),
+          .mockResolvedValue({ roomCode: '1234', hostUserId: 'test-uid', createdAt: new Date() }),
         deleteRoom: jest.fn(),
       },
       settingsService: {
@@ -396,7 +396,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
         createRoom: jest.fn(),
         getRoom: jest
           .fn()
-          .mockResolvedValue({ roomNumber: '1234', hostUserId: 'host-uid', createdAt: new Date() }),
+          .mockResolvedValue({ roomCode: '1234', hostUserId: 'host-uid', createdAt: new Date() }),
         deleteRoom: jest.fn(),
       },
       settingsService: {
@@ -671,7 +671,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
         createRoom: jest.fn(),
         getRoom: jest
           .fn()
-          .mockResolvedValue({ roomNumber: '1234', hostUserId: 'host-uid', createdAt: new Date() }),
+          .mockResolvedValue({ roomCode: '1234', hostUserId: 'host-uid', createdAt: new Date() }),
         deleteRoom: jest.fn(),
       },
       settingsService: {

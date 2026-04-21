@@ -17,7 +17,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
-import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
+import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { userStatsOptions } from '@/hooks/queries/queryOptions';
 import { storage } from '@/lib/storage';
 import { SupersededError } from '@/services/connection/types';
@@ -47,8 +47,8 @@ interface RoomLifecycleState {
   clearLastSeatError: () => void;
 
   // Room actions
-  initializeRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
-  joinRoom: (roomNumber: string) => Promise<boolean>;
+  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<boolean>;
+  joinRoom: (roomCode: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
 
   // Seat actions
@@ -90,9 +90,9 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   // =========================================================================
 
   // Initialize room: facade only, no DB creation.
-  // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomNumber.
+  // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomCode.
   const initializeRoom = useCallback(
-    async (roomNumber: string, template: GameTemplate): Promise<boolean> => {
+    async (roomCode: string, template: GameTemplate): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
@@ -107,9 +107,9 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         }
 
         // Set roomRecord for connection sync & leaveRoom cleanup
-        setRoomRecord({ roomNumber, hostUserId, createdAt: new Date() });
+        setRoomRecord({ roomCode, hostUserId, createdAt: new Date() });
 
-        await facade.createRoom(roomNumber, hostUserId, template);
+        await facade.createRoom(roomCode, hostUserId, template);
 
         return true;
       } catch (err) {
@@ -138,7 +138,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
   // Join an existing room as player
   const joinRoom = useCallback(
-    async (roomNumber: string): Promise<boolean> => {
+    async (roomCode: string): Promise<boolean> => {
       setLoading(true);
       setError(null);
 
@@ -153,11 +153,11 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         }
 
         // Check if room exists
-        const record = await roomService.getRoom(roomNumber);
+        const record = await roomService.getRoom(roomCode);
         if (!record) {
           setError('房间不存在');
-          // 防御性清理：房间已不存在，清除过时的 lastRoomNumber
-          storage.remove(LAST_ROOM_NUMBER_KEY);
+          // 防御性清理：房间已不存在，清除过时的 lastRoomCode
+          storage.remove(LAST_ROOM_CODE_KEY);
           return false;
         }
         setRoomRecord(record);
@@ -165,7 +165,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         // Host rejoin: isHost=true
         if (record.hostUserId === playerUserId) {
           gameRoomLog.debug('Host rejoin detected, attempting recovery');
-          const result = await facade.joinRoom(roomNumber, playerUserId, true);
+          const result = await facade.joinRoom(roomCode, playerUserId, true);
           if (!result.success) {
             gameRoomLog.error('Host rejoin failed', { reason: result.reason });
             setError('房间状态已过期，请重新创建房间');
@@ -176,7 +176,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         }
 
         // Player: isHost=false
-        await facade.joinRoom(roomNumber, playerUserId, false);
+        await facade.joinRoom(roomCode, playerUserId, false);
 
         return true;
       } catch (err) {

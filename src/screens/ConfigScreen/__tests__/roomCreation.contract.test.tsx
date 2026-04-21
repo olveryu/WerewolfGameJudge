@@ -1,14 +1,14 @@
 /**
- * Contract test: Room creation → navigation roomNumber consistency
+ * Contract test: Room creation → navigation roomCode consistency
  *
  * Verifies that ConfigScreen creates the room record in DB BEFORE navigating,
- * and the roomNumber passed to RoomScreen matches the confirmed DB record —
+ * and the roomCode passed to RoomScreen matches the confirmed DB record —
  * never a pre-generated local code that might differ after 409 retry.
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
-import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
+import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
@@ -72,16 +72,16 @@ const createMockFacade = (): IGameFacade =>
     addConnectionStatusListener: jest.fn(() => jest.fn()),
   }) as unknown as IGameFacade;
 
-describe('Room creation → navigation roomNumber contract', () => {
+describe('Room creation → navigation roomCode contract', () => {
   let mockRoomService: { createRoom: jest.Mock };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // RoomService mock — simulate 409 retry: returned roomNumber differs from any pre-generated code
+    // RoomService mock — simulate 409 retry: returned roomCode differs from any pre-generated code
     mockRoomService = {
       createRoom: jest.fn().mockResolvedValue({
-        roomNumber: '7777', // The confirmed DB roomNumber
+        roomCode: '7777', // The confirmed DB roomCode
         hostUserId: 'host-uid',
         createdAt: new Date(),
       }),
@@ -118,7 +118,7 @@ describe('Room creation → navigation roomNumber contract', () => {
     });
   });
 
-  it('should navigate with the roomNumber returned by createRoomRecord, not a pre-generated code', async () => {
+  it('should navigate with the roomCode returned by createRoomRecord, not a pre-generated code', async () => {
     const mockFacade = createMockFacade();
     const { getByText } = render(
       <GameFacadeProvider facade={mockFacade}>
@@ -134,12 +134,12 @@ describe('Room creation → navigation roomNumber contract', () => {
       expect(mockNavigate).toHaveBeenCalledTimes(1);
     });
 
-    // CRITICAL CONTRACT: The roomNumber passed to navigation MUST be the one
+    // CRITICAL CONTRACT: The roomCode passed to navigation MUST be the one
     // returned by RoomService.createRoom (the confirmed DB record), not a
     // locally pre-generated code.
     const navArgs = mockNavigate.mock.calls[0];
     expect(navArgs[0]).toBe('Room');
-    expect(navArgs[1].roomNumber).toBe('7777');
+    expect(navArgs[1].roomCode).toBe('7777');
     expect(navArgs[1].isHost).toBe(true);
     expect(navArgs[1].template).toBeDefined();
   });
@@ -165,7 +165,7 @@ describe('Room creation → navigation roomNumber contract', () => {
     });
   });
 
-  it('should save confirmed roomNumber to MMKV storage (not a pre-generated code)', async () => {
+  it('should save confirmed roomCode to MMKV storage (not a pre-generated code)', async () => {
     const { storage } = require('@/lib/storage');
     const mockFacade = createMockFacade();
     const { getByText } = render(
@@ -181,7 +181,7 @@ describe('Room creation → navigation roomNumber contract', () => {
       expect(mockNavigate).toHaveBeenCalled();
     });
 
-    // lastRoomNumber stored must match the confirmed DB code
-    expect(storage.set).toHaveBeenCalledWith(LAST_ROOM_NUMBER_KEY, '7777');
+    // lastRoomCode stored must match the confirmed DB code
+    expect(storage.set).toHaveBeenCalledWith(LAST_ROOM_CODE_KEY, '7777');
   });
 });

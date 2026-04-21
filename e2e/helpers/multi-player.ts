@@ -5,7 +5,7 @@ import { createPlayerContexts, MultiPlayerFixture } from '../fixtures/app.fixtur
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';
-import { enterRoomCodeViaNumPad, extractRoomNumber } from './home';
+import { enterRoomCodeViaNumPad, extractRoomCode } from './home';
 import { getVisibleText } from './ui';
 import { ensureConnected, waitForRoomScreenReady } from './waits';
 
@@ -33,7 +33,7 @@ interface SetupGameOptions {
 
 interface GameSetupResult {
   fixture: MultiPlayerFixture;
-  roomNumber: string;
+  roomCode: string;
   hostPage: Page;
   joinerPages: Page[];
 }
@@ -230,7 +230,7 @@ export async function setupNPlayerGame(
   await config.clickCreate();
   await waitForRoomScreenReady(hostPage, { role: 'host' });
 
-  const roomNumber = await extractRoomNumber(hostPage);
+  const roomCode = await extractRoomCode(hostPage);
 
   // Host manually takes seat 0 (no longer auto-seated on room creation)
   const hostRoom = new RoomPage(hostPage);
@@ -247,7 +247,7 @@ export async function setupNPlayerGame(
     await getVisibleText(joinerPage, '进入房间').first().click();
     await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-    await enterRoomCodeViaNumPad(joinerPage, roomNumber);
+    await enterRoomCodeViaNumPad(joinerPage, roomCode);
     await joinerPage.getByText('加入', { exact: true }).click();
     await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
 
@@ -257,11 +257,11 @@ export async function setupNPlayerGame(
   }
 
   if (!startGame) {
-    return { fixture, roomNumber, hostPage, joinerPages };
+    return { fixture, roomCode, hostPage, joinerPages };
   }
 
   // Step 4: Presence stabilization
-  await waitForPresenceStable(hostPage, joinerPages, roomNumber);
+  await waitForPresenceStable(hostPage, joinerPages, roomCode);
 
   // Step 5: Prepare roles
   await hostRoom.prepareRoles();
@@ -272,7 +272,7 @@ export async function setupNPlayerGame(
   // Step 7: Start game
   await hostRoom.startGame();
 
-  return { fixture, roomNumber, hostPage, joinerPages };
+  return { fixture, roomCode, hostPage, joinerPages };
 }
 
 // ---------------------------------------------------------------------------
@@ -310,7 +310,7 @@ export async function setupNPlayerGameWithRoles(
   await config.clickCreate();
   await waitForRoomScreenReady(hostPage, { role: 'host' });
 
-  const roomNumber = await extractRoomNumber(hostPage);
+  const roomCode = await extractRoomCode(hostPage);
 
   // Host manually takes seat 0
   const hostRoom = new RoomPage(hostPage);
@@ -327,7 +327,7 @@ export async function setupNPlayerGameWithRoles(
     await getVisibleText(joinerPage, '进入房间').first().click();
     await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5000 });
 
-    await enterRoomCodeViaNumPad(joinerPage, roomNumber);
+    await enterRoomCodeViaNumPad(joinerPage, roomCode);
     await joinerPage.getByText('加入', { exact: true }).click();
     await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
 
@@ -336,7 +336,7 @@ export async function setupNPlayerGameWithRoles(
   }
 
   // Step 4: Presence stabilization
-  await waitForPresenceStable(hostPage, joinerPages, roomNumber);
+  await waitForPresenceStable(hostPage, joinerPages, roomCode);
 
   // Step 5: Prepare roles
   await hostRoom.prepareRoles();
@@ -352,5 +352,5 @@ export async function setupNPlayerGameWithRoles(
   // Step 7: Start game
   await hostRoom.startGame();
 
-  return { fixture, roomNumber, hostPage, joinerPages, roleMap };
+  return { fixture, roomCode, hostPage, joinerPages, roleMap };
 }

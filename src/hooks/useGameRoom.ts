@@ -95,8 +95,8 @@ interface UseGameRoomResult {
   error: string | null;
 
   // Room lifecycle (from useRoomLifecycle)
-  initializeRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
-  joinRoom: (roomNumber: string) => Promise<boolean>;
+  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<boolean>;
+  joinRoom: (roomCode: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
   takeSeat: (seatNumber: number) => Promise<boolean>;
   leaveSeat: () => Promise<void>;

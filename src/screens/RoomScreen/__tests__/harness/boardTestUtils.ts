@@ -423,7 +423,7 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
 
 /** Common RoomScreen route/navigation props for chain drivers */
 const _ROOM_PROPS = {
-  route: { params: { roomNumber: '1234', isHost: false } } as any,
+  route: { params: { roomCode: '1234', isHost: false } } as any,
 };
 
 /**
@@ -1001,7 +1001,7 @@ export async function coverageChainNightmareBlocked(
     mockSetter(newMock);
     result.rerender(
       React.createElement(require('@/screens/RoomScreen/RoomScreen').RoomScreen, {
-        route: { params: { roomNumber: '1234', isHost: false } } as any,
+        route: { params: { roomCode: '1234', isHost: false } } as any,
         navigation: mockNavigation as any,
       }),
     );

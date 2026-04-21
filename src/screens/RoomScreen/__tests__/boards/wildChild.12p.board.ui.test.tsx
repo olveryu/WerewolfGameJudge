@@ -105,7 +105,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   const renderRoom = () =>
     render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -130,7 +130,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );
@@ -159,7 +159,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );
@@ -198,7 +198,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );
@@ -234,7 +234,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );
@@ -264,7 +264,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId, getByText } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );
@@ -295,7 +295,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId, getByText } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );
@@ -329,7 +329,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );
@@ -352,7 +352,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId, getByText } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );
@@ -380,7 +380,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );
@@ -406,7 +406,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       const { getByTestId, getByText } = render(
         <RoomScreen
-          route={{ params: { roomNumber: '1234', isHost: false } } as any}
+          route={{ params: { roomCode: '1234', isHost: false } } as any}
           navigation={mockNavigation as any}
         />,
       );

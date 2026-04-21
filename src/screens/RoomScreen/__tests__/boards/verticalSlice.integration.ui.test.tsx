@@ -223,7 +223,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
     // 4. Render and verify
     const { getByTestId } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -340,7 +340,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
 
     const { getByTestId } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );

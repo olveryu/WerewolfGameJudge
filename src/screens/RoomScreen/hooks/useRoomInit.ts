@@ -17,15 +17,15 @@ import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomInitParams {
   /** Room number (4-digit code) — confirmed/final, already created in DB */
-  roomNumber: string;
+  roomCode: string;
   /** Whether this client is creating the room (host) */
   isHostParam: boolean;
   /** Template for room creation (host only) */
   template: GameTemplate | undefined;
   /** From useGameRoom: initialize room (facade only, no DB) */
-  initializeRoom: (roomNumber: string, template: GameTemplate) => Promise<boolean>;
+  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<boolean>;
   /** From useGameRoom: join existing room */
-  joinRoom: (roomNumber: string) => Promise<boolean>;
+  joinRoom: (roomCode: string) => Promise<boolean>;
   /** Check if we have received game state */
   hasGameState: boolean;
   /** Initial role reveal animation setting from ConfigScreen (host only) */
@@ -58,7 +58,7 @@ interface UseRoomInitResult {
  * Retry: handleRetry resets state and increments retryKey to force re-trigger.
  */
 export function useRoomInit({
-  roomNumber,
+  roomCode,
   isHostParam,
   template,
   initializeRoom,
@@ -107,16 +107,16 @@ export function useRoomInit({
         // Host initializes room (DB record already created before navigation)
         setLoadingMessage('正在加载房间');
         roomScreenLog.debug('Host initializing room', {
-          roomNumber,
+          roomCode,
           playerCount: template.numberOfPlayers,
           totalRoles: template.roles.length,
         });
-        const success = await initializeRoom(roomNumber, template);
+        const success = await initializeRoom(roomCode, template);
 
         if (!success) {
           initInProgressRef.current = false;
           roomScreenLog.warn('Host initializeRoom failed', {
-            roomNumber,
+            roomCode,
             error: gameRoomErrorRef.current ?? 'unknown',
           });
           setLoadingMessage('创建失败');
@@ -137,8 +137,8 @@ export function useRoomInit({
       } else {
         // Player joins existing room via RealtimeService
         setLoadingMessage('正在加入房间');
-        roomScreenLog.debug('Player joining room', { roomNumber });
-        const joined = await joinRoom(roomNumber);
+        roomScreenLog.debug('Player joining room', { roomCode });
+        const joined = await joinRoom(roomCode);
 
         if (joined) {
           setIsInitialized(true);
@@ -146,7 +146,7 @@ export function useRoomInit({
           roomScreenLog.debug('Player join complete');
         } else {
           initInProgressRef.current = false;
-          roomScreenLog.warn('joinRoom failed', { roomNumber });
+          roomScreenLog.warn('joinRoom failed', { roomCode });
           setLoadingMessage('加入房间失败');
           setShowRetryButton(true);
         }
@@ -160,7 +160,7 @@ export function useRoomInit({
     retryKey,
     isHostParam,
     template,
-    roomNumber,
+    roomCode,
     initializeRoom,
     joinRoom,
     initialRoleRevealAnimation,

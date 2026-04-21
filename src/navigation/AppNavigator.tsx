@@ -51,7 +51,7 @@ const navLog = log.extend('AppNavigator');
  * |----------|--------------------------------|
  * | Home     | `/`                            |
  * | Config   | `/config`                      |
- * | Room     | `/room/:roomNumber?isHost=true` |
+ * | Room     | `/room/:roomCode?isHost=true` |
  * | Settings | `/settings`                    |
  *
  * `template` / `roleRevealAnimation` 是复杂对象或仅创建时需要，
@@ -70,21 +70,21 @@ export const linking: LinkingOptions<RootStackParamList> = {
       BoardPicker: 'board-picker',
       Config: 'config',
       Room: {
-        path: 'room/:roomNumber',
+        path: 'room/:roomCode',
         parse: {
-          roomNumber: (roomNumber: string) => roomNumber,
+          roomCode: (roomCode: string) => roomCode,
           isHost: (isHost: string) => isHost === 'true',
         },
         stringify: {
-          roomNumber: (roomNumber: string) => roomNumber,
+          roomCode: (roomCode: string) => roomCode,
           isHost: (isHost: boolean) => (isHost ? 'true' : 'false'),
         },
       },
-      Settings: 'settings/:roomNumber?',
-      AnimationSettings: 'settings/animation/:roomNumber?',
-      MusicSettings: 'settings/music/:roomNumber?',
-      Encyclopedia: 'encyclopedia/:roomNumber?',
-      Notepad: 'notepad/:roomNumber',
+      Settings: 'settings/:roomCode?',
+      AnimationSettings: 'settings/animation/:roomCode?',
+      MusicSettings: 'settings/music/:roomCode?',
+      Encyclopedia: 'encyclopedia/:roomCode?',
+      Notepad: 'notepad/:roomCode',
       AvatarPicker: 'avatar-picker',
       Unlocks: 'unlocks/:userId?',
       Gacha: 'gacha',
@@ -95,7 +95,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
     },
   },
   // Rebuild navigation stack when deep-linking into screens that expect a parent.
-  // e.g. /notepad/ABC123 → [Home, Room({roomNumber: 'ABC123'}), Notepad({roomNumber: 'ABC123'})]
+  // e.g. /notepad/ABC123 → [Home, Room({roomCode: 'ABC123'}), Notepad({roomCode: 'ABC123'})]
   getStateFromPath(path, options) {
     const state = defaultGetStateFromPath(path, options);
     if (!state) return state;
@@ -106,8 +106,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
     // Ensure Home is always at the bottom of the stack for deep-linked screens.
     // Without this, goBack()/cancel on directly-opened URLs would have nowhere to go.
     if (topRoute && topRoute.name !== 'Home' && routes.length === 1) {
-      // Screens that can be opened from Room: inject Home + Room when roomNumber is present.
-      // Without roomNumber, they were opened from Home — just inject Home as base.
+      // Screens that can be opened from Room: inject Home + Room when roomCode is present.
+      // Without roomCode, they were opened from Home — just inject Home as base.
       const ROOM_CHILD_SCREENS = new Set([
         'Notepad',
         'AnimationSettings',
@@ -116,13 +116,13 @@ export const linking: LinkingOptions<RootStackParamList> = {
         'Encyclopedia',
       ]);
       if (ROOM_CHILD_SCREENS.has(topRoute.name)) {
-        const roomNumber = (topRoute.params as { roomNumber?: string })?.roomNumber;
-        if (roomNumber) {
+        const roomCode = (topRoute.params as { roomCode?: string })?.roomCode;
+        if (roomCode) {
           return {
             ...state,
             routes: [
               { name: 'Home' as const },
-              { name: 'Room' as const, params: { roomNumber, isHost: false } },
+              { name: 'Room' as const, params: { roomCode, isHost: false } },
               topRoute,
             ],
             index: 2,
@@ -182,7 +182,7 @@ export const AppNavigator: React.FC = () => {
           options={{ title: '创建房间', animation: 'slide_from_bottom' }}
           getId={({ params }) => {
             if (params?.nominateMode) return 'nominate';
-            if (params?.existingRoomNumber) return `edit-${params.existingRoomNumber}`;
+            if (params?.existingRoomCode) return `edit-${params.existingRoomCode}`;
             return undefined;
           }}
         />

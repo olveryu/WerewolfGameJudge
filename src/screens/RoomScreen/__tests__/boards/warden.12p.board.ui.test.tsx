@@ -87,7 +87,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   const renderRoom = () =>
     render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );

@@ -41,8 +41,8 @@ test.describe('offline recovery canary', () => {
 
       await test.step('host view remains healthy', async () => {
         const room = new RoomPage(hostPage);
-        const roomNumber = await room.getRoomNumber();
-        expect(roomNumber).toMatch(/^\d{4}$/);
+        const roomCode = await room.getRoomCode();
+        expect(roomCode).toMatch(/^\d{4}$/);
       });
 
       await testInfo.attach('offline-recovery-canary.txt', {

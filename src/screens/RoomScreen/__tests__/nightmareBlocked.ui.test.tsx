@@ -60,7 +60,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
   it('blocked player tapping a seat shows confirm dialog (not blocked alert)', async () => {
     const { getByTestId } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -102,7 +102,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
 
     render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -149,7 +149,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
 
     const { getByTestId, queryByText } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -184,7 +184,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
 
     const { getByTestId, queryByText } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -219,7 +219,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
 
     const { getByTestId, queryByText } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -268,7 +268,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
 
     const { getByTestId, queryByText } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );

@@ -17,7 +17,7 @@ test.setTimeout(180_000);
 
 test.describe('Night 2-Player', () => {
   test('first night runs to completion', async ({ browser }, testInfo) => {
-    const { fixture, roomNumber, hostPage } = await setupNPlayerGame(browser, {
+    const { fixture, roomCode, hostPage } = await setupNPlayerGame(browser, {
       playerCount: 2,
       configureTemplate: async (config) => config.configure2Player(),
     });
@@ -44,7 +44,7 @@ test.describe('Night 2-Player', () => {
       // Attach diagnostic report
       await testInfo.attach('night-2p.txt', {
         body: [
-          `Room: ${roomNumber}`,
+          `Room: ${roomCode}`,
           `Result: ${nightResult.resultText}`,
           `Turns: ${nightResult.turnLog.join(' → ')}`,
         ].join('\n'),

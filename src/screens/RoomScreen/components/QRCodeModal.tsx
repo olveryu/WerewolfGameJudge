@@ -54,7 +54,7 @@ async function captureShareCard(ref: React.RefObject<View | null>): Promise<stri
 
 interface QRCodeModalProps {
   visible: boolean;
-  roomNumber: string;
+  roomCode: string;
   roomUrl: string;
   onShareImage: (getBase64: () => Promise<string>) => void;
   onCopyLink: () => void;
@@ -73,7 +73,7 @@ const appLogo = require('../../../../assets/pwa/icon-192.png') as number;
 
 const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   visible,
-  roomNumber,
+  roomCode,
   roomUrl,
   onShareImage,
   onCopyLink,
@@ -141,7 +141,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
               color={colors.primary}
               style={styles.guideIcon}
             />
-            <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
+            <Text style={styles.roomCode}>房间号 {roomCode}</Text>
             <Text style={styles.guideStep}>1. 点击右上角 ··· 按钮</Text>
             <Text style={styles.guideStep}>2. 选择「转发给朋友」</Text>
             <Text style={styles.guideStep}>好友打开直接进入房间 🎉</Text>
@@ -170,7 +170,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
                 </View>
               </View>
             </View>
-            <Text style={styles.roomNumber}>房间号 {roomNumber}</Text>
+            <Text style={styles.roomCode}>房间号 {roomCode}</Text>
             <Text style={styles.hint}>扫一扫二维码，加入房间</Text>
           </View>
           <View style={styles.buttonRow}>
@@ -250,7 +250,7 @@ function createStyles(colors: ThemeColors) {
       height: QR_LOGO_SIZE,
       borderRadius: borderRadius.medium,
     },
-    roomNumber: {
+    roomCode: {
       ...textStyles.subtitleSemibold,
       color: colors.text,
       marginBottom: spacing.tight,

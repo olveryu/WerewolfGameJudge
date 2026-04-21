@@ -40,7 +40,7 @@ interface UseRoomHostDialogsParams {
   setIsStartingGame: React.Dispatch<React.SetStateAction<boolean>>;
 
   navigation: NativeStackNavigationProp<RootStackParamList, 'Room'>;
-  roomNumber: string;
+  roomCode: string;
 }
 
 interface UseRoomHostDialogsResult {
@@ -59,7 +59,7 @@ export const useRoomHostDialogs = ({
   restartGame,
   setIsStartingGame,
   navigation,
-  roomNumber,
+  roomCode,
 }: UseRoomHostDialogsParams): UseRoomHostDialogsResult => {
   const submittingRef = useRef(false);
   const [isHostActionSubmitting, setIsHostActionSubmitting] = useState(false);
@@ -129,8 +129,8 @@ export const useRoomHostDialogs = ({
   }, [restartGame, markSubmitting]);
 
   const handleSettingsPress = useCallback(() => {
-    navigation.navigate('Config', { existingRoomNumber: roomNumber });
-  }, [navigation, roomNumber]);
+    navigation.navigate('Config', { existingRoomCode: roomCode });
+  }, [navigation, roomCode]);
 
   return {
     showPrepareToFlipDialog,

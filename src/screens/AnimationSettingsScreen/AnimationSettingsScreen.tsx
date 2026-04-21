@@ -75,16 +75,16 @@ export const AnimationSettingsScreen: React.FC = () => {
   );
 
   const handleGoBack = useCallback(() => {
-    if (route.params?.roomNumber) {
+    if (route.params?.roomCode) {
       navigation.popTo('Room', {
-        roomNumber: route.params.roomNumber,
+        roomCode: route.params.roomCode,
         isHost: true,
         roleRevealAnimation: selected,
       });
     } else if (navigation.canGoBack()) {
       navigation.goBack();
     }
-  }, [navigation, route.params?.roomNumber, selected]);
+  }, [navigation, route.params?.roomCode, selected]);
 
   const handlePreview = useCallback(() => {
     setShowPreview(true);

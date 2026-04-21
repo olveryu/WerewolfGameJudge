@@ -24,23 +24,22 @@ export class CFRoomService implements IRoomService {
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const roomNumber =
-        attempt === 1 && initialRoomNumber ? initialRoomNumber : generateRoomCode();
+      const roomCode = attempt === 1 && initialRoomNumber ? initialRoomNumber : generateRoomCode();
 
       try {
         const data = await cfPost<{
-          room: { roomNumber: string; hostUserId: string; createdAt: string };
+          room: { roomCode: string; hostUserId: string; createdAt: string };
         }>('/room/create', {
-          roomCode: roomNumber,
-          initialState: buildInitialState ? buildInitialState(roomNumber) : undefined,
+          roomCode: roomCode,
+          initialState: buildInitialState ? buildInitialState(roomCode) : undefined,
         });
 
         if (attempt > 1) {
-          roomLog.info('Room created after retry', { attempt, roomNumber });
+          roomLog.info('Room created after retry', { attempt, roomCode });
         }
 
         return {
-          roomNumber: data.room.roomNumber,
+          roomCode: data.room.roomCode,
           hostUserId: data.room.hostUserId,
           createdAt: new Date(data.room.createdAt),
         };
@@ -49,7 +48,7 @@ export class CFRoomService implements IRoomService {
         const isConflict = errObj.status === 409;
 
         if (isConflict && attempt < maxRetries) {
-          roomLog.debug('Room code conflict, retrying', { roomNumber, attempt });
+          roomLog.debug('Room code conflict, retrying', { roomCode, attempt });
           continue;
         }
 
@@ -60,28 +59,28 @@ export class CFRoomService implements IRoomService {
     throw lastError || new Error('Failed to create room after max retries');
   }
 
-  async getRoom(roomNumber: string): Promise<RoomRecord | null> {
+  async getRoom(roomCode: string): Promise<RoomRecord | null> {
     const data = await cfPost<{
-      room: { roomNumber: string; hostUserId: string; createdAt: string } | null;
-    }>('/room/get', { roomCode: roomNumber });
+      room: { roomCode: string; hostUserId: string; createdAt: string } | null;
+    }>('/room/get', { roomCode: roomCode });
 
     if (!data.room) return null;
 
     return {
-      roomNumber: data.room.roomNumber,
+      roomCode: data.room.roomCode,
       hostUserId: data.room.hostUserId,
       createdAt: new Date(data.room.createdAt),
     };
   }
 
-  async roomExists(roomNumber: string): Promise<boolean> {
-    const room = await this.getRoom(roomNumber);
+  async roomExists(roomCode: string): Promise<boolean> {
+    const room = await this.getRoom(roomCode);
     return room !== null;
   }
 
-  async deleteRoom(roomNumber: string): Promise<void> {
-    roomLog.info('deleteRoom', { roomNumber });
-    await cfPost('/room/delete', { roomCode: roomNumber });
+  async deleteRoom(roomCode: string): Promise<void> {
+    roomLog.info('deleteRoom', { roomCode });
+    await cfPost('/room/delete', { roomCode: roomCode });
   }
 
   async getStateRevision(roomCode: string): Promise<number | null> {

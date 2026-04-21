@@ -145,12 +145,12 @@ test.describe('Seating', () => {
       const roomA = new RoomPage(pageA);
       await roomA.waitForReady('host');
       await roomA.seatAt(0);
-      const roomNumber = await roomA.getRoomNumber();
+      const roomCode = await roomA.getRoomCode();
 
       // Joiner joins
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomCode);
       await pageB.getByText('加入', { exact: true }).click();
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
 
@@ -198,12 +198,12 @@ test.describe('Seating', () => {
       await roomA.waitForReady('host');
       await roomA.seatAt(0);
       await settleAfterRoomReady(pageA);
-      const roomNumber = await roomA.getRoomNumber();
+      const roomCode = await roomA.getRoomCode();
 
       // Joiner joins and takes seat 2
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomCode);
       await pageB.getByText('加入', { exact: true }).click();
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
       await settleAfterRoomReady(pageB);
@@ -259,7 +259,7 @@ test.describe('Seating', () => {
       await roomA.waitForReady('host');
       await roomA.seatAt(0);
       await settleAfterRoomReady(pageA);
-      const roomNumber = await roomA.getRoomNumber();
+      const roomCode = await roomA.getRoomCode();
 
       // Host sees seat 2 empty before joiner
       const hostSeat2Before = await roomA.collectSeatState(2);
@@ -268,7 +268,7 @@ test.describe('Seating', () => {
       // Joiner joins
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomCode);
       await pageB.getByText('加入', { exact: true }).click();
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
       await settleAfterRoomReady(pageB);
@@ -307,12 +307,12 @@ test.describe('Seating', () => {
       await roomA.waitForReady('host');
       await roomA.seatAt(0);
       await settleAfterRoomReady(pageA);
-      const roomNumber = await roomA.getRoomNumber();
+      const roomCode = await roomA.getRoomCode();
 
       // Joiner joins and takes seat 2
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomCode);
       await pageB.getByText('加入', { exact: true }).click();
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
       await settleAfterRoomReady(pageB);
@@ -364,12 +364,12 @@ test.describe('Seating', () => {
       await roomA.waitForReady('host');
       await roomA.seatAt(0);
       await settleAfterRoomReady(pageA);
-      const roomNumber = await roomA.getRoomNumber();
+      const roomCode = await roomA.getRoomCode();
 
       // Joiner joins and takes seat 2
       await getVisibleText(pageB, '进入房间').first().click();
       await expect(pageB.getByText('加入房间')).toBeVisible({ timeout: 5000 });
-      await enterRoomCodeViaNumPad(pageB, roomNumber);
+      await enterRoomCodeViaNumPad(pageB, roomCode);
       await pageB.getByText('加入', { exact: true }).click();
       await waitForRoomScreenReady(pageB, { role: 'joiner' });
       await settleAfterRoomReady(pageB);

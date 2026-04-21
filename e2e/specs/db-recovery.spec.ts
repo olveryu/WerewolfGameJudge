@@ -31,7 +31,7 @@ test.setTimeout(180_000);
 test.describe('DB state recovery after network interruption', () => {
   test('player recovers state after temporary network loss', async ({ browser }, testInfo) => {
     // Step 1: Setup 2-player game and start night
-    const { fixture, roomNumber, hostPage, joinerPages } = await setupNPlayerGame(browser, {
+    const { fixture, roomCode, hostPage, joinerPages } = await setupNPlayerGame(browser, {
       playerCount: 2,
       configureTemplate: async (config) => config.configure2Player(),
     });
@@ -114,7 +114,7 @@ test.describe('DB state recovery after network interruption', () => {
 
       await testInfo.attach('db-recovery-result.txt', {
         body: [
-          `Room: ${roomNumber}`,
+          `Room: ${roomCode}`,
           `Disconnect indicator shown: ${isDisconnected}`,
           `Result: ${nightResult.resultText}`,
           `Turns: ${nightResult.turnLog.join(' → ')}`,
@@ -130,7 +130,7 @@ test.describe('DB state recovery after network interruption', () => {
 
   test('both host and player recover after simultaneous offline', async ({ browser }, testInfo) => {
     // Step 1: Setup 2-player game and start night
-    const { fixture, roomNumber, hostPage, joinerPages } = await setupNPlayerGame(browser, {
+    const { fixture, roomCode, hostPage, joinerPages } = await setupNPlayerGame(browser, {
       playerCount: 2,
       configureTemplate: async (config) => config.configure2Player(),
     });
@@ -241,7 +241,7 @@ test.describe('DB state recovery after network interruption', () => {
 
       await testInfo.attach('dual-offline-result.txt', {
         body: [
-          `Room: ${roomNumber}`,
+          `Room: ${roomCode}`,
           `Result: ${nightResult.resultText}`,
           `Turns: ${nightResult.turnLog.join(' → ')}`,
         ].join('\n'),

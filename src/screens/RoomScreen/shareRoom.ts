@@ -12,20 +12,20 @@ import { SITE_URL } from '@/config/api';
 import { log } from '@/utils/logger';
 
 /** Build the room URL from the current origin (web) or production URL (native). */
-export function buildRoomUrl(roomNumber: string): string {
+export function buildRoomUrl(roomCode: string): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return `${window.location.origin}/room/${roomNumber}`;
+    return `${window.location.origin}/room/${roomCode}`;
   }
-  return `${SITE_URL}/room/${roomNumber}`;
+  return `${SITE_URL}/room/${roomCode}`;
 }
 
 /** Result of a share/copy attempt. */
 type ShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
 
 /** Attempt to share or copy the room link. */
-export async function shareOrCopyRoomLink(roomNumber: string): Promise<ShareResult> {
-  const url = buildRoomUrl(roomNumber);
-  const text = `加入狼人杀房间 ${roomNumber}`;
+export async function shareOrCopyRoomLink(roomCode: string): Promise<ShareResult> {
+  const url = buildRoomUrl(roomCode);
+  const text = `加入狼人杀房间 ${roomCode}`;
 
   // Native: use RN Share API
   if (Platform.OS !== 'web') {

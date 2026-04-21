@@ -46,10 +46,10 @@ export const NotepadScreen: React.FC = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      // Stale Tab reload: stack lost, navigate back to Room with roomNumber from URL
-      navigation.navigate('Room', { roomNumber: route.params.roomNumber, isHost: false });
+      // Stale Tab reload: stack lost, navigate back to Room with roomCode from URL
+      navigation.navigate('Room', { roomCode: route.params.roomCode, isHost: false });
     }
-  }, [navigation, route.params.roomNumber]);
+  }, [navigation, route.params.roomCode]);
 
   const handleAIAnalysis = useCallback(() => {
     if (!isAIChatReady()) {

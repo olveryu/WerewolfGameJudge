@@ -59,7 +59,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
   return c.json(
     {
       room: {
-        roomNumber: parsed.roomCode,
+        roomCode: parsed.roomCode,
         hostUserId: userId,
         createdAt: new Date().toISOString(),
       },
@@ -90,7 +90,7 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
   return c.json(
     {
       room: {
-        roomNumber: row.code,
+        roomCode: row.code,
         hostUserId: row.hostId,
         createdAt: row.createdAt,
       },

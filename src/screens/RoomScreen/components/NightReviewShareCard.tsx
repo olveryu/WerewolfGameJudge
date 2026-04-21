@@ -22,17 +22,17 @@ import type { NightReviewData } from '../NightReview.helpers';
 
 interface NightReviewShareCardProps {
   data: NightReviewData;
-  roomNumber: string;
+  roomCode: string;
   ref?: Ref<View>;
 }
 
-export function NightReviewShareCard({ data, roomNumber, ref }: NightReviewShareCardProps) {
+export function NightReviewShareCard({ data, roomCode, ref }: NightReviewShareCardProps) {
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors, screenWidth), [screenWidth]);
 
   return (
     <RNView ref={ref} collapsable={false} style={styles.card}>
-      <Text style={styles.title}>房间 {roomNumber} 战报</Text>
+      <Text style={styles.title}>房间 {roomCode} 战报</Text>
 
       <Text style={styles.disclaimer}>
         <Ionicons name={STATUS_ICONS.WARNING} size={typography.secondary} color={colors.warning} />

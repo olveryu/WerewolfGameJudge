@@ -40,7 +40,7 @@ beforeEach(() => {
 describe('SeatTile memo optimization', () => {
   const baseProps: SeatTileProps = {
     seat: 0,
-    roomNumber: '1234',
+    roomCode: '1234',
     tileSize: 80,
     disabled: false,
     disabledReason: undefined,
@@ -135,7 +135,7 @@ describe('SeatTile memo logic', () => {
     // This test validates that default memo shallow-compares all props
     const props1: SeatTileProps = {
       seat: 0,
-      roomNumber: '1234',
+      roomCode: '1234',
       tileSize: 80,
       disabled: false,
       disabledReason: undefined,
@@ -171,7 +171,7 @@ describe('SeatTile memo logic', () => {
     // Styles are created once in PlayerGrid and passed to all tiles
     const props: SeatTileProps = {
       seat: 0,
-      roomNumber: '1234',
+      roomCode: '1234',
       tileSize: 80,
       disabled: false,
       isMySpot: false,
@@ -243,7 +243,7 @@ describe('createSeatTileStyles optimization', () => {
   // Helper for base props in this describe block
   const baseProps: Omit<SeatTileProps, 'styles'> = {
     seat: 0,
-    roomNumber: '1234',
+    roomCode: '1234',
     tileSize: 80,
     disabled: false,
     disabledReason: undefined,

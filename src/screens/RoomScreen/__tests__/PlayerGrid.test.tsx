@@ -35,7 +35,7 @@ describe('PlayerGrid', () => {
       ];
 
       const { findByTestId } = render(
-        <PlayerGrid seats={seats} roomNumber="1234" onSeatPress={onSeatPress} disabled />,
+        <PlayerGrid seats={seats} roomCode="1234" onSeatPress={onSeatPress} disabled />,
       );
 
       const seat = await findByTestId(TESTIDS.seatTilePressable(0));
@@ -61,7 +61,7 @@ describe('PlayerGrid', () => {
       ];
 
       const { findByTestId } = render(
-        <PlayerGrid seats={seats} roomNumber="1234" onSeatPress={onSeatPress} disabled={false} />,
+        <PlayerGrid seats={seats} roomCode="1234" onSeatPress={onSeatPress} disabled={false} />,
       );
 
       const seat = await findByTestId(TESTIDS.seatTilePressable(0));
@@ -88,7 +88,7 @@ describe('PlayerGrid', () => {
       ];
 
       const { findByTestId } = render(
-        <PlayerGrid seats={seats} roomNumber="1234" onSeatPress={onSeatPress} disabled={false} />,
+        <PlayerGrid seats={seats} roomCode="1234" onSeatPress={onSeatPress} disabled={false} />,
       );
 
       const seat = await findByTestId(TESTIDS.seatTilePressable(0));
@@ -113,7 +113,7 @@ describe('PlayerGrid', () => {
       ];
 
       const { findByTestId } = render(
-        <PlayerGrid seats={seats} roomNumber="1234" onSeatPress={onSeatPress} disabled={true} />,
+        <PlayerGrid seats={seats} roomCode="1234" onSeatPress={onSeatPress} disabled={true} />,
       );
 
       const seat = await findByTestId(TESTIDS.seatTilePressable(0));

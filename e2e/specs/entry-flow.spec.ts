@@ -118,7 +118,7 @@ test.describe('Return with existing session', () => {
 
 test.describe('Enter room via join flow', () => {
   let fixture: MultiPlayerFixture;
-  let roomNumber: string;
+  let roomCode: string;
 
   test.afterEach(async () => {
     if (fixture) await closeAll(fixture);
@@ -139,13 +139,13 @@ test.describe('Enter room via join flow', () => {
     await waitForRoomScreenReady(hostPage, { role: 'host' });
 
     const hostRoom = new RoomPage(hostPage);
-    roomNumber = await hostRoom.getRoomNumber();
+    roomCode = await hostRoom.getRoomCode();
 
     // Step 2: Joiner enters room via join flow
     await joinerPage.locator('[data-testid="home-enter-room-button"]').click();
     await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5_000 });
 
-    await enterRoomCodeViaNumPad(joinerPage, roomNumber);
+    await enterRoomCodeViaNumPad(joinerPage, roomCode);
     await joinerPage.getByText('加入', { exact: true }).click();
 
     // Step 3: Verify joiner is on room screen
@@ -156,7 +156,7 @@ test.describe('Enter room via join flow', () => {
 
     // Room header should contain the room number
     const header = joinerPage.locator('[data-testid="room-header"]');
-    await expect(header).toContainText(roomNumber);
+    await expect(header).toContainText(roomCode);
   });
 });
 
@@ -186,7 +186,7 @@ test.describe('Direct room URL', () => {
     await waitForRoomScreenReady(hostPage, { role: 'host' });
 
     const hostRoom = new RoomPage(hostPage);
-    const roomNumber = await hostRoom.getRoomNumber();
+    const roomCode = await hostRoom.getRoomCode();
 
     // Step 2: New context with session — login first, then go to direct URL
     const directCtx = await browser.newContext();
@@ -200,7 +200,7 @@ test.describe('Direct room URL', () => {
     await ensureAnonLogin(directPage);
 
     // Step 3: Navigate directly to room URL
-    await gotoWithRetry(directPage, `/room/${roomNumber}`);
+    await gotoWithRetry(directPage, `/room/${roomCode}`);
     await waitForRoomScreenReady(directPage, { role: 'joiner' });
 
     // Verify room screen is visible with correct room number
@@ -208,7 +208,7 @@ test.describe('Direct room URL', () => {
       timeout: 5_000,
     });
     const header = directPage.locator('[data-testid="room-header"]');
-    await expect(header).toContainText(roomNumber);
+    await expect(header).toContainText(roomCode);
   });
 
   test('without session → AuthGateOverlay → login → room loads', async ({ browser }) => {
@@ -226,7 +226,7 @@ test.describe('Direct room URL', () => {
     await waitForRoomScreenReady(hostPage, { role: 'host' });
 
     const hostRoom = new RoomPage(hostPage);
-    const roomNumber = await hostRoom.getRoomNumber();
+    const roomCode = await hostRoom.getRoomCode();
 
     // Step 2: Fresh context with NO session — direct URL to room
     const freshCtx = await browser.newContext();
@@ -235,7 +235,7 @@ test.describe('Direct room URL', () => {
     fixture.contexts.push(freshCtx);
     fixture.pages.push(freshPage);
 
-    await gotoWithRetry(freshPage, `/room/${roomNumber}`);
+    await gotoWithRetry(freshPage, `/room/${roomCode}`);
 
     // Step 3: AuthGateOverlay should appear ("登录")
     await expect(freshPage.getByText('登录', { exact: true })).toBeVisible({ timeout: 15_000 });
@@ -262,6 +262,6 @@ test.describe('Direct room URL', () => {
       timeout: 10_000,
     });
     const header = freshPage.locator('[data-testid="room-header"]');
-    await expect(header).toContainText(roomNumber);
+    await expect(header).toContainText(roomCode);
   });
 });

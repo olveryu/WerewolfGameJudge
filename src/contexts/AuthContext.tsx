@@ -11,7 +11,7 @@
 import * as Sentry from '@sentry/react-native';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
+import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
 import { storage } from '@/lib/storage';
 import type { AuthUser } from '@/services/types/IAuthService';
@@ -257,7 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       await authService.signOut();
-      storage.remove(LAST_ROOM_NUMBER_KEY);
+      storage.remove(LAST_ROOM_CODE_KEY);
       setUser(null);
       authLog.info('signOut');
       Sentry.setUser(null);

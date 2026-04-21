@@ -5,14 +5,14 @@ export type RootStackParamList = {
   Home: undefined;
   BoardPicker:
     | {
-        existingRoomNumber?: string;
+        existingRoomCode?: string;
         nominateMode?: { roomCode: string };
       }
     | undefined;
   Config:
     | {
         // Optional: if provided, update existing room instead of creating new one
-        existingRoomNumber?: string;
+        existingRoomCode?: string;
         // Optional: if provided, auto-apply this preset template
         presetName?: string;
         // Optional: if provided, ConfigScreen is in "nominate" mode
@@ -21,16 +21,16 @@ export type RootStackParamList = {
       }
     | undefined;
   Room: {
-    roomNumber: string;
+    roomCode: string;
     isHost: boolean;
     template?: GameTemplate;
     roleRevealAnimation?: RoleRevealAnimation;
   };
-  Settings: { roomNumber?: string } | undefined;
-  AnimationSettings: { roomNumber?: string } | undefined;
-  MusicSettings: { roomNumber?: string } | undefined;
-  Encyclopedia: { roomNumber?: string; roleId?: string } | undefined;
-  Notepad: { roomNumber: string };
+  Settings: { roomCode?: string } | undefined;
+  AnimationSettings: { roomCode?: string } | undefined;
+  MusicSettings: { roomCode?: string } | undefined;
+  Encyclopedia: { roomCode?: string; roleId?: string } | undefined;
+  Notepad: { roomCode: string };
   AvatarPicker: undefined;
   Unlocks: { userId?: string; displayName?: string } | undefined;
   Gacha: undefined;

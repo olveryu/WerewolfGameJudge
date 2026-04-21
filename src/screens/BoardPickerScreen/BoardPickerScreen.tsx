@@ -245,7 +245,7 @@ export const BoardPickerScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BoardPickerRouteProp>();
-  const existingRoomNumber = route.params?.existingRoomNumber;
+  const existingRoomCode = route.params?.existingRoomCode;
   const nominateMode = route.params?.nominateMode;
   const styles = useMemo(() => createBoardPickerStyles(colors), []);
   const { width: screenWidth } = useWindowDimensions();
@@ -332,19 +332,19 @@ export const BoardPickerScreen: React.FC = () => {
         // getId on Config ensures this won't collide with the create/edit instance.
         navigation.replace('Config', { presetName, nominateMode });
       } else {
-        navigation.popTo('Config', { presetName, existingRoomNumber });
+        navigation.popTo('Config', { presetName, existingRoomCode });
       }
     },
-    [navigation, existingRoomNumber, nominateMode],
+    [navigation, existingRoomCode, nominateMode],
   );
 
   const handleCustom = useCallback(() => {
     if (nominateMode) {
       navigation.replace('Config', { nominateMode });
     } else {
-      navigation.popTo('Config', existingRoomNumber ? { existingRoomNumber } : undefined);
+      navigation.popTo('Config', existingRoomCode ? { existingRoomCode } : undefined);
     }
-  }, [navigation, existingRoomNumber, nominateMode]);
+  }, [navigation, existingRoomCode, nominateMode]);
 
   const handleRolePress = useCallback((roleId: string) => {
     setPreviewRoleId(roleId as RoleId);

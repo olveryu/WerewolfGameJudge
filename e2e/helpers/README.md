@@ -241,7 +241,7 @@ Handles app entry stabilization: hydration, login, home screen readiness.
 | ------------------------------- | ------------------------------------------------------------ |
 | `getCurrentRoomCode(page)`      | Returns room code if on room screen, null otherwise          |
 | `ensureInRoomOrHomeReady(page)` | Returns room code if in room, otherwise ensures home ready   |
-| `extractRoomNumber(page)`       | Extract room code from header (throws if not on room screen) |
+| `extractRoomCode(page)`         | Extract room code from header (throws if not on room screen) |
 
 ---
 
@@ -295,7 +295,7 @@ Specialized waits for RoomScreen after creation or joining.
 
 **Failure Signature:** `Failed to create room: duplicate key value violates unique constraint`
 
-**Root Cause:** Race condition between `generateRoomNumber()` check and `createRoom()` insert.
+**Root Cause:** Race condition between `generateRoomCode()` check and `createRoom()` insert.
 If another client creates a room with the same 4-digit code in between, Supabase returns 409.
 
 ### Mitigation (IMPLEMENTED in RoomService)

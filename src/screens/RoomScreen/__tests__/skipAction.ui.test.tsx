@@ -180,7 +180,7 @@ describe('RoomScreen skip action UI', () => {
       navigation: mockNavigation,
       route: {
         params: {
-          roomNumber: '1234',
+          roomCode: '1234',
           isHost: false,
           template: '噩梦之影守卫',
         },
@@ -206,7 +206,7 @@ describe('RoomScreen skip action UI', () => {
       navigation: mockNavigation,
       route: {
         params: {
-          roomNumber: '1234',
+          roomCode: '1234',
           isHost: false,
           template: '噩梦之影守卫',
         },

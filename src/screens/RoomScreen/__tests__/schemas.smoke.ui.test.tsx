@@ -181,7 +181,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
         navigation: mockNavigation,
         route: {
           params: {
-            roomNumber: '1234',
+            roomCode: '1234',
             isHost: false,
             template: '梦魇守卫',
           },

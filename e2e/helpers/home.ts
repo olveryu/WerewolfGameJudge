@@ -536,7 +536,7 @@ async function navigateBackToHome(page: Page): Promise<void> {
  * Extract room number from room screen header.
  * Assumes we're on a room screen.
  */
-export async function extractRoomNumber(page: Page): Promise<string> {
+export async function extractRoomCode(page: Page): Promise<string> {
   const headerLocator = page.locator(`[data-testid="${TESTIDS.roomHeader}"]`);
   await expect(headerLocator).toBeVisible({ timeout: 15_000 });
   const headerText = await headerLocator.textContent();

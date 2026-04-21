@@ -66,7 +66,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
  */
 export function renderNightReviewToCanvas(
   data: NightReviewData,
-  roomNumber: string,
+  roomCode: string,
   colors: ThemeColors,
 ): string {
   const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio ?? 2) : 2;
@@ -148,7 +148,7 @@ export function renderNightReviewToCanvas(
   ctx.fillStyle = colors.text;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(`房间 ${roomNumber} 战报`, cardWidth / 2, y + lineHeight.title / 2);
+  ctx.fillText(`房间 ${roomCode} 战报`, cardWidth / 2, y + lineHeight.title / 2);
   y += lineHeight.title + spacing.medium;
 
   // ── Disclaimer ──
@@ -231,14 +231,10 @@ function isShareCancelledError(error: unknown): boolean {
 
 export async function shareNightReviewReportImage(
   getBase64: () => Promise<string>,
-  roomNumber: string,
+  roomCode: string,
 ): Promise<ShareNightReviewResult> {
   try {
-    await shareImageBase64(
-      getBase64,
-      `room-${roomNumber}-review.png`,
-      `狼人杀房间 ${roomNumber} 战报`,
-    );
+    await shareImageBase64(getBase64, `room-${roomCode}-review.png`, `狼人杀房间 ${roomCode} 战报`);
     return 'shared';
   } catch (error) {
     if (isShareCancelledError(error)) return 'cancelled';

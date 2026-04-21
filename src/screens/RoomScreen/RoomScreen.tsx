@@ -68,8 +68,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── Notepad ──────────────────────────────────────────────────────────
   const handleNotepadPress = useCallback(() => {
-    navigation.navigate('Notepad', { roomNumber: route.params.roomNumber });
-  }, [navigation, route.params.roomNumber]);
+    navigation.navigate('Notepad', { roomCode: route.params.roomCode });
+  }, [navigation, route.params.roomCode]);
 
   // ─── QR Code Modal state ──────────────────────────────────────────────
   const [qrModalVisible, setQrModalVisible] = useState(false);
@@ -85,7 +85,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, []);
 
   const handleCopyLink = useCallback(() => {
-    void shareOrCopyRoomLink(route.params.roomNumber)
+    void shareOrCopyRoomLink(route.params.roomCode)
       .then((result) => {
         if (result === 'copied') {
           toast.success('房间链接已复制');
@@ -103,11 +103,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           alertMessage: '无法复制链接，请手动分享房间号',
         });
       });
-  }, [route.params.roomNumber]);
+  }, [route.params.roomCode]);
 
   const handleShareQRImage = useCallback(
     (getBase64: () => Promise<string>) => {
-      void shareQRCodeImage(getBase64, route.params.roomNumber).catch((e) => {
+      void shareQRCodeImage(getBase64, route.params.roomCode).catch((e) => {
         handleError(e, {
           label: '分享二维码',
           logger: roomScreenLog,
@@ -116,28 +116,28 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         });
       });
     },
-    [route.params.roomNumber],
+    [route.params.roomCode],
   );
 
   const handleAvatarPress = useCallback(() => {
-    navigation.navigate('Settings', { roomNumber: route.params.roomNumber });
-  }, [navigation, route.params.roomNumber]);
+    navigation.navigate('Settings', { roomCode: route.params.roomCode });
+  }, [navigation, route.params.roomCode]);
 
   const handleEncyclopedia = useCallback(() => {
-    navigation.navigate('Encyclopedia', { roomNumber: route.params.roomNumber });
-  }, [navigation, route.params.roomNumber]);
+    navigation.navigate('Encyclopedia', { roomCode: route.params.roomCode });
+  }, [navigation, route.params.roomCode]);
 
   const handleAnimationSettings = useCallback(() => {
-    navigation.navigate('AnimationSettings', { roomNumber: route.params.roomNumber });
-  }, [navigation, route.params.roomNumber]);
+    navigation.navigate('AnimationSettings', { roomCode: route.params.roomCode });
+  }, [navigation, route.params.roomCode]);
 
   const handleMusicSettings = useCallback(() => {
-    navigation.navigate('MusicSettings', { roomNumber: route.params.roomNumber });
-  }, [navigation, route.params.roomNumber]);
+    navigation.navigate('MusicSettings', { roomCode: route.params.roomCode });
+  }, [navigation, route.params.roomCode]);
 
   const {
     // Route params
-    roomNumber,
+    roomCode,
     template,
     // Game state
     gameState,
@@ -255,9 +255,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleNominate = useCallback(() => {
     navigation.navigate('BoardPicker', {
-      nominateMode: { roomCode: roomNumber },
+      nominateMode: { roomCode: roomCode },
     });
-  }, [navigation, roomNumber]);
+  }, [navigation, roomCode]);
 
   const handleViewNominations = useCallback(() => {
     setNominationModalVisible(true);
@@ -440,7 +440,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
         <View style={styles.headerCenter}>
           <TouchableOpacity onPress={handleDebugTitleTap} activeOpacity={1}>
-            <Text style={styles.headerTitle}>房间 {roomNumber}</Text>
+            <Text style={styles.headerTitle}>房间 {roomCode}</Text>
           </TouchableOpacity>
         </View>
         {/* Header right: encyclopedia + host menu */}
@@ -577,7 +577,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Player Grid */}
         <PlayerGrid
           seats={seatViewModels}
-          roomNumber={roomNumber}
+          roomCode={roomCode}
           onSeatPress={onSeatTapped}
           onSeatLongPress={onSeatLongPressed}
           disabled={(roomStatus === GameStatus.Ongoing && isAudioPlaying) || isActionSubmitting}
@@ -678,7 +678,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <NightReviewShareCard
             ref={nightReviewShareCardRef}
             data={nightReviewData}
-            roomNumber={roomNumber}
+            roomCode={roomCode}
           />
         </View>
       )}
@@ -703,8 +703,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* QR Code Modal — 房间二维码分享 */}
       <QRCodeModal
         visible={qrModalVisible}
-        roomNumber={roomNumber}
-        roomUrl={buildRoomUrl(roomNumber)}
+        roomCode={roomCode}
+        roomUrl={buildRoomUrl(roomCode)}
         onShareImage={handleShareQRImage}
         onCopyLink={handleCopyLink}
         onClose={() => setQrModalVisible(false)}

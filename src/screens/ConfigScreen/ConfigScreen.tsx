@@ -48,7 +48,7 @@ export const ConfigScreen: React.FC = () => {
 
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConfigRouteProp>();
-  const existingRoomNumber = route.params?.existingRoomNumber;
+  const existingRoomCode = route.params?.existingRoomCode;
   const presetName = route.params?.presetName;
   const nominateMode = route.params?.nominateMode;
 
@@ -56,7 +56,7 @@ export const ConfigScreen: React.FC = () => {
   const { settingsService, authService, roomService } = useServices();
 
   const state = useConfigScreenState({
-    existingRoomNumber,
+    existingRoomCode,
     presetName,
     nominateMode,
     navigation,

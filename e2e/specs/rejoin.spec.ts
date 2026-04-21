@@ -80,7 +80,7 @@ test.describe('Rejoin during ongoing game', () => {
     browser,
   }, testInfo) => {
     // Step 1: Setup 2-player game and start night
-    const { fixture, roomNumber, hostPage } = await setupNPlayerGame(browser, {
+    const { fixture, roomCode, hostPage } = await setupNPlayerGame(browser, {
       playerCount: 2,
       configureTemplate: async (config) => config.configure2Player(),
     });
@@ -134,7 +134,7 @@ test.describe('Rejoin during ongoing game', () => {
 
       await testInfo.attach('host-rejoin.txt', {
         body: [
-          `Room: ${roomNumber}`,
+          `Room: ${roomCode}`,
           `ContinueGameOverlay shown: ${hadOverlay}`,
           `Result: ${nightResult.resultText}`,
           `Turns: ${nightResult.turnLog.join(' → ')}`,
@@ -150,7 +150,7 @@ test.describe('Rejoin during ongoing game', () => {
     browser,
   }, testInfo) => {
     // Step 1: Setup 2-player game and start night
-    const { fixture, roomNumber, hostPage, joinerPages } = await setupNPlayerGame(browser, {
+    const { fixture, roomCode, hostPage, joinerPages } = await setupNPlayerGame(browser, {
       playerCount: 2,
       configureTemplate: async (config) => config.configure2Player(),
     });
@@ -176,7 +176,7 @@ test.describe('Rejoin during ongoing game', () => {
       await expect(enterRoomBtn).toBeVisible({ timeout: 5_000 });
       await enterRoomBtn.click();
       await expect(joinerPage.getByText('加入房间')).toBeVisible({ timeout: 5_000 });
-      await enterRoomCodeViaNumPad(joinerPage, roomNumber);
+      await enterRoomCodeViaNumPad(joinerPage, roomCode);
       await joinerPage.getByText('加入', { exact: true }).click();
       await waitForRoomScreenReady(joinerPage, { role: 'joiner' });
 
@@ -211,7 +211,7 @@ test.describe('Rejoin during ongoing game', () => {
 
       await testInfo.attach('player-rejoin.txt', {
         body: [
-          `Room: ${roomNumber}`,
+          `Room: ${roomCode}`,
           `Result: ${nightResult.resultText}`,
           `Turns: ${nightResult.turnLog.join(' → ')}`,
         ].join('\n'),

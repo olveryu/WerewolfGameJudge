@@ -48,7 +48,7 @@ test.describe('Night Verification', () => {
         configureTemplate: async (config) => config.configure2Player(),
       });
 
-      const { fixture, roleMap, roomNumber } = setup;
+      const { fixture, roleMap, roomCode } = setup;
       const pages = fixture.pages;
 
       // Identify wolf and villager
@@ -86,7 +86,7 @@ test.describe('Night Verification', () => {
       // Attach diagnostic info
       await testInfo.attach('2p-death-verify.txt', {
         body: [
-          `Room: ${roomNumber}`,
+          `Room: ${roomCode}`,
           `Wolf: page${wolfIdx} seat${roleMap.get(wolfIdx)!.seat}`,
           `Villager: page${villagerIdx} seat${villagerSeat}`,
           `Expected death: ${expectedSeatDisplay}号`,
@@ -119,7 +119,7 @@ test.describe('Night Verification', () => {
         configureTemplate: async (config) => config.configure6Player(),
       });
 
-      const { fixture, roleMap, roomNumber } = setup;
+      const { fixture, roleMap, roomCode } = setup;
       const pages = fixture.pages;
 
       // Identify roles
@@ -173,7 +173,7 @@ test.describe('Night Verification', () => {
       // Attach diagnostic report
       await testInfo.attach('6p-seer-verify.txt', {
         body: [
-          `Room: ${roomNumber}`,
+          `Room: ${roomCode}`,
           `Roles: ${[...roleMap.entries()].map(([i, r]) => `p${i}=${r.displayName}(seat${r.seat})`).join(', ')}`,
           `Seer checked: seat${targetWolfSeat} (wolf)`,
           `Reveal text: ${revealText}`,

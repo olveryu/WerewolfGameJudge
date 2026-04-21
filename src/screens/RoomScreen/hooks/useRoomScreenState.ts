@@ -67,7 +67,7 @@ const FATAL_ROOM_ERRORS = new Set(['房间不存在', '房间状态已过期，�
 
 /** Route params that RoomScreen receives (mirrors RootStackParamList['Room']) */
 interface RoomScreenRouteParams {
-  roomNumber: string;
+  roomCode: string;
   isHost: boolean;
   template?: GameTemplate;
   roleRevealAnimation?: RoleRevealAnimation;
@@ -85,7 +85,7 @@ export function useRoomScreenState(
   navigation: RoomScreenNavigation,
 ) {
   const {
-    roomNumber,
+    roomCode,
     // Default to false: URL navigation (refresh) may omit isHost;
     // joinRoom auto-detects host status from DB record.hostUserId
     isHost: isHostParam = false,
@@ -225,7 +225,7 @@ export function useRoomScreenState(
   const { handleDebugTitleTap } = useHiddenDebugTrigger();
 
   const init = useRoomInit({
-    roomNumber,
+    roomCode,
     isHostParam,
     template,
     initializeRoom,
@@ -481,7 +481,7 @@ export function useRoomScreenState(
     restartGame,
     setIsStartingGame,
     navigation,
-    roomNumber,
+    roomCode,
   });
 
   const nightReviewData = useMemo(() => {
@@ -522,7 +522,7 @@ export function useRoomScreenState(
     // Mini program web-view: Canvas 2D → upload to R2 → wx.previewImage
     if (isMiniProgram()) {
       try {
-        const canvasBase64 = renderNightReviewToCanvas(nightReviewData, roomNumber, colors);
+        const canvasBase64 = renderNightReviewToCanvas(nightReviewData, roomCode, colors);
         const url = await uploadShareImage(canvasBase64);
         await wxPreviewImage(url);
       } catch (err) {
@@ -533,7 +533,7 @@ export function useRoomScreenState(
     }
 
     if (base64) {
-      const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomNumber);
+      const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomCode);
       if (result === 'failed') {
         showErrorAlert('分享失败', '无法分享战报，请稍后重试');
       }
@@ -546,14 +546,11 @@ export function useRoomScreenState(
       showErrorAlert('分享失败', '无法生成战报截图，请稍后重试');
       return;
     }
-    const result = await shareNightReviewReportImage(
-      () => Promise.resolve(freshBase64),
-      roomNumber,
-    );
+    const result = await shareNightReviewReportImage(() => Promise.resolve(freshBase64), roomCode);
     if (result === 'failed') {
       showErrorAlert('分享失败', '无法分享战报，请稍后重试');
     }
-  }, [nightReviewData, roomNumber, beginReportCapture]);
+  }, [nightReviewData, roomCode, beginReportCapture]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Modal / dialog state (role card, skill preview, night review, share review)
@@ -798,7 +795,7 @@ export function useRoomScreenState(
 
   return {
     // ── Route params ──
-    roomNumber,
+    roomCode,
     template,
 
     // ── Game state (from useGameRoom) ──

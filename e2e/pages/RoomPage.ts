@@ -1,7 +1,7 @@
 import { expect, Page, TestInfo } from '@playwright/test';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 
-import { extractRoomNumber } from '../helpers/home';
+import { extractRoomCode } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
 
 /**
@@ -36,8 +36,8 @@ export class RoomPage {
   // Room Info
   // ---------------------------------------------------------------------------
 
-  async getRoomNumber(): Promise<string> {
-    return extractRoomNumber(this.page);
+  async getRoomCode(): Promise<string> {
+    return extractRoomCode(this.page);
   }
 
   /** Count visible seat tiles (excludes pressable overlay). */

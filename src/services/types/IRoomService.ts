@@ -9,7 +9,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 /** 房间记录（面向消费者的抽象） */
 export interface RoomRecord {
-  roomNumber: string;
+  roomCode: string;
   hostUserId: string;
   createdAt: Date;
 }
@@ -30,13 +30,13 @@ export interface IRoomService {
   ): Promise<RoomRecord>;
 
   /** 查询房间记录，不存在返回 null */
-  getRoom(roomNumber: string): Promise<RoomRecord | null>;
+  getRoom(roomCode: string): Promise<RoomRecord | null>;
 
   /** 检查房间是否存在 */
-  roomExists(roomNumber: string): Promise<boolean>;
+  roomExists(roomCode: string): Promise<boolean>;
 
   /** 删除房间 */
-  deleteRoom(roomNumber: string): Promise<void>;
+  deleteRoom(roomCode: string): Promise<void>;
 
   /** 读取 state_revision（轻量级轮询） */
   getStateRevision(roomCode: string): Promise<number | null>;

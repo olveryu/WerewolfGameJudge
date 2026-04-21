@@ -412,12 +412,12 @@ jest.mock('./src/contexts/ServiceContext', () => {
     },
     roomService: {
       createRoom: jest.fn().mockResolvedValue({
-        roomNumber: '1234',
+        roomCode: '1234',
         hostUserId: 'test-uid',
         createdAt: new Date(),
       }),
       getRoom: jest.fn().mockResolvedValue({
-        roomNumber: '1234',
+        roomCode: '1234',
         hostUserId: 'test-uid',
         createdAt: new Date(),
       }),

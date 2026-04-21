@@ -72,7 +72,7 @@ describe('RoomScreen witch save UI (contract)', () => {
   it('seat tapping does NOT submit save (save is confirmTarget, target comes from witchContext)', async () => {
     const { getByTestId } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -90,7 +90,7 @@ describe('RoomScreen witch save UI (contract)', () => {
   it('shows witch info prompt using schema.ui.prompt on render', async () => {
     render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -107,7 +107,7 @@ describe('RoomScreen witch save UI (contract)', () => {
 
     const { getByTestId } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -128,7 +128,7 @@ describe('RoomScreen witch save UI (contract)', () => {
 
     const { getByTestId, getByText } = render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -175,7 +175,7 @@ describe('RoomScreen witch save UI (contract)', () => {
 
     render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );
@@ -199,7 +199,7 @@ describe('RoomScreen witch save UI (contract)', () => {
 
     render(
       <RoomScreen
-        route={{ params: { roomNumber: '1234', isHost: false } } as any}
+        route={{ params: { roomCode: '1234', isHost: false } } as any}
         navigation={mockNavigation as any}
       />,
     );

@@ -84,7 +84,7 @@ export interface SeatTileStyles {
 export interface SeatTileProps {
   // Primitive props for stable comparison
   seat: number;
-  roomNumber: string;
+  roomCode: string;
   tileSize: number;
   disabled: boolean;
   disabledReason?: string;
@@ -126,7 +126,7 @@ export interface SeatTileProps {
 
 const SeatTileComponent: React.FC<SeatTileProps> = ({
   seat,
-  roomNumber,
+  roomCode,
   tileSize,
   disabled,
   disabledReason,
@@ -356,7 +356,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
                 size={tileSize - spacing.tight - fixed.borderWidthThick * 2}
                 avatarUrl={playerAvatarUrl}
                 avatarIndex={playerAvatarIndex}
-                roomId={roomNumber}
+                roomId={roomCode}
                 borderRadius={borderRadius.large - fixed.borderWidthThick}
                 frameId={playerAvatarFrame}
               />

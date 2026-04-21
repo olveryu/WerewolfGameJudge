@@ -108,7 +108,7 @@ function simpleHash(str: string): number {
 
 /**
  * 根据 seed 解析 random 为具体动画
- * @param seed 稳定的 seed 字符串（如 roomNumber:templateId:revision）
+ * @param seed 稳定的 seed 字符串（如 roomCode:templateId:revision）
  * @param previous 上一次使用的动画，若命中则 +1 跳过（仍然确定性）
  * @returns 解析后的动画类型
  */

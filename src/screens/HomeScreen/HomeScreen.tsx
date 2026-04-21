@@ -26,7 +26,7 @@ import { Button } from '@/components/Button';
 import { PressableScale } from '@/components/PressableScale';
 import { UserAvatar } from '@/components/UserAvatar';
 import { ANNOUNCEMENTS } from '@/config/announcements';
-import { LAST_ROOM_NUMBER_KEY, LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
+import { LAST_ROOM_CODE_KEY, LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
@@ -59,7 +59,7 @@ export const HomeScreen: React.FC = () => {
   const { user, loading: authLoading, error: authError } = useAuth();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
-  const [lastRoomNumber, setLastRoomNumber] = useState<string | null>(null);
+  const [lastRoomCode, setLastRoomNumber] = useState<string | null>(null);
 
   // Announcement modal state (auto-show once per version + manual open from card)
   const [showAnnouncement, setShowAnnouncement] = useState(false);
@@ -119,7 +119,7 @@ export const HomeScreen: React.FC = () => {
   // (room-not-found clears MMKV, need to re-read on focus)
   useEffect(() => {
     const readLastRoom = () => {
-      setLastRoomNumber(storage.getString(LAST_ROOM_NUMBER_KEY) ?? null);
+      setLastRoomNumber(storage.getString(LAST_ROOM_CODE_KEY) ?? null);
     };
     readLastRoom();
     const unsubscribeFocus = navigation.addListener('focus', readLastRoom);
@@ -160,9 +160,9 @@ export const HomeScreen: React.FC = () => {
     homeLog.info('Join room', { roomCode });
 
     try {
-      storage.set(LAST_ROOM_NUMBER_KEY, roomCode);
+      storage.set(LAST_ROOM_CODE_KEY, roomCode);
       setShowJoinModal(false);
-      navigation.navigate('Room', { roomNumber: roomCode, isHost: false });
+      navigation.navigate('Room', { roomCode: roomCode, isHost: false });
       setRoomCode('');
     } catch {
       homeLog.warn('Join failed');
@@ -173,13 +173,13 @@ export const HomeScreen: React.FC = () => {
   }, [roomCode, navigation]);
 
   const handleReturnToLastGame = useCallback(() => {
-    if (!lastRoomNumber) {
+    if (!lastRoomCode) {
       showErrorAlert('无记录', '没有上局游戏记录');
       return;
     }
-    homeLog.info('Return to last game', { roomNumber: lastRoomNumber });
-    navigation.navigate('Room', { roomNumber: lastRoomNumber, isHost: false });
-  }, [lastRoomNumber, navigation]);
+    homeLog.info('Return to last game', { roomCode: lastRoomCode });
+    navigation.navigate('Room', { roomCode: lastRoomCode, isHost: false });
+  }, [lastRoomCode, navigation]);
 
   const handleCancelJoin = useCallback(() => {
     setShowJoinModal(false);
@@ -453,7 +453,7 @@ export const HomeScreen: React.FC = () => {
             </View>
             <Text style={styles.actionCardTitle}>返回上局</Text>
             <Text style={styles.actionCardSubtitle}>
-              {lastRoomNumber ? `房间 ${lastRoomNumber}` : '无记录'}
+              {lastRoomCode ? `房间 ${lastRoomCode}` : '无记录'}
             </Text>
           </PressableScale>
         </View>

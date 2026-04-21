@@ -77,7 +77,7 @@ describe('useRoomHostDialogs', () => {
           restartGame: jest.fn(),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
-          roomNumber: '1234',
+          roomCode: '1234',
         }),
       );
 
@@ -101,7 +101,7 @@ describe('useRoomHostDialogs', () => {
           restartGame: jest.fn(),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
-          roomNumber: '1234',
+          roomCode: '1234',
         }),
       );
 
@@ -132,7 +132,7 @@ describe('useRoomHostDialogs', () => {
           restartGame: jest.fn(),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
-          roomNumber: '1234',
+          roomCode: '1234',
         }),
       );
 
@@ -152,7 +152,7 @@ describe('useRoomHostDialogs', () => {
   });
 
   describe('handleSettingsPress', () => {
-    it('should navigate to Config screen with roomNumber', () => {
+    it('should navigate to Config screen with roomCode', () => {
       const gameState = createMockGameState(8);
 
       const { result } = renderHook(() =>
@@ -163,7 +163,7 @@ describe('useRoomHostDialogs', () => {
           restartGame: jest.fn(),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
-          roomNumber: '5678',
+          roomCode: '5678',
         }),
       );
 
@@ -171,7 +171,7 @@ describe('useRoomHostDialogs', () => {
         result.current.handleSettingsPress();
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('Config', { existingRoomNumber: '5678' });
+      expect(mockNavigate).toHaveBeenCalledWith('Config', { existingRoomCode: '5678' });
     });
   });
 
@@ -191,7 +191,7 @@ describe('useRoomHostDialogs', () => {
           restartGame: jest.fn(),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
-          roomNumber: '1234',
+          roomCode: '1234',
         }),
       );
 
@@ -213,7 +213,7 @@ describe('useRoomHostDialogs', () => {
           restartGame: jest.fn(),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
-          roomNumber: '1234',
+          roomCode: '1234',
         }),
       );
 
@@ -263,7 +263,7 @@ describe('useRoomHostDialogs', () => {
           restartGame: mockRestartGame,
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
-          roomNumber: '1234',
+          roomCode: '1234',
         }),
       );
 
@@ -308,7 +308,7 @@ describe('useRoomHostDialogs', () => {
           restartGame: jest.fn(),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
-          roomNumber: '1234',
+          roomCode: '1234',
         }),
       );
 

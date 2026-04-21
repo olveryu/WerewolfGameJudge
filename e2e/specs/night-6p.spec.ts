@@ -18,7 +18,7 @@ test.setTimeout(300_000);
 
 test.describe('Night 6-Player', () => {
   test('6-player night flow with 2 wolves', async ({ browser }, testInfo) => {
-    const { fixture, roomNumber, hostPage } = await setupNPlayerGame(browser, {
+    const { fixture, roomCode, hostPage } = await setupNPlayerGame(browser, {
       playerCount: 6,
       configureTemplate: async (config) => config.configure6Player(),
     });
@@ -43,7 +43,7 @@ test.describe('Night 6-Player', () => {
 
       await testInfo.attach('night-6p.txt', {
         body: [
-          `Room: ${roomNumber}`,
+          `Room: ${roomCode}`,
           `Template: 2狼 + 预言家 + 女巫 + 猎人 + 1村民`,
           `Result: ${nightResult.resultText}`,
           `Turns: ${nightResult.turnLog.join(' → ')}`,

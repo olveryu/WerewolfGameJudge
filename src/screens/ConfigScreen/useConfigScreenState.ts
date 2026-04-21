@@ -21,7 +21,7 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner-native';
 
-import { LAST_ROOM_NUMBER_KEY } from '@/config/storageKeys';
+import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import type { SettingsService } from '@/services/feature/SettingsService';
@@ -50,7 +50,7 @@ import {
 type ConfigNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Config'>;
 
 interface UseConfigScreenStateParams {
-  existingRoomNumber: string | undefined;
+  existingRoomCode: string | undefined;
   presetName: string | undefined;
   nominateMode: { roomCode: string } | undefined;
   navigation: ConfigNavigationProp;
@@ -65,7 +65,7 @@ interface UseConfigScreenStateParams {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useConfigScreenState({
-  existingRoomNumber,
+  existingRoomCode,
   presetName,
   nominateMode,
   navigation,
@@ -74,7 +74,7 @@ export function useConfigScreenState({
   authService,
   roomService,
 }: UseConfigScreenStateParams) {
-  const isEditMode = !!existingRoomNumber;
+  const isEditMode = !!existingRoomCode;
   const isNominateMode = !!nominateMode;
 
   // ── Core state ────────────────────────────────────────────────────────────
@@ -134,8 +134,8 @@ export function useConfigScreenState({
     }
 
     // Priority 2: edit/nominate mode — load current room roles from facade
-    if ((isEditMode || isNominateMode) && (existingRoomNumber || isNominateMode)) {
-      configLog.debug('Loading room roles:', existingRoomNumber ?? nominateMode?.roomCode);
+    if ((isEditMode || isNominateMode) && (existingRoomCode || isNominateMode)) {
+      configLog.debug('Loading room roles:', existingRoomCode ?? nominateMode?.roomCode);
       try {
         const state = facade.getState();
         if (state?.templateRoles && state.templateRoles.length > 0) {
@@ -158,7 +158,7 @@ export function useConfigScreenState({
     presetName,
     isEditMode,
     isNominateMode,
-    existingRoomNumber,
+    existingRoomCode,
     nominateMode,
     facade,
     settingsService,
@@ -167,12 +167,12 @@ export function useConfigScreenState({
   // ── Load settings (animation + BGM) for new rooms ────────────────────────
 
   useEffect(() => {
-    if (!existingRoomNumber) {
+    if (!existingRoomCode) {
       const lastChoice = settingsService.getRoleRevealAnimation();
       setRoleRevealAnimation(lastChoice);
       setBgmEnabled(settingsService.isBgmEnabled());
     }
-  }, [existingRoomNumber, settingsService]);
+  }, [existingRoomCode, settingsService]);
 
   // ── Reset transient states when screen regains focus ─────────────────────
 
@@ -196,7 +196,7 @@ export function useConfigScreenState({
       gameState.status === GameStatus.Unseated || gameState.status === GameStatus.Seated;
     if (!canNominate) {
       navigation.popTo('Room', {
-        roomNumber: nominateMode.roomCode,
+        roomCode: nominateMode.roomCode,
         isHost: false,
       });
     }
@@ -214,10 +214,10 @@ export function useConfigScreenState({
 
   const handleTemplatePillPress = useCallback(() => {
     navigation.navigate('BoardPicker', {
-      ...(existingRoomNumber ? { existingRoomNumber } : {}),
+      ...(existingRoomCode ? { existingRoomCode } : {}),
       ...(nominateMode ? { nominateMode } : {}),
     });
-  }, [navigation, existingRoomNumber, nominateMode]);
+  }, [navigation, existingRoomCode, nominateMode]);
 
   const toggleRole = useCallback((key: string) => {
     setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -267,7 +267,7 @@ export function useConfigScreenState({
           toast.info('已有相同板子建议，已自动为你投票');
         }
         navigation.popTo('Room', {
-          roomNumber: nominateMode.roomCode,
+          roomCode: nominateMode.roomCode,
           isHost: false,
         });
         return;
@@ -277,7 +277,7 @@ export function useConfigScreenState({
 
       await settingsService.setBgmEnabled(bgmEnabled);
 
-      if (isEditMode && existingRoomNumber) {
+      if (isEditMode && existingRoomCode) {
         const result = await facade.updateTemplate(template);
         if (!result.success) {
           showErrorAlert('更新失败', result.reason ?? '更新房间设置失败，请重试');
@@ -291,7 +291,7 @@ export function useConfigScreenState({
         }
       } else {
         await settingsService.setRoleRevealAnimation(roleRevealAnimation);
-        // Create room record in DB first — get confirmed/final roomNumber
+        // Create room record in DB first — get confirmed/final roomCode
         await authService.waitForInit();
         const hostUserId = authService.getCurrentUserId();
         if (!hostUserId) {
@@ -301,10 +301,10 @@ export function useConfigScreenState({
         const record = await roomService.createRoom(hostUserId, undefined, undefined, (roomCode) =>
           buildInitialGameState(roomCode, hostUserId, template),
         );
-        const roomNumber = record.roomNumber;
-        storage.set(LAST_ROOM_NUMBER_KEY, roomNumber);
+        const roomCode = record.roomCode;
+        storage.set(LAST_ROOM_CODE_KEY, roomCode);
         navigation.navigate('Room', {
-          roomNumber,
+          roomCode,
           isHost: true,
           template,
           roleRevealAnimation,
@@ -325,7 +325,7 @@ export function useConfigScreenState({
     navigation,
     isEditMode,
     nominateMode,
-    existingRoomNumber,
+    existingRoomCode,
     facade,
     roleRevealAnimation,
     settingsService,
