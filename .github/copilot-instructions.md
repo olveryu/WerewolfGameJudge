@@ -106,6 +106,17 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 
 ---
 
+## 命名规则
+
+**规则：**
+
+- **命名前必须 grep。** 新增任何标识符（变量、字段、参数、类型、常量、DB 列）前，先用 `grep_search` 搜索该概念的已有命名。已有名称就是规范名称，直接复用，禁止另起炉灶。只有仓库中不存在的全新概念才可自行命名。
+- 布尔字段用 `is` / `has` / `should` 前缀（DB 列同步加 `is_` / `has_`）。
+- 外键引用统一 `<entity>Id` 格式（`userId`, `roomId`）。
+- 自身 PK 始终叫 `id`。
+
+---
+
 ## 编码约定
 
 - **Git Commit**：`<type>(<scope>): <description>`（Conventional Commits，英文小写祈使语气）。
