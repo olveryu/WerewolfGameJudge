@@ -100,7 +100,7 @@ export function useRoomScreenState(
   const {
     gameState,
     isHost,
-    mySeatNumber,
+    mySeat,
     myRole,
     myUserId,
     roomStatus,
@@ -270,7 +270,7 @@ export function useRoomScreenState(
   }, [gameState?.currentNightResults]);
 
   const { actorSeatForUi, actorRoleForUi, isDelegating } = useRoomIdentity({
-    mySeatNumber,
+    mySeat,
     myRole,
     effectiveSeat,
     effectiveRole,
@@ -285,7 +285,7 @@ export function useRoomScreenState(
     actorRole: actorRoleForUi,
     currentActionRole,
     currentSchema,
-    actorSeatNumber: actorSeatForUi,
+    actorSeat: actorSeatForUi,
     wolfVotes: wolfVotesMap,
     actions: gameState?.actions ?? EMPTY_ACTIONS,
     treasureMasterChosenCard: gameState?.treasureMasterChosenCard,
@@ -332,7 +332,7 @@ export function useRoomScreenState(
       currentActionRole,
       currentSchema,
       imActioner,
-      actorSeatNumber: actorSeatForUi,
+      actorSeat: actorSeatForUi,
       actorRole: actorRoleForUi,
       isAudioPlaying,
       firstSwapSeat,
@@ -609,7 +609,7 @@ export function useRoomScreenState(
     pendingHunterStatusViewed,
     isHost,
     imActioner,
-    mySeatNumber,
+    mySeat,
     myRole,
     effectiveSeat,
     actorSeatForUi,

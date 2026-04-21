@@ -15,7 +15,7 @@ import { gameRoomLog } from '@/utils/logger';
 interface UseLastActionToastParams {
   facade: IGameFacade;
   isHost: boolean;
-  mySeatNumber: number | null;
+  mySeat: number | null;
   isFocused: boolean;
 }
 
@@ -28,17 +28,17 @@ interface UseLastActionToastParams {
 export function useLastActionToast({
   facade,
   isHost,
-  mySeatNumber,
+  mySeat,
   isFocused,
 }: UseLastActionToastParams): void {
-  const prevSeatRef = useRef(mySeatNumber);
+  const prevSeatRef = useRef(mySeat);
 
   // Track seat changes for kick/clearAllSeats detection
   useEffect(() => {
     if (!isFocused) return;
 
     const prevSeat = prevSeatRef.current;
-    prevSeatRef.current = mySeatNumber;
+    prevSeatRef.current = mySeat;
 
     const lastAction = facade.consumeLastAction();
     if (!lastAction || isHost) return;
@@ -47,12 +47,12 @@ export function useLastActionToast({
 
     switch (lastAction) {
       case 'KICK_PLAYER':
-        if (prevSeat !== null && mySeatNumber === null) {
+        if (prevSeat !== null && mySeat === null) {
           toast.warning(`你已被移出 ${prevSeat} 号座位`);
         }
         break;
       case 'CLEAR_ALL_SEATS':
-        if (prevSeat !== null && mySeatNumber === null) {
+        if (prevSeat !== null && mySeat === null) {
           toast.warning('房主已清空所有座位');
         }
         break;
@@ -69,5 +69,5 @@ export function useLastActionToast({
         toast.info('房主已重新开始游戏');
         break;
     }
-  }, [facade, isHost, mySeatNumber, isFocused]);
+  }, [facade, isHost, mySeat, isFocused]);
 }

@@ -104,7 +104,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 9,
+        mySeat: 9,
       });
 
       const { getByTestId } = render(
@@ -123,7 +123,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'seerCheck', // bloodMoon uses similar check pattern
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 8,
+        mySeat: 8,
       });
 
       const { getByTestId } = render(
@@ -144,7 +144,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
-        mySeatNumber: 4,
+        mySeat: 4,
         roleAssignments: new Map([
           [4, 'wolf'],
           [5, 'wolf'],
@@ -173,7 +173,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
-        mySeatNumber: 10,
+        mySeat: 10,
         witchContext: { killedSeat: 1, canSave: true, canPoison: true },
         gameStateOverrides: { witchContext: { killedSeat: 1, canSave: true, canPoison: true } },
       });
@@ -196,7 +196,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
-        mySeatNumber: 10,
+        mySeat: 10,
         witchContext: { killedSeat: -1, canSave: false, canPoison: true },
         gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
       });
@@ -221,7 +221,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 9,
+        mySeat: 9,
       });
 
       const { getByTestId } = render(
@@ -244,7 +244,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 9,
+        mySeat: 9,
       });
 
       const { getByTestId, getByText } = render(
@@ -270,7 +270,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
-        mySeatNumber: 10,
+        mySeat: 10,
         witchContext: { killedSeat: -1, canSave: false, canPoison: true },
         gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
       });
@@ -293,7 +293,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
-        mySeatNumber: 4,
+        mySeat: 4,
         roleAssignments: new Map([
           [4, 'wolf'],
           [5, 'wolf'],

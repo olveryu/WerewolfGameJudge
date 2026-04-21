@@ -23,7 +23,7 @@ import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types'
 
 export interface LocalPlayer {
   userId: string;
-  seatNumber: number;
+  seat: number;
   displayName?: string;
   avatarUrl?: string;
   avatarFrame?: string;

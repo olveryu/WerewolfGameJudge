@@ -94,7 +94,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 8,
+        mySeat: 8,
         isAudioPlaying: true,
       });
 
@@ -115,7 +115,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
-        mySeatNumber: 4,
+        mySeat: 4,
         isAudioPlaying: true,
         roleAssignments: new Map([
           [4, 'wolf'],
@@ -142,7 +142,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 8,
+        mySeat: 8,
         isAudioPlaying: true,
       });
 
@@ -163,7 +163,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
-        mySeatNumber: 4,
+        mySeat: 4,
         isAudioPlaying: true,
         roleAssignments: new Map([
           [4, 'wolf'],
@@ -190,7 +190,7 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 8,
+        mySeat: 8,
         isAudioPlaying: false,
       });
 

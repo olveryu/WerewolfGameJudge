@@ -31,7 +31,7 @@ function createBaseContext(overrides: Partial<InteractionContext> = {}): Interac
     isHost: false,
     imActioner: true,
     // Real identity (for display)
-    mySeatNumber: 0,
+    mySeat: 0,
     myRole: 'villager',
     // Actor identity (for actions)
     actorSeatForUi: 0,
@@ -382,7 +382,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     test('routes to VIEW_PROFILE when tapping occupied seat in seating phase', () => {
       const ctx = createBaseContext({
         roomStatus: GameStatus.Seated,
-        mySeatNumber: 0,
+        mySeat: 0,
         isHost: false,
         isSeatOccupied: () => true,
         getPlayerUid: () => 'user-xyz',
@@ -399,7 +399,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     test('host tapping occupied seat also routes to VIEW_PROFILE', () => {
       const ctx = createBaseContext({
         roomStatus: GameStatus.Unseated,
-        mySeatNumber: 0,
+        mySeat: 0,
         isHost: true,
         isSeatOccupied: () => true,
         getPlayerUid: () => 'user-host-target',
@@ -415,7 +415,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     test('routes to VIEW_PROFILE in assigned phase', () => {
       const ctx = createBaseContext({
         roomStatus: GameStatus.Assigned,
-        mySeatNumber: 0,
+        mySeat: 0,
         isSeatOccupied: () => true,
         getPlayerUid: () => 'user-assigned',
       });
@@ -430,7 +430,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     test('routes to VIEW_PROFILE in ready phase', () => {
       const ctx = createBaseContext({
         roomStatus: GameStatus.Ready,
-        mySeatNumber: 0,
+        mySeat: 0,
         isSeatOccupied: () => true,
         getPlayerUid: () => 'user-ready',
       });
@@ -445,7 +445,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
     test('routes to VIEW_PROFILE in ended phase', () => {
       const ctx = createBaseContext({
         roomStatus: GameStatus.Ended,
-        mySeatNumber: 0,
+        mySeat: 0,
         isSeatOccupied: () => true,
         getPlayerUid: () => 'user-ended',
       });
@@ -540,7 +540,7 @@ describe('RoomInteractionPolicy - Event Routing', () => {
       const ctx = createBaseContext({
         isHost: true,
         myRole: null,
-        mySeatNumber: null,
+        mySeat: null,
         actorRoleForUi: 'wolf',
         actorSeatForUi: 3,
         controlledSeat: 3,
@@ -688,7 +688,7 @@ describe('RoomInteractionPolicy - Actor Identity (Contract)', () => {
   describe('actorSeatForUi / actorRoleForUi are used for action decisions', () => {
     test('when not delegating: actorSeat equals mySeat', () => {
       const ctx = createBaseContext({
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: 'villager',
         actorSeatForUi: 0,
         actorRoleForUi: 'villager',
@@ -705,7 +705,7 @@ describe('RoomInteractionPolicy - Actor Identity (Contract)', () => {
       // Host (seat 0) controlling bot at seat 5 (wolf)
       const ctx = createBaseContext({
         isHost: true,
-        mySeatNumber: 0, // real seat
+        mySeat: 0, // real seat
         myRole: 'seer', // real role
         actorSeatForUi: 5, // controlled bot seat
         actorRoleForUi: 'wolf', // controlled bot role
@@ -723,7 +723,7 @@ describe('RoomInteractionPolicy - Actor Identity (Contract)', () => {
       // Tapping seat 0 is NOT self-tap for the bot (actorSeat=5)
       const ctx = createBaseContext({
         isHost: true,
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: 'seer',
         actorSeatForUi: 5,
         actorRoleForUi: 'wolf',
@@ -741,7 +741,7 @@ describe('RoomInteractionPolicy - Actor Identity (Contract)', () => {
       // Tapping seat 5 IS self-tap for the bot
       const ctx = createBaseContext({
         isHost: true,
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: 'seer',
         actorSeatForUi: 5,
         actorRoleForUi: 'wolf',
@@ -760,7 +760,7 @@ describe('RoomInteractionPolicy - Actor Identity (Contract)', () => {
     test('bottom action proceeds with actor identity context', () => {
       const ctx = createBaseContext({
         isHost: true,
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: 'seer',
         actorSeatForUi: 5,
         actorRoleForUi: 'wolf',

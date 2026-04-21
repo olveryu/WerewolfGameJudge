@@ -12,7 +12,7 @@ import { useDebugMode } from '@/hooks/useDebugMode';
 function createMockFacade(overrides: Record<string, unknown> = {}) {
   return {
     isHostPlayer: jest.fn(() => true),
-    getMySeatNumber: jest.fn(() => 1),
+    getMySeat: jest.fn(() => 1),
     leaveSeat: jest.fn().mockResolvedValue(undefined),
     fillWithBots: jest.fn().mockResolvedValue({ success: true }),
     markAllBotsViewed: jest.fn().mockResolvedValue({ success: true }),
@@ -23,8 +23,8 @@ function createMockFacade(overrides: Record<string, unknown> = {}) {
 
 function makeGameState(overrides: Record<string, unknown> = {}) {
   const players = new Map();
-  players.set(1, { role: 'wolf', seatNumber: 1 });
-  players.set(2, { role: 'seer', seatNumber: 2 });
+  players.set(1, { role: 'wolf', seat: 1 });
+  players.set(2, { role: 'seer', seat: 2 });
   return {
     players,
     debugMode: { botsEnabled: false },
@@ -35,7 +35,7 @@ function makeGameState(overrides: Record<string, unknown> = {}) {
 describe('useDebugMode', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('effectiveSeat defaults to mySeatNumber when no controlled seat', () => {
+  it('effectiveSeat defaults to mySeat when no controlled seat', () => {
     const facade = createMockFacade();
     const { result } = renderHook(() => useDebugMode(facade, 3, null));
 
@@ -94,7 +94,7 @@ describe('useDebugMode', () => {
   // --- fillWithBots ---
 
   it('fillWithBots leaves seat first if hosted is seated, then fills', async () => {
-    const facade = createMockFacade({ getMySeatNumber: jest.fn(() => 1) });
+    const facade = createMockFacade({ getMySeat: jest.fn(() => 1) });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
     let res: any;
@@ -108,7 +108,7 @@ describe('useDebugMode', () => {
   });
 
   it('fillWithBots skips leaveSeat when host is not seated', async () => {
-    const facade = createMockFacade({ getMySeatNumber: jest.fn(() => null) });
+    const facade = createMockFacade({ getMySeat: jest.fn(() => null) });
     const { result } = renderHook(() => useDebugMode(facade, null, null));
 
     await act(async () => {
@@ -134,7 +134,7 @@ describe('useDebugMode', () => {
 
   it('fillWithBots handles leaveSeat failure', async () => {
     const facade = createMockFacade({
-      getMySeatNumber: jest.fn(() => 1),
+      getMySeat: jest.fn(() => 1),
       leaveSeat: jest.fn().mockRejectedValue(new Error('leave failed')),
     });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));

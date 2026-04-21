@@ -120,7 +120,7 @@ describe('GameFacade', () => {
       const userId = i === 0 ? 'host-uid' : `player-${i}`;
       const player: Player = {
         userId,
-        seatNumber: i,
+        seat: i,
         role: null, // 必须包含 role: null
         hasViewedRole: false,
       };
@@ -321,7 +321,7 @@ describe('GameFacade', () => {
                 0: null,
                 1: {
                   userId: 'player-uid',
-                  seatNumber: 1,
+                  seat: 1,
                   displayName: 'Player One',
                   hasViewedRole: false,
                 },
@@ -339,7 +339,7 @@ describe('GameFacade', () => {
       await facade.takeSeat(1, 'Player One');
 
       // 座位操作不做乐观更新，靠 HTTP 响应的 applySnapshot 渲染
-      expect(facade.getMySeatNumber()).toBe(1);
+      expect(facade.getMySeat()).toBe(1);
       expect(facade.getStateRevision()).toBe(2);
     });
   });
@@ -359,7 +359,7 @@ describe('GameFacade', () => {
           0: null,
           1: {
             userId: 'player-uid',
-            seatNumber: 1,
+            seat: 1,
             displayName: 'Player One',
             hasViewedRole: false,
           },
@@ -374,7 +374,7 @@ describe('GameFacade', () => {
       testStore.applySnapshot(state as any, 5);
 
       expect(facade.getStateRevision()).toBe(5);
-      expect(facade.getMySeatNumber()).toBe(1);
+      expect(facade.getMySeat()).toBe(1);
     });
   });
 
@@ -1014,7 +1014,7 @@ describe('GameFacade', () => {
         players: {
           0: {
             userId: 'host-uid',
-            seatNumber: 0,
+            seat: 0,
             displayName: 'Host',
             avatarUrl: undefined,
             role: 'wolf',
@@ -1022,7 +1022,7 @@ describe('GameFacade', () => {
           },
           1: {
             userId: 'player-2',
-            seatNumber: 1,
+            seat: 1,
             displayName: 'P2',
             avatarUrl: undefined,
             role: 'villager',
@@ -1104,7 +1104,7 @@ describe('GameFacade', () => {
           players: {
             0: {
               userId: 'host-uid',
-              seatNumber: 0,
+              seat: 0,
               displayName: 'Host',
               avatarUrl: undefined,
               role: 'wolf',
@@ -1112,7 +1112,7 @@ describe('GameFacade', () => {
             },
             1: {
               userId: 'player-2',
-              seatNumber: 1,
+              seat: 1,
               displayName: 'P2',
               avatarUrl: undefined,
               role: 'villager',

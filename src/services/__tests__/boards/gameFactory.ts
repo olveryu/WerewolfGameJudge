@@ -93,7 +93,7 @@ export function createGame(
   for (let i = 0; i < template.numberOfPlayers; i++) {
     initialPlayers[i] = {
       userId: `player_${i}`,
-      seatNumber: i,
+      seat: i,
       role: null,
       hasViewedRole: false,
     };

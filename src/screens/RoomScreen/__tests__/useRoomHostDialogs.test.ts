@@ -30,7 +30,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
   for (let i = 1; i <= playerCount; i++) {
     players.set(i, {
       userId: `test-uid-${i}`,
-      seatNumber: i,
+      seat: i,
       displayName: `Player ${i}`,
       role: null,
       hasViewedRole: false,

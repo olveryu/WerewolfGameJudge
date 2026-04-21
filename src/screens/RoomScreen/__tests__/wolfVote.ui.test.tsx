@@ -51,7 +51,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
         i,
         {
           userId: `p${i}`,
-          seatNumber: i,
+          seat: i,
           displayName: `P${i + 1}`,
           avatarUrl: undefined,
           // Use a concrete wolf-faction RoleId so isWolfRole() is true.
@@ -90,7 +90,7 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     isAudioPlaying: false,
 
     // Identity
-    mySeatNumber: 0,
+    mySeat: 0,
     myRole: 'wolfQueen',
 
     // Debug mode - effectiveSeat/effectiveRole are used in RoomScreen
@@ -300,7 +300,7 @@ describe('RoomScreen wolf vote UI', () => {
       players.set(2, {
         ...(target ?? {
           userId: 'p2',
-          seatNumber: 2,
+          seat: 2,
           displayName: 'P3',
           avatarUrl: undefined,
           role: 'villager',

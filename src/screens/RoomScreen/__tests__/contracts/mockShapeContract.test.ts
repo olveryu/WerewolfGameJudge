@@ -95,7 +95,7 @@ describe('createGameRoomMock shape contract', () => {
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: 'wolf',
-      mySeatNumber: 0,
+      mySeat: 0,
     });
     const mockKeys = new Set(Object.keys(mock));
 
@@ -132,7 +132,7 @@ describe('createGameRoomMock shape contract', () => {
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: 'wolf',
-      mySeatNumber: 0,
+      mySeat: 0,
     });
     const mockKeys = new Set(Object.keys(mock));
 
@@ -151,7 +151,7 @@ describe('createGameRoomMock shape contract', () => {
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: 'wolf',
-      mySeatNumber: 0,
+      mySeat: 0,
     });
     const mockKeys = Object.keys(mock);
 

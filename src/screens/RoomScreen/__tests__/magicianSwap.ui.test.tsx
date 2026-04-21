@@ -41,7 +41,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
             i,
             {
               userId: `p${i}`,
-              seatNumber: i,
+              seat: i,
               displayName: `P${i + 1}`,
               avatarUrl: undefined,
               role: i === 0 ? 'magician' : 'villager',
@@ -76,7 +76,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
 
         isAudioPlaying: false,
 
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: 'magician',
         myUserId: 'p0',
 

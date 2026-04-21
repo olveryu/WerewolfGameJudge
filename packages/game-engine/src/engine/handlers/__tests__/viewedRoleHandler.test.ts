@@ -22,8 +22,8 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Assigned,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { userId: 'p0', seatNumber: 0, role: 'seer', hasViewedRole: false },
-      1: { userId: 'p1', seatNumber: 1, role: 'wolf', hasViewedRole: false },
+      0: { userId: 'p0', seat: 0, role: 'seer', hasViewedRole: false },
+      1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: false },
     },
     currentStepIndex: -1,
     isAudioPlaying: false,

@@ -61,7 +61,7 @@ interface UseGameRoomResult {
   // Player info
   isHost: boolean;
   myUserId: string | null;
-  mySeatNumber: number | null;
+  mySeat: number | null;
   myRole: RoleId | null;
 
   // Debug mode (from useDebugMode)
@@ -98,9 +98,9 @@ interface UseGameRoomResult {
   initializeRoom: (roomCode: string, template: GameTemplate) => Promise<boolean>;
   joinRoom: (roomCode: string) => Promise<boolean>;
   leaveRoom: () => Promise<void>;
-  takeSeat: (seatNumber: number) => Promise<boolean>;
+  takeSeat: (seat: number) => Promise<boolean>;
   leaveSeat: () => Promise<void>;
-  takeSeatWithAck: (seatNumber: number) => Promise<{ success: boolean; reason?: string }>;
+  takeSeatWithAck: (seat: number) => Promise<{ success: boolean; reason?: string }>;
   leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
   kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
   requestSnapshot: () => Promise<boolean>;
@@ -123,7 +123,7 @@ interface UseGameRoomResult {
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
   getCurseInfo: () => string | null;
-  hasWolfVoted: (seatNumber: number) => boolean;
+  hasWolfVoted: (seat: number) => boolean;
   /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
   postProgression: () => Promise<boolean>;
 
@@ -206,10 +206,10 @@ export const useGameRoom = (): UseGameRoomResult => {
   const gameState = useMemo(() => (snapshot ? toLocalState(snapshot) : null), [snapshot]);
   const isHost = snapshot !== null && facade.isHostPlayer();
   const myUserId = snapshot !== null ? facade.getMyUserId() : null;
-  const mySeatNumber = snapshot !== null ? facade.getMySeatNumber() : null;
+  const mySeat = snapshot !== null ? facade.getMySeat() : null;
 
   // Toast notifications for passive actions (kick, clearAllSeats, assignRoles, etc.)
-  useLastActionToast({ facade, isHost, mySeatNumber, isFocused });
+  useLastActionToast({ facade, isHost, mySeat, isFocused });
 
   // Toast notifications for XP gain / level-up after valid game settlement
   useSettleToast({ facade, isFocused });
@@ -248,7 +248,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const bgm = useBgmControl(isHost, gameState?.status ?? null, gameState?.isAudioPlaying ?? false);
 
   // Debug mode: bot control
-  const debug = useDebugMode(facade, mySeatNumber, gameState);
+  const debug = useDebugMode(facade, mySeat, gameState);
 
   // Night-phase derived values (pure computation)
   const nightDerived = useNightDerived(gameState);
@@ -266,7 +266,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     facade,
     bgm,
     debug,
-    mySeatNumber,
+    mySeat,
     gameState,
   });
 
@@ -292,7 +292,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // =========================================================================
 
   const myRole: RoleId | null =
-    mySeatNumber !== null && gameState ? (gameState.players.get(mySeatNumber)?.role ?? null) : null;
+    mySeat !== null && gameState ? (gameState.players.get(mySeat)?.role ?? null) : null;
 
   const roomStatus: GameStatus = gameState?.status ?? GameStatus.Unseated;
 
@@ -305,7 +305,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     gameState,
     isHost,
     myUserId,
-    mySeatNumber,
+    mySeat,
     myRole,
     // Debug mode
     controlledSeat: debug.controlledSeat,

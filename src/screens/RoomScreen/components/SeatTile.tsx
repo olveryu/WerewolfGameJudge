@@ -67,7 +67,7 @@ export interface SeatTileStyles {
   avatarOverlay: ViewStyle;
   wolfOverlay: ViewStyle;
   selectedOverlay: ViewStyle;
-  mySeatNumberBadge: ViewStyle;
+  mySeatBadge: ViewStyle;
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
   wolfVoteBadge: TextStyle;
@@ -410,7 +410,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}
       <View
-        style={[styles.seatNumberBadge, isMySpot && hasPlayer && styles.mySeatNumberBadge]}
+        style={[styles.seatNumberBadge, isMySpot && hasPlayer && styles.mySeatBadge]}
         testID={isMySpot && hasPlayer ? 'my-seat-badge' : undefined}
       >
         <Text style={styles.seatNumberText}>{seat + 1}</Text>
@@ -518,7 +518,7 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       backgroundColor: withAlpha(colors.primaryDark, 0.35),
       borderRadius: borderRadius.large,
     },
-    mySeatNumberBadge: {
+    mySeatBadge: {
       backgroundColor: colors.success,
       boxShadow: `0px 0px 6px ${withAlpha(colors.success, 0.4)}`,
     },

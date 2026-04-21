@@ -337,7 +337,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 3 });
       const mockStore = createMockStore({
         roomCode: 'ABCD',
-        players: { 1: { userId: 'test-uid', seatNumber: 1 } },
+        players: { 1: { userId: 'test-uid', seat: 1 } },
       });
       const ctx = createMockCtx({ store: mockStore as any });
 

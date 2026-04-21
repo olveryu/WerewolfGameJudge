@@ -60,21 +60,21 @@ const DEFAULT_STATE: Partial<GameState> = {
   players: {
     0: {
       userId: 'host-1',
-      seatNumber: 0,
+      seat: 0,
       role: 'wolf',
       hasViewedRole: false,
       displayName: 'P0',
     } as any,
     1: {
       userId: 'p2',
-      seatNumber: 1,
+      seat: 1,
       role: 'seer',
       hasViewedRole: false,
       displayName: 'P1',
     } as any,
     2: {
       userId: 'p3',
-      seatNumber: 2,
+      seat: 2,
       role: 'villager',
       hasViewedRole: false,
       displayName: 'P2',
@@ -100,7 +100,7 @@ function createMockCtx(storeState?: Partial<GameState> | null) {
   return {
     store: createMockStore(storeState),
     myUserId: 'host-1',
-    getMySeatNumber: () => 0,
+    getMySeat: () => 0,
     audioService: { preloadForRoles: jest.fn().mockResolvedValue(undefined) } as any,
   };
 }

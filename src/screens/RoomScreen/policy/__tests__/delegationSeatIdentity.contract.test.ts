@@ -2,14 +2,14 @@
  * delegationSeatIdentity.contract.test.ts
  *
  * Contract test to prevent regression: in delegation mode (bot takeover),
- * action submission must use effectiveSeat, NOT mySeatNumber.
+ * action submission must use effectiveSeat, NOT mySeat.
  *
- * Root cause: When Host takes over a bot, mySeatNumber may be null (Host has no seat),
+ * Root cause: When Host takes over a bot, mySeat may be null (Host has no seat),
  * but effectiveSeat = controlledSeat (the bot's seat).
  *
  * This test ensures:
  * 1. handleActionIntent compound/skip/confirmTrigger paths use effectiveSeat
- * 2. No action submission path uses mySeatNumber directly
+ * 2. No action submission path uses mySeat directly
  */
 
 import * as fs from 'node:fs';
@@ -38,11 +38,11 @@ describe('Delegation Seat Identity Contract', () => {
     /**
      * P0 Contract: compound action (witch save/poison) must use effectiveSeat
      *
-     * Bug prevented: When delegating (controlledSeat=3, mySeatNumber=null),
-     * compound action was checking mySeatNumber === null and returning early,
+     * Bug prevented: When delegating (controlledSeat=3, mySeat=null),
+     * compound action was checking mySeat === null and returning early,
      * causing witch actions to fail silently.
      */
-    it('compound action (witch) should use effectiveSeat, not mySeatNumber', () => {
+    it('compound action (witch) should use effectiveSeat, not mySeat', () => {
       const content = readFileContent(ACTION_SUBMIT_EXECUTOR_PATH);
 
       // Find the compound action block (now in actionSubmitExecutor.ts)
@@ -57,16 +57,16 @@ describe('Delegation Seat Identity Contract', () => {
         // Get next 500 chars to capture the block
         const block = content.substring(startIndex, startIndex + 500);
 
-        // Should check effectiveSeat === null, NOT mySeatNumber === null
+        // Should check effectiveSeat === null, NOT mySeat === null
         if (block.includes('null')) {
           expect(block).toMatch(/effectiveSeat\s*===\s*null/);
-          expect(block).not.toMatch(/mySeatNumber\s*===\s*null/);
+          expect(block).not.toMatch(/mySeat\s*===\s*null/);
         }
 
-        // Should assign targetToSubmit = effectiveSeat, NOT mySeatNumber
+        // Should assign targetToSubmit = effectiveSeat, NOT mySeat
         if (block.includes('targetToSubmit')) {
           expect(block).toMatch(/targetToSubmit\s*=\s*effectiveSeat/);
-          expect(block).not.toMatch(/targetToSubmit\s*=\s*mySeatNumber/);
+          expect(block).not.toMatch(/targetToSubmit\s*=\s*mySeat/);
         }
       }
     });
@@ -74,7 +74,7 @@ describe('Delegation Seat Identity Contract', () => {
     /**
      * P0 Contract: skip action (compound) must use effectiveSeat
      */
-    it('skip action (compound) should use effectiveSeat, not mySeatNumber', () => {
+    it('skip action (compound) should use effectiveSeat, not mySeat', () => {
       const content = readFileContent(SKIP_EXECUTOR_PATH);
 
       // Find the skip compound block (now in skipExecutor.ts)
@@ -89,39 +89,39 @@ describe('Delegation Seat Identity Contract', () => {
         // Get next 800 chars to capture the compound skip block including skipSeat assignment
         const block = content.substring(startIndex, startIndex + 800);
 
-        // Should check effectiveSeat === null, NOT mySeatNumber === null
+        // Should check effectiveSeat === null, NOT mySeat === null
         expect(block).toMatch(/effectiveSeat\s*===\s*null/);
-        expect(block).not.toMatch(/mySeatNumber\s*===\s*null/);
+        expect(block).not.toMatch(/mySeat\s*===\s*null/);
 
-        // Should assign skipSeat = effectiveSeat, NOT mySeatNumber
+        // Should assign skipSeat = effectiveSeat, NOT mySeat
         expect(block).toMatch(/skipSeat\s*=\s*effectiveSeat/);
-        expect(block).not.toMatch(/skipSeat\s*=\s*mySeatNumber/);
+        expect(block).not.toMatch(/skipSeat\s*=\s*mySeat/);
       }
     });
 
     /**
      * P0 Contract: confirmTrigger (hunter/darkWolfKing) must use effectiveSeat
      */
-    it('confirmTrigger should use effectiveSeat, not mySeatNumber', () => {
+    it('confirmTrigger should use effectiveSeat, not mySeat', () => {
       // confirmTrigger logic now lives in promptExecutor.ts
       const content = readFileContent(PROMPT_EXECUTOR_PATH);
 
-      // Should check effectiveSeat === null, NOT mySeatNumber === null
+      // Should check effectiveSeat === null, NOT mySeat === null
       expect(content).toMatch(/effectiveSeat\s*===\s*null/);
-      expect(content).not.toMatch(/mySeatNumber\s*===\s*null/);
+      expect(content).not.toMatch(/mySeat\s*===\s*null/);
 
-      // Should use effectiveSeat in proceedWithAction, NOT mySeatNumber
+      // Should use effectiveSeat in proceedWithAction, NOT mySeat
       expect(content).toMatch(/proceedWithAction\(effectiveSeat/);
-      expect(content).not.toMatch(/proceedWithAction\(mySeatNumber/);
+      expect(content).not.toMatch(/proceedWithAction\(mySeat/);
     });
   });
 
   describe('GameContext should use actor identity, not real identity', () => {
     /**
-     * GameContext passed to useRoomActions must use actorSeatForUi (not mySeatNumber)
+     * GameContext passed to useRoomActions must use actorSeatForUi (not mySeat)
      * for all action-related seat decisions.
      */
-    it('GameContext.actorSeatNumber should be actorSeatForUi', () => {
+    it('GameContext.actorSeat should be actorSeatForUi', () => {
       const content = readFileContent('src/screens/RoomScreen/hooks/useRoomScreenState.ts');
 
       // Find gameContext definition
@@ -135,11 +135,11 @@ describe('Delegation Seat Identity Contract', () => {
         // Get next 500 chars
         const block = content.substring(startIndex, startIndex + 500);
 
-        // actorSeatNumber should be assigned actorSeatForUi
-        expect(block).toMatch(/actorSeatNumber:\s*actorSeatForUi/);
+        // actorSeat should be assigned actorSeatForUi
+        expect(block).toMatch(/actorSeat:\s*actorSeatForUi/);
 
-        // actorSeatNumber should NOT be assigned mySeatNumber
-        expect(block).not.toMatch(/actorSeatNumber:\s*mySeatNumber/);
+        // actorSeat should NOT be assigned mySeat
+        expect(block).not.toMatch(/actorSeat:\s*mySeat/);
       }
     });
 
@@ -166,7 +166,7 @@ describe('Delegation Seat Identity Contract', () => {
 
   describe('useGameRoom submit functions should use effectiveSeat', () => {
     /**
-     * submitAction must use effectiveSeat, not mySeatNumber
+     * submitAction must use effectiveSeat, not mySeat
      */
     it('submitAction should use effectiveSeat', () => {
       const content = readFileContent('src/hooks/useGameActions.ts');
@@ -183,7 +183,7 @@ describe('Delegation Seat Identity Contract', () => {
 
         // Should use effectiveSeat (may be prefixed with debug. after sub-hook extraction)
         expect(block).toMatch(/seat\s*=\s*(debug\.)?effectiveSeat/);
-        expect(block).not.toMatch(/seat\s*=\s*mySeatNumber/);
+        expect(block).not.toMatch(/seat\s*=\s*mySeat/);
       }
     });
 
@@ -204,7 +204,7 @@ describe('Delegation Seat Identity Contract', () => {
         const startIndex = match.index;
         const block = content.substring(startIndex, startIndex + 300);
 
-        // Must take seat as a parameter (not derive it internally from mySeatNumber)
+        // Must take seat as a parameter (not derive it internally from mySeat)
         expect(block).toMatch(/async\s*\(\s*seat:\s*number\s*\)/);
         // Must delegate seat to facade
         expect(block).toMatch(/facade\.sendWolfRobotHunterStatusViewed\(seat\)/);
@@ -215,10 +215,10 @@ describe('Delegation Seat Identity Contract', () => {
   describe('HUNTER_STATUS_VIEWED case must use effectiveSeat', () => {
     /**
      * P0 Contract: RoomScreen HUNTER_STATUS_VIEWED case must pass effectiveSeat
-     * to sendWolfRobotHunterStatusViewed, NOT mySeatNumber.
+     * to sendWolfRobotHunterStatusViewed, NOT mySeat.
      *
-     * Bug prevented: When Host takes over wolfRobot (controlledSeat=X, mySeatNumber=null),
-     * using mySeatNumber would send null and fail silently.
+     * Bug prevented: When Host takes over wolfRobot (controlledSeat=X, mySeat=null),
+     * using mySeat would send null and fail silently.
      */
     it('HUNTER_STATUS_VIEWED should pass effectiveSeat to sendWolfRobotHunterStatusViewed', () => {
       const content = readFileContent(DISPATCHER_PATH);
@@ -235,8 +235,8 @@ describe('Delegation Seat Identity Contract', () => {
 
         // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
         expect(block).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
-        // Must NOT call sendWolfRobotHunterStatusViewed(mySeatNumber)
-        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeatNumber\)/);
+        // Must NOT call sendWolfRobotHunterStatusViewed(mySeat)
+        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeat\)/);
       }
     });
   });
@@ -257,15 +257,15 @@ describe('Delegation Seat Identity Contract', () => {
       expect(content).toMatch(/intent\.wolfSeat\s*\?\?\s*effectiveSeat/);
       expect(content).not.toMatch(/intent\.wolfSeat\s*\?\?\s*findVotingWolfSeat\(\)/);
 
-      // Should check seat === null for gate (seat = effectiveSeat fallback), NOT mySeatNumber
+      // Should check seat === null for gate (seat = effectiveSeat fallback), NOT mySeat
       expect(content).toMatch(/seat\s*===\s*null/);
-      expect(content).not.toMatch(/mySeatNumber\s*===\s*null/);
+      expect(content).not.toMatch(/mySeat\s*===\s*null/);
     });
 
     /**
-     * wolfVote log should not reference myRole/mySeatNumber
+     * wolfVote log should not reference myRole/mySeat
      */
-    it('wolfVote should log effectiveSeat/effectiveRole, not myRole/mySeatNumber', () => {
+    it('wolfVote should log effectiveSeat/effectiveRole, not myRole/mySeat', () => {
       // wolfVote logic now lives in wolfVoteExecutor.ts
       const content = readFileContent(WOLF_VOTE_EXECUTOR_PATH);
 
@@ -273,12 +273,12 @@ describe('Delegation Seat Identity Contract', () => {
       expect(content).toMatch(/effectiveSeat/);
       expect(content).toMatch(/effectiveRole/);
 
-      // Log should NOT use myRole/mySeatNumber in warn message
+      // Log should NOT use myRole/mySeat in warn message
       const warnRegex = /roomScreenLog\.warn\([^)]+\)/;
       const warnMatch = warnRegex.exec(content);
       const warnBlock = warnMatch?.[0] ?? '';
       expect(warnBlock).not.toMatch(/myRole/);
-      expect(warnBlock).not.toMatch(/mySeatNumber/);
+      expect(warnBlock).not.toMatch(/mySeat/);
     });
   });
 
@@ -286,31 +286,31 @@ describe('Delegation Seat Identity Contract', () => {
     /**
      * P0 Contract: View Role button visibility should use effectiveSeat
      *
-     * Bug prevented: When Host has no seat (mySeatNumber=null) but takes over a bot,
-     * the View Role button was hidden because it checked mySeatNumber !== null.
+     * Bug prevented: When Host has no seat (mySeat=null) but takes over a bot,
+     * the View Role button was hidden because it checked mySeat !== null.
      *
      * After the declarative layout refactor, view role visibility is driven by
      * LayoutContext.effectiveSeat in bottomLayoutConfig.ts + resolveBottomLayout.ts.
      * RoomScreen.tsx constructs LayoutContext from effectiveSeat.
      */
-    it('View Role button should check effectiveSeat, not mySeatNumber', () => {
-      // 1. LayoutContext must declare effectiveSeat, not mySeatNumber
+    it('View Role button should check effectiveSeat, not mySeat', () => {
+      // 1. LayoutContext must declare effectiveSeat, not mySeat
       const configContent = readFileContent('src/screens/RoomScreen/hooks/bottomLayoutConfig.ts');
       expect(configContent).toMatch(/effectiveSeat:\s*number\s*\|\s*null/);
-      expect(configContent).not.toMatch(/mySeatNumber/);
+      expect(configContent).not.toMatch(/mySeat/);
 
       // 2. resolveBottomLayout derives userRole from effectiveSeat
       const resolverContent = readFileContent(
         'src/screens/RoomScreen/hooks/resolveBottomLayout.ts',
       );
       expect(resolverContent).toMatch(/ctx\.effectiveSeat\s*!==\s*null/);
-      expect(resolverContent).not.toMatch(/mySeatNumber/);
+      expect(resolverContent).not.toMatch(/mySeat/);
 
       // 3. RoomScreen constructs LayoutContext with effectiveSeat
       const screenContent = readFileContent('src/screens/RoomScreen/RoomScreen.tsx');
       expect(screenContent).toMatch(/effectiveSeat/);
-      // RoomScreen should not pass mySeatNumber into the layout context
-      expect(screenContent).not.toMatch(/mySeatNumber.*layoutCtx|layoutCtx.*mySeatNumber/);
+      // RoomScreen should not pass mySeat into the layout context
+      expect(screenContent).not.toMatch(/mySeat.*layoutCtx|layoutCtx.*mySeat/);
     });
 
     /**
@@ -357,10 +357,10 @@ describe('Delegation Seat Identity Contract', () => {
         // Get next 600 chars
         const block = content.substring(startIndex, startIndex + 600);
 
-        // Should get player from effectiveSeat, NOT mySeatNumber
+        // Should get player from effectiveSeat, NOT mySeat
         expect(block).toMatch(/effectiveSeat\s*===\s*null/);
         expect(block).toMatch(/gameState\?\.players\.get\(effectiveSeat\)/);
-        expect(block).not.toMatch(/gameState\?\.players\.get\(mySeatNumber\)/);
+        expect(block).not.toMatch(/gameState\?\.players\.get\(mySeat\)/);
       }
     });
   });
@@ -426,17 +426,17 @@ describe('Delegation Seat Identity Contract', () => {
       const keyArrayBlock = keyRegion.substring(0, joinIndex);
 
       // At least one of these seat-level fields must be present
-      const seatFields = ['actorSeatForUi', 'effectiveSeat', 'mySeatNumber', 'controlledSeat'];
+      const seatFields = ['actorSeatForUi', 'effectiveSeat', 'mySeat', 'controlledSeat'];
       const presentSeatFields = seatFields.filter((f) => keyArrayBlock.includes(f));
 
       expect(presentSeatFields.length).toBeGreaterThan(0);
 
-      // If mySeatNumber is used as the sole seat field, that's a bug
-      // (mySeatNumber is null for Host delegation → no differentiation)
-      if (presentSeatFields.length === 1 && presentSeatFields[0] === 'mySeatNumber') {
+      // If mySeat is used as the sole seat field, that's a bug
+      // (mySeat is null for Host delegation → no differentiation)
+      if (presentSeatFields.length === 1 && presentSeatFields[0] === 'mySeat') {
         throw new Error(
-          'Idempotency key uses mySeatNumber as sole seat field. ' +
-            'This will cause cross-seat deduplication when Host delegates (mySeatNumber=null). ' +
+          'Idempotency key uses mySeat as sole seat field. ' +
+            'This will cause cross-seat deduplication when Host delegates (mySeat=null). ' +
             'Use actorSeatForUi or effectiveSeat instead.',
         );
       }
@@ -517,7 +517,7 @@ describe('Delegation Seat Identity Contract', () => {
     /**
      * P0 Contract: Orchestrator's wolfRobotViewHunterStatus case must:
      * 1. Gate on pendingHunterStatusViewed (idempotent, prevent duplicate submission)
-     * 2. Call sendWolfRobotHunterStatusViewed(effectiveSeat) — not mySeatNumber
+     * 2. Call sendWolfRobotHunterStatusViewed(effectiveSeat) — not mySeat
      */
     it('orchestrator wolfRobotViewHunterStatus uses pendingHunterStatusViewed gate + effectiveSeat', () => {
       // wolfRobotViewHunterStatus logic now lives in wolfRobotExecutor.ts
@@ -529,8 +529,8 @@ describe('Delegation Seat Identity Contract', () => {
       // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
       expect(content).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
 
-      // Must NOT call sendWolfRobotHunterStatusViewed(mySeatNumber)
-      expect(content).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeatNumber\)/);
+      // Must NOT call sendWolfRobotHunterStatusViewed(mySeat)
+      expect(content).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeat\)/);
 
       // Must set pendingHunterStatusViewed(true) before the async call
       expect(content).toMatch(/setPendingHunterStatusViewed\(true\)/);
@@ -542,7 +542,7 @@ describe('Delegation Seat Identity Contract', () => {
     /**
      * P0 Contract: Dispatcher's HUNTER_STATUS_VIEWED case must:
      * 1. Gate on pendingHunterStatusViewed (prevent duplicate submission)
-     * 2. Call sendWolfRobotHunterStatusViewed(effectiveSeat) — not mySeatNumber
+     * 2. Call sendWolfRobotHunterStatusViewed(effectiveSeat) — not mySeat
      */
     it('dispatcher HUNTER_STATUS_VIEWED gates on pendingHunterStatusViewed + uses effectiveSeat', () => {
       const content = readFileContent(DISPATCHER_PATH);
@@ -563,8 +563,8 @@ describe('Delegation Seat Identity Contract', () => {
         // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
         expect(block).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
 
-        // Must NOT call sendWolfRobotHunterStatusViewed(mySeatNumber)
-        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeatNumber\)/);
+        // Must NOT call sendWolfRobotHunterStatusViewed(mySeat)
+        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeat\)/);
       }
     });
 

@@ -39,7 +39,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     currentActionRole: 'seer',
     currentSchema: getSchema('seerCheck'),
     imActioner: true,
-    actorSeatNumber: 0,
+    actorSeat: 0,
     actorRole: 'seer',
     isAudioPlaying: false,
     firstSwapSeat: null,

@@ -30,7 +30,7 @@ function createStateWithPlayers(
     if (p) {
       playersMap[i] = {
         userId: p.userId,
-        seatNumber: i,
+        seat: i,
         role: p.role ?? null,
         hasViewedRole: false,
       };

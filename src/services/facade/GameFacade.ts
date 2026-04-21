@@ -171,7 +171,7 @@ export class GameFacade implements IGameFacade {
     this.#myUserId = newUid;
   }
 
-  getMySeatNumber(): number | null {
+  getMySeat(): number | null {
     const state = this.#store.getState();
     if (!state || !this.#myUserId) return null;
     for (const [seatStr, player] of Object.entries(state.players)) {
@@ -372,7 +372,7 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   async takeSeat(
-    seatNumber: number,
+    seat: number,
     displayName?: string,
     avatarUrl?: string,
     avatarFrame?: string,
@@ -382,7 +382,7 @@ export class GameFacade implements IGameFacade {
   ): Promise<boolean> {
     return seatActions.takeSeat(
       this.#getSeatActionsContext(),
-      seatNumber,
+      seat,
       displayName,
       avatarUrl,
       avatarFrame,
@@ -393,7 +393,7 @@ export class GameFacade implements IGameFacade {
   }
 
   async takeSeatWithAck(
-    seatNumber: number,
+    seat: number,
     displayName?: string,
     avatarUrl?: string,
     avatarFrame?: string,
@@ -403,7 +403,7 @@ export class GameFacade implements IGameFacade {
   ): Promise<{ success: boolean; reason?: string }> {
     return seatActions.takeSeatWithAck(
       this.#getSeatActionsContext(),
-      seatNumber,
+      seat,
       displayName,
       avatarUrl,
       avatarFrame,
@@ -659,7 +659,7 @@ export class GameFacade implements IGameFacade {
     return {
       store: this.#store,
       myUserId: this.#myUserId,
-      getMySeatNumber: () => this.getMySeatNumber(),
+      getMySeat: () => this.getMySeat(),
       audioService: this.#audioService,
     };
   }

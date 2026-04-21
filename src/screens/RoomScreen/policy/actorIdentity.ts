@@ -7,7 +7,7 @@
  *
  * Rules:
  * - When NOT delegating (controlledSeat === null):
- *   actorSeatForUi = mySeatNumber, actorRoleForUi = myRole
+ *   actorSeatForUi = mySeat, actorRoleForUi = myRole
  * - When delegating (controlledSeat !== null):
  *   actorSeatForUi = effectiveSeat, actorRoleForUi = effectiveRole
  *   (with consistency check: effectiveSeat must equal controlledSeat)
@@ -24,10 +24,10 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
  */
 interface ActorIdentityInput {
   /** My real seat number (null if not seated) */
-  mySeatNumber: number | null;
+  mySeat: number | null;
   /** My real role (null if no role assigned) */
   myRole: RoleId | null;
-  /** Effective seat (= controlledSeat ?? mySeatNumber, computed by useGameRoom) */
+  /** Effective seat (= controlledSeat ?? mySeat, computed by useGameRoom) */
   effectiveSeat: number | null;
   /** Effective role (= role of effectiveSeat, computed by useGameRoom) */
   effectiveRole: RoleId | null;
@@ -67,7 +67,7 @@ interface ActorIdentity {
  * - Which actor to submit actions as
  *
  * Rules:
- * - NOT delegating: use my real identity (mySeatNumber, myRole)
+ * - NOT delegating: use my real identity (mySeat, myRole)
  * - Delegating: use bot identity (effectiveSeat, effectiveRole)
  *   with consistency check (effectiveSeat must equal controlledSeat)
  *
@@ -75,14 +75,14 @@ interface ActorIdentity {
  * @returns Actor identity for UI, with null values if invalid/inconsistent
  */
 export function getActorIdentity(input: ActorIdentityInput): ActorIdentity {
-  const { mySeatNumber, myRole, effectiveSeat, effectiveRole, controlledSeat } = input;
+  const { mySeat, myRole, effectiveSeat, effectiveRole, controlledSeat } = input;
 
   const isDelegating = controlledSeat !== null;
 
   if (!isDelegating) {
     // Not delegating: use my real identity
     return {
-      actorSeatForUi: mySeatNumber,
+      actorSeatForUi: mySeat,
       actorRoleForUi: myRole,
       isDelegating: false,
     };

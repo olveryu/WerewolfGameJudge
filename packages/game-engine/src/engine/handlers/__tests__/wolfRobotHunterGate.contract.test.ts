@@ -32,9 +32,9 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['wolfRobot', 'hunter', 'villager'],
     players: {
-      0: { userId: 'U1', seatNumber: 0, role: 'wolfRobot', hasViewedRole: true },
-      1: { userId: 'U2', seatNumber: 1, role: 'hunter', hasViewedRole: true },
-      2: { userId: 'U3', seatNumber: 2, role: 'villager', hasViewedRole: true },
+      0: { userId: 'U1', seat: 0, role: 'wolfRobot', hasViewedRole: true },
+      1: { userId: 'U2', seat: 1, role: 'hunter', hasViewedRole: true },
+      2: { userId: 'U3', seat: 2, role: 'villager', hasViewedRole: true },
     },
     currentStepIndex: 0,
     currentStepId: 'wolfRobotLearn',

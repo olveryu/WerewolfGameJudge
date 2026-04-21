@@ -99,7 +99,7 @@ describe('Cancel Paths (cross-board)', () => {
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
-        mySeatNumber: 4,
+        mySeat: 4,
         roleAssignments: new Map([
           [4, 'wolf'],
           [5, 'wolf'],
@@ -134,7 +134,7 @@ describe('Cancel Paths (cross-board)', () => {
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'wolf',
-        mySeatNumber: 4,
+        mySeat: 4,
         roleAssignments: new Map([
           [4, 'wolf'],
           [5, 'wolf'],
@@ -171,7 +171,7 @@ describe('Cancel Paths (cross-board)', () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 8,
+        mySeat: 8,
         hookOverrides: { submitAction },
       });
 
@@ -200,7 +200,7 @@ describe('Cancel Paths (cross-board)', () => {
         schemaId: 'seerCheck',
         currentActionRole: 'seer',
         myRole: 'seer',
-        mySeatNumber: 8,
+        mySeat: 8,
         hookOverrides: { submitAction },
       });
 
@@ -231,7 +231,7 @@ describe('Cancel Paths (cross-board)', () => {
         schemaId: 'witchAction',
         currentActionRole: 'witch',
         myRole: 'witch',
-        mySeatNumber: 9,
+        mySeat: 9,
         witchContext: { killedSeat: -1, canSave: false, canPoison: true },
         gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
         hookOverrides: { submitAction },
@@ -267,7 +267,7 @@ describe('Cancel Paths (cross-board)', () => {
         schemaId: 'magicianSwap',
         currentActionRole: 'magician',
         myRole: 'magician',
-        mySeatNumber: 3,
+        mySeat: 3,
         hookOverrides: { submitAction },
       });
 

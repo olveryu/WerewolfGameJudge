@@ -46,7 +46,7 @@ describe('generateQuickQuestions', () => {
     const state = makeMinimalState({
       templateRoles: ['wolf', 'seer'] as any[],
       players: {
-        1: { role: 'wolf', seatNumber: 1 },
+        1: { role: 'wolf', seat: 1 },
       } as any,
     });
 
@@ -66,7 +66,7 @@ describe('generateQuickQuestions', () => {
     const state = makeMinimalState({
       templateRoles: ['wolf', 'seer'] as any[],
       players: {
-        2: { role: 'seer', seatNumber: 2 },
+        2: { role: 'seer', seat: 2 },
       } as any,
     });
 
@@ -79,7 +79,7 @@ describe('generateQuickQuestions', () => {
     const state = makeMinimalState({
       templateRoles: [],
       players: {
-        0: { role: 'witch', seatNumber: 0 },
+        0: { role: 'witch', seat: 0 },
       } as any,
     });
 
@@ -100,7 +100,7 @@ describe('generateQuickQuestions', () => {
     const state = makeMinimalState({
       templateRoles: ['unknownRole'] as any[],
       players: {
-        1: { role: 'unknownRole' as any, seatNumber: 1 },
+        1: { role: 'unknownRole' as any, seat: 1 },
       } as any,
     });
 

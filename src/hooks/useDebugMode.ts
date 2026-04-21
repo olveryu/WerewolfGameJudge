@@ -22,7 +22,7 @@ export interface DebugModeState {
   /** Which bot seat the Host is currently controlling (null = normal mode) */
   controlledSeat: number | null;
   setControlledSeat: (seat: number | null) => void;
-  /** Effective seat = controlledSeat ?? mySeatNumber */
+  /** Effective seat = controlledSeat ?? mySeat */
   effectiveSeat: number | null;
   /** Role of the effective seat */
   effectiveRole: RoleId | null;
@@ -42,13 +42,13 @@ export interface DebugModeState {
  */
 export function useDebugMode(
   facade: IGameFacade,
-  mySeatNumber: number | null,
+  mySeat: number | null,
   gameState: LocalGameState | null,
 ): DebugModeState {
   const [controlledSeat, setControlledSeat] = useState<number | null>(null);
 
-  // effectiveSeat = controlledSeat ?? mySeatNumber
-  const effectiveSeat = controlledSeat ?? mySeatNumber;
+  // effectiveSeat = controlledSeat ?? mySeat
+  const effectiveSeat = controlledSeat ?? mySeat;
 
   // effectiveRole = role of effectiveSeat
   const effectiveRole =
@@ -65,7 +65,7 @@ export function useDebugMode(
       return { success: false, reason: 'host_only' };
     }
     // If Host is seated, leave seat first so the seat can be filled with a bot
-    if (facade.getMySeatNumber() !== null) {
+    if (facade.getMySeat() !== null) {
       try {
         await facade.leaveSeat();
       } catch (err) {

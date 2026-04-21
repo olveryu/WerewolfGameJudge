@@ -96,14 +96,14 @@ interface GameActionsState {
   // Game state queries
   getLastNightInfo: () => string;
   getCurseInfo: () => string | null;
-  hasWolfVoted: (seatNumber: number) => boolean;
+  hasWolfVoted: (seat: number) => boolean;
 }
 
 interface GameActionsDeps {
   facade: IGameFacade;
   bgm: BgmControlState;
   debug: DebugModeState;
-  mySeatNumber: number | null;
+  mySeat: number | null;
   gameState: LocalGameState | null;
 }
 
@@ -112,7 +112,7 @@ interface GameActionsDeps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useGameActions(deps: GameActionsDeps): GameActionsState {
-  const { facade, bgm, debug, mySeatNumber, gameState } = deps;
+  const { facade, bgm, debug, mySeat, gameState } = deps;
 
   // =========================================================================
   // Game control (host-only)
@@ -201,12 +201,12 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   // Debug mode: when delegating (controlledSeat !== null), mark the bot's seat as viewed
   // Normal mode: mark my own seat as viewed
   const viewedRole = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
-    const seat = debug.controlledSeat ?? mySeatNumber;
+    const seat = debug.controlledSeat ?? mySeat;
     if (seat === null) return { success: false, reason: 'NO_SEAT' };
     const result = await facade.markViewedRole(seat);
     handleMutationResult(result, '查看身份', toastError);
     return result;
-  }, [debug.controlledSeat, mySeatNumber, facade]);
+  }, [debug.controlledSeat, mySeat, facade]);
 
   // Submit action (uses effectiveSeat/effectiveRole for debug bot control)
   // Business rejection UX is handled by the state-driven actionRejected effect
@@ -322,9 +322,9 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
 
   // Check if a wolf has voted
   const hasWolfVoted = useCallback(
-    (seatNumber: number): boolean => {
+    (seat: number): boolean => {
       if (!gameState) return false;
-      return gameState.wolfVotes.has(seatNumber);
+      return gameState.wolfVotes.has(seat);
     },
     [gameState],
   );

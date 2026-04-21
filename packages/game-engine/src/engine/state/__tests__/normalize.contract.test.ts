@@ -122,7 +122,7 @@ describe('normalizeState contract', () => {
       status: GameStatus.Ongoing,
       templateRoles: ['villager', 'wolf'],
       players: {
-        1: { userId: 'p1', seatNumber: 1, hasViewedRole: true },
+        1: { userId: 'p1', seat: 1, hasViewedRole: true },
       },
       roster: { p1: { displayName: 'P1' } },
       currentStepIndex: 0,

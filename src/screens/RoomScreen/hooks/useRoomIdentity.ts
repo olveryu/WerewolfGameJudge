@@ -19,10 +19,10 @@ import { getActorIdentity, isActorIdentityValid } from '../policy';
 
 interface UseRoomIdentityInput {
   /** My real seat number (null if not seated) */
-  mySeatNumber: number | null;
+  mySeat: number | null;
   /** My real role (null if no role assigned) */
   myRole: RoleId | null;
-  /** Effective seat (= controlledSeat ?? mySeatNumber, computed by useGameRoom) */
+  /** Effective seat (= controlledSeat ?? mySeat, computed by useGameRoom) */
   effectiveSeat: number | null;
   /** Effective role (= role of effectiveSeat, computed by useGameRoom) */
   effectiveRole: RoleId | null;
@@ -44,18 +44,18 @@ interface UseRoomIdentityResult {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useRoomIdentity(input: UseRoomIdentityInput): UseRoomIdentityResult {
-  const { mySeatNumber, myRole, effectiveSeat, effectiveRole, controlledSeat } = input;
+  const { mySeat, myRole, effectiveSeat, effectiveRole, controlledSeat } = input;
 
   const actorIdentity = useMemo(
     () =>
       getActorIdentity({
-        mySeatNumber,
+        mySeat,
         myRole,
         effectiveSeat,
         effectiveRole,
         controlledSeat,
       }),
-    [mySeatNumber, myRole, effectiveSeat, effectiveRole, controlledSeat],
+    [mySeat, myRole, effectiveSeat, effectiveRole, controlledSeat],
   );
 
   const { actorSeatForUi, actorRoleForUi, isDelegating } = actorIdentity;

@@ -40,7 +40,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
             i,
             {
               userId: `p${i}`,
-              seatNumber: i,
+              seat: i,
               displayName: `P${i + 1}`,
               avatarUrl: undefined,
               role: i === 0 ? 'witch' : 'villager',
@@ -75,7 +75,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
 
         isAudioPlaying: false,
 
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: 'witch',
         myUserId: 'p0',
 
@@ -208,7 +208,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    // protocol: seat = actorSeat (mySeat=0), target in stepResults
     expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
   });
 
@@ -243,7 +243,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    // protocol: seat = actorSeat (mySeat=0), target in stepResults
     expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
   });
 });

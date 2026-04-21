@@ -23,7 +23,7 @@ interface UseRoomSeatDialogsParams {
   setModalType: React.Dispatch<React.SetStateAction<'enter' | 'leave'>>;
 
   // Seat operations (execution layer)
-  takeSeat: (seatNumber: number) => Promise<boolean>;
+  takeSeat: (seat: number) => Promise<boolean>;
   leaveSeat: () => Promise<void>;
 
   // Leave room

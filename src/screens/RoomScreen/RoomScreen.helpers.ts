@@ -43,7 +43,7 @@ interface GameRoomLike {
     number,
     {
       userId: string;
-      seatNumber: number;
+      seat: number;
       role: RoleId | null;
       hasViewedRole: boolean;
       displayName?: string;
@@ -123,7 +123,7 @@ export interface SeatViewModel {
  * @param actorRole - Actor's role (actorRoleForUi — may be bot's role when Host is delegating)
  * @param currentActionRole - The role that should act now
  * @param currentSchema - Current action schema (schema-driven UI)
- * @param actorSeatNumber - Actor's seat number (actorSeatForUi — may be bot's seat when delegating)
+ * @param actorSeat - Actor's seat number (actorSeatForUi — may be bot's seat when delegating)
  * @param wolfVotes - Map of wolf votes (seat -> target)
  * @param actions - Map of already submitted role actions
  * @param treasureMasterChosenCard - The role treasureMaster chose from bottom cards (if any)
@@ -133,7 +133,7 @@ export function determineActionerState(
   actorRole: RoleId | null,
   currentActionRole: RoleId | null,
   currentSchema: ActionSchema | null,
-  actorSeatNumber: number | null,
+  actorSeat: number | null,
   wolfVotes: Map<number, number>,
   actions: Map<RoleId, RoleAction> = new Map(),
   treasureMasterChosenCard?: RoleId | null,
@@ -144,7 +144,7 @@ export function determineActionerState(
   }
 
   // groupConfirm: ALL seated players are actioners (e.g. piperHypnotizedReveal)
-  if (currentSchema?.kind === 'groupConfirm' && actorSeatNumber !== null) {
+  if (currentSchema?.kind === 'groupConfirm' && actorSeat !== null) {
     return { imActioner: true, showWolves: false };
   }
 
@@ -161,13 +161,7 @@ export function determineActionerState(
 
   // My effective role matches current action
   if (effectiveRole === currentActionRole) {
-    return handleMatchingRole(
-      effectiveRole,
-      actorSeatNumber,
-      wolfVotes,
-      actions,
-      isWolfMeetingSchema,
-    );
+    return handleMatchingRole(effectiveRole, actorSeat, wolfVotes, actions, isWolfMeetingSchema);
   }
 
   // Wolf meeting phase: participating wolves can see pack list and act
@@ -179,7 +173,7 @@ export function determineActionerState(
       // Non-voting wolves (e.g., wolfRobot) cannot see the pack
       return { imActioner: false, showWolves: false };
     }
-    return handleWolfTeamTurn(actorSeatNumber, wolfVotes);
+    return handleWolfTeamTurn(actorSeat, wolfVotes);
   }
 
   return { imActioner: false, showWolves: false };
@@ -187,7 +181,7 @@ export function determineActionerState(
 
 function handleMatchingRole(
   actorRole: RoleId,
-  actorSeatNumber: number | null,
+  actorSeat: number | null,
   _wolfVotes: Map<number, number>,
   actions: Map<RoleId, RoleAction>,
   isWolfMeetingSchema: boolean,
@@ -211,7 +205,7 @@ function handleMatchingRole(
 }
 
 function handleWolfTeamTurn(
-  _actorSeatNumber: number | null,
+  _actorSeat: number | null,
   _wolfVotes: Map<number, number>,
 ): ActionerState {
   // Revote allowed: always imActioner during wolf meeting
@@ -372,11 +366,11 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
 /**
  * Build SeatViewModel array from game state
  *
- * @param actorSeatNumber - Actor's seat (actorSeatForUi). Used for isMySpot + notSelf constraint.
+ * @param actorSeat - Actor's seat (actorSeatForUi). Used for isMySpot + notSelf constraint.
  */
 export function buildSeatViewModels(
   gameState: LocalGameState,
-  actorSeatNumber: number | null,
+  actorSeat: number | null,
   showWolves: boolean,
   selectedSeat: number | null,
   options?: {
@@ -438,10 +432,7 @@ export function buildSeatViewModels(
     let disabledReason: string | undefined;
 
     // Constraint: notSelf - cannot select own seat
-    if (
-      options?.schemaConstraints?.includes(TargetConstraint.NotSelf) &&
-      seat === actorSeatNumber
-    ) {
+    if (options?.schemaConstraints?.includes(TargetConstraint.NotSelf) && seat === actorSeat) {
       disabledReason = '不能选择自己';
     }
 
@@ -470,7 +461,7 @@ export function buildSeatViewModels(
             role: player.role, // For bot role display (debug mode)
           }
         : null,
-      isMySpot: actorSeatNumber === seat,
+      isMySpot: actorSeat === seat,
       isWolf,
       isSelected:
         selectedSeat === seat ||

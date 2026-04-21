@@ -32,7 +32,7 @@ describe('determineActionerState', () => {
       'seer', // myRole
       'seer', // currentActionRole
       seerCheckSchema, // currentSchema
-      0, // mySeatNumber
+      0, // mySeat
       new Map(), // wolfVotes
       new Map(), // actions
     );
@@ -49,7 +49,7 @@ describe('determineActionerState', () => {
       'wolf', // myRole
       'wolf', // currentActionRole
       wolfKillSchema, // currentSchema
-      1, // mySeatNumber (same as voted seat)
+      1, // mySeat (same as voted seat)
       wolfVotes,
       new Map(),
     );
@@ -65,7 +65,7 @@ describe('determineActionerState', () => {
       'darkWolfKing', // myRole (a wolf role that participates in vote)
       'wolf', // currentActionRole
       wolfKillSchema, // currentSchema
-      2, // mySeatNumber
+      2, // mySeat
       wolfVotes,
       new Map(),
     );
@@ -267,7 +267,7 @@ describe('buildSeatViewModels', () => {
           0,
           {
             userId: 'p1',
-            seatNumber: 0,
+            seat: 0,
             displayName: 'Player1',
             role: 'villager' as RoleId,
             hasViewedRole: true,
@@ -277,7 +277,7 @@ describe('buildSeatViewModels', () => {
           1,
           {
             userId: 'p2',
-            seatNumber: 1,
+            seat: 1,
             displayName: 'Player2',
             role: 'wolf' as RoleId,
             hasViewedRole: true,
@@ -327,7 +327,7 @@ describe('buildSeatViewModels', () => {
           0,
           {
             userId: 'p1',
-            seatNumber: 0,
+            seat: 0,
             displayName: 'Wolf',
             role: 'wolf' as RoleId,
             hasViewedRole: true,
@@ -337,7 +337,7 @@ describe('buildSeatViewModels', () => {
           1,
           {
             userId: 'p2',
-            seatNumber: 1,
+            seat: 1,
             displayName: 'Gargoyle',
             role: 'gargoyle' as RoleId,
             hasViewedRole: true,
@@ -347,7 +347,7 @@ describe('buildSeatViewModels', () => {
           2,
           {
             userId: 'p3',
-            seatNumber: 2,
+            seat: 2,
             displayName: 'Robot',
             role: 'wolfRobot' as RoleId,
             hasViewedRole: true,
@@ -357,7 +357,7 @@ describe('buildSeatViewModels', () => {
           3,
           {
             userId: 'p4',
-            seatNumber: 3,
+            seat: 3,
             displayName: 'Seer',
             role: 'seer' as RoleId,
             hasViewedRole: true,
@@ -400,7 +400,7 @@ describe('buildSeatViewModels', () => {
           0,
           {
             userId: 'p1',
-            seatNumber: 0,
+            seat: 0,
             displayName: 'P1',
             role: 'villager' as RoleId,
             hasViewedRole: true,
@@ -410,7 +410,7 @@ describe('buildSeatViewModels', () => {
           1,
           {
             userId: 'p2',
-            seatNumber: 1,
+            seat: 1,
             displayName: 'P2',
             role: 'wolf' as RoleId,
             hasViewedRole: true,
@@ -447,7 +447,7 @@ describe('buildSeatViewModels', () => {
             0,
             {
               userId: 'p1',
-              seatNumber: 0,
+              seat: 0,
               displayName: 'Seer',
               role: 'seer' as RoleId,
               hasViewedRole: true,
@@ -457,7 +457,7 @@ describe('buildSeatViewModels', () => {
             1,
             {
               userId: 'p2',
-              seatNumber: 1,
+              seat: 1,
               displayName: 'P2',
               role: 'villager' as RoleId,
               hasViewedRole: true,
@@ -467,7 +467,7 @@ describe('buildSeatViewModels', () => {
             2,
             {
               userId: 'p3',
-              seatNumber: 2,
+              seat: 2,
               displayName: 'P3',
               role: 'wolf' as RoleId,
               hasViewedRole: true,
@@ -510,7 +510,7 @@ describe('buildSeatViewModels', () => {
             0,
             {
               userId: 'p1',
-              seatNumber: 0,
+              seat: 0,
               displayName: 'Seer',
               role: 'seer' as RoleId,
               hasViewedRole: true,
@@ -520,7 +520,7 @@ describe('buildSeatViewModels', () => {
             1,
             {
               userId: 'p2',
-              seatNumber: 1,
+              seat: 1,
               displayName: 'P2',
               role: 'villager' as RoleId,
               hasViewedRole: true,
@@ -530,7 +530,7 @@ describe('buildSeatViewModels', () => {
             2,
             {
               userId: 'p3',
-              seatNumber: 2,
+              seat: 2,
               displayName: 'P3',
               role: 'wolf' as RoleId,
               hasViewedRole: true,
@@ -575,7 +575,7 @@ describe('buildSeatViewModels', () => {
           0,
           {
             userId: 'p1',
-            seatNumber: 0,
+            seat: 0,
             displayName: 'Wolf',
             role: 'wolf' as RoleId,
             hasViewedRole: true,
@@ -585,7 +585,7 @@ describe('buildSeatViewModels', () => {
           1,
           {
             userId: 'p2',
-            seatNumber: 1,
+            seat: 1,
             displayName: 'Villager',
             role: 'villager' as RoleId,
             hasViewedRole: true,
@@ -595,7 +595,7 @@ describe('buildSeatViewModels', () => {
           2,
           {
             userId: 'p3',
-            seatNumber: 2,
+            seat: 2,
             displayName: 'Seer',
             role: 'seer' as RoleId,
             hasViewedRole: true,
@@ -663,7 +663,7 @@ describe('buildSeatViewModels', () => {
             0,
             {
               userId: 'p1',
-              seatNumber: 0,
+              seat: 0,
               displayName: 'P1',
               role: 'wolf' as RoleId,
               hasViewedRole: true,
@@ -673,7 +673,7 @@ describe('buildSeatViewModels', () => {
             1,
             {
               userId: 'p2',
-              seatNumber: 1,
+              seat: 1,
               displayName: 'P2',
               role: 'villager' as RoleId,
               hasViewedRole: false,
@@ -683,7 +683,7 @@ describe('buildSeatViewModels', () => {
             2,
             {
               userId: 'p3',
-              seatNumber: 2,
+              seat: 2,
               displayName: 'P3',
               role: 'seer' as RoleId,
               hasViewedRole: true,
@@ -750,7 +750,7 @@ describe('buildSeatViewModels', () => {
             0,
             {
               userId: 'p1',
-              seatNumber: 0,
+              seat: 0,
               displayName: 'P1',
               role: 'wolf' as RoleId,
               hasViewedRole: true,
@@ -819,7 +819,7 @@ describe('getWolfVoteSummary', () => {
       players: new Map(
         players.map(([seat, role]) => [
           seat,
-          { userId: `p${seat}`, seatNumber: seat, role, hasViewedRole: true },
+          { userId: `p${seat}`, seat: seat, role, hasViewedRole: true },
         ]),
       ),
       actions: new Map(),
@@ -887,7 +887,7 @@ describe('getWolfVoteSummary', () => {
       template: { name: 'Test', numberOfPlayers: 2, roles: ['wolf', 'wolf'] as RoleId[] },
       players: new Map<number, any>([
         [0, null],
-        [1, { userId: 'p1', seatNumber: 1, role: 'wolf', hasViewedRole: true }],
+        [1, { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: true }],
       ]),
       actions: new Map(),
       wolfVotes: new Map([[1, 0]]),

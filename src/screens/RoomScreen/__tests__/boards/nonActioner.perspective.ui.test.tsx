@@ -90,7 +90,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
       schemaId: 'seerCheck',
       currentActionRole: 'seer',
       myRole: 'villager',
-      mySeatNumber: 0,
+      mySeat: 0,
     });
 
     const { getByTestId } = render(
@@ -115,7 +115,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
       schemaId: 'witchAction',
       currentActionRole: 'witch',
       myRole: 'villager',
-      mySeatNumber: 0,
+      mySeat: 0,
       witchContext: { killedSeat: 1, canSave: true, canPoison: true },
       gameStateOverrides: { witchContext: { killedSeat: 1, canSave: true, canPoison: true } },
     });
@@ -142,7 +142,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
       schemaId: 'witchAction',
       currentActionRole: 'witch',
       myRole: 'villager',
-      mySeatNumber: 0,
+      mySeat: 0,
       witchContext: { killedSeat: -1, canSave: false, canPoison: true },
       gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
     });
@@ -170,7 +170,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
       schemaId: 'hunterConfirm',
       currentActionRole: 'hunter',
       myRole: 'villager',
-      mySeatNumber: 0,
+      mySeat: 0,
       gameStateOverrides: { confirmStatus: { role: 'hunter', canShoot: true } },
     });
 
@@ -196,7 +196,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: 'villager',
-      mySeatNumber: 0,
+      mySeat: 0,
     });
 
     const { getByTestId } = render(

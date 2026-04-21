@@ -125,7 +125,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       gap: spacing.micro,
       minHeight: componentSizes.button.sm,
     },
-    seatNumber: {
+    seat: {
       fontSize: typography.secondary,
       fontWeight: typography.weights.bold,
       color: colors.text,

@@ -24,8 +24,8 @@ export interface UseActionerStateParams {
   /** Current action schema (Phase 3: schema-driven UI) */
   currentSchema: ActionSchema | null;
   /** Actor's seat number (actorSeatForUi — may be bot's seat when Host is delegating) */
-  actorSeatNumber: number | null;
-  /** Wolf votes map (seatNumber -> targetSeat) */
+  actorSeat: number | null;
+  /** Wolf votes map (seat -> targetSeat) */
   wolfVotes: Map<number, number>;
   /** Already submitted role actions */
   actions: Map<RoleId, RoleAction>;
@@ -43,7 +43,7 @@ export function useActionerState({
   actorRole,
   currentActionRole,
   currentSchema,
-  actorSeatNumber,
+  actorSeat,
   wolfVotes,
   actions,
   treasureMasterChosenCard,
@@ -54,7 +54,7 @@ export function useActionerState({
       actorRole,
       currentActionRole,
       currentSchema,
-      actorSeatNumber,
+      actorSeat,
       wolfVotes,
       actions,
       treasureMasterChosenCard,
@@ -64,7 +64,7 @@ export function useActionerState({
     actorRole,
     currentActionRole,
     currentSchema,
-    actorSeatNumber,
+    actorSeat,
     wolfVotes,
     actions,
     treasureMasterChosenCard,

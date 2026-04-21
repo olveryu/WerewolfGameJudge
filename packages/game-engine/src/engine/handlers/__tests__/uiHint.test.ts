@@ -24,9 +24,9 @@ function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
     status: GameStatus.Ongoing,
     templateRoles: ['wolf', 'seer', 'villager'],
     players: {
-      0: { userId: 'p0', seatNumber: 0, displayName: 'P0', role: 'seer', hasViewedRole: true },
-      1: { userId: 'p1', seatNumber: 1, displayName: 'P1', role: 'wolf', hasViewedRole: true },
-      2: { userId: 'p2', seatNumber: 2, displayName: 'P2', role: 'villager', hasViewedRole: true },
+      0: { userId: 'p0', seat: 0, displayName: 'P0', role: 'seer', hasViewedRole: true },
+      1: { userId: 'p1', seat: 1, displayName: 'P1', role: 'wolf', hasViewedRole: true },
+      2: { userId: 'p2', seat: 2, displayName: 'P2', role: 'villager', hasViewedRole: true },
     },
     currentStepIndex: 0,
     isAudioPlaying: false,

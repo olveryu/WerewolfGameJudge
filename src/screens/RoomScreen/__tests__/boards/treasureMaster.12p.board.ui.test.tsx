@@ -124,7 +124,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'psychicCheck',
         currentActionRole: 'psychic',
         myRole: 'psychic',
-        mySeatNumber: 10,
+        mySeat: 10,
       });
 
       const { getByTestId } = render(
@@ -145,7 +145,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'darkWolfKing',
-        mySeatNumber: 9,
+        mySeat: 9,
         roleAssignments: new Map([
           [6, 'wolf'],
           [7, 'wolf'],
@@ -174,7 +174,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'darkWolfKingConfirm',
         currentActionRole: 'darkWolfKing',
         myRole: 'darkWolfKing',
-        mySeatNumber: 9,
+        mySeat: 9,
         gameStateOverrides: { confirmStatus: { role: 'darkWolfKing', canShoot: true } },
       });
 
@@ -202,7 +202,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
         myRole: 'hunter',
-        mySeatNumber: 12,
+        mySeat: 12,
         gameStateOverrides: { confirmStatus: { role: 'hunter', canShoot: true } },
       });
 
@@ -231,7 +231,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'psychicCheck',
         currentActionRole: 'psychic',
         myRole: 'psychic',
-        mySeatNumber: 10,
+        mySeat: 10,
       });
 
       const { getByTestId } = render(
@@ -254,7 +254,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'psychicCheck',
         currentActionRole: 'psychic',
         myRole: 'psychic',
-        mySeatNumber: 10,
+        mySeat: 10,
       });
 
       const { getByTestId, getByText } = render(
@@ -280,7 +280,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         schemaId: 'wolfKill',
         currentActionRole: 'wolf',
         myRole: 'darkWolfKing',
-        mySeatNumber: 9,
+        mySeat: 9,
         roleAssignments: new Map([
           [6, 'wolf'],
           [7, 'wolf'],

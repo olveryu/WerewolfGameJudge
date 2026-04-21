@@ -259,7 +259,7 @@ export interface InteractionContext {
 
   // Player state (real identity - for display only)
   isHost: boolean;
-  mySeatNumber: number | null;
+  mySeat: number | null;
   myRole: RoleId | null;
 
   // Actor identity (for all action-related decisions)

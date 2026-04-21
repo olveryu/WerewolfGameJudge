@@ -38,7 +38,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(false),
     getMyUserId: jest.fn().mockReturnValue('player-uid'),
-    getMySeatNumber: jest.fn().mockReturnValue(null),
+    getMySeat: jest.fn().mockReturnValue(null),
     getStateRevision: jest.fn().mockReturnValue(0),
     createRoom: jest.fn().mockResolvedValue(undefined),
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
@@ -335,7 +335,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(true),
     getMyUserId: jest.fn().mockReturnValue('host-uid'),
-    getMySeatNumber: jest.fn().mockReturnValue(0),
+    getMySeat: jest.fn().mockReturnValue(0),
     getStateRevision: jest.fn().mockReturnValue(1),
     consumeLastAction: jest.fn().mockReturnValue(null),
     addSettleResultListener: jest.fn().mockReturnValue(() => {}),
@@ -429,14 +429,14 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       players: {
         0: {
           userId: 'host-uid',
-          seatNumber: 0,
+          seat: 0,
           displayName: 'Host',
           role: 'villager',
           hasViewedRole: true,
         },
         1: {
           userId: 'bot-1',
-          seatNumber: 1,
+          seat: 1,
           displayName: 'Bot 1',
           role: 'wolf',
           hasViewedRole: true,
@@ -452,7 +452,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     const mockFacade = createMockFacade({
       subscribe: jest.fn().mockReturnValue(() => {}),
       getState: jest.fn().mockReturnValue(mockState),
-      getMySeatNumber: jest.fn().mockReturnValue(0),
+      getMySeat: jest.fn().mockReturnValue(0),
       submitAction: submitActionMock,
     });
 
@@ -463,7 +463,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     const { result } = renderHook(() => useGameRoom(), { wrapper });
 
     // useSyncExternalStore reads getState() synchronously — state is already populated
-    // Initially: effectiveSeat = 0 (mySeatNumber), effectiveRole = 'villager'
+    // Initially: effectiveSeat = 0 (mySeat), effectiveRole = 'villager'
     expect(result.current.effectiveSeat).toBe(0);
     expect(result.current.effectiveRole).toBe('villager');
 
@@ -498,14 +498,14 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       players: {
         0: {
           userId: 'host-uid',
-          seatNumber: 0,
+          seat: 0,
           displayName: 'Host',
           role: 'villager',
           hasViewedRole: true,
         },
         1: {
           userId: 'bot-1',
-          seatNumber: 1,
+          seat: 1,
           displayName: 'Bot 1',
           role: 'wolfRobot',
           hasViewedRole: true,
@@ -523,7 +523,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     const mockFacade = createMockFacade({
       subscribe: jest.fn().mockReturnValue(() => {}),
       getState: jest.fn().mockReturnValue(mockState),
-      getMySeatNumber: jest.fn().mockReturnValue(0),
+      getMySeat: jest.fn().mockReturnValue(0),
       sendWolfRobotHunterStatusViewed: sendWolfRobotHunterStatusViewedMock,
     });
 
@@ -562,7 +562,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       players: {
         0: {
           userId: 'host-uid',
-          seatNumber: 0,
+          seat: 0,
           displayName: 'Host',
           role: 'villager',
           hasViewedRole: true,
@@ -579,7 +579,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
     const mockFacade = createMockFacade({
       getState: jest.fn().mockReturnValue(mockState),
-      getMySeatNumber: jest.fn().mockReturnValue(0),
+      getMySeat: jest.fn().mockReturnValue(0),
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -610,7 +610,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     getState: jest.fn().mockReturnValue(null),
     isHostPlayer: jest.fn().mockReturnValue(false),
     getMyUserId: jest.fn().mockReturnValue('player-uid'),
-    getMySeatNumber: jest.fn().mockReturnValue(null),
+    getMySeat: jest.fn().mockReturnValue(null),
     getStateRevision: jest.fn().mockReturnValue(0),
     consumeLastAction: jest.fn().mockReturnValue(null),
     addSettleResultListener: jest.fn().mockReturnValue(() => {}),
@@ -699,7 +699,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     players: {
       0: {
         userId: 'host-uid',
-        seatNumber: 0,
+        seat: 0,
         displayName: 'Host',
         avatarUrl: undefined,
         role: 'wolf',
@@ -719,7 +719,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUserId: jest.fn().mockReturnValue('host-uid'),
-      getMySeatNumber: jest.fn().mockReturnValue(0),
+      getMySeat: jest.fn().mockReturnValue(0),
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -739,7 +739,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       wasAudioInterrupted: false,
       getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUserId: jest.fn().mockReturnValue('host-uid'),
-      getMySeatNumber: jest.fn().mockReturnValue(0),
+      getMySeat: jest.fn().mockReturnValue(0),
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -757,7 +757,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUserId: jest.fn().mockReturnValue('player-2'),
-      getMySeatNumber: jest.fn().mockReturnValue(1),
+      getMySeat: jest.fn().mockReturnValue(1),
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -775,7 +775,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUserId: jest.fn().mockReturnValue('host-uid'),
-      getMySeatNumber: jest.fn().mockReturnValue(0),
+      getMySeat: jest.fn().mockReturnValue(0),
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -802,7 +802,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
       wasAudioInterrupted: true,
       getState: jest.fn().mockReturnValue(ongoingGameState),
       getMyUserId: jest.fn().mockReturnValue('host-uid'),
-      getMySeatNumber: jest.fn().mockReturnValue(0),
+      getMySeat: jest.fn().mockReturnValue(0),
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (

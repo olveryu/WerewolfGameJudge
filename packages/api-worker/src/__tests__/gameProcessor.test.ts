@@ -32,7 +32,7 @@ describe('buildHandlerContext', () => {
       players: {
         0: {
           userId: 'p1',
-          seatNumber: 0,
+          seat: 0,
           displayName: 'P1',
           role: null,
           hasViewedRole: false,
@@ -63,14 +63,14 @@ describe('buildHandlerContext', () => {
       players: {
         0: {
           userId: 'p1',
-          seatNumber: 0,
+          seat: 0,
           displayName: 'P1',
           role: null,
           hasViewedRole: false,
         },
         1: {
           userId: 'p2',
-          seatNumber: 1,
+          seat: 1,
           displayName: 'P2',
           role: null,
           hasViewedRole: false,

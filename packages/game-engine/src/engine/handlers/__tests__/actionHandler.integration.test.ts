@@ -16,8 +16,8 @@ const baseContext: any = {
     status: GameStatus.Ongoing,
     templateRoles: ['seer', 'villager'],
     players: {
-      0: { userId: 'p0', seatNumber: 0, role: 'seer', hasViewedRole: true },
-      1: { userId: 'p1', seatNumber: 1, role: 'villager', hasViewedRole: true },
+      0: { userId: 'p0', seat: 0, role: 'seer', hasViewedRole: true },
+      1: { userId: 'p1', seat: 1, role: 'villager', hasViewedRole: true },
     },
     currentStepIndex: 0,
     isAudioPlaying: false,

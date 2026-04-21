@@ -55,7 +55,7 @@ jest.mock('../../../utils/defaultAvatarIcons', () => ({
 jest.mock('../../../contexts/GameFacadeContext', () => ({
   useGameFacade: () => ({
     getState: jest.fn().mockReturnValue(null),
-    getMySeatNumber: jest.fn().mockReturnValue(null),
+    getMySeat: jest.fn().mockReturnValue(null),
     subscribe: jest.fn().mockReturnValue(() => {}),
     updateMyUserId: jest.fn(),
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),

@@ -21,15 +21,9 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
     status: GameStatus.Ongoing,
     template: createTemplateFromRoles(['wolfRobot', 'hunter', 'villager']),
     players: new Map([
-      [
-        0,
-        { userId: 'U1', seatNumber: 0, displayName: 'P1', role: 'wolfRobot', hasViewedRole: true },
-      ],
-      [1, { userId: 'U2', seatNumber: 1, displayName: 'P2', role: 'hunter', hasViewedRole: true }],
-      [
-        2,
-        { userId: 'U3', seatNumber: 2, displayName: 'P3', role: 'villager', hasViewedRole: true },
-      ],
+      [0, { userId: 'U1', seat: 0, displayName: 'P1', role: 'wolfRobot', hasViewedRole: true }],
+      [1, { userId: 'U2', seat: 1, displayName: 'P2', role: 'hunter', hasViewedRole: true }],
+      [2, { userId: 'U3', seat: 2, displayName: 'P3', role: 'villager', hasViewedRole: true }],
     ]),
     actions: new Map(),
     wolfVotes: new Map(),

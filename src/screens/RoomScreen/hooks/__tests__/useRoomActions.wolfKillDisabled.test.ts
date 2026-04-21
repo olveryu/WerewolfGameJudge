@@ -24,7 +24,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
     currentActionRole: 'wolf',
     currentSchema: getSchema('wolfKill'),
     imActioner: true,
-    actorSeatNumber: 0,
+    actorSeat: 0,
     actorRole: 'wolf',
     isAudioPlaying: false,
     firstSwapSeat: null,

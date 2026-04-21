@@ -178,7 +178,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
 
       try {
         const gameState = facade.getState();
-        const mySeat = facade.getMySeatNumber();
+        const mySeat = facade.getMySeat();
         const gameContext = buildPlayerContext(gameState, mySeat);
 
         const contextMessages: ChatMessage[] = prevMessages

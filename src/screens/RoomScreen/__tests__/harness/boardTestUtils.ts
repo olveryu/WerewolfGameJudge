@@ -50,7 +50,7 @@ interface GameStateMockOptions {
   /** Player's role */
   myRole: RoleId;
   /** Player's seat number */
-  mySeatNumber?: number;
+  mySeat?: number;
   /** Number of players */
   numberOfPlayers?: number;
   /** Template name (for reference) */
@@ -98,7 +98,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     schemaId,
     currentActionRole,
     myRole,
-    mySeatNumber = 0,
+    mySeat = 0,
     numberOfPlayers = 12,
     roleAssignments,
     isHost = false,
@@ -120,12 +120,12 @@ export function createGameRoomMock(options: GameStateMockOptions) {
   // Build players map
   const players = new Map(
     Array.from({ length: numberOfPlayers }).map((_, i) => {
-      const role = roleAssignments?.get(i) || (i === mySeatNumber ? myRole : 'villager');
+      const role = roleAssignments?.get(i) || (i === mySeat ? myRole : 'villager');
       return [
         i,
         {
           userId: `p${i}`,
-          seatNumber: i,
+          seat: i,
           displayName: `P${i + 1}`,
           avatarUrl: undefined,
           role,
@@ -187,9 +187,9 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     roleRevealAnimation: 'random',
     resolvedRoleRevealAnimation: null,
     loading: false,
-    mySeatNumber,
+    mySeat,
     myRole,
-    myUserId: `p${mySeatNumber}`,
+    myUserId: `p${mySeat}`,
     error: null,
 
     // Connection
@@ -198,7 +198,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     // Debug mode - effectiveSeat/effectiveRole are used in RoomScreen
     isDebugMode: false,
     controlledSeat: null,
-    effectiveSeat: mySeatNumber,
+    effectiveSeat: mySeat,
     effectiveRole: myRole,
     fillWithBots: jest.fn(),
     markAllBotsViewed: jest.fn(),
@@ -280,9 +280,9 @@ export async function waitForRoomScreen(getByTestId: (id: string) => any) {
 /**
  * Tap a seat
  */
-export function tapSeat(getByTestId: (id: string) => any, seatNumber: number) {
-  const seat = getByTestId(TESTIDS.seatTilePressable(seatNumber));
-  fireEvent.press(seat);
+export function tapSeat(getByTestId: (id: string) => any, seat: number) {
+  const seatEl = getByTestId(TESTIDS.seatTilePressable(seat));
+  fireEvent.press(seatEl);
 }
 
 // =============================================================================
@@ -449,7 +449,7 @@ export async function chainWolfVoteConfirm(
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: wolfRole,
-      mySeatNumber: wolfSeat,
+      mySeat: wolfSeat,
       roleAssignments: wolfAssignments,
       hookOverrides: { submitAction },
     }),
@@ -486,7 +486,7 @@ export async function chainSkipConfirm(
   schemaId: SchemaId,
   actionRole: RoleId,
   playerRole: RoleId,
-  seatNumber: number,
+  seat: number,
 ): Promise<jest.Mock> {
   const submitAction = jest.fn().mockResolvedValue(undefined);
   mockSetter(
@@ -494,7 +494,7 @@ export async function chainSkipConfirm(
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       hookOverrides: { submitAction },
     }),
   );
@@ -539,14 +539,14 @@ export async function chainConfirmTrigger(
   schemaId: SchemaId,
   actionRole: RoleId,
   playerRole: RoleId,
-  seatNumber: number,
+  seat: number,
 ): Promise<void> {
   mockSetter(
     createGameRoomMock({
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       gameStateOverrides: {
         confirmStatus: defaultConfirmStatus(actionRole),
       },
@@ -592,7 +592,7 @@ export async function chainWolfRobotHunterStatus(
   harness: RoomScreenTestHarness,
   mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
-  seatNumber: number,
+  seat: number,
 ): Promise<jest.Mock> {
   const sendMock = jest.fn().mockResolvedValue(undefined);
   mockSetter(
@@ -600,7 +600,7 @@ export async function chainWolfRobotHunterStatus(
       schemaId: 'wolfRobotLearn',
       currentActionRole: 'wolfRobot',
       myRole: 'wolfRobot',
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       gameStateOverrides: {
         wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
         wolfRobotHunterStatusViewed: false,
@@ -671,7 +671,7 @@ export async function coverageChainWolfVote(
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: wolfRole,
-      mySeatNumber: wolfSeat,
+      mySeat: wolfSeat,
       roleAssignments: wolfAssignments,
       hookOverrides: { submitAction },
     }),
@@ -703,7 +703,7 @@ export async function coverageChainSkipConfirm(
   schemaId: SchemaId,
   actionRole: RoleId,
   playerRole: RoleId,
-  seatNumber: number,
+  seat: number,
 ): Promise<{ submitAction: jest.Mock }> {
   const submitAction = jest.fn().mockResolvedValue(undefined);
   mockSetter(
@@ -711,7 +711,7 @@ export async function coverageChainSkipConfirm(
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       hookOverrides: { submitAction },
     }),
   );
@@ -751,14 +751,14 @@ export async function coverageChainConfirmTrigger(
   schemaId: SchemaId,
   actionRole: RoleId,
   playerRole: RoleId,
-  seatNumber: number,
+  seat: number,
 ): Promise<void> {
   mockSetter(
     createGameRoomMock({
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       gameStateOverrides: {
         confirmStatus: defaultConfirmStatus(actionRole),
       },
@@ -799,7 +799,7 @@ export async function coverageChainWolfRobotHunterStatus(
   harness: RoomScreenTestHarness,
   mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
-  seatNumber: number,
+  seat: number,
 ): Promise<{ sendWolfRobotHunterStatusViewed: jest.Mock }> {
   const sendMock = jest.fn().mockResolvedValue(undefined);
   mockSetter(
@@ -807,7 +807,7 @@ export async function coverageChainWolfRobotHunterStatus(
       schemaId: 'wolfRobotLearn',
       currentActionRole: 'wolfRobot',
       myRole: 'wolfRobot',
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       gameStateOverrides: {
         wolfRobotReveal: { learnedRoleId: 'hunter', canShootAsHunter: true },
         wolfRobotHunterStatusViewed: false,
@@ -855,14 +855,14 @@ export async function coverageChainActionPrompt(
   schemaId: SchemaId,
   actionRole: RoleId,
   playerRole: RoleId,
-  seatNumber: number,
+  seat: number,
 ): Promise<void> {
   mockSetter(
     createGameRoomMock({
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
-      mySeatNumber: seatNumber,
+      mySeat: seat,
     }),
   );
 
@@ -879,14 +879,14 @@ export async function coverageChainWitchSavePrompt(
   harness: RoomScreenTestHarness,
   mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
-  seatNumber: number,
+  seat: number,
 ): Promise<void> {
   mockSetter(
     createGameRoomMock({
       schemaId: 'witchAction',
       currentActionRole: 'witch',
       myRole: 'witch',
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       witchContext: { killedSeat: 1, canSave: true, canPoison: true },
       gameStateOverrides: { witchContext: { killedSeat: 1, canSave: true, canPoison: true } },
     }),
@@ -905,14 +905,14 @@ export async function coverageChainWitchPoisonPrompt(
   harness: RoomScreenTestHarness,
   mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
-  seatNumber: number,
+  seat: number,
 ): Promise<void> {
   mockSetter(
     createGameRoomMock({
       schemaId: 'witchAction',
       currentActionRole: 'witch',
       myRole: 'witch',
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       witchContext: { killedSeat: -1, canSave: false, canPoison: true },
       gameStateOverrides: { witchContext: { killedSeat: -1, canSave: false, canPoison: true } },
     }),
@@ -936,7 +936,7 @@ export async function coverageChainMagicianSwap(
   harness: RoomScreenTestHarness,
   mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
-  seatNumber: number,
+  seat: number,
   firstTarget: number,
   secondTarget: number,
 ): Promise<{ submitAction: jest.Mock }> {
@@ -946,7 +946,7 @@ export async function coverageChainMagicianSwap(
       schemaId: 'magicianSwap',
       currentActionRole: 'magician',
       myRole: 'magician',
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       hookOverrides: { submitAction },
     }),
   );
@@ -989,7 +989,7 @@ export async function coverageChainNightmareBlocked(
     schemaId: blockedSchemaId,
     currentActionRole: blockedRole,
     myRole: blockedRole,
-    mySeatNumber: blockedSeat,
+    mySeat: blockedSeat,
     nightmareBlockedSeat: blockedSeat,
     currentNightResults: { blockedSeat },
   });
@@ -1044,7 +1044,7 @@ export async function coverageChainSeatActionConfirm(
   schemaId: SchemaId,
   actionRole: RoleId,
   playerRole: RoleId,
-  seatNumber: number,
+  seat: number,
   targetSeat: number,
 ): Promise<{ submitAction: jest.Mock }> {
   const submitAction = jest.fn().mockResolvedValue(undefined);
@@ -1053,7 +1053,7 @@ export async function coverageChainSeatActionConfirm(
       schemaId,
       currentActionRole: actionRole,
       myRole: playerRole,
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       hookOverrides: { submitAction },
     }),
   );
@@ -1092,7 +1092,7 @@ export async function coverageChainWolfVoteEmpty(
       schemaId: 'wolfKill',
       currentActionRole: 'wolf',
       myRole: wolfRole,
-      mySeatNumber: wolfSeat,
+      mySeat: wolfSeat,
       roleAssignments: wolfAssignments,
       hookOverrides: { submitAction },
     }),
@@ -1133,7 +1133,7 @@ export async function chainActionConfirm(
   harness: RoomScreenTestHarness,
   mockSetter: (mock: ReturnType<typeof createGameRoomMock>) => void,
   renderFn: () => ReturnType<typeof import('@testing-library/react-native').render>,
-  seatNumber: number,
+  seat: number,
   firstTarget: number,
   secondTarget: number,
 ): Promise<jest.Mock> {
@@ -1143,7 +1143,7 @@ export async function chainActionConfirm(
       schemaId: 'magicianSwap',
       currentActionRole: 'magician',
       myRole: 'magician',
-      mySeatNumber: seatNumber,
+      mySeat: seat,
       hookOverrides: { submitAction },
     }),
   );

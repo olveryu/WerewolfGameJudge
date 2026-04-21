@@ -466,7 +466,7 @@ export function handleFillWithBots(
       const userId = `bot-${seat}`;
       bots[seat] = {
         userId,
-        seatNumber: seat,
+        seat: seat,
         hasViewedRole: false,
         isBot: true,
       };

@@ -42,7 +42,7 @@ interface NotepadStyles {
   cardThird: ViewStyle;
   cardHeader: ViewStyle;
   seatBtn: ViewStyle;
-  seatNumber: TextStyle;
+  seat: TextStyle;
   seatPlaceholder: TextStyle;
   roleBadge: ViewStyle;
   roleBadgeEmpty: ViewStyle;
@@ -161,7 +161,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             hitSlop={6}
             activeOpacity={fixed.activeOpacity}
           >
-            <Text style={styles.seatNumber}>{seat}</Text>
+            <Text style={styles.seat}>{seat}</Text>
             <View
               style={[
                 styles.roleBadge,

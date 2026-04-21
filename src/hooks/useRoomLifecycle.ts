@@ -52,9 +52,9 @@ interface RoomLifecycleState {
   leaveRoom: () => Promise<void>;
 
   // Seat actions
-  takeSeat: (seatNumber: number) => Promise<boolean>;
+  takeSeat: (seat: number) => Promise<boolean>;
   leaveSeat: () => Promise<void>;
-  takeSeatWithAck: (seatNumber: number) => Promise<{ success: boolean; reason?: string }>;
+  takeSeatWithAck: (seat: number) => Promise<{ success: boolean; reason?: string }>;
   leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
   kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
 
@@ -221,7 +221,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
   // Take a seat (unified API)
   const takeSeat = useCallback(
-    async (seatNumber: number): Promise<boolean> => {
+    async (seat: number): Promise<boolean> => {
       try {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
@@ -231,7 +231,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const level = queryClient.getQueryData<UserStats>(userStatsOptions().queryKey)?.level;
 
         return await facade.takeSeat(
-          seatNumber,
+          seat,
           displayName ?? undefined,
           avatarUrl ?? undefined,
           avatarFrame ?? undefined,
@@ -266,7 +266,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
   // Take seat with ack (unified API)
   const takeSeatWithAck = useCallback(
-    async (seatNumber: number): Promise<{ success: boolean; reason?: string }> => {
+    async (seat: number): Promise<{ success: boolean; reason?: string }> => {
       try {
         const displayName = await authService.getCurrentDisplayName();
         const avatarUrl = await authService.getCurrentAvatarUrl();
@@ -276,7 +276,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const level = queryClient.getQueryData<UserStats>(userStatsOptions().queryKey)?.level;
 
         const result = await facade.takeSeatWithAck(
-          seatNumber,
+          seat,
           displayName ?? undefined,
           avatarUrl ?? undefined,
           avatarFrame ?? undefined,
@@ -287,7 +287,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         // Wire up seat error for downstream consumers (e.g., showAlert in useRoomScreenState)
         if (!result.success && result.reason === 'seat_taken') {
-          setLastSeatError({ seat: seatNumber, reason: 'seat_taken' });
+          setLastSeatError({ seat: seat, reason: 'seat_taken' });
         }
 
         return result;

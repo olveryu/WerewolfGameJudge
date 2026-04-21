@@ -12,7 +12,7 @@ function createFakeFacade(): IGameFacade {
     getState: () => null,
     isHostPlayer: () => false,
     getMyUserId: () => 'u1',
-    getMySeatNumber: () => null,
+    getMySeat: () => null,
     getStateRevision: () => 0,
     consumeLastAction: () => null,
     addSettleResultListener: () => () => {},

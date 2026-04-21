@@ -22,7 +22,7 @@ function createParams(overrides: Partial<UseActionerStateParams> = {}): UseActio
     actorRole: null,
     currentActionRole: null,
     currentSchema: null,
-    actorSeatNumber: null,
+    actorSeat: null,
     wolfVotes: new Map(),
     actions: new Map(),
     ...overrides,
@@ -48,7 +48,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'seer',
             currentActionRole: 'seer',
-            actorSeatNumber: 0,
+            actorSeat: 0,
           }),
         ),
       );
@@ -62,7 +62,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'seer',
             currentActionRole: 'witch',
-            actorSeatNumber: 0,
+            actorSeat: 0,
           }),
         ),
       );
@@ -81,7 +81,7 @@ describe('useActionerState', () => {
             currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
               'wolfKill',
             ),
-            actorSeatNumber: 1,
+            actorSeat: 1,
             wolfVotes: new Map(),
           }),
         ),
@@ -103,7 +103,7 @@ describe('useActionerState', () => {
             currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
               'wolfKill',
             ),
-            actorSeatNumber: 1,
+            actorSeat: 1,
             wolfVotes,
           }),
         ),
@@ -123,7 +123,7 @@ describe('useActionerState', () => {
             currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
               'wolfKill',
             ),
-            actorSeatNumber: 2,
+            actorSeat: 2,
           }),
         ),
       );
@@ -142,7 +142,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'seer',
             currentActionRole: 'seer',
-            actorSeatNumber: 0,
+            actorSeat: 0,
             actions,
           }),
         ),
@@ -157,7 +157,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'witch',
             currentActionRole: 'witch',
-            actorSeatNumber: 1,
+            actorSeat: 1,
             actions: new Map(),
           }),
         ),
@@ -177,7 +177,7 @@ describe('useActionerState', () => {
             currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
               'nightmareBlock',
             ),
-            actorSeatNumber: 0,
+            actorSeat: 0,
           }),
         ),
       );
@@ -192,7 +192,7 @@ describe('useActionerState', () => {
       const params = createParams({
         actorRole: 'seer',
         currentActionRole: 'seer',
-        actorSeatNumber: 0,
+        actorSeat: 0,
       });
 
       const { result, rerender } = renderHook(() => useActionerState(params));

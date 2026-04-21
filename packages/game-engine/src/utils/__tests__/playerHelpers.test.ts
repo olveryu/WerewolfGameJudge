@@ -24,9 +24,7 @@ type Players = GameState['players'];
 function mkPlayers(entries: Array<[number, RoleId | null]>): Players {
   const players: Players = {};
   for (const [seat, role] of entries) {
-    players[seat] = role
-      ? { userId: `p${seat}`, seatNumber: seat, role, hasViewedRole: true }
-      : null;
+    players[seat] = role ? { userId: `p${seat}`, seat: seat, role, hasViewedRole: true } : null;
   }
   return players;
 }
@@ -56,7 +54,7 @@ describe('buildSeatRoleMap', () => {
 
   it('should skip players with null role', () => {
     const players: Players = {
-      0: { userId: 'p0', seatNumber: 0, role: null, hasViewedRole: false },
+      0: { userId: 'p0', seat: 0, role: null, hasViewedRole: false },
     };
     const map = buildSeatRoleMap(players);
     expect(map.size).toBe(0);

@@ -36,10 +36,10 @@ interface BottomActionContext {
   isAudioPlaying: boolean;
   currentSchema: ActionSchema | null;
   imActioner: boolean;
-  actorSeatNumber: number | null;
+  actorSeat: number | null;
   actorRole: RoleId | null;
   multiSelectedSeats: readonly number[];
-  hasWolfVoted: (seatNumber: number) => boolean;
+  hasWolfVoted: (seat: number) => boolean;
   getWitchContext: () => {
     killedSeat: number;
     canSave: boolean;
@@ -70,7 +70,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
     isAudioPlaying,
     currentSchema,
     imActioner,
-    actorSeatNumber,
+    actorSeat,
     actorRole,
     multiSelectedSeats,
     hasWolfVoted,
@@ -117,7 +117,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
           {
             key: 'wolfEmpty',
             label: hint.message,
-            intent: { type: 'wolfVote', targetSeat: -1, wolfSeat: actorSeatNumber ?? undefined },
+            intent: { type: 'wolfVote', targetSeat: -1, wolfSeat: actorSeat ?? undefined },
           },
         ],
       };
@@ -151,7 +151,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
   // wolfVote: show empty vote + cancel button when already voted
   if (currentSchema.kind === 'wolfVote') {
     const buttons: BottomButton[] = [];
-    const voted = actorSeatNumber !== null && hasWolfVoted(actorSeatNumber);
+    const voted = actorSeat !== null && hasWolfVoted(actorSeat);
 
     // Cancel vote button (withdraw = -2)
     if (voted) {
@@ -161,7 +161,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
         intent: {
           type: 'wolfVote',
           targetSeat: -2,
-          wolfSeat: actorSeatNumber ?? undefined,
+          wolfSeat: actorSeat ?? undefined,
         },
       });
     }
@@ -173,7 +173,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
       intent: {
         type: 'wolfVote',
         targetSeat: -1,
-        wolfSeat: actorSeatNumber ?? undefined,
+        wolfSeat: actorSeat ?? undefined,
       },
     });
 
@@ -265,7 +265,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
         : currentSchema.id === 'cupidLoversReveal'
           ? (gameState.cupidLoversRevealAcks ?? [])
           : (gameState.piperRevealAcks ?? []);
-    if (actorSeatNumber !== null && acks.includes(actorSeatNumber)) {
+    if (actorSeat !== null && acks.includes(actorSeat)) {
       return EMPTY;
     }
     return {

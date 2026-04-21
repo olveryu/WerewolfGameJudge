@@ -50,7 +50,7 @@ function createMockCtx(
   return {
     store: createMockStore('roomCode' in overrides ? overrides.roomCode! : 'ABCD'),
     myUserId: 'myUserId' in overrides ? overrides.myUserId! : 'user-1',
-    getMySeatNumber: () => 0,
+    getMySeat: () => 0,
     audioService: {} as GameActionsContext['audioService'],
   };
 }

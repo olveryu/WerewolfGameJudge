@@ -58,7 +58,7 @@ export const NotepadScreen: React.FC = () => {
     }
 
     // Build recorder's own role info
-    const mySeat = facade.getMySeatNumber();
+    const mySeat = facade.getMySeat();
     const gameState = facade.getState();
     const myRole = mySeat != null ? gameState?.players[mySeat]?.role : undefined;
     const myRoleInfo =
@@ -93,7 +93,7 @@ export const NotepadScreen: React.FC = () => {
       cardThird: styles.cardThird,
       cardHeader: styles.cardHeader,
       seatBtn: styles.seatBtn,
-      seatNumber: styles.seatNumber,
+      seat: styles.seat,
       seatPlaceholder: styles.seatPlaceholder,
       roleBadge: styles.roleBadge,
       roleBadgeEmpty: styles.roleBadgeEmpty,

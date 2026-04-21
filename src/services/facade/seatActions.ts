@@ -54,7 +54,7 @@ async function callSeatApi(
  */
 export async function takeSeat(
   ctx: SeatActionsContext,
-  seatNumber: number,
+  seat: number,
   displayName?: string,
   avatarUrl?: string,
   avatarFrame?: string,
@@ -64,7 +64,7 @@ export async function takeSeat(
 ): Promise<boolean> {
   const result = await takeSeatWithAck(
     ctx,
-    seatNumber,
+    seat,
     displayName,
     avatarUrl,
     avatarFrame,
@@ -80,7 +80,7 @@ export async function takeSeat(
  */
 export async function takeSeatWithAck(
   ctx: SeatActionsContext,
-  seatNumber: number,
+  seat: number,
   displayName?: string,
   avatarUrl?: string,
   avatarFrame?: string,
@@ -93,14 +93,14 @@ export async function takeSeatWithAck(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  facadeLog.debug('takeSeatWithAck', { seat: seatNumber, userId: ctx.myUserId });
+  facadeLog.debug('takeSeatWithAck', { seat: seat, userId: ctx.myUserId });
 
   return callSeatApi(
     roomCode,
     {
       action: 'sit',
       userId: ctx.myUserId,
-      seat: seatNumber,
+      seat: seat,
       displayName,
       avatarUrl,
       avatarFrame,

@@ -164,7 +164,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
             currentActionRole: room.currentActionRole,
             currentSchema: room.currentSchema,
             imActioner: true,
-            actorSeatNumber: room.mySeatNumber,
+            actorSeat: room.mySeat,
             actorRole: room.myRole,
             isAudioPlaying: false,
             firstSwapSeat: null,

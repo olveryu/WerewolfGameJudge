@@ -94,7 +94,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
       seat,
       player: {
         userId,
-        seatNumber: seat,
+        seat: seat,
         role: null,
         hasViewedRole: false,
       },

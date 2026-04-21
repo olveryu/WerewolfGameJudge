@@ -16,7 +16,7 @@ function makeContext(partial: Partial<GameContext>): GameContext {
     currentActionRole: null,
     currentSchema: null,
     imActioner: true,
-    actorSeatNumber: null,
+    actorSeat: null,
     actorRole: null,
     isAudioPlaying: false,
     firstSwapSeat: null,
@@ -38,7 +38,7 @@ describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
   it('returns null when not wolf', () => {
     const ctx = makeContext({
       actorRole: 'villager',
-      actorSeatNumber: 0,
+      actorSeat: 0,
       currentSchema: { kind: 'wolfVote' } as ActionSchema,
     });
     const deps = makeDeps({});
@@ -50,7 +50,7 @@ describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
   it('returns null when schema is not wolfVote', () => {
     const ctx = makeContext({
       actorRole: 'wolf',
-      actorSeatNumber: 0,
+      actorSeat: 0,
       currentSchema: { kind: 'chooseSeat' } as ActionSchema,
     });
     const deps = makeDeps({});
@@ -62,7 +62,7 @@ describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
   it('returns only summary when I have not voted yet', () => {
     const ctx = makeContext({
       actorRole: 'wolf',
-      actorSeatNumber: 2,
+      actorSeat: 2,
       currentSchema: { kind: 'wolfVote' } as ActionSchema,
       gameState: {} as LocalGameState,
     });
@@ -78,7 +78,7 @@ describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
   it('adds suffix when I have voted (or seat is null)', () => {
     const ctx = makeContext({
       actorRole: 'wolf',
-      actorSeatNumber: 1,
+      actorSeat: 1,
       currentSchema: { kind: 'wolfVote' } as ActionSchema,
       gameState: {} as LocalGameState,
     });

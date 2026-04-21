@@ -21,7 +21,7 @@ interface SeatConfirmModalProps {
   /** Type of action - entering or leaving seat */
   modalType: SeatModalType;
   /** The seat index (0-based, formatted internally for display) */
-  seatNumber: number;
+  seat: number;
   /** Whether a seat API call is in-flight */
   isSubmitting: boolean;
   /** Called when user confirms the action */
@@ -35,14 +35,14 @@ interface SeatConfirmModalProps {
 const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   visible,
   modalType,
-  seatNumber,
+  seat,
   isSubmitting,
   onConfirm,
   onCancel,
   styles,
 }) => {
   const title = modalType === 'enter' ? '入座' : '离座';
-  const seatLabel = formatSeat(seatNumber);
+  const seatLabel = formatSeat(seat);
   const message =
     modalType === 'enter' ? `确定在${seatLabel}位入座？` : `确定从${seatLabel}位离座？`;
   const confirmText = isSubmitting

@@ -45,7 +45,7 @@ export interface GameContext {
 
   // Actor identity (for all action-related decisions)
   // When Host controls a bot, these are the bot's seat/role
-  actorSeatNumber: number | null;
+  actorSeat: number | null;
   actorRole: RoleId | null;
 
   isAudioPlaying: boolean;
@@ -58,7 +58,7 @@ export interface GameContext {
 
 export interface ActionDeps {
   /** Check if wolf has voted */
-  hasWolfVoted: (seatNumber: number) => boolean;
+  hasWolfVoted: (seat: number) => boolean;
 
   /** UI-only: precomputed wolf-vote summary string (e.g. "1/3 狼人已确认"). */
   getWolfVoteSummary: () => string;
@@ -252,7 +252,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     roomStatus,
     currentSchema,
     imActioner,
-    actorSeatNumber,
+    actorSeat,
     actorRole,
     isAudioPlaying,
     firstSwapSeat,
@@ -286,16 +286,16 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     // treasureMaster never participates in wolfVote even if chosen card is wolf.
     // Revote allowed: no longer check hasWolfVoted
     if (
-      actorSeatNumber !== null &&
+      actorSeat !== null &&
       actorRole &&
       effectiveActorRole &&
       doesRoleParticipateInWolfVote(effectiveActorRole) &&
       !isBottomCardWolfVoteExcluded(actorRole)
     ) {
-      return actorSeatNumber;
+      return actorSeat;
     }
     return null;
-  }, [gameState, actorSeatNumber, actorRole, effectiveActorRole]);
+  }, [gameState, actorSeat, actorRole, effectiveActorRole]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Action message builder
@@ -347,7 +347,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     if (currentSchema?.kind !== 'wolfVote') return null;
 
     const base = getWolfVoteSummary();
-    const voted = actorSeatNumber !== null && hasWolfVoted(actorSeatNumber);
+    const voted = actorSeat !== null && hasWolfVoted(actorSeat);
 
     if (!voted) {
       return base;
@@ -369,7 +369,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     getWolfVoteSummary,
     hasWolfVoted,
     effectiveActorRole,
-    actorSeatNumber,
+    actorSeat,
     gameState?.stepDeadline,
     countdownTick,
   ]);
@@ -386,7 +386,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
         isAudioPlaying,
         currentSchema,
         imActioner,
-        actorSeatNumber,
+        actorSeat,
         actorRole,
         multiSelectedSeats,
         hasWolfVoted,
@@ -399,7 +399,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       isAudioPlaying,
       currentSchema,
       roomStatus,
-      actorSeatNumber,
+      actorSeat,
       actorRole,
       hasWolfVoted,
       multiSelectedSeats,

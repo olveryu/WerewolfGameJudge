@@ -24,9 +24,9 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
     status: GameStatus.Ongoing,
     templateRoles: ['villager', 'wolf', 'seer'],
     players: {
-      0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-      1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-      2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+      0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
+      1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+      2: { userId: 'p3', seat: 2, role: 'seer', hasViewedRole: true },
     },
     currentStepIndex: 0,
     isAudioPlaying: false,
@@ -53,9 +53,9 @@ describe('handleViewedRole', () => {
     return createMinimalState({
       status: GameStatus.Assigned,
       players: {
-        0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: false },
-        1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: false },
-        2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: false },
+        0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: false },
+        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: false },
+        2: { userId: 'p3', seat: 2, role: 'seer', hasViewedRole: false },
       },
       ...overrides,
     });
@@ -185,9 +185,9 @@ describe('handleSubmitAction', () => {
       currentStepId: 'seerCheck',
       isAudioPlaying: false,
       players: {
-        0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-        1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-        2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+        0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
+        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+        2: { userId: 'p3', seat: 2, role: 'seer', hasViewedRole: true },
       },
       currentNightResults: {},
       actions: [],
@@ -318,9 +318,9 @@ describe('handleSubmitAction', () => {
     const state = createOngoingState({
       currentStepId: 'seerCheck',
       players: {
-        0: { userId: 'p1', seatNumber: 0, role: 'guard', hasViewedRole: true },
-        1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-        2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+        0: { userId: 'p1', seat: 0, role: 'guard', hasViewedRole: true },
+        1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+        2: { userId: 'p3', seat: 2, role: 'seer', hasViewedRole: true },
       },
     });
     const context = createContext(state);
@@ -340,9 +340,9 @@ describe('handleSubmitAction', () => {
   it('should fail when actor seat has no player (gate: not_seated)', () => {
     const state = createOngoingState({
       players: {
-        0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
+        0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
         1: null,
-        2: { userId: 'p3', seatNumber: 2, role: 'seer', hasViewedRole: true },
+        2: { userId: 'p3', seat: 2, role: 'seer', hasViewedRole: true },
       },
     });
     const context = createContext(state);
@@ -402,9 +402,9 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'wolfRobotLearn',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          2: { userId: 'p3', seatNumber: 2, role: 'wolfRobot', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+          2: { userId: 'p3', seat: 2, role: 'wolfRobot', hasViewedRole: true },
         },
       });
       const context = createContext(state);
@@ -429,9 +429,9 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'wolfRobotLearn',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          2: { userId: 'p3', seatNumber: 2, role: 'wolfRobot', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+          2: { userId: 'p3', seat: 2, role: 'wolfRobot', hasViewedRole: true },
         },
       });
       const context = createContext(state);
@@ -465,9 +465,9 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'seerCheck',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'seer', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          2: { userId: 'p3', seatNumber: 2, role: 'villager', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'seer', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+          2: { userId: 'p3', seat: 2, role: 'villager', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 0 }, // seer is blocked
       });
@@ -488,8 +488,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'seerCheck',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'seer', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'seer', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 0 }, // seer is blocked
       });
@@ -508,8 +508,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'seerCheck',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'seer', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'seer', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 99 }, // someone else blocked
       });
@@ -530,9 +530,9 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'magicianSwap',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'magician', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          2: { userId: 'p3', seatNumber: 2, role: 'villager', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'magician', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+          2: { userId: 'p3', seat: 2, role: 'villager', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 0 }, // magician is blocked
       });
@@ -559,8 +559,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'magicianSwap',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'magician', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'magician', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 0 }, // magician is blocked
       });
@@ -586,9 +586,9 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'witchAction',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          3: { userId: 'p3', seatNumber: 3, role: 'witch', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+          3: { userId: 'p3', seat: 3, role: 'witch', hasViewedRole: true },
         },
         currentNightResults: {
           blockedSeat: 3, // witch is blocked
@@ -617,9 +617,9 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'witchAction',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          3: { userId: 'p3', seatNumber: 3, role: 'witch', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+          3: { userId: 'p3', seat: 3, role: 'witch', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 3 }, // witch is blocked
       });
@@ -645,9 +645,9 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'witchAction',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          3: { userId: 'p3', seatNumber: 3, role: 'witch', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+          3: { userId: 'p3', seat: 3, role: 'witch', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 3 }, // witch is blocked
         witchContext: { killedSeat: 0, canSave: true, canPoison: true },
@@ -672,9 +672,9 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'witchAction',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'villager', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
-          3: { userId: 'p3', seatNumber: 3, role: 'witch', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
+          3: { userId: 'p3', seat: 3, role: 'witch', hasViewedRole: true },
         },
         currentNightResults: {
           blockedSeat: 99, // someone else blocked
@@ -704,8 +704,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'hunterConfirm',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'hunter', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'hunter', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 0 }, // hunter is blocked
       });
@@ -731,8 +731,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'hunterConfirm',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'hunter', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'hunter', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 0 }, // hunter is blocked
       });
@@ -756,8 +756,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'hunterConfirm',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'hunter', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'hunter', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
         },
         currentNightResults: {}, // NOT blocked
       });
@@ -783,8 +783,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'hunterConfirm',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'hunter', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'wolf', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'hunter', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
         },
         currentNightResults: {}, // NOT blocked
       });
@@ -810,8 +810,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'darkWolfKingConfirm',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'darkWolfKing', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'darkWolfKing', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'villager', hasViewedRole: true },
         },
         currentNightResults: { blockedSeat: 0 }, // darkWolfKing is blocked
       });
@@ -836,8 +836,8 @@ describe('handleSubmitAction', () => {
       const state = createOngoingState({
         currentStepId: 'darkWolfKingConfirm',
         players: {
-          0: { userId: 'p1', seatNumber: 0, role: 'darkWolfKing', hasViewedRole: true },
-          1: { userId: 'p2', seatNumber: 1, role: 'villager', hasViewedRole: true },
+          0: { userId: 'p1', seat: 0, role: 'darkWolfKing', hasViewedRole: true },
+          1: { userId: 'p2', seat: 1, role: 'villager', hasViewedRole: true },
         },
         currentNightResults: {}, // NOT blocked
       });

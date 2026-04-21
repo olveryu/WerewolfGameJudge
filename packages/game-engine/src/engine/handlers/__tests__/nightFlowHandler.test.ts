@@ -39,7 +39,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 function createPlayer(seat: number, role: string, overrides?: Partial<Player>): Player {
   return {
     userId: `player-${seat}`,
-    seatNumber: seat,
+    seat: seat,
     role: role as Player['role'],
     hasViewedRole: true,
     ...overrides,
@@ -219,14 +219,14 @@ describe('nightFlowHandler', () => {
           players: {
             0: {
               userId: 'u0',
-              seatNumber: 0,
+              seat: 0,
               displayName: 'P0',
               role: 'wolf',
               hasViewedRole: true,
             },
             1: {
               userId: 'u1',
-              seatNumber: 1,
+              seat: 1,
               displayName: 'P1',
               role: 'villager',
               hasViewedRole: true,

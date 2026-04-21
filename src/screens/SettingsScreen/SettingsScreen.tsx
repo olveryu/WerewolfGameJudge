@@ -68,7 +68,7 @@ export const SettingsScreen: React.FC = () => {
   const getSnapshot = useCallback(() => facade.getState(), [facade]);
   const gameState = useSyncExternalStore(subscribe, getSnapshot);
   const isInRoom = gameState !== null;
-  const isSeated = facade.getMySeatNumber() !== null;
+  const isSeated = facade.getMySeat() !== null;
   // 角色分配后（Assigned/Ready/Ongoing/Ended）禁止切换账号/绑定邮箱
   const canSwitchAccount =
     !isInRoom ||

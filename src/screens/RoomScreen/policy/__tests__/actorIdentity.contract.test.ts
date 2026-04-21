@@ -2,7 +2,7 @@
  * actorIdentity.contract.test.ts - Contract tests for actor identity single source of truth
  *
  * These tests lock the behavior of getActorIdentity to ensure:
- * 1. When not delegating (controlledSeat=null): actorSeatForUi = mySeatNumber, actorRoleForUi = myRole
+ * 1. When not delegating (controlledSeat=null): actorSeatForUi = mySeat, actorRoleForUi = myRole
  * 2. When delegating (controlledSeat=botSeat): actorSeatForUi = effectiveSeat, actorRoleForUi = effectiveRole
  * 3. Consistency check: when delegating, effectiveSeat MUST equal controlledSeat (fail-fast)
  * 4. isDelegating flag is correctly set
@@ -13,11 +13,11 @@ import { getActorIdentity, isActorIdentityValid } from '@/screens/RoomScreen/pol
 
 describe('getActorIdentity contract', () => {
   describe('when NOT delegating (controlledSeat=null)', () => {
-    it('returns mySeatNumber/myRole as actor identity (NOT effectiveSeat/effectiveRole)', () => {
+    it('returns mySeat/myRole as actor identity (NOT effectiveSeat/effectiveRole)', () => {
       const result = getActorIdentity({
-        mySeatNumber: 3,
+        mySeat: 3,
         myRole: 'seer',
-        effectiveSeat: 3, // = mySeatNumber when not controlling
+        effectiveSeat: 3, // = mySeat when not controlling
         effectiveRole: 'seer',
         controlledSeat: null,
       });
@@ -27,24 +27,24 @@ describe('getActorIdentity contract', () => {
       expect(result.isDelegating).toBe(false);
     });
 
-    it('uses mySeatNumber even if effectiveSeat differs (edge case prevention)', () => {
+    it('uses mySeat even if effectiveSeat differs (edge case prevention)', () => {
       // This shouldn't happen in practice, but tests that we use mySeat not effective
       const result = getActorIdentity({
-        mySeatNumber: 3,
+        mySeat: 3,
         myRole: 'seer',
         effectiveSeat: 5, // Inconsistent with mySeat - should be ignored when not delegating
         effectiveRole: 'wolf',
         controlledSeat: null,
       });
 
-      expect(result.actorSeatForUi).toBe(3); // Uses mySeatNumber
+      expect(result.actorSeatForUi).toBe(3); // Uses mySeat
       expect(result.actorRoleForUi).toBe('seer'); // Uses myRole
       expect(result.isDelegating).toBe(false);
     });
 
     it('returns null actor identity when not seated', () => {
       const result = getActorIdentity({
-        mySeatNumber: null,
+        mySeat: null,
         myRole: null,
         effectiveSeat: null,
         effectiveRole: null,
@@ -60,7 +60,7 @@ describe('getActorIdentity contract', () => {
   describe('when delegating (controlledSeat=botSeat)', () => {
     it('returns effectiveSeat/effectiveRole as actor identity when consistent', () => {
       const result = getActorIdentity({
-        mySeatNumber: 0, // Host's real seat
+        mySeat: 0, // Host's real seat
         myRole: 'wolf',
         effectiveSeat: 5, // Bot seat being controlled
         effectiveRole: 'seer', // Bot's role
@@ -76,7 +76,7 @@ describe('getActorIdentity contract', () => {
       // This tests the consistency check - if effectiveSeat doesn't match controlledSeat,
       // something is wrong and we should fail-fast (return invalid identity)
       const result = getActorIdentity({
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: 'wolf',
         effectiveSeat: 3, // WRONG - should be 5
         effectiveRole: 'hunter',
@@ -92,7 +92,7 @@ describe('getActorIdentity contract', () => {
     it('isDelegating is true when controlling same seat as mySeat (edge case)', () => {
       // Edge case: controlling the seat you're actually sitting on
       const result = getActorIdentity({
-        mySeatNumber: 3,
+        mySeat: 3,
         myRole: 'wolf',
         effectiveSeat: 3,
         effectiveRole: 'wolf',
@@ -108,7 +108,7 @@ describe('getActorIdentity contract', () => {
   describe('isActorIdentityValid', () => {
     it('returns true when both seat and role are valid', () => {
       const identity = getActorIdentity({
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: 'wolf',
         effectiveSeat: 0,
         effectiveRole: 'wolf',
@@ -120,7 +120,7 @@ describe('getActorIdentity contract', () => {
 
     it('returns false when seat is null', () => {
       const identity = getActorIdentity({
-        mySeatNumber: null,
+        mySeat: null,
         myRole: null,
         effectiveSeat: null,
         effectiveRole: null,
@@ -132,7 +132,7 @@ describe('getActorIdentity contract', () => {
 
     it('returns false when role is null', () => {
       const identity = getActorIdentity({
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: null,
         effectiveSeat: 0,
         effectiveRole: null,
@@ -144,7 +144,7 @@ describe('getActorIdentity contract', () => {
 
     it('returns false for inconsistent delegation state', () => {
       const identity = getActorIdentity({
-        mySeatNumber: 0,
+        mySeat: 0,
         myRole: 'wolf',
         effectiveSeat: 3, // Mismatches controlledSeat
         effectiveRole: 'seer',
@@ -160,7 +160,7 @@ describe('actor identity integration with policy context', () => {
   it('controlledSeat switch changes actor identity for UI decisions', () => {
     // Simulate Host (seat 0, wolf) not controlling any bot
     const notControlling = getActorIdentity({
-      mySeatNumber: 0,
+      mySeat: 0,
       myRole: 'wolf',
       effectiveSeat: 0,
       effectiveRole: 'wolf',
@@ -173,7 +173,7 @@ describe('actor identity integration with policy context', () => {
 
     // Now Host takes over bot at seat 5 (seer)
     const controllingBot = getActorIdentity({
-      mySeatNumber: 0,
+      mySeat: 0,
       myRole: 'wolf',
       effectiveSeat: 5,
       effectiveRole: 'seer',
@@ -188,7 +188,7 @@ describe('actor identity integration with policy context', () => {
   it('releasing control reverts to real identity', () => {
     // Host releases control - back to real identity
     const released = getActorIdentity({
-      mySeatNumber: 0,
+      mySeat: 0,
       myRole: 'wolf',
       effectiveSeat: 0, // Back to mySeat
       effectiveRole: 'wolf',

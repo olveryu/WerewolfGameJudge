@@ -59,7 +59,7 @@ export interface IGameFacade {
    * 当前用户座位号
    * 从 state 派生，不自己维护
    */
-  getMySeatNumber(): number | null;
+  getMySeat(): number | null;
 
   /**
    * 状态版本号
@@ -111,7 +111,7 @@ export interface IGameFacade {
    * 统一 HTTP API，服务端处理
    */
   takeSeat(
-    seatNumber: number,
+    seat: number,
     displayName?: string,
     avatarUrl?: string,
     avatarFrame?: string,
@@ -126,7 +126,7 @@ export interface IGameFacade {
    * @returns success + reason（透传服务端拒绝原因）
    */
   takeSeatWithAck(
-    seatNumber: number,
+    seat: number,
     displayName?: string,
     avatarUrl?: string,
     avatarFrame?: string,

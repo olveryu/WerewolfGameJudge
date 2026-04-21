@@ -60,7 +60,7 @@ function createDeps(overrides: Record<string, unknown> = {}) {
     facade: createMockFacade(),
     bgm: createMockBgm(),
     debug: createMockDebug(),
-    mySeatNumber: 1,
+    mySeat: 1,
     gameState: null,
     ...overrides,
   } as any;
@@ -221,8 +221,8 @@ describe('useGameActions - game control', () => {
 describe('useGameActions - player night actions', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('viewedRole should use mySeatNumber when no controlled seat', async () => {
-    const deps = createDeps({ mySeatNumber: 3 });
+  it('viewedRole should use mySeat when no controlled seat', async () => {
+    const deps = createDeps({ mySeat: 3 });
     const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.viewedRole());
@@ -241,7 +241,7 @@ describe('useGameActions - player night actions', () => {
 
   it('viewedRole should skip when both seats are null', async () => {
     const deps = createDeps({
-      mySeatNumber: null,
+      mySeat: null,
       debug: createMockDebug({ controlledSeat: null }),
     });
     const { result } = renderHook(() => useGameActions(deps));

@@ -87,7 +87,7 @@ export function useAIChat(): UseAIChatReturn {
   useEffect(() => {
     if (isOpen) {
       const gameState = facade.getState();
-      const mySeat = facade.getMySeatNumber();
+      const mySeat = facade.getMySeat();
       setContextQuestions(generateQuickQuestions(gameState, mySeat));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,7 +97,7 @@ export function useAIChat(): UseAIChatReturn {
   useEffect(() => {
     if (prevStreamingRef.current && !chat.isStreaming) {
       const gameState = facade.getState();
-      const mySeat = facade.getMySeatNumber();
+      const mySeat = facade.getMySeat();
       setContextQuestions(generateQuickQuestions(gameState, mySeat));
     }
     prevStreamingRef.current = chat.isStreaming;

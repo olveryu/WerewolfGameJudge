@@ -47,7 +47,7 @@ const createMockFacade = (): IGameFacade =>
     getState: jest.fn(() => null),
     isHostPlayer: jest.fn(() => false),
     getMyUserId: jest.fn(() => null),
-    getMySeatNumber: jest.fn(() => null),
+    getMySeat: jest.fn(() => null),
     getStateRevision: jest.fn(() => 0),
     createRoom: jest.fn(),
     joinRoom: jest.fn().mockResolvedValue({ success: true }),

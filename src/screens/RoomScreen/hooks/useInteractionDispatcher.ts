@@ -41,7 +41,7 @@ interface UseInteractionDispatcherParams {
   pendingHunterStatusViewed: boolean;
 
   // ── Identity ──
-  mySeatNumber: number | null;
+  mySeat: number | null;
   myRole: RoleId | null;
   actorSeatForUi: number | null;
   actorRoleForUi: RoleId | null;
@@ -112,7 +112,7 @@ export function useInteractionDispatcher({
   imActioner,
   pendingRevealDialog,
   pendingHunterStatusViewed,
-  mySeatNumber,
+  mySeat,
   myRole,
   actorSeatForUi,
   actorRoleForUi,
@@ -172,13 +172,13 @@ export function useInteractionDispatcher({
 
   const handleSeatingTap = useCallback(
     (seat: number) => {
-      if (mySeatNumber !== null && seat === mySeatNumber) {
+      if (mySeat !== null && seat === mySeat) {
         showLeaveSeatDialog(seat);
       } else {
         showEnterSeatDialog(seat);
       }
     },
-    [mySeatNumber, showLeaveSeatDialog, showEnterSeatDialog],
+    [mySeat, showLeaveSeatDialog, showEnterSeatDialog],
   );
 
   const handleActionTap = useCallback(
@@ -209,7 +209,7 @@ export function useInteractionDispatcher({
       isHost,
       imActioner,
       // Real identity (for display purposes only)
-      mySeatNumber,
+      mySeat,
       myRole,
       // Actor identity (for all action-related decisions)
       actorSeatForUi,
@@ -240,7 +240,7 @@ export function useInteractionDispatcher({
       pendingHunterStatusViewed,
       isHost,
       imActioner,
-      mySeatNumber,
+      mySeat,
       myRole,
       actorSeatForUi,
       actorRoleForUi,

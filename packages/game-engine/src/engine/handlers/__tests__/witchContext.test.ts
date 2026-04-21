@@ -16,7 +16,7 @@ import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 function createPlayer(seat: number, role: string): Player {
   return {
     userId: `uid-${seat}`,
-    seatNumber: seat,
+    seat: seat,
     role: role as Player['role'],
     hasViewedRole: true,
   };

@@ -11,7 +11,7 @@ type MakeUseGameRoomArgs = {
   schemaId: SchemaId;
   currentActionRole: RoleId;
   myRole: RoleId;
-  mySeatNumber?: number;
+  mySeat?: number;
   numberOfPlayers?: number;
   /** Optional per-test override for hook return */
   overrides?: Partial<UseGameRoomReturn>;
@@ -30,7 +30,7 @@ export function makeBaseUseGameRoomReturn({
   schemaId,
   currentActionRole,
   myRole,
-  mySeatNumber = 0,
+  mySeat = 0,
   numberOfPlayers = 12,
   overrides,
   gameStateOverrides,
@@ -42,10 +42,10 @@ export function makeBaseUseGameRoomReturn({
       i,
       {
         userId: `p${i}`,
-        seatNumber: i,
+        seat: i,
         displayName: `P${i + 1}`,
         avatarUrl: undefined,
-        role: i === mySeatNumber ? myRole : 'villager',
+        role: i === mySeat ? myRole : 'villager',
         hasViewedRole: true,
       },
     ]),
@@ -84,14 +84,14 @@ export function makeBaseUseGameRoomReturn({
     currentSchema: getSchema(schemaId),
     isAudioPlaying: false,
 
-    mySeatNumber,
+    mySeat,
     myRole,
-    myUserId: `p${mySeatNumber}`,
+    myUserId: `p${mySeat}`,
 
     // Debug mode fields
     isDebugMode: false,
     controlledSeat: null,
-    effectiveSeat: mySeatNumber,
+    effectiveSeat: mySeat,
     effectiveRole: myRole,
     fillWithBots: jest.fn(),
     markAllBotsViewed: jest.fn(),

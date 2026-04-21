@@ -28,10 +28,10 @@ import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 /**
  * 将 Player + RosterEntry 转换为 LocalPlayer
  */
-function toLocalPlayer(bp: Player, seatNumber: number, roster?: RosterEntry): LocalPlayer {
+function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPlayer {
   return {
     userId: bp.userId,
-    seatNumber,
+    seat,
     displayName: roster?.displayName,
     avatarUrl: roster?.avatarUrl,
     avatarFrame: roster?.avatarFrame,

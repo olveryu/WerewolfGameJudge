@@ -33,7 +33,7 @@ const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {
     schemaId: 'seerCheck',
     currentActionRole: 'seer',
     myRole: 'seer',
-    mySeatNumber: 0,
+    mySeat: 0,
   });
   return {
     ...base,
@@ -122,14 +122,14 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
         myRole: 'hunter',
-        mySeatNumber: 0,
+        mySeat: 0,
       }),
       gameState: {
         ...makeBaseUseGameRoomReturn({
           schemaId: 'hunterConfirm',
           currentActionRole: 'hunter',
           myRole: 'hunter',
-          mySeatNumber: 0,
+          mySeat: 0,
         }).gameState,
         confirmStatus: { role: 'hunter', canShoot: true },
         nightmareBlockedSeat: 0,
@@ -171,7 +171,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
         schemaId: 'hunterConfirm',
         currentActionRole: 'hunter',
         myRole: 'hunter',
-        mySeatNumber: 0,
+        mySeat: 0,
         gameStateOverrides: {
           confirmStatus: { role: 'hunter', canShoot: true },
           nightmareBlockedSeat: null, // No nightmare block
@@ -206,7 +206,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
         schemaId: 'darkWolfKingConfirm',
         currentActionRole: 'darkWolfKing',
         myRole: 'darkWolfKing',
-        mySeatNumber: 0,
+        mySeat: 0,
         gameStateOverrides: {
           confirmStatus: { role: 'darkWolfKing', canShoot: true },
           nightmareBlockedSeat: null, // No nightmare block
@@ -241,14 +241,14 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
         schemaId: 'darkWolfKingConfirm',
         currentActionRole: 'darkWolfKing',
         myRole: 'darkWolfKing',
-        mySeatNumber: 0,
+        mySeat: 0,
       }),
       gameState: {
         ...makeBaseUseGameRoomReturn({
           schemaId: 'darkWolfKingConfirm',
           currentActionRole: 'darkWolfKing',
           myRole: 'darkWolfKing',
-          mySeatNumber: 0,
+          mySeat: 0,
         }).gameState,
         confirmStatus: { role: 'darkWolfKing', canShoot: true },
         nightmareBlockedSeat: 0,

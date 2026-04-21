@@ -43,7 +43,7 @@ const makeMock = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
     schemaId: 'witchAction',
     currentActionRole: 'witch',
     myRole: 'witch',
-    mySeatNumber: 0,
+    mySeat: 0,
     overrides: {
       submitAction: mockSubmitAction,
     },
@@ -122,7 +122,7 @@ describe('RoomScreen witch save UI (contract)', () => {
   });
 
   it('save button -> confirm -> submitAction(actorSeat, { stepResults: { save: killedSeat, poison: null } })', async () => {
-    // killedSeat = 2, mySeatNumber = 0
+    // killedSeat = 2, mySeat = 0
     const killedSeat = 2;
     mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
 
@@ -163,7 +163,7 @@ describe('RoomScreen witch save UI (contract)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // protocol: seat = actorSeat (mySeatNumber=0), target in stepResults
+    // protocol: seat = actorSeat (mySeat=0), target in stepResults
     expect(mockSubmitAction).toHaveBeenCalledWith(0, {
       stepResults: { save: killedSeat, poison: null },
     });

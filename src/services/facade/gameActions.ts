@@ -25,7 +25,7 @@ import { defineGameAction } from './defineGameAction';
 export interface GameActionsContext {
   readonly store: GameStore;
   myUserId: string | null;
-  getMySeatNumber: () => number | null;
+  getMySeat: () => number | null;
   /** AudioService 实例（用于 preload 等直接调用） */
   audioService: AudioService;
 }

@@ -70,7 +70,7 @@ export interface AudioEffect {
 
 export interface Player {
   userId: string;
-  seatNumber: number;
+  seat: number;
   role?: RoleId | null;
   hasViewedRole: boolean;
   /** Debug mode: true if this is a bot placeholder (not a real player) */
@@ -85,7 +85,7 @@ export interface Player {
  * RosterEntry — 房间内玩家的展示信息（昵称 / 头像 / 等级）。
  *
  * 与 Player（游戏逻辑字段）分离：
- * - Player: userId / seatNumber / role / hasViewedRole / isBot
+ * - Player: userId / seat / role / hasViewedRole / isBot
  * - RosterEntry: displayName / avatarUrl / avatarFrame / level
  *
  * keyed by userId in GameState.roster。

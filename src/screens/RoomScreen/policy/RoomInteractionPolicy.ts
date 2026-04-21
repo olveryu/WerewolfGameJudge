@@ -103,7 +103,7 @@ function handleSeatTap(
   ctx: InteractionContext,
   event: { seat: number; disabledReason?: string },
 ): InteractionResult {
-  const targetUserId = event.seat !== ctx.mySeatNumber ? ctx.getPlayerUid?.(event.seat) : undefined;
+  const targetUserId = event.seat !== ctx.mySeat ? ctx.getPlayerUid?.(event.seat) : undefined;
 
   const seatResult = getSeatTapResult({
     roomStatus: ctx.roomStatus,
@@ -112,8 +112,7 @@ function handleSeatTap(
     disabledReason: event.disabledReason,
     imActioner: ctx.imActioner,
     hasGameState: ctx.hasGameState,
-    isSeatOccupiedByOther:
-      event.seat !== ctx.mySeatNumber && (ctx.isSeatOccupied?.(event.seat) ?? false),
+    isSeatOccupiedByOther: event.seat !== ctx.mySeat && (ctx.isSeatOccupied?.(event.seat) ?? false),
     targetUserId,
   });
 

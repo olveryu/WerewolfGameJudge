@@ -46,7 +46,7 @@ function makeGameState(
 function makePlayer(seat: number, role: string | null): LocalPlayer {
   return {
     userId: `uid-${seat}`,
-    seatNumber: seat,
+    seat: seat,
     role: role as LocalPlayer['role'],
     hasViewedRole: true,
   };

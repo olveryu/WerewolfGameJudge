@@ -25,7 +25,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 function createMinimalPlayer(seat: number, overrides?: Partial<Player>): Player {
   return {
     userId: `player-${seat}`,
-    seatNumber: seat,
+    seat: seat,
     hasViewedRole: false,
     role: null,
     ...overrides,
@@ -97,7 +97,7 @@ describe('handleFillWithBots', () => {
       // Each bot should have isBot: true
       for (const [seat, bot] of Object.entries(bots)) {
         expect(bot.isBot).toBe(true);
-        expect(bot.seatNumber).toBe(Number(seat));
+        expect(bot.seat).toBe(Number(seat));
         expect(bot.userId).toMatch(/^bot-\d+$/);
       }
     });
