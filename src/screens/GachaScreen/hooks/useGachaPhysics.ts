@@ -303,7 +303,7 @@ export function useGachaPhysics(scale: number) {
   // Pre-fill balls on mount so they're visible immediately
   useEffect(() => {
     ballData.value = preSettle();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ballData.value is a Reanimated SharedValue (stable ref)
   }, [preSettle]);
 
   // ── Helper: trigger ball open ─────────────────────────────────────────

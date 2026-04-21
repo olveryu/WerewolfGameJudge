@@ -96,7 +96,7 @@ export const restoreFromTemplateRoles = (
     if (VARIANT_TO_BASE.has(role)) {
       overrides[baseId] = role;
     }
-    baseCounts[baseId] = (baseCounts[baseId] || 0) + 1;
+    baseCounts[baseId] = (baseCounts[baseId] ?? 0) + 1;
   });
   Object.entries(baseCounts).forEach(([baseRole, count]) => {
     for (let i = 0; i < count; i++) {

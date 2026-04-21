@@ -143,9 +143,8 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
     [styles, chat.isStreaming, lastMessageId],
   );
 
-  // Web drag style
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const webDragStyle: any =
+  // Web drag style — CSS properties not in RN ViewStyle, typed as Record for web-only passthrough
+  const webDragStyle: Record<string, string> =
     Platform.OS === 'web' ? { touchAction: 'none', cursor: 'grab', userSelect: 'none' } : {};
 
   return (

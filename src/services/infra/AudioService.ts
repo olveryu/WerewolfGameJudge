@@ -19,10 +19,6 @@ import type { AudioAsset, AudioPlaybackStrategy } from './audio/types';
 import { WebAudioStrategy } from './audio/WebAudioStrategy';
 import { setupWebAudioUnlock } from './audio/webAudioUnlock';
 
-// Re-export for backward compatibility (consumers import from AudioService)
-export { _AUDIO_END_ROLE_IDS, _AUDIO_ROLE_IDS } from './audio/audioRegistry';
-export { audioAssetToUrl } from './audio/types';
-
 const isWeb = Platform.OS === 'web';
 
 /**

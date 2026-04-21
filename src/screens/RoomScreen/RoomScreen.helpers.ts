@@ -300,7 +300,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
     const { faction, displayName } = spec;
 
     if (faction === Faction.Wolf) {
-      roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
+      roleCounts[displayName] = (roleCounts[displayName] ?? 0) + 1;
       if (!wolfRolesList.includes(displayName)) {
         wolfRolesList.push(displayName);
       }
@@ -312,7 +312,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
           : { roleId: role, displayName, count: 1 },
       );
     } else if (faction === Faction.God) {
-      roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
+      roleCounts[displayName] = (roleCounts[displayName] ?? 0) + 1;
       if (!godRolesList.includes(displayName)) {
         godRolesList.push(displayName);
       }
@@ -324,7 +324,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
           : { roleId: role, displayName, count: 1 },
       );
     } else if (faction === Faction.Special) {
-      roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
+      roleCounts[displayName] = (roleCounts[displayName] ?? 0) + 1;
       if (!specialRolesList.includes(displayName)) {
         specialRolesList.push(displayName);
       }
@@ -339,7 +339,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
       villagerCount++;
     } else {
       // Villager-faction but not generic villager (e.g. mirrorSeer)
-      roleCounts[displayName] = (roleCounts[displayName] || 0) + 1;
+      roleCounts[displayName] = (roleCounts[displayName] ?? 0) + 1;
       const existing = villagerItemMap.get(role);
       villagerItemMap.set(
         role,

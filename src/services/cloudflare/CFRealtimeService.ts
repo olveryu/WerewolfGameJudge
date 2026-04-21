@@ -139,8 +139,10 @@ export class CFRealtimeService implements IRealtimeTransport {
           newXp: data.newXp,
           newLevel: data.newLevel,
           previousLevel: data.previousLevel,
-          normalDrawsEarned: (data.normalDrawsEarned as number) ?? 0,
-          goldenDrawsEarned: (data.goldenDrawsEarned as number) ?? 0,
+          normalDrawsEarned:
+            typeof data.normalDrawsEarned === 'number' ? data.normalDrawsEarned : 0,
+          goldenDrawsEarned:
+            typeof data.goldenDrawsEarned === 'number' ? data.goldenDrawsEarned : 0,
         });
       } else if (data.type === 'pong') {
         this.#handlers?.onPong();

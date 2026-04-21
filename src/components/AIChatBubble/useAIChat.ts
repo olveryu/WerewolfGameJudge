@@ -90,7 +90,7 @@ export function useAIChat(): UseAIChatReturn {
       const mySeat = facade.getMySeat();
       setContextQuestions(generateQuickQuestions(gameState, mySeat));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open-only: facade is a stable singleton, refreshing quick questions only when panel opens
   }, [isOpen]); // 故意不依赖 messages，只在打开时刷新一次
 
   // Refresh quick questions when streaming completes（每条回复后刷新建议问题）

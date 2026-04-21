@@ -98,13 +98,13 @@ jest.mock('../../../../assets/audio_end/seer_2.mp3', () => 'seer_2-end-audio', {
 // Now import AudioService after mocks are set up
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
 
-import { BGM_VOLUME } from '@/services/infra/audio/audioRegistry';
 import {
   _AUDIO_END_ROLE_IDS,
   _AUDIO_ROLE_IDS,
-  audioAssetToUrl,
-  AudioService,
-} from '@/services/infra/AudioService';
+  BGM_VOLUME,
+} from '@/services/infra/audio/audioRegistry';
+import { audioAssetToUrl } from '@/services/infra/audio/types';
+import { AudioService } from '@/services/infra/AudioService';
 
 describe('audioAssetToUrl', () => {
   it('should passthrough string URL', () => {

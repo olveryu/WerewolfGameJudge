@@ -56,7 +56,7 @@ export const RandomRoleCard = memo<RandomRoleCardProps>(
     // Auto-flip on mount
     useEffect(() => {
       rotation.value = withDelay(AUTO_FLIP_DELAY, withTiming(180, { duration: FLIP_DURATION }));
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: rotation.value is a Reanimated SharedValue (stable ref)
     }, []);
 
     const handleRefresh = useCallback(() => {
