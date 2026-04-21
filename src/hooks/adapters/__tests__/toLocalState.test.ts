@@ -18,6 +18,10 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     roster: {
       p0: { displayName: 'P1' },
       p1: { displayName: 'P2' },

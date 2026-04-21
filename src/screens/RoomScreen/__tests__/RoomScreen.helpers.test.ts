@@ -235,6 +235,10 @@ describe('toGameRoomLike', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
+      hypnotizedSeats: [],
+      piperRevealAcks: [],
+      conversionRevealAcks: [],
+      cupidLoversRevealAcks: [],
       status: GameStatus.Seated,
     };
 
@@ -292,6 +296,10 @@ describe('buildSeatViewModels', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
+      hypnotizedSeats: [],
+      piperRevealAcks: [],
+      conversionRevealAcks: [],
+      cupidLoversRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 
@@ -371,6 +379,10 @@ describe('buildSeatViewModels', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
+      hypnotizedSeats: [],
+      piperRevealAcks: [],
+      conversionRevealAcks: [],
+      cupidLoversRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 
@@ -424,6 +436,10 @@ describe('buildSeatViewModels', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
+      hypnotizedSeats: [],
+      piperRevealAcks: [],
+      conversionRevealAcks: [],
+      cupidLoversRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 
@@ -481,6 +497,10 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
+        hypnotizedSeats: [],
+        piperRevealAcks: [],
+        conversionRevealAcks: [],
+        cupidLoversRevealAcks: [],
         status: GameStatus.Ongoing,
       };
 
@@ -544,6 +564,10 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
+        hypnotizedSeats: [],
+        piperRevealAcks: [],
+        conversionRevealAcks: [],
+        cupidLoversRevealAcks: [],
         status: GameStatus.Ongoing,
       };
 
@@ -609,6 +633,10 @@ describe('buildSeatViewModels', () => {
       lastNightDeaths: [],
       currentNightResults: { wolfVotesBySeat },
       pendingRevealAcks: [],
+      hypnotizedSeats: [],
+      piperRevealAcks: [],
+      conversionRevealAcks: [],
+      cupidLoversRevealAcks: [],
       status: GameStatus.Ongoing,
     });
 
@@ -697,6 +725,10 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
+        hypnotizedSeats: [],
+        piperRevealAcks: [],
+        conversionRevealAcks: [],
+        cupidLoversRevealAcks: [],
         status: GameStatus.Assigned,
       };
 
@@ -726,6 +758,10 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
+        hypnotizedSeats: [],
+        piperRevealAcks: [],
+        conversionRevealAcks: [],
+        cupidLoversRevealAcks: [],
         status: GameStatus.Assigned,
       };
 
@@ -764,6 +800,10 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
+        hypnotizedSeats: [],
+        piperRevealAcks: [],
+        conversionRevealAcks: [],
+        cupidLoversRevealAcks: [],
         status: GameStatus.Assigned,
       };
 
@@ -790,6 +830,10 @@ describe('buildSeatViewModels', () => {
         lastNightDeaths: [],
         currentNightResults: {},
         pendingRevealAcks: [],
+        hypnotizedSeats: [],
+        piperRevealAcks: [],
+        conversionRevealAcks: [],
+        cupidLoversRevealAcks: [],
         status: GameStatus.Ongoing,
       };
 
@@ -915,6 +959,10 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
       lastNightDeaths: [],
       currentNightResults: { wolfVotesBySeat: { '0': 1 } },
       pendingRevealAcks: [],
+      hypnotizedSeats: [],
+      piperRevealAcks: [],
+      conversionRevealAcks: [],
+      cupidLoversRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 
@@ -937,6 +985,10 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
+      hypnotizedSeats: [],
+      piperRevealAcks: [],
+      conversionRevealAcks: [],
+      cupidLoversRevealAcks: [],
       status: GameStatus.Ongoing,
     } as LocalGameState;
 
@@ -959,6 +1011,10 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
       lastNightDeaths: [],
       currentNightResults: {},
       pendingRevealAcks: [],
+      hypnotizedSeats: [],
+      piperRevealAcks: [],
+      conversionRevealAcks: [],
+      cupidLoversRevealAcks: [],
       status: GameStatus.Ongoing,
     };
 

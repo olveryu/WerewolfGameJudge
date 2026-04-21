@@ -7,7 +7,7 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import type { GameState, GameStatePayload } from '@werewolf/game-engine/engine/store/types';
 
 import { facadeLog } from '@/utils/logger';
 
@@ -24,7 +24,7 @@ async function callGameControlApi(
   path: string,
   body: Record<string, unknown>,
   store?: GameStore,
-  optimisticFn?: (state: GameState) => GameState,
+  optimisticFn?: (state: GameState) => GameStatePayload,
 ): Promise<ApiResponse> {
   return callApiWithRetry(path, body, 'callGameControlApi', store, optimisticFn);
 }
@@ -65,7 +65,7 @@ interface GameActionDef<TArgs extends unknown[]> {
   /** Build extra body fields beyond roomCode (and userId when needsUserId is true) */
   body?: (...args: TArgs) => Record<string, unknown>;
   /** Optimistic state update applied before the fetch */
-  optimistic?: (...args: TArgs) => (state: GameState) => GameState;
+  optimistic?: (...args: TArgs) => (state: GameState) => GameStatePayload;
   /** Post-call hook — fire-and-forget side-effects or failure logging */
   after?: (ctx: GameActionsContext, result: ActionResult, ...args: TArgs) => void;
 }

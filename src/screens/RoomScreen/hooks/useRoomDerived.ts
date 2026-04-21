@@ -82,7 +82,7 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
       groupConfirmAcks:
         currentSchema?.kind === 'groupConfirm'
           ? (() => {
-              const acksMap: Record<string, readonly number[] | undefined> = {
+              const acksMap: Record<string, readonly number[]> = {
                 awakenedGargoyleConvertReveal: gameState.conversionRevealAcks,
                 cupidLoversReveal: gameState.cupidLoversRevealAcks,
                 piperHypnotizedReveal: gameState.piperRevealAcks,
@@ -91,7 +91,7 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
               if (!(id in acksMap)) {
                 throw new Error(`Unknown groupConfirm step: ${id}`);
               }
-              return acksMap[id] ?? [];
+              return acksMap[id];
             })()
           : undefined,
     });

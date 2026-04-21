@@ -30,6 +30,10 @@ const makeGameState = (): LocalGameState =>
     lastNightDeaths: [],
     currentNightResults: {},
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
   }) as LocalGameState;
 
 const makeSeerSchema = (): ActionSchema => SCHEMAS.seerCheck;

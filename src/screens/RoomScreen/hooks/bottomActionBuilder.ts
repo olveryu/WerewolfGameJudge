@@ -261,10 +261,10 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
   if (currentSchema.kind === 'groupConfirm') {
     const acks =
       currentSchema.id === 'awakenedGargoyleConvertReveal'
-        ? (gameState.conversionRevealAcks ?? [])
+        ? gameState.conversionRevealAcks
         : currentSchema.id === 'cupidLoversReveal'
-          ? (gameState.cupidLoversRevealAcks ?? [])
-          : (gameState.piperRevealAcks ?? []);
+          ? gameState.cupidLoversRevealAcks
+          : gameState.piperRevealAcks;
     if (actorSeat !== null && acks.includes(actorSeat)) {
       return EMPTY;
     }

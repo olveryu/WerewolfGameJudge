@@ -16,7 +16,7 @@
  * 不包含游戏逻辑，不持久化状态。
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
 
 import type { IRealtimeTransport, SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import { connectionLog } from '@/utils/logger';
@@ -43,13 +43,15 @@ export interface ConnectionManagerDeps {
   /** WebSocket 传输层（IRealtimeTransport） */
   transport: IRealtimeTransport;
   /** 从 DB 拉取完整 game state（Host + Player 通用） */
-  fetchStateFromDB: (roomCode: string) => Promise<{ state: GameState; revision: number } | null>;
+  fetchStateFromDB: (
+    roomCode: string,
+  ) => Promise<{ state: GameStatePayload; revision: number } | null>;
   /** 轻量 revision 比对：从 DB 读 state_revision */
   getStateRevision: (roomCode: string) => Promise<number | null>;
   /** WS 广播收到 STATE_UPDATE 时的回调 */
-  onStateUpdate: (state: GameState, revision: number, lastAction?: string) => void;
+  onStateUpdate: (state: GameStatePayload, revision: number, lastAction?: string) => void;
   /** fetch 或 WS 广播获得新 state 后的回调（用于 store.applySnapshot） */
-  onFetchedState: (state: GameState, revision: number) => void;
+  onFetchedState: (state: GameStatePayload, revision: number) => void;
   /** 游戏结算结果单播回调（可选） */
   onSettleResult?: (result: SettleResultMessage) => void;
 }

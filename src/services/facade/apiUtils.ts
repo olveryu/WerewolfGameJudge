@@ -6,7 +6,7 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import type { GameState, GameStatePayload } from '@werewolf/game-engine/engine/store/types';
 import { secureRng } from '@werewolf/game-engine/utils/random';
 
 import { API_BASE_URL, API_REGION, API_TIMEOUT_MS } from '@/config/api';
@@ -26,7 +26,7 @@ export interface ApiResponse {
  */
 function applyOptimisticUpdate(
   store: GameStore | undefined,
-  optimisticFn: ((state: GameState) => GameState) | undefined,
+  optimisticFn: ((state: GameState) => GameStatePayload) | undefined,
 ): void {
   if (optimisticFn && store) {
     const currentState = store.getState();
@@ -151,7 +151,7 @@ export async function callApiWithRetry(
   body: Record<string, unknown>,
   label: string,
   store?: GameStore,
-  optimisticFn?: (state: GameState) => GameState,
+  optimisticFn?: (state: GameState) => GameStatePayload,
 ): Promise<ApiResponse> {
   applyOptimisticUpdate(store, optimisticFn);
 

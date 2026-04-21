@@ -9,7 +9,7 @@
  * - 不做什么：重连、退避、ping/pong timer、状态管理、平台事件监听
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Event Handlers (transport → ConnectionManager)
@@ -28,7 +28,7 @@ export interface TransportEventHandlers {
   onOpen(): void;
   onClose(code: number, reason: string): void;
   onError(error: unknown): void;
-  onStateUpdate(state: GameState, revision: number, lastAction?: string): void;
+  onStateUpdate(state: GameStatePayload, revision: number, lastAction?: string): void;
   onSettleResult(result: SettleResultMessage): void;
   onPong(): void;
 }

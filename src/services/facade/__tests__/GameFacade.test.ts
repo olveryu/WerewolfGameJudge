@@ -12,7 +12,7 @@ import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
+import type { GameStatePayload, Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
 
 import { ConnectionState } from '@/services/connection/types';
 import { GameFacade } from '@/services/facade/GameFacade';
@@ -114,7 +114,7 @@ describe('GameFacade', () => {
   // Shared Helper: 通过 PLAYER_JOIN actions + reducer 填充所有座位
   // ===========================================================================
   const fillAllSeatsViaReducer = (_facadeInstance: GameFacade, template: typeof mockTemplate) => {
-    let state = testStore.getState()!;
+    let state: GameStatePayload = testStore.getState()!;
 
     for (let i = 0; i < template.numberOfPlayers; i++) {
       const userId = i === 0 ? 'host-uid' : `player-${i}`;

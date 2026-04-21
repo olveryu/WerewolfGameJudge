@@ -33,6 +33,10 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
     lastNightDeaths: [],
     currentNightResults: {},
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     ...overrides,
   };
 }
