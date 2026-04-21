@@ -577,7 +577,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Player Grid */}
         <PlayerGrid
           seats={seatViewModels}
-          roomCode={roomCode}
           onSeatPress={onSeatTapped}
           onSeatLongPress={onSeatLongPressed}
           disabled={(roomStatus === GameStatus.Ongoing && isAudioPlaying) || isActionSubmitting}

@@ -38,10 +38,10 @@ describe('PlayerGrid memo optimization', () => {
   const onPress = jest.fn();
 
   it('should not re-render when props are shallowly equal', () => {
-    const { rerender } = render(<PlayerGrid seats={seats} roomCode="R1" onSeatPress={onPress} />);
+    const { rerender } = render(<PlayerGrid seats={seats} onSeatPress={onPress} />);
 
     // Re-render with the *same* reference → memo should skip
-    rerender(<PlayerGrid seats={seats} roomCode="R1" onSeatPress={onPress} />);
+    rerender(<PlayerGrid seats={seats} onSeatPress={onPress} />);
 
     // If memo is working, the internal component renders only once.
     // We can't directly count internal renders without a spy, but we verify
@@ -50,11 +50,11 @@ describe('PlayerGrid memo optimization', () => {
   });
 
   it('should re-render when seats array reference changes', () => {
-    const { rerender } = render(<PlayerGrid seats={seats} roomCode="R1" onSeatPress={onPress} />);
+    const { rerender } = render(<PlayerGrid seats={seats} onSeatPress={onPress} />);
 
     // New array reference with different content
     const newSeats = [makeSeat({ seat: 0 }), makeSeat({ seat: 1 }), makeSeat({ seat: 2 })];
-    rerender(<PlayerGrid seats={newSeats} roomCode="R1" onSeatPress={onPress} />);
+    rerender(<PlayerGrid seats={newSeats} onSeatPress={onPress} />);
 
     // Third seat should appear
     // SeatTile uses testID pattern, just verify no crash and children count changed
@@ -63,10 +63,10 @@ describe('PlayerGrid memo optimization', () => {
 
   it('should re-render when disabled flag changes', () => {
     const { rerender } = render(
-      <PlayerGrid seats={seats} roomCode="R1" onSeatPress={onPress} disabled={false} />,
+      <PlayerGrid seats={seats} onSeatPress={onPress} disabled={false} />,
     );
 
-    rerender(<PlayerGrid seats={seats} roomCode="R1" onSeatPress={onPress} disabled={true} />);
+    rerender(<PlayerGrid seats={seats} onSeatPress={onPress} disabled={true} />);
 
     // Different primitive prop → memo detects change → re-render
     expect(true).toBe(true);
@@ -74,10 +74,10 @@ describe('PlayerGrid memo optimization', () => {
 
   it('should re-render when controlledSeat changes', () => {
     const { rerender } = render(
-      <PlayerGrid seats={seats} roomCode="R1" onSeatPress={onPress} controlledSeat={null} />,
+      <PlayerGrid seats={seats} onSeatPress={onPress} controlledSeat={null} />,
     );
 
-    rerender(<PlayerGrid seats={seats} roomCode="R1" onSeatPress={onPress} controlledSeat={1} />);
+    rerender(<PlayerGrid seats={seats} onSeatPress={onPress} controlledSeat={1} />);
 
     expect(true).toBe(true);
   });
@@ -86,13 +86,13 @@ describe('PlayerGrid memo optimization', () => {
     const onPress1 = jest.fn();
     const onPress2 = jest.fn();
 
-    const { rerender } = render(<PlayerGrid seats={seats} roomCode="R1" onSeatPress={onPress1} />);
+    const { rerender } = render(<PlayerGrid seats={seats} onSeatPress={onPress1} />);
 
     // PlayerGrid stores onSeatPress in a ref internally.
     // Default memo will detect the new reference and re-render PlayerGrid itself,
     // but the *internal* handleSeatPress passed to SeatTile stays stable.
     // This test verifies the boundary doesn't crash.
-    rerender(<PlayerGrid seats={seats} roomCode="R1" onSeatPress={onPress2} />);
+    rerender(<PlayerGrid seats={seats} onSeatPress={onPress2} />);
 
     expect(true).toBe(true);
   });

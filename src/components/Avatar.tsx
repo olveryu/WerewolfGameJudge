@@ -18,10 +18,6 @@ interface AvatarProps {
   size: number;
   /** Custom avatar URL. If provided, will be used instead of generated avatar */
   avatarUrl?: string | null;
-  /** Room ID for room-specific default avatar (stable per userId+roomId) */
-  roomId?: string;
-  /** Pre-computed unique avatar index from getUniqueAvatarMap. Takes priority over roomId hash. */
-  avatarIndex?: number;
   /** Override border radius. Defaults to size / 4. */
   borderRadius?: number;
   /** Hide placeholder background (used when avatar frame covers the edge). */

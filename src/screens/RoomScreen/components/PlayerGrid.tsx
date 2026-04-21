@@ -16,15 +16,12 @@ import {
 
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { colors, spacing, type ThemeColors } from '@/theme';
-import { getUniqueAvatarMap } from '@/utils/avatar';
 
 import { createSeatTileStyles, getGridColumns, SeatTile } from './SeatTile';
 
 interface PlayerGridProps {
   /** Array of seat view models (pre-computed from game state) */
   seats: SeatViewModel[];
-  /** Room number for Avatar */
-  roomCode: string;
   /**
    * Callback when a seat is pressed.
    * Always called with seat and optional disabledReason.
@@ -45,7 +42,6 @@ interface PlayerGridProps {
 
 const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   seats,
-  roomCode,
   onSeatPress,
   onSeatLongPress,
   disabled = false,
@@ -77,15 +73,6 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   // Create SeatTile styles once and pass to all tiles (performance optimization)
   // This avoids each SeatTile calling StyleSheet.create independently
   const seatTileStyles = useMemo(() => createSeatTileStyles(colors, tileSize), [tileSize]);
-
-  // Compute room-level unique avatar indices so no two players share an avatar.
-  // Only includes players without a custom avatarUrl.
-  const avatarMap = useMemo(() => {
-    const uids = seats
-      .filter((s) => s.player?.userId && !s.player.avatarUrl)
-      .map((s) => s.player!.userId);
-    return getUniqueAvatarMap(roomCode, uids);
-  }, [seats, roomCode]);
 
   // Use ref to always call the latest onSeatPress callback.
   // This is necessary because SeatTile is memoized and won't re-render
@@ -124,7 +111,6 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
         <SeatTile
           key={`seat-${seat.seat}`}
           seat={seat.seat}
-          roomCode={roomCode}
           tileSize={tileSize}
           disabled={disabled}
           disabledReason={seat.disabledReason}
@@ -135,7 +121,6 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           isControlled={controlledSeat === seat.seat}
           playerUserId={seat.player?.userId ?? null}
           playerAvatarUrl={seat.player?.avatarUrl}
-          playerAvatarIndex={seat.player?.userId ? avatarMap.get(seat.player.userId) : undefined}
           playerAvatarFrame={seat.player?.avatarFrame}
           playerSeatFlair={seat.player?.seatFlair}
           playerNameStyle={seat.player?.nameStyle}

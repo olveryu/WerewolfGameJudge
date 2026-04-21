@@ -85,7 +85,6 @@ export interface SeatTileStyles {
 export interface SeatTileProps {
   // Primitive props for stable comparison
   seat: number;
-  roomCode: string;
   tileSize: number;
   disabled: boolean;
   disabledReason?: string;
@@ -97,8 +96,6 @@ export interface SeatTileProps {
   // Player info (null if empty seat)
   playerUserId: string | null;
   playerAvatarUrl?: string;
-  /** Pre-computed unique avatar seat (from room-level dedup). Undefined = use hash fallback. */
-  playerAvatarIndex?: number;
   playerAvatarFrame?: string;
   /** Seat flair ID (decoration animation around the tile). */
   playerSeatFlair?: string;
@@ -127,7 +124,6 @@ export interface SeatTileProps {
 
 const SeatTileComponent: React.FC<SeatTileProps> = ({
   seat,
-  roomCode,
   tileSize,
   disabled,
   disabledReason,
@@ -138,7 +134,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   isControlled,
   playerUserId,
   playerAvatarUrl,
-  playerAvatarIndex,
   playerAvatarFrame,
   playerSeatFlair,
   playerNameStyle,
@@ -361,8 +356,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
                     : tileSize - spacing.tight - fixed.borderWidthThick * 2
                 }
                 avatarUrl={playerAvatarUrl}
-                avatarIndex={playerAvatarIndex}
-                roomId={roomCode}
                 borderRadius={
                   playerAvatarFrame
                     ? borderRadius.large

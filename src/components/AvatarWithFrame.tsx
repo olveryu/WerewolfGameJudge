@@ -31,8 +31,6 @@ interface AvatarWithFrameProps {
   /** Avatar 尺寸（px）。有无 frame 含义不变。 */
   size: number;
   avatarUrl?: string | null;
-  roomId?: string;
-  avatarIndex?: number;
   borderRadius?: number;
   /** 头像框 ID。null / undefined = 无框。 */
   frameId?: string | null;
@@ -43,23 +41,12 @@ const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({
   frameId,
   value,
   avatarUrl,
-  roomId,
-  avatarIndex,
   borderRadius,
 }) => {
   const frameConfig = useMemo(() => getFrameById(frameId as string), [frameId]);
 
   if (!frameConfig) {
-    return (
-      <Avatar
-        value={value}
-        size={size}
-        avatarUrl={avatarUrl}
-        roomId={roomId}
-        avatarIndex={avatarIndex}
-        borderRadius={borderRadius}
-      />
-    );
+    return <Avatar value={value} size={size} avatarUrl={avatarUrl} borderRadius={borderRadius} />;
   }
 
   const innerRadius = borderRadius ?? themeBorderRadius.medium;
@@ -75,8 +62,6 @@ const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({
         value={value}
         size={size}
         avatarUrl={avatarUrl}
-        roomId={roomId}
-        avatarIndex={avatarIndex}
         borderRadius={innerRadius}
         hideBackground
       />
