@@ -169,7 +169,7 @@ export function useRoomInit({
     // infinite loop (error → re-trigger → joinRoom → error → …)
   ]);
 
-  // Loading timeout
+  // Loading timeout — two-phase: soft hint at 8s, hard retry at 15s
   useEffect(() => {
     if (isInitialized && hasGameState) {
       setShowRetryButton(false);
@@ -179,7 +179,16 @@ export function useRoomInit({
     // Already had state once → leaving room, not a load failure
     if (hadGameStateRef.current) return;
 
-    const timeout = setTimeout(() => {
+    // Phase 1: soft hint — reassure user without showing retry button
+    const hintTimeout = setTimeout(() => {
+      if (!isInitialized || !hasGameState) {
+        roomScreenLog.info('Loading hint — still waiting', { isInitialized, hasGameState });
+        setLoadingMessage('网络较慢，请耐心等待');
+      }
+    }, 8000);
+
+    // Phase 2: hard timeout — show retry button
+    const retryTimeout = setTimeout(() => {
       if (!isInitialized || !hasGameState) {
         setShowRetryButton(true);
         // 区分两种超时场景：
@@ -199,9 +208,12 @@ export function useRoomInit({
           setLoadingMessage('加载超时');
         }
       }
-    }, 5000);
+    }, 15000);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(hintTimeout);
+      clearTimeout(retryTimeout);
+    };
   }, [isInitialized, hasGameState]);
 
   const handleRetry = useCallback(() => {
