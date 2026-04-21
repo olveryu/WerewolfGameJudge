@@ -60,6 +60,7 @@ export interface SeatTileStyles {
   wolfTile: ViewStyle;
   selectedTile: ViewStyle;
   controlledTile: ViewStyle;
+  framedTile: ViewStyle;
   seatNumberBadge: ViewStyle;
   seatNumberText: TextStyle;
   avatarContainer: ViewStyle;
@@ -343,6 +344,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             isWolf && styles.wolfTile,
             isSelected && styles.selectedTile,
             isControlled && styles.controlledTile,
+            !!playerAvatarFrame && styles.framedTile,
           ]}
           onPress={handlePress}
           onLongPress={handleLongPress}
@@ -465,6 +467,9 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       ...shadows.md,
     },
     mySpotTile: {},
+    framedTile: {
+      borderColor: colors.transparent,
+    },
     wolfTile: {
       backgroundColor: withAlpha(colors.wolf, 0.08),
       boxShadow: `0px 0px 8px ${withAlpha(colors.wolf, 0.4)}`,
