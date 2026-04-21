@@ -68,6 +68,11 @@ export function makeBaseUseGameRoomReturn({
     templateRoles: [],
     hostUserId: 'host',
     roomCode: '1234',
+    pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     ...(gameStateOverrides ?? {}),
   };
 
