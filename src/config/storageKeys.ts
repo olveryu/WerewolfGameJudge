@@ -6,7 +6,7 @@
  */
 
 /** 上一次加入/创建的房间号（HomeScreen 回到上局 + signOut 清理） */
-export const LAST_ROOM_CODE_KEY = 'lastRoomNumber';
+export const LAST_ROOM_CODE_KEY = 'lastRoomCode';
 
 /** 用户已看过的最新公告版本号（What's New 弹窗） */
 export const LAST_SEEN_VERSION_KEY = '@werewolf_last_seen_version';
