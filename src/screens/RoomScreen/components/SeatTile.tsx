@@ -355,11 +355,19 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
               <AvatarWithFrame
                 value={playerUserId}
-                size={tileSize - spacing.tight - fixed.borderWidthThick * 2}
+                size={
+                  playerAvatarFrame
+                    ? tileSize - spacing.tight
+                    : tileSize - spacing.tight - fixed.borderWidthThick * 2
+                }
                 avatarUrl={playerAvatarUrl}
                 avatarIndex={playerAvatarIndex}
                 roomId={roomCode}
-                borderRadius={borderRadius.large - fixed.borderWidthThick}
+                borderRadius={
+                  playerAvatarFrame
+                    ? borderRadius.large
+                    : borderRadius.large - fixed.borderWidthThick
+                }
                 frameId={playerAvatarFrame}
               />
               {(isWolf || isSelected) && (
@@ -469,6 +477,8 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     mySpotTile: {},
     framedTile: {
       borderColor: colors.transparent,
+      backgroundColor: colors.transparent,
+      boxShadow: 'none',
     },
     wolfTile: {
       backgroundColor: withAlpha(colors.wolf, 0.08),
