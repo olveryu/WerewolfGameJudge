@@ -7,7 +7,7 @@
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
@@ -258,7 +258,7 @@ describe('GameRoom internal SQLite', () => {
       expect(rows).toHaveLength(1);
       expect(rows[0].revision).toBe(1);
 
-      const parsedState = JSON.parse(rows[0].game_state as string) as GameState;
+      const parsedState = JSON.parse(rows[0].game_state as string) as GameStatePayload;
       expect(parsedState.roomCode).toBe('SQL-ROOM');
     });
   });

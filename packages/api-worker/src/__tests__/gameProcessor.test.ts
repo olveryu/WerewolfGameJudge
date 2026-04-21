@@ -6,12 +6,12 @@
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
 import { describe, expect, it } from 'vitest';
 
 import { buildHandlerContext, extractAudioActions } from '../durableObjects/gameProcessor';
 
-function createMinimalState(overrides?: Partial<GameState>): GameState {
+function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePayload {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
