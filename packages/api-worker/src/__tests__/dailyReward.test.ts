@@ -23,12 +23,6 @@ function todayLocal(): string {
   return new Date().toLocaleDateString('en-CA');
 }
 
-function yesterdayLocal(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toLocaleDateString('en-CA');
-}
-
 async function postJson(path: string, body: unknown, token: string): Promise<Response> {
   return SELF.fetch(`https://test.local${path}`, {
     method: 'POST',
@@ -93,23 +87,25 @@ describe('POST /api/gacha/daily-reward', () => {
     expect(status.lastLoginRewardAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it('rejects duplicate claim on same local date', async () => {
+  it('rejects rapid double claim via cooldown', async () => {
     const token = await mintToken();
     await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
     const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.claimed).toBe(false);
-    expect(body.reason).toBe('already_claimed');
+    expect(body.reason).toBe('cooldown');
   });
 
-  it('allows claim on a new day', async () => {
+  it('allows claim after cooldown expires', async () => {
     const token = await mintToken();
+    // Simulate a claim 21 hours ago (past the 20h cooldown)
+    const twentyOneHoursAgo = new Date(Date.now() - 21 * 60 * 60 * 1000).toISOString();
     await env.DB.prepare(
       `INSERT INTO user_stats (user_id, normal_draws, version, last_login_reward_at, updated_at)
        VALUES (?, 3, 1, ?, datetime('now'))`,
     )
-      .bind(TEST_USER_ID, yesterdayLocal())
+      .bind(TEST_USER_ID, twentyOneHoursAgo)
       .run();
 
     const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);

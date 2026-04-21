@@ -244,7 +244,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
     return c.json({ error: 'invalid_request', details: parsed.error.issues }, 400);
   }
 
-  const { localDate } = parsed.data;
+  const { localDate: _localDate } = parsed.data;
 
   for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
     const stats = await db
@@ -279,12 +279,6 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
         });
 
       return c.json({ claimed: true, normalDrawsAdded: 1 });
-    }
-
-    // ── Already claimed today (same local date) ──
-    // .slice(0, 10) handles both old YYYY-MM-DD and new ISO datetime formats.
-    if (stats.lastLoginRewardAt?.slice(0, 10) === localDate) {
-      return c.json({ claimed: false, reason: 'already_claimed' });
     }
 
     // ── Server-side cooldown guard: reject if < 20h since last claim ──
