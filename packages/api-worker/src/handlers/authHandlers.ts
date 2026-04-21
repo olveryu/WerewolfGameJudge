@@ -713,8 +713,8 @@ authRoutes.post('/forgot-password', jsonBody(forgotPasswordSchema), async (c) =>
   // Invalidate any previous unused tokens for this user
   await db
     .update(passwordResetTokens)
-    .set({ used: 1 })
-    .where(sql`${passwordResetTokens.userId} = ${user.id} AND ${passwordResetTokens.used} = 0`);
+    .set({ isUsed: 1 })
+    .where(sql`${passwordResetTokens.userId} = ${user.id} AND ${passwordResetTokens.isUsed} = 0`);
 
   // Generate 6-digit code (CSPRNG) and store hashed
   const randomBuf = new Uint32Array(1);
@@ -763,7 +763,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
     .from(passwordResetTokens)
     .innerJoin(users, eq(passwordResetTokens.userId, users.id))
     .where(
-      sql`${users.email} = ${email} AND ${passwordResetTokens.used} = 0 AND ${passwordResetTokens.expiresAt} > datetime('now')`,
+      sql`${users.email} = ${email} AND ${passwordResetTokens.isUsed} = 0 AND ${passwordResetTokens.expiresAt} > datetime('now')`,
     )
     .orderBy(sql`${passwordResetTokens.createdAt} DESC`)
     .limit(1)
@@ -783,7 +783,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
   if (token.verifyAttempts + 1 >= RESET_VERIFY_ATTEMPT_LIMIT) {
     await db
       .update(passwordResetTokens)
-      .set({ used: 1 })
+      .set({ isUsed: 1 })
       .where(eq(passwordResetTokens.id, token.id));
   }
 
@@ -793,7 +793,10 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
   }
 
   // Mark token as used
-  await db.update(passwordResetTokens).set({ used: 1 }).where(eq(passwordResetTokens.id, token.id));
+  await db
+    .update(passwordResetTokens)
+    .set({ isUsed: 1 })
+    .where(eq(passwordResetTokens.id, token.id));
 
   // Update password
   const newHash = await hashPassword(parsed.newPassword);

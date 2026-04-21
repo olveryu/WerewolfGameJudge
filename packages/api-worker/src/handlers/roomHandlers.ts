@@ -32,7 +32,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
     await db.insert(rooms).values({
       id: crypto.randomUUID(),
       code: parsed.roomCode,
-      hostId: userId,
+      hostUserId: userId,
       createdAt: now,
       updatedAt: now,
     });
@@ -76,7 +76,7 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
   const row = await db
     .select({
       code: rooms.code,
-      hostId: rooms.hostId,
+      hostUserId: rooms.hostUserId,
       createdAt: rooms.createdAt,
     })
     .from(rooms)
@@ -91,7 +91,7 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
     {
       room: {
         roomCode: row.code,
-        hostUserId: row.hostId,
+        hostUserId: row.hostUserId,
         createdAt: row.createdAt,
       },
     },
@@ -109,7 +109,7 @@ roomRoutes.post('/delete', requireAuth, jsonBody(roomCodeBodySchema), async (c) 
   // Only the room host can delete the room
   const result = await db
     .delete(rooms)
-    .where(and(eq(rooms.code, parsed.roomCode), eq(rooms.hostId, userId)))
+    .where(and(eq(rooms.code, parsed.roomCode), eq(rooms.hostUserId, userId)))
     .returning({ id: rooms.id });
 
   if (result.length === 0) {

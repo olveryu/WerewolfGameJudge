@@ -35,7 +35,7 @@ async function cleanupAnonymousUsers(env: Env): Promise<{ deleted: number }> {
     .where(
       sql`${users.id} IN (
         SELECT u.id FROM users u
-        LEFT JOIN rooms r ON r.host_id = u.id
+        LEFT JOIN rooms r ON r.host_user_id = u.id
         WHERE u.is_anonymous = 1
           AND u.updated_at < datetime('now', ${`-${ANON_INACTIVE_DAYS}`} || ' days')
           AND r.id IS NULL

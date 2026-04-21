@@ -23,7 +23,7 @@ export interface DrawResultItem {
   rewardType: string;
   rewardId: string;
   isNew: boolean;
-  pityTriggered: boolean;
+  isPityTriggered: boolean;
 }
 
 export interface DrawResponse {

@@ -105,7 +105,7 @@ function ResultCell({
         animStyle,
       ]}
     >
-      {item.pityTriggered && <Text style={[styles.pityTag, { color: visual.color }]}>保底</Text>}
+      {item.isPityTriggered && <Text style={[styles.pityTag, { color: visual.color }]}>保底</Text>}
       <View style={styles.cellPreview}>
         <RewardPreview
           rewardType={item.rewardType}

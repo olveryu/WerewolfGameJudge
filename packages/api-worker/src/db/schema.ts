@@ -36,7 +36,7 @@ export const users = sqliteTable(
 export const rooms = sqliteTable('rooms', {
   id: text('id').primaryKey(),
   code: text('code').notNull().unique(),
-  hostId: text('host_id').notNull(),
+  hostUserId: text('host_user_id').notNull(),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
@@ -50,7 +50,7 @@ export const passwordResetTokens = sqliteTable('password_reset_tokens', {
     .references(() => users.id, { onDelete: 'cascade' }),
   tokenHash: text('token_hash').notNull(),
   expiresAt: text('expires_at').notNull(),
-  used: integer('used').notNull().default(0),
+  isUsed: integer('is_used').notNull().default(0),
   verifyAttempts: integer('verify_attempts').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });
@@ -95,6 +95,6 @@ export const drawHistory = sqliteTable('draw_history', {
   rewardType: text('reward_type').notNull(),
   rewardId: text('reward_id').notNull(),
   pityCount: integer('pity_count').notNull(),
-  pityTriggered: integer('pity_triggered').notNull().default(0),
+  isPityTriggered: integer('is_pity_triggered').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });

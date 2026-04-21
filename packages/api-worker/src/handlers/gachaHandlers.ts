@@ -83,7 +83,7 @@ interface DrawResult {
   rewardType: string;
   rewardId: string;
   isNew: boolean;
-  pityTriggered: boolean;
+  isPityTriggered: boolean;
 }
 
 /** Max OCC retries for concurrent draw conflict */
@@ -141,7 +141,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, async (c) => {
       rewardType: string;
       rewardId: string;
       pityCount: number;
-      pityTriggered: number;
+      isPityTriggered: number;
       createdAt: string;
     }> = [];
 
@@ -163,7 +163,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, async (c) => {
           rewardType: reward.type,
           rewardId: reward.id,
           isNew,
-          pityTriggered: pityReset,
+          isPityTriggered: pityReset,
         });
 
         historyEntries.push({
@@ -174,7 +174,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, async (c) => {
           rewardType: reward.type,
           rewardId: reward.id,
           pityCount: currentPity,
-          pityTriggered: pityReset ? 1 : 0,
+          isPityTriggered: pityReset ? 1 : 0,
           createdAt: now,
         });
       } else {
