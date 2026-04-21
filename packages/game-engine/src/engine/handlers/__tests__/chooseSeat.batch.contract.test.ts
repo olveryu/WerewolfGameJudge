@@ -19,7 +19,7 @@ import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/action
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
 import type { ApplyResolverResultAction } from '@werewolf/game-engine/engine/reducer/types';
-import type { GameStatePayload } from '@werewolf/game-engine/engine/store/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
@@ -122,8 +122,8 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
 function createMinimalState(
   schemaId: SchemaId,
   role: RoleId,
-  overrides?: Partial<GameStatePayload>,
-): GameStatePayload {
+  overrides?: Partial<GameState>,
+): GameState {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -138,6 +138,10 @@ function createMinimalState(
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     roster: {},
     currentNightResults: {},
     currentStepId: schemaId,
@@ -145,10 +149,7 @@ function createMinimalState(
   };
 }
 
-function createContext(
-  state: GameStatePayload,
-  overrides?: Partial<HandlerContext>,
-): HandlerContext {
+function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
     myUserId: 'host-1',

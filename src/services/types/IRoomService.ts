@@ -5,7 +5,7 @@
  * 不校验游戏逻辑，不涉及 realtime 传输。
  */
 
-import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 /** 房间记录（面向消费者的抽象） */
 export interface RoomRecord {
@@ -26,7 +26,7 @@ export interface IRoomService {
     hostUserId: string,
     initialRoomNumber?: string,
     maxRetries?: number,
-    buildInitialState?: (roomCode: string) => GameStatePayload,
+    buildInitialState?: (roomCode: string) => GameState,
   ): Promise<RoomRecord>;
 
   /** 查询房间记录，不存在返回 null */
@@ -42,5 +42,5 @@ export interface IRoomService {
   getStateRevision(roomCode: string): Promise<number | null>;
 
   /** 读取完整 game_state + revision */
-  getGameState(roomCode: string): Promise<{ state: GameStatePayload; revision: number } | null>;
+  getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null>;
 }

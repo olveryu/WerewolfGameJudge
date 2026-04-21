@@ -6,7 +6,7 @@
 
 import { GameStatus } from '../../../models/GameStatus';
 import type { ViewedRoleIntent } from '../../intents/types';
-import type { GameStatePayload } from '../../store/types';
+import type { GameState } from '../../store/types';
 import type { HandlerContext } from '../types';
 import { handleViewedRole } from '../viewedRoleHandler';
 import { expectError, expectSuccess } from './handlerTestUtils';
@@ -15,7 +15,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePayload {
+function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -29,13 +29,17 @@ function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePay
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     roster: {},
     ...overrides,
   };
 }
 
 function createContext(
-  state: GameStatePayload | null,
+  state: GameState | null,
   overrides?: Partial<HandlerContext>,
 ): HandlerContext {
   return { state, myUserId: 'p0', mySeat: 0, ...overrides };

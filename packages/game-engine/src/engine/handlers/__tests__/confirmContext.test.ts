@@ -11,15 +11,13 @@ import {
 } from '@werewolf/game-engine/engine/handlers/confirmContext';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { Team } from '@werewolf/game-engine/models/roles/spec/types';
-import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
 // Test Helper
 // =============================================================================
 
-function createOngoingState(
-  overrides: Partial<GameStatePayload> = {},
-): NonNullable<GameStatePayload> {
+function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<GameState> {
   return {
     roomCode: 'TEST',
     hostUserId: 'host',
@@ -39,6 +37,10 @@ function createOngoingState(
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     roster: {},
     currentNightResults: {},
     ...overrides,

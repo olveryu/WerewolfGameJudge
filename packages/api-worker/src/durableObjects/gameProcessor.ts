@@ -13,14 +13,14 @@ import { runInlineProgression } from '@werewolf/game-engine/engine/inlineProgres
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
-import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { AudioEffect } from '@werewolf/game-engine/protocol/types';
 
 /** processAction 的最终返回值（与旧 GameActionResult 等价） */
 export interface GameActionResult {
   success: boolean;
   reason?: string;
-  state?: GameStatePayload;
+  state?: GameState;
   revision?: number;
   sideEffects?: readonly SideEffect[];
 }
@@ -31,7 +31,7 @@ interface InlineProgressionOptions {
 }
 
 /** Find seat number by UID */
-function findSeatByUserId(state: GameStatePayload, userId: string): number | null {
+function findSeatByUserId(state: GameState, userId: string): number | null {
   for (const [seatKey, player] of Object.entries(state.players)) {
     if (player?.userId === userId) return Number(seatKey);
   }
@@ -39,7 +39,7 @@ function findSeatByUserId(state: GameStatePayload, userId: string): number | nul
 }
 
 /** Build HandlerContext for game-engine pure handler functions */
-export function buildHandlerContext(state: GameStatePayload, userId: string): HandlerContext {
+export function buildHandlerContext(state: GameState, userId: string): HandlerContext {
   return {
     state,
     myUserId: userId,
@@ -74,7 +74,7 @@ export function extractAudioActions(sideEffects: readonly SideEffect[] | undefin
  */
 export function processAction(
   sql: DurableObjectState['storage']['sql'],
-  processFn: (state: GameStatePayload, revision: number) => HandlerResult,
+  processFn: (state: GameState, revision: number) => HandlerResult,
   inlineProgression?: InlineProgressionOptions,
 ): GameActionResult {
   // 1. 读 SQLite（同步，零网络）
@@ -84,7 +84,7 @@ export function processAction(
     return { success: false, reason: 'ROOM_NOT_FOUND' };
   }
 
-  const state: GameStatePayload = JSON.parse(rows[0].game_state as string);
+  const state: GameState = JSON.parse(rows[0].game_state as string);
   const revision = rows[0].revision as number;
 
   // 2. 调用 game-engine 纯函数

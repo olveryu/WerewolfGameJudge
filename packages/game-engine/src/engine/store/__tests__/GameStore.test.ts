@@ -3,10 +3,10 @@
  */
 
 import { GameStore } from '@werewolf/game-engine/engine/store/GameStore';
-import type { GameStatePayload } from '@werewolf/game-engine/engine/store/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
-function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePayload {
+function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',

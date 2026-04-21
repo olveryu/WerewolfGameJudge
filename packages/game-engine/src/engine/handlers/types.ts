@@ -8,7 +8,7 @@
  */
 
 import type { StateAction } from '../reducer/types';
-import type { GameStatePayload } from '../store/types';
+import type { GameState } from '../store/types';
 
 /**
  * Handler 上下文
@@ -18,7 +18,7 @@ import type { GameStatePayload } from '../store/types';
  */
 export interface HandlerContext {
   /** 当前状态（只读，可能为 null） */
-  readonly state: GameStatePayload | null;
+  readonly state: GameState | null;
 
   /** 当前用户 UID（可能为 null） */
   readonly myUserId: string | null;
@@ -101,6 +101,6 @@ export const STANDARD_SIDE_EFFECTS: readonly SideEffect[] = Object.freeze([
 ] as const);
 
 /**
- * 非 null 的 GameStatePayload 类型（通过 handler validation 后使用）
+ * 非 null 的 GameState 类型（通过 handler validation 后使用）
  */
 export type NonNullState = NonNullable<HandlerContext['state']>;

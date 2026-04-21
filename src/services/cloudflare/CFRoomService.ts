@@ -6,7 +6,7 @@
  * 不校验游戏逻辑，不涉及 realtime 传输。
  */
 
-import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { IRoomService, RoomRecord } from '@/services/types/IRoomService';
 import { roomLog } from '@/utils/logger';
@@ -19,7 +19,7 @@ export class CFRoomService implements IRoomService {
     hostUserId: string,
     initialRoomNumber?: string,
     maxRetries: number = 5,
-    buildInitialState?: (roomCode: string) => GameStatePayload,
+    buildInitialState?: (roomCode: string) => GameState,
   ): Promise<RoomRecord> {
     let lastError: Error | undefined;
 
@@ -91,12 +91,10 @@ export class CFRoomService implements IRoomService {
     return data.revision;
   }
 
-  async getGameState(
-    roomCode: string,
-  ): Promise<{ state: GameStatePayload; revision: number } | null> {
+  async getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null> {
     roomLog.debug('getGameState', { roomCode });
     const data = await cfPost<{
-      state: GameStatePayload | null;
+      state: GameState | null;
       revision?: number;
     }>('/room/state', { roomCode });
 

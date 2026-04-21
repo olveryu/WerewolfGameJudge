@@ -1,14 +1,13 @@
 /**
  * Store Types - 状态存储类型定义
  *
- * GameStatePayload 定义在 protocol/types.ts（线协议 / pre-normalize 型）。
- * GameState = normalizeState() 输出的运行时型（post-normalize / tight）。
- * Store 是 parse boundary：input 接收 GameStatePayload，output 返回 GameState。
+ * GameState 定义在 protocol/types.ts（唯一权威）。
+ * Store 是 parse boundary：input 接收 GameState，output 返回 GameState。
  */
 
 // Re-export from protocol (canonical definition)
-export type { GameState, GameStatePayload } from '../../protocol/types';
-import type { GameState, GameStatePayload } from '../../protocol/types';
+export type { GameState } from '../../protocol/types';
+import type { GameState } from '../../protocol/types';
 
 /**
  * 状态订阅者回调（Store 层）
@@ -30,13 +29,13 @@ interface IGameStore {
   subscribe(listener: StoreStateListener): () => void;
 
   /** 应用快照（玩家端）— 接收 wire payload，内部 normalize */
-  applySnapshot(state: GameStatePayload, revision: number, lastAction?: string): void;
+  applySnapshot(state: GameState, revision: number, lastAction?: string): void;
 
   /** 消费最近一次广播携带的 lastAction（一次性读取，读后清除） */
   consumeLastAction(): string | null;
 
   /** 乐观更新（发 fetch 前立即渲染预测 state）— 接收 wire payload，内部 normalize */
-  applyOptimistic(state: GameStatePayload): void;
+  applyOptimistic(state: GameState): void;
 
   /** 回滚乐观更新（服务端拒绝时） */
   rollbackOptimistic(): void;
@@ -47,13 +46,13 @@ interface IGameStore {
  */
 export interface IWritableGameStore extends IGameStore {
   /** 设置状态（仅主机）— 接收 raw state，内部 normalize */
-  setState(state: GameStatePayload): void;
+  setState(state: GameState): void;
 
-  /** 增量更新状态（仅主机）— updater 读到 GameState，返回 GameStatePayload */
-  updateState(updater: (state: GameState) => GameStatePayload): void;
+  /** 增量更新状态（仅主机）— updater 读到 GameState，返回 GameState */
+  updateState(updater: (state: GameState) => GameState): void;
 
   /** 初始化状态 — 接收 raw state，内部 normalize */
-  initialize(state: GameStatePayload): void;
+  initialize(state: GameState): void;
 
   /** 重置 store（只清除 state，保留 listeners） */
   reset(): void;

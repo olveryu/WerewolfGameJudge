@@ -6,9 +6,9 @@
  * 仅包含纯函数，不包含 IO。
  */
 import type { RoleId } from '../models';
-import type { GameStatePayload } from '../protocol/types';
+import type { GameState } from '../protocol/types';
 
-type Players = GameStatePayload['players'];
+type Players = GameState['players'];
 
 /** 构建 seat → RoleId 映射（仅含已分配角色的座位） */
 export function buildSeatRoleMap(players: Players): Map<number, RoleId> {

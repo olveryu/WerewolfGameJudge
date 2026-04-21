@@ -2,11 +2,11 @@
  * Game Factory for Integration Tests
  *
  * 完全基于 架构：
- * - intents → handlers → reducer → GameStatePayload
+ * - intents → handlers → reducer → GameState
  * - 禁止 import legacy GameStateService / NightFlowController
  * - 禁止 encoded target 协议
  *
- * 单一真相：GameStatePayload
+ * 单一真相：GameState
  */
 
 import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
@@ -34,7 +34,7 @@ import {
   getPlayerCount,
   PRESET_TEMPLATES,
 } from '@werewolf/game-engine/models/Template';
-import type { GameStatePayload, PlayerMessage } from '@werewolf/game-engine/protocol/types';
+import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
 // Re-export types from gameContext.ts for backward compatibility
 export type { GameContext } from './gameContext';
@@ -45,7 +45,7 @@ import type { CapturedMessage, GameContext } from './gameContext';
 // =============================================================================
 
 interface InternalState {
-  state: GameStatePayload;
+  state: GameState;
   revision: number;
   nightPlan: NightPlan;
   template: GameTemplate;
@@ -53,11 +53,11 @@ interface InternalState {
   capturedMessages: CapturedMessage[];
 }
 
-function applyActions(current: GameStatePayload, actions: StateAction[]): GameStatePayload {
+function applyActions(current: GameState, actions: StateAction[]): GameState {
   return actions.reduce((s, action) => gameReducer(s, action), current);
 }
 
-function createContext(state: GameStatePayload): HandlerContext {
+function createContext(state: GameState): HandlerContext {
   return {
     state,
     myUserId: 'host-uid',
@@ -88,7 +88,7 @@ export function createGame(
     template = createTemplateFromRoles(templateNameOrRoles);
   }
 
-  const initialPlayers: Record<number, GameStatePayload['players'][number]> = {};
+  const initialPlayers: Record<number, GameState['players'][number]> = {};
   const roster: Record<string, { displayName: string }> = {};
   for (let i = 0; i < template.numberOfPlayers; i++) {
     initialPlayers[i] = {
@@ -100,7 +100,7 @@ export function createGame(
     roster[`player_${i}`] = { displayName: `Player ${i + 1}` };
   }
 
-  let state: GameStatePayload = {
+  let state: GameState = {
     roomCode: 'TEST01',
     hostUserId: 'host-uid',
     status: GameStatus.Seated,
@@ -110,6 +110,10 @@ export function createGame(
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     roster,
   };
 
@@ -214,7 +218,7 @@ export function createGame(
     capturedMessages: [],
   };
 
-  const getGameState = (): GameStatePayload => internal.state;
+  const getGameState = (): GameState => internal.state;
   const getRevision = (): number => internal.revision;
   const getNightPlan = (): NightPlan => internal.nightPlan;
   const getCapturedMessages = (): readonly CapturedMessage[] => internal.capturedMessages;

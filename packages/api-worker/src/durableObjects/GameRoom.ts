@@ -39,7 +39,7 @@ import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
-import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { DurableObject } from 'cloudflare:workers';
 
@@ -97,7 +97,7 @@ export class GameRoom extends DurableObject<Env> {
     return result;
   }
 
-  #broadcast(state: GameStatePayload, revision: number, lastAction?: string): void {
+  #broadcast(state: GameState, revision: number, lastAction?: string): void {
     const message = JSON.stringify({
       type: 'STATE_UPDATE',
       state,
@@ -129,7 +129,7 @@ export class GameRoom extends DurableObject<Env> {
   }
 
   /** 执行结算并广播结果 + 更新 roster levels */
-  async #runSettle(state: GameStatePayload, revision: number): Promise<void> {
+  async #runSettle(state: GameState, revision: number): Promise<void> {
     const settleResults = await settleGameResults(state, this.env, revision);
     this.#sendSettleResults(settleResults);
     this.#updateRosterLevels(settleResults);
@@ -160,7 +160,7 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
-    const state: GameStatePayload = JSON.parse(rows[0].game_state as string);
+    const state: GameState = JSON.parse(rows[0].game_state as string);
     if (state.status !== GameStatus.Ended) {
       await this.ctx.storage.delete('settle_pending');
       return;
@@ -590,7 +590,7 @@ export class GameRoom extends DurableObject<Env> {
 
   // ── (D) Read-only RPC methods ───────────────────────────────────────────
 
-  async getState(): Promise<{ state: GameStatePayload; revision: number } | null> {
+  async getState(): Promise<{ state: GameState; revision: number } | null> {
     const rows = this.ctx.storage.sql
       .exec('SELECT game_state, revision FROM room_state WHERE id = 1')
       .toArray();
@@ -610,7 +610,7 @@ export class GameRoom extends DurableObject<Env> {
 
   // ── (E) Lifecycle RPC methods ───────────────────────────────────────────
 
-  async init(initialState: GameStatePayload): Promise<void> {
+  async init(initialState: GameState): Promise<void> {
     this.ctx.storage.sql.exec(
       'INSERT OR REPLACE INTO room_state (id, game_state, revision) VALUES (1, ?, 1)',
       JSON.stringify(initialState),

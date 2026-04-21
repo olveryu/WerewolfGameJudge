@@ -6,7 +6,7 @@
  */
 
 import type { RoleId } from '../../models';
-import type { GameStatePayload } from '../../protocol/types';
+import type { GameState } from '../../protocol/types';
 import {
   buildSeatRoleMap,
   findSeatByRole,
@@ -15,7 +15,7 @@ import {
   isBottomCardWolfVoteExcluded,
 } from '../playerHelpers';
 
-type Players = GameStatePayload['players'];
+type Players = GameState['players'];
 
 // ---------------------------------------------------------------------------
 // Helpers

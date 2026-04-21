@@ -119,10 +119,10 @@ export interface BoardNomination {
 }
 
 // =============================================================================
-// 游戏状态（GameStatePayload）— 线協議 / pre-normalize 型
+// 游戏状态（GameState）— 唯一权威状态类型
 // =============================================================================
 
-export interface GameStatePayload {
+export interface GameState {
   // --- 核心字段（现有） ---
   roomCode: string;
   hostUserId: string;
@@ -402,15 +402,17 @@ export interface GameStatePayload {
    * 被催眠的座位列表（Night-1 only）。
    * 服务端在 piperHypnotize resolver 执行后写入。
    * UI 在 piperHypnotizedReveal 步骤按 mySeat 过滤，显示催眠/未催眠信息。
+   * 初始化为 `[]`，服务端保证非 undefined。
    */
-  hypnotizedSeats?: readonly number[];
+  hypnotizedSeats: readonly number[];
 
   /**
    * piperHypnotizedReveal 步骤中已确认（ack）的座位列表。
    * 所有存活玩家 ack 后，服务端推进到下一步骤。
    * 进入下一夜时重置为空。
+   * 初始化为 `[]`，服务端保证非 undefined。
    */
-  piperRevealAcks?: readonly number[];
+  piperRevealAcks: readonly number[];
 
   // --- 觉醒石像鬼（Awakened Gargoyle）---
   /**
@@ -424,8 +426,9 @@ export interface GameStatePayload {
    * awakenedGargoyleConvertReveal 步骤中已确认（ack）的座位列表。
    * 所有存活玩家 ack 后，服务端推进到下一步骤。
    * 进入下一夜时重置为空。
+   * 初始化为 `[]`，服务端保证非 undefined。
    */
-  conversionRevealAcks?: readonly number[];
+  conversionRevealAcks: readonly number[];
 
   // --- 盗宝大师（TreasureMaster）---
   /**
@@ -491,8 +494,9 @@ export interface GameStatePayload {
   /**
    * cupidLoversReveal 步骤中已确认（ack）的座位列表。
    * 所有存活玩家 ack 后，服务端推进到下一步骤。
+   * 初始化为 `[]`，服务端保证非 undefined。
    */
-  cupidLoversRevealAcks?: readonly number[];
+  cupidLoversRevealAcks: readonly number[];
 
   // --- 板子建议（Board Nomination）---
   /**
@@ -503,32 +507,6 @@ export interface GameStatePayload {
    */
   boardNominations?: Readonly<Record<string, BoardNomination>>;
 }
-
-// =============================================================================
-// GameState — normalizeState() 输出的运行时类型（post-normalize / tight）
-// =============================================================================
-
-/**
- * normalizeState() 保证填充的字段。
- *
- * 这些字段在 GameStatePayload 中为可选（wire / pre-normalize 阶段可能缺失），
- * 但经 normalizeState() 处理后保证存在为 non-undefined（默认 `[]`）。
- *
- * 客户端 store.getState() 返回此类型，全链路消费方无需 `?? []`。
- */
-type NormalizedFields =
-  | 'hypnotizedSeats'
-  | 'piperRevealAcks'
-  | 'conversionRevealAcks'
-  | 'cupidLoversRevealAcks';
-
-/**
- * 运行时 GameState — normalizeState() 的输出类型。
- *
- * GameStatePayload 的子类型（NormalizedFields 从 optional 变 required）。
- * 客户端 store.getState() / LocalGameState 全链路使用此类型。
- */
-export type GameState = GameStatePayload & Required<Pick<GameStatePayload, NormalizedFields>>;
 
 // =============================================================================
 // 玩家消息（PlayerMessage）— 仅 integration test 使用

@@ -15,7 +15,7 @@ import type {
   LeaveMySeatIntent,
   UpdatePlayerProfileIntent,
 } from '@werewolf/game-engine/engine/intents/types';
-import type { GameStatePayload } from '@werewolf/game-engine/engine/store/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import {
   REASON_GAME_IN_PROGRESS,
@@ -30,7 +30,7 @@ import {
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 
-function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePayload {
+function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -41,13 +41,17 @@ function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePay
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     roster: {},
     ...overrides,
   };
 }
 
 function createContext(
-  state: GameStatePayload | null,
+  state: GameState | null,
   overrides?: Partial<HandlerContext>,
 ): HandlerContext {
   return {

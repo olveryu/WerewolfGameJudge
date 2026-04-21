@@ -10,7 +10,7 @@
 
 import { getLevel } from '@werewolf/game-engine/growth/level';
 import { rollXp } from '@werewolf/game-engine/growth/level';
-import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { createDb } from '../db';
@@ -44,7 +44,7 @@ export interface PlayerSettleResult {
  * @returns 每个注册玩家的结算结果（空数组 = 不满足有效局条件）
  */
 export async function settleGameResults(
-  state: GameStatePayload,
+  state: GameState,
   env: SettlementEnv,
   revision: number,
 ): Promise<PlayerSettleResult[]> {

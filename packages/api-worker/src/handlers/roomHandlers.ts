@@ -6,7 +6,7 @@
  * create/delete 需要与 DO 双向同步。
  */
 
-import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -48,7 +48,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
   if (parsed.initialState) {
     try {
       const stub = getGameRoomStub(env, parsed.roomCode);
-      await stub.init(parsed.initialState as GameStatePayload);
+      await stub.init(parsed.initialState as GameState);
     } catch (err) {
       // DO init failed → rollback D1 record
       await db.delete(rooms).where(eq(rooms.code, parsed.roomCode));

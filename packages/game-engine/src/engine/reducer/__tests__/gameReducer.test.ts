@@ -17,11 +17,11 @@ import type {
   StateAction,
   UpdatePlayerProfileAction,
 } from '@werewolf/game-engine/engine/reducer/types';
-import type { GameStatePayload } from '@werewolf/game-engine/engine/store/types';
+import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
-function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePayload {
+function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -32,6 +32,10 @@ function createMinimalState(overrides?: Partial<GameStatePayload>): GameStatePay
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     roster: {},
     ...overrides,
   };
@@ -651,7 +655,7 @@ describe('gameReducer', () => {
   describe('ACTION_REJECTED', () => {
     /**
      * 锁死：ACTION_REJECTED 只写入 actionRejected 字段。
-     * actionRejected 必须属于 GameStatePayload（公开广播），不引入 hostOnly 字段。
+     * actionRejected 必须属于 GameState（公开广播），不引入 hostOnly 字段。
      */
     it('should write actionRejected to state (public broadcast field)', () => {
       const state = createMinimalState({ status: GameStatus.Ongoing });

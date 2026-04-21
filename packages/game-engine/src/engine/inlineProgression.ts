@@ -18,7 +18,7 @@
 
 import { GameStatus, type SchemaId, SCHEMAS } from '../models';
 import { getStepSpec } from '../models/roles/spec/nightSteps';
-import type { AudioEffect, GameStatePayload } from '../protocol/types';
+import type { AudioEffect, GameState } from '../protocol/types';
 import { getEngineLogger } from '../utils/logger';
 import { randomIntInclusive } from '../utils/random';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
@@ -45,7 +45,7 @@ interface InlineProgressionResult {
   /** 推进过程中收集的待播放音频 */
   audioEffects: AudioEffect[];
   /** 最终 state（已 apply 所有 actions） */
-  finalState: GameStatePayload;
+  finalState: GameState;
   /** 推进步数（0 = 未推进） */
   stepsAdvanced: number;
 }
@@ -55,7 +55,7 @@ interface InlineProgressionResult {
  *
  * 内联在此处避免导出 private 函数。
  */
-function isStepComplete(state: GameStatePayload): boolean {
+function isStepComplete(state: GameState): boolean {
   const stepId = state.currentStepId;
   if (!stepId) return true; // 没有当前步骤 → 完成（进入 endNight）
 
@@ -87,7 +87,7 @@ function isStepComplete(state: GameStatePayload): boolean {
  * When treasureMaster/thief picks a card, the unchosen bottom card roles' steps
  * have no player operating them → auto-advance immediately after audio.
  */
-function isUnchosenBottomCardStep(state: GameStatePayload): boolean {
+function isUnchosenBottomCardStep(state: GameState): boolean {
   const { currentStepId, bottomCardStepRoles } = state;
   // Determine the chosen card (either treasureMaster or thief)
   const chosenCard = state.treasureMasterChosenCard ?? state.thiefChosenCard;
@@ -116,10 +116,7 @@ function isUnchosenBottomCardStep(state: GameStatePayload): boolean {
  * - 不使用 ProgressionTracker（服务端无状态）
  * - 接受 nowMs 用于 stepDeadline 检查
  */
-function evaluateProgression(
-  state: GameStatePayload,
-  nowMs: number,
-): 'advance' | 'end_night' | 'none' {
+function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_night' | 'none' {
   if (state.status !== GameStatus.Ongoing) return 'none';
   if (state.isAudioPlaying) return 'none';
   if (state.pendingRevealAcks && state.pendingRevealAcks.length > 0) return 'none';
@@ -172,7 +169,7 @@ function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): Au
  * @returns 推进结果（actions + audioEffects + finalState）
  */
 export function runInlineProgression(
-  state: GameStatePayload,
+  state: GameState,
   hostUserId: string,
   nowMs: number = Date.now(),
 ): InlineProgressionResult {

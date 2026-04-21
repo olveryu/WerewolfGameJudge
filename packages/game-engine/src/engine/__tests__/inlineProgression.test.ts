@@ -4,29 +4,23 @@
  * Tests for runInlineProgression — 服务端内联推进纯函数
  *
  * 测试策略：
- * - 构建已完成 action 的 GameStatePayload
+ * - 构建已完成 action 的 GameState
  * - 调用 runInlineProgression 验证：推进步数、audioEffects、finalState
  */
 
 import { GameStatus } from '../../models/GameStatus';
 import { buildNightPlan } from '../../models/roles/spec/plan';
-import type { GameStatePayload } from '../../protocol/types';
+import type { GameState } from '../../protocol/types';
 import { runInlineProgression } from '../inlineProgression';
 
 // =============================================================================
 // Test Helpers
 // =============================================================================
 
-const TEMPLATE_2P: GameStatePayload['templateRoles'] = ['wolf', 'villager'];
-const TEMPLATE_5P: GameStatePayload['templateRoles'] = [
-  'wolf',
-  'wolf',
-  'seer',
-  'witch',
-  'villager',
-];
+const TEMPLATE_2P: GameState['templateRoles'] = ['wolf', 'villager'];
+const TEMPLATE_5P: GameState['templateRoles'] = ['wolf', 'wolf', 'seer', 'witch', 'villager'];
 
-function make2PlayerState(overrides: Partial<GameStatePayload> = {}): GameStatePayload {
+function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
   const plan = buildNightPlan(TEMPLATE_2P);
   const firstStep = plan.steps[0];
   return {
@@ -43,12 +37,16 @@ function make2PlayerState(overrides: Partial<GameStatePayload> = {}): GameStateP
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     roster: {},
     ...overrides,
   };
 }
 
-function make5PlayerState(overrides: Partial<GameStatePayload> = {}): GameStatePayload {
+function make5PlayerState(overrides: Partial<GameState> = {}): GameState {
   const plan = buildNightPlan(TEMPLATE_5P);
   const firstStep = plan.steps[0];
   return {
@@ -68,6 +66,10 @@ function make5PlayerState(overrides: Partial<GameStatePayload> = {}): GameStateP
     isAudioPlaying: false,
     actions: [],
     pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
     roster: {},
     ...overrides,
   };
@@ -230,7 +232,7 @@ describe('runInlineProgression', () => {
       expect(poisonerIdx).toBeGreaterThanOrEqual(0);
 
       const nowMs = Date.now();
-      const state: GameStatePayload = {
+      const state: GameState = {
         roomCode: 'TEST',
         hostUserId: 'host',
         status: GameStatus.Ongoing,
@@ -247,6 +249,10 @@ describe('runInlineProgression', () => {
         isAudioPlaying: false,
         actions: [],
         pendingRevealAcks: [],
+        hypnotizedSeats: [],
+        piperRevealAcks: [],
+        conversionRevealAcks: [],
+        cupidLoversRevealAcks: [],
         roster: {},
         treasureMasterChosenCard: 'seer',
         bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
@@ -270,7 +276,7 @@ describe('runInlineProgression', () => {
       expect(poisonerIdx).toBeGreaterThanOrEqual(0);
 
       const nowMs = Date.now();
-      const state: GameStatePayload = {
+      const state: GameState = {
         roomCode: 'TEST',
         hostUserId: 'host',
         status: GameStatus.Ongoing,
@@ -286,6 +292,10 @@ describe('runInlineProgression', () => {
         isAudioPlaying: false,
         actions: [],
         pendingRevealAcks: [],
+        hypnotizedSeats: [],
+        piperRevealAcks: [],
+        conversionRevealAcks: [],
+        cupidLoversRevealAcks: [],
         roster: {},
         treasureMasterChosenCard: 'seer',
         bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
@@ -312,7 +322,7 @@ describe('runInlineProgression', () => {
       expect(wolfKillIdx).toBeGreaterThanOrEqual(0);
 
       const nowMs = Date.now();
-      const state: GameStatePayload = {
+      const state: GameState = {
         roomCode: 'TEST',
         hostUserId: 'host',
         status: GameStatus.Ongoing,
@@ -328,6 +338,10 @@ describe('runInlineProgression', () => {
         isAudioPlaying: false,
         actions: [{ schemaId: 'wolfKill', actorSeat: 1, timestamp: 1 }],
         pendingRevealAcks: [],
+        hypnotizedSeats: [],
+        piperRevealAcks: [],
+        conversionRevealAcks: [],
+        cupidLoversRevealAcks: [],
         roster: {},
         currentNightResults: { wolfVotesBySeat: { '1': 3 } },
         treasureMasterChosenCard: 'seer',

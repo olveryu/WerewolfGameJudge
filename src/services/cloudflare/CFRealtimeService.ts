@@ -11,7 +11,7 @@
  * 这些由 ConnectionManager 统一管理。
  */
 
-import type { GameStatePayload } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { API_BASE_URL } from '@/config/api';
 import type {
@@ -123,7 +123,7 @@ export class CFRealtimeService implements IRealtimeTransport {
       if (data.type === 'STATE_UPDATE' && data.state && data.revision != null) {
         realtimeLog.debug('Transport: STATE_UPDATE', { revision: data.revision });
         this.#handlers?.onStateUpdate(
-          data.state as GameStatePayload,
+          data.state as GameState,
           data.revision as number,
           data.lastAction as string | undefined,
         );

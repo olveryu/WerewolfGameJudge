@@ -79,7 +79,6 @@ export {
   type ConfirmStatus,
   type FactionConfirmStatus,
   type GameState,
-  type GameStatePayload,
   type Player,
   type PlayerMessage,
   type ProtocolAction,
