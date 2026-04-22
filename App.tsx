@@ -27,7 +27,7 @@ import { AlertConfig, setAlertListener } from '@/utils/alert';
 import { signalAppReady } from '@/utils/appReady';
 import { log } from '@/utils/logger';
 
-// Initialize Sentry — DSN is public (like Supabase anon key), safe to commit.
+// Initialize Sentry — DSN is a public client key, safe to commit.
 // EXPO_PUBLIC_DEPLOY_ENV is set by build.sh from Cloudflare Pages' CF_PAGES_BRANCH.
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,

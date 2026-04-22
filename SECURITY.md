@@ -23,11 +23,12 @@
 
 ## Scope
 
-本项目是一个客户端应用（React Native / Expo），使用 Supabase 作为后端。
+本项目是一个 React Native (Expo) 跨平台应用，使用 Cloudflare Workers + Durable Objects + D1 作为后端。
 
 安全相关的关注点：
 
-- Supabase RLS（Row Level Security）策略
+- Cloudflare Workers 认证与授权（JWT）
 - 客户端认证流程
-- Edge Functions 的输入校验
+- API Handler 的输入校验（Zod）
+- 密码哈希存储（PBKDF2-SHA256）
 - 依赖项中的已知漏洞（通过 Renovate 自动监控）

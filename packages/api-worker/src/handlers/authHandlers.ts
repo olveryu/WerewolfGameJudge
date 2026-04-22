@@ -3,7 +3,6 @@
  *
  * 覆盖匿名登录、邮箱注册/登录、用户资料更新、session 恢复。
  * JWT 签发/验证，密码用 PBKDF2 哈希存储到 D1。
- * 与 Supabase Auth 语义兼容（匿名 + 邮箱）。
  */
 
 import { getLevel } from '@werewolf/game-engine/growth/level';
