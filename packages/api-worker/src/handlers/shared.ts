@@ -11,6 +11,7 @@ import { validator } from 'hono/validator';
 import type { z } from 'zod';
 
 import type { GameRoom } from '../durableObjects/GameRoom';
+import type { WeChatAuthProxy } from '../durableObjects/WeChatAuthProxy';
 import type { Env } from '../env';
 
 /**
@@ -76,6 +77,17 @@ export function getGameRoomStub(
   const cf = (req as CfRequest | undefined)?.cf;
   const locationHint = cf?.continent ? CONTINENT_TO_HINT[cf.continent] : undefined;
   return env.GAME_ROOM.get(id, locationHint ? { locationHint } : undefined);
+}
+
+/**
+ * Get a WeChatAuthProxy stub with locationHint: "apac".
+ *
+ * Uses a singleton DO (idFromName("wechat-auth")) — stateless, only proxies
+ * outbound fetch to api.weixin.qq.com from an APAC node.
+ */
+export function getWeChatAuthStub(env: Env): DurableObjectStub<WeChatAuthProxy> {
+  const id = env.WECHAT_AUTH.idFromName('wechat-auth');
+  return env.WECHAT_AUTH.get(id, { locationHint: 'apac' });
 }
 
 /** Request with Cloudflare-specific properties. */

@@ -27,6 +27,7 @@ import type { AppEnv, Env } from './env';
 
 // Re-export Durable Object class for wrangler
 export { GameRoom } from './durableObjects/GameRoom';
+export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
 
 // Route groups
 import { authRoutes } from './handlers/authHandlers';

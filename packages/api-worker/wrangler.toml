@@ -26,12 +26,17 @@ bucket_name = "werewolf-avatars"
 # ── Durable Objects (Phase 2: realtime) ──────────────────────────────────────
 [durable_objects]
 bindings = [
-  { name = "GAME_ROOM", class_name = "GameRoom" }
+  { name = "GAME_ROOM", class_name = "GameRoom" },
+  { name = "WECHAT_AUTH", class_name = "WeChatAuthProxy" }
 ]
 
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
+
+[[migrations]]
+tag = "v2"
+new_classes = ["WeChatAuthProxy"]
 
 # ── Workers AI Binding ───────────────────────────────────────────────────────
 [ai]

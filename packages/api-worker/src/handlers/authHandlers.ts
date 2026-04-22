@@ -25,7 +25,7 @@ import {
   updateProfileSchema,
   wechatCodeSchema,
 } from '../schemas/auth';
-import { jsonBody } from './shared';
+import { getWeChatAuthStub, jsonBody } from './shared';
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -847,13 +847,6 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
 // POST /auth/wechat — 微信小程序登录（wx.login code → openid → JWT）
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface WechatCode2SessionResponse {
-  openid?: string;
-  session_key?: string;
-  errcode?: number;
-  errmsg?: string;
-}
-
 authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
   const env = c.env;
   const parsed = c.req.valid('json');
@@ -862,20 +855,15 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
     return c.json({ error: 'WeChat login not configured' }, 500);
   }
 
-  // Exchange code for openid via WeChat code2Session API
-  const wxUrl = new URL('https://api.weixin.qq.com/sns/jscode2session');
-  wxUrl.searchParams.set('appid', env.WECHAT_APP_ID);
-  wxUrl.searchParams.set('secret', env.WECHAT_APP_SECRET);
-  wxUrl.searchParams.set('js_code', parsed.code);
-  wxUrl.searchParams.set('grant_type', 'authorization_code');
-
-  let wxResp: Response;
+  // Exchange code for openid via WeChatAuthProxy DO (locationHint: "apac")
+  // DO runs in APAC, reducing latency to api.weixin.qq.com (China) from ~300-500ms to ~50ms
+  const wxStub = getWeChatAuthStub(env);
+  let wxData: { openid?: string; errcode?: number; errmsg?: string };
   try {
-    wxResp = await fetch(wxUrl.toString(), { signal: AbortSignal.timeout(8000) });
+    wxData = await wxStub.code2Session(parsed.code, env.WECHAT_APP_ID, env.WECHAT_APP_SECRET);
   } catch {
     return c.json({ error: 'WeChat API timeout', errcode: -2 }, 504);
   }
-  const wxData: WechatCode2SessionResponse = await wxResp.json();
 
   if (!wxData.openid) {
     const errMsg = wxData.errmsg || 'code2Session failed';
@@ -979,20 +967,14 @@ authRoutes.post('/bind-wechat', requireAuth, jsonBody(wechatCodeSchema), async (
     return c.json({ error: 'WeChat login not configured' }, 500);
   }
 
-  // Exchange code for openid
-  const wxUrl = new URL('https://api.weixin.qq.com/sns/jscode2session');
-  wxUrl.searchParams.set('appid', env.WECHAT_APP_ID);
-  wxUrl.searchParams.set('secret', env.WECHAT_APP_SECRET);
-  wxUrl.searchParams.set('js_code', parsed.code);
-  wxUrl.searchParams.set('grant_type', 'authorization_code');
-
-  let wxResp: Response;
+  // Exchange code for openid via WeChatAuthProxy DO (locationHint: "apac")
+  const wxStub = getWeChatAuthStub(env);
+  let wxData: { openid?: string; errcode?: number; errmsg?: string };
   try {
-    wxResp = await fetch(wxUrl.toString(), { signal: AbortSignal.timeout(8000) });
+    wxData = await wxStub.code2Session(parsed.code, env.WECHAT_APP_ID, env.WECHAT_APP_SECRET);
   } catch {
     return c.json({ error: 'WeChat API timeout', errcode: -2 }, 504);
   }
-  const wxData: WechatCode2SessionResponse = await wxResp.json();
 
   if (!wxData.openid) {
     const errMsg = wxData.errmsg || 'code2Session failed';
