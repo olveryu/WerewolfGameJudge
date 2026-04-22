@@ -26,7 +26,7 @@ export const nightRoutes = new Hono<AppEnv>();
 nightRoutes.post('/action', jsonBody(nightActionSchema), async (c) => {
   const { roomCode, seat, role, target, extra } = c.req.valid('json');
   const result = await callDO(() => {
-    const stub = getGameRoomStub(c.env, roomCode);
+    const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
     return stub.submitAction(seat, role as RoleId, target ?? null, extra);
   });
   return c.json(result, resultToStatus(result as GameActionResult));
@@ -34,42 +34,50 @@ nightRoutes.post('/action', jsonBody(nightActionSchema), async (c) => {
 
 nightRoutes.post('/audio-ack', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).audioAck());
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode, c.req.raw).audioAck());
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 nightRoutes.post('/audio-gate', jsonBody(audioGateSchema), async (c) => {
   const { roomCode, isPlaying } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).audioGate(isPlaying));
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode, c.req.raw).audioGate(isPlaying),
+  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 nightRoutes.post('/progression', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).progression());
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode, c.req.raw).progression());
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 nightRoutes.post('/reveal-ack', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).revealAck());
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode, c.req.raw).revealAck());
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 nightRoutes.post('/wolf-robot-viewed', jsonBody(wolfRobotViewedSchema), async (c) => {
   const { roomCode, seat } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).wolfRobotViewed(seat));
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode, c.req.raw).wolfRobotViewed(seat),
+  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 nightRoutes.post('/group-confirm-ack', jsonBody(groupConfirmAckSchema), async (c) => {
   const { roomCode, seat, userId } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).groupConfirmAck(seat, userId));
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode, c.req.raw).groupConfirmAck(seat, userId),
+  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 nightRoutes.post('/mark-bots-group-confirmed', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).markBotsGroupConfirmed());
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode, c.req.raw).markBotsGroupConfirmed(),
+  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });

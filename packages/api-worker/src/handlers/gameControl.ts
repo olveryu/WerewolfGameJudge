@@ -30,31 +30,33 @@ export const gameRoutes = new Hono<AppEnv>();
 
 gameRoutes.post('/assign', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).assignRoles());
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode, c.req.raw).assignRoles());
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 gameRoutes.post('/fill-bots', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).fillWithBots());
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode, c.req.raw).fillWithBots());
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 gameRoutes.post('/mark-bots-viewed', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).markAllBotsViewed());
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode, c.req.raw).markAllBotsViewed(),
+  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 gameRoutes.post('/clear-seats', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).clearAllSeats());
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode, c.req.raw).clearAllSeats());
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 gameRoutes.post('/restart', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).restartGame());
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode, c.req.raw).restartGame());
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
@@ -76,7 +78,7 @@ gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
   } = c.req.valid('json');
 
   const result = await callDO(() => {
-    const stub = getGameRoomStub(c.env, roomCode);
+    const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
     return stub.seat(
       action,
       userId,
@@ -95,33 +97,39 @@ gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
 
 gameRoutes.post('/set-animation', jsonBody(setAnimationSchema), async (c) => {
   const { roomCode, animation } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).setAnimation(animation));
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode, c.req.raw).setAnimation(animation),
+  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 gameRoutes.post('/start', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).startNight());
+  const result = await callDO(() => getGameRoomStub(c.env, roomCode, c.req.raw).startNight());
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 gameRoutes.post('/update-template', jsonBody(updateTemplateSchema), async (c) => {
   const { roomCode, templateRoles } = c.req.valid('json');
   const result = await callDO(() =>
-    getGameRoomStub(c.env, roomCode).updateTemplate(templateRoles as RoleId[]),
+    getGameRoomStub(c.env, roomCode, c.req.raw).updateTemplate(templateRoles as RoleId[]),
   );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 gameRoutes.post('/view-role', jsonBody(viewRoleSchema), async (c) => {
   const { roomCode, userId, seat } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).viewRole(userId, seat));
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode, c.req.raw).viewRole(userId, seat),
+  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 gameRoutes.post('/share-review', jsonBody(shareReviewSchema), async (c) => {
   const { roomCode, allowedSeats } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).shareReview(allowedSeats));
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode, c.req.raw).shareReview(allowedSeats),
+  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
@@ -129,7 +137,7 @@ gameRoutes.post('/update-profile', jsonBody(updateProfileRouteSchema), async (c)
   const { roomCode, userId, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle } =
     c.req.valid('json');
   const result = await callDO(() =>
-    getGameRoomStub(c.env, roomCode).updateProfile(
+    getGameRoomStub(c.env, roomCode, c.req.raw).updateProfile(
       userId,
       displayName,
       avatarUrl,
@@ -146,7 +154,11 @@ gameRoutes.post('/update-profile', jsonBody(updateProfileRouteSchema), async (c)
 gameRoutes.post('/board-nominate', jsonBody(boardNominateSchema), async (c) => {
   const { roomCode, userId, displayName, roles } = c.req.valid('json');
   const result = await callDO(() =>
-    getGameRoomStub(c.env, roomCode).boardNominate(userId, displayName, roles as RoleId[]),
+    getGameRoomStub(c.env, roomCode, c.req.raw).boardNominate(
+      userId,
+      displayName,
+      roles as RoleId[],
+    ),
   );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
@@ -154,13 +166,15 @@ gameRoutes.post('/board-nominate', jsonBody(boardNominateSchema), async (c) => {
 gameRoutes.post('/board-upvote', jsonBody(boardUpvoteSchema), async (c) => {
   const { roomCode, userId, targetUserId } = c.req.valid('json');
   const result = await callDO(() =>
-    getGameRoomStub(c.env, roomCode).boardUpvote(userId, targetUserId),
+    getGameRoomStub(c.env, roomCode, c.req.raw).boardUpvote(userId, targetUserId),
   );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 
 gameRoutes.post('/board-withdraw', jsonBody(boardWithdrawSchema), async (c) => {
   const { roomCode, userId } = c.req.valid('json');
-  const result = await callDO(() => getGameRoomStub(c.env, roomCode).boardWithdraw(userId));
+  const result = await callDO(() =>
+    getGameRoomStub(c.env, roomCode, c.req.raw).boardWithdraw(userId),
+  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });

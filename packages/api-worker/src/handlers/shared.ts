@@ -48,11 +48,38 @@ export function resultToStatus(result: { success: boolean; reason?: string }): 2
   return result.reason === 'INTERNAL_ERROR' ? 500 : 400;
 }
 
-/** Get a typed DO stub for the given room code. */
-export function getGameRoomStub(env: Env, roomCode: string): DurableObjectStub<GameRoom> {
+/**
+ * Maps CF continent codes to DO location hints.
+ * Only affects the first get() for a new DO — subsequent calls ignore the hint.
+ */
+const CONTINENT_TO_HINT: Partial<Record<string, DurableObjectLocationHint>> = {
+  AS: 'apac',
+  OC: 'oc',
+  EU: 'weur',
+  NA: 'enam',
+  SA: 'enam', // SA unsupported → falls back to ENAM per CF docs
+  AF: 'afr',
+};
+
+/**
+ * Get a typed DO stub for the given room code.
+ *
+ * Optionally accepts the incoming Request to extract cf.continent
+ * and pass a locationHint, co-locating the DO near the first requester.
+ */
+export function getGameRoomStub(
+  env: Env,
+  roomCode: string,
+  req?: Request,
+): DurableObjectStub<GameRoom> {
   const id = env.GAME_ROOM.idFromName(roomCode);
-  return env.GAME_ROOM.get(id);
+  const cf = (req as CfRequest | undefined)?.cf;
+  const locationHint = cf?.continent ? CONTINENT_TO_HINT[cf.continent] : undefined;
+  return env.GAME_ROOM.get(id, locationHint ? { locationHint } : undefined);
 }
+
+/** Request with Cloudflare-specific properties. */
+type CfRequest = Request & { cf?: IncomingRequestCfProperties };
 
 /**
  * 包装 DO RPC 调用，处理 DO 特有的错误属性。

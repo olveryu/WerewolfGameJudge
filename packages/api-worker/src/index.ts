@@ -37,6 +37,7 @@ import { gameRoutes } from './handlers/gameControl';
 import { geminiRoutes } from './handlers/geminiProxy';
 import { nightRoutes } from './handlers/night';
 import { roomRoutes } from './handlers/roomHandlers';
+import { getGameRoomStub } from './handlers/shared';
 import { shareRoutes } from './handlers/shareImage';
 import { statsRoutes } from './handlers/statsHandlers';
 
@@ -100,8 +101,7 @@ app.get('/ws', async (c) => {
   if (!roomCode) {
     return c.json({ error: 'roomCode required' }, 400);
   }
-  const id = c.env.GAME_ROOM.idFromName(roomCode);
-  const stub = c.env.GAME_ROOM.get(id);
+  const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
   const doUrl = new URL(c.req.url);
   doUrl.pathname = '/websocket';
   return stub.fetch(new Request(doUrl.toString(), c.req.raw));

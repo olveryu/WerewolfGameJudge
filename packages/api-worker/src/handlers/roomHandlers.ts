@@ -47,7 +47,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
   // Initialize DO state (if initialState provided)
   if (parsed.initialState) {
     try {
-      const stub = getGameRoomStub(env, parsed.roomCode);
+      const stub = getGameRoomStub(env, parsed.roomCode, c.req.raw);
       await stub.init(parsed.initialState as GameState);
     } catch (err) {
       // DO init failed → rollback D1 record
@@ -118,7 +118,7 @@ roomRoutes.post('/delete', requireAuth, jsonBody(roomCodeBodySchema), async (c) 
 
   // Clean up DO storage (non-critical path, failure does not block)
   try {
-    const stub = getGameRoomStub(env, parsed.roomCode);
+    const stub = getGameRoomStub(env, parsed.roomCode, c.req.raw);
     await stub.cleanup();
   } catch {
     // DO cleanup failure does not affect delete result.
@@ -133,7 +133,7 @@ roomRoutes.post('/delete', requireAuth, jsonBody(roomCodeBodySchema), async (c) 
 roomRoutes.post('/state', jsonBody(roomCodeBodySchema), async (c) => {
   const parsed = c.req.valid('json');
 
-  const stub = getGameRoomStub(c.env, parsed.roomCode);
+  const stub = getGameRoomStub(c.env, parsed.roomCode, c.req.raw);
   const result = await stub.getState();
 
   if (!result) {
@@ -154,7 +154,7 @@ roomRoutes.post('/state', jsonBody(roomCodeBodySchema), async (c) => {
 roomRoutes.post('/revision', jsonBody(roomCodeBodySchema), async (c) => {
   const parsed = c.req.valid('json');
 
-  const stub = getGameRoomStub(c.env, parsed.roomCode);
+  const stub = getGameRoomStub(c.env, parsed.roomCode, c.req.raw);
   const revision = await stub.getRevision();
 
   return c.json({ revision }, 200);
