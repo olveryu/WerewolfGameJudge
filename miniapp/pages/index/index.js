@@ -8,6 +8,8 @@ Page({
   onLoad(options) {
     var self = this
 
+    wx.setKeepScreenOn({ keepScreenOn: true })
+
     // 1) 确定目标页面 URL — 分享链接走 options.url，否则一律首页
     var targetUrl = options.url ? decodeURIComponent(options.url) : BASE_URL
 
