@@ -10,9 +10,11 @@ import { clickIfVisible, screenshotOnFail } from './ui';
  * before every actionability check — no manual dismiss timing needed.
  */
 export async function registerAutoDismissers(page: Page): Promise<void> {
-  // Announcement / What's New modal — match the exact modal title pattern
-  await page.addLocatorHandler(page.getByText(/^v\d+\.\d+\.\d+ 更新内容$/), async () => {
-    await page.getByText('我知道了', { exact: true }).click();
+  // Announcement / What's New modal — trigger on version title (blocking content),
+  // dismiss via role-based button locator. .first() avoids strict-mode violation
+  // when multiple version entries are visible in the scrollable list.
+  await page.addLocatorHandler(page.getByText(/^v\d+\.\d+\.\d+ 更新内容$/).first(), async () => {
+    await page.getByRole('button', { name: '我知道了' }).click();
   });
 }
 

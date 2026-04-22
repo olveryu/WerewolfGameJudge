@@ -28,7 +28,7 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
-import type { ConnectionStatus, IGameFacade } from '@/services/types/IGameFacade';
+import { ConnectionStatus, type IGameFacade } from '@/services/types/IGameFacade';
 import type { RoomRecord } from '@/services/types/IRoomService';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { setAlertBlocked } from '@/utils/alert';
