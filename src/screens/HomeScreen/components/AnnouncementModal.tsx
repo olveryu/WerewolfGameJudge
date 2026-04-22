@@ -2,17 +2,16 @@
  * AnnouncementModal — What's New 版本更新弹窗
  *
  * 受控组件：由父级传入 visible / onClose。
- * 展示当前版本的更新内容 + 开发者微信号。
+ * 垂直滚动展示所有版本的更新内容（最新在上），版本间有分隔线。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useCallback } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
-import { ANNOUNCEMENTS, DEVELOPER_WECHAT_ID } from '@/config/announcements';
-import { APP_VERSION } from '@/config/version';
+import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS, DEVELOPER_WECHAT_ID } from '@/config/announcements';
 import { borderRadius, colors, componentSizes, spacing, typography } from '@/theme';
 
 interface AnnouncementModalProps {
@@ -21,8 +20,6 @@ interface AnnouncementModalProps {
 }
 
 export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, onClose }) => {
-  const announcement = ANNOUNCEMENTS[APP_VERSION];
-
   const handleCopyWechat = useCallback(() => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       void navigator.clipboard.writeText(DEVELOPER_WECHAT_ID);
@@ -30,7 +27,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
     }
   }, []);
 
-  if (!announcement) return null;
+  if (ANNOUNCEMENT_VERSIONS.length === 0) return null;
 
   return (
     <BaseCenterModal visible={visible} onClose={onClose} dismissOnOverlayPress animationType="fade">
@@ -38,18 +35,32 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
         {/* Header */}
         <View style={styles.header}>
           <Ionicons name="sparkles" size={componentSizes.icon.md} color={colors.primary} />
-          <Text style={styles.title}>{announcement.title}</Text>
+          <Text style={styles.headerTitle}>更新日志</Text>
         </View>
 
-        {/* Update items */}
-        <View style={styles.itemList}>
-          {announcement.items.map((item) => (
-            <View key={item} style={styles.itemRow}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.itemText}>{item}</Text>
-            </View>
-          ))}
-        </View>
+        {/* Scrollable version list */}
+        <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+          {ANNOUNCEMENT_VERSIONS.map((version, i) => {
+            const announcement = ANNOUNCEMENTS[version];
+            if (!announcement) return null;
+            return (
+              <View key={version}>
+                {i > 0 && <View style={styles.separator} />}
+                <View style={styles.section}>
+                  <Text style={styles.versionTitle}>{announcement.title}</Text>
+                  <View style={styles.itemList}>
+                    {announcement.items.map((item) => (
+                      <View key={item} style={styles.itemRow}>
+                        <Text style={styles.bullet}>•</Text>
+                        <Text style={styles.itemText}>{item}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
 
         {/* WeChat contact */}
         <View style={styles.contactRow}>
@@ -73,6 +84,8 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
   );
 };
 
+const SCROLL_MAX_HEIGHT = 320;
+
 const styles = StyleSheet.create({
   container: {
     width: 300,
@@ -84,13 +97,30 @@ const styles = StyleSheet.create({
     gap: spacing.small,
     marginBottom: spacing.medium,
   },
-  title: {
+  headerTitle: {
     fontSize: typography.title,
     fontWeight: typography.weights.semibold,
     color: colors.text,
   },
-  itemList: {
+  scrollArea: {
+    maxHeight: SCROLL_MAX_HEIGHT,
     marginBottom: spacing.medium,
+  },
+  section: {
+    gap: spacing.tight,
+  },
+  versionTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.text,
+    marginBottom: spacing.tight,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.medium,
+  },
+  itemList: {
     gap: spacing.tight,
   },
   itemRow: {

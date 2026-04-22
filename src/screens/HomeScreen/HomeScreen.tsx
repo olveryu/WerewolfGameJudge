@@ -25,7 +25,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/Button';
 import { PressableScale } from '@/components/PressableScale';
 import { UserAvatar } from '@/components/UserAvatar';
-import { ANNOUNCEMENTS } from '@/config/announcements';
+import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { LAST_ROOM_CODE_KEY, LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
@@ -487,7 +487,7 @@ export const HomeScreen: React.FC = () => {
         />
 
         {/* ── Changelog Card ────────────────────────── */}
-        {ANNOUNCEMENTS[APP_VERSION] && (
+        {ANNOUNCEMENT_VERSIONS.length > 0 && (
           <PressableScale
             onPress={handleOpenAnnouncement}
             style={[styles.gachaCard, styles.gachaCardAccentBlue]}
@@ -495,8 +495,8 @@ export const HomeScreen: React.FC = () => {
           >
             <Ionicons name="sparkles" size={componentSizes.icon.md} color={colors.primary} />
             <View style={styles.gachaCardText}>
-              <Text style={styles.gachaCardTitle}>{APP_VERSION} 更新日志</Text>
-              <Text style={styles.gachaCardSubtitle}>查看本次更新内容</Text>
+              <Text style={styles.gachaCardTitle}>更新日志</Text>
+              <Text style={styles.gachaCardSubtitle}>查看版本更新内容</Text>
             </View>
             <Ionicons
               name="chevron-forward"

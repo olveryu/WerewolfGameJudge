@@ -37,3 +37,6 @@ export const ANNOUNCEMENTS: Record<string, Announcement> = {
 
 /** 开发者微信号，在公告底部固定展示 */
 export const DEVELOPER_WECHAT_ID = 'olveryu';
+
+/** 所有版本号降序排列（最新在前），用于 AnnouncementModal 翻页 */
+export const ANNOUNCEMENT_VERSIONS = Object.keys(ANNOUNCEMENTS);
