@@ -7,6 +7,7 @@
  * 不涉及游戏逻辑或游戏状态存储。
  */
 
+import * as Sentry from '@sentry/react-native';
 import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
 
 import { storage } from '@/lib/storage';
@@ -64,7 +65,7 @@ export class CFAuthService implements IAuthService {
           try {
             await this.signInWithWechat(wxCode);
             clearWxCode();
-            authLog.info('WeChat sign-in succeeded:', this.#currentUserId);
+            authLog.info('WeChat sign-in succeeded', { userId: this.#currentUserId });
           } catch (e) {
             clearWxCode();
             authLog.warn('WeChat sign-in failed', e);
@@ -79,7 +80,7 @@ export class CFAuthService implements IAuthService {
           }
         }
       } else if (existingUserId) {
-        authLog.info('Restored session:', existingUserId);
+        authLog.info('Restored session', { userId: existingUserId });
       }
     } catch (error) {
       handleError(error, { label: 'CFAuth.autoSignIn', logger: authLog, alertTitle: false });
@@ -120,6 +121,7 @@ export class CFAuthService implements IAuthService {
 
     await this.#saveToken(data.access_token);
     this.#currentUserId = data.user.id;
+    Sentry.setUser({ id: data.user.id });
     return data.user.id;
   }
 
@@ -135,6 +137,7 @@ export class CFAuthService implements IAuthService {
 
     await this.#saveToken(data.access_token);
     this.#currentUserId = data.user.id;
+    Sentry.setUser({ id: data.user.id });
     return { userId: data.user.id, user: data.user };
   }
 
@@ -146,6 +149,7 @@ export class CFAuthService implements IAuthService {
 
     await this.#saveToken(data.access_token);
     this.#currentUserId = data.user.id;
+    Sentry.setUser({ id: data.user.id });
     return data.user.id;
   }
 
@@ -165,6 +169,7 @@ export class CFAuthService implements IAuthService {
     await this.#clearToken();
     this.#currentUserId = null;
     this.#isAnonymous = false;
+    Sentry.setUser(null);
   }
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
@@ -183,6 +188,7 @@ export class CFAuthService implements IAuthService {
 
     await this.#saveToken(data.access_token);
     this.#currentUserId = data.user.id;
+    Sentry.setUser({ id: data.user.id });
     return data.user.id;
   }
 
@@ -196,6 +202,7 @@ export class CFAuthService implements IAuthService {
 
     await this.#saveToken(data.access_token);
     this.#currentUserId = data.user.id;
+    Sentry.setUser({ id: data.user.id });
     return data.user.id;
   }
 
@@ -216,6 +223,7 @@ export class CFAuthService implements IAuthService {
         this.#currentUserId = resp.data.user.id;
         this.#isAnonymous = resp.data.user.is_anonymous ?? false;
         this.#hasWechat = resp.data.user.has_wechat ?? false;
+        Sentry.setUser({ id: resp.data.user.id });
         return this.#currentUserId;
       }
     } catch (error: unknown) {

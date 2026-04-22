@@ -135,7 +135,9 @@ export function useConfigScreenState({
 
     // Priority 2: edit/nominate mode — load current room roles from facade
     if ((isEditMode || isNominateMode) && (existingRoomCode || isNominateMode)) {
-      configLog.debug('Loading room roles:', existingRoomCode ?? nominateMode?.roomCode);
+      configLog.debug('Loading room roles', {
+        roomCode: existingRoomCode ?? nominateMode?.roomCode,
+      });
       try {
         const state = facade.getState();
         if (state?.templateRoles && state.templateRoles.length > 0) {

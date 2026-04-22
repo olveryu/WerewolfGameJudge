@@ -93,7 +93,7 @@ export const startNight = defineGameAction({
     const stateAfterStart = ctx.store.getState();
     if (stateAfterStart?.templateRoles) {
       ctx.audioService.preloadForRoles(stateAfterStart.templateRoles).catch((err: unknown) => {
-        facadeLog.warn('preloadForRoles failed (non-critical):', err);
+        facadeLog.warn('preloadForRoles failed (non-critical)', err);
       });
     }
   },

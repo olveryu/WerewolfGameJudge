@@ -432,13 +432,13 @@ export const AvatarPickerScreen: React.FC = () => {
           if (isInRoom) {
             facade
               .updatePlayerProfile(undefined, url)
-              .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed:', err));
+              .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed', err));
           }
 
           navigation.goBack();
         } catch (e: unknown) {
           const message = getErrorMessage(e);
-          settingsLog.error('Avatar upload failed:', message, e);
+          settingsLog.error('Avatar upload failed', { message }, e);
           showErrorAlert('上传失败', message);
         } finally {
           setSaving(false);
@@ -446,7 +446,7 @@ export const AvatarPickerScreen: React.FC = () => {
       }
     } catch (e: unknown) {
       const message = getErrorMessage(e);
-      settingsLog.warn('Image picker failed:', message, e);
+      settingsLog.warn('Image picker failed', { message }, e);
       showErrorAlert('选择图片失败', message);
     }
   }, [uploadAvatarMutation, refreshUser, facade, isInRoom, navigation]);
@@ -515,7 +515,9 @@ export const AvatarPickerScreen: React.FC = () => {
           newNameStyle,
         );
         if (!result.success) {
-          settingsLog.warn('Avatar/frame/flair sync to GameState failed:', result.reason);
+          settingsLog.warn('Avatar/frame/flair sync to GameState failed', {
+            reason: result.reason,
+          });
         }
       }
 
@@ -523,7 +525,7 @@ export const AvatarPickerScreen: React.FC = () => {
       navigation.goBack();
     } catch (e: unknown) {
       const message = getErrorMessage(e);
-      settingsLog.error('Avatar/frame save failed:', message, e);
+      settingsLog.error('Avatar/frame save failed', { message }, e);
       showErrorAlert('保存失败', message);
     } finally {
       setSaving(false);

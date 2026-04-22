@@ -35,7 +35,7 @@ export async function shareOrCopyRoomLink(roomCode: string): Promise<ShareResult
       if (result.action === Share.dismissedAction) return 'cancelled';
       return 'shared';
     } catch (e) {
-      log.warn('Native Share failed:', e);
+      log.warn('Native Share failed', e);
       return 'failed';
     }
   }
@@ -50,7 +50,7 @@ export async function shareOrCopyRoomLink(roomCode: string): Promise<ShareResult
       await navigator.share({ title: text, url });
       return 'shared';
     } catch (e) {
-      log.warn('Mobile web share cancelled:', e);
+      log.warn('Mobile web share cancelled', e);
       // User cancelled share sheet
       return 'cancelled';
     }
@@ -62,7 +62,7 @@ export async function shareOrCopyRoomLink(roomCode: string): Promise<ShareResult
       await navigator.clipboard.writeText(url);
       return 'copied';
     } catch (e) {
-      log.warn('Clipboard write failed:', e);
+      log.warn('Clipboard write failed', e);
       // Clipboard blocked — fall through
     }
   }
@@ -73,7 +73,7 @@ export async function shareOrCopyRoomLink(roomCode: string): Promise<ShareResult
       await navigator.share({ title: text, url });
       return 'shared';
     } catch (e) {
-      log.warn('Desktop web share cancelled:', e);
+      log.warn('Desktop web share cancelled', e);
       return 'cancelled';
     }
   }

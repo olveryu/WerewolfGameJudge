@@ -99,7 +99,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
         })
         .catch((e) => {
           // Pre-capture failed; enable button anyway for on-demand fallback
-          log.debug('Pre-capture share card failed:', e);
+          log.debug('Pre-capture share card failed', e);
           setIsPreCaptureReady(true);
         });
     }, 300);

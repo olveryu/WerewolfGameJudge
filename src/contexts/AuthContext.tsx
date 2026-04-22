@@ -39,7 +39,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   /** 小程序微信登录是否失败（App 层根据此值渲染全屏错误页） */
   wechatLoginFailed: boolean;
-  /** Re-fetch current user from service and update local state + Sentry identity. */
+  /** Re-fetch current user from service and update local state. */
   refreshUser: () => Promise<void>;
 }
 
@@ -104,7 +104,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updateUserIfChanged(u);
           if (u) {
             authLog.info('User loaded', { id: u.id, isAnonymous: u.isAnonymous });
-            Sentry.setUser({ id: u.id });
           }
         } else {
           authLog.info('No stored user');
@@ -124,19 +123,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     void loadUser();
   }, [authService, updateUserIfChanged]);
 
-  /** Re-fetch current user from service and update local state + Sentry identity. */
+  /** Re-fetch current user from service and update local state. */
   const refreshUser = useCallback(async () => {
     try {
       const result = await authService.getCurrentUser();
       const u = result?.data?.user ? toUser(result.data.user) : null;
       updateUserIfChanged(u);
-      if (u) {
-        Sentry.setUser({ id: u.id });
-      } else {
-        Sentry.setUser(null);
-      }
     } catch (e: unknown) {
-      authLog.warn('refreshUser failed, keeping current state:', e);
+      authLog.warn('refreshUser failed, keeping current state', e);
     }
   }, [authService, updateUserIfChanged]);
 

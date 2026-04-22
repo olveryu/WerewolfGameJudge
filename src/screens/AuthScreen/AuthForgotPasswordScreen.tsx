@@ -49,7 +49,7 @@ export const AuthForgotPasswordScreen: React.FC = () => {
       navigation.navigate('AuthResetPassword', { email });
     } catch (e: unknown) {
       const message = getErrorMessage(e);
-      authLog.warn('Forgot password failed:', message);
+      authLog.warn('Forgot password failed', { message });
       setError(message);
     }
   }, [email, forgotPasswordMutation, navigation]);

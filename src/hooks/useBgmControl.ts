@@ -72,7 +72,7 @@ export function useBgmControl(
       audioRef.current.setRoleAudioVolume(settingsRef.current.getRoleAudioVolume());
     };
     loadSettings().catch((e) => {
-      bgmLog.warn('Failed to load BGM settings:', e);
+      bgmLog.warn('Failed to load BGM settings', e);
     });
   }, []);
 
@@ -97,7 +97,7 @@ export function useBgmControl(
       if (gameStatus === GameStatus.Ongoing) {
         const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
         audioRef.current.startBgm(assets).catch((e) => {
-          bgmLog.warn('BGM start failed after toggle:', e);
+          bgmLog.warn('BGM start failed after toggle', e);
         });
         setIsBgmPlaying(true);
       }
@@ -113,7 +113,7 @@ export function useBgmControl(
     if (bgmEnabled) {
       const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
       audioRef.current.startBgm(assets).catch((e) => {
-        bgmLog.warn('BGM start failed:', e);
+        bgmLog.warn('BGM start failed', e);
       });
       setIsBgmPlaying(true);
     }
@@ -123,7 +123,7 @@ export function useBgmControl(
   const playBgm = useCallback(() => {
     const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
     audioRef.current.startBgm(assets).catch((e) => {
-      bgmLog.warn('BGM manual play failed:', e);
+      bgmLog.warn('BGM manual play failed', e);
     });
     setIsBgmPlaying(true);
   }, []);

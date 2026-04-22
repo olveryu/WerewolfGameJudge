@@ -23,7 +23,7 @@ export class CFStorageService implements IStorageService {
     formData.append('file', blob, 'avatar.jpg');
 
     const data = await cfUpload<{ url: string }>('/avatar/upload', formData);
-    avatarLog.debug('Avatar uploaded:', data.url);
+    avatarLog.debug('Avatar uploaded', { url: data.url });
     return data.url;
   }
 

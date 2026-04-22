@@ -238,7 +238,7 @@ export async function shareNightReviewReportImage(
     return 'shared';
   } catch (error) {
     if (isShareCancelledError(error)) return 'cancelled';
-    log.warn('Share night review failed:', error);
+    log.warn('Share night review failed', error);
     return 'failed';
   }
 }

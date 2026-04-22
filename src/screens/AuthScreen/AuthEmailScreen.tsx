@@ -96,9 +96,9 @@ export const AuthEmailScreen: React.FC = () => {
         const raw = e instanceof Error ? e.message : String(e);
         const message = mapAuthError(raw);
         if (isExpectedAuthError(raw)) {
-          authLog.warn('Sign-out before switch expected error:', raw, e);
+          authLog.warn('Sign-out before switch expected error', { message: raw }, e);
         } else {
-          authLog.error('Sign-out before switch failed:', raw, e);
+          authLog.error('Sign-out before switch failed', { message: raw }, e);
           Sentry.captureException(e);
         }
         showErrorAlert('切换失败', message);

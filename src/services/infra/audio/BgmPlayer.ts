@@ -172,7 +172,7 @@ export class BgmPlayer {
         this.#playNative(asset, loop);
       }
     } catch (error) {
-      audioLog.warn('Failed to start BGM track:', error);
+      audioLog.warn('Failed to start BGM track', error);
       this.#isPlaying = false;
       this.#destroyWebPlayer();
       this.#cleanupNativePlayer();
@@ -253,7 +253,7 @@ export class BgmPlayer {
     audio.addEventListener('timeupdate', this.#webTimeupdateHandler);
 
     audio.play().catch((err) => {
-      audioLog.warn('Web BGM play() rejected (autoplay policy?):', err);
+      audioLog.warn('Web BGM play() rejected (autoplay policy?)', err);
       this.#isPlaying = false;
       this.#destroyWebPlayer();
     });

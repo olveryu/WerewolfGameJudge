@@ -61,7 +61,7 @@ export const AuthResetPasswordScreen: React.FC = () => {
       navigation.popToTop();
     } catch (e: unknown) {
       const message = getErrorMessage(e);
-      authLog.warn('Reset password failed:', message);
+      authLog.warn('Reset password failed', { message });
       setError(message);
     }
   }, [email, code, newPassword, resetPasswordMutation, refreshUser, navigation]);

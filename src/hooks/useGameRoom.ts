@@ -289,7 +289,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         user.nameStyle ?? undefined,
       )
       .catch((err: unknown) => {
-        gameRoomLog.warn('Profile sync on reconnect failed:', err);
+        gameRoomLog.warn('Profile sync on reconnect failed', err);
       });
   }, [connection.connectionStatus, mySeat, facade, user]);
 

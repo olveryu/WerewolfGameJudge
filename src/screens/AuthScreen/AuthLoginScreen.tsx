@@ -57,7 +57,7 @@ export const AuthLoginScreen: React.FC = () => {
       navigation.goBack();
     } catch (e: unknown) {
       const message = getErrorMessage(e);
-      authLog.warn('Anonymous login failed:', message);
+      authLog.warn('Anonymous login failed', { message });
       showErrorAlert('登录失败', message);
     }
   }, [signInAnonymousMutation, refreshUser, navigation]);

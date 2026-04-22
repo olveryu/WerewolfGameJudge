@@ -87,7 +87,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
     if (visible) {
       const targetRoleId = getRoleDisplayAs(roleId) ?? roleId;
       Asset.loadAsync(getRoleBadge(targetRoleId) as number).catch((e) => {
-        log.warn('Failed to preload role badge:', e);
+        log.warn('Failed to preload role badge', e);
       });
     }
   }, [visible, roleId]);

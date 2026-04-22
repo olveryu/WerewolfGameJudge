@@ -72,7 +72,7 @@ export class AudioService {
         document.addEventListener('visibilitychange', this.#visibilityHandler);
       }
     } catch (error) {
-      audioLog.error('Failed to initialize audio:', error);
+      audioLog.error('Failed to initialize audio', error);
       Sentry.captureException(error);
     }
   }

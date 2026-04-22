@@ -54,7 +54,7 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
     AccessibilityInfo.isReduceMotionEnabled()
       .then(setSystemReducedMotion)
       .catch((e) => {
-        log.warn('Failed to query reduced motion preference:', e);
+        log.warn('Failed to query reduced motion preference', e);
         setSystemReducedMotion(false);
       });
 

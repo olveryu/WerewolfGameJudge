@@ -293,13 +293,13 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         }
         // Network errors: log.warn + UI feedback, no Sentry
         if (isNetworkError(err)) {
-          chatLog.warn('sendMessage network error:', err);
+          chatLog.warn('sendMessage network error', err);
           setMessages((prev) => prev.filter((m) => m.id !== assistantId));
           showErrorAlert('发送失败', NETWORK_ERROR);
           return;
         }
         // Non-abort errors: log + Sentry + user feedback
-        chatLog.error('sendMessage failed:', err);
+        chatLog.error('sendMessage failed', err);
         Sentry.captureException(err);
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
         showErrorAlert('发送失败', getUserFacingMessage(err));

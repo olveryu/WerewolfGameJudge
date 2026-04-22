@@ -85,7 +85,7 @@ export const MusicSettingsScreen: React.FC = () => {
     (enabled: boolean) => {
       setBgmEnabled(enabled);
       settingsService.setBgmEnabled(enabled).catch((e: unknown) => {
-        musicSettingsLog.warn('Failed to persist bgmEnabled:', e);
+        musicSettingsLog.warn('Failed to persist bgmEnabled', e);
       });
       if (!enabled && previewActiveRef.current) {
         audioService.stopBgm();
@@ -102,7 +102,7 @@ export const MusicSettingsScreen: React.FC = () => {
       const track = trackId as BgmTrackSetting;
       setBgmTrack(track);
       settingsService.setBgmTrack(track).catch((e: unknown) => {
-        musicSettingsLog.warn('Failed to persist bgmTrack:', e);
+        musicSettingsLog.warn('Failed to persist bgmTrack', e);
       });
     },
     [settingsService],
@@ -124,7 +124,7 @@ export const MusicSettingsScreen: React.FC = () => {
         const entry = BGM_TRACKS.find((t) => t.id === trackId);
         if (entry) {
           audioService.startBgm([entry.asset]).catch((e: unknown) => {
-            musicSettingsLog.warn('Preview playback failed:', e);
+            musicSettingsLog.warn('Preview playback failed', e);
           });
           previewActiveRef.current = true;
           setPreviewingTrack(trackId);
@@ -154,7 +154,7 @@ export const MusicSettingsScreen: React.FC = () => {
   const handleVolumeComplete = useCallback(
     (value: number) => {
       settingsService.setBgmVolume(value).catch((e: unknown) => {
-        musicSettingsLog.warn('Failed to persist bgmVolume:', e);
+        musicSettingsLog.warn('Failed to persist bgmVolume', e);
       });
     },
     [settingsService],
@@ -173,7 +173,7 @@ export const MusicSettingsScreen: React.FC = () => {
   const handleRoleAudioVolumeComplete = useCallback(
     (value: number) => {
       settingsService.setRoleAudioVolume(value).catch((e: unknown) => {
-        musicSettingsLog.warn('Failed to persist roleAudioVolume:', e);
+        musicSettingsLog.warn('Failed to persist roleAudioVolume', e);
       });
     },
     [settingsService],

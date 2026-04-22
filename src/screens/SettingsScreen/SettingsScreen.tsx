@@ -100,7 +100,7 @@ export const SettingsScreen: React.FC = () => {
       settingsLog.info('Anonymous→email upgrade detected, syncing profile to GameState');
       facade
         .updatePlayerProfile(user.displayName ?? undefined, user.avatarUrl ?? undefined)
-        .catch((err: unknown) => settingsLog.warn('Profile sync to GameState failed:', err));
+        .catch((err: unknown) => settingsLog.warn('Profile sync to GameState failed', err));
     }
     wasAnonymousRef.current = isAnonymous;
     if (isAuthenticated) wasAuthenticatedRef.current = true;
@@ -145,7 +145,7 @@ export const SettingsScreen: React.FC = () => {
       await refreshUser();
     } catch (e: unknown) {
       const message = getErrorMessage(e);
-      settingsLog.error('Sign out failed:', message, e);
+      settingsLog.error('Sign out failed', { message }, e);
       showErrorAlert('退出失败', message);
     }
   }, [signOutMutation, refreshUser]);
@@ -179,10 +179,10 @@ export const SettingsScreen: React.FC = () => {
             toast.success('昵称已更新');
             facade
               .updatePlayerProfile(trimmed, undefined)
-              .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed:', err));
+              .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed', err));
           } catch (e: unknown) {
             const message = getErrorMessage(e);
-            settingsLog.error('Update name failed:', message, e);
+            settingsLog.error('Update name failed', { message }, e);
             showErrorAlert('更新失败', message);
           }
         })();
@@ -243,9 +243,9 @@ export const SettingsScreen: React.FC = () => {
         const raw = e instanceof Error ? e.message : String(e);
         const message = mapAuthError(raw);
         if (isExpectedAuthError(raw)) {
-          settingsLog.warn('Account switch expected error:', raw, e);
+          settingsLog.warn('Account switch expected error', { message: raw }, e);
         } else {
-          settingsLog.error('Account switch failed:', raw, e);
+          settingsLog.error('Account switch failed', { message: raw }, e);
           Sentry.captureException(e);
         }
         showErrorAlert('切换失败', message);
@@ -280,7 +280,7 @@ export const SettingsScreen: React.FC = () => {
       toast.success('登录成功');
     } catch (e: unknown) {
       const message = getErrorMessage(e);
-      settingsLog.warn('Anonymous login failed:', message);
+      settingsLog.warn('Anonymous login failed', { message });
       showErrorAlert('登录失败', message);
     }
   }, [signInAnonymousMutation, refreshUser]);

@@ -129,9 +129,9 @@ export class SettingsService {
       const isExpectedStorage =
         e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'SecurityError');
       if (isExpectedStorage) {
-        settingsServiceLog.warn('Storage access failed while loading settings, using defaults:', e);
+        settingsServiceLog.warn('Storage access failed while loading settings, using defaults', e);
       } else {
-        settingsServiceLog.error('Failed to load settings, using defaults:', e);
+        settingsServiceLog.error('Failed to load settings, using defaults', e);
         Sentry.captureException(e);
       }
       this.#settings = { ...DEFAULT_SETTINGS };
@@ -150,9 +150,9 @@ export class SettingsService {
       const isExpectedStorage =
         e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'SecurityError');
       if (isExpectedStorage) {
-        settingsServiceLog.warn('Storage access failed while saving settings:', e);
+        settingsServiceLog.warn('Storage access failed while saving settings', e);
       } else {
-        settingsServiceLog.error('Failed to save settings:', e);
+        settingsServiceLog.error('Failed to save settings', e);
         Sentry.captureException(e);
       }
     }
