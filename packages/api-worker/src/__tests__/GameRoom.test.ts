@@ -263,3 +263,213 @@ describe('GameRoom internal SQLite', () => {
     });
   });
 });
+
+// ── Night flow (happy path) ─────────────────────────────────────────────────
+
+describe('GameRoom night flow', () => {
+  /** Create a 3-player room, assign roles, have all view, reach Ready status. */
+  async function initReadyRoom(): Promise<DurableObjectStub<GameRoom>> {
+    const stub = getStub();
+    const roles = ['villager', 'wolf', 'seer'];
+    const template = createTemplate(roles);
+    await stub.init(buildInitialGameState('NIGHT-ROOM', 'host-uid', template));
+
+    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await stub.seat('sit', 'p1', 1, 'P1');
+    await stub.seat('sit', 'p2', 2, 'P2');
+    await stub.assignRoles();
+
+    // Host views all roles (host can mark any seat)
+    await stub.viewRole('host-uid', 0);
+    await stub.viewRole('host-uid', 1);
+    await stub.viewRole('host-uid', 2);
+
+    return stub;
+  }
+
+  it('viewRole transitions all-viewed to Ready', async () => {
+    const stub = await initReadyRoom();
+    const result = await stub.getState();
+
+    expect(result!.state.status).toBe(GameStatus.Ready);
+  });
+
+  it('startNight transitions to Ongoing after all roles viewed', async () => {
+    const stub = await initReadyRoom();
+
+    const result = (await stub.startNight()) as GameActionResult;
+
+    expect(result.success).toBe(true);
+    expect(result.state?.status).toBe(GameStatus.Ongoing);
+    expect(result.state?.currentStepId).toBeDefined();
+  });
+
+  it('viewRole non-host cannot view another seat', async () => {
+    const stub = getStub();
+    const template = createTemplate(['villager', 'wolf', 'seer']);
+    await stub.init(buildInitialGameState('VR-ERR', 'host-uid', template));
+    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await stub.seat('sit', 'p1', 1, 'P1');
+    await stub.seat('sit', 'p2', 2, 'P2');
+    await stub.assignRoles();
+
+    // p1 tries to view seat 2 (not their seat)
+    const result = (await stub.viewRole('p1', 2)) as GameActionResult;
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('not_my_seat');
+  });
+
+  it('viewRole succeeds for own seat', async () => {
+    const stub = getStub();
+    const template = createTemplate(['villager', 'wolf', 'seer']);
+    await stub.init(buildInitialGameState('VR-OK', 'host-uid', template));
+    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await stub.seat('sit', 'p1', 1, 'P1');
+    await stub.seat('sit', 'p2', 2, 'P2');
+    await stub.assignRoles();
+
+    const result = (await stub.viewRole('p1', 1)) as GameActionResult;
+
+    expect(result.success).toBe(true);
+    expect(result.state?.players[1]?.hasViewedRole).toBe(true);
+  });
+});
+
+// ── clearAllSeats ───────────────────────────────────────────────────────────
+
+describe('GameRoom clearAllSeats', () => {
+  it('clears all players from seats', async () => {
+    const stub = getStub();
+    const template = createTemplate(['villager', 'wolf', 'seer']);
+    await stub.init(buildInitialGameState('CLEAR-ROOM', 'host-uid', template));
+    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await stub.seat('sit', 'p1', 1, 'P1');
+
+    const result = (await stub.clearAllSeats()) as GameActionResult;
+
+    expect(result.success).toBe(true);
+    // All seats should be null
+    for (let i = 0; i < 3; i++) {
+      expect(result.state!.players[i]).toBeNull();
+    }
+    expect(result.state!.status).toBe(GameStatus.Unseated);
+  });
+
+  it('clearAllSeats fails during game', async () => {
+    const stub = getStub();
+    const template = createTemplate(['villager', 'wolf', 'seer']);
+    await stub.init(buildInitialGameState('CLEAR-ERR', 'host-uid', template));
+    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await stub.seat('sit', 'p1', 1, 'P1');
+    await stub.seat('sit', 'p2', 2, 'P2');
+    await stub.assignRoles();
+
+    const result = (await stub.clearAllSeats()) as GameActionResult;
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('game_in_progress');
+  });
+});
+
+// ── Board nomination ────────────────────────────────────────────────────────
+
+describe('GameRoom board nomination', () => {
+  async function initUnseatRoom(): Promise<DurableObjectStub<GameRoom>> {
+    const stub = getStub();
+    const template = createTemplate(['villager', 'wolf', 'seer']);
+    await stub.init(buildInitialGameState('NOM-ROOM', 'host-uid', template));
+    return stub;
+  }
+
+  it('boardNominate adds a nomination', async () => {
+    const stub = await initUnseatRoom();
+
+    const result = (await stub.boardNominate('p1', 'Player1', [
+      'wolf',
+      'seer',
+      'villager',
+      'witch',
+    ])) as GameActionResult;
+
+    expect(result.success).toBe(true);
+    expect(result.state?.boardNominations).toBeTruthy();
+    expect(result.state!.boardNominations!['p1']).toBeTruthy();
+  });
+
+  it('boardUpvote votes for existing nomination', async () => {
+    const stub = await initUnseatRoom();
+    await stub.boardNominate('p1', 'Player1', ['wolf', 'seer', 'villager', 'witch']);
+
+    const result = (await stub.boardUpvote('p2', 'p1')) as GameActionResult;
+
+    expect(result.success).toBe(true);
+    const nomination = result.state!.boardNominations!['p1'];
+    expect(nomination.upvoters).toContain('p2');
+  });
+
+  it('boardWithdraw removes own nomination', async () => {
+    const stub = await initUnseatRoom();
+    await stub.boardNominate('p1', 'Player1', ['wolf', 'seer', 'villager', 'witch']);
+
+    const result = (await stub.boardWithdraw('p1')) as GameActionResult;
+
+    expect(result.success).toBe(true);
+    // After withdraw, the nomination should be removed
+    const noms = result.state!.boardNominations ?? {};
+    expect(noms['p1']).toBeUndefined();
+  });
+
+  it('boardUpvote fails for nonexistent nomination', async () => {
+    const stub = await initUnseatRoom();
+
+    const result = (await stub.boardUpvote('p2', 'nobody')) as GameActionResult;
+
+    expect(result.success).toBe(false);
+  });
+
+  it('boardNominate deduplicates identical role sets', async () => {
+    const stub = await initUnseatRoom();
+    // p1 nominates [wolf, seer, villager]
+    await stub.boardNominate('p1', 'Player1', ['wolf', 'seer', 'villager']);
+    // p2 nominates same roles in different order → should deduplicate
+    const result = (await stub.boardNominate('p2', 'Player2', [
+      'seer',
+      'villager',
+      'wolf',
+    ])) as GameActionResult;
+
+    expect(result.success).toBe(true);
+    // p2's nomination should be an upvote on p1's, not a separate entry
+    const p1Nom = result.state!.boardNominations!['p1'];
+    expect(p1Nom.upvoters).toContain('p2');
+  });
+
+  it('boardNominate fails with empty roles', async () => {
+    const stub = await initUnseatRoom();
+
+    const result = (await stub.boardNominate('p1', 'Player1', [])) as GameActionResult;
+
+    expect(result.success).toBe(false);
+  });
+});
+
+// ── markAllBotsViewed ───────────────────────────────────────────────────────
+
+describe('GameRoom markAllBotsViewed', () => {
+  it('marks bot roles as viewed', async () => {
+    const stub = getStub();
+    const template = createTemplate(['villager', 'wolf', 'seer']);
+    await stub.init(buildInitialGameState('BOTV-ROOM', 'host-uid', template));
+    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await stub.fillWithBots();
+    await stub.assignRoles();
+
+    const result = (await stub.markAllBotsViewed()) as GameActionResult;
+
+    expect(result.success).toBe(true);
+    // Bot seats (1, 2) should have viewed roles
+    expect(result.state!.players[1]?.hasViewedRole).toBe(true);
+    expect(result.state!.players[2]?.hasViewedRole).toBe(true);
+  });
+});
