@@ -23,31 +23,32 @@ statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
   const targetUserId = c.req.param('userId');
 
-  const userRow = await db
-    .select({
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-      customAvatarUrl: users.customAvatarUrl,
-      avatarFrame: users.avatarFrame,
-      equippedFlair: users.equippedFlair,
-      equippedNameStyle: users.equippedNameStyle,
-    })
-    .from(users)
-    .where(eq(users.id, targetUserId))
-    .get();
+  const [userRow, statsRow] = await Promise.all([
+    db
+      .select({
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        customAvatarUrl: users.customAvatarUrl,
+        avatarFrame: users.avatarFrame,
+        equippedFlair: users.equippedFlair,
+        equippedNameStyle: users.equippedNameStyle,
+      })
+      .from(users)
+      .where(eq(users.id, targetUserId))
+      .get(),
+    db
+      .select({
+        xp: userStats.xp,
+        level: userStats.level,
+        gamesPlayed: userStats.gamesPlayed,
+        unlockedItems: userStats.unlockedItems,
+      })
+      .from(userStats)
+      .where(eq(userStats.userId, targetUserId))
+      .get(),
+  ]);
 
   if (!userRow) return c.json({ error: 'user not found' }, 404);
-
-  const statsRow = await db
-    .select({
-      xp: userStats.xp,
-      level: userStats.level,
-      gamesPlayed: userStats.gamesPlayed,
-      unlockedItems: userStats.unlockedItems,
-    })
-    .from(userStats)
-    .where(eq(userStats.userId, targetUserId))
-    .get();
 
   const unlockedItems: string[] = statsRow?.unlockedItems
     ? (JSON.parse(statsRow.unlockedItems) as string[])

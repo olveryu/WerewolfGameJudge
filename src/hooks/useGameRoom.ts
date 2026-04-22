@@ -263,6 +263,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   const lifecycle = useRoomLifecycle({
     facade,
     authService,
+    user,
     setRoomRecord,
   });
 
@@ -276,24 +277,21 @@ export const useGameRoom = (): UseGameRoomResult => {
   useEffect(() => {
     if (connection.connectionStatus !== ConnectionStatus.Live) return;
     if (mySeat === null) return;
+    if (!user) return;
 
-    void (async () => {
-      try {
-        const resp = await authService.getCurrentUser();
-        const meta = resp?.data.user?.user_metadata;
-        if (!meta) return;
-        await facade.updatePlayerProfile(
-          (meta.display_name as string | undefined) ?? undefined,
-          (meta.avatar_url as string | undefined) ?? undefined,
-          (meta.avatar_frame as string | undefined) ?? undefined,
-          (meta.seat_flair as string | undefined) ?? undefined,
-          (meta.name_style as string | undefined) ?? undefined,
-        );
-      } catch (err) {
+    const displayName = user.displayName ?? undefined;
+    facade
+      .updatePlayerProfile(
+        displayName,
+        user.avatarUrl ?? undefined,
+        user.avatarFrame ?? undefined,
+        user.seatFlair ?? undefined,
+        user.nameStyle ?? undefined,
+      )
+      .catch((err: unknown) => {
         gameRoomLog.warn('Profile sync on reconnect failed:', err);
-      }
-    })();
-  }, [connection.connectionStatus, mySeat, facade, authService]);
+      });
+  }, [connection.connectionStatus, mySeat, facade, user]);
 
   // Game actions: game control + night actions
   const actions = useGameActions({

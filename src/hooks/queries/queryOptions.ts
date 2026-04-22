@@ -19,6 +19,7 @@ export const userStatsOptions = () =>
   queryOptions({
     queryKey: ['userStats'] as const,
     queryFn: fetchUserStats,
+    staleTime: 5 * 60_000,
   });
 
 export const userProfileOptions = (userId: string) =>
@@ -37,4 +38,5 @@ export const gachaStatusOptions = () =>
   queryOptions({
     queryKey: ['gachaStatus'] as const,
     queryFn: fetchGachaStatus,
+    staleTime: 60_000,
   });

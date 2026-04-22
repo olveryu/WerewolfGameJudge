@@ -18,6 +18,7 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
 import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
+import type { User } from '@/contexts/AuthContext';
 import { useJoinRoom } from '@/hooks/mutations/useRoomMutations';
 import { userStatsOptions } from '@/hooks/queries/queryOptions';
 import { storage } from '@/lib/storage';
@@ -65,6 +66,7 @@ interface RoomLifecycleState {
 interface RoomLifecycleDeps {
   facade: IGameFacade;
   authService: IAuthService;
+  user: User | null;
   setRoomRecord: (record: RoomRecord | null) => void;
 }
 
@@ -73,7 +75,7 @@ interface RoomLifecycleDeps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
-  const { facade, authService, setRoomRecord } = deps;
+  const { facade, authService, user: authUser, setRoomRecord } = deps;
   const queryClient = useQueryClient();
   const joinRoomMutation = useJoinRoom();
 
@@ -223,20 +225,16 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   const takeSeat = useCallback(
     async (seat: number): Promise<boolean> => {
       try {
-        const displayName = await authService.getCurrentDisplayName();
-        const avatarUrl = await authService.getCurrentAvatarUrl();
-        const avatarFrame = await authService.getCurrentAvatarFrame();
-        const seatFlair = await authService.getCurrentSeatFlair();
-        const nameStyle = await authService.getCurrentNameStyle();
+        const displayName = authUser?.displayName ?? authService.generateDisplayName();
         const level = queryClient.getQueryData<UserStats>(userStatsOptions().queryKey)?.level;
 
         return await facade.takeSeat(
           seat,
-          displayName ?? undefined,
-          avatarUrl ?? undefined,
-          avatarFrame ?? undefined,
-          seatFlair ?? undefined,
-          nameStyle ?? undefined,
+          displayName,
+          authUser?.avatarUrl ?? undefined,
+          authUser?.avatarFrame ?? undefined,
+          authUser?.seatFlair ?? undefined,
+          authUser?.nameStyle ?? undefined,
           level,
         );
       } catch (err) {
@@ -248,7 +246,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return false;
       }
     },
-    [facade, authService, queryClient],
+    [facade, authService, authUser, queryClient],
   );
 
   // Leave seat (unified API)
@@ -268,20 +266,16 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   const takeSeatWithAck = useCallback(
     async (seat: number): Promise<{ success: boolean; reason?: string }> => {
       try {
-        const displayName = await authService.getCurrentDisplayName();
-        const avatarUrl = await authService.getCurrentAvatarUrl();
-        const avatarFrame = await authService.getCurrentAvatarFrame();
-        const seatFlair = await authService.getCurrentSeatFlair();
-        const nameStyle = await authService.getCurrentNameStyle();
+        const displayName = authUser?.displayName ?? authService.generateDisplayName();
         const level = queryClient.getQueryData<UserStats>(userStatsOptions().queryKey)?.level;
 
         const result = await facade.takeSeatWithAck(
           seat,
-          displayName ?? undefined,
-          avatarUrl ?? undefined,
-          avatarFrame ?? undefined,
-          seatFlair ?? undefined,
-          nameStyle ?? undefined,
+          displayName,
+          authUser?.avatarUrl ?? undefined,
+          authUser?.avatarFrame ?? undefined,
+          authUser?.seatFlair ?? undefined,
+          authUser?.nameStyle ?? undefined,
           level,
         );
 
@@ -296,7 +290,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         return { success: false, reason: String(err) };
       }
     },
-    [facade, authService, queryClient],
+    [facade, authService, authUser, queryClient],
   );
 
   // Leave seat with ack (unified API)
