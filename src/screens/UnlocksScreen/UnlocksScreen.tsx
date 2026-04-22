@@ -1,29 +1,15 @@
 /**
  * UnlocksScreen — 解锁物品一览
  *
- * 顶部 tab 切换"头像"/"头像框"，summary card 显示当前 tab 进度。
+ * 顶部 tab 切换"头像"/"头像框"/"特效"/"名字"，summary card 显示当前 tab 进度。
  * 已解锁 cell 高亮 + 绿色对勾角标，未解锁灰暗 + 锁标。
  */
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  AVATAR_IDS,
-  FRAME_IDS,
-  FREE_AVATAR_IDS,
-  FREE_FRAME_IDS,
-  getItemRarity,
-  NAME_STYLE_IDS,
-  type Rarity,
-  SEAT_FLAIR_IDS,
-} from '@werewolf/game-engine/growth/rewardCatalog';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image,
-  ImageSourcePropType,
   ListRenderItemInfo,
   Pressable,
   StyleSheet,
@@ -32,51 +18,24 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
-import { AvatarWithFrame } from '@/components/AvatarWithFrame';
-import { NAME_STYLES, NameStyleText } from '@/components/nameStyles';
-import { RarityCellBg } from '@/components/RarityCellBg';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { SEAT_FLAIRS } from '@/components/seatFlairs';
-import {
-  compareByRarity,
-  getRarityCellConfig,
-  getRarityCellStyle,
-  RARITY_ORDER,
-  RARITY_VISUAL,
-} from '@/config/rarityVisual';
-import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
-import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
+import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlpha } from '@/theme';
-import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
 
-const NUM_COLUMNS = 4;
-const CELL_SIZE = 80;
-
-type TabKey = 'avatar' | 'frame' | 'flair' | 'nameStyle';
-
-const TABS: readonly { key: TabKey; label: string }[] = [
-  { key: 'avatar', label: '头像' },
-  { key: 'frame', label: '头像框' },
-  { key: 'flair', label: '特效' },
-  { key: 'nameStyle', label: '名字' },
-] as const;
-
-type RarityFilter = 'all' | Rarity;
+import { UnlockCell } from './UnlockCell';
+import {
+  NUM_COLUMNS,
+  type RarityFilter,
+  TABS,
+  type UnlockItem,
+  useUnlocksScreenState,
+} from './useUnlocksScreenState';
 
 const RARITY_TABS: readonly { key: RarityFilter; label: string }[] = [
   { key: 'all', label: '全部' },
   ...RARITY_ORDER.map((r) => ({ key: r as RarityFilter, label: RARITY_VISUAL[r].label })),
 ] as const;
-
-interface UnlockItem {
-  id: string;
-  type: TabKey;
-  displayName: string;
-  unlocked: boolean;
-  rarity: Rarity;
-}
 
 export const UnlocksScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -84,125 +43,19 @@ export const UnlocksScreen: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, 'Unlocks'>>();
   const viewingUserId = route.params?.userId;
   const viewingDisplayName = route.params?.displayName;
-  const isViewer = !!viewingUserId;
 
-  const [activeTab, setActiveTab] = useState<TabKey>('avatar');
-  const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
-
-  // Fetch unlocked items: self → useUserStatsQuery, other → useUserUnlocksQuery
-  const selfStats = useUserStatsQuery({ enabled: !isViewer });
-  const otherUnlocks = useUserUnlocksQuery(viewingUserId ?? '');
-  const unlockedItems = isViewer
-    ? (otherUnlocks.data ?? null)
-    : (selfStats.data?.unlockedItems ?? null);
-  const loading = isViewer ? otherUnlocks.isLoading : selfStats.isLoading;
-
-  const unlockedSet = useMemo(
-    () =>
-      new Set([
-        ...Array.from(FREE_AVATAR_IDS),
-        ...Array.from(FREE_FRAME_IDS),
-        ...(unlockedItems ?? []),
-      ]),
-    [unlockedItems],
-  );
-
-  const avatarItems = useMemo(
-    (): UnlockItem[] =>
-      AVATAR_IDS.map((id) => ({
-        id,
-        type: 'avatar' as const,
-        displayName: getRoleDisplayName(id),
-        unlocked: unlockedSet.has(id),
-        rarity: getItemRarity(id),
-      })).sort(
-        (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
-      ),
-    [unlockedSet],
-  );
-
-  const frameItems = useMemo((): UnlockItem[] => {
-    return FRAME_IDS.map((id) => {
-      const frame = AVATAR_FRAMES.find((f) => f.id === id);
-      return {
-        id,
-        type: 'frame' as const,
-        displayName: frame?.name ?? id,
-        unlocked: unlockedSet.has(id),
-        rarity: getItemRarity(id),
-      };
-    }).sort(
-      (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
-    );
-  }, [unlockedSet]);
-
-  const flairItems = useMemo(
-    (): UnlockItem[] =>
-      SEAT_FLAIR_IDS.map((id) => {
-        const flair = SEAT_FLAIRS.find((f) => f.id === id);
-        return {
-          id,
-          type: 'flair' as const,
-          displayName: flair?.name ?? id,
-          unlocked: unlockedSet.has(id),
-          rarity: getItemRarity(id),
-        };
-      }).sort(
-        (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
-      ),
-    [unlockedSet],
-  );
-
-  const nameStyleItems = useMemo(
-    (): UnlockItem[] =>
-      NAME_STYLE_IDS.map((id) => {
-        const ns = NAME_STYLES.find((s) => s.id === id);
-        return {
-          id,
-          type: 'nameStyle' as const,
-          displayName: ns?.name ?? id,
-          unlocked: unlockedSet.has(id),
-          rarity: getItemRarity(id),
-        };
-      }).sort(
-        (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
-      ),
-    [unlockedSet],
-  );
-
-  const allTabItems =
-    activeTab === 'avatar'
-      ? avatarItems
-      : activeTab === 'frame'
-        ? frameItems
-        : activeTab === 'flair'
-          ? flairItems
-          : nameStyleItems;
-
-  // Apply rarity sub-tab filter
-  const currentItems = useMemo(
-    () =>
-      rarityFilter === 'all' ? allTabItems : allTabItems.filter((i) => i.rarity === rarityFilter),
-    [allTabItems, rarityFilter],
-  );
-
-  // Pad last row with invisible spacers so flex:1 cells don't stretch
-  const paddedItems = useMemo(() => {
-    const remainder = currentItems.length % NUM_COLUMNS;
-    if (remainder === 0) return currentItems;
-    const spacers: UnlockItem[] = Array.from({ length: NUM_COLUMNS - remainder }, (_, i) => ({
-      id: `__spacer_${i}`,
-      type: activeTab,
-      displayName: '',
-      unlocked: false,
-      rarity: 'common',
-    }));
-    return [...currentItems, ...spacers];
-  }, [currentItems, activeTab]);
-
-  const unlockedCount = allTabItems.filter((i) => i.unlocked).length;
-  const totalCount = allTabItems.length;
-  const progressPercent = Math.round((unlockedCount / totalCount) * 100);
+  const {
+    activeTab,
+    rarityFilter,
+    setRarityFilter,
+    loading,
+    isViewer,
+    paddedItems,
+    unlockedCount,
+    totalCount,
+    progressPercent,
+    handleTabChange,
+  } = useUnlocksScreenState({ viewingUserId });
 
   const handleGoBack = useCallback(() => navigation.goBack(), [navigation]);
 
@@ -213,11 +66,6 @@ export const UnlocksScreen: React.FC = () => {
   );
 
   const keyExtractor = useCallback((item: UnlockItem) => `${item.type}-${item.id}`, []);
-
-  const handleTabChange = useCallback((tab: TabKey) => {
-    setActiveTab(tab);
-    setRarityFilter('all');
-  }, []);
 
   const listHeader = useMemo(
     () => (
@@ -296,6 +144,7 @@ export const UnlocksScreen: React.FC = () => {
       rarityFilter,
       isViewer,
       handleTabChange,
+      setRarityFilter,
     ],
   );
 
@@ -332,140 +181,9 @@ export const UnlocksScreen: React.FC = () => {
   );
 };
 
-// ── Cell component ──────────────────────────────────────
-
-const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
-  const thumb =
-    item.type === 'avatar' ? (
-      <AvatarThumb id={item.id} unlocked={item.unlocked} />
-    ) : item.type === 'frame' ? (
-      <FrameThumb id={item.id} unlocked={item.unlocked} />
-    ) : item.type === 'nameStyle' ? (
-      <NameStyleThumb id={item.id} displayName={item.displayName} />
-    ) : (
-      <FlairThumb id={item.id} unlocked={item.unlocked} />
-    );
-
-  // nameStyle cells: show styled effect name when unlocked, '???' when locked
-  const label =
-    item.type === 'nameStyle' && item.unlocked ? (
-      <NameStyleText styleId={item.id} style={styles.cellName} numberOfLines={1}>
-        {item.displayName}
-      </NameStyleText>
-    ) : (
-      <Text style={[styles.cellName, !item.unlocked && styles.lockedText]} numberOfLines={1}>
-        {item.unlocked ? item.displayName : '???'}
-      </Text>
-    );
-
-  const rarityCfg = getRarityCellConfig(item.rarity);
-  const rarityCellStyle = getRarityCellStyle(item.rarity);
-
-  return (
-    <View style={styles.cell}>
-      <View
-        style={[
-          styles.imageWrapper,
-          item.unlocked ? styles.unlockedBorder : styles.lockedBg,
-          item.unlocked && rarityCellStyle,
-        ]}
-      >
-        {item.unlocked && rarityCfg && (
-          <RarityCellBg rarity={item.rarity} borderRadius={borderRadius.medium - 2} />
-        )}
-        {thumb}
-        {/* Badge overlay */}
-        {item.unlocked ? (
-          <View style={styles.checkBadge}>
-            <Ionicons name="checkmark" size={12} color={colors.textInverse} />
-          </View>
-        ) : (
-          <View style={styles.lockBadge}>
-            <Ionicons name="lock-closed" size={10} color={colors.textInverse} />
-          </View>
-        )}
-      </View>
-      {label}
-    </View>
-  );
-});
-
-UnlockCell.displayName = 'UnlockCell';
-
-const AvatarThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
-  const avatarIndex = (AVATAR_KEYS as readonly string[]).indexOf(id);
-  const thumbSource = avatarIndex >= 0 ? getAvatarThumbByIndex(avatarIndex) : undefined;
-
-  if (thumbSource == null) return null;
-
-  return (
-    <Image
-      source={thumbSource as ImageSourcePropType}
-      style={[styles.avatarImage, !unlocked && styles.grayscale]}
-      resizeMode="cover"
-    />
-  );
-});
-
-AvatarThumb.displayName = 'AvatarThumb';
-
-const FrameThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => (
-  <View style={!unlocked ? styles.grayscale : undefined}>
-    <AvatarWithFrame
-      value="preview"
-      avatarUrl={null}
-      frameId={id as FrameId}
-      size={CELL_SIZE - spacing.small * 2}
-    />
-  </View>
-));
-
-FrameThumb.displayName = 'FrameThumb';
-
-const FLAIR_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
-
-const FlairThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
-  const flair = SEAT_FLAIRS.find((f) => f.id === id);
-  if (!flair) return null;
-  const Comp = flair.Component;
-  return (
-    <View
-      style={[
-        { width: FLAIR_PREVIEW_SIZE, height: FLAIR_PREVIEW_SIZE },
-        !unlocked && styles.grayscale,
-      ]}
-    >
-      <Comp size={FLAIR_PREVIEW_SIZE} borderRadius={borderRadius.medium} />
-    </View>
-  );
-});
-
-FlairThumb.displayName = 'FlairThumb';
-
-const NAME_STYLE_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
-
-const NameStyleThumb = React.memo<{ id: string; displayName: string }>(({ id, displayName }) => {
-  return (
-    <View
-      style={[
-        styles.nameStylePreview,
-        { width: NAME_STYLE_PREVIEW_SIZE, height: NAME_STYLE_PREVIEW_SIZE },
-      ]}
-    >
-      <NameStyleText styleId={id} style={styles.nameStylePreviewText}>
-        {displayName}
-      </NameStyleText>
-    </View>
-  );
-});
-
-NameStyleThumb.displayName = 'NameStyleThumb';
-
 // ── Styles ──────────────────────────────────────────────
 
 const PROGRESS_RING_SIZE = 64;
-const CHECK_BADGE_SIZE = 18;
-const LOCK_BADGE_SIZE = 16;
 
 const styles = StyleSheet.create({
   container: {
@@ -482,6 +200,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: spacing.screenH,
     paddingBottom: spacing.xxlarge,
+  },
+
+  // Spacer cell
+  cell: {
+    flex: 1,
+    alignItems: 'center',
+    marginBottom: spacing.medium,
+    maxWidth: `${100 / NUM_COLUMNS}%`,
   },
 
   // Summary card
@@ -596,85 +322,5 @@ const styles = StyleSheet.create({
   rarityTabTextActive: {
     color: colors.textInverse,
     fontWeight: typography.weights.semibold,
-  },
-
-  // Grid
-  cell: {
-    flex: 1,
-    alignItems: 'center',
-    marginBottom: spacing.medium,
-    maxWidth: `${100 / NUM_COLUMNS}%`,
-  },
-  imageWrapper: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
-    borderRadius: borderRadius.medium,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: withAlpha(colors.border, 0),
-  },
-  unlockedBorder: {
-    borderColor: colors.primary,
-    backgroundColor: colors.surface,
-    ...shadows.sm,
-  },
-  lockedBg: {
-    backgroundColor: withAlpha(colors.border, 0.3),
-    opacity: 0.5,
-  },
-  avatarImage: {
-    width: CELL_SIZE - 4, // account for border
-    height: CELL_SIZE - 4,
-  },
-  grayscale: {
-    opacity: 0.4,
-  },
-  nameStylePreview: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.medium,
-  },
-  nameStylePreviewText: {
-    fontSize: typography.caption,
-    fontWeight: typography.weights.medium,
-  },
-
-  // Badges
-  checkBadge: {
-    position: 'absolute',
-    bottom: -1,
-    right: -1,
-    width: CHECK_BADGE_SIZE,
-    height: CHECK_BADGE_SIZE,
-    borderRadius: CHECK_BADGE_SIZE / 2,
-    backgroundColor: colors.success,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  lockBadge: {
-    position: 'absolute',
-    bottom: -1,
-    right: -1,
-    width: LOCK_BADGE_SIZE,
-    height: LOCK_BADGE_SIZE,
-    borderRadius: LOCK_BADGE_SIZE / 2,
-    backgroundColor: colors.textMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Cell text
-  cellName: {
-    fontSize: typography.captionSmall,
-    lineHeight: typography.lineHeights.caption,
-    color: colors.text,
-    marginTop: spacing.tight,
-    textAlign: 'center',
-  },
-  lockedText: {
-    color: colors.textMuted,
   },
 });
