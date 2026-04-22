@@ -138,10 +138,16 @@ export const SettingsScreen: React.FC = () => {
   }, [navigation]);
 
   const handleSignOut = useCallback(async () => {
-    wasAuthenticatedRef.current = false;
-    await signOutMutation.mutateAsync();
-    storage.remove(LAST_ROOM_CODE_KEY);
-    await refreshUser();
+    try {
+      wasAuthenticatedRef.current = false;
+      await signOutMutation.mutateAsync();
+      storage.remove(LAST_ROOM_CODE_KEY);
+      await refreshUser();
+    } catch (e: unknown) {
+      const message = getErrorMessage(e);
+      settingsLog.error('Sign out failed:', message, e);
+      showErrorAlert('退出失败', message);
+    }
   }, [signOutMutation, refreshUser]);
 
   const handlePickAvatar = useCallback(() => {
