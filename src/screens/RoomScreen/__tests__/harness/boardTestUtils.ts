@@ -193,6 +193,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     error: null,
 
     // Connection
+    manualReconnect: jest.fn(),
     lastStateReceivedAt: Date.now(),
 
     // Debug mode - effectiveSeat/effectiveRole are used in RoomScreen

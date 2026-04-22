@@ -37,6 +37,8 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
+  /** 小程序微信登录是否失败（App 层根据此值渲染全屏错误页） */
+  wechatLoginFailed: boolean;
   /** Re-fetch current user from service and update local state + Sentry identity. */
   refreshUser: () => Promise<void>;
 }
@@ -144,9 +146,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading,
       error,
       isAuthenticated: !!user,
+      wechatLoginFailed: authService.wechatLoginFailed,
       refreshUser,
     }),
-    [user, loading, error, refreshUser],
+    [user, loading, error, authService.wechatLoginFailed, refreshUser],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

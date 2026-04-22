@@ -18,6 +18,7 @@ export enum ConnectionStatus {
   Syncing = 'Syncing',
   Live = 'Live',
   Disconnected = 'Disconnected',
+  Failed = 'Failed',
 }
 
 export type FacadeStateListener = (state: GameState | null) => void;

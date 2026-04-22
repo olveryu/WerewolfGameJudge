@@ -87,6 +87,9 @@ interface UseGameRoomResult {
   // Connection (from useConnectionStatus)
   connectionStatus: ConnectionStatus;
 
+  // Manual reconnect (from facade)
+  manualReconnect: () => void;
+
   // Sync status
   lastStateReceivedAt: number | null;
 
@@ -253,6 +256,9 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Night-phase derived values (pure computation)
   const nightDerived = useNightDerived(gameState);
 
+  // Manual reconnect (stable ref — facade is from context, identity never changes)
+  const manualReconnect = useCallback(() => facade.manualReconnect(), [facade]);
+
   // Room lifecycle: creation/joining/leaving + seats
   const lifecycle = useRoomLifecycle({
     facade,
@@ -326,6 +332,7 @@ export const useGameRoom = (): UseGameRoomResult => {
     currentStepId: nightDerived.currentStepId,
     // Connection
     connectionStatus: connection.connectionStatus,
+    manualReconnect,
     lastStateReceivedAt: connection.lastStateReceivedAt,
     // Lifecycle
     loading: lifecycle.loading,

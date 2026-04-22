@@ -45,6 +45,9 @@ export interface ConnectionStatusBarStyles {
   text: TextStyle;
   progressBarTrack: ViewStyle;
   progressBar: ViewStyle;
+  failedRow: ViewStyle;
+  reconnectButton: ViewStyle;
+  reconnectText: TextStyle;
 }
 
 export interface ControlledSeatBannerStyles {

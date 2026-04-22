@@ -386,6 +386,7 @@ jest.mock('./src/contexts/ServiceContext', () => {
   const mockServices = {
     authService: {
       waitForInit: jest.fn().mockResolvedValue(undefined),
+      wechatLoginFailed: false,
       getCurrentUserId: jest.fn().mockReturnValue('test-uid'),
       getCurrentUser: jest.fn().mockResolvedValue({ data: { user: null } }),
       getCurrentDisplayName: jest.fn().mockResolvedValue('Test User'),

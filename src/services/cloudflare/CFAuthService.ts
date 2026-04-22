@@ -26,7 +26,12 @@ export class CFAuthService implements IAuthService {
   #isAnonymous = false;
   #hasWechat = false;
   #generatedName: string | null = null;
+  #wechatLoginFailed = false;
   readonly #initPromise: Promise<void>;
+
+  get wechatLoginFailed(): boolean {
+    return this.#wechatLoginFailed;
+  }
 
   constructor() {
     // Register token provider so cfFetch auto-injects Bearer header
@@ -67,8 +72,10 @@ export class CFAuthService implements IAuthService {
               // 非小程序（残留 wxcode 链接等）→ fallback 匿名
               authLog.warn('WeChat sign-in failed outside miniprogram, falling back to anonymous');
               await this.signInAnonymously();
+            } else {
+              // 小程序内：标记失败，App 层渲染全屏错误页
+              this.#wechatLoginFailed = true;
             }
-            // 小程序内：不自动 reLaunch/重试，让错误抛到 UI 层由用户手动重试
           }
         }
       } else if (existingUserId) {

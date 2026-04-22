@@ -77,9 +77,10 @@ function mapConnectionStatus(state: ConnectionState): ConnectionStatus {
       return ConnectionStatus.Live;
     case ConnectionState.Idle:
     case ConnectionState.Disconnected:
-    case ConnectionState.Failed:
     case ConnectionState.Disposed:
       return ConnectionStatus.Disconnected;
+    case ConnectionState.Failed:
+      return ConnectionStatus.Failed;
   }
 }
 

@@ -147,6 +147,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isAudioPlaying,
     resolvedRoleRevealAnimation,
     connectionStatus,
+    manualReconnect,
     gameRoomError,
     effectiveSeat,
     effectiveRole,
@@ -528,6 +529,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* StatusRibbon — unified slot: connection > night progress > speaking order > host guide */}
       <StatusRibbon
         connectionStatus={connectionStatus}
+        onManualReconnect={manualReconnect}
         nightProgress={nightProgress}
         guideMessage={guideMessage}
         speakingOrderText={speakingOrderText}

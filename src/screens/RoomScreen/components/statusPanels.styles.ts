@@ -99,6 +99,23 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         backgroundColor: withAlpha(colors.error, 0.5),
         borderRadius: componentSizes.progressBar.borderRadius,
       },
+      failedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.small,
+      },
+      reconnectButton: {
+        paddingHorizontal: spacing.small,
+        paddingVertical: spacing.tight,
+        borderRadius: borderRadius.small,
+        backgroundColor: withAlpha(colors.error, 0.2),
+      },
+      reconnectText: {
+        fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
+        color: colors.error,
+        fontWeight: typography.weights.semibold,
+      },
     }),
 
     controlledSeatBanner: StyleSheet.create<ControlledSeatBannerStyles>({

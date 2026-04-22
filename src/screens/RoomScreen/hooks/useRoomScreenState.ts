@@ -111,6 +111,7 @@ export function useRoomScreenState(
     roleRevealAnimation,
     resolvedRoleRevealAnimation,
     connectionStatus,
+    manualReconnect,
     error: gameRoomError,
     initializeRoom,
     joinRoom,
@@ -819,6 +820,7 @@ export function useRoomScreenState(
     markAllBotsGroupConfirmed,
     clearAllSeats,
     requestSnapshot,
+    manualReconnect,
     setControlledSeat,
 
     // ── Board nomination ──

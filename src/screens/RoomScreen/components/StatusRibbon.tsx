@@ -29,6 +29,7 @@ import type {
 
 interface StatusRibbonProps {
   connectionStatus: ConnectionStatus;
+  onManualReconnect: () => void;
   nightProgress: { current: number; total: number; roleName?: string } | null;
   guideMessage: string | null;
   speakingOrderText?: string;
@@ -40,6 +41,7 @@ interface StatusRibbonProps {
 
 const StatusRibbonComponent: React.FC<StatusRibbonProps> = ({
   connectionStatus,
+  onManualReconnect,
   nightProgress,
   guideMessage,
   speakingOrderText,
@@ -52,7 +54,13 @@ const StatusRibbonComponent: React.FC<StatusRibbonProps> = ({
 
   // Priority 1: Connection status (always overrides everything)
   if (isDisconnected) {
-    return <ConnectionStatusBar status={connectionStatus} styles={connectionStatusBarStyles} />;
+    return (
+      <ConnectionStatusBar
+        status={connectionStatus}
+        onManualReconnect={onManualReconnect}
+        styles={connectionStatusBarStyles}
+      />
+    );
   }
 
   // Priority 2: Night progress (Ongoing phase)

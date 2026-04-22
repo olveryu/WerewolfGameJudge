@@ -14,6 +14,7 @@ import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
+import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
@@ -89,7 +90,7 @@ function AppContent() {
 
   // Hide splash screen and signal app ready — wait for auth to resolve first
   // so HomeScreen renders with final user state (no tips card flash).
-  const { loading: authLoading } = useAuthContext();
+  const { loading: authLoading, wechatLoginFailed } = useAuthContext();
 
   useEffect(() => {
     if (authLoading) return;
@@ -125,6 +126,16 @@ function AppContent() {
   const handleAlertClose = useCallback(() => {
     setAlertConfig(null);
   }, []);
+
+  // 小程序微信登录失败 → 全屏错误页（替代正常 UI）
+  if (wechatLoginFailed) {
+    return (
+      <>
+        <StatusBar style="dark" backgroundColor={colors.background} />
+        <WxLoginFailedScreen />
+      </>
+    );
+  }
 
   return (
     <>
