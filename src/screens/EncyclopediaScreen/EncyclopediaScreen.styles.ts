@@ -194,5 +194,3 @@ export function createEncyclopediaStyles(colors: ThemeColors) {
     },
   });
 }
-
-export type EncyclopediaStyles = ReturnType<typeof createEncyclopediaStyles>;

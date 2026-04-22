@@ -52,7 +52,7 @@ export const ALL_TAGS: readonly RoleAbilityTag[] = [
 ] as const;
 
 /** 阵营显示配置 */
-export interface FactionConfig {
+interface FactionConfig {
   faction: Faction;
   label: string;
   colorKey: 'god' | 'wolf' | 'villager' | 'third';

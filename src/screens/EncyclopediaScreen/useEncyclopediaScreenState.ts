@@ -20,7 +20,7 @@ import { FACTION_SECTIONS } from './constants';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-export type FactionFilterKey = 'all' | 'god' | 'wolf' | 'villager' | 'third';
+type FactionFilterKey = 'all' | 'god' | 'wolf' | 'villager' | 'third';
 
 interface FactionTab {
   key: Exclude<FactionFilterKey, 'all'>;

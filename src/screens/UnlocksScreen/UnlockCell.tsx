@@ -16,7 +16,7 @@ import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
 
 import type { UnlockItem } from './useUnlocksScreenState';
 
-export const CELL_SIZE = 80;
+const CELL_SIZE = 80;
 
 const CHECK_BADGE_SIZE = 18;
 const LOCK_BADGE_SIZE = 16;

@@ -24,7 +24,7 @@ export const estimateMaxChips = (screenWidth: number): number => {
   return Math.max(2, Math.floor(cardInner / chipWidth));
 };
 
-export interface BoardCardProps {
+interface BoardCardProps {
   template: PresetTemplate;
   isExpanded: boolean;
   onToggleExpand: (name: string) => void;
