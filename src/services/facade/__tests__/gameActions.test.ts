@@ -2,13 +2,12 @@
  * gameActions.test.ts — callGameControlApi 核心逻辑 + thin wrapper 契约
  *
  * 重点测试 callGameControlApi 的高 bug 密度分支：
- * 1. 成功路径 + optimistic snapshot apply
- * 2. 服务端拒绝 → rollback optimistic
+ * 1. 成功路径 + snapshot apply
+ * 2. 服务端拒绝
  * 3. CONFLICT_RETRY → 客户端透明重试（最多 2 次）→ 重试耗尽
  * 4. Non-JSON 502/503 错误页 → 不抛 SyntaxError
- * 5. 网络错误（TypeError from fetch）→ rollback + NETWORK_ERROR
+ * 5. 网络错误（TypeError from fetch）→ NETWORK_ERROR
  * 6. ReferenceError → 直接 rethrow（编程错误）
- * 7. 乐观更新 + rollback 时序
  *
  * thin wrapper（assignRoles 等）只测 NOT_CONNECTED 路径 + 正常调用转发。
  */
@@ -93,10 +92,6 @@ function createMockStore(state: Partial<GameState> | null = DEFAULT_STATE): Game
   let currentState = state as GameState | null;
   return {
     getState: jest.fn(() => currentState),
-    applyOptimistic: jest.fn((s: GameState) => {
-      currentState = s;
-    }),
-    rollbackOptimistic: jest.fn(),
     applySnapshot: jest.fn((s: GameState, _rev: number) => {
       currentState = s;
     }),
@@ -158,7 +153,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
   // Server rejection → rollback
   // =========================================================================
 
-  it('should rollback optimistic on server rejection', async () => {
+  it('should return failure reason on server rejection', async () => {
     global.fetch = mockFetchSuccess({ success: false, reason: 'INVALID_STATUS' });
     const ctx = createMockCtx();
 
@@ -166,11 +161,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe('INVALID_STATUS');
-    expect(ctx.store.rollbackOptimistic).toHaveBeenCalled();
   });
-
-  // Optimistic update before fetch is tested via seatActions.test.ts
-  // (callApiWithRetry's optimistic plumbing is shared by gameActions & seatActions)
 
   // =========================================================================
   // Non-JSON error (502/503 gateway error)
@@ -194,7 +185,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     // Should NOT call .json()
   });
 
-  it('should rollback optimistic on non-JSON error', async () => {
+  it('should return SERVER_ERROR on non-JSON 503', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 503,
@@ -202,9 +193,11 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     });
 
     const ctx = createMockCtx();
-    await assignRoles(ctx);
 
-    expect(ctx.store.rollbackOptimistic).toHaveBeenCalled();
+    const result = await assignRoles(ctx);
+
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('SERVER_ERROR');
   });
 
   // =========================================================================
@@ -270,7 +263,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     jest.useRealTimers();
   });
 
-  it('should rollback optimistic after retry exhaustion', async () => {
+  it('should return NETWORK_ERROR after retry exhaustion', async () => {
     jest.useFakeTimers();
 
     global.fetch = jest.fn().mockResolvedValue({
@@ -283,9 +276,9 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     const resultPromise = assignRoles(ctx);
 
     await jest.advanceTimersByTimeAsync(2000);
-    await resultPromise;
+    const result = await resultPromise;
 
-    expect(ctx.store.rollbackOptimistic).toHaveBeenCalled();
+    expect(result.success).toBe(false);
 
     jest.useRealTimers();
   });
@@ -320,13 +313,14 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
-  it('should rollback optimistic on network error', async () => {
+  it('should return NETWORK_ERROR on network failure', async () => {
     global.fetch = jest.fn().mockRejectedValue(new TypeError('network error'));
     const ctx = createMockCtx();
 
-    await assignRoles(ctx);
+    const result = await assignRoles(ctx);
 
-    expect(ctx.store.rollbackOptimistic).toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('NETWORK_ERROR');
   });
 
   // =========================================================================

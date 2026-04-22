@@ -24,11 +24,6 @@ export class GameStore implements IWritableGameStore {
   #revision: number = 0;
   readonly #listeners: Set<StoreStateListener> = new Set();
 
-  /** 乐观更新前的已确认 state（用于回滚） */
-  #confirmedState: GameState | null = null;
-  /** 乐观更新前的 revision（用于检测是否已被 applySnapshot 覆盖） */
-  #confirmedRevision: number = 0;
-
   /** 最近一次广播携带的 action 类型（一次性消费） */
   #lastAction: string | null = null;
 
@@ -68,42 +63,11 @@ export class GameStore implements IWritableGameStore {
       return;
     }
 
-    // 权威 state 到达 → 清除乐观标记
-    this.#confirmedState = null;
     this.#state = normalizeState(state);
     this.#revision = revision;
     this.#lastAction = lastAction ?? null;
 
     this.#notifyListeners();
-  }
-
-  /**
-   * 乐观更新（发 fetch 前立即渲染预测 state）
-   *
-   * 保存当前 confirmed state 用于回滚，应用预测 state 但不改 revision。
-   * 下一次 applySnapshot 会用权威 state 覆盖。
-   *
-   * 社区标准做法：optimistic update + server reconciliation。
-   */
-  applyOptimistic(state: GameState): void {
-    this.#confirmedState = this.#state;
-    this.#confirmedRevision = this.#revision;
-    this.#state = normalizeState(state);
-    // 不改 revision — 让 applySnapshot 总能覆盖
-    this.#notifyListeners();
-  }
-
-  /**
-   * 回滚乐观更新（服务端拒绝时）
-   *
-   * 仅在 revision 未变时回滚（如果已被 applySnapshot 覆盖，说明有更新的权威 state，无需回滚）。
-   */
-  rollbackOptimistic(): void {
-    if (this.#confirmedState && this.#revision === this.#confirmedRevision) {
-      this.#state = this.#confirmedState;
-      this.#notifyListeners();
-    }
-    this.#confirmedState = null;
   }
 
   /**
@@ -145,7 +109,6 @@ export class GameStore implements IWritableGameStore {
   reset(): void {
     this.#state = null;
     this.#revision = 0;
-    this.#confirmedState = null;
     this.#lastAction = null;
     // 注意：不清除 listeners，因为 React useEffect 的 listener 生命周期独立于 store
     // 通知 listeners state 已变为 null
@@ -165,7 +128,6 @@ export class GameStore implements IWritableGameStore {
   destroy(): void {
     this.#state = null;
     this.#revision = 0;
-    this.#confirmedState = null;
     this.#lastAction = null;
     this.#listeners.clear();
   }

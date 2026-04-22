@@ -5,13 +5,11 @@
  * 1. Simple action (no extra args) → debug-log + callApiWithRetry
  * 2. Action with body builder → extra fields merged into request
  * 3. needsUserId guard → userId included / NOT_CONNECTED when missing
- * 4. Optimistic function forwarded to callApiWithRetry
- * 5. after hook fires on success / failure
- * 6. NOT_CONNECTED when roomCode is null
+ * 4. after hook fires on success / failure
+ * 5. NOT_CONNECTED when roomCode is null
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -35,11 +33,9 @@ import { defineGameAction } from '../defineGameAction';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function createMockStore(roomCode: string | null = 'ABCD'): GameStore {
-  const state = roomCode ? ({ roomCode } as unknown as GameState) : null;
+  const state = roomCode ? ({ roomCode } as unknown) : null;
   return {
     getState: jest.fn(() => state),
-    applyOptimistic: jest.fn(),
-    rollbackOptimistic: jest.fn(),
     applySnapshot: jest.fn(),
   } as unknown as GameStore;
 }
@@ -147,28 +143,6 @@ describe('defineGameAction', () => {
     const result = await action(createMockCtx({ roomCode: null }));
 
     expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Optimistic update
-  // ─────────────────────────────────────────────────────────────────────────
-
-  it('forwards optimistic function to callApiWithRetry', async () => {
-    global.fetch = mockFetchSuccess();
-    const optimisticFn = (val: string) => (s: GameState) => ({ ...s, extra: val });
-    const action = defineGameAction<[string]>({
-      name: 'optAction',
-      path: '/game/opt',
-      body: (val) => ({ val }),
-      optimistic: optimisticFn,
-    });
-    const ctx = createMockCtx();
-
-    await action(ctx, 'hello');
-
-    // applyOptimistic is called by callApiWithRetry internals —
-    // here we just verify the fetch was made (optimistic plumbing is tested in gameActions.test.ts)
-    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   // ─────────────────────────────────────────────────────────────────────────

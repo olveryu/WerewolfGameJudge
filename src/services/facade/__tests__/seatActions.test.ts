@@ -295,17 +295,14 @@ describe('seatActions (HTTP API)', () => {
   });
 
   // ===========================================================================
-  // Optimistic Response (store.applySnapshot)
+  // Server Response (store.applySnapshot)
   // ===========================================================================
 
-  describe('optimistic response (store.applySnapshot)', () => {
-    /** 创建包含乐观更新方法的 mock store */
+  describe('server response (store.applySnapshot)', () => {
     function createMockStore(currentState: Record<string, unknown> | null = null) {
       return {
         getState: jest.fn().mockReturnValue(currentState),
         applySnapshot: jest.fn(),
-        applyOptimistic: jest.fn(),
-        rollbackOptimistic: jest.fn(),
       };
     }
 
@@ -351,31 +348,6 @@ describe('seatActions (HTTP API)', () => {
       await leaveSeatWithAck(ctx);
 
       expect(mockStore.applySnapshot).toHaveBeenCalledWith(mockState, 3);
-    });
-
-    it('should NOT apply optimistic state (seat ops rely on server snapshot)', async () => {
-      global.fetch = mockFetchSuccess({ success: true, state: { roomCode: 'ABCD' }, revision: 2 });
-      const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
-      const ctx = createMockCtx({ store: mockStore as any });
-
-      await takeSeatWithAck(ctx, 1, 'Alice');
-
-      expect(mockStore.applyOptimistic).toHaveBeenCalledTimes(0);
-      // Server response snapshot is still applied
-      expect(mockStore.applySnapshot).toHaveBeenCalledTimes(1);
-    });
-
-    it('should NOT rollback on server rejection (no optimistic to rollback)', async () => {
-      global.fetch = mockFetchSuccess({ success: false, reason: 'seat_taken' });
-      const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
-      const ctx = createMockCtx({ store: mockStore as any });
-
-      await takeSeatWithAck(ctx, 1, 'Alice');
-
-      expect(mockStore.applyOptimistic).toHaveBeenCalledTimes(0);
-      // rollbackOptimistic is still called by callApiOnce on failure,
-      // but it's a no-op since applyOptimistic was never called
-      expect(mockStore.rollbackOptimistic).toHaveBeenCalledTimes(1);
     });
   });
 });

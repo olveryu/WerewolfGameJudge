@@ -7,7 +7,6 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
 
 import { facadeLog } from '@/utils/logger';
 
@@ -24,9 +23,8 @@ async function callGameControlApi(
   path: string,
   body: Record<string, unknown>,
   store?: GameStore,
-  optimisticFn?: (state: GameState) => GameState,
 ): Promise<ApiResponse> {
-  return callApiWithRetry(path, body, 'callGameControlApi', store, optimisticFn);
+  return callApiWithRetry(path, body, 'callGameControlApi', store);
 }
 
 function getConnectionOrFail(
@@ -64,8 +62,6 @@ interface GameActionDef<TArgs extends unknown[]> {
   needsUserId?: boolean;
   /** Build extra body fields beyond roomCode (and userId when needsUserId is true) */
   body?: (...args: TArgs) => Record<string, unknown>;
-  /** Optimistic state update applied before the fetch */
-  optimistic?: (...args: TArgs) => (state: GameState) => GameState;
   /** Post-call hook — fire-and-forget side-effects or failure logging */
   after?: (ctx: GameActionsContext, result: ActionResult, ...args: TArgs) => void;
 }
@@ -102,12 +98,7 @@ export function defineGameAction<TArgs extends unknown[]>(
       requestBody.userId = myUserId;
     }
 
-    const result = await callGameControlApi(
-      def.path,
-      requestBody,
-      ctx.store,
-      def.optimistic?.(...args),
-    );
+    const result = await callGameControlApi(def.path, requestBody, ctx.store);
 
     def.after?.(ctx, result, ...args);
 

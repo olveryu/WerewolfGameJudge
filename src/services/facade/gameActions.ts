@@ -2,7 +2,7 @@
  * Game Actions — 游戏 HTTP API 业务编排（声明式）
  *
  * 使用 defineGameAction 工厂将原本手动的 debug-log → guard → callApi 模式
- * 替换为声明式定义。每个动作只声明 name / path / 可选的 body / optimistic / after。
+ * 替换为声明式定义。每个动作只声明 name / path / 可选的 body / after。
  *
  * 职责同 defineGameAction.ts。
  * 禁止：业务逻辑/校验规则（全部在 handler / 服务端），直接修改 state。
@@ -40,20 +40,18 @@ export const assignRoles = defineGameAction({
   path: '/game/assign',
 });
 
-/** Host: 更新模板（乐观更新） */
+/** Host: 更新模板 */
 export const updateTemplate = defineGameAction<[GameTemplate]>({
   name: 'updateTemplate',
   path: '/game/update-template',
   body: (template) => ({ templateRoles: template.roles }),
-  optimistic: (template) => (state) => ({ ...state, templateRoles: template.roles }),
 });
 
-/** Host: 设置开牌动画（乐观更新） */
+/** Host: 设置开牌动画 */
 export const setRoleRevealAnimation = defineGameAction<[RoleRevealAnimation]>({
   name: 'setRoleRevealAnimation',
   path: '/game/set-animation',
   body: (animation) => ({ animation }),
-  optimistic: (animation) => (state) => ({ ...state, roleRevealAnimation: animation }),
 });
 
 /** Host: 重新开始游戏 */

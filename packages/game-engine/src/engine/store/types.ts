@@ -33,12 +33,6 @@ interface IGameStore {
 
   /** 消费最近一次广播携带的 lastAction（一次性读取，读后清除） */
   consumeLastAction(): string | null;
-
-  /** 乐观更新（发 fetch 前立即渲染预测 state）— 接收 wire payload，内部 normalize */
-  applyOptimistic(state: GameState): void;
-
-  /** 回滚乐观更新（服务端拒绝时） */
-  rollbackOptimistic(): void;
 }
 
 /**

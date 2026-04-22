@@ -1,12 +1,11 @@
 /**
  * Shared API Utilities — DRY 提取
  *
- * 提供通用 HTTP POST + 乐观更新 + 错误处理的基础设施，
+ * 提供通用 HTTP POST + 错误处理的基础设施，
  * 被 gameActions 和 seatActions 共用。不包含业务逻辑。
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { secureRng } from '@werewolf/game-engine/utils/random';
 
 import { API_BASE_URL, API_REGION, API_TIMEOUT_MS } from '@/config/api';
@@ -22,33 +21,17 @@ export interface ApiResponse {
 }
 
 /**
- * Apply optimistic update before fetch.
- * Call once before a request (or retry loop).
- */
-function applyOptimisticUpdate(
-  store: GameStore | undefined,
-  optimisticFn: ((state: GameState) => GameState) | undefined,
-): void {
-  if (optimisticFn && store) {
-    const currentState = store.getState();
-    if (currentState) {
-      store.applyOptimistic(optimisticFn(currentState));
-    }
-  }
-}
-
-/**
  * 执行单次 API POST 调用
  *
  * - fetchWithRetry 网络层自动重试 + AbortSignal.timeout 超时
  * - 处理 non-JSON 错误页（502/503）
- * - 成功时 applySnapshot；失败时 rollbackOptimistic
- * - 网络错误自动 warn + rollback
+ * - 成功时 applySnapshot
+ * - 网络错误自动 warn
  *
  * @param path - API 路径（如 '/game/assign'）
  * @param body - JSON body
  * @param label - 日志标签（如 'callGameControlApi'）
- * @param store - GameStore（用于 optimistic response apply）
+ * @param store - GameStore（用于 response apply）
  */
 async function callApiOnce(
   path: string,
@@ -82,7 +65,6 @@ async function callApiOnce(
         requestId,
         region: API_REGION,
       });
-      if (store) store.rollbackOptimistic();
       return { success: false, reason: 'SERVER_ERROR' };
     }
 
@@ -91,11 +73,6 @@ async function callApiOnce(
     // Optimistic Response: HTTP 响应含 state 时立即 apply，不等 broadcast
     if (result.success && result.state && result.revision != null && store) {
       store.applySnapshot(result.state as never, result.revision);
-    }
-
-    // 服务端拒绝 → 回滚乐观更新
-    if (!result.success && store) {
-      store.rollbackOptimistic();
     }
 
     return result;
@@ -118,15 +95,12 @@ async function callApiOnce(
           (e as { name?: string }).name === 'TimeoutError'));
     if (isAbortOrTimeout) {
       facadeLog.warn('timeout', { label, path, timeoutMs: API_TIMEOUT_MS, region: API_REGION });
-      if (store) store.rollbackOptimistic();
       return { success: false, reason: 'TIMEOUT' };
     }
 
     const err = e as { message?: string };
     facadeLog.warn('network error', { label, path, error: err?.message ?? String(e) });
     // Network/fetch errors are expected (offline, DNS, timeout) — no Sentry
-    // 网络错误 → 回滚乐观更新
-    if (store) store.rollbackOptimistic();
     return { success: false, reason: 'NETWORK_ERROR' };
   }
 }
@@ -144,7 +118,7 @@ const CALL_API_TOTAL_BUDGET_MS = 30_000;
 /**
  * 带透明重试的 API 调用
  *
- * 封装 callApiOnce + 乐观更新 + 重试循环，供 gameActions / seatActions 共用。
+ * 封装 callApiOnce + 重试循环，供 gameActions / seatActions 共用。
  * 重试 CONFLICT_RETRY / INTERNAL_ERROR / NETWORK_ERROR / SERVER_ERROR，
  * 不重试 TIMEOUT（请求可能已到达服务端，重发不安全）。
  * 30s 总预算截断防止叠加等待过长。
@@ -154,9 +128,7 @@ export async function callApiWithRetry(
   body: Record<string, unknown>,
   label: string,
   store?: GameStore,
-  optimisticFn?: (state: GameState) => GameState,
 ): Promise<ApiResponse> {
-  applyOptimisticUpdate(store, optimisticFn);
   const startTime = Date.now();
 
   for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
@@ -191,7 +163,6 @@ export async function callApiWithRetry(
     return result;
   }
 
-  // 重试耗尽或预算超限 → 回滚乐观更新
-  if (store) store.rollbackOptimistic();
+  // 重试耗尽或预算超限
   return { success: false, reason: 'NETWORK_ERROR' };
 }
