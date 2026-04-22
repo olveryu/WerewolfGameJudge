@@ -36,7 +36,7 @@ new_sqlite_classes = ["GameRoom"]
 
 [[migrations]]
 tag = "v2"
-new_classes = ["WeChatAuthProxy"]
+new_sqlite_classes = ["WeChatAuthProxy"]
 
 # ── Workers AI Binding ───────────────────────────────────────────────────────
 [ai]
