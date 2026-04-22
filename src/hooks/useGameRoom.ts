@@ -266,6 +266,35 @@ export const useGameRoom = (): UseGameRoomResult => {
     setRoomRecord,
   });
 
+  // =========================================================================
+  // Profile sync on reconnect
+  //
+  // 当连接恢复（Live）且已在座时，从 D1 拉最新 profile → push 到 DO roster。
+  // 覆盖场景：rejoin 房间、WS 断线自动重连后 roster 仍缓存旧数据。
+  // Fire-and-forget：失败只 warn，不阻塞游戏流程。
+  // =========================================================================
+  useEffect(() => {
+    if (connection.connectionStatus !== ConnectionStatus.Live) return;
+    if (mySeat === null) return;
+
+    void (async () => {
+      try {
+        const resp = await authService.getCurrentUser();
+        const meta = resp?.data.user?.user_metadata;
+        if (!meta) return;
+        await facade.updatePlayerProfile(
+          (meta.display_name as string | undefined) ?? undefined,
+          (meta.avatar_url as string | undefined) ?? undefined,
+          (meta.avatar_frame as string | undefined) ?? undefined,
+          (meta.seat_flair as string | undefined) ?? undefined,
+          (meta.name_style as string | undefined) ?? undefined,
+        );
+      } catch (err) {
+        gameRoomLog.warn('Profile sync on reconnect failed:', err);
+      }
+    })();
+  }, [connection.connectionStatus, mySeat, facade, authService]);
+
   // Game actions: game control + night actions
   const actions = useGameActions({
     facade,
