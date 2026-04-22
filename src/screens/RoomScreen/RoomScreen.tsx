@@ -675,7 +675,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Share card — mounted on-demand during capture only */}
       {isCapturingShareCard && nightReviewData && (
-        <View style={styles.hiddenShareCardContainer} pointerEvents="none">
+        <View style={styles.hiddenShareCardContainer}>
           <NightReviewShareCard
             ref={nightReviewShareCardRef}
             data={nightReviewData}

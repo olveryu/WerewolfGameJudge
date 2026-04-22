@@ -128,7 +128,7 @@ export const RoleRevealAnimator: React.FC<RoleRevealAnimatorProps> = ({
     >
       <View style={styles.container}>
         {/* Unified title — tells user this is identity reveal */}
-        <View style={[styles.titleContainer, { top: insets.top + 8 }]} pointerEvents="none">
+        <View style={[styles.titleContainer, { top: insets.top + 8 }]}>
           <Text style={styles.titleText}>{titleText}</Text>
         </View>
         {renderEffect()}
@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 100,
     paddingHorizontal: 24,
+    pointerEvents: 'none',
   },
   titleText: {
     fontSize: 18,

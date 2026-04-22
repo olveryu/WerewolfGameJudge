@@ -11,7 +11,6 @@ import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { getRarityCellConfig } from '@/config/rarityVisual';
-
 interface RarityCellBgProps {
   rarity: Rarity | null;
   borderRadius: number;
@@ -22,7 +21,7 @@ export const RarityCellBg = memo<RarityCellBgProps>(({ rarity, borderRadius }) =
   if (!config) return null;
 
   return (
-    <View style={[styles.container, { borderRadius }]} pointerEvents="none">
+    <View style={[styles.container, { borderRadius }]}>
       <LinearGradient
         colors={[...config.gradientColors]}
         style={StyleSheet.absoluteFill}
@@ -39,5 +38,6 @@ const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
+    pointerEvents: 'none',
   },
 });

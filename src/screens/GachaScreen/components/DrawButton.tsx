@@ -108,12 +108,10 @@ export function DrawButton({
           style={[styles.gradient, golden && styles.goldenBorder]}
         >
           {/* Shimmer overlay */}
-          {!disabled && (
-            <Animated.View style={[styles.shimmer, shimmerStyle]} pointerEvents="none" />
-          )}
+          {!disabled && <Animated.View style={[styles.shimmer, shimmerStyle]} />}
 
           {/* Inner highlight */}
-          <View style={styles.innerHighlight} pointerEvents="none" />
+          <View style={styles.innerHighlight} />
 
           {/* Content */}
           <View style={styles.content}>
@@ -176,6 +174,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '60%',
     backgroundColor: withAlpha(colors.surface, 0.12),
+    pointerEvents: 'none',
   },
   innerHighlight: {
     position: 'absolute',
@@ -184,6 +183,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 1,
     backgroundColor: withAlpha(colors.surface, 0.2),
+    pointerEvents: 'none',
   },
   content: {
     flexDirection: 'row',

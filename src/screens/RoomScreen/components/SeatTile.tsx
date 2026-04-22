@@ -312,6 +312,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     ...styles.rippleRing,
     transform: [{ scale: rippleScale }],
     opacity: rippleOpacity,
+    pointerEvents: 'none' as const,
   };
 
   // Get role display name for bot (debug mode only)
@@ -406,7 +407,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
         </TouchableOpacity>
 
         {/* C1: Ripple ring — expands and fades on player join */}
-        <Animated.View style={rippleStyle} pointerEvents="none" />
+        <Animated.View style={rippleStyle} />
       </Animated.View>
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}

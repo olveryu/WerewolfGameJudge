@@ -51,7 +51,7 @@ export const ScreenHeader = memo<ScreenHeaderProps>(function ScreenHeader({
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>
       </View>
-      <View style={styles.centerContainer} pointerEvents="none">
+      <View style={styles.centerContainer}>
         <Text style={styles.title}>{title}</Text>
       </View>
       <View style={styles.sideContainer}>{headerRight}</View>
@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   title: {
     fontSize: layout.headerTitleSize,

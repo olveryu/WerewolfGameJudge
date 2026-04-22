@@ -406,7 +406,7 @@ const AnimatedAnimal: React.FC<AnimatedAnimalProps> = React.memo(
     if (state === 'dead') return null;
 
     return (
-      <Animated.View style={[styles.animalLabel, animStyle]} pointerEvents="none">
+      <Animated.View style={[styles.animalLabel, animStyle]}>
         <Text style={styles.animalEmoji}>{animal.emoji}</Text>
         <View style={[styles.animalNameBg, animal.facingLeft && { transform: [{ scaleX: -1 }] }]}>
           <Text style={styles.animalName}>{animal.role.name}</Text>
@@ -1101,7 +1101,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       <View testID={`${testIDPrefix}-container`} style={styles.container}>
         {/* Skia layer: forest bg + fireflies + scope + burst */}
         {!reducedMotion && (
-          <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Canvas style={styles.absoluteFillNoEvents}>
             <Picture picture={forestPicture} />
 
             {fireflies.map((f, i) => (
@@ -1210,12 +1210,11 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
         {/* Hit flash overlay */}
         <Animated.View
           style={[styles.flash, hitFlashStyle, { backgroundColor: HUNT_COLORS.hitFlash }]}
-          pointerEvents="none"
         />
 
         {/* Animals */}
         {!reducedMotion && (
-          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <View style={styles.absoluteFillNoEvents}>
             {animals.map((animal) => (
               <AnimatedAnimal
                 key={animal.id}
@@ -1277,6 +1276,10 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  absoluteFillNoEvents: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
+  },
   container: {
     flex: 1,
     alignItems: 'center',
@@ -1287,12 +1290,14 @@ const styles = StyleSheet.create({
   flash: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 8,
+    pointerEvents: 'none',
   },
 
   animalLabel: {
     position: 'absolute',
     alignItems: 'center',
     zIndex: 5,
+    pointerEvents: 'none',
   },
   animalEmoji: {
     fontSize: 44,

@@ -21,7 +21,6 @@ import { VillagerRevealEffect } from '@/components/RoleRevealEffects/common/effe
 import { WolfRevealEffect } from '@/components/RoleRevealEffects/common/effects/WolfRevealEffect';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { AlignmentTheme, RoleAlignment } from '@/components/RoleRevealEffects/types';
-
 const { alignmentEffects: AE } = CONFIG;
 
 interface AlignmentRevealOverlayProps {
@@ -71,7 +70,7 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
   const breathingDuration = AE.breathingDuration[alignment] ?? 2500;
 
   return (
-    <View style={styles.effectContainer} pointerEvents="none">
+    <View style={styles.effectContainer}>
       {/* Full-screen radial flash — neutral color to prevent leaking alignment */}
       <ScreenFlash
         color={AE.screenFlashColor}
@@ -107,5 +106,6 @@ const styles = StyleSheet.create({
   effectContainer: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'visible',
+    pointerEvents: 'none',
   },
 });

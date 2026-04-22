@@ -947,7 +947,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
       {/* Stone wall blocks in background */}
       {!reducedMotion && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <View style={styles.absoluteFillNoEvents}>
           {STONE_BLOCKS.map((block, i) => (
             <View
               key={`stone-${i}`}
@@ -966,7 +966,6 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
           <View
             key={`torch-bracket-${i}`}
             style={[styles.torch, { left: torch.x + 8, top: torch.y + 30 }]}
-            pointerEvents="none"
           >
             <Text style={styles.torchBracket}>🔩</Text>
           </View>
@@ -974,7 +973,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
       {/* Ambient dust particles + Skia torch flames (full-screen Skia canvas behind lock) */}
       {phase !== 'revealed' && !reducedMotion && (
-        <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Canvas style={styles.absoluteFillNoEvents}>
           {dustParticles.map((dust, i) => (
             <DustParticle key={`dust-${i}`} dust={dust} progress={dustProgress} />
           ))}
@@ -1158,10 +1157,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
             {/* Hit counter inside shake container */}
             {(phase === 'idle' || phase === 'hitting') && (
-              <View
-                style={[styles.centeredOverlay, { top: cy + lockH / 2 + 30 }]}
-                pointerEvents="none"
-              >
+              <View style={[styles.centeredOverlay, { top: cy + lockH / 2 + 30 }]}>
                 <Text style={styles.hitCounterText}>
                   {hitCountDisplay} / {CS.requiredHits}
                 </Text>
@@ -1176,7 +1172,6 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                   comboStyle,
                   { top: cy - lockH / 2 - lockW * 0.3 - 40 },
                 ]}
-                pointerEvents="none"
               >
                 <Text style={styles.comboText}>× {hitCountDisplay}</Text>
               </Animated.View>
@@ -1209,14 +1204,10 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
         {/* Hit flash overlay */}
         <Animated.View
           style={[styles.flash, hitFlashStyle, { backgroundColor: COLORS.breakFlash }]}
-          pointerEvents="none"
         />
 
         {/* Screen flash */}
-        <Animated.View
-          style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]}
-          pointerEvents="none"
-        />
+        <Animated.View style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]} />
       </Pressable>
 
       {/* Hint text */}
@@ -1235,14 +1226,14 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
       {/* Exposed spring coils (visible through cracks during hitting) */}
       {phase === 'hitting' && hitCountDisplay >= 3 && (
-        <View style={styles.springContainer} pointerEvents="none">
+        <View style={styles.springContainer}>
           <Text style={styles.springText}>⌇⌇⌇</Text>
         </View>
       )}
 
       {/* Freedom light pillar (on shatter/reveal) */}
       {(phase === 'shatter' || phase === 'revealed') && (
-        <Animated.View style={[styles.lightPillar, lightPillarStyle]} pointerEvents="none" />
+        <Animated.View style={[styles.lightPillar, lightPillarStyle]} />
       )}
 
       {/* Revealed card */}
@@ -1277,13 +1268,18 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  absoluteFillNoEvents: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
+  },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  flash: { ...StyleSheet.absoluteFillObject },
+  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
   centeredOverlay: {
     position: 'absolute',
     left: 0,
     right: 0,
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   hitCounterText: {
     fontSize: 16,
@@ -1319,6 +1315,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     zIndex: 2,
+    pointerEvents: 'none',
   },
   torchBracket: {
     fontSize: 14,
@@ -1329,6 +1326,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     top: '48%',
     zIndex: 3,
+    pointerEvents: 'none',
   },
   springText: {
     fontSize: 18,
@@ -1343,5 +1341,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: COLORS.lightPillar,
     zIndex: 1,
+    pointerEvents: 'none',
   },
 });

@@ -600,7 +600,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
 
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
-          <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Canvas style={styles.absoluteFillNoEvents}>
             {/* ── Nebula clouds ── */}
             {NEBULAE.map((n, i) => (
               <NebulaCloud key={`neb-${i}`} nebula={n} time={timeSV} />
@@ -697,10 +697,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
 
           {/* Progress percent text (RN for crisp rendering) */}
           {phase === 'idle' && (
-            <View
-              style={[styles.percentContainer, { top: cy + 130, left: cx - 30 }]}
-              pointerEvents="none"
-            >
+            <View style={[styles.percentContainer, { top: cy + 130, left: cx - 30 }]}>
               <Animated.Text style={styles.percentText}>
                 {/* Driven by progressPercent string via polling — simplified to static for now */}
               </Animated.Text>
@@ -710,7 +707,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
       </GestureDetector>
 
       {/* Flash overlay */}
-      <Animated.View style={[styles.flash, flashStyle, styles.flashBg]} pointerEvents="none" />
+      <Animated.View style={[styles.flash, flashStyle, styles.flashBg]} />
 
       {/* Hint */}
       <HintWithWarning
@@ -758,8 +755,12 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  absoluteFillNoEvents: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
+  },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  flash: { ...StyleSheet.absoluteFillObject },
+  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
   flashBg: { backgroundColor: 'rgba(150,100,255,0.8)' },
   cardWrapper: {
     ...StyleSheet.absoluteFillObject,
@@ -775,6 +776,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 60,
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   percentText: {
     fontSize: 12,

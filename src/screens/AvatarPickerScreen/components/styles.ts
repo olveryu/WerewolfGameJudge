@@ -120,8 +120,7 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
     pickerItemLocked: {
       opacity: 0.4,
       // Remove shadow from locked items
-      shadowOpacity: 0,
-      elevation: 0,
+      boxShadow: 'none',
     },
     pickerItemLockOverlay: {
       ...StyleSheet.absoluteFillObject,

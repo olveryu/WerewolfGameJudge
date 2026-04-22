@@ -574,7 +574,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
       {/* ── Skia Scene Layer (stars, crystal ball, candles, magic circle, trail) ── */}
       {!reducedMotion && (
-        <Canvas style={styles.fullScreen} pointerEvents="none">
+        <Canvas style={styles.fullScreen}>
           {/* Star sky background — 30 dots */}
           <Group blendMode="screen">
             {STARS.map((star, i) => {
@@ -766,7 +766,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
       {/* Velvet table cloth — bottom 1/3 */}
       {!reducedMotion && (
-        <Animated.View style={[styles.velvetTable, velvetStyle]} pointerEvents="none">
+        <Animated.View style={[styles.velvetTable, velvetStyle]}>
           <LinearGradient
             colors={['#1a0a2e00', '#1a0a2e', '#12071e']}
             style={StyleSheet.absoluteFill}
@@ -831,7 +831,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                   disabled={phase !== 'waiting'}
                   style={styles.pressableFill}
                 >
-                  <Canvas style={styles.pressableFill} pointerEvents="none">
+                  <Canvas style={styles.pressableFill}>
                     <SkiaImage
                       image={cardBackTexture}
                       x={0}
@@ -850,13 +850,17 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
       {/* Drawn card (fly to center → flip) */}
       <Animated.View
-        pointerEvents={phase === 'waiting' ? 'none' : 'auto'}
         testID={`${testIDPrefix}-drawn-card`}
-        style={[styles.drawnCard, { width: cardWidth, height: cardHeight }, drawnCardStyle]}
+        style={[
+          styles.drawnCard,
+          { width: cardWidth, height: cardHeight },
+          phase === 'waiting' ? styles.pointerEventsNone : styles.pointerEventsAuto,
+          drawnCardStyle,
+        ]}
       >
         {/* Card back */}
         <Animated.View style={[styles.cardFace, styles.cardBackZ, backOpacityStyle]}>
-          <Canvas style={styles.pressableFill} pointerEvents="none">
+          <Canvas style={styles.pressableFill}>
             <SkiaImage
               image={cardBackTexture}
               x={0}
@@ -895,10 +899,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
       {/* Fortune quote — appears after reveal */}
       {phase === 'revealed' && (
-        <Animated.View
-          style={[styles.fortuneContainer, { top: insets.top + 60 }, fortuneStyle]}
-          pointerEvents="none"
-        >
+        <Animated.View style={[styles.fortuneContainer, { top: insets.top + 60 }, fortuneStyle]}>
           <Animated.Text style={styles.fortuneText}>
             {FORTUNE_QUOTES[role.alignment] ?? FORTUNE_QUOTES.villager}
           </Animated.Text>
@@ -915,6 +916,8 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  pointerEventsNone: { pointerEvents: 'none' as const },
+  pointerEventsAuto: { pointerEvents: 'auto' as const },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -927,6 +930,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: SCREEN_W,
     height: SCREEN_H,
+    pointerEvents: 'none',
   },
   wheel: {
     position: 'absolute',
@@ -969,6 +973,7 @@ const styles = StyleSheet.create({
   },
   pressableFill: {
     flex: 1,
+    pointerEvents: 'none',
   },
   promptContainer: {
     position: 'absolute',
@@ -986,6 +991,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: SCREEN_H * 0.35,
+    pointerEvents: 'none',
   },
   velvetFringe: {
     position: 'absolute',
@@ -1001,6 +1007,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   fortuneText: {
     fontSize: 18,

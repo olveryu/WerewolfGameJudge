@@ -29,7 +29,7 @@ export const HintWithWarning: React.FC<HintWithWarningProps> = ({
 }) => {
   if (showWarning) {
     return (
-      <View style={styles.container} pointerEvents="none">
+      <View style={styles.container}>
         <Text style={styles.warningText}>
           <Ionicons name="hourglass-outline" size={18} color={WARNING_COLOR} /> 即将自动揭晓…
         </Text>
@@ -39,7 +39,7 @@ export const HintWithWarning: React.FC<HintWithWarningProps> = ({
 
   if (hintText) {
     return (
-      <View style={styles.container} pointerEvents="none">
+      <View style={styles.container}>
         <Text style={[styles.hintText, hintTextStyle]}>{hintText}</Text>
       </View>
     );
@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     zIndex: 10,
+    pointerEvents: 'none',
   },
   hintText: {
     fontSize: 20,

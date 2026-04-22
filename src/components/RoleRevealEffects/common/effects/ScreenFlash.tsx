@@ -28,7 +28,6 @@ import {
 } from 'react-native-reanimated';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-
 const AE = CONFIG.alignmentEffects;
 const SK = CONFIG.skia;
 
@@ -113,7 +112,7 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
   });
 
   return (
-    <Canvas style={styles.canvas} pointerEvents="none">
+    <Canvas style={styles.canvas}>
       {/* Radial shockwave — expanding glow from center */}
       <Group opacity={waveOpacity}>
         <Circle cx={centerX} cy={centerY} r={waveR}>
@@ -149,5 +148,6 @@ const styles = StyleSheet.create({
     width: SCREEN_W,
     height: SCREEN_H,
     zIndex: 9999,
+    pointerEvents: 'none',
   },
 });

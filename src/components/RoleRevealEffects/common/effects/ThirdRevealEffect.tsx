@@ -36,7 +36,6 @@ import {
 } from 'react-native-reanimated';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-
 const AE = CONFIG.alignmentEffects;
 const SK = CONFIG.skia;
 
@@ -330,12 +329,13 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
       overflow: 'visible' as const,
       width: cardWidth,
       height: cardHeight,
+      pointerEvents: 'none' as const,
     }),
     [cardWidth, cardHeight],
   );
 
   return (
-    <Canvas style={canvasStyle} pointerEvents="none">
+    <Canvas style={canvasStyle}>
       {/* Persistent card glow */}
       <Group opacity={glowOpacity}>
         <Circle cx={centerX} cy={centerY} r={glowR}>

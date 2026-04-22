@@ -467,7 +467,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
       {/* Skia scene layer: rotary lights + confetti */}
       {!reducedMotion && (
-        <Canvas style={styles.fullScreen} pointerEvents="none">
+        <Canvas style={styles.fullScreen}>
           {/* Rotary lights — Picture API batch with group-level blur */}
           <Group
             layer={
@@ -496,8 +496,11 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
       {/* Machine - fades out on reveal */}
       <Animated.View
-        style={[styles.machine, machineOpacityStyle]}
-        pointerEvents={phase === 'revealed' ? 'none' : 'auto'}
+        style={[
+          styles.machine,
+          machineOpacityStyle,
+          phase === 'revealed' ? styles.pointerEventsNone : styles.pointerEventsAuto,
+        ]}
       >
         {/* Dome */}
         <Animated.View style={[styles.dome, bobbleStyle]}>
@@ -523,7 +526,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
           <View style={styles.coinSlot}>
             <View style={styles.coinSlotInner} />
             {/* Animated coin insert */}
-            <Animated.View style={[styles.coin, coinStyle]} pointerEvents="none">
+            <Animated.View style={[styles.coin, coinStyle]}>
               <Text style={styles.coinSymbol}>¥</Text>
             </Animated.View>
           </View>
@@ -581,7 +584,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
             </View>
             <View style={styles.capsuleRing} />
             {/* Crack lines — appear before opening */}
-            <Animated.View style={[styles.crackOverlay, crackStyle]} pointerEvents="none">
+            <Animated.View style={[styles.crackOverlay, crackStyle]}>
               <Text style={styles.crackLine}>╲</Text>
               <Text style={styles.crackLine}>╱</Text>
               <Text style={styles.crackLine}>│</Text>
@@ -619,10 +622,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
       {/* Rarity label — pops in after reveal */}
       {phase === 'revealed' && (
-        <Animated.View
-          style={[styles.rarityContainer, { top: insets.top + 60 }, rarityStyle]}
-          pointerEvents="none"
-        >
+        <Animated.View style={[styles.rarityContainer, { top: insets.top + 60 }, rarityStyle]}>
           <Text
             style={[styles.rarityText, { color: RARITY_LABEL[role.alignment]?.color ?? '#66bbff' }]}
           >
@@ -636,6 +636,8 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  pointerEventsNone: { pointerEvents: 'none' as const },
+  pointerEventsAuto: { pointerEvents: 'auto' as const },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fullScreen: {
     position: 'absolute',
@@ -643,6 +645,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: SCREEN_W,
     height: SCREEN_H,
+    pointerEvents: 'none',
   },
   machine: { alignItems: 'center' },
 
@@ -839,6 +842,7 @@ const styles = StyleSheet.create({
     borderColor: GACHA_COLORS.coinEdge,
     justifyContent: 'center',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   coinSymbol: {
     fontSize: 10,
@@ -874,6 +878,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
+    pointerEvents: 'none',
   },
   crackLine: {
     fontSize: 20,
@@ -884,6 +889,7 @@ const styles = StyleSheet.create({
   rarityContainer: {
     position: 'absolute',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   rarityText: {
     fontSize: 32,

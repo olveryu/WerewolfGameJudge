@@ -78,7 +78,7 @@ function buildWebStyle(config: NameStyleConfig): Record<string, unknown> {
   const style: Record<string, unknown> = {};
 
   if (config.gradient) {
-    style.background = `linear-gradient(90deg, ${config.gradient.stops})`;
+    style.backgroundImage = `linear-gradient(90deg, ${config.gradient.stops})`;
     style.WebkitBackgroundClip = 'text';
     style.backgroundClip = 'text';
     style.WebkitTextFillColor = 'transparent';

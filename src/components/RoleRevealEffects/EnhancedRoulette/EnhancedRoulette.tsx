@@ -472,7 +472,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
       {/* Felt table background */}
-      <View style={styles.feltTable} pointerEvents="none">
+      <View style={styles.feltTable}>
         <LinearGradient
           colors={[SLOT_COLORS.feltGreen, SLOT_COLORS.feltDark]}
           style={StyleSheet.absoluteFill}
@@ -602,13 +602,13 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       </Animated.View>
 
       {/* LED credit display — below machine */}
-      <Animated.View style={[styles.ledDisplay, creditStyle]} pointerEvents="none">
+      <Animated.View style={[styles.ledDisplay, creditStyle]}>
         <Text style={styles.ledText}>CREDIT: {String(credit).padStart(2, '0')}</Text>
       </Animated.View>
 
       {/* Light pillars — glow when stopping */}
       {(phase === 'stopping' || phase === 'revealed') && (
-        <Animated.View style={[styles.pillarContainer, pillarStyle]} pointerEvents="none">
+        <Animated.View style={[styles.pillarContainer, pillarStyle]}>
           <View style={styles.pillarLeft} />
           <View style={styles.pillarRight} />
         </Animated.View>
@@ -616,8 +616,11 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
       {/* Revealed card - cross-fades in */}
       <Animated.View
-        style={[styles.revealedOverlay, revealedCardStyle]}
-        pointerEvents={phase === 'revealed' ? 'auto' : 'none'}
+        style={[
+          styles.revealedOverlay,
+          revealedCardStyle,
+          phase === 'revealed' ? styles.pointerEventsAuto : styles.pointerEventsNone,
+        ]}
       >
         <Animated.View
           style={[styles.revealedCardContainer, { width: cardWidth, height: cardHeight }]}
@@ -653,10 +656,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
       {/* JACKPOT banner — pops in on reveal */}
       {phase === 'revealed' && (
-        <Animated.View
-          style={[styles.jackpotBanner, { top: insets.top + 50 }, jackpotStyle]}
-          pointerEvents="none"
-        >
+        <Animated.View style={[styles.jackpotBanner, { top: insets.top + 50 }, jackpotStyle]}>
           <Text style={styles.jackpotText}>🎰 JACKPOT! 🎰</Text>
         </Animated.View>
       )}
@@ -687,6 +687,8 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  pointerEventsNone: { pointerEvents: 'none' as const },
+  pointerEventsAuto: { pointerEvents: 'auto' as const },
   container: {
     flex: 1,
     alignItems: 'center',
@@ -896,6 +898,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     overflow: 'hidden',
+    pointerEvents: 'none',
   },
   ledDisplay: {
     position: 'absolute',
@@ -906,6 +909,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#333',
+    pointerEvents: 'none',
   },
   ledText: {
     fontFamily: 'monospace',
@@ -940,6 +944,7 @@ const styles = StyleSheet.create({
   jackpotBanner: {
     position: 'absolute',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   jackpotText: {
     fontSize: 28,

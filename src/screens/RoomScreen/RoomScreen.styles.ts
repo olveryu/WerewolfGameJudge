@@ -126,6 +126,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       position: 'absolute',
       top: -9999,
       left: -9999,
+      pointerEvents: 'none',
     },
   });
 }

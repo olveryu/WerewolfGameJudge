@@ -65,14 +65,11 @@ const AvatarWithFrameComponent: React.FC<AvatarWithFrameProps> = ({
         borderRadius={innerRadius}
         hideBackground
       />
-      <View style={[styles.frameOverlay, { left: svgOffset, top: svgOffset }]} pointerEvents="none">
+      <View style={[styles.frameOverlay, { left: svgOffset, top: svgOffset }]}>
         <FrameComponent size={svgSize} rx={rxVB} />
       </View>
       {isLegendary && (
-        <View
-          style={[styles.frameOverlay, { left: svgOffset, top: svgOffset }]}
-          pointerEvents="none"
-        >
+        <View style={[styles.frameOverlay, { left: svgOffset, top: svgOffset }]}>
           <LegendaryShimmer size={svgSize} rx={rxVB} />
         </View>
       )}
@@ -89,5 +86,6 @@ const styles = StyleSheet.create({
   frameOverlay: {
     position: 'absolute',
     overflow: 'visible',
+    pointerEvents: 'none',
   },
 });

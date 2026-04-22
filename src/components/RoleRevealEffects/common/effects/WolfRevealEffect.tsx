@@ -37,7 +37,6 @@ import {
 } from 'react-native-reanimated';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-
 const AE = CONFIG.alignmentEffects;
 const SK = CONFIG.skia;
 
@@ -188,12 +187,13 @@ export const WolfCrackBackground: React.FC<WolfCrackBackgroundProps> = ({
       left: 0,
       width: cardWidth,
       height: cardHeight,
+      pointerEvents: 'none' as const,
     }),
     [cardWidth, cardHeight],
   );
 
   return (
-    <Canvas style={canvasStyle} pointerEvents="none">
+    <Canvas style={canvasStyle}>
       <Group
         opacity={crackOpacity}
         transform={[{ scaleX: cardWidth }, { scaleY: cardHeight }]}
@@ -516,12 +516,13 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
       overflow: 'visible' as const,
       width: cardWidth,
       height: cardHeight,
+      pointerEvents: 'none' as const,
     }),
     [cardWidth, cardHeight],
   );
 
   return (
-    <Canvas style={canvasStyle} pointerEvents="none">
+    <Canvas style={canvasStyle}>
       {/* Card glow — RadialGradient from center */}
       <Group opacity={glowOpacity}>
         <Circle cx={centerX} cy={centerY} r={glowR}>

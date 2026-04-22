@@ -485,7 +485,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
       {/* Starfield background — static Picture (pre-computed at module level) */}
       {!reducedMotion && (
-        <Canvas style={styles.fullScreen} pointerEvents="none">
+        <Canvas style={styles.fullScreen}>
           <Group
             blendMode="screen"
             layer={
@@ -500,7 +500,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       )}
 
       {/* Pedestal base */}
-      <View style={styles.pedestal} pointerEvents="none">
+      <View style={styles.pedestal}>
         <View style={styles.pedestalTop} />
         <View style={styles.pedestalBody} />
       </View>
@@ -605,7 +605,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
             </Canvas>
 
             {/* ── RN Text labels (rotate with wheel via Animated.View) ── */}
-            <Animated.View style={[StyleSheet.absoluteFill, labelRotateStyle]} pointerEvents="none">
+            <Animated.View style={[styles.absoluteFillNoEvents, labelRotateStyle]}>
               {segmentData.map((seg, i) => (
                 <View
                   key={`lbl-${i}`}
@@ -626,10 +626,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
             </Animated.View>
 
             {/* Center "?" text (static, above canvas) */}
-            <View
-              style={[styles.centerTextWrap, { left: cx - 20, top: cy - 16 }]}
-              pointerEvents="none"
-            >
+            <View style={[styles.centerTextWrap, { left: cx - 20, top: cy - 16 }]}>
               <Text style={styles.centerText}>?</Text>
             </View>
           </Animated.View>
@@ -637,10 +634,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       </GestureDetector>
 
       {/* Flash overlay */}
-      <Animated.View
-        style={[styles.flash, flashStyleAnim, { backgroundColor: theme.glowColor }]}
-        pointerEvents="none"
-      />
+      <Animated.View style={[styles.flash, flashStyleAnim, { backgroundColor: theme.glowColor }]} />
 
       {/* Phase hints */}
       <HintWithWarning
@@ -663,7 +657,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       {(phase === 'stopped' || phase === 'revealed') && (
         <>
           {/* Victory arch — golden glow ring behind card */}
-          <Animated.View style={[styles.victoryArch, victoryArchStyle]} pointerEvents="none">
+          <Animated.View style={[styles.victoryArch, victoryArchStyle]}>
             <Canvas style={styles.victoryArchCanvas}>
               <Circle cx={cardWidth / 2 + 20} cy={cardHeight / 2 + 20} r={cardWidth * 0.7}>
                 <RadialGradient
@@ -730,6 +724,10 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  absoluteFillNoEvents: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
+  },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fullScreen: {
     position: 'absolute',
@@ -737,12 +735,14 @@ const styles = StyleSheet.create({
     left: 0,
     width: SCREEN_W,
     height: SCREEN_H,
+    pointerEvents: 'none',
   },
-  flash: { ...StyleSheet.absoluteFillObject },
+  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
   pedestal: {
     position: 'absolute',
     bottom: 40,
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   pedestalTop: {
     width: 120,
@@ -762,6 +762,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+    pointerEvents: 'none',
   },
   victoryArchCanvas: {
     width: 400,
@@ -796,6 +797,7 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    pointerEvents: 'none',
   },
   centerText: {
     color: GOLD,

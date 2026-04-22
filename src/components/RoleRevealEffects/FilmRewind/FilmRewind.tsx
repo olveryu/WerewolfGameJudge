@@ -423,7 +423,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
         testID={`${testIDPrefix}-press-area`}
       >
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
-          <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Canvas style={styles.absoluteFillNoEvents}>
             {/* ── Warm projector radial glow (matches HTML prototype) ── */}
             <Rect x={0} y={0} width={SCREEN_W} height={SCREEN_H}>
               <RadialGradient
@@ -485,11 +485,11 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
           </Canvas>
 
           {/* Flicker overlay */}
-          <Animated.View style={[styles.flickerOverlay, flickerStyle]} pointerEvents="none" />
+          <Animated.View style={[styles.flickerOverlay, flickerStyle]} />
 
           {/* Countdown display (RN layer for crisp text) */}
           {phase === 'countdown' && countdownNum > 0 && (
-            <View style={styles.countdownContainer} pointerEvents="none">
+            <View style={styles.countdownContainer}>
               {/* Ring */}
               <View style={styles.countdownRing} />
               {/* Progress sector (simple opacity-based) */}
@@ -506,7 +506,6 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
         {/* Flash overlay */}
         <Animated.View
           style={[styles.flash, flashStyle, { backgroundColor: COLORS.projectorWarm }]}
-          pointerEvents="none"
         />
       </Pressable>
 
@@ -556,11 +555,16 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  absoluteFillNoEvents: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
+  },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  flash: { ...StyleSheet.absoluteFillObject },
+  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
   flickerOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(200, 180, 140, 1)',
+    pointerEvents: 'none',
   },
   countdownContainer: {
     position: 'absolute',
@@ -570,6 +574,7 @@ const styles = StyleSheet.create({
     height: 160,
     alignItems: 'center',
     justifyContent: 'center',
+    pointerEvents: 'none',
   },
   countdownRing: {
     position: 'absolute',

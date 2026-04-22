@@ -430,13 +430,13 @@ export const CardPick: React.FC<CardPickProps> = ({
       />
 
       {/* Wood frame border */}
-      <View style={styles.woodFrame} pointerEvents="none">
+      <View style={styles.woodFrame}>
         <View style={styles.woodFrameInner} />
       </View>
 
       {/* Skia scene layer: chips, trail, charge aura, light bars */}
       {!reducedMotion && (
-        <Canvas style={styles.fullScreen} pointerEvents="none">
+        <Canvas style={styles.fullScreen}>
           {/* Table chips — decorative scattered tokens */}
           {TABLE_CHIPS.map((chip, i) => (
             <Group key={`chip-${i}`}>
@@ -690,6 +690,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: SCREEN_W,
     height: SCREEN_H,
+    pointerEvents: 'none',
   },
   woodFrame: {
     position: 'absolute',
@@ -700,6 +701,7 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: TABLE_COLORS.woodDark,
     borderRadius: borderRadius.medium,
+    pointerEvents: 'none',
   },
   woodFrameInner: {
     flex: 1,

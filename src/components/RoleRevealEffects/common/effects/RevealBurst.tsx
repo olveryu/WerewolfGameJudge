@@ -16,7 +16,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 const BURST_COUNT = 16;
@@ -119,7 +118,7 @@ export const RevealBurst: React.FC<RevealBurstProps> = ({
   if (!trigger) return null;
 
   return (
-    <View style={styles.fullScreen} pointerEvents="none">
+    <View style={styles.fullScreen}>
       {/* Shockwave ring */}
       <Animated.View style={ringStyle} />
 
@@ -143,5 +142,6 @@ export const RevealBurst: React.FC<RevealBurstProps> = ({
 const styles = StyleSheet.create({
   fullScreen: {
     ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
   },
 });

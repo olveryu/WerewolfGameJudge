@@ -134,7 +134,6 @@ const MetalShaving: React.FC<ShavingConfig> = React.memo(
 
     return (
       <Animated.View
-        pointerEvents="none"
         style={[
           styles.shaving,
           {
@@ -455,7 +454,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
       {/* Confetti burst — Picture API batch with group-level blur */}
       {isRevealed && !reducedMotion && (
-        <Canvas style={styles.fullScreen} pointerEvents="none">
+        <Canvas style={styles.fullScreen}>
           <Group
             layer={
               <Paint>
@@ -469,7 +468,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       )}
 
       {/* Milestone flash overlay */}
-      <Animated.View style={[styles.milestoneFlash, milestoneStyle]} pointerEvents="none" />
+      <Animated.View style={[styles.milestoneFlash, milestoneStyle]} />
 
       {/* Light burst */}
       <Animated.View
@@ -534,7 +533,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
               />
 
               {/* Diamond pattern texture on metal */}
-              <View style={styles.diamondPattern} pointerEvents="none">
+              <View style={styles.diamondPattern}>
                 {Array.from({ length: 5 }, (_, row) => (
                   <View key={`dp-row-${row}`} style={styles.diamondRow}>
                     {Array.from({ length: 7 }, (_, col) => (
@@ -629,7 +628,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
         {/* Prize stamp — pops in after reveal */}
         {isRevealed && (
-          <Animated.View style={[styles.prizeStamp, prizeStampStyle]} pointerEvents="none">
+          <Animated.View style={[styles.prizeStamp, prizeStampStyle]}>
             <Text style={[styles.prizeStampText, { color: theme.primaryColor }]}>PRIZE</Text>
           </Animated.View>
         )}
@@ -665,12 +664,12 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       )}
 
       {/* Serial number */}
-      <View style={styles.serialContainer} pointerEvents="none">
+      <View style={styles.serialContainer}>
         <Text style={[styles.serialText, { color: colors.textSecondary }]}>NO. {serialNumber}</Text>
       </View>
 
       {/* Rules text */}
-      <View style={styles.rulesContainer} pointerEvents="none">
+      <View style={styles.rulesContainer}>
         <Text style={[styles.rulesText, { color: colors.textSecondary }]}>刮开涂层，揭晓命运</Text>
       </View>
 
@@ -704,10 +703,12 @@ const styles = StyleSheet.create({
     left: 0,
     width: SCREEN_W,
     height: SCREEN_H,
+    pointerEvents: 'none',
   },
   milestoneFlash: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: SCRATCH_COLORS.milestoneFlash,
+    pointerEvents: 'none',
   },
   cardWrapper: {
     overflow: 'hidden',
@@ -764,6 +765,7 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     borderWidth: 0.5,
     borderColor: SCRATCH_COLORS.metalLight,
+    pointerEvents: 'none',
   },
   lightBurst: {
     position: 'absolute',
@@ -813,6 +815,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 0.08,
+    pointerEvents: 'none',
   },
   diamondRow: {
     flexDirection: 'row',
@@ -826,6 +829,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 15,
     right: 10,
+    pointerEvents: 'none',
   },
   prizeStampText: {
     fontSize: 22,
@@ -842,6 +846,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 28,
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   serialText: {
     fontSize: 10,
@@ -854,6 +859,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 12,
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   rulesText: {
     fontSize: 10,

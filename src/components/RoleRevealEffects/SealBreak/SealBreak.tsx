@@ -1092,18 +1092,15 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
         </Animated.View>
 
         {/* Charge glow overlay */}
-        <Animated.View style={[styles.chargeGlow, chargeGlowStyle]} pointerEvents="none" />
+        <Animated.View style={[styles.chargeGlow, chargeGlowStyle]} />
 
         {/* Flash overlay */}
-        <Animated.View
-          style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]}
-          pointerEvents="none"
-        />
+        <Animated.View style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]} />
       </Pressable>
 
       {/* Charge percentage (only while charging) */}
       {phase === 'charging' && (
-        <View style={styles.percentContainer} pointerEvents="none">
+        <View style={styles.percentContainer}>
           <Text style={styles.percentText}>{chargePercent}%</Text>
         </View>
       )}
@@ -1157,10 +1154,11 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  flash: { ...StyleSheet.absoluteFillObject },
+  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
   chargeGlow: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.chargeGlow,
+    pointerEvents: 'none',
   },
 
   runeText: {
@@ -1179,6 +1177,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 130,
     alignSelf: 'center',
+    pointerEvents: 'none',
   },
   percentText: {
     fontSize: 28,

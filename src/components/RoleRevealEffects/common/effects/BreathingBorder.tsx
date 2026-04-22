@@ -126,6 +126,7 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
       height: canvasH,
       top: -glowPadding,
       left: -glowPadding,
+      pointerEvents: 'none' as const,
     }),
     [canvasW, canvasH, glowPadding],
   );
@@ -162,7 +163,7 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
   });
 
   return (
-    <Canvas style={canvasStyle} pointerEvents="none">
+    <Canvas style={canvasStyle}>
       {/* Main breathing border — stroke + blur glow */}
       <Group opacity={borderOpacity} blendMode="screen">
         <RoundedRect

@@ -18,7 +18,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 const AMBIENT_COUNT = 12;
@@ -114,7 +113,7 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
   if (!animate) return null;
 
   return (
-    <View style={styles.fullScreen} pointerEvents="none">
+    <View style={styles.fullScreen}>
       {/* Subtle center radial glow — approximated with large blurred circle */}
       <Animated.View
         style={[
@@ -152,6 +151,7 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
 const styles = StyleSheet.create({
   fullScreen: {
     ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
   },
   glow: {
     position: 'absolute',

@@ -106,7 +106,7 @@ export const ConfigScreen: React.FC = () => {
         <Button variant="icon" onPress={handleGoBack} testID={TESTIDS.configBackButton}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
         </Button>
-        <View style={styles.headerCenter} pointerEvents="box-none">
+        <View style={styles.headerCenter}>
           <TouchableOpacity
             style={styles.templatePill}
             activeOpacity={0.7}

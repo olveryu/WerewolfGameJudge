@@ -185,14 +185,11 @@ export function SingleResultReveal({ item, onDismiss, reducedMotion }: SingleRes
             { backgroundColor: withAlpha(visual.color, 0.15) },
             glowAnimStyle,
           ]}
-          pointerEvents="none"
         />
       )}
 
       {/* Light pillar for legendary */}
-      {rarity === 'legendary' && (
-        <Animated.View style={[styles.lightPillar, glowAnimStyle]} pointerEvents="none" />
-      )}
+      {rarity === 'legendary' && <Animated.View style={[styles.lightPillar, glowAnimStyle]} />}
 
       {/* Card */}
       <Animated.View
@@ -257,12 +254,14 @@ const styles = StyleSheet.create({
     width: 300,
     height: 300,
     borderRadius: borderRadius.full,
+    pointerEvents: 'none',
   },
   lightPillar: {
     position: 'absolute',
     width: 4,
     height: '100%',
     backgroundColor: withAlpha('#FFD700', 0.5),
+    pointerEvents: 'none',
   },
   card: {
     backgroundColor: colors.surface,

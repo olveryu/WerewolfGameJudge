@@ -215,7 +215,6 @@ export function GachaScreen({ navigation }: Props) {
       <LinearGradient
         colors={[withAlpha(colors.background, 0), colors.surface]}
         style={styles.gradientTransition}
-        pointerEvents="none"
       />
 
       {/* Bottom panel: ticket displays + draw buttons */}
@@ -328,6 +327,7 @@ const styles = StyleSheet.create({
   // ── Gradient transition ──
   gradientTransition: {
     height: 32,
+    pointerEvents: 'none',
   },
 
   // ── Bottom panel ──

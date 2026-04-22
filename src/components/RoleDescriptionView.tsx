@@ -231,11 +231,7 @@ export const RoleDescriptionView: React.FC<RoleDescriptionViewProps> = ({
         {sectionElements}
       </ScrollView>
       {/* Bottom fade mask to hint scrollable content */}
-      <LinearGradient
-        colors={['transparent', colors.surface]}
-        style={fadeMask}
-        pointerEvents="none"
-      />
+      <LinearGradient colors={['transparent', colors.surface]} style={fadeMask} />
     </View>
   );
 };
@@ -263,6 +259,7 @@ const fadeMask: View['props']['style'] = {
   left: 0,
   right: 0,
   height: FADE_MASK_HEIGHT,
+  pointerEvents: 'none' as const,
 };
 
 /** Theme-dependent styles factory */

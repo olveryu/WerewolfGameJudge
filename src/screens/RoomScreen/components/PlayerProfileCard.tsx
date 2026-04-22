@@ -209,7 +209,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
                   borderRadius={AVATAR_SIZE / 2}
                 />
                 {FlairComponent && (
-                  <View style={styles.flairOverlay} pointerEvents="none">
+                  <View style={styles.flairOverlay}>
                     <FlairComponent size={AVATAR_SIZE} borderRadius={AVATAR_SIZE / 2} />
                   </View>
                 )}
@@ -332,6 +332,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
+    pointerEvents: 'none',
   },
   levelBadge: {
     position: 'absolute',

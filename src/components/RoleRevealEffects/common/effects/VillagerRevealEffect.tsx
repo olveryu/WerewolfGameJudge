@@ -35,7 +35,6 @@ import {
 
 import { SkiaSparkle } from '@/components/RoleRevealEffects/common/effects/SkiaSparkle';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-
 const AE = CONFIG.alignmentEffects;
 const SK = CONFIG.skia;
 
@@ -295,12 +294,13 @@ export const VillagerRevealEffect: React.FC<VillagerRevealEffectProps> = ({
       overflow: 'visible' as const,
       width: cardWidth,
       height: cardHeight,
+      pointerEvents: 'none' as const,
     }),
     [cardWidth, cardHeight],
   );
 
   return (
-    <Canvas style={canvasStyle} pointerEvents="none">
+    <Canvas style={canvasStyle}>
       {/* Persistent card glow */}
       <Group opacity={glowOpacity}>
         <Circle cx={centerX} cy={centerY} r={glowR}>

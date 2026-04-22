@@ -262,6 +262,7 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: spacing.micro,
+      pointerEvents: 'none',
     },
     filterBadgeText: {
       fontSize: typography.captionSmall,

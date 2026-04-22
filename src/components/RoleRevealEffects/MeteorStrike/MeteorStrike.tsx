@@ -503,7 +503,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
         testID={`${testIDPrefix}-press-area`}
       >
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
-          <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Canvas style={styles.absoluteFillNoEvents}>
             {/* ── Stars ── */}
             {STARS.map((star, i) => (
               <StarCircle key={`star-${i}`} star={star} starCycle={starCycle} />
@@ -568,7 +568,6 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
         {/* Flash overlay */}
         <Animated.View
           style={[styles.flash, flashStyle, { backgroundColor: COLORS.impactOrange }]}
-          pointerEvents="none"
         />
       </Pressable>
 
@@ -618,8 +617,12 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  absoluteFillNoEvents: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'none',
+  },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  flash: { ...StyleSheet.absoluteFillObject },
+  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
   cardWrapper: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',

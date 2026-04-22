@@ -476,7 +476,7 @@ export const BoardPickerScreen: React.FC = () => {
                 />
               </Button>
               {selectedRoleIds.size > 0 && (
-                <View style={styles.filterBadge} pointerEvents="none">
+                <View style={styles.filterBadge}>
                   <Text style={styles.filterBadgeText}>{selectedRoleIds.size}</Text>
                 </View>
               )}
