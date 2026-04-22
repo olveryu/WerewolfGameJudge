@@ -1,8 +1,9 @@
 /**
  * useRoomMutations — TanStack Query mutation hooks for room operations
  *
- * useCreateRoom: wraps roomService.createRoom with retry:1 (internal 409 retry + 1 network retry)
- * useJoinRoom: wraps roomService.getRoom with retry:2
+ * useCreateRoom: wraps roomService.createRoom (internal 409 conflict retry preserved)
+ * useJoinRoom: wraps roomService.getRoom
+ * Network retry handled by cfFetch (fetchWithRetry), no mutation-layer retry needed.
  */
 
 import { useMutation } from '@tanstack/react-query';
@@ -25,8 +26,6 @@ export function useCreateRoom() {
         params.maxRetries,
         params.buildInitialState,
       ),
-    retry: 1,
-    // createRoom 内部已有 409 冲突重试，这里再加 1 次网络重试
   });
 }
 
@@ -34,6 +33,5 @@ export function useJoinRoom() {
   const { roomService } = useServices();
   return useMutation({
     mutationFn: (roomCode: string) => roomService.getRoom(roomCode),
-    retry: 2,
   });
 }

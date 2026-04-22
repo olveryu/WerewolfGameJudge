@@ -109,7 +109,7 @@ takeSeat, leaveSeat, kickPlayer
 
 **已接入 TanStack Query 的（7 个 hooks + 4 个 queryOptions factory）：**
 
-- `useQuery`: userStats, userProfile, userUnlocks, gachaStatus（4 个 query hook，全走 `useAuthenticatedQuery`）+ 1 个 useUserProfileQuery
+- `useQuery`: 4 个 query hook — userStats 和 gachaStatus 走 `useAuthenticatedQuery`（带 auth guard），userProfile 和 userUnlocks 走直接 `useQuery`
 - `useMutation`: drawGacha, claimDailyReward（2 个 mutation hook）
 - `queryOptions` 工厂：queryOptions.ts 已有 4 个 option factory（非 hook，供 useQuery 消费）
 - `QueryClient` 配置：`retry: 1`, `staleTime: 2min`
@@ -695,16 +695,15 @@ export function useJoinRoom() {
 
 ### 3.9 Layer 3: Game actions — 保持 callApiWithRetry
 
-**不改为 useMutation。原因：**
+**不改为 useMutation。原因：架构模型不匹配。**
 
-游戏操作走 `defineGameAction` → `callApiWithRetry`，有以下特殊性：
+游戏操作走 `defineGameAction` → `callApiWithRetry`，与 TanStack Query 的 cache 模型根本不兼容：
 
-1. **Optimistic update** 基于 GameStore（不是 QueryClient cache）
-2. **结果通过 WebSocket broadcast 同步**（不是 HTTP 响应刷新 cache）
-3. 20+ 个动作共享同一个模式（`defineGameAction` 工厂）
-4. 不在 React 组件中调用（在 useGameActions 的 callback 里，但 callback 不能调 useMutation.mutate 因为它是同步的）
+1. **状态管理模型不同** — 游戏状态由 GameStore（authoritative server state 的 local mirror）管理，由 WebSocket snapshot 驱动更新，不是 HTTP 响应驱动。TanStack Query cache 管的是 server state 的 client-side cache，两者是不同的数据流
+2. **调用方不在 React 树内** — 游戏 action 由 `GameFacade` 类和 `AudioOrchestrator` 类调用，useMutation 是 React hook，无法在 class 内使用
+3. **20+ 个动作共享 `defineGameAction` 工厂** — 统一的 guard → build body → callApi → after hook 流程，改 useMutation 要重写整个工厂模式
 
-改成 useMutation 不仅没收益（TanStack cache 管不到 GameStore），还要重写 defineGameAction + store.applyOptimistic 的整合。
+这是 2026 游戏客户端的标准分层：meta-game（大厅/账户/商店）用 TanStack Query，core-game（实时操作）用专用 state store + WebSocket。
 
 **正确做法**: 在 3.4 中已解决 — callApiWithRetry 现在重试网络错误。
 
@@ -1005,17 +1004,40 @@ App 层根据此状态渲染全屏错误页组件（替代当前的 splash scree
 
 **验证**: `pnpm run quality` + E2E 全量。
 
+### Phase 5: 清理 mutation hooks 临时 retry
+
+Phase 1 的 fetchWithRetry 已在 cfPost 层处理网络重试。mutation hooks 上的 `retry` 是双层重试（TanStack retry 重跑整个 mutationFn，内部 cfPost 再重试网络），应清除。
+
+TanStack Query 社区惯例：mutations 默认 `retry: 0`，网络重试归 transport 层。
+
+| Commit | 文件                                      | 改动                                                                     |
+| ------ | ----------------------------------------- | ------------------------------------------------------------------------ |
+| 27     | `src/hooks/mutations/useAuthMutations.ts` | 8 个 hook 删 `retry` + `retryDelay`（保留 wechat/signOut 的 `retry: 0`） |
+| 28     | `src/hooks/mutations/useRoomMutations.ts` | 2 个 hook 删 `retry`                                                     |
+
+**验证**: `pnpm run quality`。
+
 ---
 
 ## 6. 不改的部分
 
-| 部分                                                 | 理由                                                                              |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `defineGameAction` + `callApiWithRetry` 保持现有模式 | GameStore optimistic update 不适合 useMutation（TanStack cache 管不到 GameStore） |
-| `AIChatService.streamChat`                           | SSE streaming 不适合重试                                                          |
-| WebSocket (ConnectionFSM/ConnectionManager)          | 已完善，不在此次范围                                                              |
-| `useDrawMutation` / `useClaimDailyRewardMutation`    | 已正确使用 useMutation ✅                                                         |
-| `useQuery` hooks (stats/profile/unlocks/gacha)       | 已正确使用 useQuery ✅                                                            |
+| 部分                                                 | 理由                                                                                                                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defineGameAction` + `callApiWithRetry` 保持现有模式 | 架构模型不匹配：游戏状态由 GameStore + WebSocket 驱动，不是 HTTP response cache；调用方在 class 内（GameFacade/AudioOrchestrator），无法使用 React hook |
+| `AIChatService.streamChat`                           | SSE streaming 不适合重试                                                                                                                                |
+| WebSocket (ConnectionFSM/ConnectionManager)          | 已完善，不在此次范围                                                                                                                                    |
+| `useDrawMutation` / `useClaimDailyRewardMutation`    | 已正确使用 useMutation ✅                                                                                                                               |
+| `useQuery` hooks (stats/profile/unlocks/gacha)       | 已正确使用 useQuery ✅                                                                                                                                  |
+
+### 6.1 networkMode 评估
+
+TanStack Query 提供三种 `networkMode`：`online`（默认）、`offlineFirst`、`always`。
+
+**不采用 `offlineFirst`**：该模式适用于 Service Worker 离线缓存或 HTTP Cache-Control 场景（首次请求可能从本地缓存命中）。本项目所有请求直连 Cloudflare Workers API，无本地缓存层，`offlineFirst` 只会在离线时白发一次注定失败的请求。
+
+**不采用 `always`（暂不改动）**：`always` 模式忽略 `navigator.onLine` 状态，不暂停请求。当前默认 `online` 模式下，中国用户 WiFi 连着但 CF 不通时 `navigator.onLine === true`，mutation 不会被 paused，行为等同 `always`。显式设 `networkMode: 'always'` 可让语义更明确，但无实际行为差异，优先级低。
+
+**结论**：保持默认 `networkMode: 'online'`。网络韧性由 cfPost fetchWithRetry + callApiWithRetry 网络重试保证，不依赖 TanStack 的网络状态检测。
 
 ---
 
