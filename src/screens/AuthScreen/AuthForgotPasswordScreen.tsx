@@ -11,7 +11,7 @@ import { useWindowDimensions, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { ForgotPasswordForm } from '@/components/auth';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useForgotPassword } from '@/hooks/mutations/useAuthMutations';
 import { RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { getErrorMessage } from '@/utils/errorUtils';
@@ -31,32 +31,28 @@ export const AuthForgotPasswordScreen: React.FC = () => {
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'AuthForgotPassword'>>();
   const route = useRoute<RouteProp>();
 
-  const { forgotPassword } = useAuthContext();
+  const forgotPasswordMutation = useForgotPassword();
 
   const [email, setEmail] = useState(route.params?.email ?? '');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = useCallback(async () => {
-    if (loading) return;
+    if (forgotPasswordMutation.isPending) return;
     if (!email) {
       toast.warning('请输入邮箱');
       return;
     }
-    setLoading(true);
     setError(null);
     try {
-      await forgotPassword(email);
+      await forgotPasswordMutation.mutateAsync(email);
       toast.success('验证码已发送，请查看邮箱');
       navigation.navigate('AuthResetPassword', { email });
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       authLog.warn('Forgot password failed:', message);
       setError(message);
-    } finally {
-      setLoading(false);
     }
-  }, [email, loading, forgotPassword, navigation]);
+  }, [email, forgotPasswordMutation, navigation]);
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -68,7 +64,7 @@ export const AuthForgotPasswordScreen: React.FC = () => {
         <ForgotPasswordForm
           email={email}
           authError={error}
-          authLoading={loading}
+          authLoading={forgotPasswordMutation.isPending}
           onEmailChange={setEmail}
           onSubmit={() => {
             void handleSubmit();

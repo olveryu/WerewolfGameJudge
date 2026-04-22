@@ -25,10 +25,18 @@ import { toast } from 'sonner-native';
 import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
+import {
+  useChangePassword,
+  useSignInAnonymously,
+  useSignOut,
+  useUpdateProfile,
+} from '@/hooks/mutations/useAuthMutations';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
+import { storage } from '@/lib/storage';
 import { RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
@@ -52,15 +60,11 @@ export const SettingsScreen: React.FC = () => {
   // Create styles once and pass to all sub-components
   const styles = useMemo(() => createSettingsScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Settings'>>();
-  const {
-    user,
-    signOut,
-    signInAnonymously,
-    isAuthenticated,
-    updateProfile,
-    changePassword,
-    loading: authLoading,
-  } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, refreshUser } = useAuth();
+  const signOutMutation = useSignOut();
+  const signInAnonymousMutation = useSignInAnonymously();
+  const updateProfileMutation = useUpdateProfile();
+  const changePasswordMutation = useChangePassword();
   const facade = useGameFacade();
 
   // Room context: subscribe to facade state for reactive canSwitchAccount
@@ -135,8 +139,10 @@ export const SettingsScreen: React.FC = () => {
 
   const handleSignOut = useCallback(async () => {
     wasAuthenticatedRef.current = false;
-    await signOut();
-  }, [signOut]);
+    await signOutMutation.mutateAsync();
+    storage.remove(LAST_ROOM_CODE_KEY);
+    await refreshUser();
+  }, [signOutMutation, refreshUser]);
 
   const handlePickAvatar = useCallback(() => {
     navigation.navigate('AvatarPicker');
@@ -162,7 +168,8 @@ export const SettingsScreen: React.FC = () => {
             return;
           }
           try {
-            await updateProfile({ displayName: trimmed });
+            await updateProfileMutation.mutateAsync({ displayName: trimmed });
+            await refreshUser();
             toast.success('昵称已更新');
             facade
               .updatePlayerProfile(trimmed, undefined)
@@ -175,7 +182,7 @@ export const SettingsScreen: React.FC = () => {
         })();
       },
     });
-  }, [user?.displayName, updateProfile, facade]);
+  }, [user?.displayName, updateProfileMutation, refreshUser, facade]);
 
   /** 匿名用户「绑定邮箱」：直接进入注册模式 */
   const handleShowUpgradeForm = useCallback(() => {
@@ -262,14 +269,15 @@ export const SettingsScreen: React.FC = () => {
 
   const handleAnonymousLogin = useCallback(async () => {
     try {
-      await signInAnonymously();
+      await signInAnonymousMutation.mutateAsync();
+      await refreshUser();
       toast.success('登录成功');
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.warn('Anonymous login failed:', message);
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymously]);
+  }, [signInAnonymousMutation, refreshUser]);
 
   const handleBrowseAvatars = useCallback(() => {
     navigation.navigate('AvatarPicker');
@@ -486,7 +494,10 @@ export const SettingsScreen: React.FC = () => {
           {user?.email && showChangePassword ? (
             <ChangePasswordForm
               onSubmit={async (oldPw, newPw) => {
-                await changePassword(oldPw, newPw);
+                await changePasswordMutation.mutateAsync({
+                  oldPassword: oldPw,
+                  newPassword: newPw,
+                });
                 setShowChangePassword(false);
                 toast.success('密码已修改');
               }}
@@ -543,7 +554,7 @@ export const SettingsScreen: React.FC = () => {
 
     return (
       <LoginOptions
-        authLoading={authLoading}
+        authLoading={authLoading || signInAnonymousMutation.isPending}
         onEmailSignUp={handleEmailSignUp}
         onEmailSignIn={handleEmailSignIn}
         onAnonymousLogin={() => {

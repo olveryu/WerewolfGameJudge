@@ -51,6 +51,8 @@ import {
 } from '@/config/rarityVisual';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useUpdateProfile } from '@/hooks/mutations/useAuthMutations';
+import { useUploadAvatar } from '@/hooks/mutations/useUploadAvatar';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { RootStackParamList } from '@/navigation/types';
@@ -125,7 +127,9 @@ export const AvatarPickerScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createAvatarPickerScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AvatarPicker'>>();
-  const { user, updateProfile, uploadAvatar } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const updateProfileMutation = useUpdateProfile();
+  const uploadAvatarMutation = useUploadAvatar();
   const facade = useGameFacade();
   const { connectionStatus } = useConnectionStatus(facade);
   const isInRoom = connectionStatus === ConnectionStatus.Live;
@@ -421,7 +425,8 @@ export const AvatarPickerScreen: React.FC = () => {
       if (!result.canceled && result.assets[0]) {
         setSaving(true);
         try {
-          const url = await uploadAvatar(result.assets[0].uri);
+          const url = await uploadAvatarMutation.mutateAsync(result.assets[0].uri);
+          await refreshUser();
           toast.success('头像已更新');
 
           if (isInRoom) {
@@ -444,7 +449,7 @@ export const AvatarPickerScreen: React.FC = () => {
       settingsLog.warn('Image picker failed:', message, e);
       showErrorAlert('选择图片失败', message);
     }
-  }, [uploadAvatar, facade, isInRoom, navigation]);
+  }, [uploadAvatarMutation, refreshUser, facade, isInRoom, navigation]);
 
   const handleConfirm = useCallback(async () => {
     setSaving(true);
@@ -490,7 +495,8 @@ export const AvatarPickerScreen: React.FC = () => {
       if (newFlair !== undefined) profilePatch.seatFlair = newFlair;
       if (newNameStyle !== undefined) profilePatch.nameStyle = newNameStyle;
       if (Object.keys(profilePatch).length > 0) {
-        await updateProfile(profilePatch);
+        await updateProfileMutation.mutateAsync(profilePatch);
+        await refreshUser();
       }
 
       // Sync to GameState only when in a room (otherwise no GameState exists)
@@ -528,7 +534,8 @@ export const AvatarPickerScreen: React.FC = () => {
     selectedFlair,
     selectedNameStyle,
     user?.customAvatarUrl,
-    updateProfile,
+    updateProfileMutation,
+    refreshUser,
     facade,
     isInRoom,
     navigation,

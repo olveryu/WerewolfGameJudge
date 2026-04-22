@@ -373,14 +373,7 @@ jest.mock('./src/contexts/AuthContext', () => ({
     loading: false,
     error: null,
     isAuthenticated: true,
-    signInAnonymously: jest.fn(),
-    signUpWithEmail: jest.fn(),
-    signInWithEmail: jest.fn(),
-    updateProfile: jest.fn(),
-    uploadAvatar: jest.fn(),
-    signOut: jest.fn(),
-    signInWithWechat: jest.fn(),
-    bindWechat: jest.fn(),
+    refreshUser: jest.fn().mockResolvedValue(undefined),
   }),
 }));
 

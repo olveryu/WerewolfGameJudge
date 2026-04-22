@@ -9,13 +9,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
 
 // Mock service functions used by AuthProvider via useServices()
-const mockSignInAnonymously = jest.fn();
-const mockSignUpWithEmail = jest.fn();
-const mockSignInWithEmail = jest.fn();
-const mockUpdateProfile = jest.fn();
-const mockSignOut = jest.fn();
 const mockGetCurrentUser = jest.fn();
-const mockUploadAvatar = jest.fn();
 
 // Access the jest-mocked useServices to override return values
 const mockUseServices = useServices as jest.Mock;
@@ -32,18 +26,11 @@ describe('useAuth hook', () => {
     // Override global ServiceContext mock with test-specific mock functions
     mockUseServices.mockReturnValue({
       authService: {
-        signInAnonymously: mockSignInAnonymously,
-        signUpWithEmail: mockSignUpWithEmail,
-        signInWithEmail: mockSignInWithEmail,
-        updateProfile: mockUpdateProfile,
-        signOut: mockSignOut,
         getCurrentUser: mockGetCurrentUser,
         waitForInit: jest.fn().mockResolvedValue(undefined),
         getCurrentUserId: jest.fn().mockReturnValue('test-uid'),
         getCurrentDisplayName: jest.fn().mockResolvedValue('Test User'),
         getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
-        signInWithWechat: jest.fn().mockResolvedValue('test-uid'),
-        bindWechat: jest.fn().mockResolvedValue(undefined),
         onAuthStateChange: jest
           .fn()
           .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
@@ -67,7 +54,7 @@ describe('useAuth hook', () => {
         cleanup: jest.fn(),
       },
       avatarUploadService: {
-        uploadAvatar: mockUploadAvatar,
+        uploadAvatar: jest.fn(),
       },
     });
   });
@@ -85,101 +72,25 @@ describe('useAuth hook', () => {
       expect(result.current.error).toBeNull();
     });
 
-    it('should provide all auth methods', () => {
+    it('should provide refreshUser method', () => {
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      expect(typeof result.current.signInAnonymously).toBe('function');
-      expect(typeof result.current.signUpWithEmail).toBe('function');
-      expect(typeof result.current.signInWithEmail).toBe('function');
-      expect(typeof result.current.updateProfile).toBe('function');
-      expect(typeof result.current.uploadAvatar).toBe('function');
-      expect(typeof result.current.signOut).toBe('function');
-    });
-  });
-
-  describe('signInAnonymously', () => {
-    it('should call authService.signInAnonymously', async () => {
-      mockSignInAnonymously.mockResolvedValue({});
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.signInAnonymously();
-      });
-
-      expect(mockSignInAnonymously).toHaveBeenCalled();
+      expect(typeof result.current.refreshUser).toBe('function');
     });
 
-    it('should set error when signInAnonymously fails', async () => {
-      const errorMessage = 'Sign in failed';
-      mockSignInAnonymously.mockRejectedValue(new Error(errorMessage));
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        try {
-          await result.current.signInAnonymously();
-        } catch {
-          // Expected to throw
-        }
-      });
-
-      expect(result.current.error).toBe(errorMessage);
-    });
-  });
-
-  describe('signUpWithEmail', () => {
-    it('should call authService.signUpWithEmail with correct params', async () => {
-      const mockUser = {
+    it('should load user on mount via getCurrentUser', async () => {
+      const mockAuthUser = {
         id: 'user-123',
         email: 'test@example.com',
         user_metadata: { display_name: 'Test User' },
         is_anonymous: false,
       };
-      mockSignUpWithEmail.mockResolvedValue({ user: mockUser });
+      mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.signUpWithEmail('test@example.com', 'password123', 'Test User');
-      });
-
-      expect(mockSignUpWithEmail).toHaveBeenCalledWith(
-        'test@example.com',
-        'password123',
-        'Test User',
-      );
-    });
-
-    it('should update user state after successful signup', async () => {
-      const mockUser = {
-        id: 'user-123',
-        email: 'test@example.com',
-        user_metadata: { display_name: 'Test User', avatar_url: null },
-        is_anonymous: false,
-      };
-      mockSignUpWithEmail.mockResolvedValue({ user: mockUser });
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.signUpWithEmail('test@example.com', 'password123');
       });
 
       expect(result.current.user).toEqual({
@@ -195,10 +106,54 @@ describe('useAuth hook', () => {
       });
       expect(result.current.isAuthenticated).toBe(true);
     });
+  });
 
-    it('should set error when signUpWithEmail fails', async () => {
-      const errorMessage = 'Email already exists';
-      mockSignUpWithEmail.mockRejectedValue(new Error(errorMessage));
+  describe('refreshUser', () => {
+    it('should update user state from getCurrentUser', async () => {
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.user).toBeNull();
+
+      // Simulate sign-in happening externally (via mutation hook)
+      const mockAuthUser = {
+        id: 'user-456',
+        email: 'refresh@example.com',
+        user_metadata: { display_name: 'Refreshed User' },
+        is_anonymous: false,
+      };
+      mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
+
+      await act(async () => {
+        await result.current.refreshUser();
+      });
+
+      expect(result.current.user).toEqual({
+        id: 'user-456',
+        email: 'refresh@example.com',
+        displayName: 'Refreshed User',
+        avatarUrl: null,
+        customAvatarUrl: null,
+        avatarFrame: null,
+        seatFlair: null,
+        nameStyle: null,
+        isAnonymous: false,
+      });
+      expect(result.current.isAuthenticated).toBe(true);
+    });
+
+    it('should clear user state when getCurrentUser returns null', async () => {
+      // Start with a user
+      const mockAuthUser = {
+        id: 'user-123',
+        email: 'test@example.com',
+        user_metadata: {},
+        is_anonymous: false,
+      };
+      mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -206,163 +161,28 @@ describe('useAuth hook', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      await act(async () => {
-        try {
-          await result.current.signUpWithEmail('test@example.com', 'password123');
-        } catch {
-          // Expected to throw
-        }
-      });
+      expect(result.current.isAuthenticated).toBe(true);
 
-      expect(result.current.error).toBe(errorMessage);
-    });
-  });
-
-  describe('signInWithEmail', () => {
-    it('should call authService.signInWithEmail', async () => {
-      mockSignInWithEmail.mockResolvedValue({});
+      // Simulate sign-out: getCurrentUser now returns null
       mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
 
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
       await act(async () => {
-        await result.current.signInWithEmail('test@example.com', 'password123');
+        await result.current.refreshUser();
       });
 
-      expect(mockSignInWithEmail).toHaveBeenCalledWith('test@example.com', 'password123');
-    });
-
-    it('should set error when signInWithEmail fails', async () => {
-      const errorMessage = 'Invalid credentials';
-      mockSignInWithEmail.mockRejectedValue(new Error(errorMessage));
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        try {
-          await result.current.signInWithEmail('test@example.com', 'wrongpassword');
-        } catch {
-          // Expected to throw
-        }
-      });
-
-      expect(result.current.error).toBe(errorMessage);
-    });
-  });
-
-  describe('updateProfile', () => {
-    it('should call authService.updateProfile', async () => {
-      mockUpdateProfile.mockResolvedValue({});
-      mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.updateProfile({ displayName: 'New Name' });
-      });
-
-      expect(mockUpdateProfile).toHaveBeenCalledWith({ displayName: 'New Name' });
-    });
-
-    it('should set error when updateProfile fails', async () => {
-      const errorMessage = 'Update failed';
-      mockUpdateProfile.mockRejectedValue(new Error(errorMessage));
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        try {
-          await result.current.updateProfile({ displayName: 'New Name' });
-        } catch {
-          // Expected to throw
-        }
-      });
-
-      expect(result.current.error).toBe(errorMessage);
-    });
-  });
-
-  describe('uploadAvatar', () => {
-    it('should call avatarUploadService.uploadAvatar and return URL', async () => {
-      const avatarUrl = 'https://example.com/avatar.jpg';
-      mockUploadAvatar.mockResolvedValue(avatarUrl);
-      mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      let returnedUrl: string = '';
-      await act(async () => {
-        returnedUrl = await result.current.uploadAvatar('file:///path/to/image.jpg');
-      });
-
-      expect(mockUploadAvatar).toHaveBeenCalledWith('file:///path/to/image.jpg');
-      expect(returnedUrl).toBe(avatarUrl);
-    });
-
-    it('should set error when uploadAvatar fails', async () => {
-      const errorMessage = 'Upload failed';
-      mockUploadAvatar.mockRejectedValue(new Error(errorMessage));
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        try {
-          await result.current.uploadAvatar('file:///path/to/image.jpg');
-        } catch {
-          // Expected to throw
-        }
-      });
-
-      expect(result.current.error).toBe(errorMessage);
-    });
-  });
-
-  describe('signOut', () => {
-    it('should call authService.signOut and clear user', async () => {
-      mockSignOut.mockResolvedValue({});
-
-      const { result } = renderHook(() => useAuth(), { wrapper });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.signOut();
-      });
-
-      expect(mockSignOut).toHaveBeenCalled();
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
     });
 
-    it('should set error when signOut fails', async () => {
-      const errorMessage = 'Sign out failed';
-      mockSignOut.mockRejectedValue(new Error(errorMessage));
+    it('should keep current state when getCurrentUser throws', async () => {
+      // Start with a user
+      const mockAuthUser = {
+        id: 'user-123',
+        email: 'test@example.com',
+        user_metadata: {},
+        is_anonymous: false,
+      };
+      mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -370,11 +190,18 @@ describe('useAuth hook', () => {
         expect(result.current.loading).toBe(false);
       });
 
+      expect(result.current.isAuthenticated).toBe(true);
+
+      // Simulate network error during refresh
+      mockGetCurrentUser.mockRejectedValue(new Error('Network error'));
+
       await act(async () => {
-        await result.current.signOut();
+        await result.current.refreshUser();
       });
 
-      expect(result.current.error).toBe(errorMessage);
+      // User state kept (not cleared)
+      expect(result.current.user?.id).toBe('user-123');
+      expect(result.current.isAuthenticated).toBe(true);
     });
   });
 
@@ -389,16 +216,12 @@ describe('useAuth hook', () => {
         },
         is_anonymous: false,
       };
-      mockSignUpWithEmail.mockResolvedValue({ user: mockAuthUser });
+      mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.signUpWithEmail('full@example.com', 'password123');
       });
 
       expect(result.current.user).toEqual({
@@ -421,16 +244,12 @@ describe('useAuth hook', () => {
         user_metadata: {},
         is_anonymous: true,
       };
-      mockSignUpWithEmail.mockResolvedValue({ user: mockAuthUser });
+      mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.signUpWithEmail('', '');
       });
 
       expect(result.current.user).toEqual({
@@ -452,16 +271,12 @@ describe('useAuth hook', () => {
         email: 'test@example.com',
         is_anonymous: false,
       };
-      mockSignUpWithEmail.mockResolvedValue({ user: mockAuthUser });
+      mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.signUpWithEmail('test@example.com', 'password123');
       });
 
       expect(result.current.user?.displayName).toBeNull();

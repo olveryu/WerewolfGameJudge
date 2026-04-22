@@ -13,6 +13,7 @@ import { toast } from 'sonner-native';
 
 import { LoginOptions } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useSignInAnonymously } from '@/hooks/mutations/useAuthMutations';
 import { RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -30,7 +31,8 @@ export const AuthLoginScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AuthLogin'>>();
   const route = useRoute<RouteProp>();
 
-  const { signInAnonymously, loading: authLoading } = useAuthContext();
+  const { loading: authLoading, refreshUser } = useAuthContext();
+  const signInAnonymousMutation = useSignInAnonymously();
 
   const loginTitle = route.params?.loginTitle ?? '登录';
   const loginSubtitle = route.params?.loginSubtitle;
@@ -49,7 +51,8 @@ export const AuthLoginScreen: React.FC = () => {
 
   const handleAnonymousLogin = useCallback(async () => {
     try {
-      await signInAnonymously();
+      await signInAnonymousMutation.mutateAsync();
+      await refreshUser();
       toast.success('登录成功');
       navigation.goBack();
     } catch (e: unknown) {
@@ -57,7 +60,7 @@ export const AuthLoginScreen: React.FC = () => {
       authLog.warn('Anonymous login failed:', message);
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymously, navigation]);
+  }, [signInAnonymousMutation, refreshUser, navigation]);
 
   const handleCancel = useCallback(() => {
     navigation.goBack();
@@ -71,7 +74,7 @@ export const AuthLoginScreen: React.FC = () => {
     <View style={styles.modalOverlay}>
       <View style={styles.modalContent}>
         <LoginOptions
-          authLoading={authLoading}
+          authLoading={authLoading || signInAnonymousMutation.isPending}
           title={loginTitle}
           subtitle={loginSubtitle}
           onEmailSignUp={handleEmailSignUp}

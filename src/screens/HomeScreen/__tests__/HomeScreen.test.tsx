@@ -16,24 +16,13 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 // Mock useAuth hook
-const mockSignInAnonymously = jest.fn();
-const mockSignUpWithEmail = jest.fn();
-const mockSignInWithEmail = jest.fn();
-const mockSignOut = jest.fn();
-
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuthContext: () => ({
     user: null,
     loading: false,
     error: null,
-    signInAnonymously: mockSignInAnonymously,
-    signUpWithEmail: mockSignUpWithEmail,
-    signInWithEmail: mockSignInWithEmail,
-    signOut: mockSignOut,
-    updateProfile: jest.fn(),
-    uploadAvatar: jest.fn(),
-    signInWithWechat: jest.fn(),
-    bindWechat: jest.fn(),
+    isAuthenticated: false,
+    refreshUser: jest.fn().mockResolvedValue(undefined),
   }),
 }));
 
@@ -85,12 +74,8 @@ describe('HomeScreen', () => {
         user: { id: 'test-user', displayName: 'Test' },
         loading: false,
         error: null,
-        signInAnonymously: mockSignInAnonymously,
-        signUpWithEmail: mockSignUpWithEmail,
-        signInWithEmail: mockSignInWithEmail,
-        signOut: mockSignOut,
-        updateProfile: jest.fn(),
-        uploadAvatar: jest.fn(),
+        isAuthenticated: true,
+        refreshUser: jest.fn().mockResolvedValue(undefined),
       });
 
       const { getByText } = render(<HomeScreen />);
@@ -118,12 +103,8 @@ describe('HomeScreen', () => {
         user: { id: 'test-user', displayName: 'Test' },
         loading: false,
         error: null,
-        signInAnonymously: mockSignInAnonymously,
-        signUpWithEmail: mockSignUpWithEmail,
-        signInWithEmail: mockSignInWithEmail,
-        signOut: mockSignOut,
-        updateProfile: jest.fn(),
-        uploadAvatar: jest.fn(),
+        isAuthenticated: true,
+        refreshUser: jest.fn().mockResolvedValue(undefined),
       });
 
       const { getByText, queryByText } = render(<HomeScreen />);

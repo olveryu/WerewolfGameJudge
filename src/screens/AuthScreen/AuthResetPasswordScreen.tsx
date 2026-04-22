@@ -12,6 +12,7 @@ import { toast } from 'sonner-native';
 
 import { ResetPasswordForm } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useForgotPassword, useResetPassword } from '@/hooks/mutations/useAuthMutations';
 import { RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { getErrorMessage } from '@/utils/errorUtils';
@@ -32,12 +33,15 @@ export const AuthResetPasswordScreen: React.FC = () => {
   const route = useRoute<RouteProp>();
 
   const { email } = route.params;
-  const { resetPassword, forgotPassword } = useAuthContext();
+  const { refreshUser } = useAuthContext();
+  const resetPasswordMutation = useResetPassword();
+  const forgotPasswordMutation = useForgotPassword();
 
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isLoading = resetPasswordMutation.isPending || forgotPasswordMutation.isPending;
 
   const handleSubmit = useCallback(async () => {
     if (!code || !newPassword) {
@@ -48,10 +52,10 @@ export const AuthResetPasswordScreen: React.FC = () => {
       toast.warning('密码至少6位');
       return;
     }
-    setLoading(true);
     setError(null);
     try {
-      await resetPassword(email, code, newPassword);
+      await resetPasswordMutation.mutateAsync({ email, code, newPassword });
+      await refreshUser();
       toast.success('密码重置成功');
       // Pop all auth modal screens back to the original caller
       navigation.popToTop();
@@ -59,24 +63,19 @@ export const AuthResetPasswordScreen: React.FC = () => {
       const message = getErrorMessage(e);
       authLog.warn('Reset password failed:', message);
       setError(message);
-    } finally {
-      setLoading(false);
     }
-  }, [email, code, newPassword, resetPassword, navigation]);
+  }, [email, code, newPassword, resetPasswordMutation, refreshUser, navigation]);
 
   const handleResend = useCallback(async () => {
-    setLoading(true);
     setError(null);
     try {
-      await forgotPassword(email);
+      await forgotPasswordMutation.mutateAsync(email);
       toast.success('验证码已重新发送');
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       setError(message);
-    } finally {
-      setLoading(false);
     }
-  }, [email, forgotPassword]);
+  }, [email, forgotPasswordMutation]);
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -90,7 +89,7 @@ export const AuthResetPasswordScreen: React.FC = () => {
           code={code}
           newPassword={newPassword}
           authError={error}
-          authLoading={loading}
+          authLoading={isLoading}
           onCodeChange={setCode}
           onNewPasswordChange={setNewPassword}
           onSubmit={() => {

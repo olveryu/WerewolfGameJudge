@@ -13,8 +13,11 @@ import React, { useCallback, useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
 import { EmailForm } from '@/components/auth';
+import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useSignOut } from '@/hooks/mutations/useAuthMutations';
 import { useAuthForm } from '@/hooks/useAuthForm';
+import { storage } from '@/lib/storage';
 import { RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -41,7 +44,8 @@ export const AuthEmailScreen: React.FC = () => {
     openedFromAuthLogin = false,
   } = route.params;
 
-  const { signOut, loading: authLoading, error: authError } = useAuthContext();
+  const { error: authError, refreshUser } = useAuthContext();
+  const signOutMutation = useSignOut();
 
   const handleSuccess = useCallback(() => {
     if (navigateSettingsOnSignUp && isSignUpRef.current) {
@@ -68,6 +72,7 @@ export const AuthEmailScreen: React.FC = () => {
     setIsSignUp,
     handleEmailAuth,
     toggleSignUp,
+    isSubmitting,
   } = useAuthForm({ onSuccess: handleSuccess, logger: authLog, showSuccessOnLogin });
 
   // Keep ref for handleSuccess to read current isSignUp
@@ -84,7 +89,9 @@ export const AuthEmailScreen: React.FC = () => {
   const handleSubmit = useCallback(async () => {
     if (signOutFirst) {
       try {
-        await signOut();
+        await signOutMutation.mutateAsync();
+        storage.remove(LAST_ROOM_CODE_KEY);
+        await refreshUser();
       } catch (e: unknown) {
         const raw = e instanceof Error ? e.message : String(e);
         const message = mapAuthError(raw);
@@ -99,7 +106,7 @@ export const AuthEmailScreen: React.FC = () => {
       }
     }
     await handleEmailAuth();
-  }, [signOutFirst, signOut, handleEmailAuth]);
+  }, [signOutFirst, signOutMutation, refreshUser, handleEmailAuth]);
 
   const handleShowForgotPassword = useCallback(() => {
     navigation.navigate('AuthForgotPassword', { email });
@@ -123,7 +130,7 @@ export const AuthEmailScreen: React.FC = () => {
           password={password}
           displayName={displayName}
           authError={authError}
-          authLoading={authLoading}
+          authLoading={isSubmitting || signOutMutation.isPending}
           onEmailChange={setEmail}
           onPasswordChange={setPassword}
           onDisplayNameChange={setDisplayName}

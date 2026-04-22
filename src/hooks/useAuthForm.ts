@@ -14,6 +14,11 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner-native';
 
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import {
+  useSignInAnonymously,
+  useSignInWithEmail,
+  useSignUpWithEmail,
+} from '@/hooks/mutations/useAuthMutations';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { getErrorMessage } from '@/utils/errorUtils';
 
@@ -47,6 +52,8 @@ interface AuthFormResult {
   handleAnonymousLogin: () => Promise<void>;
   resetForm: () => void;
   toggleSignUp: () => void;
+  /** True while any auth mutation is in flight */
+  isSubmitting: boolean;
 }
 
 export function useAuthForm({
@@ -54,7 +61,10 @@ export function useAuthForm({
   logger,
   showSuccessOnLogin,
 }: UseAuthFormOptions): AuthFormResult {
-  const { signInAnonymously, signUpWithEmail, signInWithEmail, user } = useAuth();
+  const { user, refreshUser } = useAuth();
+  const signInAnonymousMutation = useSignInAnonymously();
+  const signUpWithEmailMutation = useSignUpWithEmail();
+  const signInWithEmailMutation = useSignInWithEmail();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,7 +87,12 @@ export function useAuthForm({
     try {
       if (isSignUp) {
         const wasAnonymous = user?.isAnonymous;
-        await signUpWithEmail(email, password, displayName || undefined);
+        await signUpWithEmailMutation.mutateAsync({
+          email,
+          password,
+          displayName: displayName || undefined,
+        });
+        await refreshUser();
         if (wasAnonymous) {
           // Anonymous → email upgrade: userId preserved, already in Settings
           toast.success('绑定成功');
@@ -85,7 +100,8 @@ export function useAuthForm({
           toast.success('注册成功');
         }
       } else {
-        await signInWithEmail(email, password);
+        await signInWithEmailMutation.mutateAsync({ email, password });
+        await refreshUser();
         if (showSuccessOnLogin) {
           toast.success('登录成功');
         }
@@ -103,8 +119,9 @@ export function useAuthForm({
     displayName,
     isSignUp,
     user?.isAnonymous,
-    signUpWithEmail,
-    signInWithEmail,
+    signUpWithEmailMutation,
+    signInWithEmailMutation,
+    refreshUser,
     onSuccess,
     resetForm,
     logger,
@@ -113,7 +130,8 @@ export function useAuthForm({
 
   const handleAnonymousLogin = useCallback(async () => {
     try {
-      await signInAnonymously();
+      await signInAnonymousMutation.mutateAsync();
+      await refreshUser();
       if (showSuccessOnLogin) {
         toast.success('登录成功');
       }
@@ -123,7 +141,12 @@ export function useAuthForm({
       logger.warn('Anonymous login failed:', message);
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymously, onSuccess, logger, showSuccessOnLogin]);
+  }, [signInAnonymousMutation, refreshUser, onSuccess, logger, showSuccessOnLogin]);
+
+  const isSubmitting =
+    signInAnonymousMutation.isPending ||
+    signUpWithEmailMutation.isPending ||
+    signInWithEmailMutation.isPending;
 
   const toggleSignUp = useCallback(() => {
     setIsSignUp((prev) => !prev);
@@ -142,5 +165,6 @@ export function useAuthForm({
     handleAnonymousLogin,
     resetForm,
     toggleSignUp,
+    isSubmitting,
   };
 }

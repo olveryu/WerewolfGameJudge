@@ -11,9 +11,7 @@
 import * as Sentry from '@sentry/react-native';
 import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
-import { storage } from '@/lib/storage';
 import type { AuthUser } from '@/services/types/IAuthService';
 import { isAbortError, isNetworkError } from '@/utils/errorUtils';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
@@ -39,23 +37,8 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  signInAnonymously: () => Promise<void>;
-  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  updateProfile: (updates: {
-    displayName?: string;
-    avatarUrl?: string;
-    avatarFrame?: string;
-    seatFlair?: string;
-    nameStyle?: string;
-  }) => Promise<void>;
-  uploadAvatar: (fileUri: string) => Promise<string>;
-  signOut: () => Promise<void>;
-  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
-  signInWithWechat: (code: string) => Promise<void>;
-  bindWechat: (code: string) => Promise<void>;
+  /** Re-fetch current user from service and update local state + Sentry identity. */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -99,27 +82,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   // Get services from composition root (via ServiceContext)
-  const { authService, avatarUploadService } = useServices();
+  const { authService } = useServices();
 
   // Only update user state if data actually changed (prevents unnecessary re-renders)
   const updateUserIfChanged = useCallback((newUser: User | null) => {
     setUser((prev) => (userEquals(prev, newUser) ? prev : newUser));
-  }, []);
-
-  /**
-   * Shared auth error handler — DRY extraction of 7 near-identical catch blocks.
-   *
-   * Logs, conditionally reports to Sentry (skipping expected auth errors),
-   * sets error state, and optionally re-throws a user-friendly Error.
-   */
-  const handleAuthError = useCallback((e: unknown, label: string, opts?: { rethrow?: boolean }) => {
-    const raw = e instanceof Error ? e.message : String(e);
-    const friendly = mapAuthError(raw);
-    authLog.error('auth error', { label }, raw, e);
-    if (!isExpectedAuthError(raw) && !isAbortError(e) && !isNetworkError(e))
-      Sentry.captureException(e);
-    setError(friendly);
-    if (opts?.rethrow) throw new Error(friendly);
   }, []);
 
   // Load current user on mount - runs ONCE at app startup
@@ -141,214 +108,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           authLog.info('No stored user');
         }
       } catch (e: unknown) {
-        handleAuthError(e, 'Failed to load user');
+        const raw = e instanceof Error ? e.message : String(e);
+        const friendly = mapAuthError(raw);
+        authLog.error('auth error', { label: 'Failed to load user' }, raw, e);
+        if (!isExpectedAuthError(raw) && !isAbortError(e) && !isNetworkError(e))
+          Sentry.captureException(e);
+        setError(friendly);
       } finally {
         setLoading(false);
       }
     };
 
     void loadUser();
-  }, [authService, handleAuthError, updateUserIfChanged]);
+  }, [authService, updateUserIfChanged]);
 
-  const signInAnonymously = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  /** Re-fetch current user from service and update local state + Sentry identity. */
+  const refreshUser = useCallback(async () => {
     try {
-      await authService.signInAnonymously();
       const result = await authService.getCurrentUser();
-      if (result?.data?.user) {
-        const u = toUser(result.data.user);
-        updateUserIfChanged(u);
-        if (u) {
-          authLog.info('signInAnonymously', { id: u.id });
-          Sentry.setUser({ id: u.id });
-        }
+      const u = result?.data?.user ? toUser(result.data.user) : null;
+      updateUserIfChanged(u);
+      if (u) {
+        Sentry.setUser({ id: u.id });
+      } else {
+        Sentry.setUser(null);
       }
     } catch (e: unknown) {
-      handleAuthError(e, 'Anonymous sign-in failed', { rethrow: true });
-    } finally {
-      setLoading(false);
+      authLog.warn('refreshUser failed, keeping current state:', e);
     }
-  }, [authService, handleAuthError, updateUserIfChanged]);
-
-  const signUpWithEmail = useCallback(
-    async (email: string, password: string, displayName?: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await authService.signUpWithEmail(email, password, displayName);
-        if (result.user) {
-          const u = toUser(result.user);
-          updateUserIfChanged(u);
-          if (u) {
-            authLog.info('signUpWithEmail', { id: u.id });
-            Sentry.setUser({ id: u.id });
-          }
-        }
-      } catch (e: unknown) {
-        handleAuthError(e, 'Email sign-up failed', { rethrow: true });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [authService, handleAuthError, updateUserIfChanged],
-  );
-
-  const signInWithEmail = useCallback(
-    async (email: string, password: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        await authService.signInWithEmail(email, password);
-        const result = await authService.getCurrentUser();
-        if (result?.data?.user) {
-          const u = toUser(result.data.user);
-          updateUserIfChanged(u);
-          if (u) {
-            authLog.info('signInWithEmail', { id: u.id });
-            Sentry.setUser({ id: u.id });
-          }
-        }
-      } catch (e: unknown) {
-        handleAuthError(e, 'Email sign-in failed', { rethrow: true });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [authService, handleAuthError, updateUserIfChanged],
-  );
-
-  const updateProfile = useCallback(
-    async (updates: { displayName?: string; avatarUrl?: string }) => {
-      setError(null);
-      try {
-        await authService.updateProfile(updates);
-        const result = await authService.getCurrentUser();
-        if (result?.data?.user) {
-          updateUserIfChanged(toUser(result.data.user));
-        }
-      } catch (e: unknown) {
-        handleAuthError(e, 'Update profile failed', { rethrow: true });
-      }
-    },
-    [authService, handleAuthError, updateUserIfChanged],
-  );
-
-  const uploadAvatar = useCallback(
-    async (fileUri: string): Promise<string> => {
-      setError(null);
-      try {
-        const url = await avatarUploadService.uploadAvatar(fileUri);
-        const result = await authService.getCurrentUser();
-        if (result?.data?.user) {
-          updateUserIfChanged(toUser(result.data.user));
-        }
-        return url;
-      } catch (e: unknown) {
-        // handleAuthError with rethrow always throws; explicit throw satisfies TS return type
-        handleAuthError(e, 'Upload avatar failed', { rethrow: true });
-        throw e; // unreachable — TS control-flow hint
-      }
-    },
-    [authService, avatarUploadService, handleAuthError, updateUserIfChanged],
-  );
-
-  const signOut = useCallback(async () => {
-    setLoading(true);
-    try {
-      await authService.signOut();
-      storage.remove(LAST_ROOM_CODE_KEY);
-      setUser(null);
-      authLog.info('signOut');
-      Sentry.setUser(null);
-    } catch (e: unknown) {
-      handleAuthError(e, 'Sign-out failed');
-    } finally {
-      setLoading(false);
-    }
-  }, [authService, handleAuthError]);
-
-  const changePassword = useCallback(
-    async (oldPassword: string, newPassword: string) => {
-      setError(null);
-      try {
-        await authService.changePassword(oldPassword, newPassword);
-        authLog.info('changePassword success');
-      } catch (e: unknown) {
-        handleAuthError(e, 'Change password failed', { rethrow: true });
-      }
-    },
-    [authService, handleAuthError],
-  );
-
-  const forgotPassword = useCallback(
-    async (email: string) => {
-      setError(null);
-      try {
-        await authService.forgotPassword(email);
-      } catch (e: unknown) {
-        handleAuthError(e, 'Forgot password failed', { rethrow: true });
-      }
-    },
-    [authService, handleAuthError],
-  );
-
-  const resetPassword = useCallback(
-    async (email: string, code: string, newPassword: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        await authService.resetPassword(email, code, newPassword);
-        const result = await authService.getCurrentUser();
-        if (result?.data?.user) {
-          const u = toUser(result.data.user);
-          updateUserIfChanged(u);
-          if (u) {
-            authLog.info('resetPassword success');
-            Sentry.setUser({ id: u.id });
-          }
-        }
-      } catch (e: unknown) {
-        handleAuthError(e, 'Reset password failed', { rethrow: true });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [authService, handleAuthError, updateUserIfChanged],
-  );
-
-  const signInWithWechat = useCallback(
-    async (code: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        await authService.signInWithWechat(code);
-        const result = await authService.getCurrentUser();
-        if (result?.data?.user) {
-          const u = toUser(result.data.user);
-          updateUserIfChanged(u);
-          if (u) Sentry.setUser({ id: u.id });
-        }
-      } catch (e: unknown) {
-        handleAuthError(e, 'WeChat sign-in failed', { rethrow: true });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [authService, handleAuthError, updateUserIfChanged],
-  );
-
-  const bindWechat = useCallback(
-    async (code: string) => {
-      setError(null);
-      try {
-        await authService.bindWechat(code);
-      } catch (e: unknown) {
-        handleAuthError(e, 'Bind WeChat failed', { rethrow: true });
-      }
-    },
-    [authService, handleAuthError],
-  );
+  }, [authService, updateUserIfChanged]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -356,34 +144,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading,
       error,
       isAuthenticated: !!user,
-      signInAnonymously,
-      signUpWithEmail,
-      signInWithEmail,
-      updateProfile,
-      uploadAvatar,
-      signOut,
-      changePassword,
-      forgotPassword,
-      resetPassword,
-      signInWithWechat,
-      bindWechat,
+      refreshUser,
     }),
-    [
-      user,
-      loading,
-      error,
-      signInAnonymously,
-      signUpWithEmail,
-      signInWithEmail,
-      updateProfile,
-      uploadAvatar,
-      signOut,
-      changePassword,
-      forgotPassword,
-      resetPassword,
-      signInWithWechat,
-      bindWechat,
-    ],
+    [user, loading, error, refreshUser],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

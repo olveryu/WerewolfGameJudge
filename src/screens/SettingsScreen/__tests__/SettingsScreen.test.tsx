@@ -21,12 +21,8 @@ jest.mock('../../../contexts/AuthContext', () => ({
     user: null,
     loading: false,
     error: null,
-    signOut: jest.fn(),
-    updateProfile: jest.fn(),
-    uploadAvatar: jest.fn(),
-    signInAnonymously: jest.fn(),
-    signInWithWechat: jest.fn(),
-    bindWechat: jest.fn(),
+    isAuthenticated: false,
+    refreshUser: jest.fn().mockResolvedValue(undefined),
   }),
 }));
 
