@@ -3,8 +3,8 @@
  *
  * 利用 locationHint: "apac" 将 DO 放置在亚太区域（HKG/SIN/NRT），
  * 使出站 fetch 到 api.weixin.qq.com（中国服务器）走亚太内部网络而非跨洲骨干网。
- * 解决 Smart Placement 将 Worker 拉向 D1 primary（US/EU）后，
- * 微信 code2Session 调用延迟过高甚至超时的问题。
+ * CN 用户的 Anycast 路由不经过 APAC（落在 AMS/LAX），Worker 也在 US/EU，
+ * 导致微信 code2Session 调用需跨洲往返，延迟高且不稳定。
  *
  * 无状态 DO — 不使用 storage，纯 RPC 代理。
  */
