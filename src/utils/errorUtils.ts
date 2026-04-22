@@ -20,13 +20,17 @@ export function getErrorMessage(e: unknown, fallback = '请稍后重试'): strin
 }
 
 /**
- * Detect fetch AbortError (browser tab backgrounded / network blip / duplicate navigation).
+ * Detect fetch AbortError or TimeoutError (user cancel / AbortSignal.timeout / network blip).
  *
- * Handles two shapes:
+ * Handles three shapes:
+ * - `DOMException` with `name === 'AbortError'` (user cancel) or `name === 'TimeoutError'` (AbortSignal.timeout)
  * - Standard `Error` instance with `name === 'AbortError'`
  * - Plain object `{ message, code, details, hint }` where `message` contains "AbortError"
  */
 export function isAbortError(err: unknown): boolean {
+  if (err instanceof DOMException) {
+    return err.name === 'AbortError' || err.name === 'TimeoutError';
+  }
   if (err instanceof Error) return err.name === 'AbortError';
   if (err != null && typeof err === 'object' && 'message' in err) {
     return String((err as { message: unknown }).message).includes('AbortError');

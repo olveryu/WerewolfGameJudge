@@ -28,11 +28,17 @@ export const API_REGION: string = process.env.EXPO_PUBLIC_API_REGION ?? 'us-west
  * API 请求超时时间（毫秒）。
  *
  * - 可通过 EXPO_PUBLIC_API_TIMEOUT_MS 覆盖
- * - 默认 8000ms，和 realtime subscribe timeout 对齐
+ * - 默认 12000ms，国内 → CF 首次 TLS 握手可达 3-5s
  */
 export const API_TIMEOUT_MS: number = (() => {
   const raw = process.env.EXPO_PUBLIC_API_TIMEOUT_MS;
-  if (!raw) return 8000;
+  if (!raw) return 12000;
   const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 8000;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 12000;
 })();
+
+/** 网络层 fetch 重试次数（仅重试 fetch() 抛异常，不重试 HTTP 错误响应） */
+export const FETCH_RETRY_COUNT = 2;
+
+/** 网络层 fetch 重试基础退避时间（毫秒），指数退避：1s, 2s */
+export const FETCH_RETRY_BASE_MS = 1000;

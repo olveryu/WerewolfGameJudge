@@ -45,12 +45,12 @@ export async function fetchGachaStatus(): Promise<GachaStatus> {
   return cfGet<GachaStatus>('/api/gacha/status');
 }
 
-/** 执行抽奖 */
+/** 执行抽奖（非幂等操作，禁用网络层自动重试） */
 export async function performDraw(
   drawType: 'normal' | 'golden',
   count: number = 1,
 ): Promise<DrawResponse> {
-  return cfPost<DrawResponse>('/api/gacha/draw', { drawType, count });
+  return cfPost<DrawResponse>('/api/gacha/draw', { drawType, count }, { noRetry: true });
 }
 
 /** 领取每日登录奖励（1 次普通抽） */

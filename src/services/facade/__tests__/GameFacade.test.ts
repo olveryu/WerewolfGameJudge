@@ -34,6 +34,13 @@ jest.mock('../../infra/AudioService', () => ({
   AudioService: jest.fn(() => mockAudioServiceInstance),
 }));
 
+// fetchWithRetry passthrough: tests mock global.fetch directly,
+// so bypass network-layer retry to avoid delays and timer interference.
+jest.mock('@/services/cloudflare/cfFetch', () => ({
+  ...jest.requireActual('@/services/cloudflare/cfFetch'),
+  fetchWithRetry: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
+}));
+
 // Mock RoomService (DB state persistence)
 const mockRoomService = () =>
   ({
@@ -1322,8 +1329,9 @@ describe('GameFacade', () => {
         20,
       );
 
-      // Wait for async audio effects + ack
-      await new Promise((r) => setTimeout(r, 50));
+      // Wait for async audio effects + ack (including callApiWithRetry
+      // NETWORK_ERROR retry delays ~1000ms)
+      await new Promise((r) => setTimeout(r, 2000));
 
       // Now simulate reconnect — mock fetch to succeed this time
       global.fetch = jest.fn().mockResolvedValue({
@@ -1409,7 +1417,8 @@ describe('GameFacade', () => {
         } as any,
         20,
       );
-      await new Promise((r) => setTimeout(r, 50));
+      // Wait for callApiWithRetry NETWORK_ERROR retries to settle
+      await new Promise((r) => setTimeout(r, 2000));
 
       // Leave room resets the flag
       await f.leaveRoom();
@@ -1506,8 +1515,9 @@ describe('GameFacade', () => {
           } as any,
           20,
         );
-        // Let microtasks settle (audio play + ack attempt + online listener registration)
-        await new Promise((r) => setTimeout(r, 50));
+        // Let microtasks settle (audio play + ack attempt + callApiWithRetry
+        // NETWORK_ERROR retry delays ~1000ms + online listener registration)
+        await new Promise((r) => setTimeout(r, 2000));
       };
 
       it('should retry postAudioAck via online event when status listener does not fire', async () => {
@@ -1541,7 +1551,8 @@ describe('GameFacade', () => {
 
         // First online event — retry still fails → should re-register
         fireOnlineEvent();
-        await new Promise((r) => setTimeout(r, 50));
+        // Wait for callApiWithRetry NETWORK_ERROR retries to settle
+        await new Promise((r) => setTimeout(r, 2000));
 
         // 1 re-registered ack retry listener
         expect(onlineListeners.size).toBe(1);
@@ -1669,8 +1680,9 @@ describe('GameFacade', () => {
           } as any,
           20,
         );
-        // Advance to let audio play + ack fail + registerOnlineRetry
-        await jest.advanceTimersByTimeAsync(100);
+        // Advance to let audio play + ack fail (including callApiWithRetry
+        // NETWORK_ERROR retry delays ~1000ms) + registerOnlineRetry
+        await jest.advanceTimersByTimeAsync(1500);
 
         // 1 ack retry online listener
         expect(onlineListeners.size).toBe(1);
@@ -1723,7 +1735,9 @@ describe('GameFacade', () => {
           } as any,
           20,
         );
-        await jest.advanceTimersByTimeAsync(100);
+        // Advance to let audio play + ack fail (including callApiWithRetry
+        // NETWORK_ERROR retry delays ~1000ms) + registerOnlineRetry
+        await jest.advanceTimersByTimeAsync(1500);
 
         // 1 ack retry online listener
         expect(onlineListeners.size).toBe(1);

@@ -80,8 +80,8 @@ export class CFAuthService implements IAuthService {
   }
 
   async waitForInit(): Promise<void> {
-    // Must exceed signInWithWechat's 15s timeout to avoid premature rejection
-    await withTimeout(this.#initPromise, 20000, () => new Error('登录超时，请重试'));
+    // Must exceed signInWithWechat's 20s timeout to avoid premature rejection
+    await withTimeout(this.#initPromise, 25000, () => new Error('登录超时，请重试'));
   }
 
   async ensureAuthenticated(): Promise<string> {
@@ -181,11 +181,11 @@ export class CFAuthService implements IAuthService {
 
   async signInWithWechat(code: string): Promise<string> {
     // 微信登录涉及跨境调 api.weixin.qq.com，给 Worker 更多时间
-    const WECHAT_AUTH_TIMEOUT_MS = 15000;
+    const WECHAT_AUTH_TIMEOUT_MS = 20000;
     const data = await cfPost<{
       access_token: string;
       user: { id: string };
-    }>('/auth/wechat', { code }, WECHAT_AUTH_TIMEOUT_MS);
+    }>('/auth/wechat', { code }, { timeoutMs: WECHAT_AUTH_TIMEOUT_MS });
 
     await this.#saveToken(data.access_token);
     this.#currentUserId = data.user.id;
@@ -202,29 +202,20 @@ export class CFAuthService implements IAuthService {
 
     this.#cachedToken = token;
     // Verify token is still valid by calling /auth/user
-    // Retry on network/timeout errors (not on 401/403 which mean token is invalid)
-    const MAX_RETRIES = 2;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        const resp = await cfGet<GetCurrentUserResponse>('/auth/user');
-        if (resp.data.user) {
-          this.#currentUserId = resp.data.user.id;
-          this.#isAnonymous = resp.data.user.is_anonymous ?? false;
-          this.#hasWechat = resp.data.user.has_wechat ?? false;
-          return this.#currentUserId;
-        }
-        break; // 200 but no user — token invalid, no retry
-      } catch (error: unknown) {
-        const status = (error as { status?: number }).status;
-        const isAuthError = status === 401 || status === 403;
-        if (isAuthError || attempt === MAX_RETRIES) {
-          authLog.debug('initAuth: token invalid or expired, clearing', { attempt, status });
-          break;
-        }
-        // Network/timeout error — retry with exponential backoff
-        const delayMs = 1000 * 2 ** attempt; // 1s, 2s
-        authLog.debug('initAuth: retrying after network error', { attempt, delayMs });
-        await new Promise((r) => setTimeout(r, delayMs));
+    // cfFetch already handles network-layer retry (fetchWithRetry), no manual retry needed
+    try {
+      const resp = await cfGet<GetCurrentUserResponse>('/auth/user');
+      if (resp.data.user) {
+        this.#currentUserId = resp.data.user.id;
+        this.#isAnonymous = resp.data.user.is_anonymous ?? false;
+        this.#hasWechat = resp.data.user.has_wechat ?? false;
+        return this.#currentUserId;
+      }
+    } catch (error: unknown) {
+      const status = (error as { status?: number }).status;
+      if (status !== 401 && status !== 403) {
+        // 网络错误（cfFetch 已重试过仍失败）
+        authLog.warn('initAuth: network error after retries', { status });
       }
     }
 

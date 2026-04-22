@@ -28,6 +28,13 @@ jest.mock('../../../utils/logger', () => ({
   },
 }));
 
+// fetchWithRetry passthrough: tests mock global.fetch directly,
+// so bypass network-layer retry to avoid delays and timer interference.
+jest.mock('@/services/cloudflare/cfFetch', () => ({
+  ...jest.requireActual('@/services/cloudflare/cfFetch'),
+  fetchWithRetry: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
+}));
+
 // =============================================================================
 // Test Helpers
 // =============================================================================

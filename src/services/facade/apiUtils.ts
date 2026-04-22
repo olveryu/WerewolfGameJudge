@@ -10,6 +10,7 @@ import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { secureRng } from '@werewolf/game-engine/utils/random';
 
 import { API_BASE_URL, API_REGION, API_TIMEOUT_MS } from '@/config/api';
+import { fetchWithRetry } from '@/services/cloudflare/cfFetch';
 import { facadeLog } from '@/utils/logger';
 
 /** 标准 API 响应（game control / seat 共用结构） */
@@ -39,7 +40,7 @@ function applyOptimisticUpdate(
 /**
  * 执行单次 API POST 调用
  *
- * - 发送 JSON POST 请求
+ * - fetchWithRetry 网络层自动重试 + AbortSignal.timeout 超时
  * - 处理 non-JSON 错误页（502/503）
  * - 成功时 applySnapshot；失败时 rollbackOptimistic
  * - 网络错误自动 warn + rollback
@@ -55,26 +56,22 @@ async function callApiOnce(
   label: string,
   store?: GameStore,
 ): Promise<ApiResponse> {
-  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   try {
     const requestId =
       typeof globalThis.crypto?.randomUUID === 'function'
         ? globalThis.crypto.randomUUID()
         : `req_${Date.now()}_${Math.floor(secureRng() * 1_000_000)}`;
-    const abortController = new AbortController();
-    timeoutHandle = setTimeout(() => abortController.abort(), API_TIMEOUT_MS);
 
-    const res = await fetch(`${API_BASE_URL}${path}`, {
+    const res = await fetchWithRetry(`${API_BASE_URL}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-region': API_REGION,
         'x-request-id': requestId,
       },
-      signal: abortController.signal,
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
       body: JSON.stringify(body),
     });
-    clearTimeout(timeoutHandle);
 
     // Guard: non-JSON responses (502/503 error pages OR 200+text/html from proxy misconfiguration)
     if (!res.headers.get('content-type')?.includes('application/json')) {
@@ -106,29 +103,31 @@ async function callApiOnce(
     // Rethrow programming errors (ReferenceError = always a code bug).
     // TypeError is NOT rethrown because fetch() throws TypeError for network failures.
     if (e instanceof ReferenceError) throw e;
-    const abortLikeError =
+
+    // AbortSignal.timeout() throws DOMException { name: 'TimeoutError' }
+    // User cancel throws DOMException { name: 'AbortError' }
+    // Also handle plain Error with abort name (polyfill / test environments)
+    const isAbortOrTimeout =
       (typeof DOMException !== 'undefined' &&
         e instanceof DOMException &&
-        e.name === 'AbortError') ||
+        (e.name === 'AbortError' || e.name === 'TimeoutError')) ||
       (typeof e === 'object' &&
         e !== null &&
         'name' in e &&
-        (e as { name?: string }).name === 'AbortError');
-    if (abortLikeError) {
+        ((e as { name?: string }).name === 'AbortError' ||
+          (e as { name?: string }).name === 'TimeoutError'));
+    if (isAbortOrTimeout) {
       facadeLog.warn('timeout', { label, path, timeoutMs: API_TIMEOUT_MS, region: API_REGION });
       if (store) store.rollbackOptimistic();
       return { success: false, reason: 'TIMEOUT' };
     }
+
     const err = e as { message?: string };
     facadeLog.warn('network error', { label, path, error: err?.message ?? String(e) });
     // Network/fetch errors are expected (offline, DNS, timeout) — no Sentry
     // 网络错误 → 回滚乐观更新
     if (store) store.rollbackOptimistic();
     return { success: false, reason: 'NETWORK_ERROR' };
-  } finally {
-    if (timeoutHandle !== null) {
-      clearTimeout(timeoutHandle);
-    }
   }
 }
 
@@ -139,12 +138,16 @@ async function callApiOnce(
 /** 最大客户端重试次数 */
 const MAX_CLIENT_RETRIES = 2;
 
+/** 总预算：防止 cfFetch 重试 × callApiWithRetry 重试叠加导致等待过长 */
+const CALL_API_TOTAL_BUDGET_MS = 30_000;
+
 /**
  * 带透明重试的 API 调用
  *
  * 封装 callApiOnce + 乐观更新 + 重试循环，供 gameActions / seatActions 共用。
- * 瞬时错误（CONFLICT_RETRY / INTERNAL_ERROR）透明重试最多 MAX_CLIENT_RETRIES 次，
- * 退避 + 随机抖动。NETWORK_ERROR / SERVER_ERROR 不重试（已在 callApiOnce 中 rollback）。
+ * 重试 CONFLICT_RETRY / INTERNAL_ERROR / NETWORK_ERROR / SERVER_ERROR，
+ * 不重试 TIMEOUT（请求可能已到达服务端，重发不安全）。
+ * 30s 总预算截断防止叠加等待过长。
  */
 export async function callApiWithRetry(
   path: string,
@@ -154,23 +157,32 @@ export async function callApiWithRetry(
   optimisticFn?: (state: GameState) => GameState,
 ): Promise<ApiResponse> {
   applyOptimisticUpdate(store, optimisticFn);
+  const startTime = Date.now();
 
   for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
-    const result = await callApiOnce(path, body, label, store);
-
-    // 网络/服务端错误已在 callApiOnce 中 rollback，不重试
-    if (
-      result.reason === 'NETWORK_ERROR' ||
-      result.reason === 'SERVER_ERROR' ||
-      result.reason === 'TIMEOUT'
-    ) {
-      return result;
+    // 总预算检查（首次不检查）
+    if (attempt > 0 && Date.now() - startTime > CALL_API_TOTAL_BUDGET_MS) {
+      facadeLog.warn('total budget exceeded', { path, elapsed: Date.now() - startTime });
+      break;
     }
 
-    // 瞬时错误 → 透明重试（退避 + 随机抖动）
-    const isRetryable = result.reason === 'CONFLICT_RETRY' || result.reason === 'INTERNAL_ERROR';
+    const result = await callApiOnce(path, body, label, store);
+
+    if (result.success) return result;
+
+    // TIMEOUT 不重试：请求可能已到达服务端，重发不安全
+    if (result.reason === 'TIMEOUT') return result;
+
+    // 可重试的 reason
+    const isRetryable =
+      result.reason === 'CONFLICT_RETRY' ||
+      result.reason === 'INTERNAL_ERROR' ||
+      result.reason === 'NETWORK_ERROR' ||
+      result.reason === 'SERVER_ERROR';
+
     if (isRetryable && attempt < MAX_CLIENT_RETRIES) {
-      const delay = 100 * (attempt + 1) + secureRng() * 50;
+      // cfFetch 层已处理慢网络（1s+2s 退避），业务层退避保持短（面对面游戏不能等太久）
+      const delay = 300 * (attempt + 1) + secureRng() * 100;
       facadeLog.warn('client retrying', { reason: result.reason, path, attempt: attempt + 1 });
       await new Promise((r) => setTimeout(r, delay));
       continue;
@@ -179,7 +191,7 @@ export async function callApiWithRetry(
     return result;
   }
 
-  // 重试耗尽 → 回滚乐观更新
+  // 重试耗尽或预算超限 → 回滚乐观更新
   if (store) store.rollbackOptimistic();
-  return { success: false, reason: 'CONFLICT_RETRY' };
+  return { success: false, reason: 'NETWORK_ERROR' };
 }

@@ -7,12 +7,10 @@
  * 不涉及游戏逻辑或认证逻辑。
  */
 
-import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
 import type { IStorageService } from '@/services/types/IStorageService';
 import { log } from '@/utils/logger';
-import { withTimeout } from '@/utils/withTimeout';
 
-import { getCurrentToken } from './cfFetch';
+import { cfUpload } from './cfFetch';
 
 const avatarLog = log.extend('CFAvatar');
 
@@ -24,30 +22,7 @@ export class CFStorageService implements IStorageService {
     const formData = new FormData();
     formData.append('file', blob, 'avatar.jpg');
 
-    const token = getCurrentToken();
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const fetchPromise = fetch(`${API_BASE_URL}/avatar/upload`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
-
-    const res = await withTimeout(fetchPromise, API_TIMEOUT_MS, () => new Error('上传超时'));
-
-    if (!res.ok) {
-      const contentType = res.headers.get('content-type') ?? '';
-      if (contentType.includes('application/json')) {
-        const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? `上传失败 (${res.status})`);
-      }
-      throw new Error(`上传失败 (${res.status})`);
-    }
-
-    const data = (await res.json()) as { url: string };
+    const data = await cfUpload<{ url: string }>('/avatar/upload', formData);
     avatarLog.debug('Avatar uploaded:', data.url);
     return data.url;
   }
