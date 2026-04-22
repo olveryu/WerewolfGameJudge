@@ -457,9 +457,6 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // Try to tap a seat after learning is done
       tapSeat(getByTestId, 1);
 
-      // Wait a bit to ensure no dialog appears
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       // CRITICAL: No action dialogs should appear from seat tap
       expect(harness.hasSeen('actionPrompt')).toBe(false);
       expect(harness.hasSeen('actionConfirm')).toBe(false);
@@ -501,9 +498,6 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
 
       // Try to tap own seat (mySeat=7, 0-indexed)
       tapSeat(getByTestId, 7);
-
-      // Wait a bit to ensure no dialog appears
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // CRITICAL: No dialogs should appear, including "不能选择自己" error
       expect(harness.hasSeen('actionPrompt')).toBe(false);

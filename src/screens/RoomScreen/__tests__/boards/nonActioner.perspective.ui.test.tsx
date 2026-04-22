@@ -8,7 +8,7 @@
  * 策略：与 standard board UI test 同模板，但 useActionerState mock 返回 imActioner=false。
  */
 
-import { act, render } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 
 import {
   createGameRoomMock,
@@ -102,11 +102,6 @@ describe('RoomScreen UI: non-actioner perspective', () => {
 
     await waitForRoomScreen(getByTestId);
 
-    // 等待一段时间确保如果 dialog 会弹出已经弹出
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
-    });
-
     expect(harness.hasSeen('actionPrompt')).toBe(false);
   });
 
@@ -128,10 +123,6 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     );
 
     await waitForRoomScreen(getByTestId);
-
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
-    });
 
     expect(harness.hasSeen('witchSavePrompt')).toBe(false);
     expect(harness.hasSeen('witchPoisonPrompt')).toBe(false);
@@ -158,10 +149,6 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     harness.clear();
     tapSeat(getByTestId, 1);
 
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
-    });
-
     expect(harness.hasSeen('witchPoisonPrompt')).toBe(false);
   });
 
@@ -183,10 +170,6 @@ describe('RoomScreen UI: non-actioner perspective', () => {
 
     await waitForRoomScreen(getByTestId);
 
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
-    });
-
     expect(harness.hasSeen('confirmTrigger')).toBe(false);
     expect(harness.hasSeen('actionPrompt')).toBe(false);
   });
@@ -207,10 +190,6 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     );
 
     await waitForRoomScreen(getByTestId);
-
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
-    });
 
     expect(harness.hasSeen('wolfVote')).toBe(false);
   });

@@ -104,8 +104,6 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
 
       tapSeat(getByTestId, 1);
 
-      // Wait a tick and verify no action-related dialog appeared
-      await new Promise((r) => setTimeout(r, 100));
       expect(harness.hasSeen('actionConfirm')).toBe(false);
       expect(harness.hasSeen('actionPrompt')).toBe(false);
     });
@@ -131,7 +129,6 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
 
       tapSeat(getByTestId, 1);
 
-      await new Promise((r) => setTimeout(r, 100));
       expect(harness.hasSeen('wolfVote')).toBe(false);
     });
   });
@@ -153,8 +150,6 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
       const skipText = getSchema('seerCheck').ui?.bottomActionText;
       if (!skipText) throw new Error('[TEST] Missing seerCheck.ui.bottomActionText');
 
-      // Wait a bit for render
-      await new Promise((r) => setTimeout(r, 100));
       expect(queryByText(skipText)).toBeNull();
     });
 
@@ -179,7 +174,6 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
       const emptyText = getSchema('wolfKill').ui?.emptyVoteText;
       if (!emptyText) throw new Error('[TEST] Missing wolfKill.ui.emptyVoteText');
 
-      await new Promise((r) => setTimeout(r, 100));
       expect(queryByText(emptyText)).toBeNull();
     });
   });

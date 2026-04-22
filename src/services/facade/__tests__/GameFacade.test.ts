@@ -1304,6 +1304,7 @@ describe('GameFacade', () => {
     };
 
     it('should set #pendingAudioAckRetry when postAudioAck fails during playback', async () => {
+      jest.useFakeTimers();
       // Mock fetch to simulate network error on audio-ack
       global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
       await setupRetryFacade();
@@ -1329,9 +1330,8 @@ describe('GameFacade', () => {
         20,
       );
 
-      // Wait for async audio effects + ack (including callApiWithRetry
-      // NETWORK_ERROR retry delays ~1000ms)
-      await new Promise((r) => setTimeout(r, 2000));
+      // Advance past callApiWithRetry NETWORK_ERROR retry delays
+      await jest.advanceTimersByTimeAsync(1500);
 
       // Now simulate reconnect — mock fetch to succeed this time
       global.fetch = jest.fn().mockResolvedValue({
@@ -1344,8 +1344,10 @@ describe('GameFacade', () => {
       // Fire 'live' status to all registered listeners
       statusListeners.forEach((l) => l(ConnectionState.Connected));
 
-      // Wait for async retry (audio replay + ack)
-      await new Promise((r) => setTimeout(r, 50));
+      // Flush microtasks for async retry (audio replay + ack)
+      await jest.advanceTimersByTimeAsync(50);
+
+      jest.useRealTimers();
 
       // Should have replayed audio effects before retrying ack
       expect(mockAudioServiceInstance.playRoleBeginningAudio).toHaveBeenCalledWith('wolf');
@@ -1357,6 +1359,7 @@ describe('GameFacade', () => {
     });
 
     it('should not retry postAudioAck on reconnect when ack succeeded during playback', async () => {
+      jest.useFakeTimers();
       // Mock fetch to succeed for audio-ack
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
@@ -1384,18 +1387,21 @@ describe('GameFacade', () => {
         20,
       );
 
-      // Wait for async audio effects + ack
-      await new Promise((r) => setTimeout(r, 50));
+      // Flush async audio effects + ack
+      await jest.advanceTimersByTimeAsync(50);
       (global.fetch as jest.Mock).mockClear();
 
       // Fire 'live' — should NOT retry since ack succeeded
       statusListeners.forEach((l) => l(ConnectionState.Connected));
-      await new Promise((r) => setTimeout(r, 50));
+      await jest.advanceTimersByTimeAsync(50);
+
+      jest.useRealTimers();
 
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('should reset #pendingAudioAckRetry on leaveRoom', async () => {
+      jest.useFakeTimers();
       global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
       const f = await setupRetryFacade();
 
@@ -1417,8 +1423,8 @@ describe('GameFacade', () => {
         } as any,
         20,
       );
-      // Wait for callApiWithRetry NETWORK_ERROR retries to settle
-      await new Promise((r) => setTimeout(r, 2000));
+      // Advance past callApiWithRetry NETWORK_ERROR retries
+      await jest.advanceTimersByTimeAsync(1500);
 
       // Leave room resets the flag
       await f.leaveRoom();
@@ -1430,7 +1436,9 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: true }),
       });
       statusListeners.forEach((l) => l(ConnectionState.Connected));
-      await new Promise((r) => setTimeout(r, 50));
+      await jest.advanceTimersByTimeAsync(50);
+
+      jest.useRealTimers();
 
       expect(global.fetch).not.toHaveBeenCalled();
     });
@@ -1515,12 +1523,12 @@ describe('GameFacade', () => {
           } as any,
           20,
         );
-        // Let microtasks settle (audio play + ack attempt + callApiWithRetry
-        // NETWORK_ERROR retry delays ~1000ms + online listener registration)
-        await new Promise((r) => setTimeout(r, 2000));
+        // Advance past callApiWithRetry NETWORK_ERROR retry delays + online listener registration
+        await jest.advanceTimersByTimeAsync(1500);
       };
 
       it('should retry postAudioAck via online event when status listener does not fire', async () => {
+        jest.useFakeTimers();
         global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
         await setupRetryFacade();
         await triggerAckFailureAndSettle();
@@ -1534,7 +1542,9 @@ describe('GameFacade', () => {
 
         // Fire browser 'online' event (no status listener fired!)
         fireOnlineEvent();
-        await new Promise((r) => setTimeout(r, 50));
+        await jest.advanceTimersByTimeAsync(50);
+
+        jest.useRealTimers();
 
         // Should have retried postAudioAck
         expect(global.fetch).toHaveBeenCalledWith(
@@ -1544,6 +1554,7 @@ describe('GameFacade', () => {
       });
 
       it('should re-register online listener when retry fails', async () => {
+        jest.useFakeTimers();
         // All fetches reject
         global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
         await setupRetryFacade();
@@ -1551,8 +1562,8 @@ describe('GameFacade', () => {
 
         // First online event — retry still fails → should re-register
         fireOnlineEvent();
-        // Wait for callApiWithRetry NETWORK_ERROR retries to settle
-        await new Promise((r) => setTimeout(r, 2000));
+        // Advance past callApiWithRetry NETWORK_ERROR retries
+        await jest.advanceTimersByTimeAsync(1500);
 
         // 1 re-registered ack retry listener
         expect(onlineListeners.size).toBe(1);
@@ -1564,7 +1575,9 @@ describe('GameFacade', () => {
           json: () => Promise.resolve({ success: true }),
         });
         fireOnlineEvent();
-        await new Promise((r) => setTimeout(r, 50));
+        await jest.advanceTimersByTimeAsync(50);
+
+        jest.useRealTimers();
 
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining('/game/night/audio-ack'),
@@ -1573,6 +1586,7 @@ describe('GameFacade', () => {
       });
 
       it('should unregister online listener when status listener fires first', async () => {
+        jest.useFakeTimers();
         global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
         await setupRetryFacade();
         await triggerAckFailureAndSettle();
@@ -1584,7 +1598,7 @@ describe('GameFacade', () => {
           json: () => Promise.resolve({ success: true }),
         });
         statusListeners.forEach((l) => l(ConnectionState.Connected));
-        await new Promise((r) => setTimeout(r, 50));
+        await jest.advanceTimersByTimeAsync(50);
 
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining('/game/night/audio-ack'),
@@ -1594,12 +1608,15 @@ describe('GameFacade', () => {
 
         // Online event fires after — should NOT retry (listener already unregistered)
         fireOnlineEvent();
-        await new Promise((r) => setTimeout(r, 50));
+        await jest.advanceTimersByTimeAsync(50);
+
+        jest.useRealTimers();
 
         expect(global.fetch).not.toHaveBeenCalled();
       });
 
       it('should unregister online listener on leaveRoom', async () => {
+        jest.useFakeTimers();
         global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
         const f = await setupRetryFacade();
         await triggerAckFailureAndSettle();
@@ -1616,12 +1633,17 @@ describe('GameFacade', () => {
 
         // Online event fires — should NOT retry (listener cleared)
         fireOnlineEvent();
-        await new Promise((r) => setTimeout(r, 50));
+        await jest.advanceTimersByTimeAsync(50);
+
+        jest.useRealTimers();
 
         expect(global.fetch).not.toHaveBeenCalled();
       });
 
       it('should retry via timer when navigator.onLine is already true (check+listen)', async () => {
+        // Use fake timers to avoid flaky real-timer waits with exponential backoff
+        jest.useFakeTimers();
+
         // Simulate: online event already fired before registerOnlineRetry() is called
         // → navigator.onLine = true but no 'online' event will fire again
         Object.defineProperty(globalThis.navigator, 'onLine', {
@@ -1632,9 +1654,30 @@ describe('GameFacade', () => {
 
         global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
         await setupRetryFacade();
-        await triggerAckFailureAndSettle();
 
-        // No ack retry online listener (timer path)
+        // Inline trigger (can't use triggerAckFailureAndSettle — its real setTimeout is faked)
+        retryStore.applySnapshot(
+          {
+            roomCode: 'RTRY',
+            hostUserId: 'host-uid',
+            status: GameStatus.Ongoing,
+            templateRoles: [],
+            numberOfPlayers: 6,
+            players: {},
+            currentStepId: 'wolfKill',
+            currentStepIndex: 0,
+            nightSteps: ['wolfKill'],
+            isAudioPlaying: true,
+            pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+            seerLabelMap: {},
+          } as any,
+          20,
+        );
+        // Advance to let audio play + ack fail (including callApiWithRetry
+        // NETWORK_ERROR retry delays ~1000ms) + registerOnlineRetry (timer path)
+        await jest.advanceTimersByTimeAsync(1500);
+
+        // No ack retry online listener (timer path — onLine=true skips addEventListener)
         expect(onlineListeners.size).toBe(0);
 
         // Switch fetch to succeed for the timer-based retry
@@ -1644,8 +1687,10 @@ describe('GameFacade', () => {
           json: () => Promise.resolve({ success: true }),
         });
 
-        // Wait for the 500ms timer to fire
-        await new Promise((r) => setTimeout(r, 600));
+        // Advance past the exponential backoff timer (500ms * 2^attempt, up to 16s)
+        await jest.advanceTimersByTimeAsync(16_000);
+
+        jest.useRealTimers();
 
         // Should have retried postAudioAck via timer (not online event)
         expect(global.fetch).toHaveBeenCalledWith(
