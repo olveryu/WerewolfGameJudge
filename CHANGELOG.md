@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.1.0] - 2026-04-22
+
+- docs(announcements): add v2.1.0 What's New entry
+- chore(auth): remove unused wechat mutation hooks
+- fix(settings): add try/catch to handleSignOut for error feedback
+- feat(network): queryClient mutationCache, manual reconnect, wechat error page (§3.12-3.13, §4.3)
+- feat(network): extract room mutations to TanStack hooks (§3.8)
+- feat(network): extract auth mutations to TanStack hooks, simplify AuthContext (§3.7, §3.10-3.11)
+- feat(network): add network-layer retry infrastructure (§3.1-3.6, §3.14)
+- fix(auth): improve loading timeout and auth resilience for slow networks
+- refactor: make hypnotizedSeats/piperRevealAcks/conversionRevealAcks/cupidLoversRevealAcks required
+- fix: add NormalizedFields to schema smoke test mock
+- fix: replace || with ??, annotate eslint-disables, remove dead re-exports
+- refactor(client): tighten types at transport boundary, remove redundant ?? []
+- refactor(api-worker): update DO + handlers to use GameStatePayload
+- refactor(game-engine): update engine internals to use GameStatePayload
+- refactor(game-engine): rename GameState → GameStatePayload, introduce tight GameState
+- refactor(avatar): remove dead props roomId/avatarIndex and cascade cleanup
+- chore: remove .node-version, unify on .nvmrc
+- chore: remove leftover Vercel config files
+- fix(gacha): hide avatar placeholder background when frame is present
+- Revert "fix(gacha): add base Rect stroke to Cross and Scallop frames"
+- fix(gacha): add base Rect stroke to Cross and Scallop frames
+- fix(audio): reorder webAudioUnlock to create HTMLAudioElement before AudioContext
+- style(room): make tile fully transparent when avatar frame equipped
+- docs: add naming-before-grep rule, remove redundant dictionary table
+- chore(lint): add no-restricted-syntax rules for deprecated identifiers
+- refactor: update LAST_ROOM_CODE_KEY storage value to lastRoomCode
+- refactor(api-worker): rename D1 columns for naming consistency
+- refactor: rename seatNumber to seat across the codebase
+- style(room): hide tile border when player has avatar frame
+- refactor: rename roomNumber to roomCode across the codebase
+- style(room): remove self-seat background tint
+- fix(gacha): replace same-day dedup with pure cooldown guard
+- refactor: unify user identifier naming (uid → userId, User.uid → User.id)
+- fix(e2e): auto-dismiss announcement modal via addLocatorHandler
+- fix(audio): don't close shared AudioContext in BgmPlayer.stop()
+- chore: update v2.0.1 announcement with gacha and new boards
+- fix(auth): add Smart Placement, WeChat API timeout, and auth error UI
+- test: add stopBgm to audioService mocks
+- fix(audio): stop BGM when leaving room
+- fix(audio): remove destructive cleanup() on leave room
+- ci(miniapp): trigger upload on release commits
+- chore(release): check announcements entry before release
+- fix(home): defer announcement modal until auth loading settles
+- fix(e2e): dismiss announcement modal in ensureHomeReady
+- feat(ui): add copy button next to WeChat ID in announcement modal and settings
+
 ## [2.0.1] - 2026-04-20
 
 - fix(lint): remove all unnecessary type assertions and unused imports
