@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { toast } from 'sonner-native';
 
 import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useCreateRoom } from '@/hooks/mutations/useRoomMutations';
 import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
@@ -72,6 +73,7 @@ export function useConfigScreenState({
   settingsService,
   authService,
 }: UseConfigScreenStateParams) {
+  const { user } = useAuthContext();
   const isEditMode = !!existingRoomCode;
   const isNominateMode = !!nominateMode;
 
@@ -255,8 +257,7 @@ export function useConfigScreenState({
     try {
       // ── Nominate mode: submit board nomination ──
       if (nominateMode) {
-        await authService.waitForInit();
-        const displayName = (await authService.getCurrentDisplayName()) ?? '匿名玩家';
+        const displayName = user?.displayName ?? '匿名玩家';
         const result = await facade.boardNominate(displayName, roles);
         if (!result.success) {
           showErrorAlert('提交失败', result.reason ?? '提交建议失败，请重试');
@@ -334,6 +335,7 @@ export function useConfigScreenState({
     authService,
     createRoomMutation,
     variantOverrides,
+    user?.displayName,
   ]);
 
   // ── Template label ───────────────────────────────────────────────────────
