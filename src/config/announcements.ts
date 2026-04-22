@@ -13,6 +13,15 @@ interface Announcement {
 
 /** 按版本号索引的公告内容。key 格式与 APP_VERSION 一致：`v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
+  'v2.1.0': {
+    title: 'v2.1.0 更新内容',
+    items: [
+      '网络不稳定时自动重试，减少操作失败',
+      '断线后可手动点击重连',
+      '微信小程序登录失败时显示明确提示',
+      '退出登录等操作失败时显示错误提示',
+    ],
+  },
   'v2.0.1': {
     title: 'v2.0.1 更新内容',
     items: [
