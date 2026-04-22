@@ -17,6 +17,15 @@ import type { IGameFacade } from '@/services/types/IGameFacade';
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
 
+// Mock useCreateRoom mutation hook
+const mockCreateRoomMutateAsync = jest.fn();
+jest.mock('@/hooks/mutations/useRoomMutations', () => ({
+  useCreateRoom: () => ({
+    mutateAsync: mockCreateRoomMutateAsync,
+    isPending: false,
+  }),
+}));
+
 // Mock navigation
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
@@ -73,19 +82,15 @@ const createMockFacade = (): IGameFacade =>
   }) as unknown as IGameFacade;
 
 describe('Room creation → navigation roomCode contract', () => {
-  let mockRoomService: { createRoom: jest.Mock };
-
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // RoomService mock — simulate 409 retry: returned roomCode differs from any pre-generated code
-    mockRoomService = {
-      createRoom: jest.fn().mockResolvedValue({
-        roomCode: '7777', // The confirmed DB roomCode
-        hostUserId: 'host-uid',
-        createdAt: new Date(),
-      }),
-    };
+    // Mutation mock — simulate 409 retry: returned roomCode differs from any pre-generated code
+    mockCreateRoomMutateAsync.mockResolvedValue({
+      roomCode: '7777', // The confirmed DB roomCode
+      hostUserId: 'host-uid',
+      createdAt: new Date(),
+    });
 
     // Override global ServiceContext mock with test-specific services
     mockUseServices.mockReturnValue({
@@ -98,7 +103,7 @@ describe('Room creation → navigation roomCode contract', () => {
         getCurrentSeatFlair: jest.fn().mockResolvedValue(null),
         getCurrentNameStyle: jest.fn().mockResolvedValue(null),
       },
-      roomService: mockRoomService,
+      roomService: {},
       settingsService: {
         load: jest.fn().mockResolvedValue(undefined),
         getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
@@ -135,7 +140,7 @@ describe('Room creation → navigation roomCode contract', () => {
     });
 
     // CRITICAL CONTRACT: The roomCode passed to navigation MUST be the one
-    // returned by RoomService.createRoom (the confirmed DB record), not a
+    // returned by createRoomMutation.mutateAsync (the confirmed DB record), not a
     // locally pre-generated code.
     const navArgs = mockNavigate.mock.calls[0];
     expect(navArgs[0]).toBe('Room');
@@ -146,7 +151,7 @@ describe('Room creation → navigation roomCode contract', () => {
 
   it('should NOT navigate when createRoomRecord fails', async () => {
     // Simulate DB creation failure
-    mockRoomService.createRoom.mockRejectedValueOnce(new Error('服务未配置'));
+    mockCreateRoomMutateAsync.mockRejectedValueOnce(new Error('服务未配置'));
 
     const mockFacade = createMockFacade();
     const { getByText } = render(

@@ -22,12 +22,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { toast } from 'sonner-native';
 
 import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
+import { useCreateRoom } from '@/hooks/mutations/useRoomMutations';
 import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import type { SettingsService } from '@/services/feature/SettingsService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
-import type { IRoomService } from '@/services/types/IRoomService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -57,7 +57,6 @@ interface UseConfigScreenStateParams {
   facade: IGameFacade;
   settingsService: SettingsService;
   authService: IAuthService;
-  roomService: IRoomService;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,7 +71,6 @@ export function useConfigScreenState({
   facade,
   settingsService,
   authService,
-  roomService,
 }: UseConfigScreenStateParams) {
   const isEditMode = !!existingRoomCode;
   const isNominateMode = !!nominateMode;
@@ -233,6 +231,7 @@ export function useConfigScreenState({
     setSelectedTemplate('__custom__');
   }, []);
 
+  const createRoomMutation = useCreateRoom();
   const creatingRef = useRef(false);
   const handleCreateRoom = useCallback(async () => {
     if (creatingRef.current || isLoading) return;
@@ -298,9 +297,10 @@ export function useConfigScreenState({
           navigation.navigate('Home');
           return;
         }
-        const record = await roomService.createRoom(hostUserId, undefined, undefined, (roomCode) =>
-          buildInitialGameState(roomCode, hostUserId, template),
-        );
+        const record = await createRoomMutation.mutateAsync({
+          hostUserId,
+          buildInitialState: (roomCode) => buildInitialGameState(roomCode, hostUserId, template),
+        });
         const roomCode = record.roomCode;
         storage.set(LAST_ROOM_CODE_KEY, roomCode);
         navigation.navigate('Room', {
@@ -332,7 +332,7 @@ export function useConfigScreenState({
     bgmEnabled,
     isLoading,
     authService,
-    roomService,
+    createRoomMutation,
     variantOverrides,
   ]);
 

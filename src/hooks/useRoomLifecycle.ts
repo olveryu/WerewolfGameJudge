@@ -18,13 +18,13 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useState } from 'react';
 
 import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
+import { useJoinRoom } from '@/hooks/mutations/useRoomMutations';
 import { userStatsOptions } from '@/hooks/queries/queryOptions';
 import { storage } from '@/lib/storage';
 import { SupersededError } from '@/services/connection/types';
 import type { UserStats } from '@/services/feature/StatsService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
-import type { IRoomService } from '@/services/types/IRoomService';
 import type { RoomRecord } from '@/services/types/IRoomService';
 import { handleError } from '@/utils/errorPipeline';
 import { getErrorMessage } from '@/utils/errorUtils';
@@ -65,7 +65,6 @@ interface RoomLifecycleState {
 interface RoomLifecycleDeps {
   facade: IGameFacade;
   authService: IAuthService;
-  roomService: IRoomService;
   setRoomRecord: (record: RoomRecord | null) => void;
 }
 
@@ -74,8 +73,9 @@ interface RoomLifecycleDeps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
-  const { facade, authService, roomService, setRoomRecord } = deps;
+  const { facade, authService, setRoomRecord } = deps;
   const queryClient = useQueryClient();
+  const joinRoomMutation = useJoinRoom();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,7 +153,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         }
 
         // Check if room exists
-        const record = await roomService.getRoom(roomCode);
+        const record = await joinRoomMutation.mutateAsync(roomCode);
         if (!record) {
           setError('房间不存在');
           // 防御性清理：房间已不存在，清除过时的 lastRoomCode
@@ -200,7 +200,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         setLoading(false);
       }
     },
-    [facade, authService, roomService, setRoomRecord],
+    [facade, authService, joinRoomMutation, setRoomRecord],
   );
 
   // Leave the current room

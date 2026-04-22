@@ -53,7 +53,7 @@ export const ConfigScreen: React.FC = () => {
   const nominateMode = route.params?.nominateMode;
 
   const facade = useGameFacade();
-  const { settingsService, authService, roomService } = useServices();
+  const { settingsService, authService } = useServices();
 
   const state = useConfigScreenState({
     existingRoomCode,
@@ -63,7 +63,6 @@ export const ConfigScreen: React.FC = () => {
     facade,
     settingsService,
     authService,
-    roomService,
   });
 
   const {

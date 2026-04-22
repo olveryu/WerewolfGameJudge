@@ -152,7 +152,7 @@ export const useGameRoom = (): UseGameRoomResult => {
   // Core: facade + services
   // =========================================================================
   const facade = useGameFacade();
-  const { roomService, authService } = useServices();
+  const { authService } = useServices();
   const isFocused = useIsFocused();
   const { user } = useAuthContext();
 
@@ -257,7 +257,6 @@ export const useGameRoom = (): UseGameRoomResult => {
   const lifecycle = useRoomLifecycle({
     facade,
     authService,
-    roomService,
     setRoomRecord,
   });
 
