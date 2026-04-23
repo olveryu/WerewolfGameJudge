@@ -778,22 +778,6 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
         </Animated.View>
       )}
 
-      {/* Prompt text */}
-      {phase === 'waiting' && (
-        <View style={styles.promptContainer}>
-          <Animated.Text style={[styles.promptText, { color: TAROT_COLORS.gold }]}>
-            🔮 选择一张塔罗牌
-          </Animated.Text>
-        </View>
-      )}
-      {phase === 'drawing' && (
-        <View style={styles.promptContainer}>
-          <Animated.Text style={[styles.promptText, { color: TAROT_COLORS.gold }]}>
-            ✨ 翻牌中…
-          </Animated.Text>
-        </View>
-      )}
-
       {/* Wheel of cards */}
       {phase !== 'revealed' && (
         <Animated.View
@@ -907,7 +891,9 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       )}
 
       <HintWithWarning
-        hintText={phase === 'waiting' ? '✨ 凭直觉选一张牌' : null}
+        hintText={
+          phase === 'waiting' ? '🔮 凭直觉选一张牌' : phase === 'drawing' ? '✨ 翻牌中…' : null
+        }
         showWarning={autoTimeoutWarning}
       />
     </View>
@@ -973,17 +959,6 @@ const styles = StyleSheet.create({
   },
   pressableFill: {
     flex: 1,
-    pointerEvents: 'none',
-  },
-  promptContainer: {
-    position: 'absolute',
-    bottom: 80,
-    alignItems: 'center',
-  },
-  promptText: {
-    fontSize: 20,
-    fontWeight: '600',
-    ...crossPlatformTextShadow(TAROT_COLORS.goldGlow, 0, 0, 10),
   },
   velvetTable: {
     position: 'absolute',
