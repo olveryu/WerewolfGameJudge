@@ -7,6 +7,7 @@
       "project": ["src/**/*.{ts,tsx}!", "e2e/**/*.ts", "__mocks__/**/*.{ts,tsx}"],
       "ignoreDependencies": [
         "@expo/vector-icons",
+        "@sentry/browser",
         "canvaskit-wasm",
         "expo-updates",
         "expo-system-ui",

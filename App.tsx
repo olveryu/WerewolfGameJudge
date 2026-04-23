@@ -50,7 +50,10 @@ if (Platform.OS === 'web') {
   // eslint-disable-next-line no-console
   console.warn(
     '[DIAG] Sentry integrations:',
-    _client?.getOptions().integrations?.map((i: { name: string }) => i.name).join(', ') ?? 'NO CLIENT',
+    _client
+      ?.getOptions()
+      .integrations?.map((i: { name: string }) => i.name)
+      .join(', ') ?? 'NO CLIENT',
   );
 }
 
