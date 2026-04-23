@@ -33,7 +33,7 @@ import { audioLog } from '@/utils/logger';
 import { BGM_VOLUME } from './audioRegistry';
 import type { AudioAsset } from './types';
 import { audioAssetToUrl } from './types';
-import { getUnlockedAudioContext } from './webAudioUnlock';
+import { getUnlockedAudioContext, getUnlockedBgmElement } from './webAudioUnlock';
 
 const isWeb = Platform.OS === 'web';
 
@@ -197,8 +197,12 @@ export class BgmPlayer {
 
     let audio = this.#webElement;
     if (!audio) {
-      // First track: create element + wire into AudioContext
-      audio = new Audio(audioUrl);
+      // First track: prefer gesture-authorized element from webAudioUnlock pool.
+      // Android WebView rejects play() on Audio elements created outside user gesture.
+      audio = getUnlockedBgmElement() ?? new Audio(audioUrl);
+      if (!audio.src || audio.src !== audioUrl) {
+        audio.src = audioUrl;
+      }
       const source = this.#webAudioCtx.createMediaElementSource(audio);
       source.connect(gain);
       this.#webElement = audio;

@@ -35,6 +35,7 @@ const SILENT_WAV =
 let unlocked = false;
 let unlockedAudioCtx: AudioContext | null = null;
 let unlockedAudioElement: HTMLAudioElement | null = null;
+let unlockedBgmElement: HTMLAudioElement | null = null;
 
 /**
  * Get the gesture-authorized AudioContext (for BgmPlayer's GainNode routing).
@@ -52,6 +53,17 @@ export function getUnlockedAudioElement(): HTMLAudioElement | null {
   return unlockedAudioElement;
 }
 
+/**
+ * Get the gesture-authorized HTMLAudioElement for BGM playback.
+ * Separate from the TTS element because both may play simultaneously
+ * (BGM loops while TTS plays role audio). Each element needs its own
+ * MediaElementAudioSourceNode binding.
+ * Returns null if unlock hasn't fired yet; callers fall back to creating their own.
+ */
+export function getUnlockedBgmElement(): HTMLAudioElement | null {
+  return unlockedBgmElement;
+}
+
 function unlock(): void {
   if (unlocked) return;
 
@@ -63,12 +75,22 @@ function unlock(): void {
   // be rejected.  Following howler.js, we only need to new Audio() inside
   // the gesture handler — the element is then "gesture-authorized" for
   // subsequent src swaps + play() calls.
+  // Create two separate Audio elements (howler.js creates a pool of 10).
+  // We need exactly two: one for TTS (WebAudioStrategy) and one for BGM
+  // (BgmPlayer), since both play simultaneously and each binds to its own
+  // MediaElementAudioSourceNode.
   try {
     const audio = new Audio();
     audio.src = SILENT_WAV;
     audio.load();
     unlockedAudioElement = audio;
-    audioLog.debug('webAudioUnlock: HTMLAudioElement created');
+
+    const bgmAudio = new Audio();
+    bgmAudio.src = SILENT_WAV;
+    bgmAudio.load();
+    unlockedBgmElement = bgmAudio;
+
+    audioLog.debug('webAudioUnlock: HTMLAudioElements created (TTS + BGM)');
   } catch (e) {
     audioLog.warn('webAudioUnlock: HTMLAudioElement creation failed', e);
   }
