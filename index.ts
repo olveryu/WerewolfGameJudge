@@ -34,31 +34,43 @@ async function main() {
   const register = registerRootComponent;
 
   if (Platform.OS === 'web') {
+    performance.mark('boot:start');
+
     // WeChat browser (non-mini-program) sets this flag in showWechatGuide()
     // before JS finishes — skip Skia WASM download and React mount entirely.
     if ((globalThis as Record<string, unknown>).__SKIP_APP) return;
 
+    performance.mark('skia:import-start');
     const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
+    performance.mark('skia:import-end');
 
     // Load CanvasKit WASM from jsdelivr CDN (has Chinese mainland edge nodes).
     // Emscripten internally uses WebAssembly.instantiateStreaming for this URL,
     // enabling download + compilation to happen in parallel.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { version } = require('canvaskit-wasm/package.json') as { version: string };
+    performance.mark('skia:wasm-start');
     await LoadSkiaWeb({
       locateFile: (file: string) =>
         `https://cdn.jsdelivr.net/npm/canvaskit-wasm@${version}/bin/full/${file}`,
     });
+    performance.mark('skia:wasm-end');
 
     // Sets global.SkiaViewApi — must happen before App tree evaluation.
+    performance.mark('skia:viewapi-start');
     await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
+    performance.mark('skia:viewapi-end');
 
     // Re-check after async Skia init — flag may have been set during WASM download.
     if ((globalThis as Record<string, unknown>).__SKIP_APP) return;
   }
 
+  performance.mark('app:import-start');
   const App = (await import('./App')).default;
+  performance.mark('app:import-end');
+
   register(App);
+  performance.mark('app:registered');
 }
 
 void main();

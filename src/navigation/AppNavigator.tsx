@@ -16,6 +16,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
 import { SITE_URL } from '@/config/api';
+import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
 import { AnimationSettingsScreen } from '@/screens/AnimationSettingsScreen/AnimationSettingsScreen';
 import {
   AuthEmailScreen,
@@ -161,7 +162,13 @@ export const AppNavigator: React.FC = () => {
   }
 
   return (
-    <NavigationContainer linking={linking} ref={navigationRef}>
+    <NavigationContainer
+      linking={linking}
+      ref={navigationRef}
+      onReady={() => {
+        reactNavigationIntegration.registerNavigationContainer(navigationRef);
+      }}
+    >
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{

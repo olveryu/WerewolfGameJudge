@@ -20,6 +20,7 @@ import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { queryClient } from '@/lib/queryClient';
+import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
 import { AppNavigator } from '@/navigation';
 import { createAllServices } from '@/services/registry';
 import { colors } from '@/theme';
@@ -36,6 +37,7 @@ Sentry.init({
   enabled: !__DEV__,
   environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
   tracesSampleRate: 0.5,
+  integrations: [reactNavigationIntegration],
   // Enable session tracking for Release Health (unique users / sessions)
   enableAutoSessionTracking: true,
   // Enable structured logging (Sentry Logs beta)
@@ -44,6 +46,78 @@ Sentry.init({
 
 // Keep splash screen visible while app initializes
 void SplashScreen.preventAutoHideAsync();
+
+// ─── Boot timing telemetry ──────────────────────────────────────────────
+// performance.mark() in index.ts records timestamps before Sentry.init().
+// Here we reconstruct the boot waterfall as a Sentry trace with child spans.
+// This appears in Sentry Performance as a "web.boot" transaction.
+function reportBootTiming() {
+  if (Platform.OS !== 'web') return;
+  try {
+    const marks = performance.getEntriesByType('mark') as PerformanceMark[];
+    const getMs = (name: string) => marks.find((m) => m.name === name)?.startTime;
+    const bootStart = getMs('boot:start');
+    if (bootStart == null) return;
+
+    // Resource timing — WASM and large JS bundles
+    const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+    const wasmRes = resources.find((r) => r.name.includes('canvaskit.wasm'));
+    const jsChunks = resources.filter((r) => r.name.includes('.js') && r.transferSize > 50000);
+
+    Sentry.startSpan(
+      { name: 'web.boot', op: 'boot', startTime: (performance.timeOrigin + bootStart) / 1000 },
+      (rootSpan) => {
+        // Child span for each boot phase
+        const phases: [string, string, string][] = [
+          ['skia.import', 'skia:import-start', 'skia:import-end'],
+          ['skia.wasm', 'skia:wasm-start', 'skia:wasm-end'],
+          ['skia.viewapi', 'skia:viewapi-start', 'skia:viewapi-end'],
+          ['app.import', 'app:import-start', 'app:import-end'],
+        ];
+        for (const [opName, startMark, endMark] of phases) {
+          const s = getMs(startMark);
+          const e = getMs(endMark);
+          if (s != null && e != null) {
+            const child = Sentry.startInactiveSpan({
+              name: opName,
+              op: 'boot',
+              startTime: (performance.timeOrigin + s) / 1000,
+            });
+            child.end((performance.timeOrigin + e) / 1000);
+          }
+        }
+
+        // Resource breadcrumbs for WASM + JS
+        if (wasmRes) {
+          rootSpan.setAttribute('wasm.duration_ms', Math.round(wasmRes.duration));
+          rootSpan.setAttribute('wasm.transfer_kb', Math.round(wasmRes.transferSize / 1024));
+          rootSpan.setAttribute('wasm.decoded_kb', Math.round(wasmRes.decodedBodySize / 1024));
+        }
+        for (const js of jsChunks) {
+          Sentry.addBreadcrumb({
+            category: 'boot.resource',
+            message: js.name.split('/').pop() ?? js.name,
+            level: 'info',
+            data: {
+              durationMs: Math.round(js.duration),
+              transferKB: Math.round(js.transferSize / 1024),
+              startMs: Math.round(js.startTime),
+            },
+          });
+        }
+
+        // End root span at app:registered mark
+        const registered = getMs('app:registered');
+        if (registered != null) {
+          rootSpan.end((performance.timeOrigin + registered) / 1000);
+        }
+      },
+    );
+  } catch {
+    // performance API unavailable — ignore silently
+  }
+}
+reportBootTiming();
 
 const appLog = log.extend('App');
 

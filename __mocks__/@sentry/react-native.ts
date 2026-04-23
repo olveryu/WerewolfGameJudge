@@ -14,4 +14,7 @@ module.exports = {
   wrap: jest.fn((component: unknown) => component),
   ReactNavigationInstrumentation: jest.fn(),
   ReactNativeTracing: jest.fn(),
+  reactNavigationIntegration: jest.fn(() => ({
+    registerNavigationContainer: jest.fn(),
+  })),
 };
