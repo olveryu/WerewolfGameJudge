@@ -41,6 +41,42 @@ import { Platform } from 'react-native';
  * @see https://github.com/Shopify/react-native-skia/issues/2914
  * @see https://github.com/Shopify/react-native-skia/pull/2954
  */
+/**
+ * Race self-hosted and jsdelivr CDN for canvaskit.wasm.
+ *
+ * Self-hosted `/canvaskit.wasm` benefits from `<link rel="preload">` in
+ * index.html — the browser starts downloading before JS execution, so the
+ * fetch() here is usually an instant cache hit.
+ *
+ * jsdelivr has Chinese mainland edge nodes, so for users where Cloudflare
+ * Pages is slow it can deliver the 7.6 MB WASM significantly faster.
+ *
+ * `Promise.any` takes the first fulfilled download; the loser's response body
+ * is discarded by the browser. If both fail, falls back to the self-hosted
+ * URL string so LoadSkiaWeb can surface its own error.
+ */
+async function raceCanvaskitWasm(): Promise<string> {
+  // Version auto-syncs with installed canvaskit-wasm (transitive dep of Skia).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { version } = require('canvaskit-wasm/package.json') as { version: string };
+  const SELF = '/canvaskit.wasm';
+  const CDN = `https://cdn.jsdelivr.net/npm/canvaskit-wasm@${version}/bin/full/canvaskit.wasm`;
+
+  const fetchBuf = async (url: string) => {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`${url}: ${r.status}`);
+    return r.arrayBuffer();
+  };
+
+  try {
+    const buf = await Promise.any([fetchBuf(SELF), fetchBuf(CDN)]);
+    return URL.createObjectURL(new Blob([buf], { type: 'application/wasm' }));
+  } catch {
+    // Both failed — return self-hosted path; LoadSkiaWeb will surface the error.
+    return SELF;
+  }
+}
+
 async function main() {
   // Force `expo` module evaluation before any dynamic import().
   // Metro's `inlineRequires` defers the `require('expo')` generated from the
@@ -58,12 +94,13 @@ async function main() {
     if ((globalThis as Record<string, unknown>).__SKIP_APP) return;
 
     const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
-    // WASM is self-hosted in public/canvaskit.wasm (copied by postinstall).
-    // Same-origin eliminates CDN DNS+TLS overhead; paired with <link rel="preload">
-    // in web/index.html for early fetch before JS execution.
-    await LoadSkiaWeb({
-      locateFile: (file: string) => `/${file}`,
-    });
+
+    // Race self-hosted (preloaded) vs jsdelivr CDN — first to deliver wins.
+    const wasmUrl = await raceCanvaskitWasm();
+    await LoadSkiaWeb({ locateFile: () => wasmUrl });
+    // Release blob memory after CanvasKit has consumed the WASM.
+    if (wasmUrl.startsWith('blob:')) URL.revokeObjectURL(wasmUrl);
+
     // Sets global.SkiaViewApi — must happen before App tree evaluation.
     // See REMOVAL note above.
     await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
