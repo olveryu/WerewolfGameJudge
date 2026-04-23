@@ -183,12 +183,19 @@ export class BgmPlayer {
     const audioUrl = audioAssetToUrl(asset);
 
     // Reuse AudioContext + GainNode + HTMLAudioElement across tracks.
-    // Creating new Audio() or AudioContext outside a user-gesture callback
-    // is silently blocked in WeChat web-view.
-    // Prefer the gesture-authorized AudioContext from webAudioUnlock.
+    // The gesture-authorized AudioContext from webAudioUnlock MUST be available
+    // by the time BGM plays (user already clicked "start game" / play button).
+    // Fail fast instead of creating an unauthorized AudioContext that Chrome
+    // will suspend (causing silent playback failure).
     if (!this.#webAudioCtx || this.#webAudioCtx.state === 'closed') {
       const ctx = getUnlockedAudioContext();
-      this.#webAudioCtx = ctx && ctx.state !== 'closed' ? ctx : new AudioContext();
+      if (!ctx || ctx.state === 'closed') {
+        audioLog.error(
+          'BgmPlayer: no unlocked AudioContext available — webAudioUnlock may not have fired',
+        );
+        return;
+      }
+      this.#webAudioCtx = ctx;
       this.#webGainNode = this.#webAudioCtx.createGain();
       this.#webGainNode.connect(this.#webAudioCtx.destination);
     }

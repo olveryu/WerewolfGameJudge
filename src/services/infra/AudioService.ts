@@ -38,6 +38,15 @@ export class AudioService {
   constructor() {
     this.#strategy = isWeb ? new WebAudioStrategy() : new NativeAudioStrategy();
     this.#bgm = new BgmPlayer();
+
+    // Web: Register gesture listeners synchronously so the very first user
+    // interaction unlocks AudioContext + HTMLAudioElement.  Must NOT sit behind
+    // an `await` — otherwise listeners are registered too late and the unlock
+    // never fires.  See webAudioUnlock.ts for details.
+    if (isWeb) {
+      setupWebAudioUnlock();
+    }
+
     // Fire-and-forget: initializes audio mode + Web visibility handler
     void this.#initAudio();
   }
@@ -49,12 +58,6 @@ export class AudioService {
         shouldPlayInBackground: false, // Stop when app goes to background
         interruptionMode: 'duckOthers',
       });
-
-      // Web: Register gesture listeners to unlock AudioContext + HTMLAudioElement
-      // before the first real play() call. See webAudioUnlock.ts for details.
-      if (isWeb) {
-        setupWebAudioUnlock();
-      }
 
       // Web: Listen for visibility change to pause/resume audio
       if (typeof document !== 'undefined') {
