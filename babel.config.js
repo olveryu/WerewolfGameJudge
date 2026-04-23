@@ -14,8 +14,6 @@ module.exports = function (api) {
       {
         // Remove verbose debug logging (~200KB)
         __SENTRY_DEBUG__: false,
-        // Remove performance tracing code — no browserTracingIntegration used
-        __SENTRY_TRACING__: false,
         // Remove Session Replay iframe/shadow DOM/worker code (~400KB)
         __RRWEB_EXCLUDE_IFRAME__: true,
         __RRWEB_EXCLUDE_SHADOW_DOM__: true,

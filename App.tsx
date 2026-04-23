@@ -36,26 +36,13 @@ Sentry.init({
   // Disable in development to avoid noise
   enabled: !__DEV__,
   environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
-  tracesSampleRate: 1.0, // TEMPORARY: 100% to diagnose missing performance data
+  tracesSampleRate: 0.5,
   integrations: getSentryIntegrations(),
   // Enable session tracking for Release Health (unique users / sessions)
   enableAutoSessionTracking: true,
   // Enable structured logging (Sentry Logs beta)
   enableLogs: true,
 });
-
-// [DIAG] Temporary diagnostic — remove after verifying Sentry Performance works
-if (Platform.OS === 'web') {
-  const _client = Sentry.getClient();
-  // eslint-disable-next-line no-console
-  console.warn(
-    '[DIAG] Sentry integrations:',
-    _client
-      ?.getOptions()
-      .integrations?.map((i: { name: string }) => i.name)
-      .join(', ') ?? 'NO CLIENT',
-  );
-}
 
 // Keep splash screen visible while app initializes
 void SplashScreen.preventAutoHideAsync();
