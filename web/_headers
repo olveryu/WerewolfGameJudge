@@ -19,11 +19,6 @@
 /assets/pwa/*
   Cache-Control: public, max-age=31536000, immutable
 
-# CanvasKit WASM — binary is version-pinned (postinstall copies from canvaskit-wasm).
-# Filename never changes; content only changes on canvaskit-wasm version bump.
-/canvaskit.wasm
-  Cache-Control: public, max-age=31536000, immutable
-
 # HTML must revalidate on every request
 # (stale HTML references deleted JS bundles → white screen)
 /
