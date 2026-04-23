@@ -1,46 +1,44 @@
 /**
- * GodRevealEffect — 神职阵营揭示特效（SVG + Reanimated 4）
+ * GodRevealEffect — 神职阵营揭示特效（Skia + Reanimated 4）
  *
  * 翻牌后在卡片区域渲染圣光系列动画：
- * 1. 卡片光晕 — SVG RadialGradient + feGaussianBlur，极亮爆发→持续微弱金色发光
- * 2. 天降光柱 — SVG 从卡片顶部向上延伸的锥形光束
- * 3. 十字闪光 — SVG Rect + feGaussianBlur，快闪后消失
- * 4. 光环绽放 — 4 层同心 Circle stroke + feGaussianBlur 从中心扩散
- * 5. 圣光粒子 — 24 颗金色光尘 + feGaussianBlur 从中心向四周飘散
+ * 1. 卡片光晕 — Skia RadialGradient + Blur，极亮爆发→持续微弱金色发光
+ * 2. 天降光柱 — Skia 从卡片顶部向上延伸的锥形光束（blendMode="screen"）
+ * 3. 十字闪光 — Skia Rect + Blur + screen blend，快闪后消失
+ * 4. 光环绽放 — 4 层同心 Circle stroke + Blur 从中心扩散
+ * 5. 圣光粒子 — 24 颗金色光尘 + Blur 从中心向四周飘散
  * 6. 底部光晕 — 地面反射的半圆形柔光
  *
  * 情绪签名：瞬间爆发 + "divine intervention" 力量感。
  * 不 import service，不含业务逻辑。
  */
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Paint,
+  Picture,
+  RadialGradient,
+  Rect,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
 import React, { useEffect, useMemo } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
-import Animated, {
+import {
   Easing,
-  useAnimatedProps,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, {
-  Circle,
-  Defs,
-  FeGaussianBlur,
-  Filter,
-  G,
-  RadialGradient,
-  Rect,
-  Stop,
-} from 'react-native-svg';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 const AE = CONFIG.alignmentEffects;
 const SK = CONFIG.skia;
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 // ─── Pre-computed data ────────────────────────────────────────────────
 
@@ -74,6 +72,10 @@ const TWINKLE_CYCLE_MS = 1047;
 const PARTICLE_LIFETIME_MS = 5500;
 const PARTICLE_START_DELAY_MS = 400;
 
+// ── Immediate-mode Skia resources (reused across frames) ──
+const godParticleRecorder = Skia.PictureRecorder();
+const godParticlePaint = Skia.Paint();
+
 // ─── Sub-components ───────────────────────────────────────────────────
 
 /** Expanding halo ring */
@@ -97,58 +99,32 @@ const GodHalo = React.memo(function GodHalo({
   const endP = startP + durationP;
   const maxR = cardWidth * 0.8;
 
-  const animatedProps = useAnimatedProps(() => {
+  const r = useDerivedValue(() => {
     const p = progress.value;
     const lp = Math.min(1, Math.max(0, (p - startP) / (endP - startP)));
-    const r = lp * maxR;
-    const opacity = lp < 0.3 ? 0.8 : Math.max(0, 0.8 * (1 - (lp - 0.3) / 0.7));
-    return { r, opacity };
+    return lp * maxR;
+  });
+  const opacity = useDerivedValue(() => {
+    const p = progress.value;
+    const lp = Math.min(1, Math.max(0, (p - startP) / (endP - startP)));
+    if (lp < 0.3) return 0.8;
+    return Math.max(0, 0.8 * (1 - (lp - 0.3) / 0.7));
   });
 
   return (
-    <AnimatedCircle
+    <Circle
       cx={centerX}
       cy={centerY}
-      stroke={color}
-      fill="none"
+      r={r}
+      color={color}
+      style="stroke"
       strokeWidth={2}
-      filter="url(#halo-blur)"
-      animatedProps={animatedProps}
-    />
+      opacity={opacity}
+    >
+      <Blur blur={6} />
+    </Circle>
   );
 });
-
-/** Single god particle driven by shared progress + twinkle */
-const GodParticle: React.FC<{
-  particle: (typeof GOD_PARTICLES)[number];
-  particleProgress: SharedValue<number>;
-  twinkleCycle: SharedValue<number>;
-  centerX: number;
-  centerY: number;
-  particleColor: string;
-}> = React.memo(({ particle, particleProgress, twinkleCycle, centerX, centerY, particleColor }) => {
-  const startX = centerX + Math.cos(particle.angle) * particle.dist * 0.3;
-  const startY = centerY + Math.sin(particle.angle) * particle.dist * 0.3;
-
-  const animatedProps = useAnimatedProps(() => {
-    const cx = startX + particle.driftX * particleProgress.value;
-    const cy = startY + particle.driftY * particleProgress.value;
-    const life = 1 - particleProgress.value;
-    const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + particle.twinklePhase);
-    const opacity = life <= 0 ? 0 : particle.baseAlpha * life * flicker;
-    return { cx, cy, opacity };
-  });
-
-  return (
-    <AnimatedCircle
-      r={particle.size}
-      fill={particleColor}
-      filter="url(#particle-blur)"
-      animatedProps={animatedProps}
-    />
-  );
-});
-GodParticle.displayName = 'GodParticle';
 
 // ─── Main component ───────────────────────────────────────────────────
 
@@ -211,61 +187,66 @@ export const GodRevealEffect: React.FC<GodRevealEffectProps> = ({
     );
   }, [animate, progress, glowIntensity, particleProgress, twinkleCycle]);
 
-  // ── Animated props ──
-  const glowGroupProps = useAnimatedProps(() => ({
-    opacity: glowIntensity.value * 0.7,
-  }));
-  const glowCircleProps = useAnimatedProps(() => ({
-    r: cardWidth * 0.5 * (0.5 + glowIntensity.value * 0.5),
-  }));
+  // ── Derived values ──
+  const glowR = useDerivedValue(() => cardWidth * 0.5 * (0.5 + glowIntensity.value * 0.5));
+  const glowOpacity = useDerivedValue(() => glowIntensity.value * 0.7);
 
   // Light pillar (tapers upward from card top)
-  const pillarGroupProps = useAnimatedProps(() => {
+  const pillarOpacity = useDerivedValue(() => {
     const p = progress.value;
-    let opacity: number;
-    if (p < 0.05) opacity = p / 0.05;
-    else if (p < 0.3) opacity = 1;
-    else opacity = Math.max(0.15, 1 - (p - 0.3) / 0.7);
-    return { opacity };
+    if (p < 0.05) return p / 0.05;
+    if (p < 0.3) return 1;
+    return Math.max(0.15, 1 - (p - 0.3) / 0.7);
   });
-  const pillarRectProps = useAnimatedProps(() => {
+  const pillarHeight = useDerivedValue(() => {
     const p = progress.value;
-    return { height: Math.min(1, p / 0.15) * cardHeight * 0.8 };
+    return Math.min(1, p / 0.15) * cardHeight * 0.8;
   });
 
   // Cross flash
-  const crossHGroupProps = useAnimatedProps(() => {
+  const crossOpacity = useDerivedValue(() => {
     const p = progress.value;
-    const opacity = p < 0.08 ? p / 0.08 : Math.max(0, 1 - (p - 0.08) / 0.3);
-    const scaleX = Math.min(2, (p / 0.08) * 2);
-    return {
-      opacity,
-      transform: `translate(${centerX}, ${centerY}) scale(${scaleX}, 1) translate(${-centerX}, ${-centerY})`,
-    };
+    if (p < 0.08) return p / 0.08;
+    return Math.max(0, 1 - (p - 0.08) / 0.3);
   });
-  const crossVGroupProps = useAnimatedProps(() => {
-    const p = progress.value;
-    const opacity = p < 0.08 ? p / 0.08 : Math.max(0, 1 - (p - 0.08) / 0.3);
-    const scaleY = Math.min(2, (p / 0.08) * 2);
-    return {
-      opacity,
-      transform: `translate(${centerX}, ${centerY}) scale(1, ${scaleY}) translate(${-centerX}, ${-centerY})`,
-    };
-  });
+  const crossScaleXTransform = useDerivedValue(() => [
+    { scaleX: Math.min(2, (progress.value / 0.08) * 2) },
+  ]);
+  const crossScaleYTransform = useDerivedValue(() => [
+    { scaleY: Math.min(2, (progress.value / 0.08) * 2) },
+  ]);
 
   // Bottom ground glow
-  const groundGroupProps = useAnimatedProps(() => {
+  const groundOpacity = useDerivedValue(() => {
     const p = progress.value;
-    return { opacity: p < 0.2 ? (p / 0.2) * 0.25 : 0.25 };
+    if (p < 0.2) return (p / 0.2) * 0.25;
+    return 0.25;
   });
 
   const barThickness = Math.max(3, cardWidth * 0.025);
 
-  // Gradient stop colors
-  const glowStop1 = `${primaryColor}60`;
-  const glowStop2 = `${primaryColor}00`;
-  const groundStop1 = `${primaryColor}40`;
-  const groundStop2 = `${primaryColor}00`;
+  // ── Gold sparkle particles: Immediate Mode via Picture API ──
+  // Replaces 24 GodParticle components (72 useDerivedValue per frame) with 1.
+  const particlePicture = useDerivedValue(() => {
+    'worklet';
+    const c = godParticleRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
+    const skColor = Skia.Color(particleColor);
+    for (let i = 0; i < GOD_PARTICLES.length; i++) {
+      const p = GOD_PARTICLES[i];
+      const startX = centerX + Math.cos(p.angle) * p.dist * 0.3;
+      const startY = centerY + Math.sin(p.angle) * p.dist * 0.3;
+      const cx = startX + p.driftX * particleProgress.value;
+      const cy = startY + p.driftY * particleProgress.value;
+      const life = 1 - particleProgress.value;
+      if (life <= 0) continue;
+      const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + p.twinklePhase);
+      const opacity = p.baseAlpha * life * flicker;
+      godParticlePaint.setColor(skColor);
+      godParticlePaint.setAlphaf(opacity);
+      c.drawCircle(cx, cy, p.size, godParticlePaint);
+    }
+    return godParticleRecorder.finishRecordingAsPicture();
+  });
 
   const canvasStyle = useMemo(
     () => ({
@@ -281,98 +262,70 @@ export const GodRevealEffect: React.FC<GodRevealEffectProps> = ({
   );
 
   return (
-    <Svg style={canvasStyle} width={cardWidth} height={cardHeight}>
-      <Defs>
-        <RadialGradient
-          id="god-glow-grad"
-          cx={centerX}
-          cy={centerY}
-          r={cardWidth * 0.5}
-          gradientUnits="userSpaceOnUse"
-        >
-          <Stop offset="0" stopColor={glowColor} />
-          <Stop offset="0.5" stopColor={glowStop1} />
-          <Stop offset="1" stopColor={glowStop2} />
-        </RadialGradient>
-        <RadialGradient
-          id="god-ground-grad"
-          cx={centerX}
-          cy={cardHeight}
-          r={cardWidth * 0.6}
-          gradientUnits="userSpaceOnUse"
-        >
-          <Stop offset="0" stopColor={groundStop1} />
-          <Stop offset="1" stopColor={groundStop2} />
-        </RadialGradient>
-        <Filter id="glow-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur in="SourceGraphic" stdDeviation={SK.glowBlur} />
-        </Filter>
-        <Filter id="pillar-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur in="SourceGraphic" stdDeviation={15} />
-        </Filter>
-        <Filter id="cross-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur in="SourceGraphic" stdDeviation={10} />
-        </Filter>
-        <Filter id="halo-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur in="SourceGraphic" stdDeviation={6} />
-        </Filter>
-        <Filter id="ground-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur in="SourceGraphic" stdDeviation={20} />
-        </Filter>
-        <Filter id="particle-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur in="SourceGraphic" stdDeviation={SK.particleBlur} />
-        </Filter>
-      </Defs>
-
+    <Canvas style={canvasStyle}>
       {/* Persistent card glow */}
-      <AnimatedG animatedProps={glowGroupProps}>
-        <AnimatedCircle
-          cx={centerX}
-          cy={centerY}
-          fill="url(#god-glow-grad)"
-          filter="url(#glow-blur)"
-          animatedProps={glowCircleProps}
-        />
-      </AnimatedG>
+      <Group opacity={glowOpacity}>
+        <Circle cx={centerX} cy={centerY} r={glowR}>
+          <RadialGradient
+            c={vec(centerX, centerY)}
+            r={cardWidth * 0.5}
+            colors={[glowColor, `${primaryColor}60`, `${primaryColor}00`]}
+          />
+          <Blur blur={SK.glowBlur} />
+        </Circle>
+      </Group>
 
       {/* Light pillar — upward from card center */}
-      <AnimatedG animatedProps={pillarGroupProps}>
-        <AnimatedRect
+      <Group opacity={pillarOpacity} blendMode="screen">
+        <Rect
           x={centerX - cardWidth * 0.15}
           y={0}
           width={cardWidth * 0.3}
-          fill={primaryColor}
-          filter="url(#pillar-blur)"
-          animatedProps={pillarRectProps}
-        />
-      </AnimatedG>
+          height={pillarHeight}
+          color={primaryColor}
+        >
+          <Blur blur={15} />
+        </Rect>
+      </Group>
 
       {/* Cross flash — horizontal */}
-      <AnimatedG animatedProps={crossHGroupProps}>
+      <Group
+        opacity={crossOpacity}
+        transform={crossScaleXTransform}
+        origin={vec(centerX, centerY)}
+        blendMode="screen"
+      >
         <Rect
           x={centerX - cardWidth}
           y={centerY - barThickness / 2}
           width={cardWidth * 2}
           height={barThickness}
-          fill={particleColor}
-          filter="url(#cross-blur)"
-        />
-      </AnimatedG>
+          color={particleColor}
+        >
+          <Blur blur={10} />
+        </Rect>
+      </Group>
 
       {/* Cross flash — vertical */}
-      <AnimatedG animatedProps={crossVGroupProps}>
+      <Group
+        opacity={crossOpacity}
+        transform={crossScaleYTransform}
+        origin={vec(centerX, centerY)}
+        blendMode="screen"
+      >
         <Rect
           x={centerX - barThickness / 2}
           y={centerY - cardHeight}
           width={barThickness}
           height={cardHeight * 2}
-          fill={particleColor}
-          filter="url(#cross-blur)"
-        />
-      </AnimatedG>
+          color={particleColor}
+        >
+          <Blur blur={10} />
+        </Rect>
+      </Group>
 
       {/* Expanding halos (4 layers) */}
-      <G>
+      <Group blendMode="screen">
         {HALO_CONFIGS.map((cfg, i) => (
           <GodHalo
             key={i}
@@ -385,33 +338,31 @@ export const GodRevealEffect: React.FC<GodRevealEffectProps> = ({
             cardWidth={cardWidth}
           />
         ))}
-      </G>
+      </Group>
 
       {/* Bottom ground glow */}
-      <AnimatedG animatedProps={groundGroupProps}>
-        <Circle
-          cx={centerX}
-          cy={cardHeight}
-          r={cardWidth * 0.6}
-          fill="url(#god-ground-grad)"
-          filter="url(#ground-blur)"
-        />
-      </AnimatedG>
-
-      {/* Gold sparkle particles */}
-      <G>
-        {GOD_PARTICLES.map((particle, i) => (
-          <GodParticle
-            key={i}
-            particle={particle}
-            particleProgress={particleProgress}
-            twinkleCycle={twinkleCycle}
-            centerX={centerX}
-            centerY={centerY}
-            particleColor={particleColor}
+      <Group opacity={groundOpacity}>
+        <Circle cx={centerX} cy={cardHeight} r={cardWidth * 0.6}>
+          <RadialGradient
+            c={vec(centerX, cardHeight)}
+            r={cardWidth * 0.6}
+            colors={[`${primaryColor}40`, `${primaryColor}00`]}
           />
-        ))}
-      </G>
-    </Svg>
+          <Blur blur={20} />
+        </Circle>
+      </Group>
+
+      {/* Gold sparkle particles — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={SK.particleBlur} />
+          </Paint>
+        }
+      >
+        <Picture picture={particlePicture} />
+      </Group>
+    </Canvas>
   );
 };

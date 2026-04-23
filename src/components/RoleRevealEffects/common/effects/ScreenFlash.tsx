@@ -1,30 +1,31 @@
 /**
- * ScreenFlash — 电影级全屏闪光特效（SVG + Reanimated）
+ * ScreenFlash — Skia 电影级全屏闪光特效
  *
  * 翻牌揭示后从卡片中心迸裂：径向冲击波 + 迸射粒子。
- * 使用 SVG RadialGradient + feGaussianBlur + Reanimated useAnimatedProps 实现。
+ * 使用 Skia Canvas + Blur + RadialGradient + blendMode="screen" 实现。
  * 不 import service，不含业务逻辑。
  */
-import React, { useEffect, useMemo } from 'react';
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Paint,
+  Picture,
+  RadialGradient,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
+import React, { useEffect } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
-import type { SharedValue } from 'react-native-reanimated';
-import Animated, {
+import {
   Easing,
-  useAnimatedProps,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, {
-  Circle,
-  Defs,
-  FeGaussianBlur,
-  Filter,
-  G,
-  RadialGradient,
-  Stop,
-} from 'react-native-svg';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 const AE = CONFIG.alignmentEffects;
@@ -32,15 +33,16 @@ const SK = CONFIG.skia;
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedG = Animated.createAnimatedComponent(G);
-
 // Pre-compute burst particle data (radial scatter)
 const BURST_PARTICLES = Array.from({ length: SK.burstParticleCount }, (_, i) => {
   const angle = (i / SK.burstParticleCount) * Math.PI * 2 + ((i * 7) % 10) * 0.06;
   const dist = 50 + ((i * 31) % 100) * 1.5;
   return { angle, dist, size: 1.5 + ((i * 13) % 20) / 10 };
 });
+
+// ── Immediate-mode Skia resources (reused across frames) ──
+const burstRecorder = Skia.PictureRecorder();
+const burstPaint = Skia.Paint();
 
 interface ScreenFlashProps {
   /** Flash color (faction primary) */
@@ -58,28 +60,6 @@ interface ScreenFlashProps {
   /** Per-alignment delay before flash fires (ms). */
   delay?: number;
 }
-
-/** Individual burst particle driven by shared progress */
-const BurstParticle: React.FC<{
-  angle: number;
-  dist: number;
-  size: number;
-  cx: number;
-  cy: number;
-  color: string;
-  progress: SharedValue<number>;
-}> = React.memo(({ angle, dist, size, cx, cy, color, progress }) => {
-  const animatedProps = useAnimatedProps(() => {
-    const p = progress.value;
-    const x = cx + Math.cos(angle) * dist * p;
-    const y = cy + Math.sin(angle) * dist * p;
-    const opacity = p < 0.05 ? p / 0.05 : Math.max(0, 1 - (p - 0.05) / 0.6);
-    const r = size * Math.max(0.3, 1 - p * 0.7);
-    return { cx: x, cy: y, r, opacity };
-  });
-  return <AnimatedCircle fill={color} animatedProps={animatedProps} />;
-});
-BurstParticle.displayName = 'BurstParticle';
 
 export const ScreenFlash: React.FC<ScreenFlashProps> = ({
   color,
@@ -103,71 +83,60 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
     );
   }, [animate, progress, duration, delay]);
 
-  // Radial shockwave — animated radius + opacity
-  const waveAnimatedProps = useAnimatedProps(() => {
-    const r = progress.value * SCREEN_W;
-    return { r };
-  });
-  const waveGroupProps = useAnimatedProps(() => {
+  // Radial shockwave
+  const waveR = useDerivedValue(() => progress.value * SCREEN_W);
+  const waveOpacity = useDerivedValue(() => {
     const p = progress.value;
-    const opacity =
-      p < 0.15 ? (p / 0.15) * peakOpacity : Math.max(0, peakOpacity * (1 - (p - 0.15) / 0.85));
-    return { opacity };
+    if (p < 0.15) return (p / 0.15) * peakOpacity;
+    return Math.max(0, peakOpacity * (1 - (p - 0.15) / 0.85));
   });
 
-  // Hex color → stop colors with alpha
-  const stopColor80 = useMemo(() => `${color}80`, [color]);
-  const stopColor00 = useMemo(() => `${color}00`, [color]);
+  // ── Burst particles: Immediate Mode via Picture API ──
+  // Replaces 20 BurstParticle components (80 useDerivedValue per frame) with 1.
+  const burstPicture = useDerivedValue(() => {
+    'worklet';
+    const c = burstRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const skColor = Skia.Color(color);
+    const p = progress.value;
+    for (let i = 0; i < BURST_PARTICLES.length; i++) {
+      const bp = BURST_PARTICLES[i];
+      const cx = centerX + Math.cos(bp.angle) * bp.dist * p;
+      const cy = centerY + Math.sin(bp.angle) * bp.dist * p;
+      const opacity = p < 0.05 ? p / 0.05 : Math.max(0, 1 - (p - 0.05) / 0.6);
+      const r = bp.size * Math.max(0.3, 1 - p * 0.7);
+      burstPaint.setColor(skColor);
+      burstPaint.setAlphaf(opacity);
+      c.drawCircle(cx, cy, r, burstPaint);
+    }
+    return burstRecorder.finishRecordingAsPicture();
+  });
 
   return (
-    <Svg style={styles.canvas} width={SCREEN_W} height={SCREEN_H}>
-      <Defs>
-        <RadialGradient
-          id="flash-grad"
-          cx={centerX}
-          cy={centerY}
-          r={SCREEN_W}
-          gradientUnits="userSpaceOnUse"
-        >
-          <Stop offset="0" stopColor={color} />
-          <Stop offset="0.5" stopColor={stopColor80} />
-          <Stop offset="1" stopColor={stopColor00} />
-        </RadialGradient>
-        <Filter id="flash-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur in="SourceGraphic" stdDeviation={SK.flashBlur} />
-        </Filter>
-        <Filter id="particle-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur in="SourceGraphic" stdDeviation={SK.particleBlur} />
-        </Filter>
-      </Defs>
-
+    <Canvas style={styles.canvas}>
       {/* Radial shockwave — expanding glow from center */}
-      <AnimatedG animatedProps={waveGroupProps}>
-        <AnimatedCircle
-          cx={centerX}
-          cy={centerY}
-          fill="url(#flash-grad)"
-          filter="url(#flash-blur)"
-          animatedProps={waveAnimatedProps}
-        />
-      </AnimatedG>
-
-      {/* Burst particles */}
-      <G filter="url(#particle-blur)">
-        {BURST_PARTICLES.map((bp, i) => (
-          <BurstParticle
-            key={i}
-            angle={bp.angle}
-            dist={bp.dist}
-            size={bp.size}
-            cx={centerX}
-            cy={centerY}
-            color={color}
-            progress={progress}
+      <Group opacity={waveOpacity}>
+        <Circle cx={centerX} cy={centerY} r={waveR}>
+          <RadialGradient
+            c={vec(centerX, centerY)}
+            r={SCREEN_W}
+            colors={[color, `${color}80`, `${color}00`]}
           />
-        ))}
-      </G>
-    </Svg>
+          <Blur blur={SK.flashBlur} />
+        </Circle>
+      </Group>
+
+      {/* Burst particles — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={SK.particleBlur} />
+          </Paint>
+        }
+      >
+        <Picture picture={burstPicture} />
+      </Group>
+    </Canvas>
   );
 };
 

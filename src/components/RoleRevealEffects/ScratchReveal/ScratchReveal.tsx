@@ -1,11 +1,12 @@
 /**
- * ScratchReveal - 刮刮卡风格揭示动画（Reanimated 4 + Gesture Handler 2 + SVG）
+ * ScratchReveal - 刮刮卡风格揭示动画（Reanimated 4 + Gesture Handler 2 + Skia）
  *
  * 特点：金属银刮层 + 菱形底纹 + 序列号 + 规则文字，刮痕纹理，金属碎片粒子，
  * 进度里程碑闪光，触觉反馈，"PRIZE"印章，彩纸礼花绽放。
  * 使用 `Gesture.Pan()` 替代 PanResponder，`useSharedValue` 驱动所有动画。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
+import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,21 +19,19 @@ import {
   View,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   cancelAnimation,
   Easing,
   interpolate,
   runOnJS,
-  useAnimatedProps,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle as SvgCircle, Defs, FeGaussianBlur, Filter, G } from 'react-native-svg';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -77,28 +76,9 @@ const CONFETTI = Array.from({ length: 20 }, (_, i) => ({
   ][i % 4],
 }));
 
-const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
-
-// ─── Confetti dot (individual SVG circle replacing Picture API batch) ───
-interface ConfettiDotProps {
-  particle: (typeof CONFETTI)[number];
-  progress: SharedValue<number>;
-  opacity: SharedValue<number>;
-}
-
-const ConfettiDot: React.FC<ConfettiDotProps> = React.memo(({ particle, progress, opacity }) => {
-  const animatedProps = useAnimatedProps(() => ({
-    cx: SCREEN_W / 2 + Math.cos(particle.angle) * particle.speed * progress.value,
-    cy:
-      SCREEN_H / 2 +
-      Math.sin(particle.angle) * particle.speed * progress.value -
-      30 * progress.value,
-    opacity: opacity.value,
-  }));
-
-  return <AnimatedSvgCircle r={particle.r} fill={particle.color} animatedProps={animatedProps} />;
-});
-ConfettiDot.displayName = 'ConfettiDot';
+// ── Immediate-mode Skia resources (reused across frames) ──
+const confettiRecorder = Skia.PictureRecorder();
+const confettiPaintRes = Skia.Paint();
 
 // Random serial number (stable per mount)
 function generateSerial(): string {
@@ -202,6 +182,27 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const confettiOpacity = useSharedValue(0);
   const prizeStampOpacity = useSharedValue(0);
   const prizeStampScale = useSharedValue(0.5);
+
+  // ── Picture API: batch confetti dots (20→1 draw call) ──
+  const confettiPicture = useDerivedValue(() => {
+    'worklet';
+    const c = confettiRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const op = confettiOpacity.value;
+    if (op > 0) {
+      for (let i = 0; i < CONFETTI.length; i++) {
+        const p = CONFETTI[i];
+        const cx = SCREEN_W / 2 + Math.cos(p.angle) * p.speed * confettiProgress.value;
+        const cy =
+          SCREEN_H / 2 +
+          Math.sin(p.angle) * p.speed * confettiProgress.value -
+          30 * confettiProgress.value;
+        confettiPaintRes.setColor(Skia.Color(p.color));
+        confettiPaintRes.setAlphaf(op);
+        c.drawCircle(cx, cy, p.r, confettiPaintRes);
+      }
+    }
+    return confettiRecorder.finishRecordingAsPicture();
+  });
 
   // Stable serial number
   const [serialNumber] = useState(() => generateSerial());
@@ -451,25 +452,19 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     >
       <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
-      {/* Confetti burst — individual SVG circles with blur filter */}
+      {/* Confetti burst — Picture API batch with group-level blur */}
       {isRevealed && !reducedMotion && (
-        <Svg style={styles.fullScreen}>
-          <Defs>
-            <Filter id="confetti-blur">
-              <FeGaussianBlur stdDeviation={1} />
-            </Filter>
-          </Defs>
-          <G filter="url(#confetti-blur)">
-            {CONFETTI.map((p, i) => (
-              <ConfettiDot
-                key={i}
-                particle={p}
-                progress={confettiProgress}
-                opacity={confettiOpacity}
-              />
-            ))}
-          </G>
-        </Svg>
+        <Canvas style={styles.fullScreen}>
+          <Group
+            layer={
+              <Paint>
+                <Blur blur={1} />
+              </Paint>
+            }
+          >
+            <Picture picture={confettiPicture} />
+          </Group>
+        </Canvas>
       )}
 
       {/* Milestone flash overlay */}

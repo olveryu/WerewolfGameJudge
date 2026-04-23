@@ -1,23 +1,22 @@
 /**
- * BreathingBorder — 脉冲辉光边框（SVG + Reanimated）
+ * BreathingBorder — Skia 脉冲辉光边框
  *
  * 翻牌揭示后在卡片周围渲染弥散的能量场光晕（而非简单边框线），
- * 使用 SVG RoundedRect stroke + feGaussianBlur + Reanimated useAnimatedProps 实现。
+ * 使用 Skia RoundedRect stroke + Blur + blendMode 实现。
  * 4 颗光点沿矩形边缘缓慢移动。无限呼吸脉动保持视觉存在感。
  * `onComplete` 在 mount 后经过 `effectDisplayDuration` 延迟触发。
  * 不 import service，不含业务逻辑。
  */
+import { Blur, Canvas, Group, Paint, Picture, RoundedRect, Skia } from '@shopify/react-native-skia';
 import React, { useEffect, useMemo } from 'react';
-import type { SharedValue } from 'react-native-reanimated';
-import Animated, {
+import {
   Easing,
-  useAnimatedProps,
+  useDerivedValue,
   useSharedValue,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, FeGaussianBlur, Filter, G, Rect } from 'react-native-svg';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import { borderRadius } from '@/theme';
@@ -27,10 +26,9 @@ const { common, alignmentEffects, skia: SK } = CONFIG;
 // Number of runner light orbs along the border edge
 const RUNNER_COUNT = 4;
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const AnimatedG = Animated.createAnimatedComponent(G);
-const AnimatedFeGaussianBlur = Animated.createAnimatedComponent(FeGaussianBlur);
+// ── Immediate-mode Skia resources (reused across frames) ──
+const runnerRecorder = Skia.PictureRecorder();
+const runnerPaint = Skia.Paint();
 
 interface BreathingBorderProps {
   /** Border color */
@@ -48,41 +46,6 @@ interface BreathingBorderProps {
   /** Fired shortly after mount (game state progression) */
   onComplete?: () => void;
 }
-
-/** A single runner orb driven by shared runnerProgress */
-const RunnerOrb: React.FC<{
-  index: number;
-  runnerProgress: SharedValue<number>;
-  offsetX: number;
-  offsetY: number;
-  rectW: number;
-  rectH: number;
-  perimeter: number;
-  color: string;
-}> = React.memo(({ index, runnerProgress, offsetX, offsetY, rectW, rectH, perimeter, color }) => {
-  const animatedProps = useAnimatedProps(() => {
-    const phase = index / RUNNER_COUNT;
-    const t = ((runnerProgress.value + phase) % 1) * perimeter;
-    let cx: number;
-    let cy: number;
-    if (t < rectW) {
-      cx = offsetX + t;
-      cy = offsetY;
-    } else if (t < rectW + rectH) {
-      cx = offsetX + rectW;
-      cy = offsetY + (t - rectW);
-    } else if (t < 2 * rectW + rectH) {
-      cx = offsetX + rectW - (t - rectW - rectH);
-      cy = offsetY + rectH;
-    } else {
-      cx = offsetX;
-      cy = offsetY + rectH - (t - 2 * rectW - rectH);
-    }
-    return { cx, cy };
-  });
-  return <AnimatedCircle r={3} fill={color} opacity={0.7} animatedProps={animatedProps} />;
-});
-RunnerOrb.displayName = 'RunnerOrb';
 
 export const BreathingBorder: React.FC<BreathingBorderProps> = ({
   color,
@@ -136,9 +99,13 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
     );
   }, [animate, duration, runnerProgress]);
 
-  // ── Derived animated values ──
+  // ── Derived Skia values ──
   const [blurMin, blurMax] = SK.breathingBlurRange;
   const [strokeMin, strokeMax] = SK.breathingStrokeRange;
+
+  const blurVal = useDerivedValue(() => blurMin + breathe.value * (blurMax - blurMin));
+  const strokeW = useDerivedValue(() => strokeMin + breathe.value * (strokeMax - strokeMin));
+  const borderOpacity = useDerivedValue(() => 0.4 + breathe.value * 0.4);
 
   // Canvas dimensions (includes padding for glow overflow)
   const canvasW = cardWidth + glowPadding * 3;
@@ -164,73 +131,66 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
     [canvasW, canvasH, glowPadding],
   );
 
-  // Animated border stroke width
-  const borderAnimatedProps = useAnimatedProps(() => {
-    const sw = strokeMin + breathe.value * (strokeMax - strokeMin);
-    return { strokeWidth: sw };
+  // ── Runner orbs: Immediate Mode via Picture API ──
+  // Replaces 4 RunnerOrb components (8 useDerivedValue per frame) with 1.
+  const runnerPicture = useDerivedValue(() => {
+    'worklet';
+    const c = runnerRecorder.beginRecording(Skia.XYWHRect(0, 0, canvasW, canvasH));
+    const skColor = Skia.Color(glowColor);
+    runnerPaint.setColor(skColor);
+    runnerPaint.setAlphaf(0.7);
+    for (let i = 0; i < RUNNER_COUNT; i++) {
+      const phase = i / RUNNER_COUNT;
+      const t = ((runnerProgress.value + phase) % 1) * perimeter;
+      let cx: number;
+      let cy: number;
+      if (t < rectW) {
+        cx = offsetX + t;
+        cy = offsetY;
+      } else if (t < rectW + rectH) {
+        cx = offsetX + rectW;
+        cy = offsetY + (t - rectW);
+      } else if (t < 2 * rectW + rectH) {
+        cx = offsetX + rectW - (t - rectW - rectH);
+        cy = offsetY + rectH;
+      } else {
+        cx = offsetX;
+        cy = offsetY + rectH - (t - 2 * rectW - rectH);
+      }
+      c.drawCircle(cx, cy, 3, runnerPaint);
+    }
+    return runnerRecorder.finishRecordingAsPicture();
   });
-
-  // Animated border group opacity
-  const borderGroupProps = useAnimatedProps(() => {
-    const opacity = 0.4 + breathe.value * 0.4;
-    return { opacity };
-  });
-
-  // Animated blur for the breathing border
-  const blurAnimatedProps = useAnimatedProps(() => {
-    const blur = blurMin + breathe.value * (blurMax - blurMin);
-    return { stdDeviation: blur };
-  });
-
-  const runnerIndices = useMemo(() => Array.from({ length: RUNNER_COUNT }, (_, i) => i), []);
 
   return (
-    <Svg style={canvasStyle} width={canvasW} height={canvasH}>
-      <Defs>
-        <Filter id="breathing-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <AnimatedFeGaussianBlur
-            in="SourceGraphic"
-            stdDeviation={blurMin}
-            animatedProps={blurAnimatedProps}
-          />
-        </Filter>
-        <Filter id="runner-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <FeGaussianBlur in="SourceGraphic" stdDeviation={6} />
-        </Filter>
-      </Defs>
-
+    <Canvas style={canvasStyle}>
       {/* Main breathing border — stroke + blur glow */}
-      <AnimatedG animatedProps={borderGroupProps}>
-        <AnimatedRect
+      <Group opacity={borderOpacity} blendMode="screen">
+        <RoundedRect
           x={offsetX}
           y={offsetY}
-          width={rectW}
-          height={rectH}
-          rx={rectR}
-          ry={rectR}
-          fill="none"
-          stroke={color}
-          filter="url(#breathing-blur)"
-          animatedProps={borderAnimatedProps}
-        />
-      </AnimatedG>
+          width={cardWidth + glowPadding}
+          height={cardHeight + glowPadding}
+          r={rectR}
+          color={color}
+          style="stroke"
+          strokeWidth={strokeW}
+        >
+          <Blur blur={blurVal} />
+        </RoundedRect>
+      </Group>
 
-      {/* Runner light orbs */}
-      <G filter="url(#runner-blur)">
-        {runnerIndices.map((i) => (
-          <RunnerOrb
-            key={i}
-            index={i}
-            runnerProgress={runnerProgress}
-            offsetX={offsetX}
-            offsetY={offsetY}
-            rectW={rectW}
-            rectH={rectH}
-            perimeter={perimeter}
-            color={glowColor}
-          />
-        ))}
-      </G>
-    </Svg>
+      {/* Runner light orbs — Picture API with group-level blur */}
+      <Group
+        blendMode="screen"
+        layer={
+          <Paint>
+            <Blur blur={6} />
+          </Paint>
+        }
+      >
+        <Picture picture={runnerPicture} />
+      </Group>
+    </Canvas>
   );
 };

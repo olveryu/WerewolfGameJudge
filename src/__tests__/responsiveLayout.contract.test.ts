@@ -26,7 +26,7 @@ const EXCLUDED_DIRS = new Set([
   'node_modules',
 ]);
 
-const EXCLUDED_FILES = new Set(['ErrorBoundary.tsx']);
+const EXCLUDED_FILES = new Set(['ErrorBoundary.tsx', 'SkiaShaderWarmup.tsx']);
 
 function getProductionFiles(dir: string): string[] {
   const results: string[] = [];

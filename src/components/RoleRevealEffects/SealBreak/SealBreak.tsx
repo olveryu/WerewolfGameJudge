@@ -1,5 +1,5 @@
 /**
- * SealBreak - 封印解除揭示动画（SVG + Reanimated 4）
+ * SealBreak - 封印解除揭示动画（Skia + Reanimated 4）
  *
  * 视觉设计：中央深红蜡封圆盘 + 外圈旋转符文魔法阵 + 内聚能量粒子。
  * 交互：长按封印中心灌注能量，环形进度从 0→100%，裂纹随进度扩展，
@@ -9,6 +9,17 @@
  * Reanimated 负责：驱动所有 shared value + 阶段切换。
  * 不 import service，不含业务逻辑。
  */
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Line,
+  LinearGradient as SkiaLinearGradient,
+  Path,
+  Rect,
+  vec,
+} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,26 +29,14 @@ import Animated, {
   Easing,
   interpolate,
   runOnJS,
-  useAnimatedProps,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, {
-  Circle as SvgCircle,
-  Defs,
-  FeGaussianBlur,
-  Filter,
-  G,
-  Line as SvgLine,
-  LinearGradient as SvgLinearGradient,
-  Path as SvgPath,
-  Rect as SvgRect,
-  Stop,
-} from 'react-native-svg';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -53,11 +52,6 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { colors, crossPlatformTextShadow } from '@/theme';
-
-const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
-const AnimatedSvgRect = Animated.createAnimatedComponent(SvgRect);
-const AnimatedSvgPath = Animated.createAnimatedComponent(SvgPath);
-const AnimatedG = Animated.createAnimatedComponent(G);
 
 // ─── Visual constants ──────────────────────────────────────────────────
 /** Background gradient: deep crimson-black to complement gold seal glow */
@@ -239,19 +233,14 @@ const ShardParticle: React.FC<ShardParticleProps> = ({ shard, cx, cy, progress }
   const endX = cx + Math.cos(shard.angle) * shard.distance;
   const endY = cy + Math.sin(shard.angle) * shard.distance;
 
-  const animatedProps = useAnimatedProps(() => ({
-    x: interpolate(progress.value, [0, 1], [cx, endX]) - shard.size / 2,
-    y: interpolate(progress.value, [0, 1], [cy, endY]) - shard.size / 2,
-    opacity: interpolate(progress.value, [0, 0.5, 1], [1, 0.8, 0]),
-  }));
+  const x = useDerivedValue(() => interpolate(progress.value, [0, 1], [cx, endX]) - shard.size / 2);
+  const y = useDerivedValue(() => interpolate(progress.value, [0, 1], [cy, endY]) - shard.size / 2);
+  const opacity = useDerivedValue(() => interpolate(progress.value, [0, 0.5, 1], [1, 0.8, 0]));
 
   return (
-    <AnimatedSvgRect
-      width={shard.size}
-      height={shard.size}
-      fill={shard.color}
-      animatedProps={animatedProps}
-    />
+    <Group opacity={opacity}>
+      <Rect x={x} y={y} width={shard.size} height={shard.size} color={shard.color} />
+    </Group>
   );
 };
 
@@ -273,19 +262,26 @@ const EnergyParticleComponent: React.FC<EnergyParticleComponentProps> = ({
   charge,
   rotationOffset,
 }) => {
-  const animatedProps = useAnimatedProps(() => {
-    const currentAngle = particle.startAngle + rotationOffset.value * particle.speed;
-    const currentRadius =
+  const currentAngle = useDerivedValue(
+    () => particle.startAngle + rotationOffset.value * particle.speed,
+  );
+  // As charge grows, particles spiral inward from outer edge toward seal rim
+  const currentRadius = useDerivedValue(
+    () =>
       outerRadius * (1.4 + particle.radiusOffset) -
-      charge.value * outerRadius * (0.5 + particle.radiusOffset);
-    return {
-      cx: cx + Math.cos(currentAngle) * currentRadius - 3,
-      cy: cy + Math.sin(currentAngle) * currentRadius - 3,
-      opacity: interpolate(charge.value, [0, 0.1, 0.5], [0, 0.5, 0.9]),
-    };
-  });
+      charge.value * outerRadius * (0.5 + particle.radiusOffset),
+  );
+  const px = useDerivedValue(() => cx + Math.cos(currentAngle.value) * currentRadius.value - 3);
+  const py = useDerivedValue(() => cy + Math.sin(currentAngle.value) * currentRadius.value - 3);
+  const particleOpacity = useDerivedValue(() =>
+    interpolate(charge.value, [0, 0.1, 0.5], [0, 0.5, 0.9]),
+  );
 
-  return <AnimatedSvgCircle r={3} fill={COLORS.energyParticle} animatedProps={animatedProps} />;
+  return (
+    <Group opacity={particleOpacity}>
+      <Circle cx={px} cy={py} r={3} color={COLORS.energyParticle} />
+    </Group>
+  );
 };
 
 // ─── Progress ring segment (lights up when charge exceeds threshold) ────
@@ -296,26 +292,23 @@ interface ProgressSegmentProps {
 }
 
 const ProgressSegment: React.FC<ProgressSegmentProps> = ({ path, threshold, charge }) => {
-  const animatedProps = useAnimatedProps(() => {
-    const active = charge.value > threshold;
-    return {
-      strokeDashoffset: active ? 0 : 1,
-      opacity: active
-        ? interpolate(charge.value, [threshold, Math.min(threshold + 0.05, 1)], [0.5, 1])
-        : 0,
-    };
-  });
+  const segEnd = useDerivedValue(() => (charge.value > threshold ? 1 : 0));
+  const segOpacity = useDerivedValue(() =>
+    charge.value > threshold
+      ? interpolate(charge.value, [threshold, Math.min(threshold + 0.05, 1)], [0.5, 1])
+      : 0,
+  );
 
   return (
-    <AnimatedSvgPath
-      d={path}
-      stroke={COLORS.progressRing}
-      fill="none"
+    <Path
+      path={path}
+      color={COLORS.progressRing}
+      style="stroke"
       strokeWidth={4}
-      strokeLinecap="round"
-      {...{ pathLength: 1 }}
-      strokeDasharray="1"
-      animatedProps={animatedProps}
+      strokeCap="round"
+      start={0}
+      end={segEnd}
+      opacity={segOpacity}
     />
   );
 };
@@ -338,63 +331,19 @@ const EmberParticle: React.FC<EmberParticleProps> = ({
   cycle,
   chargeLevel,
 }) => {
-  const groupProps = useAnimatedProps(() => ({
-    opacity: interpolate(cycle.value, [0, 0.2, 0.7, 1], [0, 0.8 * chargeLevel.value, 0.3, 0]),
-  }));
-  const posProps = useAnimatedProps(() => ({
-    cx: startX + Math.sin(cycle.value * Math.PI * 2) * drift,
-    cy: startY - cycle.value * 180,
-  }));
-  const glowPosProps = useAnimatedProps(() => ({
-    cx: startX + Math.sin(cycle.value * Math.PI * 2) * drift,
-    cy: startY - cycle.value * 180,
-  }));
-
-  return (
-    <AnimatedG animatedProps={groupProps}>
-      <AnimatedSvgCircle r={size} fill={COLORS.emberCore} animatedProps={posProps} />
-      <AnimatedSvgCircle
-        r={size * 2}
-        fill="black"
-        filter="url(#ember-blur)"
-        animatedProps={glowPosProps}
-      />
-    </AnimatedG>
+  const ey = useDerivedValue(() => startY - cycle.value * 180);
+  const ex = useDerivedValue(() => startX + Math.sin(cycle.value * Math.PI * 2) * drift);
+  const eOp = useDerivedValue(() =>
+    interpolate(cycle.value, [0, 0.2, 0.7, 1], [0, 0.8 * chargeLevel.value, 0.3, 0]),
   );
-};
-
-// ─── Crack line with animated progress (SVG pathLength + dashoffset) ────
-interface CrackLineSvgProps {
-  path: string;
-  color: string;
-  strokeWidth: number;
-  progress: SharedValue<number>;
-  opacity?: number;
-}
-
-const CrackLineSvg: React.FC<CrackLineSvgProps> = ({
-  path,
-  color,
-  strokeWidth,
-  progress,
-  opacity: staticOpacity = 1,
-}) => {
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: 1 - progress.value,
-  }));
 
   return (
-    <AnimatedSvgPath
-      d={path}
-      stroke={color}
-      fill="none"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      opacity={staticOpacity}
-      {...{ pathLength: 1 }}
-      strokeDasharray="1"
-      animatedProps={animatedProps}
-    />
+    <Group opacity={eOp}>
+      <Circle cx={ex} cy={ey} r={size} color={COLORS.emberCore} />
+      <Circle cx={ex} cy={ey} r={size * 2}>
+        <Blur blur={4} />
+      </Circle>
+    </Group>
   );
 };
 
@@ -787,10 +736,6 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
     opacity: chargeGlowOpacity.value,
   }));
 
-  // ── SVG animated group props ──
-  const fogGroupProps = useAnimatedProps(() => ({ opacity: fogPulse.value }));
-  const energyBeamGroupProps = useAnimatedProps(() => ({ opacity: energyBeamOpacity.value }));
-
   // ── Rune symbols around the inner ring ──
   const runeSymbols = useMemo(() => {
     const symbols = ['\u263D', '\u2726', '\u269D', '\u25C8', '\u2727', '\u263F'];
@@ -874,101 +819,77 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
         {/* Skia canvas layer */}
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Animated.View style={[StyleSheet.absoluteFill, sealContainerStyle]}>
-            <Svg style={StyleSheet.absoluteFill}>
-              <Defs>
-                <Filter id="fog-blur">
-                  <FeGaussianBlur stdDeviation={40} />
-                </Filter>
-                <Filter id="pulse-blur">
-                  <FeGaussianBlur stdDeviation={8} />
-                </Filter>
-                <Filter id="ember-blur">
-                  <FeGaussianBlur stdDeviation={4} />
-                </Filter>
-                <SvgLinearGradient
-                  id="aura-grad"
-                  x1={String(cx)}
-                  y1={String(cy - sealRadius * 1.6)}
-                  x2={String(cx)}
-                  y2={String(cy + sealRadius * 1.6)}
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <Stop offset="0" stopColor={COLORS.auraInner} />
-                  <Stop offset="1" stopColor={COLORS.auraOuter} />
-                </SvgLinearGradient>
-                <SvgLinearGradient
-                  id="wax-grad"
-                  x1={String(cx - sealRadius)}
-                  y1={String(cy - sealRadius)}
-                  x2={String(cx + sealRadius)}
-                  y2={String(cy + sealRadius)}
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <Stop offset="0" stopColor={COLORS.waxLight} />
-                  <Stop offset="1" stopColor={COLORS.waxDark} />
-                </SvgLinearGradient>
-              </Defs>
-
+            <Canvas style={StyleSheet.absoluteFill}>
               {/* Dark fog at edges */}
-              <AnimatedG animatedProps={fogGroupProps}>
-                {FOG_CIRCLES.map((fog, i) => (
-                  <SvgCircle
-                    key={`fog-${i}`}
-                    cx={fog.x}
-                    cy={fog.y}
-                    r={fog.r}
-                    fill={COLORS.fogColor}
-                    filter="url(#fog-blur)"
-                  />
-                ))}
-              </AnimatedG>
+              {FOG_CIRCLES.map((fog, i) => (
+                <Group key={`fog-${i}`} opacity={fogPulse}>
+                  <Circle cx={fog.x} cy={fog.y} r={fog.r} color={COLORS.fogColor}>
+                    <Blur blur={40} />
+                  </Circle>
+                </Group>
+              ))}
 
               {/* Background aura glow */}
-              <SvgCircle cx={cx} cy={cy} r={sealRadius * 1.6} fill="url(#aura-grad)" />
+              <Circle cx={cx} cy={cy} r={sealRadius * 1.6}>
+                <SkiaLinearGradient
+                  start={vec(cx, cy - sealRadius * 1.6)}
+                  end={vec(cx, cy + sealRadius * 1.6)}
+                  colors={[COLORS.auraInner, COLORS.auraOuter]}
+                />
+              </Circle>
 
               {/* Progress ring background (subtle) */}
               {progressArcSegments.map((seg) => (
-                <SvgPath
+                <Path
                   key={`ring-bg-${seg.index}`}
-                  d={seg.path}
-                  stroke={COLORS.progressRingBg}
-                  fill="none"
+                  path={seg.path}
+                  color={COLORS.progressRingBg}
+                  style="stroke"
                   strokeWidth={4}
-                  strokeLinecap="round"
+                  strokeCap="round"
                 />
               ))}
 
               {/* Seal pulse ring (breathing glow around seal) */}
-              <SvgCircle
-                cx={cx}
-                cy={cy}
-                r={sealRadius * 1.15}
-                stroke={COLORS.sealPulse}
-                fill="none"
-                strokeWidth={6}
-                filter="url(#pulse-blur)"
-              />
+              <Group>
+                <Circle
+                  cx={cx}
+                  cy={cy}
+                  r={sealRadius * 1.15}
+                  style="stroke"
+                  strokeWidth={6}
+                  color={COLORS.sealPulse}
+                >
+                  <Blur blur={8} />
+                </Circle>
+              </Group>
 
               {/* Seal disc — wax gradient */}
-              <SvgCircle cx={cx} cy={cy} r={sealRadius} fill={COLORS.waxMid} />
-              <SvgCircle cx={cx} cy={cy} r={sealRadius} fill="url(#wax-grad)" />
+              <Circle cx={cx} cy={cy} r={sealRadius} color={COLORS.waxMid} />
+              <Circle cx={cx} cy={cy} r={sealRadius}>
+                <SkiaLinearGradient
+                  start={vec(cx - sealRadius, cy - sealRadius)}
+                  end={vec(cx + sealRadius, cy + sealRadius)}
+                  colors={[COLORS.waxLight, COLORS.waxDark]}
+                />
+              </Circle>
 
               {/* Seal rim */}
-              <SvgCircle
+              <Circle
                 cx={cx}
                 cy={cy}
                 r={sealRadius - 2}
-                stroke={COLORS.waxDark}
-                fill="none"
+                style="stroke"
                 strokeWidth={4}
+                color={COLORS.waxDark}
               />
-              <SvgCircle
+              <Circle
                 cx={cx}
                 cy={cy}
                 r={sealRadius * 0.85}
-                stroke={COLORS.rune}
-                fill="none"
+                style="stroke"
                 strokeWidth={2}
+                color={COLORS.rune}
                 opacity={0.3}
               />
 
@@ -977,57 +898,60 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                 const dx = cx + Math.cos(drip.angle) * sealRadius;
                 const dy = cy + Math.sin(drip.angle) * sealRadius;
                 return (
-                  <G key={`wax-drip-${i}`}>
-                    <SvgCircle cx={dx} cy={dy + drip.length * 0.5} r={4} fill={COLORS.waxDrip} />
-                    <SvgCircle cx={dx} cy={dy + drip.length} r={3} fill={COLORS.waxDrip} />
-                    <SvgCircle cx={dx} cy={dy + drip.length * 0.25} r={3.5} fill={COLORS.waxDrip} />
-                  </G>
+                  <Group key={`wax-drip-${i}`}>
+                    <Circle cx={dx} cy={dy + drip.length * 0.5} r={4} color={COLORS.waxDrip} />
+                    <Circle cx={dx} cy={dy + drip.length} r={3} color={COLORS.waxDrip} />
+                    <Circle cx={dx} cy={dy + drip.length * 0.25} r={3.5} color={COLORS.waxDrip} />
+                  </Group>
                 );
               })}
 
               {/* Decorative cross in center */}
-              <SvgLine
-                x1={cx - sealRadius * 0.3}
-                y1={cy}
-                x2={cx + sealRadius * 0.3}
-                y2={cy}
-                stroke={COLORS.rune}
+              <Line
+                p1={vec(cx - sealRadius * 0.3, cy)}
+                p2={vec(cx + sealRadius * 0.3, cy)}
+                color={COLORS.rune}
                 strokeWidth={3}
+                style="stroke"
               />
-              <SvgLine
-                x1={cx}
-                y1={cy - sealRadius * 0.3}
-                x2={cx}
-                y2={cy + sealRadius * 0.3}
-                stroke={COLORS.rune}
+              <Line
+                p1={vec(cx, cy - sealRadius * 0.3)}
+                p2={vec(cx, cy + sealRadius * 0.3)}
+                color={COLORS.rune}
                 strokeWidth={3}
+                style="stroke"
               />
 
               {/* Inner rune circle */}
-              <SvgCircle
+              <Circle
                 cx={cx}
                 cy={cy}
                 r={sealRadius * 0.5}
-                stroke={COLORS.rune}
-                fill="none"
+                style="stroke"
                 strokeWidth={1.5}
+                color={COLORS.rune}
                 opacity={0.4}
               />
 
               {/* Energy beams (radial, appear above 30% charge) */}
-              <AnimatedG animatedProps={energyBeamGroupProps}>
+              <Group opacity={energyBeamOpacity}>
                 {ENERGY_BEAM_ANGLES.map((angle, i) => (
-                  <SvgLine
+                  <Line
                     key={`beam-${i}`}
-                    x1={cx + Math.cos(angle) * sealRadius * 0.5}
-                    y1={cy + Math.sin(angle) * sealRadius * 0.5}
-                    x2={cx + Math.cos(angle) * sealRadius * 1.8}
-                    y2={cy + Math.sin(angle) * sealRadius * 1.8}
-                    stroke={COLORS.energyBeam}
+                    p1={vec(
+                      cx + Math.cos(angle) * sealRadius * 0.5,
+                      cy + Math.sin(angle) * sealRadius * 0.5,
+                    )}
+                    p2={vec(
+                      cx + Math.cos(angle) * sealRadius * 1.8,
+                      cy + Math.sin(angle) * sealRadius * 1.8,
+                    )}
+                    color={COLORS.energyBeam}
                     strokeWidth={2}
+                    style="stroke"
                   />
                 ))}
-              </AnimatedG>
+              </Group>
 
               {/* Progress ring segments (light up as charge increases) */}
               {progressArcSegments.map((seg) => (
@@ -1041,22 +965,28 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
 
               {/* Crack lines (progressive with charge) */}
               {crackSVGs.map((svg, i) => (
-                <CrackLineSvg
+                <Path
                   key={`crack-${i}`}
                   path={svg}
                   color={COLORS.crack}
+                  style="stroke"
                   strokeWidth={2.5}
-                  progress={crackProgress}
+                  strokeCap="round"
+                  start={0}
+                  end={crackProgress}
                 />
               ))}
               {/* Crack glow layer */}
               {crackSVGs.map((svg, i) => (
-                <CrackLineSvg
+                <Path
                   key={`crack-glow-${i}`}
                   path={svg}
                   color={COLORS.crackGlow}
+                  style="stroke"
                   strokeWidth={6}
-                  progress={crackProgress}
+                  strokeCap="round"
+                  start={0}
+                  end={crackProgress}
                   opacity={0.5}
                 />
               ))}
@@ -1086,7 +1016,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                   chargeLevel={charge}
                 />
               ))}
-            </Svg>
+            </Canvas>
 
             {/* Rune symbols (inner ring, RN Text for emoji rendering) */}
             {runeSymbols.map((r, i) => (
@@ -1147,7 +1077,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
 
           {/* Shard particles (after shatter) */}
           {phase === 'shatter' && (
-            <Svg style={StyleSheet.absoluteFill}>
+            <Canvas style={StyleSheet.absoluteFill}>
               {shards.map((shard) => (
                 <ShardParticle
                   key={`shard-${shard.id}`}
@@ -1157,7 +1087,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
                   progress={shatterProgress}
                 />
               ))}
-            </Svg>
+            </Canvas>
           )}
         </Animated.View>
 

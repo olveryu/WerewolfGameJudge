@@ -1,5 +1,5 @@
 /**
- * FilmRewind - 胶片倒放揭示动画（SVG + Reanimated 4）
+ * FilmRewind - 胶片倒放揭示动画（Skia + Reanimated 4）
  *
  * 视觉设计：老旧电影放映机风格 — 暖色投影灯光 + 胶片边框齿孔 +
  * 倒计时数字(5→0) + 胶片颗粒噪点 + 闪烁 + 竖划痕 + 暗角。
@@ -10,6 +10,15 @@
  * Reanimated 负责：齿孔滚动 + 闪烁 + 阶段切换 + 卡片入场。
  * 不 import service，不含业务逻辑。
  */
+import {
+  Canvas,
+  Group,
+  Line,
+  RadialGradient,
+  Rect,
+  RoundedRect,
+  vec,
+} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,23 +27,14 @@ import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
   runOnJS,
-  useAnimatedProps,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, {
-  ClipPath,
-  Defs,
-  G,
-  Line as SvgLine,
-  RadialGradient as SvgRadialGradient,
-  Rect as SvgRect,
-  Stop,
-} from 'react-native-svg';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
@@ -49,10 +49,6 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { colors, crossPlatformTextShadow } from '@/theme';
-
-const AnimatedSvgRect = Animated.createAnimatedComponent(SvgRect);
-const AnimatedSvgLine = Animated.createAnimatedComponent(SvgLine);
-const AnimatedG = Animated.createAnimatedComponent(G);
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#0a0906', '#0d0b08', '#0a0906'] as const;
@@ -127,59 +123,54 @@ const SprocketHolePair: React.FC<SprocketHolePairProps> = React.memo(
   ({ baseY, sprocketScroll }) => {
     const leftCx = BORDER_W / 2;
     const rightCx = SCREEN_W - BORDER_W / 2;
-
-    const outerLeftProps = useAnimatedProps(() => {
-      const yPos = (baseY + sprocketScroll.value) % (SPROCKET_COUNT * SPROCKET_SPACING);
-      return { x: leftCx - SPROCKET_HOLE_W / 2, y: yPos - SPROCKET_HOLE_H / 2 };
+    const yPos = useDerivedValue(() => {
+      const scrolled = baseY + sprocketScroll.value;
+      return scrolled % (SPROCKET_COUNT * SPROCKET_SPACING);
     });
-    const innerLeftProps = useAnimatedProps(() => {
-      const yPos = (baseY + sprocketScroll.value) % (SPROCKET_COUNT * SPROCKET_SPACING);
-      return { x: leftCx - 3, y: yPos - 5 };
-    });
-    const outerRightProps = useAnimatedProps(() => {
-      const yPos = (baseY + sprocketScroll.value) % (SPROCKET_COUNT * SPROCKET_SPACING);
-      return { x: rightCx - SPROCKET_HOLE_W / 2, y: yPos - SPROCKET_HOLE_H / 2 };
-    });
-    const innerRightProps = useAnimatedProps(() => {
-      const yPos = (baseY + sprocketScroll.value) % (SPROCKET_COUNT * SPROCKET_SPACING);
-      return { x: rightCx - 3, y: yPos - 5 };
-    });
+    const outerLeftX = useDerivedValue(() => leftCx - SPROCKET_HOLE_W / 2);
+    const outerLeftY = useDerivedValue(() => yPos.value - SPROCKET_HOLE_H / 2);
+    const innerLeftX = useDerivedValue(() => leftCx - 3);
+    const innerLeftY = useDerivedValue(() => yPos.value - 5);
+    const outerRightX = useDerivedValue(() => rightCx - SPROCKET_HOLE_W / 2);
+    const outerRightY = useDerivedValue(() => yPos.value - SPROCKET_HOLE_H / 2);
+    const innerRightX = useDerivedValue(() => rightCx - 3);
+    const innerRightY = useDerivedValue(() => yPos.value - 5);
 
     return (
-      <G>
-        <AnimatedSvgRect
+      <Group>
+        <RoundedRect
+          x={outerLeftX}
+          y={outerLeftY}
           width={SPROCKET_HOLE_W}
           height={SPROCKET_HOLE_H}
-          rx={2}
-          ry={2}
-          fill={COLORS.sprocketOuter}
-          animatedProps={outerLeftProps}
+          r={2}
+          color={COLORS.sprocketOuter}
         />
-        <AnimatedSvgRect
+        <RoundedRect
+          x={innerLeftX}
+          y={innerLeftY}
           width={6}
           height={10}
-          rx={1}
-          ry={1}
-          fill={COLORS.sprocketInner}
-          animatedProps={innerLeftProps}
+          r={1}
+          color={COLORS.sprocketInner}
         />
-        <AnimatedSvgRect
+        <RoundedRect
+          x={outerRightX}
+          y={outerRightY}
           width={SPROCKET_HOLE_W}
           height={SPROCKET_HOLE_H}
-          rx={2}
-          ry={2}
-          fill={COLORS.sprocketOuter}
-          animatedProps={outerRightProps}
+          r={2}
+          color={COLORS.sprocketOuter}
         />
-        <AnimatedSvgRect
+        <RoundedRect
+          x={innerRightX}
+          y={innerRightY}
           width={6}
           height={10}
-          rx={1}
-          ry={1}
-          fill={COLORS.sprocketInner}
-          animatedProps={innerRightProps}
+          r={1}
+          color={COLORS.sprocketInner}
         />
-      </G>
+      </Group>
     );
   },
 );
@@ -191,24 +182,24 @@ interface GrainFieldProps {
 }
 
 const GrainField: React.FC<GrainFieldProps> = React.memo(({ grainCycle }) => {
-  const animatedProps = useAnimatedProps(() => ({
-    x: -grainCycle.value * GRAIN_SHIFT_X,
-    y: -grainCycle.value * GRAIN_SHIFT_Y,
-  }));
+  const transform = useDerivedValue(() => [
+    { translateX: -grainCycle.value * GRAIN_SHIFT_X },
+    { translateY: -grainCycle.value * GRAIN_SHIFT_Y },
+  ]);
 
   return (
-    <AnimatedG clipPath="url(#grain-clip)" animatedProps={animatedProps}>
+    <Group transform={transform} clip={{ x: 0, y: 0, width: SCREEN_W, height: SCREEN_H }}>
       {GRAIN_PARTICLES.map((g, i) => (
-        <SvgRect
+        <Rect
           key={`grain-${i}`}
           x={g.x}
           y={g.y}
           width={1}
           height={1}
-          fill={g.light ? COLORS.grainLight : COLORS.grainDark}
+          color={g.light ? COLORS.grainLight : COLORS.grainDark}
         />
       ))}
-    </AnimatedG>
+    </Group>
   );
 });
 GrainField.displayName = 'GrainField';
@@ -221,20 +212,19 @@ interface HorizontalScratchLineProps {
 
 const HorizontalScratchLine: React.FC<HorizontalScratchLineProps> = React.memo(
   ({ scratch, grainCycle }) => {
-    const animatedProps = useAnimatedProps(() => {
+    const opacity = useDerivedValue(() => {
       const t = (grainCycle.value + scratch.phase) % 1;
-      return { opacity: t < 0.15 ? 0.08 : 0 };
+      return t < 0.15 ? 0.08 : 0;
     });
 
     return (
-      <AnimatedSvgLine
-        x1={0}
-        y1={scratch.y}
-        x2={SCREEN_W}
-        y2={scratch.y}
-        stroke="rgba(200, 180, 140, 0.06)"
+      <Line
+        p1={vec(0, scratch.y)}
+        p2={vec(SCREEN_W, scratch.y)}
+        color={'rgba(200, 180, 140, 0.06)'}
         strokeWidth={1}
-        animatedProps={animatedProps}
+        style="stroke"
+        opacity={opacity}
       />
     );
   },
@@ -433,46 +423,25 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
         testID={`${testIDPrefix}-press-area`}
       >
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
-          <Svg style={styles.absoluteFillNoEvents}>
-            <Defs>
-              <SvgRadialGradient
-                id="projector-glow"
-                cx={String(SCREEN_W / 2)}
-                cy={String(SCREEN_H / 2)}
-                r={String(SCREEN_H * 0.7)}
-                gradientUnits="userSpaceOnUse"
-              >
-                <Stop offset="0" stopColor="rgb(60,50,30)" stopOpacity={0.25} />
-                <Stop offset="0.5" stopColor="rgb(30,25,15)" stopOpacity={0.1} />
-                <Stop offset="1" stopColor="black" stopOpacity={0} />
-              </SvgRadialGradient>
-              <SvgRadialGradient
-                id="vignette-grad"
-                cx={String(SCREEN_W / 2)}
-                cy={String(SCREEN_H / 2)}
-                r={String(SCREEN_H * 0.7)}
-                gradientUnits="userSpaceOnUse"
-              >
-                <Stop offset="0" stopColor="black" stopOpacity={0} />
-                <Stop offset="0.7" stopColor="black" stopOpacity={0.3} />
-                <Stop offset="1" stopColor="black" stopOpacity={0.7} />
-              </SvgRadialGradient>
-              <ClipPath id="grain-clip">
-                <SvgRect x={0} y={0} width={SCREEN_W} height={SCREEN_H} />
-              </ClipPath>
-            </Defs>
-
-            {/* ── Warm projector radial glow ── */}
-            <SvgRect x={0} y={0} width={SCREEN_W} height={SCREEN_H} fill="url(#projector-glow)" />
+          <Canvas style={styles.absoluteFillNoEvents}>
+            {/* ── Warm projector radial glow (matches HTML prototype) ── */}
+            <Rect x={0} y={0} width={SCREEN_W} height={SCREEN_H}>
+              <RadialGradient
+                c={vec(SCREEN_W / 2, SCREEN_H / 2)}
+                r={SCREEN_H * 0.7}
+                colors={['rgba(60, 50, 30, 0.25)', 'rgba(30, 25, 15, 0.10)', 'transparent']}
+                positions={[0, 0.5, 1]}
+              />
+            </Rect>
 
             {/* ── Film borders (left + right) ── */}
-            <SvgRect x={0} y={0} width={BORDER_W} height={SCREEN_H} fill={COLORS.filmBorder} />
-            <SvgRect
+            <Rect x={0} y={0} width={BORDER_W} height={SCREEN_H} color={COLORS.filmBorder} />
+            <Rect
               x={SCREEN_W - BORDER_W}
               y={0}
               width={BORDER_W}
               height={SCREEN_H}
-              fill={COLORS.filmBorder}
+              color={COLORS.filmBorder}
             />
 
             {/* ── Sprocket holes (scroll with animation) ── */}
@@ -486,14 +455,13 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
 
             {/* ── Vertical scratches ── */}
             {SCRATCHES.map((s, i) => (
-              <SvgLine
+              <Line
                 key={`scratch-${i}`}
-                x1={s.x}
-                y1={0}
-                x2={s.x + s.drift}
-                y2={SCREEN_H}
-                stroke={COLORS.scratchLine}
+                p1={vec(s.x, 0)}
+                p2={vec(s.x + s.drift, SCREEN_H)}
+                color={COLORS.scratchLine}
                 strokeWidth={1}
+                style="stroke"
               />
             ))}
 
@@ -505,9 +473,16 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
               <HorizontalScratchLine key={`hscratch-${i}`} scratch={hs} grainCycle={grainCycle} />
             ))}
 
-            {/* ── Vignette (dark edges) ── */}
-            <SvgRect x={0} y={0} width={SCREEN_W} height={SCREEN_H} fill="url(#vignette-grad)" />
-          </Svg>
+            {/* ── Vignette (dark edges — radial gradient) ── */}
+            <Rect x={0} y={0} width={SCREEN_W} height={SCREEN_H}>
+              <RadialGradient
+                c={vec(SCREEN_W / 2, SCREEN_H / 2)}
+                r={SCREEN_H * 0.7}
+                colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+                positions={[0, 0.7, 1]}
+              />
+            </Rect>
+          </Canvas>
 
           {/* Flicker overlay */}
           <Animated.View style={[styles.flickerOverlay, flickerStyle]} />

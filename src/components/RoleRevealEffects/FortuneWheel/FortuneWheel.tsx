@@ -1,5 +1,5 @@
 /**
- * FortuneWheel - 命运转盘揭示动画（SVG + RN Text + Reanimated 4 + Gesture Handler）
+ * FortuneWheel - 命运转盘揭示动画（Skia + RN Text + Reanimated 4 + Gesture Handler）
  *
  * 视觉设计：宝石色彩扇形 + 金色外圈转盘，每格显示角色名（RN Text），顶部固定指针。
  * 交互：Pan 拖拽/flick 旋转转盘，减速后停在玩家真实角色。
@@ -9,34 +9,35 @@
  * Animated.View rotation 同步跟随 Skia 转盘旋转。
  * 不 import service，不含业务逻辑。
  */
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Line,
+  Paint,
+  Path,
+  Picture,
+  RadialGradient,
+  Skia,
+  vec,
+} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
   runOnJS,
-  useAnimatedProps,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, {
-  Circle as SvgCircle,
-  Defs,
-  FeGaussianBlur,
-  Filter,
-  G,
-  Line as SvgLine,
-  Path as SvgPath,
-  RadialGradient as SvgRadialGradient,
-  Stop,
-} from 'react-native-svg';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -52,9 +53,6 @@ import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEff
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { colors, crossPlatformTextShadow } from '@/theme';
-
-const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
-const AnimatedG = Animated.createAnimatedComponent(G);
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -97,61 +95,31 @@ const STARS = Array.from({ length: 25 }, (_, i) => ({
 
 const FW = CONFIG.fortuneWheel;
 
-// ─── Gem bulb with animated pulse (replaces Picture API batch) ─────────
-interface GemBulbProps {
-  dotX: number;
-  dotY: number;
-  color: string;
-  phaseOffset: number;
-  gemPulse: SharedValue<number>;
+// ── Immediate-mode Skia resources (reused across frames) ──
+const gemRecorder = Skia.PictureRecorder();
+const gemPaintRes = Skia.Paint();
+
+// ── Static starfield picture (computed once at module level) ──
+const starfieldRecorder = Skia.PictureRecorder();
+const starfieldPaint = Skia.Paint();
+function buildStarfieldPicture() {
+  const c = starfieldRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+  const starColor = Skia.Color('#ccccff');
+  const glowColor = Skia.Color('#aaaaff');
+  for (let i = 0; i < STARS.length; i++) {
+    const { x, y, r } = STARS[i];
+    // Glow halo
+    starfieldPaint.setColor(glowColor);
+    starfieldPaint.setAlphaf(0.3);
+    c.drawCircle(x, y, r * 4, starfieldPaint);
+    // Center dot
+    starfieldPaint.setColor(starColor);
+    starfieldPaint.setAlphaf(0.8);
+    c.drawCircle(x, y, r, starfieldPaint);
+  }
+  return starfieldRecorder.finishRecordingAsPicture();
 }
-
-const GemBulb: React.FC<GemBulbProps> = React.memo(
-  ({ dotX, dotY, color, phaseOffset, gemPulse }) => {
-    const animatedProps = useAnimatedProps(() => ({
-      opacity: 0.5 + Math.sin(gemPulse.value + phaseOffset) * 0.3,
-    }));
-
-    return (
-      <AnimatedSvgCircle
-        cx={dotX}
-        cy={dotY}
-        r={DOT_R + 2}
-        fill={color}
-        filter="url(#gem-blur)"
-        animatedProps={animatedProps}
-      />
-    );
-  },
-);
-GemBulb.displayName = 'GemBulb';
-
-// ─── Pointer tick glow (animated opacity) ─────────────────────
-interface PointerTickGlowProps {
-  cx: number;
-  cy: number;
-  pointerTickGlow: SharedValue<number>;
-}
-
-const PointerTickGlow: React.FC<PointerTickGlowProps> = React.memo(
-  ({ cx, cy, pointerTickGlow }) => {
-    const animatedProps = useAnimatedProps(() => ({
-      opacity: pointerTickGlow.value * 0.6,
-    }));
-
-    return (
-      <AnimatedSvgCircle
-        cx={cx}
-        cy={cy}
-        r={8}
-        fill="url(#pointer-glow-grad)"
-        filter="url(#pointer-blur)"
-        animatedProps={animatedProps}
-      />
-    );
-  },
-);
-PointerTickGlow.displayName = 'PointerTickGlow';
+const STARFIELD_PICTURE = buildStarfieldPicture();
 
 // ─── Layout ratios ──────────────────────────────────────────────────────
 const RIM_RATIO = 0.04;
@@ -286,10 +254,21 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const victoryArchOpacity = useSharedValue(0);
   const victoryArchScale = useSharedValue(0.8);
 
-  // ── SVG animated props for wheel rotation ──
-  const wheelGroupProps = useAnimatedProps(() => ({
-    rotation: (rotation.value * 180) / Math.PI,
-  }));
+  // ── Picture API: batch gem bulbs (N→1 draw call, replaces N×useDerivedValue) ──
+  const gemPicture = useDerivedValue(() => {
+    'worklet';
+    // segmentData is a JS-thread array; access its values inside worklet via closure.
+    // Since segmentData is computed from useMemo (stable per layout), this is safe.
+    const c = gemRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    for (let i = 0; i < segmentData.length; i++) {
+      const seg = segmentData[i];
+      const opacity = 0.5 + Math.sin(gemPulse.value + (i * Math.PI) / 3) * 0.3;
+      gemPaintRes.setColor(Skia.Color(GEM_COLORS[i % GEM_COLORS.length]));
+      gemPaintRes.setAlphaf(opacity);
+      c.drawCircle(seg.dotX, seg.dotY, DOT_R + 2, gemPaintRes);
+    }
+    return gemRecorder.finishRecordingAsPicture();
+  });
 
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
 
@@ -463,6 +442,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   );
 
   // ─── Animated styles ──────────────────────────────────────────────────
+  const wheelTransform = useDerivedValue(() => [{ rotate: rotation.value }]);
 
   const wheelContainerStyle = useAnimatedStyle(() => ({
     transform: [{ scale: wheelScaleVal.value }],
@@ -503,24 +483,20 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       />
       <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
-      {/* Starfield background — declarative SVG (replaces module-level Picture) */}
+      {/* Starfield background — static Picture (pre-computed at module level) */}
       {!reducedMotion && (
-        <Svg style={styles.fullScreen}>
-          <Defs>
-            <Filter id="star-blur">
-              <FeGaussianBlur stdDeviation={4} />
-            </Filter>
-          </Defs>
-          {/* eslint-disable-next-line react-native/no-inline-styles -- SVG CSS property, not RN style */}
-          <G style={{ mixBlendMode: 'screen' }} filter="url(#star-blur)">
-            {STARS.map((star, i) => (
-              <G key={`star-${i}`}>
-                <SvgCircle cx={star.x} cy={star.y} r={star.r * 4} fill="#aaaaff" opacity={0.3} />
-                <SvgCircle cx={star.x} cy={star.y} r={star.r} fill="#ccccff" opacity={0.8} />
-              </G>
-            ))}
-          </G>
-        </Svg>
+        <Canvas style={styles.fullScreen}>
+          <Group
+            blendMode="screen"
+            layer={
+              <Paint>
+                <Blur blur={4} />
+              </Paint>
+            }
+          >
+            <Picture picture={STARFIELD_PICTURE} />
+          </Group>
+        </Canvas>
       )}
 
       {/* Pedestal base */}
@@ -532,123 +508,101 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Animated.View style={[StyleSheet.absoluteFill, wheelContainerStyle]}>
-            {/* ── SVG Canvas: sectors + gold rim + center + pointer ── */}
-            <Svg style={StyleSheet.absoluteFill}>
-              <Defs>
-                <Filter id="gem-blur">
-                  <FeGaussianBlur stdDeviation={3} />
-                </Filter>
-                <Filter id="highlight-blur">
-                  <FeGaussianBlur stdDeviation={1} />
-                </Filter>
-                <Filter id="pointer-blur">
-                  <FeGaussianBlur stdDeviation={4} />
-                </Filter>
-                <SvgRadialGradient
-                  id="center-gem-grad"
-                  cx={String(cx - 2)}
-                  cy={String(cy - 2)}
-                  r={String(centerR * 0.35)}
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <Stop offset="0" stopColor="#ff6666" />
-                  <Stop offset="0.5" stopColor="#cc0033" />
-                  <Stop offset="1" stopColor="#660019" />
-                </SvgRadialGradient>
-                <SvgRadialGradient
-                  id="pointer-glow-grad"
-                  cx={String(cx)}
-                  cy={String(cy - wheelR - 20 + 26)}
-                  r="8"
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <Stop offset="0" stopColor="#ff6666" stopOpacity={0.5} />
-                  <Stop offset="1" stopColor="#ff6600" stopOpacity={0} />
-                </SvgRadialGradient>
-              </Defs>
-
+            {/* ── Skia Canvas: sectors + gold rim + center + pointer ── */}
+            <Canvas style={StyleSheet.absoluteFill}>
               {/* Rotating group: sectors + rim decorations */}
-              <AnimatedG originX={cx} originY={cy} animatedProps={wheelGroupProps}>
+              <Group transform={wheelTransform} origin={vec(cx, cy)}>
                 {/* Gold outer rim (background circle) */}
-                <SvgCircle cx={cx} cy={cy} r={wheelR} fill={GOLD_DARK} />
-                <SvgCircle cx={cx} cy={cy} r={wheelR} stroke={GOLD} fill="none" strokeWidth={3} />
+                <Circle cx={cx} cy={cy} r={wheelR} color={GOLD_DARK} />
+                <Circle cx={cx} cy={cy} r={wheelR} color={GOLD} style="stroke" strokeWidth={3} />
 
                 {/* Sector fills */}
                 {segmentData.map((seg, i) => (
-                  <SvgPath key={`s-${i}`} d={seg.path} fill={seg.color} />
+                  <Path key={`s-${i}`} path={seg.path} color={seg.color} />
                 ))}
 
                 {/* Gold divider lines + rim dots at segment boundaries */}
                 {segmentData.map((seg, i) => (
-                  <G key={`d-${i}`}>
-                    <SvgLine
-                      x1={cx}
-                      y1={cy}
-                      x2={seg.edgeX}
-                      y2={seg.edgeY}
-                      stroke={SEGMENT_DIVIDER}
+                  <React.Fragment key={`d-${i}`}>
+                    <Line
+                      p1={vec(cx, cy)}
+                      p2={vec(seg.edgeX, seg.edgeY)}
+                      color={SEGMENT_DIVIDER}
                       strokeWidth={1.5}
                     />
-                    <SvgCircle cx={seg.dotX} cy={seg.dotY} r={DOT_R} fill={GOLD} />
-                  </G>
+                    <Circle cx={seg.dotX} cy={seg.dotY} r={DOT_R} color={GOLD} />
+                  </React.Fragment>
                 ))}
 
                 {/* Inner edge circle (crisp boundary between sectors and gold rim) */}
-                <SvgCircle
+                <Circle
                   cx={cx}
                   cy={cy}
                   r={innerR}
-                  stroke={GOLD_DARK}
-                  fill="none"
+                  color={GOLD_DARK}
+                  style="stroke"
                   strokeWidth={1.5}
                 />
 
-                {/* Gem bulbs at rim — individual animated circles with blur */}
-                {segmentData.map((seg, i) => (
-                  <GemBulb
-                    key={`gem-${i}`}
-                    dotX={seg.dotX}
-                    dotY={seg.dotY}
-                    color={GEM_COLORS[i % GEM_COLORS.length]}
-                    phaseOffset={(i * Math.PI) / 3}
-                    gemPulse={gemPulse}
-                  />
-                ))}
-              </AnimatedG>
+                {/* Gem bulbs at rim — Picture API batch with blur */}
+                <Group
+                  layer={
+                    <Paint>
+                      <Blur blur={3} />
+                    </Paint>
+                  }
+                >
+                  <Picture picture={gemPicture} />
+                </Group>
+              </Group>
 
               {/* Static elements (don't rotate) */}
               {/* Center hub */}
-              <SvgCircle cx={cx} cy={cy} r={centerR} fill={CENTER_FILL} />
-              <SvgCircle cx={cx} cy={cy} r={centerR} stroke={GOLD} fill="none" strokeWidth={3} />
-              <SvgCircle
+              <Circle cx={cx} cy={cy} r={centerR} color={CENTER_FILL} />
+              <Circle cx={cx} cy={cy} r={centerR} color={GOLD} style="stroke" strokeWidth={3} />
+              <Circle
                 cx={cx}
                 cy={cy}
                 r={centerR * 0.7}
-                stroke={GOLD_DARK}
-                fill="none"
+                color={GOLD_DARK}
+                style="stroke"
                 strokeWidth={1}
               />
               {/* Center gem */}
-              <SvgCircle cx={cx} cy={cy} r={centerR * 0.35} fill="url(#center-gem-grad)" />
-              <SvgCircle
-                cx={cx - 3}
-                cy={cy - 3}
-                r={3}
-                fill="#ffffff"
-                opacity={0.4}
-                filter="url(#highlight-blur)"
-              />
+              <Circle cx={cx} cy={cy} r={centerR * 0.35}>
+                <RadialGradient
+                  c={vec(cx - 2, cy - 2)}
+                  r={centerR * 0.35}
+                  colors={['#ff6666', '#cc0033', '#660019']}
+                />
+              </Circle>
+              <Circle cx={cx - 3} cy={cy - 3} r={3} color="#ffffff" opacity={0.4}>
+                <Blur blur={1} />
+              </Circle>
 
               {/* Pointer triangle */}
-              <SvgPath d={pointerPath} fill={POINTER_FILL} />
-              <SvgPath d={pointerPath} stroke={POINTER_STROKE_COLOR} fill="none" strokeWidth={2} />
+              <Path path={pointerPath} color={POINTER_FILL} />
+              <Path
+                path={pointerPath}
+                color={POINTER_STROKE_COLOR}
+                style="stroke"
+                strokeWidth={2}
+              />
               {/* Pointer tick glow — flashes during spin */}
-              <PointerTickGlow
+              <Circle
                 cx={cx}
                 cy={cy - wheelR - 20 + 26}
-                pointerTickGlow={pointerTickGlow}
-              />
-            </Svg>
+                r={8}
+                opacity={useDerivedValue(() => pointerTickGlow.value * 0.6)}
+              >
+                <RadialGradient
+                  c={vec(cx, cy - wheelR - 20 + 26)}
+                  r={8}
+                  colors={['#ff666680', '#ff660000']}
+                />
+                <Blur blur={4} />
+              </Circle>
+            </Canvas>
 
             {/* ── RN Text labels (rotate with wheel via Animated.View) ── */}
             <Animated.View style={[styles.absoluteFillNoEvents, labelRotateStyle]}>
@@ -704,48 +658,39 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         <>
           {/* Victory arch — golden glow ring behind card */}
           <Animated.View style={[styles.victoryArch, victoryArchStyle]}>
-            <Svg style={styles.victoryArchCanvas}>
-              <Defs>
-                <SvgRadialGradient
-                  id="victory-glow"
-                  cx={String(cardWidth / 2 + 20)}
-                  cy={String(cardHeight / 2 + 20)}
-                  r={String(cardWidth * 0.7)}
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <Stop offset="0" stopColor={GOLD} stopOpacity={0} />
-                  <Stop offset="0.5" stopColor={GOLD} stopOpacity={0.19} />
-                  <Stop offset="1" stopColor={GOLD} stopOpacity={0} />
-                </SvgRadialGradient>
-                <Filter id="ray-blur">
-                  <FeGaussianBlur stdDeviation={3} />
-                </Filter>
-              </Defs>
-              <SvgCircle
-                cx={cardWidth / 2 + 20}
-                cy={cardHeight / 2 + 20}
-                r={cardWidth * 0.7}
-                fill="url(#victory-glow)"
-              />
+            <Canvas style={styles.victoryArchCanvas}>
+              <Circle cx={cardWidth / 2 + 20} cy={cardHeight / 2 + 20} r={cardWidth * 0.7}>
+                <RadialGradient
+                  c={vec(cardWidth / 2 + 20, cardHeight / 2 + 20)}
+                  r={cardWidth * 0.7}
+                  colors={[`${GOLD}00`, `${GOLD}30`, `${GOLD}00`]}
+                />
+              </Circle>
               {/* Ray lines */}
               {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
                 const angle = (Math.PI * 2 * i) / 8;
                 const ir = cardWidth * 0.45;
                 const or = cardWidth * 0.65;
                 return (
-                  <SvgLine
+                  <Line
                     key={`ray-${i}`}
-                    x1={cardWidth / 2 + 20 + Math.cos(angle) * ir}
-                    y1={cardHeight / 2 + 20 + Math.sin(angle) * ir}
-                    x2={cardWidth / 2 + 20 + Math.cos(angle) * or}
-                    y2={cardHeight / 2 + 20 + Math.sin(angle) * or}
-                    stroke={GOLD}
+                    p1={vec(
+                      cardWidth / 2 + 20 + Math.cos(angle) * ir,
+                      cardHeight / 2 + 20 + Math.sin(angle) * ir,
+                    )}
+                    p2={vec(
+                      cardWidth / 2 + 20 + Math.cos(angle) * or,
+                      cardHeight / 2 + 20 + Math.sin(angle) * or,
+                    )}
+                    color={GOLD}
                     strokeWidth={2}
-                    filter="url(#ray-blur)"
-                  />
+                    style="stroke"
+                  >
+                    <Blur blur={3} />
+                  </Line>
                 );
               })}
-            </Svg>
+            </Canvas>
           </Animated.View>
 
           <Animated.View style={[styles.cardWrapper, cardStyle]}>

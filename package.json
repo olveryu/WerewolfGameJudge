@@ -29,6 +29,7 @@
     "release": "bash scripts/release.sh",
     "badges:generate": "node scripts/generate-badges.mjs",
     "badges:validate": "node scripts/generate-badges.mjs --validate-only",
+    "postinstall": "cp node_modules/canvaskit-wasm/bin/full/canvaskit.wasm public/canvaskit.wasm",
     "prepare": "husky"
   },
   "packageManager": "pnpm@10.32.1",
@@ -38,6 +39,7 @@
       "sharp"
     ],
     "ignoredBuiltDependencies": [
+      "@shopify/react-native-skia",
       "esbuild",
       "workerd"
     ],
@@ -62,6 +64,7 @@
     "@react-navigation/native": "^7.2.2",
     "@react-navigation/native-stack": "^7.14.11",
     "@sentry/react-native": "~7.11.0",
+    "@shopify/react-native-skia": "2.4.18",
     "@tanstack/react-query": "^5.99.0",
     "@werewolf/game-engine": "workspace:*",
     "expo": "55.0.15",

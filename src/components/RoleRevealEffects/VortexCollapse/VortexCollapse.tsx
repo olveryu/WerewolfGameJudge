@@ -1,5 +1,5 @@
 /**
- * VortexCollapse - 虚空坍缩揭示动画（SVG + Reanimated 4 + Gesture Handler）
+ * VortexCollapse - 虚空坍缩揭示动画（Skia + Reanimated 4 + Gesture Handler）
  *
  * 视觉设计：星际穿越 / 黑洞风格 — 深空背景 + 星云 + 旋涡中心 + 事件视界 +
  * 螺旋臂 + 80 轨道粒子 + 20 碎片 + 进度环 + 坍缩爆炸粒子。
@@ -10,6 +10,16 @@
  * Gesture Handler 负责：`Gesture.Pan()` 画圈累加 spin。
  * 不 import service，不含业务逻辑。
  */
+import {
+  Blur,
+  Canvas,
+  Circle,
+  Group,
+  Path,
+  RadialGradient,
+  Rect,
+  vec,
+} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -20,25 +30,14 @@ import Animated, {
   Easing,
   makeMutable,
   runOnJS,
-  useAnimatedProps,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, {
-  Circle as SvgCircle,
-  Defs,
-  FeGaussianBlur,
-  Filter,
-  G,
-  Path as SvgPath,
-  RadialGradient as SvgRadialGradient,
-  Rect as SvgRect,
-  Stop,
-} from 'react-native-svg';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
@@ -53,11 +52,6 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { colors } from '@/theme';
-
-const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
-const AnimatedSvgRect = Animated.createAnimatedComponent(SvgRect);
-const AnimatedSvgPath = Animated.createAnimatedComponent(SvgPath);
-const AnimatedG = Animated.createAnimatedComponent(G);
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#030008', '#050012', '#030008'] as const;
@@ -147,19 +141,21 @@ interface NebulaCloudProps {
 }
 
 const NebulaCloud: React.FC<NebulaCloudProps> = React.memo(({ nebula, time }) => {
-  const animatedProps = useAnimatedProps(() => ({
-    opacity: 0.08 + Math.sin(time.value * 0.3 + nebula.hue) * 0.03,
-  }));
-  const gradId = `neb-${nebula.hue}`;
+  const opacity = useDerivedValue(() => 0.08 + Math.sin(time.value * 0.3 + nebula.hue) * 0.03);
 
   return (
-    <AnimatedSvgCircle
-      cx={nebula.x}
-      cy={nebula.y}
-      r={nebula.r}
-      fill={`url(#${gradId})`}
-      animatedProps={animatedProps}
-    />
+    <Circle cx={nebula.x} cy={nebula.y} r={nebula.r} opacity={opacity}>
+      <RadialGradient
+        c={vec(nebula.x, nebula.y)}
+        r={nebula.r}
+        colors={[
+          hslString(nebula.hue, 60, 20, 0.08),
+          hslString(nebula.hue, 40, 15, 0.03),
+          'transparent',
+        ]}
+        positions={[0, 0.5, 1]}
+      />
+    </Circle>
   );
 });
 NebulaCloud.displayName = 'NebulaCloud';
@@ -171,18 +167,16 @@ interface BgStarProps {
 }
 
 const BgStar: React.FC<BgStarProps> = React.memo(({ star, time }) => {
-  const animatedProps = useAnimatedProps(() => ({
-    opacity: 0.15 + Math.sin(time.value * 2 + star.phase) * 0.1,
-  }));
+  const opacity = useDerivedValue(() => 0.15 + Math.sin(time.value * 2 + star.phase) * 0.1);
 
   return (
-    <AnimatedSvgRect
+    <Rect
       x={star.x}
       y={star.y}
       width={1}
       height={1}
-      fill="rgba(180,180,220,0.3)"
-      animatedProps={animatedProps}
+      color="rgba(180,180,220,0.3)"
+      opacity={opacity}
     />
   );
 });
@@ -197,35 +191,31 @@ interface BurstParticleProps {
 }
 
 const BurstParticle: React.FC<BurstParticleProps> = React.memo(({ particle, cx, cy, progress }) => {
+  const px = useDerivedValue(
+    () => cx + Math.cos(particle.angle) * particle.speed * 25 * progress.value,
+  );
+  const py = useDerivedValue(() => {
+    const linearY = cy + Math.sin(particle.angle) * particle.speed * 25 * progress.value;
+    return linearY + progress.value * progress.value * 15;
+  });
+  const opacity = useDerivedValue(() => {
+    const p = progress.value;
+    if (p < 0.1) return p / 0.1;
+    return Math.max(0, 1 - (p - 0.1) / 0.9);
+  });
+  const r = useDerivedValue(() => particle.radius * Math.max(0, 1 - progress.value * 0.5));
+  const glowR = useDerivedValue(() => r.value * 2);
+
   const color = hslString(particle.hue, 80, 60, 1);
   const glowColor = hslString(particle.hue, 80, 60, 0.25);
 
-  const groupProps = useAnimatedProps(() => {
-    const p = progress.value;
-    return { opacity: p < 0.1 ? p / 0.1 : Math.max(0, 1 - (p - 0.1) / 0.9) };
-  });
-  const coreProps = useAnimatedProps(() => {
-    const linearY = cy + Math.sin(particle.angle) * particle.speed * 25 * progress.value;
-    return {
-      cx: cx + Math.cos(particle.angle) * particle.speed * 25 * progress.value,
-      cy: linearY + progress.value * progress.value * 15,
-      r: particle.radius * Math.max(0, 1 - progress.value * 0.5),
-    };
-  });
-  const glowProps = useAnimatedProps(() => {
-    const linearY = cy + Math.sin(particle.angle) * particle.speed * 25 * progress.value;
-    return {
-      cx: cx + Math.cos(particle.angle) * particle.speed * 25 * progress.value,
-      cy: linearY + progress.value * progress.value * 15,
-      r: particle.radius * Math.max(0, 1 - progress.value * 0.5) * 2,
-    };
-  });
-
   return (
-    <AnimatedG animatedProps={groupProps}>
-      <AnimatedSvgCircle fill={color} animatedProps={coreProps} />
-      <AnimatedSvgCircle fill={glowColor} filter="url(#burst-blur)" animatedProps={glowProps} />
-    </AnimatedG>
+    <Group opacity={opacity}>
+      <Circle cx={px} cy={py} r={r} color={color} />
+      <Circle cx={px} cy={py} r={glowR} color={glowColor}>
+        <Blur blur={3} />
+      </Circle>
+    </Group>
   );
 });
 BurstParticle.displayName = 'BurstParticle';
@@ -239,44 +229,21 @@ interface DebrisChunkProps {
 }
 
 const DebrisChunk: React.FC<DebrisChunkProps> = React.memo(({ debris, xSV, ySV, opacitySV }) => {
-  const animatedProps = useAnimatedProps(() => ({
-    x: xSV.value - debris.size / 2,
-    y: ySV.value - debris.size / 2,
-    opacity: opacitySV.value,
-  }));
+  const x = useDerivedValue(() => xSV.value - debris.size / 2);
+  const y = useDerivedValue(() => ySV.value - debris.size / 2);
 
   return (
-    <AnimatedSvgRect
+    <Rect
+      x={x}
+      y={y}
       width={debris.size}
       height={debris.size}
-      fill={hslString(debris.hue, 40, 30, 1)}
-      animatedProps={animatedProps}
+      color={hslString(debris.hue, 40, 30, 1)}
+      opacity={opacitySV}
     />
   );
 });
 DebrisChunk.displayName = 'DebrisChunk';
-
-/** Single orbital particle driven by makeMutable shared values */
-interface OrbitalParticleDotProps {
-  xSV: SharedValue<number>;
-  ySV: SharedValue<number>;
-  opacitySV: SharedValue<number>;
-  radius: number;
-  color: string;
-}
-
-const OrbitalParticleDot: React.FC<OrbitalParticleDotProps> = React.memo(
-  ({ xSV, ySV, opacitySV, radius, color }) => {
-    const animatedProps = useAnimatedProps(() => ({
-      cx: xSV.value,
-      cy: ySV.value,
-      opacity: opacitySV.value,
-    }));
-
-    return <AnimatedSvgCircle r={radius} fill={color} animatedProps={animatedProps} />;
-  },
-);
-OrbitalParticleDot.displayName = 'OrbitalParticleDot';
 
 // ─── Main component ─────────────────────────────────────────────────────
 
@@ -324,7 +291,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
   const particlesRef = useRef(ORBITAL_PARTICLES.map((p) => ({ ...p })));
   const debrisRef = useRef(DEBRIS_CHUNKS.map((d) => ({ ...d })));
 
-  // ── Skia shared values → SVG shared values for rAF-driven rendering ──
+  // ── Skia shared values for rAF-driven rendering ──
   // Vortex center glow
   const vortexGlowR = useSharedValue(60);
   const vortexGlowOpacity = useSharedValue(0.4);
@@ -337,7 +304,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
   const spiralOpacitySV = useSharedValue(0.06);
   const spiralStrokeWidthSV = useSharedValue(2);
 
-  // Orbital particle positions (flat arrays for SVG)
+  // Orbital particle positions (flat arrays for Skia)
   const particleXSV = useRef(ORBITAL_PARTICLES.map(() => makeMutable(0))).current;
   const particleYSV = useRef(ORBITAL_PARTICLES.map(() => makeMutable(0))).current;
   const particleOpacitySV = useRef(ORBITAL_PARTICLES.map((p) => makeMutable(p.alpha))).current;
@@ -621,27 +588,6 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
     opacity: flashOpacity.value,
   }));
 
-  // ── SVG animated props for rAF-driven elements ──
-  const vortexGlowProps = useAnimatedProps(() => ({
-    r: vortexGlowR.value,
-    opacity: vortexGlowOpacity.value,
-  }));
-  const eventHorizonProps = useAnimatedProps(() => ({
-    r: eventHorizonR.value,
-  }));
-  const eventHorizonRingProps = useAnimatedProps(() => ({
-    r: eventHorizonRingR.value,
-    opacity: eventHorizonRingOpacity.value,
-  }));
-  const spiralProps = useAnimatedProps(() => ({
-    d: spiralPathSV.value,
-    opacity: spiralOpacitySV.value,
-    strokeWidth: spiralStrokeWidthSV.value,
-  }));
-  const progressArcProps = useAnimatedProps(() => ({
-    d: progressArcPath.value,
-  }));
-
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
       {/* Deep space background */}
@@ -654,40 +600,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
 
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
-          <Svg style={styles.absoluteFillNoEvents}>
-            <Defs>
-              <Filter id="burst-blur">
-                <FeGaussianBlur stdDeviation={3} />
-              </Filter>
-              {/* Nebula radial gradients */}
-              {NEBULAE.map((n) => (
-                <SvgRadialGradient
-                  key={`neb-${n.hue}`}
-                  id={`neb-${n.hue}`}
-                  cx={String(n.x)}
-                  cy={String(n.y)}
-                  r={String(n.r)}
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <Stop offset="0" stopColor={`hsl(${n.hue}, 60%, 20%)`} stopOpacity={0.08} />
-                  <Stop offset="0.5" stopColor={`hsl(${n.hue}, 40%, 15%)`} stopOpacity={0.03} />
-                  <Stop offset="1" stopColor="black" stopOpacity={0} />
-                </SvgRadialGradient>
-              ))}
-              {/* Vortex center glow gradient */}
-              <SvgRadialGradient
-                id="vortex-glow-grad"
-                cx={String(cx)}
-                cy={String(cy)}
-                r="100"
-                gradientUnits="userSpaceOnUse"
-              >
-                <Stop offset="0" stopColor={`hsl(270, 80%, 60%)`} stopOpacity={0.4} />
-                <Stop offset="0.3" stopColor={`hsl(260, 70%, 40%)`} stopOpacity={0.15} />
-                <Stop offset="1" stopColor="black" stopOpacity={0} />
-              </SvgRadialGradient>
-            </Defs>
-
+          <Canvas style={styles.absoluteFillNoEvents}>
             {/* ── Nebula clouds ── */}
             {NEBULAE.map((n, i) => (
               <NebulaCloud key={`neb-${i}`} nebula={n} time={timeSV} />
@@ -699,41 +612,45 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
             ))}
 
             {/* ── Vortex center glow ── */}
-            <AnimatedSvgCircle
-              cx={cx}
-              cy={cy}
-              fill="url(#vortex-glow-grad)"
-              animatedProps={vortexGlowProps}
-            />
+            <Circle cx={cx} cy={cy} r={vortexGlowR} opacity={vortexGlowOpacity}>
+              <RadialGradient
+                c={vec(cx, cy)}
+                r={100}
+                colors={[hslString(270, 80, 60, 0.4), hslString(260, 70, 40, 0.15), 'transparent']}
+                positions={[0, 0.3, 1]}
+              />
+            </Circle>
 
             {/* ── Event horizon (black center) ── */}
-            <AnimatedSvgCircle cx={cx} cy={cy} fill="#000000" animatedProps={eventHorizonProps} />
-            <AnimatedSvgCircle
+            <Circle cx={cx} cy={cy} r={eventHorizonR} color="#000000" />
+            <Circle
               cx={cx}
               cy={cy}
-              stroke={hslString(270, 90, 70, 0.5)}
-              fill="none"
+              r={eventHorizonRingR}
+              style="stroke"
               strokeWidth={2}
-              animatedProps={eventHorizonRingProps}
+              color={hslString(270, 90, 70, 0.5)}
+              opacity={eventHorizonRingOpacity}
             />
 
             {/* ── Spiral arms ── */}
-            <AnimatedSvgPath
-              stroke={hslString(260, 60, 60, 1)}
-              fill="none"
-              strokeLinecap="round"
-              animatedProps={spiralProps}
+            <Path
+              path={spiralPathSV}
+              style="stroke"
+              strokeWidth={spiralStrokeWidthSV}
+              color={hslString(260, 60, 60, 1)}
+              opacity={spiralOpacitySV}
             />
 
             {/* ── Orbital particles ── */}
-            {ORBITAL_PARTICLES.map((p, i) => (
-              <OrbitalParticleDot
+            {ORBITAL_PARTICLES.map((_, i) => (
+              <Circle
                 key={`op-${i}`}
-                xSV={particleXSV[i]}
-                ySV={particleYSV[i]}
-                opacitySV={particleOpacitySV[i]}
-                radius={p.radius}
-                color={hslString(p.hue, 70, 60, 1)}
+                cx={particleXSV[i]}
+                cy={particleYSV[i]}
+                r={ORBITAL_PARTICLES[i].radius}
+                color={hslString(ORBITAL_PARTICLES[i].hue, 70, 60, 1)}
+                opacity={particleOpacitySV[i]}
               />
             ))}
 
@@ -749,20 +666,20 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
             ))}
 
             {/* ── Progress ring ── */}
-            <SvgCircle
+            <Circle
               cx={cx}
               cy={cy + 140}
               r={30}
-              stroke="rgba(150,100,255,0.2)"
-              fill="none"
+              style="stroke"
               strokeWidth={1}
+              color="rgba(150,100,255,0.2)"
             />
-            <AnimatedSvgPath
-              stroke={hslString(270, 80, 70, 0.6)}
-              fill="none"
+            <Path
+              path={progressArcPath}
+              style="stroke"
               strokeWidth={3}
-              strokeLinecap="round"
-              animatedProps={progressArcProps}
+              color={hslString(270, 80, 70, 0.6)}
+              strokeCap="round"
             />
 
             {/* ── Burst particles (on collapse) ── */}
@@ -776,7 +693,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
                   progress={burstProgress}
                 />
               ))}
-          </Svg>
+          </Canvas>
 
           {/* Progress percent text (RN for crisp rendering) */}
           {phase === 'idle' && (
