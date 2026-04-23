@@ -184,7 +184,7 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   'src/screens/GachaScreen/GachaScreen.tsx': 0,
 
   // CapsuleMachine: SVG inline colors (domain-specific rendering), badge font
-  'src/screens/GachaScreen/components/CapsuleMachine.tsx': 18,
+  'src/screens/GachaScreen/components/CapsuleMachine.tsx': 17,
 
   // RewardPreview: inline font styles for reward display
   'src/screens/GachaScreen/components/RewardPreview.tsx': 2,
