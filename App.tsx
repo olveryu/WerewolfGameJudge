@@ -20,7 +20,7 @@ import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { queryClient } from '@/lib/queryClient';
-import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
+import { getSentryIntegrations } from '@/lib/sentryIntegrations';
 import { AppNavigator } from '@/navigation';
 import { createAllServices } from '@/services/registry';
 import { colors } from '@/theme';
@@ -37,7 +37,7 @@ Sentry.init({
   enabled: !__DEV__,
   environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
   tracesSampleRate: 0.5,
-  integrations: [reactNavigationIntegration],
+  integrations: getSentryIntegrations(),
   // Enable session tracking for Release Health (unique users / sessions)
   enableAutoSessionTracking: true,
   // Enable structured logging (Sentry Logs beta)
