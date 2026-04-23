@@ -73,22 +73,22 @@ function useClaimDailyRewardMutation() {
  */
 export function useAutoClaimDailyReward() {
   const { data: status } = useGachaStatusQuery();
-  const claimMutation = useClaimDailyRewardMutation();
+  const { mutate: claimDailyReward, isPending: isClaimPending } = useClaimDailyRewardMutation();
   const attemptedRef = useRef(false);
 
   useEffect(() => {
-    if (attemptedRef.current || !status || claimMutation.isPending) return;
+    if (attemptedRef.current || !status || isClaimPending) return;
 
     const today = getLocalDate();
     if (status.lastLoginRewardAt?.startsWith(today)) return;
 
     attemptedRef.current = true;
-    claimMutation.mutate(undefined, {
+    claimDailyReward(undefined, {
       onSuccess: (data) => {
         if (data.claimed) {
           toast.success('每日登录奖励', { description: '获得 1 次普通抽！' });
         }
       },
     });
-  }, [status, claimMutation]);
+  }, [status, claimDailyReward, isClaimPending]);
 }

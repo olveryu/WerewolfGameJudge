@@ -45,7 +45,7 @@ export const AuthEmailScreen: React.FC = () => {
   } = route.params;
 
   const { error: authError, refreshUser } = useAuthContext();
-  const signOutMutation = useSignOut();
+  const { mutateAsync: signOut, isPending: isSignOutPending } = useSignOut();
 
   const handleSuccess = useCallback(() => {
     if (navigateSettingsOnSignUp && isSignUpRef.current) {
@@ -89,7 +89,7 @@ export const AuthEmailScreen: React.FC = () => {
   const handleSubmit = useCallback(async () => {
     if (signOutFirst) {
       try {
-        await signOutMutation.mutateAsync();
+        await signOut();
         storage.remove(LAST_ROOM_CODE_KEY);
         await refreshUser();
       } catch (e: unknown) {
@@ -106,7 +106,7 @@ export const AuthEmailScreen: React.FC = () => {
       }
     }
     await handleEmailAuth();
-  }, [signOutFirst, signOutMutation, refreshUser, handleEmailAuth]);
+  }, [signOutFirst, signOut, refreshUser, handleEmailAuth]);
 
   const handleShowForgotPassword = useCallback(() => {
     navigation.navigate('AuthForgotPassword', { email });
@@ -130,7 +130,7 @@ export const AuthEmailScreen: React.FC = () => {
           password={password}
           displayName={displayName}
           authError={authError}
-          authLoading={isSubmitting || signOutMutation.isPending}
+          authLoading={isSubmitting || isSignOutPending}
           onEmailChange={setEmail}
           onPasswordChange={setPassword}
           onDisplayNameChange={setDisplayName}

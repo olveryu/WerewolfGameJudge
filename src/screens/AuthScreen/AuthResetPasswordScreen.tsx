@@ -34,14 +34,14 @@ export const AuthResetPasswordScreen: React.FC = () => {
 
   const { email } = route.params;
   const { refreshUser } = useAuthContext();
-  const resetPasswordMutation = useResetPassword();
-  const forgotPasswordMutation = useForgotPassword();
+  const { mutateAsync: resetPassword, isPending: isResetPending } = useResetPassword();
+  const { mutateAsync: forgotPassword, isPending: isForgotPending } = useForgotPassword();
 
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const isLoading = resetPasswordMutation.isPending || forgotPasswordMutation.isPending;
+  const isLoading = isResetPending || isForgotPending;
 
   const handleSubmit = useCallback(async () => {
     if (!code || !newPassword) {
@@ -54,7 +54,7 @@ export const AuthResetPasswordScreen: React.FC = () => {
     }
     setError(null);
     try {
-      await resetPasswordMutation.mutateAsync({ email, code, newPassword });
+      await resetPassword({ email, code, newPassword });
       await refreshUser();
       toast.success('密码重置成功');
       // Pop all auth modal screens back to the original caller
@@ -64,18 +64,18 @@ export const AuthResetPasswordScreen: React.FC = () => {
       authLog.warn('Reset password failed', { message });
       setError(message);
     }
-  }, [email, code, newPassword, resetPasswordMutation, refreshUser, navigation]);
+  }, [email, code, newPassword, resetPassword, refreshUser, navigation]);
 
   const handleResend = useCallback(async () => {
     setError(null);
     try {
-      await forgotPasswordMutation.mutateAsync(email);
+      await forgotPassword(email);
       toast.success('验证码已重新发送');
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       setError(message);
     }
-  }, [email, forgotPasswordMutation]);
+  }, [email, forgotPassword]);
 
   const handleBack = useCallback(() => {
     navigation.goBack();

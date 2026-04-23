@@ -31,20 +31,20 @@ export const AuthForgotPasswordScreen: React.FC = () => {
     useNavigation<NativeStackNavigationProp<RootStackParamList, 'AuthForgotPassword'>>();
   const route = useRoute<RouteProp>();
 
-  const forgotPasswordMutation = useForgotPassword();
+  const { mutateAsync: forgotPassword, isPending: isForgotPending } = useForgotPassword();
 
   const [email, setEmail] = useState(route.params?.email ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = useCallback(async () => {
-    if (forgotPasswordMutation.isPending) return;
+    if (isForgotPending) return;
     if (!email) {
       toast.warning('请输入邮箱');
       return;
     }
     setError(null);
     try {
-      await forgotPasswordMutation.mutateAsync(email);
+      await forgotPassword(email);
       toast.success('验证码已发送，请查看邮箱');
       navigation.navigate('AuthResetPassword', { email });
     } catch (e: unknown) {
@@ -52,7 +52,7 @@ export const AuthForgotPasswordScreen: React.FC = () => {
       authLog.warn('Forgot password failed', { message });
       setError(message);
     }
-  }, [email, forgotPasswordMutation, navigation]);
+  }, [email, forgotPassword, isForgotPending, navigation]);
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -64,7 +64,7 @@ export const AuthForgotPasswordScreen: React.FC = () => {
         <ForgotPasswordForm
           email={email}
           authError={error}
-          authLoading={forgotPasswordMutation.isPending}
+          authLoading={isForgotPending}
           onEmailChange={setEmail}
           onSubmit={() => {
             void handleSubmit();

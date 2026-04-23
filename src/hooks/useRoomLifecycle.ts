@@ -77,7 +77,7 @@ interface RoomLifecycleDeps {
 export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   const { facade, authService, user: authUser, setRoomRecord } = deps;
   const queryClient = useQueryClient();
-  const joinRoomMutation = useJoinRoom();
+  const { mutateAsync: joinRoomAsync } = useJoinRoom();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +155,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         }
 
         // Check if room exists
-        const record = await joinRoomMutation.mutateAsync(roomCode);
+        const record = await joinRoomAsync(roomCode);
         if (!record) {
           setError('房间不存在');
           // 防御性清理：房间已不存在，清除过时的 lastRoomCode
@@ -202,7 +202,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         setLoading(false);
       }
     },
-    [facade, authService, joinRoomMutation, setRoomRecord],
+    [facade, authService, joinRoomAsync, setRoomRecord],
   );
 
   // Leave the current room

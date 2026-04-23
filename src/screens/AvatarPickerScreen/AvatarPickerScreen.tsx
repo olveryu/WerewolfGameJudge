@@ -128,8 +128,8 @@ export const AvatarPickerScreen: React.FC = () => {
   const styles = useMemo(() => createAvatarPickerScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AvatarPicker'>>();
   const { user, refreshUser } = useAuth();
-  const updateProfileMutation = useUpdateProfile();
-  const uploadAvatarMutation = useUploadAvatar();
+  const { mutateAsync: updateProfile } = useUpdateProfile();
+  const { mutateAsync: uploadAvatar } = useUploadAvatar();
   const facade = useGameFacade();
   const { connectionStatus } = useConnectionStatus(facade);
   const isInRoom = connectionStatus === ConnectionStatus.Live;
@@ -425,7 +425,7 @@ export const AvatarPickerScreen: React.FC = () => {
       if (!result.canceled && result.assets[0]) {
         setSaving(true);
         try {
-          const url = await uploadAvatarMutation.mutateAsync(result.assets[0].uri);
+          const url = await uploadAvatar(result.assets[0].uri);
           await refreshUser();
           toast.success('头像已更新');
 
@@ -449,7 +449,7 @@ export const AvatarPickerScreen: React.FC = () => {
       settingsLog.warn('Image picker failed', { message }, e);
       showErrorAlert('选择图片失败', message);
     }
-  }, [uploadAvatarMutation, refreshUser, facade, isInRoom, navigation]);
+  }, [uploadAvatar, refreshUser, facade, isInRoom, navigation]);
 
   const handleConfirm = useCallback(async () => {
     setSaving(true);
@@ -495,7 +495,7 @@ export const AvatarPickerScreen: React.FC = () => {
       if (newFlair !== undefined) profilePatch.seatFlair = newFlair;
       if (newNameStyle !== undefined) profilePatch.nameStyle = newNameStyle;
       if (Object.keys(profilePatch).length > 0) {
-        await updateProfileMutation.mutateAsync(profilePatch);
+        await updateProfile(profilePatch);
         await refreshUser();
       }
 
@@ -536,7 +536,7 @@ export const AvatarPickerScreen: React.FC = () => {
     selectedFlair,
     selectedNameStyle,
     user?.customAvatarUrl,
-    updateProfileMutation,
+    updateProfile,
     refreshUser,
     facade,
     isInRoom,

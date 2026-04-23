@@ -235,7 +235,7 @@ export function useConfigScreenState({
     setSelectedTemplate('__custom__');
   }, []);
 
-  const createRoomMutation = useCreateRoom();
+  const { mutateAsync: createRoom } = useCreateRoom();
   const creatingRef = useRef(false);
   const handleCreateRoom = useCallback(async () => {
     if (creatingRef.current || isLoading) return;
@@ -300,7 +300,7 @@ export function useConfigScreenState({
           navigation.navigate('Home');
           return;
         }
-        const record = await createRoomMutation.mutateAsync({
+        const record = await createRoom({
           hostUserId,
           buildInitialState: (roomCode) => buildInitialGameState(roomCode, hostUserId, template),
         });
@@ -335,7 +335,7 @@ export function useConfigScreenState({
     bgmEnabled,
     isLoading,
     authService,
-    createRoomMutation,
+    createRoom,
     variantOverrides,
     user?.displayName,
   ]);

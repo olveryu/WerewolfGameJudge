@@ -47,7 +47,7 @@ export function GachaScreen({ navigation }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const { data: status, isLoading } = useGachaStatusQuery();
-  const drawMutation = useDrawMutation();
+  const { mutate: draw, isPending: isDrawPending } = useDrawMutation();
 
   const machineRef = useRef<CapsuleMachineRef>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -80,7 +80,7 @@ export function GachaScreen({ navigation }: Props) {
   // ── Draw handler ──────────────────────────────────────────────────────
   const handleDraw = useCallback(
     (drawType: 'normal' | 'golden', count: number) => {
-      if (isAnimating || drawMutation.isPending) return;
+      if (isAnimating || isDrawPending) return;
 
       setCurrentDrawType(drawType);
       setLastResults([]);
@@ -93,7 +93,7 @@ export function GachaScreen({ navigation }: Props) {
         machineRef.current?.startAnimation(drawType, count);
       }
 
-      drawMutation.mutate(
+      draw(
         { drawType, count },
         {
           onSuccess: (data) => {
@@ -118,7 +118,7 @@ export function GachaScreen({ navigation }: Props) {
         },
       );
     },
-    [isAnimating, drawMutation, reducedMotion],
+    [isAnimating, draw, isDrawPending, reducedMotion],
   );
 
   const handleCloseTenOverlay = useCallback(() => {
@@ -145,7 +145,7 @@ export function GachaScreen({ navigation }: Props) {
   const goldenPity = status?.goldenPity ?? 0;
   const unlockedCount = status?.unlockedCount ?? 0;
   const totalItems = TOTAL_UNLOCKABLE_COUNT;
-  const busy = isAnimating || drawMutation.isPending;
+  const busy = isAnimating || isDrawPending;
 
   // ── Loading ───────────────────────────────────────────────────────────
   if (isLoading) {

@@ -62,9 +62,9 @@ export function useAuthForm({
   showSuccessOnLogin,
 }: UseAuthFormOptions): AuthFormResult {
   const { user, refreshUser } = useAuth();
-  const signInAnonymousMutation = useSignInAnonymously();
-  const signUpWithEmailMutation = useSignUpWithEmail();
-  const signInWithEmailMutation = useSignInWithEmail();
+  const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
+  const { mutateAsync: signUpWithEmail, isPending: isSignUpPending } = useSignUpWithEmail();
+  const { mutateAsync: signInWithEmail, isPending: isSignInPending } = useSignInWithEmail();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,7 +87,7 @@ export function useAuthForm({
     try {
       if (isSignUp) {
         const wasAnonymous = user?.isAnonymous;
-        await signUpWithEmailMutation.mutateAsync({
+        await signUpWithEmail({
           email,
           password,
           displayName: displayName || undefined,
@@ -100,7 +100,7 @@ export function useAuthForm({
           toast.success('注册成功');
         }
       } else {
-        await signInWithEmailMutation.mutateAsync({ email, password });
+        await signInWithEmail({ email, password });
         await refreshUser();
         if (showSuccessOnLogin) {
           toast.success('登录成功');
@@ -119,8 +119,8 @@ export function useAuthForm({
     displayName,
     isSignUp,
     user?.isAnonymous,
-    signUpWithEmailMutation,
-    signInWithEmailMutation,
+    signUpWithEmail,
+    signInWithEmail,
     refreshUser,
     onSuccess,
     resetForm,
@@ -130,7 +130,7 @@ export function useAuthForm({
 
   const handleAnonymousLogin = useCallback(async () => {
     try {
-      await signInAnonymousMutation.mutateAsync();
+      await signInAnonymously();
       await refreshUser();
       if (showSuccessOnLogin) {
         toast.success('登录成功');
@@ -141,12 +141,9 @@ export function useAuthForm({
       logger.warn('Anonymous login failed:', message);
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymousMutation, refreshUser, onSuccess, logger, showSuccessOnLogin]);
+  }, [signInAnonymously, refreshUser, onSuccess, logger, showSuccessOnLogin]);
 
-  const isSubmitting =
-    signInAnonymousMutation.isPending ||
-    signUpWithEmailMutation.isPending ||
-    signInWithEmailMutation.isPending;
+  const isSubmitting = isAnonymousPending || isSignUpPending || isSignInPending;
 
   const toggleSignUp = useCallback(() => {
     setIsSignUp((prev) => !prev);

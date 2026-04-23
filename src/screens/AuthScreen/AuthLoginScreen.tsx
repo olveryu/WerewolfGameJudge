@@ -32,7 +32,7 @@ export const AuthLoginScreen: React.FC = () => {
   const route = useRoute<RouteProp>();
 
   const { loading: authLoading, refreshUser } = useAuthContext();
-  const signInAnonymousMutation = useSignInAnonymously();
+  const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
 
   const loginTitle = route.params?.loginTitle ?? '登录';
   const loginSubtitle = route.params?.loginSubtitle;
@@ -51,7 +51,7 @@ export const AuthLoginScreen: React.FC = () => {
 
   const handleAnonymousLogin = useCallback(async () => {
     try {
-      await signInAnonymousMutation.mutateAsync();
+      await signInAnonymously();
       await refreshUser();
       toast.success('登录成功');
       navigation.goBack();
@@ -60,7 +60,7 @@ export const AuthLoginScreen: React.FC = () => {
       authLog.warn('Anonymous login failed', { message });
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymousMutation, refreshUser, navigation]);
+  }, [signInAnonymously, refreshUser, navigation]);
 
   const handleCancel = useCallback(() => {
     navigation.goBack();
@@ -74,7 +74,7 @@ export const AuthLoginScreen: React.FC = () => {
     <View style={styles.modalOverlay}>
       <View style={styles.modalContent}>
         <LoginOptions
-          authLoading={authLoading || signInAnonymousMutation.isPending}
+          authLoading={authLoading || isAnonymousPending}
           title={loginTitle}
           subtitle={loginSubtitle}
           onEmailSignUp={handleEmailSignUp}

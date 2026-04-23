@@ -61,10 +61,10 @@ export const SettingsScreen: React.FC = () => {
   const styles = useMemo(() => createSettingsScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Settings'>>();
   const { user, isAuthenticated, loading: authLoading, refreshUser } = useAuth();
-  const signOutMutation = useSignOut();
-  const signInAnonymousMutation = useSignInAnonymously();
-  const updateProfileMutation = useUpdateProfile();
-  const changePasswordMutation = useChangePassword();
+  const { mutateAsync: signOut } = useSignOut();
+  const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
+  const { mutateAsync: updateProfile } = useUpdateProfile();
+  const { mutateAsync: changePassword } = useChangePassword();
   const facade = useGameFacade();
 
   // Room context: subscribe to facade state for reactive canSwitchAccount
@@ -140,7 +140,7 @@ export const SettingsScreen: React.FC = () => {
   const handleSignOut = useCallback(async () => {
     try {
       wasAuthenticatedRef.current = false;
-      await signOutMutation.mutateAsync();
+      await signOut();
       storage.remove(LAST_ROOM_CODE_KEY);
       await refreshUser();
     } catch (e: unknown) {
@@ -148,7 +148,7 @@ export const SettingsScreen: React.FC = () => {
       settingsLog.error('Sign out failed', { message }, e);
       showErrorAlert('退出失败', message);
     }
-  }, [signOutMutation, refreshUser]);
+  }, [signOut, refreshUser]);
 
   const handlePickAvatar = useCallback(() => {
     navigation.navigate('AvatarPicker');
@@ -174,7 +174,7 @@ export const SettingsScreen: React.FC = () => {
             return;
           }
           try {
-            await updateProfileMutation.mutateAsync({ displayName: trimmed });
+            await updateProfile({ displayName: trimmed });
             await refreshUser();
             toast.success('昵称已更新');
             facade
@@ -188,7 +188,7 @@ export const SettingsScreen: React.FC = () => {
         })();
       },
     });
-  }, [user?.displayName, updateProfileMutation, refreshUser, facade]);
+  }, [user?.displayName, updateProfile, refreshUser, facade]);
 
   /** 匿名用户「绑定邮箱」：直接进入注册模式 */
   const handleShowUpgradeForm = useCallback(() => {
@@ -275,7 +275,7 @@ export const SettingsScreen: React.FC = () => {
 
   const handleAnonymousLogin = useCallback(async () => {
     try {
-      await signInAnonymousMutation.mutateAsync();
+      await signInAnonymously();
       await refreshUser();
       toast.success('登录成功');
     } catch (e: unknown) {
@@ -283,7 +283,7 @@ export const SettingsScreen: React.FC = () => {
       settingsLog.warn('Anonymous login failed', { message });
       showErrorAlert('登录失败', message);
     }
-  }, [signInAnonymousMutation, refreshUser]);
+  }, [signInAnonymously, refreshUser]);
 
   const handleBrowseAvatars = useCallback(() => {
     navigation.navigate('AvatarPicker');
@@ -500,7 +500,7 @@ export const SettingsScreen: React.FC = () => {
           {user?.email && showChangePassword ? (
             <ChangePasswordForm
               onSubmit={async (oldPw, newPw) => {
-                await changePasswordMutation.mutateAsync({
+                await changePassword({
                   oldPassword: oldPw,
                   newPassword: newPw,
                 });
@@ -560,7 +560,7 @@ export const SettingsScreen: React.FC = () => {
 
     return (
       <LoginOptions
-        authLoading={authLoading || signInAnonymousMutation.isPending}
+        authLoading={authLoading || isAnonymousPending}
         onEmailSignUp={handleEmailSignUp}
         onEmailSignIn={handleEmailSignIn}
         onAnonymousLogin={() => {
