@@ -35,6 +35,7 @@ Sentry.init({
   release: `werewolfjudge@${APP_VERSION}`,
   // Disable in development to avoid noise
   enabled: !__DEV__,
+  debug: true, // TEMPORARY: diagnose missing Performance data
   environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
   tracesSampleRate: 0.5,
   integrations: getSentryIntegrations(),
