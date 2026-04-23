@@ -97,7 +97,7 @@ interface UseInteractionDispatcherResult {
   /** Display name from roster (for bots or offline render without API) */
   profileCardRosterName: string;
   closeProfileCard: () => void;
-  handleProfileKick: (seat: number) => void;
+  handleProfileKick: ((seat: number) => void) | undefined;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -150,22 +150,27 @@ export function useInteractionDispatcher({
     setProfileCardVisible(false);
   }, []);
 
-  const handleProfileKick = useCallback(
-    (seat: number) => {
-      const player = gameState?.players.get(seat);
-      const playerName = player?.displayName ?? `${seat + 1}号座位`;
-      roomScreenLog.debug('handleProfileKick', { seat });
-      showDestructiveAlert('移出座位', `确定要将 ${playerName} 移出座位吗？`, '移出', () => {
-        void kickPlayer(seat).catch((err) => {
-          handleError(err, {
-            label: 'kickPlayer',
-            logger: roomScreenLog,
-            alertTitle: '移出失败',
-          });
-        });
-      });
-    },
-    [gameState, kickPlayer],
+  const canKick = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
+
+  const handleProfileKick = useMemo(
+    () =>
+      canKick
+        ? (seat: number) => {
+            const player = gameState?.players.get(seat);
+            const playerName = player?.displayName ?? `${seat + 1}号座位`;
+            roomScreenLog.debug('handleProfileKick', { seat });
+            showDestructiveAlert('移出座位', `确定要将 ${playerName} 移出座位吗？`, '移出', () => {
+              void kickPlayer(seat).catch((err) => {
+                handleError(err, {
+                  label: 'kickPlayer',
+                  logger: roomScreenLog,
+                  alertTitle: '移出失败',
+                });
+              });
+            });
+          }
+        : undefined,
+    [canKick, gameState, kickPlayer],
   );
 
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
